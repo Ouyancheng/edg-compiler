@@ -570,7 +570,8 @@ See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
   a_type_ptr          required_type;
   char                *fmt_string = *fmt_string_ptr;
   a_printf_scan_state pss = *pss_ptr;
-  a_boolean           l_size, L_size, h_size, add_pointer, suppress_assignment;
+  a_boolean           l_size, L_size, h_size, add_pointer;
+  a_boolean           suppress_assignment = FALSE;
 
   /* Pick up in the middle if the previous call returned a field width
      or precision. */
