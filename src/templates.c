@@ -9272,12 +9272,26 @@ semicolon terminating the template declaration is left as the current token;
 otherwise, it is consumed.
 */
 {
+  an_extern_linkage   saved_linkage;
+
   db_enter(3, "template_directive_or_declaration");
   if (next_token() == tok_lt) {
     /* The template keyword is followed by a template parameter list.
        This is a template declaration or a specialization using the new
        specialization syntax. */
+    /* Save the current default linkage. */
+    saved_linkage = def_external_linkage;
+    /* Issue an error if this is not C++ linkage. */
+    if (def_external_linkage.kind !=
+                        (a_name_linkage_kind)nlk_cplusplus_external) {
+      pos_error(ec_bad_linkage_for_decl, &pos_curr_token);
+      def_external_linkage.kind = (a_name_linkage_kind)nlk_cplusplus_external;
+      def_external_linkage.is_explicit = FALSE;
+    }  /* if */
+    /* Scan the declaration. */
     template_or_specialization_declaration(no_advance_past_final_token);
+    /* Restore the linkage. */
+    def_external_linkage = saved_linkage;
   } else {
     /* There is no template parameter list, this must be an explicit
        instantiation. */
