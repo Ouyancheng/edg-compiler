@@ -1,5 +1,19 @@
 Version 2.46
 
+6/29/01  Diagnostic on missing return statement
+
+The front end used to issue an error in struct C++ mode when a value-returning
+function did not end with a return or throw statement.  The C++ standard does
+however allow such functions provided execution does not flow off the end of
+the function body.
+
+  int f() { g(); }  // Used to trigger an error in strict C++ mode, but
+                    // the function might end with an exception propagated
+                    // from the call to "g()"
+
+The diagnostic has been reduced to a warning in strict C++ mode.  It remains
+an error in C99 mode.
+
 6/29/01  C++-generating back end: spurious qualifier in anachronisms mode
 
 In anachronisms mode, the C++-generating back end used to generate a
