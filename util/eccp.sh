@@ -554,6 +554,7 @@ check_abbreviation()
 --extern_inline
 --far_code_pointers
 --far_data_pointers
+--fixed_point
 --force_vtbl
 --friend_injection
 --g++
@@ -1189,6 +1190,7 @@ process_option()
 	 --upc_relaxed | \
 	 --upc_strict | \
 	 --short_enums | \
+         --fixed_point | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
