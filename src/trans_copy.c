@@ -389,36 +389,37 @@ and remap the pointers in the copy by calling remap_function.
     if (scp != NULL) {
       a_trans_unit_corresp_ptr tucp = scp->trans_unit_corresp;
       if (tucp != NULL && !in_secondary_trans_unit(copy)) {
+        char *entry_on_list = tucp->entry_on_copied_list;
         /* This entry is the canonical one, so update the canonical pointer
            to point to the copy in the primary IL.  For the "merge" case,
            the overwrite_primary_xxx routine updates the canonical pointer. */
         check_assertion(tucp->canonical == ptr);
         tucp->canonical = copy;
-        if (tucp->entry_on_copied_list != NULL &&
-            tucp->entry_on_copied_list != ptr) {
+        if (entry_on_list != NULL &&
+            entry_on_list != ptr) {
           /* Set the "next" pointer in the copied entry to point to the
              entry that follows on the copy of the parent list being copied. */
           char *next_ptr;
           char **copy_next_ptr;
           switch (kind) {
             case iek_type:
-              next_ptr = (char *)((a_type_ptr)ptr)->next;
+              next_ptr = (char *)((a_type_ptr)entry_on_list)->next;
               copy_next_ptr = (char **)&((a_type_ptr)copy)->next;
               break;
             case iek_variable:
-              next_ptr = (char *)((a_variable_ptr)ptr)->next;
+              next_ptr = (char *)((a_variable_ptr)entry_on_list)->next;
               copy_next_ptr = (char **)&((a_variable_ptr)copy)->next;
               break;
             case iek_routine:
-              next_ptr = (char *)((a_routine_ptr)ptr)->next;
+              next_ptr = (char *)((a_routine_ptr)entry_on_list)->next;
               copy_next_ptr = (char **)&((a_routine_ptr)copy)->next;
               break;
             case iek_namespace:
-              next_ptr = (char *)((a_namespace_ptr)ptr)->next;
+              next_ptr = (char *)((a_namespace_ptr)entry_on_list)->next;
               copy_next_ptr = (char **)&((a_namespace_ptr)copy)->next;
               break;
             case iek_template:
-              next_ptr = (char *)((a_template_ptr)ptr)->next;
+              next_ptr = (char *)((a_template_ptr)entry_on_list)->next;
               copy_next_ptr = (char **)&((a_template_ptr)copy)->next;
               break;
             default:
