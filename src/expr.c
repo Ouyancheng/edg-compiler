@@ -6332,10 +6332,10 @@ or
 
 static a_boolean conversion_has_one_argument(void)
 /*
-The current token position is a type identifier for a class that is
-the start of a functional-notation cast.  Look ahead in the input and
-determine the number of arguments of the conversion.  If the conversion
-has exactly one argument, return TRUE; otherwise, return FALSE.
+The current token position is the opening parenthesis of a
+functional-notation cast.  Look ahead in the input and determine the
+number of arguments of the conversion.  If the conversion has exactly
+one argument, return TRUE; otherwise, return FALSE.
 */
 {
   a_boolean          one_arg = FALSE;
@@ -6343,10 +6343,6 @@ has exactly one argument, return TRUE; otherwise, return FALSE.
   a_token_set_array  stop_tokens;
 
   clear_token_cache(&cache, /*reusable=*/FALSE);
-  /* Put the class name token in the cache. */
-  cache_curr_token(&cache);
-  /* Advance to the "(". */
-  (void)get_token();
   if (curr_token == tok_lparen) {
     cache_curr_token(&cache);
     /* Get the first token inside the parentheses. */
