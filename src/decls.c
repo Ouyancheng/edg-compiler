@@ -3839,7 +3839,7 @@ on for use in generating cross-reference output describing this declaration.
                                 (a_name_linkage_kind)nlk_internal :
                                 (a_name_linkage_kind)nlk_cplusplus_external;
           routine_ptr->is_specialized = TRUE;
-          routine_ptr->specialized_with_old_syntax;
+          routine_ptr->specialized_with_old_syntax = TRUE;
         } else {
           /* There is already a definition.  This is some sort of error. */
           if (sym->variant.routine.ptr->is_specialized) {
