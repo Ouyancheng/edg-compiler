@@ -1,5 +1,10 @@
 Version 3.0
 
+4/29/02  .ti file should only be created when using automatic instantiation
+
+The front end created a .ti file even when automatic instantiation was
+disabled.  This has been fixed.
+
 4/28/02  C++-generating back end: condition declaration must always
          have initializer
 

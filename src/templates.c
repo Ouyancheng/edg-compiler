@@ -962,7 +962,8 @@ already exists.
       str_catastrophe(ec_file_write_error, "template information file");
     }  /* if */
   }  /* if */
-  if (!any_instantiations_required() || total_errors != 0) {
+  if (!automatic_instantiation_mode ||
+      !any_instantiations_required() || total_errors != 0) {
     /* If there were no instantiations, delete any old version of the
        template information file.  The file is also deleted if any
        errors occurred during this compilation. */
