@@ -514,8 +514,8 @@ if n is supplied or to the value associated with the last entry popped.
 
 void set_max_member_alignment_for_class(a_type_ptr  class_type)
 /*
-Record the current "pack alignment" in indicated class type entry.  It will
-be the value set by the most recent #pragma pack directive or else the
+Record the current "pack alignment" in the indicated class type entry.  It
+will be the value set by the most recent #pragma pack directive or else the
 default value (if any) set on the command line.
 */
 {
