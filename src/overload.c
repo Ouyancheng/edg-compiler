@@ -2546,12 +2546,17 @@ arguments of the call (given by arg_operand_list).
     base_surrogate_function_conv_sym =
                             fundamental_symbol_of(surrogate_function_conv_sym);
     /* Consider only conversion functions to pointer to function type or
-       reference to function type. */
+       reference to function type or reference to pointer to function type. */
     routine_type = base_surrogate_function_conv_sym->variant.routine.ptr->type;
     routine_type = skip_typerefs(routine_type);
     conversion_type = routine_type->variant.routine.return_type;
     if (is_ptr_or_ref_type(conversion_type)) {
       a_type_ptr underlying_type = type_pointed_to(conversion_type);
+      if (is_reference_type(conversion_type) &&
+          is_pointer_type(underlying_type)) {
+        /* Deal with the reference-to-pointer case. */
+        underlying_type = type_pointed_to(underlying_type);
+      }  /* if */
       underlying_type = skip_typerefs(underlying_type);
       if (is_function_type(underlying_type)) {
         determine_function_viability((a_symbol_ptr)NULL,
@@ -5528,10 +5533,16 @@ routine is called only in C++ mode.
     /* See whether the conversion function returns a reference type. */
     if (arg_match_list->conversion.result_is_an_lvalue) {
       routine_type = conversion_type;
+      if (is_pointer_type(routine_type)) {
+        /* Deal with the case of a conversion function returning a
+           reference to pointer to function. */
+        routine_type = type_pointed_to(conversion_type);
+        conv_lvalue_to_rvalue(function_operand);
+      }  /* if */
     } else {
       routine_type = type_pointed_to(conversion_type);
-      routine_type = skip_typerefs(routine_type);
     }  /* if */
+    routine_type = skip_typerefs(routine_type);
     have_selector = FALSE;
   }  /* if */
   if (!single_function) {
