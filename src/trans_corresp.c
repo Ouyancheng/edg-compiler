@@ -2927,8 +2927,15 @@ are not checked.
             /* Do not set up a correspondence in this case because it could
                confuse master instance processing (the compiler generated
                case has no instance pointer). */
-            set_no_trans_unit_corresp(iek_routine, routine);
             report_bad_trans_unit_corresp(type);
+            if (trans_unit_corresp_of(routine) == NULL ||
+                (a_routine_ptr)canonical_il_entry_of(routine) != routine) {
+              set_no_trans_unit_corresp(iek_routine, routine);
+            } else if (trans_unit_corresp_of(routine) == NULL ||
+                       (a_routine_ptr)canonical_il_entry_of(corresp_routine) !=
+                                                             corresp_routine) {
+              set_no_trans_unit_corresp(iek_routine, corresp_routine);
+            }  /* if */
           }  /* if */
           /* This could be a member of a template class.  If we're dealing
              with a prototype instantiation, this is a good opportunity to
