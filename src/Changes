@@ -1,5 +1,27 @@
 Version 2.32
 
+3/4/96    C++-generating back end: fix to deal with cfront bug
+
+cfront has a bug in initialization of static data members that are
+classes with constructors: it fails to activate the member names for
+the class so they can be found as unqualified names.  For example:
+
+  struct A { A(int); };
+  struct B {
+    static A a;
+    static int i;
+  };
+  int i;
+  A B::a = i;  // cfront incorrectly finds the global "i"
+
+The programmer can code around this bug in cfront by using a qualified name
+for the member, but when such a program is run through the C++-generating back
+end the qualifier is removed (because it is not necessary).  That makes the
+output bump into the bug again.  Because of this, the C++-generating back end
+has been changed to output qualified names within the initializer for a
+static data member initialized via a constructor, even though such qualifiers
+are not, strictly speaking, necessary.
+
 3/1/96    Internal error reporting error in invalid class template
           default argument
 
