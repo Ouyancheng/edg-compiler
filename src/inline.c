@@ -151,47 +151,28 @@ attributes of var to temp_var.
 }  /* transfer_variable_attributes_to_temporary */
 
 
-/*
-Return TRUE if the indicated variable has a non-null address.  We assume
-that extern variables might have zero addresses through linker magic (e.g.,
-weak externals).
-*/
-#define variable_has_non_null_address(variable)                       \
-  ((variable)->storage_class != (a_storage_class)sc_extern)
-
-
-static a_boolean expr_is_non_null(an_expr_node_ptr expr)
-/*
-Return TRUE if the indicated expression (a constant or the address of a
-variable) does not have a null value.
-*/
-{
-  a_boolean is_non_null;
-
-  if (is_constant_node(expr)) {
-    is_non_null = !is_false_constant(expr->variant.constant);
-  } else if (is_variable_address_node(expr)) {
-    is_non_null = variable_has_non_null_address(expr->variant.variable);
-  } else {
-    unexpected_condition();
-  }  /* if */
-  return is_non_null;
-}  /* expr_is_non_null */
-
-
-static a_boolean is_constant_valued_expression(an_expr_node_ptr expr)
+static a_boolean is_constant_valued_expression(an_expr_node_ptr expr,
+                                               a_boolean        *is_non_null)
 /*
 Return TRUE if the indicated expression has a constant value over the
 duration of an inlined call.  That includes things like addresses of
-automatic variables.
+automatic variables.  If the expression is constant valued and the value
+is not null, return *is_non_null TRUE.
 */
 {
   a_boolean is_constant_valued = FALSE;
 
+  *is_non_null = FALSE;
   if (is_constant_node(expr)) {
     is_constant_valued = TRUE;
+    *is_non_null = !is_false_constant(expr->variant.constant);
   } else if (is_variable_address_node(expr)) {
     is_constant_valued = TRUE;
+    /* We assume that variables other than extern variables have non-null
+       addresses.  extern variables might have zero addresses because of
+       linker magic like weak externals. */
+    *is_non_null = (expr->variant.variable->storage_class !=
+                    (a_storage_class)sc_extern);
   } else if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
     if (op == (an_expr_operator_kind)eok_field) {
@@ -199,7 +180,8 @@ automatic variables.
          which it is based is constant-valued.  This is important for
          base-class field selections. */
       is_constant_valued =
-               is_constant_valued_expression(expr->variant.operation.operands);
+               is_constant_valued_expression(expr->variant.operation.operands,
+                                             is_non_null);
     }  /* if */
   }  /* if */
   return is_constant_valued;
@@ -256,25 +238,34 @@ The code is inserted at *insert_location, and *insert_location is updated.
       /* See if the argument value is constant.  The address of a variable
          counts as a constant: even the address of an automatic variable is
          constant for the duration of a call. */
-      if (is_constant_valued_expression(arg) &&
-          ((!param_var->param_value_has_been_changed &&
-            !param_var->address_taken) ||
-          (param_var->is_this_parameter &&
-           routine->special_kind == (a_special_function_kind)sfk_constructor &&
-           expr_is_non_null(arg)
+      a_boolean is_non_null;
+      a_boolean arg_is_constant = is_constant_valued_expression(arg,
+                                                                &is_non_null);
+      /* See if the parameter is modified. */
+      a_boolean param_is_unmodified = FALSE;
+      a_boolean param_is_constructor_this = FALSE;
+      if (!param_var->param_value_has_been_changed) {
+        /* The parameter doesn't get changed or have its address taken. */
+        param_is_unmodified = TRUE;
+      } else if (param_var->is_this_parameter &&
+                 routine->special_kind ==
+                                       (a_special_function_kind)sfk_constructor
 #if ASSIGNMENT_TO_THIS_ALLOWED
-           && !routine->assignment_to_this_done
+                 && !routine->assignment_to_this_done
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-                                               ))) {
-        /* The argument is constant, and the parameter doesn't get changed
-           or have its address taken.  The constant can be used directly.
-           For the "this" parameter of a constructor, take advantage of
+                                                     ) {
+        /* For the "this" parameter of a constructor, take advantage of
            the fact that we know how it works, so we can eliminate the
            allocation code at the top of the routine even though there's
            an assignment to "this" in that code when it does the allocation.
            We can only do that if the value being assigned to "this" is
            non-null. */
-        /* The parameter gets remapped to a constant-valued expression. */
+        param_is_constructor_this = TRUE;
+        if (is_non_null) param_is_unmodified = TRUE;
+      }  /* if */
+      if (param_is_unmodified && arg_is_constant) {
+        /* The argument is constant-valued and the parameter is unmodified.
+           The parameter gets remapped to a constant-valued expression. */
         vrip->kind = vrk_constant_expr;
         vrip->variant.expr = arg;
       } else {
@@ -283,6 +274,13 @@ The code is inserted at *insert_location, and *insert_location is updated.
         temp_var = make_temporary_in_scope(param_var->type,
                                            (a_scope_ptr)NULL,
                                            /*force_static=*/FALSE);
+        /* Tag the temporary with regard to special attributes related to
+           the parameter. */
+        if (param_is_constructor_this) {
+          temp_var->is_temp_for_constructor_this_inlined_param = TRUE;
+        } else if (param_is_unmodified) {
+          temp_var->is_temp_for_unmodified_inlined_param = TRUE;
+        }  /* if */
         vrip->kind = vrk_temporary;
         vrip->variant.variable = temp_var;
         transfer_variable_attributes_to_temporary(param_var, temp_var);
@@ -319,6 +317,14 @@ The code is inserted at *insert_location, and *insert_location is updated.
       vrip->kind = vrk_temporary;
       vrip->variant.variable = temp_var;
       transfer_variable_attributes_to_temporary(var, temp_var);
+      /* If the variable is a temporary with special properties generated by
+         inlining during processing of the routine being expanded, transfer
+         information on the special properties to the temporary created
+         here. */
+      temp_var->is_temp_for_constructor_this_inlined_param =
+                               var->is_temp_for_constructor_this_inlined_param;
+      temp_var->is_temp_for_unmodified_inlined_param =
+                                     var->is_temp_for_unmodified_inlined_param;
 #if DEBUG
       if (debug_level >= 4) {
         if (first) {
@@ -573,18 +579,18 @@ variables.
       /* A special case where we can do folding even with a nonconstant
          operand: &variable != 0 is always 1.  The "== 0" case is
          always 0. */
-      if (is_variable_address_node(operand)) {
-        if (variable_has_non_null_address(operand->variant.variable)) {
-          operand = operand->next;
-          if (is_constant_node(operand) &&
-              is_false_constant(operand->variant.constant)) {
-            /* Yes, this is &auto_variable != NULL, which is always 1,
-               or the "== 0" case, which is always 0. */
-            has_constant_value = TRUE;
-            set_integer_constant(&constant,
-                                 (op == (an_expr_operator_kind)eok_pne)? 1L:0L,
-                                 (an_integer_kind)ik_int);
-          }  /* if */
+      a_boolean is_non_null;
+      if (is_constant_valued_expression(operand, &is_non_null) &&
+          is_non_null) {
+        operand = operand->next;
+        if (is_constant_node(operand) &&
+            is_false_constant(operand->variant.constant)) {
+          /* Yes, this is &auto_variable != NULL, which is always 1,
+             or the "== 0" case, which is always 0. */
+          has_constant_value = TRUE;
+          set_integer_constant(&constant,
+                               (op == (an_expr_operator_kind)eok_pne)? 1L : 0L,
+                               (an_integer_kind)ik_int);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -672,6 +678,55 @@ otherwise, do no copying and return FALSE.
         }  /* if */
       } else {
         unexpected_condition();
+      }  /* if */
+    }  /* if */
+  } else if (op == (an_expr_operator_kind)eok_iassign ||
+             op == (an_expr_operator_kind)eok_passign) {
+    /* If this is an assignment to a temporary with special properties
+       created previously by inlining, we may be able to do something
+       special. */
+    operand = expr->variant.operation.operands;
+    operand2 = operand->next;
+    if (is_variable_address_node(operand)) {
+      a_variable_ptr var = operand->variant.variable;
+      if (var->is_temp_for_constructor_this_inlined_param ||
+          var->is_temp_for_unmodified_inlined_param) {
+        /* This is a temporary with special properties.  If the value
+           being assigned to the temporary is constant (and non-null,
+           for the constructor "this" case), the temporary can be remapped
+           to the constant and eliminated.  Note that we are grabbing the
+           operation here before the subtree under it has been remapped,
+           so we can look at the original variable being assigned to. */
+        a_boolean is_non_null;
+        /* Copy the source operand with substitution and constant folding
+           so we can see if we have a constant. */
+        operand2 = copy_expr_tree(operand2);
+        processed = TRUE;
+        if (is_constant_valued_expression(operand2, &is_non_null) &&
+            (!var->is_temp_for_constructor_this_inlined_param ||
+             is_non_null)) {
+          a_variable_remapping_for_inlining_ptr vrip =
+                                           get_var_remapping_for_inlining(var);
+          a_constant                            constant;
+          check_assertion(vrip != NULL && vrip->kind == vrk_temporary);
+          /* Change the remapping of the temporary.  Note that changing the
+             remapping means that the temporary variable will not be
+             added to the scope at the end of the current inline expansion,
+             so the temporary disappears completely. */
+          vrip->kind = vrk_constant_expr;
+          vrip->variant.expr = operand2;
+          /* Eliminate the assignment node by replacing it with a zero
+             of the right type. */
+          make_zero_of_proper_type(expr->type, &constant);
+          set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
+          expr->variant.constant = alloc_shareable_constant(&constant);
+        } else {
+          /* The operation cannot be eliminated, so finish the rewriting,
+             leaving an updated assignment in place. */
+          operand = copy_expr_tree(operand);
+          operand->next = operand2;
+          expr->variant.operation.operands = operand;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
