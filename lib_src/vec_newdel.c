@@ -54,11 +54,12 @@ static a_vec_info_ptr _free_vec_info = NULL;
 				   structures. */
 #endif /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
 
+#ifndef __EDG_IA64_ABI
 EXTERN_C void _array_pointer_not_from_vec_new();
                                /* Function called when an invalid pointer that
                                   was not allocated by vec_new is passed
                                   to one of the vector handling routines. */
-
+#endif /* ifndef __EDG_IA64_ABI */
 
 struct an_array_alloc_eh_info {
   void*	array_ptr;
@@ -69,6 +70,9 @@ struct an_array_alloc_eh_info {
   a_sizeof_t
 		element_size;
 			/* Size of each element. */
+  a_sizeof_t
+		prefix_size;
+                        /* Size of the array prefix. */
   a_sizeof_t
 		elements_processed;
 			/* Number of elements constructed or destructed so
@@ -118,6 +122,7 @@ operation that is in process.
   aaehip->array_ptr                 = NULL;
   aaehip->number_of_elements        = 0;
   aaehip->element_size              = 0;
+  aaehip->prefix_size               = 0;
   aaehip->elements_processed        = 0;
   aaehip->is_vec_new                = is_vec_new;
   aaehip->free_memory_on_cleanup    = FALSE;
@@ -134,6 +139,7 @@ Structure used to record the size of an array that has been allocated.
 Space for this structure is reserved at the beginning of the block of
 memory allocated to hold the array.
 */
+#ifndef __EDG_IA64_ABI
 typedef struct an_alloc_prefix *an_alloc_prefix_ptr;
 struct an_alloc_prefix {
   size_t	size;
@@ -152,6 +158,10 @@ of the most strict alignment. */
 size_t	__array_new_prefix_size =
 		  ((sizeof(an_alloc_prefix) + MOST_STRICT_ALIGNMENT - 1) /
                                MOST_STRICT_ALIGNMENT) * MOST_STRICT_ALIGNMENT;
+#else /* defined(__EDG_IA64_ABI) */
+typedef size_t an_alloc_prefix;
+typedef an_alloc_prefix *an_alloc_prefix_ptr;
+#endif /* defined(__EDG_IA64_ABI) */
 #else /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
 /*
 No prefix is used in the alternate mode.
@@ -161,16 +171,18 @@ size_t	__array_new_prefix_size = 0;
 
 
 static inline void* alloc_array(size_t		size,
+                                size_t          prefix_size,
 			        a_new_ptr	new_routine)
 /*
 Call the allocation routine to allocate the memory for the array.  Adjust
 the size as needed to provide storage for the prefix information used to
-save the array size.
+save the array size.  The size of the prefix, if any, is given by
+prefix_size.
 */
 {
   void		*array_ptr;
   /* Increment the size to provide space for the prefix block. */
-  size += __array_new_prefix_size;
+  size += prefix_size;
   /* Allocate the memory using the appropriate new routine.  If a pointer
      was provided by the caller, use that one.  Otherwise, use the
      one specified by the ABI being used. */
@@ -185,7 +197,7 @@ save the array size.
   }  /* if */
   if (array_ptr != NULL) {
     /* Return a pointer to the part of the array after the prefix. */
-    array_ptr = (void*)(((char *)array_ptr) + __array_new_prefix_size);
+    array_ptr = (void*)(((char *)array_ptr) + prefix_size);
   }  /* if */
   return array_ptr;
 }  /* alloc_array */
@@ -193,18 +205,20 @@ save the array size.
 
 static void free_array(void*		array_ptr,
 		       size_t		size,
+                       size_t           prefix_size,
 		       a_delete_ptr	delete_routine,
 		       int		is_two_arg)
 /*
 Call the deallocation routine to free the memory for the array.  Adjust
 the size as needed to provide storage for the prefix information used to
-save the array size.
+save the array size.  The size of the prefix (if any) is given by
+prefix_size.
 */
 {
   /* Increment the size to provide space for the prefix block. */
-  size += __array_new_prefix_size;
+  size += prefix_size;
   /* Adjust the pointer to point to the start of the prefix. */
-  array_ptr = (void*)(((char *)array_ptr) - __array_new_prefix_size);
+  array_ptr = (void*)(((char *)array_ptr) - prefix_size);
   /* Free the memory using the appropriate new routine.  If a pointer
      was provided by the caller, use that one.  Otherwise, use the
      one specified by the ABI being used. */
@@ -229,7 +243,12 @@ save the array size.
 #if !USE_PREFIX_FOR_ARRAY_ALLOC_INFO
 /*ARGSUSED*/ /* <-- "number_of_elements" is only used when
                     USE_PREFIX_FOR_ARRAY_ALLOC_INFO is TRUE. */
-#endif /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
+#else /* USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
+#ifndef __EDG_IA64_ABI
+/*ARGSUSED*/ /* <-- "size" is not used in that case. */
+#endif /* ifndef __EDG_IA64_ABI */
+#endif /* USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
+
 static inline a_boolean record_array_alloc_info(void*	array_ptr,
 	   				        size_t	size,
 					        int	number_of_elements)
@@ -241,6 +260,7 @@ could not be recorded.
 {
 #if USE_PREFIX_FOR_ARRAY_ALLOC_INFO
   an_alloc_prefix_ptr	app;
+#ifndef __EDG_IA64_ABI
   /* Get a pointer to the prefix information and fill in the fields.
      The number of elements is saved as the complement of the actual
      value.  This is done so that zeroing out the prefix (as might happen
@@ -248,6 +268,10 @@ could not be recorded.
   app = (an_alloc_prefix_ptr)(((char *)array_ptr) - __array_new_prefix_size);
   app->size = size;
   app->encoded_number_of_elements = ~number_of_elements;
+#else /* defined(__EDG_IA64_ABI) */
+  app = ((an_alloc_prefix_ptr)array_ptr) - 1;
+  *app = (an_alloc_prefix)number_of_elements;
+#endif /* defined(__EDG_IA64_ABI) */
   return FALSE;
 #else /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
   a_vec_info_ptr	info_ptr;
@@ -291,6 +315,7 @@ whose size is to be determined.  element_size is the size of each element.
 #if USE_PREFIX_FOR_ARRAY_ALLOC_INFO
   an_alloc_prefix_ptr	app;
   size_t		size;
+#ifndef __EDG_IA64_ABI
   size_t		size_to_check;
   /* Get the size from the prefix.  Compute the size from the
      element count saved in the prefix and the element size passed
@@ -302,6 +327,10 @@ whose size is to be determined.  element_size is the size of each element.
   size = app->size;
   size_to_check = element_size * (~(app->encoded_number_of_elements));
   if (size != size_to_check) _array_pointer_not_from_vec_new();
+#else /* defined(__EDG_IA64_ABI) */
+  app = ((an_alloc_prefix_ptr)array_ptr) - 1;
+  size = *app * element_size;
+#endif /* defined(__EDG_IA64_ABI) */
   return size;
 #else /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
   a_vec_info_ptr        prev_ptr;
@@ -335,17 +364,19 @@ whose size is to be determined.  element_size is the size of each element.
 }  /* get_array_size */
 
 
-/*ARGSUSED*/ /* <-- "dtor" is only used when EXCEPTION_HANDLING is TRUE. */
+/*ARGSUSED*/ /* <-- "dtor" is only used when EXCEPTION_HANDLING is TRUE. 
+                    "prefix_size" is only used when
+                    USE_PREFIX_FOR_ARRAY_ALLOC_INFO is true. */
 static void *array_new_general(void                  *array_ptr,
                                int                   number_of_elements,
                                size_t                element_size,
+                               size_t                prefix_size,
                                void                  *src_array_ptr,
                                a_constructor_ptr     ctor,
                                a_destructor_ptr	     dtor,
 		               a_new_ptr	     new_routine,
                                a_delete_ptr          delete_routine,
 			       int		     is_two_arg,
-                               a_boolean	     record_array_info,
                                a_boolean             zero_init)
 /*
 Allocate storage for an array, then call a constructor for each
@@ -367,13 +398,11 @@ This is used by the exception handling mechanism for object cleanup
 if an exception is thrown while the array is being constructed.
 If there is no destructor then dtor is NULL and no cleanup is done.
 
-delete_routine is a pointer to the delete routine to be used to deallocate
-the space in the event that an exception is thrown during construction.
-is_two_arg is TRUE if delete_routine refers to a two argument version
-of the delete operator.  record_array_info is TRUE if the array size
-information should be saved even though an array_ptr value was provided.
-zero_init is TRUE if the memory should be cleared before invoking
-constructors.
+delete_routine is a pointer to the delete routine to be used to deallocate the
+space in the event that an exception is thrown during construction.
+is_two_arg is TRUE if delete_routine refers to a two argument version of the
+delete operator.  zero_init is TRUE if the memory should be cleared before
+invoking constructors.
 
 This routine needs to record the size of the array that was allocated so
 that the size is known when the array is deallocated.  One of two means
@@ -405,21 +434,23 @@ use.
      dynamically allocated. */
   create_eh_stack_entry = dtor != NULL || array_ptr == NULL;
 #endif /* EXCEPTION_HANDLING */
-  if (array_ptr == NULL || record_array_info) {
+  if (array_ptr == NULL || prefix_size) {
     a_boolean	err;
     array_size = number_of_elements * element_size;
     if (array_ptr == NULL) {
       /* Allocate the array if a pointer has not been supplied by the
          caller. */
-      array_ptr = alloc_array(array_size, new_routine);
+      array_ptr = alloc_array(array_size, prefix_size, new_routine);
       if (array_ptr == NULL) {
         goto error_exit;
       }  /* if */
     }  /* if */
     /* Record the array size information so that the array can be properly
        freed later. */
-    err = record_array_alloc_info(array_ptr, array_size, number_of_elements);
-    if (err) goto error_exit;
+    if (prefix_size != 0) {
+      err = record_array_alloc_info(array_ptr, array_size, number_of_elements);
+      if (err) goto error_exit;
+    }  /* if */
 #if ABI_COMPATIBILITY_VERSION >= 300
   } else if (zero_init) {
     array_size = number_of_elements * element_size;
@@ -436,6 +467,7 @@ use.
     aaehi.free_memory_on_cleanup = free_memory_on_cleanup;
     aaehi.number_of_elements     = number_of_elements;
     aaehi.element_size           = element_size;
+    aaehi.prefix_size            = prefix_size;
     aaehi.destructor		 = dtor;
     aaehi.delete_routine	 = delete_routine;
     aaehi.is_two_arg		 = is_two_arg;
@@ -492,7 +524,7 @@ error_exit:
   return array_ptr;
 }  /* array_new_general */
 
-
+#ifndef __EDG_IA64_ABI
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
 EXTERN_C void *__array_new(int                          number_of_elements,
                            size_t                       element_size,
@@ -509,9 +541,9 @@ routine is one that requires two arguments.
 */
 {
   return (array_new_general((void*)NULL, number_of_elements, element_size,
-                            (void*)NULL, ctor, dtor, new_routine,
-                            delete_routine, is_two_arg,
-                            /*record_array_info=*/FALSE, /*zero_init=*/FALSE));
+                            __array_new_prefix_size, (void*)NULL, ctor, dtor,
+                            new_routine, delete_routine, is_two_arg,
+                            /*zero_init=*/FALSE));
 }  /* __array_new */
 #endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 
@@ -531,9 +563,9 @@ information and to call the constructor for each array element.
 */
 {
   return (array_new_general(array_ptr, number_of_elements, element_size,
-                            (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
-                            (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
-                            /*record_array_info=*/TRUE, /*zero_init=*/FALSE));
+                            __array_new_prefix_size, (void*)NULL, ctor, dtor,
+                            (a_new_ptr)NULL, (a_delete_ptr)NULL,
+                            /*is_two_arg=*/FALSE, /*zero_init=*/FALSE));
 }  /* __placement_array_new */
 #endif /* ABI_COMPATIBILITY_VERSION >= 234 */
 
@@ -551,9 +583,10 @@ operator new.
 */
 {
   return (array_new_general(array_ptr, number_of_elements, element_size,
-                            (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
-                            (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
-                            /*record_array_info=*/FALSE, /*zero_init=*/FALSE));
+                            (array_ptr == NULL) ? __array_new_prefix_size : 0,
+                            (void*)NULL, ctor, dtor,
+                            (a_new_ptr)NULL, (a_delete_ptr)NULL,
+                            /*is_two_arg=*/FALSE, /*zero_init=*/FALSE));
 }  /* __vec_new_eh */
 
 
@@ -568,10 +601,10 @@ no destructor pointer is provided.
 */
 {
   return (array_new_general(array_ptr, number_of_elements, element_size,
-                            (void*)NULL, ctor, /*a_destructor_ptr*/NULL,
+                            (array_ptr == NULL) ? __array_new_prefix_size : 0,
+                            (void*)NULL, ctor, (a_destructor_ptr)NULL, 
                             (a_new_ptr)NULL, (a_delete_ptr)NULL,
-                            /*is_two_arg=*/FALSE,
-                            /*record_array_info=*/FALSE, /*zero_init=*/FALSE));
+                            /*is_two_arg=*/FALSE, /*zero_init=*/FALSE));
 }  /* __vec_new */
 
 
@@ -591,10 +624,10 @@ can never be zero.
 */
 {
   (void)array_new_general(array_ptr, number_of_elements, element_size,
-                          src_array_ptr, (a_constructor_ptr)ctor, dtor,
+                          (array_ptr == NULL) ? __array_new_prefix_size : 0,
+                          src_array_ptr, (a_constructor_ptr)ctor, dtor, 
                           (a_new_ptr)NULL, (a_delete_ptr)NULL,
-                          /*is_two_arg=*/FALSE,
-                          /*record_array_info=*/FALSE, /*zero_init=*/FALSE);
+                          /*is_two_arg=*/FALSE, /*zero_init=*/FALSE);
 }  /* __vec_ctor_eh */
 
 
@@ -613,9 +646,9 @@ on it.  See array_new_general for the meaning of the parameters.
 */
 {
   return (array_new_general((void*)NULL, number_of_elements, element_size,
-                            (void*)NULL, ctor, dtor, new_routine,
-                            delete_routine, is_two_arg,
-                            /*record_array_info=*/FALSE, /*zero_init=*/TRUE));
+                            __array_new_prefix_size, (void*)NULL, ctor, dtor,
+                            new_routine, delete_routine, is_two_arg,
+                            /*zero_init=*/TRUE));
 }  /* __array_new_zero */
 
 
@@ -633,9 +666,9 @@ the array size information and to call the constructor for each array element.
 */
 {
   return (array_new_general(array_ptr, number_of_elements, element_size,
-                            (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
-                            (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
-                            /*record_array_info=*/TRUE, /*zero_init=*/TRUE));
+                            __array_new_prefix_size, (void*)NULL, ctor, dtor,
+                            (a_new_ptr)NULL, (a_delete_ptr)NULL,
+                            /*is_two_arg=*/FALSE, /*zero_init=*/TRUE));
 }  /* __placement_array_new_zero */
 
 
@@ -652,12 +685,108 @@ constructor is called.
 */
 {
   return (array_new_general(array_ptr, number_of_elements, element_size,
-                            (void*)NULL, ctor, dtor, (a_new_ptr)NULL,
-                            (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
-                            /*record_array_info=*/FALSE, /*zero_init=*/TRUE));
+                            (array_ptr == NULL) ? __array_new_prefix_size : 0,
+                            (void*)NULL, ctor, dtor, (a_new_ptr)NULL, 
+                            (a_delete_ptr)NULL, /*is_two_arg=*/FALSE, 
+                            /*zero_init=*/TRUE));
 }  /* __vec_new_eh_zero */
 #endif /* ABI_COMPATIBILITY_VERSION >= 300 */
+#else /* defined(__EDG_IA64_ABI) */
+EXTERN_C void *ABI_NAMESPACE::__cxa_vec_new(
+                                         size_t            number_of_elements,
+                                         size_t            element_size,
+                                         size_t            prefix_size,
+                                         a_constructor_ptr ctor,
+                                         a_destructor_ptr  dtor)
+/*
+The entry point used for ordinary array new.
+*/
+{
+  return (array_new_general((void *)NULL, (int)number_of_elements,
+                            element_size, prefix_size, (void *)NULL,
+                            ctor, dtor, (a_new_ptr)NULL, (a_delete_ptr)NULL,
+                            /*is_two_arg=*/FALSE, /*zero_init=*/FALSE));
+}  /* __cxa_vec_new */
 
+
+EXTERN_C void *ABI_NAMESPACE::__cxa_vec_new2(
+                                         size_t            number_of_elements,
+                                         size_t            element_size,
+                                         size_t            prefix_size,
+                                         a_constructor_ptr ctor,
+                                         a_destructor_ptr  dtor,
+                                         a_new_ptr         new_routine,
+                                         a_delete_ptr      delete_routine)
+/*
+The entry point used for array new with class-specific new and delete
+operators.
+*/
+{
+  return (array_new_general((void *)NULL, (int)number_of_elements,
+                            element_size, prefix_size, (void *)NULL,
+                            ctor, dtor, new_routine, delete_routine,
+                            /*is_two_arg=*/FALSE, /*zero_init=*/FALSE));
+}  /* __cxa_vec_new2 */
+
+
+EXTERN_C void *ABI_NAMESPACE::__cxa_vec_new3(
+                                  size_t                   number_of_elements,
+                                  size_t                   element_size,
+                                  size_t                   prefix_size,
+                                  a_constructor_ptr        ctor,
+                                  a_destructor_ptr         dtor,
+                                  a_new_ptr                new_routine,
+                                  a_two_operand_delete_ptr delete_routine)
+/*
+The entry point used for array new with class-specific new and delete
+operators where the delete operator, if any, takes two arguments.
+*/
+{
+  return (array_new_general((void *)NULL, (int)number_of_elements,
+                            element_size, prefix_size, (void *)NULL,
+                            ctor, dtor, new_routine, 
+                            (a_delete_ptr)delete_routine,
+                            /*is_two_arg=*/TRUE, /*zero_init=*/FALSE));
+}  /* __cxa_vec_new3 */
+
+
+EXTERN_C void *ABI_NAMESPACE::__cxa_vec_ctor(
+                                         void              *array_ptr,
+                                         size_t            number_of_elements,
+                                         size_t            element_size,
+                                         a_constructor_ptr ctor,
+                                         a_destructor_ptr  dtor)
+/*
+The entry point used for constructing an array of objects where the memory has
+already been allocated.
+*/
+{
+  return (array_new_general(array_ptr, (int)number_of_elements,
+                            element_size, /*prefix_size=*/0, (void *)NULL,
+                            ctor, dtor, (a_new_ptr)NULL, (a_delete_ptr)NULL,
+                            /*is_two_arg=*/FALSE, /*zero_init=*/FALSE));
+}  /* __cxa_vec_ctor */
+
+
+EXTERN_C void ABI_NAMESPACE::__cxa_vec_cctor(
+                                    void                   *array_ptr,
+                                    void                   *src_array_ptr,
+                                    size_t                 number_of_elements,
+                                    size_t                 element_size,
+                                    a_copy_constructor_ptr ctor,
+                                    a_destructor_ptr       dtor)
+/*
+The entry point used for copying an array of objects.
+*/
+{
+  (void)(array_new_general(array_ptr, (int)number_of_elements,
+                           element_size, /*prefix_size=*/0, src_array_ptr,
+                           (a_constructor_ptr)ctor, dtor, (a_new_ptr)NULL,
+                            (a_delete_ptr)NULL, /*is_two_arg=*/FALSE, 
+                            /*zero_init=*/FALSE));
+}  /* __cxa_vec_cctor */
+
+#endif /* defined(__EDG_IA64_ABI) */
 
 #if EXCEPTION_HANDLING
 EXTERN_C void __cleanup_vec_new_or_delete(an_eh_stack_entry_ptr ehsep)
@@ -697,15 +826,20 @@ an exception.
                                                 first_element * element_size);
          i < number_of_elements;
          i++, increment_ptr(arr_ptr, -(int)(element_size))) {
+#ifndef __EDG_IA64_ABI
       /* Call the destructor with 0x2 - whole object = TRUE
                                   0x1 - delete object = FALSE. */
       (*dtor)(arr_ptr, 0x2 /*whole object = TRUE, delete = FALSE*/);
+#else /* ifdef __EDG_IA64_ABI */
+      (*dtor)(arr_ptr);
+#endif /* ifdef __EDG_IA64_ABI */
     }  /* for */
   }  /* if */
   if (aaehip->free_memory_on_cleanup) {
     /* Call the routine to free the memory. */
     size_t	size = element_size * number_of_elements;
-    free_array(array_ptr, size, aaehip->delete_routine, aaehip->is_two_arg);
+    free_array(array_ptr, size, aaehip->prefix_size,
+               aaehip->delete_routine, aaehip->is_two_arg);
   }  /* if */
 }  /* __cleanup_vec_new_or_delete */
 #endif /* EXCEPTION_HANDLING */
@@ -714,6 +848,7 @@ an exception.
 static void array_delete_general(void                *array_ptr,
                                  int                 number_of_elements,
                                  size_t              element_size,
+                                 size_t              prefix_size,
                                  a_destructor_ptr    dtor,
 				 int		     delete_flag,
                                  a_delete_ptr	     delete_routine,
@@ -723,12 +858,12 @@ static void array_delete_general(void                *array_ptr,
 Call a destructor for each element of an array, then delete the storage
 for the array.  array_ptr points to the array, which has number_of_elements
 elements each of size element_size.  If number_of_elements is -1, use the
-size stored by vec_new at the time of allocation of this array.
-If array_ptr is NULL, this routine does nothing and returns.
-If dtor is non-NULL, it points to a destructor function to be called
-for each element of the array.  If delete_flag is TRUE, the storage
-for the array is deallocated after the destruction; number_of_elements
-must be -1 for that case.
+size stored by vec_new at the time of allocation of this array.  In that case,
+the size of the prefix is given by prefix_size.  If array_ptr is NULL, this
+routine does nothing and returns.  If dtor is non-NULL, it points to a
+destructor function to be called for each element of the array.  If
+delete_flag is TRUE, the storage for the array is deallocated after the
+destruction; number_of_elements must be -1 for that case.
 */
 {
   int                   i;
@@ -745,12 +880,13 @@ must be -1 for that case.
     aaehi.array_ptr              = array_ptr;
     aaehi.number_of_elements     = number_of_elements;
     aaehi.element_size           = element_size;
+    aaehi.prefix_size            = prefix_size;
     aaehi.destructor		 = dtor;
     aaehi.delete_routine	 = delete_routine;
     aaehi.is_two_arg		 = is_two_arg;
 #endif /* EXCEPTION_HANDLING */
     /* Determine the number of elements in the array, if unknown. */
-    if (number_of_elements == -1) {
+    if (number_of_elements == -1 && prefix_size != 0) {
       /* Determine the number of elements from the memory allocation size. */
       array_size = get_array_size(array_ptr, element_size);
       number_of_elements = array_size / element_size;
@@ -774,9 +910,13 @@ must be -1 for that case.
            destroying this element again. */
         aaehi.elements_processed++;
 #endif /* EXCEPTION_HANDLING */
+#ifndef __EDG_IA64_ABI
         /* Call the destructor with 0x2 - whole object = TRUE
                                     0x1 - delete object = FALSE. */
         (*dtor)(arr_ptr, 0x2 /*whole object = TRUE, delete = FALSE*/);
+#else /* defined(__EDG_IA64_ABI) */
+        (*dtor)(arr_ptr);
+#endif /* defined(__EDG_IA64_ABI) */
       }  /* for */
     }  /* if */
 #if EXCEPTION_HANDLING
@@ -787,12 +927,13 @@ must be -1 for that case.
 #endif /* EXCEPTION_HANDLING */
     /* Delete the array, if requested. */
     if (delete_flag) {
-      free_array(array_ptr, array_size, delete_routine, is_two_arg);
+      free_array(array_ptr, array_size, prefix_size, delete_routine,
+                 is_two_arg);
     }  /* if */
   }  /* if */
 }  /* array_delete_general */
 
-
+#ifndef __EDG_IA64_ABI
 /*ARGSUSED*/ /* <-- "unused" is unused. */
 EXTERN_C void __vec_delete(void                *array_ptr,
                            int                 number_of_elements,
@@ -805,8 +946,10 @@ Entry point used for the normal vector delete operation.  The unused
 parameter is there for cfront compatibility.
 */
 {
-  array_delete_general(array_ptr, number_of_elements, element_size, dtor,
-                       delete_flag, (a_delete_ptr)NULL,
+  array_delete_general(array_ptr, number_of_elements, element_size, 
+                       (number_of_elements == -1) ? 
+                                                 __array_new_prefix_size : 0,
+                       dtor, delete_flag, (a_delete_ptr)NULL,
                          /*is_two_arg=*/FALSE);
 }  /* __vec_delete */
 
@@ -825,12 +968,77 @@ by delete_routine.  is_two_arg is TRUE if the delete routine is one that
 requires two arguments.
 */
 {
-  array_delete_general(array_ptr, number_of_elements, element_size, dtor,
-                       /*delete_flag=*/TRUE, delete_routine, is_two_arg);
+  array_delete_general(array_ptr, number_of_elements, element_size, 
+                       (number_of_elements == -1) ? 
+                                                __array_new_prefix_size : 0,
+                       dtor, /*delete_flag=*/TRUE, delete_routine, 
+                       is_two_arg);
 }  /* __array_delete */
 #endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
+#else /* defined(__EDG_IA64_ABI) */
+EXTERN_C void ABI_NAMESPACE::__cxa_vec_dtor(
+                                          void             *array_ptr,
+                                          size_t           number_of_elements,
+                                          size_t           element_size,
+                                          a_destructor_ptr dtor)
+/*
+Run the destructors for an array of objects.
+*/
+{
+  array_delete_general(array_ptr, number_of_elements, element_size,
+                       /*prefix_size=*/0, dtor, /*delete_flag=*/FALSE,
+                       (a_delete_ptr)NULL, /*is_two_arg=*/FALSE);
+}  /* __cxa_vec_dtor */
 
-                                     
+
+EXTERN_C void ABI_NAMESPACE::__cxa_vec_delete(void             *array_ptr,
+                                              size_t           element_size,
+                                              size_t           prefix_size,
+                                              a_destructor_ptr dtor)
+/*
+The entry point for ordinary array delete.
+*/
+{
+  array_delete_general(array_ptr, /*number_of_elements=*/-1, element_size,
+                       prefix_size, dtor, /*delete_flag=*/TRUE,
+                       (a_delete_ptr)NULL, /*is_two_arg=*/FALSE);
+}  /* __cxa_vec_delete */
+
+
+EXTERN_C void ABI_NAMESPACE::__cxa_vec_delete2(void             *array_ptr,
+                                               size_t           element_size,
+                                               size_t           prefix_size,
+                                               a_destructor_ptr dtor,
+                                               a_delete_ptr     delete_routine)
+/*
+The entry point for array delete with a class-specific operator delete.
+*/
+{
+  array_delete_general(array_ptr, /*number_of_elements=*/-1, element_size,
+                       prefix_size, dtor, /*delete_flag=*/TRUE,
+                       delete_routine, /*is_two_arg=*/FALSE);
+}  /* __cxa_vec_delete2 */
+
+
+EXTERN_C void ABI_NAMESPACE::__cxa_vec_delete3(
+                                     void                     *array_ptr,
+                                     size_t                   element_size,
+                                     size_t                   prefix_size,
+                                     a_destructor_ptr         dtor,
+                                     a_two_operand_delete_ptr delete_routine)
+/*
+The entry point for array delete with a two-argument class-specific operator
+delete.
+*/
+{
+  array_delete_general(array_ptr, /*number_of_elements=*/-1, element_size,
+                       prefix_size, dtor, /*delete_flag=*/TRUE,
+                       (a_delete_ptr)delete_routine, /*is_two_arg=*/TRUE);
+}  /* __cxa_vec_delete3 */
+
+#endif /* defined(__EDG_IA64_ABI) */
+
+#ifndef __EDG_IA64_ABI                                     
 EXTERN_C void _array_pointer_not_from_vec_new()
 /*
 This routine is used when a pointer that was not created by vec_new is
@@ -841,6 +1049,7 @@ The name is intended to describe the nature of the problem to the user
 {
   __abort_execution(ec_array_not_from_vec_new);
 }
+#endif /* ifndef __EDG_IA64_ABI */
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -46,9 +46,16 @@ from vec_new.  The NULL pointers initialize parameters that point to
 virtual base classes.  We only do this in cfront compatibility mode.
 */
 #ifndef CFRONT_COMPATIBILITY_MODE
+#ifdef __EDG_IA64_ABI
+#define CFRONT_COMPATIBILITY_MODE FALSE
+#else /* !defined(__EDG_IA64_ABI) */
 #define CFRONT_COMPATIBILITY_MODE TRUE
+#endif /* !defined(__EDG_IA64_ABI) */
 #endif /* ifndef CFRONT_COMPATIBILITY_MODE */
-
+#if CFRONT_COMPATIBILITY_MODE && defined(__EDG_IA64_ABI)
+ #error -- CFRONT_COMPATIBILITY_MODE TRUE is incompatible with \
+           __EDG_IA64_ABI
+#endif /* CFRONT_COMPATBILITY_MODE && defined(__EDG_IA64_ABI) */
 
 /*
 The runtime uses one of several different mechanisms to invoke static
@@ -192,7 +199,10 @@ writing to memory that preceded the beginning of the array) may change.
 #define USE_PREFIX_FOR_ARRAY_ALLOC_INFO TRUE  /* Versions after 2.28. */
 #endif /* ABI_COMPATIBILITY_VERSION <= 228 */
 #endif /* ifndef USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
-
+#if !USE_PREFIX_FOR_ARRAY_ALLOC_INFO && defined(__EDG_IA64_ABI)
+ #error -- USE_PREFIX_FOR_ARRAY_ALLOC_INFO FALSE is not compatible with \
+           __EDG_IA64_ABI
+#endif /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO && ... */  
 
 #if EXCEPTION_HANDLING
 /*

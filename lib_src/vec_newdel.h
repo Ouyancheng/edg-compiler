@@ -18,6 +18,8 @@ Declarations for runtime routines for vector new() and delete() functionality.
 
 #include "runtime.h"
 
+#ifndef __EDG_IA64_ABI
+
 EXTERN_C void *__vec_new_eh(void                         *array_ptr,
                             int                          number_of_elements,
                             size_t                       element_size,
@@ -37,6 +39,8 @@ EXTERN_C void __vec_delete(void                *array_ptr,
                            int                 /*unused_arg*/);
 
 EXTERN_C void _array_pointer_not_from_vec_new();
+
+#endif /* ifdef __EDG_IA64_ABI */
 
 /*
 Type name used by the exception handling mechanism to point to the

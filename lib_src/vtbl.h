@@ -16,6 +16,8 @@ Virtual function table entry layout.
 #ifndef _VTBL_H
 #define _VTBL_H
 
+#ifndef __EDG_IA64_ABI
+
 struct a_vtbl_entry {
   __EDG_DELTA_TYPE
 		delta;
@@ -40,6 +42,13 @@ struct a_vtbl_entry {
 			   virtual function table. */
   } function;
 };
+
+#else /* defined(__EDG_IA64_ABI) */
+
+typedef __EDG_DELTA_TYPE a_vtbl_entry;
+
+#endif /* defined(__EDG_IA64_ABI) */
+
 typedef a_vtbl_entry *a_vtbl_entry_ptr;
 
 #endif /* ifndef _VTBL_H */

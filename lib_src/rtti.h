@@ -40,22 +40,34 @@ typedef __EDG_DELTA_TYPE an_object_offset;
 
 /* Definitions of the values in the flags field of the base class
    specification entry. */
+#ifndef __EDG_IA64_ABI
 typedef a_byte a_base_class_spec_flag_set;
+#else /* defined(__EDG_IA64_ABI) */
+typedef unsigned int a_base_class_spec_flag_set;
+#endif /* defined(__EDG_IA64_ABI) */
+
 #define BCS_NO_FLAGS	0x00
 			/* Value when no flags are set. */
 #define BCS_VIRTUAL	0x01
 			/* The offset provides the position of a pointer
 			   to the base class.  Used for virtual base
 			   classes. */
+#ifndef __EDG_IA64_ABI
 #define BCS_LAST	0x02
 			/* TRUE if this is the last base class specifier
 			   in the array. */
+#endif /* ifndef __EDG_IA64_ABI */
 
+#ifndef __EDG_IA64_ABI
 #define BCS_PUBLIC      0x04
+#else /* !defined(__EDG_IA64_ABI) */
+#define BCS_PUBLIC      0x02
+#endif /* !defined(__EDG_IA64_ABI) */
 			/* TRUE if the base class is public.  For non-direct
 			   base classes, TRUE if the cumulative access across
 			   the all derivation steps gives public access. */
 
+#ifndef __EDG_IA64_ABI
 #define BCS_AMBIGUOUS	0x08
 			/* TRUE if this base class is ambiguous. */
 
@@ -64,9 +76,27 @@ typedef a_byte a_base_class_spec_flag_set;
 			   base classes are always put out at the top level.
 			   This flag can be used to determine which ones
 			   are really top level bases. */
+#endif /* ifndef __EDG_IA64_ABI */
+
+#ifndef __EDG_IA64_ABI
 
 /* Forward declaration of a type_info pointer. */
 typedef struct a_type_info_impl *a_type_info_impl_ptr;
+
+#else /* defined(__EDG_IA64_ABI) */
+
+/* Declare a_type_info_impl_ptr -- even though there is no separate
+   implementation type -- to make it possible to use the same code in various
+   places in the library. */
+typedef const
+#if __EDG_RUNTIME_USES_NAMESPACES
+              std::
+#endif /* __EDG_RUNTIME_USES_NAMESPACES */
+                   type_info *a_type_info_impl_ptr;
+
+#endif /* defined(__EDG_IA64_ABI) */
+
+#ifndef __EDG_IA64_ABI
 
 /* Describes the base classes of a class.  Pointed to by the type_info
    of the class. */
@@ -85,7 +115,6 @@ typedef struct a_base_class_spec {
 			   base class specification entry is to be used.
 			   See the descriptions of the BCS flags above. */
 } a_base_class_spec;
-
 
 /* Type description information for objects that are thrown or
    caught. */
@@ -127,6 +156,17 @@ typedef struct a_type_info_impl {
 #define matching_type_info(type1, type2)				\
   ((type1) == (type2) || (((type1)->unique_id == (type2)->unique_id) &&  \
                           (type1)->unique_id != 0))
+
+#else /* defined(__EDG_IA64_ABI) */
+
+/* Determine whether two type_info entries refer to the same type.  They
+   match if their name pointers are the same. */
+#define matching_type_info(type1, type2)				\
+  ((type1) == (type2) || ((type1)->name() == (type2)->name()))
+
+typedef abi::__base_class_type_info *a_base_class_spec_ptr;
+
+#endif /* defined(__EDG_IA64_ABI) */
 
 typedef char*	an_access_flag_string;
 			/* Type of the string used to specify the access

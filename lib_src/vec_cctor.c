@@ -16,7 +16,7 @@ C++ runtime routine to execute a copy constructor for each element of an array.
 #include "basics.h"
 #include "runtime.h"
 
-
+#ifndef __EDG_IA64_ABI
 EXTERN_C void __vec_cctor(void                         *array_ptr,
                           size_t                       number_of_elements,
                           size_t                       element_size,
@@ -42,7 +42,7 @@ of member arrays, the number_of_elements can never be zero.
     }  /* for */
   }  /* if */
 }  /* __vec_ctor */
-
+#endif /* ifndef __EDG_IA64_ABI */
 
 /******************************************************************************
 *                                                             \  ___  /       *

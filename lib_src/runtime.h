@@ -21,6 +21,9 @@ Miscellaneous declarations for all runtime routines.
 #include <stdio.h>
 #include <new>
 #include "error.h"
+#ifdef __EDG_IA64_ABI
+#include <cxxabi.h>
+#endif /* ifdef __EDG_IA64_ABI */
 
 #ifdef __linux__
 /* Linux improperly defined NULL as "(void*)0".  Undefine it if it has
@@ -80,8 +83,14 @@ uses namespaces or "" otherwise.
 */
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 #define STD_NAMESPACE std
+#ifdef __EDG_IA64_ABI
+#define ABI_NAMESPACE abi
+#endif /* ifdef __EDG_IA64_ABI */
 #else /* ifndef __EDG_RUNTIME_USES_NAMESPACES */
 #define STD_NAMESPACE /* nothing */
+#ifdef __EDG_IA64_ABI
+#define ABI_NAMESPACE /* nothing */
+#endif /* ifdef __EDG_IA64_ABI */
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
 /*
@@ -108,17 +117,38 @@ typedef int __bool;
 typedef void (*a_void_function_ptr)();
 			/* Type used to store a generic function pointer. */
 
+#ifndef __EDG_IA64_ABI
 typedef void (*a_destructor_ptr)(void*, int);
+#else /* defined(__EDG_IA64_ABI) */
+/* Explicit "C" linkage is required for compatibility with the declaration in
+   cxxabi.h. */
+EXTERN_C typedef void (*a_destructor_ptr)(void*);
+#endif /* defined(__EDG_IA64_ABI) */
 			/* Type used to store a pointer a destructor. */
 
+#ifdef __EDG_IA64_ABI
+/* Explicit "C" linkage is required for compatibility with the declaration in
+   cxxabi.h. */
+EXTERN_C
+#endif /* ifdef __EDG_IA64_ABI */
 typedef void* (*a_new_ptr)(size_t);
 			/* Type used to store a pointer to an operator new
 			   routine. */
 
+#ifdef __EDG_IA64_ABI
+/* Explicit "C" linkage is required for compatibility with the declaration in
+   cxxabi.h. */
+EXTERN_C
+#endif /* ifdef __EDG_IA64_ABI */
 typedef void (*a_delete_ptr)(void*);
 			/* Type used to store a pointer to an operator delete
 			   routine. */
 
+#ifdef __EDG_IA64_ABI
+/* Explicit "C" linkage is required for compatibility with the declaration in
+   cxxabi.h. */
+EXTERN_C
+#endif /* ifdef __EDG_IA64_ABI */
 typedef void (*a_two_operand_delete_ptr)(void *, a_sizeof_t);
 			/* Type used to store a pointer to a two operand
 			   operator delete routine. */
@@ -131,9 +161,19 @@ typedef void (*a_cfront_constructor_ptr)(void*, void* b1, void* b2, void*b3,
 			   cfront mode. */
 #endif /* CFRONT_COMPATIBILITY_MODE */
 
+#ifdef __EDG_IA64_ABI
+/* Explicit "C" linkage is required for compatibility with the declaration in
+   cxxabi.h. */
+EXTERN_C
+#endif /* ifdef __EDG_IA64_ABI */
 typedef void (*a_constructor_ptr)(void*);
 			/* Type of a default constructor called from
 			   vec_new. */
+#ifdef __EDG_IA64_ABI
+/* Explicit "C" linkage is required for compatibility with the declaration in
+   cxxabi.h. */
+EXTERN_C
+#endif /* ifdef __EDG_IA64_ABI */
 typedef void (*a_copy_constructor_ptr)(void*, void*);
 			/* Type of a copy constructor called from
 			   vec_cctor. */
@@ -145,6 +185,11 @@ EXTERN_C STD_NAMESPACE::new_handler
 		_new_handler
 		  initial_value((a_void_function_ptr)NULL);
 			/* Pointer to the new handler routine to be called. */
+
+#ifdef __EDG_IA64_ABI
+typedef void *a_dso_handle;
+			/* Type of a DSO handle. */
+#endif /* defined(__EDG_IA64_ABI) */
 
 #endif /* RUNTIME_H */
 

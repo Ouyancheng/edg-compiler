@@ -18,6 +18,8 @@ dtor_list.c -- destruction list processing.
 #pragma hdrstop
 #include "dtor_list.h"
 
+#if !defined(__EDG_IA64_ABI) || !defined(__linux__)
+
 /*
 The list of static objects that require destruction.  An entry is
 added to the front of this list each time a new destructible static
@@ -26,6 +28,9 @@ object is created.
 static a_needed_destruction_ptr
 		needed_destruction_head /* = NULL*/;
 
+#endif /* !defined(__EDG_IA64_ABI) || !defined(__linux__) */
+
+#ifndef __EDG_IA64_ABI
 
 void __process_needed_destructions(void)
 /*
@@ -130,6 +135,82 @@ put out (i.e., to make the compiler think that __link is actually used).
 a_link* __dummy_variable_used_to_force_definition_of__link = &__link;
 #endif /* CFRONT_COMPATIBILITY_MODE */
 
+#else /* defined(__EDG_IA64_ABI) */
+
+#ifndef __linux__
+/* Current versions of Linux already define these routines in the C runtime
+   library, and if we attempt to redefine them here we end up with multiple
+   versions of these symbols. */
+
+/* The DSO handle.  Initialization to NULL indicates that this is the handle
+   for the main program.  */
+a_dso_handle __dso_handle;
+
+void ABI_NAMESPACE::__cxa_finalize(a_dso_handle dso_handle)
+/*
+Go through the needed destructions list and perform the required
+destructions for the DSO indicated by dso_handle, or all destructions if
+dso_handle is NULL.
+*/
+{
+  a_needed_destruction_ptr *ndpp, ndp, old_head;
+  
+  ndpp = &needed_destruction_head;
+  while (*ndpp != NULL) {
+    ndp = *ndpp;
+    /* Skip destructions that do not apply to this DSO. */
+    if (dso_handle != NULL && ndp->dso_handle != dso_handle) {
+      ndpp = &ndp->next;
+    }  /* if */
+    /* Note that the value of needed_destruction_head may change
+       during the execution of the destructor.  Consequently, the
+       current entry is removed from the list before the destructor
+       routine is called. */
+    *ndpp = ndp->next;
+    old_head = needed_destruction_head;
+    /* Call the routine. */
+    (*ndp->destruction_routine)(ndp->object);
+    /* Deallocate the entry. */
+    free(ndp);
+    /* If the head has changed, start at the beginning of the list 
+       again so that we can process the newly added destruction. */
+    if (needed_destruction_head != old_head) {
+      ndpp = &needed_destruction_head;
+    }  /* if */
+  }  /* while */
+}  /* __cxa_finalize */
+
+
+int ABI_NAMESPACE::__cxa_atexit(a_destructor_ptr destruction_routine,
+                                void             *object,
+                                a_dso_handle     dso_handle)
+/* 
+Register an action to be taken at program termination (or DSO unload) time.
+The action is the calling of destruction_routine with the object parameter.
+If dso_handle is not NULL, the action will be taken only when __cxa_finalize
+is called with a matching parameter; if it is non-NULL, it will be taken only
+when __cxa_finalize is called with a matching dso_handle parameter.
+*/
+{
+  int                      success = TRUE;
+  a_needed_destruction_ptr ndp;
+
+  ndp = (a_needed_destruction_ptr)malloc(sizeof(a_needed_destruction));
+  if (ndp == NULL) {
+    success = FALSE;
+  }  else {
+    ndp->object = object;
+    ndp->destruction_routine = destruction_routine;
+    ndp->dso_handle = dso_handle;
+    ndp->next = needed_destruction_head;
+    needed_destruction_head = ndp;
+  }  /* if */
+  return success;
+}  /* __cxa_atexit */
+
+#endif /* ifdef __linux__ */
+
+#endif /* defined(__EDG_IA64_ABI) */
 
 /******************************************************************************
 *                                                             \  ___  /       *

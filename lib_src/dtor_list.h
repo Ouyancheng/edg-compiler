@@ -38,17 +38,29 @@ typedef struct a_needed_destruction {
 			   destruction is one that can be done with
 			   a single call to the destructor passing an
 			   object pointer and a destruction flag. */
+#ifndef __EDG_IA64_ABI
   a_void_function_ptr
+#else /* defined(__EDG_IA64_ABI) */
+  a_destructor_ptr
+#endif /* defined(__EDG_IA64_ABI) */
 		destruction_routine;
 			/* For a simple destruction, this points to the
 			   destructor to be called. For a complex destruction,
                            this is a pointer to a function that when called,
                            will call the necessary destructors. */
+#ifdef __EDG_IA64_ABI
+  a_dso_handle  dso_handle;
+                        /* The DSO handle associated with this destruction, or
+                           NULL if this destruction is associated with the
+                           main program. */
+#endif /* ifdef EDG_IA64_ABI */
 } a_needed_destruction;
 
+#ifndef __EDG_IA64_ABI
 extern void __process_needed_destructions(void);
 
 EXTERN_C void __record_needed_destruction(a_needed_destruction_ptr ndp);
+#endif /* ifndef __EDG_IA64_ABI */
 
 #endif /* DTOR_LIST_H */
 

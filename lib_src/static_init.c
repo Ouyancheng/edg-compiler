@@ -46,6 +46,7 @@ ensures that any new needed destructions created while processing
 the "patch"/"munch" destructions will be handled.
 */
 {
+#ifndef __EDG_IA64_ABI
   struct __linkl	*link_ptr;
   static a_boolean	dtors_done = FALSE;
 
@@ -75,6 +76,9 @@ the "patch"/"munch" destructions will be handled.
      called more than once, and there is no ill effect of calling
      __process_needed_destructions multiple times.  */
   __process_needed_destructions();
+#else /* defined(__EDG_IA64_ABI) */
+  ABI_NAMESPACE::__cxa_finalize((a_dso_handle)NULL);
+#endif /* defined(__EDG_IA64_ABI) */
 }  /* __call_dtors */
 
 

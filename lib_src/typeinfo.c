@@ -62,14 +62,18 @@ __bool type_info::before(const type_info& rhs) const
 /*
 Return TRUE if the type_info for *this precedes the type_info for rhs using
 some implementation dependent collating sequence.
-
-This is implemented by comparing the pointers used to represent the type
-information.  If the type_info_impl has a unique_id, the address of the
-unique_id is used for collation.  If it does not have a unique_id (i.e.,
-we know there is only a single type_info_impl structure for the type) then
-the address of the single type_info_impl is used for collation.
 */
 {
+#ifdef __EDG_IA64_ABI
+  /* Do the comparison based on the address at which the type name string
+     is allocated.  The name string is guaranteed by the ABI to be unique. */
+  return __type_name < rhs.__type_name;
+#else /* defined(__EDG_IA64_ABI) */
+  /* This is implemented by comparing the pointers used to represent the type
+     information.  If the type_info_impl has a unique_id, the address of the
+     unique_id is used for collation.  If it does not have a unique_id (i.e.,
+     we know there is only a single type_info_impl structure for the type) then
+     the address of the single type_info_impl is used for collation. */
   a_type_info_impl_ptr  tiip1;
   a_type_info_impl_ptr  tiip2;
   void*                 ptr1;
@@ -80,6 +84,7 @@ the address of the single type_info_impl is used for collation.
   ptr1 = tiip1->unique_id != NULL ? (void*)tiip1->unique_id : (void*)tiip1;
   ptr2 = tiip2->unique_id != NULL ? (void*)tiip2->unique_id : (void*)tiip2;
   return ptr1 < ptr2;
+#endif /* defined(__EDG_IA64_ABI) */
 }  /* type_info::before */
 
 
@@ -88,10 +93,14 @@ const char * type_info::name() const
 Returns a pointer to the name string for this type.
 */
 {
+#ifndef __EDG_IA64_ABI
   a_type_info_impl_ptr  tiip1;
 
   tiip1 = (a_type_info_impl_ptr)this;
   return tiip1->name;
+#else /* defined(__EDG_IA64_ABI) */
+  return __type_name;
+#endif /* defined(__EDG_IA64_ABI) */
 }  /* type_info::name */
 
 
@@ -206,6 +215,37 @@ no additional information is available.
 
 #endif /* USE_EDG_EXCEPTION_CLASSES */
 
+#ifdef __EDG_IA64_ABI
+
+/*
+Define the type_info objects that are supposed to be present in the runtime
+library.  Try to work hard enough that the compiler won't eliminate the
+generation of the type_info objects.
+*/
+const type_info *__dummy_typeinfo;
+void __gen_dummy_typeinfos()
+{
+#define gen_typeinfos(type)                 \
+  __dummy_typeinfo = &typeid(type),         \
+  __dummy_typeinfo = &typeid(type *),       \
+  __dummy_typeinfo = &typeid(const type *)
+  gen_typeinfos(void); 
+  gen_typeinfos(bool); 
+  gen_typeinfos(wchar_t);
+  gen_typeinfos(char); 
+  gen_typeinfos(signed char); gen_typeinfos(unsigned char); 
+  gen_typeinfos(short);       gen_typeinfos(unsigned short); 
+  gen_typeinfos(int);         gen_typeinfos(unsigned int); 
+  gen_typeinfos(long);        gen_typeinfos(unsigned long); 
+  gen_typeinfos(long long);   gen_typeinfos(unsigned long long);
+  gen_typeinfos(float); 
+  gen_typeinfos(double); 
+  gen_typeinfos(long double);
+#undef gen_typeinfos
+}
+  
+#endif /* ifdef __EDG_IA64_ABI */
+
 /*
 If the runtime should be defined in the std namespace, close
 the std namespace.
@@ -213,6 +253,105 @@ the std namespace.
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace std */
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+
+#ifdef __EDG_IA64_ABI
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+namespace __cxxabiv1 {
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+
+__fundamental_type_info::~__fundamental_type_info()
+/*
+Destructor for __fundamental_type_info.  This should never actually be 
+called.  
+*/
+{
+}  /* __fundamental_type_info::~__fundamental_type_info */
+
+
+__array_type_info::~__array_type_info()
+/*
+Destructor for __array_type_info.  This should never actually be 
+called.  
+*/
+{
+}  /* __array_type_info::~__array_type_info */
+
+
+__function_type_info::~__function_type_info()
+/*
+Destructor for __function_type_info.  This should never actually be 
+called.  
+*/
+{
+}  /* __function_type_info::~__function_type_info */
+
+
+__enum_type_info::~__enum_type_info()
+/*
+Destructor for __enum_type_info.  This should never actually be 
+called.  
+*/
+{
+}  /* __enum_type_info::~__enum_type_info */
+
+
+__class_type_info::~__class_type_info()
+/*
+Destructor for __class_type_info.  This should never actually be 
+called.  
+*/
+{
+}  /* __class_type_info::~__class_type_info */
+
+
+__si_class_type_info::~__si_class_type_info()
+/*
+Destructor for __si_class_type_info.  This should never actually be 
+called.  
+*/
+{
+}  /* __si_class_type_info::~__si_class_type_info */
+
+
+__vmi_class_type_info::~__vmi_class_type_info()
+/*
+Destructor for __vmi_class_type_info.  This should never actually be 
+called.  
+*/
+{
+}  /* __vmi_class_type_info::~__vmi_class_type_info */
+
+
+__pbase_type_info::~__pbase_type_info()
+/*
+Destructor for __pbase_type_info.  This should never actually be 
+called.  
+*/
+{
+}  /* __pbase_type_info::~__pbase_type_info */
+
+
+__pointer_type_info::~__pointer_type_info()
+/*
+Destructor for __pointer_type_info.  This should never actually be 
+called.  
+*/
+{
+}  /* __pointer_type_info::~__pointer_type_info */
+
+
+__pointer_to_member_type_info::~__pointer_to_member_type_info()
+/*
+Destructor for __pointer_to_member_type_info.  This should never actually be 
+called.  
+*/
+{
+}  /* __pointer_to_member_type_info::~__pointer_to_member_type_info */
+
+#ifdef __EDG_RUNTIME_USES_NAMESPACES
+}  /* namespace __cxxabiv1 */
+#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+#endif /* ifdef __EDG_IA64_ABI */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
 

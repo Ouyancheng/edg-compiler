@@ -110,9 +110,11 @@ config.h file.
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING && USING_KAI_INLINER */
 #endif /* 0 */
 
+#ifndef __EDG_IA64_ABI
 #define RDF_BASE_CLASS_SUBOBJECT	0x40
 			/* TRUE if the object is a base class of some other
 			   object and therefore is not a complete object. */
+#endif /* ifndef __EDG_IA64_ABI */
 #define RDF_GUARD_VAR_FOR_LOCAL_STATIC	0x80
 			/* TRUE if the object is the guard variable associated
 			   with the initialization of a local static variable.

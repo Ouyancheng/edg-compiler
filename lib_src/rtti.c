@@ -23,7 +23,110 @@ Run-time type identification.
 #include "vtbl.h"
 #endif /* ABI_CHANGES_FOR_RTTI */
 
+#ifdef __EDG_IA64_ABI
 
+static a_boolean derived_to_base_conversion_r(
+                                         void                 *ptr,
+                                         void                 **p_new_ptr,
+                                         a_type_info_impl_ptr class_info,
+                                         a_type_info_impl_ptr base_info,
+                                         a_boolean            *p_is_ambiguous,
+                                         a_boolean            *p_is_accessible)
+/* 
+Perform a derived to base conversion from ptr (the derived object, whose type
+is given by class_info) to the base indicated by base_info.  If the base is
+unambiguous, the address of the base is stored in *p_new_ptr, and TRUE is
+returned.  On entry *p_new_ptr should be NULL, or the address of the base if
+it has already been found.  *p_is_accessible should be TRUE if ptr is
+accessible from the ultimately derived object.  If the base is ambiguous, 
+*p_is_ambiguous i set to TRUE, and FALSE is returned.  If the base is
+unambiguous, but inaccessible, TRUE is returned but *p_is_accessible is set to
+FALSE.
+*/
+{
+  a_boolean result = FALSE;
+  a_boolean is_accessible;
+
+  if (typeid(*class_info) == typeid(abi::__si_class_type_info)) {
+    /* Single, non-virtual, public inheritance. */
+    abi::__si_class_type_info *si_obj_info = 
+                                       (abi::__si_class_type_info *)class_info;
+    is_accessible = *p_is_accessible;
+    if (matching_type_info(si_obj_info->__base_type, base_info)  || 
+        derived_to_base_conversion_r(ptr, p_new_ptr,
+                                     si_obj_info->__base_type,
+                                     base_info, p_is_ambiguous,
+                                     &is_accessible)) {
+      if ((*p_new_ptr != NULL && ptr != *p_new_ptr) || *p_is_ambiguous) {
+        /* The base class is ambiguous. */
+        *p_is_ambiguous = TRUE;
+        *p_new_ptr = NULL;
+        result = FALSE;
+      } else {
+        if (p_new_ptr == NULL || is_accessible) {
+          *p_is_accessible = is_accessible;
+        }  /* if */
+        *p_new_ptr = ptr;
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  } else if (typeid(*class_info) == typeid(abi::__vmi_class_type_info)) {
+    /* Complex inheritance. */
+    abi::__vmi_class_type_info *vmi_obj_info = 
+                                      (abi::__vmi_class_type_info *)class_info;
+    a_base_class_spec_ptr      bcsp;
+    void                       *base_ptr;
+    /* Loop over all of the base classes. */
+    for (bcsp = vmi_obj_info->__base_info;
+         bcsp < vmi_obj_info->__base_info + vmi_obj_info->__base_count;
+         bcsp++) {
+      if (bcsp->__flags & BCS_VIRTUAL) {
+        a_vtbl_entry_ptr vtbl, vbase_offset;
+        vtbl = *((a_vtbl_entry_ptr *)ptr);
+        vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + bcsp->__offset);
+        base_ptr = (void *)(((char *)ptr) + *vbase_offset);
+      } else {
+        base_ptr = (void *)(((char *)ptr) + bcsp->__offset);
+      }  /* if */
+      is_accessible = *p_is_accessible && (bcsp->__flags & BCS_PUBLIC);
+      if (matching_type_info(bcsp->__base_type, base_info)) {
+        /* We found the base for which we were looking. */
+        if ((*p_new_ptr != NULL && base_ptr != *p_new_ptr) || 
+            *p_is_ambiguous) {
+          /* The base class is ambiguous. */
+          *p_is_ambiguous = TRUE;
+          *p_new_ptr = NULL;
+          result = FALSE;
+          break;
+        } else {
+          /* The base class is unambiguous -- at least so far. */
+          if (p_new_ptr == NULL || is_accessible) {
+            *p_is_accessible = is_accessible;
+          }  /* if */
+          *p_new_ptr = base_ptr;
+          result = TRUE;
+        }  /* if */
+      } else if (!derived_to_base_conversion_r(base_ptr, p_new_ptr,
+                                               bcsp->__base_type,
+                                               base_info, p_is_ambiguous,
+                                               &is_accessible) &&
+                 *p_is_ambiguous) {
+        result = FALSE;
+        break;
+      } else {
+        result = TRUE;
+      } /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* derived_to_base_conversion_r */
+
+#endif /* ifdef __EDG_IA64_ABI */
+
+#ifndef __EDG_IA64_ABI
+/*ARGSUSED*/ /* <-- access_flags and use_access_flags are unused in that
+                    case. */
+#endif /* ifndef __EDG_IA64_ABI */
 EXTERN_C
 a_boolean __derived_to_base_conversion(void**		     p_ptr,
 		  		       void**                p_new_ptr,
@@ -55,14 +158,20 @@ The access_flags string was retained for backward compatibility.
 */
 {
   a_boolean		result = FALSE;
-  a_base_class_spec_ptr	bcsp = class_info->base_class_entries;
   void                  *ptr;
   a_boolean		is_ambiguous = FALSE;
+#ifdef __EDG_IA64_ABI
+  a_boolean             is_accessible = TRUE;
+#else /* !defined(__EDG_IA64_ABI) */
+  a_base_class_spec_ptr	bcsp;
+#endif /* !defined(__EDG_IA64_ABI) */
 
   /* Get the actual derived class pointer.  If no pointer was provided,
      use NULL. */
   ptr = p_ptr == NULL ? NULL : *p_ptr;
   *p_new_ptr = NULL;
+#ifndef __EDG_IA64_ABI
+  bcsp = class_info->base_class_entries;
   if (bcsp != NULL) {
     /* A base class list is present. */
     a_boolean	done = FALSE;
@@ -184,6 +293,13 @@ The access_flags string was retained for backward compatibility.
       } while (!done);
     }  /* if */
   }  /* if */
+#else /* defined(__EDG_IA64_ABI) */
+  if (derived_to_base_conversion_r(ptr, p_new_ptr, class_info, base_info,
+                                   &is_ambiguous, &is_accessible) &&
+      is_accessible) {
+    result = TRUE;
+  }  /* if */
+#endif /* defined(__EDG_IA64_ABI) */
   return result;
 }  /* __derived_to_base_conversion */
 
@@ -192,21 +308,66 @@ static a_base_class_spec_ptr find_base_class_at_addr(
 					void			*obj_ptr,
 					void			*base_ptr,
 					a_type_info_impl_ptr	obj_info,
-					a_type_info_impl_ptr	base_info)
+					a_type_info_impl_ptr	base_info,
+                                        a_boolean               *found)
 /*
 Find the base class specification entry that corresponds to the base
 class pointed to by "base_ptr", whose type is specified by "base_info"
 in the object pointed to by "obj_ptr".  The base class must be accessible,
-but need not be unambiguous.
+but need not be unambiguous.  *found should be initialized to FALSE before
+this function is called; it is set to TRUE If the base class is found.
 */
 {
   a_base_class_spec_ptr	bcsp;
   void                  *ptr;
   void                  *new_ptr;
-  a_boolean		done;
   a_base_class_spec_ptr	result = NULL;
+#ifndef __EDG_IA64_ABI
+  a_boolean		done;
+#endif /* ifndef __EDG_IA64_ABI */
 
   ptr = obj_ptr;
+#ifdef __EDG_IA64_ABI
+  if (typeid(*obj_info) == typeid(abi::__si_class_type_info)) {
+    abi::__si_class_type_info *si_obj_info = 
+                                      (abi::__si_class_type_info *)obj_info;
+    if (ptr == base_ptr && 
+        matching_type_info(si_obj_info->__base_type, base_info)) {
+      *found = TRUE;
+    }  /* if */
+  } else if (typeid(*obj_info) == typeid(abi::__vmi_class_type_info)) {
+    abi::__vmi_class_type_info *vmi_obj_info = 
+                                     (abi::__vmi_class_type_info *)obj_info;
+    for (bcsp = vmi_obj_info->__base_info;
+         bcsp < vmi_obj_info->__base_info + vmi_obj_info->__base_count;
+         bcsp++) {
+      if (bcsp->__flags && BCS_VIRTUAL) {
+        a_vtbl_entry_ptr vtbl, vbase_offset;
+        vtbl = *((a_vtbl_entry_ptr *)base_ptr);
+        vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + bcsp->__offset);
+        new_ptr = (void *)(((char *)base_ptr) + *vbase_offset);
+      } else {
+        new_ptr = (void *)(((char *)base_ptr) + bcsp->__offset);
+      }  /* if */
+      if (new_ptr == base_ptr &&
+          matching_type_info(bcsp->__base_type, base_info)) {
+        /* We found a match.  Note that both the address and type must match
+           because base classes can share an address. */
+        result = bcsp;
+        if (bcsp->__flags && BCS_PUBLIC) *found = TRUE;
+        break;
+      }  /* if */
+      if ((bcsp->__flags & BCS_PUBLIC) != 0) {
+        /* No match, check the base classes of this base class. */
+        result = find_base_class_at_addr(new_ptr, base_ptr,
+                                         bcsp->__base_type, base_info,
+                                         found);
+        /* Exit if the recursive call found a match. */
+        if (*found) break;
+      }  /* if */
+    }  /* for */
+  }  /* for */
+#else /* !defined(__EDG_IA64_ABI) */
   for (done = FALSE, bcsp = obj_info->base_class_entries;
        bcsp != NULL && !done; done = (bcsp->flags & BCS_LAST) != 0, bcsp++) {
     /* Adjust the pointer by the offset provided in the base class
@@ -223,28 +384,40 @@ but need not be unambiguous.
       /* We found a match.  Note that both the address and type must match
          because base classes can share an address. */
       result = bcsp;
+      if (bcsp->flags & BCS_PUBLIC) *found = TRUE;
       break;
     }  /* if */
     if ((bcsp->flags & BCS_PUBLIC) != 0) {
       /* No match, check the base classes of this base class. */
       result = find_base_class_at_addr(new_ptr, base_ptr,
-                                       bcsp->type_info, base_info);
+                                       bcsp->type_info, base_info,
+                                       found);
       /* Exit if the recursive call found a match. */
       if (result != NULL) break;
     }  /* if */
   }  /* for */
+#endif /* !defined(__EDG_IA64_ABI) */
   return result;
 }  /* find_base_class_at_addr */
 
 #if ABI_CHANGES_FOR_RTTI
 
+#ifdef __EDG_IA64_ABI
+/*ARGSUSED*/ /* <-- hint is not used in that case. */
+#endif /* __EDG_IA64_ABI */
 EXTERN_C void *__dynamic_cast(void			*class_ptr,
+#ifndef __EDG_IA64_ABI
 			      a_vtbl_entry_ptr		vtbl_ptr,
 		              a_type_info_impl_ptr	tiip
 #if ABI_COMPATIBILITY_VERSION >= 241
 			    , void			*source_ptr,
 			      a_type_info_impl_ptr	source_tiip
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
+#else /* defined(__EDG_IA64_ABI) */
+                              a_type_info_impl_ptr      source_tiip,
+                              a_type_info_impl_ptr      tiip,
+                              __EDG_DELTA_TYPE          hint
+#endif /* defined(__EDG_IA64_ABI) */
                               )
 /*
 Runtime support for dynamic_cast operations.  This routine handles
@@ -288,23 +461,37 @@ following information:
 */
 {
   void			*complete_object_ptr;
+#ifndef __EDG_IA64_ABI
   size_t		offset_to_complete_object;
+#else /* defined(__EDG_IA64_ABI) */
+  void                  *source_ptr = class_ptr;
+#endif /* defined(__EDG_IA64_ABI) */
   a_type_info_impl_ptr	object_tiip;
   void			*result = NULL;
 
   /* Get a pointer to the complete object. */
+#ifndef __EDG_IA64_ABI
   offset_to_complete_object = vtbl_ptr->delta;
   complete_object_ptr =
                      (void*)(((char *)class_ptr) - offset_to_complete_object);
+#else /* defined(__EDG_IA64_ABI) */
+  complete_object_ptr = 
+    (void *)(((char *)class_ptr) + (*((a_vtbl_entry_ptr *)class_ptr))[-2]);
+#endif /* defined(__EDG_IA64_ABI) */
 #if DEBUG
   if (__debug_level >= 3) {
     fprintf(__f_debug, "dynamic_cast: orig ptr=%p, complete obj=%p\n",
             class_ptr, complete_object_ptr);
   }  /* if */
 #endif /* DEBUG */
-  /* Get the pointer to the type_info associated with the source object. 
-     This is stored in the function pointer field of the vtbl entry. */
+  /* Get the pointer to the type_info associated with the source object.  */
+#ifndef __EDG_IA64_ABI
+  /* This is stored in the function pointer field of the vtbl entry. */
   object_tiip = vtbl_ptr->function.type_info_impl;
+#else /* defined(__EDG_IA64_ABI) */
+   /* In the IA-64 ABI, this is stored in the -1 entry of the vtable. */
+  object_tiip = (a_type_info_impl_ptr)((*((a_vtbl_entry_ptr *)class_ptr))[-1]);
+#endif /* defined(__EDG_IA64_ABI) */
   if (tiip == NULL) {
     /* When tiip is NULL, the pointer is being cast to void*.  This
        means that class_ptr is to be converted to a pointer to the
@@ -325,10 +512,8 @@ following information:
       /* The static type of the source is the same as the dynamic type. */
       access_okay = TRUE;
     } else {
-      a_base_class_spec_ptr	bcsp;
-      bcsp = find_base_class_at_addr(complete_object_ptr, source_ptr,
-                                     object_tiip, source_tiip);
-      access_okay = bcsp != NULL && (bcsp->flags & BCS_PUBLIC) != 0;
+      (void)find_base_class_at_addr(complete_object_ptr, source_ptr,
+                                    object_tiip, source_tiip, &access_okay);
     }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
     if (access_okay) {
@@ -353,8 +538,16 @@ following information:
   return result;
 }  /* __dynamic_cast */
 
+#ifdef __EDG_IA64_ABI
+#define BAD_CAST_ROUTINE_NAME ABI_NAMESPACE::__cxa_bad_cast
+#define BAD_CAST_ROUTINE_LINKAGE /*extern*/
+#else /* !defined(__EDG_IA64_ABI) */
+#define BAD_CAST_ROUTINE_NAME __throw_bad_cast
+#define BAD_CAST_ROUTINE_LINKAGE static
+#endif /* !defined(__EDG_IA64_ABI) */ 
 
-static void __throw_bad_cast(void)
+BAD_CAST_ROUTINE_LINKAGE
+void BAD_CAST_ROUTINE_NAME(void)
 /*
 Throw a bad cast exception.  If exception handling is not supported in
 this version of the runtime, then simply abort.
@@ -365,10 +558,16 @@ this version of the runtime, then simply abort.
 #else /* !EXCEPTION_HANDLING */
   __abort_execution(ec_bad_cast);
 #endif /* EXCEPTION_HANDLING */
-}  /* __throw_bad_cast */
+}  /* BAD_CAST_ROUTINE_NAME */
 
 
-void __throw_bad_typeid(void)
+#ifdef __EDG_IA64_ABI
+#define BAD_TYPEID_ROUTINE_NAME ABI_NAMESPACE::__cxa_bad_typeid
+#else /* !defined(__EDG_IA64_ABI) */
+#define BAD_TYPEID_ROUTINE_NAME __throw_bad_typeid
+#endif /* !defined(__EDG_IA64_ABI) */
+
+EXTERN_C void BAD_TYPEID_ROUTINE_NAME(void)
 /*
 Throw a bad typeid exception.  If exception handling is not supported in
 this version of the runtime, then simply abort.
@@ -379,8 +578,9 @@ this version of the runtime, then simply abort.
 #else /* !EXCEPTION_HANDLING */
   __abort_execution(ec_bad_typeid);
 #endif /* EXCEPTION_HANDLING */
-}  /* __throw_bad_typeid */
+}  /* BAD_TYPEID_ROUTINE_NAME */
 
+#ifndef __EDG_IA64_ABI
 
 EXTERN_C void *__dynamic_cast_ref(void                  *class_ptr,
 			          a_vtbl_entry_ptr      vtbl_ptr,
@@ -489,6 +689,7 @@ calls __r_db_type_info and supplies a zero indent value.
 }  /* __db_type_info */
 #endif /* DEBUG */
 
+#endif /* ifndef IA64_ABI */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
 

@@ -490,9 +490,11 @@ Print the contents of a region description entry.
       fprintf(__f_debug, "  flags: ");
       if (ehrdp->flags & RDF_INDIRECT) fprintf(__f_debug, " indirect");
       if (ehrdp->flags & RDF_NEW_ALLOCATION) fprintf(__f_debug, " new");
+#ifndef __EDG_IA64_ABI
       if (ehrdp->flags & RDF_BASE_CLASS_SUBOBJECT) {
         fprintf(__f_debug, " subobject");
       }  /* if */
+#endif /* ifndef __EDG_IA64_ABI */
       if (ehrdp->flags & RDF_GUARD_VAR_FOR_LOCAL_STATIC) {
         fprintf(__f_debug, " local static guard");
       }  /* if */
@@ -641,9 +643,15 @@ requires cleanup.
       dtor_ptr = (a_destructor_ptr)ehrdp->destructor_or_delete_routine;
       if (flags & RDF_ARRAY) {
         an_element_count	elements = ehasp->array_size;
+#ifndef __EDG_IA64_ABI
         __vec_delete(obj_addr, elements, ehasp->element_size, dtor_ptr,
                     /*delete_flag=*/FALSE, /*unused_arg=*/0);
+#else /* ifdef __EDG_IA64_ABI */
+        ABI_NAMESPACE::__cxa_vec_dtor(obj_addr, elements, 
+                                      ehasp->element_size, dtor_ptr);
+#endif /* ifdef __EDG_IA64_ABI */
       } else {
+#ifndef __EDG_IA64_ABI
         /* Not an array.  Just destroy the object.  If the object is a
            complete object, pass in the value "2" to indicate that the
 	   object and any subobjects should be destroyed.  If the object
@@ -651,6 +659,9 @@ requires cleanup.
 	   indicating that only the object (and not any subobjects)
 	   should be destroyed. */
         (dtor_ptr)(obj_addr, (flags & RDF_BASE_CLASS_SUBOBJECT) ? 0 : 2);
+#else /* ifdef __EDG_IA64_ABI */
+        (dtor_ptr)(obj_addr);
+#endif /* ifdef __EDG_IA64_ABI */
       }  /* if */
     } else {
       /* A new allocation region.  Call the delete operator to free the
@@ -821,9 +832,14 @@ entry is returned in etsp_found.
          of qualifiers and used for the match of a conversion to void* and
          derived to base conversions below. */
 #if ABI_CHANGES_FOR_RTTI
-    } else if (etsp->type_info->unique_id != NULL &&
+    } else if (
+#ifndef __EDG_IA64_ABI
+               etsp->type_info->unique_id != NULL &&
                etsp->type_info->unique_id ==
                                          &MANGLED_NAME_OF_UNIQUE_ID_OF_VOID &&
+#else /* ifdef __EDG_IA64_ABI */
+               etsp->type_info == &typeid(void *) &&
+#endif /* ifdef __EDG_IA64_ABI */
                (ets_is_ptr == is_ptr) && ets_is_single_ptr) {
       /* The exception type specification is a void * and the object
          being thrown is some kind of pointer.  This is a match. */
@@ -837,7 +853,12 @@ entry is returned in etsp_found.
 #endif /* !ABI_CHANGES_FOR_RTTI */
     } else if ((!is_ptr ||
                (is_single_ptr && ets_is_single_ptr)) &&
+#ifndef __EDG_IA64_ABI
 	       type_info->base_class_entries != NULL &&
+#else /* ifdef __EDG_IA64_ABI */
+               (typeid(*type_info) == typeid(abi::__si_class_type_info) ||
+                typeid(*type_info) == typeid(abi::__vmi_class_type_info)) &&
+#endif /* ifdef __EDG_IA64_ABI */
 	       __derived_to_base_conversion(object_ptr, &new_ptr, type_info,
 					    etsp->type_info,
 					    &local_access_flags,
@@ -919,7 +940,11 @@ top of the throw stack.
       a_destructor_ptr	dtor_ptr;
       dtor_ptr = (a_destructor_ptr)primary_tsep->destructor;
       if (dtor_ptr != NULL) {
+#ifndef __EDG_IA64_ABI
         (dtor_ptr)(object_address, 2);
+#else /* ifdef __EDG_IA64_ABI */
+        (dtor_ptr)(object_address);
+#endif /* ifdef __EDG_IA64_ABI */
       }  /* if */
     }  /* if */
   }  /* if */
