@@ -1,5 +1,28 @@
 Version 2.20
 
+10/24/93 IL Lowering type promotion reworked
+
+The algorithm for promoting memembers out of classes in IL lowering
+has been reworked.  Formerly, in some very obscure cases involving
+templates, the types on the types lists would be in an order that
+would not work right when generating order-dependent output, e.g.,
+C code.  This may have been invisible to true back ends.  One should
+note that types now come out more in source order.  For example:
+
+  struct A {
+    typedef int B;
+    struct C {
+      typedef int D;
+    };
+  };
+
+Formerly, the types came out in the order D, B, D, A.  Now they come out
+in the order B, D, C, A.  That is, they are in source order if one
+considers the position of class definitions to be the closing brace.
+
+One tricky aspect of this processing depends on a new flag added to the
+IL, i.e., is_placeholder_for_file_scope_type.
+
 10/22/93 Bug in overload resolution fixed
 
 When a conversion could be done both via a constructor and via a
