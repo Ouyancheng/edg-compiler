@@ -48,7 +48,7 @@ compilers.  Now fixed.
 1/20/04  Template argument deduction with arrays with added qualifiers
 
 When calling a function template, the standard permits the parameter
-type to be more cv-qualifier than the argument, when the parameter is
+type to be more cv-qualified than the argument, when the parameter is
 a reference type.  The front end did not correctly handle cases in
 which an array type was more cv-qualified than the argument array.
 This would result in the function being discarded by the type deduction
