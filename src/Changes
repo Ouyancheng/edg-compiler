@@ -1,5 +1,22 @@
 Version 2.35
 
+1/20/97 Incorrect processing of ?: operation in default argument expression
+        in template
+
+In a case like the following, involving a ?: operation that tests
+a nontype template parameter, the front end incorrectly concluded that
+the default argument was not dependent on template parameters and
+therefore failed to evaluate it correctly on some instantiations.
+
+  template<int N1, bool N2=((N1>=50)?true:false)>
+  struct A {
+    A(const char *name, int n2) { int i = N2; }
+  };
+  int main() {
+    A<49> a49("A<49>",0);  // Got wrong value of N2 in instantiation
+    return 0;
+  }
+
 1/20/97 Cfront and Microsoft compatibility: uninitialized const objects
 
 Several errors on uninitialized const objects have been eliminated in
