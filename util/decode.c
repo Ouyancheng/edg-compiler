@@ -4187,7 +4187,7 @@ virtual function.  The syntax is:
   ptr = get_number(ptr, &num, dctl);
   (void)sprintf(buffer, "%ld", num);
   write_id_str(buffer, dctl);
-  write_id_ch(')', dctl);
+  write_id_str(") ", dctl);
   ptr = advance_past_underscore(ptr, dctl);
   return ptr;
 }  /* demangle_call_offset */
