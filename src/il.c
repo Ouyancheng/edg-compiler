@@ -8607,7 +8607,7 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
           db_abbreviated_type((a_type_ptr)hnp->entity.ptr);
         } else {
           db_name(source_corresp_for_il_entry(hnp->entity.ptr,
-                                              hnp->entity.kind));
+                                        (an_il_entry_kind)hnp->entity.kind));
         }  /* if */
         fputc('\n', f_debug);
       }  /* if */
@@ -8627,7 +8627,7 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
           db_abbreviated_type((a_type_ptr)hnp->entity.ptr);
         } else {
           db_name(source_corresp_for_il_entry(hnp->entity.ptr,
-                                              hnp->entity.kind));
+                                        (an_il_entry_kind)hnp->entity.kind));
         }  /* if */
         fputc('\n', f_debug);
       }  /* if */
