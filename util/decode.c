@@ -1097,9 +1097,6 @@ a pointer to the character position following what was demangled.
          (c)  "F" followed by the encoding for the parameter types for a
               nonmember function.
     */
-#if 0
-    /* Promoted entity names. */
-#endif /* 0 */
     end_ptr = mname;
     if (mname[0] != 'F') {
       /* A class name must be next. */
@@ -1156,12 +1153,15 @@ In addition, if the error is that the output buffer is too small,
   /* Check for special cases. */
   if (start_of_id_is("__vtbl__", id)) {
     write_id_str("virtual function table for ");
-#if 0
-    /* If the first name is a base class name and it's not simple, this
-       will produce confusing output.  Also, after some class names there
-       might be "__A" to indicate ambiguity. */
-#endif /* 0 */
+    /* Note that if the first name is a base class name and it's not simple,
+       this will produce output containing partially-mangled information.
+       It's hard to do better given the cfront encoding form. */
     end_ptr = demangle_type(id+8);
+    if (start_of_id_is("__A", end_ptr)) {
+      /* "__A" indicates an ambiguous base class. */
+      write_id_str(" (ambiguous)");
+      end_ptr += 3;
+    }  /* if */
     if (start_of_id_is("__", end_ptr)) {
       /* Virtual function table for base class in derived class. */
       end_ptr += 2;
