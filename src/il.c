@@ -4432,6 +4432,8 @@ to it.
 #ifdef CIL
   vp->referenced_non_locally      = FALSE;
   vp->is_instantiation            = FALSE;
+  vp->can_be_instantiated         = FALSE;
+  vp->do_not_instantiate          = FALSE;
 #endif /* ifdef CIL */
 #ifdef FIL
   vp->by_address                  = FALSE;
@@ -4686,6 +4688,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->compiler_generated      = FALSE;
   rp->called                  = FALSE;
   rp->is_instantiation	      = FALSE;
+  rp->can_be_instantiated     = FALSE;
+  rp->do_not_instantiate      = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED
   rp->assignment_to_this_done = FALSE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
