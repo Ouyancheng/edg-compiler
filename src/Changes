@@ -34,18 +34,20 @@ declaration of that same entity.  For example:
   void f() { extern float x; }
   int x;  // Now a warning in GNU C mode (previously an error).
 
-2/2/05   GNU C compatibility: Extraneous braces in initializers
+2/2/05   Extraneous braces in initializers
 
-In nonstrict C modes, the front end already accepted an extra level of braces
-around the scalar components of a brace-enclosed initializer.  For example:
+In nonstrict C modes, the front end already accepted (with a warning) an extra
+level of braces around the scalar components of a brace-enclosed initializer.
+For example:
 
   int a[1] = { { 1 } };  // Accepted with a warning in nonstrict C modes.
 
-In GNU C mode, an arbitrary number of such extra levels is now accepted.
+In some modes (GNU C, Microsoft C++, and Microsoft C with microsoft_version
+less than 1310), an arbitrary number of such extra levels is now accepted.
 For example:
 
-  int b[1] = { { { 1 } } };  // Accepted with a warning in GNU C mode.
-                             // An error is issued in other modes.
+  int b[1] = { { { 1 } } };  // Accepted with a warning in some modes.
+                             // An error is issued in the other modes.
 
 2/1/05   Compile-time floating-point processing under Cygwin
 

@@ -1725,15 +1725,17 @@ subaggregate.  The function returns a pointer to an IL a_constant entity.
   a_dynamic_init_ptr dip = 0;
 
   check_for_opening_brace(&brace_flag);
-  if (gcc_mode && curr_token == tok_lbrace && context->prev_context != NULL &&
-      context->pending_init_con == NULL) {
-    /* In GNU C mode (but not in GNU C++ mode), an arbitrary number of
-       extraneous braces are accepted.  Each level of braces, can also
-       contain a trailing comma.  For example:
+  if (curr_token == tok_lbrace && context->prev_context != NULL &&
+      context->pending_init_con == NULL &&
+      (gcc_mode ||
+       (microsoft_mode && (!C_mode() || microsoft_version < 1310)))) {
+    /* In some modes, an arbitrary number of extraneous braces are accepted.
+       Each level of braces, can also contain a trailing comma.  For example:
          struct S s = { { { 1, }, }, };
-       We handle these cases via recursion.  A warning will already have
-       been issued for the outermost braces in get_initializer.  (Source
-       code rarely takes advantage of this GNU bug.) */
+       We handle these cases via recursion.  A warning will already have been
+       issued for the outermost braces in get_initializer.  (Source code rarely
+       takes advantage of this bug, so the cost of recursion should be
+       acceptable.) */
     constant = get_single_value_for_aggregate_initializer(init_info, context);
     goto process_closing_brace;
   }  /* if */
@@ -2350,7 +2352,15 @@ this function points to a tree that includes a dynamic-init entry.
     /* Non-aggregate/union case -- initializer is a single (possibly
        brace-enclosed) value. */
     if (curr_token == tok_lbrace && !top_level &&
-        context.pending_init_con == NULL) {
+        context.pending_init_con == NULL &&
+        (gcc_mode ||
+         (microsoft_mode && (!C_mode() || microsoft_version < 1310)) ||
+         next_token() != tok_lbrace)) {
+      /* The brace is extraneous.  Issue a warning or an error, except if it is
+         followed by another brace that will be diagnosed as an error later on.
+         (Some GNU and Microsoft modes will not diagnose the additional braces
+         and so the first one should be warned about at this point.  This test
+         must match the one in get_single_value_for_aggregate_initializer.) */
       diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                  ec_nonstd_braces);
     }  /* if */
