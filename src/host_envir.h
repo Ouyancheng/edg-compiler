@@ -1594,10 +1594,8 @@ and char* on pcc compilers.  Sun C++ uses char* for some reason though.
 */
 #if defined(__cplusplus) && defined(__SUNPRO_CC)
 typedef char *a_stdio_arg;
-typedef char *a_realloc_arg;
 #else /* !(defined(__cplusplus) && __defined(__SUNPRO_CC)) */
 typedef a_void_ptr a_stdio_arg;
-typedef a_void_ptr a_realloc_arg;
 #endif /* defined(__cplusplus) && __defined(__SUNPRO_CC) */
 
 /*
