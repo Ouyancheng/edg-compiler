@@ -248,7 +248,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_threads_constant_not_allowed)*/
 /*lint -esym(769,ec_shared_block_size_too_large)*/
 /*lint -esym(769,ec_function_returning_shared)*/
-/*lint -esym(769,ec_nonshared_threads_dim)*/
 /*lint -esym(769,ec_shared_nonthreads_dim)*/
 /*lint -esym(769,ec_shared_inside_struct)*/
 /*lint -esym(769,ec_shared_parameter)*/
