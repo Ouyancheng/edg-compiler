@@ -4385,6 +4385,14 @@ been completed.
     remark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
   }  /* for */
   for (rp = scope->routines; rp != NULL; rp = rp->next) {
+    a_boolean saved_defined = rp->defined;
+#if GNU_EXTENSIONS_ALLOWED
+    if (gcc_mode && rp->aliased_routine != NULL) {
+      /* Routine aliases are needed because they may be accessed from other
+         translation units. */
+      mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* If the routine is marked as needed, remark it to visit its
        subtree.  The subtree is not visited until this phase, because it
        can change.  Note that the subtree here is the function type,
@@ -4392,7 +4400,6 @@ been completed.
     /* If the "defined" flag is TRUE, the body will already have been
        walked to mark its constituents as needed; we clear the flag to
        keep it from being walked again. */
-    a_boolean saved_defined = rp->defined;
     rp->defined = FALSE;
     remark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
     /* Restore the "defined" flag. */
@@ -4446,13 +4453,10 @@ e.g., because it's externally defined.
     is_needed = TRUE;
   } else if (rout->storage_class == (a_storage_class)sc_static &&
              (rout->unused || rout->is_weak)) {
-    /* GNU C doesn't eliminate unreferenced static variables.  This front end
+    /* GNU C doesn't eliminate unreferenced static functions.  This front end
        may do so, but some attributes are taken as an indication that the
        entry should be kept. */
     is_needed = TRUE;
-  } else if (rout->aliased_routine != NULL) {
-    /* An alias is needed if the routine it aliases may be needed. */
-    is_needed = routine_needed_even_if_unreferenced(rout->aliased_routine);
   } else 
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
