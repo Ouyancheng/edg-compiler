@@ -588,6 +588,36 @@ FALSE, respectively).
   perform_if(condition);
 }  /* proc_ifdef */
 
+#if RECORD_MACROS_IN_IL
+
+static void make_il_undef_entry(a_symbol_ptr          undef_sym,
+                                a_source_position_ptr undef_pos)
+/*
+Create an IL entry for an #undef of undef_sym.  The #undef has
+source position *undef_pos.
+*/
+{
+  sizeof_t    len;
+  char        *ptr;
+  a_macro_ptr mp;
+
+  /* Allocate an IL area of the right size and put "#undef name" into it. */
+#define UNDEF_STR "#undef "
+  len = sizeof(UNDEF_STR) + undef_sym->header->identifier_length;
+  ptr = alloc_il(len);
+  (void)strcpy(ptr, UNDEF_STR);
+  (void)strcpy(ptr + sizeof(UNDEF_STR) - 1, undef_sym->header->identifier);
+  /* Allocate and fill in the IL macro entry. */
+  mp = alloc_macro();
+  mp->is_undef = TRUE;
+  mp->text = ptr;
+  mp->source_corresp.decl_position = *undef_pos;
+  set_source_corresp(&mp->source_corresp, undef_sym);
+  /* Add the macro entry to the IL list. */
+  add_to_macros_list(mp);
+}  /* make_il_undef_entry */
+
+#endif /* RECORD_MACROS_IN_IL */
 
 static void proc_undef(void)
 /*
@@ -613,6 +643,10 @@ Scan and process an #undef directive.
       /* The macro is predefined. */
       error(ec_cannot_undef_predef_macro);
     } else {
+#if RECORD_MACROS_IN_IL
+      /* Make an IL entry for the #undef. */
+      make_il_undef_entry(assoc_symbol, &pos_curr_token);
+#endif /* RECORD_MACROS_IN_IL */
       /* Remove the macro's definition.  The a_macro_def entry pointed to
          by the symbol is not freed, and is therefore just lost.  */
       mark_referenced(assoc_symbol, &pos_curr_token);

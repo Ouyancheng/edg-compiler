@@ -4841,7 +4841,8 @@ typedef struct a_template {
 #if RECORD_MACROS_IN_IL
 
 /*
-An entry containing the text of a macro..
+An entry containing the text of a macro, used to represent a #define.
+Also used for #undef.
 */
 typedef struct a_macro *a_macro_ptr;
 typedef struct a_macro {
@@ -4853,10 +4854,13 @@ typedef struct a_macro {
   a_macro_ptr	next;
 			/* Next in a linked list of macro declarations; NULL
 			   for the last on the list. */
+  a_byte_boolean
+		is_undef;
+			/* TRUE for #undef, FALSE for #define. */
   char		*text;
 			/* A null-terminated string representing the text of
 			   the macro declaration, starting with the keyword
-			   "#define". */
+			   "#define" or "#undef". */
 } a_macro;
 
 #endif /* RECORD_MACROS_IN_IL */

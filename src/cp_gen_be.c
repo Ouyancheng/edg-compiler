@@ -3884,7 +3884,8 @@ is the one associated with the template.
 static void gen_macro(void)
 /*
 Generate a declaration for a macro.  The current source sequence entry
-is the one associated with the macro.
+is the one associated with the macro.  This is used both for #define and
+for #undef.
 */
 {
   a_macro_ptr mp = ss_entry_ptr(curr_source_sequence_entry, a_macro_ptr);

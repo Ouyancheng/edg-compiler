@@ -2187,6 +2187,7 @@ Display the indicated hidden-name entry.
 {
   disp_source_corresp(&ptr->source_corresp);
   disp_ptr("next", (char *)ptr->next, iek_macro);
+  disp_boolean("is_undef", (a_boolean)ptr->is_undef);
   disp_string_ptr("text", ptr->text, iek_other_text, (sizeof_t)0);
 }  /* disp_macro */
 

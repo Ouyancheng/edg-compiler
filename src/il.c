@@ -8337,6 +8337,7 @@ fields, and return a pointer to it.
 #endif /* DEBUG */
   set_default_source_corresp(mp->source_corresp);
   mp->next = NULL;
+  mp->is_undef = FALSE;
   mp->text = NULL;
 
   return mp;
