@@ -1266,7 +1266,8 @@ extern void rescan_copy_of_cache(a_token_cache *cache);
 extern
 void split_token_cache(a_token_cache	       *cache1,
                        a_token_cache	       *cache2,
-                       a_token_sequence_number split_location);
+                       a_token_sequence_number split_location,
+                       a_boolean	       include_prev_token);
 
 /* Move a list of tokens from one cache to another. */
 extern

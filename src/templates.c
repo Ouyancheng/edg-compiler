@@ -6135,13 +6135,11 @@ returned to the caller.
     /* Then declaration token cache contains the declaration and the
        initializer.  Split the cache so that the initialization is
        removed from the declaration cache and placed in the initializer
-       cache.  When processing a parenthesized initializer, we've already
-       bypassed the opening parenthesis, so we need to decrement the
-       token sequence number to be used as the split location. */
+       cache. */
     split_location = curr_token_sequence_number;
-    if (has_parenthesized_initializer) split_location--;
     split_token_cache(&decl_state->decl_token_cache,
-                      p_token_cache, split_location);
+                      p_token_cache, split_location,
+                      /*include_prev_token=*/has_parenthesized_initializer);
     /* Skip over the tokens that are already part of the token cache. */
     clear_token_set_array(stop_tokens);
     incr_token_set_array_element(stop_tokens, tok_lbrace);

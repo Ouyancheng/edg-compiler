@@ -452,6 +452,7 @@ associated with the current token.
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_pragma;
   ctp->variant.pragmas = curr_token_pragmas;
   ctp->token = (a_byte_token_kind)tok_error;
+  ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   add_cached_token_to_cache(ctp, cache);
 #if DEBUG
   /* Increment the number of pragmas in reusable caches and the number of
@@ -917,16 +918,21 @@ Free an individual token from a reusable cache.
 
 void split_token_cache(a_token_cache	       *cache1,
                        a_token_cache	       *cache2,
-                       a_token_sequence_number split_location)
+                       a_token_sequence_number split_location,
+                       a_boolean	       include_prev_token)
 /*
 Split cache1 into two pieces.  cache1 will contain all the tokens up
 to the one that precedes the token number specified by split location.
-cache2 will contain all the tokens that follow.
+cache2 will contain all the tokens that follow.  If incldue_prev_token
+is TRUE, we should include the token before the split location in the tokens
+that are moved to cache2.
 */
 {
   a_cached_token_ptr		ctp;
-  a_cached_token_ptr		first_ctp_to_move;
-  a_cached_token_ptr		before_first_ctp_to_move;
+  a_cached_token_ptr		first_ctp_to_move = NULL;
+  a_cached_token_ptr		before_first_ctp_to_move = NULL;
+  a_cached_token_ptr		prev_first_ctp_to_move;
+  a_cached_token_ptr		prev_before_first_ctp_to_move;
 
   check_assertion_str2(cache1->is_reusable && cache2->is_reusable,
                        "split_token_cache:",
@@ -935,17 +941,27 @@ cache2 will contain all the tokens that follow.
     if (ctp->token_sequence_number == split_location) break;
     if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
       /* The token sequence looks something like:
-		 token-n1 pragma-n2 token-n3 token-n4
+		 pragma-n0 token-n1 pragma-n2 token-n3 token-n4
          where token-n3 is the split location.  We also want to move any
          pragma that precede token-n3 to cache 2.  When we break out of
          the loop first_ctp_to_move will point to pragma-n2 and
-         before_first_ctp_to_move will point to token-n1. */
+         before_first_ctp_to_move will point to token-n1.  Save the previous
+         values of these fields.  If include_prev_token is TRUE we want
+         to split the cache before pragma-n0. */
+      prev_first_ctp_to_move = first_ctp_to_move;
+      prev_before_first_ctp_to_move = before_first_ctp_to_move;
       first_ctp_to_move = ctp->next;
       before_first_ctp_to_move = ctp;
     }  /* if */
   }  /* for */
   check_assertion_str2(ctp != NULL, "split_token_cache:",
                        "specified token not found");
+  if (include_prev_token) {
+    /* The token before the split location should be the first to be put
+       in the new cache. */
+    first_ctp_to_move = prev_first_ctp_to_move;
+    before_first_ctp_to_move = prev_before_first_ctp_to_move;
+  }  /* if */
 #if DEBUG
   /* Adjust the token and pragma counts in the caches. */
   for (ctp = first_ctp_to_move; ctp != NULL; ctp = ctp->next) {
