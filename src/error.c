@@ -1823,6 +1823,9 @@ error code.
       m = "a return type is not allowed";
       break;
     case ec_invalid_instantiation_pragma_argument:
+      m = "invalid instantiation pragma argument";
+      break;
+    case ec_not_instantiatable_entity:
       m = "%nf is not a template function, class, member function or static data member";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
