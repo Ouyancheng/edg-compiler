@@ -1911,6 +1911,7 @@ Dump the definition ({...}) if body is TRUE.
 */
 {
   a_field_ptr field;
+  a_boolean   any_non_zero_sized_field = FALSE;
 
   if (body && type->size == 0) {
     /* The struct is not defined, so do not put out a "body" definition. */
@@ -1919,16 +1920,10 @@ Dump the definition ({...}) if body is TRUE.
     (void)fprintf(f_C_output, "struct %s", get_name(&type->source_corresp));
     if (body) {
       fputs(" {", f_C_output);
-      field = type->variant.class_struct_union.field_list;
       indent += 2;
-      if (field == NULL) {
-        /* In the bizarre case "struct {int :0;}" the union has no component
-           fields.  This also applies to classes from C++ passed through
-           IL lowering. */
-        startline((a_seq_number)0);
-        fputs("char __dummy;", f_C_output);
-      }  /* if */
-      while (field != NULL) {
+      for (field = type->variant.class_struct_union.field_list;
+           field != NULL;
+           field = field->next) {
         startline(field->source_corresp.decl_position.seq);
         if (!field->is_bit_field) {
           /* Not bit field. */
@@ -1938,6 +1933,7 @@ Dump the definition ({...}) if body is TRUE.
                         il_header.source_language == sl_Cplusplus) ?
                                                         field_name(field) : "";
           simple_type_reference(name, field->type);
+          any_non_zero_sized_field = TRUE;
         } else {
           /* Bit field. */
           (void)fprintf(f_C_output, "%s %s: %d",
@@ -1946,6 +1942,7 @@ Dump the definition ({...}) if body is TRUE.
                                     (field->source_corresp.name != NULL) ?
                                                         field_name(field) : "",
                                     field->bit_size);
+          if (field->bit_size != 0) any_non_zero_sized_field = TRUE;
         }  /* if */
         (void)fputc(';', f_C_output);
 #if INCLUDE_ANNOTATIONS
@@ -1960,8 +1957,13 @@ Dump the definition ({...}) if body is TRUE.
           fputs(" */", f_C_output);
         }  /* if */
 #endif /* INCLUDE_ANNOTATIONS */
-        field = field->next;
-      }  /* while */
+      }  /* for */
+      if (!any_non_zero_sized_field) {
+        /* Avoid a zero-sized struct for the bizarre case "struct {int :0;}"
+           and for fieldless classes from C++ passed through IL lowering. */
+        startline((a_seq_number)0);
+        fputs("char __dummy;", f_C_output);
+      }  /* if */
       indent -= 2;
       startline((a_seq_number)0);
       fputc('}', f_C_output);
@@ -1981,7 +1983,8 @@ Print a union declaration.  Print the associated source name if there is one.
 Dump the definition ({...}) if body is TRUE.
 */
 {
-  register a_field_ptr field;
+  a_field_ptr field;
+  a_boolean   any_non_zero_sized_field = FALSE;
 
   if (body && type->size == 0) {
     /* The union is not defined, so do not put out a "body" definition. */
@@ -1990,23 +1993,24 @@ Dump the definition ({...}) if body is TRUE.
     (void)fprintf(f_C_output, "union %s", get_name(&type->source_corresp));
     if (body) {
       fputs(" {", f_C_output);
-      field = type->variant.class_struct_union.field_list;
       indent += 2;
-      if (field == NULL) {
-        /* In the bizarre case "union {int :0;}" the union has no component
-           fields. */
-        startline((a_seq_number)0);
-        fputs("char __dummy;", f_C_output);
-      }  /* if */
-      while (field != NULL) {
+      for (field = type->variant.class_struct_union.field_list;
+           field != NULL;
+           field = field->next) {
         startline(field->source_corresp.decl_position.seq);
         /* Note that names are generated for unnamed bit fields. */
         simple_type_reference(field_name(field), field->type);
         /* Note that bit fields are legal but are not dumped as such, because
            pcc compilers don't like bit fields in unions. */
         fputc(';', f_C_output);
-        field = field->next;
-      }  /* while */
+        any_non_zero_sized_field = TRUE;
+      }  /* for */
+      if (!any_non_zero_sized_field) {
+        /* Avoid a zero-sized structure for fieldless C++ unions run through
+           IL lowering. */
+        startline((a_seq_number)0);
+        fputs("char __dummy;", f_C_output);
+      }  /* if */
       indent -= 2;
       startline((a_seq_number)0);
       fputc('}', f_C_output);
