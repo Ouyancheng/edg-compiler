@@ -342,6 +342,36 @@ static an_error_file_index_ptr
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+/*
+Structure used to maintain a record of diagnostic messages that have been
+issued during prototype instantiations.
+*/
+typedef struct a_recorded_diagnostic *a_recorded_diagnostic_ptr;
+typedef struct a_recorded_diagnostic {
+  a_recorded_diagnostic_ptr
+		next;
+			/* Pointer to the next entry in the current bucket.
+			   NULL for the last entry in the bucket. */
+  an_error_code	error_code;
+			/* The error code of the diagnostic. */
+  an_error_severity
+		severity;
+			/* The severity of the message. */
+  a_source_position
+		error_pos;
+			/* The position associated with the message. */
+} a_recorded_diagnostic;
+
+
+#define RECORDED_DIAG_TABLE_SIZE 983
+			/* The number of buckets in the recorded diagnostic
+			   table.  This number should be prime. */
+
+static a_recorded_diagnostic_ptr
+		recorded_diagnostic_table[RECORDED_DIAG_TABLE_SIZE];
+			/* The top level array used for the hash table used
+			   to find previously issued diagnostics. */
+
 
 static a_msg_segment_ptr curr_output_msg_segment;
 			/* The current output message segment used by
@@ -1389,6 +1419,7 @@ of each compilation.
 {
   catastrophe_has_occurred = FALSE;
   clear_file_index_list();
+  memzero(recorded_diagnostic_table, sizeof(recorded_diagnostic_table));
 }  /* error_init */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -2881,6 +2912,104 @@ message appears by itself on a separate line.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+static int bucket_for_diag(an_error_code		error_code,
+			   an_error_severity	severity,
+			   a_source_position	*error_pos)
+/*
+Compute the hash table bucket to be used for this diagnostic.
+*/
+{
+  unsigned long	value;
+  int		bucket;
+
+  value = (unsigned long)error_code;
+  value *= ((unsigned long)severity + 1);
+  value *= ((unsigned long)error_pos->seq + 1);
+  value *= ((unsigned long)error_pos->column + 1);
+  bucket = (int)(value % RECORDED_DIAG_TABLE_SIZE);
+  return bucket;
+}  /* bucket_for_diag */
+
+
+static a_boolean record_prototype_diagnostic(
+				an_error_code		error_code,
+				an_error_severity	severity,
+				a_source_position	*error_pos)
+/*
+This diagnostic is being issued during a prototype instantiation.
+Make a record of the diagnostic so that we can find it later to
+suppress duplicate diagnostics.
+*/
+{
+  int				bucket;
+  a_recorded_diagnostic_ptr	rdp;
+
+  bucket = bucket_for_diag(error_code, severity, error_pos);
+  rdp = (a_recorded_diagnostic_ptr)alloc_fe(sizeof(a_recorded_diagnostic));
+  rdp->error_code = error_code;
+  rdp->severity = severity;
+  rdp->error_pos = *error_pos;
+  rdp->next = recorded_diagnostic_table[bucket];
+  recorded_diagnostic_table[bucket] = rdp;
+}  /* record_prototype_diagnostic */
+
+
+static a_boolean find_prototype_diagnostic(
+				an_error_code		error_code,
+				an_error_severity	severity,
+				a_source_position	*error_pos)
+/*
+This diagnostic is being issued during a real instantiation.  Check
+whether a matching diagnostic was issued during a prototype instantiation.
+Return TRUE if one is found.
+*/
+{
+  a_boolean			found = FALSE;
+  int				bucket;
+  a_recorded_diagnostic_ptr	rdp;
+
+  bucket = bucket_for_diag(error_code, severity, error_pos);
+  rdp = recorded_diagnostic_table[bucket];
+  for (; rdp != NULL; rdp = rdp->next) {
+    if (rdp->error_code == error_code &&
+        rdp->severity == severity &&
+        rdp->error_pos.seq == error_pos->seq &&
+        rdp->error_pos.column == error_pos->column) {
+      found = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return found;
+}  /* record_prototype_diagnostic */
+
+
+static a_boolean diagnostic_already_issued_for_prototype(
+				an_error_code		error_code,
+				an_error_severity	severity,
+				a_source_position	*error_pos)
+/*
+This routine is used to prevent duplication of diagnostics in
+templates.  When a diagnostic is issued during a prototype instantiation
+a record is kept based on the error code, severity, and position.  If
+a matching diagnostic is issued during a real instantiation, it is
+suppressed.
+
+Return TRUE if the diagnostic should be suppressed.
+*/
+{
+  a_boolean	suppress_diagnostic = FALSE;
+
+  if (is_template_dependent_context()) {
+    record_prototype_diagnostic(error_code, severity, error_pos);
+  } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    if (find_prototype_diagnostic(error_code, severity, error_pos)) {
+      suppress_diagnostic = TRUE;
+    }  /* if */
+  }  /* if */
+  return suppress_diagnostic;
+}  /* diagnostic_already_issued_for_prototype */
+
+
 static void diag_message(an_error_code              error_code,
                          a_source_position          *error_pos,
                          an_error_severity          severity,
@@ -2901,7 +3030,9 @@ and doing any required expansions, the diagnostic is written.
   int                i;
 #endif /* CHECKING */
 
-  if (check_severity(error_code, &error_pos, &severity, diag_kind)) {
+  if (check_severity(error_code, &error_pos, &severity, diag_kind) &&
+      !diagnostic_already_issued_for_prototype(error_code, severity,
+                                               error_pos)) {
 #if !STANDALONE_UTILITY_PROGRAM
     if (curr_command_line_macro_def != NULL) {
       /* An error occurred while scanning a command-line macro definition.
