@@ -7368,6 +7368,9 @@ is a that of a constructor.
       curr_token_type_symbol = curr_type_symbol(/*is_new_type_name=*/FALSE,
                                                 /*in_prescan=*/FALSE);
       if (curr_token_type_symbol != tag_sym) {
+        /* The symbol one gets by looking up the class name is not the same as
+           the class symbol.  This might be okay, but it has to be checked
+           carefully. */
         if (class_type ==
                locator_for_curr_id.specific_symbol->class_of_which_a_member) {
           if (locator_for_curr_id.specific_symbol->kind !=
@@ -7378,12 +7381,19 @@ is a that of a constructor.
                         locator_for_curr_id.symbol_header->identifier);
           }  /* if */
         } else if (curr_token_type_symbol != NULL) {
-          check_assertion(
-                    is_template_class_symbol(curr_token_type_symbol));
-          pos_sy2_error(ec_bad_constructor_name,
-                        &locator_for_curr_id.source_position,
-                        curr_token_type_symbol, tag_sym);
+          if (curr_token_type_symbol->kind == (a_symbol_kind)sk_type &&
+              f_skip_typerefs(curr_token_type_symbol->variant.type) ==
+                                                                  class_type) {
+            /* There is a typedef for the class type with the same name as
+               the class.  It was found instead of the class on the lookup.
+               That's okay. */
+          } else {
+            pos_sy2_error(ec_bad_constructor_name,
+                          &locator_for_curr_id.source_position,
+                          curr_token_type_symbol, tag_sym);
+          }  /* if */
         }  /* if */
+        /* Use the class symbol instead of whatever the lookup returned. */
         locator_for_curr_id.specific_symbol = tag_sym;
       }  /* if */
       pos = locator_for_curr_id.source_position;

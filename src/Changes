@@ -1,5 +1,17 @@
 Version 2.25
 
+7/16/94  Internal error in decls.c on constructor declaration
+
+An internal error in decls.c has been corrected.  It occurred on a
+constructor declaration when there was a typedef for the class type
+with the same name as the class:
+
+  typedef struct A A;
+  struct A {
+    A() {}  // Internal error here now gone
+  };
+
+
 -------------------------------------------------------------------------------
 Version 2.24, July 8, 1994
 
