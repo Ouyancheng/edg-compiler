@@ -3868,6 +3868,12 @@ enable_microsoft_mode:
     check_upc_mode();
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  if (ignore_std_namespace) {
+    /* In the g++ compatibility mode in which the std namespace is an alias
+       for the global namespace, the va_list type should not be entered in
+       the std namespace. */
+    va_list_in_std_namespace = FALSE;
+  }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (instantiation_mode == tim_local && automatic_instantiation_mode) {
     /* -tlocal mode cannot be used with automatic instantiation.  If

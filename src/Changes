@@ -1,5 +1,17 @@
 Version 3.4
 
+12/15/03 Namespace of va_list type when using --ignore_std
+
+When passing stdarg references in the generated code and
+DEFAULT_VA_LIST_IN_STD_NAMESPACE is TRUE, the example below would
+fail when using the --ignore_std option (because the va_list type is
+entered into the std namespace, which is then ignored).  Now fixed.
+
+  #include <cstdarg>
+  namespace std {
+    va_list xxx;
+  }
+
 12/15/03 Shareable constants table performance improvement
 
 The size of the shareable constants table has been increased to improve 
