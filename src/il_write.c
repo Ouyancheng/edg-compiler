@@ -56,18 +56,19 @@ static an_il_entry_number
 			/* Maximum allowed entry number, used for overflow
 			   checking. */
 #if CHECKING && DEBUG
-/* CenterLine debugging variables used to locate a missing (unwritten) IL entry
+/* Debugging variables used to locate a missing (unwritten) IL entry
    by entry kind and entry number within that kind in a specific memory
    region.  By setting the variables trace_memory_region_number,
-   trace_entry_kind, and trace_entry_number after loading
-   il_write.c into the CodeCenter environment, CodeCenter will stop
-   (centerline_stop()) when the entry number is assigned for the specified
-   IL entry.
+   trace_entry_kind, and trace_entry_number after loading il_write.c into
+   the debugging environment, execution can be intercepted (by setting a
+   breakpoint on trace_entry_assignment; unneeded in CodeCenter where
+   centerline_stop() is invoked) when the entry number is assigned for the
+   specified IL entry.
 
-        1. load il_write.c
+        1. load il_write.c (if using CodeCenter)
         2. set stop in assign_entry_number
         3. run the test compilation
-        4. when CodeCenter stops in assign_entry_number:
+        4. when the debugger stops in assign_entry_number:
             a. set the 3 tracing variable values
             b. remove the stop at the entry of assign_entry_number
         5. continue
@@ -75,16 +76,16 @@ static an_il_entry_number
    The contents of the IL entry and its position on the IL tree as shown
    by the stack trace can help to determine the cause of the error.
 */
-a_memory_region_number
+static a_memory_region_number
 		trace_memory_region_number;
 			/* Memory region of the omitted IL entry. */
-an_il_entry_kind
+static an_il_entry_kind
 		trace_entry_kind;
 			/* IL entry kind of the omitted IL entry. */
-an_il_entry_number
+static an_il_entry_number
 		trace_entry_number;
 			/* IL entry number of the omitted IL entry. */
-a_memory_region_number
+static a_memory_region_number
 		trace_region_being_written;
 			/* Variable used by write_memory_region()
 			   to record the memory region number currently
@@ -94,7 +95,7 @@ static void trace_entry_assignment()
 {
 #ifdef __CENTERLINE__
   centerline_stop();
-#else /* !defined(__CENTERLINE) */
+#else /* !defined(__CENTERLINE__) */
   (void)fprintf(f_debug,
                 "Entry number %ld in region %ld (kind = %ld: %s).\n",
                 (long)trace_entry_number, (long)trace_memory_region_number,
@@ -131,10 +132,8 @@ triggering an internal error.
                 (long)entry_kind, il_entry_kind_names[(int)entry_kind]);
   (void)fprintf(f_debug, "         entry_ptr = 0x%lx\n",
                 (unsigned long)entry_ptr);
-#ifdef __CENTERLINE__
   (void)fprintf(f_debug, "         memory region = %4ld\n",
                 trace_region_being_written);
-#endif /* ifdef __CENTERLINE__ */
 }  /* display_il_entry_kind_and_ptr */
 
 #endif /* CHECKING && DEBUG */
@@ -744,11 +743,9 @@ Write the indicated memory region to the file f_il_output.
     writing_file_scope_il = (region_number == FILE_SCOPE_REGION_NUMBER);
 #if ALTERNATE_IL_FILE_FORMAT
     /* Alternate file format. */
-#ifdef __CENTERLINE__
 #if CHECKING && DEBUG
     trace_region_being_written = region_number;
 #endif /* CHECKING && DEBUG */
-#endif /* ifdef __CENTERLINE__ */
     { a_file_position  count_array_pos;
       int              int_entry_kind;
       char             zero = 0;
