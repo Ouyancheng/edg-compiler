@@ -2091,7 +2091,8 @@ is in fact valid.
     }  /* if */
     /* If this is an inline function based on a template, compare the
        template checksums. */
-    if (match && routine->is_template_function && routine->is_inline &&
+    if (match && routine->is_template_function &&
+        (routine->is_inline || corresp_routine->is_inline) &&
         !routine->is_specialized) {
       a_template_ptr	templ;
       a_template_ptr	corresp_templ;
