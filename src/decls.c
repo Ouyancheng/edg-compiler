@@ -2230,15 +2230,18 @@ declaration of this symbol.
 
   db_enter(4, "enter_local_symbol");
   if (scope_stack[scope_level].kind == (a_scope_kind)sck_func_prototype) {
-    if (kind == sk_variable) {
+    if (kind == (a_symbol_kind)sk_variable) {
       /* A variable declared in a function prototype scope is the result of
          an error in an old-style param list. */
     } else {
       /* Any other declaration expected in a prototype scope is that of a
          type or an enumeration constant. */
 #if CHECKING
-      if (kind != sk_class_or_struct_tag && kind != sk_union_tag &&
-          kind != sk_enum_tag && kind != sk_type && kind != sk_constant) {
+      if (kind != (a_symbol_kind)sk_class_or_struct_tag &&
+          kind != (a_symbol_kind)sk_union_tag &&
+          kind != (a_symbol_kind)sk_enum_tag &&
+          kind != (a_symbol_kind)sk_type &&
+          kind != (a_symbol_kind)sk_constant) {
         internal_error("enter_local_symbol: bad sym kind for func prototype");
       }  /* if */
 #endif /* CHECKING */
@@ -2261,7 +2264,7 @@ declaration of this symbol.
                struct s {int b;};
            The first "struct s" is a different type than the second, which is
            probably not what was wanted. */
-        if (kind != sk_constant) {
+        if (kind != (a_symbol_kind)sk_constant) {
           pos_warning(ec_decl_in_prototype_scope, &locator->source_position);
         }  /* if */
       }  /* if */
