@@ -578,6 +578,7 @@ caution when modifying this routine.
     }  /* if */
   } else {
     /* Identifier is missing. */
+    error(ec_exp_identifier);
     tag_err = TRUE;
   }  /* if */
   if (!C_mode() && !tag_err) {
@@ -768,19 +769,21 @@ caution when modifying this routine.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (locator_for_curr_id.is_qualified_name) {
-    /* A "vacuous declaration" may not involve a qualified name: "struct x;"
-       is okay, but "struct A::x;" is not. */
-    *check_for_vacuous_decl = FALSE;
-  }  /* if */
-  if (locator_for_curr_id.is_operator_name ||
-      locator_for_curr_id.is_conversion_name) {
-    /* Issue an error for something like "class operator+" or
-       "class operator int". */
-    pos_error(ec_operator_name_not_allowed,
-              &locator_for_curr_id.source_position);
-    tag_err = TRUE;
-    tag_sym = NULL;
+  if (!tag_err) {
+    if (locator_for_curr_id.is_qualified_name) {
+      /* A "vacuous declaration" may not involve a qualified name: "struct x;"
+         is okay, but "struct A::x;" is not. */
+      *check_for_vacuous_decl = FALSE;
+    }  /* if */
+    if (locator_for_curr_id.is_operator_name ||
+        locator_for_curr_id.is_conversion_name) {
+      /* Issue an error for something like "class operator+" or
+         "class operator int". */
+      pos_error(ec_operator_name_not_allowed,
+                &locator_for_curr_id.source_position);
+      tag_err = TRUE;
+      tag_sym = NULL;
+    }  /* if */
   }  /* if */
   if (tag_sym != NULL) {
     /* Tag symbol is a qualified name or a template class reference. */
