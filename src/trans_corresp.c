@@ -248,7 +248,7 @@ a source correspondence).
 }  /* db_scp */
 
 
-static void db_sym_list(a_symbol_list_entry_ptr  entries)
+void db_sym_list(a_symbol_list_entry_ptr  entries)
 /*
 Dump a short summary of the symbols in the given list.
 */
