@@ -1,5 +1,13 @@
 Version 2.44
 
+1/19/00  C++-generating back end: constant expression output, lvalues
+
+The changes made to record and use constant expressions in the IL
+(see Changes entry of 10/18/99) disabled some optimizations done in
+the generation of lvalues in the C++-generating back end.  As a
+consequence, code was sometimes put out that included a "&" operation
+on a class where operator& is overloaded.  Now fixed.
+
 1/18/00  Internal error on pragma before template-id when using
          source sequence lists
 

@@ -4152,9 +4152,18 @@ expression is surrounded by parentheses if there's some possibility of
 precedence confusion and need_parens is TRUE.
 */
 {
-  an_expr_node_kind kind = node->kind;
+  an_expr_node_kind kind;
   a_boolean         processed = FALSE;
 
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  /* If the lvalue address is a constant that came from an expression, go to
+     the expression.  This allows optimizations. */
+  if (is_constant_node(node) &&
+      node->variant.constant->expr != NULL) {
+    node = node->variant.constant->expr;
+  }  /*if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  kind = node->kind;
   if (node->implicit_reference_indirection) {
     /* This node includes an indirection for a C++ reference type.
        That is, there's an indirection that's explicit in the IL but is
