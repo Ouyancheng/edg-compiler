@@ -1857,6 +1857,17 @@ declaration.
 }  /* gen_friend_function_decl_name */
 
 
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+/* Return TRUE if the given constant has associated information about
+   the expression it came from and should be put out in expression
+   form.  Don't be fooled by enumeration constants, which also have a
+   non-NULL expression pointer if they were given an explicit value in
+   their definitions, but shouldn't be put out in expression form. */
+#define constant_should_be_put_out_as_expr(constant) \
+  ((constant)->expr != NULL && !is_enum_constant(constant))
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+
+
 static void gen_constant(a_constant_ptr constant,
                          a_boolean      need_parens)
 /*
@@ -1868,11 +1879,9 @@ operation.
 */
 {
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  /* Put out the expression for constants that come from constant expressions.
-     Don't be fooled by enumeration constants, which also have a non-NULL
-     expression pointer if they were given an explicit value in their
-     definitions, but shouldn't be put out in expression form. */
-  if (constant->expr != NULL && !is_enum_constant(constant)) {
+  /* Put out the expression for constants that come from constant
+     expressions. */
+  if (constant_should_be_put_out_as_expr(constant)) {
     gen_expr(constant->expr, need_parens);
   } else {
     form_constant(constant, need_parens, &octl);
@@ -4159,9 +4168,9 @@ precedence confusion and need_parens is TRUE.
   /* If the lvalue address is a constant that came from an expression, go to
      the expression.  This allows optimizations. */
   if (is_constant_node(node) &&
-      node->variant.constant->expr != NULL) {
+      constant_should_be_put_out_as_expr(node->variant.constant)) {
     node = node->variant.constant->expr;
-  }  /*if */
+  }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   kind = node->kind;
   if (node->implicit_reference_indirection) {
@@ -4859,6 +4868,16 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   a_boolean        need_reference_close_paren = FALSE;
 
   check_assertion_str(expr != NULL, "gen_expr: NULL expression");
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  /* If expression is a constant that came from an expression, go to
+     the expression.  This allows optimizations. */
+  if (is_constant_node(expr)) {
+    a_constant_ptr constant = expr->variant.constant;
+    if (constant_should_be_put_out_as_expr(constant)) {
+      expr = constant->expr;
+    }  /* if */
+  }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   if (expr->void_expression_lvalue) {
     /* The void_expression_lvalue flag indicates that the expression
        should be treated as an lvalue. */
