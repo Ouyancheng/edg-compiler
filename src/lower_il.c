@@ -7633,6 +7633,75 @@ the expression have already been lowered.
 }  /* lower_pm_field */
 
 #if LOWER_LVALUE_RETURNING_OPERATIONS
+static a_boolean has_statement_expression(an_expr_node_ptr  expr)
+/*
+Return whether expr contains a statement expression (a GNU C extension).
+*/
+{
+  a_boolean         result = FALSE;
+
+#if GNU_EXTENSIONS_ALLOWED
+  switch (expr->kind) {
+    case enk_error:
+    case enk_address_of_ellipsis:
+    case enk_constant:
+    case enk_variable:
+    case enk_variable_address:
+    case enk_routine_address:
+    case enk_field:
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    case enk_result_of_overriding_function:
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+      /* No subexpressions. */
+      break;
+    case enk_new_delete:
+    case enk_throw:
+    case enk_condition:
+    case enk_object_lifetime:
+    case enk_typeid:
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+    case enk_lowered_eh_construct:
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+      /* C++ only and there are no statement expressions in C++ mode. */
+      break;
+    case enk_operation:
+      /* Check if any subexpression has a statement expression. */
+      { an_expr_node_ptr  operand;
+        for (operand = expr->variant.operation.operands;
+             operand != NULL;
+             operand = operand->next) {
+          if (has_statement_expression(operand)) {
+            result = TRUE;
+            break;
+          }  /* if */
+        } /* for */
+      }
+      break;
+    case enk_temp_init:
+      { a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
+        if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+          /* This is the only relevant case in C mode. */
+          result = has_statement_expression(dip->variant.expression);
+        }  /* if */
+      }
+      break;
+    case enk_runtime_sizeof:
+      if (!expr->variant.runtime_sizeof.is_type) {
+        result = has_statement_expression(
+                                   expr->variant.runtime_sizeof.variant.expr);
+      }  /* if */
+      break;
+    case enk_statement:
+      result = TRUE;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  return result;
+}  /* has_statement_expression */
+
+
 void lower_operations_returning_lvalue_instead_of_usual_rvalue(
                                                     an_expr_node_ptr expr,
                                                     a_boolean        is_lvalue)
@@ -7660,6 +7729,7 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
       an_expr_node_ptr gchild1 = child1->variant.operation.operands;
       an_expr_node_ptr gchild2 = gchild1->next;
       an_expr_node_ptr gchild3, newop1, newop2;
+      an_expr_node_ptr  c2_init = NULL;
       a_type_ptr       expr_type = expr->type;
       if (child_op == (an_expr_operator_kind)eok_question) {
         /* Lvalue "?" rewrite.  Change
@@ -7674,6 +7744,13 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
            assignment, prefix ++/--, field selection, cast).  c2 isn't present
            for unary operations. */
         gchild3 = gchild2->next;
+        if (child2 != NULL && has_statement_expression(child2)) {
+          /* Statement expressions cannot be copied with copy_expr_tree.
+             Hence we evaluate such expressions into a temporary and copy
+             the reference to the temporary instead. */
+          c2_init = child2;
+          child2 = assign_expr_to_temp_and_make_expr_for_reuse(c2_init);
+        }  /* if */
         /* Build (g2 = c2). */
         newop1 = copy_node(expr);
         /* newop1->result_is_not_used is FALSE, which is right, regardless
@@ -7719,6 +7796,13 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
            rvalue. */
         expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
         expr->type = newop1->type;
+      }  /* if */
+      /* If a temporary was introduced to hold the value of child2, insert
+         its initialization now. */
+      if (c2_init != NULL) {
+        an_insert_location  insert_loc;
+        set_expr_insert_location(expr, &insert_loc);
+        insert_expr(c2_init, &insert_loc);
       }  /* if */
       /* Do further rewriting on the operations just inserted. */
       lower_operations_returning_lvalue_instead_of_usual_rvalue(newop1,
