@@ -1543,6 +1543,10 @@ by a command line option.
   /* The Microsoft compiler does not find typedefs when looking up names
      in elaborated type specifiers. */
   elab_type_lookup_finds_typedefs = FALSE;
+  /* Value-initialization was not implemented before MSVC++ 7.1. */
+  if (emulate_msvc_value_initialization_bugs && microsoft_version < 1310) {
+    value_initialization_enabled = FALSE;
+  }  /* if */
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

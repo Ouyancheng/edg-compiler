@@ -1570,6 +1570,28 @@ EXTERN a_boolean
 			   this is TRUE in C++ and not in C, but it is FALSE
 			   in some C++ modes. */
 
+EXTERN a_boolean
+		value_initialization_enabled
+#if VAR_INITIALIZERS
+			= TRUE
+#endif /* VAR_INITIALIZERS */
+			      ;
+			/* TRUE if value-initialization should be done.
+			   Value-initialization was added after the C++98
+			   standard and some compilers don't do it. */
+
+EXTERN a_boolean
+		emulate_msvc_value_initialization_bugs
+#if VAR_INITIALIZERS
+			= DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS
+#endif /* VAR_INITIALIZERS */
+			                                                ;
+			/* TRUE if bugs in MSVC++ regarding
+			   value-initialization should be emulated.  This
+			   is desirable in products that are trying to
+			   detect uninitialized values, but not in general. */
+
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

@@ -2004,6 +2004,15 @@ compiler release (e.g., 1300 corresponds to MSVC version 7).
 #endif /* MSVC_TARGET_VERSION_NUMBER */
 
 /*
+Switch that is TRUE if bugs in some versions of MSVC++ regarding
+value-initialization should be emulated.  This is desirable in products
+that are trying to detect uninitialized values, but not in general.
+*/
+#ifndef DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS
+#define DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS FALSE
+#endif /* DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS */
+
+/*
 Switch that is TRUE if the C-generating or C++-generating back end should
 generate code taking advantage of Microsoft extensions.  This does not by
 itself cause the back ends to compensate for bugs in the Microsoft compiler.

@@ -4208,7 +4208,9 @@ scan_paren:
                definition is triggered (in case there are side-effects).
                Note that this is a so-called "value-initialization" case
                and hence the object must be zeroed. */
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
+            dip = alloc_dynamic_init(value_initialization_enabled ?
+                                                (a_dynamic_init_kind)dik_zero :
+                                                (a_dynamic_init_kind)dik_none);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
             if (new_cip != NULL) {
               new_cip->ctor_init_range.start = init_start_pos;
@@ -4238,7 +4240,15 @@ scan_paren:
                    initialization.  Note that the class and array-of-class
                    cases have already been dealt with, so value initialization
                    is tantamount to zero-initialization (8.5 [dcl.init]). */
-                dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
+                a_dynamic_init_kind init_kind = (a_dynamic_init_kind)dik_zero;
+                if (microsoft_bugs &&
+                    emulate_msvc_value_initialization_bugs &&
+                    microsoft_version < 1310) {
+                  /* MSVC++ up to version 7.0 did not initialize the entity
+                     in this case. */
+                  init_kind = (a_dynamic_init_kind)dik_none;
+                }  /* if */
+                dip = alloc_dynamic_init(init_kind);
               }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
               if (new_cip != NULL) {

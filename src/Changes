@@ -1,5 +1,17 @@
 Version 3.4
 
+8/17/03  Microsoft compatibility: value-initialization for versions < 7.1
+
+The MSVC++ compiler did not implement value-initialization before
+version 7.1.  The EDG C++ Front End therefore now turns off the
+zeroing for that feature when microsoft_version < 1310 and
+DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS is TRUE.
+There are also some cases where MSVC++ did not even zero some things
+that were supposed to be zeroed under the previous default-initialization
+rules, and those are emulated as well.  This emulation is intended
+for customers whose products track uninitialized values in some way,
+and is not desirable in general, so it is not turned on by default.
+
 8/17/03  address_taken set on variables referenced by ck_stack_offset
 
 The address_taken flag is now set on variables for which ck_stack_offset

@@ -6751,7 +6751,8 @@ specification allow a variable-sized array as the top type.
         /* If the entity gets value-initialization, suppress this
            optimization, because there's no way to tell the constructor
            to do the necessary zeroing after the allocation. */
-        a_boolean value_init = (curr_token == tok_lparen &&
+        a_boolean value_init = (value_initialization_enabled &&
+                                curr_token == tok_lparen &&
                                 next_token() == tok_rparen);
         if (!value_init) {
           set_class_assoc_operator_new_routine(unqual_base_new_type);
@@ -6909,7 +6910,8 @@ specification allow a variable-sized array as the top type.
       needs_initialization = (ctor_routine != NULL ||
                               unknown_dependent_ctor);
       /* A "()" initializer implies value initialization. */
-      value_initialization = (needs_initialization && empty_parens);
+      value_initialization = (value_initialization_enabled &&
+                              needs_initialization && empty_parens);
     } else if (is_template_dependent_context() &&
                is_template_dependent_type(new_type)) {
       /* A "new" of a template-dependent type, in a prototype instantiation. */
@@ -6945,8 +6947,15 @@ specification allow a variable-sized array as the top type.
         end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         (void)get_token();
-        needs_initialization = TRUE;
-        zero_initialization = TRUE;
+        if (microsoft_bugs &&
+            emulate_msvc_value_initialization_bugs &&
+            microsoft_version < 1310) {
+          /* MSVC++ up to version 7.0 did not initialize the entity
+             in this case. */
+        } else {
+          needs_initialization = TRUE;
+          zero_initialization = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -9503,7 +9512,9 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
       make_constructor_dynamic_init(ctor_routine, arg_expr_list,
                                     type_cast_to, /*result_is_addr=*/FALSE,
                                     /*is_explicit_cast=*/TRUE,
-                                    /*is_value_init=*/empty_parens,
+                                    /*is_value_init=*/
+                                                  empty_parens &&
+                                                  value_initialization_enabled,
                                     start_position, result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_bugs && microsoft_version < 1100) {
@@ -9567,25 +9578,36 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
              This is value-initialization, but we know the class has
              no non-trivial constructor, so it's effectively
              zero-initialization. */
-          a_dynamic_init_ptr dip;
-          an_expr_node_ptr   temp_init_node =
+          a_dynamic_init_ptr  dip;
+          a_dynamic_init_kind init_kind = (a_dynamic_init_kind)dik_zero;
+          an_expr_node_ptr    temp_init_node;
+          /* Force generation of the trivial default constructor for a
+             non-POD class to detect any errors.  See core issue 302. */
+          if (reference_to_trivial_default_constructor(type_cast_to,
+                                                       &lparen_pos)) {
+            if (!value_initialization_enabled) {
+              /* Value initialization is disabled, and this is a non-POD
+                 class with a trivial default constructor.  The initialization
+                 conceptually calls the constructor, which is a no-op. */
+              init_kind = (a_dynamic_init_kind)dik_none;
+            }  /* if */
+          } else if (microsoft_bugs &&
+                     emulate_msvc_value_initialization_bugs &&
+                     microsoft_version < 1310) {
+            /* MSVC++ up to version 7.0 did not initialize the entity
+               in this case. */
+            init_kind = (a_dynamic_init_kind)dik_none;
+          }  /* if */
+          temp_init_node =
                   create_expr_temporary(type_cast_to,
                                         /*result_is_addr=*/FALSE,
                                         /*is_explicit_cast=*/TRUE,
                                         /* Abstract class test done
                                            previously. */
                                         /*suppress_abstract_test=*/TRUE,
-                                        (a_dynamic_init_kind)dik_zero,
+                                        init_kind,
                                         start_position,
                                         &dip);
-          /* Force generation of the trivial default constructor for a
-             non-POD class to detect any errors.  This is correct according
-             to the C++98 standard, but suspect after the TC1 changes
-             for value-initialization (because the definition is not
-             written in terms of calling the constructor, and therefore
-             doesn't force the generation of the constructor). */
-          (void)reference_to_trivial_default_constructor(type_cast_to,
-                                                         &lparen_pos);
           make_expression_operand(temp_init_node, temp_init_node->type,
                                   result);
         } else {
@@ -16249,7 +16271,7 @@ overall errors.
   a_source_position             end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean                     unknown_dependent_function;
-  a_boolean                     empty_parens;
+  a_boolean                     value_initialization;
 
   db_enter(4, "scan_class_parenthesized_initializer");
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
@@ -16258,7 +16280,8 @@ overall errors.
                   /*suppress_object_lifetime=*/FALSE);
   check_assertion(C_dialect == C_dialect_cplusplus &&
                   is_class_struct_union_type(class_type));
-  empty_parens = (curr_token == tok_rparen);
+  value_initialization = (curr_token == tok_rparen &&
+                          value_initialization_enabled);
   cssp = symbol_supplement_for_class(class_type);
   check_assertion(cssp->constructor != NULL);
   /* Scan the constructor argument list. */
@@ -16278,7 +16301,7 @@ overall errors.
     (*dip)->variant.constructor.ptr = conversion_routine;
     (*dip)->variant.constructor.args = arg_list;
     /* The entity is value-initialized if the parentheses were empty. */
-    (*dip)->variant.constructor.value_initialization = empty_parens;
+    (*dip)->variant.constructor.value_initialization = value_initialization;
     if (fill_in_dtor) {
       /* Fill in the destructor information.  Note that we cannot use
          alloc_dtor_dynamic_init because it does not allow for the
