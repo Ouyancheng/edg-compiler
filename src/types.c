@@ -4046,9 +4046,9 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
           okay = TRUE;
           std_conv->warning_suggested = default_warning_code;
         } else if (C_mode() && !suppress_extensions &&
-                   (C_dialect == C_dialect_pcc || SVR4_C_mode ||
+                   (C_dialect == C_dialect_pcc || SVR4_C_mode || gcc_mode ||
                     microsoft_mode)) {
-          /* In pcc mode, SVR4 C, and Microsoft C modes, allow conversion
+          /* In pcc mode, SVR4 C, gcc, and Microsoft C modes, allow conversion
              between incompatible pointer types, with a warning. */
           okay = TRUE;
           std_conv->warning_suggested = default_warning_code;
@@ -4101,10 +4101,10 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         std_conv->type_qualifiers_added = TRUE;
       }  /* if */
     }  /* if */
-  } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode ||
+  } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode || gcc_mode ||
              (C_mode() && microsoft_mode)) &&
 	     is_integral_or_enum(source_type) && !suppress_extensions) {
-    /* In pcc, SVR4, and Microsoft C compatibility modes, allow
+    /* In pcc, SVR4, gcc, and Microsoft C compatibility modes, allow
        integer --> pointer with a warning.  The null pointer constant -->
        pointer case has been handled above and does not come here. */
     okay = TRUE;
@@ -4573,11 +4573,11 @@ See conversion_possible.
         }  /* if */
       }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-    } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode ||
+    } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode || gcc_mode ||
                 (C_mode() && microsoft_mode)) &&
                is_pointer(source_type) &&
                is_integral_or_enum(dest_type)) {
-      /* In pcc, SVR4, or Microsoft C modes, allow pointer --> integer
+      /* In pcc, SVR4, gcc, or Microsoft C modes, allow pointer --> integer
          (even if the integer is not big enough).  Issue a warning. */
       okay = TRUE;
       std_conv->warning_suggested = default_warning_code;
