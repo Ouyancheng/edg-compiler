@@ -1740,6 +1740,11 @@ the template.
                              &tag_position, tag_sym);
               } else {
                 class_type->variant.class_struct_union.is_specialized = TRUE;
+                /* Set the referencing namespace to the namespace containing
+                   class.  This is needed in Microsoft mode when an
+                   instantiation scope is pushed for specialized classes. */
+                cssp->referencing_namespace =
+                                          parent_namespace_for_symbol(tag_sym);
                 if (instantiation_mode == tim_local) {
                   /* In tim_local mode generated instances have internal
                      linkage.  For specialized classes, the name linkage must
@@ -1805,6 +1810,10 @@ the template.
             class_type->variant.class_struct_union.
                                       specialized_with_old_syntax = TRUE;
             is_template_specific_decl = TRUE;
+            /* Set the referencing namespace to the namespace containing
+               class.  This is needed in Microsoft mode when an
+               instantiation scope is pushed for specialized classes. */
+            cssp->referencing_namespace = parent_namespace_for_symbol(tag_sym);
             if (instantiation_mode == tim_local) {
               /* In tim_local mode generated instances have internal
                  linkage.  For specialized classes, the name linkage must
