@@ -890,7 +890,8 @@ sequence list.
        belong the class can't be left in the IL (since they refer to
        template parameters and non-real types that are not in the IL).
        Move the list to the template symbol supplement. */
-    if (scope_stack[depth_scope_stack].in_prototype_instantiation &&
+    if (!prototype_instantiations_in_il &&
+        scope_stack[depth_scope_stack].in_prototype_instantiation &&
         kind == (a_byte_il_entry_kind)iek_type) {
       a_type_ptr                        tp = (a_type_ptr)ptr;
       a_source_sequence_entry_ptr       ss_list;

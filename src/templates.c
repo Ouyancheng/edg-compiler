@@ -2484,16 +2484,6 @@ A pointer to the head of the list is returned in tcsp.
 				    template_sym, template_arg_list,
                                     /*push_stop_tokens=*/TRUE,
                                     PS_PROTOTYPE_INSTANTIATION);
-#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  /* If source sequence entries are being generated during prototype
-     instantiation, be sure the entry for the prototype class itself is also
-     on the list.  The entire list associated with this non-real class will
-     eventually be moved out of the IL proper and attached to the template
-     symbol supplement. */
-  add_to_source_sequence_list((char *)prototype_type,
-                              (an_il_entry_kind)iek_type);
-  prototype_type->autonomous_primary_tag_decl = TRUE;
-#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
