@@ -830,7 +830,7 @@ static void f_set_unvisited_trans_unit_corresp(an_il_entry_kind  kind,
                                                char              *entity)
 /*
 Detach the given IL entity from a translation unit correspondence entry
-and free the correspndence entry.
+and free the correspondence entry.
 */
 {
   a_trans_unit_corresp_ptr  tcp = trans_unit_corresp_of_unknown_entry(entity);
