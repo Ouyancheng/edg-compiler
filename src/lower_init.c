@@ -5458,7 +5458,6 @@ Do IL lowering of an enk_temp_init expression node.
 {
   a_dynamic_init_ptr dip;
   a_type_ptr         temp_type;
-  an_init_pos_descr  ipd;
   a_boolean          result_is_addr, result_is_not_used;
   an_insert_location insert_location;
   a_boolean          is_constructor_init;
@@ -5505,20 +5504,38 @@ Do IL lowering of an enk_temp_init expression node.
       set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
     }  /* if */
     expr->variant.variable = dip->variable;
-    /* Generate code for the dynamic init. */
-    set_var_init_pos_descr(dip->variable, &ipd);
     /* Test the kind before calling lower_dynamic_init because that routine
        clears the kind in some cases. */
-    is_constructor_init = (dip->kind == (a_dynamic_init_kind)dik_constructor);
+    is_constructor_init = (dip->kind==(a_dynamic_init_kind)dik_constructor);
     /* Any code generated for the dynamic initialization will be
        inserted before the (modified) original expression. */
     set_expr_insert_location(expr, &insert_location);
-    lower_dynamic_init(dip, &ipd,
-                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                       (a_constructor_init_ptr)NULL, LDIO_NONE,
-                       /*others_follow_in_aggr=*/FALSE,
-                       &insert_location, (a_boolean *)NULL,
-                       (a_constant **)NULL);
+    if (dip->kind == (a_dynamic_init_kind)dik_zero &&
+        !has_static_storage_duration(dip->variable->storage_class)) {
+      /* We need to zero an automatic temporary, which can't be done by
+         setting its init_kind to initk_zero, because we don't know that
+         the block of the temporary will be entered at the top.  Make
+         a zeroed static variable and copy it to the temporary. */
+      a_variable_ptr static_temp = make_temporary_in_scope(
+                                                        temp_type,
+                                                        (a_scope_ptr)NULL,
+                                                        /*force_static=*/TRUE);
+      static_temp->init_kind = (an_init_kind)initk_zero;
+      (void)insert_assignment_statement(var_lvalue_expr(dip->variable),
+                                        (an_expr_operator_kind)eok_bassign,
+                                        var_lvalue_expr(static_temp),
+                                        &insert_location);
+    } else {
+      /* Normal case.  Generate code for the dynamic init. */
+      an_init_pos_descr ipd;
+      set_var_init_pos_descr(dip->variable, &ipd);
+      lower_dynamic_init(dip, &ipd,
+                         (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                         (a_constructor_init_ptr)NULL, LDIO_NONE,
+                         /*others_follow_in_aggr=*/FALSE,
+                         &insert_location, (a_boolean *)NULL,
+                         (a_constant **)NULL);
+    }  /* if */
     /* Optimization -- if the initialization is done by a constructor,
        and the enk_temp_init returns the address of the temporary,
        use the pointer returned from the constructor as the value of
