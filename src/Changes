@@ -1,5 +1,18 @@
 Version 2.43
 
+11/2/99  Names for conversion functions for typedef types
+
+The names in symbol headers and IL entries for conversion functions
+that return a typedef-ed type now retain the typedef in all cases.
+Formerly, if a previous conversion function returned the same type
+its header was reused, even if a different typedef (or no typedef)
+was used in naming the type previously.
+
+This affects diagnostic output and the name as seen in customer code
+that uses the name from the IL entry.  It does not affect the
+C++-generating back end, which regenerates the name from the return
+type in all cases.
+
 11/1/99  C++-generating back end: unqualified name on typedef redeclaration
          in presence of using-declaration
 
