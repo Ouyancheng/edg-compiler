@@ -1308,7 +1308,7 @@ Return TRUE if the given using declarations refer to corresponding entities.
                 ->variant.class_struct_union.is_nonreal_class) {
     /* The using-declaration refers to a dependent base class.  In this case
        it is not sufficient to compare the canonical entries. */
-    check_assertion(ud1->entity.kind == (an_il_entry_kind)iek_constant);
+    check_assertion(ud1->entity.kind == (a_byte_il_entry_kind)iek_constant);
     result = identical_types(ud1->qualifier.class_type,
                              ud2->qualifier.class_type) &&
              eq_constants((a_constant_ptr)ud1->entity.ptr, 
@@ -2431,14 +2431,20 @@ supplement for an instantiation that matches inst.
                     ->variant.class_struct_union.is_prototype_instantiation &&
         equiv_template_arg_lists(ctsp->template_arg_list,
                                  corresp_ctsp->template_arg_list,
-                                 ETA_IS_NONREAL_MEMBER) &&
-        ((ctsp->partial_spec_template_arg_list == NULL &&
-          corresp_ctsp->partial_spec_template_arg_list == NULL) ||
-         equiv_template_arg_lists(
+                                 ETA_IS_NONREAL_MEMBER)) {
+      /* Partial specializations should be generated from the same set of
+         partial specialization arguments.  However, those arguments are only
+         determined when the body of the class template is instantiated. */
+      if ((ctsp->partial_spec_template_arg_list == NULL &&
+           corresp_ctsp->partial_spec_template_arg_list == NULL) ||
+          !class_type_has_body(class_type) ||
+          !class_type_has_body(corresp_type) ||
+          equiv_template_arg_lists(
                              ctsp->partial_spec_template_arg_list,
                              corresp_ctsp->partial_spec_template_arg_list,
-                             ETA_IS_NONREAL_MEMBER))) {
-      break;
+                             ETA_IS_NONREAL_MEMBER)) {
+        break;
+      }  /* if */
     }  /* if */
   }  /* for */
   set_trans_unit_corresp(class_type, saved_corresp);
