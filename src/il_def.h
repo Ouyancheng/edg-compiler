@@ -6147,9 +6147,11 @@ typedef struct a_scope {
 			   level.  Condition scopes can also appear. */
   a_namespace_ptr
 		namespaces;
-			/* List of namespaces defined within the current
-			   scope (C++ only); non-NULL only when the current
-			   scope's kind is sck_file or sck_namespace. */
+			/* List of namespaces and namespace-aliases defined
+			   within the current scope (C++ only).  Will point
+			   only to namespace-alias entries in sck_function
+			   and sck_block scopes, to either in sck_file and
+			   sck_namespace scopes; NULL otherwise. */
   a_using_directive_ptr
 		using_directives;
 			/* List of using-directives appearing within the
