@@ -668,7 +668,7 @@ requires cleanup.
 #if 0
     /* In an implementation that uses stack offsets instead of an object
        address table, the handle field in the region description entry 
-       be a stack offset to be added to either the stack base or the
+       will be a stack offset to be added to either the stack base or the
        current "this" parameter (if RDF_THIS_PARAM_OFFSET is set). */
 #endif /* 0 */
     if (flags & RDF_ARRAY) {
