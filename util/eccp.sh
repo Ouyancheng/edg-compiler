@@ -441,7 +441,7 @@ do
 #     Collect a list of .c files.
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
       cfiles=$cfiles" "$1;
-      obj_file_name=`expr //$1 : '.*/\(.*\)\.`.o  # Get basename.o
+      obj_file_name=`expr //$1 : '.*/\(.*\)\.'`.o  # Get basename.o
       object_files=$object_files" "$obj_file_name
       any_c_files=1
       add_to_instantiation_command=0
