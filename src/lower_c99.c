@@ -1363,6 +1363,7 @@ destination) to a runtime call).
   a_type_ptr        dst_type = expr->type;
   a_type_ptr        base_dst_type = skip_typerefs(dst_type);
   a_type_ptr        return_type;
+  a_type_ptr        param2_type;
   a_routine_ptr     *routine;
   char              *routine_name;
   a_float_kind      fkind;
@@ -1402,7 +1403,7 @@ destination) to a runtime call).
        precisions) that handle the fixed-point/floating-point cases. */
     routine_name = "_Fixed_conv";
     routine = &fixed_conv_routine;
-    return_type = fxvalue_type();
+    return_type = param2_type = fxvalue_type();
     /* Build up the fxmask argument describing the operand and result
        types. */
     fxmask = fxcontrol_value();
@@ -1431,6 +1432,7 @@ destination) to a runtime call).
       routine_name = select_name_from_float_kind(fkind,
                                                 float_fixed_conv_routine_name);
       routine = &float_fixed_conv_routine[(int)fkind];
+      param2_type = float_type(fkind);
     }  /* if */
     if (is_fixed_point_type(dst_type) || is_integral_or_enum_type(dst_type)) {
       /* Add the mask for the destination type. */
@@ -1453,7 +1455,7 @@ destination) to a runtime call).
     new_expr = make_prototyped_runtime_call(routine_name, routine,
                                             return_type,
                                             integer_type(FXMASK_INT_KIND),
-                                            fxvalue_type(),
+                                            param2_type,
                                             fxmask_expr);
     /* Cast the value returned by the runtime routine to the final
        desired type. */
