@@ -2315,7 +2315,7 @@ that is not required to be checked by the ANSI C standard.
 }  /* interchangeable_types */
 
 
-static void clear_std_conv_descr(a_std_conv_descr_ptr std_conv)
+void clear_std_conv_descr(a_std_conv_descr_ptr std_conv)
 /*
 Clear a standard conversion description to default values.
 */

@@ -283,6 +283,7 @@ typedef struct a_std_conv_descr {
 } a_std_conv_descr;
 
 
+extern void clear_std_conv_descr(a_std_conv_descr_ptr std_conv);
 extern a_boolean impl_pointer_conversion(
                          a_type_ptr           source_type,
                          a_boolean            source_is_constant,
