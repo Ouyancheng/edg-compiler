@@ -12423,6 +12423,12 @@ see expr.h).
         str_error(ec_id_can_only_appear_in_function,
                   locator_for_curr_id.symbol_header->identifier);
         make_error_operand(&local_result);
+      } else if (curr_expr_kind_is(ek_pp) ||
+                 curr_expr_kind_is(ek_integral_constant)) {
+        error_and_make_error_operand(enum_type_is_integral ?
+                                       ec_expr_not_integral :
+                                       ec_expr_not_integral_or_enum,
+                                     &local_result);
       } else {
         make_function_name_operand(
                  &local_result, !C_mode() && curr_token != tok_function_name);
