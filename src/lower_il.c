@@ -7801,6 +7801,25 @@ context doesn't care what the type is).
 }  /* rewrite_discarded_lvalue_as_rvalue */
 
 
+static void lower_runtime_sizeof(an_expr_node_ptr expr)
+/*
+Do lowering for an enk_runtime_sizeof, which can appear in C++
+when RECORD_CONSTANT_EXPRESSIONS_IN_IL is set or SIZEOF_TYPE_IS_UNKNOWN
+is defined.  Normally, it is generated only for VLAs.  The "lowering"
+is really just lowering the subtree and leaving the enk_runtime_sizeof
+itself in the IL.
+*/
+{
+  /* expr->type was lowered by lower_expr. */
+  if (expr->variant.runtime_sizeof.is_type) {
+    lower_os_type(expr->variant.runtime_sizeof.variant.type);
+  } else {
+    lower_expr(expr->variant.runtime_sizeof.variant.expr,
+               (a_boolean)expr->variant.runtime_sizeof.is_lvalue);
+  }  /* if */
+}  /* lower_runtime_sizeof */
+
+
 void lower_expr(an_expr_node_ptr expr,
                 a_boolean        is_lvalue)
 /*
@@ -8201,9 +8220,10 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       break;
 #endif /* ABI_CHANGES_FOR_RTTI */
     case enk_runtime_sizeof:
-      /* enk_runtime_sizeof is used for C only and should not appear in
-         C++ IL. */
-      unexpected_condition_str("lower_expr: enk_runtime_sizeof");
+      /* enk_runtime_sizeof can appear when RECORD_CONSTANT_EXPRESSIONS_IN_IL
+         is set or SIZEOF_TYPE_IS_UNKNOWN is defined. */
+      lower_runtime_sizeof(expr);
+      break;
     case enk_object_lifetime:
       unexpected_condition_str("lower_expr: enk_object_lifetime not at top");
     case enk_condition:

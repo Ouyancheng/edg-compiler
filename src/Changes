@@ -1,5 +1,17 @@
 Version 2.46
 
+2/8/01   RECORD_CONSTANT_EXPRESSIONS_IN_IL and IL lowering
+
+The (unusual) combination of RECORD_CONSTANT_EXPRESSIONS_IN_IL and
+IL lowering had several problems:
+
+  -- The recorded expression for sizeofs is an enk_runtime_sizeof, which
+     was not expected by IL lowering.  Now, it is passed through
+     unchanged.
+  -- The expressions put out for recorded constant expressions were
+     not surrounded by parentheses in some cases where that is
+     required.  Now fixed.
+
 2/7/01   Extra position information on explicit declaration of size_t in
          Microsoft mode
 
