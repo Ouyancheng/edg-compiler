@@ -2739,8 +2739,7 @@ out to describe the conversion.  In particular, if the conversion is
 suspect and should be flagged with a warning, the warning_suggested field is
 set to an appropriate error code; normally, it is set to ec_no_error.
 default_warning_code will be copied into warning_suggested when no
-specific message applies.  In strict mode, if a conversion flagged
-with warning_suggested is done, the warning is required.
+specific message applies.
 
 Note that any type qualifiers on the types themselves (rather than the
 types pointed to) are ignored.
@@ -2879,7 +2878,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       } else if ((conversion_from_void_star_in_C =
                    (C_dialect != C_dialect_cplusplus &&
                     !check_as_operands_not_conversion &&
-                    is_void_type(unqual_source_type_pointed_to))) &&
+                    is_void(unqual_source_type_pointed_to))) &&
                  (is_object(unqual_dest_type_pointed_to) ||
                   is_incomplete(unqual_dest_type_pointed_to))) {
         /* In C but not C++, a "void *" may be converted to a pointer to an
@@ -3276,8 +3275,7 @@ filled out to describe the conversion.  In particular, if the conversion
 is suspect and should be flagged with a warning, the warning_suggested
 field is set to an appropriate error code; normally, it is set to
 ec_no_error.  default_warning_code will be copied into warning_suggested
-when no specific message applies.  In strict mode, if a conversion
-flagged with warning_suggested is done, the warning is required.
+when no specific message applies.
 
 Note that any top-level type qualifiers on the types are ignored.
 
@@ -3440,20 +3438,98 @@ See conversion_possible.
 }  /* impl_conversion_possible */
 
 
-a_boolean static_cast_conversion_possible(a_type_ptr source_type,
-                                          a_type_ptr dest_type)
+static a_boolean inverse_impl_conversion_possible(a_type_ptr source_type,
+                                                  a_type_ptr dest_type)
 /*
-Return TRUE if it is okay to explicitly convert something of type source_type
-to something of type dest_type in a static_cast.  Any type qualifiers
-on the types themselves are ignored.  See [expr.static.cast].
-Note that this routine does not check the implicit conversions, which
-are also allowed as static_casts: it also doesn't handle casts to reference
-types, it doesn't reject conversions that cast away constness, and
-it doesn't handle user-defined conversions.  This routine is called in
-C mode as well as C++ mode.
+Return TRUE if the conversion source_type --> dest_type can be done as
+a static_cast because the inverse dest_type --> source_type can be done as
+an implicit conversion.  This is used for checking the part of static_cast
+that allows the inverse of any standard conversion.  typerefs are already
+removed from the types.
 */
 {
-  a_boolean        okay = FALSE, suppress_extensions = FALSE;
+  a_boolean        okay = FALSE, baseward_cast, related_class_case = FALSE;
+  a_std_conv_descr impl_std_conv;
+  a_base_class_ptr bcp;
+  a_type_ptr       source_type_pointed_to, dest_type_pointed_to;
+
+  if (related_class_pointers(source_type, dest_type, &baseward_cast, &bcp) &&
+      !baseward_cast) {
+    /* A pointer to a base class can be cast to a pointer to a derived
+       class if it's not a virtual base and no qualifiers are dropped. */
+    if (!bcp->is_virtual) {
+      related_class_case = TRUE;
+      source_type_pointed_to = type_pointed_to(source_type);
+      dest_type_pointed_to = type_pointed_to(dest_type);
+    }  /* if */
+  } else if (related_member_pointers(source_type, dest_type, &baseward_cast,
+                                     &bcp) && baseward_cast) {
+    /* A pointer to member of a derived class can be cast to a pointer to
+       member of a base class if no qualifiers are dropped. */
+    related_class_case = TRUE;
+    source_type_pointed_to = pm_member_type(source_type);
+    dest_type_pointed_to = pm_member_type(dest_type);
+  }  /* if */
+  if (related_class_case) {
+    /* For pointer and pointer to member related class cases, check that
+       no type qualifiers are being dropped. */
+    a_type_qualifier_set source_type_qualifiers =
+                                   get_type_qualifiers(source_type_pointed_to);
+    a_type_qualifier_set dest_type_qualifiers =
+                                     get_type_qualifiers(dest_type_pointed_to);
+    okay = TRUE;
+    if (dest_type_qualifiers == source_type_qualifiers) {
+      /* The qualifiers are the same. */
+    } else if (any_qualifier_in_set_missing(dest_type_qualifiers,
+                                            source_type_qualifiers)) {
+      /* Qualifiers are being dropped. */
+      okay = FALSE;
+    }  /* if */
+  } else if (impl_conversion_possible(dest_type,
+                                      /*source_is_constant=*/FALSE,
+                                      (a_constant *)NULL,
+                                      source_type,
+                                      /*suppress_extensions=*/TRUE,
+                                      ec_bad_cast,
+                                      &impl_std_conv)) {
+    /* The inverse implicit conversion can be done. */
+    okay = TRUE;
+    /* If the conversion is a pointer or pointer to member conversion, make
+       sure qualifiers are not being removed. */
+    if ((is_pointer(source_type) && is_pointer(dest_type)) ||
+        (is_ptr_to_member(source_type) && is_ptr_to_member(dest_type))) {
+      if (cast_removes_qualifiers(source_type, dest_type)) {
+        okay = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return okay;
+}  /* inverse_impl_conversion_possible */
+
+
+a_boolean static_cast_conversion_possible(a_type_ptr    source_type,
+                                          a_boolean     source_is_constant,
+                                          a_constant    *source_constant,
+                                          a_type_ptr    dest_type,
+                                          an_error_code default_warning_code,
+                                          an_error_code *warning_suggested)
+/*
+Return TRUE if it is okay to explicitly convert something of type source_type
+to something of type dest_type in a static_cast.  If source_is_constant is
+TRUE, the source is a constant, and source_constant points to the constant
+value.  (That's needed to check for conversions of a null pointer constant
+to a pointer type.)  If the conversion is suspect and should be flagged
+with a warning, *warning_suggested is set to an appropriate error
+code; normally, it is set to ec_no_error.  default_warning_code will be
+copied into *warning_suggested when no specific message applies.
+Any type qualifiers on the types themselves are ignored.  Note that
+this routine does not handle casts to reference types, it doesn't
+reject conversions that cast away constness, and it doesn't handle
+user-defined conversions.  This routine is called in C mode as well as
+C++ mode.  See [expr.static.cast].
+*/
+{
+  a_boolean        okay = FALSE, impl_okay, suppress_extensions = FALSE;
   a_std_conv_descr impl_std_conv;
 
   db_enter(5, "static_cast_conversion_possible");
@@ -3466,6 +3542,7 @@ C mode as well as C++ mode.
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
+  *warning_suggested = ec_no_error;
   /* If in strict mode and nonstandard constructs should be reported as
      errors, disable extensions. */
   if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
@@ -3480,17 +3557,39 @@ C mode as well as C++ mode.
   if (is_void(dest_type)) {
     /* Anything --> (possibly qualified) void is allowed. */
     okay = TRUE;
+  } else if (is_incomplete(dest_type)) {
+    /* Cannot cast to an incomplete type. */
+    /* okay = FALSE; -- already set. */
+  } else if ((impl_okay = impl_conversion_possible(
+                                       source_type,
+                                       source_is_constant,
+                                       source_constant,
+                                       dest_type,
+                                       suppress_extensions,
+                                       default_warning_code,
+                                       &impl_std_conv)) != FALSE &&
+             impl_std_conv.warning_suggested == ec_no_error) {
+    /* There is an implicit conversion, and it's not questionable. */
+    okay = TRUE;
   } else if (!C_mode() &&
-             impl_conversion_possible(dest_type,
-                                      /*source_is_constant=*/FALSE,
-                                      (a_constant *)NULL,
-                                      source_type,
-                                      suppress_extensions,
-                                      ec_bad_cast, /* Arbitrary. */
-                                      &impl_std_conv)) {
-    /* The reverse of any standard conversion is allowed in C++. */
+             inverse_impl_conversion_possible(source_type, dest_type)) {
+    /* The inverse of any standard conversion is allowed in C++. */
+    okay = TRUE;
+  } else if (C_mode() && is_integral(source_type) && is_enum(dest_type)) {
+    /* In C, integral --> enum can be done as an implicit conversion
+       but we check for it again here to avoid the warning. */
     okay = TRUE;
   }  /* if */
+  if (!okay && impl_okay) {
+    /* There is a questionable implicit conversion, and no explicit conversion
+       that covers this case.  The conversion is allowed, but it's
+       questionable.  It's likely that there are no questionable implicit
+       conversions that aren't allowed as explicit conversions, but this code
+       is here in case one is added. */
+    okay = TRUE;
+    *warning_suggested = impl_std_conv.warning_suggested;
+  }  /* if */
+
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "static_cast_conversion_possible: %s\n",
@@ -3512,11 +3611,10 @@ to something of type dest_type in a reinterpret_cast.  Any type qualifiers
 on the types themselves are ignored.  If the conversion
 is suspect and should be flagged with a warning, *warning_suggested is
 set to an appropriate error code; normally, it is set to ec_no_error.
-In strict mode, if a conversion flagged with *warning_suggested is done,
-the warning is required.  Note that this routine does not handle casts
-to reference types, it doesn't reject conversions that cast away constness,
-and it doesn't handle user-defined conversions.  This routine is called
-in C mode as well as C++ mode.
+Note that this routine does not handle casts to reference types, it
+doesn't reject conversions that cast away constness, and it doesn't
+handle user-defined conversions.  This routine is called in C mode as
+well as C++ mode.
 */
 {
   a_boolean okay = FALSE, suppress_extensions = FALSE;
@@ -3543,7 +3641,10 @@ in C mode as well as C++ mode.
   check_assertion_str(!is_reference_ptr(dest_type),
                "reinterpret_cast_conversion_possible: dest_type is reference");
 
-  if (is_pointer(source_type) && is_integral(dest_type) &&
+  if (is_incomplete(dest_type)) {
+    /* Cannot cast to an incomplete type. */
+    /* okay = FALSE; -- already set. */
+  } else if (is_pointer(source_type) && is_integral(dest_type) &&
       (C_mode() ||
        dest_of_ptr_cast_big_enough(source_type, dest_type))) {
     /* Pointer --> integral is okay if (a) the integer is big enough or
@@ -3636,9 +3737,7 @@ a pointer type.)  Any type qualifiers on the types themselves are
 ignored.  If the conversion is suspect and should be flagged with a
 warning, *warning_suggested is set to an appropriate error code;
 normally, it is set to ec_no_error.  default_warning_code will be
-copied into *warning_suggested when no specific message applies.  In
-strict mode, if a conversion flagged with *warning_suggested is done,
-the warning is required.
+copied into *warning_suggested when no specific message applies.
 
 Any implicit conversion is allowed (see impl_conversion_possible).  Also, the
 explicit conversions allowed in casts (ARM 5.2.3 and 5.4; ANSI C 3.3.4)
@@ -3647,8 +3746,10 @@ by the time they get here.  Note that this routine does not handle user-defined
 conversions (constructors and conversion functions).
 */
 {
-  a_boolean        okay = FALSE, impl_okay, suppress_extensions = FALSE;
-  a_std_conv_descr impl_std_conv;
+  a_boolean     okay = FALSE;
+  a_boolean     static_cast_okay, reinterpret_cast_okay;
+  an_error_code static_cast_warning_suggested;
+  an_error_code reinterpret_cast_warning_suggested;
 
   db_enter(5, "expl_conversion_possible");
 #if DEBUG
@@ -3661,54 +3762,45 @@ conversions (constructors and conversion functions).
   }  /* if */
 #endif /* DEBUG */
   *warning_suggested = ec_no_error;
-  /* If in strict mode and nonstandard constructs should be reported as
-     errors, disable extensions. */
-  if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
-    suppress_extensions = TRUE;
-  }  /* if */
   /* Drop any type qualifiers and typedefs on the two types. */
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
 
-  /* See if there is an implicit conversion between the types. */
-  impl_okay = impl_conversion_possible(source_type,
-                                       source_is_constant, source_constant,
-                                       dest_type,
-                                       suppress_extensions,
-                                       default_warning_code,
-                                       &impl_std_conv);
-  if (impl_okay && impl_std_conv.warning_suggested == ec_no_error) {
-    /* There is an implicit conversion, and it's not questionable. */
-    okay = TRUE;
-  } else if (is_incomplete(dest_type) && !is_void_type(dest_type)) {
-    /* This catches incomplete enums for completeness.  The caller probably
-       ruled out incomplete types anyway. */
+  if (is_incomplete(dest_type) && !is_void(dest_type)) {
+    /* Cannot cast to an incomplete type. */
     /* okay = FALSE; -- already set. */
-  } else if (static_cast_conversion_possible(source_type, dest_type)) {
-    /* The conversion can be done as a static_cast. */
-    okay = TRUE;
-  } else if (C_mode() && is_integral(source_type) && is_enum(dest_type)) {
-    /* In C, integral --> enum can be done as an implicit conversion
-       but we check for it again here to avoid the warning. */
+  } else if ((static_cast_okay = static_cast_conversion_possible(
+                                             source_type,
+                                             source_is_constant,
+                                             source_constant,
+                                             dest_type,
+                                             default_warning_code,
+                                             &static_cast_warning_suggested) !=
+                                                                      FALSE) &&
+             static_cast_warning_suggested == ec_no_error) {
+    /* The conversion can be done as a static_cast, without a warning. */
     okay = TRUE;
   } else if (!C_mode() && is_enum(source_type) && is_enum(dest_type)) {
     /* In C++, enum --> enum is not a static_cast or a reinterpret_cast,
        but it can be done by enum --> integral --> enum (two static_casts),
        so it's okay in an old-style cast. */
     okay = TRUE;
-  } else if (reinterpret_cast_conversion_possible(source_type, dest_type,
-             warning_suggested)) {
-    /* The conversion can be done as a reinterpret_cast. */
+  } else if ((reinterpret_cast_okay = reinterpret_cast_conversion_possible(
+                                        source_type,
+                                        dest_type,
+                                        &reinterpret_cast_warning_suggested) !=
+                                                                      FALSE) &&
+             reinterpret_cast_warning_suggested == ec_no_error) {
+    /* The conversion can be done as a reinterpret_cast, without a warning. */
     okay = TRUE;
-  }  /* if */
-  if (!okay && impl_okay) {
-    /* There is a questionable implicit conversion, and no explicit conversion
-       that covers this case.  The conversion is allowed, but it's
-       questionable.  It's likely that there are no questionable implicit
-       conversions that aren't allowed as explicit conversions, but this code
-       is here in case one is added. */
+  } else if (static_cast_okay) {
+    /* static_cast is okay but with a warning. */
     okay = TRUE;
-    *warning_suggested = impl_std_conv.warning_suggested;
+    *warning_suggested = static_cast_warning_suggested;
+  } else if (reinterpret_cast_okay) {
+    /* reinterpret_cast is okay but with a warning. */
+    okay = TRUE;
+    *warning_suggested = reinterpret_cast_warning_suggested;
   }  /* if */
 
 #if DEBUG

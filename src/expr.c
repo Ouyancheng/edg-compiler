@@ -35,11 +35,6 @@ expr.c -- Expression scanning routines.
 static void fix_up_dynamic_init_dtors(void);
 static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to,
                                      a_boolean  *cast_to_func_ptr);
-static a_boolean cast_is_valid_in_current_expression_kind(
-                                     an_operand               *operand,
-                                     a_type_ptr               dest_type,
-                                     a_local_expr_options_set local_options,
-                                     a_source_position        *type_position);
 
 
 static a_boolean operation_has_side_effects(an_expr_node_ptr node,
@@ -4032,148 +4027,6 @@ Syntax:
 }  /* scan_dynamic_cast_operator */
 
 
-static void scan_const_cast_operator(an_operand *result)
-/*
-Scan the C++ const_cast operator.  See [expr.const.cast].
-
-Syntax:
-	const_cast < type-id > ( expression )
-
-*/
-{
-  a_source_position start_position, type_position;
-  an_operand        operand;
-  a_type_ptr        cast_type, underlying_cast_type, operand_type;
-  a_type_ptr        operation_type;
-  a_boolean         cast_type_okay;
-  a_boolean         reference_case = FALSE, err = FALSE;
-
-  db_enter(4, "scan_const_cast_operator");
-  /* Save the position of the const_cast keyword. */
-  start_position = pos_curr_token;
-#if CHECKING
-  if (curr_expr_kind_is(ek_pp)) {
-    /* const_cast not possible for preprocessing expressions. */
-    internal_error("scan_const_cast_operator: in preprocessing expr");
-  }  /* if */
-#endif /* CHECKING */
-  /* Advance past const_cast. */
-  (void)get_token();
-  /* Scan "< type-id > ( expression )". */
-  if (!scan_new_style_cast(&cast_type, &type_position, &operand)) {
-    err = TRUE;
-  }  /* if */
-  /* Except when casting to a reference type, do operand transformations
-     on the source operand. */
-  reference_case = is_reference_type(cast_type);
-  if (!reference_case) {
-    do_operand_transformations(&operand, TOPT_NO_OPTIONS);
-  }  /* if */
-  /* Check for casts that aren't valid in this kind of expression.
-     Note that this check is done after the operand transformations
-     (e.g., turning arrays into pointers), but before the reference
-     rewriting or anything else that changes cast_type. */
-  if (!cast_is_valid_in_current_expression_kind(&operand, cast_type,
-                                                (a_local_expr_options_set)
-                                                               EOPT_NO_OPTIONS,
-                                                &type_position)) {
-    /* This cast is not valid in this kind of expression. */
-    err = TRUE;
-  }  /* if */
-  if (!err) {
-    /* The type cast to must be a pointer or reference to an object type, or
-       a pointer to data member. */
-    cast_type_okay = FALSE;
-    if (is_ptr_or_ref_type(cast_type)) {
-      underlying_cast_type = type_pointed_to(cast_type);
-      if (!is_function_type(underlying_cast_type)) {
-        /* Casting to a pointer or reference to an object type. */
-        cast_type_okay = TRUE;
-      }  /* if */
-    } else if (is_ptr_to_member_type(cast_type)) {
-      underlying_cast_type = pm_member_type(cast_type);
-      if (!is_function_type(underlying_cast_type)) {
-        /* Casting to a pointer or reference to an object type. */
-        cast_type_okay = TRUE;
-      }  /* if */
-    } else {
-      /* cast_type is not a pointer, reference, or pointer to member type;
-         error. */
-      cast_type_okay = FALSE;
-    }  /* if */
-    if (!cast_type_okay) {
-      if (is_or_contains_template_param(cast_type)) {
-        /* With template parameter types we can't really tell.  Assume okay. */
-        cast_type_okay = TRUE;
-      }  /* if */
-    }  /* if */
-    if (!cast_type_okay) {
-      /* Bad const_cast type. */
-      err = TRUE;
-      if (!is_error_type(cast_type)) {
-        pos_error(ec_bad_const_cast_type, &type_position);
-      }  /* if */
-    } else {
-      /* The type cast to is okay. */
-      operand_type = operand.type;
-      operation_type = cast_type;
-      if (reference_case) {
-        /* Cast to reference type. */
-        /* The source operand must be an lvalue. */
-        if (!is_an_lvalue(&operand)) {
-          err = TRUE;
-          if (!is_error_operand(&operand)) {
-            pos_error(ec_expr_not_an_lvalue, &operand.position);
-          }  /* if */
-        } else {
-          /* Turn the lvalue into an address so we can deal with it as a
-             pointer. */
-          take_address_of_lvalue(&operand);
-          operand_type = operand.type;
-          operation_type = make_pointer_type(underlying_cast_type);
-        }  /* if */
-      }  /* if */
-      if (!err) {
-        /* Check that the cast just changes qualifiers (or makes no change). */
-        /* Note that this comparison considers error types equal to any
-           other types. */
-        if (!same_type_with_added_qualifiers(operand_type, operation_type,
-                                             /*ignore_qualifiers=*/TRUE,
-                                             (a_boolean *)NULL)) {
-          if (is_or_contains_template_param(operand_type) ||
-              is_or_contains_template_param(operation_type)) {
-            /* With template parameters, we can't tell whether these would
-               have matched.  Assume okay. */
-          } else {
-            err = TRUE;
-            pos_error(ec_bad_const_cast, &operand.position);
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  if (err) {
-    /* Some error, previously issued. */
-    make_error_operand(result);
-  } else {
-    /* The types are already the same except for qualifiers.  The result
-       is just the source cast to the destination type. */
-    /* Note that the cast has been turned into pointer form if it was a
-       reference cast. */
-    cast_operand(operation_type, &operand, /*is_implicit_cast=*/FALSE);
-    copy_operand(&operand, result);
-    /* For a cast to a reference type, the result is an lvalue. */
-    if (reference_case) {
-      conv_object_pointer_to_lvalue(result);
-    }  /* if */
-  }  /* if */
-  /* Set the error position to the starting position. */
-  error_position = start_position;
-  result->position = start_position;
-  db_exit();
-}  /* scan_const_cast_operator */
-
-
 static void scan_extended_integral_constant_expression(a_boolean  allow_comma,
                                                        int        prec_level,
                                                        an_operand *operand)
@@ -5216,7 +5069,9 @@ source position of the type.
     }  /* if */
     /* Determine whether or not the cast is to a pointer-to-function type
        (this is needed in C++ to allow the anachronism of casting a bound
-       function pointer to a normal function pointer). */
+       function pointer to a normal function pointer).  This has to be done
+       early so that we know to scan the expression in a special way that
+       allows the return of a bound function. */
     if (C_dialect == C_dialect_cplusplus && allow_anachronisms &&
         is_pointer_type(type_cast_to) &&
         is_function_type(type_pointed_to(type_cast_to))) {
@@ -5515,6 +5370,92 @@ type.
 }  /* rewrite_cast_to_reference_as_pointer_cast */
 
 
+static void cast_bound_function(a_type_ptr        type_cast_to,
+                                a_boolean         cast_to_func_ptr,
+                                a_source_position *start_position,
+                                an_operand        *operand,
+                                an_operand        *bound_function_selector)
+/*
+In C++, a bound function pointer may be cast to a normal function pointer
+as an anachronism, as in
+
+  struct A {int f();};
+  A *p = new A;
+  int (*pf)() = (int (*)())p->f;
+
+*operand is the bound function; *bound_function_selector is the object to
+which the function is bound.  type_cast_to is the destination pointer type.
+start_position gives the starting source position of the cast.
+See ARM 18.3.4.  cast_to_func_ptr is TRUE if cast_type_pre_check has
+determined that the anachronism might apply.
+*/
+{
+  an_expr_node_ptr func_ptr_node, object_node;
+
+  if (cast_to_func_ptr &&
+      is_pointer_type(operand->type) &&
+      is_function_type(type_pointed_to(operand->type))) {
+    pos_diagnostic(anachronism_error_severity,
+                   ec_bound_function_cast_anachronism, start_position);
+    if (operand->virtual_function) {
+      /* The function is a virtual function, so use an
+         eok_virtual_function_ptr operation to compute the address at
+         runtime. */
+      /* Make a node for the function pointer. */
+      func_ptr_node = make_node_from_operand(operand);
+      /* Make a node for the bound object address. */
+      object_node = make_node_from_operand(bound_function_selector);
+      func_ptr_node->next = object_node;
+      func_ptr_node = make_operator_node(
+                               (an_expr_operator_kind)eok_virtual_function_ptr,
+                               operand->type, func_ptr_node);
+      make_expression_operand(func_ptr_node, func_ptr_node->type, operand);
+    } else {
+      /* The function is not a virtual function, so discard the
+         selector object pointer and just use the routine address. */
+      discard_operand(bound_function_selector);
+      operand->bound_function = FALSE;
+    }  /* if */
+    /* Cast the node to the result type of the cast. */
+    cast_operand(type_cast_to, operand, /*is_implicit_cast=*/FALSE);
+  } else {
+    /* Any other use of a bound function.  Error. */
+    error_in_operand(ec_bound_function_must_be_called, operand);
+    operand->bound_function = FALSE;
+  }  /* if */
+}  /* cast_bound_function */
+
+
+static void cast_overloaded_function(a_type_ptr type_cast_to,
+                                     an_operand *operand)
+/*
+Cast an operand for an overloaded function (*operand) to type_cast_to.
+If type_cast_to is a pointer or pointer-to-member type, the cast can serve
+to select one of the functions in the overload set.  See [over.over].
+*/
+{
+  an_arg_match_level match_level;
+  a_std_conv_descr   std_conversion;
+  a_boolean          ambiguous;
+
+  if (find_addr_of_overloaded_function_match(operand->variant.symbol,
+                                             type_cast_to,
+                                             &operand->position,
+                                             &match_level,
+                                             &std_conversion,
+                                             &ambiguous)) {
+    /* The cast selects one of the overloaded functions and is valid. */
+    cast_operand(type_cast_to, operand, /*is_implicit_cast=*/FALSE);
+  } else {
+    /* The cast doesn't select one of the overloaded functions, so it's
+       an error. */
+    pos_sy_error(ec_indeterminate_overloaded_function,
+                 &operand->position, operand->variant.symbol);
+    conv_to_error_operand(operand);
+  }  /* if */
+}  /* cast_overloaded_function */
+
+
 static void do_cast(a_type_ptr               type_cast_to,
                     an_operand               *operand,
                     an_operand               *bound_function_selector,
@@ -5597,69 +5538,19 @@ and C++ functional-notation type conversions.
         /* The bound function test is done first to make sure bound functions
            cannot wander into the rest of the cases. */
         if (operand->bound_function) {
-          /* In C++, a bound function pointer may be cast to a normal function
+          /* In C++, a bound function pointer can be cast to a normal function
              pointer, as in
                struct A {int f();};
                A *p = new A;
                int (*pf)() = (int (*)())p->f;
              This is an anachronism.  See ARM 18.3.4. */
-          an_expr_node_ptr func_ptr_node, object_node;
-          if (cast_to_func_ptr &&
-              is_pointer_type(operand->type) &&
-              is_function_type(type_pointed_to(operand->type))) {
-            pos_diagnostic(anachronism_error_severity,
-                           ec_bound_function_cast_anachronism, start_position);
-            conv_lvalue_to_rvalue(operand);
-            if (operand->virtual_function) {
-              /* The function is a virtual function, so use an
-                 eok_virtual_function_ptr operation to compute the address at
-                 runtime. */
-              /* Make a node for the function pointer. */
-              func_ptr_node = make_node_from_operand(operand);
-              /* Make a node for the bound object address. */
-              object_node = make_node_from_operand(bound_function_selector);
-              func_ptr_node->next = object_node;
-              func_ptr_node = make_operator_node(
-                               (an_expr_operator_kind)eok_virtual_function_ptr,
-                               operand->type, func_ptr_node);
-              make_expression_operand(func_ptr_node, func_ptr_node->type,
-                                      operand);
-            } else {
-              /* The function is not a virtual function, so discard the
-                 selector object pointer and just use the routine address. */
-              discard_operand(bound_function_selector);
-              operand->bound_function = FALSE;
-            }  /* if */
-            /* Cast the node to the result type of the cast. */
-            cast_operand(type_cast_to, operand, /*is_implicit_cast=*/FALSE);
-          } else {
-            /* Any other use of a bound function.  Error. */
-            error_in_operand(ec_bound_function_must_be_called, operand);
-            operand->bound_function = FALSE;
-          }  /* if */
+          conv_lvalue_to_rvalue(operand);
+          cast_bound_function(type_cast_to, cast_to_func_ptr, start_position,
+                              operand, bound_function_selector);
         } else if (is_indefinite_function_operand(operand)) {
-          /* An overloaded function may be cast to a pointer type that
+          /* An overloaded function can be cast to a pointer type that
              disambiguates, but is not valid in any other kind of cast. */
-          an_arg_match_level match_level;
-          a_std_conv_descr   std_conversion;
-          a_boolean          ambiguous;
-
-          if (find_addr_of_overloaded_function_match(operand->variant.symbol,
-                                                     type_cast_to,
-                                                     &operand->position,
-                                                     &match_level,
-                                                     &std_conversion,
-                                                     &ambiguous)) {
-            /* The cast selects one of the overloaded functions and is
-               valid. */
-            cast_operand(type_cast_to, operand, /*is_implicit_cast=*/FALSE);
-          } else {
-            /* The cast doesn't select one of the overloaded functions,
-               so it's an error. */
-            err = TRUE;
-            pos_sy_error(ec_indeterminate_overloaded_function,
-                         &operand->position, operand->variant.symbol);
-          }  /* if */
+          cast_overloaded_function(type_cast_to, operand);
         } else if (any_cfront_mode() && operand_is_constant &&
                    operand_con->kind ==
                                       (a_constant_repr_kind)ck_ptr_to_member &&
@@ -5757,6 +5648,281 @@ and C++ functional-notation type conversions.
   if (err) conv_to_error_operand(operand);
   operand->position = *start_position;
 }  /* do_cast */
+
+
+static void scan_const_cast_operator(an_operand *result)
+/*
+Scan the C++ const_cast operator.  See [expr.const.cast].
+
+Syntax:
+	const_cast < type-id > ( expression )
+
+*/
+{
+  a_source_position start_position, type_position;
+  an_operand        operand;
+  a_type_ptr        cast_type, underlying_cast_type, operand_type;
+  a_type_ptr        operation_type;
+  a_boolean         cast_type_okay;
+  a_boolean         reference_case = FALSE, err = FALSE;
+
+  db_enter(4, "scan_const_cast_operator");
+  /* Save the position of the const_cast keyword. */
+  start_position = pos_curr_token;
+#if CHECKING
+  if (curr_expr_kind_is(ek_pp)) {
+    /* const_cast not possible for preprocessing expressions. */
+    internal_error("scan_const_cast_operator: in preprocessing expr");
+  }  /* if */
+#endif /* CHECKING */
+  /* Advance past const_cast. */
+  (void)get_token();
+  /* Scan "< type-id > ( expression )". */
+  if (!scan_new_style_cast(&cast_type, &type_position, &operand)) {
+    err = TRUE;
+  }  /* if */
+  /* Except when casting to a reference type, do operand transformations
+     on the source operand. */
+  reference_case = is_reference_type(cast_type);
+  if (!reference_case) {
+    do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+  }  /* if */
+  /* Check for casts that aren't valid in this kind of expression.
+     Note that this check is done after the operand transformations
+     (e.g., turning arrays into pointers), but before the reference
+     rewriting or anything else that changes cast_type. */
+  if (!cast_is_valid_in_current_expression_kind(&operand, cast_type,
+                                                (a_local_expr_options_set)
+                                                               EOPT_NO_OPTIONS,
+                                                &type_position)) {
+    /* This cast is not valid in this kind of expression. */
+    err = TRUE;
+  }  /* if */
+  if (!err) {
+    /* The type cast to must be a pointer or reference to an object type, or
+       a pointer to data member. */
+    cast_type_okay = FALSE;
+    if (is_ptr_or_ref_type(cast_type)) {
+      underlying_cast_type = type_pointed_to(cast_type);
+      if (!is_function_type(underlying_cast_type)) {
+        /* Casting to a pointer or reference to an object type. */
+        cast_type_okay = TRUE;
+      }  /* if */
+    } else if (is_ptr_to_member_type(cast_type)) {
+      underlying_cast_type = pm_member_type(cast_type);
+      if (!is_function_type(underlying_cast_type)) {
+        /* Casting to a pointer or reference to an object type. */
+        cast_type_okay = TRUE;
+      }  /* if */
+    } else {
+      /* cast_type is not a pointer, reference, or pointer to member type;
+         error. */
+      cast_type_okay = FALSE;
+    }  /* if */
+    if (!cast_type_okay) {
+      if (is_or_contains_template_param(cast_type)) {
+        /* With template parameter types we can't really tell.  Assume okay. */
+        cast_type_okay = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!cast_type_okay) {
+      /* Bad const_cast type. */
+      err = TRUE;
+      if (!is_error_type(cast_type)) {
+        pos_error(ec_bad_const_cast_type, &type_position);
+      }  /* if */
+    } else {
+      /* The type cast to is okay. */
+      operand_type = operand.type;
+      operation_type = cast_type;
+      if (reference_case) {
+        /* Cast to reference type. */
+        /* The source operand must be an lvalue. */
+        if (!is_an_lvalue(&operand)) {
+          err = TRUE;
+          if (!is_error_operand(&operand)) {
+            pos_error(ec_expr_not_an_lvalue, &operand.position);
+          }  /* if */
+        } else {
+          /* Turn the lvalue into an address so we can deal with it as a
+             pointer. */
+          take_address_of_lvalue(&operand);
+          operand_type = operand.type;
+          operation_type = make_pointer_type(underlying_cast_type);
+        }  /* if */
+      }  /* if */
+      if (!err) {
+        /* Check that the cast just changes qualifiers (or makes no change). */
+        /* Note that this comparison considers error types equal to any
+           other types. */
+        if (!same_type_with_added_qualifiers(operand_type, operation_type,
+                                             /*ignore_qualifiers=*/TRUE,
+                                             (a_boolean *)NULL)) {
+          if (is_or_contains_template_param(operand_type) ||
+              is_or_contains_template_param(operation_type)) {
+            /* With template parameters, we can't tell whether these would
+               have matched.  Assume okay. */
+          } else {
+            err = TRUE;
+            pos_error(ec_bad_const_cast, &operand.position);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (err) {
+    /* Some error, previously issued. */
+    make_error_operand(result);
+  } else {
+    /* The types are already the same except for qualifiers.  The result
+       is just the source cast to the destination type. */
+    /* Note that the cast has been turned into pointer form if it was a
+       reference cast. */
+    cast_operand(operation_type, &operand, /*is_implicit_cast=*/FALSE);
+    copy_operand(&operand, result);
+    /* For a cast to a reference type, the result is an lvalue. */
+    if (reference_case) {
+      conv_object_pointer_to_lvalue(result);
+    }  /* if */
+  }  /* if */
+  /* Set the error position to the starting position. */
+  error_position = start_position;
+  result->position = start_position;
+  db_exit();
+}  /* scan_const_cast_operator */
+
+
+static void scan_static_cast_operator(an_operand *result)
+/*
+Scan the C++ static_cast operator.  See [expr.static.cast].
+
+Syntax:
+	static_cast < type-id > ( expression )
+
+*/
+{
+  a_source_position start_position, type_position;
+  a_type_ptr        type_cast_to, orig_type_cast_to, source_type;
+  a_boolean         cast_to_reference = FALSE, err = FALSE, processed = FALSE;
+  an_error_code     warning_suggested;
+
+  db_enter(4, "scan_static_cast_operator");
+  /* Save the position of the static_cast keyword. */
+  start_position = pos_curr_token;
+#if CHECKING
+  if (curr_expr_kind_is(ek_pp)) {
+    /* static_cast not possible for preprocessing expressions. */
+    internal_error("scan_static_cast_operator: in preprocessing expr");
+  }  /* if */
+#endif /* CHECKING */
+  /* Advance past static_cast. */
+  (void)get_token();
+  /* Scan "< type-id > ( expression )". */
+  if (!scan_new_style_cast(&type_cast_to, &type_position, result)) {
+    err = TRUE;
+  } else {
+    orig_type_cast_to = type_cast_to;
+    /* Check for user-defined conversions and casts to reference type. */
+    cast_to_reference = is_reference_type(type_cast_to);
+    check_user_defined_conversions_for_cast(type_cast_to, result,
+                                            &processed, &err);
+    if (!processed) {
+      /* No user-defined conversion applies. */
+      if (!cast_to_reference) {
+        /* Normal case (not a cast to reference). */
+        /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
+           conversions.  They must be done now because they affect the type
+           of the operand. */
+        /* Keep indefinite functions, since a particular function can
+           be chosen by a cast to a pointer or pointer-to-member type. */
+        do_operand_transformations(result,
+                                  TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+      }  /* if */
+      /* Check for casts that aren't valid in this kind of expression.
+         Note that this check is done after the operand transformations
+         (e.g., turning arrays into pointers), but before the reference
+         rewriting or anything else that changes type_cast_to. */
+      if (!cast_is_valid_in_current_expression_kind(result, type_cast_to,
+                                                    (a_local_expr_options_set)
+                                                               EOPT_NO_OPTIONS,
+                                                    &type_position)) {
+        /* This cast is not valid in this kind of expression. */
+        err = TRUE;
+      }  /* if */
+      /* Do any rewriting that changes the destination type. */
+      if (err) {
+        /* Some previous error. */
+      } else if (cast_to_reference) {
+        /* Rewrite a cast to a reference type as a cast to a pointer type.
+           Note that the original type_cast_to is preserved in
+           orig_type_cast_to. */
+        /* Note that this is done after the check for user-defined
+           conversions above, since if such a cast can be done by
+           a conversion function, it should be. */
+        rewrite_cast_to_reference_as_pointer_cast(&type_cast_to, result);
+      }  /* if */
+      /* Get the source type after the transformations. */
+      source_type = result->type;
+      /* Check for different types of casts and do the cast. */
+      if (!err) {
+        a_boolean      operand_is_constant = is_constant_operand(result);
+        a_constant_ptr operand_con = NULL;
+        if (operand_is_constant) operand_con = &result->variant.constant;
+        if (is_indefinite_function_operand(result)) {
+          /* An overloaded function may be cast to a pointer type that
+             disambiguates, but is not valid in any other kind of cast. */
+          cast_overloaded_function(type_cast_to, result);
+        } else if (static_cast_conversion_possible(source_type,
+                                                   operand_is_constant,
+                                                   operand_con,
+                                                   type_cast_to,
+                                                   ec_bad_cast,
+                                                   &warning_suggested)) {
+          /* Valid static_cast conversion. */
+          if (cast_removes_qualifiers(source_type, type_cast_to)) {
+            /* This static_cast casts away constness, which is not allowed. */
+            pos_st_error(ec_cannot_cast_away_const, &start_position,
+                         "static_cast");
+          }  /* if */
+          if (warning_suggested != ec_no_error) {
+            /* Issue warning on oddball cases. */
+            pos_warning(warning_suggested, &start_position);
+          }  /* if */
+          if (is_void_type(type_cast_to)) {
+            /* Cast to void. */
+            /* Do the cast to void as an expression. */
+            cast_operand_to_void(result, type_cast_to);
+          } else {
+            /* Not a cast to void.  Do the actual cast. */
+            cast_operand(type_cast_to, result, /*is_implicit_cast=*/FALSE);
+            if (cast_to_reference) {
+              /* The result of a cast to reference is an lvalue. */
+              conv_object_pointer_to_lvalue(result);
+            }  /* if */
+          }  /* if */
+        } else {
+          /* Not a valid cast. */
+          err = TRUE;
+          if (is_class_struct_union_type(orig_type_cast_to)) {
+            /* Use a special clearer message for casting to a class. */
+            pos_ty_error(ec_cast_to_bad_type, &type_position,
+                         orig_type_cast_to);
+          } else {
+            /* Generic message. */
+            /* Note: If this is changed to display the types involved,
+               use orig_type_cast_to (because of the reference rewrite). */
+            pos_error(ec_bad_cast, &start_position);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (err) conv_to_error_operand(result);
+  /* Set the error position to the starting position. */
+  error_position = start_position;
+  result->position = start_position;
+  db_exit();
+}  /* scan_static_cast_operator */
 
 
 static void scan_cast_expression(a_type_ptr type_cast_to,
@@ -9002,6 +9168,11 @@ see expr.h).
     case tok_const_cast:
       /* const_cast operation. */
       scan_const_cast_operator(&local_result);
+      break;
+
+    case tok_static_cast:
+      /* static_cast operation. */
+      scan_static_cast_operator(&local_result);
       break;
 
     case tok_intaddr:
