@@ -4980,7 +4980,11 @@ return a pointer to it in *symbol_ptr.
            reenter the symbol into the symbol table; this keeps the typedef
            name from being used in an elaborated type specifier (7.1.3 para 5,
            9.1 para 5). */
-        tp->source_corresp.name = locator->symbol_header->identifier;
+        if (tp->source_corresp.name_linkage != (a_name_linkage_kind)nlk_none) {
+            /* Note that in non-cfront mode this is done only for types that
+               actually do have linkage. */
+          tp->source_corresp.name = locator->symbol_header->identifier;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
