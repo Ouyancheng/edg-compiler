@@ -1,5 +1,20 @@
 Version 3.2
 
+4/21/03  GNU C and Microsoft C: Type of block-extern variable declarations
+
+In GNU C and Microsoft C modes (but not in the corresponding C++ modes), the
+type of a block-extern variable declaration can include information from prior
+declarations of that variable.  Specifically, the type used is the composite
+type of the locally declared type and the previously obtained type.
+For example:
+
+  int x[] = { 1, 2 };  /* Type of x is "int[2]". */
+  void f() {
+    extern int x[];  /* Type of x in "int[2]" in GNU C and Microsoft C modes.
+                        Type of x is "int[]" (incomplete) in other modes. */
+    sizeof(x);  /* OK in GNU C and Microsoft C modes; error in other modes. */
+  }
+
 4/20/03  No const-qualification on "this" parameter in declaration
          when "new" is folded into constructor
 

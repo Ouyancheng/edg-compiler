@@ -2866,7 +2866,14 @@ created; the caller must set it.
           /* There is a variable entry we can reuse. */
           use_existing_il_entry = TRUE;
           preexisting_type = (*variable_ptr)->type;
-          (*variable_ptr)->type = type_ptr;
+          if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+              (gcc_mode || (microsoft_mode && C_mode()))) {
+            /* In Microsoft C and GNU C modes, the composite type is retained
+               in the local scope. */
+            (*variable_ptr)->type = esdp->type;
+          } else {
+            (*variable_ptr)->type = type_ptr;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {
