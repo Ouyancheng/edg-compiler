@@ -424,33 +424,31 @@ maintained.
 #endif /* ifndef MAINTAIN_NEEDED_FLAGS */
 
 /*
-Default setting for global variable okay_to_eliminate_unneeded_il_entries,
-which controls whether the IL tree is pruned of unneeded entries.  It should
-only be configured to TRUE when MAINTAIN_NEEDED_FLAGS is TRUE.  Usually it
-will be FALSE when the C++-generating back end is used because needed-flag
+Default setting for global variable remove_unneeded_entities, used to
+initialized okay_to_eliminate_unneeded_il_entries, which in turn controls
+whether the IL tree is pruned of unneeded entries.  It should only be
+configured to TRUE when MAINTAIN_NEEDED_FLAGS is TRUE.  Usually it will be
+FALSE when the C++-generating back end is used because needed-flag
 processing cannot be done reliably on template bodies.
 */
-#ifndef DEFAULT_OKAY_TO_ELIMINATE_UNNEEDED_IL_ENTRIES
+#ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES
 #if MAINTAIN_NEEDED_FLAGS
 #if BACKEND_IS_CP_GEN_BE
-#define DEFAULT_OKAY_TO_ELIMINATE_UNNEEDED_IL_ENTRIES FALSE
-                                           /* You can change this. */
+#define DEFAULT_REMOVE_UNNEEDED_ENTITIES FALSE   /* You can change this. */
 #else /* !BACK_END_IS_CP_GEN_BE */
-#define DEFAULT_OKAY_TO_ELIMINATE_UNNEEDED_IL_ENTRIES TRUE
-                                           /* You can change this. */
+#define DEFAULT_REMOVE_UNNEEDED_ENTITIES TRUE    /* You can change this. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #else /* !MAINTAIN_NEEDED_FLAGS */
-#define DEFAULT_OKAY_TO_ELIMINATE_UNNEEDED_IL_ENTRIES FALSE
-                                           /* Do not change this. */
+#define DEFAULT_REMOVE_UNNEEDED_ENTITIES FALSE   /* Do not change this. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-#else /* defined(DEFAULT_OKAY_TO_ELIMINATE_UNNEEDED_IL_ENTRIES) */
+#else /* defined(DEFAULT_REMOVE_UNNEEDED_ENTITIES) */
 #if !MAINTAIN_NEEDED_FLAGS
-#if DEFAULT_OKAY_TO_ELIMINATE_UNNEEDED_IL_ENTRIES
- #error -- DEFAULT_OKAY_TO_ELIMINATE_UNNEEDED_IL_ENTRIES should be FALSE \
+#if DEFAULT_REMOVE_UNNEEDED_ENTITIES
+ #error -- DEFAULT_REMOVE_UNNEEDED_ENTITIES should be FALSE \
            when MAINTAIN_NEEDED_FLAGS is FALSE.
-#endif /* DEFAULT_OKAY_TO_ELIMINATE_UNNEEDED_IL_ENTRIES */
+#endif /* DEFAULT_REMOVE_UNNEEDED_ENTITIES */
 #endif /* !MAINTAIN_NEEDED_FLAGS */
-#endif /* !defined(DEFAULT_OKAY_TO_ELIMINATE_UNNEEDED_IL_ENTRIES) */
+#endif /* !defined(DEFAULT_REMOVE_UNNEEDED_ENTITIES) */
 
 /*
 The flag IL_WALK_NEEDED controls the compilation of the routines required
