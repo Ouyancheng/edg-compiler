@@ -260,7 +260,7 @@ Dump decl-pos information for the specified symbol (for debugging).
             db_source_range(&vp->initializer_range);
             fputc('\n', f_debug);
           }  /* if */
-        } else if (is_class_struct_union_symbol(sym)) {
+        } else if (!C_mode() && is_class_struct_union_symbol(sym)) {
           a_base_class_ptr  bcp = base_classes_of(type_symbol_type(sym));
           for (; bcp != NULL; bcp = bcp->next) {
             if (bcp->base_specifier_range.start.seq != 0 ||
