@@ -258,7 +258,7 @@ typedef struct an_operand {
 Entry describing an actual argument to a function call.  This is basically
 an_operand that can be dynamically allocated and linked into a list.
 */
-typedef struct an_arg_operand *an_arg_operand_ptr;
+/* The typedef an_arg_operand_ptr is defined in il_def.h. */
 typedef struct an_arg_operand {
   an_arg_operand_ptr
 		next;	/* Pointer to the next argument, or NULL if this is the

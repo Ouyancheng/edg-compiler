@@ -80,6 +80,10 @@ typedef struct an_object_lifetime *an_object_lifetime_ptr;
 typedef struct a_namespace   *a_namespace_ptr;
 typedef struct a_scope       *a_scope_ptr;
 
+/* Opaque type definition for an_arg_operand (used in the expression
+   processing routines, but a pointer to it appears in a front-end only
+   field in the IL; its structure is not known here). */
+typedef struct an_arg_operand *an_arg_operand_ptr;
 
 /*
 Data structures related to source position and correspondence:
@@ -2525,7 +2529,7 @@ typedef struct a_template_arg {
                            is converted into a normal constant parameter.
                            Contains zero if no value has been deduced yet. */
     /* When is_type == FALSE and constant_is_an_arg_operand is TRUE. */
-    struct an_arg_operand*
+    an_arg_operand_ptr
 		arg_operand;
 			/* The internal form of a template argument that has
 			   been scanned, but not yet converted to the
