@@ -2777,31 +2777,7 @@ nonstatic_member_function:
                   "scan_field_selection_operator: overloaded func not member");
           }  /* if */
 #endif /* CHECKING */
-          first_func_sym = member_sym->variant.overloaded_function.symbols;
-          reduce_projection_symbol_to_fundamental_symbol(first_func_sym);
-          if (first_func_sym->kind == (a_symbol_kind)sk_function_template) {
-            routine_type = first_func_sym->variant.
-                                 template_info->variant.function.routine->type;
-          } else {
-            routine_type = routine_symbol_type(first_func_sym);
-          }  /* if */
-          if (member_sym->variant.overloaded_function.mixed_static_nonstatic ||
-              routine_type_is_nonstatic_member_function(routine_type)) {
-            /* At least one function is nonstatic.  We don't (necessarily)
-               know yet whether or not we will need a selector object, so
-               save the selector.  It will be discarded later if it is
-               not needed. */
-            goto nonstatic_member_function;
-          }  /* if */
-          /* All the functions are static, so the selector can be discarded
-             right away. */
-          make_indefinite_function_operand(
-                              locator_for_curr_id.specific_symbol,
-                              (a_boolean)locator_for_curr_id.is_qualified_name,
-                              (a_boolean)locator_for_curr_id.is_template_id,
-                              locator_for_curr_id.template_arg_list,
-                              result);
-          combine_unneeded_selector_with_operand(operand_1, result);
+          goto nonstatic_member_function;
           break;
         case sk_function_template:
           /* Member function template. */
