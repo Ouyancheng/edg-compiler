@@ -1422,7 +1422,7 @@ end of the buffer.
     seg_ptr->segment    = new_buffer;
     seg_ptr->max_length = new_size - 1;
   }  /* if */
-  (void)strcpy(seg_ptr->segment[seg_ptr->length], str);
+  (void)strcpy((char *)(seg_ptr->segment + seg_ptr->length), str);
   seg_ptr->length += length_of_string;
 }  /* add_string_to_segment */
 
@@ -2102,7 +2102,6 @@ substitutions to form the desired diagnostic message is constructed.
             msg_ptr++;
             goto check_for_seq_number;
           case 'n':
-continue_symbol_name:
             curr_segment->kind = msk_symbol;
             curr_segment->variant.full_type = FALSE;
             curr_segment->variant.name_only = FALSE;
@@ -2116,7 +2115,7 @@ continue_symbol_name:
               curr_segment->variant.name_only = TRUE;
               msg_ptr++;
             }  /* if */
-            if (*msg_ptr = 'd') {
+            if (*msg_ptr == 'd') {
               curr_segment->variant.decl_pos = TRUE;
               msg_ptr++;
             }  /* if */
