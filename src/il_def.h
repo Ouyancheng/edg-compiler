@@ -7171,6 +7171,12 @@ typedef struct a_template {
 			   construct (i.e., including "=" or "(" and ")").
 			   May be null_source_range. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  struct a_template_symbol_supplement
+		*template_info;
+			/* Pointer to front end information about the template.
+			   This is used only for "nonreal" templates and for
+			   template template parameters, and is used to
+			   determine if two such templates are equivalent. */
 } a_template;
 
 #if RECORD_MACROS_IN_IL

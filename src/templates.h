@@ -284,6 +284,10 @@ extern a_boolean equiv_template_param_lists(
 				a_boolean		issue_errors,
 				a_source_position	*error_pos);
 
+extern a_boolean equiv_templates_given_supplement(
+				a_template_symbol_supplement_ptr	tssp1,
+				a_template_symbol_supplement_ptr	tssp2);
+
 extern void prescan_function_template_default_arg_expr(a_param_type_ptr  ptp);
 
 extern void check_for_function_template_default_args(

@@ -596,6 +596,10 @@ routine.
       tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
       tssp->variant.class_template.access = (an_access_specifier)as_public;
       templ_ptr = alloc_template();
+      /* The templates associated with template parameters and nonreal classes
+         have a template_info pointer that points back to the front end
+         information. */
+      templ_ptr->template_info = tssp;
       set_source_corresp(&templ_ptr->source_corresp, sym);
       templ_ptr->kind = (a_template_kind)templk_class;
       tssp->il_template_entry = templ_ptr;
@@ -2478,6 +2482,11 @@ in a friend declaration.
          instantiation of the class, use the template class symbol associated
          with the current instantiation. */
       (void)current_class_symbol_if_class_template(&assoc_symbol);
+      /* If the symbol still refers to the class template, ignore it. */
+      if (assoc_symbol->kind == (a_symbol_kind)sk_class_template) {
+        assoc_symbol = NULL;
+        clear_specific_symbol(*locator);
+      }  /* if */
     } else if (is_friend_decl && locator->specific_symbol != NULL &&
                locator->specific_symbol->kind ==
                                      (a_symbol_kind)sk_namespace_projection) {

@@ -1478,6 +1478,9 @@ do_set_proper_definition_needed_flag:
 #if RECORD_TEMPLATE_STRINGS
         walk_string_ptr(ptr->text, iek_other_text, 0);
 #endif /* RECORD_TEMPLATE_STRINGS */
+        /* The template_info pointer should be NULL for any entry actually
+           written and read. */
+        clear_pointer_if_remapping(ptr->template_info);
       }
       break;
 #if RECORD_MACROS_IN_IL

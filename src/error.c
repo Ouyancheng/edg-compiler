@@ -894,7 +894,11 @@ declaration position to eliminate redundant file names in a diagnostic.
       }
       /*FALLTHROUGH*/
     case sk_class_template:
-      entity_kind = "class template ";
+      if (sym->is_template_param) {
+        entity_kind = "template template parameter ";
+      } else {
+        entity_kind = "class template ";
+      }  /* if */
       goto symbol_name;
     case sk_enum_tag:
       entity_kind = "enum ";

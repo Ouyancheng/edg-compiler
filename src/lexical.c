@@ -8088,9 +8088,13 @@ done using the disambiguation routines.
 }  /* scan_unknown_template_arg_list */
 
 
-a_template_ptr scan_template_template_argument(void)
+a_template_ptr scan_template_template_argument(
+				a_template_ptr		param_template,
+				a_source_position	*err_pos)
 /*
-Scan the actual argument for a template template parameter.
+Scan the actual argument for a template template parameter.  param_template
+is the template pointer of the corresponding template template parameter.
+err_pos is the position to be used to report any errors.
 */
 {
   a_symbol_ptr				sym;
@@ -8102,17 +8106,19 @@ Scan the actual argument for a template template parameter.
   if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL)) {
     sym = coalesce_and_lookup_generalized_identifier(
                                  GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
-    if (err) {
+    /* Make sure the symbol found is accessible and unambiguous. */
+    check_ambiguity_and_verify_access(&locator_for_curr_id);
+    if (err || (sym != NULL && sym->ambiguous)) {
       /* An error was already diagnosed by the identifier coalescing
          routines. */
       any_errors = TRUE;
     } else if (sym == NULL) {
       any_errors = TRUE;
-      str_error(ec_undefined_identifier,
-                locator_for_curr_id.symbol_header->identifier);
+      pos_st_error(ec_undefined_identifier, err_pos,
+                   locator_for_curr_id.symbol_header->identifier);
     } else if (!is_class_template_symbol(sym)) {
       any_errors = TRUE;
-      sym_error(ec_sym_not_a_class_template, sym);
+      pos_sy_error(ec_sym_not_a_class_template, err_pos, sym);
     }  /* if */
     /* Bypass the identifier token. */
     (void)get_token();
@@ -8121,7 +8127,28 @@ Scan the actual argument for a template template parameter.
     any_errors = TRUE;
     syntax_error(ec_exp_identifier);
   }  /* if */
-  if (any_errors) {
+  if (!any_errors) {
+    /* Make sure this argument is compatible with the template template
+       parameter. */
+    a_template_symbol_supplement_ptr	tssp1;
+    a_template_symbol_supplement_ptr	tssp2;
+    tssp1 = template_supplement_for_template(param_template);
+    tssp2 = sym->variant.template_info;
+    if (!equiv_template_param_lists(tssp1->cache.decl_info->parameters,
+                                    tssp2->cache.decl_info->parameters,
+		 		    /*issue_errors=*/FALSE,
+				    (a_source_position*)NULL)) {
+      a_symbol_ptr	param_sym;
+      param_sym = (a_symbol_ptr)param_template->source_corresp.assoc_info;
+      pos_sy2_error(ec_not_compatible_with_templ_templ_param, err_pos, sym, 
+                    param_sym);
+      any_errors = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!any_errors) {
+    /* The symbol is valid. Record the reference on the symbol. */
+    mark_referenced(sym, &locator_for_curr_id.source_position);
+  } else {
     /* An error occurred while scanning the argument.  Use a shared error
        class template as the result. */
     sym = error_class_template();
@@ -8147,7 +8174,7 @@ associated.  any_errors is set to TRUE if any errors are detected by
 this routine.  Its value is unchanged if no errors are detected.
 */
 {
-  a_template_param_ptr            param_ptr;
+  a_template_param_ptr            param_ptr = NULL;
   a_symbol_ptr                    sym;
   a_type_ptr                      argument_type;
   a_constant_ptr                  constant;
@@ -8155,8 +8182,10 @@ this routine.  Its value is unchanged if no errors are detected.
   a_template_arg_ptr              arg_list = NULL;
   a_template_arg_ptr              last_arg = NULL;
   a_templ_arg_kind		  arg_kind;
+  a_template_decl_info_ptr	  decl_info;
 
-  param_ptr = template_sym->variant.template_info->cache.decl_info->parameters;
+  decl_info = template_sym->variant.template_info->cache.decl_info;
+  param_ptr = decl_info->parameters;
   do {
     a_source_position  arg_pos;
     /* If the current token is a ">" then exit the loop.  This should only be
@@ -8205,7 +8234,8 @@ this routine.  Its value is unchanged if no errors are detected.
       a_template_ptr	templ;
       check_assertion_str(sym->kind == (a_symbol_kind)sk_class_template,
                           "scan_template_argument_list: template expected");
-      templ = scan_template_template_argument();
+      templ = scan_template_template_argument(
+                        param_ptr->variant.templ->il_template_entry, &arg_pos);
       arg_ptr->variant.templ = templ;
     }  /* if */
     /* Link this entry on to the argument list. */

@@ -4123,6 +4123,7 @@ Return a pointer to an error class template.
     sym->is_template_param = TRUE;
     tssp = sym->variant.template_info;
     templ_ptr = alloc_template();
+    templ_ptr->template_info = tssp;
     set_source_corresp(&templ_ptr->source_corresp, sym);
     templ_ptr->kind = (a_template_kind)templk_template_template_param;
     /* Note that this is not marked as a nonreal member.  In this way,
@@ -4140,14 +4141,21 @@ Return a pointer to an error class template.
 a_template_symbol_supplement_ptr template_supplement_for_template(
 						a_template_ptr	templ_ptr)
 /*
-Given an IL template entry, return the template symbols supplement.
+Given an IL template entry, return the template symbols supplement.  If
+the template entry has a template_info field, use that.  Otherwise, get
+the template supplement information from the associated symbol.  Nonreal
+templates and template template parameter templates have a template_info
+field.
 */
 {
   a_symbol_ptr				sym;
   a_template_symbol_supplement_ptr	tssp;
 
-  sym = (a_symbol_ptr)templ_ptr->source_corresp.assoc_info;
-  tssp = template_supplement_for_symbol(sym);
+  tssp = templ_ptr->template_info;
+  if (tssp == NULL) {
+    sym = (a_symbol_ptr)templ_ptr->source_corresp.assoc_info;
+    tssp = template_supplement_for_symbol(sym);
+  }  /* if */
   return tssp;
 }  /* template_supplement_for_template */
 

@@ -1751,7 +1751,10 @@ extern void flush_tokens(void);
 extern void flush_to_end_of_arg_list(void);
 extern void push_stop_token_stack(void);
 extern void pop_stop_token_stack(void);
-extern a_template_ptr scan_template_template_argument(void);
+extern a_template_ptr scan_template_template_argument(
+				a_template_ptr		param_template,
+				a_source_position	*err_pos);
+
 
 #if CHECKING
 void check_all_stop_token_entries_are_reset(a_token_set_array stop_tokens);

@@ -2633,6 +2633,7 @@ fields, and return a pointer to it.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tp->definition_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  tp->template_info = NULL;
 
   return tp;
 }  /* alloc_template */

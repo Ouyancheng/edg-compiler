@@ -2061,6 +2061,29 @@ class types that are instances of the templates pointed to by sym_1 and sym_2.
 }  /* equiv_nonreal_templates */
 
 
+static a_boolean equiv_template_template_params(
+				         a_symbol_ptr	sym_1,
+					 a_symbol_ptr	sym_2)
+/*
+Return TRUE if sym_1 and sym_2 are both template template parameters for
+equivalent templates, such as T in "T<int>" and "T<int>".
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (is_template_template_param_symbol(sym_1) &&
+      is_template_template_param_symbol(sym_2)) {
+    /* They are both template template parameters.  Compare the
+       underlying templates. */
+    if (equiv_templates_given_supplement(sym_1->variant.template_info,
+                                         sym_2->variant.template_info)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* equiv_template_template_params */
+
+
 static a_boolean equiv_class_types(a_type_ptr type_1,
                                    a_type_ptr type_2,
                                    a_boolean  error_matches_anything)
@@ -2110,7 +2133,9 @@ checking instead of equivalence checking).
             primary_template_of(cssp_1->class_template) ==
                                  primary_template_of(cssp_2->class_template) ||
             equiv_nonreal_templates(type_1, cssp_1->class_template,
-                                    type_2, cssp_2->class_template)) {
+                                    type_2, cssp_2->class_template) ||
+            equiv_template_template_params(cssp_1->class_template,
+                                           cssp_2->class_template)) {
           /* Both types are template classes, and they are based on the same
              class template, or equivalent nonreal templates.  Check further
              if (a) they are both nonreal template classes, or (b) error
@@ -5672,13 +5697,11 @@ with a template argument that is a template template parameter.
          tap != NULL;
          tap = tap->next) {
       if (is_template_templ_arg(tap)) {
-        a_symbol_ptr	templ_sym;
-        templ_sym = (a_symbol_ptr)tap->variant.templ->
-                                                     source_corresp.assoc_info;
+        a_template_symbol_supplement_ptr	tssp;
+        tssp = template_supplement_for_template(tap->variant.templ);
         /* Determine whether the template pointed to is a template template
            parameter. */
-        if (templ_sym->variant.template_info->
-                              variant.class_template.template_template_param) {
+        if (tssp->variant.class_template.template_template_param) {
           *force_end_of_traversal = found = TRUE;
           break;
         }  /* if */
@@ -5720,16 +5743,17 @@ it returns TRUE if type_ptr is the specified template parameter type.
         found = ttt_contains_template_template_param(type_ptr, 
                                                      force_end_of_traversal);
       }  /* if */
-    } else {
-      /* We are not looking for a specific type parameter.  Check whether
-         this is a class type that is based on a template template
-         parameter. */
-      a_symbol_ptr	template_sym;
-      template_sym = class_template_for_type(type_ptr);
-      if (template_sym != NULL) {
-        if (template_sym->variant.template_info->
+      if (!found) {
+        /* We are not looking for a specific type parameter.  Check whether
+           this is a class type that is based on a template template
+           parameter. */
+        a_symbol_ptr	template_sym;
+        template_sym = class_template_for_type(type_ptr);
+        if (template_sym != NULL) {
+          if (template_sym->variant.template_info->
                               variant.class_template.template_template_param) {
-          *force_end_of_traversal = found = TRUE;
+            *force_end_of_traversal = found = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

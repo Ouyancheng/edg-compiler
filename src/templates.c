@@ -2992,7 +2992,7 @@ done:
 }  /* define_template_static_data_member */
 
 
-static a_boolean equiv_templates_given_supplement(
+a_boolean equiv_templates_given_supplement(
 				a_template_symbol_supplement_ptr	tssp1,
 				a_template_symbol_supplement_ptr	tssp2)
 /*
@@ -3003,17 +3003,42 @@ template parameters), the two templates are equivalent if they have
 equivalent template parameter lists.
 */
 {
-  a_boolean	result;
+  a_boolean	result = FALSE;
   a_boolean	must_be_identical = TRUE;
+  a_boolean	okay_so_far = TRUE;
 
   if (tssp1->is_nonreal_member &&
       tssp2->is_nonreal_member) {
+    /* Nonreal members have must have the same name and parent class. */
+    a_template_ptr	templ1 = tssp1->il_template_entry;
+    a_template_ptr	templ2 = tssp2->il_template_entry;
     must_be_identical = FALSE;
+    if (strcmp(templ1->source_corresp.name,
+               templ2->source_corresp.name) == 0) {
+      /* They have the same names. */
+      if (identical_types(templ1->source_corresp.parent.class_type,
+                          templ2->source_corresp.parent.class_type)) {
+        /* Their parent types are the same. */
+        okay_so_far = TRUE;
+      }  /* if */
+    }  /* if */
   } else if (tssp1->variant.class_template.template_template_param &&
              tssp2->variant.class_template.template_template_param) {
+    /* Template template parameters must be at the same coordinates. */
+    a_template_param_coordinate_ptr	coordinates1;
+    a_template_param_coordinate_ptr	coordinates2;
+    coordinates1 = &tssp1->variant.class_template.coordinates;
+    coordinates2 = &tssp2->variant.class_template.coordinates;
     must_be_identical = FALSE;
+    if (coordinates1->position != coordinates2->position ||
+        !equiv_nesting_depths(coordinates1->depth, coordinates2->depth)) {
+      /* The coordinates do not match. */
+      okay_so_far = FALSE;
+    }  /* if */
   }  /* if */
-  if (must_be_identical) {
+  if (!okay_so_far) {
+    /* No further checking necessary. */
+  } else if (must_be_identical) {
     result = tssp1 == tssp2;
   } else {
     result = equiv_template_param_lists(tssp1->cache.decl_info->parameters,
@@ -3031,14 +3056,13 @@ static a_boolean equiv_templates(a_template_ptr	templ1,
 Return TRUE if the templates specified by templ1 and templ2 are equivalent.
 */
 {
-  a_symbol_ptr	sym1;
-  a_symbol_ptr	sym2;
-  a_boolean	result;
+  a_template_symbol_supplement_ptr	tssp1;
+  a_template_symbol_supplement_ptr	tssp2;
+  a_boolean				result;
 
-  sym1 = (a_symbol_ptr)templ1->source_corresp.assoc_info;
-  sym2 = (a_symbol_ptr)templ2->source_corresp.assoc_info;
-  result = equiv_templates_given_supplement(sym1->variant.template_info,
-                                            sym2->variant.template_info);
+  tssp1 = template_supplement_for_template(templ1);
+  tssp2 = template_supplement_for_template(templ2);
+  result = equiv_templates_given_supplement(tssp1, tssp2);
   return result;
 }  /* equiv_templates */
 
@@ -3182,13 +3206,12 @@ a template parameter.
     /* A template template parameter.  The argument involves a template
        parameter if it is itself a template parameter, or if it is
        is a nonreal class member. */
-    a_symbol_ptr			sym;
     a_template_symbol_supplement_ptr	tssp;
-    sym = (a_symbol_ptr)tap->variant.templ->source_corresp.assoc_info;
-    tssp = template_supplement_for_symbol(sym);
+    a_template_ptr			templ_ptr;
+    templ_ptr = tap->variant.templ;
+    tssp = template_supplement_for_template(templ_ptr);
     template_param_found = tssp->is_nonreal_member ||
-                        (is_class_template_symbol(sym) &&
-                         tssp->variant.class_template.template_template_param);
+                         tssp->variant.class_template.template_template_param;
   }  /* if */
   return template_param_found;
 }  /* template_arg_involves_template_param */
@@ -3691,47 +3714,54 @@ match is found.
   } else {
     tssp = sym->variant.template_info;
     templ_tssp = templ_sym->variant.template_info;
-    param_list_for_templ = templ_tssp->cache.decl_info->parameters;
-    param_list = tssp->cache.decl_info->parameters;
-    if (equiv_template_param_lists(param_list_for_templ, param_list,
-                                   /*issue_errors=*/FALSE,
-                                   (a_source_position*)NULL)) {
-      /* The actual template is compatible with the template template
-         parameter.  See if it is compatible with any previously deduced
-         value. */
-      /* Get the template nesting depth as indicated by the first template
-         parameter.  Any template parameters found in templ_type must be at
-         the same level to participate in deduction. */
-      a_template_nesting_depth	depth_of_template;
-      depth_of_template = nesting_depth_of_template_param(templ_param_list);
-      if (depth_of_template ==
+    if (templ_tssp->variant.class_template.template_template_param) {
+      param_list_for_templ = templ_tssp->cache.decl_info->parameters;
+      param_list = tssp->cache.decl_info->parameters;
+      if (equiv_template_param_lists(param_list_for_templ, param_list,
+                                     /*issue_errors=*/FALSE,
+                                     (a_source_position*)NULL)) {
+        /* The actual template is compatible with the template template
+           parameter.  See if it is compatible with any previously deduced
+           value. */
+        /* Get the template nesting depth as indicated by the first template
+           parameter.  Any template parameters found in templ_type must be at
+           the same level to participate in deduction. */
+        a_template_nesting_depth	depth_of_template;
+        depth_of_template = nesting_depth_of_template_param(templ_param_list);
+        if (depth_of_template ==
                         templ_tssp->variant.class_template.coordinates.depth) {
-        /* The depths match. */
-        a_template_param_list_pos		list_pos;
-        a_template_ptr			templ_ptr;
-        a_template_arg_ptr		tap;
-        /* Get the template argument that corresponds with this parameter. */
-        list_pos = templ_tssp->variant.class_template.coordinates.position;
-        tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
-                                           list_pos);
-        check_assertion(tap->kind == (a_templ_arg_kind)tak_template);
-        templ_ptr = tssp->il_template_entry;
-        if (tap->variant.templ == NULL) {
-          /* No template has been bound to this template argument yet, so just
-             the current template. */
-          tap->variant.templ = templ_ptr;
-          match = TRUE;
-        } else {
-          /* A template was already bound to this template argument.  We have a
-             match if and only if the new one is the same as the old one. */
-          if (tap->variant.templ == templ_ptr) {
-            /* Okay. */
+          /* The depths match. */
+          a_template_param_list_pos	list_pos;
+          a_template_ptr		templ_ptr;
+          a_template_arg_ptr		tap;
+          /* Get the template argument that corresponds with this parameter. */
+          list_pos = templ_tssp->variant.class_template.coordinates.position;
+          tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
+                                             list_pos);
+          check_assertion(tap->kind == (a_templ_arg_kind)tak_template);
+          templ_ptr = tssp->il_template_entry;
+          if (tap->variant.templ == NULL) {
+            /* No template has been bound to this template argument yet, so
+               just the current template. */
+            tap->variant.templ = templ_ptr;
             match = TRUE;
           } else {
-            /* Not a match.  Return FALSE. */
+            /* A template was already bound to this template argument.  We
+               have a match if and only if the new one is the same as the
+               old one. */
+            if (tap->variant.templ == templ_ptr) {
+              /* Okay. */
+              match = TRUE;
+            } else {
+              /* Not a match.  Return FALSE. */
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
+    } else {
+      /* The template template is not a template template parameter.  Just make
+         sure the templates match. */
+      match = equiv_templates_given_supplement(tssp, templ_tssp);
     }  /* if */
   }  /* if */
   return match;
@@ -4643,19 +4673,18 @@ return the corresponding actual template template argument (if any).
 Otherwise, return the original template.
 */
 {
-  a_template_ptr	result = templ;
-  a_symbol_ptr		template_sym;
+  a_template_ptr			result = templ;
+  a_template_symbol_supplement_ptr	tssp;
 
-  /* Get the associated template symbol pointer. */
-  template_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
-  if (template_sym->is_template_param) {
+  /* Get the associated template symbol supplement. */
+  tssp = template_supplement_for_template(templ);
+  if (tssp->variant.class_template.template_template_param) {
     /* If this template parameter entry corresponds to the nth
        parameter, the real template to substitute for it is given in the nth
        template argument.  Find the template argument that matches this
        template parameter use it. */
     a_template_param_coordinate_ptr	coordinates;
-    coordinates = &template_sym->variant.template_info->
-                                            variant.class_template.coordinates;
+    coordinates = &tssp->variant.class_template.coordinates;
     if (coordinates->depth != depth) {
       /* A template parameter from a different nesting depth.  Simply
          leave this template unsubstituted. */
@@ -8428,8 +8457,15 @@ instantiation.
       if (decl_state->is_template_friend && is_definition) {
         /* Classes cannot be defined in friend declarations. */
         pos_error(ec_template_friend_definition_not_allowed,
-                     &locator.source_position);
+                  &locator.source_position);
         decl_state->decl_scope_err = TRUE;
+      }  /* if */
+      /* If the lookup found a class template that is actually a template
+         template parameter, ignore it.  This will result in a redeclaration
+         error later. */
+      if (sym != NULL && sym->is_template_param &&
+          sym->kind == (a_symbol_kind)sk_class_template) {
+        sym = NULL;
       }  /* if */
       /* Adjust the effective declaration level.  Friend declarations
          are added to the nearest enclosing namespace scope. */
@@ -9546,6 +9582,15 @@ parameter entry for the parameter.
          local_decl_state.number_of_template_decl_scopes--) {
     pop_scope();
   }  /* for */
+  if (local_decl_state.decl_info == NULL) {
+    /* An error must have occurred while scanning the template parameter list.
+       Create a template declaration information structure for error
+       recovery purposes. */
+    a_template_decl_info_ptr	    template_decl_info;
+    template_decl_info = alloc_template_decl_info();
+    local_decl_state.decl_info = template_decl_info;
+    template_decl_info->enclosing_scope = local_decl_state.enclosing_scope;
+  }  /* if */
   /* The current keyword must be "class" followed by an optional identifier.
      If it is "struct", give an error, but treat it like "class". */
   if (curr_token != tok_class && curr_token != tok_struct) {
@@ -9568,6 +9613,10 @@ parameter entry for the parameter.
   templ_ptr = alloc_template();
   set_source_corresp(&templ_ptr->source_corresp, sym);
   templ_ptr->kind = (a_template_kind)templk_template_template_param;
+  /* The templates associated with template parameters and nonreal classes
+     have a template_info pointer that points back to the front end
+     information. */
+  templ_ptr->template_info = tssp;
   tssp->variant.class_template.template_template_param = TRUE;
   tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
   tssp->variant.class_template.coordinates.depth =
@@ -9579,11 +9628,14 @@ parameter entry for the parameter.
                           local_decl_state.decl_info);
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
+  /* Check the default arguments of the parameter list of the template
+     template parameter. */
+  check_template_param_default_args(local_decl_state.decl_info->parameters,
+                                    /*is_partial_specialization=*/FALSE);
   if (curr_token == tok_assign) {
     a_token_cache			def_arg_cache;
     a_template_ptr			def_arg_templ;
     a_template_symbol_supplement_ptr	def_arg_tssp;
-    a_symbol_ptr			def_arg_templ_sym;
     /* Scan the default value for a type argument. */
     template_param->has_default_arg = TRUE;
     /* Skip past the equals sign. */
@@ -9594,15 +9646,17 @@ parameter entry for the parameter.
 			     /*is_friend_decl=*/FALSE,
                              &parent_decl_state->param_list_cache);
     rescan_copy_of_cache(&def_arg_cache);
-    def_arg_templ = scan_template_template_argument();
-    def_arg_templ_sym = (a_symbol_ptr)def_arg_templ->source_corresp.assoc_info;
-    def_arg_tssp = def_arg_templ_sym->variant.template_info;
+    def_arg_templ = scan_template_template_argument(templ_ptr,
+                                                    &pos_curr_token);
+    def_arg_tssp = template_supplement_for_template(def_arg_templ);
     /* Update the default argument information in the template parameter. */
-    if (def_arg_tssp->is_nonreal_member) {
-      /* If the template that is returned is marked as a nonreal member,
-         then the qualifier must depend on a template parameter.  This
-         means that the default needs to be rescanned for each instantiation,
-         so the default is saved as a token cache. */
+    if (def_arg_tssp->is_nonreal_member ||
+        def_arg_tssp->variant.class_template.template_template_param) {
+      /* If the template that is returned is marked as a nonreal member
+         or a template template parameter, the qualifier must depend on a
+         template parameter.  This means that the default needs to be
+         rescanned for each instantiation, so the default is saved as a
+         token cache. */
       clear_template_param_default_arg_info(
                      template_param, /*def_arg_involves_template_param=*/TRUE);
       set_template_cache_info(&template_param->default_arg.cache,
@@ -9887,7 +9941,8 @@ existing type is simply used.
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     rescan_reusable_cache(&tcp->tokens);
-    templ = delayed_scan_of_template_default_template_arg();
+    templ = delayed_scan_of_template_default_template_arg(
+                 param_ptr->variant.templ->il_template_entry, &pos_curr_token);
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL

@@ -320,7 +320,9 @@ that was scanned.
 }  /* delayed_scan_of_template_default_type_arg */
 
 
-a_template_ptr delayed_scan_of_template_default_template_arg(void)
+a_template_ptr delayed_scan_of_template_default_template_arg(
+				a_template_ptr		param_template,
+				a_source_position	*err_pos)
 /*
 Do the delayed scan of the default argument expression for a template
 template parameter.  The cache has just been reactivated, so curr_token should
@@ -331,7 +333,7 @@ that was scanned.
   a_template_ptr	templ;
 
   db_enter(3, "delayed_scan_of_template_default_template_arg");
-  templ = scan_template_template_argument();
+  templ = scan_template_template_argument(param_template, err_pos);
   check_for_valid_end_of_template_def_arg();
   db_exit();
   return templ;

@@ -3326,6 +3326,13 @@ extern a_boolean is_special_function_symbol(a_symbol_ptr             sym,
   ((sym)->kind == (a_symbol_kind)sk_class_template &&			\
    (sym)->variant.template_info->is_nonreal_member)
 
+/* Return TRUE if a symbol is a class template symbol that represents
+   a template template parameter. */
+#define is_template_template_param_symbol(sym)				\
+  ((sym)->kind == (a_symbol_kind)sk_class_template &&			\
+   (sym)->variant.template_info->					\
+                          variant.class_template.template_template_param)
+
 /* Return TRUE if a symbol represents a type template param. */
 #define is_type_template_param_symbol(sym)                              \
   ((sym)->kind == (a_symbol_kind)sk_type &&                             \
