@@ -19,6 +19,7 @@ Prelink utility for template instantiation.
 #include <malloc.h>
 #include "basics.h"
 #include "host_envir.h"
+#include "target.h"
 #include "edg_prelink.h"
 
 #define DEBUG 1
@@ -261,7 +262,8 @@ static char *message_prefix;
 
 /* TRUE if external names have an extra underscore prefix.  Can be
    modified by a command line option. */
-static a_boolean		skip_underscore_prefix = UNDERSCORE_PREFIX;
+static a_boolean		skip_underscore_prefix
+                                    = TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED;
 
 
 #if DEBUG
@@ -2022,7 +2024,7 @@ int main(int argc, char *argv[])
       case 'u':
         /* Specify whether names have an extra underscore that should
            be ignored.  The option selects the opposite of the default. */
-        skip_underscore_prefix = !UNDERSCORE_PREFIX;
+        skip_underscore_prefix = !TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED;
         break;
       case 'v':
         /* Verbose mode. */

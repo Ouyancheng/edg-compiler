@@ -32,6 +32,7 @@ This program looks for entries where "a" is "T" and "nnnn..." is "__sti__*" or
 #include <malloc.h>
 #include "basics.h"
 #include "host_envir.h"
+#include "target.h"
 #include "edg_munch.h"
 
 /*
@@ -60,7 +61,8 @@ static int    line_size;
 
 /* TRUE if external names have an extra underscore prefix.  Can be
    modified by a command line option. */
-static a_boolean		skip_underscore_prefix = UNDERSCORE_PREFIX;
+static a_boolean		skip_underscore_prefix
+                                   = TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED;
 
 /*
 Simple macro to find the end of the identifier.  Right now it just looks
@@ -272,7 +274,7 @@ int main(int argc, char *argv[])
       case 'u':
         /* Specify whether names have an extra underscore that should
            be ignored.  The option selects the opposite of the default. */
-        skip_underscore_prefix = !UNDERSCORE_PREFIX;
+        skip_underscore_prefix = !TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED;
         break;
       default:
         fprintf(stderr, "Unrecognized option: %c\n", optchar);

@@ -14,13 +14,6 @@ Declarations for EDG equivalent of the AT&T munch utility.
 */
 
 
-
-/*
-The following flag indicates whether all external names have an additional
-underscore at the beginning.
-*/
-#define UNDERSCORE_PREFIX TRUE
-
 /*
 Names of the arrays to be created containing pointers to the static
 constructor and destructor functions to be called.

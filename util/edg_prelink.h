@@ -14,10 +14,6 @@ Declarations for EDG template prelink utility.
 */
 
 
-/* The following flag indicates whether all external names have an additional
-   underscore at the beginning. */
-#define UNDERSCORE_PREFIX TRUE
-
 /* Type code output by "nm" for externally visible function definitions. */
 #define EXTERN_TYPE 'T'
 
