@@ -1,5 +1,47 @@
 Version 2.09
 
+8/28/92  Interaction between late recognition of copy constructors and
+         initialization by bitwise copy
+
+A bug was fixed associated with this kind of code:
+
+  struct S {
+    S();
+    S(const S&, int);
+  };
+  S::S(const S& s, int i = 0) { /* ... */ }
+  S x, y = x;
+
+The flag construction_by_bitwise_copy_allowed was not being cleared at the
+definition of S::S(const S&, int) -- namely, at the point it was recognized
+to be a copy constructor.  A consequence was that the initialization of y
+was done without invoking a copy constructor.  The flag is now set, the
+copy constructor is used, and, incidentally, an ambiguity error is now
+issued, since the compiler had been obliged to generate S::S(const S&)
+before the other constructor "became" a copy constructor.
+
+8/25/92  Linkage conflicts
+
+An error (instead of a warning) is now issued on linkage conflicts when the
+-A command line option is used to specify strict ANSI mode (that is, when
+strict_ansi_error_severity is es_error).
+
+8/25/92  Improvements in error detection
+
+Previously unrecognized errors are now issued for semantic errors in
+certain linkage specification declarations.  For instance,
+
+  extern "C" typedef int INT;    // error
+  extern "C" inline void f();    // error
+
+However, no diagnostics are issued (and the linkage specification is
+ignored) when braces are used:
+
+  extern "C" {
+    typedef int INT;             // okay
+    inline void f();             // okay
+  }
+
 -------------------------------------------------------------------------------
 Version 2.08, August 25, 1992
 
