@@ -1,4 +1,4 @@
-Version 2.33, October 1, 1996
+Version 2.33, October 2, 1996
 
 10/1/96 IL version number changed to 2.25
 
@@ -54,7 +54,8 @@ With partial lowering, the point is marked by a new
 enk_lowered_eh_construct/leck_exception_started expression node.
 Note that the new marker appears only when necessary, and the throw
 itself is considered the start of the exception if the marker is not
-present (e.g., for non-class cases).
+present (e.g., for non-class cases).  This change applies only when
+using ABI version 2.33 or later.
 
 9/30/96  Microsoft mode disables language features not supported by
          the Microsoft compiler
