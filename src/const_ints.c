@@ -1868,7 +1868,7 @@ signedness.  If none is found, ik_none is returned.
       get_integer_size_and_alignment(int_kind, &int_size, &int_alignment);
       if (int_size == size &&
           int_kind_is_signed[(int)int_kind] == is_signed &&
-          !(gnu_mode && int_kind == ik_char)) {
+          !(gnu_mode && int_kind == (an_integer_kind)ik_char)) {
         /* This is the kind to use.  Note: For GNU modes prefer "signed char"
            over plain "char". */
         goto have_kind;
