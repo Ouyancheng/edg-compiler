@@ -2557,9 +2557,18 @@ Display the indicated base class entry.
   disp_boolean("ambiguous", (a_boolean)ptr->ambiguous);
   disp_boolean("any_virtual_steps_in_derivation",
                (a_boolean)ptr->any_virtual_steps_in_derivation);
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+  disp_boolean("complete_subobject", (a_boolean)ptr->complete_subobject);
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
   disp_access("access", ptr->access);
   disp_unsigned_long("offset", (unsigned long)ptr->offset);
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+  disp_ptr("data_section_base_class", (char *)ptr->data_section_base_class,
+           iek_base_class);
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
   disp_unsigned_long("pointer_offset", (unsigned long)ptr->pointer_offset);
+  disp_ptr("pointer_base_class", (char *)ptr->pointer_base_class,
+           iek_base_class);
   disp_derivation_step_list(ptr->derivation);
   disp_ptr("overriding_virtual_functions",
            (char *)ptr->overriding_virtual_functions,
