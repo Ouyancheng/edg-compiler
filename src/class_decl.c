@@ -3940,31 +3940,28 @@ class, struct, or union.
   /* For an unnamed field, do not create the field symbol. */
   if (unnamed_field) {
     /* All field entries for an unnamed fields share the same symbol.  It is
-       used for easy identification.  These field entries are for front-end
-       use only and are thrown away. */
+       used for easy identification. */
     field->source_corresp.assoc_info = (char *)unnamed_field_symbol();
-  } else {
-    if (!is_anonymous_union) {
-      /* Create the field symbol. */
-      member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
-                                      depth_scope_stack,
-                                      /*suppress_redecl_error=*/FALSE);
-      member_sym->class_of_which_a_member = class_type;
-      member_sym->variant.field.ptr = field;
-      set_source_corresp(&(field->source_corresp), member_sym);
-      mark_defined(member_sym, &locator->source_position,
-                   (a_decl_seq_info_ptr)NULL);
-    }  /* if */
-    field->source_corresp.class_of_which_a_member = class_type;
-    field->source_corresp.access = access;
-    /* Add the field to the temporary list for this class/struct/union. */
-    if (*end_of_list == NULL) {
-      class_type->variant.class_struct_union.field_list = field;
-    } else {
-      (*end_of_list)->next = field;
-    }  /* if */
-    *end_of_list = field;
+  } else if (!is_anonymous_union) {
+    /* Create the field symbol. */
+    member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
+                                    depth_scope_stack,
+                                    /*suppress_redecl_error=*/FALSE);
+    member_sym->class_of_which_a_member = class_type;
+    member_sym->variant.field.ptr = field;
+    set_source_corresp(&(field->source_corresp), member_sym);
+    mark_defined(member_sym, &locator->source_position,
+                 (a_decl_seq_info_ptr)NULL);
   }  /* if */
+  field->source_corresp.class_of_which_a_member = class_type;
+  field->source_corresp.access = access;
+  /* Add the field to the temporary list for this class/struct/union. */
+  if (*end_of_list == NULL) {
+    class_type->variant.class_struct_union.field_list = field;
+  } else {
+    (*end_of_list)->next = field;
+  }  /* if */
+  *end_of_list = field;
 #if TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
   /* Fields are allocated in the class object in exactly the same order as
      their declaration. */
@@ -3996,19 +3993,6 @@ class, struct, or union.
       }  /* if */
     }  /* if */
 #if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
-  } else {
-    /* No access other than public should be possible in non-C++ modes. */
-    check_assertion(C_dialect == C_dialect_cplusplus);
-    if (unnamed_field) {
-      /* Unnamed fields that have not been allocated yet should be added to the
-         field list so they can be allocated later. */
-      if (*end_of_list == NULL) {
-        class_type->variant.class_struct_union.field_list = field;
-      } else {
-        (*end_of_list)->next = field;
-      }  /* if */
-      *end_of_list = field;
-    }  /* if */
   }  /* if */
 #endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
   if (C_dialect == C_dialect_cplusplus) {
