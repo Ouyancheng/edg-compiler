@@ -8433,7 +8433,8 @@ TRUE if the declaration following this one is such a continuation.
     /* See if the "template<>" specialization prefix should be put out. */
     if (rout->is_specialized) {
       is_specialization = !rout->specialized_with_old_syntax;
-    } else if (rout->is_template_function) {
+    } else if (rout->is_template_function &&
+               !rout->is_prototype_instantiation) {
       /* A generated instance.  Use the "template<>" prefix if appropriate. */
       is_specialization = !old_specializations_for_generated_instances;
     }  /* if */
@@ -8462,7 +8463,9 @@ TRUE if the declaration following this one is such a continuation.
     gen_member_access_specifier_for_decl_of(&rout->source_corresp);
   }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  check_assertion(!rout->is_template_function || rout->assoc_template != NULL);
+  check_assertion(!rout->is_template_function ||
+                  rout->is_prototype_instantiation ||
+                  rout->assoc_template != NULL);
   if (template_decl != NULL) {
     gen_template_header(template_decl);
   }  /* if */
