@@ -6,7 +6,7 @@ Version 2.44
 In Microsoft bugs mode, the definition of a member of a class template
 that appears outside of the class definition may declare a nontype template
 parameter with a type that is different than the type used in the definition
-of the class template.
+of the class template.  A warning is issued.
 
   template <int I> struct A { void f(); };
   template <unsigned int I> void A<I>::f(){}

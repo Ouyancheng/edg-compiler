@@ -7711,6 +7711,12 @@ describing any incompatibilities.
            than that of the associated class template. */
         err = !equiv_nontype_template_param_names(
                  old_tpp->variant.constant.ptr, new_tpp->variant.constant.ptr);
+        if (!err) {
+          /* An incompatible redeclaration of the parameter that is accepted
+             in Microsoft bugs mode.  Issue a warning. */
+          pos_sy_warning(ec_not_compatible_with_previous_decl,
+                         &new_sym->decl_position, old_sym);
+        }  /* if */
       }  /* if */
     } else {
       /* Template template parameters.  Compare the two templates. */
