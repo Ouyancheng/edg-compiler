@@ -3347,7 +3347,7 @@ with the original declaration of a template and is only present
        type.  If not all of the tokens were used, or if the type created
        is not a function type, issue a diagnostic. */
     check_for_invalid_instantiation(type, templ_rout,
-                                    is_error_locator(*locator));
+                                    (a_boolean)is_error_locator(*locator));
     flush_past_token_cache_terminator();
   }  /* if */
 }  /* scan_template_declaration */
