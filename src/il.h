@@ -262,6 +262,8 @@ extern void copy_type(a_type_ptr from,
 
 extern a_type_ptr copy_routine_type_with_param_types(a_type_ptr from_type);
 
+extern a_type_ptr routine_type_without_default_args(a_type_ptr orig_type);
+
 extern a_template_arg_ptr copy_template_arg_list(a_template_arg_ptr orig_list);
 
 extern a_boolean is_default_constructor(a_routine_ptr  ctor_rout,

@@ -5488,6 +5488,52 @@ Copy the type entry "from" to "to".
 }  /* copy_type */
 
 
+static a_param_type_ptr copy_param_type_list(
+                                       a_param_type_ptr  ptp,
+                                       a_boolean         copy_default_args)
+/*
+Copy the param-type list pointed to by ptp and return a pointer to the new
+list.  If copy_default_args is TRUE, copy any default argument expressions
+into the the new param types.  If it is FALSE, the default_arg_expr field
+in the new param type will be NULL.
+*/
+{
+  a_param_type_ptr  new_list = NULL, new_ptp, prev_new_ptp = NULL;
+
+  for (; ptp != NULL; ptp = ptp->next) {
+    /* Pass a NULL source position to make_param_type to avoid inappropriate
+       diagnostics on a type that doesn't correspond directly to a source
+       construct. */
+    new_ptp = make_param_type(ptp->type, &null_source_position);
+    /* Do a struct copy from the old param type to the new. */
+    *new_ptp = *ptp;
+    if (copy_default_args) {
+      /* Expressions may not be shared -- that is, they may not be pointed to
+         from more than one place.  Therefore a copy must be made of the
+         expression node for the default arg (if one exists). */
+      if (ptp->default_arg_expr != NULL) {
+        new_ptp->default_arg_expr =
+                         duplicate_default_arg_expr(ptp->default_arg_expr);
+      }  /* if */
+    } else {
+      new_ptp->has_default_arg = FALSE;
+      new_ptp->default_arg_expr = NULL;
+    }  /* if */
+#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
+    /* Note: the name associated with the original param type entry is
+       preserved in the copy. */
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
+    if (new_list == NULL) {
+      new_list = new_ptp;
+    } else {
+      prev_new_ptp->next = new_ptp;
+    }  /* if */
+    prev_new_ptp = new_ptp;
+  }  /* for */
+  return new_list;
+}  /* copy_param_type_list */
+
+
 a_type_ptr copy_routine_type_with_param_types(a_type_ptr from_type)
 /*
 Make a copy of a routine type and its param types list.  This routine is
@@ -5496,7 +5542,6 @@ param-types list (for example, when as the result of a user error a routine
 type in a function definition is based on a typedef).
 */
 {
-  a_param_type_ptr  	old_ptp, new_ptp, prev_new_ptp;
   a_type_qualifier_set	qualifiers;
   a_type_ptr		to_type;
 
@@ -5506,33 +5551,10 @@ type in a function definition is based on a typedef).
   from_type = skip_typerefs(from_type);
   to_type = alloc_type((a_type_kind)tk_routine);
   copy_type(from_type, to_type);
-  old_ptp = from_type->variant.routine.extra_info->param_type_list;
-  prev_new_ptp = NULL;
-  for (; old_ptp != NULL; old_ptp = old_ptp->next) {
-    /* Pass a NULL source position to make_param_type to avoid inappropriate
-       diagnostics on a type that doesn't correspond directly to a source
-       construct. */
-    new_ptp = make_param_type(old_ptp->type, &null_source_position);
-    /* Do a struct copy from the old param type to the new. */
-    *new_ptp = *old_ptp;
-    /* Expressions may not be shared -- that is, they may not be pointed to
-       from more than one place.  Therefore a copy must be made of the
-       expression node for the default arg (if one exists). */
-    if (old_ptp->default_arg_expr != NULL) {
-      new_ptp->default_arg_expr =
-                         duplicate_default_arg_expr(old_ptp->default_arg_expr);
-    }  /* if */
-#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
-    /* Note: the name associated with the original param type entry is
-       preserved in the copy. */
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
-    if (prev_new_ptp == NULL) {
-      to_type->variant.routine.extra_info->param_type_list = new_ptp;
-    } else {
-      prev_new_ptp->next = new_ptp;
-    }  /* if */
-    prev_new_ptp = new_ptp;
-  }  /* for */
+  to_type->variant.routine.extra_info->param_type_list =
+            copy_param_type_list(from_type->variant.routine.extra_info->
+                                                            param_type_list,
+                                 /*copy_default_args=*/TRUE);
   if (qualifiers != TQ_NONE) {
     /* If the original type had qualifiers above the routine type, add
        them to the newly created type now. */
@@ -5540,6 +5562,36 @@ type in a function definition is based on a typedef).
   }  /* if */
   return to_type;
 }  /* copy_routine_type_with_param_types */
+
+
+a_type_ptr routine_type_without_default_args(a_type_ptr  orig_type)
+/*
+If the specified routine type has default arguments, return a copy of it
+with the default arguments removed.  Otherwise, return the original type
+unchanged.
+*/
+{
+  a_param_type_ptr  ptp, orig_param_type_list;
+  a_type_ptr        tp = orig_type;
+
+  /* Traverse the param-types, stopping as soon as a parameter type with
+     a default argument is encountered. */
+  orig_param_type_list = skip_typerefs(orig_type)->variant.routine.
+                                              extra_info->param_type_list;
+  for (ptp = orig_param_type_list; ptp != NULL; ptp = ptp->next) {
+    if (ptp->has_default_arg) {
+      /* A copy of the original type is required, because the default arg
+         expression has to be stripped off. */
+      tp = alloc_type((a_type_kind)tk_routine);
+      copy_type(orig_type, tp);
+      tp->variant.routine.extra_info->param_type_list =
+                          copy_param_type_list(orig_param_type_list,
+                                               /*copy_default_args=*/FALSE);
+      break;
+    }  /* if */
+  }  /* for */
+  return tp;
+}  /* routine_type_without_default_args */
 
 
 a_template_arg_ptr copy_template_arg_list(a_template_arg_ptr orig_list)
