@@ -29,7 +29,7 @@ value of FALSE was used), and cfront mode (where a value of TRUE
 was used).  The new command-line options --base_assign_op_is_default
 and --no_base_assign_op_is_default can be used to override the default.
 
-10/13/99 Stricter error on "void" exception specification
+10/13/99 Stricter diagnostic on "void" exception specification
 
 By default, the front end used to issue an error on incomplete types in
 exception specifications for function definitions, except when that incomplete
