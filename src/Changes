@@ -2,9 +2,9 @@ Version 2.32
 
 3/26/96   Bug in suppressing instantiation flags
 
-When the --suppress_instantiation_flags option was used, __TIR__
-symbols were still being generated for certain virtual functions.
-This is now fixed.
+When the --suppress_instantiation_flags option was used, __TIR__ symbols
+were still being generated for certain virtual functions.  This is now
+fixed.
 
 3/25/96   Include search path bug when using implicit inclusion
 
@@ -19,8 +19,10 @@ file.
 The supplement for an stmk_for statement now contains a scope pointer.
 When (in C++ mode) the for-init-statement is a declaration, for_init_scope
 may be non-null to point to an implicitly generated sck_block scope that
-surrounds the entire for-statement.  This enables support for the "new"
-scoping rules for for-init declarations (WP 6.5.3 [stmt.for]) -- e.g.,
+surrounds the entire for-statement.  (Unlike typical sck_block scopes,
+those generated for for-init declarations will have a null assoc_block
+pointer.)  Which this change comes support for the "new" scoping rules for
+for-init declarations (WP 6.5.3 [stmt.for]) -- e.g.,
 
   int f(int j) {
     int i = 0;
