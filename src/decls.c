@@ -4153,6 +4153,7 @@ void decl_variable(a_symbol_locator             *locator,
                    a_source_sequence_entry_ptr  declarator_ssep,
                    a_symbol_reference_kind      srk_flags,
                    a_decl_modifiers_block_ptr   decl_modifiers,
+                   an_ms_attribute_ptr          *p_ms_attributes,
                    an_attribute_ptr             attributes,
                    char                         *asm_name,
                    a_source_position_ptr	asm_name_pos,
@@ -4164,9 +4165,10 @@ void decl_variable(a_symbol_locator             *locator,
 /*
 Enter the declaration of an identifier for a variable.  *locator gives the
 symbol locator (and thus its name and its declaration position).  type_ptr,
-storage_class, decl_modifiers, attributes, and asm_name give the type, storage
-class, declaration modifier flags, attributes, and assembly symbol name.
-When an asm_name is specified, asm_name_pos is its position.
+storage_class, decl_modifiers, *p_ms_attributes, attributes, and asm_name
+give the type, storage class, declaration modifier flags, attributes (both
+Microsoft- and GNU-style), and assembly symbol name.  When an asm_name is
+specified, asm_name_pos is its position.
 Create and enter a symbol entry, and return a pointer to it in *symbol_ptr.
 Also allocate any associated IL construct, and attach it to the symbol.  If
 the identifier has linkage and there is an existing symbol or IL entry, it
@@ -4594,6 +4596,16 @@ declaration.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (p_ms_attributes != NULL && *p_ms_attributes != NULL &&
+      !idlb.is_block_extern_decl) {
+    /* Microsoft attributes don't normally apply to variables, but some
+       attributes that apply to "any" entity are also accepted on variable
+       declarations. */
+    apply_microsoft_attributes(p_ms_attributes, (char*)variable_ptr,
+                               (an_il_entry_kind)iek_variable, MSAT_NONE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (linkage != idl_none) {
     /* In case this is a block extern declaration, clear the
        is_local_to_function flag -- it will have been set based on scope
@@ -11797,8 +11809,9 @@ continue_with_declaration:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         decl_variable(&locator, local_storage_class, local_type_ptr,
                       declarator_ssep, srk_flags, &local_decl_modifiers,
-                      attributes, asm_name, &asm_name_pos, &symbol_ptr,
-                      &linkage, &old_type, &ext_sym, &decl_pos_block);
+                      &ms_attributes, attributes, asm_name, &asm_name_pos,
+                      &symbol_ptr, &linkage, &old_type, &ext_sym,
+                      &decl_pos_block);
         var_ptr = symbol_ptr->variant.variable.ptr;
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */

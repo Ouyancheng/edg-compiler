@@ -1,5 +1,14 @@
 Version 3.4
 
+8/4/03   Microsoft C++ mode: Attributes on variable declarations
+
+In Microsoft C++ mode, the front end now accepts some attributes on variable
+declarations.  For example:
+
+  [idl_quote("Hello")] int i;
+
+Previously, attributes in that position resulted in an error in all cases.
+
 8/4/03   GNU C++ mode: Exception specifications in system headers
 
 In GNU C++ mode, the front end now issues a warning (instead of an error,
