@@ -48,6 +48,18 @@ Return TRUE if tok is a token kind that is a literal constant.
 
 
 /*
+Macro that returns TRUE if the curr_token_pragma list should not be
+processed because we are currently processing tokens as part of a
+preprocessing operation.
+*/
+#if 0
+/* Are these the right conditions? */
+#endif
+#define suppress_pragma_processing					\
+  (fetch_pp_tokens || in_preprocessing_directive)
+
+
+/*
 Variables pertaining to the input stack (for include files and the
 primary source file) and the current input file (the top entry on the
 stack).
@@ -491,6 +503,19 @@ Return a pending pragma entry to the available list.
 }  /* free_pending_pragma */
 
 
+static void free_pending_pragma_list(a_pending_pragma_ptr ppp)
+/*
+Free a list of pending pragma entries.
+*/
+{
+  while (ppp != NULL) {
+    a_pending_pragma_ptr	next_ppp = ppp->next;
+    free_pending_pragma(ppp);
+    ppp = next_ppp;
+  }  /* while */
+}  /* free_pending_pragma_list */
+
+
 void add_to_curr_token_pragma_list(a_pending_pragma_ptr ppp)
 /*
 Add a pragma to the list of pragmas associated with the current token.
@@ -580,6 +605,7 @@ pbk_immediate pragmas are processed here.
 #endif
         free_pending_pragma(ppp);
         break;
+      case pbk_other:
       default:
         unexpected_condition_str
 			("process_curr_token_pragmas: bad binding kind");
@@ -593,7 +619,8 @@ pbk_immediate pragmas are processed here.
 
 void select_pragmas_bound_to_curr_decl_or_stmt
 				(a_boolean	decl_allowed,
-				 a_boolean	stmt_allowed)
+				 a_boolean	stmt_allowed,
+				 a_boolean	merge_with_existing_list)
 /*
 This routine scans the current token pragma list for any pbk_next_declaration
 or pbk_next_statement pragmas.  If the binding kind matches the flags
@@ -602,11 +629,91 @@ pragmas_bound_to_curr_decl_or_stmt list.  If binding kind does not
 match the flags passed by the caller an error is issued.  Pragmas
 that don't bind to the next declaration/statement remain on the
 current token pragma list.
+
+Normally, any pragmas already on the pragmas_bound_to_curr_decl_or_stmt list
+are freed before the new list is processed.  If merge_with_existing_list
+is TRUE any new pragmas are added to the end of the existing list.
 */
 {
-#if 0
-  /* Not yet implemented. */
-#endif
+  a_scope_stack_entry_ptr	ssep;
+  a_pending_pragma_ptr		list_start;
+  a_pending_pragma_ptr		list_end;
+  a_pending_pragma_ptr		ppp;
+  a_pending_pragma_ptr		prev_ppp;
+
+  ssep = &scope_stack[depth_scope_stack];
+  list_start = ssep->pragmas_bound_to_curr_decl_or_stmt;
+  if (merge_with_existing_list) {
+    /* Find the end of the current list. */
+    list_end = list_start;
+    if (list_end != NULL) {
+      while (list_end->next != NULL) {
+        list_end = list_end->next;
+      }  /* while */
+    }  /* if */
+  } else {
+    /* Free any existing list. */
+    free_pending_pragma_list(list_start);
+    list_start = NULL;
+    list_end = NULL;
+  }  /* if */
+  ppp = curr_token_pragmas;
+  prev_ppp = NULL;
+  while (ppp != NULL) {
+    a_pending_pragma_ptr	next_ppp = ppp->next;
+    a_boolean			remove_from_curr_list = FALSE;
+    a_boolean			add_to_new_list = FALSE;
+    a_boolean			issue_diagnostic = FALSE;
+    a_pragma_description_ptr	pdp = ppp->descr_ptr;
+    a_pragma_binding_kind	binding_kind = pdp->binding_kind;
+    an_error_code		error_code;
+    if (binding_kind == pbk_next_declaration) {
+      add_to_new_list = decl_allowed;
+      issue_diagnostic = !decl_allowed;
+      error_code = ec_pragma_must_precede_declaration;
+      remove_from_curr_list = TRUE;
+    } else if (binding_kind == pbk_next_statement) {
+      add_to_new_list = stmt_allowed;
+      issue_diagnostic = !stmt_allowed;
+      error_code = ec_pragma_must_precede_statement;
+      remove_from_curr_list = TRUE;
+    }  /* if */
+    /* An entry can't be on both lists. */
+    check_assertion(!(add_to_new_list == TRUE &&
+                      remove_from_curr_list == FALSE));
+    if (remove_from_curr_list) {
+      if (prev_ppp != NULL) {
+        /* Make the previous entry on the list point to the entry after this
+           one. */
+        prev_ppp->next = next_ppp;
+      } else {
+        /* This is already the head of the list, change the head to point to
+           the next element. */
+        curr_token_pragmas = next_ppp;
+      }  /* if */
+      /* If the entry is not being moved to the new list, free it. */
+      if (!add_to_new_list) free_pending_pragma(ppp);
+    } else {
+      /* If this entry will remain on the current list, save the pointer to
+         this element as the next "previous" pointer. */
+      prev_ppp = ppp;
+    }  /* if */
+    if (add_to_new_list) {
+      /* Add the entry to the end of the list of pragmas for the current
+         declaration or statement. */
+      if (list_start == NULL) list_start = ppp;
+      if (list_end == NULL) {
+        list_end = ppp;
+      } else {
+        list_end->next = ppp;
+        list_end = ppp;
+      }  /* if */
+    }  /* if */
+    if (issue_diagnostic) {
+      pos_error(error_code, &ppp->id_position);
+    }  /* if */
+    ppp = next_ppp;
+  }  /* while */
 }  /* select_pragma_bound_to_curr_decl_or_stmt */
 
 
@@ -690,7 +797,7 @@ for pp-tokens.
   /* If there are any pragmas associated with the current token, create
      a token cache entry to preserve the pragma information before adding
      the token cache entry for the current token. */
-  if (curr_token_pragmas != NULL) {
+  if (curr_token_pragmas != NULL && !suppress_pragma_processing) {
     add_pragma_entry_to_cache(cache);
     curr_token_pragmas = NULL;
   }  /* if */
@@ -1044,6 +1151,8 @@ an equivalent change.
     }  /* if */
     /* Set the current token pragma list to point to the pragmas associated
        with the cached token. */
+    check_assertion_str(!suppress_pragma_processing,
+                  "get_token_from...: pragma found in suppress_pragma mode");
     curr_token_pragmas = ctp->variant.pragmas;
     free_cached_token(ctp);
   }  /* for */
@@ -1090,6 +1199,8 @@ an equivalent change.
     }  /* if */
     /* Set the current token pragma list to point to the pragmas associated
        with the cached token. */
+    check_assertion_str(!suppress_pragma_processing,
+                  "get_token_from...: pragma found in suppress_pragma mode");
     curr_token_pragmas = ctp->variant.pragmas;
   }  /* for */
   /* Entry is for a token (normal case). */
@@ -4206,8 +4317,11 @@ If in_asm_function_body is TRUE, return tok_newline for ends of lines.
 #endif /* DEBUG */
 
   /* Before fetching a new token, do any processing required for pragmas
-     that preceded the current token. */
-  if (curr_token_pragmas != NULL) {
+     that preceded the current token.  Don't do this when fetching
+     preprocessing tokens -- pragmas should only be processed when
+     a "real" token of the source program is fetched. */
+  if (curr_token_pragmas != NULL &&
+      !suppress_pragma_processing) {
     process_curr_token_pragmas();
   }  /* if */
   /* If there are cached tokens to be rescanned, first check the

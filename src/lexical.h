@@ -1271,7 +1271,8 @@ extern void add_to_curr_token_pragma_list(a_pending_pragma_ptr ppp);
 
 extern void select_pragmas_bound_to_curr_decl_or_stmt
 				(a_boolean	decl_allowed,
-				 a_boolean	stmt_allowed);
+				 a_boolean	stmt_allowed,
+				 a_boolean	merge_with_existing_list);
 
 extern an_access_error_descr_ptr alloc_access_error_descr(void);
 
