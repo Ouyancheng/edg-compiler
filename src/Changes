@@ -1,5 +1,21 @@
 Version 2.32
 
+2/22/96   Bug with function templates defined outside of their namespace
+
+In 2.31 a bug was introduced that caused an internal error when a function
+template declared in a namespace is defined outside of its namespace.
+This has been fixed.
+
+namespace N {
+  template <class T> void f(T);
+}
+template <class T> void N::f(T){}
+int main()
+{
+  N::f(1);
+}
+
+
 2/21/96   Bug in same_type_with_added_qualifiers
 
 same_type_with_added_qualifiers, the routine used to compare types in
