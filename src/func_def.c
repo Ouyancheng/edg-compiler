@@ -1569,6 +1569,12 @@ member declaration (allowed in Microsoft mode only).
              are implicitly declared. */
           reenter_symbol(param_id->symbol, decl_scope_level,
                          /*suppress_error=*/FALSE);
+          if (c99_mode) {
+            /* In C99, implicit declarations are not longer allowed. */
+            pos_sy_diagnostic(es_discretionary_error, ec_undeclared_parameter,
+                              &param_id->symbol->decl_position,
+                              param_id->symbol);
+          }  /* if */
         }  /* if */
         /* The param_type entry must be allocated in the file-scope
            region. */
