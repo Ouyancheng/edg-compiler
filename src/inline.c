@@ -193,6 +193,14 @@ whether the constant is non-NULL, the safe value is FALSE.
        linker magic like weak externals. */
     *is_non_null = (expr->variant.variable->storage_class !=
                     (a_storage_class)sc_extern);
+  } else if (is_variable_node(expr)) {
+    a_variable_ptr var = expr->variant.variable;
+    if (var->is_parameter && !var->param_value_has_been_changed) {
+      /* Unassigned parameters are constant-valued within a function.
+         This includes the "this" parameter in most cases. */
+      is_constant_valued = TRUE;
+      if (var->is_this_parameter) *is_non_null = TRUE;
+    }  /* if */
   } else if (is_routine_address_node(expr)) {
     is_constant_valued = TRUE;
     *is_non_null = TRUE;
