@@ -4079,7 +4079,7 @@ and also set *scp to point to the switch clause.
   *scp = NULL;
   if (curr_source_sequence_entry != NULL &&
       ss_entry_kind(curr_source_sequence_entry) == iek_switch_clause) {
-    /* This is a switch clause, but is is a switch clause for the current
+    /* This is a switch clause, but is it a switch clause for the current
        switch statement?  That matters if we're at the end of an inner
        switch statement and we are looking at a switch clause for the
        outer switch clause that is supposed to follow the end of the inner
