@@ -236,13 +236,25 @@ scope, or a class scope.
                   scope->kind == (a_scope_kind)sck_class_struct_union);
   externalize_type_list_statics_for_exported_templates(scope->types);
   for (rout = scope->routines; rout != NULL; rout = rout->next) {
-    if (rout->storage_class == (a_storage_class)sc_static) {
+    if (rout->storage_class == (a_storage_class)sc_static
+#if ONE_INSTANTIATION_PER_OBJECT
+#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+        && !rout->source_corresp.duplicate_static_in_instantiation_slices
+#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+                                                                         ) {
       externalize_entity_for_exported_templates(&rout->source_corresp,
                                                 iek_routine);
     }  /* if */
   }  /* for */
   for (var = scope->variables; var != NULL; var = var->next) {
-    if (var->storage_class == (a_storage_class)sc_static) {
+    if (var->storage_class == (a_storage_class)sc_static
+#if ONE_INSTANTIATION_PER_OBJECT
+#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+        && !var->source_corresp.duplicate_static_in_instantiation_slices
+#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+                                                                        ) {
       externalize_entity_for_exported_templates(&var->source_corresp,
                                                 iek_variable);
     }  /* if */
