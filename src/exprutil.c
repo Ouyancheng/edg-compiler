@@ -678,7 +678,6 @@ values.
   operand->bound_function = FALSE;
   operand->virtual_function = FALSE;
   operand->is_qualified_name = FALSE;
-  operand->came_from_reference = FALSE;
   operand->access_control_error_reported = FALSE;
   operand->is_operand_of_address_of = FALSE;
   operand->position.seq = 0;
@@ -820,7 +819,6 @@ position field as the error position.
   set_operand_kind(operand, (an_operand_kind)ok_error);
   operand->type = error_type();
   operand->state = (an_operand_state)os_none;
-  operand->came_from_reference = FALSE;
   /* bound_function is not cleared on purpose. */
 }  /* conv_to_error_operand */
 
@@ -3103,7 +3101,6 @@ void add_reference_indirection(an_operand *result)
   }  /* if */
   make_expression_operand(node, result_type, result);
   result->state = result_state;
-  result->came_from_reference = TRUE;
   /* Instantiate the underlying type if it is a template class. */
   check_for_uninstantiated_template_class(result_type);
   /* Restore the original source position, etc.  Note that the reference
@@ -3388,7 +3385,6 @@ on function_type.  *call_pos gives the source position of the call.
   if (is_reference_type(return_type)) {
     conv_object_pointer_to_lvalue(result);
     call_node->implicit_reference_indirection = TRUE;
-    result->came_from_reference = TRUE;
   }  /* if */
 }  /* make_function_call */
 
@@ -3669,7 +3665,6 @@ address_taken flag.
       /* Not a bit field reference. */
       /* The operand becomes an rvalue. */
       operand->state = (an_operand_state)os_rvalue;
-      operand->came_from_reference = FALSE;
       operand->type = make_pointer_type(operand->type);
       /* Change the kind in the reference entries to address-taken. */
       /* This will check for taking the address of a register variable. */
@@ -4233,9 +4228,6 @@ not an lvalue, it is left alone.
     /* The ref_entries_list is cleared because it should only contain
        information on lvalue addresses. */
     operand->ref_entries_list = NULL;
-    /* Clear the came-from-reference flag, as it is meaningful only for
-       lvalues. */
-    operand->came_from_reference = FALSE;
   }  /* if */
 }  /* conv_lvalue_to_rvalue */
 
@@ -4391,7 +4383,6 @@ operand.
        which of the functions is actually wanted. */
   }  /* if */
   operand->state = (an_operand_state)os_rvalue;
-  operand->came_from_reference = FALSE;
   /* Restore the original source position etc.  Keep the reference
      entries because if the function is called we would like to be able
      to change the reference to referenced instead of address-taken. */

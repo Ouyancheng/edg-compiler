@@ -149,9 +149,6 @@ typedef struct an_operand {
   unsigned int	is_qualified_name:1;
 			/* TRUE if the operand was generated from a qualified
 			   name. */
-  unsigned int	came_from_reference:1;
-			/* For an lvalue, TRUE if the lvalue came from a
-			   C++ reference. */
   unsigned int	access_control_error_reported:1;
 			/* TRUE if an access control error was reported
 			   on the base identifier for this operand.  This

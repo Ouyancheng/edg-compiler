@@ -4987,9 +4987,6 @@ C-style casts and C++ functional-notation type conversions.
         }  /* if */
       }  /* if */
     }  /* if */
-    /* The result of a cast to a reference type is considered to have come
-       from a reference. */
-    if (cast_to_reference) operand->came_from_reference = TRUE;
   }  /* if */
   if (err) conv_to_error_operand(operand);
   operand->position = *start_position;
@@ -6364,7 +6361,8 @@ operand_1 and operand_2 are the second and third operands of a "?" operator,
 and they are class lvalues that came from references.  Check to see if the
 reference conversions of ARM 4.7 can be used to bring bring them to a
 common type.  If so, apply the conversion and return TRUE; otherwise,
-return FALSE.
+return FALSE.  The reference conversions were deleted from later versions
+of the Working Paper, but the processing is still applicable.
 */
 {
   a_boolean        ref_conversions_apply = FALSE;
@@ -6523,15 +6521,13 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       a_boolean operand_2_is_class =is_class_struct_union_type(operand_2.type);
       a_boolean operand_3_is_class =is_class_struct_union_type(operand_3.type);
       if (operand_2_is_class || operand_3_is_class) {
-        /* If both operands are references, see if the reference conversions 
-           of ARM 4.7 apply. */
+        /* If both operands are classes, see if they are related class
+           types. */
         if (operand_2_is_class && operand_3_is_class &&
             is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3) &&
-            operand_2.came_from_reference &&
-            operand_3.came_from_reference &&
             check_reference_conversions(&operand_2, &operand_3)) {
           /* The reference conversions do apply.  The subroutine has done
-             them already. */
+             them already and brought the operands to a common type. */
         } else {
           /* Look for C++ operator overloading cases.  The operator itself
              cannot be overloaded, but this also checks for cases where
@@ -6767,7 +6763,6 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 	 as the result. */
       copy_operand(&operand_2, result);
     }  /* if */
-    result->came_from_reference = FALSE;
   } else {
     /* The first operand is not a constant, so build the expression. */
     if (result_is_an_lvalue) {
@@ -7316,7 +7311,6 @@ EOPT_DISALLOW_COMMA_OPERATOR).
       if (result_is_an_lvalue) {
         result->state = operand_2.state;
         result->type = result_type;
-        result->came_from_reference = operand_2.came_from_reference;
         result->variant.expression->variant.operation.
                                  returns_lvalue_instead_of_usual_rvalue = TRUE;
         result->ref_entries_list = operand_2.ref_entries_list;

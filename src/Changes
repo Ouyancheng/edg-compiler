@@ -1,5 +1,17 @@
 Version 2.25
 
+8/16/94  x ? base : derived
+
+A conditional expression that juxtaposes a base class lvalue and a
+derived class lvalue is now valid even if the lvalues did not come
+from references.  The derived-class operand is converted to the
+base class.
+
+8/16/94  &x.f where f is a set of overloaded static member functions
+
+&x.f, where f is a set of overloaded static member functions, is now
+accepted.
+
 8/16/94  Function type from typedef in function template definition
 
 An error is now issued if the function type in a function template
