@@ -2966,7 +2966,11 @@ has already been done.  After any one instance of the code does
 initialization, all other instances will do nothing.
 */
 #ifndef TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+#if IA64_ABI
+#define TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE TRUE
+#else /* !IA64_ABI */
 #define TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE FALSE
+#endif /* IA64_ABI */
 #endif /* !defined(TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE) */
 
 #if DO_FULL_PORTABLE_EH_LOWERING
