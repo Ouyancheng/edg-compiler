@@ -202,26 +202,36 @@ unreachable.
                                     (an_expr_operator_kind)eok_generic_call ||
          node->variant.operation.kind ==
                              (an_expr_operator_kind)eok_generic_member_call)) {
+      a_boolean  routine_does_not_return = FALSE;
       node = node->variant.operation.operands;
-      if (node->kind == (an_expr_node_kind)enk_routine_address) {
-        a_boolean  routine_does_not_return = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode &&
+          node->kind == (an_expr_node_kind)enk_routine_address) {
         if (node->variant.routine->decl_modifiers & DM_NORETURN) {
           routine_does_not_return = TRUE;
         }  /* if */
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-        routine_does_not_return |= skip_typerefs(node->variant.routine->type)
+      if (gnu_mode) {
+        a_type_ptr  routine_type = node->type;
+        if (is_pointer_type(routine_type)) {
+          /* Possibly a call through a function pointer. */
+          routine_type = type_pointed_to(routine_type);
+        }  /* if */
+        if (is_function_type(routine_type)) {
+          routine_does_not_return = skip_typerefs(routine_type)
                                        ->variant.routine.extra_info
                                        ->does_not_return;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-        if (routine_does_not_return) {
-          /* The statement is a call of a routine that is marked as not
-             returning.  Treat this like a lint notreached comment -- i.e.,
-             as a hint to the compiler but not something we know for sure. */
-          curr_reachability.reachable_considering_hints = FALSE;
-          curr_reachability.suppress_unreachable_warning = TRUE;
         }  /* if */
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      if (routine_does_not_return) {
+        /* The statement is a call of a routine that is marked as not
+           returning.  Treat this like a lint notreached comment -- i.e.,
+           as a hint to the compiler but not something we know for sure. */
+        curr_reachability.reachable_considering_hints = FALSE;
+        curr_reachability.suppress_unreachable_warning = TRUE;
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */

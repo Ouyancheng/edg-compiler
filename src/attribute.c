@@ -185,6 +185,7 @@ pointed to be "pos" can be freed when this routine returns.
     case ak_constructor:
     case ak_destructor:
     case ak_noreturn:
+    case ak_volatile:
     case ak_pure:
     case ak_const:
     case ak_weak:
@@ -246,6 +247,7 @@ Return a copy of the complete attribute list.
       case ak_constructor:
       case ak_destructor:
       case ak_noreturn:
+      case ak_volatile:
       case ak_pure:
       case ak_const:
       case ak_weak:
@@ -626,6 +628,7 @@ Specifically, these attributes take no arguments:
   destructor
   unused
   noreturn
+  volatile
   pure
   const
   weak
@@ -660,7 +663,8 @@ function returns the address of the last attribute.
   /* Keep going until there are no more attributes. */
   do {
     /* The next token should be the name of an attribute. */
-    if (curr_token != tok_identifier && curr_token != tok_const) {
+    if (curr_token != tok_identifier &&
+        curr_token != tok_const && curr_token != tok_volatile) {
       error(ec_exp_attribute_name);
     } else {
       /* Remember the location of the attribute name.  This is the
@@ -669,6 +673,9 @@ function returns the address of the last attribute.
       if (curr_token == tok_const) {
         /* The const attribute is spelled the same as a keyword. */
         attribute_name = "const";
+      } else if (curr_token == tok_volatile) {
+        /* The volatile attribute is spelled the same as a keyword. */
+        attribute_name = "volatile";
       } else {
         /* Get the name of the attribute. */
         attribute_name = locator_for_curr_id.symbol_header->identifier;
@@ -744,6 +751,7 @@ function returns the address of the last attribute.
           case ak_destructor:
           case ak_error:
           case ak_noreturn:
+          case ak_volatile:
           case ak_pure:
           case ak_const:
           case ak_weak:
@@ -970,6 +978,7 @@ attributes.  */
         type = get_type_with_mode(type, ap->variant.mode, &ap->position);
         break;
       case ak_noreturn:
+      case ak_volatile:
       case ak_const:
         /* GCC allows "noreturn" and "const" to apply to variables
            with pointer-to-function type.  GCC does not accept "pure"
@@ -1080,6 +1089,7 @@ invalid attributes.
         break;
       case ak_mode:
       case ak_noreturn:
+      case ak_volatile:
       case ak_const:
         /* These attributes were handled in
            apply_attributes_to_variable_type. */
@@ -1224,6 +1234,7 @@ messages about any invalid attributes.
         rp->is_pure = TRUE;
         break;
       case ak_noreturn:
+      case ak_volatile:
       case ak_const:
         { a_routine_type_supplement_ptr  rtsp;
           ensure_routine_type_is_modifiable(&rp->type);
@@ -1231,6 +1242,7 @@ messages about any invalid attributes.
           if (ap->kind == (an_attribute_kind)ak_const) {
             rtsp->is_const = TRUE;
           } else {
+            /* Note that "volatile" is a synonym for "noreturn". */
             rtsp->does_not_return = TRUE;
           }  /* if */
         }
@@ -1485,6 +1497,7 @@ a typedef, is_typedef is TRUE.
       type->variables_are_implicitly_referenced = TRUE;
       break;
     case ak_noreturn:
+    case ak_volatile:
     case ak_const:
       /* GCC allows "noreturn" and "const" to apply to
          pointer-to-function types.  GCC does not accept "pure" in
@@ -1498,10 +1511,11 @@ a typedef, is_typedef is TRUE.
                                                    is_typedef);
         tp->variant.pointer.type = rout_type;
         rout_type = skip_typerefs(rout_type);
-        if (ap->kind == (an_attribute_kind)ak_noreturn) {
-          rout_type->variant.routine.extra_info->does_not_return = TRUE;
-        } else {
+        if (ap->kind == (an_attribute_kind)ak_const) {
           rout_type->variant.routine.extra_info->is_const = TRUE;
+        } else {
+          /* Note that "volatile" is a synonym for "noreturn". */
+          rout_type->variant.routine.extra_info->does_not_return = TRUE;
         }  /* if */
       }  /* if */
       break;

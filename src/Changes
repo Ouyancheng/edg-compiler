@@ -1,5 +1,19 @@
 Version 3.1
 
+8/29/02  GNU mode: volatile and noreturn attributes
+
+In GNU modes, the front end now accepts the "volatile" attribute as a
+synonym for the "noreturn" attribute.  In addition, these attributes are
+now taken into account when making simple indirect calls to inhibit a
+warning about a missing return statement.  For example:
+
+  void (*pf)() __attribute__((volatile));
+  int g() {
+    pf();
+  }       // No warning about missing return statement because a
+          // simple indirect call was made to a function with the
+          // noreturn/volatile attribute.
+
 8/28/02  GNU mode: Memory clobber representation (IL Change)
 
 In GNU modes, the front end previously parsed "memory" clobber specifications,
