@@ -417,6 +417,24 @@ return a pointer to it.
 }  /* make_param_variable */
 
 
+static a_variable_ptr make_implicit_this_param_variable(a_type_ptr  type_ptr)
+/*
+Create a variable entry for an implicit-this parameter, using the indicated
+type, and return a pointer to it.
+*/
+{
+  a_variable_ptr  vp;
+
+  /* The implicit this parameter is a pointer type that is not const
+     qualified as far as the interface is concerned.  The variable, however,
+     does get a const qualifier. */
+  type_ptr = make_qualified_type(type_ptr, TQ_CONST);
+  vp = make_param_variable(type_ptr, (a_storage_class)sc_auto);
+  vp->is_this_parameter = TRUE;
+  return vp;
+}  /* make_implicit_this_param_variable */
+
+
 static void decl_parameter(a_param_id_ptr    param_id,
                            a_param_type_ptr  ptp,
                            a_boolean         function_instantiation)
@@ -647,10 +665,8 @@ and for the instantiation of template functions.
     scope_stack[depth_scope_stack].return_value_optimization_possible = TRUE;
   }  /* if */
   if (class_type != NULL && rtsp->implicit_this_param_type != NULL) {
-    a_variable_ptr  vp = make_param_variable(rtsp->implicit_this_param_type,
-                                             (a_storage_class)sc_auto);
-    vp->is_this_parameter = TRUE;
-    scope_ptr->variant.routine.this_param_variable = vp;
+    scope_ptr->variant.routine.this_param_variable =
+           make_implicit_this_param_variable(rtsp->implicit_this_param_type);
   }  /* if */
   if (func_info->function_type_from_typedef) {
     /* An error was already issued on this.  Now, since no parameters were
@@ -1789,10 +1805,8 @@ empty statement block.
     rtsp = skip_typerefs(rout_ptr->type)->variant.routine.extra_info;
     rtsp->assoc_routine = rout_ptr;
     if (rtsp->implicit_this_param_type != NULL) {
-      a_variable_ptr  vp = make_param_variable(rtsp->implicit_this_param_type,
-                                               (a_storage_class)sc_auto);
-      vp->is_this_parameter = TRUE;
-      scope->variant.routine.this_param_variable = vp;
+      scope->variant.routine.this_param_variable =
+           make_implicit_this_param_variable(rtsp->implicit_this_param_type);
     }  /* if */
     /* Enter the constructor and destructor initializers, to record possible
        implicit initializers. */
