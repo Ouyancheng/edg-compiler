@@ -456,7 +456,8 @@ typedef enum /*an_error_code*/ {
   ec_no_constructor_for_conversion,
   ec_ambiguous_constructor_for_conversion,
   ec_ambiguous_conversion_function,
-  ec_ambiguous_conversion_to_builtin
+  ec_ambiguous_conversion_to_builtin,
+  ec_sym_not_a_field_or_base_class
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
@@ -559,6 +560,10 @@ extern void sym_warning(an_error_code   error_code,
 extern void pos_st_error(an_error_code     error_code,
                          a_source_position *error_pos,
                          char              *error_string);
+extern void pos_stty_error(an_error_code     error_code,
+                           a_source_position *error_pos,
+                           char              *error_string,
+                           struct a_type     *type);
 extern void pos_error(an_error_code     error_code,
                       a_source_position *error_pos);
 extern void str_error(an_error_code error_code,

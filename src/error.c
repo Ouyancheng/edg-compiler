@@ -1074,7 +1074,7 @@ error code.
       m = "no default constructor exists for class %t";
       break;
     case ec_not_a_field_or_base_class:
-      m = "not a nonstatic data member or base class of class %t";
+      m = "%sq is not a nonstatic data member or base class of class %t";
       break;
     case ec_indirect_nonvirtual_base_class_not_allowed:
       m = "indirect nonvirtual base class not allowed";
@@ -1371,7 +1371,7 @@ error code.
       m = "a cast to an abstract class is not allowed";
       break;
     case ec_bad_use_of_main:
-      m = "\"main\" may not be called or have its address taken";
+      m = "function \"main\" may not be called or have its address taken";
       break;
     case ec_initializer_not_allowed_on_array_new:
       m = "a new-initializer may not be specified for an array";
@@ -1413,7 +1413,7 @@ error code.
       m = "redeclaring a member function is nonstandard";
       break;
     case ec_inline_main:
-      m = "\"main()\" may not be declared inline";
+      m = "function \"main\" may not be declared inline";
       break;
     case ec_class_and_member_function_name_conflict:
       m =
@@ -1462,6 +1462,9 @@ error code.
     case ec_ambiguous_conversion_to_builtin:
       m =
         "more than one conversion function from %t to a built-in type applies";
+      break;
+    case ec_sym_not_a_field_or_base_class:
+      m = "%no is not a nonstatic data member or base class of class %t";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
@@ -3172,6 +3175,22 @@ indicated position.
 {
   init_error_params();
   error_msg_strings[1] = error_string;
+  diag_message(error_code, error_pos, es_error);
+}  /* pos_st_error */
+
+
+void pos_stty_error(an_error_code     error_code,
+                    a_source_position *error_pos,
+                    char              *error_string,
+                    struct a_type     *type)
+/*
+Report the indicated error (with the indicated fill-in string) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_strings[1] = error_string;
+  error_msg_types[1] = type;
   diag_message(error_code, error_pos, es_error);
 }  /* pos_st_error */
 
