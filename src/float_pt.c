@@ -637,7 +637,7 @@ Make a float positive Infinity value in *value.
   infinity = u.x;
 #else /* !defined(__CENTERLINE__) */
   /* 1.0 / 0.0 produces positive Infinity. */
-  infinity = 1.0 / float_zero;
+  infinity = ((float)1.0) / float_zero;
 #endif /* ifdef __CENTERLINE__ */
   memzero((char *)value, sizeof(an_internal_float_value));
   (void)memcpy((char *)value, (char *)&infinity, sizeof(float));
