@@ -1184,32 +1184,98 @@ bytes; otherwise, the size should be the number of elements.
 }  /* vla_size_expr */
 
 
-static void lower_vla_pointer_arithmetic(an_expr_node_ptr  expr)
+static void lower_vla_pointer_integer_arithmetic(an_expr_node_ptr  expr)
 /*
-The given expression node is an eok_padd, eok_padd_subsc, or eok_psubtract
-operator whose first operand is a pointer to a VLA.  Multiply the second
-operand by the number of elements in that VLA because the first operand will
-be lowered to a pointer to the first element of the VLA.
+The given expression node adds or subtracts an integer to or from a pointer
+to a VLA.  Scale up the integer to compensate for the fact that the pointer
+will be lowered to a pointer to the underlying element type.  For pre- and
+post-increment operators, the operator needs to be changed since the amount
+incremented or decremented will no longer be one.
 */
 {
-  a_type_ptr         array_type = type_pointed_to(expr->type);
-  a_type_ptr        ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
-  an_expr_node_ptr  offset = expr->variant.operation.operands->next;
-  an_expr_node_ptr  scale_factor;
+  a_type_ptr             array_type = type_pointed_to(expr->type), new_type;
+  a_type_ptr             ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
+  an_expr_node_ptr       offset, scale_factor, result;
+  an_expr_operator_kind  op = expr->variant.operation.kind;
 
   /* Scale the offset according to the (nonconstant) total number of elements
      in the underlying array type. */
   array_type = skip_typerefs(array_type);
   scale_factor = vla_size_expr(array_type, /*byte_count=*/FALSE);
-  offset = add_c99_lowered_cast_if_necessary(offset, ptrdiff_type);
-  scale_factor->next = offset;
-  expr->variant.operation.operands->next =
+  /* Adjust the type of the expression to be the underlying element type. */
+  new_type = make_pointer_type(underlying_array_element_type(array_type));
+  expr->type = new_type;
+  expr->variant.operation.operands->type = expr->type;
+  switch (op) {
+    case eok_padd:
+    case eok_psubtract:
+    case eok_padd_subsc:
+    case eok_padd_assign:
+    case eok_psubtract_assign:
+      /* Binary operators: Simply scale up the integer operand. */
+      offset = expr->variant.operation.operands->next;
+      offset = add_c99_lowered_cast_if_necessary(offset, ptrdiff_type);
+      scale_factor->next = offset;
+      expr->variant.operation.operands->next =
                       make_operator_node((an_expr_operator_kind)eok_imultiply,
                                          ptrdiff_type, scale_factor);
-  /* Adjust the type of the expression to be the underlying element type. */
-  expr->type = make_pointer_type(underlying_array_element_type(array_type));
-  expr->variant.operation.operands->type = expr->type;
-}  /* lower_vla_pointer_arithmetic */
+      break;
+    case eok_ppre_incr:
+      /* Turn pre-increment into a += operator. */
+      expr->variant.operation.kind = (an_expr_operator_kind)eok_padd_assign;
+      expr->variant.operation.operands->next = scale_factor;
+      break;
+    case eok_ppre_decr:
+      /* Turn pre-decrement into a -= operator. */
+      expr->variant.operation.kind =
+                                  (an_expr_operator_kind)eok_psubtract_assign;
+      expr->variant.operation.operands->next = scale_factor;
+      break;
+    case eok_ppost_incr:
+    case eok_ppost_decr:
+      /* expr++ is transformed also transformed into a += operator, but we
+         need to save the original value to produce the result of the
+         expression.  Note that the += operation will not affect the value
+         of other user variables.  expr-- is entirely similar. */
+      op = (op == (an_expr_operator_kind)eok_ppost_incr) ?
+                                   (an_expr_operator_kind)eok_padd_assign :
+                                   (an_expr_operator_kind)eok_psubtract_assign;
+      result = make_lvalue_reusable_copy(expr->variant.operation.operands,
+                                         /*vars_can_change=*/FALSE);
+      expr->variant.operation.operands->next = scale_factor;
+      overwrite_node(
+        expr,
+        make_comma_node(
+          make_operator_node(op, new_type, expr->variant.operation.operands),
+          add_indirection_to_node(result)));
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
+}  /* lower_vla_pointer_integer_arithmetic */
+
+
+static void lower_vla_pointer_difference(an_expr_node_ptr  expr)
+/*
+The given expression is a difference of pointers to VLAs.  The result must
+be scaled down by the number of elements in the VLAs pointed to.
+*/
+{
+  a_type_ptr        array_type =
+                      type_pointed_to(expr->variant.operation.operands->type);
+  a_type_ptr        ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
+  an_expr_node_ptr  scale_factor, copy;
+
+  /* Scale the result according to the (nonconstant) total number of elements
+     in the underlying array type. */
+  array_type = skip_typerefs(array_type);
+  scale_factor = vla_size_expr(array_type, /*byte_count=*/FALSE);
+  copy = copy_node(expr);
+  copy->next = scale_factor;
+  overwrite_node(expr, make_operator_node((an_expr_operator_kind)eok_idivide,
+                                          ptrdiff_type, copy));
+}  /* lower_vla_pointer_difference */ 
 
 
 static an_expr_node_ptr accumulate_multilevel_vla_lengths(a_type_ptr  tp)
@@ -1502,8 +1568,20 @@ _Bool type, and VLA types.
     case eok_padd:
     case eok_psubtract:
     case eok_padd_subsc:
+    case eok_padd_assign:
+    case eok_psubtract_assign:
+    case eok_ppre_incr:
+    case eok_ppre_decr:
+    case eok_ppost_incr:
+    case eok_ppost_decr:
       if (is_vla_type(type_pointed_to(expr->type))) {
-        lower_vla_pointer_arithmetic(expr);
+        lower_vla_pointer_integer_arithmetic(expr);
+      }  /* if */
+      break;
+    case eok_pdiff:
+      if (is_vla_type(
+                   type_pointed_to(expr->variant.operation.operands->type))) {
+        lower_vla_pointer_difference(expr);
       }  /* if */
       break;
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
