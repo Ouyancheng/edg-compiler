@@ -1736,7 +1736,7 @@ Read the existing instantiation assignment information from the
         /* Read the command line. */
         pl_read_input_line(f_info);
         lines_read++;
-        if (lines_read <= reserved_info_file_lines) {
+        if (lines_read < reserved_info_file_lines) {
           /* Read the directory name. */
           pl_read_input_line(f_info);
           lines_read++;
