@@ -126,6 +126,8 @@ extern void check_class_linkage(void);
 extern void class_decl_init(void);
 
 #if DEBUG
+extern unsigned long db_show_routine_fixups_used(unsigned long grand_total);
+
 extern void db_base_class(a_base_class_ptr  bcp,
                           a_boolean         show_offset);
 

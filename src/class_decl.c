@@ -15,6 +15,7 @@ class_decl.c -- Scanning of class declarations.
 
 #include "basics.h"
 #include "class_decl.h"
+#include "debug.h"
 #include "def_arg.h"
 #include "decls.h"
 #include "il.h"
@@ -22,6 +23,7 @@ class_decl.c -- Scanning of class declarations.
 #include "symbol_tbl.h"
 #include "statements.h"
 #include "lexical.h"
+#include "lower_il.h"
 #include "error.h"
 #include "expr.h"
 #include "exprutil.h"
@@ -39,7 +41,6 @@ class_decl.c -- Scanning of class declarations.
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
-
 
 
 /*
@@ -79,6 +80,24 @@ static a_routine_fixup_ptr curr_routine_fixup;
 static a_routine_fixup_ptr avail_routine_fixup;
 
 
+#if DEBUG
+/*
+Counter to track total use of memory.
+*/
+static unsigned long
+		num_routine_fixups_allocated;
+
+unsigned long db_show_routine_fixups_used(unsigned long grand_total)
+{
+  unsigned long  num, size, total;
+
+  db_space_used_lost("routine fixups", avail_routine_fixup,
+                     num_routine_fixups_allocated, a_routine_fixup);
+  return grand_total;
+}  /* db_show_routine_fixups_used */
+#endif /* DEBUG */
+
+
 static a_routine_fixup_ptr alloc_routine_fixup(void)
 /*
 Allocate (or take from the available-list) a routine fixup entry and
@@ -94,11 +113,9 @@ initialize it.
   } else {
     /* Allocate memory for a new entity. */
     rfp = (a_routine_fixup_ptr)alloc_fe(sizeof(a_routine_fixup));
-#if 0
 #if DEBUG
     num_routine_fixups_allocated++;
 #endif /* DEBUG */
-#endif /* if 0 */
   }  /* if */
   /* Clear the entity. */
   rfp->next = NULL;
@@ -595,7 +612,7 @@ ambiguity.
 #endif /* DEBUG */
     while (ovfp != NULL) {
       /* Compare the primary function for the current overriding virtual
-         function entry to that of the its successor. */
+         function entry to that of its successor. */
       if (ovfp->next == NULL) break;
       vfp = ovfp->primary_function;
       if (ovfp->next->primary_function == vfp) {
@@ -1223,7 +1240,7 @@ routine entry and return TRUE; otherwise return FALSE.
             /* It's a symbol for neither a simple function nor an overloaded
                function.  If it's in the same name space with member
                functions, we've looked far enough for this base class.  If
-               its a typedef name, say, we can keep scanning. */
+               it's a typedef name, say, we can keep scanning. */
             if (sym->kind != (a_symbol_kind)sk_field &&
                 sym->kind != (a_symbol_kind)sk_static_data_member) continue;
             goto next_base_class;
@@ -4448,7 +4465,7 @@ assignment operator.
       /* Not a reference type, so qualifiers are ignored. */
       sym_matches_exactly = TRUE;
     } else {
-      /* Reference type.  See if its const or volatile qualified. */
+      /* Reference type.  See if it's const or volatile qualified. */
       const_object_okay = is_const_qualified_type(tp);
       volatile_object_okay = is_volatile_qualified_type(tp);
       if ((const_object_required && !const_object_okay) ||
@@ -7448,6 +7465,9 @@ Initializations for class declaration processing.
   curr_routine_fixup = NULL;
   /* Initialize the list of freed derivation-step entries. */
   avail_derivation_steps = NULL;
+#if DEBUG
+  num_routine_fixups_allocated = 0;
+#endif /* DEBUG */
   return;
 }  /* class_decl_init */
 
