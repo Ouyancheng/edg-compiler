@@ -74,7 +74,7 @@ a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
   a_type_kind         type_kind;
   a_type_ptr          class_type;
 
-  db_enter(4, "find_template_class");
+  db_enter(3, "find_template_class");
   sym = class_template_sym->variant.template.extra_info->
                                         variant.class.instantiations;
   for (; sym != NULL; sym = sym->next) {
@@ -82,6 +82,9 @@ a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
                      variant.class_struct_union.extra_info->template_arg_list;
     if (equiv_template_arg_lists(old_list, new_list)) {
       /* We've found it. */
+#if DEBUG
+      if (debug_level >= 3) db_symbol(sym, "found: ", 2);
+#endif /* DEBUG */
       break;
     }  /* if */
   }  /* for */
@@ -98,6 +101,12 @@ a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
     set_source_corresp(&(class_type->source_corresp), sym);
     class_type->source_corresp.name_linkage =
                                   (a_name_linkage_kind)nlk_cplusplus_external;
+    add_to_types_list(class_type, DEPTH_OF_FILE_SCOPE,
+                      /*in_old_style_param_decl_list=*/FALSE);
+
+#if DEBUG
+    if (debug_level >= 3) db_symbol(sym, "created: ", 2);
+#endif /* DEBUG */
   }  /* if */
   db_exit();
   return sym;
@@ -311,6 +320,7 @@ void template_declaration(void)
   if (semicolon_expected) {
     if (curr_token == tok_semicolon) {
       cache_curr_token(p_token_cache);
+      (void)get_token();
     } else {
       error(ec_exp_semicolon);
     }  /* if */
