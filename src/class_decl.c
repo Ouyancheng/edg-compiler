@@ -3679,7 +3679,7 @@ making room for virtual base classes, which appear at the end of the layout.
   if (class_type->size == 0) class_type->size = 1;
 #if DEBUG
   if (debug_level >= 3) {
-    db_base_class_list(class_type);
+    if (C_dialect == C_dialect_cplusplus) db_base_class_list(class_type);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
@@ -3814,6 +3814,13 @@ empty statement block.
     case sfk_destructor:
       scope->variant.routine.constructor_inits = dtor_initializer(rout_ptr);
       break;
+    case sfk_operator:
+#if CHECKING
+      if (rout_ptr->opname_kind != (an_opname_kind)onk_assign) {
+        internal_error("define_special_member_function: bad opname kind");
+      }  /* if */
+#endif /* CHECKING */
+      break;
 #if CHECKING
     default:
       internal_error("define_special_member_function: bad special func kind");
@@ -3841,7 +3848,7 @@ void reference_to_special_member_function(a_symbol_ptr  sym)
 sym is points to a symbol for a special member function.  Check that it is
 accessible and mark the routine entry referenced.  Also, if the routine is
 compiler generated, it may still need to be defined, since the definition
-may have been put off until an actual reference occured (e.g., ARM 12.8).
+may have been put off until an actual reference occurred (e.g., ARM 12.8).
 */
 {
   a_routine_ptr  rp = sym->variant.routine;
@@ -4686,7 +4693,7 @@ class/struct/union is actually defined.
         local_defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         local_declares_something = dso_flags & DSO_DECLARES_SOMETHING;
 #if CHECKING
-        if (local_defines_something) {
+        if (C_dialect == C_dialect_cplusplus && local_defines_something) {
           /* Should be a nested class, struct, union, or enum definition.
              Be sure the parent class and access were marked correctly. */
           a_symbol_ptr sym = (a_symbol_ptr)(skip_typerefs(member_type)->
