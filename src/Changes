@@ -1,5 +1,11 @@
 Version 2.26
 
+10/6/94  C_generating back end: no #define in output
+
+The C-generating back end has been changed to eliminate the only requirement
+for preprocessing of the generated C (the macro __trunc, used to truncate 
+unsigned bit fields when generating K&R C).
+
 10/6/94  Class scope reactivation for scanning a class member declarator
 
 A bug has been fixed in how the class scope is reactivated and deactivated
