@@ -1,5 +1,13 @@
 Version 2.20
 
+10/14/93 Tokenizing of numbers in pcc mode preprocessing
+
+In code like the following, preprocessed in pcc mode, the "a"
+of "1a" is no longer seen as a separate token.
+
+  #define a 7
+  int i = 1a;  /* "a" not replaced. */
+
 10/12/93 edg_prelink supports the nm output of additional systems
 
 The edg_prelink utility has been modified to accept the nm output

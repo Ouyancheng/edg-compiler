@@ -3577,6 +3577,15 @@ constant_accumulated:
       }  /* if */
     }  /* if */
 #endif /* DEBUG */
+  } else if (C_dialect == C_dialect_pcc && fetch_pp_tokens) {
+    /* pcc mode has its own variant of this.  Consider
+         #define a 7
+         int i = 1a;
+       The "a" in "1a" should not be treated as a separate token. */
+    while (isalnum((unsigned char)(ch = *curr_char_loc))) {
+      /* Alphanumeric character.  Keep accumulating. */
+      curr_char_loc++;
+    }  /* while */
   }  /* if */
 
   if (fetch_pp_tokens) {
