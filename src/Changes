@@ -1,5 +1,11 @@
 Version 2.17
 
+5/11/93 il_entry_kind_names array
+
+Two different pieces of code that converted an IL entry kind into a
+string describing the kind have been replaced by an array il_entry_kind_names
+in il.h.
+
 5/10/93 Types in conversion compatibility messages
 
 Diagnostics issued for type compatibility mismatches for arguments,

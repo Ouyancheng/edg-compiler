@@ -100,12 +100,9 @@ Print additional diagnostic information about the IL entry that is
 triggering an internal error.
 */
 {
-  char *s;
-
-  s = retrieve_il_entry_kind_name(entry_kind);
   (void)fprintf(f_debug, 
                 "IL info: entry kind =%3ld (%s), \n",
-                (long)entry_kind, s);
+                (long)entry_kind, il_entry_kind_names[(int)entry_kind]);
   (void)fprintf(f_debug, "         entry_ptr = 0x%lx\n",
                 (unsigned long)entry_ptr);
 #ifdef __CENTERLINE__

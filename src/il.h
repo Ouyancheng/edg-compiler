@@ -116,6 +116,67 @@ typedef enum /*an_il_entry_kind*/ {
   ((entry_kind) == iek_id_name || (entry_kind) == iek_string_text || \
    (entry_kind) == iek_other_text)
 
+#if NEED_IL_DISPLAY || DEBUG
+EXTERN char *il_entry_kind_names[(int)iek_last + 1]
+#if VAR_INITIALIZERS
+= {
+/* iek_none */				"none",
+/* iek_source_file */			"source file",
+/* iek_constant */			"constant",
+/* iek_param_type */			"param-type",
+/* iek_routine_type_supplement */	"routine-type-supplement",
+/* iek_based_type_list_member */	"based-type-list-member",
+/* iek_type */				"type",
+/* iek_variable */			"variable",
+#ifdef CIL
+/* iek_field */				"field",
+#endif /* ifdef CIL */
+/* iek_routine */			"routine",
+/* iek_label */				"label",
+/* iek_expr_node */			"expr-node",
+#ifdef CIL
+/* iek_switch_clause */			"switch-clause",
+#endif /* ifdef CIL */
+/* iek_block */				"block",
+/* iek_statement */			"statement",
+/* iek_scope */				"scope",
+/* iek_id_name */			"id-name",
+/* iek_string_text */			"string-text",
+/* iek_other_text */			"other-text",
+#ifdef FIL
+/* iek_internal_complex_value */	"internal-complex-value",
+/* iek_bound_info_entry */		"bound-info-entry",
+/* iek_do_loop */			"do-loop",
+/* iek_label_list_entry */		"label-list-entry",
+/* iek_io_specifier */			"io-specifier",
+/* iek_io_list_item */			"io-list-item",
+/* iek_namelist_group_member */		"namelist-group-member",
+/* iek_namelist_group */		"namelist-group",
+/* iek_input_output_description */	"input-output-description",
+/* iek_entry_param */			"entry-param",
+/* iek_entry_description */		"entry-description",
+#endif /* ifdef FIL */
+#ifdef CIL
+/* iek_dynamic_init */			"dynamic-init",
+/* iek_access_adjustment */		"access-adjustment",
+/* iek_overriding_virtual_function */ 	"overriding-virtual-function",
+/* iek_derivation_step */		"derivation-step",
+/* iek_base_class */			"base-class",
+/* iek_class_list_entry */		"class-list-entry",
+/* iek_routine_list_entry */		"routine-list-entry",
+/* iek_class_type_supplement */		"class-type-supplement",
+/* iek_constructor_init */		"constructor-init",
+/* iek_asm_entry */			"asm-entry",
+/* iek_template_arg */			"template-arg",
+/* iek_new_delete_supplement */		"new-delete-supplement",
+#endif /* ifdef CIL */
+/* iek_orphaned_il_list */		"orphaned-il-list",
+/* iek_last */				"last"
+} /* il_entry_kind_names */
+#endif /* VAR_INITIALIZERS */
+;
+#endif /* NEED_IL_DISPLAY || DEBUG */
+
 /*
 It is necessary to maintain a list of IL entries that are allocated in
 the file scope memory region but accessed from the function scope

@@ -97,8 +97,6 @@ extern void remap_first_ptr_of_orphaned_file_scope_entry_array(void);
 
 extern void remap_last_ptr_of_orphaned_file_scope_entry_array(void);
 
-extern char *retrieve_il_entry_kind_name(an_il_entry_kind entry_kind);
-
 #endif /* IL_WALK_NEEDED */
                      
 #endif /* ifndef IL_WALK_H */

@@ -5797,6 +5797,16 @@ of the front end.
     internal_error("il_init: bad initialization of sizeof_il_entry");
   }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT */
+#if NEED_IL_DISPLAY || DEBUG
+  /* Variable in il.h: */
+  /* Check that the table of IL entry names is correctly initialized.
+     This guards against someone changing the enumeration and forgetting to
+     update il_entry_kind_names. */
+  if (il_entry_kind_names[(int)iek_last] == NULL ||
+      strcmp(il_entry_kind_names[(int)iek_last], "last") != 0) {
+    internal_error("il_init: incorrect initialization of il_entry_kind_names");
+  }  /* if */
+#endif /* NEED_IL_DISPLAY || DEBUG */
 #if DEBUG
   /* Variable in il_def.h: */
   /* Check that the table of storage class names is correctly initialized.

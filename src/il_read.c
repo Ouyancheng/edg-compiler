@@ -566,7 +566,6 @@ necessary to make it directly accessible in memory.
           entry_count_array_ptr[byte_entry_kind]) {
         /* Not all expected entries were read. */
 #if DEBUG
-        char     *s;
         sizeof_t entry_count, index;
 
         if (!errors) {
@@ -574,10 +573,11 @@ necessary to make it directly accessible in memory.
                         "IL entry write-read difference: region number %3ld\n",
                         (long)region_number);
         }  /* if */
-        s = retrieve_il_entry_kind_name((an_il_entry_kind)byte_entry_kind);
+        
         (void)fprintf(f_debug,
                  "     entry kind =%3ld (%s), written = %ld, read = %ld\n",
-                      (long)byte_entry_kind, s,
+                      (long)byte_entry_kind,
+                      il_entry_kind_names[byte_entry_kind],
                       (long)entry_count_array_ptr[byte_entry_kind],
                       (long)count_of_entries_read[byte_entry_kind]);
         entry_count = entry_count_array_ptr[byte_entry_kind];

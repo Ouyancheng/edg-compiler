@@ -610,7 +610,6 @@ kind entry_kind.
 */
 {
   a_boolean is_file_scope_entry;
-  char      *s;
 
   /* Print the pointer value. */
   if (entry_ptr == NULL) {
@@ -623,8 +622,7 @@ kind entry_kind.
     } else {
       (void)printf(is_file_scope_entry ? "file-scope" : "func-scope");
       /* Print the entry kind. */
-      s = retrieve_il_entry_kind_name(entry_kind);
-      (void)printf(" %s", s);
+      (void)printf(" %s", il_entry_kind_names[(int)entry_kind]);
 #if ALTERNATE_IL_FILE_FORMAT && STANDALONE_IL_DISPLAY
       /* Use entry_number.  After entries are read in, they
          are allocated in an array of entries, so one can determine the
