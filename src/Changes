@@ -1,5 +1,12 @@
 Version 2.13, January 21, 1993
 
+1/22/93 Empty initializer lists supported
+
+An empty initializer list ("{}") can be used in C++ for aggregate
+initialization.  A warning or error is issued in strict ANSI mode.  Note
+that this change partially supersedes the previous change descibed
+in the entry for 1/15/93.
+
 1/21/93 "called" flag in routine entries
 
 There is now a "called" flag in routine entries.  This is useful to
