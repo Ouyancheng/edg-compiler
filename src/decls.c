@@ -314,6 +314,10 @@ function-definitions, since they can start with the declarator.
   return(is_start);
 }  /* is_decl_start */
 
+/* Forward declaration because of indirect recursion involving the following
+   prescan_xxx routines. */
+static a_boolean prescan_declaration(a_token_cache *token_cache_ptr,
+                                     a_boolean    abstract_declarator_allowed);
 
 static a_boolean prescan_arg_decl_list(a_token_cache  *token_cache_ptr)
 {
@@ -322,7 +326,17 @@ static a_boolean prescan_arg_decl_list(a_token_cache  *token_cache_ptr)
   if (curr_token == tok_rparen) {
     is_arg_decl = TRUE;
   } else {
-    is_arg_decl = is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE);
+    if (is_decl_start()) {
+      is_arg_decl = prescan_declaration(token_cache_ptr,
+                                        /*abstract_declarator_allowed=*/TRUE);
+    } else {
+      is_arg_decl = is_overload_specifier();
+    }  /* if */
+    if (is_arg_decl) {
+      add_stop_token(tok_rparen);
+      cache_token_stream(token_cache_ptr);
+      remove_stop_token(tok_rparen);
+    }  /* if */
   }  /* if */
   return is_arg_decl;
 }  /* prescan_arg_decl_list */
@@ -406,9 +420,6 @@ func_param_decl:
           is_abstract_declarator = FALSE;
           goto done;
         }  /* if */
-        add_stop_token(tok_rparen);
-        cache_token_stream(token_cache_ptr);
-        remove_stop_token(tok_rparen);
         if (curr_token == tok_rparen) {
           cache_curr_token(token_cache_ptr);
           (void)get_token();
