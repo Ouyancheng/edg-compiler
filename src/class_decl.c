@@ -533,18 +533,16 @@ constructor for class A is declared A::A() rather than A().  The ARM does
 not specifically allow this syntax, but it is supported by cfront.
 */
 {
-  a_type_ptr               class_type;
-  a_boolean                is_file_scope_qualifier, has_global_qualifier, err;
-  a_boolean                is_ptr_to_member;
+  a_boolean                err;
   a_boolean                is_member_id = FALSE;
   a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
 
   db_enter(3, "simplify_curr_class_qualified_name");
 
   if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-      get_class_qualifier(&class_type, &is_file_scope_qualifier,
-                          &has_global_qualifier, &is_ptr_to_member, &err)) {
-    if (!is_ptr_to_member && class_type == ssep->assoc_type) {
+      is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL, &err) &&
+      curr_token == tok_class_qualifier) {
+    if (curr_class_qualifier.class_type == ssep->assoc_type) {
       is_member_id = TRUE;
       /* Skip to the token after the qualifier (the identifier). */
       get_token();
@@ -2427,7 +2425,9 @@ or struct definition.  The syntax is
       syntax_error(ec_exp_identifier);
     } else {
       /* Scan the base class name. */
-      sym = get_normal_id_or_qualified_name(IDL_NO_OPTIONS);
+      a_boolean gid_err;
+      sym = coalesce_and_lookup_generalized_identifier
+            	(GID_NO_OPTIONS, ilm_normal, &gid_err);
       if (sym == NULL || !is_class_symbol(sym)) {
         error(ec_not_a_class_or_struct_name);
         goto skip_base_class;
@@ -4985,8 +4985,9 @@ a pointer to it.
 }  /* new_access_adjustment */
 
 
-static void access_adjustment_decl(an_access_specifier  access,
-                                   a_type_ptr           class_type)
+static void access_adjustment_decl(an_access_specifier   access,
+                                   a_type_ptr            class_type,
+				   a_class_qualifier_ptr cqp)
 /*
 The current token is a qualified name and the next token is a semicolon.
 Syntactically, this is an access adjustment declaration.  If the declaration
@@ -5005,33 +5006,33 @@ and "class_type" indicates the class in which the declaration occurs.
   a_boolean                    is_overloaded_function;
   a_symbol_ptr                 sym;
   an_access_specifier          function_access;
+  a_type_ptr		       local_class_of_which_a_member;
 
   db_enter(4, "access_adjustment_decl");
+  /* Get the class of which a member.  Normally the pointer from the
+     locator is used, but in the case of an undefined symbol from an
+     error locator, we use the class type value from the class qualifier
+     structure (if not NULL). */
   if (locator_for_curr_id.specific_symbol->kind ==
                                               (a_symbol_kind)sk_undefined) {
-    /* Not a valid member of what may or may not be a valid base class. No
-       further processing can be done. */
-#if 0
-    /* If an sk_undefined symbol had a pointer to the class_of_which_a_member
-       or if we has pseudo-tokens for the class qualifier, we could verify
-       the class before bailing out. */
-#endif /* if 0 */
-    goto done;
-  }  /* if */
+    local_class_of_which_a_member = cqp->class_type;
+  } else {
+    local_class_of_which_a_member = locator_for_curr_id.
+                                    specific_symbol->class_of_which_a_member;
 #if CHECKING
-  /* In processing a qualified name the specific_symbol field of the locator
-     will have been filled in. */
-  if (curr_token != tok_identifier ||
-      locator_for_curr_id.specific_symbol->class_of_which_a_member == NULL) {
-    internal_error("access_adjustment_decl: expected qualified name");
-  }  /* if */
+    /* In processing a qualified name the specific_symbol field of the locator
+       will have been filled in. */
+    if (curr_token != tok_identifier ||
+        locator_for_curr_id.specific_symbol->class_of_which_a_member == NULL) {
+      internal_error("access_adjustment_decl: expected qualified name");
+    }  /* if */
 #endif /* CHECKING */
+  }  /* if */
   /* Be sure the class in the qualified name is one from which the current
      class is derived. */
   ctsp = class_type->variant.class_struct_union.extra_info;
   for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-    if (bcp->type == locator_for_curr_id.specific_symbol->
-                                         class_of_which_a_member) break;
+    if (bcp->type == local_class_of_which_a_member) break;
   }  /* for */
   if (bcp == NULL) {
     /* Qualified name must identify a member of a base class of the current
@@ -5041,6 +5042,12 @@ and "class_type" indicates the class in which the declaration occurs.
   } else if (bcp->ambiguous) {
     type_error(ec_ambiguous_base_class, bcp->type);
     set_to_error_locator(locator_for_curr_id);
+    goto done;
+  }  /* if */
+  if (locator_for_curr_id.specific_symbol->kind ==
+                                              (a_symbol_kind)sk_undefined) {
+    /* Not a valid member of what may or may not be a valid base class. No
+       further processing can be done. */
     goto done;
   }  /* if */
   /* Look up the name without class qualification.  This will show whether
@@ -5351,14 +5358,17 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
         }  /* if */
         if (C_dialect == C_dialect_cplusplus) {
           /* Check for and discard declarations of the form "overload f;". */
+          a_boolean		err;
+          a_class_qualifier	cq;
           if (check_for_overload_anachronism()) goto next_declaration;
           if (curr_token == tok_identifier &&
               !simplify_curr_class_qualified_name() &&
-              get_qualified_name(IDL_NO_OPTIONS) &&
+              coalesce_and_lookup_qualified_name
+                  (GID_DTOR_RECOGNIZED, &cq, &err) &&
               next_token() == tok_semicolon) {
             /* This looks syntactically like an access adjustment declaration.
                Be sure the semantics are correct. */
-            access_adjustment_decl(access, class_type);
+            access_adjustment_decl(access, class_type, &cq);
             /* Advance to the semicolon and past it. */
             (void)get_token();
             (void)get_token();

@@ -321,7 +321,7 @@ typedef enum /*an_error_code*/ {
   ec_value_returned_in_constructor,
   ec_bad_destructor_decl,
   ec_class_and_member_name_conflict,
-  ec_unary_colon_colon_in_declarator,
+  ec_unary_colon_colon_not_allowed,
   ec_name_not_found_in_file_scope,
   ec_qualified_name_not_allowed,
   ec_null_reference,

@@ -2000,7 +2000,9 @@ bound with the function in *bound_function_selector.
     found_id = TRUE;
     /* See if the name following the operator is a C++ qualified name, as
        in "p->A::x". */
-    is_qualified_name = get_qualified_name(IDL_NO_OPTIONS);
+    is_qualified_name = coalesce_and_lookup_qualified_name
+                            (GID_DTOR_RECOGNIZED,
+                             (a_class_qualifier_ptr)NULL, &err);
     /* If the member is something like "A::x", member_position will give
        the position of the "x" and qualified_member_position will give the
        position of the "A". */
@@ -6261,6 +6263,7 @@ bound_function_selector to the associated "this" pointer.
   an_operand        this_pointer_operand;
   a_boolean         address_of_qualified_member_name = FALSE;
   a_type_ptr        qual_class_type;
+  a_boolean         err = FALSE;
 
   db_enter(4, "scan_identifier");
 
@@ -6273,21 +6276,18 @@ bound_function_selector to the associated "this" pointer.
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
 
-   /* Check for an operator name like "operator+". */
-  if (get_opname()) {
-    sym_ptr = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-  } else {
-    /* If the identifier is the start of a C++ qualified name, get the whole
-       name.  If not, look the name up as a normal identifier. */
-    sym_ptr = get_normal_id_or_qualified_name(IDL_NO_OPTIONS);
-    if (locator_for_curr_id.is_semivisible_nested_type) {
-      /* The symbol in the locator is a nested class that is not visible
-         according to the ARM lookup rules but is returned in support of the
-         nested class anachronism (ARM 18.3.5).  Issue an anachronism
-         diagnostic. */
-      sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
-                     locator_for_curr_id.specific_symbol);
-    }  /* if */
+  /* If the identifier is the start of a C++ qualified name, get the whole
+     name.  If not, look the name up as a normal identifier.  This routine
+     also handles operator names. */
+  sym_ptr = coalesce_and_lookup_generalized_identifier
+             (GID_NO_OPTIONS, ilm_normal, &err);
+  if (locator_for_curr_id.is_semivisible_nested_type) {
+    /* The symbol in the locator is a nested class that is not visible
+       according to the ARM lookup rules but is returned in support of the
+       nested class anachronism (ARM 18.3.5).  Issue an anachronism
+       diagnostic. */
+    sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
+                   locator_for_curr_id.specific_symbol);
   }  /* if */
   if (sym_ptr == NULL) {
     /* The symbol is not defined. */

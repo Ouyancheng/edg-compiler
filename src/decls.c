@@ -84,28 +84,14 @@ Macro that is TRUE if the current token is the start of a type qualifier
   (curr_token == tok_const    || curr_token == tok_volatile )
 
 
-static a_boolean is_ptr_to_member_declarator_start(void)
 /*
-Return TRUE if the current identifier token is the start of a pointer-to-
-member declarator (class-name :: *).
+Macro that is TRUE if the current identifier token is the start of a
+pointer-to-member declarator (class-name :: *).  is_qualfied_name_start
+calls is_generalized_identifier_start, which sets curr_token to
+tok_ptr_to_member and returns FALSE if a pointer to member is found.
 */
-{
-  a_boolean      is_start = FALSE;
-  a_type_ptr     class_type;
-  a_boolean      is_file_scope_qualifier, has_global_qualifier, err;
-  a_boolean      next_token_is_star;
-
-  if (get_class_qualifier(&class_type, &is_file_scope_qualifier,
-                          &has_global_qualifier, &next_token_is_star, &err)) {
-    /* A class qualifier is present.  Note that file scope qualifiers are not
-       permitted.  This is a pointer-to-member declarator if the next token
-       is a "*". */
-    if (!is_file_scope_qualifier && next_token_is_star) {
-      is_start = TRUE;
-    }  /* if */
-  }  /* if */
-  return is_start;
-}  /* is_ptr_to_member_declarator_start */
+#define is_ptr_to_member_declarator_start()				\
+  (!is_qualified_name_start() && curr_token == tok_ptr_to_member)
 
 
 /*
@@ -116,8 +102,7 @@ declarator (3.5.5).
   (curr_token == tok_star || curr_token == tok_lbracket ||            \
    curr_token == tok_lparen ||                                        \
    (C_dialect == C_dialect_cplusplus &&                               \
-    ((is_qualified_name_start() &&                                    \
-      is_ptr_to_member_declarator_start()) ||                         \
+    (is_ptr_to_member_declarator_start() ||                           \
      curr_token == tok_ampersand)))
 
 
@@ -151,14 +136,10 @@ is not done.
 */
 {
   a_symbol_ptr assoc_symbol;
+  a_boolean    err;
 
-  if (curr_token == tok_colon_colon && is_global_new_or_delete()) {
-    /* "::new" and "::delete" are not type names. */
-    assoc_symbol = NULL;
-  } else if (is_ptr_to_member_declarator_start()) {
-    /* "class-name::*" is a pointer-to-member declarator, not a type name. */
-    assoc_symbol = NULL;
-  } else {
+  assoc_symbol = NULL;
+  if (is_qualified_name_start()) {
     /* Look up the current token identifier, which may be a qualified name.
        Since curr_type_symbol is often called as part of a test of the
        presence of a type name identifier, it is inappropriate to cause a
@@ -166,8 +147,8 @@ is not done.
        projects something other than a type name.  It's easier to suppress
        the creation of such gratuitous projections here than to try to ignore
        them in symbol entry later. */
-    assoc_symbol = get_normal_id_or_qualified_name(
-                                 IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME);
+    assoc_symbol = coalesce_and_lookup_generalized_identifier
+                       (GID_DTOR_RECOGNIZED, ilm_tentative_type, &err);
     if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
       /* Symbol was found, but it is not a type name symbol.  Return NULL. */
       assoc_symbol = NULL;
@@ -190,62 +171,6 @@ union, or enum).  Also works if the current is the "::" at the start of
 a global qualified name.
 */
 #define is_type_name() (is_qualified_name_start() && curr_id_is_type_name())
-
-
-static a_symbol_ptr curr_tag_symbol(a_symbol_kind tag_kind)
-/*
-The current token is an identifier.  If it is a tag of the indicated kind,
-do ambiguity and access control checking and return a pointer to the tag
-symbol.  Otherwise, return NULL.
-*/
-{
-  a_symbol_ptr assoc_symbol;
-
-  /* Look up the current token.  Note that a qualified name is not allowed. */ 
-  assoc_symbol = normal_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
-  if (assoc_symbol != NULL) {
-    if (assoc_symbol->kind != tag_kind) {
-      /* A tag, but the wrong kind of tag (e.g., struct when union is
-         required). */
-      assoc_symbol = NULL;
-    } else {
-      if (locator_for_curr_id.is_semivisible_nested_type) {
-        /* The symbol in the locator is a nested class that is not visible
-           according to the ARM lookup rules but is returned in support of the
-           nested class anachronism (ARM 18.3.5).  Issue an anachronism
-           diagnostic. */
-        sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
-                       locator_for_curr_id.specific_symbol);
-      }  /* if */
-      /* Do ambiguity and access control checking on the member. */
-      check_ambiguity_and_verify_access(&locator_for_curr_id);
-    }  /* if */
-  }  /* if */
-  return assoc_symbol;
-}  /* curr_tag_symbol */
-
-
-static a_symbol_ptr curr_scope_tag_symbol(a_symbol_kind kind)
-/*
-The current token is an identifier.  If it represents a tag of the indicated
-kind from the current scope, return a pointer to the corresponding symbol.
-Otherwise, return NULL.
-*/
-{
-  a_symbol_ptr    sym = symbol_list_from_locator(locator_for_curr_id);
-  a_scope_number  scope_number;
-
-  /* Look for a symbol in the current scope for which the kind matches that
-     of the scope level specified by the caller. */
-  scope_number = scope_stack[decl_scope_level].number;
-  for (; sym != NULL; sym = sym->next) {
-    if (sym->decl_scope == scope_number && sym->kind == kind) {
-      /* Found it. */
-      break;
-    }  /* if */
-  }  /* for */
-  return sym;
-}  /* curr_scope_tag_symbol */
 
 
 a_boolean is_type_start(void)
@@ -410,8 +335,7 @@ we keep scanning till the end of the declarator and return leaving both
         goto done;
       }  /* if */
       /* Keep looping. */
-    } else if (is_qualified_name_start() &&
-               is_ptr_to_member_declarator_start()) {
+    } else if (is_ptr_to_member_declarator_start()) {
       /* Pointer to member declarator rules out expression. */
       *may_be_expr = FALSE;
       goto done;
@@ -4214,9 +4138,6 @@ Only the first form is accepted in C.
   a_type_ptr     complete_type = specifiers_type;
   a_boolean      err;
   a_type_ptr     class_type;
-  a_boolean      is_file_scope_qualifier, has_global_qualifier;
-  a_boolean      next_token_is_star;
-
 
   db_enter(3, "pointer_declarator");
   for (;;) {
@@ -4275,31 +4196,20 @@ Only the first form is accepted in C.
       }  /* if */
     /* Check for C++ a pointer-to-member declarator. */
     } else if (C_dialect == C_dialect_cplusplus &&
-               is_qualified_name_start() &&
-               get_class_qualifier(&class_type,
-                                   &is_file_scope_qualifier,
-                                   &has_global_qualifier,
-                                   &next_token_is_star, &err)) {
-      /* A class qualifier is present.  This is a pointer-to-member
-         declarator if the current token is a "*". */
-      if (next_token_is_star && !is_file_scope_qualifier) {
-        /* Qualified name followed by "*". */
-        /* Upon return from get_class_qualifier the current token is
-           tok_class_qualifier.  Get the "*" that follows the qualifier. */
-        get_token();
-        if (class_type == NULL) {
-          /* It looks like a pointer-to-member declarator, but there was some
-             error in the class qualifier (e.g., nonclassname::*).  We don't
-             want a pointer-to-member type pointing at anything but a
-             valid class type, so make it an error type instead. */
-          complete_type = error_type();
-        } else {
-          /* A valid pointer-to-member declarator. */
-          complete_type = ptr_to_member_type(complete_type, class_type);
-        }  /* if */
+               is_ptr_to_member_declarator_start()) {
+      /* Qualified name followed by "*". */
+      /* Upon return from is_ptr_to_member_declarator_start the current
+         token is tok_ptr_to_member. */
+      class_type = curr_class_qualifier.class_type;
+      if (class_type == NULL) {
+        /* It looks like a pointer-to-member declarator, but there was some
+           error in the class qualifier (e.g., nonclassname::*).  We don't
+           want a pointer-to-member type pointing at anything but a
+           valid class type, so make it an error type instead. */
+        complete_type = error_type();
       } else {
-        /* The class qualifier is not followed by a "*", so exit the loop. */
-        break;
+        /* A valid pointer-to-member declarator. */
+        complete_type = ptr_to_member_type(complete_type, class_type);
       }  /* if */
     } else {
       /* Not a pointer, reference, or pointer-to-member declarator. */
@@ -4509,24 +4419,16 @@ otherwise it is NULL.  The syntax is:
         (void)simplify_curr_class_qualified_name();
       }  /* if */
       if (is_qualified_name_start()) {  /* Identifier or "::". */
-        a_boolean    is_file_scope_qualifier, has_global_qualifier;
-        a_boolean    next_token_is_star, qualifier_err;
-        a_type_ptr   class_type;
-        /* The declarator may be a qualified name or a normal name. */
-        an_id_lookup_options_set lookup_options = IDL_NO_OPTIONS;
-        /* The unary "::" is not allowed in declarators. */
-        if ((curr_token == tok_identifier &&
-             locator_for_curr_id.is_global_qualified_name) ||
-            (get_class_qualifier(&class_type, &is_file_scope_qualifier,
-                                 &has_global_qualifier, &next_token_is_star,
-                                 &qualifier_err) && has_global_qualifier)) {
-          error(ec_unary_colon_colon_in_declarator);
-          /* Suppress a second error on the name not being found in the
-             indicated class. */
-          lookup_options |= IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR;
+        a_boolean        	  err;
+        a_class_qualifier	  cq;
+        an_identifier_options_set options;
+        options = GID_DISALLOW_GLOBAL_QUALIFIER;
+        if (!(input_flags & DI_QUALIFIED_NAME_ALLOWED)) {
+          options |= GID_DISALLOW_QUALIFIED_NAME;
         }  /* if */
-        /* See if the name is a qualified name, like "A::x" or "::j". */
-        if (get_qualified_name(lookup_options)) {
+        /* The declarator may be a qualified name or a normal name. */
+        if (coalesce_and_lookup_qualified_name(options, &cq, &err)) {
+          /* See if the name is a qualified name, like "A::x" or "::j". */
           if (input_flags & DI_QUALIFIED_NAME_ALLOWED) {
             a_symbol_ptr sym = locator_for_curr_id.specific_symbol;
             /* See if the name is the name of a member function. */
@@ -4538,11 +4440,6 @@ otherwise it is NULL.  The syntax is:
               parenthesized_initializer_allowed = FALSE;
               member_parent_type = sym->class_of_which_a_member;
             }  /* if */
-          } else if (lookup_options == IDL_NO_OPTIONS) {
-            /* This is a declaration in which a qualified name is not
-               allowed, and no "unary :: not allowed" message was issued. */
-            pos_error(ec_qualified_name_not_allowed, &declarator_pos);
-            set_to_error_locator(locator_for_curr_id);
           }  /* if */
         }  /* if */
         /* Save information on the identifier to be declared. */
@@ -4871,39 +4768,32 @@ is an error, return NULL.
 {
   a_symbol_ptr      tag_sym = NULL;
   a_token_kind      next_tok;
+  an_identifier_options_set
+		    gid_options;
+  a_boolean         err;
 
   db_enter(3, "scan_tag_name");
   *tag_resolution = FALSE;
-  /* Find a declaration of this tag in the current scope.  (We only look
-     in the current scope for now, but we may have to do a complete lookup
-     later.) */
-  if (C_dialect == C_dialect_cplusplus &&
-      curr_token == tok_identifier && next_token() == tok_lt) {
-    a_symbol_ptr  templ_sym;
-    a_boolean     err;
-    templ_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-    if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
-      tag_sym = coalesce_template_class_reference(templ_sym, GID_NO_OPTIONS,
-                                                  &err);
-    } else {
-      /* Don't prejudice subsequent lookups. */
-      locator_for_curr_id.specific_symbol = NULL;
-    }  /* if */
-  }  /* if */
-  if (curr_token == tok_colon_colon || next_token() == tok_colon_colon) {
-    /* This looks like a qualified name, which is not allowed here. */
-    error(ec_qualified_name_not_allowed);
-    (void)get_qualified_name(IDL_NO_OPTIONS);
-    set_to_error_locator(*locator);
+  /* Look for a tag symbol for the current identifier.  Qualified names
+     are not allowed (coalesce_and_lookup_generalize_identifier checks
+     for this).  If this is a template class reference, a symbol for the
+     template class will be returned even if this requires the creation
+     of a new class symbol. */
+  gid_options = GID_DISALLOW_QUALIFIED_NAME;
+  tag_sym = coalesce_and_lookup_generalized_identifier(gid_options, ilm_tag,
+						       &err);
+  /* Save the symbol locator for this identifier before doing the
+     get_token. */
+  *locator = locator_for_curr_id;
+  if (err) {
+    /* An error occurred while scanning the tag name -- return a NULL pointer
+       instead of the error symbol. */
     tag_sym = NULL;
-  } else if (tag_sym != NULL) {
-    /* Tag symbol is a template class reference. */
-    *tag_resolution = FALSE;
   } else {
-    tag_sym = curr_scope_tag_symbol(tag_kind);
-    /* Save the symbol locator for this identifier before doing the
-       get_token. */
-    *locator = locator_for_curr_id;
+    a_boolean is_curr_scope_tag;
+    is_curr_scope_tag =
+          tag_sym != NULL && tag_sym->decl_scope ==
+                                      scope_stack[decl_scope_level].number;  
     next_tok = next_token();
     if (next_tok == tok_lbrace ||
         (next_tok == tok_colon && C_dialect == C_dialect_cplusplus &&
@@ -4914,7 +4804,8 @@ is an error, return NULL.
       /* Note that we had to check the is_ref_within_new_expr flag because
          a colon has a different meaning in an expression context than
          in a declaration context (namely, it may belong to a ?: operator). */
-      if (tag_sym != NULL) {
+     /* Is this a tag declared in the current scope? */
+      if (is_curr_scope_tag) {
         /* The tag has already appeared in the current scope. */
         if (is_incomplete_type(type_symbol_type(tag_sym))) {
           /* Resolution of a previous incomplete declaration. */
@@ -4923,10 +4814,20 @@ is an error, return NULL.
           /* Redeclaration of a tag that has already been defined.  Set
              tag_sym to NULL and let enter_symbol issue an error. */
           tag_sym = NULL;
+          locator_for_curr_id.specific_symbol = NULL;
         }  /* if */
+      } else {
+        /* Probably a local definition of a name also used in an
+           outer scope.  This could also be a file scope definition of
+           a name that is also used in a nested class when the
+           non-nested class anachronism is being allowed.  In either case,
+           this is handled by the caller when we return a NULL symbol. */
+        tag_sym = NULL;
+        locator_for_curr_id.specific_symbol = NULL;
       }  /* if */
-    } else if (tag_sym == NULL) {
-      /* This is the first appearance of the tag in the current scope.  This
+    } else if (!is_curr_scope_tag) {
+      /* This is not a definition of the tag (e.g., struct S;) and this is
+         the first appearance of the tag in the current scope.  This
          is not its definition, so it is either a reference to an existing
          tag or a declaration of a new (incomplete) tag. */
       /* Check for a "vacuous declaration" (e.g. "struct S;" or "enum E;").
@@ -4939,10 +4840,7 @@ is an error, return NULL.
            to force the creation of a new symbol in the current scope. */
       } else {
         /* This may be a reference to an existing tag from a containing
-           scope or a base class.  This can be ascertained by doing a full
-           lookup of the tag name (before, it was done just for the current
-           scope). */
-        tag_sym = curr_tag_symbol(tag_kind);
+           scope or a base class. */
         if (tag_sym == NULL) {
           /* We will need to enter an incomplete tag that may be resolved
              later.  Just leave tag_sym NULL.  In C it will be entered at

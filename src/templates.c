@@ -1319,6 +1319,7 @@ return *tag_resolution TRUE.
   a_type_ptr                        prototype_type;
   a_template_arg_ptr                tap, *append_addr;
   a_template_param_ptr              tpp;
+  a_boolean			    err;
 
   db_enter(3, "class_template_declaration");
   if (curr_token == tok_class || curr_token == tok_struct ||
@@ -1346,7 +1347,8 @@ return *tag_resolution TRUE.
     } else {
       /* Look up the identifier.  If it's a qualified name there will be an
          error down the line. */
-      sym = get_normal_id_or_qualified_name(IDL_NO_OPTIONS);
+      sym = coalesce_and_lookup_generalized_identifier
+                               (GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
       /* Cache the identifier and advance past it so we can discriminate
          between a class template and a function template. */
       cache_curr_token(&local_token_cache);

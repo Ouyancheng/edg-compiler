@@ -1825,8 +1825,7 @@ table, since it is accessed from the associated function instantiation entry.
 }  /* make_template_function_symbol */
 
 
-static a_boolean 
-              current_instantiation_symbol_if_class_template(a_symbol_ptr *sym)
+a_boolean current_instantiation_symbol_if_class_template(a_symbol_ptr *sym)
 /*
 If the symbol is a class template that is currently being instantiated,
 the symbol of the instantiation is returned in *sym, otherwise the original
@@ -3951,8 +3950,9 @@ C and C++.
    class template, or template type parameter. */
 #define is_acceptable_symbol(sym)                                       \
   ((!must_be_class ||							\
-     is_class_or_class_proxy_symbol(fundamental_symbol_of(sym))) &&  \
-   (!must_be_tag   || is_tag_symbol  (fundamental_symbol_of(sym))))
+    is_class_or_class_proxy_symbol(fundamental_symbol_of(sym))) &&  \
+   (!must_be_tag   ||						   \
+    is_tag_or_tag_proxy_symbol(fundamental_symbol_of(sym))))
 /* Local macro that tests whether or not a symbol on the active list
    is acceptable.  See if the symbol is in the proper name space. */
 #define is_acceptable_active_symbol(sym)                              \
@@ -4237,9 +4237,6 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     /* IDL_MUST_BE_TAG is not implemented. */
     internal_error("class_qualified_id_lookup: IDL_MUST_BE_TAG specified");
   }  /* if */
-  if (locator->is_qualified_name) {
-    internal_error("class_qualified_id_lookup: is_qualified_name");
-  }  /* if */
 #endif /* CHECKING */
   /* Remove any typedef on the class type. */
   class_type = skip_typerefs(class_type);
@@ -4367,9 +4364,6 @@ used for the unary "::" qualifier and may only be used in C++ mode.
   if (options & IDL_MUST_BE_TAG) {
     /* IDL_MUST_BE_TAG is not implemented. */
     internal_error("file_scope_id_lookup: IDL_MUST_BE_TAG specified");
-  }  /* if */
-  if (locator->is_qualified_name) {
-    internal_error("file_scope_id_lookup: is_qualified_name");
   }  /* if */
 #endif /* CHECKING */
   if ((sym = locator->specific_symbol) != NULL) {
@@ -6017,178 +6011,6 @@ Allocate a new template parameter list entry and return a pointer to it.
   return ptr;
 }  /* alloc_template_param */
 
-
-
-a_symbol_ptr coalesce_template_class_reference
-			(a_symbol_ptr		   template_symbol,
-			 an_identifier_options_set options,
-			 a_boolean		   *err)
-/*
-The current identifier is a class template name.  Look for an optional
-template argument list.  If an argument list is present, scan the argument
-list and call a routine to lookup or create the symbol and type information
-for an instance of the class template.  The template argument list is
-required unless either the GID_TEMPLATE_ARGS_OPTIONAL flag is set in the
-"options" argument, or the class template pointed to by "template_symbol"
-is the same as the class template associated with the innermost instantiation
-scope.   If no errors occur while scanning the argument list, we call
-a routine to lookup the appropriate instance (or generate one if needed).
-*/
-{
-  a_source_position      start_pos;
-  a_template_param_ptr   param_ptr;
-  a_template_arg_ptr     arg_list = NULL;
-  a_template_arg_ptr     last_arg = NULL;
-  a_symbol_ptr           new_sym = NULL;
-  a_symbol_locator       orig_locator;
-  a_boolean              any_errors = FALSE;
-  a_memory_region_number region_to_switch_back_to;
-
-  db_enter(3, "coalesce_template_class_reference");
-
-  *err = FALSE;
-  /* Save source position for error reporting. */
-  copy_source_position(pos_curr_token, start_pos);
-  /* Save the current locator. */
-  orig_locator = locator_for_curr_id;
-  if (next_token() != tok_lt) {
-     /* There is no template argument list.  If we are in an instantiation of
-        this class template, use the symbol associated with the innermost
-        instantiation of this class, otherwise just return the class
-        template symbol. */
-    new_sym = template_symbol;
-    if (current_instantiation_symbol_if_class_template(&new_sym)) {
-      /* We have the symbol for the current instantiation of the
-         class template. */
-      goto normal_exit;
-    } else {
-      if (options & GID_TEMPLATE_ARGS_OPTIONAL) {
-         /* Template arguments are not required -- simply return the
-            symbol of the class template. */
-         goto skip_processing;
-      } else {
-        /* Issue an error and return an error locator. */
-        pos_sy_error(ec_missing_template_arg_list, &start_pos,
-                     template_symbol);
-        make_specific_symbol_error_locator(&locator_for_curr_id);
-        new_sym = locator_for_curr_id.specific_symbol;
-        any_errors = TRUE;
-        goto normal_exit;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  /* Always allocate template arguments at the file scope. */
-  switch_to_file_scope_region(&region_to_switch_back_to);
-  add_stop_token(tok_gt);
-  /* Get the angle bracket token. */
-  (void)get_token();
-  /* Get token following opening angle bracket. */
-  (void)get_token();
-  /* Scan a comma separated list of arguments.  The arguments can be
-     type names, constant expressions, or addresses of objects or functions
-     with external linkage, or of static class members (WP 14.2).  It
-     is not necessary to distinguish between the type and constant case
-     because we can use the type of the formal parameter to make this
-     selection. */
-  param_ptr = template_symbol->variant.template.extra_info->parameters;
-  do {
-    a_symbol_ptr        sym;
-    a_boolean           is_type_param;
-    a_type_ptr          argument_type;
-    a_constant_ptr      constant;
-    a_template_arg_ptr  arg_ptr;
-
-    add_stop_token(tok_comma);
-    sym = param_ptr->param_symbol;
-    /* Determine whether this argument should be a type or a constant. */
-    is_type_param = (sym->kind == sk_type);
-    arg_ptr = alloc_template_arg(is_type_param);
-    if (is_type_param) {
-      type_name(&argument_type);
-      arg_ptr->variant.type = argument_type;
-    } else {  /* else executed when !is_type_param */
-#if CHECKING
-      if (sym->kind != sk_constant) {
-        internal_error("coalesce_template_class_reference: constant expected");
-      }  /* if */
-#endif /* CHECKING */
-      constant = fs_constant((a_constant_repr_kind)ck_error);
-      scan_template_argument_constant_expression(sym->variant.constant->type,
-                                                 constant);
-      add_to_constants_list(constant);
-      arg_ptr->variant.constant = constant;
-    }  /* if */
-    /* Link this entry on to the argument list. */
-    if (arg_list == NULL) arg_list = arg_ptr;
-    if (last_arg != NULL) last_arg->next = arg_ptr;
-    last_arg = arg_ptr;
-    remove_stop_token(tok_comma);
-    param_ptr = param_ptr->next;
-  } while (param_ptr != NULL && loop_token(tok_comma));
-
-  /* All arguments should have been processed and the current token should
-     be the closing angle bracket. */
-  if (param_ptr != NULL) {
-    /* There are still entries on the formal parameters list so the user
-       didn't supply enough actual arguments. */
-    sym_error(ec_too_few_template_args, template_symbol);
-    any_errors = TRUE;
-  } else if (curr_token == tok_comma) {
-    /* All of the formal parameters have been accounted for and there are
-       more actuals -- too many arguments were supplied. */
-    sym_error(ec_too_many_template_args, template_symbol);
-    flush_tokens();
-    any_errors = TRUE;
-  }  /* if */
-  /* We should now be at the closing angle bracket.  Note that we don't
-     scan the token after the closing angle because we update the current
-     token below to represent the original identifier with the newly
-     found template class symbol. */
-  set_err_pos_to_curr_token();
-  if (curr_token != tok_gt) {
-    syntax_error(ec_exp_gt);
-    any_errors = TRUE;
-  }  /* if */
-  if (!any_errors) {
-    /* Everything is OK -- find the instance that matches these arguments.
-       Create a new instance if needed. */
-    new_sym = find_template_class(template_symbol, &arg_list, &start_pos);
-  } else {
-    /* Free any allocated template arguments. */
-    if (arg_list != NULL) free_template_arg_list(arg_list);
-    /* An error occurred while scanning the argument list so make an error
-       locator and return a pointer to its specific symbol. */
-    make_specific_symbol_error_locator(&locator_for_curr_id);
-    new_sym = locator_for_curr_id.specific_symbol;
-  }  /* if */
-  switch_back_to_original_region(region_to_switch_back_to);
-  remove_stop_token(tok_gt);
-
-normal_exit:
-  /* When we return to the caller the current identifier should be an 
-     identifier and the locator should point to the template class that we
-     have just looked up. */
-  curr_token = tok_identifier;
-  /* Restore the original locator but update it to reflect the new symbol
-     that is being returned by this routine. */
-  locator_for_curr_id = orig_locator;
-  locator_for_curr_id.specific_symbol = new_sym;
-  /* Set source position for error reporting. */
-  copy_source_position(start_pos, error_position);
-
-#if DEBUG
-  if (debug_level >= 5) {
-    db_symbol(template_symbol, "Template symbol: ", 2);
-  }  /* if */
-  if (debug_level >= 4) {
-    db_symbol(new_sym, "Returning: ", 2);
-  }  /* if */
-#endif /* DEBUG */
-
-skip_processing:
-  db_exit();
-  return new_sym;
-}  /* coalesce_template_class_reference */
 
 
 a_function_instantiation_entry_ptr alloc_function_instantiation_entry(void)

@@ -214,7 +214,6 @@ once per compilation unit.
 static a_boolean
                 dollar_in_id_diagnostic_issued;
 
-
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
@@ -502,6 +501,12 @@ for pp-tokens.
        (e.g., a string) has been allocated in the file scope and doesn't
        need to be copied. */
     copy_constant(&const_for_curr_token, ctp->variant.constant);
+  } else if (curr_token == tok_class_qualifier ||
+             curr_token == tok_ptr_to_member) {
+    /* Class qualifier or pointer to member -- save the current class
+       qualifier structure. */
+    ctp->extra_info_kind = teik_class_qualifier;
+    ctp->variant.class_qualifier = curr_class_qualifier;
   } else {
     /* No extra information needed for this token. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
@@ -757,6 +762,11 @@ an equivalent change.
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
+  } else if (ctp->extra_info_kind ==
+             (a_token_extra_info_kind)teik_class_qualifier) {
+    /* For a class qualifier or pointer to member, restore
+       curr_class_qualifier. */
+    curr_class_qualifier = ctp->variant.class_qualifier;
   }  /* if */
   free_cached_token(ctp);
   db_exit();
@@ -801,6 +811,11 @@ an equivalent change.
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
+  } else if (ctp->extra_info_kind ==
+             (a_token_extra_info_kind)teik_class_qualifier) {
+    /* For a class qualifier or pointer to member, restore
+       curr_class_qualifier. */
+    curr_class_qualifier = ctp->variant.class_qualifier;
   }  /* if */
   /* Check whether we have reached the end of this cache. */
   if (reusable_cache_stack->next_cached_token == NULL) {
@@ -3140,13 +3155,37 @@ token.
   }  /* if */
   /* Integer constant of some kind.  Check for final suffix of "u" or
      "l", or both, in upper or lower case. */
-  if ((ch = *curr_char_loc) == 'u' || ch == 'U') {
-    curr_char_loc++;
-    if ((ch = *curr_char_loc) == 'l' || ch == 'L') curr_char_loc++;
-  } else if (ch == 'l' || ch == 'L') {
-    curr_char_loc++;
-    if ((ch = *curr_char_loc) == 'u' || ch == 'U') curr_char_loc++;
-  }  /* if */
+#if LONG_LONG_ALLOWED
+  /* Or "ll" for long long. */
+#endif /* LONG_LONG_ALLOWED */
+  { a_boolean u_seen = FALSE;
+    int       l_seen = 0;
+    for (;; curr_char_loc++) {
+      ch = *curr_char_loc;
+      if ((ch == 'u' || ch == 'U') && !u_seen) {
+        u_seen = TRUE;
+      } else if ((ch == 'l' || ch == 'L') &&
+#if LONG_LONG_ALLOWED
+                 l_seen < 2
+#else /* !LONG_LONG_ALLOWED */
+                 l_seen < 1
+#endif /* LONG_LONG_ALLOWED */
+                           ) {
+        l_seen++;
+      } else {
+        break;
+      }  /* if */
+    }  /* for */
+#if LONG_LONG_ALLOWED
+    if (strict_ansi_mode && !fetch_pp_tokens && l_seen == 2) {
+      if (strict_ansi_error_severity == es_error) {
+        error_at_line_pos(ec_nonstd_long_long, start_of_curr_token);
+      } else {
+        warning_at_line_pos(ec_nonstd_long_long, start_of_curr_token);
+      }  /* if */
+    }  /* if */
+#endif /* LONG_LONG_ALLOWED */
+  }
   goto constant_accumulated;
 
 float_accum_1:
@@ -4687,70 +4726,334 @@ These look like qualified names but aren't.
 }  /* is_global_new_or_delete */
 
 
+
+a_symbol_ptr coalesce_template_class_reference
+			(a_symbol_ptr		   template_symbol,
+			 an_identifier_options_set options,
+			 a_boolean		   *err)
+/*
+The current identifier is a class template name.  Look for an optional
+template argument list.  If an argument list is present, scan the argument
+list and call a routine to lookup or create the symbol and type information
+for an instance of the class template.  The template argument list is
+required unless either the GID_TEMPLATE_ARGS_OPTIONAL flag is set in the
+"options" argument, or the class template pointed to by "template_symbol"
+is the same as the class template associated with the innermost instantiation
+scope.   If no errors occur while scanning the argument list, we call
+a routine to lookup the appropriate instance (or generate one if needed).
+*/
+{
+  a_source_position      start_pos;
+  a_template_param_ptr   param_ptr;
+  a_template_arg_ptr     arg_list = NULL;
+  a_template_arg_ptr     last_arg = NULL;
+  a_symbol_ptr           new_sym = NULL;
+  a_symbol_locator       orig_locator;
+  a_boolean              any_errors = FALSE;
+  a_memory_region_number region_to_switch_back_to;
+
+  db_enter(3, "coalesce_template_class_reference");
+
+  *err = FALSE;
+  /* Save source position for error reporting. */
+  copy_source_position(pos_curr_token, start_pos);
+  /* Save the current locator. */
+  orig_locator = locator_for_curr_id;
+  if (next_token() != tok_lt) {
+     /* There is no template argument list.  If we are in an instantiation of
+        this class template, use the symbol associated with the innermost
+        instantiation of this class, otherwise just return the class
+        template symbol. */
+    new_sym = template_symbol;
+    if (current_instantiation_symbol_if_class_template(&new_sym)) {
+      /* We have the symbol for the current instantiation of the
+         class template. */
+      goto normal_exit;
+    } else {
+      if (options & GID_TEMPLATE_ARGS_OPTIONAL) {
+         /* Template arguments are not required -- simply return the
+            symbol of the class template. */
+         goto skip_processing;
+      } else {
+        /* Issue an error and return an error locator. */
+        pos_sy_error(ec_missing_template_arg_list, &start_pos,
+                     template_symbol);
+        make_specific_symbol_error_locator(&locator_for_curr_id);
+        new_sym = locator_for_curr_id.specific_symbol;
+        any_errors = TRUE;
+        goto normal_exit;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Always allocate template arguments at the file scope. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  add_stop_token(tok_gt);
+  /* Get the angle bracket token. */
+  (void)get_token();
+  /* Get token following opening angle bracket. */
+  (void)get_token();
+  /* Scan a comma separated list of arguments.  The arguments can be
+     type names, constant expressions, or addresses of objects or functions
+     with external linkage, or of static class members (WP 14.2).  It
+     is not necessary to distinguish between the type and constant case
+     because we can use the type of the formal parameter to make this
+     selection. */
+  param_ptr = template_symbol->variant.template.extra_info->parameters;
+  do {
+    a_symbol_ptr        sym;
+    a_boolean           is_type_param;
+    a_type_ptr          argument_type;
+    a_constant_ptr      constant;
+    a_template_arg_ptr  arg_ptr;
+
+    add_stop_token(tok_comma);
+    sym = param_ptr->param_symbol;
+    /* Determine whether this argument should be a type or a constant. */
+    is_type_param = (sym->kind == sk_type);
+    arg_ptr = alloc_template_arg(is_type_param);
+    if (is_type_param) {
+      type_name(&argument_type);
+      arg_ptr->variant.type = argument_type;
+    } else {  /* else executed when !is_type_param */
+#if CHECKING
+      if (sym->kind != sk_constant) {
+        internal_error("coalesce_template_class_reference: constant expected");
+      }  /* if */
+#endif /* CHECKING */
+      constant = fs_constant((a_constant_repr_kind)ck_error);
+      scan_template_argument_constant_expression(sym->variant.constant->type,
+                                                 constant);
+      add_to_constants_list(constant);
+      arg_ptr->variant.constant = constant;
+    }  /* if */
+    /* Link this entry on to the argument list. */
+    if (arg_list == NULL) arg_list = arg_ptr;
+    if (last_arg != NULL) last_arg->next = arg_ptr;
+    last_arg = arg_ptr;
+    remove_stop_token(tok_comma);
+    param_ptr = param_ptr->next;
+  } while (param_ptr != NULL && loop_token(tok_comma));
+
+  /* All arguments should have been processed and the current token should
+     be the closing angle bracket. */
+  if (param_ptr != NULL) {
+    /* There are still entries on the formal parameters list so the user
+       didn't supply enough actual arguments. */
+    sym_error(ec_too_few_template_args, template_symbol);
+    any_errors = TRUE;
+  } else if (curr_token == tok_comma) {
+    /* All of the formal parameters have been accounted for and there are
+       more actuals -- too many arguments were supplied. */
+    sym_error(ec_too_many_template_args, template_symbol);
+    flush_tokens();
+    any_errors = TRUE;
+  }  /* if */
+  /* We should now be at the closing angle bracket.  Note that we don't
+     scan the token after the closing angle because we update the current
+     token below to represent the original identifier with the newly
+     found template class symbol. */
+  set_err_pos_to_curr_token();
+  if (curr_token != tok_gt) {
+    syntax_error(ec_exp_gt);
+    any_errors = TRUE;
+  }  /* if */
+  if (!any_errors) {
+    /* Everything is OK -- find the instance that matches these arguments.
+       Create a new instance if needed. */
+    new_sym = find_template_class(template_symbol, &arg_list, &start_pos);
+  } else {
+    /* Free any allocated template arguments. */
+    if (arg_list != NULL) free_template_arg_list(arg_list);
+    /* An error occurred while scanning the argument list so make an error
+       locator and return a pointer to its specific symbol. */
+    make_specific_symbol_error_locator(&locator_for_curr_id);
+    new_sym = locator_for_curr_id.specific_symbol;
+  }  /* if */
+  switch_back_to_original_region(region_to_switch_back_to);
+  remove_stop_token(tok_gt);
+
+normal_exit:
+  /* When we return to the caller the current identifier should be an 
+     identifier and the locator should point to the template class that we
+     have just looked up. */
+  curr_token = tok_identifier;
+  /* Restore the original locator but update it to reflect the new symbol
+     that is being returned by this routine. */
+  locator_for_curr_id = orig_locator;
+  locator_for_curr_id.specific_symbol = new_sym;
+  /* Set source position for error reporting. */
+  copy_source_position(start_pos, error_position);
+
+#if DEBUG
+  if (debug_level >= 5) {
+    db_symbol(template_symbol, "Template symbol: ", 2);
+  }  /* if */
+  if (debug_level >= 4) {
+    db_symbol(new_sym, "Returning: ", 2);
+  }  /* if */
+#endif /* DEBUG */
+
+skip_processing:
+  *err = any_errors;
+  db_exit();
+  return new_sym;
+}  /* coalesce_template_class_reference */
+
+
+
+static void clear_class_qualifier(a_class_qualifier_ptr cqp)
+/*
+Initializes the fields of a class qualifier structure.
+*/
+{
+  cqp->class_type = NULL;
+  cqp->has_global_qualifier = FALSE;
+  cqp->is_file_scope_qualifier = FALSE;
+  cqp->is_identifier = FALSE;
+  cqp->err = FALSE;
+}
+
+
+
+a_boolean f_check_for_generalized_identifier_errors
+		(an_identifier_options_set options,
+                 a_source_position         *pos)
+/*
+Compares the flags in locator_for_curr_id with the error flags in the
+options set passed by the caller and issues errors for cases not allowed
+by the options.  Returns TRUE if any errors were diagnosed.
+*/
+{
+  a_boolean   any_errors = FALSE;
+  /* If no position was specified use the current error position. */
+  if (pos == NULL) pos = &error_position;
+  if (curr_class_qualifier.has_qualifier &&
+      (options & GID_DISALLOW_QUALIFIED_NAME)) {
+    pos_error(ec_qualified_name_not_allowed, pos);
+    any_errors = TRUE;
+  } else if (curr_class_qualifier.has_global_qualifier &&
+      (options & GID_DISALLOW_GLOBAL_QUALIFIER)) {
+    pos_error(ec_unary_colon_colon_not_allowed, pos);
+  } /* if */
+#if CHECKING
+  if ((locator_for_curr_id.is_operator_name ||
+       locator_for_curr_id.is_conversion_name) &&
+      (options & GID_DISALLOW_OPERATOR_NAME)) {
+    internal_error("f_check_for_generalized...: operator name error used");
+  }  /* if */
+#endif /* CHECKING */
+  return any_errors;
+}  /* f_check_for_generalized_identifier_errors */
+
+
+
 /*
 Check whether the a symbol represents a class template and if so,
 call the routine to scan the argument list.  Otherwise just return the
 original symbol.
 */
-#define check_for_class_template(sym, err)				      \
+#define check_for_class_template(sym, options, err)			      \
     (((sym) != NULL && 							      \
       (sym)->kind == (a_symbol_kind)sk_class_template) ?		      \
-           coalesce_template_class_reference(sym, GID_TEMPLATE_ARGS_OPTIONAL, \
+           coalesce_template_class_reference(sym, options,		      \
                                              err) : sym)
                             
 
-
-a_boolean get_class_qualifier(a_type_ptr    *class_type,
-                              a_boolean     *is_file_scope_qualifier,
-                              a_boolean     *has_global_qualifier,
-                              a_boolean     *is_ptr_to_member,
-                              a_boolean     *err)
+a_boolean is_generalized_identifier_start(an_identifier_options_set options,
+                                          a_boolean                 *err)
 /*
-Scan an optional class qualifier, e.g., "A::B::" (note that the final
-identifier of a qualified name is not scanned here; see get_qualified_name).
-Also recognize the unary "::", e.g., "::A::B::" or just "::".
-Return TRUE if there was a qualifier, FALSE if not.  If there was a
-qualifier, set *class_type to the class type, or, if the qualification
-indicates the file scope, set *class_type to NULL and
-*is_file_scope_qualifier to TRUE.  For any case that begins with a unary
-"::", return *has_global_qualifier TRUE.  Return *err TRUE if there was
-an error.  On return: if there was a qualifier, the current token will be
-tok_class_qualifier and the next token will be the token following the
-final "::"; if there was no qualifier, the current token is the same as on
-entry.  If the token following the qualifier is a "*", *is_ptr_to_member is
-will be TRUE.  This routine may only be called in C++ mode. 
+Determine whether the current token is the start of a "generalized
+identifier" -- a qualified name, identifier, operator name, conversion
+name, or destructor name.
+
+Returns TRUE and sets curr_token to tok_class_qualifier for the
+following cases.  The next get_goken call will get the token
+following the final "::".
+	
+	::i
+	X::i
+	::X::i
+	::A::B::i
+	A<int>::i
+	A::operator =
+	A::operator int
+	A::~A()		When options & GID_DTOR_RECOGNIZED = TRUE
+
+Returns TRUE and leaves curr_token unchanged for:
+
+	i
+	operator =
+	operator int
+	~A		When options & GID_DTOR_RECOGNIZED = TRUE
+	A<int>		Template reference will be coalesced
+	~A()		When options & GID_DTOR_RECOGNIZED = TRUE
+
+Returns FALSE and sets curr_token to tok_ptr_to_member for:
+
+	X::*
+	A<int>::*	Template reference will be coalesced
+
+Returns FALSE and leaves curr_token_unchanged for:
+
+	::new
+	::delete
+	~name		When options & GID_DTOR_RECOGNIZED = FALSE
+	anything else
+
+This routine does the actual scan of the optional class qualifier,
+e.g., "A::B::" (note that the final identifier of a qualified name is not
+scanned here; see coalesce_generalized_identifier).  This routine also
+recognizes the unary "::", e.g., "::A::B::" or just "::".
+
+The global variable "curr_class_qualifier" is updated with the results
+of the class qualifier scan.  See the declaration of "a_class_qualifier"
+for more information.
+
+When the GID_TEMPLATE_ARGS_OPTIONAL flag is set in "options" the 
+template argument list (i.e., "<int>") can be omitted.  This flag
+is passed to coalesce_template_class_reference.
+
+Note that there are several GID flags that affect whether class qualifiers
+are allowed and, if so, the types that are allowed.  These flags are not
+checked by this routine because we may not know what is being scanned at
+this point.  The qualifier flags are checked by the higher level routines
+such as coalesce_generalized_identifier.
+
+Returns *err TRUE if there was an error.  This routine may only be called
+in C++ mode. 
 */
 {
-  a_boolean         is_qualifier = FALSE;
-  a_symbol_ptr      class_symbol;
-  a_source_position start_position;
-  a_token_kind       next_tok;
+  a_type_ptr		class_type = NULL;
+  a_boolean     	is_file_scope_qualifier = FALSE;
+  a_boolean		has_global_qualifier;
+  a_boolean     	is_qualifier = FALSE;
+  a_boolean             is_ptr_to_member = FALSE;
+  a_boolean		is_identifier = FALSE;
+  a_symbol_ptr		class_symbol;
+  a_source_position	start_position;
+  a_token_kind		next_tok;
+  a_boolean             local_err;
 
-  db_enter(4, "get_class_qualifier");
+  db_enter(4, "is_generalized_identifier_start");
+  /* If no error parameter was supplied by the caller, set err to point
+     to a local variable. */
+  if (err == NULL) err = &local_err;
   *err = FALSE;
-  *class_type = NULL;
-  *is_file_scope_qualifier = FALSE;
-  *is_ptr_to_member = FALSE;
-  /* If the current token is a class qualifier it means that we have already
-     analyzed the current qualifier and shouldn't try to do so again.
-     Return the status information saved from the previous call.  */
-  if (curr_token == tok_class_qualifier) {
-    is_qualifier = TRUE;
-    *class_type = curr_class_qualifier.class_type;
-    *has_global_qualifier = curr_class_qualifier.has_global_qualifier;
-    *is_file_scope_qualifier = curr_class_qualifier.is_file_scope_qualifier;
-    *is_ptr_to_member = curr_class_qualifier.is_ptr_to_member;
+  /* If the current token is a class qualifier or a pointer to member
+     it means that we have already analyzed the current qualifier and
+     shouldn't try to do so again. */
+  if (curr_token == tok_class_qualifier || curr_token == tok_ptr_to_member) {
     *err = curr_class_qualifier.err;
     error_position = curr_class_qualifier.source_position;
     pos_curr_token = error_position;
     goto exit;
   }  /* if */
   start_position = pos_curr_token;
-  /* Look for a leading unary "::". */
-  /* Don't be fooled by "::new" and "::delete". */
-  *has_global_qualifier = FALSE;
+  /* Look for a leading unary "::".  Don't be fooled by "::new" and
+     "::delete". */
+  has_global_qualifier = FALSE;
   if (curr_token == tok_colon_colon && !is_global_new_or_delete()) {
-    *has_global_qualifier = *is_file_scope_qualifier = is_qualifier = TRUE;
+    has_global_qualifier = is_file_scope_qualifier = is_qualifier = TRUE;
     (void)get_token();
   }  /* if */
   /* For the next token to be part of the qualifier it must be a class name
@@ -4768,7 +5071,7 @@ will be TRUE.  This routine may only be called in C++ mode.
            A::i = 1;   // The class A is found.
          }
     */
-    if (*has_global_qualifier) {
+    if (has_global_qualifier) {
       /* There was a leading unary "::", so look up the name in the file
          scope. */
       class_symbol = file_scope_id_lookup(&locator_for_curr_id,
@@ -4787,7 +5090,7 @@ will be TRUE.  This routine may only be called in C++ mode.
     }  /* if */
     /* If the class symbol is for a class template, process the argument
        list. */
-    class_symbol = check_for_class_template(class_symbol, err);
+    class_symbol = check_for_class_template(class_symbol, options, err);
     /* See if the identifier is followed by "::".  Note that nex_tok is not
        used because the next token may have changed while scanning a
        template argument list. */
@@ -4795,24 +5098,24 @@ will be TRUE.  This routine may only be called in C++ mode.
       a_boolean    first_class = TRUE;
       /* This is a qualifier. */
       is_qualifier = TRUE;
-      *is_file_scope_qualifier = FALSE;
+      is_file_scope_qualifier = FALSE;
       for (;;) {
         /* Keep looping while there are more levels of class qualification.
            Exit from loop is in the middle. */
-        if (class_symbol == NULL ||
+        if (class_symbol == NULL || *err ||
             class_symbol->kind == (a_symbol_kind)sk_class_template) {
           /* The identifier is followed by a "::" but is not a class symbol. */
           if (!*err) {
             error(ec_id_must_be_class_name);
             *err = TRUE;
           }  /* if */
-          *class_type = NULL;
+          class_type = NULL;
         } else {
           /* Record the reference on the symbol. */
           mark_referenced(class_symbol, &pos_curr_token);
           /* Do ambiguity and access control checking on the class symbol. */
           check_ambiguity_and_verify_access(&locator_for_curr_id);
-          *class_type = skip_typerefs(class_symbol->
+          class_type = skip_typerefs(class_symbol->
                                           variant.class_struct_union.type);
         }  /* if */
         /* Skip over the class-name, and the "::". */
@@ -4825,7 +5128,7 @@ will be TRUE.  This routine may only be called in C++ mode.
            in the given scope. */
         if (!*err) {
 #if CHECKING
-          if (is_template_param_type(*class_type)) {
+          if (is_template_param_type(class_type)) {
             internal_error("not implemented: class qualifier using template parameter in template declaration");
           }  /* if */
 #endif /* CHECKING */
@@ -4833,251 +5136,389 @@ will be TRUE.  This routine may only be called in C++ mode.
             /* Make sure that this class has been instantiated.  This is
                only needed for the first class name because template classes
                must be at file scope. */
-            check_for_uninstantiated_template_class(*class_type);
+            check_for_uninstantiated_template_class(class_type);
           }  /* if */
           class_symbol = class_qualified_id_lookup(&locator_for_curr_id,
-                                                   *class_type,
+                                                   class_type,
                                                    IDL_MUST_BE_CLASS);
         }  /* if */
         first_class = FALSE;
       }  /* for */
     }  /* if */
   }  /* if */
+  /* Assume we have found an identifier until we discover otherwise. */
+  is_identifier = TRUE;
   if (is_qualifier) {
-    /* If this is a qualifier. */
-    if (curr_token == tok_star) *is_ptr_to_member = TRUE;
-    /* Unget the token that follows the last "::" (probably an identifier
-       or a "*") so that the current token can be made a
-       tok_class_qualifier. */
-    unget_token();
-    /* Save the results of this qualifier scan.  These values will be returned
-       if another scan is attempted of the same qualifier. */
-    error_position = start_position;
-    curr_token = tok_class_qualifier;
-    curr_class_qualifier.class_type = *class_type;
-    curr_class_qualifier.has_global_qualifier = *has_global_qualifier;
-    curr_class_qualifier.is_file_scope_qualifier = *is_file_scope_qualifier;
-    curr_class_qualifier.is_ptr_to_member = *is_ptr_to_member;
-    curr_class_qualifier.err = *err;
-    curr_class_qualifier.source_position = error_position;
-    pos_curr_token = error_position;
+    /* This is a qualifier -- see if it is a pointer to member. */
+    if (curr_token == tok_star) {
+      /* We have a pointer to member token (i.e, A::*).  Update the current
+         token. */
+      is_identifier = FALSE;
+      is_ptr_to_member = TRUE;
+    }  /* if */
   }  /* if */
+  if (is_identifier) {
+    /* We still think we have an identifier.  curr_token contains
+       either the token following the qualifier or the first token of what
+       might be an identifier.  Determine whether it is an identifier. */
+    if (curr_token == tok_identifier) {
+      /* It is an identifier. */
+    } else if (curr_token == tok_operator) {
+      /* Could be something like either "operator +" or "operator int".
+         We don't determine at this point whether this is a legal operator,
+         just that it couldn't legally be anything else. */
+    } else if (curr_token == tok_compl &&
+               ((options & GID_DTOR_RECOGNIZED) || is_qualifier)) {
+      /* A destructor name (i.e., ~A or A::~A).  Destructor names are
+         always recognized after qualifiers.  If not preceded by a qualifier,
+         then they are only recognized when GID_DTOR_RECOGNIZED is TRUE. */
+    } else {
+      /* Anything else is not the start of an identifier. */
+      is_identifier = FALSE;
+    }  /* if */
+  }  /* if */
+  if (is_qualifier) {
+    /* Unget the token that follows the last "::" (probably an identifier)
+       so that the current token can be made a  tok_class_qualifier or
+       tok_ptr_to_member.  This is not needed when for pointers to members
+       since we can simply discard the "*". */
+    if (is_ptr_to_member) {
+      curr_token = tok_ptr_to_member;
+    } else {
+      unget_token();
+      curr_token = tok_class_qualifier;
+    }  /* if */
+  }  /* if */
+  error_position = start_position;
+  /* Save the results of this qualifier scan.  These values will be returned
+     if another scan is attempted of the same qualifier. */
+  curr_class_qualifier.class_type = class_type;
+  curr_class_qualifier.has_qualifier = is_qualifier;
+  curr_class_qualifier.has_global_qualifier = has_global_qualifier;
+  curr_class_qualifier.is_file_scope_qualifier = is_file_scope_qualifier;
+  curr_class_qualifier.is_identifier = is_identifier;
+  curr_class_qualifier.err = *err;
+  curr_class_qualifier.source_position = error_position;
+  pos_curr_token = error_position;
 exit:
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "is_qualifier=%0d, has_global_qualifier=%0d, ",
-            is_qualifier, *has_global_qualifier);
+            is_qualifier, has_global_qualifier);
     fprintf(f_debug, "is_file_scope_qualifier=%0d\n",
-            *is_file_scope_qualifier);
-    fprintf(f_debug, "type = %s", *class_type == NULL ? NULL : "");
-    if (*class_type != NULL) db_abbreviated_type(*class_type);
+            is_file_scope_qualifier);
+    fprintf(f_debug, "is_identifier=%0d\n",
+            curr_class_qualifier.is_identifier);
+    fprintf(f_debug, "type = %s", class_type == NULL ? NULL : "");
+    if (class_type != NULL) db_abbreviated_type(class_type);
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-  return is_qualifier;
-}  /* get_class_qualifier */
+  return curr_class_qualifier.is_identifier;
+}  /* is_generalized_identifier_start */
 
 
-a_boolean get_qualified_name(an_id_lookup_options_set options)
+a_boolean coalesce_generalized_identifier
+              (an_identifier_options_set        options,
+               a_class_qualifier_ptr            cqp,
+               a_boolean                        *err)
 /*
-If the current token is an identifier, see if it is the start of a
-qualified name of the form
+Scans a generalized identifier but does not attempt to lookup the
+identifier.  The consists of scanning an optional class qualifier,
+scanning the tokens for multi-token identifiers such as "operator +"
+and setting the locator flags to reflect what was scanned.
 
-   A::x
-   A::B::x
-   ::y
-   ::A::y
-   etc.
+A generalized identifier is an optional class qualifier followed by:
 
-If a qualified name is next, scan it and look up the qualified name,
-set specific_symbol in locator_for_curr_id to point to the symbol
-for the qualified identifier, and return TRUE.  This is recognized only
-in C++ mode.  If a qualified name is not next, leave specific_symbol
-as it is and return FALSE.  options is a set of special options,
-as a bit set; they control the lookup of (only) the final identifier in the
-qualified name.  They may not include constraints (such as IDL_MUST_BE_CLASS).
-The flag IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR, if present, suppresses
-the error on the final identifier not being found on lookup.
+	i
+	operator +	When options & GID_DISALLOW_OPERATOR_NAME = FALSE
+	operator int	When options & GID_DISALLOW_OPERATOR_NAME = FALSE
+	~A		When options & GID_DTOR_RECOGNIZED = TRUE
+
+Returns TRUE or FALSE under the same conditions as the routine
+is_generalized_identifier_start (see the comments at the beginning of
+is_generalized_identifier_start for more information).
+
+When we return TRUE, the current token will always be tok_identifier.
+If a class qualifier was present, the class qualifier description is
+copied to the address pointed to by "cqp" if "cqp" is not NULL.
+
+The "options" parameter allows the caller to specify the types of
+identifiers to be recognized and/or allowed.  *err will be TRUE
+if an error occurs in this routine or in one of the routines we call,
+otherwise it will be set FALSE.
 */
 {
-  a_boolean            is_qualified_name = FALSE, qualifier_err, okay;
-  a_boolean            is_file_scope_qualifier, has_global_qualifier;
-  a_boolean            is_ptr_to_member;
-  a_boolean            suppress_error;
-  a_type_ptr           class_type;
-  a_source_position    start_position;
-  a_symbol_header_ptr  class_symbol_header;
-
-  db_enter(4, "get_qualified_name");
-#if CHECKING
-  if (options & IDL_CONSTRAINTS) {
-    internal_error("get_qualified_name: options may not have constraints");
+  a_boolean    		return_value = FALSE;
+  a_source_position	start_position;
+  a_class_qualifier     local_class_qualifier;
+  db_enter(4, "coalesce_generalized_identifier");
+  /* We need save the class qualifier structure from
+     is_generalized_identifier_start, so if the pointer passed from the
+     caller is NULL, set it to point to a local qualifier structure. */
+  if (cqp == NULL) cqp = &local_class_qualifier;
+  clear_class_qualifier(cqp);
+  *err = FALSE;
+  if (C_dialect != C_dialect_cplusplus) goto exit;
+  if (curr_token == tok_identifier &&
+      locator_for_curr_id.specific_symbol != NULL) {
+    /* The current token is already a qualified name or specific symbol. */
+    return_value = TRUE;
+    goto exit;
   }  /* if */
-#endif /* CHECKING */
-  if (C_dialect == C_dialect_cplusplus) {
-    if (is_qualified_name_start()) {  /* Identifier or "::". */
-      if (curr_token == tok_identifier &&
-          locator_for_curr_id.specific_symbol != NULL) {
-        /* The current token is already a qualified name or specific symbol. */
-        is_qualified_name = locator_for_curr_id.is_qualified_name;
+  start_position = pos_curr_token;
+  /* is_generalized_identifier will scan the qualified name (if any) and
+     determine whether we are the start of some sort of an identifier.
+     If we aren't, we simply return.  Otherwise continue to analyze the
+     identifier. */
+  if (!is_generalized_identifier_start(options, err)) goto exit;
+  return_value = TRUE;
+  /* Make a copy of the current class qualifier structure. */
+  *cqp = curr_class_qualifier;
+  /* The current token will be a class qualifier if one was present. */
+  if (curr_token == tok_class_qualifier) {
+    a_type_ptr   class_type = cqp->class_type;
+    /* Save the start position of the qualified name
+       (is_generalized_identifier_start puts it in error_position). */
+    start_position = error_position;
+    /* Make sure that the class has been instantiated and is not
+       an incomplete type. */
+    if (!*err && class_type != NULL) {
+     check_for_uninstantiated_template_class(class_type);
+      /* Check for an incomplete type.  If the type is incomplete, also
+         check whether the type is currently being defined.  We determine
+         this by checking the assoc_scope field of the class type
+         supplement. */
+      if (is_incomplete_type(class_type) &&
+          class_type->variant.class_struct_union.
+                      extra_info->assoc_scope == NULL) {
+        pos_error(ec_incomplete_type_not_allowed, &start_position);
+        *err = TRUE;
+      }  /* if */
+    }  /* if */
+    /* Get the token following the qualifier. */
+    get_token();
+  }  /* if */
+  set_err_pos_to_curr_token();
+  /* Process the identifier after the optional qualifier.  Coalesce
+     multi-token identifiers (such as "operator +").  This is done
+     my scanning the tokens of the identifier, updating the locator
+     to reflect what was scanned, and setting curr_token to
+     tok_identifier.  Most of this processing is actually done by
+     get_destructor_name and get_optname.  */
+  if ((options & GID_DTOR_RECOGNIZED) &&
+      !cqp->is_file_scope_qualifier) {
+    a_symbol_header_ptr  class_symbol_header;
+    /* The name can be a destructor name like "~A". */
+    (void)get_destructor_name(&class_symbol_header);
+  }  /* if */
+  /* The name can be an operator name like "operator+". */
+  (void)get_opname();
+  /* The current token must now be the final identifier of the
+     qualified name, e.g., "x" in "A::B::x".  In the destructor and
+     operator name cases, curr_token has been changed to
+     tok_identifier. */
+  if (curr_token != tok_identifier) {
+    /* The final identifier is missing.  Unget the current token and
+       build an error locator. */
+    unget_token();
+    curr_token = tok_identifier;
+    /* syntax_error is deliberately not called. */
+    error(ec_exp_identifier);
+    /* For the error cases, set the current locator to an error locator
+       with specific_symbol pointing to a newly-created error
+       symbol of kind sk_undefined. */
+    make_specific_symbol_error_locator(&locator_for_curr_id);
+  }  /* if */
+  /* Update the locator with information about the qualifier (if any)
+     that was discovered by is_generalized_identifier_start. */
+  locator_for_curr_id.is_qualified_name = cqp->has_qualifier;
+  locator_for_curr_id.is_global_qualified_name = cqp->has_global_qualifier;
+  /* Since we're returning a pseudo-token, set pos_curr_token. */
+  pos_curr_token = start_position;
+  /* Perform error checks as specified in "options". */
+  *err |= check_for_generalized_identifier_errors(options, &error_position);
+
+exit:
+  db_exit();
+  return (return_value);
+}  /* coalesce_generalized_identifier */
+
+
+
+
+a_boolean coalesce_and_lookup_qualified_name
+              (an_identifier_options_set        options,
+               a_class_qualifier_ptr            cqp,
+               a_boolean			*err)
+/*
+Coalesces a generalized identifier (see coalase_generalized_identifier).
+If the identifier was qualified (e.g., A::x or ::x) the identifier
+is looked up.  Returns TRUE if identifier is a qualified name.
+*/
+{
+  a_class_qualifier	local_class_qualifier;
+  a_boolean             return_value = FALSE;
+  a_boolean		okay = FALSE;
+  db_enter(4, "coalesce_and_lookup_qualified_name");
+
+  *err = FALSE;
+  if (C_dialect != C_dialect_cplusplus) goto exit;
+  /* We need get the class qualifier structure from
+     coalesce_generalized_identifier, so if the pointer passed from the
+     caller is NULL, set it to point to a local qualifier structure. */
+  if (cqp == NULL) cqp = &local_class_qualifier;
+  clear_class_qualifier(cqp);
+  if (curr_token == tok_identifier &&
+      locator_for_curr_id.specific_symbol != NULL) {
+    /* The current token is already a qualified name or specific symbol. */
+    return_value = locator_for_curr_id.is_qualified_name;
+    goto exit;
+  }  /* if */
+  /* Mask the error flags out of the options flags to prevent the errors
+     from being diagnosed more than once. */
+  if (coalesce_generalized_identifier(options & ~GID_ERROR_FLAGS, cqp, err) &&
+      cqp->has_qualifier && curr_token == tok_identifier) {
+    a_type_ptr   class_type = cqp->class_type;
+    /* The final identifier is present. */
+    return_value = TRUE;
+    if (cqp->is_file_scope_qualifier) {
+      /* Look up the id in the file scope. */
+      if (file_scope_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS) != NULL) {
+        okay = TRUE;
       } else {
-        /* See if there is a class qualifier (the "A::" part of "A::x"), and
-           if so, get it and determine the class it represents. */
-        if (get_class_qualifier(&class_type, &is_file_scope_qualifier,
-                                &has_global_qualifier, &is_ptr_to_member,
-                                &qualifier_err)) {
-          /* A class qualifier is present. */
-          /* Save the start position of the qualified name (get_class_qualifier
-             puts it in error_position). */
-          start_position = error_position;
-          /* Make sure that the class has been instantiated and is not
-             an incomplete type. */
-          if (!qualifier_err && class_type != NULL) {
-            check_for_uninstantiated_template_class(class_type);
-            /* Check for an incomplete type.  If the type is incomplete, also
-               check whether the type is currently being defined.  We determine
-               this by checking the assoc_scope field of the class type
-               supplement. */
-            if (is_incomplete_type(class_type) &&
-                class_type->variant.class_struct_union.
-                            extra_info->assoc_scope == NULL) {
-              pos_error(ec_incomplete_type_not_allowed, &start_position);
-              qualifier_err = TRUE;
-            }  /* if */
-          }  /* if */
-          /* Get the token following the qualifier. */
-          get_token();
-          set_err_pos_to_curr_token();
-          okay = FALSE;
-          if (!is_file_scope_qualifier) {
-            /* The name can be a destructor name like "~A". */
-            (void)get_destructor_name(&class_symbol_header);
-          }  /* if */
-          /* The name can be an operator name like "operator+". */
-          (void)get_opname();
-          /* The current token must now be the final identifier of the
-             qualified name, e.g., "x" in "A::B::x".  In the destructor and
-             operator name cases, curr_token has been changed to
-             tok_identifier. */
-          if (curr_token != tok_identifier) {
-            /* The final identifier is missing.  Unget the current token
-               and construct a fake tok_identifier token. */
-            unget_token();
-            curr_token = tok_identifier;
-            /* The locator is set below. */
-            /* syntax_error is deliberately not called. */
-            error(ec_exp_identifier);
-          } else if (!qualifier_err) {
-            /* The final identifier is present. */
-            suppress_error = (options &
-                              IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR);
-            if (is_file_scope_qualifier) {
-              /* Look up the id in the file scope. */
-              if (file_scope_id_lookup(&locator_for_curr_id,
-                                       options) != NULL) {
-                okay = TRUE;
-              } else {
-                /* The identifier could not be found in the file scope. */
-                if (!suppress_error) {
-                  str_error(ec_name_not_found_in_file_scope,
-                            locator_for_curr_id.symbol_header->identifier);
-                }  /* if */
-              }  /* if */
-            } else {
+        /* The identifier could not be found in the file scope. */
+        str_error(ec_name_not_found_in_file_scope,
+                  locator_for_curr_id.symbol_header->identifier);
+      }  /* if */
+    } else {
+      if (!*err) {
 #if CHECKING
-              if (is_template_param_type(class_type)) {
-                internal_error("not implemented: class qualifier using template parameter in template declaration");
-              }  /* if */
+        if (is_template_param_type(class_type)) {
+         internal_error("not implemented: class qualifier using template parameter in template declaration");
+        }  /* if */
 #endif /* CHECKING */
-              /* Look up the id in the class scope. */
-              if (class_qualified_id_lookup(&locator_for_curr_id,
-                                            class_type, options) != NULL) {
-                okay = TRUE;
-                /* Ambiguity and access control checking is not done because
-                   we don't know yet what kind of reference this is. */
-              } else {
-                /* The identifier could not be found in the class scope. */
-                if (!suppress_error) {
-                  pos_stsy_error(ec_not_a_member, &error_position,
-                                 locator_for_curr_id.symbol_header->identifier,
-                                 (a_symbol_ptr)class_type->
-                                                    source_corresp.assoc_info);
-                }  /* if */
-              }  /* if */
-            }  /* if */
-          }  /* if */
-          if (!okay) {
-            /* For the error cases, set the current locator to an error locator
-               with specific_symbol pointing to a newly-created error
-               symbol of kind sk_undefined. */
-            make_specific_symbol_error_locator(&locator_for_curr_id);
-          }  /* if */
-          locator_for_curr_id.is_qualified_name = is_qualified_name = TRUE;
-          locator_for_curr_id.is_global_qualified_name = has_global_qualifier;
-          error_position = start_position;
-          /* Since we're returning a pseudo-token, set pos_curr_token. */
-          pos_curr_token = start_position;
-        }  /* if */
-      }  /* if */
-#if DEBUG
-      if (debug_level >= 4) {
-        if (is_qualified_name) {
-          fprintf(f_debug, "get_qualified_name: name = %s\n",
-                  locator_for_curr_id.specific_symbol->header->identifier);
+        /* Look up the id in the class scope. */
+       if (class_qualified_id_lookup(&locator_for_curr_id,
+                                      class_type, IDL_NO_OPTIONS) != NULL) {
+          okay = TRUE;
+          /* Ambiguity and access control checking is not done because
+             we don't know yet what kind of reference this is. */
         } else {
-          fprintf(f_debug, "get_qualified_name: not qualified name\n");
+          /* The identifier could not be found in the class scope. */
+          pos_stsy_error(ec_not_a_member, &error_position,
+                         locator_for_curr_id.symbol_header->identifier,
+                         (a_symbol_ptr)class_type->
+                                            source_corresp.assoc_info);
         }  /* if */
-      }  /* if */
-#endif /* DEBUG */
+      }  /* if */ 
+    }  /* if */
+    if (!okay) {
+      /* For the error cases, set the current locator to an error locator. */
+      make_specific_symbol_error_locator(&locator_for_curr_id);
     }  /* if */
   }  /* if */
+  /* Set the error position to the beginning of the class qualifier, if
+     present, so that subsequent errors will point to the start of the
+     whole qualifier name. */
+  if (cqp->has_qualifier) {
+    error_position = cqp->source_position;
+  }  /* if */
+  /* Perform error checks as specified in "options". */
+  *err |= check_for_generalized_identifier_errors(options, &error_position);
+
+#if DEBUG
+  if (debug_level >= 4) {
+    if (return_value) {
+      fprintf(f_debug, "coalesce_and_lookup_qualified_name: name = %s\n",
+              locator_for_curr_id.specific_symbol->header->identifier);
+    } else {
+      fprintf(f_debug, "coalesce_and_lookup_qualified_name: not qualified name\n");
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+exit:
   db_exit();
-  return is_qualified_name;
-}  /* get_qualified_name */
+  return return_value;
+}  /* coalesce_and_lookup_qualified_name */
 
 
 
-
-a_symbol_ptr get_normal_id_or_qualified_name(an_id_lookup_options_set options)
+a_symbol_ptr coalesce_and_lookup_generalized_identifier
+                 (an_identifier_options_set        options,
+                  an_identifier_lookup_mode        mode,
+                  a_boolean                        *err)
 /*
 The current token is the start of a name, qualified or not.
-Call get_qualified_name and then normal_id_lookup, and return a
+Call coalesce_and_lookup_qualified_name and then normal_id_lookup, and return a
 pointer to the symbol found, if any.  options is a bit set of options
 controlling the lookup of the final id of a qualified name or the
 normal identifier.  The caller should guarantee that is_qualified_name()
 is TRUE (specifically, that "::new" or "::delete" is not next).
 */
 {
-  a_symbol_ptr symbol;
-  a_boolean    err;
+  a_symbol_ptr			symbol;
+  an_id_lookup_options_set	idl_options;
+  a_boolean			templ_err = FALSE;
 
-  if (get_qualified_name(options)) {
+  /* Mask the error flags out of the options flags to prevent the errors
+     from being diagnosed more than once. */
+  if (coalesce_and_lookup_qualified_name(options & ~GID_ERROR_FLAGS,
+                                         (a_class_qualifier_ptr)NULL, err)) {
     /* The identifier is a qualified name. */
     symbol = locator_for_curr_id.specific_symbol;
 #if CHECKING
     if (symbol == NULL) {
-      internal_error(
-                   "get_normal_id_or_qualified_name: specific_symbol is NULL");
+      internal_error
+       ("coalesce_and_lookup_generalized_identifier: specific_symbol is NULL");
     }  /* if */
 #endif /* CHECKING */
     reduce_projection_symbol_to_fundamental_symbol(symbol);
   } else {
 #if CHECKING
     if (curr_token != tok_identifier) {
-      internal_error("get_normal_id_or_qualified_name: not identifier");
+      internal_error
+               ("coalesce_and_lookup_generalized_identifier: not identifier");
     }  /* if */
 #endif /* CHECKING */
     /* Normal identifier -- look it up. */
-    symbol = normal_id_lookup(&locator_for_curr_id, options);
+    /* Translated the general identifier options into ID lookup options. */
+    switch (mode) {
+      case ilm_class:
+        idl_options = IDL_MUST_BE_CLASS;
+        break;
+      case ilm_tag:
+        idl_options = IDL_MUST_BE_TAG;
+        break;
+      case ilm_tentative_type:
+        idl_options = IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME;
+        break;
+      case ilm_normal:
+        idl_options = IDL_NO_OPTIONS;
+        break;
+#if CHECKING
+      default:
+        internal_error("coalesce_and_lookup_generalized...:bad lookup mode");
+#endif /* CHECKING */
+    }  /* switch */
+    symbol = normal_id_lookup(&locator_for_curr_id, idl_options);
     /* If this is the symbol of a class template then this must be a reference
        to a instance of the class template.  Scan the argument list and
        get a pointer to the symbol for the specific instance of the template
        class. */
-    symbol = check_for_class_template(symbol, &err);
+    symbol = check_for_class_template(symbol, options, &templ_err);
+    *err |= templ_err;
+    /* If an error occurred while scanning the template argument list,
+       return a NULL symbol.  The locator will already be set to an error
+       locator. */
+    if (templ_err) symbol = NULL;
   }  /* if */
+  /* Perform error checks as specified in "options". */
+  *err |= check_for_generalized_identifier_errors(options, &error_position);
   return symbol;
-}  /* get_normal_id_or_qualified_name */
+}  /* coalesce_and_lookup_generalized_identifier */
+
 
 
 #if DEBUG
@@ -5148,11 +5589,7 @@ of the front end.
   avail_source_line_modifs = NULL;
   sequence_id_for_source_line_modifs = 0;
   delete_source_from_loc = NULL;
-  curr_class_qualifier.class_type = NULL;
-  curr_class_qualifier.has_global_qualifier = FALSE;
-  curr_class_qualifier.is_file_scope_qualifier = FALSE;
-  curr_class_qualifier.is_ptr_to_member = FALSE;
-  curr_class_qualifier.err = FALSE;
+  clear_class_qualifier(&curr_class_qualifier);
   /* Clear the set of tokens on which to stop a flush following a
      syntax error. */
   clear_stop_tokens();

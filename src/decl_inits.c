@@ -1597,7 +1597,12 @@ initialized.  These are addressed in the course of the processing.
           goto scan_paren;
         }  /* if */
         /* Scan the base class name or member name. */
-        member_or_base_sym = get_normal_id_or_qualified_name(IDL_NO_OPTIONS);
+        {
+          a_boolean gid_err;
+          member_or_base_sym = coalesce_and_lookup_generalized_identifier
+                                   (GID_NO_OPTIONS, ilm_normal, &gid_err);
+          err |= gid_err;
+        }
         if (member_or_base_sym == NULL ||
             member_or_base_sym->kind == (a_symbol_kind)sk_undefined) {
           /* No such name or qualified name in the symbol table. */

@@ -1516,11 +1516,8 @@ extern void reference_to_symbol(a_symbol_reference_kind kind,
                                 a_source_position       *source_position);
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
-
-extern a_symbol_ptr coalesce_template_class_reference
-			(a_symbol_ptr		   template_symbol,
-			 an_identifier_options_set options,
-			 a_boolean		   *err);
+extern a_boolean
+       current_instantiation_symbol_if_class_template(a_symbol_ptr *sym);
 extern void update_instantiation_required_flag
                                   (a_function_instantiation_entry_ptr fiep,
                                    a_boolean                          value);
@@ -1585,6 +1582,16 @@ extern a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
   ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
    (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
    (sym)->kind == (a_symbol_kind)sk_enum_tag)
+
+/* Return TRUE if a symbol is a tag symbol, a class template symbol,
+   or a type template parameter. */
+#define is_tag_or_tag_proxy_symbol(sym)                               \
+  ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
+   (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
+   (sym)->kind == (a_symbol_kind)sk_enum_tag ||			      \
+   (sym)->kind == (a_symbol_kind)sk_class_template ||		      \
+   ((sym)->kind == (a_symbol_kind)sk_type &&                          \
+    (sym)->variant.type->kind == (a_type_kind)tk_template_param))
 
 /* Return TRUE if a symbol is a type symbol.   A type symbol is
    one defined as a typedef, or, in C++, as a class, struct, union,

@@ -173,7 +173,8 @@ typedef int an_identifier_options_set;
 			/* Enables recognition of destructor names
 			   ("~" followed by an identifier).  The default
 			   is to not recognize "~" as the start of an
-			   identifier (no error is issued). */
+			   identifier (no error is issued).  Destructor
+			   names are always recognized following qualifiers. */
 #define GID_DISALLOW_QUALIFIED_NAME   0x04
 			/* Causes an error to be issued if the identifier
 			   is a qualified name (either A::B or ::i). */
@@ -184,13 +185,20 @@ typedef int an_identifier_options_set;
 			/* Causes an error to be issued if the identifier
 			   is an operator name of the form "operator =" or
 			   "operator int"). */
+#define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
+			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
+			 GID_DISALLOW_OPERATOR_NAME)
+			/* Contains all the flags used by the routine
+			   check_for_generalized_identifier_errors.
+			   Is used to mask the error flags so that errors
+			   are only reported once. */
 
 /* Lookup modes supported by coalesce_and_lookup_generalized_identifier. */
 typedef enum /* an_identifier_lookup_mode */ {
   ilm_normal,		/* Find any symbol. */
   ilm_class,		/* Find only class names. */
   ilm_tag,		/* Find only tag names. */
-  ilm_tenatative_type	/* Uses IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME
+  ilm_tentative_type	/* Uses IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME
 			   to do the lookup. */
 } an_identifier_lookup_mode;
 
@@ -784,6 +792,39 @@ EXTERN an_error_code
 			   TRUE, since no diagnostic was put out in that
 			   case. */
 
+
+/* Contains a description of a class qualifier or pointer to member. */
+typedef struct a_class_qualifier *a_class_qualifier_ptr;
+typedef struct a_class_qualifier {
+  a_type_ptr    class_type;
+                        /* Points to the class type described by the class
+                           qualifier.  NULL for file scope qualifiers. */
+  a_boolean     has_qualifier;
+			/* TRUE if there was a qualifier. */
+  a_boolean     has_global_qualifier;
+                        /* TRUE if the qualifier begins with a unary "::". */
+  a_boolean     is_file_scope_qualifier;
+                        /* TRUE for file scope qualifiers. */
+  a_boolean     is_identifier;
+			/* TRUE if the thing that follows the class qualifier
+			   is an identifier including "operator +",
+			   "operator int" and, if GID_DTOR_RECOGNIZED was
+			   specified, destructor names (i.e., ~A). */
+  a_boolean     err;
+                        /* TRUE if there was an error while scanning the
+                           qualifier. */
+  a_source_position
+                source_position;
+                        /* The position of the start of the qualifier. */
+} a_class_qualifier;
+
+
+/*
+Contains information about the current class qualifier.  Valid only when
+the current token is tok_class_qualifier or tok_ptr_to_member.
+*/
+EXTERN a_class_qualifier curr_class_qualifier;
+
 /*
 The stop token array: If a syntactic error occurs, flush_tokens
 will be called.  It will throw away tokens until it finds one for which
@@ -840,7 +881,9 @@ enum a_token_extra_info_kind_tag {
   teik_none,		/* No extra information, i.e., normal token. */
   teik_identifier,	/* Extra information for an identifier. */
   teik_constant,	/* Extra information for a literal constant. */
-  teik_lint_and_pragma	/* Extra information for a lint comment or pragma. */
+  teik_lint_and_pragma,	/* Extra information for a lint comment or pragma. */
+  teik_class_qualifier	/* Extra information for a class qualifier or
+			   pointer to member. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_token_extra_info_kind;
@@ -872,6 +915,11 @@ typedef struct a_cached_token {
 		constant;
 			/* Pointer to a constant entry (in front end storage)
 			   giving the value for the literal constant. */
+    /* When extra_info_kind == teik_class_qualifier: */
+    a_class_qualifier
+		class_qualifier;
+			/* Information describing a class qualifier or pointer
+			   to member token. */
     /* When extra_info_kind == teik_lint_and_pragma: */
     a_lint_and_pragma_state
 		lint_and_pragma_state;
@@ -899,44 +947,6 @@ typedef struct a_reusable_cache_entry {
                            to be rescanned. */
 } a_reusable_cache_entry;
 
-
-
-/* Contains a description of a class qualifier or pointer to member. */
-typedef struct a_class_qualifier *a_class_qualifier_ptr;
-typedef struct a_class_qualifier {
-  a_type_ptr    class_type;
-                        /* Points to the class type described by the class
-                           qualifier.  NULL for file scope qualifiers. */
-  a_boolean     has_qualifier;
-			/* TRUE if there was a qualifier. */
-  a_boolean     has_global_qualifier;
-                        /* TRUE if the qualifier begins with a unary "::". */
-  a_boolean     is_file_scope_qualifier;
-                        /* TRUE for file scope qualifiers. */
-  a_boolean     is_identifier;
-			/* TRUE if the thing that follows the class qualifier
-			   is an identifier including "operator +",
-			   "operator int" and, if GID_DTOR_RECOGNIZED was
-			   specified, destructor names (i.e., ~A). */
-#if 1
-  a_boolean     is_ptr_to_member;
-			/* TRUE if the qualifier was actually a pointer
-	 		   to member (i.e., A::*). */
-#endif
-  a_boolean     err;
-                        /* TRUE if there was an error while scanning the
-                           qualifier. */
-  a_source_position
-                source_position;
-                        /* The position of the start of the qualifier. */
-} a_class_qualifier;
-
-
-/*
-Contains information about the current class qualifier.  Valid only when
-the current token is tok_class_qualifier or tok_ptr_to_member.
-*/
-EXTERN a_class_qualifier curr_class_qualifier;
 
 
 /* Initialize a token cache. */
@@ -1047,38 +1057,54 @@ extern a_boolean f_get_opname(void);
   ((curr_token == tok_operator) ? f_get_opname() : FALSE)
 /* Test for ":: new" and ":: delete". */
 extern a_boolean is_global_new_or_delete(void);
+
+extern a_symbol_ptr coalesce_template_class_reference
+			(a_symbol_ptr		   template_symbol,
+			 an_identifier_options_set options,
+			 a_boolean		   *err);
+
+/* Macro to check prevent calling the error checking function unless some
+   error flags have been specified. */
+#define check_for_generalized_identifier_errors(options, pos)		\
+  (((options & GID_ERROR_FLAGS) != 0) ?					\
+	f_check_for_generalized_identifier_errors(options, pos) : FALSE)
+
+extern a_boolean f_check_for_generalized_identifier_errors
+			(an_identifier_options_set options,
+                         a_source_position         *pos);
 extern a_boolean is_generalized_identifier_start
                      (an_identifier_options_set options,
                       a_boolean                 *err);
-#if 1
-/* Get a C++ class-qualifier, like "A::". */
-extern a_boolean get_class_qualifier(a_type_ptr    *class_type,
-                                     a_boolean     *is_file_scope_qualifier,
-                                     a_boolean     *has_global_qualifier,
-                                     a_boolean     *is_ptr_to_member,
-                                     a_boolean     *err);
-#endif
-/* Get a C++ qualified name, like "A::x". */
-/* See symbol_tbl.h for the options set definition. */
-extern a_boolean get_qualified_name(an_id_lookup_options_set options);
+extern a_boolean coalesce_generalized_identifier
+                     (an_identifier_options_set        options,
+                      a_class_qualifier_ptr            cqp,
+                      a_boolean                        *err);
+extern a_boolean coalesce_and_lookup_qualified_name
+                     (an_identifier_options_set        options,
+                      a_class_qualifier_ptr            cqp,
+                      a_boolean			       *err);
+extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
+                        (an_identifier_options_set        options,
+                         an_identifier_lookup_mode        mode,
+                         a_boolean                        *err);
+
 /* Return TRUE if the current token might be the start of a C++ qualified
-   name.  Don't be fooled by "::new" or "::delete". */
+   name (including a simple identifier).  If the current token is
+   tok_class_qualifier or tok_ptr_to_member we can simply return TRUE.
+   Otherwise call is_generalized_identifier to do a more thorough analysis. */
 #define is_qualified_name_start()                                        \
-  (curr_token == tok_identifier || curr_token == tok_class_qualifier ||  \
-   curr_token == tok_ptr_to_member ||					 \
-   (curr_token == tok_colon_colon && !is_global_new_or_delete()))
+  (curr_token == tok_class_qualifier || 				 \
+   is_generalized_identifier_start(GID_NO_OPTIONS,			 \
+                                   (a_boolean *)NULL))
+
 /* Same thing for use in switch statements, in the form
      case QUALIFIED_NAME_START_CASE:
    Note that one must check for "::new" and "::delete" separately.
 */
 #define QUALIFIED_NAME_START_CASE tok_identifier:	\
                              case tok_colon_colon:	\
-                             case tok_class_qualifier:	\
-			     case tok_ptr_to_member
+                             case tok_class_qualifier
 
-/* Get a C++ qualified name or a normal id. */
-extern a_symbol_ptr get_normal_id_or_qualified_name(
-                                             an_id_lookup_options_set options);
 
 /* Push a file onto the input stack. */
 extern void push_input_stack (char                       *file_name,
