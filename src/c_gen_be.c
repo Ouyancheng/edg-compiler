@@ -2191,7 +2191,7 @@ IL entity.
 {
   a_pragma_ptr pp;
 
-  for (pp = scope->pragma_list; pp != NULL; pp = pp->next) {
+  for (pp = scope->pragmas; pp != NULL; pp = pp->next) {
     /* Process only pragmas that are not bound to an entity. */
     if (pp->entity.ptr == NULL) {
       dump_pragma(pp);

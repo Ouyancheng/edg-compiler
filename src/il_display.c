@@ -2659,7 +2659,7 @@ do_assoc_type:
   disp_ptr("scopes", (char *)ptr->scopes, iek_scope);
   disp_ptr("dynamic_inits", (char *)ptr->dynamic_inits, iek_dynamic_init);
 #endif /* ifdef CFE */
-  disp_ptr("pragma_list", (char *)ptr->pragma_list, iek_pragma);
+  disp_ptr("pragmas", (char *)ptr->pragmas, iek_pragma);
 #ifdef FFE
   disp_ptr("entries", (char *)ptr->entries, iek_entry_description);
   disp_ptr("namelist_groups", (char *)ptr->namelist_groups,

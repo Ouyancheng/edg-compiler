@@ -646,9 +646,9 @@ typedef struct a_source_correspondence {
 			/* TRUE if an entry of type a_pragma has been created
 			   and bound to this entity.  The pragma entry, which
 			   will contain a pointer to this entity, is found by
-			   searching the pragma_list of the scope entry for
+			   searching the pragmas list of the scope entry for
 			   the file scope if this entity belongs to the
-			   file-scope memory region or the pragma_list of
+			   file-scope memory region or the pragmas list of
 			   the current function scope otherwise. */
 #ifdef CIL
   unsigned int  is_local_to_function:1;
@@ -4355,7 +4355,7 @@ typedef struct a_statement {
 			/* TRUE if an entry of type a_pragma has been created
 			   and bound to this statement.  The pragma entry,
 			   which will contain a pointer to this statement, is
-			   found by searching the pragma_list of the scope
+			   found by searching the pragmas list of the scope
 			   entry for the current function scope. */
   an_expr_node_ptr
                 expr;
@@ -4907,7 +4907,7 @@ typedef struct a_scope {
 			   the points within the code where each initialization
 			   should be done. */
 #endif /* ifdef CIL */
-  a_pragma_ptr	pragma_list;
+  a_pragma_ptr	pragmas;
 			/* A linked list of pragma entries.  They may be
 			   bound to specific declarations or statements or
 			   they may be unbound, meaning they have general

@@ -7093,23 +7093,23 @@ promotion_scope, at the position indicated by *insert_position, and
       promote_routines(scope);
       /* Types are promoted to promotion_scope. */
       promote_types(scope, promotion_scope, insert_pointer);
-      if (scope->pragma_list != NULL) {
+      if (scope->pragmas != NULL) {
         /* There are pragmas in the class, so promote them to the file
            scope too. */
-        a_pragma_ptr class_pragma_list = scope->pragma_list;
+        a_pragma_ptr class_pragmas = scope->pragmas;
         a_pragma_ptr pp, last_fs_pragma;
         /* Find the end of the class pragma list. */
-        for (pp = class_pragma_list; pp->next != NULL; pp = pp->next) {}
+        for (pp = class_pragmas; pp->next != NULL; pp = pp->next) {}
         /* Put the class pragma list on the end of the file-scope pragma
            list. */
         last_fs_pragma = scope_stack[DEPTH_OF_FILE_SCOPE].last_pragma;
         if (last_fs_pragma == NULL) {
-          il_header.primary_scope->pragma_list = class_pragma_list;
+          il_header.primary_scope->pragmas = class_pragmas;
         } else {
-          last_fs_pragma->next = class_pragma_list;
+          last_fs_pragma->next = class_pragmas;
         }  /* if */
         scope_stack[DEPTH_OF_FILE_SCOPE].last_pragma = pp;
-        scope->pragma_list = NULL;
+        scope->pragmas = NULL;
       }  /* if */
     }  /* if */
   }  /* if */

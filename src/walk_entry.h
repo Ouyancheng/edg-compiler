@@ -868,7 +868,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
         walk_list(ptr->dynamic_inits, a_dynamic_init_ptr, iek_dynamic_init);
 #endif /* ifdef CFE */
-        walk_list(ptr->pragma_list, a_pragma_ptr, iek_pragma);
+        walk_list(ptr->pragmas, a_pragma_ptr, iek_pragma);
 #ifdef FFE
         walk_list(ptr->entries, an_entry_description_ptr,
                   iek_entry_description);

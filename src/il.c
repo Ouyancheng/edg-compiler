@@ -6757,7 +6757,7 @@ void add_to_pragma_list(a_pragma_ptr   pragma,
                         a_boolean      at_file_scope,
 			a_type_ptr     class_type)
 /*
-Add pragma to the end of the pragma_list of the appropriate scope.
+Add pragma to the end of the pragmas list of the appropriate scope.
 If class_type is not NULL, the scope of the class is used.  Otherwise,
 either the file scope or the current scope is used, depending on the
 value of at_file_scope.
@@ -6792,12 +6792,12 @@ value of at_file_scope.
   check_assertion_str(ssep == NULL ? TRUE : (in_file_scope(pragma) ==
                          (ssep->il_memory_region == FILE_SCOPE_REGION_NUMBER)),
                       "add_to_pragma_list: memory region mismatch");
-  if (sp->pragma_list == NULL) {
-    sp->pragma_list = pragma;
+  if (sp->pragmas == NULL) {
+    sp->pragmas = pragma;
   } else if (ssep == NULL) {
     /* No scope stack entry, find the end of the pragma list.  Note that
-       the case where sp->pragma_list is NULL is already tested above. */
-    a_pragma_ptr	end_of_list = sp->pragma_list;
+       the case where sp->pragmas is NULL is already tested above. */
+    a_pragma_ptr	end_of_list = sp->pragmas;
     while (end_of_list->next != NULL) end_of_list = end_of_list->next;
     end_of_list->next = pragma;
   } else {
@@ -6849,7 +6849,7 @@ pragma has not yet been found for the given IL entity).
       /* The pragma must be on the file scope's pragma list. */
       sp = il_header.primary_scope;
     }  /* if */
-    assoc_pragma = sp->pragma_list;
+    assoc_pragma = sp->pragmas;
   }  /* if */
   for (; assoc_pragma != NULL; assoc_pragma = assoc_pragma->next) {
     if (assoc_pragma->entity.ptr == il_entity) break;
@@ -6918,7 +6918,7 @@ points to the associated routine if the kind is sck_function.
   sp->asm_entries         = NULL;
   sp->scopes              = NULL;
   sp->dynamic_inits       = NULL;
-  sp->pragma_list         = NULL;
+  sp->pragmas             = NULL;
   sp->depth_in_scope_stack = NO_SCOPE_DEPTH;
 #ifdef FIL
   sp->entries             = NULL;
