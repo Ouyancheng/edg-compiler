@@ -904,6 +904,7 @@ ec_member_partial_spec_not_in_class;;"a partial specialization of a member class
 ec_partial_spec_nontype_expr;;"a partial specialization nontype argument must be the name of a nontype parameter or a constant"
 ec_different_return_type_on_virtual_function_override;;"return type is not identical to return type %t of overridden virtual function %n"
 ec_cl_guiding_decls_option_only_in_cplusplus;;"option \"guiding_decls\" can be used only when compiling C++"
+ec_member_partial_spec_not_in_namespace;;"a partial specialization of a class template must be declared in the namespace of which it is a member"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

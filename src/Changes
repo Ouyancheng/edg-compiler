@@ -1,5 +1,18 @@
 Version 2.35
 
+1/14/97 Diagnosis of partial specializations in invalid scopes
+
+Certain invalid partial specialization declarations were accepted without
+a diagnostic being issued.  The appropriate errors are now issued.
+For example, the following partial specialization of N::A is invalid because
+such a partial specialization must initially be declared within namespace N.
+
+  namespace N {
+  template <class T1, class T2, int I> class A {};
+  }
+  template <class T, int I> class N::A<T, T*, I> {};
+
+
 1/13/97 C++-generating back end: source sequence entries for an instantiation
         that appears inside a class template definition
 

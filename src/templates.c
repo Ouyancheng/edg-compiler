@@ -2394,7 +2394,7 @@ included in the search.
     /* No match was found on the list, so do a partial instantiation of the
        template class based on the template arguments.  First create a symbol
        (but do not enter it into the symbol table, since class templates
-       are always looked up through the template. */
+       are always looked up through the template). */
     a_symbol_ptr			primary_template_sym;
     a_template_symbol_supplement_ptr	primary_tssp;
     sym = make_template_class_symbol(class_template_sym);
@@ -5461,6 +5461,85 @@ subordinate templates.
 }  /* check_for_prior_use_of_partial_spec */
 
 
+static a_boolean check_unqualified_template_redecl_scope(
+					a_tmpl_decl_state_ptr	decl_state,
+					a_symbol_ptr		sym,
+					a_symbol_locator	*locator)
+/*
+Make sure the current scope is a valid scope for sym to be redeclared.
+Return TRUE if an error was detected.
+*/
+{
+  a_scope_number	decl_scope_number;
+  a_boolean		result = FALSE;
+
+  decl_scope_number = scope_stack[decl_state->effective_decl_level].number;
+  if (sym->decl_scope != decl_scope_number) {
+    if (decl_state->is_template_friend) {
+      /* A scope mismatch is okay in a friend declaration. */
+    } else if (sym->is_error) {
+      /* Some other error occurred. */
+    } else {
+      pos_sy_error(ec_bad_scope_for_redeclaration,
+                   &locator->source_position, sym);
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* check_unqualified_template_redecl_scope */
+
+
+static a_boolean check_qualified_template_redecl_scope(
+					a_tmpl_decl_state_ptr	decl_state,
+					a_symbol_ptr		sym,
+					a_symbol_locator	*locator,
+					a_boolean		is_definition)
+/*
+Make sure the current scope is a valid scope for sym to be redeclared
+using a qualified name.  Return TRUE if an error was detected.
+*/
+{
+  a_scope_stack_entry_ptr	ssep =
+                                &scope_stack[decl_state->effective_decl_level];
+  a_namespace_ptr		nsp;
+  a_namespace_ptr		curr_nsp;
+  a_boolean			result = FALSE;
+
+  /* Get the namespace that is currently being defined. */
+  curr_nsp = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
+  nsp = parent_namespace_for_symbol(sym);
+  if (!locator->is_class_member && nsp == curr_nsp && nsp != NULL) {
+    /* The namespace is the same as the one currently being defined.
+       This is an error. */
+    pos_error(ec_qualifier_in_namespace_member_decl,
+              &locator->source_position);
+    result = TRUE;
+  } else if (!is_definition) {
+    /* A declaration using a qualified name.  This is only allowed if it
+       is a friend declaration. */
+    if (!decl_state->is_template_friend) {
+      pos_sy_error(ec_bad_scope_for_redeclaration,
+                   &locator->source_position, sym);
+      result = TRUE;
+    }  /* if */
+  } else if (decl_state->class_declared_in != NULL) {
+    /* A definition using a qualified name in a class scope.  This is
+       not allowed. */
+    pos_error(ec_qualifier_in_member_declaration, &locator->source_position);
+    result = TRUE;
+  } else if (!namespace_is_enclosed_by_scope(sym, ssep)) {
+    /* This definition appears within a namespace scope in which the name
+       cannot be defined -- it is a member (directly or indirectly) of a
+       namespace that is not enclosed by the current namespace scope
+       (see WP 7.3.1.4). */
+    pos_sy_error(ec_bad_scope_for_definition,
+                 &locator->source_position, sym);
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* check_qualified_template_redecl_scope */
+
+
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
@@ -5634,8 +5713,15 @@ instantiation.
         err = TRUE;
       }  /* if */
     } else if (is_nonreal_instance_class_symbol(sym)) {
+      a_scope_stack_entry_ptr	ssep =
+                                &scope_stack[decl_state->effective_decl_level];
       if (sym->is_class_member && decl_state->class_declared_in == NULL) {
         pos_error(ec_member_partial_spec_not_in_class,
+                  &locator.source_position);
+        err = TRUE;
+      } else if (!sym->is_class_member && sym->parent.namespace_ptr != NULL &&
+                 ssep->assoc_namespace != sym->parent.namespace_ptr) {
+        pos_error(ec_member_partial_spec_not_in_namespace,
                   &locator.source_position);
         err = TRUE;
       } else {
@@ -5708,67 +5794,36 @@ instantiation.
     sym = NULL;
     suppress_redecl_error = TRUE;
   }  /* if */
-  if (!locator.is_qualified_name && sym != NULL) {
-    /* Unless this is a friend declaration, an unqualified name must refer
-       to a name from the current scope. */
-    a_scope_number	decl_scope_number;
-    decl_scope_number = scope_stack[decl_state->effective_decl_level].number;
-    if (sym->decl_scope != decl_scope_number) {
-      if (decl_state->is_template_friend) {
-        /* A scope mismatch is okay in a friend declaration. */
-      } else if (sym->is_error) {
-        /* Some other error occurred. */
-      } else {
-        pos_sy_error(ec_bad_scope_for_redeclaration,
-                     &locator.source_position, sym);
-        sym = NULL;
-        suppress_redecl_error = TRUE;
-        set_to_named_error_locator(locator);
+  {
+    a_boolean	err = FALSE;
+    if (!locator.is_qualified_name) {
+      if (sym != NULL) {
+        /* Unless this is a friend declaration, an unqualified name must refer
+           to a name from the current scope. */
+        suppress_redecl_error = check_unqualified_template_redecl_scope(
+                                                   decl_state, sym, &locator);
+      } else if (is_partial_specialization &&
+                 partial_spec_nonreal_sym != NULL) {
+        suppress_redecl_error = check_unqualified_template_redecl_scope(
+                               decl_state, partial_spec_nonreal_sym, &locator);
       }  /* if */
-    }  /* if */
-  } else if (locator.is_qualified_name && sym != NULL) {
-    a_scope_stack_entry_ptr	ssep =
-                                &scope_stack[decl_state->effective_decl_level];
-    a_namespace_ptr		nsp;
-    a_namespace_ptr		curr_nsp;
-    a_boolean			err = FALSE;
-    /* Get the namespace that is currently being defined. */
-    curr_nsp = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
-    nsp = parent_namespace_for_symbol(sym);
-    if (!locator.is_class_member && nsp == curr_nsp && nsp != NULL) {
-      /* The namespace is the same as the one currently being defined.
-         This is an error. */
-      pos_error(ec_qualifier_in_namespace_member_decl,
-                &locator.source_position);
-      err = TRUE;
-    } else if (!is_definition) {
-      /* A declaration using a qualified name.  This is only allowed if it
-         is a friend declaration. */
-      if (!decl_state->is_template_friend) {
-        pos_sy_error(ec_bad_scope_for_redeclaration,
-                     &locator.source_position, sym);
-        err = TRUE;
+    } else if (locator.is_qualified_name) {
+      if (sym != NULL) {
+        suppress_redecl_error = check_qualified_template_redecl_scope(
+                                     decl_state, sym, &locator, is_definition);
+      } else if (is_partial_specialization &&
+                 partial_spec_nonreal_sym != NULL) {
+        suppress_redecl_error = check_qualified_template_redecl_scope(
+                                          decl_state, partial_spec_nonreal_sym,
+                                          &locator, is_definition);
       }  /* if */
-    } else if (decl_state->class_declared_in != NULL) {
-      /* A definition using a qualified name in a class scope.  This is
-         not allowed. */
-      pos_error(ec_qualifier_in_member_declaration, &locator.source_position);
-      err = TRUE;
-    } else if (!namespace_is_enclosed_by_scope(sym, ssep)) {
-      /* This definition appears within a namespace scope in which the name
-         cannot be defined -- it is a member (directly or indirectly) of a
-         namespace that is not enclosed by the current namespace scope
-         (see WP 7.3.1.4). */
-      pos_sy_error(ec_bad_scope_for_definition,
-                   &locator.source_position, sym);
-      err = TRUE;
     }  /* if */
     if (err) {
       sym = NULL;
       suppress_redecl_error = TRUE;
       set_to_named_error_locator(locator);
     }  /* if */
-  }  /* if */
+  }
   {
     a_boolean			err = FALSE;
     if (templ_params == NULL) {
@@ -6829,7 +6884,7 @@ the size of arr can be computed.
             /* This one was used in at least one array declaration; there
                may be others on the list but one is enough to justify
                instantiating the template class.  The call to do the array
-               fixup is made from scan_class_defintion. */
+               fixup is made from scan_class_definition. */
             instantiate_template_class(instance_sym->
                                           variant.class_struct_union.type);
             break;
