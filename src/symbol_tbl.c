@@ -6721,20 +6721,20 @@ list.
 */
 {
   db_enter(5, "add_to_instantiations_required_list");
-#if CHECKING
-  if (tip->next_in_instantiation_list != NULL) {
-    internal_error("add_to_instantiations_required_list: already on list?");
-  }  /* if */
-#endif /* if */
-  /* The entry must be added to the end of the list.  This is because new
-     entries may be placed on the list even after processing on the list
-     begins (see instantiation_wrapup). */
-  if (instantiations_required == NULL) {
-    instantiations_required = tip;
+  if (tip->next_in_instantiation_list != NULL ||
+      tip == instantiations_required_tail) {
+    /* Already on the list -- don't try to add it again. */
   } else {
-    instantiations_required_tail->next_in_instantiation_list = tip;
+    /* The entry must be added to the end of the list.  This is because new
+       entries may be placed on the list even after processing on the list
+       begins (see instantiation_wrapup). */
+    if (instantiations_required == NULL) {
+      instantiations_required = tip;
+    } else {
+      instantiations_required_tail->next_in_instantiation_list = tip;
+    }  /* if */
+    instantiations_required_tail = tip;
   }  /* if */
-  instantiations_required_tail = tip;
   db_exit();
 }  /* add_to_instantiations_required_list */
 
@@ -6748,33 +6748,10 @@ instantiation is required.  If the flag is set to FALSE the entry is simply
 updated but not removed from the list.
 */
 {
-  a_symbol_ptr  instance_sym = tip->instance_sym;
-
-  /* If this is a function instance, see if a body has already been found for
-     the function.  If so, don't set the instantiation flag to TRUE because we
-     shouldn't generate an instantiation for something that has a specific
-     definition.   If the instantiation required flag is already set then we
-     could be here because of a recursive reference of this function -- so
-     don't reset the flag if it is already set. */
-  if (tip->instantiation_required != TRUE &&
-      (instance_sym->kind == (a_symbol_kind)sk_member_function ||
-       instance_sym->kind == (a_symbol_kind)sk_routine) &&
-      instance_sym->variant.routine.ptr->assoc_scope != NULL_region_number) {
-    value = FALSE;
-#if CHECKING
-    if (tip->instantiation_required) {
-      internal_error
-        ("update_instantiation_required_flag: flag set for routine with body");
-    }  /* if */
-#endif  /* CHECKING */
-  }  /* if */
   /* Nothing needs to be done if the flag already has the new value. */
   if (tip->instantiation_required != value) {
     tip->instantiation_required = value;
     if (value) {
-      /* It is permitted that an entry appear on the list more than once.
-         (This can happen if the flag was originally set to TRUE, then was
-         cleared, and is being reset again.) */
       add_to_instantiations_required_list(tip);
     }  /* if */
   }  /* if */
@@ -6833,7 +6810,7 @@ which instantiations are required.
              points to an sk_function_template symbol. */
           tssp = tip->template_sym->variant.template_info;
         } else {
-          /* It is an instance of a member functoin -- template_sym points to
+          /* It is an instance of a member function -- template_sym points to
              an sk_member_function from the prototype instantiation, and the
              template supplement pointer is to be found in the latter's
              instance entry. */
@@ -6845,20 +6822,27 @@ which instantiations are required.
              being defined.  If an instantiation was explicitly requested,
 	     an error is issued. */
 	  if (tip->explicit_instantiation) {
-	    sym_error(ec_instantiation_requested_no_definition_supplied,
-		      tip->instance_sym);
+            pos_sy_error(ec_instantiation_requested_no_definition_supplied,
+		         &tip->instance_sym->decl_position,
+			 tip->instance_sym);
           }  /* if */
         } else {
           /* There is a body. */
-#if DEBUG
-          if (debug_level >= 4) {
-            db_symbol(tip->instance_sym, "Instantiating:", 2);
-          }  /* if */
-#endif /* DEBUG */
-	  if (tip->explicit_instantiation && tip->specific_def) {
-	    sym_error(ec_instantiation_requested_and_specific_definition,
-		      tip->instance_sym);
+	  if (tip->specific_def) {
+	    /* A specific definition was supplied.  Simply skip the
+	       instantiation unless an instantiation was explicitly
+	       requested. */
+	    if (tip->explicit_instantiation) {
+              pos_sy_error(ec_instantiation_requested_and_specific_definition,
+			   &tip->instance_sym->decl_position,
+			   tip->instance_sym);
+	    }  /* if */
 	  } else {
+#if DEBUG
+            if (debug_level >= 4) {
+              db_symbol(tip->instance_sym, "Instantiating:", 2);
+            }  /* if */
+#endif /* DEBUG */
             instantiate_template_function(tip);
 	  }  /* if */
           /* Usually template functions are instantiated "on demand" and the
