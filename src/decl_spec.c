@@ -495,6 +495,62 @@ end_of_uuid_string:
   }  /* for */
 }  /* scan_microsoft_extended_decl_modifiers */
 
+
+void update_microsoft_decl_modifiers_info_for_class(
+                            a_type_ptr                  class_type,
+                            a_boolean                   is_class_definition,
+                            a_decl_modifiers_block_ptr  decl_modifiers,
+                            a_type_qualifier_set        class_qualifiers,
+                            an_inheritance_kind         inheritance_kind,
+                            a_source_position           *inheritance_kind_pos,
+                            a_source_position           *err_pos)
+/*
+Update the specified class type with information based on a previous scan of
+the Microsoft extended decl-modifiers (contained in the specified
+decl-modifiers block), inheritance kind (as specified), and class-wide type
+qualifiers ("near" or "far", specified in the class-qualifiers parameter).
+is_definition is TRUE if this is a definition of the class.  err_pos and
+inheritance_kind_pos are pointers to source positions used for diagnostics.
+*/
+{
+  a_class_type_supplement_ptr ctsp;
+
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  if (is_class_definition) {
+    /* If there were any class-wide modifiers or memory attributes
+       specified, record them in the class type supplement. */
+    ctsp->decl_modifiers = decl_modifiers->flags;
+    ctsp->qualifiers = class_qualifiers;
+  }  /* if */
+  if (inheritance_kind != (an_inheritance_kind)ihk_none) {
+    /* Set the specified inheritance kind, unless a different inheritance
+       kind has already been locked in -- either explicitly through a prior
+       declaration or implicitly, based on the setting of global variable
+       default_inheritance_kind, if a pointer-to-member declaration has
+       been seen. */
+    if (ctsp->inheritance_kind == (an_inheritance_kind)ihk_none) {
+      ctsp->inheritance_kind = inheritance_kind;
+    } else if (ctsp->inheritance_kind != inheritance_kind) {
+      /* Inheritance kind has already been set for this class. */
+      pos_sy_error(ec_inheritance_kind_already_set, inheritance_kind_pos,
+                   (a_symbol_ptr)class_type->source_corresp.assoc_info);
+    }  /* if */
+  }  /* if */
+  if (decl_modifiers->uuid_string != NULL) {
+    if (ctsp->uuid_string != NULL) {
+      /* Issue an error if __declspec(uuid(...)) strings are present and
+         they aren't identical. */
+      if (strcmp(ctsp->uuid_string, decl_modifiers->uuid_string) != 0) {
+        pos_diagnostic(es_discretionary_error,
+                       ec_decl_modifiers_incompatible_with_previous_decl,
+                       err_pos);
+      }  /* if */
+    } else {
+      ctsp->uuid_string = decl_modifiers->uuid_string;
+    }  /* if */
+  }  /* if */
+}  /* update_microsoft_decl_modifiers_info_for_class */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean tag_currently_being_defined(a_type_ptr tag_type)
@@ -1806,41 +1862,13 @@ the template.
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && !C_mode() && tag_sym->kind != (a_symbol_kind)sk_type) {
-    a_class_type_supplement_ptr ctsp =
-                             class_type->variant.class_struct_union.extra_info;
-    if (is_class_definition) {
-      /* If there were any class-wide modifiers or memory attributes
-         specified, record them in the class type supplement. */
-      ctsp->decl_modifiers = decl_modifiers.flags;
-      ctsp->qualifiers = class_qualifiers;
-    }  /* if */
-    if (inheritance_kind != (an_inheritance_kind)ihk_none) {
-      /* Set the specified inheritance kind, unless a different inheritance
-         kind has already been locked in -- either explicitly through a prior
-         declaration or implicitly, based on the setting of global variable
-         default_inheritance_kind, if a pointer-to-member declaration has
-         been seen. */
-      if (ctsp->inheritance_kind == (an_inheritance_kind)ihk_none) {
-        ctsp->inheritance_kind = inheritance_kind;
-      } else if (ctsp->inheritance_kind != inheritance_kind) {
-        /* Inheritance kind has already been set for this class. */
-        pos_sy_error(ec_inheritance_kind_already_set, &inheritance_kind_pos,
-                     tag_sym);
-      }  /* if */
-    }  /* if */
-    if (decl_modifiers.uuid_string != NULL) {
-      if (ctsp->uuid_string != NULL) {
-        /* Issue an error if __declspec(uuid(...)) strings are present and
-           they aren't identical. */
-        if (strcmp(ctsp->uuid_string, decl_modifiers.uuid_string) != 0) {
-          pos_diagnostic(es_discretionary_error,
-                         ec_decl_modifiers_incompatible_with_previous_decl,
-                         &locator.source_position);
-        }  /* if */
-      } else {
-        ctsp->uuid_string = decl_modifiers.uuid_string;
-      }  /* if */
-    }  /* if */
+    update_microsoft_decl_modifiers_info_for_class(class_type,
+                                                   is_class_definition,
+                                                   &decl_modifiers,
+                                                   class_qualifiers,
+                                                   inheritance_kind,
+                                                   &inheritance_kind_pos,
+                                                   &locator.source_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_class_definition) {

@@ -31,6 +31,15 @@ extern void scan_microsoft_extended_decl_modifiers(
                             an_inheritance_kind         *inheritance_kind,
                             a_source_position           *inheritance_kind_pos,
                             a_boolean                   *err);
+
+extern void update_microsoft_decl_modifiers_info_for_class(
+                            a_type_ptr                  class_type,
+                            a_boolean                   is_class_definition,
+                            a_decl_modifiers_block_ptr  decl_modifiers,
+                            a_type_qualifier_set        class_qualifiers,
+                            an_inheritance_kind         inheritance_kind,
+                            a_source_position           *inheritance_kind_pos,
+                            a_source_position           *err_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void typename_specifier(a_type_ptr            *type_ptr,
