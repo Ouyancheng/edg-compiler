@@ -3535,6 +3535,8 @@ special function kind (e.g., constructor, destructor), if any.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (!func_info->is_definition) {
         set_src_seq_secondary_decl_entity_type((char *)rtn, member_type);
+      } else {
+        rtn->declared_type = member_type;
       }  /* if */
       set_rout_src_seq_entry_for_default_arg_decl(rtn, func_info);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

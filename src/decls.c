@@ -2952,6 +2952,9 @@ functions) simply return NULL.
   check_assertion(type_ptr != NULL);
   vp = alloc_variable(storage_class);
   vp->type = type_ptr;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  vp->declared_type = type_ptr;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   vp->is_parameter = TRUE;
   return(vp);
 }  /* make_param_variable */
@@ -4137,6 +4140,12 @@ generating cross-reference output describing this declaration.
         pos_sy_error(ec_already_defined, &locator->source_position, sym);
         redecl_error_already_issued = TRUE;
         linked_redecl_error = TRUE;
+        /* Set a flag to suppress reuse of the existing external-routine
+           symbol and of the routione already in use.  Also, to suppress a
+           possible declared-but-not-used message, set the referenced flag
+           in the linked symbol. */
+        suppress_ext_sym_lookup = TRUE;
+        linked_symbol->referenced = TRUE;
       } else {
         /* If this is not C++ mode (for which this check has already been
            done in id_linkage), be sure that the old and new types are
@@ -4366,6 +4375,7 @@ skip_overloading:;
         if (variable_ptr->init_kind != (an_init_kind)initk_none) {
           srk_flags &= ~(SRK_TENTATIVE_DEF | SRK_DEFINITION);
           check_assertion(srk_flags & SRK_DECLARATION);
+          is_variable_def = FALSE;
         }  /* if */
       }  /* if */
       /* Move the variable entry to the end of the variables list if this is
@@ -4620,7 +4630,13 @@ skip_overloading:;
      used, since it may have been replaced (e.g., when a file scope entity
      is declared in a local scope and a sublist is generated). */
   if (is_function) {
-    if (!is_function_def) {
+    if (is_function_def) {
+      /* The defining declaration of the function.  Record the type as it
+         actually appeared in the current declaration (i.e., before
+         composite type was called). */
+      check_assertion(routine_ptr->declared_type == NULL);
+      routine_ptr->declared_type = declared_type;
+    } else {
       /* A function declaration but not a definition.  Set the type in the
          secondary declaration entry. */
       set_src_seq_secondary_decl_entity_type((char *)routine_ptr,
@@ -4635,6 +4651,10 @@ skip_overloading:;
       /* A function declaration but not a definition. */
       set_src_seq_secondary_decl_entity_type((char *)variable_ptr,
                                              declared_type);
+    } else {
+      /* The defining declaration of the variable.  Record the type. */
+      check_assertion(variable_ptr->declared_type == NULL);
+      variable_ptr->declared_type = declared_type;
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -4949,6 +4969,13 @@ the symbol and its linkage (which is always "none").
                    &locator->source_position, sym);
       err = TRUE;
     } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Since this is the defining declaration of the static data member,
+         record the type.  Note that this has to be done before composite
+         type is called -- in case there's some modification. */
+      check_assertion(var->declared_type == NULL);
+      var->declared_type = type_ptr;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* The type of the variable should be the composite of the two types. */
       var->type = composite_type(type_ptr, var->type);
       /* Set the IL referenced flag since, as an externally visible variable,
@@ -5134,6 +5161,13 @@ on a prior declaration.
     rp = sym->variant.routine.ptr;
     type_ptr->variant.routine.extra_info->implicit_this_param_type =
            (*old_type)->variant.routine.extra_info->implicit_this_param_type;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Since this is the defining declaration of the member function, record
+       the type.  Note that this has to be done before composite type is
+       called. */
+    check_assertion(rp->declared_type == NULL);
+    rp->declared_type = type_ptr;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     reconcile_routine_types(sym->variant.routine.ptr, type_ptr,
                             /*preserve_rout_type=*/FALSE,
                             /*preserve_type_ptr=*/TRUE);
@@ -5265,6 +5299,10 @@ a pointer to it in *symbol_ptr.
           record_symbol_declaration(SRK_DECLARATION, sym,
                                     &locator->source_position,
                                     declarator_ssep);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+          set_src_seq_secondary_decl_entity_type((char *)sym->variant.type,
+                                                 type_ptr);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           goto return_point;
         } else {
           /* C++ only.  Must be a tag symbol. */
