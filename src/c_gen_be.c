@@ -2261,7 +2261,8 @@ namespace membership, or have the is_local_to_function flag TRUE.
 
 static void dump_scope_types(a_scope_ptr scope)
 /*
-Dump all types declared within one scope.
+Dump all types declared within one scope.  As this routine is used now,
+the scope must be the file scope.
 */
 {
   a_type_ptr                       type;
@@ -2269,7 +2270,6 @@ Dump all types declared within one scope.
   a_boolean                        suppress_prototype_scope_pass = FALSE;
   a_scope_orphaned_list_header_ptr solhp;
 
-  /* As this routine is used now, the scope must be the file scope. */
   check_assertion_str(scope == il_header.primary_scope,
                       "dump_scope_types: scope not file scope");
   /* Do two iterations.  The first outputs declarations for only those types
@@ -2341,12 +2341,19 @@ Dump all types declared within one scope.
       for (type = solhp->orphaned_types;
            type != NULL;
            type = type->next) {
-        if (pass == 1) {
-          /* Do some name mangling so that the name remains unique. */
-          adjust_promoted_local_type_name(type, solhp->assoc_routine,
-                                          solhp->scope_number);
+        if (type->kind == (a_type_kind)tk_typeref &&
+            type->variant.typeref.has_variably_modified_type) {
+          /* Variably-modified types are put out where their stmk_vla_typedef
+             appears.  They cannot be the type of an entity with linkage, so
+             not putting them out here is not a problem. */
+        } else {
+          if (pass == 1) {
+            /* Do some name mangling so that the name remains unique. */
+            adjust_promoted_local_type_name(type, solhp->assoc_routine,
+                                            solhp->scope_number);
+          }  /* if */
+          dump_type_decl(type, pass);
         }  /* if */
-        dump_type_decl(type, pass);
       }  /* for */
     }  /* for */
   }  /* for */
@@ -4823,8 +4830,15 @@ interleaved with the variables.
       }  /* for */
     }  /* if */
     check_membership_info(var_ptr, scope);
-    dump_variable_decl(var_ptr, dump_vars_without_initializers,
-                       dump_initializers);
+    if (il_header.source_language == sl_Cplusplus &&
+        is_vla_type(var_ptr->type)) {
+      /* The variable has a variable length array type.  Do not put it out
+         now; it will be put out where the corresponding
+         stmk_alloc_vla_variable statement appears. */
+    } else {
+      dump_variable_decl(var_ptr, dump_vars_without_initializers,
+                         dump_initializers);
+    }  /* if */
   }  /* for */
   if (interleave_asm_decls) {
     /* Put out asm declarations (if any) that follow all variable
@@ -5468,8 +5482,19 @@ Generate C for a statement.
       break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     case stmk_set_vla_size:
-    case stmk_alloc_vla_variable:
       /* No output. */
+      break;
+    case stmk_alloc_vla_variable:
+      /* Dump out the declaration of a variable with a variable length array
+         type at the point where it occurs in the executable code sequence. */
+      dump_variable_decl(statement->variant.vla_variable,
+                         /*dump_vars_without_initializers=*/TRUE,
+                         /*dump_initializers=*/TRUE);
+      break;
+    case stmk_vla_typedef:
+      /* Dump out the declaration of a typedef for a variably-modified type
+         at the point where is occurs in the executable code sequence. */
+      dump_type_decl(statement->variant.vla_typedef, /*pass=*/2);
       break;
     default:
       unexpected_condition_str("dump_statement: bad statement kind");
@@ -5605,6 +5630,7 @@ its subtree.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       case stmk_set_vla_size:
       case stmk_alloc_vla_variable:
+      case stmk_vla_typedef:
         /* No subtree of statements. */
         break;
       case stmk_return:
