@@ -7487,7 +7487,7 @@ destructor routines are marked as actually referenced.
                                                dtor_routine->source_corresp.
                                                        class_of_which_a_member,
                                                /*honor_virtual=*/FALSE,
-                                               /*evaluated=*/FALSE);
+                                               /*evaluated=*/TRUE);
     }  /* if */
     /* Free the one entry. */
     free_dynamic_init_dtor_fixup(didfp);
