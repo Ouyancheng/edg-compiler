@@ -598,6 +598,7 @@ check_abbreviation()
 --suppress_instantiation_flags
 --suppress_vtbl
 --svr4
+--sys_include
 --timing
 --trace_includes
 --typename
@@ -1053,6 +1054,7 @@ process_option()
 	 --definition_list_file | \
          --pending_instantiations | \
          --preinclude | \
+         --sys_include | \
          --pack_alignment)
       feoptions=$feoptions" $curr_arg $curr_param"
       used_two_params=1
@@ -1066,7 +1068,7 @@ process_option()
         -t | --instantiate)
           instantiation_mode_specified=1
           ;;
-        -I | --include_directory)
+        -I | --include_directory | --sys_include)
           # Convert relative -I paths to absolute ones, if necessary.
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 -a \
                "$curr_param" != "-" ] ; then
@@ -1112,6 +1114,7 @@ process_option()
           --microsoft_version=* | \
           --pending_instantiations=* | \
           --preinclude=* | \
+          --sys_include=* | \
           --definition_list_file=* | \
           --pack_alignment=*)
       feoptions=$feoptions" $curr_arg"
@@ -1139,17 +1142,19 @@ process_option()
             fi
           fi
           ;;
+        --sys_include=* | \
         --include_directory=*)
           # Convert relative --include_directory  paths to absolute ones,
           # if necessary.
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 ] ; then
             dir_name=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
+            opt_name=`expr $arg : '\(.*\)=.*'`    # Get the before the =
             if [ "$dir_name" != "-" ] ; then
               absolute_path=`expr match $dir_name '/.*'`
               if [ $absolute_path -eq 0 ] ; then
                 # The directory is a relative path.  Add the current directory
                 # to convert it to an absolute path
-                curr_arg=--include_directory=$curr_dir/$dir_name
+                curr_arg=$opt_name=$curr_dir/$dir_name
               fi
             fi
           fi
