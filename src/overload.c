@@ -5826,7 +5826,9 @@ be dependent).  This routine is called only in C++ mode.
        and arg_match_list (the call is done even when function_symbol
        is NULL so that the freeing will be done). */
     adjust_overloaded_function_call_arguments(function_symbol,
-                                              *unknown_dependent_function,
+                                              unknown_dependent_function!=NULL?
+                                                *unknown_dependent_function :
+                                                FALSE,
                                               routine_type,
                                               have_selector,
                                               bound_function_selector,
