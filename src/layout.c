@@ -192,15 +192,16 @@ Clear the block used to contain information while working out class layout.
 }  /* clear_layout_block */
 
 
-a_boolean compatible_ms_bit_field_container_types(a_type_ptr  tp1,
-                                                  a_type_ptr  tp2)
+static a_boolean compatible_ms_bit_field_container_types(a_type_ptr  tp1,
+                                                         a_type_ptr  tp2)
 /*
 Return TRUE if tp1 and tp2 are compatible container types, according to the
-conventions of Microsoft's bit-field allocation scheme.  (Note: the
-algorithm may not be quite accurate.  For example, it indicates that two
-different enumeration types can be compatible with each other as bit field
-containers.  There are also wchar_t and bool integral types to consider,
-too.  And is *explicit signedness* really a criterion, such that "int" and
+conventions of Microsoft's bit-field allocation scheme.
+
+(Note: the algorithm as implemented may not be quite accurate.  (1) Should
+it really be that two different enumeration types can be compatible with
+each other as bit field containers?  (2) How are wchar_t and bool to be
+handled?  (3) Is explicit signedness really a criterion, so that "int" and
 "unsigned int" are not compatible container types?)
 */
 {
@@ -690,13 +691,15 @@ by the state of the layout block pointed to by lob -- that is, reset the
 offset values as though the extra bits actually were being used.
 */
 {
-  increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
-                          (a_targ_size_t)0, 
-                          lob->curr_container_avail_bits);
-  /* Padding to the end of the container means there's no room left
-     for additional bit fields. */
-  lob->curr_container_type = NULL;
-  lob->curr_container_avail_bits = 0;
+  if (lob->curr_container_type != NULL) {
+    increment_field_offsets(&lob->byte_offset, &lob->bit_offset,
+                            (a_targ_size_t)0, 
+                            lob->curr_container_avail_bits);
+    /* Padding to the end of the container means there's no room left
+       for additional bit fields. */
+    lob->curr_container_type = NULL;
+    lob->curr_container_avail_bits = 0;
+  }  /* if */
 }  /* pad_ms_bit_field_container */
 
 
@@ -735,10 +738,9 @@ targ_microsoft_bit_field_allocation is FALSE.
   if (bit_size == 0) {
     /* A zero-width bit field is declared for alignment only.  The container
        size is not significant. */
-    if (targ_microsoft_bit_field_allocation &&
-        lob->curr_container_type != NULL) {
-      /* The previous member was a bit-field.  Pad out the container for the
-	 bit-field before doing the alignment adjustment that was specified. */
+    if (targ_microsoft_bit_field_allocation) {
+      /* If the previous member was a bit-field, pad out the container before
+         doing the alignment adjustment that was specified. */
       pad_ms_bit_field_container(lob);
     }  /* if */
     /* Do the necessary alignment for a zero width unnamed bit field. */
@@ -873,13 +875,11 @@ targ_microsoft_bit_field_allocation is FALSE.
         !compatible_ms_bit_field_container_types(lob->curr_container_type,
                                                  base_type) ||
         lob->curr_container_avail_bits < bit_size) {
-      /* Either this is the a bit field that does not follow another bit
-         field of the same type or else it won't fit in the current container.
-         In either case, create a new container for it. */
-      if (lob->curr_container_type != NULL) {
-        /* Pad out the rest of the current container. */
-        pad_ms_bit_field_container(lob);
-      } /* if */
+      /* Either this is a bit field that does not follow another bit field of
+         the same type or else it won't fit in the current container.  In
+         either case, create a new container for it. */
+      /* First, pad out the rest of the current container. */
+      pad_ms_bit_field_container(lob);
       /* Make sure the new container is properly aligned. */
       overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
                                container_alignment);
