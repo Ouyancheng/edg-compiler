@@ -608,7 +608,11 @@ is in fact valid.
         (!types_are_redecl_compatible(routine->type, corresp_routine->type) ||
          routine->is_virtual != corresp_routine->is_virtual ||
          routine->pure_virtual != corresp_routine->pure_virtual ||
-         routine->is_inline != corresp_routine->is_inline ||
+         /* The inline attribute isn't set on nonprototype template functions
+            until the template is actually instantiated. */
+         (routine->is_inline != corresp_routine->is_inline &&
+          (routine->is_prototype_instantiation || routine->is_specialized ||
+           !routine->is_template_function)) ||
          routine->is_explicit_constructor !=
                                     corresp_routine->is_explicit_constructor ||
          routine->is_specialized != corresp_routine->is_specialized ||
@@ -1249,7 +1253,7 @@ Establish correspondences for the list of constants associated with the
 given enum type.
 */
 {
-  a_type_ptr      corresp_type = (a_type_ptr)canonical_il_entry_of(type);
+  a_type_ptr      corresp_type = (a_type_ptr)canonical_type_entry_of(type);
 
   if (corresp_type != NULL) {
     a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list;
@@ -1271,7 +1275,7 @@ Set the correspondence pointers in the members of a type.  The members' types
 are not checked.
 */
 {
-  a_type_ptr  corresp_type = (a_type_ptr)canonical_il_entry_of(type);
+  a_type_ptr  corresp_type = (a_type_ptr)canonical_type_entry_of(type);
 
   if (corresp_type != NULL  && corresp_type != type &&
       is_immediate_class_type(corresp_type) &&
@@ -1551,7 +1555,8 @@ symbol supplement.
   a_template_symbol_supplement_ptr
                   tssp = inst->template_sym->variant.template_info;
   a_template_ptr  templ = tssp->il_template_entry,
-                  corresp_templ = (a_template_ptr)canonical_il_entry_of(templ);
+                  corresp_templ =
+                            (a_template_ptr)canonical_template_entry_of(templ);
   a_template_symbol_supplement_ptr
                   corresp_tssp =
                        ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
@@ -1639,10 +1644,10 @@ and are handled elsewhere.
       record_class_template_instantiation(inst);
     }  /* for */
     /* Also process the prototype instantiation. */
-    proto_inst = ((a_symbol_ptr)((a_template_ptr)canonical_il_entry_of(templ))
-                   ->source_corresp.assoc_info)
-                     ->variant.template_info
-                     ->variant.class_template.prototype_instantiation;
+    proto_inst = ((a_symbol_ptr)canonical_template_entry_of(templ)
+                                                   ->source_corresp.assoc_info)
+                   ->variant.template_info
+                   ->variant.class_template.prototype_instantiation;
     /* For instantiations from template template parameters proto_inst will
        be NULL. */
     if (proto_inst != NULL) {
@@ -1657,9 +1662,8 @@ and are handled elsewhere.
     }  /* for */
     /* Also process prototype instantiation. */
     record_trans_unit_corresp(tssp->variant.function.routine,
-                              ((a_symbol_ptr)
-                                ((a_template_ptr)canonical_il_entry_of(templ))
-                                  ->source_corresp.assoc_info)
+                              ((a_symbol_ptr)canonical_template_entry_of(templ)
+                                                   ->source_corresp.assoc_info)
                                 ->variant.template_info
                                 ->variant.function.routine);
   } else {
@@ -1969,13 +1973,30 @@ way, determine to which other IL entry this might correspond.
       /* Not a class member. */
       switch (kind) {
         case iek_routine:
-          find_routine_correspondence((a_routine_ptr)scp);
+          {
+            a_routine_ptr  routine = (a_routine_ptr)scp;
+            if (routine->is_template_function) {
+              record_function_template_instantiation(
+                           ((a_symbol_ptr)scp)->variant.routine.instance_ptr);
+            } else {
+              find_routine_correspondence((a_routine_ptr)scp);
+            }  /* if */
+          }
           break;
         case iek_variable:
           find_variable_correspondence((a_variable_ptr)scp);
           break;
         case iek_type:
-          find_type_correspondence((a_type_ptr)scp);
+          {
+            a_type_ptr  type = (a_type_ptr)scp;
+            if (is_immediate_class_type(type) &&
+                type->variant.class_struct_union.is_template_class) {
+              record_class_template_instantiation(
+                              (a_symbol_ptr)type->source_corresp.assoc_info);
+            } else {
+              find_type_correspondence((a_type_ptr)scp);
+            }  /* if */
+          }
           break;
         case iek_template:
           find_template_correspondence((a_template_ptr)scp);
@@ -2019,7 +2040,8 @@ correspondences with other translation units.)
   a_namespace_ptr  result = nsp;
 
   if (nsp != NULL) {
-    check_assertion(trans_unit_corresp_pointer_of(nsp) != NULL);
+    check_assertion(!has_name(nsp) ||
+                    trans_unit_corresp_pointer_of(nsp) != NULL);
     result = (a_namespace_ptr)canonical_il_entry_of(nsp);
   }  /* if */
   return result;
