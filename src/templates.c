@@ -163,6 +163,15 @@ static a_partial_order_candidate_ptr
 		avail_partial_order_candidates;
 			/* Previously allocated entries available for reuse. */
 
+static a_boolean
+		deferred_instantiations_in_process;
+			/* Flag used by process_deferred_instantiations to
+			   determine whether the routine has already been
+			   called and suppress processing during any
+			   recursive calls that might occur.  This flag is
+			   not a function static so that it can be reset
+			   if a compilation is terminated abnormally. */
+
 #if DEBUG
 /*
 Counters used to track memory usage.
@@ -9901,14 +9910,13 @@ update_instantiation_required_flag to do the appropriate processing.
 */
 {
   a_symbol_list_entry_ptr	slep;
-  static a_boolean		in_process = FALSE;
 
   /* The processing of this list may result in additional deferred
-     instantiations that will get added to the end of the list.  The
-     static flag in_process is used to make sure that the list is
-     not processed during potential recursive calls of this routine. */
-  if (!in_process) {
-    in_process = TRUE;
+     instantiations that will get added to the end of the list.  A
+     flag is used to make sure that the list is not processed during
+     potential recursive calls of this routine. */
+  if (!deferred_instantiations_in_process) {
+    deferred_instantiations_in_process = TRUE;
     for (slep = deferred_instantiations; slep != NULL; slep = slep->next) {
       a_template_instance_ptr	tip;
       a_symbol_ptr		sym = slep->symbol;
@@ -9925,7 +9933,7 @@ update_instantiation_required_flag to do the appropriate processing.
     free_list_of_symbol_list_entries(deferred_instantiations);
     deferred_instantiations = NULL;
     deferred_instantiations_tail = NULL;
-    in_process = FALSE;
+    deferred_instantiations_in_process = FALSE;
   }  /* if */
 }  /* process_deferred_instantiation_requests */
 
@@ -11284,6 +11292,7 @@ Initializations for template.
   deferred_instantiations = NULL;
   deferred_instantiations_tail = NULL;
   avail_partial_order_candidates = NULL;
+  deferred_instantiations_in_process = FALSE;
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
 #endif /* DEBUG */
