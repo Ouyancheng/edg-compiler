@@ -652,7 +652,7 @@ might not be able to if the template itself has not yet been defined.
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
       reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
-      /* Set the dafault name linkage to that of the template.  It will be
+      /* Set the default name linkage to that of the template.  It will be
          active while the function body is scanned and then restored. */
       saved_linkage = def_external_linkage;
       def_external_linkage.kind = class_type->source_corresp.name_linkage;
@@ -1080,7 +1080,7 @@ Instantiate the body of the template function associated with tip.
     pos_error(ec_no_exception_support,
               &tssp->variant.function.func_info.throw_position);
   }  /* if */
-  /* Set the dafault name linkage to that of the template.  It will be
+  /* Set the default name linkage to that of the template.  It will be
      active while the function body is scanned and then restored. */
   saved_linkage = def_external_linkage;
   def_external_linkage.kind = rout_ptr->source_corresp.name_linkage;
