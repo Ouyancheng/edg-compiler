@@ -910,7 +910,8 @@ identifiers to be coalesced.
 
 
 void cache_rest_of_declaration(a_token_cache_ptr	cache,
-                               a_boolean		stop_on_colon)
+                               a_boolean		stop_on_colon,
+                               a_boolean		stop_on_lbrace)
 /*
 Enter the remaining tokens of the current declaration into a reusable
 token cache, and scan those tokens from a copy of the cache.  This is
@@ -924,7 +925,7 @@ be in the set of stop tokens.
   clear_token_set_array(stop_tokens);
   /* Cache all tokens up to the ";" that follows a declaration, the "{" that
      begins a definition, or a ":" that begins a ctor initializer list. */
-  incr_token_set_array_element(stop_tokens, tok_lbrace);
+  if (stop_on_lbrace) incr_token_set_array_element(stop_tokens, tok_lbrace);
   if (stop_on_colon) incr_token_set_array_element(stop_tokens, tok_colon);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
   cache_token_stream(cache, stop_tokens);

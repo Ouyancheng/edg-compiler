@@ -1271,7 +1271,8 @@ void cache_token_stream_coalesce_identifiers(a_token_cache_ptr  cache,
                                              a_token_cache_ptr	src_cache);
 extern
 void cache_rest_of_declaration(a_token_cache_ptr	cache,
-                               a_boolean		stop_on_colon);
+                               a_boolean		stop_on_colon,
+                               a_boolean		stop_on_lbrace);
 /* Put some cached tokens on the get_token rescan list. */
 extern void rescan_cached_tokens(a_token_cache *cache);
 /* Push a reusable cache on to the reusable cache stack. */

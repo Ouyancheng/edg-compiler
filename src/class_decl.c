@@ -603,7 +603,8 @@ entry onto a list in the current routine fixup entry.
        remainder of the declaration is in a token cache.  If the declaration
        has not been cached yet, cache it now.  This cache will be discarded
        at the end of processing this function declarator. */
-    cache_rest_of_declaration(decl_cache, /*stop_on_colon=*/FALSE);
+    cache_rest_of_declaration(decl_cache, /*stop_on_colon=*/FALSE,
+                              /*stop_on_lbrace=*/TRUE);
   }  /* if */
   prescan_default_function_arg_expr(ptp, list, decl_cache);
 }  /* prescan_member_function_default_arg_expr */
