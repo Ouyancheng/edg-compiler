@@ -521,7 +521,7 @@ etc.
     }  /* if */
   } else {
     /* Continuing on the same line.  Space. */
-    (void)fputc('\n', f_C_output);
+    (void)fputc(' ', f_C_output);
     curr_output_column++;
   }  /* if */
 }  /* set_output_position */
@@ -1641,10 +1641,8 @@ Print the first of possibly two parts of a type reference.
     if (need_paren) write_tok_str("(");
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
-    /* A qualifier on a function type shouldn't be possible without a
-       typedef. */
-    check_assertion_str(qual_type == type,
-                        "dump_type_first_part: qualifier on function type");
+    /* If qual_type != type, it's because a local typedef appears on top
+       of the function type.  Just ignore it. */
     dump_type_first_part(type->variant.routine.return_type,
                          /*need_paren=*/TRUE,
                          /*need_trailing_space=*/TRUE);
@@ -2148,8 +2146,12 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
       }  /* if */
       break;
     case tk_typeref:
-      /* Output typedefs only on the second pass. */
-      if (pass == 2) dump_typedef(type);
+      if (type->variant.typeref.is_placeholder_for_file_scope_type) {
+        /* Ignore placeholder typerefs for template types. */
+      } else {
+        /* Output typedefs only on the second pass. */
+        if (pass == 2) dump_typedef(type);
+      }  /* if */
       break;
     default:
       unexpected_condition_str("dump_type_decl: bad type");
@@ -2919,7 +2921,7 @@ Generate an expression operation.
         write_unsigned_num((unsigned long)operand_1_type->size);
         write_tok_str(")");
       }
-      break;
+      goto done;
     case eok_subscript:
       dump_expr_with_parens(operand_1);
       write_tok_str("[");
