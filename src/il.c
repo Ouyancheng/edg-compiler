@@ -9602,7 +9602,7 @@ to an undefined state and free the associated memory region.
     sym->defined = FALSE;
   }  /* if */
   rp->assoc_scope = NULL_region_number;
-  rp->type->variant.routine.extra_info->assoc_routine = NULL;
+  (skip_typerefs(rp->type))->variant.routine.extra_info->assoc_routine = NULL;
   if (rp->storage_class == (a_storage_class)sc_unspecified) {
     rp->storage_class = (a_storage_class)sc_extern;
   }  /* if */

@@ -1,5 +1,13 @@
 Version 2.41
 
+2/8/99    Abort in Microsoft 16-bit mode
+
+When MAINTAIN_NEEDED_FLAGS is configured to TRUE, an abort could occur with
+the elimination of an unused routine whose type is qualified.  Now fixed.
+For example (in Microsoft 16-bit mode):
+
+  static void near f() { }    // Abort during elimination unneeded routine
+
 2/5/99    Allow typedef and using-declaration to same typedef in a scope
 
 In default mode, a using-declaration that refers to a typedef of a
