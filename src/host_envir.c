@@ -2527,6 +2527,7 @@ memory for IL memory blocks.
   db_exit();
 }  /* open_mapped_il_temp_file */
 
+#if MAKE_FRONT_END_CALLABLE
 
 void close_mapped_il_temp_file(void)
 /*
@@ -2536,6 +2537,7 @@ Close the file used for allocation of file mapped memory for IL memory blocks.
   if (f_mmap_file != NULL) (void)CloseHandle(f_mmap_file);
 }  /* close_mapped_il_temp_file */
 
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 void open_mapped_input_file(char *file_name)
 /*
@@ -2872,6 +2874,7 @@ memory for IL memory blocks.
   db_exit();
 }  /* open_mapped_il_temp_file */
 
+#if MAKE_FRONT_END_CALLABLE
 
 void close_mapped_il_temp_file(void)
 /*
@@ -2881,6 +2884,8 @@ Close the file used for allocation of file mapped memory for IL memory blocks.
   if (f_mmap_file) (void)fclose(f_mmap_file);
   f_mmap_file = NULL;
 }  /* close_mapped_il_temp_file */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 #endif /* EDG_WIN32 */
 
