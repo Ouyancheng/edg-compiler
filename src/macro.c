@@ -3825,10 +3825,7 @@ command line -D options.
     a_boolean	stdc_value = TRUE;
     a_boolean	stdc_cannot_be_redefined = (C_dialect == C_dialect_ANSI &&
                                             strict_ansi_mode);
-    if (stdc_zero_in_nonstrict_mode) {
-      /* In this mode, __STDC__ is 1 in strict mode and zero otherwise. */
-      stdc_value = strict_ansi_mode;
-    } else if (microsoft_mode) {
+    if (microsoft_mode) {
       /* The Microsoft compiler does not define __STDC__ in either C or
          C++ mode when it supports extensions. */
       define_stdc = FALSE;
@@ -3838,6 +3835,9 @@ command line -D options.
          compatibility mode, do not define __STDC__ in that mode. */
       define_stdc = FALSE;
 #endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
+    } else if (stdc_zero_in_nonstrict_mode) {
+      /* In this mode, __STDC__ is 1 in strict mode and zero otherwise. */
+      stdc_value = strict_ansi_mode;
     }  /* if */
     if (define_stdc) {
       (void)enter_predef_macro(stdc_value ? "1" : "0", "__STDC__",
