@@ -2241,6 +2241,10 @@ Copy a constant entry from "from" to "to".
   /* *from might be a shared constant, an enum constant, etc., so clear
      the "next" field. */
   to->next = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Same holds for source_sequence pointers. */
+  to->source_corresp.source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* copy_constant */
 
 
