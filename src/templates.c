@@ -1138,13 +1138,9 @@ and the class instantiation will detect the runaway case.
     /* If the first token is an equals sign then this is not a parenthesized
        initializer.   Initializers that begin with an invalid token will
        have already been discarded. */
-    if (curr_token == tok_assign) {
-      /* Discard the equals sign. */
-      has_parenthesized_initializer = FALSE;
-      (void)get_token();
-    } else {
-      has_parenthesized_initializer = TRUE;
-    }  /* if */
+    has_parenthesized_initializer = (curr_token != tok_assign);
+    /* Bypass the "=" or "(". */
+    (void)get_token();
     initializer(static_data_member_sym, &tip->template_sym->decl_position,
                 idl_internal, has_parenthesized_initializer,
                 /*is_old_style_param_decl=*/FALSE,
