@@ -1062,9 +1062,9 @@ the file scope, do not process it (but record an orphan in the latter case).
                 case eok_psubtract_assign:
                   /* First operand is an lvalue for a pointer. */
                   /* Avoid problems in prototype instantiations. */
-                  if (!is_pointer_type(op1_type)) break;
+                  if (is_template_param_type(op1_type)) break;
                   optype = type_pointed_to(op1_type);
-                  if (!is_pointer_type(optype)) break;
+                  if (is_template_param_type(optype)) break;
                   optype = type_pointed_to(optype);
                   goto do_definition_needed_if_class;
                 case eok_subscript:
@@ -1074,7 +1074,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                 case eok_pdiff:
                   /* First operand is a pointer. */
                   /* Avoid problems in prototype instantiations. */
-                  if (!is_pointer_type(op1_type)) break;
+                  if (is_template_param_type(op1_type)) break;
                   optype = type_pointed_to(op1_type);
 do_definition_needed_if_class:
                   definition_needed_if_class(optype);
@@ -1084,15 +1084,15 @@ do_definition_needed_if_class:
                      complete.  Watch out for the case where the result type
                      is "void *", and watch out for prototype instantiation
                      cases. */
-                  if (is_pointer_type(ptr->type)) {
+                  if (!is_template_param_type(ptr->type)) {
                     optype = type_pointed_to(ptr->type);
                     definition_needed_if_class(optype);
                   }  /* if */
                   /* Source type must also be complete, but watch out for
                      prototype instantiation cases where the first operand
                      isn't a pointer to class. */
-                  if (is_pointer_type(op1_type) &&
-                      is_class_struct_union_type(type_pointed_to(op1_type))) {
+                  if (!is_template_param_type(op1_type) &&
+                      !is_template_param_type(type_pointed_to(op1_type))) {
                     goto cast_source_type_must_be_pointer_to_complete_class;
                   }  /* if */
                   break;
@@ -1199,11 +1199,11 @@ do_set_proper_definition_needed_flag:
                                 ptr->variant.runtime_sizeof.variant.expr->type;
                 if (ptr->variant.runtime_sizeof.is_lvalue) {
                   /* Watch out for prototype instantiations. */
-                  if (!is_pointer_type(sizeof_type)) goto end_sizeof_type;
-                  sizeof_type = type_pointed_to(sizeof_type);
+                  if (!is_template_param_type(sizeof_type)) {
+                    sizeof_type = type_pointed_to(sizeof_type);
+                  }  /* if */
                 }  /* if */
                 definition_needed_if_class(sizeof_type);
-end_sizeof_type:;
               }
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
             }  /* if */
