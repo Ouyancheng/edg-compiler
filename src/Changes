@@ -1,5 +1,18 @@
 Version 2.35
 
+1/16/97 Microsoft compatibility: __declspec in declarator
+
+In Microsoft mode extended declaration specifiers are now permitted within
+a declarator, but they are ignored (and a warning is issued).  For example:
+
+  int * __declspec(dllexport) f();   // "dllexport" is not applied to f
+  typedef int * PI;
+  PI __declspec(dllexport) g();      // "dllexport" is applied to g
+
+This seems to match how MSVC++ handles these cases: when __declspec appears
+among decl-specifiers, the attributes specified are applied to the entity
+being declared, but otherwise it is ignored (usually with no diagnostic).
+
 1/16/97 C and C++ function types should not be distinct in Microsoft mode
 
 The front end was configured to consider C and C++ function types as
