@@ -3781,9 +3781,10 @@ as the error position.
     is_list = TRUE;
     sym = sym->variant.overloaded_function.symbols;
   }  /* if */
-  check_assertion(using_sym->is_class_member ?
+  check_assertion(using_sym->kind == (a_symbol_kind)sk_function_template ||
+                  (using_sym->is_class_member ?
                     using_sym->kind == (a_symbol_kind)sk_member_function :
-                    using_sym->kind == (a_symbol_kind)sk_routine);
+                    using_sym->kind == (a_symbol_kind)sk_routine));
   /* Go through all function declarations in the current scope with the
      same name.  Ignore projection symbols. */
   for (; sym != NULL; sym = is_list ? sym->next : NULL) {
