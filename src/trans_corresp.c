@@ -124,7 +124,7 @@ Report correspondence pointer for given entry.
   void  *result;
 
   if (trans_unit_corresp_of_unknown_entry(ptr) != NULL) {
-    result = canonical_il_entry_of(ptr);
+    result = (void*)canonical_il_entry_of(ptr);
     fprintf(f_debug, "Correspondence for 0x%x is 0x%x",
             (unsigned)ptr, (unsigned)result);
   } else {
@@ -2467,46 +2467,14 @@ are not checked.
         a_template_ptr  corresp_templ = corresp_scope->templates;
         for (; templ != NULL && corresp_templ != NULL;
              templ = templ->next, corresp_templ = corresp_templ->next) {
-#if 0 /* FIXME */
-          a_symbol_ptr
-               templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info,
-               corresp_sym =
-                       (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
-#if 0 /* FIXME */
-          a_template_symbol_supplement_ptr
-               tssp = templ_sym->variant.template_info,
-               corresp_tssp = corresp_sym->variant.template_info;
-          if (tssp->all_instantiations != NULL) {
-            /* The canonical entry is changing: the list of all instantiations
-               should be reattached to the new canonical entry. */
-            check_assertion(corresp_tssp->all_instantiations == NULL);
-#if DEBUG
-            if (db_flag_is_set("trans_corresp")) {
-              fprintf(f_debug, "DBG> *** all_instantiations transferred\n");
-            }  /* if */
-#endif /* DEBUG */
-            corresp_tssp->all_instantiations = tssp->all_instantiations;
-            tssp->all_instantiations = NULL;
-          }  /* if */
-#endif /*FIXME*/
-          templ_sym = is_class_template_symbol(templ_sym) ?
-                                      prototype_template_of(templ_sym) : NULL;
-          if (templ_sym != NULL && templ_sym->defined) {
-            /* Use the symbol table to see if there is a canonical definition
-               of this template. */
-            find_template_correspondence(templ, /*parent_found=*/TRUE);
-          } else {
-            set_trans_unit_corresp(iek_template, templ, corresp_templ);
-          }  /* if */
-#endif /*FIXME*/
-          set_trans_unit_corresp(iek_template, templ, corresp_templ);
-          if (/* FIXME !has_correspondence(templ) || */
-              templ->kind != corresp_templ->kind) {
+          if (templ->kind != corresp_templ->kind) {
             /* Could only be due to an error. */
             f_report_bad_trans_unit_corresp(
                                 (char*)templ,
                                 &corresp_templ->source_corresp.decl_position);
+            set_no_trans_unit_corresp(iek_template, templ);
           } else {
+            set_trans_unit_corresp(iek_template, templ, corresp_templ);
             establish_instantiation_correspondences(templ);
           }  /* if */
         }  /* for */
