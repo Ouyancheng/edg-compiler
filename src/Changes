@@ -1,5 +1,10 @@
 Version 2.39
 
+7/9/98    __STDC__ redefinable in non-strict ANSI/ISO C mode
+
+The predefined macro __STDC__ is now allowed to be redefined in
+non-strict ANSI/ISO C mode.
+
 7/9/98    C++-generating back end, Microsoft compatibility: qualified
           name in explicit constructor call
 

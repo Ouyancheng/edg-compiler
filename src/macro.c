@@ -3818,11 +3818,13 @@ command line -D options.
      C mode and in C++ (in C++ it is implementation defined whether __STDC__
      is defined, and if so, what value it has).  The setting of __STDC__
      is affected by stdc_zero_in_nonstrict_mode, Microsoft mode, and
-     cfront mode.  __STDC__ can be redefined only in C++. */
+     cfront mode.  __STDC__ can be redefined in C++ mode, and in C mode
+     except for strict ANSI C mode. */
   if (C_dialect == C_dialect_ANSI || C_dialect == C_dialect_cplusplus) {
     a_boolean	define_stdc = TRUE;
     a_boolean	stdc_value = TRUE;
-    a_boolean	stdc_can_be_redefined = C_dialect == C_dialect_ANSI;
+    a_boolean	stdc_cannot_be_redefined = (C_dialect == C_dialect_ANSI &&
+                                            strict_ansi_mode);
     if (stdc_zero_in_nonstrict_mode) {
       /* In this mode, __STDC__ is 1 in strict mode and zero otherwise. */
       stdc_value = strict_ansi_mode;
@@ -3839,7 +3841,7 @@ command line -D options.
     }  /* if */
     if (define_stdc) {
       (void)enter_predef_macro(stdc_value ? "1" : "0", "__STDC__",
-                               stdc_can_be_redefined,
+                               stdc_cannot_be_redefined,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
   }  /* if */
