@@ -11826,9 +11826,12 @@ been removed, too.  Note that default arguments can come up at non-top-level
 parts of types in things like pointers to functions.
 */
 {
-  (void)traverse_type_tree(type, ttt_elim_def_arg_lifetimes,
-                           (TTT_RETURN_TYPE | TTT_PARAM_TYPES |
-                            TTT_SKIP_TYPEREFS | TTT_STOP_AT_TYPEDEFS));
+  /* Default arguments come up only in C++ mode. */
+  if (!C_mode()) {
+    (void)traverse_type_tree(type, ttt_elim_def_arg_lifetimes,
+                             (TTT_RETURN_TYPE | TTT_PARAM_TYPES |
+                              TTT_SKIP_TYPEREFS | TTT_STOP_AT_TYPEDEFS));
+  }  /* if */
 }  /* eliminate_default_arg_object_lifetimes */
 
 
@@ -12378,6 +12381,9 @@ eliminated, if appropriate.
     }  /* if */
 #endif /* DEBUG */
     if (!il_entry_prefix_of(vp).keep_in_il) {
+      /* Remove any object lifetimes that may be associated with its default
+         arguments, e.g., if it's a pointer to function. */
+      eliminate_variable_default_arg_object_lifetimes(vp);
       /* Remove it from the variables list by linking around it. */
       if (prev_vp == NULL) {
         scope->variables = vp->next;
@@ -12458,11 +12464,9 @@ eliminated, if appropriate.
     }  /* if */
 #endif /* DEBUG */
     if (!il_entry_prefix_of(rp).keep_in_il) {
-      if (!C_mode()) {
-        /* Remove any object lifetimes that may be associated with its default
-           arguments. */
-        eliminate_routine_default_arg_object_lifetimes(rp);
-      }  /* if */
+      /* Remove any object lifetimes that may be associated with its default
+         arguments. */
+      eliminate_routine_default_arg_object_lifetimes(rp);
       /* Remove it from the routines list by linking around it. */
       if (prev_rp == NULL) {
         scope->routines = rp->next;
