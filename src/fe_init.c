@@ -338,6 +338,33 @@ Initialize target machine characteristics.
   /* String literals should not be shared in pcc mode (they're writable), but
      should be ordinarily. */
   string_literals_shared = (C_dialect != C_dialect_pcc);
+  /* Compute the maximum size of a class object. */
+  if (targ_max_class_object_size == 0) {
+    targ_max_class_object_size = targ_size_t_max;
+  } else if (C_mode()) {
+    /* Leave it set as initialized. */
+  } else {
+    /* C++ mode: compute the maximum. */
+    a_targ_size_t     size;
+    unsigned long     temp;
+    a_targ_alignment  alignment;
+    unsigned int      bits;
+
+    /* Get the size of whatever integer kind is associated with a pointer-to-
+       data-member offset into the class object. */
+    get_integer_size_and_alignment(TARG_DELTA_INT_KIND, &size, &alignment);
+    /* Now given the size, compute the maximum integer value that will fit
+       in that size. */
+    bits = size * targ_char_bit;
+    if (int_kind_is_signed[TARG_DELTA_INT_KIND]) bits -= 1;
+    temp = ~((-1) << bits);
+    if (temp > (unsigned long)targ_size_t_max) {
+      /* It shouldn't exceed the maximum that can fit in a_targ_size_t. */
+      targ_max_class_object_size = targ_size_t_max;
+    } else {
+      targ_max_class_object_size = (a_targ_size_t)temp;
+    }  /* if */
+  }  /* if */
 }  /* target_init */
 
 
