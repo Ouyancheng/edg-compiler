@@ -11711,7 +11711,7 @@ Display and return the amount of space used for various IL tables.
 a_type_ptr init_predeclared_class(a_type_kind          kind,
                                   char                 *name)
 /*
-Create a type entry for a predeclared type of the specified kind.  It is
+Create a type entry for a predeclared class of the specified kind.  It is
 given the name indicated and a symbol is created, but the symbol is not
 entered into the symbol table.
 */
@@ -11724,7 +11724,7 @@ entered into the symbol table.
                                 (a_name_linkage_kind)nlk_cplusplus_external;
   make_symbol_for_predeclared_type(predeclared_type, name);
   return predeclared_type;
-}  /* init_predeclared_type */
+}  /* init_predeclared_class */
 
 
 void il_one_time_init(void)
