@@ -5687,11 +5687,6 @@ otherwise it is NULL.  The syntax is:
             set_to_error_locator(*locator);
           }  /* if */
           parenthesized_initializer_allowed = FALSE;
-        } else if (get_opname()) {
-          /* The name is an operator name like "operator+". */
-          *locator = locator_for_curr_id;
-          (void)get_token();
-          parenthesized_initializer_allowed = FALSE;
         } else {
           copy_source_position(pos_curr_token, locator->source_position);
           syntax_error(ec_exp_identifier);
@@ -7609,7 +7604,8 @@ process_class_specifier:
         /* For non-typedef identifiers, branch to the default case. */
         goto something_unexpected;
       case tok_operator:
-        (void)get_opname();
+        /* Coalesce the operator name. */
+        (void)is_generalized_identifier_start(GID_NO_OPTIONS);
 operator_or_conversion_name:
         if (locator_for_curr_id.is_conversion_name) {
           if (basic_type == bt_none && sign == sign_none &&
@@ -8233,12 +8229,15 @@ syntax is:
 }  /* new_type_name */
 
 
-a_boolean scan_conversion_operator(a_source_position  *id_pos)
+a_boolean scan_conversion_operator(a_source_position  *id_pos,
+				   a_type_ptr	      class_type)
 /*
 The token "operator" has been seen and passed; we are now on the token
 immediately following it.  If it marks the start of a type name we have
 an identifier for a conversion operator -- scan the type name, update the
 locator, and return TRUE.  If it doesn't, return FALSE.
+If class_type is not NULL then push a class reactivation scope before
+scanning type name in a type conversion operator.
 */
 {
   a_storage_class           storage_class;
@@ -8249,6 +8248,13 @@ locator, and return TRUE.  If it doesn't, return FALSE.
   a_boolean                 is_conversion_operator;
 
   db_enter(3, "scan_conversion_operator");
+  /* Push a class reactivation scope if class_type is not NULL.  This is
+     used when scanning conversion operators such as "A::operator B" where
+     B needs to be looked up within A.  This is not needed for overloaded
+     operator routines, but we don't know what kind of operator we are
+     scanning until we call is_type_start, and the class needs to
+     be reactivated before is_type_start is called. */
+  if (class_type != NULL) push_class_reactivation_scope(class_type);
   if (is_type_start()) {
     /* It is the start of a type name. */
     is_conversion_operator = TRUE;
@@ -8273,6 +8279,8 @@ locator, and return TRUE.  If it doesn't, return FALSE.
   } else {
     is_conversion_operator = FALSE;
   }  /* if */
+  /* Pop the class reactivation scope if one was pushed earlier. */
+  if (class_type != NULL) pop_class_reactivation_scope();
   db_exit();
   return is_conversion_operator;
 }  /* scan_conversion_operator */
@@ -8729,7 +8737,7 @@ specified (rather than defaulted to "int").
       }  /* if */
 #endif /* CHECKING */
 #if 0
-#else
+#else /* 0 */
       /* Remember the scope number for later use when the body is scanned. */
       func_info->scope_number = scope_stack[depth_scope_stack].number;
 #endif /* if 0 */

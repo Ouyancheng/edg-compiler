@@ -109,7 +109,8 @@ extern void type_name(a_type_ptr *type_ptr);
 extern void new_type_name(a_boolean         is_parenthesized,
                           a_type_ptr        *type_ptr);
 
-extern a_boolean scan_conversion_operator(a_source_position  *pos);
+extern a_boolean scan_conversion_operator(a_source_position  *pos,
+				          a_type_ptr         class_type);
 
 extern a_type_ptr type_keyword(void);
 

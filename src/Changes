@@ -1,5 +1,21 @@
 Version 2.22
 
+2/14/94  Scanning type conversion operator names
+
+When a type conversion operator appears as part of a qualified name,
+the type is first looked up in the class specified by the qualified name.
+
+struct A {
+  enum E {};
+  operator E();
+};
+
+void f()
+{
+  typedef A::E (A::*pmf)();
+  pmf p = &A::operator E;  // Should find A::E
+}
+
 2/14/94  Setting "can be instantiated" flag for static data members
 
 In implicit inclusion mode the template definition file was not

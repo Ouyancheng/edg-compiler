@@ -5057,13 +5057,17 @@ only in C++ mode.
 }  /* f_get_destructor_name */
 
 
-a_boolean f_get_opname(void)
+a_boolean f_get_opname(a_type_ptr class_type)
 /*
 The current token is the token "operator" at the start of an operator name,
 like "operator+".  Scan the name and build a locator for the operator name
 in locator_for_curr_id.  Return TRUE always (this routine is called from the
-macro get_opname; it handles the FALSE case).  This routine is called
-only in C++ mode.
+macro get_opname; it handles the FALSE case).  class_type is a pointer
+to the class type of a the qualified name associated with the generalized
+identifier being scanned.  If class_type is not NULL then push a class
+reactivation scope before scanning type name in a type conversion operator.
+
+This routine is called only in C++ mode.
 */
 {
   a_source_position start_position;
@@ -5073,7 +5077,7 @@ only in C++ mode.
   start_position = pos_curr_token;
   /* Skip past the "operator", check for an operator. */
   token = get_token();
-  if (scan_conversion_operator(&start_position)) {
+  if (scan_conversion_operator(&start_position, class_type)) {
     /* This is a conversion operator function -- "operator" followed by
        a type name. */
   } else {
@@ -6274,7 +6278,7 @@ This routine may only be called in C++ mode.
        my scanning the tokens of the identifier, updating the locator
        to reflect what was scanned, and setting curr_token to
        tok_identifier.  Most of this processing is actually done by
-       get_destructor_name and get_optname.  */
+       get_destructor_name and get_opname.  */
     /* Check for a destructor name.  Destructor names are always recognized
        following a class qualifier, but otherwise are only recognized if the
        GID_DTOR_RECOGNIZED flag is set. */
@@ -6386,7 +6390,7 @@ This routine may only be called in C++ mode.
       }  /* if*/
     }  /* if */
     /* The name can be an operator name like "operator+". */
-    (void)get_opname();
+    (void)get_opname(class_type);
 wrapup:
     /* The current token must now be the final identifier of the
        qualified name, e.g., "x" in "A::B::x".  In the destructor and
