@@ -1600,7 +1600,7 @@ The given type should not be a class or enum type.
   a_type_qualifier_set qualifiers;
   a_type_ptr           copy;
 
-  check_assertion(!is_class_struct_union_type(tp) || is_enum_type(tp));
+  check_assertion(!is_class_struct_union_type(tp) && !is_enum_type(tp));
   /* Remember the type qualifiers so that we can create an identically
      qualified copy. */
   qualifiers = get_type_qualifiers(tp);
