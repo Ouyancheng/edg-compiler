@@ -218,7 +218,7 @@ That is what the remap function does.
                      !il_entry_prefix_of(il_header.primary_scope).il_walk_flag;
   /* Walk the main body of the IL. */
   walk_entry_and_subtree((char *)il_header.primary_scope, iek_scope);
-  walk_ptr(il_header.primary_source_file, a_source_file_ptr, iek_source_file);
+  walk_list(il_header.primary_source_file, a_source_file_ptr, iek_source_file);
   remap_ptr(il_header.main_routine, a_routine_ptr, iek_routine);
   walk_string_ptr(il_header.compiler_version, iek_other_text, 0);
   walk_string_ptr(il_header.time_of_compilation, iek_other_text, 0);

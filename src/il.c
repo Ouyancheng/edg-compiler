@@ -2328,32 +2328,34 @@ physical line position for the sequence number.
   *line_number = 0;
   *nesting_depth = 0;
   curr_file = il_header.primary_source_file;
-  if (curr_file == NULL) {
-    /* No files, so any sequence number is not within any file. */
-  } else if (seq_number == 0) {
-    /* Unknown position. */
+  if (seq_number == 0 || curr_file == NULL) {
+    /* Unknown position or no files. */
     curr_file = NULL;
-#if CHECKING
-  } else if (seq_number   < curr_file->first_seq_number ||
-             seq_number-1 > curr_file->last_seq_number) {
-#if DEBUG
-    if (debug_level > 0) fprintf(f_debug, "seq number = %lu\n", seq_number);
-#endif /* DEBUG */
-    internal_error("source_file_for_seq: bad seq number");
-#endif /* CHECKING */
   } else if (physical_line == seq_cache.physical_line &&
              seq_number >= seq_cache.first_seq_number &&
-             seq_number <= seq_cache.last_seq_number &&
-             (seq_number-1 < curr_file->last_seq_number)) {
-    /* See whether this sequence number falls into the range of lines
-       associated with the information saved by the last lookup.  If so,
-       use the information saved last time to speed up the conversion.
-       Note that the "at end of source" line will not fall into this range
-       and will be handled by a normal conversion below. */
+             seq_number <= seq_cache.last_seq_number) {
+    /* If this sequence number falls into the range of lines
+       associated with the information saved by the last lookup,
+       use the information saved last time to speed up the conversion. */
     *line_number = seq_number + seq_cache.line_offset;
     *nesting_depth = seq_cache.nesting_depth;
     curr_file = seq_cache.source_file;
   } else {
+    /* Find the top-level file for this sequence number. */
+    check_assertion(seq_number >= curr_file->first_seq_number);
+    while (seq_number-1 > curr_file->last_seq_number) {
+      curr_file = curr_file->next;
+#if CHECKING
+      if (curr_file == NULL) {
+#if DEBUG
+        if (debug_level > 0) {
+          fprintf(f_debug, "seq number = %lu\n", seq_number);
+        }  /* if */
+#endif /* DEBUG */
+        internal_error("source_file_for_seq: bad seq number");
+      }  /* if */
+#endif /* CHECKING */
+    }  /* while */
     if (seq_number-1 == curr_file->last_seq_number) {
       /* At end of source.  Use the last line of the primary source file. */
       *at_end_of_source = TRUE;
@@ -2525,12 +2527,12 @@ void conv_seq_to_physical_file_and_line(a_seq_number      seq_number,
 /*
 For the sequence number given by seq_number, find the corresponding
 physical file and line number.  A pointer to the IL source file entry is
-returned in *src_file , and the physical line number is returned in
+returned in *src_file, and the physical line number is returned in
 *physical_line.  If the sequence number indicates the end-of-source line,
 the source file pointer will be set to the primary source file,
 the line number to the last line in that file, and *at_end_of_source will be
 set TRUE (it is set to FALSE in all other cases).  If the sequence number
-indicates an unknown position, the source file pointer  will be set to
+indicates an unknown position, the source file pointer will be set to
 NULL, and the line number to 0.
 */
 {
