@@ -892,9 +892,11 @@ Return a pointer to the nearest enclosing compound statement.
 }  /* nearest_enclosing_compound_statement */
 
 
-a_statement_ptr add_statement(a_statement_kind kind)
+a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
+                                          a_source_position  *stmt_pos)
 /*
-Allocate a statement of the indicated kind, and link it onto the end of
+Allocate a statement of the indicated kind, record the statement
+source position specified in *stmt_pos, and link it onto the end of
 the current statement sequence.
 */
 {
@@ -907,14 +909,12 @@ the current statement sequence.
   a_statement_ptr               temp_stmt;
   a_control_flow_descr_ptr      cfdp;
 
-
-  db_enter(4, "add_statement");
-
+  db_enter(4, "add_statement_at_stmt_pos");
   /* Find the header pointer for the statement list for the current
      structured statement. */
 #if CHECKING
   if (depth_stmt_stack < 0) {
-    internal_error("add_statement: struct_stmt_stack is empty");
+    internal_error("add_statement_at_stmt_pos: struct_stmt_stack is empty");
   }  /* if */
 #endif /* CHECKING */
   sssep = &struct_stmt_stack[depth_stmt_stack];
@@ -971,7 +971,8 @@ the current statement sequence.
         break;
 #if CHECKING
       default:
-        internal_error("add_statement: bad kind of stmt in struc. stmt stack");
+        internal_error(
+             "add_statement_at_stmt_pos: bad stmt kind in struct stmt stack");
 #endif /* CHECKING */
     }  /* switch */
   }  /* if */
@@ -982,7 +983,7 @@ the current statement sequence.
   /* Allocate the statement entry. */
   sp = alloc_statement(kind);
   /* Set the position from pos_curr_token. */
-  set_stmt_source_position(sp->position, pos_curr_token);
+  set_stmt_source_position(sp->position, *stmt_pos);
 
   /* See if the statement can be attached under the existing statement. */
   if (*head_ptr != NULL && !statement_list_allowed) {
@@ -1066,7 +1067,14 @@ the current statement sequence.
   }  /* if */
   db_exit();
   return(sp);
-}  /* add_statement */
+}  /* add_statement_at_stmt_pos */
+
+
+/*
+Call add_statement_at_stmt_pos using pos_curr_token as statement source
+position.
+*/
+#define add_statement(kind) add_statement_at_stmt_pos((kind), &pos_curr_token)
 
 
 void warn_if_code_is_unreachable(an_error_code      error_code,
@@ -1886,12 +1894,11 @@ Scan an expression statement.
   a_source_position start_position;
 
   start_position = pos_curr_token;
-
   expr = scan_void_expression();
-  /* Add the expression if is is not void. */
+  /* Add the expression if it is not void. */
   if (expr != NULL) {
-    sp = add_statement((a_statement_kind)stmk_expr);
-    set_stmt_source_position(sp->position, start_position);
+    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_expr,
+                                   &start_position);
     sp->expr = expr;
   }  /* if */
 }  /* expression_statement */
@@ -2624,17 +2631,15 @@ See also 3.6.6.4.
      a return statement in the IL that has a void type and yet contains
      a return expression. */
   if (void_return_used && return_expr != NULL) {
-    sp = add_statement((a_statement_kind)stmk_expr);
+    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_expr, &expr_pos);
     sp->expr = return_expr;
-    set_stmt_source_position(sp->position, expr_pos);
     set_expr_result_not_used(return_expr);
     return_expr = NULL;
   }  /* if */
   /* Allocate the return statement. */
-  sp = add_statement((a_statement_kind)stmk_return);
+  sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return, &return_pos);
   sp->expr = return_expr;
   sp->variant.dynamic_init = dip;
-  set_stmt_source_position(sp->position, return_pos);
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);

@@ -155,7 +155,8 @@ EXTERN int	depth_stmt_stack
 			/* Index of the current entry in struct_stmt_stack.
 			   -1 if the stack is empty. */
 
-extern a_statement_ptr add_statement(a_statement_kind kind);
+extern a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
+                                                 a_source_position  *stmt_pos);
 extern a_statement_ptr compound_statement(a_boolean at_function_level,
                                           a_boolean explicit_return_type,
                                           a_boolean is_catch_clause);

@@ -980,9 +980,8 @@ unreachable code).
     /* Must be the initialization of a local static variable.  Build the
        initialization statement and add it to the statement block. */
     check_assertion(vp->source_corresp.class_of_which_a_member == NULL);
-    init_stmt = add_statement((a_statement_kind)stmk_init);
-    set_stmt_source_position(init_stmt->position,
-                             vp->source_corresp.decl_position);
+    init_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_init,
+                                          &vp->source_corresp.decl_position);
     init_stmt->variant.dynamic_init = new_dip;
   } else {
     /* A dynamic file-scope initialization (possible only in C++) has
