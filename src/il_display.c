@@ -900,6 +900,10 @@ Display the indicated source correspondence entry.
 #if RECORD_SCOPE_DEPTH_IN_IL
   disp_long("  scope_depth", (long)scp->scope_depth);
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  disp_ptr("  source_sequence_entry", (char *)scp->source_sequence_entry,
+           iek_source_sequence_entry);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* disp_source_corresp */
 
 
@@ -2210,6 +2214,10 @@ Display the indicated statement.
   if (ptr->dependent_statement) {
     disp_boolean("dependent_statement", (a_boolean)ptr->dependent_statement);
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
+           iek_source_sequence_entry);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   disp_name("kind");
   switch (ptr->kind) {
     case stmk_expr:
@@ -2445,6 +2453,10 @@ do_assoc_type:
   disp_ptr("namelist_groups", (char *)ptr->namelist_groups,
            iek_namelist_group);
 #endif /* ifdef FFE */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  disp_ptr("source_sequence_list", (char *)scp->source_sequence_entry,
+           iek_source_sequence_entry);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* disp_scope */
 
 #ifdef FFE
@@ -2965,6 +2977,48 @@ Display the indicated asm entry.
 
 
 #endif /* CFE */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+static void disp_source_sequence_entry(a_source_sequence_entry_ptr ssep)
+/*
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_source_sequence_entry);  
+  disp_ptr("prev", (char *)ptr->prev, iek_source_sequence_entry);
+  disp_ptr("entity", (char *)ptr->entity.ptr,
+           (an_il_entry_kind)ptr->entity.kind);
+}  /* disp_source_sequence_entry */
+
+
+static void disp_src_seq_secondary_decl(a_src_seq_secondary_decl_ptr sssdp)
+/*
+*/
+{
+  disp_unsigned_long("decl_position.seq",
+                     (unsigned long)scp->decl_position.seq);
+  disp_unsigned_long("decl_position.column",
+                     (unsigned long)scp->decl_position.column);
+  disp_ptr("entity", (char *)ptr->entity.ptr,
+           (an_il_entry_kind)ptr->entity.kind);
+}  /* disp_src_seq_secondary_decl */
+
+
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+static void disp_comment(a_comment_ptr cp)
+/*
+*/
+{
+  disp_unsigned_long("start_position.seq",
+                     (unsigned long)cp->start_position.seq);
+  disp_unsigned_long("start_position.column",
+                     (unsigned long)cp->start_position.column);
+  disp_unsigned_long("end_position.seq",
+                     (unsigned long)cp->end_position.seq);
+  disp_unsigned_long("end_position.column",
+                     (unsigned long)cp->end_position.column);
+}  /* disp_comment */
+
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED
 
 static void disp_orphaned_il_list(an_orphaned_il_list_ptr ptr)
@@ -3110,6 +3164,19 @@ This routine is called during IL walking.
         case iek_asm_entry:
           disp_asm_entry((an_asm_entry_ptr)entry_ptr);
           break;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        case iek_source_sequence_entry:
+          disp_source_sequence_entry((a_source_sequence_entry_ptr)entry_ptr);
+          break;
+        case iek_src_seq_secondary_decl:
+          disp_src_seq_secondary_decl((a_src_seq_secondary_decl_ptr)entry_ptr);
+          break;
+#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
+        case iek_comment:
+          disp_comment((a_comment_ptr)entry_ptr);
+          break;
+#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED
         case iek_orphaned_il_list:
           disp_orphaned_il_list((an_orphaned_il_list_ptr)entry_ptr);
