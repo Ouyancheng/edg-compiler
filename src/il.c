@@ -10594,6 +10594,16 @@ done_with_func_prototype_decls:;
         rp->defined_outside_of_parent = FALSE;
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        if (vla_enabled) {
+          /* Any vla-dimension entries associated with this routine will
+             point to file-scope types that are flagged as having an
+             associated vla-dimension.  Clear those flags. */
+          a_vla_dimension_ptr  vdp;
+
+          for (vdp = sp->vla_dimensions; vdp != NULL; vdp = vdp->next) {
+            vdp->type->variant.array.has_assoc_vla_dimension = FALSE;
+          }  /* for */
+        }  /* if */
         /* Reset the routine entry to undefined state. */
         clear_function_body(rp);
       }  /* if */
