@@ -1,5 +1,10 @@
 Version 2.42
 
+4/27/99  Linux version no longer includes sys/dirent.h
+
+Newer versions of Linux no longer provide a sys/dirent.h file, so this
+file is no longer included by host_envir.c when building on Linux.
+
 4/27/99  Missing error on redeclaration of template name
 
 No error was issued when a function template name clashed with the name
