@@ -1,5 +1,12 @@
 Version 2.27
 
+11/18/94 Folding of constant addressing expression in initializer expressions
+         for function-local variables
+
+Folding of constant addressing expressions in initializer expressions
+for function-local variables is no longer done for non-static variables.
+It continues to be done for local static variables.
+
 11/16/94 referenced flag setting on virtual conversion function reference
 
 The referenced flag is now not set on implicit calls of virtual
