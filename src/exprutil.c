@@ -6907,38 +6907,36 @@ is constructed in *result.
     }  /* if */
     if (function_operand->bound_function) {
       /* Bound function.  bound_function_selector indicates the object. */
-      a_type_ptr this_type = implicit_this_param_type_of(function_type);
+      implicit_this_argument = make_node_from_operand(bound_function_selector);
       if (is_template_dependent_context() &&
           is_template_dependent_type(bound_function_selector->type)) {
-        /* In a prototype instantiation, a selector that might have a class
-           type that might have an operator-> function is left as is.
-           Convert it now to an approximation of a selector pointer. */
-        generic_cast_operand(bound_function_selector, this_type,
-                             (an_expr_operator_kind)eok_cast,
-                             /*is_implicit_cast=*/TRUE,
-                             /*is_reference_cast=*/FALSE);
-      }  /* if */
-      implicit_this_argument = make_node_from_operand(bound_function_selector);
+        /* In a prototype instantiation, a selector might have a class
+           type (because that class might have an operator-> function we
+           don't know about), or it might have a pointer type that's not
+           demonstrably related to the "this" type.  Leave it alone. */
+      } else {
+        a_type_ptr this_type = implicit_this_param_type_of(function_type);
 #if CHECKING
-      /* There shouldn't be a base-class adjustment here.  If there is,
-         make_this_pointer_operand or cast_pointer_for_field_selection
-         did not do their job. */
-      { a_boolean        baseward_cast;
-        a_base_class_ptr bcp;
-        check_assertion(!related_class_pointers(this_type,
-                                                implicit_this_argument->type,
-                                                &baseward_cast,
-                                                &bcp));
-      }
+        /* There shouldn't be a base-class adjustment here.  If there is,
+           make_this_pointer_operand or cast_pointer_for_field_selection
+           did not do their job. */
+        { a_boolean        baseward_cast;
+          a_base_class_ptr bcp;
+          check_assertion(!related_class_pointers(this_type,
+                                                  implicit_this_argument->type,
+                                                  &baseward_cast,
+                                                  &bcp));
+        }
 #endif /* CHECKING */
-      /* Cast if necessary to handle any const etc. adjustment. */
-      cast_node(&implicit_this_argument,
-                this_type,
-                /*check_cast_access=*/FALSE,  /* sic */
-                /*is_implicit_cast=*/TRUE,
-                /*is_reinterpret_cast=*/FALSE,
-                /*reinterpret_semantics=*/FALSE,
-                &bound_function_selector->position);
+        /* Cast if necessary to handle any const etc. adjustment. */
+        cast_node(&implicit_this_argument,
+                  this_type,
+                  /*check_cast_access=*/FALSE,  /* sic */
+                  /*is_implicit_cast=*/TRUE,
+                  /*is_reinterpret_cast=*/FALSE,
+                  /*reinterpret_semantics=*/FALSE,
+                  &bound_function_selector->position);
+      }  /* if */
       /* Pass a "this" pointer as the first argument. */
       implicit_this_argument->next = argument_list;
       argument_list = implicit_this_argument;

@@ -5807,8 +5807,11 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
     object_expr = optimized_expr_for_selection(object_expr, &naming_class);
     selection_class = type_pointed_to(object_expr->type);
     selection_class = skip_typerefs(selection_class);
-    if (is_variable_node(object_expr) &&
-        !object_expr->implicit_reference_indirection) {
+    if ((is_variable_node(object_expr) &&
+         !object_expr->implicit_reference_indirection) ||
+        (is_operation_node(object_expr) &&
+         object_expr->variant.operation.kind ==
+                                          (an_expr_operator_kind)eok_rvalue)) {
       /* Use a pointer and "->".  Don't do it when there's an implicit
          reference indirection on the object, because that will add a "&"
          that may mean the wrong thing if operator& is overloaded. */
@@ -6006,6 +6009,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         /* Done early to optimize parentheses. */
         gen_lvalue_full(operand_1, need_parens);
         goto done_with_operation_after_parens;
+      } else if (op == (an_expr_operator_kind)eok_rvalue) {
+        /* Operand is an rvalue where an lvalue was expected. */
+        /* Done early to optimize parentheses. */
+        gen_expr(operand_1, need_parens);
+        goto done_with_operation_after_parens;
       }  /* if */
       if (need_parens) m_write_tok_ch('(');
       if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
@@ -6105,12 +6113,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           gen_lvalue(operand_1);
           goto done_with_operation;
         case eok_lvalue:
+        case eok_rvalue:
           /* Handled above. */
           unexpected_condition();
-        case eok_rvalue:
-          /* Operand is an rvalue where an rvalue was expected. */
-          gen_expression(operand_1);
-          goto done_with_operation;
         case eok_pm_dot_field:
           /* Generic "->*" field selection. */
           opstr = "->*";
