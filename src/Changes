@@ -1,5 +1,18 @@
 Version 2.21
 
+11/16/93 Name mangling of large nontype template arguments
+
+The mangled name for numeric quanties in nontype template arguments
+now includes an underscore after the length of the numeric string if
+the length is greater than 9.  This avoids ambiguities when the length
+is immediately followed by a digit of the literal value.
+
+11/16/93 Display of float constants
+
+The default print width for float constants in fp_to_string in
+float_pt.c has been changed to 9.  double and long double constants
+are still printed with a width of 18.
+
 11/16/93 Member constant types
 
 Member constants (an extension) are no longer restricted to integral
