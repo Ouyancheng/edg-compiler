@@ -7427,10 +7427,15 @@ ones are allocated in the scope specified by decl_scope_level.
       /* Disjoin the symbol from the list.  It will be added to another
          list when it is reentered in the symbol table. */
       sym->next_in_scope = NULL;
-      /* It is no longer treated as a member of the anonymous union but
-         rather it will be a member of the class_type. */
-      sym->is_class_member = FALSE;
-      sym->parent.class_type = NULL;
+      if (!is_template_symbol(sym)) {
+        /* It is no longer treated as a member of the anonymous union but
+           rather it will be a member of the class_type.  (Templates are not
+           permitted and their symbols will be removed without being promoted.
+           To avoid inconsistencies between the template symbol and the
+           prototype instantiation, we don't clear the parent state.) */
+        sym->is_class_member = FALSE;
+        sym->parent.class_type = NULL;
+      }  /* if */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
     } else {
 #if DEBUG
