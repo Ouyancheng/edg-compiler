@@ -262,8 +262,8 @@ corresponding entity is pos2.
 }  /* report_corresp_error */
 
 
-static void f_report_bad_trans_unit_corresp(char                   *entity1,
-                                            a_source_position_ptr  pos2)
+void f_report_bad_trans_unit_corresp(char                   *entity1,
+                                     a_source_position_ptr  pos2)
 /*
 The given IL node has a source correspondence and an associated symbol.  It
 also has a non-NULL translation unit correspondence, but it points to a node
@@ -275,12 +275,6 @@ diagnostic.
                        ec_entity_differs_in_other_trans_unit,
                        ec_corresp_decl_incompatible);
 }  /* f_report_bad_trans_unit_corresp */
-
-#define report_bad_trans_unit_corresp(entity)                               \
-  f_report_bad_trans_unit_corresp(                                          \
-    (char*)(entity),                                                        \
-    &((a_source_correspondence_ptr)trans_unit_corresp_pointer_of(entity))   \
-      ->decl_position)
 
 
 static void f_process_bad_trans_unit_corresp(char  *entity)
@@ -986,7 +980,6 @@ is in fact valid.
            !routine->is_template_function)) ||
          routine->is_explicit_constructor !=
                                     corresp_routine->is_explicit_constructor ||
-         routine->is_specialized != corresp_routine->is_specialized ||
 #if DECL_MODIFIERS_IN_USE
          routine->decl_modifiers != corresp_routine->decl_modifiers ||
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -1029,9 +1022,6 @@ is in fact valid.
                                  TCF_REDECLARATION |
                                  TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) ||
          !same_exception_spec(var->type, corresp_var->type) ||
-         ((var->init_kind == (an_init_kind)initk_none || var->is_specialized)
-           != (corresp_var->init_kind == (an_init_kind)initk_none ||
-               corresp_var->is_specialized)) ||
          var->is_member_constant != corresp_var->is_member_constant ||
          /* In-class static member initializations must be equivalent. */
          (var->is_member_constant &&
