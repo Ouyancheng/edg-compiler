@@ -3138,7 +3138,6 @@ and the class instantiation will detect the runaway case.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   tssp = tip->template_sym->
                  variant.static_data_member.instance_ptr->template_info;
-/* FIXME: update assoc_template */
   static_data_member_sym = tip->instance_sym;
 #if CHECKING
   if (!tip->template_sym->defined ||
