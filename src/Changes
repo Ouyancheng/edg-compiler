@@ -1,4 +1,14 @@
-Version 2.14, February 12, 1993
+Version 2.15
+
+2/18/93   Bug in argument widening done in IL lowering
+
+The argument widening done when MAKE_ALL_FUNCTIONS_UNPROTOTYPED is true
+did not work for file-scope function calls, as in
+
+  int f(float);
+  int i = f(1.5f);
+
+The argument was not widened.  It is now.
 
 02/18/93  Error recovery for self-referential template references
 
@@ -38,6 +48,9 @@ template <class T> struct A {};
 struct A<int> {
 	A<int> i;
 };
+
+-------------------------------------------------------------------------------
+Version 2.14, February 12, 1993
 
 2/15/93  Error recovery on ambiguous conversions
 
