@@ -253,6 +253,7 @@ keep_definition_in_il, or does nothing, depending on the configuration.
 { a_type_ptr local_ptr = skip_typerefs(ptr); \
   if (local_ptr->kind == (a_type_kind)tk_array) { \
     local_ptr = underlying_array_element_type(local_ptr); \
+    local_ptr = skip_typerefs(local_ptr); \
   }  /* if */ \
   if (is_immediate_class_type(local_ptr) && (local_ptr)->size != 0) { \
     set_proper_definition_needed_flag(local_ptr); \
