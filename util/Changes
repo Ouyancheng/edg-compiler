@@ -1,5 +1,11 @@
 Version 2.46
 
+7/19/01  Prelinker: handling of internal errors
+
+The prelinker now uses the front end configuration flag EXIT_ON_INTERNAL_ERROR
+to specify how the prelinker should exit when an internal error is detected.
+The prelinker now calls abort() if EXIT_ON_INTERNAL_ERROR is FALSE.
+
 6/27/01  Prelinker: detection of instantiation loops
 
 An error in the data structures passed to the prelinker, or an inconsistency
