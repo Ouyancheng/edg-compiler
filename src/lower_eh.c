@@ -2061,7 +2061,7 @@ invocation of the front end.
     size *= TARG_CHAR_BIT;
     /* Make a bit mask "size" bits long. */
     if (size >= sizeof(unsigned long)*CHAR_BIT) {
-      max_region_number = ~0;
+      max_region_number = ~(unsigned long)0;
     } else {
       max_region_number = ((unsigned long)1 << size) - 1;
     }  /* if */
