@@ -100,7 +100,8 @@ static unsigned long
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static unsigned long
 		num_source_sequence_entries_allocated,
-		num_src_seq_secondary_decls_allocated;
+		num_src_seq_secondary_decls_allocated,
+		num_src_seq_end_of_constructs_allocated;
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
 static unsigned long
 		num_comments_allocated;
@@ -6619,6 +6620,28 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
     } else if (kind == iek_comment) {
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
     } else if (kind == iek_switch_clause) {
+    } else if (kind == iek_src_seq_end_of_construct) {
+      a_src_seq_end_of_construct_ptr  sseocp;
+      sseocp = (a_src_seq_end_of_construct_ptr)ssep->entity.ptr;
+      fprintf(f_debug, " (at %lu): ", sseocp->decl_position.seq);
+      switch (sseocp->entity.kind) {
+        case iek_block:
+          fputs("block", f_debug);
+          break;
+        case iek_type:
+          if (is_function_type((a_type_ptr)sseocp->entity.ptr)) {
+            fputs("func-prototype", f_debug);
+          } else {
+            fputc('"', f_debug);
+            db_type_name((a_type_ptr)sseocp->entity.ptr);
+            fputc('"', f_debug);
+          }  /* if */
+          break;
+        default:
+          fprintf(f_debug, "***BAD END-OF-CONSTRUCT KIND %s***",
+                           il_entry_kind_names[(int)kind]);
+          
+      }  /* switch */
     } else {
       a_source_position       *pos;
       a_source_correspondence *scp;
@@ -6750,6 +6773,28 @@ and return a pointer to it.
 
   return sssdp;
 }  /* alloc_src_seq_secondary_decl */
+
+
+a_src_seq_end_of_construct_ptr alloc_src_seq_end_of_construct(void)
+/*
+Allocate an end-of-construct declaration entry, initialize its fields, and
+return a pointer to it.
+*/
+{
+  a_src_seq_end_of_construct_ptr  sseocp;
+
+  sseocp = (a_src_seq_end_of_construct_ptr)alloc_cil(
+                                           sizeof(a_src_seq_end_of_construct));
+#if DEBUG
+  num_src_seq_end_of_constructs_allocated++;
+#endif /* DEBUG */
+  sseocp->decl_position.seq    = 0;
+  sseocp->decl_position.column = SP_COL_UNKNOWN;
+  sseocp->entity.kind          = (a_byte_il_entry_kind)iek_none;
+  sseocp->entity.ptr           = NULL;
+
+  return sseocp;
+}  /* alloc_src_seq_end_of_construct */
 
 
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
@@ -7257,6 +7302,9 @@ Display and return the amount of space used for various IL tables.
   db_space_used("src-seq secondary decl",
                 num_src_seq_secondary_decls_allocated,
                 a_src_seq_secondary_decl);
+  db_space_used("src-seq end of construct",
+                num_src_seq_end_of_constructs_allocated,
+                a_src_seq_end_of_construct);
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
   db_space_used("comment", num_comments_allocated, a_comment);
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
@@ -7439,6 +7487,8 @@ of the front end.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   num_source_sequence_entries_allocated  = 0;
   num_src_seq_secondary_decls_allocated  = 0;
+  num_src_seq_end_of_constructs_allocated
+                                         = 0;
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
   num_comments_allocated                 = 0;
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */

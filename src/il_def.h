@@ -295,6 +295,8 @@ typedef enum /*an_il_entry_kind*/ {
 			/* a_source_sequence_entry */
   iek_src_seq_secondary_decl,
 			/* a_src_seq_secondary_decl */
+  iek_src_seq_end_of_construct,
+			/* a_src_seq_end_of_construct */
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
   iek_comment,		/* a_comment */
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
@@ -375,6 +377,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 /* iek_source_sequence_entry */		"source-sequence-entry",
 /* iek_src_seq_secondary_decl */	"src-seq-secondary-decl",
+/* iek_src_seq_end_of_construct */	"src-seq-end-of-construct",
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
 /* iek_comment */			"comment",
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
@@ -469,6 +472,28 @@ typedef struct a_src_seq_secondary_decl {
 			   function, static data member, etc.) for which this
 			   is the secondary declaration. */
 } a_src_seq_secondary_decl;
+
+
+/*
+A source sequence end of construct entry is pointed to from a source
+sequence entry to mark the end of a class or enum definition, the end of
+a function prototype list, or the end of a block.  The kind of construct
+is determined by examining the tagged pointer.
+*/
+typedef struct a_src_seq_end_of_construct *a_src_seq_end_of_construct_ptr;
+typedef struct a_src_seq_end_of_construct {
+  a_source_position
+		decl_position;
+			/* Source position of the tok_rbrace or tok_rparen
+			   that marks the end of the construct. */
+  a_tagged_pointer
+		entity;
+			/* Entry identifying the entity (a class, enum, or
+			   function type or a block statement) for which this
+			   is the terminating token.  (Note that the end of a
+			   function prototype is associated with a function
+			   type, not a routine entry.) */
+} a_src_seq_end_of_construct;
 
 
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS

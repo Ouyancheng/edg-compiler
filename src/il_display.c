@@ -3120,6 +3120,7 @@ Display the indicated asm entry.
 
 static void disp_source_sequence_entry(a_source_sequence_entry_ptr ssep)
 /*
+Display the indicated source sequence entry.
 */
 {
   disp_ptr("next", (char *)ssep->next, iek_source_sequence_entry);  
@@ -3131,6 +3132,7 @@ static void disp_source_sequence_entry(a_source_sequence_entry_ptr ssep)
 
 static void disp_src_seq_secondary_decl(a_src_seq_secondary_decl_ptr sssdp)
 /*
+Display the indicated source sequence secondary declaration entry.
 */
 {
   disp_unsigned_long("decl_position.seq",
@@ -3140,6 +3142,20 @@ static void disp_src_seq_secondary_decl(a_src_seq_secondary_decl_ptr sssdp)
   disp_ptr("entity", (char *)sssdp->entity.ptr,
            (an_il_entry_kind)sssdp->entity.kind);
 }  /* disp_src_seq_secondary_decl */
+
+
+static void disp_src_seq_end_of_construct(a_src_seq_end_of_construct_ptr ptr)
+/*
+Display the indicated source sequence end-of-construct entry.
+*/
+{
+  disp_unsigned_long("decl_position.seq",
+                     (unsigned long)ptr->decl_position.seq);
+  disp_unsigned_long("decl_position.column",
+                     (unsigned long)ptr->decl_position.column);
+  disp_ptr("entity", (char *)ptr->entity.ptr,
+           (an_il_entry_kind)ptr->entity.kind);
+}  /* disp_src_seq_end_of_construct */
 
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
 
@@ -3313,6 +3329,10 @@ This routine is called during IL walking.
           break;
         case iek_src_seq_secondary_decl:
           disp_src_seq_secondary_decl((a_src_seq_secondary_decl_ptr)entry_ptr);
+          break;
+        case iek_src_seq_end_of_construct:
+          disp_src_seq_end_of_construct(
+                                    (a_src_seq_end_of_construct_ptr)entry_ptr);
           break;
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
         case iek_comment:

@@ -1270,17 +1270,17 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         a_source_sequence_entry_ptr ptr =
                                        (a_source_sequence_entry_ptr)entry_ptr;
+        an_il_entry_kind            kind = (an_il_entry_kind)ptr->entity.kind;
+
         remap_next_ptr(ptr->next, a_source_sequence_entry_ptr,
                        iek_source_sequence_entry);
         remap_ptr(ptr->prev, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
-        if (ptr->entity.kind ==
-                          (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
-          walk_ptr(ptr->entity.ptr, a_char_ptr,
-                   (an_il_entry_kind)ptr->entity.kind);
+        if (kind == iek_src_seq_secondary_decl ||
+            kind == iek_src_seq_end_of_construct) {
+          walk_ptr(ptr->entity.ptr, a_char_ptr, kind);
         } else {
-          remap_ptr(ptr->entity.ptr, a_char_ptr,
-                    (an_il_entry_kind)ptr->entity.kind);
+          remap_ptr(ptr->entity.ptr, a_char_ptr, kind);
         }  /* if */
       }
       break;
@@ -1288,6 +1288,14 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         a_src_seq_secondary_decl_ptr ptr =
                                       (a_src_seq_secondary_decl_ptr)entry_ptr;
+        remap_ptr(ptr->entity.ptr, a_char_ptr,
+                  (an_il_entry_kind)ptr->entity.kind);
+      }
+      break;
+    case iek_src_seq_end_of_construct:
+      {
+        a_src_seq_end_of_construct_ptr ptr =
+                                    (a_src_seq_end_of_construct_ptr)entry_ptr;
         remap_ptr(ptr->entity.ptr, a_char_ptr,
                   (an_il_entry_kind)ptr->entity.kind);
       }
