@@ -2371,7 +2371,7 @@ typedef struct a_based_type_list_member {
 
 
 /*
-A bit vector whose values represent the presence of one or type qualifiers
+A bit set whose values represent the presence of one or type qualifiers
 (const, volatile, along with others that an implementation might choose to
 support, such as restrict).
 */
@@ -2382,28 +2382,21 @@ Enumeration of type qualifiers that are accepted.  The enumeration values
 are used to create bit masks that are used to represent the qualifiers.
 */
 enum a_type_qualifier_tag {
-  tqt_const,
-			/* Const qualifier. */
-  tqt_volatile,
-			/* Volatile qualifier. */
+  tqt_const,		/* Const qualifier. */
+  tqt_volatile,		/* Volatile qualifier. */
 #if RESTRICT_ALLOWED
-  tqt_restrict,
-			/* Restrict qualifier. */
+  tqt_restrict,		/* Restrict qualifier. */
 #endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_KEYWORDS_ALLOWED
-  tqt_cdecl,
-			/* Microsoft __cdecl calling convention. */
-  tqt_fastcall,
-			/* Microsoft __fastcall calling convention. */
-  tqt_stdcall,
-			/* Microsoft __stdcall calling convention. */
+  tqt_cdecl,		/* Microsoft __cdecl calling convention. */
+  tqt_fastcall,		/* Microsoft __fastcall calling convention. */
+  tqt_stdcall,		/* Microsoft __stdcall calling convention. */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
-  tqt_last
-			/* Must be last. */
+  tqt_last		/* Must be last. */
 };
 
 /*
-Definitions of the bits comprising bit vectors of type a_type_qualifier.
+Definitions of the bits in bit sets of type a_type_qualifier_set.
 */
 #define TQ_NONE		0x0
 			/* No type qualifiers. */
@@ -2426,7 +2419,7 @@ Definitions of the bits comprising bit vectors of type a_type_qualifier.
 
 /*
 The last type qualifier tag value is used as the number of bits required
-to represent a type qualifier.
+to represent a type qualifier set.
 */
 #define NUM_BITS_FOR_TYPE_QUALIFIER_SET ((int)tqt_last)
 
@@ -2698,7 +2691,7 @@ typedef struct a_type {
 #endif /* DO_IL_LOWERING */
       a_type_qualifier_set
 		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
-			/* Bit vector with bits set to indicate the presence
+			/* Bit set with bits set to indicate the presence
 			   of one or more type qualifiers (const, volatile,
 			   or other(s) as defined by the implementation). */
       unsigned int
@@ -5394,7 +5387,8 @@ typedef struct a_scope {
 			/* List of local static variable initializations in
 			   function or block scope; always NULL at file scope.
 			   Only dynamic and aggregate-constant initializations
-			   are represented. */
+			   are represented.  The order of entries on the list
+			   is not meaningful. */
 #endif /* ifdef CIL */
   a_pragma_ptr	pragmas;
 			/* A linked list of pragma entries.  They may be
