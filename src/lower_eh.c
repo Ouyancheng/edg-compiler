@@ -203,16 +203,39 @@ all denote the same type.  type must be an externally-linked class type.
 }  /* make_id_object_var */
 
 
+static a_variable_ptr make_unnamed_local_array_var(a_type_ptr elem_type)
+/*
+Create an unnamed local (auto) variable whose type is an array of elem_type,
+and return a pointer to the variable.  The array size is begun as [0] and
+will be adjusted as elements are added.  finish_array_var must be called
+sometime later to set the size on the type.  The variable is put in the
+current function scope even if the current context is a block inside that.
+*/
+{
+  a_variable_ptr var;
+  a_type_ptr     array_type;
+
+  /* Make a type that is an array of elem_type. */
+  array_type = alloc_type((a_type_kind)tk_array);
+  array_type->variant.array.variant.number_of_elements = 0; /* Initially. */
+  array_type->variant.array.element_type = elem_type;
+  /* set_type_size is not called yet. */
+  /* Make the variable.  It is unnamed and automatic. */
+  var = make_function_scope_temporary(array_type);
+  return var;
+}  /* make_unnamed_local_array_var */
+
+
 static a_variable_ptr make_unnamed_local_static_array_var(
                                                   a_type_ptr elem_type,
                                                   a_boolean  in_function_scope)
 /*
 Create an unnamed local static variable whose type is an array of elem_type,
 and return a pointer to the variable.  The array size is begun as [0] and
-will be adjusted as elements are added.  finish_unnamed_local_static_array_var
-must be called sometime later to set the size on the type.
-If in_function_scope is TRUE, put the variable in the function scope instead
-of the current scope (which might be a block scope).
+will be adjusted as elements are added.  finish_array_var must be called
+sometime later to set the size on the type.  If in_function_scope is TRUE,
+put the variable in the function scope instead of the current scope
+(which might be a block scope).
 */
 {
   a_variable_ptr var;
@@ -238,12 +261,12 @@ static a_variable_ptr make_init_unnamed_local_static_array_var(
 /*
 Create an unnamed local static variable whose type is an array of elem_type,
 and return a pointer to the variable.  The array size is begun as [0] and
-will be adjusted as elements are added.  finish_unnamed_local_static_array_var
-must be called sometime later to set the size on the type.  The variable
-will be initialized; to start the process, an aggregate constant is attached
-to the variable.  Initial values must be added under the aggregate.
-If in_function_scope is TRUE, put the variable in the function scope instead
-of the current scope (which might be a block scope).
+will be adjusted as elements are added.  finish_array_var must be called
+sometime later to set the size on the type.  The variable will be initialized;
+to start the process, an aggregate constant is attached to the variable.
+Initial values must be added under the aggregate.  If in_function_scope
+is TRUE, put the variable in the function scope instead of the current
+scope (which might be a block scope).
 */
 {
   a_variable_ptr var;
@@ -263,7 +286,7 @@ of the current scope (which might be a block scope).
 }  /* make_init_unnamed_local_static_array_var */
 
 
-static a_targ_size_t incr_nelems_or_array_var(a_variable_ptr var)
+static a_targ_size_t incr_nelems_of_array_var(a_variable_ptr var)
 /*
 Increment the number of elements of the array variable pointed to by var.
 Return the pre-incremented value (which is right as a subscript).
@@ -271,7 +294,7 @@ Return the pre-incremented value (which is right as a subscript).
 {
   /* Add one to the array size.  set_type_size is called later. */
   return var->type->variant.array.variant.number_of_elements++;
-}  /* incr_nelems_or_array_var */
+}  /* incr_nelems_of_array_var */
 
 
 static a_targ_size_t add_elem_to_array_var(a_variable_ptr var,
@@ -292,16 +315,16 @@ array.  Return the pre-incremented size (which is right as a subscript).
   }  /* if */
   aggr_con->variant.aggregate.last_constant = con;
   /* Increment the number of elements in the array. */
-  return incr_nelems_or_array_var(var);
+  return incr_nelems_of_array_var(var);
 }  /* add_elem_to_array_var */
 
 
 static void finish_array_var(a_variable_ptr var)
 /*
 var is an array variable (for example, one created by
-make_unnamed_local_static_array_var).  The building of the variable is now
-completed, so finish it off.  In particular, the array size is now known,
-so call set_type_size on the type.
+make_init_unnamed_local_static_array_var).  The building of the variable
+is now completed, so finish it off.  In particular, the array size is now
+known, so call set_type_size on the type.
 */
 {
   /* Finish off the array type by setting its size. */
@@ -1187,20 +1210,11 @@ object address array to the address of the object.
      file scope memory region at this point. */
   /* Make the variable if it has not yet been made. */
   if (object_addr_table_var == NULL) {
-    /* Switch to the file scope memory region so the variable will
-       be allocated there. */
-    a_memory_region_number region_to_switch_back_to;
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    /* The variable is an array whose elements have type "void *". */
-    object_addr_table_var =
-               make_unnamed_local_static_array_var(void_star_type(),
-                                                   /*in_function_scope=*/TRUE);
-    /* Return to the memory region that was current when this routine was
-       entered. */
-    switch_back_to_original_region(region_to_switch_back_to);
+    /* The variable is an auto array whose elements have type "void *". */
+    object_addr_table_var = make_unnamed_local_array_var(void_star_type());
   }  /* if */
   /* Add an element to the object address table array. */
-  entry_number = incr_nelems_or_array_var(object_addr_table_var);
+  entry_number = incr_nelems_of_array_var(object_addr_table_var);
   /* Insert code to initialize the element of the table to the address of the
      object, i.e.,
        object_addr_table[n] = (void *)ipdp-address;
