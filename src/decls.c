@@ -4624,7 +4624,7 @@ to indicate whether an enumeration is actually defined.
       set_source_corresp(&(enum_type->source_corresp), tag_sym);
       tag_sym->class_of_which_a_member = class_of_which_a_member;
       tag_sym->variant.type = enum_type;
-      if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+      if (depth_of_containing_function_scope() != NO_SCOPE_DEPTH &&
           ssep->kind != (a_scope_kind)sck_class_struct_union) {
         /* This enumeration is being declared within a function scope, and
            it is not a declaration nested within a C++ class definition.

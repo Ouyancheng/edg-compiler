@@ -5239,19 +5239,7 @@ class/struct/union is actually defined.
   *defines_something = FALSE;
   /* Determine whether this is a local class (one being declared within a
      function scope). */
-  if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
-    if (depth_innermost_function_scope != DEPTH_OF_FILE_SCOPE) {
-      is_local_class = TRUE;
-    } else {
-      a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
-      for (; ssep != scope_stack; --ssep) {
-        if (ssep->kind == (a_scope_kind)sck_function) {
-          is_local_class = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
-    }  /* if */
-  }  /* if */
+  is_local_class = (depth_of_containing_function_scope() != NO_SCOPE_DEPTH);
   if (curr_token != tok_identifier) {
     /* Skip over "class", "struct", or "union", remembering which appears. */
 #if CHECKING
