@@ -4039,9 +4039,6 @@ End a name scope by popping an entry off the scope stack.
          end to determine when to put out qualified names and elaborated
          type specifiers.  Note that namespace and class scopes are handled
          when the scopes in which they are directly nested are processed. */
-      if (ssep->il_scope == NULL && pointers_block != NULL) {
-        (void)ensure_il_scope_exists(ssep);
-      }  /* if */
       check_name_hiding_for_scope(ssep->il_scope);
     }  /* if */
   }  /* if */

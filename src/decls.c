@@ -3920,6 +3920,15 @@ cross-reference output describing this declaration.
     sym = enter_local_symbol((a_symbol_kind)sk_variable, locator,
                              effective_decl_level,
                              redecl_error_already_issued);
+#if RECORD_HIDDEN_NAMES_IN_IL
+    /* Block extern declarations have associated hidden name entries; so we
+       must make sure there is an IL scope to attach those entries to. */
+      if (scope_stack[effective_decl_level].kind == (a_scope_kind)sck_block &&
+          scope_stack[effective_decl_level].il_scope == NULL &&
+          linkage != idl_none) {
+        (void)ensure_il_scope_exists(&scope_stack[effective_decl_level]);
+      }  /* if */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   }  /* if */
   *ext_sym = NULL;
   if (linkage != idl_none && !redeclaration) {
@@ -4878,6 +4887,15 @@ skip_overloading:;
     sym = enter_local_symbol((a_symbol_kind)sk_routine, locator,
                              effective_decl_level,
                              redecl_error_already_issued);
+#if RECORD_HIDDEN_NAMES_IN_IL
+    /* Block extern declarations have associated hidden name entries; so we
+       must make sure there is an IL scope to attach those entries to. */
+      if (scope_stack[effective_decl_level].kind == (a_scope_kind)sck_block &&
+          scope_stack[effective_decl_level].il_scope == NULL &&
+          linkage != idl_none) {
+        (void)ensure_il_scope_exists(&scope_stack[effective_decl_level]);
+      }  /* if */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
     if (microsoft_mode && invalid_scope_for_new_or_delete) {
       /* An operator new or delete function was declared in a namespace scope.
          The Microsoft C++ compiler permits this (i.e., no error is issued),
