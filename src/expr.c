@@ -3238,7 +3238,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
           if (gcc_mode && (is_void_type(type_pointed_to(operand->type)) ||
                            is_function_type(type_pointed_to(operand->type)))) {
             /* In some versions of GNU C void and function pointers can be
-               incremented and and decremented. */
+               incremented and decremented. */
             warning(ec_nonobject_pointer_arithmetic);
           } else if (!check_object_pointer_operand(
                                      operand, ec_expr_not_pointer_to_object)) {
@@ -3467,7 +3467,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
           if (gcc_mode && (is_void_type(type_pointed_to(operand.type)) ||
                            is_function_type(type_pointed_to(operand.type)))) {
             /* In some versions of GNU C void and function pointers can be
-               incremented and and decremented. */
+               incremented and decremented. */
             warning(ec_nonobject_pointer_arithmetic);
           } else if (!check_object_pointer_operand(
                                     &operand, ec_expr_not_pointer_to_object)) {
