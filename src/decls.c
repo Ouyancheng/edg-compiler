@@ -5898,12 +5898,14 @@ nonstandard, but it is allowed by cfront.
 void report_missing_type_specifier(a_source_position  *err_pos,
                                    a_boolean          is_function,
                                    a_boolean          is_function_def,
+                                   a_boolean          is_main_function,
                                    a_boolean          any_decl_specifiers)
 /*
 No type was explicitly specified for the current declaration.  Issue the
 appropriate diagnostic at the source position given by *err_pos.  is_function
 is TRUE if this is a function declaration; is_function_def is TRUE if it is
-a function declaration that is also a definition.  any_decl_specifiers is
+a function declaration that is also a definition; is_main_function is TRUE
+if it is a declaration of global scope "main".  any_decl_specifiers is
 TRUE if at least one decl-specifier was seen (e.g., a storage class or
 cv-qualifier).
 */
@@ -5916,6 +5918,19 @@ cv-qualifier).
        specifier (even if the type itself is implicit). */
     if (C_dialect == C_dialect_pcc) {
       /* No diagnostic is issued. */
+    } else if (is_main_function) {
+      /* Special handling for global function "main" -- including a separate
+         error code, in case discretionary-error control for "main" should
+         be independent of that for other functions. */
+      if (C_mode()) {
+        /* No diagnostic is issued. */
+      } else {
+        /* C++ mode, in which the standard requires an explicit return type
+           on "main". */
+        error_code = ec_implicit_int_on_main;
+        severity = strict_ansi_mode ?
+                          strict_ansi_discretionary_severity : es_remark;
+      }  /* if */
     } else {
       /* In general, issue a message about the implicit int return type,
          which deserves at least a remark in C mode and is now an error in
@@ -8740,7 +8755,7 @@ continue_with_declaration:
         if (local_storage_class != (a_storage_class)sc_typedef &&
             curr_token != tok_semicolon && curr_token != tok_comma &&
             curr_token != tok_assign && curr_token != tok_end_of_source) {
-          if (!has_explicit_type_specifier && !is_main_function) {
+          if (!has_explicit_type_specifier) {
             /* Function with no explicitly specified return type.  Issue a
                remark (except in pcc mode and except for C++ constructors,
                destructors, and conversion operators). */
@@ -8749,6 +8764,7 @@ continue_with_declaration:
               report_missing_type_specifier(&declarator_start_pos,
                                             /*is_function=*/TRUE,
                                             /*is_function_def=*/TRUE,
+                                            is_main_function,
                                             !decl_specifiers_omitted);
             }  /* if */
           }  /* if */
@@ -8838,10 +8854,11 @@ continue_with_declaration:
         }  /* if */
       }  /* if */
       /* Issue diagnostics on missing type specifiers, etc. */
-      if (!has_explicit_type_specifier && !is_main_function
-          && !is_constructor_or_destructor && !locator.is_conversion_name) {
+      if (!has_explicit_type_specifier && !is_constructor_or_destructor &&
+          !locator.is_conversion_name) {
         report_missing_type_specifier(&declarator_start_pos, is_function,
                                       /*is_function_def=*/FALSE,
+                                      is_main_function,
                                       !decl_specifiers_omitted);
       }  /* if */
       if (top_declarator_type_is_function &&

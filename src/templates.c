@@ -5315,9 +5315,12 @@ declarator. pos is the position to be used if a diagnostic is issued.
         /* No type specifier is required. */
       } else {
         /* Error on omitted type specifier. */
-        report_missing_type_specifier(
-                                  pos, is_function, /*is_function_def=*/FALSE,
-                                  (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0);
+        a_boolean  any_decl_specifiers =
+                                 (dso_flags & DSO_NO_DECL_SPECIFIERS) == 0;
+        report_missing_type_specifier(pos, is_function,
+                                      /*is_function_def=*/FALSE,
+                                      /*is_main_function=*/FALSE,
+                                      any_decl_specifiers);
       }  /* if */
     }  /* if */
     if (dso_flags & DSO_DEFINES_SOMETHING) {

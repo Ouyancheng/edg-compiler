@@ -985,6 +985,7 @@ ec_ref_not_allowed_in_union;;"a member with reference type is not allowed in a u
 ec_typedef_not_allowed;;"\"typedef\" may not be specified here"
 ec_redecl_changes_access;;"redeclaration of %n alters its access"
 ec_qualified_name_required;;"a class or namespace qualified name is required"
+ec_implicit_int_on_main;;"return type \"int\" omitted in declaration of function \"main\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

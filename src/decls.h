@@ -182,6 +182,7 @@ extern void report_missing_type_specifier(
                                      a_source_position  *err_pos,
                                      a_boolean          is_function,
                                      a_boolean          is_function_def,
+                                     a_boolean          is_main_function,
                                      a_boolean          any_decl_specifiers);
 
 /*
@@ -192,6 +193,7 @@ when all decl-specifiers are missing.
 #define report_implicit_int(pos)                                      \
   report_missing_type_specifier(pos, /*is_function=*/FALSE,           \
                                 /*is_function_def=*/FALSE,            \
+                                /*is_main_function=*/FALSE,           \
                                 /*any_decl_specifiers=*/TRUE)
 
 

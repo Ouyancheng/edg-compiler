@@ -1,5 +1,13 @@
 Version 2.40
 
+8/19/98   Implicit return type on "main"
+
+In C++ mode a diagnostic is now issued on declarations of "main" with no
+explict return type.  A remark is put out by default, and a disretionary
+error or warning is put out in strict mode.  To control the error severity
+for this case independently of other implicit-int diagnostics, a new error
+code is provided: ec_implicit_int_on_main.
+
 8/14/98   Compilation errors in decl_spec.c
 
 Several undefined-name compilation errors occurred in decl_spec.c in a

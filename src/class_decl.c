@@ -9888,6 +9888,7 @@ to be returned to the caller.
           report_missing_type_specifier(&declarator_start_pos,
                                         /*is_function=*/TRUE,
                                         function_def_present,
+                                        /*is_main_function=*/FALSE,
                                         !no_decl_specifiers);
           /* Under most circumstances the implicit-int substitution will be
              done in decl_specifiers.  An exception is a comma list that
@@ -10167,6 +10168,7 @@ to be returned to the caller.
         report_missing_type_specifier(&declarator_start_pos,
                                       /*is_function=*/FALSE,
                                       /*is_function_def=*/FALSE,
+                                      /*is_main_function=*/FALSE,
                                       !no_decl_specifiers);
       }  /* if */
       /* Typedef declaration. */
@@ -10199,6 +10201,7 @@ to be returned to the caller.
         report_missing_type_specifier(&declarator_start_pos,
                                       /*is_function=*/FALSE,
                                       /*is_function_def=*/FALSE,
+                                      /*is_main_function=*/FALSE,
                                       !no_decl_specifiers);
         /* Under most circumstances the implicit-int substitution will be
            done in decl_specifiers.  An exception is a comma list that
