@@ -6496,6 +6496,8 @@ Display and return the amount of space used for various IL lowering tables.
   db_space_used_lost("required dtor call", avail_required_destructor_calls,
                      num_required_destructor_calls_allocated,
                      a_required_destructor_call);
+  db_space_used_general_buffer("mangled name buffer",
+                               size_mangled_name_buffer);
 
   db_space_used_total();
 
