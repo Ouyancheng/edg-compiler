@@ -95,11 +95,6 @@ typedef int a_set_instance_required_options_set;
 			/* Normally the value specified on a call is merged
 			   with the earlier value.  This flag forces the
 			   instance required flag to be cleared. */
-#define SIR_GPP_FORCE_INLINE	0x4
-			/* TRUE if, in g++ mode, an inline function should be
-			   instantiated when it is put on the instantiations
-			   required list rather than waiting until the end
-			   of the translation unit. */
 
 /*
 Structure used to represent the information found an in export information

@@ -2864,19 +2864,30 @@ C and C++.
                                depth_of_initial_lookup_scope, NO_SCOPE_DEPTH);
     }  /* if */
     if (gpp_dependent_name_lookup &&
-        (sym == NULL || is_function_or_template_symbol(sym)) &&
         lookup_state.any_ignored_dependent_bases) {
-      /* The lookup did not find a symbol but we looked in some classes
-         with dependent base classes that may have symbols that were not
-         considered.  Look again in a special mode that will find such
-         symbols.  The second lookup is also done if the first lookup found
-         a function.  The second lookup will find the same function again
-         if there are no dependent base class symbols found first. */
+      /* In g++ mode, names from dependent base classes are sometimes
+         ignored and sometimes not.  A second lookup is done to determine if
+         a different result would have been found if dependent bases were
+         included.  If the first lookup found no symbol or the symbol
+         found was a function symbol, use the symbol from the second lookup
+         (which may be the same as the first symbol if there were no names
+         found in dependent base classes).  If the first lookup did not
+         find a function and the second lookup did find a function, use the
+         symbol from the second lookup. */
+      a_symbol_ptr	new_sym;
       lookup_state.force_lookup_in_dependent_bases = TRUE;
-      sym = scope_stack_lookup(locator, &lookup_state,
-                               depth_of_initial_lookup_scope,
-                               NO_SCOPE_DEPTH);
+      new_sym = scope_stack_lookup(locator, &lookup_state,
+                                   depth_of_initial_lookup_scope,
+                                   NO_SCOPE_DEPTH);
       lookup_state.force_lookup_in_dependent_bases = FALSE;
+      if (sym == NULL || is_function_or_template_symbol(sym)) {
+        sym = new_sym;
+      } else if (new_sym != NULL) {
+        a_symbol_ptr	fund_new_sym = fundamental_symbol_of(new_sym);
+        if (is_function_or_template_symbol(fund_new_sym)) {
+          sym = new_sym;
+        }  /* if */
+      }  /* if */
     }  /* if */
     /* If this is a linkage lookup, don't do the nested class anachronism
        lookup, or SVR4 mode lookup. */

@@ -17471,7 +17471,6 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
      in Microsoft mode and g++ mode.  However, in g++ mode virtual functions
      are instantiated when the enclosing class is defined. */
   if (microsoft_bugs || gpp_mode) defer_inline = TRUE;
-  if (gpp_mode && (options & SIR_GPP_FORCE_INLINE)) defer_inline = FALSE;
   sym = tip->instance_sym;
   tssp = template_supplement_for_symbol(tip->template_sym);
 #if DEBUG
