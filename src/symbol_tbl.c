@@ -1716,6 +1716,39 @@ symbol_found:
 }  /* find_symbol */
 
 
+a_boolean looks_like_ctor_or_dtor(a_symbol_locator  *loc)
+/*
+Return TRUE if the given symbol locator looks like that for a constructor or
+destructor.  The answer can be TRUE even when an error symbol is given (in
+which case the symbol is never actually marked as being a special function).
+This is useful to inhibit some diagnostics that are not meaningful on
+contructors or destructors (e.g., missing return statements and implicit
+return types).
+*/
+{
+  a_boolean  answer = FALSE;
+
+  if (loc->is_class_member) {
+    a_symbol_ptr  parent = (a_symbol_ptr)loc->parent.class_type
+                                                  ->source_corresp.assoc_info;
+    if (loc->symbol_header->identifier != NULL &&
+        parent->header->identifier != NULL &&
+        strcmp(loc->symbol_header->identifier,
+               parent->header->identifier) == 0) {
+      answer = TRUE;
+    }  /* if */
+  } /* if */
+  if (!answer) {
+    /* Misdeclared destructors may not be marked as class members: */
+    char *name = loc->symbol_header->identifier;
+    if (name != NULL && name[0] == '~') {
+      answer = TRUE;
+    }  /* if */
+  }  /* if */
+  return answer;
+}  /* looks_like_ctor_or_dtor */
+
+
 void make_locator_for_symbol(a_symbol_ptr     sym_ptr,
                              a_symbol_locator *location)
 /*
@@ -3650,6 +3683,12 @@ be changed too.
   sym_ptr = alloc_symbol(sym_kind, location->symbol_header,
                          &location->source_position);
   sym_ptr->is_error = location->is_error;
+  if (sym_ptr->is_error) {
+    /* In the error case it can be useful to remember the membership (e.g.,
+       to recognize constructor-like symbols). */
+    sym_ptr->is_class_member = location->is_class_member;
+    sym_ptr->parent = location->parent;
+  }  /* if */
   /* Set the locator to point to the symbol entered. */
   location->specific_symbol = sym_ptr;
   location->is_qualified_name = FALSE;

@@ -4292,12 +4292,17 @@ The return expression is also set for a return from a constructor.
       /* Get pointer to the symbol for the function name. */
       a_symbol_ptr function_name_symbol =
                                  (a_symbol_ptr)rout->source_corresp.assoc_info;
+      a_symbol_locator locator;
 #if CHECKING
       if (function_name_symbol == NULL) {
           internal_error("check_void_return_okay: unexpected NULL assoc_info");
       }  /* if */
 #endif /* CHECKING */
-      if (!function_name_symbol->is_error) {
+      if (function_name_symbol->is_error) {
+        make_locator_for_symbol(function_name_symbol, &locator);
+      }  /* if */
+      if (!(function_name_symbol->is_error &&
+            looks_like_ctor_or_dtor(&locator))) {
         sym_diagnostic(no_returned_value_severity,
                        is_implicit_return ?
                          ec_implicit_return_from_non_void_function :

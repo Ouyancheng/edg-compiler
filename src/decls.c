@@ -9984,7 +9984,8 @@ continue_with_declaration:
                remark (except in pcc mode and except for C++ constructors,
                destructors, and conversion operators). */
             if (C_dialect != C_dialect_pcc && !is_constructor_or_destructor &&
-                !locator.is_conversion_name) {
+                !locator.is_conversion_name &&
+                !(locator.is_error && looks_like_ctor_or_dtor(&locator))) {
               report_missing_type_specifier(&declarator_start_pos,
                                             /*is_function=*/TRUE,
                                             /*is_function_def=*/TRUE,

@@ -2551,6 +2551,8 @@ a_boolean find_projected_symbol(
                         a_symbol_ptr             *projected_symbol,
                         a_boolean		 can_create_nonreal);
 
+extern a_boolean looks_like_ctor_or_dtor(a_symbol_locator  *loc);
+
 extern void make_locator_for_symbol(a_symbol_ptr     sym_ptr,
                                     a_symbol_locator *location);
 
