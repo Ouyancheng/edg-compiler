@@ -1,5 +1,12 @@
 Version 2.46
 
+11/19/01 Setting EH cleanup state at epilogue label in destructors
+
+The exception handling cleanup state is now set after epilogue labels
+in destructors even if there are no members or bases to destroy,
+in partial-eh-lowering configurations (DO_FULL_PORTABLE_EH_LOWERING
+set to FALSE).
+
 11/18/01 Microsoft mode: const var as operand of "?" operator
 
 A previous change (see 11/14/00 entry below) dropped cv-qualifiers

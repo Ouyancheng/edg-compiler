@@ -8194,6 +8194,21 @@ gen_dtor_member_and_base_destructions.
     }  /* if */
     /* Insert the code to destroy members and bases. */
     insert_statement(destruction_code, insert_location);
+  } else {
+#if !DO_FULL_PORTABLE_EH_LOWERING
+    /* Insert a cleanup state indication that says there is nothing to
+       do. */
+    if (label_added) {
+      if (exceptions_enabled &&
+          innermost_function_scope->lifetime != NULL) {
+        curr_context->curr_cleanup_state =
+            curr_context->latest_initialization = NULL;
+        insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
+                                              insert_location,
+                                              /*unreachable=*/FALSE);
+      }  /* if */
+    }  /* if */
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   }  /* if */
 }  /* insert_dtor_member_and_base_destructions */
 
