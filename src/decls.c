@@ -5446,7 +5446,7 @@ otherwise it is NULL.  The syntax is:
          is_generalized_identifier_start.  The qualifier will then be
          discarded by simplify_curr_class_qualified_name resulting in an
          unqualified destructor that has already been coalesced. */
-      if (is_qualified_name_start() &&
+      if (curr_token == tok_identifier &&
           (!locator_for_curr_id.is_destructor_name ||
            locator_for_curr_id.is_qualified_name)) {
         a_boolean        	  err;
