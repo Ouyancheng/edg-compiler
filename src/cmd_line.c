@@ -233,9 +233,6 @@ Process the arguments on the command line that invoked the compiler.
 
 #ifdef HOSTID
   /* Check that this code is running on an acceptable CPU. */
-  /* The two Edison Design Group Suns are always acceptable. */
-#define EDG1 0x12008fd2
-#define EDG2 0x12008d32
   /* Use an exclusive-or to make it harder to find and patch the host id
      in the compiler executable. */
 #define HOSTID_MASK 0x08251954
@@ -244,7 +241,7 @@ Process the arguments on the command line that invoked the compiler.
 #ifdef HOSTID2
         lhostid != (HOSTID2 ^ HOSTID_MASK) &&
 #endif /* ifdef HOSTID2 */
-        lhostid != (EDG1 ^ HOSTID_MASK) && lhostid != (EDG2 ^ HOSTID_MASK)) {
+                                             ) {
       command_line_error("incorrect host CPU id");
     }  /* if */
   }
