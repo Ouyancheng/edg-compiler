@@ -6490,8 +6490,10 @@ statement.  The expression is not an lvalue.
     make_zero_of_proper_type(expr->type, &zero_constant);
     zero_node = alloc_node_for_constant(&zero_constant);
     copy_expr->next = zero_node;
-    change_node_to_operation(expr, (an_expr_operator_kind)eok_ine,
-                             copy_expr->type, copy_expr);
+    change_node_to_operation(expr,
+                             which_binary_operator(tok_ne, copy_expr->type),
+                             integer_type((an_integer_kind)ik_int),
+                             copy_expr);
   }  /* if */
 }  /* lower_boolean_controlling_expr */
 
