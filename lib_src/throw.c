@@ -16,6 +16,7 @@ Throw processing for exception handling.
 #include <malloc.h>
 #include "basics.h"
 #include "config.h"
+#include "runtime.h"
 
 #if EXCEPTION_HANDLING
 
@@ -271,14 +272,18 @@ we know that "size" bytes will immediately be consumed.
   void*			mem_block;
   a_mem_allocation_ptr	map;
   a_mem_block_descr_ptr	mpdp;
+  a_sizeof_t		new_size;
 
   /* Adjust the requested size.  The adjusted size is a multiple of the
      memory allocation increment.  If (adjusted_size - size) >
      (memory_allocation_increment * .5) then we allocate an extra
      memory_allocation_increment bytes. */
-  size =
-      (size + EH_MEMORY_ALLOCATION_INCREMENT +
-       (EH_MEMORY_ALLOCATION_INCREMENT >> 1)) % EH_MEMORY_ALLOCATION_INCREMENT;
+  new_size = ((size / EH_MEMORY_ALLOCATION_INCREMENT) + 1) *
+                                              EH_MEMORY_ALLOCATION_INCREMENT;
+  if ((new_size - size) < (EH_MEMORY_ALLOCATION_INCREMENT >>1)) {
+    new_size += EH_MEMORY_ALLOCATION_INCREMENT;
+  }  /* if */
+  size = new_size;
   /* Get space from the memory block to store a new memory block description
      an a memory allocation record to describe it. */
   mpdp = (a_mem_block_descr_ptr)alloc_in_mem_block(NEEDED_FOR_MEM_BLOCK_DESCR,
@@ -322,7 +327,7 @@ Allocate a block of memory on the EH memory stack.
   if ((alloc_size + NEEDED_FOR_MEM_ALLOCATION_INFO +
        curr_mem_block_descr->used +
        RESERVED_FOR_END_OF_MEM_BLOCK) > curr_mem_block_descr->size) {
-    alloc_new_mem_block(size);
+    alloc_new_mem_block(alloc_size);
   }  /* if */
   ptr = alloc_in_mem_block(alloc_size, &map);
 #if DEBUG
@@ -719,6 +724,8 @@ a try block with a catch that matches the type of the object thrown.
     an_eh_stack_entry_kind	kind = ehsep->kind;
     if (kind == (an_eh_stack_entry_kind)ehsek_function) {
       /* Do nothing with function blocks at this time. */
+    } else if (kind == (an_eh_stack_entry_kind)ehsek_vec_new_or_delete) {
+      /* Do nothing with vec_new and vec_delete entries at this time. */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
       if (ehsep->variant.try_block.catch_info == NULL) {
         /* Skip over try blocks for which a catch is active. */
@@ -778,6 +785,11 @@ a try block with a catch that matches the type of the object thrown.
     if (kind == (an_eh_stack_entry_kind)ehsek_function) {
       cleanup(ehsep, __eh_curr_region, NULL_REGION_NUMBER);
       __eh_curr_region = ehsep->variant.function.saved_region_number;
+    } else if (kind == (an_eh_stack_entry_kind)ehsek_vec_new_or_delete) {
+      /* A vec_new or vec_delete operation that was in process when the
+         exception occurred.  Call the routine to cleanup the partially
+         constructed or destructed array. */
+      __cleanup_vec_new_or_delete(ehsep);
     } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
       /* A try block that is being skipped. */
       if (ehsep->variant.try_block.catch_info != NULL) {

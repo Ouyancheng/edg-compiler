@@ -44,12 +44,6 @@ typedef a_unique_id *a_unique_id_ptr;
 typedef void (*a_void_function_ptr)();
 			/* Type used to store a generic function pointer. */
 
-typedef void (*a_destructor_ptr)(void*, int);
-			/* Type used to store a pointer a destructor. */
-
-typedef void (*a_delete_ptr)(void*);
-			/* Type used to store a pointer to an operator delete
-			   routine. */
 
 typedef unsigned short an_object_offset;
 			/* Type used to store an offset into an object. */
@@ -260,7 +254,8 @@ enum an_eh_stack_entry_kind_tag {
   ehsek_try_block,
   ehsek_function,
   ehsek_throw_spec,
-  ehsek_throw_processing_marker
+  ehsek_throw_processing_marker,
+  ehsek_vec_new_or_delete
 };
 
 typedef a_byte an_eh_stack_entry_kind;
@@ -317,6 +312,33 @@ typedef struct an_eh_stack_entry {
 		throw_specification;
 			/* Pointer to an array of entries that specify the
 			   types that can be thrown. */
+    /* When kind == ehsek_vec_new_or_delete. */
+    struct {
+      void*	array_ptr;
+			/* Pointer to the memory allocated for the array. */
+      a_sizeof_t
+		number_of_elements;
+			/* Total number of elements in the array. */
+      a_sizeof_t
+		element_size;
+			/* Size of each element. */
+      a_sizeof_t
+		elements_processed;
+			/* Number of elements constructed or destructed so
+			   far. */
+      a_boolean
+		is_vec_new;
+			/* TRUE if this is a vec_new operation, FALSE if this
+			   is a vec_delete. */
+      a_boolean
+		free_memory_on_cleanup;
+			/* TRUE if the memory for the array was allocated by
+			   new and should be freed during object cleanup. */
+      a_destructor_ptr
+		destructor;
+			/* Pointer to the destructor to be called for each
+			   element of the array. */
+    } vec_new_del;
   } variant;
 } an_eh_stack_entry;
 
@@ -363,6 +385,8 @@ extern a_void_function_ptr set_unexpected(a_void_function_ptr);
 EXTERN a_void_function_ptr
 		__default_unexpected_routine initial_value(unexpected);
 			/* Pointer to the unexpected routine to be used. */
+
+EXTERN_C void __cleanup_vec_new_or_delete(an_eh_stack_entry_ptr ehsep);
 
 #endif /* EXCEPTION_HANDLING */
 

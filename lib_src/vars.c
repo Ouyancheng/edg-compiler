@@ -18,6 +18,7 @@ Performs initialization of global variables used by the runtime.
 
 #include "basics.h"
 #include "main.h"
+#include "runtime.h"
 #include "eh.h"
 
 
