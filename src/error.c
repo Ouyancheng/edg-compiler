@@ -2288,20 +2288,18 @@ Add the parameter list of a function to the type string being formatted.
   a_boolean		has_ellipsis;
 
   add_string_to_segment("(", seg_ptr);
-  if (suppl_ptr->prototyped) {
-    has_ellipsis = suppl_ptr->has_ellipsis;
-    for (param_ptr = suppl_ptr->param_type_list;
-         param_ptr != NULL;
-         param_ptr = param_ptr->next) {
-      form_type_first_part(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
-      form_type_second_part(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
-      if (param_ptr->next != NULL || has_ellipsis) {
-        add_string_to_segment(", ", seg_ptr);
-      }  /* if */
-    }  /* for */
-    if (has_ellipsis) {
-      add_string_to_segment("...", seg_ptr);
+  has_ellipsis = suppl_ptr->has_ellipsis;
+  for (param_ptr = suppl_ptr->param_type_list;
+       param_ptr != NULL;
+       param_ptr = param_ptr->next) {
+    form_type_first_part(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
+    form_type_second_part(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
+    if (param_ptr->next != NULL || has_ellipsis) {
+      add_string_to_segment(", ", seg_ptr);
     }  /* if */
+  }  /* for */
+  if (has_ellipsis) {
+    add_string_to_segment("...", seg_ptr);
   }  /* if */
   add_string_to_segment(")", seg_ptr);
 #ifdef CFE
@@ -2716,10 +2714,14 @@ symbol_name:
         add_string_to_segment(sym->header->identifier, seg_ptr);
       }  /* if */
       if (type != NULL &&
-          ! seg_ptr->variant.symbol.name_only &&
+          !seg_ptr->variant.symbol.name_only &&
           (seg_ptr->variant.symbol.full_type || is_overloaded) ) {
-        if (is_conversion) {
-          /* This is a conversion function; there is no parameter list". */
+        if (is_conversion ||
+            (C_dialect != C_dialect_cplusplus && is_function_type(type) &&
+             !type->variant.routine.extra_info->prototyped)) {
+          /* This is either a conversion function for which there is no
+             parameter list or in C-mode a function with an old-style
+             declaration, in which case the param type list is accidental. */
           add_string_to_segment("()", seg_ptr);
         }  else {
           form_type_second_part(type, /*need_parens=*/FALSE, seg_ptr);
