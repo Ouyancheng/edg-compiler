@@ -430,12 +430,12 @@ variable for the current function.
   (innermost_function_scope != NULL &&                                \
    innermost_function_scope->variant.routine.return_value_variable == (var))
 
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
 EXTERN a_local_static_variable_init_ptr
                 promoted_local_static_variable_inits;
 			/* List of initialization entries for local static
 			   variables promoted out of the current routine. */
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 
 EXTERN a_source_position
 		code_pos_for_lowering;
@@ -576,12 +576,12 @@ extern a_variable_ptr make_lowered_variable(char            *var_name,
 
 extern a_variable_ptr make_lowered_param_variable(a_type_ptr type);
 
-#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-extern a_variable_ptr make_instantiation_var(
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE || LOWER_EXTERN_INLINE
+extern a_variable_ptr make_global_var_with_prefixed_name(
                                       char                    *prefix,
                                       an_integer_kind         ikind,
                                       a_source_correspondence *source_corresp);
-#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE || LOWER_EXTERN_INLINE */
 
 extern void add_temporary_to_scope(a_variable_ptr temp,
                                    a_scope_ptr    scope);
@@ -700,12 +700,9 @@ extern void lower_statement_list(a_statement_ptr statement_list,
 
 extern void lower_statement(a_statement_ptr statement);
 
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-extern a_boolean local_entities_should_be_promoted(a_scope_ptr scope);
-
-extern void promote_local_entities_to_file_scope(a_scope_ptr   scope,
-                                                 a_routine_ptr routine);
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
+extern void promote_local_entities_to_file_scope(a_scope_ptr scope);
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 
 extern void lower_il_memory_region(a_memory_region_number region_number);
 

@@ -1189,9 +1189,9 @@ to it.
   vp->is_temp_for_unmodified_inlined_param = FALSE;
   vp->is_temp_for_constructor_this_inlined_param = FALSE;
 #endif /* MINIMAL INLINING */
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
   vp->promoted_local_static_init  = FALSE;
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 #endif /* DO_IL_LOWERING */
 #if DECL_MODIFIERS_IN_USE
   vp->decl_modifiers              = DM_NONE;

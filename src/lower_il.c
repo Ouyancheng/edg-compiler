@@ -1294,27 +1294,28 @@ it.  The variable has no name.
   return param_var;
 }  /* make_lowered_param_variable */
 
-/* Determine whether or not we need make_instantiation_var, and if
+/* Determine whether or not we need make_global_var_with_prefixed_name, and if
    so, whether or not it needs to be external. */
-#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-#define MAKE_INSTANTIATION_VAR_LINKAGE /*external*/
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE || LOWER_EXTERN_INLINE
+#define MAKE_GLOBAL_VAR_WITH_PREFIXED_NAME_LINKAGE /*external*/
 #else /* !TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-#define MAKE_INSTANTIATION_VAR_LINKAGE static
+#define MAKE_GLOBAL_VAR_WITH_PREFIXED_NAME_LINKAGE static
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
-#ifdef MAKE_INSTANTIATION_VAR_LINKAGE
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE || LOWER_EXTERN_INLINE */
+#ifdef MAKE_GLOBAL_VAR_WITH_PREFIXED_NAME_LINKAGE
 
-MAKE_INSTANTIATION_VAR_LINKAGE
-a_variable_ptr make_instantiation_var(char                    *prefix,
+MAKE_GLOBAL_VAR_WITH_PREFIXED_NAME_LINKAGE
+a_variable_ptr make_global_var_with_prefixed_name(
+                                      char                    *prefix,
                                       an_integer_kind         ikind,
                                       a_source_correspondence *source_corresp)
 /*
-Create a variable related to instantiation of some template entity,
-and return a pointer to it.  source_corresp identifies the template
-entity (variable or routine).  The name of the generated variable
-consists of the indicated prefix followed by the mangled name of the
-entity.  The variable has the integral type indicated by ikind.
+Create a global variable whose name is the concatenation of the indicated
+prefix and the mangled name of the entity whose source correspondence
+is given by source_corresp.  The variable has the integral type indicated
+by ikind.  This is used, for example, for variables that record information
+about potential template instantiations.
 */
 {
   a_variable_ptr var;
@@ -1339,9 +1340,9 @@ entity.  The variable has the integral type indicated by ikind.
                               integer_type(ikind),
                               (a_storage_class)sc_unspecified);
   return var;
-}  /* make_instantiation_var */
+}  /* make_global_var_with_prefixed_name */
 
-#endif /* ifdef MAKE_INSTANTIATION_VAR_LINKAGE */
+#endif /* ifdef MAKE_GLOBAL_VAR_WITH_PREFIXED_NAME_LINKAGE */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 static void make_instantiation_info_var(
@@ -1357,8 +1358,8 @@ the information about that entity; it consists of the indicated prefix
 by the mangled name of the entity.  The variable has type char (arbitrarily).
 */
 {
-  (void)make_instantiation_var(prefix, (an_integer_kind)ik_char,
-                               source_corresp);
+  (void)make_global_var_with_prefixed_name(prefix, (an_integer_kind)ik_char,
+                                           source_corresp);
 }  /* make_instantiation_info_var */
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
@@ -4688,6 +4689,15 @@ Do IL lowering of the indicated routine and everything under it.
     /* "lower_os_type" not needed; the routine and the type must both be
        in the file scope. */
     lower_type(routine->type);
+#if LOWER_EXTERN_INLINE
+    if (routine->is_inline &&
+        routine->storage_class == (a_storage_class)sc_unspecified) {
+      /* An extern inline routine.  Make it a normal static inline routine.
+         Other transformations (e.g., promoting local static variables
+         out as external variables) are done elsewhere. */
+      routine->storage_class = (a_storage_class)sc_static;
+    } /* if */
+#endif /* LOWER_EXTERN_INLINE */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (automatic_instantiation_mode && !suppress_instantiation_flags) {
       /* For automatic instantiation, generate a variable or variables with
@@ -9217,8 +9227,6 @@ and all subscopes.
       next_type = type->next;
       /* If the type is a class, promote its members out of the class. */
       if (is_immediate_class_type(type)) {
-        a_class_type_supplement_ptr ctsp =
-                                   type->variant.class_struct_union.extra_info;
         promote_class_members(type, scope, &insert_pointer);
         insert_pointer = type;
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
@@ -9229,8 +9237,12 @@ and all subscopes.
            types go to the outermost enclosing class).  However, the list
            can be non-NULL for nested classes that are defined outside of
            their parent classes. */
-        promote_type_list(ctsp->promoted_local_types, scope, &insert_pointer);
-        ctsp->promoted_local_types = NULL;
+        { a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+          promote_type_list(ctsp->promoted_local_types, scope,
+                            &insert_pointer);
+          ctsp->promoted_local_types = NULL;
+        }
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
       } else if (type->kind == (a_type_kind)tk_typeref &&
                  type->variant.typeref.is_placeholder_for_nested_class_def) {
@@ -9296,7 +9308,7 @@ and all subscopes.
 
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 
-a_boolean local_entities_should_be_promoted(a_scope_ptr scope)
+static a_boolean local_entities_should_be_promoted(a_scope_ptr scope)
 /*
 Return TRUE if the local entities of the indicated scope or any of its
 subscopes should be promoted to the file scope because they are referenced
@@ -9418,35 +9430,18 @@ Clear its is_local_to_function flag and the flags of any subtypes.
 }  /* clear_is_local_to_function_flag_in_type */
 
 
-void promote_local_entities_to_file_scope(a_scope_ptr   scope,
+static void promote_types_out_of_function(a_scope_ptr   scope,
                                           a_routine_ptr routine)
 /*
-Promote the local types and static variables of the indicated
-scope and its subscopes to the file scope.  The scope is a function or
-block scope and is (directly or indirectly) part of the indicated routine.
-Note that the entities being promoted have not been lowered yet; they will
-get lowered (as normal list members, not as orphans) as part of the
-lowering of the file scope memory region.  When promoting out of a member
-function, the local types are placed on a list associated with the outermost
-enclosing class, for later promotion out of the class (and into the file
-scope) along with the class members.
+Promote the types in the indicated scope (a function or block scope that
+is part of the indicated routine) to the file scope.  When promoting out
+of a member function, the local types are placed on a list associated
+with the outermost enclosing class, for later promotion out of the class
+(and into the file scope) along with the class members.
 */
 {
-  a_type_ptr     type, next_type;
-  a_variable_ptr variable, next_variable;
-  a_scope_ptr    block_scope;
-  a_scope_depth  depth;
+  a_type_ptr type, next_type;
 
-#if DEBUG
-  if (debug_level >= 4) {
-    (void)fprintf(f_debug, "Promoting local entities out of ");
-    db_scope(scope);
-    (void)fprintf(f_debug, "\n");
-  }  /* if */
-#endif /* DEBUG */
-  /* Note that any pragmas associated with promoted entities are already on
-     the file scope list, so they do not need to be moved. */
-  depth = scope->depth_in_scope_stack;
   /* See if there are types to promote. */
   type = scope->types;
   if (type != NULL) {
@@ -9532,10 +9527,26 @@ scope) along with the class members.
     }  /* for */
     /* Clear the types list now that all types have been promoted. */
     scope->types = NULL;
-    if (depth != NO_SCOPE_DEPTH) {
-      assoc_pointers_block_of(&scope_stack[depth])->last_type = NULL;
-    }  /* if */
+    { a_scope_depth depth = scope->depth_in_scope_stack;
+      if (depth != NO_SCOPE_DEPTH) {
+        assoc_pointers_block_of(&scope_stack[depth])->last_type = NULL;
+      }  /* if */
+    }
   }  /* if */
+}  /* promote_types_out_of_function */
+
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
+
+static void promote_static_variables_out_of_function(a_scope_ptr   scope,
+                                                     a_routine_ptr routine)
+/*
+Promote the static variables in the indicated scope (a function or block
+scope that is part of the indicated routine) to the file scope.
+*/
+{
+  a_variable_ptr variable, next_variable;
+
   /* See if there are local static variables to promote. */
   variable = scope->variables;
   if (variable != NULL) {
@@ -9555,6 +9566,16 @@ scope) along with the class members.
          function). */
       mangle_promoted_entity_name(&variable->source_corresp, routine, scope);
       variable->source_corresp.is_local_to_function = FALSE;
+#if LOWER_EXTERN_INLINE
+      if (routine->is_inline &&
+          routine->storage_class == (a_storage_class)sc_unspecified) {
+        /* An extern inline routine.  Make the promoted variable externally
+           visible.  This uses the relaxed ref/def model for externals. */
+        variable->storage_class = (a_storage_class)sc_unspecified;
+        variable->source_corresp.name_linkage =
+                                             (a_name_linkage_kind)nlk_external;
+      }  /* if */
+#endif /* LOWER_EXTERN_INLINE */
       add_to_variables_list(variable, DEPTH_OF_FILE_SCOPE);
       /* If the variable has an associated local-static-variable-init
          entry, transfer any initialization to the variable itself. */
@@ -9593,15 +9614,17 @@ scope) along with the class members.
             break;
           default:
             unexpected_condition_str(
-             "promote_local_entities_to_file_scope: bad static var init_kind");
+         "promote_static_variables_out_of_function: bad static var init_kind");
         }  /* switch */
       }  /* if */
     }  /* for */
     /* Clear the variables list now that all variables have been promoted. */
     scope->variables = NULL;
-    if (depth != NO_SCOPE_DEPTH) {
-      assoc_pointers_block_of(&scope_stack[depth])->last_variable = NULL;
-    }  /* if */
+    { a_scope_depth depth = scope->depth_in_scope_stack;
+      if (depth != NO_SCOPE_DEPTH) {
+        assoc_pointers_block_of(&scope_stack[depth])->last_variable = NULL;
+      }  /* if */
+    }
     /* Clear the list of local static initializations, but keep the entries
        around (on the promoted_local_static_variable_inits list) so they
        can be found (see lower_dynamic_init for one use). */
@@ -9615,6 +9638,37 @@ scope) along with the class members.
       scope->local_static_variable_inits = NULL;
     }  /* if */
   }  /* if */
+}  /* promote_static_variables_out_of_function */
+
+
+#if !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+/*ARGSUSED*/ /* <-- promote_types is not used if local entities are
+                    not being promoted. */
+#endif /* !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+static void r_promote_local_entities_to_file_scope(a_scope_ptr   scope,
+                                                   a_routine_ptr routine,
+                                                   a_boolean     promote_types)
+/*
+Promote the local types and static variables of the indicated
+scope and its subscopes to the file scope.  The scope is a function or
+block scope and is (directly or indirectly) part of the indicated routine.
+*/
+{
+  a_scope_ptr block_scope;
+
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+  if (promote_types) {
+    /* Promote types from this scope. */
+    promote_types_out_of_function(scope, routine);
+  }  /* if */
+#else /* !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+  check_assertion_str(!promote_types,
+              "r_promote_local_entities_to_file_scope: promote_types is TRUE");
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+  /* Promote static variables from this scope. */
+  promote_static_variables_out_of_function(scope, routine);
+  /* Note that any pragmas associated with promoted entities are already on
+     the file scope list, so they do not need to be moved. */
 #if CHECKING
   /* The only namespace entries that should appear at this level are
      namespace aliases. */
@@ -9630,11 +9684,53 @@ scope) along with the class members.
   for (block_scope = scope->scopes;
        block_scope != NULL;
        block_scope = block_scope->next) {
-    promote_local_entities_to_file_scope(block_scope, routine);
+    r_promote_local_entities_to_file_scope(block_scope, routine,
+                                           promote_types);
   }  /* for */
+}  /* r_promote_local_entities_to_file_scope */
+
+
+void promote_local_entities_to_file_scope(a_scope_ptr scope)
+/*
+Promote the local types and static variables of the indicated
+(function) scope and its subscopes to the file scope if appropriate.
+Note that the entities being promoted have not been lowered yet;
+they will get lowered (as normal list members, not as orphans) as
+part of the lowering of the file scope memory region.
+*/
+{
+  a_routine_ptr routine = scope->variant.routine.ptr;
+  a_boolean     promote_types = FALSE, promote_statics = FALSE;
+
+#if DEBUG
+  if (debug_level >= 4) {
+    (void)fprintf(f_debug, "Promoting local entities out of ");
+    db_scope(scope);
+    (void)fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+  if (local_entities_should_be_promoted(scope)) {
+    /* Local entities need to be promoted because they're potentially
+       referenced from code outside the routine. */
+    promote_types = promote_statics = TRUE;
+  }  /* if */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#if LOWER_EXTERN_INLINE
+  if (routine->is_inline &&
+      routine->storage_class == (a_storage_class)sc_unspecified) {
+    /* Promote static variables out of an extern inline routine, making
+       them external so the same ones are accessed from all copies of the
+       function. */
+    promote_statics = TRUE;
+  }  /* if */
+#endif /* LOWER_EXTERN_INLINE */
+  if (promote_types || promote_statics) {
+    r_promote_local_entities_to_file_scope(scope, routine, promote_types);
+  }  /* if */
 }  /* promote_local_entities_to_file_scope */
 
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 
 static void do_namespace_member_promotion(a_namespace_ptr nsp)
 /*
@@ -9995,7 +10091,7 @@ Do IL lowering of the indicated scope and everything under it.
        il_header.scope_orphaned_list_headers list if either of those
        pointers is non-NULL.  The entry is created after IL lowering
        runs so that IL lowering can alter those local lists. */
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
     /* If there is reason to promote the local types and static variables
        to the file scope, do that now and clear the lists.  That makes the
        promoted entities part of the file scope and no longer orphans.
@@ -10003,12 +10099,9 @@ Do IL lowering of the indicated scope and everything under it.
        associated with the class, and promoted when the class members get
        promoted out later. */
     if (scope_kind == (a_scope_kind)sck_function) {
-      if (local_entities_should_be_promoted(scope)) {
-        promote_local_entities_to_file_scope(scope,
-                                             scope->variant.routine.ptr);
-      }  /* if */
+      promote_local_entities_to_file_scope(scope);
     }  /* if */
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
   }  /* if */
   lower_variable_list(scope->nonstatic_variables);
   lower_local_static_variable_init_list(scope->local_static_variable_inits);
@@ -10345,9 +10438,9 @@ C++ to C, so that a C back end can handle it without change.
     curr_context = file_scope_context = NULL;
     innermost_function_scope = NULL;
     curr_object_lifetime = il_header.primary_scope->lifetime;
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
     promoted_local_static_variable_inits = NULL;
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
     switch_il_region(region_number);
     /* Mark entries created during this traversal as having already been
        visited by IL lowering. */

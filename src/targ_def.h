@@ -1525,6 +1525,17 @@ tree.
 #define LOWER_LVALUE_RETURNING_OPERATIONS TRUE
 #endif /* !defined(LOWER_LVALUE_RETURNING_OPERATIONS) */
 
+/*
+This switch controls whether "extern inline" functions are rewritten as
+normal inline functions.  The transformation involves promoting local static
+variables to external, and rewriting references to the address of an
+extern inline function to use a global variable containing the address
+of the chosen copy.
+*/
+#ifndef LOWER_EXTERN_INLINE
+#define LOWER_EXTERN_INLINE TRUE
+#endif /* ifndef LOWER_EXTERN_INLINE */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
 Microsoft mode allows a nonconstant aggregate initializer in C mode.

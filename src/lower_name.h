@@ -44,11 +44,11 @@ extern sizeof_t mangled_typeinfo_name(a_type_ptr type,
 
 extern sizeof_t mangled_id_object_name(a_type_ptr type,
                                        char       *store_at);
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
 extern void mangle_promoted_entity_name(a_source_correspondence *scp,
                                         a_routine_ptr           routine,
                                         a_scope_ptr             scope);
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 
 extern void do_all_name_mangling(void);
 

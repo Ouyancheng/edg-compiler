@@ -2,6 +2,8 @@ Version 2.33
 
 9/26/96  Bug fixed in processing lint NOTREACHED comments
 
+When a lint NOTREACHED comment was the last thing before the closing brace
+of a non-top-level block of a function, the NOTREACHED comment was ignored.
 A spurious warning complaining that a nonvoid function should return a
 value is no longer issued on the following:
 
@@ -144,6 +146,14 @@ The behavior is controlled by command-line options --extern_inline and
 --no_extern_inline; DEFAULT_EXTERN_INLINE_ALLOWED can be set to determine
 the default, and strict mode turns extern-inline support on while cfront
 mode turns it off.
+
+(9/26/96) IL lowering now promotes local static variables out of extern inline
+functions and makes them external, so that all copies of the function
+will use the same static variable.  If the static variable is initialized,
+the initialization guard variable is also made external.  It has a
+mangled name beginning with "__LSG__", followed by the mangled name of the
+promoted local static variable.  The name demangler has been updated to deal
+with these new mangled names.
 
 9/23/96 Use of typedef names in destructor calls
 

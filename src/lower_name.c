@@ -3248,7 +3248,7 @@ information.
   return mangled_prefixed_type_encoding("__TID_", type, store_at);
 }  /* mangled_id_object_name */
 
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
 
 static unsigned long search_scope_list(a_scope_ptr scope,
                                        a_scope_ptr scope_to_search,
@@ -3356,7 +3356,7 @@ and that is after normal name mangling has been done.
   }  /* if */
 }  /* mangle_promoted_entity_name */
 
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 
 
 void name_lower_one_time_init(void)

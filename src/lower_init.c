@@ -1706,10 +1706,10 @@ typedef struct a_generated_routine_context {
 		processing_file_scope_init_routine;
   a_return_memo_ptr
 		return_memo_list;
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
   a_local_static_variable_init_ptr
                 promoted_local_static_variable_inits;
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
   an_eh_lowering_context
 		ehcontext;
 } a_generated_routine_context;
@@ -1740,11 +1740,11 @@ grcontext is a local variable used to save state for later restoration.
   processing_file_scope_init_routine = FALSE;
   grcontext->return_memo_list = return_memo_list;
   return_memo_list = NULL;
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
   grcontext->promoted_local_static_variable_inits = 
                                           promoted_local_static_variable_inits;
   promoted_local_static_variable_inits = NULL;
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
   save_eh_lowering_context(&grcontext->ehcontext);
   add_object_lifetime_to_function_scope(scope);
   push_context(&grcontext->context, scope, (an_object_lifetime_ptr)NULL);
@@ -1763,14 +1763,12 @@ Pop function corresponding to push_generated_routine_context.
 {
   a_routine_ptr rout = scope->variant.routine.ptr;
 
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
   /* If there is reason to promote the local types and static variables
      to the file scope, do that now and clear the lists.  That makes the
      promoted entities part of the file scope and no longer orphans. */
-  if (local_entities_should_be_promoted(scope)) {
-    promote_local_entities_to_file_scope(scope, rout);
-  }  /* if */
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+  promote_local_entities_to_file_scope(scope);
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
   pop_context();
   /* Restore and pop the lifetime attached to the scope so that it can be
      deleted if it is empty. */
@@ -1794,10 +1792,10 @@ Pop function corresponding to push_generated_routine_context.
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
   restore_eh_lowering_context(&grcontext->ehcontext);
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
   promoted_local_static_variable_inits =
                                grcontext->promoted_local_static_variable_inits;
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
   free_return_memo_list(return_memo_list);
   return_memo_list = grcontext->return_memo_list;
   processing_file_scope_init_routine =
@@ -3106,18 +3104,22 @@ code for the dynamic initialization.
 }  /* push_init_expr_lifetime */
 
 
-static void add_first_time_test(an_insert_location_ptr insert_location,
+#if !LOWER_EXTERN_INLINE
+/*ARGSUSED*/  /* <-- guarded_var is unused if LOWER_EXTERN_INLINE is FALSE. */
+#endif /* !LOWER_EXTERN_INLINE */
+static void add_first_time_test(a_variable_ptr         guarded_var,
+                                an_insert_location_ptr insert_location,
                                 a_statement_ptr        *block_stmt,
                                 a_variable_ptr         *test_var)
 /*
-Add a first-time test sequence that will surround the initialization of a
-local static variable.  In effect:
+Add a first-time test sequence that will surround the initialization of the
+local static variable guarded_var.  In effect:
 
   static int test_var;  // Global test var, implicitly init to 0
   {
     if (test_var == 0) {
       test_var = 1;
-      ... real initialization of variable being initialized
+      ... real initialization of guarded_var
     }
   }
 
@@ -3133,8 +3135,22 @@ A pointer to the conditional variable is returned in *test_var.
 
   /* Make the static first-time-test variable in the current scope. */
   int_type = integer_type((an_integer_kind)ik_int);
-  *test_var = make_unnamed_local_static_variable(int_type,
-                                                 /*in_function_scope=*/FALSE);
+#if LOWER_EXTERN_INLINE
+  if (innermost_function_scope->variant.routine.ptr->is_inline &&
+      innermost_function_scope->variant.routine.ptr->storage_class ==
+                                             (a_storage_class)sc_unspecified) {
+    /* The current routine is extern inline, so the guard variable has to
+       be external (because the local static variable itself will be
+       turned into an external variable). */
+    *test_var = make_global_var_with_prefixed_name("__LSG__",
+                                                   (an_integer_kind)ik_int,
+                                                 &guarded_var->source_corresp);
+  } else
+#endif /* LOWER_EXTERN_INLINE */
+  {
+    *test_var = make_unnamed_local_static_variable(int_type,
+                                                  /*in_function_scope=*/FALSE);
+  }  /* if */
   /* Make "test_var == 0". */
   test_var_node = var_rvalue_expr(*test_var);
   test_var_node->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
@@ -3355,20 +3371,21 @@ in this routine must be FALSE in that case.
   static_var_init = init_pos_is_static(ipdp);
   if (variable != NULL &&
       (variable->init_kind == (an_init_kind)initk_function_local
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
        /* If local entities are being promoted out of functions, the
           variable may already have been promoted out. */
        || variable->promoted_local_static_init
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
                                               )) {
     /* The variable is a local static. */
     /* Add a first-time flag and a test. */
-    add_first_time_test(insert_location, &block_stmt, &local_static_guard_var);
+    add_first_time_test(variable, insert_location, &block_stmt,
+                        &local_static_guard_var);
     /* Find the local-static-variable-init entry that describes the
        initialization. */
     if (variable->init_kind == (an_init_kind)initk_function_local) {
       lsvip = find_local_static_variable_init(variable, curr_context->scope);
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
     } else {
       /* When local static variables are promoted, the local static variable
          initialization entries are saved on a list. */
@@ -3379,7 +3396,7 @@ in this routine must be FALSE in that case.
       }  /* for */
       check_assertion_str(lsvip != NULL,
                           "lower_dynamic_init: local static init not found");
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
     }  /* if */
   }  /* if */
   if (dip->lifetime != NULL) {
@@ -3724,7 +3741,7 @@ do_assignment:;
       if (static_var_init) {
         /* Initialization of a static variable to a constant.  Can be
            done as a static initialization. */
-#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
         /* If this variable is a local static variable that was promoted
            to file scope, we have to copy the remaining constant to the file
            scope (it was formerly pointed to by a local-static-variable-init
@@ -3736,7 +3753,7 @@ do_assignment:;
           simple_constant = copy_unshared_constant(simple_constant);
           switch_back_to_original_region(region_to_switch_back_to);
         }  /* if */
-#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
         variable->init_kind = (an_init_kind)initk_static;
         variable->initializer.constant = simple_constant;
       } else {
@@ -4608,8 +4625,9 @@ This routine returns TRUE if guard code was emitted.
   a_boolean              guard_code_emitted = FALSE;
 
   /* Make the guard variable at the file scope. */
-  test_var = make_instantiation_var("__SDG__", (an_integer_kind)ik_int,
-                                    &variable->source_corresp);
+  test_var = make_global_var_with_prefixed_name("__SDG__",
+                                                (an_integer_kind)ik_int,
+                                                &variable->source_corresp);
   if (variable->suppress_instantiation) {
     /* This variable is a specialization of a template entity, so its
        initialization should take precedence over any initialization code
@@ -4655,10 +4673,10 @@ Generate code for a stmk_init (dynamic initialization) statement.
 */
 {
   a_dynamic_init_ptr dip = statement->variant.dynamic_init;
-  a_boolean          non_C_case;
+  a_variable_ptr     var = dip->variable;
+  a_boolean          non_C_case = FALSE;
 
   /* Only lower the cases that do not come up in C: */
-  non_C_case = FALSE;
   if (dip->destructor != NULL) {
     /* Initialization with a later destructor. */
     non_C_case = TRUE;
@@ -4666,6 +4684,16 @@ Generate code for a stmk_init (dynamic initialization) statement.
     /* Initialization that wraps a lifetime around the initialization (because
        there are temporaries created in it). */
     non_C_case = TRUE;
+#if LOWER_EXTERN_INLINE
+  } else if (innermost_function_scope->variant.routine.ptr->is_inline &&
+             innermost_function_scope->variant.routine.ptr->storage_class ==
+                                             (a_storage_class)sc_unspecified &&
+             has_static_storage_duration(var->storage_class)) {
+    /* Initialization of a local static variable in an extern inline function.
+       The variable will be promoted to external, so code must be used to
+       initialize it. */
+    non_C_case = TRUE;
+#endif /* LOWER_EXTERN_INLINE */
   }  /* if */
   switch (dip->kind) {
     case dik_none:
@@ -4676,7 +4704,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
     case dik_constant:
       break;
     case dik_expression:
-      if (dip->variable->storage_class == (a_storage_class)sc_static) {
+      if (var->storage_class == (a_storage_class)sc_static) {
         /* Initialization of a local static variable to an expression, as in
                int f() {static int i = j+1;}
         */
@@ -4707,7 +4735,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
     an_insert_location insert_location;
     a_boolean          keep_dynamic_init;
     an_init_pos_descr  ipd;
-    a_variable_ptr     var = dip->variable, partial_aggr_cond_var;
+    a_variable_ptr     partial_aggr_cond_var;
 
     set_insert_location(statement, &insert_location);
     if (var_is_return_value_variable(var)) {
