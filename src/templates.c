@@ -1125,7 +1125,7 @@ Instantiate the body of the template function associated with tip.
     db_symbol(tip->template_sym, "\nbased on: ", 2);
   }  /* if */
 #endif /* DEBUG */
-  if (tssp->variant.function.routine->is_inline) {
+  if (tssp->variant.function.func_info.is_inline) {
     rout_ptr->is_inline = TRUE;
     rout_ptr->storage_class = sc_static;
     rout_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
@@ -3301,13 +3301,6 @@ and create a function instantiation entry to bind the two symbols together.
   rout_sym->variant.routine.instance_ptr = tip;
   /* Mark the routine entry as an instance of a member function template. */
   rout_sym->variant.routine.ptr->is_template_function = TRUE;
-  /* Be sure the is_line flag is transferred to the new routine entry. */
-  if (sym->variant.routine.ptr->is_inline) {
-    a_routine_ptr rp = rout_sym->variant.routine.ptr;
-    rp->is_inline = TRUE;
-    rp->storage_class = sc_static;
-    rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
-  }  /* if */
 error_exit:
   db_exit();
 }  /* find_member_function_template */

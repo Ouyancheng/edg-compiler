@@ -1,5 +1,38 @@
 Version 2.31
 
+10/18/95  Specializing member functions of template classes
+
+A member function of a class template may now be specialized even
+if the member function was defined in the class.  Also, the linkage
+of a specialization no longer depends on whether an out-of-class
+definition of the member function included the "inline" keyword.
+Only the use of the "inline" keyword in the class definition
+itself forces a specialization to be inline.
+
+  template <class T> struct A {
+    void f() {}
+    inline void g();
+    void h();
+  };
+
+  template <class T> void A<T>::g(){}
+  template <class T> inline void A<T>::h(){}
+
+  // Specialization of A<T>::f only inline if declared as inline.
+  // This specialization not previously allowed.
+  void A<char*>::f() { }
+ inline void A<float*>::f() { }
+
+  // Specialization of A<T>::g always inline.
+  void A<char*>::g() { }
+  inline void A<float*>::g() { }
+
+  // Specialization of A<T>::h only inline if declared as inline.
+  // Formerly, A<T>::h would be inline because the out-of-class definition
+  // is inline.
+  void A<char*>::h() { }
+  inline void A<float*>::h() { }
+
 10/16/95  Template member functions given incorrect linkage
 
 A template member function defined as inline outside of the
