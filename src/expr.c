@@ -7059,7 +7059,8 @@ of an error), return FALSE.
   /* Make sure the operand is still a constant. */
   if (is_constant_operand(operand)) {
     constant = &operand->variant.constant;
-    if (is_integral_or_enum_type(constant->type)) {
+    if (is_integral_or_enum_type(constant->type) &&
+        constant->kind == (a_constant_repr_kind)ck_integer) {
       okay = TRUE;
       *constant_sign = sign_of_integer_constant(constant);
     }  /* if */
