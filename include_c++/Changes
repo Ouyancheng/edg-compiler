@@ -1,3 +1,8 @@
+11/15/93 Size of setjmp buffer
+
+The setjmp buffer in setjmp.h has been changed to match the size of the
+buffer used by SunOS 4.1.2.
+------------------------------------------------------------------------------
 Version 2.20, November 4, 1993
 
 11/04/93 Exit function has C++ linkage
