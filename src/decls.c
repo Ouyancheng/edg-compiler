@@ -3875,8 +3875,7 @@ on for use in generating cross-reference output describing this declaration.
       } else if (!locator->is_qualified_name) {
         /* This is not actually a redeclaration -- linked_symbol refers to a
            function template instantiation. */
-        check_assertion(guiding_decls_allowed ||
-                        (microsoft_mode && is_friend_decl));
+        check_assertion(guiding_decls_allowed || microsoft_mode);
         template_function_specific_decl = TRUE;
       }  /* if */
     }  /* if */

@@ -1,5 +1,17 @@
 Version 2.38
 
+12/29/97  Internal error on old-style specialization definition
+
+An internal error would occur if an old-style definition of a given
+function template specialization followed a friend declaration that
+referred to that specialization.  This has been fixed.
+
+  template <class T> void f(T);
+  struct A {
+    friend void f(A);
+  };
+  void f(A){ }
+
 12/23/97  Instantiation request file closed before being deleted
 
 When an instantiation request file is deleted, it is now closed before
