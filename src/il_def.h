@@ -547,12 +547,6 @@ typedef struct a_source_correspondence {
 			/* TRUE if the name of the entity has been changed
 			   to the "mangled" form of the name (C++). */
 #endif /* DO_IL_LOWERING */
-#if BACK_END_IS_CP_GEN_BE
-  unsigned int	definition_put_out:1;
-			/* Used in some cases to record whether the definition
-			   for an entity has been put out by the
-			   C++/C-generating back end. */
-#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifdef CIL */
 #if RECORD_SCOPE_DEPTH_IN_IL
   a_scope_depth	scope_depth;
