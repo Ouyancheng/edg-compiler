@@ -1,5 +1,18 @@
 Version 2.43
 
+9/21/99  Abort with nonstandard anonymous unions (Microsoft mode)
+
+Nonstandard anonymous unions introduced with typedef names could lead to an
+internal error.
+
+  typedef struct { int i; } h;
+  struct {
+    int j; 
+    h;  // Nonstandard anonymous union: used to abort.
+  };
+
+This is now fixed.
+
 9/20/99  C++-generating back end, MSVC++ compatibility, function-typed
          parameters
 

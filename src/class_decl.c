@@ -7139,8 +7139,10 @@ ones are allocated in the scope specified by decl_scope_level.
 #endif /* DEBUG */
       /* Creation of a new symbol is only implemented for fields, because it
          can only happen in C mode or with C++ classes that have no C++
-         features. */
-      check_assertion(sym->kind == (a_symbol_kind)sk_field);
+         features.  (A compiler-generated assignment operator is fine.) */
+      check_assertion(sym->kind == (a_symbol_kind)sk_field ||
+                      (sym->kind == (a_symbol_kind)sk_member_function &&
+                       sym->variant.routine.ptr->compiler_generated));
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     }  /* if */
     /* Private and protected members are not allowed in an anonymous union
