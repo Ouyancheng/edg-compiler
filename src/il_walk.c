@@ -437,7 +437,7 @@ Process the indicated scope.
 #ifdef CFE
   walk_list(ptr->scopes, a_scope_ptr, iek_scope);
   walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
-  remap_ptr(ptr->dynamic_inits, a_dynamic_init_ptr, iek_dynamic_init);
+  walk_list(ptr->dynamic_inits, a_dynamic_init_ptr, iek_dynamic_init);
 #endif /* ifdef CFE */
 #ifdef FFE
   walk_list(ptr->entries, an_entry_description_ptr, iek_entry_description);
@@ -1053,7 +1053,7 @@ and the entry pointer is to an entry in the file scope, just return
       case iek_dynamic_init:
         {
           a_dynamic_init_ptr ptr = (a_dynamic_init_ptr)entry_ptr;
-          remap_ptr(ptr->next, a_dynamic_init_ptr, iek_dynamic_init);
+          remap_next_ptr(ptr->next, a_dynamic_init_ptr, iek_dynamic_init);
           remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
           remap_ptr(ptr->destructor, a_routine_ptr, iek_routine);
           switch (ptr->kind) {
