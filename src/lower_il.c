@@ -3663,9 +3663,11 @@ in extern inline functions).
     /* The variable must be allocated.  We make a local static variable
        and then promote it to get it processed like other local static
        variables. */
-    a_routine_ptr routine;
+    a_routine_ptr          routine;
+    a_memory_region_number region_to_switch_back_to = curr_il_region_number;
     check_assertion(innermost_function_scope != NULL);
     routine = innermost_function_scope->variant.routine.ptr;
+    switch_il_region(routine->assoc_scope);
     assoc_var = make_lowered_variable((char *)NULL,
                                       /*already_il_name=*/TRUE,
                                       string_con->type,
@@ -3673,22 +3675,18 @@ in extern inline functions).
     check_assertion(!in_file_scope(string_con));
     /* Use a local static variable init entry to point to the constant
        in the function scope memory region. */
-    { a_memory_region_number region_to_switch_back_to = curr_il_region_number;
-      switch_il_region(routine->assoc_scope);
-      (void)make_local_static_variable_init(assoc_var, 
-                                            innermost_function_scope,
-                                            (an_init_kind)initk_static,
-                                            string_con,
-                                            (a_dynamic_init_ptr)NULL);
-      
-      switch_back_to_original_region(region_to_switch_back_to);
-    }
+    (void)make_local_static_variable_init(assoc_var, 
+                                          innermost_function_scope,
+                                          (an_init_kind)initk_static,
+                                          string_con,
+                                          (a_dynamic_init_ptr)NULL);
     /* Promote the variable out of the function, and make it external
        if that's appropriate. */
     promote_static_variable_out_of_function(assoc_var,
                                             innermost_function_scope,
                                             innermost_function_scope,
                                             routine);
+    switch_back_to_original_region(region_to_switch_back_to);
     /* Save the pointer in the assoc_info field so the variable can be
        reused. */
     string_con->source_corresp.assoc_info = (char *)assoc_var;
@@ -14505,17 +14503,18 @@ is the innermost scope that has an associated block -- scopes for
            This might be expensive space-wise, since this might be
            an aggregate, but there are no good alternatives. */
         { a_memory_region_number region_to_switch_back_to = NULL_region_number;
+          a_boolean              saved_initial_value_for_il_lowering_flag =
+                                            initial_value_for_il_lowering_flag;
           switch_to_file_scope_region(&region_to_switch_back_to);
           /* Make sure the copy is created with flags indicating it
              has not been lowered yet. */
-          initial_value_for_il_lowering_flag =
-                                           !initial_value_for_il_lowering_flag;
+          initial_value_for_il_lowering_flag = FALSE;
           variable->initializer.constant =
                            copy_constant_full(lsvip->initializer.constant,
                                               (a_constant_ptr)NULL,
                                               CE_REPLACE_STRINGS_BY_VARIABLES);
           initial_value_for_il_lowering_flag =
-                                           !initial_value_for_il_lowering_flag;
+                                      saved_initial_value_for_il_lowering_flag;
           switch_back_to_original_region(region_to_switch_back_to);
         }
         if (variable->storage_class == (a_storage_class)sc_unspecified
@@ -15704,7 +15703,7 @@ C++ to C, so that a C back end can handle it without change.
     switch_il_region(region_number);
     /* Mark entries created during this traversal as having already been
        visited by IL lowering. */
-    initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
+    initial_value_for_il_lowering_flag = TRUE;
     if (region_number == file_scope_region_number) {
       /* The file scope. */
       lowering_file_scope = TRUE;
@@ -15773,7 +15772,7 @@ C++ to C, so that a C back end can handle it without change.
     do_class_lowering_wrapup(scope);
     /* Pop the file-scope context. */
     pop_context();
-    initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
+    initial_value_for_il_lowering_flag = FALSE;
     curr_object_lifetime = saved_curr_object_lifetime;
     innermost_function_scope = saved_innermost_function_scope;
     il_lowering_underway = FALSE;
