@@ -4842,9 +4842,9 @@ return_point:
 }  /* decl_typedef */
 
 
-static void decl_parameter(a_param_id_ptr    param_id,
-                           a_param_type_ptr  ptp,
-                           a_boolean         function_instantiation)
+static a_symbol_ptr decl_parameter(a_param_id_ptr    param_id,
+                                   a_param_type_ptr  ptp,
+                                   a_boolean         function_instantiation)
 /*
 Enter the declaration of an identifier for a parameter.  The param_id
 points to an sk_parameter symbol, which under ordinary circumstances, is
@@ -4898,18 +4898,6 @@ a new symbol is created and entered in the symbol table.
     }  /* if */
     sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
-#if 0
-#else
-/* For parameters of ordinary functions the calls to mark_defined and
-   mark_variable_value_set are done in scan_function_body.  It's done here
-   for instantiations because of there is a different binding between
-   param-id and symbol.  It would probably be better to integrate the
-   processing better. */
-    if (function_instantiation) {
-      mark_defined(sym, &sym->decl_position, (a_decl_seq_info_ptr)NULL);
-      mark_variable_value_set(sym);
-    }  /* if */
-#endif /* if 0 */
 #if DEBUG
     if (debug_level >= 3) {
       db_symbol(sym, "Changed from parameter symbol: ", 4);
@@ -4917,6 +4905,7 @@ a new symbol is created and entered in the symbol table.
 #endif /* DEBUG */
   }  /* if */
   db_exit();
+  return sym;
 }  /* decl_parameter */
 
 
@@ -8321,6 +8310,8 @@ and for the instantiation of template functions.
   a_struct_stmt_stack_state      saved_sss_state;
   a_boolean                      is_instantiation;
   a_param_type_ptr               ptp;
+  a_source_sequence_entry_ptr    ssep;
+  a_symbol_ptr                   sym;
 
   db_enter(3, "scan_function_body");
   class_type = rout_ptr->source_corresp.class_of_which_a_member;
@@ -8379,7 +8370,16 @@ and for the instantiation of template functions.
     for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
-      decl_parameter(param_id, ptp, is_instantiation);
+      sym = decl_parameter(param_id, ptp, is_instantiation);
+      if (is_instantiation && sym != NULL) {
+        /* Ordinarily the call to mark_defined is done in later, in a way
+           that assures correct source-sequence ordering for parameters and
+           types.  For function instantantiations, however, mark_defined must
+           be called now. */
+        mark_defined(sym, &sym->decl_position,
+                     (a_decl_seq_info_ptr)NULL);
+        mark_variable_value_set(sym);
+      }  /* if */
       /* Be sure param-id and param-type lists are in sync. */
       check_assertion((param_id->next == NULL) == (ptp->next == NULL));
     }  /* for */
@@ -8390,7 +8390,7 @@ and for the instantiation of template functions.
          types that were defined in the prototype scope are reactivated now
          so that they will be available in the current scope. */
       if (func_info->prototype_scope_symbols != NULL) {
-        a_symbol_ptr  sym = func_info->prototype_scope_symbols;
+        sym = func_info->prototype_scope_symbols;
         for (; sym != NULL; sym = sym->next_in_scope) {
           if (sym->kind == (a_symbol_kind)sk_variable) {
             /* Function parameter.  Find the corresponding param-id entry. */
@@ -8398,52 +8398,30 @@ and for the instantiation of template functions.
             for (; param_id != NULL; param_id = param_id->next) {
               if (param_id->symbol == sym) break;
             }  /* for */
-            if (param_id != NULL) {
+            if (param_id == NULL) {
+              /* This can happen with an error in an old-style param
+                 declaration. */
+            } else {
               /* Record a definition of the parameter. */
               mark_defined(sym, &sym->decl_position, &param_id->decl_seq_info);
               mark_variable_value_set(sym);
             }  /* if */
           } else if (is_tag_symbol(sym)) {
-            /* A type declared in the function prototype scope. */
-            a_source_sequence_entry_ptr  ssep;
-
+            /* A type declared in the function prototype scope.  A source
+               sequence entry will already have been created for it in the
+               file scope, but another entry should be created for the function
+               scope.  The new entry will point to the entry in the file
+               scope. */
             ssep = type_symbol_type(sym)->source_corresp.source_sequence_entry;
             check_assertion(ssep != NULL);
             make_proxy_ptr_source_sequence_entry(ssep);
+          } else {
+            /* Note that symbols for enum constants can also appear on this
+               list (in C mode only).  Ignore them. */
           }  /* if */
         }  /* for */
         reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
       }  /* if */
-    }  /* if */
-    /* If the parameters are old-style, process a set of declarations.
-       If they are new-style, declare the identifiers that appeared in
-       the function prototype. */
-    if (flags & SFB_OLD_STYLE_PARAM_DECL) {
-      /* Old-style id list. */
-      if (func_info->param_id_list == NULL) {
-        /* No parameters to declare. */
-      } else {
-        /* When the id list was originally scanned, sk_parameter symbols were
-           created but not actually entered into the symbol table, since there
-           was no scope in which to enter them.  Now that the function scope
-           has been created, enter the param names. */
-        for (param_id = func_info->param_id_list;
-             param_id != NULL;
-             param_id = param_id->next) {
-          if (param_id->implicitly_declared) {
-            /* Symbol was not entered in the function prototype and was
-               therefore not reactivated.  Enter it now. */
-            check_assertion(param_id->symbol != NULL);
-            reenter_symbol(param_id->symbol, decl_scope_level,
-                           /*suppress_error=*/FALSE);
-            mark_defined(param_id->symbol, &param_id->symbol->decl_position,
-                         (a_decl_seq_info_ptr)NULL);
-            mark_variable_value_set(param_id->symbol);
-          }  /* if */
-        }  /* for */
-      }  /* if */
-    }  /* if */
-    if (!is_instantiation) {
       /* Free the list of parameter ids, now that it is no longer needed. */
       free_param_id_list(&(func_info->param_id_list));
     }  /* if */
@@ -8634,6 +8612,11 @@ specified (rather than defaulted to "int").
           param_id->implicitly_declared = TRUE;
           copy_source_position(param_id->symbol->decl_position,
                                param_id->type_pos);
+          /* Symbols for explicitly declared parameters will already have been
+             entered into the symbol table; so the same for parameters that
+             are implicitly declared. */
+          reenter_symbol(param_id->symbol, decl_scope_level,
+                         /*suppress_error=*/FALSE);
         }  /* if */
         /* The param_type entry must be allocated in the file-scope
            region. */
@@ -9635,6 +9618,11 @@ continue_with_declaration:
             str_error(ec_id_already_declared,
                       locator.symbol_header->identifier);
           } else {
+            /* When the parameter name was listed (but not yet actually
+               declared) the sk_parameter symbol was created but not entered
+               in the symbol table.  Now that it is explicitly declared, add
+               it to the function prototype scope; it will later be moved
+               to the function scope. */
             reenter_symbol(param_id->symbol, decl_scope_level,
                            /*suppress_error=*/FALSE);
           }  /* if */
