@@ -10864,6 +10864,9 @@ the IL, the template header is passed via template_decl.
   /* Set the flags to control the calls to decl_specifiers. */
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
               DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
+#if ASM_FUNCTION_ALLOWED
+  dsi_flags |= DSI_ASM_ALLOWED;
+#endif /* ASM_FUNCTION_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
     dsi_flags |= (DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
                   DSI_IS_MEMBER_DECLARATION | DSI_INLINE_ALLOWED |
@@ -12394,6 +12397,7 @@ classes.
           (void)get_token();
           goto next_declaration;
         }  /* if */
+#if !ASM_FUNCTION_ALLOWED
         /* Check for an (illegal) asm declaration. */
         if (curr_token == tok_asm || curr_token == tok_microsoft_asm) {
           /* An asm declaration is not allowed in a class definition, but
@@ -12404,6 +12408,7 @@ classes.
              Continue looping through the members. */
           goto next_declaration;
         }  /* if */
+#endif /* !ASM_FUNCTION_ALLOWED */
         if (C_dialect == C_dialect_cplusplus) {
           /* Check for and discard declarations of the form "overload f;". */
           if (check_for_overload_anachronism()) {

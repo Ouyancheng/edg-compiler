@@ -1,5 +1,16 @@
 Version 3.1
 
+6/20/02  asm member function definitions
+
+When ASM_FUNCTION_ALLOWED is TRUE, the front end now also accepts out-of-class
+asm member function definitions (these definitions are passed uninterpreted to
+the back end; see Changes entry of 2/9/95).  For example:
+
+  struct S { void f(); };
+  asm void S::f() { iret }  // Now accepted in some configurations
+
+Previously, asm definitions were only permitted for non-member functions.
+
 6/20/02  GNU C compatibility: infinity used for FP values out of range
 
 In GNU C mode, instead of issuing a diagnostic when a floating point

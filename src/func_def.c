@@ -1399,6 +1399,12 @@ member declaration (allowed in Microsoft mode only).
       rp->source_corresp.referenced = TRUE;
     }  /* if */
   }  /* if */
+#if ASM_FUNCTION_ALLOWED
+  if (func_info->is_asm_function &&
+      rp->storage_class == (a_storage_class)sc_unspecified) {
+    rp->storage_class = (a_storage_class)sc_asm;
+  }  /* if */
+#endif /* ASM_FUNCTION_ALLOWED */
   if (any_deferred_access_checks()) {
     /* Now that we know which function has been declared, recheck any
        access errors that occurred while scanning the declaration. */
