@@ -590,9 +590,14 @@ routine is called in C++ mode only.
 
   db_enter(4, "init_remaining_array_elements");
 
-  check_assertion(!array_type->variant.array.is_variable_size_array);
-  number_of_uninitialized_elements =
+  if (array_type->variant.array.is_variable_size_array) {
+    /* The array size may be template dependent. */
+    check_assertion(is_template_dependent_context());
+    number_of_uninitialized_elements = 0;
+  } else {
+    number_of_uninitialized_elements =
           array_type->variant.array.variant.number_of_elements - curr_element;
+  }  /* if */
   if (number_of_uninitialized_elements > 0) {
     /* There are one or more uninitialized elements. */
     element_type = f_skip_typerefs(array_element_type(array_type));
@@ -1796,7 +1801,8 @@ this function points to a tree that includes a dynamic-init entry.
           } else {
             /* Advance to next array element. */
             ++curr_array_element;
-            check_assertion(!context.type->variant.array.
+            check_assertion(is_template_dependent_context() ||
+                            !context.type->variant.array.
                                                     is_variable_size_array);
             if (!is_incomplete_array) {
               /* Note that we may get here with any_more_members == FALSE and
