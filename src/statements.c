@@ -3194,6 +3194,11 @@ and pushes a generated block statement.
 {
   if (c99_mode) {
     (void)start_block_statement(/*generated_statement=*/TRUE);
+    /* Move any pragmas for the statement (previously selected in
+       "statement") to the new level in the scope atack. */
+    scope_stack[depth_scope_stack].curr_construct_pragmas =
+                       scope_stack[depth_scope_stack-1].curr_construct_pragmas;
+    scope_stack[depth_scope_stack-1].curr_construct_pragmas = NULL;
   }  /* if */
 }  /* push_c99_statement_scope */
 
