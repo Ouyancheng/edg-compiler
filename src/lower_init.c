@@ -1548,6 +1548,14 @@ of the storage before the constructor is called.
   /* Zeroing is required if the initialization is value-initialization
      for a class that has no user-written constructor, and the class
      has data members that require zero initialization. */
+#if IA64_ABI
+  /* If this is an alternate entry point in the IA-64 ABI, go to the
+     primary routine.  The alternate entry point is always marked
+     as compiler generated. */
+  if (ctor_routine->primary_ctor_or_dtor != NULL) {
+    ctor_routine = ctor_routine->primary_ctor_or_dtor;
+  }  /* if */
+#endif /* IA64_ABI */
   if (dip->variant.constructor.value_initialization &&
       ctor_routine->compiler_generated &&
       ctor_routine->source_corresp.parent.class_type->
