@@ -2786,17 +2786,14 @@ be kept, FALSE if it should be deleted.
     /* Put a copy of the initialization position description into the
        dynamic init entry for use at destruction time. */
     dip->init_pos_descr = alloc_init_pos_descr_copy(ipdp);
-    if (lifetime->kind == (an_object_lifetime_kind)olk_function_static ||
-        lifetime->kind == (an_object_lifetime_kind)olk_global_static) {
+    if (lifetime->kind == (an_object_lifetime_kind)olk_function_static) {
       /* For local static initializations, make the function static lifetime
          the current lifetime but restore the previous lifetime after
-         processing the dynamic initialization.  When processing the
-         initializations for the file scope, i.e., when generating the
-         file scope initialization routine, a global static lifetime can
-         show up inside a function. */
+         processing the dynamic initialization. */
       curr_object_lifetime = lifetime;
+    } else if (lifetime->kind == (an_object_lifetime_kind)olk_global_static) {
     } else {
-      /* Not a local static initialization. */
+      /* Not a static initialization. */
       /* If this dynamic init is part of an object lifetime, it may be that it
          is the first encountered since a label, and it is therefore in a
          different lifetime section than what we've been thinking of as the
