@@ -12676,6 +12676,7 @@ passed via template_decl.
                                       !no_decl_specifiers);
       }  /* if */
       if (!(missing_declarator || decl_info.is_unnamed_field) &&
+          !(decl_info.do_flags & DO_REAL_DECLARATOR_SCANNED) &&
           is_error_locator(locator)) {
         /* Some problem occurred while parsing the declarator.  To avoid
            strange error recovery problems, we do not add a member to the
