@@ -114,11 +114,6 @@ that ordinarily this routine should not be called directly; use the macro
 "skip_typerefs".  However, it does make sense to call this routine instead
 of the macro to avoid multiple evaluations of the argument.
 */
-/*
-There are copies of this routine, under the name local_skip_typerefs,
-in il_display.c and c_gen_be.c.  If you change this routine, you
-should probably change those routines too.
-*/
 {
   while (type_ptr->kind == (a_type_kind)tk_typeref) {
     type_ptr = type_ptr->variant.typeref.type;
