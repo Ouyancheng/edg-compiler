@@ -1001,6 +1001,10 @@ typedef struct a_decl_modifiers_block {
 			   (a Microsoft extension in C++ mode) is specified
 			   for a field, these fields point to the get and put
 			   routine names, null-terminated.  NULL otherwise. */
+  char		*allocate_segname;
+			/* Pointer to a string representing the argument of an
+			   allocate decl-modifier (in Microsoft-compatibility
+			   mode). */
 } a_decl_modifiers_block;
 
 

@@ -2459,6 +2459,12 @@ diagnostics.
                    ec_decl_modifiers_incompatible_with_previous_decl,
                    position);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (new_modifiers->allocate_segname != NULL) {
+    /* Only allowed for variables with static storage duration. */
+    pos_error(ec_declspec_allocate_not_allowed, position);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Update the routine entry with any valid modifiers that were found. */
   routine->decl_modifiers |= new_modifiers->flags;
 }  /* update_routine_decl_modifiers */
@@ -2519,6 +2525,26 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
       any_invalid_redecl |= invalid_redecl;
     }  /* if */
   }  /* for */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (new_modifiers->allocate_segname != NULL) {
+    if (variable->storage_class != (a_storage_class)sc_extern &&
+        variable->storage_class != (a_storage_class)sc_static &&
+        variable->storage_class != (a_storage_class)sc_unspecified) {
+      /* Only allowed for variables with static storage duration. */
+      pos_error(ec_declspec_allocate_not_allowed, position);
+    } else if (variable->allocate_segname != NULL) {
+      if (strcmp(variable->allocate_segname,
+          new_modifiers->allocate_segname) == 0) {
+        /* Redeclaration of same segment name. */
+      } else {
+        /* Error. */
+        any_invalid_redecl = TRUE;
+      }  /* if */
+    } else {
+      variable->allocate_segname = new_modifiers->allocate_segname;
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (any_invalid_redecl) {
     pos_diagnostic(es_discretionary_error,
                    ec_decl_modifiers_incompatible_with_previous_decl,
@@ -3519,8 +3545,6 @@ cross-reference output describing this declaration.
       }  /* if */
     }  /* if */
   }  /* if */
-  update_variable_decl_modifiers(variable_ptr, decl_modifiers,
-                                 &locator->source_position, redeclaration);
   /* Link the symbol to the IL variable entry. */
   sym->variant.variable.ptr = variable_ptr;
   if (*ext_sym != NULL &&
@@ -3552,6 +3576,9 @@ cross-reference output describing this declaration.
       alloc_at_file_scope && !redeclaration) {
     add_namespace_parent_pointer(sym, source_corresp_ptr);
   }  /* if */
+  /* Copy the decl-modifiers into the variable entry. */
+  update_variable_decl_modifiers(variable_ptr, decl_modifiers,
+                                 &locator->source_position, redeclaration);
   set_name_linkage(linkage, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
   /* If cross-reference information is being issued, update the output.  If
@@ -6684,11 +6711,12 @@ Return a pointer to the variable that is declared.
                      /*suppress_redecl_error=*/FALSE);
   /* Allocate the variable and bind the symbol to it. */
   vp = make_variable(type_ptr, storage_class, decl_scope_level);
+  sym->variant.variable.ptr = vp;
+  set_source_corresp(&vp->source_corresp, sym);
+  /* Copy the decl-modifiers into the variable entry. */
   update_variable_decl_modifiers(vp, &decl_modifiers,
                                  &locator.source_position,
                                  /*is_redecl=*/FALSE);
-  sym->variant.variable.ptr = vp;
-  set_source_corresp(&vp->source_corresp, sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sym->variant.variable.ptr->declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -8458,7 +8486,7 @@ continue_with_declaration:
             local_decl_modifiers.flags &= ~DM_SELECTANY;
           }  /* if */
         }  /* if */
-        /* Copy the decl-modifiers into the routine entry. */
+        /* Copy the decl-modifiers into the variable entry. */
         update_variable_decl_modifiers(var_ptr, &local_decl_modifiers,
                                        &locator.source_position,
                                        /*is_redecl=*/TRUE);

@@ -374,6 +374,54 @@ end_of_uuid_string:
                 /* __declspec(property(get=..., put=...)) */
                 scan_declspec_property(decl_modifiers);
               }  /* if */
+            } else if (strcmp(modifier, "allocate") == 0) {
+              if (is_class_decl) {
+                /* "allocate" is not allowed on a class declaration. */
+                pos_error(ec_declspec_allocate_not_allowed, &pos_curr_token);
+                if (next_token() == tok_lparen) {
+                  /* Advance past "allocate" to the left paren. */
+                  (void)get_token();
+                  /* Flush all tokens till the matching right paren is
+                     found. */
+                  flush_until_matching_token();
+                }  /* if */
+              } else {
+                /* The syntax is
+                     allocate ( string-literal )
+                   where string-literal specifies the name of a data segment
+                   in which a data item will be allocated. */
+                /* Advance past "allocate". */
+                (void)get_token();
+                if (required_token(tok_lparen, ec_exp_lparen)) {
+                  if (curr_token != tok_string_literal) {
+                    /* Error. */
+                    syntax_error(ec_bad_allocate_segname);
+                  } else {
+                    /* The current token is a string literal.  No checking
+                       is done to assure that it is a valid data segment name
+                       (though such a check could be added if the appropriate
+                       #pragma support were also added). */
+                    char           *str;
+                    a_targ_size_t  len;  /* Length includes terminal null. */
+
+                    str = const_for_curr_token.variant.string.value;
+                    len = const_for_curr_token.variant.string.length;
+                    /* Copy to the token string into IL memory and save the
+                       address. */
+                    decl_modifiers->allocate_segname = alloc_il((sizeof_t)len);
+                    (void)memcpy(decl_modifiers->allocate_segname, str,
+                                 size_t_arg(len));
+                    check_assertion(decl_modifiers->
+                                             allocate_segname[len-1] == '\0');
+                    /* Advance past the string literal. */
+                    (void)get_token();
+                  }  /* if */
+                  /* Advance past the right paren. */
+                  (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+                } else {
+                  break;
+                }  /* if */
+              }  /* if */
             } else {
               str_error(ec_bad_declspec_modifier, modifier);
               *err = TRUE;
@@ -3330,6 +3378,14 @@ Returns TRUE if there is an error in the specifiers.
               } else {
                 decl_modifiers->put_property_name =
                                                new_modifiers.put_property_name;
+              }  /* if */
+            }  /* if */
+            if (new_modifiers.allocate_segname != NULL) {
+              if (decl_modifiers->allocate_segname != NULL) {
+                pos_error(ec_dupl_allocate_segname, &specifier_start_pos);
+              } else {
+                decl_modifiers->allocate_segname =
+                                            new_modifiers.allocate_segname;
               }  /* if */
             }  /* if */
             if (is_parameter) {

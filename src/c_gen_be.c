@@ -4767,6 +4767,15 @@ parameters.
       if (variable->decl_modifiers & DM_THREAD) {
         write_tok_str("__declspec(thread) ");
       }  /* if */
+      if (variable->allocate_segname != NULL) {
+        char *segname = variable->allocate_segname;
+        write_tok_str("__declspec(allocate(");
+        ensure_enough_room_on_line(strlen(segname)+2);
+        write_ch('"');
+        write_str(segname);
+        write_ch('"');
+        write_tok_str(")) ");
+      }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if C_GEN_BE_GENERATES_ANSI_C

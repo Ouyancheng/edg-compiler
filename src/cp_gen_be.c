@@ -2026,6 +2026,22 @@ uuid_string is the GUID string, or NULL if the modifier does not apply.
 }  /* gen_microsoft_uuid_declspec */
 
 
+static void gen_microsoft_allocate_declspec(char *allocate_segname)
+/*
+Put out the Microsoft __declspec(allocate(...)) declaration modifier.
+allocate_segname is the segment name, or NULL if the modifier does not apply.
+*/
+{
+  if (allocate_segname != NULL) {
+    write_tok_str("__declspec(allocate(");
+    write_ch('"');
+    write_str(allocate_segname);
+    write_ch('"');
+    write_tok_str(")) ");
+  }  /* if */
+}  /* gen_microsoft_allocate_declspec */
+
+
 static void gen_microsoft_class_decl_modifiers(a_type_ptr type)
 /*
 Put out declaration modifiers that apply to a class as a whole.
@@ -6315,6 +6331,7 @@ declaration following this one is such a continuation.
       suppress_microsoft_decl_modifiers_put_out_on_class(&decl_modifiers,
                                                          &var->source_corresp);
       gen_microsoft_decl_modifiers(decl_modifiers);
+      gen_microsoft_allocate_declspec(var->allocate_segname);
     }
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -7794,6 +7794,7 @@ declaration modifiers.
   decl_modifiers->uuid_string = NULL;
   decl_modifiers->get_property_name = NULL;
   decl_modifiers->put_property_name = NULL;
+  decl_modifiers->allocate_segname = NULL;
 }  /* clear_decl_modifiers_block */
 
 
