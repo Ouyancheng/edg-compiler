@@ -6389,7 +6389,7 @@ locator, and return TRUE.  If it doesn't, return FALSE.
   a_boolean                 is_conversion_operator;
 
   db_enter(3, "scan_conversion_operator");
-  if (C_dialect == C_dialect_cplusplus && is_type_start()) {
+  if (is_type_start()) {
     /* It is the start of a type name. */
     is_conversion_operator = TRUE;
     set_err_pos_to_curr_token();
@@ -6407,6 +6407,7 @@ locator, and return TRUE.  If it doesn't, return FALSE.
     complete_type = pointer_declarator(specifiers_type, &bottom_derived_type);
     unget_token();
     curr_token = tok_identifier;
+    pos_curr_token = error_position = *id_pos;
     make_type_conversion_locator(complete_type, &locator_for_curr_id, id_pos);
   } else {
     is_conversion_operator = FALSE;
@@ -7166,9 +7167,6 @@ an asm "declaration" is actually treated as an executable statement.
   if (!asm_decl_allowed) {
     /* An asm declaration is not allowed in the current scope. */
     error(ec_asm_not_allowed);
-  } else if (C_dialect != C_dialect_cplusplus && strict_ansi_mode) {
-    /* "asm" is not part of ANSI C, though it is defined (vaguely) for C++. */
-    warning(ec_nonstd_asm_declaration);
   }  /* if */
   copy_source_position(pos_curr_token, asm_pos);
   /* Skip past the "asm". */
