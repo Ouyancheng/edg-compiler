@@ -13490,7 +13490,8 @@ FALSE and a pointer to the expression tree in *expression.
       break;
     case ok_constant:
       /* Constant.  The constant must be non-negative.  If it is zero,
-         it is rendered as an expression. */
+         it is rendered as an expression.  For a VLA, the size must
+         be positive. */
       copy_constant(&result.variant.constant, constant);
       if (constant->kind != (a_constant_repr_kind)ck_integer) {
         if (!is_error_constant(constant)) {
@@ -13501,7 +13502,13 @@ FALSE and a pointer to the expression tree in *expression.
         }  /* if */
       } else {
         constant_sign = sign_of_integer_constant(constant);
-        if (constant_sign < 0) {
+        if (is_vla_decl) {
+          if (constant_sign <= 0) {
+            /* VLA bounds must be positive. */
+            error(ec_array_size_must_be_positive);
+            set_error_constant(constant);
+          }  /* if */
+        } else if (constant_sign < 0) {
           /* A negative value is an error. */
           error(ec_new_array_size_must_be_nonnegative);
           set_error_constant(constant);
