@@ -5165,8 +5165,8 @@ the expression have already been lowered.
   an_expr_node_ptr select_f_for_cast_node, cast_node, vtbl_addr_node;
   an_expr_node_ptr offset_node, vtbl_temp_node, vtbl_d_value, vtbl_f_value;
   an_expr_node_ptr this_increment_node, comma_node, question_mark_node;
-  an_expr_node_ptr func_addr_node;
-  a_variable_ptr   this_temp_var, vtbl_temp_var;
+  an_expr_node_ptr func_addr_node, func_temp_node, func_temp_assign_node;
+  a_variable_ptr   this_temp_var, func_temp_var, vtbl_temp_var;
   a_type_ptr       ptr_to_vtbl_entry_type, routine_type, object_type;
   a_type_ptr       class_type, ptr_routine_type;
 
@@ -5190,7 +5190,7 @@ the expression have already been lowered.
        ((this_temp = (object_type *)((char *)object + pmf.d)),
                                        -- Adjust "this" pointer by delta
                                           from pointer-to-member.
-        eok_call((function_type *)     -- The computed function address
+        (func_temp = (function_type *) -- The computed function address
                                           gets cast to the proper function
                                           type.
                  (pmf.i < 0) ?         -- Check virtual/non-virtual
@@ -5210,7 +5210,8 @@ the expression have already been lowered.
                                        -- Adjust "this" pointer to get pointer
                                           to subobject expected by the virtual
                                           function.
-                    vtbl_temp->f),     -- Address of virtual function to call.
+                    vtbl_temp->f)),    -- Address of virtual function to call.
+         eok_call(func_temp,           -- Call the function.
                   this_temp,           -- "this" pointer for call.
                   additional_args ...))
      If "pmf" is not a reusable expression, the first occurrence of
@@ -5343,10 +5344,26 @@ the expression have already been lowered.
                                            (an_expr_operator_kind)eok_question,
                                            make_vptp_type(), compare_node);
     /* Cast the generic function pointer returned from the question mark
-       operator to the proper type (so that we know what the return type,
-       etc. is). */
+       operator to the proper function type. */
     func_addr_node = add_cast_if_necessary(question_mark_node,
                                            ptr_routine_type);
+    /* Store it in func_temp. */
+    func_temp_var = make_lowered_temporary(ptr_routine_type);
+    func_temp_node = var_lvalue_expr(func_temp_var);
+    func_temp_node->next = func_addr_node;
+    func_temp_assign_node = make_operator_node(
+                                            (an_expr_operator_kind)eok_passign,
+                                            ptr_routine_type,
+                                            func_temp_node);
+    /* Combine the assignment to this_temp and the assignment to
+       func_temp into one expression using a comma operator. */
+    this_temp_assign_node->next = func_temp_assign_node;
+    this_temp_assign_node = make_operator_node(
+                                              (an_expr_operator_kind)eok_comma,
+                                              ptr_routine_type,
+                                              this_temp_assign_node);
+    /* Get the address of the function from func_temp for the call. */
+    func_addr_node = var_rvalue_expr(func_temp_var);
   }  /* if */
   /* Make the call operands: func_addr_node (giving the function pointer),
      the this_temp (giving the object address), and any additional
@@ -5358,7 +5375,7 @@ the expression have already been lowered.
   call_node = make_operator_node((an_expr_operator_kind)eok_call,
                                  expr->type, func_addr_node);
   /* Replace the original node by a comma node with the assignment to
-     this_temp and the call under it. */
+     this_temp (and perhaps also func_temp) and the call under it. */
   this_temp_assign_node->next = call_node;
   set_node_operator(expr, (an_expr_operator_kind)eok_comma,
                     expr->type, this_temp_assign_node);
