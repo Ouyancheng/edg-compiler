@@ -3601,6 +3601,53 @@ it is set to "" if not needed.
 }  /* get_operator_name */
 
 
+static char *demangle_source_name(
+                                 char                       *ptr,
+                                 a_boolean                  stop_on_underscore,
+                                 a_decode_control_block_ptr dctl)
+/*
+Demangle an IA-64 <source-name> and output the demangled form.
+Return a pointer to the character position following what was demangled.
+A <source-name> encodes an unqualified name as a length plus the
+characters of the name. The syntax is:
+
+    <source-name> ::= <positive length number> <identifier>
+    <identifier> ::= <unqualified source code identifier>
+
+If stop_on_underscore is TRUE, stop outputting characters of the
+name on encountering an underscore (continue scanning, but do not
+output the characters).  This is used for module ids (an EDG extension).
+*/
+{
+  long      num;
+  a_boolean output_chars = TRUE;
+
+  ptr = get_number(ptr, &num, dctl);
+  if (num <= 0) {
+    bad_mangled_name(dctl);
+  } else {
+    for (; num > 0; ptr++, num--) {
+      if (*ptr == '\0') {
+        /* The name string ends before enough characters have been
+           accumulated. */
+        bad_mangled_name(dctl);
+        break;
+      } else if (!isalnum((unsigned char)*ptr) && *ptr != '_') {
+        /* Invalid character in identifier. */
+        bad_mangled_name(dctl);
+        break;
+      } if (stop_on_underscore && *ptr == '_') {
+        /* Stop outputting characters on the first underscore. */
+        output_chars = FALSE;
+      } else if (output_chars) {
+        write_id_ch(*ptr, dctl);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return ptr;
+}  /* demangle_source_name */
+
+
 static char *demangle_unqualified_name(
                                  char                       *ptr,
                                  a_boolean                  *is_no_return_name,
@@ -3614,8 +3661,6 @@ An <unqualified-name> encodes a name that is not qualified, e.g.,
     <unqualified-name> ::= <operator-name>
                        ::= <ctor-dtor-name>  # Not handled here
                        ::= <source-name>   
-    <source-name> ::= <positive length number> <identifier>
-    <identifier> ::= <unqualified source code identifier>
 
 Constructor and destructor names do not get here; see
 demangle_nested_name_components.  *is_no_return_name is returned TRUE
@@ -3628,26 +3673,7 @@ caller does not need the value.
   if (isdigit((unsigned char)*ptr)) {
     /* A <source-name>, which has a length followed by the characters
        of the identifier, as in "3abc". */
-    long num;
-    ptr = get_number(ptr, &num, dctl);
-    if (num <= 0) {
-      bad_mangled_name(dctl);
-    } else {
-      for (; num > 0; ptr++, num--) {
-        if (*ptr == '\0') {
-          /* The name string ends before enough characters have been
-             accumulated. */
-          bad_mangled_name(dctl);
-          break;
-        } else if (!isalnum((unsigned char)*ptr) && *ptr != '_') {
-          /* Invalid character in identifier. */
-          bad_mangled_name(dctl);
-          break;
-        } else {
-          write_id_ch(*ptr, dctl);
-        }  /* if */
-      }  /* for */
-    }  /* if */
+    ptr = demangle_source_name(ptr, /*stop_on_underscore=*/FALSE, dctl);
   } else {
     /* <operator-name> */
     write_id_str("operator ", dctl);
@@ -4198,9 +4224,21 @@ The syntax is:
                              ::= <substitution>
 
 For function names, additional information is returned in *func_block.
+
+As an EDG extension, allow
+
+    B <source-name>
+
+as a prefix to specify a module id for an externalized name.
 */
 {
   clear_func_block(func_block);
+  if (*ptr == 'B') {
+    /* Module-id prefix for externalized name. */
+    write_id_str("[static from ", dctl);
+    ptr = demangle_source_name(ptr+1, /*stop_on_underscore=*/TRUE, dctl);
+    write_id_str("] ", dctl);
+  }  /* if */
   if (*ptr == 'N') {
     /* Nested name, for something like "A::f". */
     ptr = demangle_nested_name(ptr, func_block, dctl);
