@@ -215,6 +215,9 @@ of each kind.
                                         iek_entry_description);
 #endif /* ifdef FFE */
 #ifdef CFE
+  walk_orphan_entry_list_for_entry_kind(a_namespace_ptr, iek_namespace);
+  walk_orphan_entry_list_for_entry_kind(a_using_directive_ptr,
+                                        iek_using_directive);
   walk_orphan_entry_list_for_entry_kind(a_dynamic_init_ptr, iek_dynamic_init);
   walk_orphan_entry_list_for_entry_kind(an_access_adjustment_ptr,
                                         iek_access_adjustment);
@@ -441,7 +444,10 @@ running them through walk_remap_func.
   remap_orphan_entry_first(iek_entry_description);
 #endif /* ifdef FFE */
 #ifdef CFE
+  remap_orphan_entry_first(iek_namespace);
+  remap_orphan_entry_first(iek_using_directive);
   remap_orphan_entry_first(iek_dynamic_init);
+  remap_orphan_entry_first(iek_local_static_variable_init);
   remap_orphan_entry_first(iek_access_adjustment);
   remap_orphan_entry_first(iek_overriding_virtual_function);
   remap_orphan_entry_first(iek_derivation_step);
@@ -464,7 +470,8 @@ running them through walk_remap_func.
      subordinate entries like iek_comment, iek_src_seq_secondary_decl, and
      iek_src_seq_end_of_construct, since such entries will never appear on an
      orphan list.  Ditto for iek_src_seq_sublist. */
-
+  /* Nothing needed for iek_comment, iek_scope_orphaned_list_header,
+     iek_hidden_name, iek_pragma, iek_template, and iek_macro. */
 #undef remap_orphan_entry_first
 }  /* remap_first_ptr_of_orphaned_file_scope_entry_array */
 
@@ -526,7 +533,10 @@ running them through walk_remap_func.
   remap_orphan_entry_last(iek_entry_description);
 #endif /* ifdef FFE */
 #ifdef CFE
+  remap_orphan_entry_last(iek_namespace);
+  remap_orphan_entry_last(iek_using_directive);
   remap_orphan_entry_last(iek_dynamic_init);
+  remap_orphan_entry_last(iek_local_static_variable_init);
   remap_orphan_entry_last(iek_access_adjustment);
   remap_orphan_entry_last(iek_overriding_virtual_function);
   remap_orphan_entry_last(iek_derivation_step);
@@ -549,7 +559,8 @@ running them through walk_remap_func.
      subordinate entries like iek_comment, iek_src_seq_secondary_decl, and
      iek_src_seq_end_of_construct, since such entries will never appear on an
      orphan list. */
-
+  /* Nothing needed for iek_comment, iek_scope_orphaned_list_header,
+     iek_hidden_name, iek_pragma, iek_template, and iek_macro. */
 #undef remap_orphan_entry_last
 }  /* remap_last_ptr_of_orphaned_file_scope_entry_array */
 
