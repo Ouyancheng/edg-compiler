@@ -2009,16 +2009,14 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
       param_type2 = arg2->param_type;
       /* Some arguments have no parameter type (e.g., an ellipsis match). */
       if (param_type1 != NULL && param_type2 != NULL) {
-        /* Note that the test allows one to be a pointer, the other a reference
-           when matching a "this" parameter, for some cases that compare a
-           "this" parameter pointer match with a reference match. */
-        if ((arg1->is_match_for_this_param || arg2->is_match_for_this_param) ?
-                           (is_ptr_or_ref_type(param_type1) &&
-                                            is_ptr_or_ref_type(param_type2)) :
-                           ((is_pointer_type(param_type1) &&
-                                            is_pointer_type(param_type2)) ||
-                            (is_reference_type(param_type1) &&
-                                            is_reference_type(param_type2)))) {
+        /* Note that the test allows one to be a pointer, the other a
+           reference; that's needed when matching a "this" parameter, for
+           some cases that compare a "this" parameter pointer match with
+           a reference match.  It also seems to be common practice for
+           some other (non-"this") cases -- there's some code in the
+           NIH library that won't work without this. */
+        if (is_ptr_or_ref_type(param_type1) &&
+            is_ptr_or_ref_type(param_type2)) {
           /* Both parameters are pointers or references, as appropriate. */
           under_type1 = type_pointed_to(param_type1);
           under_type2 = type_pointed_to(param_type2);
