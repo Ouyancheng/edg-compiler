@@ -5436,7 +5436,12 @@ in a number of ways, e.g., if the source operand is an lvalue.
         if (is_implicit_cast) {
           expr->variant.operation.compiler_generated = TRUE;
         }  /* if */
-        expr->variant.operation.is_reference_cast = is_reference_cast;
+        if (is_reference_cast) {
+          expr->variant.operation.is_reference_cast = TRUE;
+          if (!is_implicit_cast) {
+            expr->implicit_reference_indirection = TRUE;
+          }  /* if */
+        }  /* if */
       } else {
         /* Cast to a class type.  Use an enk_temp_init/dik_constructor. */
         a_dynamic_init_ptr dip;
@@ -5453,6 +5458,12 @@ in a number of ways, e.g., if the source operand is an lvalue.
       }  /* if */
       make_expression_operand(expr, dest_type, operand);
     }  /* if */
+  }  /* if */
+  if (is_reference_cast && !is_implicit_cast) {
+    /* For an explicit cast to a reference type, there is an implicit
+       indirection.  In the implicit cast case, we are binding a reference
+       and we are going to use the result as an rvalue pointer. */
+    conv_object_pointer_to_lvalue(operand);
   }  /* if */
   restore_operand_details_incl_ref(operand, &orig_operand);
 }  /* generic_cast_operand */

@@ -5855,7 +5855,10 @@ Syntax:
       expr = make_operator_node((an_expr_operator_kind)eok_dynamic_cast,
                                 cast_type, /* sic: want reference type. */
                                 make_node_from_operand(&operand));
-      if (reference_case) expr->implicit_reference_indirection = TRUE;
+      if (reference_case) {
+        expr->implicit_reference_indirection = TRUE;
+        expr->variant.operation.is_reference_cast = TRUE;
+      }  /* if */
       make_expression_operand(expr, expr->type, result);
       set_used_in_exception_or_rtti_flag(operand_type);
       set_used_in_exception_or_rtti_flag(operation_type);
@@ -7695,7 +7698,6 @@ C++ mode.
                              (an_expr_operator_kind)eok_cast,
                              /*is_implicit_cast=*/FALSE,
                              /*is_reference_cast=*/TRUE);
-        conv_object_pointer_to_lvalue(operand);
       }  /* if */
     } else {
       /* Normal case (not a cast to a reference type). */
@@ -7787,7 +7789,6 @@ generic cast using the operator cast_op is generated.
                          cast_op,
                          /*is_implicit_cast=*/FALSE,
                          /*is_reference_cast=*/TRUE);
-    conv_object_pointer_to_lvalue(operand);
     *processed = TRUE;
   } else if (is_an_lvalue(operand)) {
     take_address_of_lvalue(operand);

@@ -5001,7 +5001,14 @@ Output a new-style cast.
   }  /* if */
   gen_type(type);
   write_tok_str(">(");
-  gen_expression(expr->variant.operation.operands);
+  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_dynamic_cast&&
+      is_reference_type(expr->type)) {
+    /* For the eok_dynamic_cast operator, the operand is an lvalue if
+       the type is a reference type. */
+    gen_lvalue_no_parens(expr->variant.operation.operands);
+  } else {
+    gen_expression(expr->variant.operation.operands);
+  }  /* if */
   write_tok_ch(')');
 }  /* gen_new_style_cast */
 
@@ -5230,16 +5237,6 @@ precedence confusion and need_parens is TRUE.
                 processed = TRUE;
               }  /* if */
             }  /* if */
-          }  /* if */
-          break;
-        case eok_static_cast:
-        case eok_reinterpret_cast:
-        case eok_const_cast:
-        case eok_dynamic_cast:
-          /* For casts to reference types, process as an lvalue. */
-          if (node->variant.operation.is_reference_cast) {
-            gen_new_style_cast(node);
-            processed = TRUE;
           }  /* if */
           break;
         case eok_rvalue:
@@ -6020,9 +6017,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_reinterpret_cast:
         case eok_const_cast:
         case eok_dynamic_cast:
-          if (expr->variant.operation.is_reference_cast) write_tok_str("&(");
           gen_new_style_cast(expr);
-          if (expr->variant.operation.is_reference_cast) write_tok_str(")");
           goto done_with_operation;
         case eok_complement:
           opstr = "~";
