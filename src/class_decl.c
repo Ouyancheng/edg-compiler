@@ -4168,6 +4168,12 @@ routine body is generated at this time.
                              (an_access_specifier)as_public,
                              /*is_inline=*/TRUE, /*is_virtual=*/FALSE,
                              /*compiler_generated=*/TRUE, sfkind);
+  /* It can be that the head of symbols list for the scope has been
+     modified (it may have been changed to an sk_overloaded_function, or
+     it may have been empty), so update the class symbol supplement, just to
+     be safe. */
+  (symbol_supplement_for_class(class_type))->symbols =
+                                      scope_stack[depth_scope_stack].symbols;
   db_exit();
 }  /* generate_special_function */
 
@@ -4573,10 +4579,6 @@ operator routine or do bitwise assignment.
           rp = select_assignment_operator(bcp->type, const_source_var,
                                           /*volatile_object_required=*/FALSE,
                                           err_pos, &pass_by_value);
-          if (rp == NULL) {
-            /* There was an error in looking for the assignment operator. */
-            continue;
-          }  /* if */
           /* Any assignment operator invoked by this publicly accessible
              compiler-generated assignment operator should itself be publicly
              accessible. (This is not exactly what ARM 12.8 says, but it
@@ -4642,10 +4644,6 @@ operator routine or do bitwise assignment.
             rp = select_assignment_operator(tp, const_source_var,
                                             /*volatile_object_required=*/FALSE,
                                             err_pos, &pass_by_value);
-            if (rp == NULL) {
-              /* There was an error in looking for the assignment operator. */
-              continue;
-            }  /* if */
             /* Any assignment operator invoked by this publicly accessible
                compiler-generated assignment operator should itself be publicly
                accessible. (This is not exactly what ARM 12.8 says, but it
@@ -5139,6 +5137,7 @@ destination type is not yet on the current class's conversion list.
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
   a_conversion_list_entry_ptr   clep, bcclep;
   a_symbol_locator              loc;
+  a_boolean                     update = FALSE;
 
   /* Examine each direct base class. */
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
@@ -5176,12 +5175,20 @@ destination type is not yet on the current class's conversion list.
                      "project_base_class_conversion_functions: no projection");
           }  /* if */
 #endif /* CHECKING */
+          update = TRUE;
         }  /* if */
         /* Get the next conversion list entry from the base class. */
       }  /* for */
     }  /* if */
     /* Get the next direct base class. */
   }  /* for */
+  if (update) {
+    /* Since the scope symbol list may have been empty before and since
+       at least one new symbol has been added, update the symbols list
+       attached to the class. */
+    (symbol_supplement_for_class(class_type))->symbols =
+                                      scope_stack[depth_scope_stack].symbols;
+  }  /* if */
 }  /* project_base_class_conversion_functions */
 
 
@@ -6534,10 +6541,6 @@ next_declaration:
         /* Create compiler-generated default constructor, copy constructor,
            destructor, and assignment operator, if any is needed. */
         check_special_member_functions(class_type);
-        /* Since check_special_member_functions can have added new symbols or
-           modified the head of the old list, update the symbols list attached
-           to the class. */
-        cssp->symbols = scope_stack[depth_scope_stack].symbols;
       }  /* if */
     }  /* if */
     /* Wrap up field allocation. */
@@ -6547,9 +6550,6 @@ next_declaration:
         /* Check for inherited conversion functions.  This must be done before
            rescanning inline function definitions. */
         project_base_class_conversion_functions(class_type);
-        /* Since project_base_class_conversion_functions can have added new
-           symbols, update the symbols list attached to the class. */
-        cssp->symbols = scope_stack[depth_scope_stack].symbols;
         /* Report errors in virtual function declarations that result from
            the failure to redeclare a virtual function originally declared in
            a virtual base class. */
