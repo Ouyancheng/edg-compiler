@@ -11583,6 +11583,11 @@ except for standard operand transformations.
        case. */
     do_operand_transformations(result, TOPT_NO_OPTIONS);
   }  /* if */
+  /* Check that the operand is scalar or a pointer to member.  Note that
+     this is done even for the cases where a class type has been converted
+     to such a type, because the subroutine does some additional checking
+     and some normalization of the expression. */
+  (void)validate_boolean_controlling_expr(result, validate_only);
 }  /* process_boolean_controlling_expression */
 
 
