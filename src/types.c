@@ -8013,7 +8013,7 @@ TRUE; otherwise, return *is_ref FALSE.
 
 a_boolean is_or_contains_vla_type_with_unspecified_bound(a_type_ptr  tp)
 /*
-Return TRUE is tp is or contains a variable length array type with an
+Return TRUE if tp is or contains a variable length array type with an
 unspecified bound (i.e., declared with [*]).
 */
 {

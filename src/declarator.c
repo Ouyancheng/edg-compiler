@@ -2245,8 +2245,11 @@ expression can be a multiple of the special UPC THREADS constant.
     num_of_elements = 0;
   } else if (vla_enabled && curr_token == tok_star &&
              next_token() == tok_rbracket) {
-    /* [*] syntax for a VLA in a prototype. */
-    if (vla_asterisk_allowed && !static_seen) {
+    /* [*] syntax for a VLA (should only appear in a prototype). */
+    if (vla_asterisk_allowed && !static_seen &&
+        (decl_scope_level != NO_SCOPE_DEPTH &&
+         scope_stack[decl_scope_level].kind ==
+                                          (a_scope_kind)sck_func_prototype)) {
       has_vla_asterisk = TRUE;
     } else {
       error(ec_vla_with_unspecified_bound_not_allowed);
