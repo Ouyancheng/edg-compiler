@@ -4682,6 +4682,9 @@ parameters.
         if (variable->decl_modifiers & DM_DLLEXPORT) {
           write_tok_str("__declspec(dllexport) ");
         }  /* if */
+        if (variable->decl_modifiers & DM_SELECTANY) {
+          write_tok_str("__declspec(selectany) ");
+        }  /* if */
       }  /* if */
       if (variable->decl_modifiers & DM_THREAD) {
         write_tok_str("__declspec(thread) ");
@@ -5088,7 +5091,7 @@ static void dump_dynamic_init(a_dynamic_init_ptr dip)
 /*
 Dump code for a dynamic initialization operation.  This routine only emits
 code for non-constant initializations; the constant initializations are
-handled in declaration processing in dump_variable.
+handled in declaration processing in dump_variable_decl.
 */
 {
   a_variable_ptr variable = dip->variable;
@@ -5146,7 +5149,7 @@ This is used for stmk_init statements.
   an_init_kind   init_kind;
 
   /* If the initial value is a constant, the initialization was
-     done in dump_variable and should not be done here. */
+     done in dump_variable_decl and should not be done here. */
   if (constant_initializer(whole_variable, &init_kind) != NULL) {
     init_already_done = TRUE;
   } else if (dip->kind == (a_dynamic_init_kind)dik_none) {
@@ -5154,7 +5157,8 @@ This is used for stmk_init statements.
     init_already_done = TRUE;
   }  /* if */
   if (!init_already_done) {
-    /* Initialization needs to be done.  It wasn't done by dump_variable. */
+    /* Initialization needs to be done.  It wasn't done by
+       dump_variable_decl. */
     clear_initialization_flags();
     start_initializer_assignments(whole_variable);
     dump_dynamic_init(dip);
@@ -5916,6 +5920,8 @@ if this routine has a body (dump nothing if it has no body).
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
     /* Microsoft-specific keywords. */
+    /* --declspec(nothrow) is a C++-only attribute and is therefore not put
+       out in C code. */
     if (rout->decl_modifiers & DM_DLLIMPORT) {
       write_tok_str("__declspec(dllimport) ");
     }  /* if */
