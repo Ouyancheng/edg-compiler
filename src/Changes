@@ -1,5 +1,11 @@
 Version 2.16
 
+4/8/93  Member function instantiations in tim_none mode
+
+A bug has been fixed that caused member functions to instantiated
+even in tim_none mode.  This could cause multiple definition errors
+when linking programs.
+
 4/8/93  Abstract uninstantiated template classes
 
 We now detect uses of abstract template classes even when they have not
