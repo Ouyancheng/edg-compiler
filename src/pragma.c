@@ -1919,7 +1919,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/TRUE,         /* Do not change. */
                  /*expand_macros=*/FALSE,		/* Do not change. */
                  /*processing_C_code=*/FALSE, /* Do not change. */
-                 /*fetch_pp_tokens=*/FALSE,
+                 /*fetch_pp_tokens=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_warning);
@@ -1946,7 +1946,7 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/TRUE,         /* Do not change. */
                  /*expand_macros=*/FALSE,		/* Do not change. */
                  /*processing_C_code=*/FALSE, /* Do not change. */
-                 /*fetch_pp_tokens=*/FALSE,
+                 /*fetch_pp_tokens=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
                  es_warning);
