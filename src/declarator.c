@@ -1855,14 +1855,20 @@ information should be ignored or if an error should be issued.
     a_boolean		invalid_type = FALSE;
     a_type_ptr		type_to_update = NULL;
 
-    /* See if the type is a pointer or pointer to member type. */
-    if (is_pointer_type(type)) {
-      pointed_to_type = type_pointed_to(type);
-      is_pointer = TRUE;
-    } else if (is_ptr_to_member_type(type)) {
-      pointed_to_type = pm_member_type(type);
-      is_pointer = TRUE;
-    }  /* if */
+    pointed_to_type = type;
+    /* Loop through N levels of pointers to find the underlying type. */
+    while (pointed_to_type != NULL) {
+      /* See if the type is a pointer or pointer to member type. */
+      if (is_pointer_type(pointed_to_type)) {
+        pointed_to_type = type_pointed_to(pointed_to_type);
+        is_pointer = TRUE;
+      } else if (is_ptr_to_member_type(pointed_to_type)) {
+        pointed_to_type = pm_member_type(pointed_to_type);
+        is_pointer = TRUE;
+      } else {
+        break;
+      }  /* if */
+    }  /* while */
     if (is_pointer) {
       /* It is a pointer type.  See if the type pointed to is a
          function type.  A calling convention on a pointer to
