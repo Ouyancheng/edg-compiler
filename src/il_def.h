@@ -557,7 +557,7 @@ typedef struct a_src_seq_secondary_decl {
   unsigned int	friend_decl:1;
 			/* TRUE when the declaration is a friend declaration;
 			   "entity" will refer to a routine or class. */
-  bitfield_to_avoid_codecenter_warnings();
+  bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
 
 
@@ -949,7 +949,7 @@ typedef struct a_dynamic_init {
 			   a call of a delete routine to free the storage
 			   allocated in a new if an exception is thrown before
 			   the storage is initialized. */
-  bitfield_to_avoid_codecenter_warnings();
+  bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */
     /* When kind == dik_bitwise_copy: no variant fields.  The source for the
@@ -1101,7 +1101,7 @@ typedef struct a_constant {
 			   or other operations that rule it out as a null
 			   pointer constant.  This is unrelated to whether
 			   the constant actually has the value zero. */
-  bitfield_to_avoid_codecenter_warnings();
+  bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;
                         /* The kind of representation for the constant. */
@@ -1191,7 +1191,7 @@ typedef struct a_constant {
 		is_function_ptr:1;
 			/* TRUE if the pointer is to a member function,
 			   FALSE if to a data member. */
-      bitfield_to_avoid_codecenter_warnings();
+      bitfield_to_avoid_codecenter_warnings()
       union {
         /* When is_function_ptr == TRUE: */
         a_routine_ptr
@@ -1539,7 +1539,7 @@ typedef struct a_param_type {
 			/* Top-level type qualifiers on the parameter type
 			   on the definition of the function.  Not updated
 			   for declarations. */
-  bitfield_to_avoid_codecenter_warnings();
+  bitfield_to_avoid_codecenter_warnings()
   an_expr_node_ptr
 		default_arg_expr;
 			/* Expression node representing the default value
@@ -1991,7 +1991,7 @@ typedef struct a_template_arg {
 		is_array_bound_of_unknown_type:1;
 			/* TRUE if the template argument is a deduced array
 			   bound whose type is not yet known. */
-  bitfield_to_avoid_codecenter_warnings();
+  bitfield_to_avoid_codecenter_warnings()
   union {
     /* When is_type == TRUE. */
     a_type_ptr  type;   /* The type supplied as the argument. */
@@ -2159,7 +2159,7 @@ typedef struct a_base_class_derivation {
 			   preferred over one that has a virtual base class,
 			   and a direct derivation is preferred over an
 			   indirect derivation. */
-  bitfield_to_avoid_codecenter_warnings();
+  bitfield_to_avoid_codecenter_warnings()
   an_access_specifier
 		access; /* The kind of derivation (public, protected, or
 			   private) specified for the final step of the
@@ -2226,7 +2226,7 @@ typedef struct a_base_class {
 			   scheme used to emulate cfront's ordering algorithm
 			   involves visiting a base class more than once.) */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-  bitfield_to_avoid_codecenter_warnings();
+  bitfield_to_avoid_codecenter_warnings()
   a_targ_size_t	offset;
 			/* The byte offset from the start of the current
 			   derived class to the data section of this base
@@ -2818,7 +2818,7 @@ typedef struct a_type {
       unsigned int
 		bool_type:1;
 			/* TRUE if this type is bool in C++. */
-      bitfield_to_avoid_codecenter_warnings();
+      bitfield_to_avoid_codecenter_warnings()
       union {
         /* When enum_type is TRUE: */
         a_constant_ptr
@@ -3000,7 +3000,7 @@ typedef struct a_type {
 			   file scope types list.  Used for template classes
 			   that are instantiated in the midst of a class
 			   definition. */
-      bitfield_to_avoid_codecenter_warnings();
+      bitfield_to_avoid_codecenter_warnings()
     } typeref;
     /* When kind == tk_ptr_to_member: */
     struct {
@@ -3492,7 +3492,7 @@ typedef struct a_field {
 			/* TRUE if the "mutable" specifier appeared on the
 			   declaration of this nonstatic data member (C++
 			   only). */
-  bitfield_to_avoid_codecenter_warnings();
+  bitfield_to_avoid_codecenter_warnings()
 } a_field;
 
 #endif /* ifdef CIL */
@@ -3922,7 +3922,7 @@ typedef struct a_label {
 			/* TRUE if this is a compiler-generated label that
 			   is the target of a "__leave" statement. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  bitfield_to_avoid_codecenter_warnings();
+  bitfield_to_avoid_codecenter_warnings()
 #ifdef FIL
   a_byte_boolean
                 used_in_assign;
@@ -4526,7 +4526,7 @@ typedef struct an_expr_node {
 			   thread-safe code, the "?" and the first assignment
 			   within it should be rendered as an atomic
 			   test-and-set. */
-  bitfield_to_avoid_codecenter_warnings();
+  bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */
     /* When kind == enk_operation: */
@@ -4551,7 +4551,7 @@ typedef struct an_expr_node {
 		implicit_in_member_naming:1;
 			/* TRUE for a base class cast that is implicit in
 			   the name used in referring to a class member. */
-      bitfield_to_avoid_codecenter_warnings();
+      bitfield_to_avoid_codecenter_warnings()
       an_expr_node_ptr  
                 operands;
                         /* The list of operands. */
@@ -4603,7 +4603,7 @@ typedef struct an_expr_node {
 			   is different than object lifetime; see the
 			   lifetime information in the dynamic init entry
 			   pointed to. */
-      bitfield_to_avoid_codecenter_warnings();
+      bitfield_to_avoid_codecenter_warnings()
       a_dynamic_init_ptr
 		dynamic_init;
 			/* Dynamic initialization entry that does the
@@ -5607,7 +5607,7 @@ typedef struct a_hidden_name {
 			   name redeclared by nontype declaration in the
 			   current scope, so that the hiding can be defeated
 			   by using an elaborated type specifier. */
-  bitfield_to_avoid_codecenter_warnings();
+  bitfield_to_avoid_codecenter_warnings()
 } a_hidden_name;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 

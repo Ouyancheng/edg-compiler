@@ -431,10 +431,12 @@ By clearing this bit field to zero we can avoid warnings about
 uninitialized values from CodeCenter on those bit fields (because the
 value used for "uninitialized" has no two adjacent zero bits).
 This expands to an empty string when checking code is not being used.
+Note that the semicolon that terminates the declaration is provided by
+the macro, so one should not follow a reference to the macro.
 */
 #if CHECKING
 #define bitfield_to_avoid_codecenter_warnings() \
-  unsigned int	avoid_codecenter_warnings:2
+  unsigned int	avoid_codecenter_warnings:2;
 #else /* !CHECKING */
 #define bitfield_to_avoid_codecenter_warnings()  /* nothing */
 #endif /* CHECKING */
