@@ -16,6 +16,8 @@ C++ operator delete(size_t, void*);
 #include <stddef.h>
 #include "new.h"
 
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+
 void operator delete(void *, void *)
 /*
 Placement operator delete -- does nothing.
@@ -23,6 +25,7 @@ Placement operator delete -- does nothing.
 {
 }  /* operator delete (size_t, void*) */
 
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
 
 /******************************************************************************
 *                                                             \  ___  /       *

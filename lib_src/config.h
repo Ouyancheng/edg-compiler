@@ -136,6 +136,27 @@ indicate how it is configured.
 
 
 /*
+This switch controls whether or not the ABI changes for placement
+delete are done.  New runtime routines/variables are added.
+The changes are upward-compatible (you can use old object code
+with new object code and the new library).  If the switch is off,
+compatibility with versions up to 2.33 is preserved, but the
+placement delete language feature is turned off.  Allocating an
+array with placement new and then using the delete operator on it
+is also considered part of "placement delete" and is controlled by
+this switch.
+*/
+#ifndef ABI_CHANGES_FOR_PLACEMENT_DELETE
+/* If this value is not defined, use the value defined by the front end,
+   if one is provided.  Otherwise, assume that the feature is not supported. */
+#ifdef __EDG_ABI_CHANGES_FOR_PLACEMENT_DELETE
+#define ABI_CHANGES_FOR_PLACEMENT_DELETE __EDG_ABI_CHANGES_FOR_PLACEMENT_DELETE
+#else /* ifndef __EDG_ABI_CHANGES_FOR_PLACEMENT_DELETE */
+#define ABI_CHANGES_FOR_PLACEMENT_DELETE FALSE
+#endif /* ifndef __EDG_ABI_CHANGES_FOR_PLACEMENT_DELETE */
+#endif /* ifndef ABI_CHANGES_FOR_PLACEMENT_DELETE */
+
+/*
 This switch controls how the runtime keeps track of information about the
 size of arrays that have been allocated.  Through version 2.28 this
 information was maintained using a separate data structure allocated

@@ -20,7 +20,7 @@ C++ operator delete[](size_t, void*);
 #include "new.h"
 
 
-#if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
+#if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE && ABI_CHANGES_FOR_PLACEMENT_DELETE
 
 void operator delete[](void*, void*)
 /*
@@ -29,7 +29,8 @@ Placement operator delete -- does nothing.
 {
 }  /* operator delete[](void*, void*) */
 
-#endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
+#endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE &&
+          ABI_CHANGES_FOR_PLACEMENT_DELETE*/
 
 /******************************************************************************
 *                                                             \  ___  /       *
