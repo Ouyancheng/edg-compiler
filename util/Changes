@@ -1,3 +1,15 @@
+Version 2.36
+
+4/11/97  Name demangling: function-local names
+
+decode.c now understands more mangled names of entities local to
+functions.  The name of the function is also now put out at the beginning
+of the name, followed by "::", which works better for multi-level names.
+
+  func__15A__L0__main__FvFv  --> main()::A::func()
+  i__L0__f__tm__2_i__FZ1Z_v  --> void f<T1>(T1) [with T1=int]::i
+
+-------------------------------------------------------------------------------
 Version 2.35, February 28, 1997
 
 2/24/97  Name demangling: index in pointer-to-member-function

@@ -106,17 +106,12 @@ typedef struct a_template_param_block {
 /*
 Declarations needed because of forward references:
 */
-static char *full_demangle_name(char                       *ptr,
-                                unsigned long              nchars,
-                                char                       *mclass,
-                                a_template_param_block_ptr temp_par_info,
-                                a_decode_control_block_ptr dctl);
-/*
-Interface to full_demangle_name for the simple case.
-*/
-#define demangle_name(ptr, dctl)                                      \
-  full_demangle_name((ptr), (unsigned long)0, (char *)NULL,           \
-                     (a_template_param_block_ptr)NULL, (dctl))
+static char *demangle_name(char                       *ptr,
+                           unsigned long              nchars,
+                           a_boolean                  stop_on_underscores,
+                           char                       *mclass,
+                           a_template_param_block_ptr temp_par_info,
+                           a_decode_control_block_ptr dctl);
 static char *demangle_name_with_preceding_length(
                                 char                       *ptr,
                                 a_template_param_block_ptr temp_par_info,
@@ -139,6 +134,12 @@ Interface to full_demangle_type_name for the simple case.
   full_demangle_type_name((ptr), /*base_name_only=*/FALSE,            \
                           /*temp_par_info=*/(a_template_param_block_ptr)NULL, \
                           (dctl))
+static char *full_demangle_identifier(char                       *ptr,
+                                      unsigned long              nchars,
+                                      a_decode_control_block_ptr dctl);
+/* Interface to full_demangle_identifier for the simple case. */
+#define demangle_identifier(ptr, dctl)                                \
+  full_demangle_identifier((ptr), (unsigned long)0, (dctl))
 
 
 static void write_id_ch(char                       ch,
@@ -1019,11 +1020,12 @@ the end of the string returns a null character.
 }  /* get_char */
 
 
-static char *full_demangle_name(char                       *ptr,
-                                unsigned long              nchars,
-                                char                       *mclass,
-                                a_template_param_block_ptr temp_par_info,
-                                a_decode_control_block_ptr dctl)
+static char *demangle_name(char                       *ptr,
+                           unsigned long              nchars,
+                           a_boolean                  stop_on_underscores,
+                           char                       *mclass,
+                           a_template_param_block_ptr temp_par_info,
+                           a_decode_control_block_ptr dctl)
 /*
 Demangle the name at ptr and output the demangled form.  Return a pointer
 to the character position following what was demangled.  A "name" is
@@ -1031,14 +1033,15 @@ usually just a string of alphanumeric characters.  However, names of
 constructors, destructors, and operator functions require special
 handling, as do template entity names.  nchars indicates the number
 of characters in the name, or is zero if the name is open-ended
-(it's ended by a null or double underscore).  mclass, when non-NULL,
-points to the mangled form of the class of which this name is a
-member.  When it's non-NULL, constructor and destructor names will
-be put out in the proper form (otherwise, they are left in their
-original forms).  When temp_par_info != NULL, it points to a
-block that controls output of extra information on template parameters.
-See the macro demangle_name for an interface to this routine for the
-simple case.
+(it's ended by a null or double underscore).  A double underscore
+ends the name if stop_on_underscores is TRUE (though some sequences
+beginning with two underscores, e.g., "__pt", end the name even if
+stop_on_underscores is FALSE).  mclass, when non-NULL, points to
+the mangled form of the class of which this name is a member.
+When it's non-NULL, constructor and destructor names will be put
+out in the proper form (otherwise, they are left in their original
+forms).  When temp_par_info != NULL, it points to a block that
+controls output of extra information on template parameters.
 */
 {
   char      *p, *end_ptr = NULL;
@@ -1114,10 +1117,10 @@ simple case.
       if (ch == '_' && p != ptr &&
           get_char(p+1, ptr, nchars) == '_' &&
           get_char(p+2, ptr, nchars) != '_' &&
-          /* When the length is known, stop only on "__tm", "__ps", "__pt",
-             or "__S".  Double underscores can appear in the middle of some
-             names, e.g., member names used as template arguments. */
-          (nchars == 0 ||
+          /* When stop_on_underscores is FALSE, stop only on "__tm", "__ps",
+             "__pt", or "__S".  Double underscores can appear in the middle
+             of some names, e.g., member names used as template arguments. */
+          (stop_on_underscores ||
            (get_char(p+2, ptr, nchars) == 't' &&
             get_char(p+3, ptr, nchars) == 'm') ||
            (get_char(p+2, ptr, nchars) == 'p' &&
@@ -1191,15 +1194,62 @@ simple case.
     }  /* if */
   }  /* if */
   /* Check that we took exactly the characters we should have. */
-  if ((nchars > 0) ?
-          ((end_ptr - ptr) == nchars) :
-          (*end_ptr == '\0' || (end_ptr[0] == '_' && end_ptr[1] == '_'))) {
+  if (get_char(end_ptr, ptr, nchars) == '\0' ||
+      (stop_on_underscores &&
+       get_char(end_ptr,   ptr, nchars) == '_' &&
+       get_char(end_ptr+1, ptr, nchars) == '_')) {
     /* Okay. */
   } else {
     bad_mangled_name(dctl);
   }  /* if */
   return end_ptr;
-}  /* full_demangle_name */
+}  /* demangle_name */
+
+
+static char *demangle_function_local_indication(
+                                             char                       *ptr,
+                                             unsigned long              nchars,
+                                             a_decode_control_block_ptr dctl)
+/*
+Demangle the function name and block number in a function-local indication:
+
+    __L2__f__Fv
+               ^-- returned pointer points here
+          ^------- mangled function name
+       ^---------- block number within function (ptr points here on entry)
+
+ptr points to the character after the "__L".  If nchars is non-zero, it
+indicates the length of the string, starting from ptr.  Return a pointer
+to the character following the mangled function name.  Output a function
+indication like "f(void)::".
+*/
+{
+  char          *p = ptr;
+  unsigned long block_number;
+
+  /* Get the block number. */
+  p = get_number(ptr, &block_number, dctl);
+  /* Check for the two underscores following the block number. */
+  if (p[0] != '_' || p[1] != '_') {
+    bad_mangled_name(dctl);
+  } else {
+    p += 2;
+  }  /* if */
+  /* Put out the function name. */
+  if (nchars != 0) nchars -= (p - ptr);
+  p = full_demangle_identifier(p, nchars, dctl);
+  /* Put out the block number if needed.  Block 0 is the top-level block
+     of the function, and need not be identified. */
+  if (block_number != 0) {
+    char buffer[30];
+    write_id_str("[block ", dctl);
+    (void)sprintf(buffer, "%lu", block_number);
+    write_id_str(buffer, dctl);
+    write_id_ch(']', dctl);
+  }  /* if */
+  write_id_str("::", dctl);
+  return p;
+}  /* demangle_function_local_indication */
 
 
 static char *demangle_name_with_preceding_length(
@@ -1214,12 +1264,33 @@ controls output of extra information on template parameters.
 */
 {
   char          *p = ptr;
-  unsigned long nchars;
+  char          *p2;
+  unsigned long nchars, nchars2;
+  a_boolean     has_function_local_info = FALSE;
 
   /* Get the length. */
   p = get_number(p, &nchars, dctl);
+  if (nchars >= 8) {
+    /* Look for a function-local indication, e.g., "__Ln__f" for block
+       "n" of function "f". */
+    for (p2 = p+1; p2+6 < p+nchars; p2++) {
+      if (p2[0] == '_' && p2[1] == '_' && p2[2] == 'L') {
+        has_function_local_info = TRUE;
+        nchars2 = nchars;
+        /* Set the length for the scan below to stop just before "__L". */
+        nchars = p2 - p;
+        p2 += 3;  /* Points to block number after "__L". */
+        nchars2 -= (p2 - p);
+        /* Scan and output the block number and function name. */
+        p2 = demangle_function_local_indication(p2, nchars2, dctl);
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   /* Demangle the name. */
-  p = full_demangle_name(p, nchars, (char *)NULL, temp_par_info, dctl);
+  p = demangle_name(p, nchars, /*stop_on_underscores=*/FALSE,
+                    (char *)NULL, temp_par_info, dctl);
+  if (has_function_local_info) p = p2;
   return p;
 }  /* demangle_name_with_preceding_length */
 
@@ -1731,21 +1802,22 @@ the character position following what was demangled.
 }  /* demangle_type */
 
 
-static char *demangle_identifier(char                       *ptr,
-                                 a_decode_control_block_ptr dctl)
+static char *full_demangle_identifier(char                       *ptr,
+                                      unsigned long              nchars,
+                                      a_decode_control_block_ptr dctl)
 /*
 Demangle the identifier at ptr and output the demangled form.  Return
 a pointer to the character position following what was demangled.
+If nchars > 0, take no more than that many characters.
 */
 {
-  char          *p = ptr, *origname, *pname, *end_ptr;
+  char          *p = ptr, *pname, *end_ptr, *function_local_end_ptr = NULL;
   char          *final_specialization, *end_ptr_first_scan;
+  char          ch;
   a_boolean     member_function = TRUE;
   a_template_param_block
                 temp_par_info;
 
-start_of_mangled_name:
-  origname = p;
   clear_template_param_block(&temp_par_info);
   /* Scan through the name (the first part of the mangled name) without
      generating output, to see what's beyond it.  Special processing is
@@ -1754,32 +1826,35 @@ start_of_mangled_name:
      function names), note that fact. */
   temp_par_info.set_final_specialization = TRUE;
   dctl->suppress_id_output++;
-  p = full_demangle_name(origname, (unsigned long)0, (char *)NULL,
-                         &temp_par_info, dctl);
+  p = demangle_name(ptr, nchars, /*stop_on_underscores=*/TRUE,
+                    (char *)NULL, &temp_par_info, dctl);
   dctl->suppress_id_output--;
   final_specialization = temp_par_info.final_specialization;
   clear_template_param_block(&temp_par_info);
   temp_par_info.final_specialization = final_specialization;
-  if (*p == '\0') {
+  if (get_char(p, ptr, nchars) == '\0') {
     /* There is no mangled part of the name.  This happens for strange
        cases like
          extern "C" int operator +(A, A);
        which gets mangled as "__pl".  Just write out the name and stop. */
-    end_ptr = demangle_name(origname, dctl);
+    end_ptr = demangle_name(ptr, nchars,
+                            /*stop_on_underscores=*/TRUE,
+                            (char *)NULL,
+                            (a_template_param_block_ptr)NULL, dctl);
   } else {
     /* There's more.  There should be a "__" between the name and the
        additional mangled information. */
-    if (p[0] != '_' || p[1] != '_') {
+    if (get_char(p, ptr, nchars) != '_' || get_char(p+1, ptr, nchars) != '_') {
       bad_mangled_name(dctl);
       end_ptr = p;
       goto end_of_routine;
     }  /* if */
     end_ptr = p + 2;
-    /* Now origname points to the original-name part of the mangled name, and
+    /* Now ptr points to the original-name part of the mangled name, and
        end_ptr points to the mangled-name part at the end.
          f__1AFv
             ^---- end_ptr
-         ^------- origname
+         ^------- ptr
        The mangled-name part is
          (a)  A class name for a static data member.
          (b)  A class name followed by "F" followed by the encoding for the
@@ -1791,37 +1866,26 @@ start_of_mangled_name:
        Members of namespaces are encoded similarly. */
     p = end_ptr;
     pname = NULL;
-    if (end_ptr[0] == 'L') {
-      unsigned long block_number;
+    ch = get_char(end_ptr, ptr, nchars);
+    if (ch == 'L') {
+      unsigned long nchars2 = nchars;
       /* The name of an entity within a function, mangled on promotion out
          of the function.  For example, "i__L1__f__Fv" for "i" from block 1
          of function "f(void)".  Note that this is not the same mangling
          used by cfront (in the cfront scheme, the __L1 is at the end, and
          the number is different). */
-      /* Put out the entity name (the first part of the mangled name). */
-      (void)demangle_name(origname, dctl);
-      write_id_str(" in", dctl);
-      /* Get the block number and put it out.  Block 0 is the top-level block
-         of the function, and need not be identified. */
-      p = get_number(end_ptr+1, &block_number, dctl);
-      if (block_number != 0) {
-        char buffer[30];
-        write_id_str(" block ", dctl);
-        (void)sprintf(buffer, "%lu", block_number);
-        write_id_str(buffer, dctl);
-        write_id_str(" of", dctl);
-      }  /* if */
-      write_id_str(" function ", dctl);
-      /* Check for the two underscores following the block number. */
-      if (p[0] != '_' || p[1] != '_') {
-        bad_mangled_name(dctl);
-        end_ptr = p;
-        goto end_of_routine;
-      }  /* if */
-      /* Go back to scan and output the function name. */
-      p += 2;
-      goto start_of_mangled_name;
-    } else if (end_ptr[0] != 'F') {
+      /* Set a length for the name without the function-local indication,
+         for the processing in the rest of this routine. */
+      nchars = (p - 2) - ptr;
+      /* Demangle the function name and block number. */
+      p++;  /* Points to the block number following "__L". */
+      if (nchars2 != 0) nchars2 -= (p - ptr);
+      function_local_end_ptr =
+                          demangle_function_local_indication(p, nchars2, dctl);
+      p = end_ptr = ptr + nchars;
+      member_function = FALSE;
+      /* Go on to demangle the name of the local entity. */
+    } else if (ch != 'F') {
       /* A class (or namespace) name must be next. */
       /* Remember the location of the parent entity name. */
       pname = end_ptr;
@@ -1839,12 +1903,15 @@ start_of_mangled_name:
       dctl->suppress_id_output--;
       /* If the name ends here, this is a simple member (e.g., a static
          data member). */
-      if (*end_ptr == '\0' ||
-          (end_ptr[0] == '_' && end_ptr[1] == '_')) member_function = FALSE;
+      ch = get_char(end_ptr, ptr, nchars);
+      if (ch == '\0' ||
+          (ch == '_' && get_char(end_ptr+1, ptr, nchars) == '_')) {
+        member_function = FALSE;
+      }  /* if */
     }  /* if */
     if (member_function) {
       /* "S" here means a static member function (ignore). */
-      if (*end_ptr == 'S') end_ptr++;
+      if (get_char(end_ptr, ptr, nchars) == 'S') end_ptr++;
       /* Write the specifier part of the type. */
       end_ptr_first_scan =
                   demangle_type_first_part(end_ptr,
@@ -1867,8 +1934,8 @@ start_of_mangled_name:
       write_id_str("::", dctl);
     }  /* if */
     /* Write the name of the member. */
-    (void)full_demangle_name(origname, (unsigned long)0, pname,
-                             &temp_par_info, dctl);
+    (void)demangle_name(ptr, nchars, /*stop_on_underscores=*/TRUE,
+                        pname, &temp_par_info, dctl);
     if (member_function) {
       /* Write the declarator part of the type. */
       demangle_type_second_part(end_ptr, /*under_lhs_declarator=*/FALSE,
@@ -1898,8 +1965,8 @@ start_of_mangled_name:
          it is specialized. */
       temp_par_info.actual_template_args_until_final_specialization = FALSE;
       /* Write the name of the member. */
-      (void)full_demangle_name(origname, (unsigned long)0, pname,
-                               &temp_par_info, dctl);
+      (void)demangle_name(ptr, nchars, /*stop_on_underscores=*/TRUE,
+                          pname, &temp_par_info, dctl);
       dctl->suppress_id_output--;
       if (!temp_par_info.first_correspondence) {
         /* End the list of correspondences. */
@@ -1908,8 +1975,12 @@ start_of_mangled_name:
     }  /* if */
   }  /* if */
 end_of_routine:
+  /* When a function-local indication is scanned, end_ptr has been set
+     to the end of the local entity name, and needs to be set to after the
+     function-local indication at the end of the whole name. */
+  if (function_local_end_ptr != NULL) end_ptr = function_local_end_ptr;
   return end_ptr;
-}  /* demangle_identifier */
+}  /* full_demangle_identifier */
 
 
 static char *demangle_local_name(char                       *ptr,
