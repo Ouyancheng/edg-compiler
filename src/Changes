@@ -1,5 +1,13 @@
 Version 2.24
 
+7/4/94   top-level const on lowered routine with modifiable "this"
+
+When assignment to "this" is done within a member function, or when
+"this" is modified within a constructor because the "new" operation is
+done therein, IL lowering drops the top-level "const" from the "this"
+variable.  Now, the "const" is dropped also from the implicit "this"
+parameter type attached to the routine type.
+
 6/30/94  Distinguishing a template-id from a declarator-id
 
 A bug has been fixed in declarator processing -- a template-id is no

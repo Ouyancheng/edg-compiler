@@ -7539,7 +7539,11 @@ Do IL lowering of the indicated scope and everything under it.
 #if ASSIGNMENT_TO_THIS_ALLOWED
         if (routine->assignment_to_this_done) drop_const = TRUE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-        if (drop_const) param_var->type = f_skip_typerefs(param_var->type);
+        if (drop_const) {
+          /* Drop the top-level "const" on the "this" parameter. */
+          param_var->type = rtsp->implicit_this_param_type =
+                                              f_skip_typerefs(param_var->type);
+        }  /* if */
       }
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED || NEW_CAN_BE_FOLDED_INTO_CTOR */
     }  /* if */
