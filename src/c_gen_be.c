@@ -1526,6 +1526,17 @@ to be NULL.
   }  /* if */
 }  /* write_asm_name */
 
+
+static void write_var_reg_name(a_named_register reg)
+/*
+Write out the register assigned to a variable.
+*/
+{
+  write_tok_str(" __asm__(\"");
+  write_tok_str(named_register_names[(int)reg]);
+  write_tok_str("\")");
+}  /* write_var_reg_name */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static char *tag_kind(a_type_kind kind)
@@ -5548,6 +5559,13 @@ parameters.
         }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+      /* A variable assigned to a specific register must always be put
+         out with the "register" keyword. */
+      if (!variable->asm_name_is_valid) {
+        storage_class = (a_storage_class)sc_register;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       if (storage_class != variable->storage_class) {
         /* The storage class to be put out is not the one in the variable. */
         dump_storage_class(storage_class);
@@ -5611,7 +5629,11 @@ parameters.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 #if GNU_EXTENSIONS_ALLOWED
       /* Emit any user-specified assembly symbol for this variable. */
-      write_asm_name (variable->asm_name);
+      if (variable->asm_name_is_valid) {
+        write_asm_name(variable->asm_name_or_reg.name);
+      } else {
+        write_var_reg_name(variable->asm_name_or_reg.reg);
+      }  /* if */
       /* Emit attributes associated with this variable. */
       write_variable_attributes(variable);
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -5635,7 +5657,6 @@ parameters.
     }  /* if */
   }  /* if */
 }  /* dump_variable_decl */
-
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -5743,7 +5764,7 @@ Generate C for an asm statement or declaration.
   {
     write_tok_str("asm");
 #if GNU_EXTENSIONS_ALLOWED
-    if (aep->is_volatile) {
+    if (aep->is_volatile && (aep->num_operands > 0 || aep->num_clobbers > 0)) {
       write_tok_str(" volatile");
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -5754,7 +5775,7 @@ Generate C for an asm statement or declaration.
       write_tok_str(" :");
       dump_asm_operands(aep);
       dump_asm_clobbers(aep);
-    }
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     write_tok_str(");");
   }  /* if */

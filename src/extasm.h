@@ -20,6 +20,8 @@ extasm.h -- Declarations related to extasm.c (having to do with
 
 #if GNU_EXTENSIONS_ALLOWED
 
+extern a_named_register name_to_register(char  *name);
+
 extern int asm_operands_spec(an_asm_operand_ptr *p_operands);
 
 extern int asm_clobbers_spec(a_named_register **p_clobbers);

@@ -1703,6 +1703,78 @@ Display the indicated init kind and initializer.
 }  /* disp_initializer */
 
 
+static void disp_named_register(char             *field_name,
+                                a_named_register reg)
+/*
+Display a named register "reg".  The "name" is the name of the IL
+field storing the register.
+*/
+{
+  char *s;
+
+  disp_name(field_name);
+  (void)printf(": ");
+  switch (reg) {
+    case anr_invalid: s ="anr_invalid";  break;
+#ifdef TARG_IS_X86
+    case anr_a:       s = "anr_a";       break;
+    case anr_b:       s = "anr_b";       break;
+    case anr_c:       s = "anr_c";       break;
+    case anr_d:       s = "anr_d";       break;
+    case anr_si:      s = "anr_si";      break;
+    case anr_di:      s = "anr_di";      break;
+    case anr_bp:      s = "anr_bp";      break;
+    case anr_sp:      s = "anr_sp";      break;
+    case anr_r8:      s = "anr_r8";      break;
+    case anr_r9:      s = "anr_r9";      break;
+    case anr_r10:     s = "anr_r10";     break;
+    case anr_r11:     s = "anr_r11";     break;
+    case anr_r12:     s = "anr_r12";     break;
+    case anr_r13:     s = "anr_r13";     break;
+    case anr_r14:     s = "anr_r14";     break;
+    case anr_r15:     s = "anr_r15";     break;
+    case anr_st0:     s = "anr_st0";     break;
+    case anr_st1:     s = "anr_st1";     break;
+    case anr_st2:     s = "anr_st2";     break;
+    case anr_st3:     s = "anr_st3";     break;
+    case anr_st4:     s = "anr_st4";     break;
+    case anr_st5:     s = "anr_st5";     break;
+    case anr_st6:     s = "anr_st6";     break;
+    case anr_st7:     s = "anr_st7";     break;
+    case anr_mm0:     s = "anr_mm0";     break;
+    case anr_mm1:     s = "anr_mm1";     break;
+    case anr_mm2:     s = "anr_mm2";     break;
+    case anr_mm3:     s = "anr_mm3";     break;
+    case anr_mm4:     s = "anr_mm4";     break;
+    case anr_mm5:     s = "anr_mm5";     break;
+    case anr_mm6:     s = "anr_mm6";     break;
+    case anr_mm7:     s = "anr_mm7";     break;
+    case anr_f0:      s = "anr_f0";      break;
+    case anr_f1:      s = "anr_f1";      break;
+    case anr_f2:      s = "anr_f2";      break;
+    case anr_f3:      s = "anr_f3";      break;
+    case anr_f4:      s = "anr_f4";      break;
+    case anr_f5:      s = "anr_f5";      break;
+    case anr_f6:      s = "anr_f6";      break;
+    case anr_f7:      s = "anr_f7";      break;
+    case anr_f8:      s = "anr_f8";      break;
+    case anr_f9:      s = "anr_f9";      break;
+    case anr_f10:     s = "anr_f10";     break;
+    case anr_f11:     s = "anr_f11";     break;
+    case anr_f12:     s = "anr_f12";     break;
+    case anr_f13:     s = "anr_f13";     break;
+    case anr_f14:     s = "anr_f14";     break;
+    case anr_f15:     s = "anr_f15";     break;
+    case anr_flags:   s = "anr_flags";   break;
+    case anr_fpsr:    s = "anr_fpsr";    break;
+    case anr_dirflag: s = "anr_dirflag"; break;
+#endif /* TARG_IS_X86 */
+    default: s = "**BAD REGISTER KIND**";
+  }  /* switch */
+  (void)printf("%s\n", s);
+}  /* disp_named_register */
+
+                                
 static void disp_variable(a_variable_ptr ptr)
 /*
 Display the indicated variable.
@@ -1723,8 +1795,13 @@ Display the indicated variable.
   disp_decl_modifiers(ptr->decl_modifiers);
 #endif /* DECL_MODIFIERS_IN_USE */
 #if GNU_EXTENSIONS_ALLOWED
-  if (ptr->asm_name != NULL) {
-    disp_string_ptr("asm_name", ptr->asm_name, iek_other_text, (sizeof_t)0);
+  if (ptr->asm_name_is_valid) {
+    if (ptr->asm_name_or_reg.name != NULL) {
+      disp_string_ptr("asm_name", ptr->section, iek_other_text, 
+                      (sizeof_t)0);
+    }  /* if */
+  } else {
+    disp_named_register("reg", ptr->asm_name_or_reg.reg);
   }  /* if */
   if (ptr->alignment != 0) {
     disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
@@ -1737,6 +1814,9 @@ Display the indicated variable.
   }  /* if */
   if (ptr->is_transparent) {
     disp_boolean("is_transparent", TRUE);
+  }  /* if */
+  if (ptr->asm_name_is_valid) {
+    disp_boolean("asm_name_is_valid", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (ptr->address_taken) {

@@ -4555,7 +4555,15 @@ Returns TRUE if there is an error in the specifiers.
                    ec_bad_storage_class_on_template_decl);
           err = TRUE;
         } else if (C_mode() && depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
-                   (curr_token == tok_auto || curr_token == tok_register)) {
+                   (curr_token == tok_auto ||
+                    (
+#if GNU_EXTENSIONS_ALLOWED
+                     /* In GNU mode, "register" can appear at file
+                        scope, as long as an explicit register name is
+                        provided. */
+                     !gcc_mode &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                     curr_token == tok_register))) {
           error(ec_bad_file_scope_storage_class);
           err = TRUE;
         } else if (input_flags & DSI_IS_CONDITION_DECL) {

@@ -3008,6 +3008,17 @@ to be NULL.
   }  /* if */
 }  /* write_asm_name */
 
+
+static void write_var_reg_name(a_named_register reg)
+/*
+Write out the register assigned to a variable.
+*/
+{
+  write_tok_str(" __asm__(\"");
+  write_tok_str(named_register_names[(int)reg]);
+  write_tok_str("\")");
+}  /* write_var_reg_name */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void gen_function_declarator_with_scope(a_type_ptr   type,
@@ -7727,6 +7738,88 @@ the current function.
   return is_return_at_end;
 }  /* is_return_at_end_of_function */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void gen_asm_operands(an_asm_entry_ptr aep)
+/*
+Generate the GNU C operand descriptions for the given asm entry.
+*/
+{
+  int                i;
+  a_boolean          output = TRUE;
+  an_asm_operand_ptr a;
+
+  /* Check for the case of no operands at all, or just no outputs. */
+  if (aep->num_operands == 0 ||
+      !(aep->operands[0].modifiers & (an_asm_operand_modifier)aom_output)) {
+    output = FALSE;
+    write_tok_str(" :");
+  }  /* if */
+  for (i = 0; i < aep->num_operands; i++) {
+    a = &aep->operands[i];
+    write_tok_ch(' ');
+    m_write_ch('"');
+    if (a->modifiers & (an_asm_operand_modifier)aom_output) {
+      if (a->modifiers & (an_asm_operand_modifier)aom_input) {
+        m_write_ch('+');
+      } else {
+        m_write_ch('=');
+      }  /* if */
+    }  /* if */
+    if (a->modifiers & (an_asm_operand_modifier)aom_earlyclobber) {
+      m_write_ch('&');
+    }  /* if */
+    m_write_ch(asm_operand_constraint_letters[a->constraint]);
+    m_write_ch('"');
+    write_tok_str(" (");
+    if (a->modifiers & (an_asm_operand_modifier)aom_output) {
+      gen_lvalue(a->expression);
+    } else {
+      gen_expression(a->expression);
+    }  /* if */
+    m_write_ch(')');
+    /* If this is the last output, but not the last entry, write a
+       colon.  Else if this is not the last operand, write a comma. */
+    if (output && 
+        i < aep->num_operands - 1 &&
+        !(aep->operands[i+1].modifiers &
+                                       (an_asm_operand_modifier)aom_output)) {
+      write_tok_str(" :");
+      output = FALSE;
+    } else if (i < aep->num_operands - 1) {
+      m_write_ch(',');
+    }  /* if */
+  }  /* for */
+}  /* gen_asm_operands */
+
+
+static void gen_asm_clobbers(an_asm_entry_ptr aep)
+/*
+Generate the GNU C clobber specifications for the given asm entry.
+*/
+{
+  int i;
+
+  /* GCC does not want to see empty clobbers lists. */
+  if (aep->num_clobbers > 0) {
+    write_tok_str(" :");
+    for (i = 0; i < aep->num_clobbers; i++) {
+      /* Permit line breaking here. */
+      write_tok_ch(' ');
+      /* Register names are assumed not to have any characters that need
+         to be escaped in string constants. */
+      m_write_ch('"');
+      m_write_str(named_register_names[aep->clobbers[i]]);
+      m_write_ch('"');
+      if (i < aep->num_clobbers - 1) {
+        m_write_ch(',');
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* gen_asm_clobbers */
+  
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 
 static void gen_statement_full(a_statement_ptr statement,
                                a_boolean       suppress_trailing_space)
@@ -7986,9 +8079,24 @@ statement unless suppress_trailing_space is TRUE.
         end_output_line();
         suppress_trailing_space = TRUE;
       } else {        
-        write_tok_str("asm(");
-        gen_constant(statement->variant.asm_entry->asm_string,
-                     /*need_parens=*/FALSE);
+        an_asm_entry_ptr asm_entry = statement->variant.asm_entry;
+        write_tok_str("asm");
+#if GNU_EXTENSIONS_ALLOWED
+        if (asm_entry->is_volatile &&
+            (aep->num_operands > 0 || aep->num_clobbers > 0)) {
+          write_tok_str(" volatile");
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        write_tok_ch('(');
+        gen_constant(asm_entry->asm_string, /*need_parens=*/FALSE);
+#if GNU_EXTENSIONS_ALLOWED
+        if (asm_entry->num_operands > 0 || asm_entry->num_clobbers > 0 || 
+            !asm_entry->is_volatile) {
+          write_tok_str(" :");
+          gen_asm_operands(asm_entry);
+          gen_asm_clobbers(asm_entry);
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         write_tok_ch(')');
         write_tok_ch(';');
       }  /* if */
@@ -8526,6 +8634,13 @@ declaration following this one is such a continuation.
       }  /* if */
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  /* A variable assigned to a specific register must always be put
+     out with the "register" keyword. */
+  if (!var->asm_name_is_valid) {
+    storage_class = (a_storage_class)sc_register;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (!suppress_specifiers) {
     /* Check for `extern "C"'.  This applies even on a definition. */
     if (il_header.source_language == sl_Cplusplus &&
@@ -8593,7 +8708,11 @@ declaration following this one is such a continuation.
                                                    GDO_NO_OPTIONS);
 #if GNU_EXTENSIONS_ALLOWED
   /* Emit any user-specified assembly symbol for this variable. */
-  write_asm_name (var->asm_name);
+  if (var->asm_name_is_valid) {
+    write_asm_name(var->asm_name_or_reg.name);
+  } else {
+    write_var_reg_name(var->asm_name_or_reg.reg);
+  }  /* if */
   /* Emit attributes associated with this variable. */
   write_variable_attributes(var);
 #endif /* GNU_EXTENSIONS_ALLOWED */

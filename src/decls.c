@@ -3890,8 +3890,8 @@ namespace-extension scope.
 
 
 #if !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED
-/* ARGSUSED */ /* decl_modifiers and/or attributes are not used in
-                  some configurations. */
+/* ARGSUSED */ /* decl_modifiers, attributes, and/or asm_name are not 
+                  used in some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED */
 void decl_variable(a_symbol_locator             *locator,
                    a_storage_class              storage_class,
@@ -3947,9 +3947,19 @@ declaration.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_boolean                linked_to_previous_variable = FALSE;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean                is_register;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "decl_variable");
   *old_type = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+  is_register = storage_class == (a_storage_class)sc_register;
+  /* A global variable declared with "register" is effectively "static". */
+  if (is_register && decl_scope_level == depth_innermost_namespace_scope) {
+    storage_class = (a_storage_class)sc_static;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   check_assertion(storage_class != (a_storage_class)sc_typedef);
   if (srk_flags & SRK_DEFINITION) is_variable_def = TRUE;
   if (locator->is_template_id && !is_error_locator(*locator)) {
@@ -4291,8 +4301,18 @@ declaration.
 #if GNU_EXTENSIONS_ALLOWED
   /* Apply the attributes to the variable declaration. */
   apply_attributes_to_variable(attributes, variable_ptr);
-  /* Record the assembly name. */
-  variable_ptr->asm_name = asm_name;
+  if (asm_name && is_register) {
+    /* If the variable has been declared with the register keyword, then
+       the assembly name indicates a particular register. */
+    a_named_register anr = name_to_register(asm_name);
+    if (anr != (a_named_register)anr_invalid) {
+      variable_ptr->asm_name_or_reg.reg = anr;
+      variable_ptr->asm_name_is_valid = FALSE;
+    }  /* if */
+  } else {
+    /* Otherwise, the assembly name is just a name.  */
+    variable_ptr->asm_name_or_reg.name = asm_name;
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (linkage != idl_none) {
     /* In case this is a block extern declaration, clear the
@@ -8508,11 +8528,16 @@ instruction's operands.
         validate_operands_and_clobbers(operands, num_operands,
                                        clobbers, num_clobbers);
       }  /* if */
-      /* In GNU mode, an asm() with no outputs is automatically volatile. */
+      /* An asm() with no outputs is automatically volatile. */
       if (num_operands == 0 ||
           !(operands[0].modifiers & (an_asm_operand_modifier)aom_output)) {
         is_volatile = TRUE;
       }  /* if */
+    } else {
+      /* This is not a situation where operand specs are accepted (e.g., not
+         GNU C mode).  Mark the entry as "volatile" to indicate the fact that
+         we do not know the effect on operands. */
+      is_volatile = TRUE;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Check for and skip the closing parenthesis. */
@@ -10742,7 +10767,13 @@ continue_with_declaration:
            declaration (3.7, constraints). */
         if (decl_scope_level == depth_innermost_namespace_scope &&
             (local_storage_class == (a_storage_class)sc_auto ||
-             local_storage_class == (a_storage_class)sc_register)) {
+             (
+#if GNU_EXTENSIONS_ALLOWED
+              /* The register keyword is allowed if there is an
+                 explicit register name for a variable. */
+              (asm_name == NULL || is_function || is_static_data_member) &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
+              local_storage_class == (a_storage_class)sc_register))) {
           pos_error(ec_bad_file_scope_storage_class,
                     &decl_pos_block.storage_class_pos);
           local_storage_class = (a_storage_class)sc_unspecified;

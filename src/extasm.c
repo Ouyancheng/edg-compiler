@@ -33,27 +33,63 @@ Extra named registers, in addition to the canonical names in il_def.h.
 static struct name_to_reg extra_reg_names[] = {
 #if TARG_IS_X86
   /* x86 integer registers, common set, other possible names... */
-  { "al",  anr_a  }, { "bl",  anr_b  }, { "cl",  anr_c  }, { "dl",  anr_d  },
-  { "ah",  anr_a  }, { "bh",  anr_b  }, { "ch",  anr_c  }, { "dh",  anr_d  },
-  { "eax", anr_a  }, { "ebx", anr_b  }, { "ecx", anr_c  }, { "edx", anr_d  },
-  { "esi", anr_si }, { "edi", anr_di }, { "ebp", anr_bp }, { "esp", anr_sp },
+  { "al",  (a_named_register)anr_a  },
+  { "bl",  (a_named_register)anr_b  },
+  { "cl",  (a_named_register)anr_c  },
+  { "dl",  (a_named_register)anr_d  },
+  { "ah",  (a_named_register)anr_a  },
+  { "bh",  (a_named_register)anr_b  },
+  { "ch",  (a_named_register)anr_c  },
+  { "dh",  (a_named_register)anr_d  },
+  { "eax", (a_named_register)anr_a  },
+  { "ebx", (a_named_register)anr_b  },
+  { "ecx", (a_named_register)anr_c  },
+  { "edx", (a_named_register)anr_d  },
+  { "esi", (a_named_register)anr_si },
+  { "edi", (a_named_register)anr_di },
+  { "ebp", (a_named_register)anr_bp },
+  { "esp", (a_named_register)anr_sp },
 
   /* x86-64 additional integer registers, other possible names... */
-  { "sil", anr_si }, { "dil", anr_di }, { "bpl", anr_bp }, { "spl", anr_sp },
-
-  { "r8b",  anr_r8  }, { "r8w",  anr_r8  }, { "r8d",  anr_r8  },
-  { "r9b",  anr_r9  }, { "r9w",  anr_r9  }, { "r9d",  anr_r9  },
-  { "r10b", anr_r10 }, { "r10w", anr_r10 }, { "r10d", anr_r10 },
-  { "r11b", anr_r11 }, { "r11w", anr_r11 }, { "r11d", anr_r11 },
-  { "r12b", anr_r12 }, { "r12w", anr_r12 }, { "r12d", anr_r12 },
-  { "r13b", anr_r13 }, { "r13w", anr_r13 }, { "r13d", anr_r13 },
-  { "r14b", anr_r14 }, { "r14w", anr_r14 }, { "r14d", anr_r14 },
-  { "r15b", anr_r15 }, { "r15w", anr_r15 }, { "r15d", anr_r15 },
+  { "sil", (a_named_register)anr_si },
+  { "dil", (a_named_register)anr_di },
+  { "bpl", (a_named_register)anr_bp },
+  { "spl", (a_named_register)anr_sp },
+  { "r8b",  (a_named_register)anr_r8  },
+  { "r8w",  (a_named_register)anr_r8  },
+  { "r8d",  (a_named_register)anr_r8  },
+  { "r9b",  (a_named_register)anr_r9  },
+  { "r9w",  (a_named_register)anr_r9  },
+  { "r9d",  (a_named_register)anr_r9  },
+  { "r10b", (a_named_register)anr_r10 },
+  { "r10w", (a_named_register)anr_r10 },
+  { "r10d", (a_named_register)anr_r10 },
+  { "r11b", (a_named_register)anr_r11 },
+  { "r11w", (a_named_register)anr_r11 },
+  { "r11d", (a_named_register)anr_r11 },
+  { "r12b", (a_named_register)anr_r12 },
+  { "r12w", (a_named_register)anr_r12 },
+  { "r12d", (a_named_register)anr_r12 },
+  { "r13b", (a_named_register)anr_r13 },
+  { "r13w", (a_named_register)anr_r13 },
+  { "r13d", (a_named_register)anr_r13 },
+  { "r14b", (a_named_register)anr_r14 },
+  { "r14w", (a_named_register)anr_r14 },
+  { "r14d", (a_named_register)anr_r14 },
+  { "r15b", (a_named_register)anr_r15 },
+  { "r15w", (a_named_register)anr_r15 },
+  { "r15d", (a_named_register)anr_r15 },
 
   /* 80387 floating point registers, other possible names... */
-  { "st",  anr_st0 }, { "st0", anr_st0 }, { "st1", anr_st1 },
-  { "st2", anr_st2 }, { "st3", anr_st3 }, { "st4", anr_st4 },
-  { "st5", anr_st5 }, { "st6", anr_st6 }, { "st7", anr_st7 },
+  { "st",  (a_named_register)anr_st0 },
+  { "st0", (a_named_register)anr_st0 },
+  { "st1", (a_named_register)anr_st1 },
+  { "st2", (a_named_register)anr_st2 },
+  { "st3", (a_named_register)anr_st3 },
+  { "st4", (a_named_register)anr_st4 },
+  { "st5", (a_named_register)anr_st5 },
+  { "st6", (a_named_register)anr_st6 },
+  { "st7", (a_named_register)anr_st7 },
 #endif /* TARG_IS_X86 */
 };
 
@@ -62,7 +98,7 @@ static struct name_to_reg *regmap;
 static size_t regmap_size;
 
 
-static a_named_register name_to_register (char  *name)
+a_named_register name_to_register(char  *name)
 /*
 Given the user-specified name of a register as a string, return
 its code number, or anr_invalid if there is no such register.

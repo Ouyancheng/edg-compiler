@@ -1513,11 +1513,12 @@ to it.
   vp->decl_modifiers              = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
 #if GNU_EXTENSIONS_ALLOWED
-  vp->asm_name                    = NULL;
+  vp->asm_name_or_reg.name        = NULL;
   vp->alignment                   = 0;
   vp->is_weak                     = FALSE;
   vp->is_not_common               = FALSE;
   vp->is_transparent              = FALSE;
+  vp->asm_name_is_valid           = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   vp->address_taken               = FALSE;
   vp->is_parameter                = FALSE;

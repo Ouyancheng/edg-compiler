@@ -5073,9 +5073,16 @@ typedef struct a_variable {
 			   modifiers. */
 #endif /* DECL_MODIFIERS_IN_USE */
 #if GNU_EXTENSIONS_ALLOWED
-  char	        *asm_name;
-			/* If non-NULL, the name to be used as an assembly
+  union {
+    char	*name;
+			/* If non-NULL, and asm_name_is_valid is TRUE
+			   this is the name to be used as an assembly
 			   language level symbol for this variable. */
+    a_named_register
+		reg;
+			/* If asm_name_is_valid is FALSE, the register
+			   to which this variable should be assigned. */
+  } asm_name_or_reg;
   a_targ_alignment
   		alignment;
 			/* The explicit alignment specified for the
@@ -5091,6 +5098,9 @@ typedef struct a_variable {
   a_bit_field   is_transparent:1;
 			/* TRUE if this variable is a parameter that
 			   is a transparent union. */
+  a_bit_field   asm_name_is_valid:1;
+			/* TRUE if the name field of asm_name_or_reg
+			   is valid; FALSE if the reg field is valid. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field	address_taken:1;
                         /* TRUE if the address of this variable has been
