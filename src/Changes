@@ -1,5 +1,15 @@
 Version 2.39
 
+7/26/98   Reduction of memory use in one-instantiation-per-object mode
+
+Certain kinds of programs, when compiled in one-instantiation-per-object
+mode, used more memory than necessary.  The wasted space was in full-size
+blocks (i.e., typically 64K) allocated to hold function scope
+per-instantiation needed flags, which generally needed much less space
+than that.  Now, smaller blocks are allocated in such cases, which can
+reduce the overall memory use substantially.  (For one extreme 10,000
+line example, memory use was reduced from 28MB to 16MB).
+
 7/24/98   IL lowering: one instantiation per object mode, new not done in
           constructor: internal error in add_dynamic_init_cleanup
 

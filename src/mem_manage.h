@@ -129,7 +129,8 @@ extern a_void_ptr alloc_new_mem_block(sizeof_t size);
 extern
 a_mem_block_header_ptr alloc_mem_block(a_memory_region_number region_number,
                                        sizeof_t               min_size,
-                                       char                   *desired_addr);
+                                       char                   *desired_addr,
+                                       a_boolean              small_extension);
 /* Create a new memory region. */
 extern a_memory_region_number new_memory_region(void);
 /* Initialize a memory region without allocating the initial block. */

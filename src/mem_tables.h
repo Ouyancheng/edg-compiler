@@ -56,6 +56,10 @@ typedef struct a_mem_block_header {
 			   malloc_size is the total size of the block.  If
 			   this header is in the middle of a malloc allocation,
 			   malloc_size is 0. */
+  a_byte_boolean
+		trimmed;
+			/* TRUE if this block has been trimmed by
+			   trim_mem_block. */
 } a_mem_block_header;
 
 /*

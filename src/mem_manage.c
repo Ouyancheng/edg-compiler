@@ -481,22 +481,30 @@ precompiled headers is suppressed.
 
 a_mem_block_header_ptr alloc_mem_block(a_memory_region_number region_number,
                                        sizeof_t               min_size,
-                                       char                   *desired_addr)
+                                       char                   *desired_addr,
+                                       a_boolean              small_extension)
 /*
 Add a new memory block to the existing blocks for the indicated region.
 The memory block must have at least "min_size" bytes available in it.
 If desired_addr is not NULL, look for a memory block for which the
-actual start_of_block is at the specified address.  Return a pointer to
-the block header.
+actual start_of_block is at the specified address.  If small_extension
+is TRUE, this allocation is a small extension on a memory region; allocate
+a smaller-sized block.  Return a pointer to the block header.
 */
 {
   a_mem_block_header_ptr hdr, prev_hdr;
-  sizeof_t               alloc_size, needed_size;
+  sizeof_t               alloc_size, needed_size, default_size;
   a_void_ptr             alloc_addr;
   a_mem_block_header_ptr hdr_found = NULL;
   a_mem_block_header_ptr prev_hdr_found = NULL;
 
   db_enter(5, "alloc_mem_block");
+  /* Determine the desirable default allocation size. */
+  if (small_extension) {
+    default_size = HOST_ALLOCATION_INCREMENT / 32;
+  } else {
+    default_size = HOST_ALLOCATION_INCREMENT;
+  }  /* if */
   /* Reuse a previously-allocated piece if possible.  Such a piece was
      the wasted space on the end of a previous block. */
   if (reusable_blocks_list != NULL) {
@@ -506,13 +514,17 @@ the block header.
          prev_hdr = hdr, hdr = hdr->next) {
       /* See if the area is big enough (it almost always will be). */
       /* Suppress the CodeCenter warning caused because after_end_of_block
-         may be point to memory that is not allocated, or is part of a
+         may be pointing to memory that is not allocated, or is part of a
          different allocation. */
       /*SUPPRESS 22*/
       alloc_size = hdr->after_end_of_block - hdr->start_of_block +
                    adjusted_header_size;
       if (alloc_size >= needed_size) {
-        if (hdr_found == NULL || hdr->start_of_block == desired_addr) {
+        if (hdr->start_of_block == desired_addr ||
+            (hdr_found == NULL &&
+             /* Don't waste a large available block as an extension for
+                a memory region, because we are unlikely to use it up. */
+             (!small_extension || alloc_size <= default_size))) {
            /* We've found a candidate, or if this is the desired address,
               we've found a definite match.  Save a pointer to this block */
            hdr_found = hdr;
@@ -540,23 +552,22 @@ the block header.
       goto have_hdr;
     }  /* if */
   }  /* if */
-  /* No piece available for reuse, so allocate a new one.  Use the
-     HOST_ALLOCATION_INCREMENT unless the minimum required size is bigger
-     than that (that's possible for incredibly large string literals
-     formed by token concatenation). */
+  /* No piece available for reuse, so allocate a new one. */
   alloc_size = min_size + adjusted_header_size;
 #ifdef USING_PURIFY
   if (!purify_is_active) {
-    /* Don't use the HOST_ALLOCATION_INCREMENT when using purify.  Just
-       allocate a block of the proper size. */
 #endif /* USING_PURIFY */
-    if (alloc_size < HOST_ALLOCATION_INCREMENT) {
-      alloc_size = HOST_ALLOCATION_INCREMENT;
-    }  /* if */
+    /* Use the default allocation size unless the minimum required
+       size is bigger than that (that's possible for incredibly large
+       string literals formed by token concatenation). */
+    if (alloc_size < default_size) alloc_size = default_size;
 #ifdef USING_PURIFY
   } else {
+    /* Don't use the default allocation size when using Purify.  Just
+       allocate a block of the proper size. */
     /* If the minimum size is zero, allocate HOST_ALIGNMENT_REQUIRED bytes
-       of storage beyond what is used by the header. */
+       of storage beyond what is used by the header, which is the
+       minimum possible allocation. */
     if (min_size == 0) alloc_size += HOST_ALIGNMENT_REQUIRED;
   }  /* if */
 #endif /* USING_PURIFY */
@@ -585,6 +596,7 @@ the block header.
   hdr->malloc_size = alloc_size;
   hdr->start_of_block = (char *)alloc_addr + adjusted_header_size;
   hdr->after_end_of_block = (char *)alloc_addr + alloc_size;
+  hdr->trimmed = FALSE;
 have_hdr:
   /* Everything in the block is available. */
   hdr->next_avail_in_block = hdr->start_of_block;
@@ -724,11 +736,13 @@ Free any unallocated space remaining in the indicated memory block.
     new_hdr->next_avail_in_block = new_hdr->start_of_block =
                                   alloc_addr + adjusted_header_size;
     new_hdr->after_end_of_block = alloc_addr + space_remaining_in_block;
+    new_hdr->trimmed = FALSE;
     /* Free the block. */
     free_mem_block(new_hdr);
     /* Trim the original block so it does not include the freed space. */
     hdr->after_end_of_block = alloc_addr;
   }  /* if */
+  hdr->trimmed = TRUE;
   db_exit();
 }  /* trim_mem_block */
 
@@ -827,7 +841,8 @@ special "front end" memory region.
 {
   init_memory_region_without_initial_allocation(region_number);
   /* Allocate the initial memory block. */
-  (void)alloc_mem_block(region_number, min_size, (char *)NULL);
+  (void)alloc_mem_block(region_number, min_size, (char *)NULL,
+                        /*small_extension=*/FALSE);
 }  /* init_memory_region */
 
 
@@ -892,11 +907,15 @@ is used for allocation of general front end memory (i.e., not IL).
   if ((size + HOST_ALIGNMENT_REQUIRED) >
       (sizeof_t)(hdr->after_end_of_block - hdr->next_avail_in_block)) {
     /* Not enough space remaining in current block.  Free any unused
-       space at the end of the current last block, and start a new block. */
-    trim_mem_block(hdr);
+       space at the end of the current last block, and start a new block.
+       If the memory region has already been trimmed, allocate only a
+       small extension.  This comes up when per-instantiation needed flag
+       entries are added to a function after it has been trimmed. */
+    a_boolean small_extension = hdr->trimmed;
+    if (!small_extension) trim_mem_block(hdr);
     hdr = alloc_mem_block(region_number, size + HOST_ALIGNMENT_REQUIRED,
-                          (char *)NULL);
-  }  /* for */
+                          (char *)NULL, small_extension);
+  }  /* if */
 
   /* Take the required space out of the current block. */
   temp_ptr = hdr->next_avail_in_block;

@@ -703,7 +703,8 @@ necessary to make it directly accessible in memory.
     /* Allocate the space for the block. */
     /* To do allocation at a specific address: */
     new_block_header = alloc_mem_block(region_number, block_used,
-                                       old_block_header.start_of_block);
+                                       old_block_header.start_of_block,
+                                       /*small_extension=*/FALSE);
     new_start_of_block = new_block_header->start_of_block;
     new_block_header->next_avail_in_block = new_start_of_block + block_used;
     /* Free any extra space allocated at the end of the block. */
