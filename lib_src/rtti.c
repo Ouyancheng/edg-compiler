@@ -25,6 +25,13 @@ Run-time type identification.
 
 #ifdef __EDG_IA64_ABI
 
+/*
+Macro to extract the offset value from the combined offset/flags field.
+*/
+#define get_offset(bcsp) ((bcsp)->__offset_flags >>			\
+                                  abi::__base_class_type_info::__offset_shift)
+
+
 static a_boolean derived_to_base_conversion_r(
                                          void                 *ptr,
                                          void                 **p_new_ptr,
@@ -82,15 +89,15 @@ FALSE.
     for (bcsp = vmi_obj_info->__base_info;
          bcsp < vmi_obj_info->__base_info + vmi_obj_info->__base_count;
          bcsp++) {
-      if (bcsp->__flags & BCS_VIRTUAL) {
+      if (bcsp->__offset_flags & BCS_VIRTUAL) {
         a_vtbl_entry_ptr vtbl, vbase_offset;
         vtbl = *((a_vtbl_entry_ptr *)ptr);
-        vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + bcsp->__offset);
+        vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + get_offset(bcsp));
         base_ptr = (void *)(((char *)ptr) + *vbase_offset);
       } else {
-        base_ptr = (void *)(((char *)ptr) + bcsp->__offset);
+        base_ptr = (void *)(((char *)ptr) + get_offset(bcsp));
       }  /* if */
-      is_accessible = *p_is_accessible && (bcsp->__flags & BCS_PUBLIC);
+      is_accessible = *p_is_accessible && (bcsp->__offset_flags & BCS_PUBLIC);
       if (matching_type_info(bcsp->__base_type, base_info)) {
         /* We found the base for which we were looking. */
         if ((*p_new_ptr != NULL && base_ptr != *p_new_ptr) || 
@@ -343,23 +350,23 @@ this function is called; it is set to TRUE If the base class is found.
     for (bcsp = vmi_obj_info->__base_info;
          bcsp < vmi_obj_info->__base_info + vmi_obj_info->__base_count;
          bcsp++) {
-      if (bcsp->__flags && BCS_VIRTUAL) {
+      if (bcsp->__offset_flags && BCS_VIRTUAL) {
         a_vtbl_entry_ptr vtbl, vbase_offset;
         vtbl = *((a_vtbl_entry_ptr *)base_ptr);
-        vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + bcsp->__offset);
+        vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + get_offset(bcsp));
         new_ptr = (void *)(((char *)base_ptr) + *vbase_offset);
       } else {
-        new_ptr = (void *)(((char *)base_ptr) + bcsp->__offset);
+        new_ptr = (void *)(((char *)base_ptr) + get_offset(bcsp));
       }  /* if */
       if (new_ptr == base_ptr &&
           matching_type_info(bcsp->__base_type, base_info)) {
         /* We found a match.  Note that both the address and type must match
            because base classes can share an address. */
         result = bcsp;
-        if (bcsp->__flags && BCS_PUBLIC) *found = TRUE;
+        if (bcsp->__offset_flags && BCS_PUBLIC) *found = TRUE;
         break;
       }  /* if */
-      if ((bcsp->__flags & BCS_PUBLIC) != 0) {
+      if ((bcsp->__offset_flags & BCS_PUBLIC) != 0) {
         /* No match, check the base classes of this base class. */
         result = find_base_class_at_addr(new_ptr, base_ptr,
                                          bcsp->__base_type, base_info,
