@@ -57,6 +57,7 @@ in the include files will become external definitions for the symbols.
 #include "statements.h"
 #include "symbol_tbl.h"
 #include "target.h"
+#include "templates.h"
 #include "trans_lims.h"
 #include "types.h"
 #include "version.h"
