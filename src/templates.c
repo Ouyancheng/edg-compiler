@@ -11846,6 +11846,9 @@ any non-empty template parameter lists that were scanned.
     tssp->il_template_entry = decl_state->il_template_entry;
     check_assertion(sym != NULL);
     set_source_corresp(&tssp->il_template_entry->source_corresp, sym);
+#ifdef PARSED_TEMPLATES_IN_IL /* FIXME Daveed */
+    decl_state->il_template_entry->template_info = sym->variant.template_info;
+#endif /* PARSED_TEMPLATES_IN_IL */
   }  /* if */
   if (is_class_template) {
     if (!decl_state->decl_scope_err && decl_state->defines_something) {

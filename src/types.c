@@ -6252,9 +6252,18 @@ its parameters?).
               /* If this class is a member of a proxy class, traverse the type
                  of the template parameter with which the proxy class is
                  associated. */
+#ifdef PARSED_TEMPLATES_IN_IL
+              /* When called from e.g. the C++-generating back-end, we have
+                 no access to the symbol table anymore. */
+              tp = skip_typerefs(type_ptr->source_corresp.parent.class_type);
+              tp = (tp->source_corresp.assoc_info == NULL) ?
+                     NULL : symbol_supplement_for_class(tp)
+                                             ->template_param_for_proxy_class;
+#else /* !PARSED_TEMPLATES_IN_IL */
               tp = type_ptr->source_corresp.parent.class_type;
               tp = symbol_supplement_for_class(tp)->
                                                template_param_for_proxy_class;
+#endif /* PARSED_TEMPLATES_IN_IL */
               if (tp != NULL) {
                 if (traverse_type_tree(tp, func, flags)) {
                   status = TRUE;

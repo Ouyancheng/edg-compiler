@@ -35,7 +35,7 @@ Clear an output control block to default values.
   octl->output_name               = NULL;
   octl->output_temp_name          = NULL;
   octl->output_func_declarator    = NULL;
-  octl->output_vla_expression     = NULL;
+  octl->output_expression         = NULL;
   octl->gen_compilable_code       = FALSE;
   octl->gen_pcc_code              = FALSE;
   octl->suppress_local_typedefs   = FALSE;
@@ -1299,7 +1299,7 @@ the way described by octl.
       octl->output_str("*");
     } else {
       /* Variable-length array with an associated expression. */
-      if (octl->output_vla_expression == NULL) {
+      if (octl->output_expression == NULL) {
         /* No routine to do the expression output.  Do default
            non-compilable output. */
         check_assertion(!octl->gen_compilable_code);
@@ -1307,12 +1307,19 @@ the way described by octl.
       } else {
         /* Output the expression using a special routine. */
         a_vla_dimension_ptr vlap = find_vla_dimension(type);
-        octl->output_vla_expression(vlap->dimension_expr);
+        octl->output_expression(vlap->dimension_expr);
       }  /* if */
     }  /* if */      
   } else if (type->variant.array.is_variable_size_array) {
-    check_assertion(!octl->gen_compilable_code);
-    octl->output_str("<variable-sized>");
+    if (octl->output_expression == NULL) {
+      /* No routine to do the expression output.  Do default
+         non-compilable output. */
+      check_assertion(!octl->gen_compilable_code);
+      octl->output_str("<variable-sized>");
+    } else {
+      an_expr_node_ptr  count = type->variant.array.variant.element_count_expr;
+      octl->output_expression(count);
+    }  /* if */
   } else if (type->variant.array.variant.number_of_elements == 0) {
     /* For unknown-bound arrays, put nothing between the []. */
   } else {
@@ -2865,7 +2872,9 @@ confusion.  Do the output in the way described by octl.
       break;
 #ifdef CFE
     case ck_template_param:
+#ifndef DO_NONCLASS_PROTOTYPE_INSTANTIATIONS
       check_assertion(!octl->gen_compilable_code);
+#endif /* DO_NONCLASS_PROTOTYPE_INSTANTIATIONS */
       switch (constant->variant.template_param.kind) {
         case tpck_member:
           if (constant->variant.template_param.variant.is_address) {
@@ -2877,7 +2886,15 @@ confusion.  Do the output in the way described by octl.
           form_name(&constant->source_corresp, iek_constant, octl);
           break;
         case tpck_expression:
-          octl->output_str("<template-expr>");
+          if (octl->output_expression == NULL) {
+            /* No routine to do the expression output.  Do default
+               non-compilable output. */
+            check_assertion(!octl->gen_compilable_code);
+            octl->output_str("<template-expr>");
+          } else {
+            octl->output_expression(
+                               constant->variant.template_param.variant.expr);
+          }  /* if */
           break;
         case tpck_cast:
           form_constant(constant->variant.template_param.variant.constant,

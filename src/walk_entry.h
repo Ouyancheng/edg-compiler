@@ -489,7 +489,6 @@ the file scope, do not process it (but record an orphan in the latter case).
     case iek_constant:
       {
         a_constant_ptr ptr = (a_constant_ptr)entry_ptr;
-        walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_constant_ptr, iek_constant);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
@@ -600,14 +599,41 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
 #endif /* ifdef FFE */
           case ck_template_param:
+#ifdef PARSED_TEMPLATES_IN_IL
+            if (ptr->source_corresp.is_class_member) {
+              a_type_ptr  parent_type = ptr->source_corresp.parent.class_type;
+              walk_ptr(parent_type, a_type_ptr, iek_type);
+            }  /* if */
+            switch (ptr->variant.template_param.kind) {
+              case tpck_expression:
+                walk_ptr(ptr->variant.template_param.variant.expr,
+                         an_expr_node_ptr, iek_expr_node);
+                break;
+              case tpck_cast:
+                walk_ptr(ptr->variant.template_param.variant.constant,
+                         a_constant_ptr, iek_constant);
+                break;
+              case tpck_sizeof:
+              case tpck_alignof:
+              case tpck_uuidof:
+                walk_ptr(ptr->variant.template_param.variant.type,
+                         a_type_ptr, iek_type);
+                break;
+              default:
+                break;
+            }  /* switch */
+            break;
+#else /* !PARSED_TEMPLATES_IN_IL */
             /* Front end only. */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             break;
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+#endif /* PARSED_TEMPLATES_IN_IL */
           default:
             unexpected_condition_str(
                                   "walk_entry_and_subtree: bad constant kind");
         }  /* switch */
+        walk_source_corresp(ptr->source_corresp);
       }
       break;
     case iek_param_type:
@@ -807,10 +833,16 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
 #endif /* ifdef FFE */
           case tk_template_param:
+#ifdef PARSED_TEMPLATES_IN_IL
+            walk_ptr(ptr->variant.template_param.extra_info->class_type,
+                     a_type_ptr, iek_type);
+            break;
+#else /* !PARSED_TEMPLATES_IN_IL */
             /* Front end only. */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             break;
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+#endif /* PARSED_TEMPLATES_IN_IL */
           default:
             unexpected_condition_str("walk_entry_and_subtree: bad type kind");
         }  /* switch */
@@ -1495,6 +1527,21 @@ do_set_proper_definition_needed_flag:
 #if RECORD_TEMPLATE_STRINGS
         walk_string_ptr(ptr->text, iek_other_text, 0);
 #endif /* RECORD_TEMPLATE_STRINGS */
+#ifdef PARSED_TEMPLATES_IN_IL
+        if (ptr->template_info != NULL) {
+          switch (ptr->kind) {
+            case templk_class:
+              break;
+            case templk_function:
+            case templk_member_function:
+              walk_ptr(ptr->template_info->variant.function.routine,
+                       a_routine_ptr, iek_routine);
+              break;
+            default:
+              break;
+          }  /* switch */
+        }  /* if */
+#endif /* PARSED_TEMPLATES_IN_IL */
         /* The template_info pointer should be NULL for any entry actually
            written and read. */
         clear_pointer_if_remapping(ptr->template_info);

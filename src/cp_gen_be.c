@@ -270,6 +270,11 @@ typedef int a_gen_name_options_set;
 			/* gen_name is invoked to emit the name of a member
 			   function or field.  In Microsoft mode, such a
 			   name cannot be qualified with a namespace name. */
+#define GN_DEPENDENT 0x20
+			/* The name to generate depends on a template
+			   parameter. */
+#define GN_NO_TEMPLATE_ARGS 0x40
+			/* Do not generate the template arguments. */
 
 
 /* Needed because of forward references: */
@@ -300,6 +305,8 @@ static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_boolean          force_parens);
 static void gen_ctor_initializers(a_constructor_init_ptr ctor_init);
 static void gen_statement(a_statement_ptr statement);
+static void gen_routine_decl(a_boolean suppress_specifiers,
+                             a_boolean *another_decl_in_comma_list);
 static void gen_declaration(a_boolean for_init);
 /*
 Options for gen_general_declaration_using_type.
@@ -1556,13 +1563,13 @@ etc.)
 }  /* gen_conversion_function_name */
 
 
-static void gen_unqualified_name(a_source_correspondence *scp,
-                                 an_il_entry_kind        entry_kind)
+static void gen_bare_name(a_source_correspondence *scp,
+                          an_il_entry_kind        entry_kind)
 /*
-Output the name of the entity whose source correspondence information
-is given by scp.  entry_kind indicates the IL entry kind.  If the entity
-is unnamed, generate a name.  Never generate a qualified name.  If the
-entity is a template class, add the template arguments.
+Output the "bare" name (i.e., without a subsequent template argument list)
+of the entity whose source correspondence information is given by scp. 
+entry_kind indicates the IL entry kind.  If the entity is unnamed, generate
+a name.  Never generate a qualified name.
 */
 {
   char *name = unmangled_name_of(scp);
@@ -1579,6 +1586,20 @@ entity is a template class, add the template arguments.
   } else {
     m_write_tok_str(name);
   }  /* if */
+}  /* gen_bare_name */
+
+
+static void gen_unqualified_name(a_source_correspondence *scp,
+                                 an_il_entry_kind        entry_kind)
+/*
+Output the name of the entity whose source correspondence information
+is given by scp.  entry_kind indicates the IL entry kind.  If the entity
+is unnamed, generate a name.  Never generate a qualified name.  If the
+entity is a template class, add the template arguments.
+*/
+{
+  /* The bare name is the unqualified name without the template arguments: */
+  gen_bare_name(scp, entry_kind);
   if (il_header.source_language == sl_Cplusplus) {
     a_template_arg_ptr tap = NULL;
     if (entry_kind == iek_type) {
@@ -1708,6 +1729,14 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            hiding was effective only if the name was used as a qualifier. */
       } else {
         /* Use a qualified name. */
+#ifdef PARSED_TEMPLATES_IN_IL
+        if (entry_kind == iek_type &&
+            !(options & GN_QUALIFIER) && (options & GN_DEPENDENT)) {
+          /* Emit a "typename" preceding a dependent qualified name (but not
+             preceding every qualifier). */
+          write_tok_str("typename ");
+        }  /* if */
+#endif /* PARSED_TEMPLATES_IN_IL */
         gen_class_qualifier(class_type,
                             options & GN_PARENS_IF_GLOBAL_QUALIFIER,
                             need_closing_paren);
@@ -1743,7 +1772,17 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       write_tok_str("::");
     }  /* if */
   }  /* if */
+#ifdef PARSED_TEMPLATES_IN_IL
+  /* Finally, emit the unqualified part of the name, with or without
+     template arguments. */
+  if (options & GN_NO_TEMPLATE_ARGS) {
+    gen_bare_name(scp, entry_kind);
+  } else {
+    gen_unqualified_name(scp, entry_kind);
+  }  /* if */
+#else /* !PARSED_TEMPLATES_IN_IL */
   gen_unqualified_name(scp, entry_kind);
+#endif /* PARSED_TEMPLATES_IN_IL */
 }  /* gen_name */
 
 
@@ -1751,9 +1790,17 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 #define gen_routine_name(routine)                                     \
   gen_name(&(routine)->source_corresp, iek_routine, GN_NO_OPTIONS,    \
            (a_boolean *)NULL)
+#ifdef PARSED_TEMPLATES_IN_IL
+#define gen_type_name(type)                                           \
+  gen_name(&(type)->source_corresp, iek_type,                         \
+           !C_mode() && is_or_contains_template_param(type) ?         \
+                                     GN_DEPENDENT : GN_NO_OPTIONS,    \
+           (a_boolean *)NULL)
+#else /* !PARSED_TEMPLATES_IN_IL */
 #define gen_type_name(type)                                           \
   gen_name(&(type)->source_corresp, iek_type, GN_NO_OPTIONS,          \
            (a_boolean *)NULL)
+#endif /* PARSED_TEMPLATES_IN_IL */
 #define gen_field_name(field)                                         \
   gen_unqualified_name(&(field)->source_corresp, iek_field)
 
@@ -3197,6 +3244,32 @@ Print a set of Microsoft declaration modifiers.
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#ifdef PARSED_TEMPLATES_IN_IL
+
+static void gen_class_decl_name(a_type_ptr type)
+/*
+Output the name of the given class type for the purposes of declaring that
+type.  If type corresponds to a class template prototype instantiation, the
+template arguments should usually be omitted (unless we're actually dealing
+with the declaration of a partial specialization).
+*/
+{
+  a_gen_name_options_set  options = GN_DECLARATION;
+  if (type->variant.class_struct_union.is_template_class &&
+      type->variant.class_struct_union.extra_info->
+                                     partial_spec_template_arg_list == NULL) {
+    /* For a primary template definition, we should not issue the template
+       argument list. */
+    options |= GN_NO_TEMPLATE_ARGS;
+  }  /* if */
+  /* Put out the name.  Note that a name will be generated for an unnamed
+     class, which can be useful for casts. */
+  gen_name(&type->source_corresp, iek_type, options, (a_boolean *)NULL);
+  write_space();
+}  /* gen_class_decl_name */
+
+#endif /* PARSED_TEMPLATES_IN_IL */
+
 static void gen_class_definition(a_type_ptr type)
 /*
 Output the definition of the indicated class type.  This is in the form of
@@ -3226,9 +3299,20 @@ is the one associated with the definition of the class.
     }  /* if */
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#ifdef PARSED_TEMPLATES_IN_IL
+  if (type->source_corresp.source_sequence_entry != NULL) {
+    /* Advance past the source sequence entry for the class itself. */
+    check_for_and_take_source_seq_entry(
+                                   type->source_corresp.source_sequence_entry);
+  } else {
+    /* Presumably a class template (prototype instantiation). */
+    adv_curr_source_sequence_entry();
+  }  /* if */
+#else /* !PARSED_TEMPLATES_IN_IL */
   /* Advance past the source sequence entry for the class itself. */
   check_for_and_take_source_seq_entry(
                                    type->source_corresp.source_sequence_entry);
+#endif /* PARSED_TEMPLATES_IN_IL */
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
   /* Put out the tag kind, e.g., "class". */
@@ -3260,9 +3344,12 @@ is the one associated with the definition of the class.
   } else {
     /* Put out the name.  Note that a name will be generated for an
        unnamed class, which can be useful for casts. */
-    gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
-             (a_boolean *)NULL);
+#ifdef PARSED_TEMPLATES_IN_IL
+    gen_class_decl_name(type);
+#else /* !PARSED_TEMPLATES_IN_IL */
+    gen_name(&type->source_corresp, iek_type, options, (a_boolean *)NULL);
     write_space();
+#endif /* PARSED_TEMPLATES_IN_IL */
   }  /* if */
   /* Put out the class definition. */
   if (il_header.source_language == sl_Cplusplus) {
@@ -4383,12 +4470,31 @@ precedence confusion and need_parens is TRUE.
           break;
       }  /* switch */
     }  /* if */
+#ifdef PARSED_TEMPLATES_IN_IL
+  } else if (kind == (an_expr_node_kind)enk_constant) {
+    a_constant_ptr  constant = node->variant.constant;
+    if (constant->kind == (a_constant_repr_kind)ck_address) {
+      /* Using an address constant as the lvalue address. */
+      form_lvalue_address_constant(constant, /*need_parens=*/TRUE, &octl);
+      processed = TRUE;
+    } else if (constant->kind == (a_constant_repr_kind)ck_template_param) {
+      if (constant->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_member) {
+        if (constant->variant.template_param.variant.is_address) {
+          gen_ampersand(type_pointed_to(constant->type));
+        }  /* if */
+        gen_expr_with_parens(node);
+        processed = TRUE;
+      }  /* if */
+    }  /* if */
+#else /* !PARSED_TEMPLATES_IN_IL */
   } else if (kind == (an_expr_node_kind)enk_constant &&
              node->variant.constant->kind == (a_constant_repr_kind)ck_address){
     /* Using an address constant as the lvalue address. */
     form_lvalue_address_constant(node->variant.constant, /*need_parens=*/TRUE,
                                  &octl);
     processed = TRUE;
+#endif /* PARSED_TEMPLATES_IN_IL */
   } else if (kind == (an_expr_node_kind)enk_temp_init &&
              node->variant.init.result_is_addr) {
     /* A temporary initialization with the address of the temporary used as
@@ -4931,6 +5037,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_indirect:
           gen_lvalue_no_parens(operand_1);
           goto done_with_operation;
+        case eok_negate:
         case eok_inegate:
         case eok_fnegate:
           opstr = "-";
@@ -4986,8 +5093,32 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_ch('&');
           gen_lvalue(expr);
           goto done_with_operation;
+        case eok_address:
+          write_tok_ch('&');
+          if (is_operation_node(operand_1) &&
+              operand_1->variant.operation.kind == eok_lvalue) {
+            operand_1 = operand_1->variant.operation.operands;
+          }  /* if */
+          /* Fall through. */
+        case eok_lvalue:
+          opstr = "";
+          operand_1_is_lvalue = TRUE;
+          break;
+        case eok_rvalue:
+          opstr = "";
+          break;
+        case eok_static_cast:
+          write_tok_str("static_cast<");
+          goto finish_new_style_cast;
+        case eok_reinterpret_cast:
+          write_tok_str("reinterpret_cast<");
+          goto finish_new_style_cast;
+        case eok_const_cast:
+          write_tok_str("const_cast<");
+          goto finish_new_style_cast;
         case eok_dynamic_cast:
           write_tok_str("dynamic_cast<");
+finish_new_style_cast:
           gen_type(expr->type);
           write_tok_str(">(");
           if (is_reference_type(expr->type)) {
@@ -5000,6 +5131,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_complement:
           opstr = "~";
           break;
+        case eok_post_incr:
         case eok_fpost_incr:
         case eok_ipost_incr:
         case eok_ppost_incr:
@@ -5007,6 +5139,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           gen_lvalue(operand_1);
           write_tok_str("++");
           goto done_with_operation;
+        case eok_pre_incr:
         case eok_ipre_incr:
         case eok_fpre_incr:
         case eok_ppre_incr:
@@ -5014,6 +5147,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "++";
           operand_1_is_lvalue = TRUE;
           break;
+        case eok_post_decr:
         case eok_fpost_decr:
         case eok_ipost_decr:
         case eok_ppost_decr:
@@ -5021,6 +5155,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           gen_lvalue(operand_1);
           write_tok_str("--");
           goto done_with_operation;
+        case eok_pre_decr:
         case eok_ipre_decr:
         case eok_fpre_decr:
         case eok_ppre_decr:
@@ -5039,53 +5174,63 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_str(")");
           goto done_with_operation;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        case eok_add:
         case eok_iadd:
         case eok_fadd:
         case eok_padd:
         case eok_padd_subsc:
           opstr = "+";
           break;
+        case eok_subtract:
         case eok_isubtract:
         case eok_fsubtract:
         case eok_psubtract:
         case eok_pdiff:
           opstr = "-";
           break;
+        case eok_multiply:
         case eok_imultiply:
         case eok_fmultiply:
           opstr = "*";
           break;
+        case eok_divide:
         case eok_idivide:
         case eok_fdivide:
           opstr = "/";
           break;
+        case eok_eq:
         case eok_ieq:
         case eok_feq:
         case eok_peq:
         case eok_pmeq:
           opstr = "==";
           break;
+        case eok_ne:
         case eok_ine:
         case eok_fne:
         case eok_pne:
         case eok_pmne:
           opstr = "!=";
           break;
+        case eok_gt:
         case eok_igt:
         case eok_fgt:
         case eok_pgt:
           opstr = ">";
           break;
+        case eok_lt:
         case eok_ilt:
         case eok_flt:
         case eok_plt:
           opstr = "<";
           break;
+        case eok_ge:
         case eok_ige:
         case eok_fge:
         case eok_pge:
           opstr = ">=";
           break;
+        case eok_le:
         case eok_ile:
         case eok_fle:
         case eok_ple:
@@ -5094,6 +5239,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_remainder:
           opstr = "%";
           break;
+        case eok_assign:
         case eok_iassign:
         case eok_fassign:
         case eok_passign:
@@ -5102,11 +5248,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "=";
           operand_1_is_lvalue = TRUE;
           break;
+        case eok_multiply_assign:
         case eok_imultiply_assign:
         case eok_fmultiply_assign:
           opstr = "*=";
           operand_1_is_lvalue = TRUE;
           break;
+        case eok_divide_assign:
         case eok_idivide_assign:
         case eok_fdivide_assign:
           opstr = "/=";
@@ -5116,12 +5264,14 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "%=";
           operand_1_is_lvalue = TRUE;
           break;
+        case eok_add_assign:
         case eok_iadd_assign:
         case eok_fadd_assign:
         case eok_padd_assign:
           opstr = "+=";
           operand_1_is_lvalue = TRUE;
           break;
+        case eok_subtract_assign:
         case eok_isubtract_assign:
         case eok_fsubtract_assign:
         case eok_psubtract_assign:
@@ -5489,14 +5639,15 @@ done_with_expr:;
 }  /* gen_expr */
 
 
-static void gen_vla_expression(an_expr_node_ptr expr)
+static void f_gen_expression(an_expr_node_ptr expr)
 /*
-Interface routine called from the il_to_str routines to output the dimension
-expression in a VLA (variable-length array) declarator.
+Interface routine called from the il_to_str routines to e.g. output the
+dimension expression in a VLA (variable-length array) declarator or an
+array declarator whose length is template dependent.
 */
 {
   gen_expression(expr);
-}  /* gen_vla_expression */
+}  /* f_gen_expression */
 
 
 static void gen_full_expression(an_expr_node_ptr expr)
@@ -5926,6 +6077,40 @@ characters in the string indicate new source lines.
   write_str(p);
 }  /* write_code_string */
 
+#ifdef PARSED_TEMPLATES_IN_IL
+
+static void write_tok_str_if_nonnull(char *str)
+{
+  if (str != NULL) write_tok_str(str);
+}  /* write_tok_str_if_nonnull */
+
+
+static void gen_template_header(a_template_symbol_supplement_ptr tssp)
+{
+  a_template_param_ptr  param = tssp->cache.decl_info->parameters;
+
+  write_tok_str("template<");
+  for (; param != NULL; param = param->next) {
+    a_symbol_ptr  param_sym = param->param_symbol;
+    if (param_sym->kind == (a_symbol_kind)sk_constant) {
+      gen_type(param->variant.constant.ptr->type);
+      write_tok_str(" ");
+      write_tok_str_if_nonnull(
+                            param->variant.constant.ptr->source_corresp.name);
+    } else if  (param_sym->kind == (a_symbol_kind)sk_type) {
+      write_tok_str("typename ");
+      write_tok_str_if_nonnull(param->variant.type->source_corresp.name);
+    } else {
+      gen_template_header(param->variant.templ);
+      write_tok_str("class ");
+      write_tok_str_if_nonnull(
+                param->variant.templ->il_template_entry->source_corresp.name);
+    }  /* if */
+    if (param->next != NULL) write_tok_str(", ");
+  }  /* for */
+  write_tok_str("> ");
+}  /* gen_template_header */
+
 
 static void gen_template(void)
 /*
@@ -5935,6 +6120,56 @@ is the one associated with the template.
 {
   a_template_ptr tp = ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
 
+  set_output_position(&tp->source_corresp.decl_position);
+  gen_member_access_specifier_for_decl_of(&tp->source_corresp);
+  if (!nonclass_prototype_instantiations) {
+    /* Advance past the source sequence entry for the template. */
+    adv_curr_source_sequence_entry();
+    /* Write the template string. */
+    write_code_string(tp->text);
+  } else {
+    a_boolean     another_decl_in_comma_list;
+    a_symbol_ptr  type_sym;
+
+    gen_template_header(tp->template_info);
+    switch (tp->kind) {
+      case templk_function:
+        gen_routine_decl(/*suppress_specifiers=*/FALSE,
+                         &another_decl_in_comma_list);
+        break;
+      case templk_class:
+        type_sym =
+            tp->template_info->variant.class_template.prototype_instantiation;
+        if (tp->definition_range.start.seq != 0) {
+          /* A class template definition. */
+          gen_class_definition(type_sym->variant.class_struct_union.type);
+        } else {
+          /* A class template declaration that is not a definition. */
+          /* Advance past the source sequence entry for the template. */
+          adv_curr_source_sequence_entry();
+          write_tok_str(
+               tag_kind(tp->template_info->variant.class_template.type_kind));
+          write_space();
+          gen_class_decl_name(type_sym->variant.class_struct_union.type);
+          write_end_of_declaration_punctuation(/*another_decl=*/FALSE);
+        }  /* if */
+        break;
+      default:
+        unexpected_condition_str("gen_template: bad template kind");
+    }  /* switch */
+  }  /* if */
+}  /* gen_template */
+
+#else /* !PARSED_TEMPLATES_IN_IL */
+
+static void gen_template(void)
+/*
+Generate a declaration for a template.  The current source sequence entry
+is the one associated with the template.
+*/
+{
+  a_template_ptr tp = ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
+  
   /* Advance past the source sequence entry for the template. */
   adv_curr_source_sequence_entry();
   set_output_position(&tp->source_corresp.decl_position);
@@ -5943,6 +6178,7 @@ is the one associated with the template.
   write_code_string(tp->text);
 }  /* gen_template */
 
+#endif /* PARSED_TEMPLATES_IN_IL */
 
 static void gen_namespace(void)
 /*
@@ -6830,7 +7066,6 @@ TRUE, "()" is put out.
       break;
     case dik_constructor:
       { a_routine_ptr    ctor;
-        a_type_ptr       class_type;
         an_expr_node_ptr args;
 
         /* Initialization by constructor.  The forms are as follows:
@@ -6840,7 +7075,6 @@ TRUE, "()" is put out.
                      not copy constructor  T(arg1, arg2, ...)
         */
         ctor = dip->variant.constructor.ptr;
-        class_type = ctor->source_corresp.parent.class_type;
         args = dip->variant.constructor.args;
         if (!parenthesized_init && rout_is_copy_constructor(ctor)) {
           /* This is the copy constructor elision case -- we don't have to
@@ -6858,10 +7092,26 @@ TRUE, "()" is put out.
             if (!parenthesized_init) {
               /* For the non-parenthesized case, start with the name of the
                  class as the constructor name. */
-              gen_type_name(class_type);
+              gen_type_name(ctor->source_corresp.parent.class_type);
             }  /* if */
             /* Put out the argument list in parentheses. */
+#ifdef PARSED_TEMPLATES_IN_IL
+            if (ctor != NULL) {
+              gen_argument_list(args, ctor->type, /*skip_num=*/0);
+            } else {
+              /* In the template case we might not know which constructor is
+                 being referred. Hence we simply list the arguments. */
+              an_expr_node_ptr  arg = args;
+              write_tok_ch('(');
+              for (arg = args; arg != NULL; arg = arg->next) {
+                if (arg != args) write_tok_str(", ");
+                gen_expr_with_parens(arg);
+              }  /* for */
+              write_tok_ch(')');
+            }  /* if */
+#else /* !PARSED_TEMPLATES_IN_IL */
             gen_argument_list(args, ctor->type, /*skip_num=*/0);
+#endif /* PARSED_TEMPLATES_IN_IL */
           }  /* if */
         }  /* if */
       }
@@ -7246,7 +7496,13 @@ a constructor.
         case cik_direct_base_class:
           /* Initializing a base class. */
           type = ctor_init->variant.base_class->type;
+#ifdef PARSED_TEMPLATES_IN_IL
+          /* Don't use "gen_type_name" to avoid "typename" keywords. */
+          gen_name(&type->source_corresp, iek_type,
+                   GN_NO_OPTIONS, (a_boolean *)NULL);
+#else /* !PARSED_TEMPLATES_IN_IL */
           gen_type_name(type);
+#endif /* PARSED_TEMPLATES_IN_IL */
           break;
         case cik_field:
           /* Initializing a nonstatic data member. */
@@ -7479,9 +7735,22 @@ TRUE if the declaration following this one is such a continuation.
     friend_decl = sec_decl->friend_decl;
     is_specialization = sec_decl->specialized_with_new_syntax;
   } else {
+#ifdef PARSED_TEMPLATES_IN_IL
+    if (curr_source_sequence_entry->entity.kind ==
+                                             (an_il_entry_kind)iek_template) {
+      a_template_ptr tp =
+                     ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
+      rout = tp->template_info->variant.function.routine;
+      rout_type = rout->type;
+    } else {
+      rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
+      rout_type = rout->declared_type;
+    }  /* if */
+#else /* !PARSED_TEMPLATES_IN_IL */
     rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
-    is_definition = TRUE;
     rout_type = rout->declared_type;
+#endif /* PARSED_TEMPLATES_IN_IL */
+    is_definition = TRUE;
     friend_decl = rout->defined_in_friend_decl;
     is_specialization = FALSE;
     /* See if the "template<>" specialization prefix should be put out. */
@@ -7492,9 +7761,19 @@ TRUE if the declaration following this one is such a continuation.
       is_specialization = !old_specializations_for_generated_instances;
     }  /* if */
     if (rout->assoc_scope == NULL_region_number) {
+#ifdef PARSED_TEMPLATES_IN_IL
+      /* A member function of a template class might not be instantiated or
+         we might be dealing with a function template declaration (for which
+         we have a template source sequence entry instead of a secondary
+         routine source sequence entry). */
+      check_assertion_str(rout->is_template_function ||
+                          rout->is_prototype_instantiation,
+                          "gen_routine_decl: missing definition");
+#else /* !PARSED_TEMPLATES_IN_IL */
       /* A member function of a template class might not be instantiated. */
       check_assertion_str(rout->is_template_function,
                           "gen_routine_decl: missing definition");
+#endif /* PARSED_TEMPLATES_IN_IL */
       is_definition = FALSE;
     }  /* if */
   }  /* if */
@@ -8002,7 +8281,7 @@ Initialize for the C++/C-generating back end.
   octl.output_partial_token_str = write_str;
   octl.output_name = gen_name_reference;
   octl.output_func_declarator = gen_function_declarator;
-  octl.output_vla_expression = gen_vla_expression;
+  octl.output_expression = f_gen_expression;
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
   octl.suppress_not_yet_defined_typedefs = TRUE;
