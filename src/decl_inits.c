@@ -721,7 +721,8 @@ The syntax is:
                      symbol_ptr->decl_scope,
                      symbol_ptr->class_of_which_a_member, (a_routine_ptr)NULL);
   }  /* if */
-  if (C_dialect == C_dialect_cplusplus && is_class_struct_union_type(vp_type)) {
+  if (C_dialect == C_dialect_cplusplus &&
+      is_class_struct_union_type(vp_type)) {
     cssp = ((a_symbol_ptr)vp_type->source_corresp.assoc_info)->
                                  variant.class_struct_union.extra_info;
   }  /* if */
@@ -731,7 +732,7 @@ The syntax is:
        possibly the copy constructor, will be selected and returned.  The
        scan function returns FALSE if it finds no constructor for which the
        arguments match. */
-    if (!scan_constructor_arguments(cssp->constructor, &rp, &arg_list)) {
+    if (!scan_ctor_arguments(cssp->constructor, &rp, &arg_list)) {
       err = TRUE;
     } else {
       /* Set the dynamic init entry to represent constructor initialization. */
@@ -1015,7 +1016,8 @@ a_boolean def_initializer(a_symbol_ptr       sym,
              works for multi-dimensional array. */
           pos_warning(ec_default_size_for_incomplete_array, err_pos);
 #else
-          internal_error("def_initializer: incomplete types not yet supported");
+          internal_error(
+                      "def_initializer: incomplete types not yet supported");
 #endif /* if 0 */
         }  /* if */
         if (cssp->default_constructor == NULL) {
