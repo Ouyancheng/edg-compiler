@@ -1,5 +1,21 @@
 Version 3.4
 
+8/26/03  Microsoft compatibility: Explicit instantiation of dllimport class
+
+In Microsoft mode, the front end will no longer instantiate the members of
+a class template specialization declared with __declspec(dllimport) when
+performing an explicit class template instantiation.  The dllimport specifier
+may have been present on class template definition, or it may have been added
+by the explicit instantiation directive.  For example:
+
+  template<typename T> struct S {
+    static int d;
+  };
+  template<typename T> int S<T>::d = 0;
+  template __declspec(dllimport) class S<void>;
+    // No longer instantiates S<void>::d and therefore no longer issues an
+    // error about providing an initializer for a dllimported member.
+
 8/26/03  Elaborated type specifiers in templates
 
 When an elaborated type specifier using a simple identifier first appears in a

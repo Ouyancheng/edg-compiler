@@ -19892,12 +19892,24 @@ is a recursive call for a class nested within the template class.
         pos_diagnostic(severity, ec_incomplete_type_not_allowed, pos);
       }  /* if */
     } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode && !is_pragma &&
+          pragma_kind == (a_pragma_kind)pk_instantiate) {
+        /* Members of dllimport class are never explicitly instantiated. */
+        a_class_type_supplement_ptr  ctsp =
+                             class_type->variant.class_struct_union.extra_info;
+        if (ctsp != NULL && (ctsp->decl_modifiers & DM_DLLIMPORT)) {
+          pragma_kind = (a_pragma_kind)pk_do_not_instantiate;
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       mem_sym = sym->variant.class_struct_union.extra_info->symbols;
-      /* Loop through all the member symbols looking for member functions. */
+      /* Loop through all the member symbols looking for member functions,
+         static data members, and nested classes. */
       for (; mem_sym != NULL; mem_sym = mem_sym->next_in_scope) {
         a_symbol_ptr	list_sym;
-        a_boolean		is_list;
-       if (is_member_function_symbol(mem_sym)) {
+        a_boolean	is_list;
+        if (is_member_function_symbol(mem_sym)) {
           /* If this is an overloaded function, loop through each of the
              functions underneath it. */
           if (mem_sym->kind == (a_symbol_kind)sk_overloaded_function) {
