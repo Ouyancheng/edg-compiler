@@ -976,7 +976,7 @@ error code.
       m = "no default constructor exists for class \"%s\"";
       break;
     case ec_not_a_field_or_base_class:
-      m = "not a nonstatic data member or base class of class \"%s\"";
+      m = "not a nonstatic data member or base class of class %n";
       break;
     case ec_indirect_nonvirtual_base_class_not_allowed:
       m = "indirect nonvirtual base class not allowed";
@@ -1188,13 +1188,13 @@ error code.
       m = "type must be an object type";
       break;
     case ec_base_class_already_initialized:
-      m = "base class \"%s\" has already been initialized";
+      m = "base class %n has already been initialized";
       break;
     case ec_base_class_init_anachronism:
-      m = "base class \"%s\" assumed (anachronism)";
+      m = "base class %n assumed (anachronism)";
       break;
     case ec_member_already_initialized:
-      m = "member has already been initialized";
+      m = "member %n has already been initialized";
       break;
     case ec_missing_base_class_or_member_name:
       m = "name of member or base class is missing";
