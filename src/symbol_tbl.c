@@ -5094,18 +5094,16 @@ symbol.  Otherwise, return NULL.
     if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
         sym->decl_scope ==
                  scope_stack[depth_innermost_instantiation_scope].number) {
-      /* sym is a template parameter symbol representing a type.  Issue an
-         error on it no matter what. */
-      pos_sy_error(ec_bad_template_arg_use, &error_position, sym);
-      /* If the template argument with which it is currently associated can
-         be used in an elaborated-type-specifier of the required kind, use
-         it. */
+      /* sym is a template parameter symbol representing a type.  If the
+         template argument with which it is currently associated can be
+         used in an elaborated-type-specifier of the required kind, use it. */
       tp = sym->variant.type;
       assoc_symbol = (a_symbol_ptr)tp->source_corresp.assoc_info;
       if (assoc_symbol != NULL && assoc_symbol->kind == tag_kind) {
         /* Use the template argument to which the template parameter points. */
       } else {
         /* The template argument is the wrong kind of tag. */
+        pos_sy_error(ec_bad_template_arg_use, &error_position, sym);
         set_to_error_locator(*locator);
         assoc_symbol = NULL;
       }  /* if */
