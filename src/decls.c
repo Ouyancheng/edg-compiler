@@ -11518,7 +11518,7 @@ void check_main_function(a_func_info_block_ptr  func_info,
                          a_boolean              *is_inline,
                          a_source_position_ptr  pos)
 /*
-Check some C++ constraints on the main() function declared with type "type"
+Check some constraints on the main() function declared with type "type"
 and storage class "*declared_storage_class".  If "*is_inline" is TRUE, the
 function was declared "inline" (or was defined as an in-class friend).
 Additional information is provided through the "func_info" parameter, while
@@ -11531,7 +11531,7 @@ diagnostics.
   a_type_ptr                     int_type =
                                         integer_type((an_integer_kind)ik_int);
 
-  /* Perform some error checking that is specific to C++ and C99. */
+  /* Diagnose return types other than "int". */
   return_type = skip_typerefs(type)->variant.routine.return_type;
   if (!identical_types(return_type, int_type)) {
     /* main must return "int" (3.6.1). */
@@ -11540,6 +11540,7 @@ diagnostics.
                    ec_bad_return_type_on_main, pos);
   }  /* if */
   if (c99_mode || !C_mode()) {
+    /* Perform some error checking that is specific to C++ and C99. */
     /* "inline" isn't allowed in C++ and C99 modes. */
     if (*is_inline) {
       pos_error(ec_inline_main, pos);
