@@ -2554,6 +2554,7 @@ information should be ignored or if an error should be issued.
 {
   a_calling_convention           calling_convention;
   a_boolean                      discard = FALSE;
+  an_error_severity              discard_sev = (an_error_severity)es_remark;
   a_routine_type_supplement_ptr  rtsp;
 
   calling_convention = p_calling_convention->call_conv;
@@ -2611,8 +2612,9 @@ information should be ignored or if an error should be issued.
         } else if (rtsp->assoc_routine_is_ctor ||
                    rtsp->assoc_routine_is_dtor) {
           /* Calling convention specifiers are always ignored on constructors
-             and destructors. */
+             and destructors.  Issue a warning. */
           discard = TRUE;
+          discard_sev = (an_error_severity)es_warning;
         } else if (rtsp->calling_convention != calling_convention) {
           /* The underlying routine type needs to be updated. */
           if (any_typedefs) {
@@ -2632,7 +2634,8 @@ information should be ignored or if an error should be issued.
   if (discard) {
     /* Issue a remark indicating that the calling convention has no
        effect. */
-    pos_remark(ec_calling_convention_ignored, &p_calling_convention->position);
+    pos_diagnostic(discard_sev, ec_calling_convention_ignored,
+                   &p_calling_convention->position);
   }  /* if */
   /* Whether or not we were able to apply the calling convention,
      reset it so that the caller does not attempt to reuse it later. */
