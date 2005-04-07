@@ -329,6 +329,8 @@ purposes.
       label = cfdp->variant.goto_statement.ptr->variant.label.ptr;
       if (label->continue_label) {
         fputs("continue", f_debug);
+      } else if (label->switch_break_label) {
+        fputs("switch break", f_debug);
       } else if (label->break_label) {
         fputs("break", f_debug);
       } else {
@@ -341,6 +343,8 @@ purposes.
       label = cfdp->variant.label_statement->variant.label.ptr;
       if (label->continue_label) {
         fputs("continue label", f_debug);
+      } else if (label->switch_break_label) {
+        fputs("switch break label", f_debug);
       } else if (label->break_label) {
         fputs("break label", f_debug);
       } else {
@@ -5154,6 +5158,9 @@ give the starting and ending positions of the break statement.
     /* The break label has not previously been used, so generate it. */
     dest_label = sssep->break_label = alloc_temp_label();
     dest_label->break_label = TRUE;
+    if (sssep->kind == (a_struct_stmt_kind)ssk_switch) {
+      dest_label->switch_break_label = TRUE;
+    }  /* if */
   }  /* if */
   /* Allocate the goto statement. */
   sp = add_statement_at_stmt_pos((a_statement_kind)stmk_goto, pos);
