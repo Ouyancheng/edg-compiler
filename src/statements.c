@@ -2654,7 +2654,7 @@ struct_stmt_stack_container, and struct_stmt_stack.
                                       STRUCT_STMT_STACK_INCREMENTAL_ALLOCATION;
   /* Reallocate the container, copying the old to the new. */
   struct_stmt_stack_container =
-                       (a_struct_stmt_stack_entry_ptr)realloc_general(
+                       (a_struct_stmt_stack_entry_ptr)realloc_buffer(
                        (char *)struct_stmt_stack_container,
                        (sizeof_t)(size_struct_stmt_stack_container*
                                             sizeof(a_struct_stmt_stack_entry)),
