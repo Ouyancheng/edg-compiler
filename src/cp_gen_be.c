@@ -195,6 +195,12 @@ static a_boolean
 			   in the default argument of a constructor
 			   parameter (needed to work around a Microsoft 6.0
 			   bug). */
+static a_boolean
+		in_operand_context;
+			/* TRUE if the expression being generated follows an
+			   operator in another expression (used to suppress
+                           disambiguating parentheses around function-style
+                           casts). */
 
 /*
 Entry used to record an adjustment needed at the end of a name context,
@@ -7101,6 +7107,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   a_boolean        need_reference_close_paren = FALSE;
   an_expr_operator_kind
                    op;
+  a_boolean        save_in_operand_context = in_operand_context;
 
   check_assertion_str(expr != NULL, "gen_expr: NULL expression");
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
@@ -7853,6 +7860,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       if (operand_2 == NULL) {
         /* Unary operator; operator goes first. */
         write_tok_str(opstr);
+        in_operand_context = TRUE;
       }  /* if */
       /* Generate the first operand. */
       if (operand_1_is_lvalue) {
@@ -7865,8 +7873,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         m_write_space();
         write_tok_str(opstr);
         m_write_space();
+        in_operand_context = TRUE;
         gen_expr_with_parens(operand_2);
       }  /* if */
+      in_operand_context = save_in_operand_context;
 done_with_operation:
       if (need_parens) m_write_tok_ch(')');
 done_with_operation_after_parens:
@@ -10029,25 +10039,32 @@ Note that the destructor, if any, is implicit and need not be put out.
         suppress_outermost_parentheses = TRUE;
         gen_type_name(init_entity_type);
       } else {
-        write_tok_ch('(');
         if (has_name_before_mangling(init_entity_type) &&
             !msvc_is_generated_code_target) {
-          /* Generate a functional-notation cast.  We always put out an extra
-             set of parentheses around the generated code, regardless of
-             whether we use a functional cast or an old-style cast, so we
-             don't have to worry about the ambiguity of a functional cast --
-             "(X(y))", because of the surrounding parentheses, can only be an
-             expression, unlike "X(y)", which might be either an expression
-             or a declaration.  Using the functional notation also avoids a
-             Sun quirk where functional casts are lvalues but old-style casts
-             are not  (i.e., we don't want to turn "X(y)" into "(X)(y)"). */
+          /* Generate a functional-notation cast.  If we are in a context
+             where a functional-style cast is ambiguous, we surround it with
+             parentheses -- "(X(y))", because of the surrounding parentheses,
+             can only be an expression, unlike "X(y)", which might be either
+             an expression or a declaration.  Using the functional notation
+             also avoids a Sun quirk where functional casts are lvalues but
+             old-style casts are not  (i.e., we don't want to turn "X(y)"
+             into "(X)(y)"). */
           /* MSVC versions through at least 7.1 have parser bugs such that
              "(X(y))" is sometimes treated as a syntax error, so we always
              generate old-style casts when one of those compilers is the
              target. */
+          if (in_operand_context) {
+            /* There is a preceding operator, so the cast is unambiguously an
+               expression -- no disambiguating outermost parentheses are
+               needed. */
+            suppress_outermost_parentheses = TRUE;
+          } else {
+            write_tok_ch('(');
+          }  /* if */
           gen_type_name(init_entity_type);
         } else {
-          /* Put out an old-style cast, e.g., (X)y. */
+          /* Put out an old-style cast, e.g., ((X)y). */
+          write_tok_ch('(');
           gen_cast(init_entity_type);
         }  /* if */
       }  /* if */
@@ -11668,6 +11685,7 @@ Initialize for the C++/C-generating back end.
   num_curr_switch_statements = 0;
   in_friend_declaration = FALSE;
   in_ctor_default_argument = FALSE;
+  in_operand_context = FALSE;
   curr_name_context = NULL;
   avail_hidden_name_fixups = NULL;
   avail_name_contexts = NULL;

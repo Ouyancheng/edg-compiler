@@ -1,5 +1,27 @@
 Version 3.6
 
+4/7/05   C++-generating back end: functional casts in operand contexts
+
+The C++-generating back end formerly always enclosed generated functional
+casts in parentheses to avoid possible ambiguities.  For example:
+
+  struct A { 
+    A(char); 
+  }; 
+  struct B { 
+    B(A); 
+    B &operator=(char) {
+      *this = B(A(c));  // formerly generated as (*this) = (B((A(c))));
+      return *this;
+    } 
+  }; 
+
+Versions of g++ prior to 3.4 erroneously diagnosed the generated code as a
+syntax error because of the superfluous parentheses around the cast.  The
+C++-generating back end now suppresses the enclosing parentheses around a
+functional cast when it follows an operator in an expression, as there is
+no risk of ambiguity in that context.
+
 4/6/05   Labels for switch breaks marked as such
 
 The front end converts break statements to goto statements with synthesized
