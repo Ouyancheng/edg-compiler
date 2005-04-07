@@ -1,5 +1,14 @@
 Version 3.6
 
+4/7/05   Embedded C: spurious error on invalid fixed-point constant as pp-token
+
+A spurious error was issued if something that looks like an invalid
+fixed-point constant was used as a preprocessing token, and fixed-point
+support was enabled.  Now fixed.
+
+  #define STR(a) #a
+  const char *s = STR(1.u);
+
 4/7/05   C++-generating back end: functional casts in operand contexts
 
 The C++-generating back end formerly always enclosed generated functional

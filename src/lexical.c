@@ -6171,14 +6171,15 @@ fixed_point_suffix:
       curr_char_loc++;
       kind = k_fixed_point;
     }  /* if */
-    if (kind == k_fixed_point && l_before_u_suffix) {
+    if ((kind == k_fixed_point && l_before_u_suffix) && !fetch_pp_tokens) {
       /* Unlike with integer literals, any 'u'/'U' suffix must precede any
          'l'/'L' suffix in fixed-point literals. */
       diagnostic_at_line_pos(es_discretionary_error,
                              ec_nonstd_fixed_point_suffix,
                              start_of_curr_token);
     }  /* if */
-    if (kind == k_float && (u_suffix_seen || h_suffix_seen)) {
+    if (kind == k_float && (u_suffix_seen || h_suffix_seen) &&
+        !fetch_pp_tokens) {
       error_at_line_pos(ec_bad_float_or_fixed_suffix, start_of_curr_token);
     }  /* if */
   }  /* if */
