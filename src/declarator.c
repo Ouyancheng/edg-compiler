@@ -2632,8 +2632,8 @@ information should be ignored or if an error should be issued.
     }  /* if */
   }  /* if */
   if (discard) {
-    /* Issue a remark indicating that the calling convention has no
-       effect. */
+    /* Issue a diagnostic (remark or warning) indicating that the calling
+       convention has no effect. */
     pos_diagnostic(discard_sev, ec_calling_convention_ignored,
                    &p_calling_convention->position);
   }  /* if */
