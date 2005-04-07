@@ -11528,17 +11528,18 @@ diagnostics.
 {
   a_routine_type_supplement_ptr  rtsp;
   a_type_ptr                     return_type;
+  a_type_ptr                     int_type =
+                                        integer_type((an_integer_kind)ik_int);
 
   /* Perform some error checking that is specific to C++ and C99. */
   return_type = skip_typerefs(type)->variant.routine.return_type;
+  if (!identical_types(return_type, int_type)) {
+    /* main must return "int" (3.6.1). */
+    pos_diagnostic(strict_ansi_mode ?
+                     strict_ansi_discretionary_severity : es_warning,
+                   ec_bad_return_type_on_main, pos);
+  }  /* if */
   if (c99_mode || !C_mode()) {
-    a_type_ptr  int_type = integer_type((an_integer_kind)ik_int);
-    if (!identical_types(return_type, int_type)) {
-      /* main must return "int" (3.6.1). */
-      pos_diagnostic(strict_ansi_mode ?
-                       strict_ansi_discretionary_severity : es_warning,
-                     ec_bad_return_type_on_main, pos);
-    }  /* if */
     /* "inline" isn't allowed in C++ and C99 modes. */
     if (*is_inline) {
       pos_error(ec_inline_main, pos);
