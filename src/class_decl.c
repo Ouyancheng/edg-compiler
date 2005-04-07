@@ -7552,8 +7552,8 @@ is set to NULL by this function.
     if (exceptions_enabled && compiler_generated &&
         !class_type->variant.class_struct_union.is_prototype_instantiation) {
       /* A compiler generated constructor, destructor, or assignment
-         operator is assumed to throw any exception that can be thrown
-         a base-class function it will call. */
+         operator is assumed to throw any exception that can be thrown by
+         any base-class function it will call. */
       form_exception_specification_for_generated_function(rtn);
     }  /* if */
     if (!sym->is_error) {
