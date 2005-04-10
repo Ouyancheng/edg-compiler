@@ -2,10 +2,10 @@ Version 3.6
 
 4/7/05   Return type of main function in C mode
 
-In C++ and C99 modes, front end issues an error (in strict mode) or a warning
-(in other modes) when the return type of the main function is not "int".  In
-C89 mode, however, no diagnostic was issued in such cases.  Now, the C89
-behavior is identical to that of C99 and C++ modes.  For example:
+In C++ and C99 modes, the front end issues an error (in strict mode) or a
+warning (in other modes) when the return type of the main function is not
+"int".  In C89 mode, however, no diagnostic was issued in such cases.  Now,
+the C89 behavior is identical to that of C99 and C++ modes.  For example:
 
   void main() {}  // Now a warning or error in C89 mode.  Previously
                   // silently accepted.
