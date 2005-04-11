@@ -196,7 +196,7 @@ static a_boolean
 			   parameter (needed to work around a Microsoft 6.0
 			   bug). */
 static a_boolean
-		in_operand_context;
+		context_disambiguates_functional_cast;
 			/* TRUE if the expression being generated follows an
 			   operator in another expression (used to suppress
                            disambiguating parentheses around function-style
@@ -7107,7 +7107,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   a_boolean        need_reference_close_paren = FALSE;
   an_expr_operator_kind
                    op;
-  a_boolean        save_in_operand_context = in_operand_context;
+  a_boolean        save_context_disambiguates_functional_cast =
+                                        context_disambiguates_functional_cast;
 
   check_assertion_str(expr != NULL, "gen_expr: NULL expression");
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
@@ -7860,7 +7861,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       if (operand_2 == NULL) {
         /* Unary operator; operator goes first. */
         write_tok_str(opstr);
-        in_operand_context = TRUE;
+        context_disambiguates_functional_cast = TRUE;
       }  /* if */
       /* Generate the first operand. */
       if (operand_1_is_lvalue) {
@@ -7873,10 +7874,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         m_write_space();
         write_tok_str(opstr);
         m_write_space();
-        in_operand_context = TRUE;
+        context_disambiguates_functional_cast = TRUE;
         gen_expr_with_parens(operand_2);
       }  /* if */
-      in_operand_context = save_in_operand_context;
+      context_disambiguates_functional_cast =
+                                   save_context_disambiguates_functional_cast;
 done_with_operation:
       if (need_parens) m_write_tok_ch(')');
 done_with_operation_after_parens:
@@ -10053,7 +10055,7 @@ Note that the destructor, if any, is implicit and need not be put out.
              "(X(y))" is sometimes treated as a syntax error, so we always
              generate old-style casts when one of those compilers is the
              target. */
-          if (in_operand_context) {
+          if (context_disambiguates_functional_cast) {
             /* There is a preceding operator, so the cast is unambiguously an
                expression -- no disambiguating outermost parentheses are
                needed. */
@@ -11685,7 +11687,7 @@ Initialize for the C++/C-generating back end.
   num_curr_switch_statements = 0;
   in_friend_declaration = FALSE;
   in_ctor_default_argument = FALSE;
-  in_operand_context = FALSE;
+  context_disambiguates_functional_cast = FALSE;
   curr_name_context = NULL;
   avail_hidden_name_fixups = NULL;
   avail_name_contexts = NULL;
