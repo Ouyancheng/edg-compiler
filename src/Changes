@@ -1,5 +1,18 @@
 Version 3.6
 
+4/13/05  C++-generating back end: Microsoft compatibility for default
+         arguments of member functions
+
+In MSVC++ 6.0, a default argument of a class member function of the form
+
+  f(const N::T<x,y>& = N::T<x,y>());
+
+where N is the name of a namespace to which the class does not belong, could
+cause spurious syntax errors.  The C++-generating back end now avoids
+triggering this bug by enclosing the default argument in parentheses:
+
+  f(const T<x,y>& = (T<x,y>()));
+
 4/7/05   Return type of main function in C mode
 
 In C++ and C99 modes, the front end issues an error (in strict mode) or a

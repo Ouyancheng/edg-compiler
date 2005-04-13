@@ -363,7 +363,8 @@ static void gen_initializer_constant(a_constant_ptr constant,
                                      a_boolean      suppress_braces);
 static void gen_initializer_expr(an_expr_node_ptr expr,
                                  a_type_ptr       type,
-                                 a_boolean        need_parens);
+                                 a_boolean        need_parens,
+                                 a_boolean        mbr_fcn_default_arg_expr);
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_type_ptr         init_entity_type,
                              a_boolean          parenthesized_init,
@@ -3495,7 +3496,8 @@ parameter.
          MSVC++ 5.0. */
       write_tok_ch('0');
     } else {
-      gen_initializer_expr(expr, param->type, /*need_parens=*/TRUE);
+      gen_initializer_expr(expr, param->type, /*need_parens=*/TRUE,
+                           curr_name_context_is_a_class());
     }  /* if */
   }  /* if */
 }  /* gen_default_arg_expr */
@@ -6302,17 +6304,21 @@ try_again:
 
 static void gen_initializer_expr(an_expr_node_ptr expr,
                                  a_type_ptr       type,
-                                 a_boolean        need_parens)
+                                 a_boolean        need_parens,
+                                 a_boolean        mbr_fcn_default_arg_expr)
 /*
 Generate an expression that is used to initialize something of type "type".
 This does special processing when the type is a reference type.
 type may be NULL if it isn't a reference type.  Put parentheses around
 the code if there's some possibility of precedence confusion and
-need_parens is TRUE.
+need_parens is TRUE.  If mbr_fcn_default_arg_expr is TRUE, the expression is
+from a default argument of a class member function (used to work around an
+obscure Microsoft bug).
 */
 {
   /* When initializing a reference, remove one level of indirection. */
   if (type != NULL && is_reference_type(type)) {
+    a_boolean close_paren_needed = FALSE;
     /* Remove any cast that just adjusts the type qualifiers (e.g., adds
        const); it's implied by the context. */
     expr = skip_implicit_ptr_type_qualifier_adjustment_cast(expr);
@@ -6323,8 +6329,44 @@ need_parens is TRUE.
            expr->variant.operation.compiler_generated) {
       expr = expr->variant.operation.operands;
     }  /* while */
+    if (mbr_fcn_default_arg_expr &&
+        msvc_is_generated_code_target &&
+        msvc_target_version_number == 1200 &&
+        expr->kind == (an_expr_node_kind)enk_temp_init &&
+        (expr->variant.init.dynamic_init->kind == 
+                                        (a_dynamic_init_kind)dik_constructor ||
+         expr->variant.init.dynamic_init->kind ==
+                                              (a_dynamic_init_kind)dik_zero) &&
+        is_pointer_type(expr->type)) {
+      a_type_ptr base_type = f_skip_typerefs(type_pointed_to(expr->type));
+      if (is_class_type_kind(base_type->kind) &&
+          base_type->variant.class_struct_union.extra_info->template_arg_list
+                                                                     != NULL &&
+          base_type->variant.class_struct_union.extra_info->
+                                             template_arg_list->next != NULL &&
+          !base_type->source_corresp.is_class_member &&
+          base_type->source_corresp.parent.namespace_ptr != NULL &&
+          !scope_is_in_name_context_stack(base_type->
+                   source_corresp.parent.namespace_ptr->variant.assoc_scope)) {
+        /* Work around a bug in the Microsoft version 6.0 compiler: in a
+           default argument of a class member function of the form
+
+               f(const T<x,y>& = T<x,y>())
+
+           where T is a member of a namespace that is not on the scope stack,
+           the "," in the template argument list is mistakenly treated as
+           a function argument separator, leading to spurious syntax errors.
+           The problem does not occur if the argument is enclosed in
+           parentheses. */
+        write_tok_ch('(');
+        close_paren_needed = TRUE;
+      }  /* if */
+    }  /* if */
     /* Put the expression out as an lvalue to remove a level of indirection. */
     gen_lvalue_full(expr, need_parens);
+    if (close_paren_needed) {
+      write_tok_ch(')');
+    }  /* if */
   } else if (il_header.source_language == sl_C &&
              is_constant_node(expr) &&
              is_implicitly_cast_integral_constant(expr->variant.constant)) {
@@ -6409,7 +6451,8 @@ available.
                      /*force_parens=*/FALSE);
   } else if (param != NULL) {
     /* Parameter type known. */
-    gen_initializer_expr(arg, param->type, /*need_parens=*/TRUE);
+    gen_initializer_expr(arg, param->type, /*need_parens=*/TRUE,
+                         /*mbr_fcn_default_arg_expr=*/FALSE);
   } else {
     /* Parameter type not known. */
     gen_expr_with_parens(arg);
@@ -9733,7 +9776,8 @@ statement unless suppress_trailing_space is TRUE.
                (e.g., in casts). */
             skip_embedded_declarations();
             gen_initializer_expr(statement->expr, return_type,
-                                 /*need_parens=*/FALSE);
+                                 /*need_parens=*/FALSE,
+                                 /*mbr_fcn_default_arg_expr=*/FALSE);
           } else {
             /* The return value is passed via a copy constructor call. */
             check_assertion(statement->variant.return_dynamic_init != NULL);
@@ -10146,7 +10190,8 @@ Note that the destructor, if any, is implicit and need not be put out.
          the top-level operator is a ",". */
       if (parenthesized_init) write_tok_ch('(');
       gen_initializer_expr(dip->variant.expression, init_entity_type,
-                           /*need_parens=*/TRUE);
+                           /*need_parens=*/TRUE,
+                           /*mbr_fcn_default_arg_expr=*/FALSE);
       if (parenthesized_init) write_tok_ch(')');
       break;
     case dik_call_returning_class_via_cctor:
