@@ -335,8 +335,10 @@ This is done before command line processing.
   targ_alignof_int = TARG_ALIGNOF_INT;
   targ_sizeof_long = TARG_SIZEOF_LONG;
   targ_alignof_long = TARG_ALIGNOF_LONG;
+#if LONG_LONG_ALLOWED
   targ_sizeof_long_long = TARG_SIZEOF_LONG_LONG;
   targ_alignof_long_long = TARG_ALIGNOF_LONG_LONG;
+#endif /* LONG_LONG_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   targ_int8_int_kind = ((an_integer_kind)ik_none);
   targ_unsigned_int8_int_kind = ((an_integer_kind)ik_none);
