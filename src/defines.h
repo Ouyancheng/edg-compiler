@@ -29,6 +29,9 @@ Set the test version flags to FALSE for demo versions.
 #ifdef __linux__
 #define LINUX_TEST_VERSION 0
 #endif /* ifdef __linux__ */
+#if defined(__APPLE__) && defined(__MACH__)
+#define MACOSX_TEST_VERSION 0
+#endif /* defined(__APPLE__) && defined(__MACH__) */
 #ifndef DEBUG
 #define DEBUG 0
 #endif /* ifndef DEBUG */
@@ -488,12 +491,23 @@ Flags to be set when using the KAI inliner.
 #else /* ifndef __hpux */
 
 #if defined(__APPLE__) && defined(__MACH__)
-/* Options for MacOS X (10.2) test version. */
+/* Options for MacOS X (10.2) version. */
+
+#ifndef MACOSX_TEST_VERSION
+#define MACOSX_TEST_VERSION 1
+#endif /* ifndef MACOSX_TEST_VERSION */
+
+#if MACOSX_TEST_VERSION
+#define MICROSOFT_EXTENSIONS_ALLOWED 1
+#define DEFAULT_MICROSOFT_MODE 0
+#endif /* MACOSX_TEST_VERSION */
 
 #include "defines_macosx.h"
 
 #else /* !(defined(__APPLE__) && defined(__MACH__)) */
 #ifdef __CYGWIN32__
+
+/* Options for Windows/Cygwin version. */
 #ifdef DEMO_VERSION
 /* Demo versions should support multiple translation units. */
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
