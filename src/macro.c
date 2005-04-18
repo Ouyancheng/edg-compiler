@@ -5109,17 +5109,16 @@ from the front end to the runtime.
 }  /* init_runtime_macros */
 
 
-static void process_command_line_macro_definitions(
-                                               a_def_undef_string_ptr  du_ptr)
+static void process_command_line_macro_definitions(a_boolean  process_defs,
+                                                   a_boolean  process_undefs)
 /*
-Process a list of macro definitions as requested by "-D" options on the
-command line.  du_ptr points the first element of a linked list describing
-the options passed (each element in the list points to the string following
-the "-D").
+Process a list of macro definitions as requested by "-D" (when process_defs is
+TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
 */
 {
-  a_boolean	save_expand_macros = expand_macros;
-  a_boolean	save_fetch_pp_tokens = fetch_pp_tokens;
+  a_def_undef_string_ptr  du_ptr = defs_from_cmd_line;
+  a_boolean	          save_expand_macros = expand_macros;
+  a_boolean	          save_fetch_pp_tokens = fetch_pp_tokens;
 
   /* Set a current position indicating we are looking at the command line. */
   pos_curr_token.seq = 0;
@@ -5132,43 +5131,76 @@ the "-D").
   for (; du_ptr != NULL; du_ptr = du_ptr->next) {
     sizeof_t  du_len;
     char      *du_str = du_ptr->text, *equal_pos;
-
-    if (strchr(du_str, ATTENTION_MARKER) != NULL) {
-      /* Definition contains a newline character, which cannot be allowed
-         (it would be confused with a lexical escape character). */
-      str_command_line_error(ec_cl_invalid_macro_definition, du_str);
-      /* Should not reach here. */
+    if (du_ptr->is_undef && process_undefs) {
+      /* -U option. */
+      a_boolean  err = FALSE, suppress_error = FALSE;
+      a_symbol_ptr     assoc_symbol;
+      a_symbol_locator locator;
+  #if DEBUG
+      if (debug_level >= 4) {
+        fprintf(f_debug, "Command-line undef: %s\n", du_str);
+      }  /* if */
+  #endif /* DEBUG */
+      /* Check the identifier to make sure it is valid. */
+      if (!is_valid_identifier(du_str, strlen(du_str), &assoc_symbol,
+                               &locator)) {
+        err = TRUE;
+        /* The Microsoft compiler ignores invalid definitions. */
+        if (microsoft_mode) suppress_error = TRUE;
+      } else {
+        if (assoc_symbol != NULL) {
+          if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
+            /* The macro is predefined; one is not allowed to undefine it. */
+            err = TRUE;
+          } else {
+            /* Remove the macro's definition.  The a_macro_def entry pointed to
+               by the symbol is not freed, and is therefore just lost.  */
+            remove_symbol(assoc_symbol);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (err && !suppress_error) {
+        str_command_line_error(ec_cl_invalid_macro_undefinition, du_str);
+      }  /* if */
+    } else if (!du_ptr->is_undef && process_defs) {
+      /* -D option. */
+      if (strchr(du_str, ATTENTION_MARKER) != NULL) {
+        /* Definition contains a newline character, which cannot be allowed
+           (it would be confused with a lexical escape character). */
+        str_command_line_error(ec_cl_invalid_macro_definition, du_str);
+        /* Should not reach here. */
+      }  /* if */
+      /* Turn "-D" options into equivalent define directives so that we can
+         leave the processing to proc_define.  Allocate an extra 2 bytes for
+         "-D" options that do not contain an equal; they'll be processed as
+             define id 1
+         (i.e., a "=1" is appended, and the "=" will be skipped).  During this
+         processing, ensure that diagnostics are correctly attributed by setting
+         the global variable curr_command_line_macro_def.  This is also used by
+         proc_define to decide that the "=" introducing the macro definition
+         should be skipped. */
+      curr_command_line_macro_def = du_str;
+      du_len = strlen(du_str);
+      /* Ensure the buffer holding the logical source line is large enough to
+         hold the synthetic line we are going to create. */
+      ensure_min_curr_source_line_length(du_len+2+2*LE_ESCAPE_LEN);
+      strcpy(curr_source_line, du_str);
+      equal_pos = strchr(curr_source_line, '=');
+      if (equal_pos == NULL) {
+        /* "-DNAME(X)" becomes "NAME(X)=1". */
+        strcpy(curr_source_line+du_len, "=1");
+        du_len += 2;
+      }  /* if */
+      curr_source_line[du_len+0] = LE_ESCAPE;
+      curr_source_line[du_len+1] = LE_NEWLINE;
+      curr_source_line[du_len+2] = LE_ESCAPE;
+      curr_source_line[du_len+3] = LE_END_OF_LINE;
+      curr_char_loc = curr_source_line;
+      proc_define();
+      /* Reset curr_command_line_macro_def so that diagnostics are no longer
+         attributed to the command-line option we just processed. */
+      curr_command_line_macro_def = NULL;
     }  /* if */
-    /* Turn "-D" options into equivalent define directives so that we can
-       leave the processing to proc_define.  Allocate an extra 2 bytes for
-       "-D" options that do not contain an equal; they'll be processed as
-           define id 1
-       (i.e., a "=1" is appended, and the "=" will be skipped).  During this
-       processing, ensure that diagnostics are correctly attributed by setting
-       the global variable curr_command_line_macro_def.  This is also used by
-       proc_define to decide that the "=" introducing the macro definition
-       should be skipped. */
-    curr_command_line_macro_def = du_str;
-    du_len = strlen(du_str);
-    /* Ensure the buffer holding the logical source line is large enough to
-       hold the synthetic line we are going to create. */
-    ensure_min_curr_source_line_length(du_len+2+2*LE_ESCAPE_LEN);
-    strcpy(curr_source_line, du_str);
-    equal_pos = strchr(curr_source_line, '=');
-    if (equal_pos == NULL) {
-      /* "-DNAME(X)" becomes "NAME(X)=1". */
-      strcpy(curr_source_line+du_len, "=1");
-      du_len += 2;
-    }  /* if */
-    curr_source_line[du_len+0] = LE_ESCAPE;
-    curr_source_line[du_len+1] = LE_NEWLINE;
-    curr_source_line[du_len+2] = LE_ESCAPE;
-    curr_source_line[du_len+3] = LE_END_OF_LINE;
-    curr_char_loc = curr_source_line;
-    proc_define();
-    /* Reset curr_command_line_macro_def so that diagnostics are no longer
-       attributed to the command-line option we just processed. */
-    curr_command_line_macro_def = NULL;
   }  /* while */
   in_preprocessing_directive = FALSE;
   fetch_pp_tokens = save_fetch_pp_tokens;
@@ -5539,14 +5571,6 @@ Enter symbols for predefined macros, including those established by
 command line -D options.
 */
 {
-  a_def_undef_string_ptr
-                   du_ptr;
-  char             *du_str, *id_start;
-  sizeof_t         id_len;
-  a_boolean        err, suppress_error;
-  a_symbol_ptr     assoc_symbol;
-  a_symbol_locator locator;
-
   if (targ_has_signed_chars) {
     /* Target has signed characters. */
     /* Enter macro __SIGNED_CHARS__, which is used to modify the definition
@@ -5876,44 +5900,19 @@ command line -D options.
   enter_system_specific_predefined_macros_and_assertions();
   /* Look for a file containing predefined macro definitions. */
   if (use_predefined_macro_file) process_predefined_macro_file();
-  /* Now process command-line defines of symbols (-D). */  
-  process_command_line_macro_definitions(defs_from_cmd_line);
-  /* Now undefines (-U).  Note that since they are done together after the
-     defines, they take precedence over them (which is how cpp does it). */
-  du_ptr = undefs_from_cmd_line;
-  while (du_ptr != NULL) {
-    err = FALSE;
-    suppress_error = FALSE;
-    du_str = du_ptr->text;
-#if DEBUG
-    if (debug_level >= 4) {
-      fprintf(f_debug, "Command-line undef: %s\n", du_str);
-    }  /* if */
-#endif /* DEBUG */
-    id_start = du_str;
-    id_len = strlen(id_start);
-    /* Check the identifier to make sure it is valid. */
-    if (!is_valid_identifier(id_start, id_len, &assoc_symbol, &locator)) {
-      err = TRUE;
-      /* The Microsoft compiler ignores invalid definitions. */
-      if (microsoft_mode) suppress_error = TRUE;
-    } else {
-      if (assoc_symbol != NULL) {
-        if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
-          /* The macro is predefined; one is not allowed to undefine it. */
-          err = TRUE;
-        } else {
-          /* Remove the macro's definition.  The a_macro_def entry pointed to
-             by the symbol is not freed, and is therefore just lost.  */
-          remove_symbol(assoc_symbol);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    if (err && !suppress_error) {
-      str_command_line_error(ec_cl_invalid_macro_undefinition, du_str);
-    }  /* if */
-    du_ptr = du_ptr->next;
-  }  /* while */
+  /* The cpp preprocessor first processes all the -D options, and later all
+     the -U options: That is our default behavior as well.  However, the GNU
+     preprocessor processes the options in the order they appear: We emulate
+     that behavior in GNU modes. */
+  if (gnu_mode) {
+    process_command_line_macro_definitions(/*process_defs=*/TRUE,
+                                           /*process_undefs=*/TRUE);
+  } else {
+    process_command_line_macro_definitions(/*process_defs=*/TRUE,
+                                           /*process_undefs=*/FALSE);
+    process_command_line_macro_definitions(/*process_defs=*/FALSE,
+                                           /*process_undefs=*/TRUE);
+  }  /* if */
 }  /* init_predefined_macros */
 
 
@@ -6038,7 +6037,6 @@ Do one-time initialization of variables related to macro processing.
      for the primary translation unit, but are overwritten when loading
      exported template files. */
   register_trans_unit_variable(defs_from_cmd_line);
-  register_trans_unit_variable(undefs_from_cmd_line);
 }  /* macro_one_time_init */
 
 

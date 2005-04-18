@@ -1458,8 +1458,7 @@ typedef struct a_template_param {
 typedef struct a_def_undef_string *a_def_undef_string_ptr;
 typedef struct a_def_undef_string {
   /* Used to save -D (define symbol) and -U (undefined symbol) command-line
-     arguments.  There are separate lists for def and undef, so the
-     entry itself need not identify the function involved. */
+     arguments. */
   a_def_undef_string_ptr
 		next;
 			/* Next entry on this list, or NULL if this is the
@@ -1467,6 +1466,9 @@ typedef struct a_def_undef_string {
   char		*text;
 			/* The text of the argument (i.e., "x=1" for the
 			   option "-Dx=1", "x" for "-Ux"). */
+  a_boolean
+		is_undef;
+			/* TRUE if this an entry for a -U argument. */
 } a_def_undef_string;
 
 

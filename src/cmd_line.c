@@ -49,11 +49,6 @@ static a_def_undef_string_ptr
 			/* Points to the last element in the list
 			   defs_from_cmd_line. */
 
-static a_def_undef_string_ptr
-		last_undefs_from_cmd_line;
-			/* Points to the last element in the list
-			   undefs_from_cmd_line. */
-
 /*
 Structure used to map keyword and/or letter options into the
 corresponding option kind.  There may be multiple option descriptions
@@ -1315,7 +1310,8 @@ end_of_routine:
 
 void add_to_def_undef_list(char                   *str,
                            a_def_undef_string_ptr *du_list,
-                           a_def_undef_string_ptr *du_list_end)
+                           a_def_undef_string_ptr *du_list_end,
+                           a_boolean              is_undef)
 /*
 Add the string pointed to by str (which comes from a command-line -D
 or -U macro define/undefine option) to the list of def/undef strings
@@ -1331,6 +1327,7 @@ pointed to by *du_list.  The end of the list is pointed to by
   du_new = (a_def_undef_string_ptr)alloc_general(sizeof(a_def_undef_string));
   du_new->next = NULL;
   du_new->text = str;
+  du_new->is_undef = is_undef;
   /* Add the new entry to the end of the list of defs or undefs. */
   if (*du_list_end != NULL) (*du_list_end)->next = du_new;
   *du_list_end = du_new;
@@ -3395,13 +3392,13 @@ Process the arguments on the command line that invoked the compiler.
         /* Define a macro symbol.  Just save the string for later
            processing. */
         add_to_def_undef_list(opt_arg, &defs_from_cmd_line,
-                              &last_defs_from_cmd_line);
+                              &last_defs_from_cmd_line, /*is_undef=*/FALSE);
         break;
       case optk_undefine_macro:
         /* Undefine a macro symbol.  Just save the string for later
            processing. */
-        add_to_def_undef_list(opt_arg, &undefs_from_cmd_line,
-                              &last_undefs_from_cmd_line);
+        add_to_def_undef_list(opt_arg, &defs_from_cmd_line,
+                              &last_defs_from_cmd_line, /*is_undef=*/TRUE);
         break;
       case optk_set_error_limit:
         /* Set error limit (numbers of errors at which to give up on
@@ -4558,7 +4555,6 @@ variables declared in cmd_line.h.
   option_descriptions_used = 0;
   opt_ind = 1;
   last_defs_from_cmd_line = NULL;
-  last_undefs_from_cmd_line = NULL;
   optchar = NULL;
   memzero(option_kind_used, sizeof(option_kind_used));
   old_style_preprocessing = FALSE;
@@ -4678,7 +4674,6 @@ variables declared in cmd_line.h.
   special_subscript_cost = DEFAULT_SPECIAL_SUBSCRIPT_COST;
   long_preserving_rules = DEFAULT_LONG_PRESERVING_RULES;
   defs_from_cmd_line = NULL;
-  undefs_from_cmd_line = NULL;
   allow_dollar_in_id_chars = DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS;
   display_compilation_time = FALSE;
   instantiation_mode = DEFAULT_INSTANTIATION_MODE;

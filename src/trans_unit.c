@@ -664,7 +664,6 @@ treated as separate translation units of a single compilation.
        primary translation unit. */
     char	*dir_name;
     defs_from_cmd_line = exported_file->define_list;
-    undefs_from_cmd_line = exported_file->undefine_list;
     incl_search_path = exported_file->incl_search_path;
     sys_incl_search_path = exported_file->sys_incl_search_path;
     end_incl_search_path = exported_file->end_incl_search_path;

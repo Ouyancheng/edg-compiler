@@ -18044,8 +18044,6 @@ This routine reads all of the entries from a given exported template file.
   an_exported_template_file_ptr	etfp = NULL;
   a_def_undef_string_ptr	def_list = NULL;
   a_def_undef_string_ptr	def_end = NULL;
-  a_def_undef_string_ptr	undef_list = NULL;
-  a_def_undef_string_ptr	undef_end = NULL;
 
   f_exported_template_input =
                         open_exported_template_file_for_input(file_name, dnep);
@@ -18075,7 +18073,6 @@ This routine reads all of the entries from a given exported template file.
       /* The end of the entries for this file. */
       /* Set the command-line macro information. */
       etfp->define_list = def_list;
-      etfp->undefine_list = undef_list;
       /* See if the translation unit associated for this exported template file
          has already been loaded. */
       check_for_already_loaded_trans_unit(etfp);
@@ -18100,12 +18097,14 @@ This routine reads all of the entries from a given exported template file.
       /* Add a command-line macro definition. */
       char	*macro_text = &line[4];
       macro_text = copy_string_to_region(FRONT_END_REGION_NUMBER, macro_text);
-      add_to_def_undef_list(macro_text, &def_list, &def_end);
+      add_to_def_undef_list(macro_text, &def_list, &def_end,
+                            /*is_undef=*/FALSE);
     } else if (line_type == etlt_macro_undef) {
       /* Add a command-line macro undefine. */
       char	*macro_text = &line[4];
       macro_text = copy_string_to_region(FRONT_END_REGION_NUMBER, macro_text);
-      add_to_def_undef_list(macro_text, &undef_list, &undef_end);
+      add_to_def_undef_list(macro_text, &def_list, &def_end,
+                            /*is_undef=*/TRUE);
     } else {
       unexpected_condition_str("read_exported_template_file: bad line kind");
     }  /* if */
@@ -19053,18 +19052,18 @@ are being used).
 
 
 static void write_macro_information_to_exported_template_file(
-				a_def_undef_string_ptr		du_list,
-				an_exported_template_line_type	line_type)
+                                              a_def_undef_string_ptr  du_list)
 /*
 Output the command-line macro definitions and undefines to the exported
-template file.  "du_list" points to a list of def/undef entries.  "line_type"
-is the line type to be used for the entries written to the file.
+template file.  "du_list" points to a list of def/undef entries.
 */
 {
   a_def_undef_string_ptr	dusp;
 
   for (dusp = du_list; dusp != NULL; dusp = dusp->next) {
-    write_to_exported_template_file(line_type, dusp->text);
+    write_to_exported_template_file(dusp->is_undef ? etlt_macro_undef
+                                                   : etlt_macro_def,
+                                    dusp->text);
   }  /* for */
 }  /* write_macro_information_to_exported_template_file */
 
@@ -19084,10 +19083,7 @@ Create the exported template information file.
     write_to_exported_template_file(etlt_module_id, make_module_id());
 #endif /* MODULE_ID_NEEDED */
     /* Output information about command-line macro definitions. */
-    write_macro_information_to_exported_template_file(defs_from_cmd_line,
-                                                      etlt_macro_def);
-    write_macro_information_to_exported_template_file(undefs_from_cmd_line,
-                                                      etlt_macro_undef);
+    write_macro_information_to_exported_template_file(defs_from_cmd_line);
   }  /* if */
 }  /* generate_exported_template_information */
 

@@ -611,8 +611,7 @@ EXTERN a_boolean
 			   not the rules used by the pcc compiler. */
 
 EXTERN a_def_undef_string_ptr
-		defs_from_cmd_line,
-		undefs_from_cmd_line;
+		defs_from_cmd_line;
 			/* The list of -D and -U options from the command
 			   line, defining and undefining macro symbols. */
 
@@ -1347,7 +1346,8 @@ extern void cmd_line_early_init(void);
 
 extern void add_to_def_undef_list(char                   *str,
                                   a_def_undef_string_ptr *du_list,
-                                  a_def_undef_string_ptr *du_list_end);
+                                  a_def_undef_string_ptr *du_list_end,
+                                  a_boolean              is_undef);
 
 #if MAKE_FRONT_END_CALLABLE
 extern void cmd_line_cleanup(void);
