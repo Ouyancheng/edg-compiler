@@ -11361,7 +11361,7 @@ TRUE if the declaration following this one is such a continuation.
     if (rout->is_explicit_constructor && decl_within_class) {
       write_tok_str("explicit ");
     }  /* if */
-    gen_microsoft_routine_decl_modifiers(rout, /*is_definition=*/FALSE);
+    gen_microsoft_routine_decl_modifiers(rout, is_definition);
   }  /* if */
   /* An unqualified name is used in the declarator if this is a declaration
      rather than a definition.  Specializations are an exception, and

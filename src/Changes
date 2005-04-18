@@ -1,5 +1,11 @@
 Version 3.6
 
+4/18/05  C++-generating back end: __declspec(naked)
+
+The change to emit Microsoft-specific declaration modifiers in explicit
+instantiation directives (1/7/04) inadvertently prevented generation of the
+__declspec(naked) modifier on function definitions.  Now fixed.
+
 4/18/05  GNU compatibility: -D and -U command-line options
 
 Traditionally, the command-line option -U takes precedence over the -D option.
