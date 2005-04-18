@@ -1,5 +1,23 @@
 Version 3.6
 
+4/18/05  Failure to fold compile-time address arithmetic
+
+Certain configurations failed to fold cases like the following at
+compile time.  The key attributes are an address cast to an unsigned
+integral type minus a value so large that the operation overflows
+the an_integer_value representation.  Now fixed.
+
+  struct foo{
+     unsigned long x;
+  };
+  int arr[10];
+  struct foo f = {
+    ((unsigned long)arr) - ((unsigned long)0x80000001UL)
+  };
+  int main() {
+    return 0;
+  }
+
 4/13/05  C++-generating back end: Microsoft compatibility for default
          arguments of member functions
 

@@ -4025,7 +4025,7 @@ detected, or *err_code == ec_no_error if everything went fine.
   a_targ_size_t    size;
   an_integer_value op2;
   a_constant       offset;
-  a_boolean        err, offset_is_signed, op2_is_signed, just_past_end;
+  a_boolean        err, offset_is_signed = FALSE, op2_is_signed, just_past_end;
   a_boolean        integer_case = FALSE;
 
   *err_code = ec_no_error;
@@ -4081,6 +4081,8 @@ detected, or *err_code == ec_no_error if everything went fine.
     /* Build the result pointer constant. */
     copy_constant(constant_1, result);
     set_pointer_offset(result, &offset, &err);
+    /* If this was an unsigned integer operation, overflow is ignored. */
+    if (integer_case && !offset_is_signed) err = FALSE;
   }  /* if */
   if (err) {
     /* Some folding error. */
