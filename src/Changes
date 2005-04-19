@@ -1,5 +1,26 @@
 Version 3.6
 
+4/19/05  GNU C++ compatibility: dependent name lookup when gnu_version >= 30400
+
+When the gnu_version variable was introduced, the emulation of certain
+g++ dependent name features was disabled when gnu_version is >= 30400.
+Some of the disabled features are actually still required in order to
+correctly emulate the behavior of g++ 3.4.  These feature have now been
+re-enabled.
+
+  int f(const char *);
+  template <typename T> struct A {
+    void f(T it) {}
+  };
+  template<typename T> struct B : public A<T> {
+    T t;
+    B() { f(t); }
+  };
+  struct C {};
+  int main() {
+    B<C> b;
+  }
+
 4/19/05  GNU C++ compatibility: Spurious error on qualified friend declaration
 
 In some situations in GNU C++ mode, the front end sometimes issued a spurious

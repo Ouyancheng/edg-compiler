@@ -3182,7 +3182,7 @@ C and C++.
          symbol from the second lookup.  In addition, if both lookups find
          fields, use the result of the second lookup.  This occurs when
          the first lookup finds a field from an enclosing class and the second
-         finds one from a base class. */
+         finds one from a base class (gnu_version < 30400). */
       a_symbol_ptr	new_sym;
       a_symbol_ptr	fund_sym;
       lookup_state.force_lookup_in_dependent_bases = TRUE;
@@ -3197,7 +3197,8 @@ C and C++.
         a_symbol_ptr	fund_new_sym = fundamental_symbol_of(new_sym);
         if (is_function_or_template_symbol(fund_new_sym)) {
           sym = new_sym;
-        } else if (fund_new_sym->kind == (a_symbol_kind)sk_field &&
+        } else if (gnu_version < 30400 &&
+                   fund_new_sym->kind == (a_symbol_kind)sk_field &&
                    sym->kind == (a_symbol_kind)sk_field) {
           sym = new_sym;
         }  /* if */

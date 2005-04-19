@@ -2716,14 +2716,8 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   if (!(option_kind_used[(int)optk_alternative_tokens])) {
     alternative_tokens_allowed = TRUE;
   }  /* if */
-  if (gnu_version < 30400) {
-    /* Early versions of GNU C++ don't look unqualified names up in dependent
-       base classes (without however applying all the two-phase name lookup
-       rules). */
-    gpp_dependent_name_lookup = TRUE;
-  } else {
-    /* Version 3.4 of GNU C++ introduces standard parsing and name lookup for
-       templates. */
+  if (gnu_version >= 30400) {
+    /* Version 3.4 of GNU C++ introduces standard parsing for templates. */
     if (!(option_kind_used[(int)optk_dependent_name_processing])) {
       /* If dependent name processing was not explicitly set by a command line
          option, set it now. */
@@ -2735,6 +2729,12 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
       nonclass_prototype_instantiations = TRUE;
     }  /* if */
   }  /* if */
+  /* Even though g++ version 3.4 is more standard conforming with respect to
+     name lookup in templates, many of the idiosyncrasies of earlier g++
+     versions are still present in g++ 3.4.  Some of the tests of
+     gpp_dependent_name_lookup also test gnu_version in cases where 3.4
+     has fixed a lookup problem present in earlier versions. */
+  gpp_dependent_name_lookup = TRUE;
   /* g++ uses special rules for determining which using-directives should be
      visible during template instantiations. */
   gpp_using_directive_lookup = TRUE;
