@@ -5201,7 +5201,7 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
          attributed to the command-line option we just processed. */
       curr_command_line_macro_def = NULL;
     }  /* if */
-  }  /* while */
+  }  /* for */
   in_preprocessing_directive = FALSE;
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
