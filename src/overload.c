@@ -2429,8 +2429,12 @@ FALSE otherwise.
  
     /* This symbol is not visible in this template instantiation (it
        was declared after the template definition). */
-    visible = FALSE;
-    goto end_of_function;
+    if (gpp_mode && gnu_version >= 30400) {
+      /* g++ 3.4 has a bug and considers such symbols visible. */
+    } else {
+      visible = FALSE;
+      goto end_of_function;
+    }  /* if */
   }  /* if */
   if (!function_template_case) {
     /* The symbol is not a function template (i.e., it's a normal function). */
@@ -5048,6 +5052,16 @@ in_instantiation:
       normal_lookup_function_symbol = sym_is_undefined ?
                                                     NULL :
                                                     overloaded_function_symbol;
+      if (gpp_mode && gnu_version >= 30400 && dependent_call) {
+        /* g++ 3.4 has a bug with dependent name lookup -- it does not
+           ignore entities declared later in the compilation.  Redo the
+           lookup, suppressing that part of the processing. */
+        clear_specific_symbol(locator);
+        normal_lookup_function_symbol = normal_id_lookup(
+                                                  &locator,
+                                                  IDL_IS_EXPR_CONTEXT |
+                                                  IDL_SUPPRESS_DECL_SEQ_CHECK);
+      }  /* if */
       symbol_list = argument_dependent_lookup(normal_lookup_function_symbol,
                                               &locator,
                                               &type_list);
@@ -9678,10 +9692,11 @@ such cases (where operator overloading might apply, but we can't tell).
         }  /* if */
         /* Find any non-member function for the operator. */
         if (!must_be_member_function) {
-          a_symbol_ptr            normal_sym;
-          a_symbol_locator        locator;
-          a_type_list_entry_ptr   type_list = NULL;
-          a_symbol_list_entry_ptr symbol_list, slep;
+          a_symbol_ptr             normal_sym;
+          a_symbol_locator         locator;
+          a_type_list_entry_ptr    type_list = NULL;
+          a_symbol_list_entry_ptr  symbol_list, slep;
+          an_id_lookup_options_set idl_options;
           /* If the second operand has a template class type, try to
              instantiate it to expose any friend functions it declares. */
           if (!unary_operator && is_class_struct_union_type(operand_2->type)) {
@@ -9691,7 +9706,14 @@ such cases (where operator overloading might apply, but we can't tell).
              look up "operator +".  Ignore member functions, which were
              covered above. */
           make_opname_locator(kind, &locator, operator_position);
-          normal_sym = normal_id_lookup(&locator, IDL_SKIP_CLASS_SCOPES);
+          idl_options = IDL_SKIP_CLASS_SCOPES;
+          if (gpp_mode && gnu_version >= 30400 && dependent_call) {
+            /* g++ 3.4 has a bug in dependent name lookup that allows
+               entities declared after the point of lookup to be found.
+               Emulate that. */
+            idl_options = IDL_SUPPRESS_DECL_SEQ_CHECK;
+          }  /* if */
+          normal_sym = normal_id_lookup(&locator, idl_options);
           if (normal_sym != NULL &&
               !is_function_or_template_symbol(normal_sym)) {
             /* Ignore error symbols and like. */

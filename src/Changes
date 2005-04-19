@@ -1,5 +1,20 @@
 Version 3.6
 
+4/19/05  GNU C++ compatibility: dependent name lookup sees entities declared
+         after point of reference
+
+The emulation for dependent name lookup in templates in GNU C++ 3.4
+mode has been altered so that entities declared after the point of
+reference are visible (contrary to what the standard specifies).
+
+  template <class _ForwardIterator>
+  void __destroy_aux(_ForwardIterator __first) { _Destroy(&*__first); }
+  template <class _Tp> void _Destroy(_Tp* __pointer) { ; }
+  int main() {
+    int* ip;
+    __destroy_aux(ip);
+  }
+
 4/19/05  C++-generating back end: Microsoft compatibility for
          using-declarations with namespace-qualified template-ids as
          qualifiers
