@@ -1468,7 +1468,7 @@ typedef struct a_def_undef_string {
 			   option "-Dx=1", "x" for "-Ux"). */
   a_boolean
 		is_undef;
-			/* TRUE if this an entry for a -U argument. */
+			/* TRUE if this is an entry for a -U argument. */
 } a_def_undef_string;
 
 
