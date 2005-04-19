@@ -9014,6 +9014,7 @@ Generate code for a class member or nonmember using-declaration.
   a_source_correspondence  *scp = NULL;
   an_il_entry_kind         entry_kind;
   a_namespace_ptr          nsp;
+  a_boolean                used_generated_typedef = FALSE;
 
   /* Advance past the source sequence entry for the "using" directive. */
   adv_curr_source_sequence_entry();
@@ -9025,6 +9026,7 @@ Generate code for a class member or nonmember using-declaration.
   check_assertion(scp != NULL);
   if (udp->is_class_member) {
     /* A class member using-declaration. */
+    a_type_ptr class_type = udp->qualifier.class_type;
     /* Put out an access specifier if necessary to change the current
        access.  Note that this is done based on the current name context
        and not based on the is_class_member flag of the using-declaration
@@ -9032,6 +9034,18 @@ Generate code for a class member or nonmember using-declaration.
        to a class member. */
     if (curr_name_context_is_a_class()) {
       gen_member_access_specifier(udp->access);
+    }  /* if */
+    if (msvc_is_generated_code_target &&
+        msvc_target_version_number == 1200 &&
+        curr_name_context_is_a_class() &&
+        !class_type->source_corresp.is_class_member &&
+        class_type->source_corresp.parent.namespace_ptr != NULL &&
+        class_type->variant.class_struct_union.extra_info->template_arg_list
+                                                                     != NULL) {
+      /* MSVC++ 6.0 cannot handle a qualifier of the form NS::cls<arg>::...
+         Instead, we generate a typedef and use that. */
+      establish_replacement_typedef(class_type, /*set=*/TRUE);
+      used_generated_typedef = TRUE;
     }  /* if */
 #if USING_DECLARATIONS_IN_GENERATED_CODE
     /* Older compilers may not accept class member using-declarations and
@@ -9043,8 +9057,10 @@ Generate code for a class member or nonmember using-declaration.
        although this is not a "bound member" access, names in
        using-declarations are subject to the same restrictions on the form
        of qualification as those of bound members.)  */
-    gen_class_qualifier(udp->qualifier.class_type,
-                        GN_BOUND_MEMBER, (a_boolean *)NULL);
+    gen_class_qualifier(class_type, GN_BOUND_MEMBER, (a_boolean *)NULL);
+    if (used_generated_typedef) {
+      establish_replacement_typedef(class_type, /*set=*/FALSE);
+    }  /* if */
   } else {
     /* A nonmember using-declaration. */
     write_tok_str("using ");

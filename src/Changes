@@ -1,5 +1,25 @@
 Version 3.6
 
+4/19/05  C++-generating back end: Microsoft compatibility for
+         using-declarations with namespace-qualified template-ids as
+         qualifiers
+
+The Microsoft 6.0 compiler reports spurious errors on using-declarations like
+the following:
+
+  namespace N {
+    template<bool B> struct S {
+      enum { value = B };
+    };
+  }
+  struct D: N::S<false> {
+    using N::S<false>::value;  // error in MSVC++6.0
+  };
+
+The C++-generating back end will now use a generated typedef for qualifiers
+of this kind when msvc_is_generated_code_target is TRUE and
+msvc_target_version_num is 1200.
+
 4/19/05  GNU C++ compatibility: visibility of using-directives in g++ 3.4 mode
 
 In g++ mode, when gnu_version is >= 30400 certain using-directives that should
