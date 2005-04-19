@@ -60,7 +60,7 @@ __declspec(naked) modifier on function definitions.  Now fixed.
 
 Traditionally, the command-line option -U takes precedence over the -D option.
 For example, "-DF=1 -UF -DF=2" is normally equivalent to "-UF".  However, the
-GNU preprocessor process the options in the order given on the command line
+GNU preprocessor handles the options in the order given on the command line
 (i.e., the previous example is equivalent to "-DF=2").  We have changed our
 behavior to match that of the GNU preprocessor in GNU modes.  In other modes,
 the traditional behavior is still in effect.
