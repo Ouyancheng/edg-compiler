@@ -146,11 +146,14 @@ represented as a bit set:
 			           that name but do not create a projection
 				   symbol. */
 #define IDL_SUPPRESS_DECL_SEQ_CHECK 0x200000
-				/* For namespace and file-scope qualified
-				   lookups, suppress the check of the
-				   declaration sequence number during
-				   instantiation lookups.  This is used
-				   for argument-dependent lookups. */
+				/* For normal, namespace qualified and
+				   file-scope qualified lookups, suppress
+				   the check of the declaration sequence number
+				   during instantiation lookups.  For namespace
+				   and file-scope qualified lookups, this is
+				   used for argument-dependent lookups.  For
+				   normal lookups, this is used for g++
+				   lookup emulation. */
 #define IDL_IS_EXPR_CONTEXT 0x400000
 				/* Flag that indicates a lookup in an
 				   expression context.  Controls the kind
