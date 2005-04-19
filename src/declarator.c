@@ -3578,8 +3578,8 @@ be a function.
                      ssep->kind == (a_scope_kind)sck_namespace_extension) &&
                     ssep->il_scope->variant.assoc_namespace ==
                               qualifier_namespace_ptr(locator_for_curr_id)) ||
-            (ssep->kind == (a_scope_kind)sck_file &&
-             qualifier_namespace_ptr(locator_for_curr_id) == NULL)) {
+                   (ssep->kind == (a_scope_kind)sck_file &&
+                    qualifier_namespace_ptr(locator_for_curr_id) == NULL)) {
           an_error_severity  severity = es_discretionary_error;
           an_error_code      err_code;
           a_boolean          keep_qualifier = FALSE;
@@ -3593,8 +3593,13 @@ be a function.
                provided it is for a redeclaration.  In general, we cannot
                verify that this is a redeclaration at this point; so it has to
                be checked later (e.g., in decl_variable or decl_routine). */
-             a_symbol_ptr  prev_sym =
+            /* Save the symbol pointed to by the current locator so we can
+               undo the side-effect of curr_scope_id_lookup. */
+            a_symbol_ptr  prev_locator_sym =
+                                           locator_for_curr_id.specific_symbol;
+            a_symbol_ptr  prev_sym =
                     curr_scope_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+            locator_for_curr_id.specific_symbol = prev_locator_sym;
             if (prev_sym != NULL && !is_tag_symbol(prev_sym) &&
                 ssep == &scope_stack[depth_scope_stack]) {
               severity = strict_ansi_mode ? es_discretionary_error : es_remark;
@@ -3626,7 +3631,10 @@ be a function.
             */
             set_to_named_error_locator(locator_for_curr_id);
           }  /* if */
-          if (ssep->kind == (a_scope_kind)sck_file) {
+          if (gpp_mode && (input_flags & DI_IS_FRIEND_DECL) &&
+              (int)severity <= (int)es_warning) {
+            err_code = ec_friend_qualification_ignored;
+          } else if (ssep->kind == (a_scope_kind)sck_file) {
             err_code = ec_nonstd_qualifier_in_global_scope_decl;
           } else if ((int)severity <= (int)es_warning) {
             err_code = ec_nonstd_qualifier_in_namespace_member_decl;

@@ -1,5 +1,23 @@
 Version 3.6
 
+4/19/05  GNU C++ compatibility: Spurious error on qualified friend declaration
+
+In some situations in GNU C++ mode, the front end sometimes issued a spurious
+error on a friend function declaration with a qualified name.  For example:
+
+  namespace A {
+    void A();
+    struct A {
+      friend void ::A::A();  // Triggered a spurious error.
+    };
+  }
+
+This is now fixed.  Furthermore, a warning was issued incorrectly suggesting
+that the use of a qualified name is nonstandard in such cases.  The warning
+has been corrected to instead indicate that the qualifier is ignored (a GNU
+C++ behavior that can subtly change the meaning of the friend declaration;
+see Changes entry of 11/2/04).
+
 4/19/05  GNU C++ compatibility: dependent name lookup sees entities declared
          after point of reference
 
