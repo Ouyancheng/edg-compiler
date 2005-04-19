@@ -2978,6 +2978,7 @@ precedence confusion.  Do the output in the way described by octl.
          this handles is cases that require just qualification adjustments. */
       final_cast_needed = TRUE;
     }  /* if */
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   } else if (msvc_is_generated_code_target &&
              constant->kind == (a_constant_repr_kind)ck_address &&
              constant->variant.address.kind ==
@@ -3002,6 +3003,7 @@ precedence confusion.  Do the output in the way described by octl.
        if the array type is still incomplete, as MSVC++ cannot handle a cast
        to a reference to an array of unknown bound). */
     final_cast_needed = TRUE;
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   }  /* if */
   if (final_cast_needed) {
     /* Generate a final cast to the constant type. */
