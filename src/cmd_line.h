@@ -511,6 +511,13 @@ EXTERN a_boolean
 			   definition of the template are ignored. */
 
 EXTERN a_boolean
+		gpp_using_directive_lookup;
+			/* TRUE if special rules should be used to determine
+			   which using-directives should be visible during
+			   template instantiations in order to emulate the
+			   behavior of g++. */
+
+EXTERN a_boolean
 		friend_class_decl_can_find_using_dir;
 			/* TRUE if a friend class declaration can find names
 			   made visible by using-directives.  This is used

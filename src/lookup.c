@@ -1964,7 +1964,7 @@ of the lookup is returned to the caller.
        if the using-directive was visible at the point of definition of the
        template. */
     if (&scope_stack[ns_depth] == ssep &&
-        (!gpp_dependent_name_lookup ||
+        (!gpp_using_directive_lookup ||
          (is_function_or_template_symbol(new_sym) ||
           (nssp->using_dir_decl_seq <= lookup_state->using_dir_decl_seq ||
            lookup_state->using_dir_decl_seq == NO_DECL_SEQUENCE_NUMBER)))) {
@@ -2899,7 +2899,7 @@ that do normal id lookup processing.
     fprintf(f_debug, "common=%d\n", common_depth);
   }  /* if */
 #endif /* DEBUG */
-  if (gpp_dependent_name_lookup) {
+  if (gpp_using_directive_lookup) {
     /* f_get_effective_decl_seq is used to force the declaration sequence
        to be fetched even when not doing dependent name processing. */
     lookup_state->using_dir_decl_seq = f_get_effective_decl_seq();

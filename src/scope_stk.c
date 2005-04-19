@@ -1530,7 +1530,7 @@ specified after the point of definition of the template.
       if (set_value &&
           ssep->kind != (a_scope_kind)sck_block &&
           ssep->kind != (a_scope_kind)sck_function &&
-          (!gpp_dependent_name_lookup &&
+          (!gpp_using_directive_lookup &&
            (effective_decl_seq != NO_DECL_SEQUENCE_NUMBER &&
            (audp->effective_decl_seq > effective_decl_seq)))) {
         /* This using-directive became effective after the point that the
@@ -1538,7 +1538,7 @@ specified after the point of definition of the template.
            test is ignored for block scope using directives, because any
            ones that are on the list are visible, and the declaration sequence
            number test will fail for these declarations.  In
-           gpp_dependent_name_lookup mode, the using-directive is made active,
+           gpp_using_directive_lookup mode, the using-directive is made active,
            but certain symbols are ignored later. */
         continue;
       }  /* if */
@@ -3464,7 +3464,7 @@ is pushed here, and popped when the instantiation scope is popped.
     { a_decl_sequence_number	decl_seq;
       /* Set the active using flags for the newly created context. */
       decl_seq = decl_info->decl_seq;
-      if (!do_dependent_name_processing && !gpp_dependent_name_lookup &&
+      if (!do_dependent_name_processing && !gpp_using_directive_lookup &&
           (assoc_routine != NULL || assoc_type != NULL)) {
         /* When not doing dependent name lookup, all using-directives are
            considered (not just the ones that should be visible), except

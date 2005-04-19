@@ -1,5 +1,20 @@
 Version 3.6
 
+4/19/05  GNU C++ compatibility: visibility of using-directives in g++ 3.4 mode
+
+In g++ mode, when gnu_version is >= 30400 certain using-directives that should
+have been visible were ignored resulting in lookup errors.  Now fixed.
+
+  namespace N {}
+  namespace M { template <class T> class A {}; }
+  namespace O {
+    using namespace N;
+    using namespace M;
+    template <class T> struct B : public A<T> { B() : A<T>() {} };
+    B<int> obj;
+  }
+  namespace N { using namespace O; }
+
 4/18/05  C++-generating back end: __declspec(naked)
 
 The change to emit Microsoft-specific declaration modifiers in explicit

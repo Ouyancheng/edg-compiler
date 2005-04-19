@@ -2735,6 +2735,9 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
       nonclass_prototype_instantiations = TRUE;
     }  /* if */
   }  /* if */
+  /* g++ uses special rules for determining which using-directives should be
+     visible during template instantiations. */
+  gpp_using_directive_lookup = TRUE;
   /* A friend class declaration finds names made visible by
      using-directives. */
   friend_class_decl_can_find_using_dir = TRUE;
@@ -4633,6 +4636,7 @@ variables declared in cmd_line.h.
   friend_injection_enabled = DEFAULT_FRIEND_INJECTION;
   do_dependent_name_processing = DEFAULT_DEPENDENT_NAME_PROCESSING;
   gpp_dependent_name_lookup = FALSE;
+  gpp_using_directive_lookup = FALSE;
   friend_class_decl_can_find_using_dir = FALSE;
   nonclass_prototype_instantiations = DEFAULT_DEPENDENT_NAME_PROCESSING;
   defer_friend_instantiation = TRUE;
