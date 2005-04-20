@@ -33,7 +33,7 @@ This behavior is now emulated in GNU C++ modes with gnu_version >= 30400.
 When the gnu_version variable was introduced, the emulation of certain
 g++ dependent name features was disabled when gnu_version is >= 30400.
 Some of the disabled features are actually still required in order to
-correctly emulate the behavior of g++ 3.4.  These feature have now been
+correctly emulate the behavior of g++ 3.4.  These features have now been
 re-enabled.
 
   int f(const char *);
