@@ -1908,7 +1908,7 @@ unit.
          even if the virtual function table is not defined. */
       if (force_static) definition_needed = TRUE;
 #if IA64_ABI
-      use_comdat = (vtbl_var->comdat_group != NULL);
+      use_comdat = !force_static;
       if (!generate_rtti_typeinfo) {
         /* Not generating RTTI information (e.g., --no_rtti has been
            specified).  g++ with -fno-rtti decouples the generation of
