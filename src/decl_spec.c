@@ -4345,6 +4345,7 @@ is a that of a constructor.
   a_boolean          is_constructor = FALSE;
   a_symbol_ptr       tag_sym, sym;
   a_symbol_ptr       ctor_type_sym;
+  a_symbol_ptr       fund_ctor_type_sym = NULL;
   a_token_cache      cache;
   a_boolean          cache_in_use = FALSE;
   a_source_position  pos;
@@ -4373,6 +4374,9 @@ is a that of a constructor.
      since the tokens will have to be rescanned no matter what. */
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   ctor_type_sym = locator_for_curr_id.specific_symbol;
+  if (ctor_type_sym != NULL) {
+    fund_ctor_type_sym = fundamental_symbol_of(ctor_type_sym);
+  }  /* if */
   if (locator_for_curr_id.symbol_header == tag_sym->header) {
     name_match = TRUE;
     if (ctor_type_sym != NULL) {
@@ -4382,6 +4386,15 @@ is a that of a constructor.
                  ctor_type_sym->variant.type.is_injected_class_name &&
                  same_entities(ctor_type_sym->variant.type.ptr, class_type)) {
         /* The type specified is the injected class symbol.  This is okay. */
+      } else if (microsoft_mode && fund_ctor_type_sym != NULL &&
+                 ctor_type_sym != fund_ctor_type_sym &&
+                 fund_ctor_type_sym->variant.type.is_injected_class_name &&
+                 is_template_class_and_not_specific_def_symbol(tag_sym)) {
+        /* The symbol found is the injected class name from a base class of
+           a template class with the same name as the derived class.  Because
+           the Microsoft compiler does not create an injected class name for
+           nonspecialized template classes, we should ignore the injected class
+           name found from the base class. */
       } else {
         /* The names match, but the types don't.  This happens in templates
            when the class name is "A" but the constructor was specified as
