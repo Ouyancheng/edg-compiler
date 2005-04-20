@@ -1,5 +1,21 @@
 Version 3.6
 
+4/20/05  GNU C++ compatibility: Incomplete field types in templates
+
+In GNU C++ mode with gnu_version < 30400, the front end accepts fields with
+incomplete types while parsing templates (the types must be complete when the
+template is instantiated).  When gnu_version >= 30400, incomplete field types
+were not accepted in templates.  However, g++ 3.4 does accept incomplete field
+types if they are parameterized.  For example:
+
+  template<typename T> struct X {
+    struct N {
+      X<T> x;  // Accepted in all GNU C++ modes.  An error in strict mode.
+    };
+  };
+
+This behavior is now emulated in GNU C++ modes with gnu_version >= 30400.
+
 4/19/05  GNU C++ compatibility: dependent name lookup when gnu_version >= 30400
 
 When the gnu_version variable was introduced, the emulation of certain
