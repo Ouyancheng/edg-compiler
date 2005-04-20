@@ -4399,13 +4399,15 @@ function_lparen:
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode && is_nonstatic_member_function &&
+            member_parent_type != NULL && derived_type == NULL &&
             !(input_flags & DI_IS_TYPEDEF_DECLARATION) &&
             scope_stack[decl_scope_level].kind ==
                                        (a_scope_kind)sck_class_struct_union) {
           /* Microsoft mode allows for "selective virtual overriders" in which
              a qualified name is used for a member function declaration.
              However, in that case the member_parent_type is not the type
-             used as a qualifier, but the enclosing class. */
+             used as a qualifier, but the enclosing class.  This is only an
+             issue for top-level type declarators scanned in class scope. */
           member_parent_type = scope_stack[decl_scope_level].assoc_type;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
