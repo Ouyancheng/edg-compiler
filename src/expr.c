@@ -16990,19 +16990,17 @@ lowering or a back end to do the rewriting.
   a_scope_ptr             func_scope = ssep->il_scope;
 
   if (ssep->return_value_optimization_possible) {
-    a_boolean possible = FALSE;
+    a_boolean      possible = FALSE;
+    a_variable_ptr return_var;
     /* If return value optimization is possible for this routine, see
        if this return expression invalidates it.  Return value optimization
        is possible if all return statements in the function return the
        same nonstatic local variable. */
-    if (!is_expression_operand(operand) ||
-        !is_an_lvalue(operand) ||
-        !is_variable_address_node(operand->variant.expression)) {
+    if (!operand_is_lvalue_for_variable(operand, &return_var)) {
       /* The expression is not a simple variable, so the optimization is no
          longer possible. */
       /* possible = FALSE; -- already set. */
     } else {
-      a_variable_ptr return_var= operand->variant.expression->variant.variable;
       a_variable_ptr opt_var =
                              func_scope->variant.routine.return_value_variable;
       if (opt_var != NULL) {
@@ -17014,11 +17012,14 @@ lowering or a back end to do the rewriting.
            can establish the local variable involved in the optimization.
            It must be a nonstatic variable of the right type in the top
            scope of the function (the latter is what cfront does, and it
-           helps to avoid some nasty interactions with exception handling). */
+           helps to avoid some nasty interactions with exception handling).
+           Also, 12.8p15 of the C++ standard says that it must be
+           non-volatile. */
         a_type_ptr func_type = func_scope->variant.routine.ptr->type;
         func_type = skip_typerefs(func_type);
         if (!return_var->is_parameter &&
-            return_var->storage_class != (a_storage_class)sc_static &&
+            !has_static_storage_duration(return_var->storage_class) &&
+            !is_volatile_qualified_type(return_var->type) &&
             types_are_compatible(return_var->type,
                                  func_type->variant.routine.return_type)
 #if DO_IL_LOWERING

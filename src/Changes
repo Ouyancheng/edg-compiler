@@ -1,5 +1,22 @@
 Version 3.6
 
+4/20/05  No return value optimization for return of volatile variable
+
+12.8p15 of the C++ standard says that elision of the copy on a
+return can be done only if the entity being returned is
+a non-volatile automatic variable.  The check for non-volatile
+was not being done previously.  Now, it is.
+
+  struct A {
+    A();
+    A(const A&);
+    A(volatile A&);
+  };
+  volatile A f() {
+    volatile A a;
+    return a;  // No return value optimization
+  }
+
 4/20/05  Type of IL shift for bool <<= bool
 
 The type of the shift operator in lowered code generated for a C++
