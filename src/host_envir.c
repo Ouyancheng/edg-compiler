@@ -3318,6 +3318,48 @@ file names are not known to be relative to the current directory.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+unsigned long write_file_name(char      *name,
+                              FILE      *f_output,
+                              a_boolean process_escapes)
+/*
+Write out the null-terminated file name "name" to the output file f_output.
+If process_escapes is TRUE, escape special characters as necessary.
+Return the number of characters written.  The caller must put out
+surrounding quotes if they are needed.  This routine is used to write
+out the file name in #line directives and error messages.
+*/
+{
+  char          *p;
+  unsigned long len = 0;
+
+  for (p = name; *p != '\0'; p++) {
+    char ch = *p;
+    if (isprint((unsigned char)ch) || (unsigned char)ch >= 128) {
+      /* If the character is >= 128 treat it as printable.  This is done so
+         that characters from extended character-sets will be output as
+         expected and not as octal escapes.  We have to assume that each such
+         character occupies a single position in the length returned. */
+      if (process_escapes && (ch == '"' || ch == '\\')) {
+        putc('\\', f_output);
+        len++;
+      }  /* if */
+      putc(ch, f_output);
+      len++;
+    } else if (ch == '\n') {
+      /* Put out newline as \n. */
+      fputs("\\n", f_output);
+      len += 2;
+    } else {
+      /* Unprintable characters: put out as \ooo. */
+      fprintf(f_output, "\\%03o",
+                        (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
+      len += 4;
+    }  /* if */
+  }  /* for */
+  return len;
+}  /* write_file_name */
+
+
 void host_envir_one_time_init(void)
 /*
 Do one-time initialization related to host specific processing.  This

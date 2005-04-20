@@ -2249,6 +2249,10 @@ extern void set_module_id(char *new_module_id);
 extern char *make_module_id(void);
 #endif /* MODULE_ID_NEEDED */
 
+extern unsigned long write_file_name(char      *name,
+                                     FILE      *f_output,
+                                     a_boolean process_escapes);
+
 extern char *suffix_of(char		*file_name);
 
 extern unsigned long extract_wide_char_from_string(char *str);
