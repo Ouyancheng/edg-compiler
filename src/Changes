@@ -100,7 +100,7 @@ the following:
 
 The C++-generating back end will now use a generated typedef for qualifiers
 of this kind when msvc_is_generated_code_target is TRUE and
-msvc_target_version_num is 1200.
+msvc_target_version_number is 1200.
 
 4/19/05  GNU C++ compatibility: visibility of using-directives in g++ 3.4 mode
 
