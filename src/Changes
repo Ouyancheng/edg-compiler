@@ -1,5 +1,17 @@
 Version 3.6
 
+4/20/05  Output of file names containing extended ASCII characters
+
+File names in #line directives and error messages are output by
+output_file_name.  Formerly, this routine would use isprint to determine
+whether a character should be output normally or as an octal escape.  This
+resulted in the generation of octal escapes for file name characters
+containing extended ASCII characters (those characters >= 128).  isprint is
+now used only for characters < 128, so that extended characters are now
+output normally and not as octal escapes.  In addition, output_file_name
+has been moved from il.c to host_envir.c so that it can be customized for
+certain environments, if needed.
+
 4/20/05  GNU C++ compatibility: Incomplete field types in templates
 
 In GNU C++ mode with gnu_version < 30400, the front end accepts fields with
