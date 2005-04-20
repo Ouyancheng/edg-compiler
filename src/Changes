@@ -1,5 +1,14 @@
 Version 3.6
 
+4/20/05  Type of IL shift for bool <<= bool
+
+The type of the shift operator in lowered code generated for a C++
+shift compound assignment whose left operand is a bool was incorrect.
+It should have been an integral type and instead it was bool.
+Now fixed.
+
+  bool f(bool *p, bool b) { return *p <<= b; }
+
 4/20/05  Output of file names containing extended ASCII characters
 
 File names in #line directives and error messages are output by

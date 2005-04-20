@@ -9845,6 +9845,8 @@ fixed-point operations.
                                                            ) {
       /* Shifts.  The operation type is given by the first operand. */
       operation_type = op1_type;
+      /* Except for the C++ bool <<= integral case. */
+      if (is_bool_type(operation_type)) operation_type = op2_type;
     } else if (op == (an_expr_operator_kind)eok_padd_assign ||
                op == (an_expr_operator_kind)eok_psubtract_assign) {
       /* Pointer += and -=.  The operation type is given by the first
