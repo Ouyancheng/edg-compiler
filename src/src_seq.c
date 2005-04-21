@@ -998,8 +998,9 @@ end; otherwise, insert it immediatedly before insert_before.
 
     fprintf(f_debug, "inserting %s ss list for ",
             insert_before == NULL ? "at end of" : "into");
-    if (scope_stack_ptr != NULL &&
-        scope_stack_ptr->il_scope != NULL) {
+    if (scope_stack_ptr == NULL) {
+      db_scope(il_scope);
+    } else if (scope_stack_ptr->il_scope != NULL) {
       db_scope(scope_stack_ptr->il_scope);
     } else {
       (void)db_scope_kind(scope_stack_ptr->kind);
