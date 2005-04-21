@@ -10,6 +10,10 @@ typeinfo string variables were put out in a COMDAT, so the impact
 on executable size was insignificant, but this change does reduce
 the size of some object files.
 
+The Cfront-like ABI had a similar but less significant issue:
+some id object variables (used to establish identity of typeinfo
+variables) were put out when not referenced.  Also suppressed now.
+
 4/20/05  No return value optimization for return of volatile variable
 
 12.8p15 of the C++ standard says that elision of the copy on a

@@ -811,6 +811,25 @@ and typeinfo variables with a given name.
   return var;
 }  /* find_existing_variable_named */
 
+
+static void set_optional_vtable_flag_to_match_type(a_variable_ptr var,
+                                                   a_type_ptr     type)
+/*
+If type is a class type with a virtual function table that is
+marked as "optional", set the is_optional_vtable flag in the variable
+var (a typeinfo variable or something similar that is put out when the
+vtable is put out).
+*/
+{
+  if (is_immediate_class_type(type)) {
+    a_variable_ptr vtbl_var = type->variant.class_struct_union.extra_info->
+                                                    virtual_function_table_var;
+    if (vtbl_var != NULL && vtbl_var->is_optional_vtable) {
+      var->is_optional_vtable = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* set_optional_vtable_flag_to_match_type */
+
 #if !IA64_ABI
 
 static a_variable_ptr make_id_object_var(a_type_ptr type)
@@ -837,6 +856,8 @@ all denote the same type.
                                         integer_type((an_integer_kind)ik_char),
                                           (a_storage_class)sc_unspecified);
     id_object_var->source_corresp.name_has_been_mangled = TRUE;
+    /* The id object variable is optional if the vtable is optional. */
+    set_optional_vtable_flag_to_match_type(id_object_var, type);
   }  /* if */
   return id_object_var;
 }  /* make_id_object_var */
@@ -1189,15 +1210,8 @@ variable is returned.
   typeinfo_name_var->initializer.constant = string_con;
   if (use_comdat) {
     put_variable_into_comdat_group(typeinfo_name_var);
-    if (is_immediate_class_type(type)) {
-      /* If the associated virtual function table is optional, this typeinfo
-         string is optional too. */
-      a_variable_ptr vtbl_var = type->variant.class_struct_union.extra_info->
-                                                    virtual_function_table_var;
-      if (vtbl_var != NULL) {
-        typeinfo_name_var->is_optional_vtable = vtbl_var->is_optional_vtable;
-      }  /* if */
-    }  /* if */
+    /* The typeinfo string variable is optional if the vtable is optional. */
+    set_optional_vtable_flag_to_match_type(typeinfo_name_var, type);
   }  /* if */
 #else /* !IA64_ABI */
   /* Generate a constant for the address of the string. */
@@ -1393,19 +1407,20 @@ typeinfo variable in a COMDAT group.
     /* The variable can be referenced from another compilation unit.
        This is probably already set. */
     typeinfo_var->source_corresp.referenced = TRUE;
-    vtbl_var = type->variant.class_struct_union.extra_info->
-                                                    virtual_function_table_var;
-    if (vtbl_var != NULL) {
-      typeinfo_var->is_optional_vtable = vtbl_var->is_optional_vtable;
+    /* The typeinfo variable is optional if the vtable is optional. */
+    set_optional_vtable_flag_to_match_type(typeinfo_var, type);
 #if ONE_INSTANTIATION_PER_OBJECT
-      if (one_instantiation_per_object) {
-        /* Put the typeinfo variable into the same slice as the virtual
-           function table, if there is one. */
+    if (one_instantiation_per_object) {
+      /* Put the typeinfo variable into the same slice as the virtual
+         function table, if there is one. */
+      vtbl_var = type->variant.class_struct_union.extra_info->
+                                                    virtual_function_table_var;
+      if (vtbl_var != NULL) {
         typeinfo_var->instantiation_needed_bit_number =
                                      vtbl_var->instantiation_needed_bit_number;
       }  /* if */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
     }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if IA64_ABI
     if (use_comdat) {
       put_variable_into_comdat_group(typeinfo_var);
