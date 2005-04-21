@@ -1,5 +1,12 @@
 Version 3.6
 
+4/21/05  GNU C++ 3.4 compatibility: dependent lookup does not ignore
+         static functions
+
+g++ 3.4 apparently does not ignore static functions in doing the
+lookup for dependent names in templates.  That is now emulated in
+g++ 3.4 mode.
+
 4/21/05  Microsoft 7.1 compatibility: "string" --> void * deprecated
 
 MSVC++ 7.1 allows the conversion of a string literal (which has
