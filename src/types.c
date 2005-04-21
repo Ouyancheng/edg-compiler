@@ -4813,7 +4813,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
              a string literal or wide string literal to a pointer to
              non-const ([conv.array] paragraph 2). */
           std_conv->conv_of_string_literal_to_ptr_to_nonconst = TRUE;
-        } else if (source_is_string_literal &&
+        } else if (!suppress_extensions &&
+                   source_is_string_literal &&
                    string_literals_are_const &&
                    (microsoft_mode && !C_mode()) &&
                    is_void(unqual_dest_type_pointed_to)) {

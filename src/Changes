@@ -1,5 +1,21 @@
 Version 3.6
 
+4/21/05  Microsoft 7.1 compatibility: "string" --> void * deprecated
+
+MSVC++ 7.1 allows the conversion of a string literal (which has
+const type) to void *.  The EDG front end also allows that.
+However, that conversion is now categorized as an extension and
+is therefore considered less good in overload resolution.
+That resolves an ambiguity on cases like the following:
+
+  // Unambiguously chosen by MSVC++ 7.1 and later
+  void f(const void *);
+  // Unambiguously chosen by MSVC++ 7.0 and earlier
+  void f(void *);
+  int main() {
+    f("");
+  }
+
 4/21/05  IA-64 ABI: fewer unused typeinfo variables
 
 IL lowering for the IA-64 ABI now suppresses typeinfo and typeinfo
