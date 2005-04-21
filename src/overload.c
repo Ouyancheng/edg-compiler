@@ -9715,7 +9715,7 @@ such cases (where operator overloading might apply, but we can't tell).
             /* g++ 3.4 has a bug in dependent name lookup that allows
                entities declared after the point of lookup to be found.
                Emulate that. */
-            idl_options = IDL_SUPPRESS_DECL_SEQ_CHECK;
+            idl_options |= IDL_SUPPRESS_DECL_SEQ_CHECK;
           }  /* if */
           normal_sym = normal_id_lookup(&locator, idl_options);
           if (normal_sym != NULL &&
