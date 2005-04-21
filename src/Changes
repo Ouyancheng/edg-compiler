@@ -1,5 +1,15 @@
 Version 3.6
 
+4/21/05  IA-64 ABI: fewer unused typeinfo variables
+
+IL lowering for the IA-64 ABI now suppresses typeinfo and typeinfo
+string variables that are not referenced in a given compilation if
+they are related to a class that has no key function, i.e., for
+which the virtual function table is optional.  The typeinfo and
+typeinfo string variables were put out in a COMDAT, so the impact
+on executable size was insignificant, but this change does reduce
+the size of some object files.
+
 4/20/05  No return value optimization for return of volatile variable
 
 12.8p15 of the C++ standard says that elision of the copy on a

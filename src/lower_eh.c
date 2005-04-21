@@ -1189,6 +1189,15 @@ variable is returned.
   typeinfo_name_var->initializer.constant = string_con;
   if (use_comdat) {
     put_variable_into_comdat_group(typeinfo_name_var);
+    if (is_immediate_class_type(type)) {
+      /* If the associated virtual function table is optional, this typeinfo
+         string is optional too. */
+      a_variable_ptr vtbl_var = type->variant.class_struct_union.extra_info->
+                                                    virtual_function_table_var;
+      if (vtbl_var != NULL) {
+        typeinfo_name_var->is_optional_vtable = vtbl_var->is_optional_vtable;
+      }  /* if */
+    }  /* if */
   }  /* if */
 #else /* !IA64_ABI */
   /* Generate a constant for the address of the string. */
@@ -1384,18 +1393,19 @@ typeinfo variable in a COMDAT group.
     /* The variable can be referenced from another compilation unit.
        This is probably already set. */
     typeinfo_var->source_corresp.referenced = TRUE;
-#if ONE_INSTANTIATION_PER_OBJECT
-    if (one_instantiation_per_object) {
-      /* Put the typeinfo variable into the same slice as the virtual
-         function table, if there is one. */
-      vtbl_var = type->variant.class_struct_union.extra_info->
+    vtbl_var = type->variant.class_struct_union.extra_info->
                                                     virtual_function_table_var;
-      if (vtbl_var != NULL) {
+    if (vtbl_var != NULL) {
+      typeinfo_var->is_optional_vtable = vtbl_var->is_optional_vtable;
+#if ONE_INSTANTIATION_PER_OBJECT
+      if (one_instantiation_per_object) {
+        /* Put the typeinfo variable into the same slice as the virtual
+           function table, if there is one. */
         typeinfo_var->instantiation_needed_bit_number =
                                      vtbl_var->instantiation_needed_bit_number;
       }  /* if */
-    }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+    }  /* if */
 #if IA64_ABI
     if (use_comdat) {
       put_variable_into_comdat_group(typeinfo_var);
