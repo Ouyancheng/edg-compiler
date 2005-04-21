@@ -4010,11 +4010,8 @@ is the one associated with the definition of the enum.
     gen_microsoft_uuid_declspec(type->variant.integer.uuid_string);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Put out the name if the enum is named.  In C mode, invent a name for
-     an unnamed enum because it may be needed for casts to enum types defined
-     in prototype scopes. */
-  if ((has_name(type) && !type->variant.integer.originally_unnamed) ||
-      il_header.source_language == sl_C) {
+  /* Put out the name if the enum is named. */
+  if (has_name(type) && !type->variant.integer.originally_unnamed) {
     write_space();
     gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
              (a_boolean *)NULL);
