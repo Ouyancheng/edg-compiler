@@ -93,8 +93,9 @@ EXTERN_C int finite(double x);
 #endif /* __linux__ */
 #endif /* ifdef isnan */
 /* C99 has the "isfinite" macro.  Linux headers do, too.  Cygwin has it, but
-   it is unreliable. */
-#if defined(isfinite) && !defined(__CYGWIN__)
+   it is unreliable.  The HP PA headers have isfinite, but it does not accept
+   a long double argument. */
+#if defined(isfinite) && !defined(__CYGWIN__) && !defined(__hppa)
 #define is_finite(x) (isfinite(x))
 #else /* !defined(isfinite) */
 /* The "finite" function takes a double argument, so it doesn't work
