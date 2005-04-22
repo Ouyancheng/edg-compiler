@@ -8081,45 +8081,20 @@ Generate code for the indicated expression, which is a full expression
 }  /* gen_full_expression */
 
 
-static a_boolean is_compiler_generated_comparison_against_zero(
-                                                        an_expr_node_ptr expr)
-/*
-Return TRUE if the expression is a compiler-generated eok_ine operation and
-the right-hand operand is an integer 0.  This is used to reconstruct the
-original source form of "if (x)", rather than "if (x != 0)", which can be
-problematic if the type of "x" is an unnamed enumeration type.
-*/
-{
-  a_boolean result = FALSE;
-  if (is_operation_node(expr) &&
-      expr->variant.operation.compiler_generated &&
-      expr->variant.operation.kind == (an_expr_operator_kind)eok_ine) {
-    an_expr_node_ptr op2 = expr->variant.operation.operands->next;
-    a_boolean        overflow = FALSE;
-    if (is_constant_node(op2) &&
-        op2->variant.constant->kind == (a_constant_repr_kind)ck_integer &&
-        value_of_integer_value(&op2->variant.constant->variant.integer_value,
-                               /*is_signed=*/TRUE, &overflow) == 0 &&
-        !overflow) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_compiler_generated_comparison_against_zero */
-
-
 static void gen_full_boolean_controlling_expression(an_expr_node_ptr expr)
 /*
 Generate code for the indicated expression, which is the controlling expression
 of a statement or short-circuit operator, and also a full expression
-(it's not part of another expression).  If the expression is a
-compiler-generated comparison against 0, just skip down to the first operand
-and use that instead, as that's what appeared in the source.
+(it's not part of another expression).
 */
 {
   /* Process any tags declared within the expression (e.g., in casts). */
   skip_embedded_declarations();
-  if (is_compiler_generated_comparison_against_zero(expr)) {
+  if (is_ne_0_operation(expr) && expr->variant.operation.compiler_generated) {
+    /* The comparison against 0 did not appear in the source but was added
+       by the front end.  Generate just the left operand instead of the
+       comparison, which should be closer to what the original source looked
+       like. */
     expr = expr->variant.operation.operands;
   }  /* if */
   gen_expression(expr);
@@ -8129,16 +8104,19 @@ and use that instead, as that's what appeared in the source.
 static void gen_boolean_controlling_expression(an_expr_node_ptr expr)
 /*
 Generate code for the indicated expression, which could be the controlling
-expression in a ?: or a term of a logical expression.  If the expression
-is a compiler-generated comparison against 0, just skip down to the first
-operand and use that instead, as that's what appeared in the source.
+expression in a ?: or a term of a logical expression.
 */
 {
-  if (is_compiler_generated_comparison_against_zero(expr)) {
+  if (is_ne_0_operation(expr) && expr->variant.operation.compiler_generated) {
+    /* The comparison against 0 did not appear in the source but was added
+       by the front end.  Generate just the left operand instead of the
+       comparison, which should be closer to what the original source looked
+       like. */
     expr = expr->variant.operation.operands;
   }  /* if */
   gen_expr_with_parens(expr);
 }  /* gen_boolean_controlling_expression */
+
 
 static void gen_condition(a_statement_ptr statement)
 /*

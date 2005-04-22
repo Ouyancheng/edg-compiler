@@ -1,5 +1,23 @@
 Version 3.6
 
+4/22/05  C++-generating back end: unnamed enumeration types
+
+The C++-generating back end formerly added a generated tag to all unnamed
+enumeration type definitions in C mode.  This generated tag was reported to
+cause compilation difficulties on HP/UX, so it has now been removed.  The
+generated tag was used when a value of the enumeration type appeared in a
+boolean context: in the generated code, the value being tested was compared
+against the constant 0 cast to the enumeration type.  In order to avoid this
+problem, and also to make the generated code closer to the source form,
+compiler-generated comparisons against 0 in boolean contexts are now removed.
+For example:
+
+  Original source:   Previously generated:                Now generated:
+  ----------------   ---------------------                --------------
+  enum { e0 } x;     enum __T01234567 { e0 } x;           enum { e0 } x;
+  if (x) {           if (x != ((enum __T01234567)0)) {    if (x) {
+  }                  }                                    }
+
 4/22/05  Source sequence entries for class templates
 
 When recording prototype instantiations and source sequence entries in the IL,
