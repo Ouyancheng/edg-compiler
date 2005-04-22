@@ -1,5 +1,15 @@
 Version 3.6
 
+4/22/05  Source sequence entries for class templates
+
+When recording prototype instantiations and source sequence entries in the IL,
+the front end accidentally cleared the source sequence entry pointer of
+a_template entries for class templates (the source sequence entry itself was
+still correctly created and pointed to the template).  This is now fixed:
+Given a pointer p to an IL entry of type a_template for a class template, the
+associated source sequence entry can now be retrieved with
+"p->source_corresp.source_sequence_entry".
+
 4/22/05  HP PA systems and isfinite macro
 
 On HP PA systems, the isfinite macro supplied in the system headers takes

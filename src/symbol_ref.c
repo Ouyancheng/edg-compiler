@@ -1623,8 +1623,13 @@ created for this entity; otherwise, it is NULL.
       if (is_definition) {
         /* If this is a primary declaration (or a tentative definition that
            is the first definition of the variable), erase the previous
-           source sequence entry bound to this entity (if any). */
-        if (scptr != NULL) scptr->source_sequence_entry = NULL;
+           source sequence entry bound to this entity (if any).  Do not do
+           this if source sequence entries are currently disallowed (since
+           the pointer wouldn't be updated by sym_update_source_sequence_list
+           in that case). */
+        if (scptr != NULL && !source_sequence_entries_disallowed) {
+          scptr->source_sequence_entry = NULL;
+        }  /* if */
         if (set_first_decl_flag) {
           sym_ptr->variant.class_struct_union.extra_info->
                                          definition_is_first_decl = TRUE;
