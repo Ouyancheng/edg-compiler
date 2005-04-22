@@ -5769,7 +5769,8 @@ source position of the member name reference.
          find_base_class_of(class_struct_union_type, desired_class) == NULL)) {
       /* Don't do any checking on nonreal classes in prototype
          instantiations, unless it does happen that there is a relationship. */
-      prep_generic_operand(operand_1, /*lvalue_expected=*/FALSE);
+      prep_generic_operand(operand_1,
+                           /*lvalue_expected=*/is_an_lvalue(operand_1));
     } else {
       /* If the member is protected, it can only be accessed through an object
          or pointer of a type to which we have member access (ARM 11.5). */
