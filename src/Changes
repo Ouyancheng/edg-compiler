@@ -31,7 +31,7 @@ associated source sequence entry can now be retrieved with
 4/22/05  HP PA systems and isfinite macro
 
 On HP PA systems, the isfinite macro supplied in the system headers takes
-a double argument instead of a long double.  This can result in spurious
+a double argument instead of a long double.  This can cause spurious
 out-of-range diagnostics to be issued on some long double values.  float_pt.c
 has been modified to not use the isfinite macro on HP PA.
 
