@@ -4953,12 +4953,17 @@ be passed down.
                                              dtor_info);
     /* Eliminate the return at the end of the try block and fall through
        to beyond the try block. */
-    check_assertion(epilogue_insert_location.kind == ilk_after_statement);
     insert_stmt = epilogue_insert_location.variant.stmt;
-    return_stmt = insert_stmt->next;
+    if (epilogue_insert_location.kind == ilk_after_statement) {
+      return_stmt = insert_stmt->next;
+      insert_stmt->next = NULL;
+    } else {
+      check_assertion(epilogue_insert_location.kind == ilk_block_start);
+      return_stmt = insert_stmt->variant.block.statements;
+      insert_stmt->variant.block.statements = NULL;
+    }  /* if */
     check_assertion(return_stmt != NULL &&
                     return_stmt->kind == (a_statement_kind)stmk_return);
-    insert_stmt->next = NULL;
     /* Take the return off the return memo list. */
     check_assertion(return_memo_list != NULL &&
                     return_stmt == return_memo_list->stmt);

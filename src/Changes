@@ -1,5 +1,16 @@
 Version 3.6
 
+4/26/05  Abort in IL lowering on function try block in destructor, no
+         destructible members
+
+IL lowering aborted in lower_eh.c in lower_try_block while processing
+a function try-block in a destructor when the class has no
+destructible members.  Now fixed.
+
+  struct S {
+    ~S() try {} catch(int) {}
+  };
+
 4/26/05  Positional printf/scanf like format specifiers
 
 When a call to printf/scanf-like function involves a constant format string,
