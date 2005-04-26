@@ -1,5 +1,25 @@
 Version 3.6
 
+4/26/05  Positional printf/scanf like format specifiers
+
+When a call to printf/scanf-like function involves a constant format string,
+the front end checks the types of the arguments against the format specifiers.
+Many C library implementations support an extension to format specifiers that
+allows values to be format out of order.  For example:
+
+  #include <stdio.h>
+  int main() {
+    int i = 5;
+    printf("%1$*2$s\n", "X", i);  // Value to be formatted is in position "1";
+  }                               // variable field width is in position "2".
+
+The front end now recognizes and checks such positional specifiers when the
+global variable check_printf_scanf_positional_args is TRUE.  Only type checking
+is done in such cases (in particular, the front end will not check that every
+argument position has been used) and positions above 99 are not checked.  The
+default value of check_printf_scanf_positional_args is determined by the macro
+DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS.
+
 4/22/05  C++-generating back end: unnamed enumeration types
 
 The C++-generating back end formerly added a generated tag to all unnamed

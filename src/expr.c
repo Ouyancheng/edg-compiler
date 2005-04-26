@@ -670,25 +670,21 @@ the source position of the closing parenthesis of the call.
       /* Scan an argument expression.  Note that it is not converted to an
          rvalue yet. */
       scan_expr(&argument_operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-      if (overloaded_function_case) {
-        /* For the overloaded function case, we do not know yet what the
-           parameter type is, so save it as is.  The lvalue to rvalue
-           and prototyped parameter conversions will be done once the
-           specific function is identified (see select_overloaded_function). */
-        /* Add an entry to the argument operand list. */
-        arg_operand = alloc_arg_operand();
-        copy_operand(&argument_operand, &arg_operand->operand);
-        if (*arg_operand_list == NULL) {
-          *arg_operand_list = arg_operand;
-        } else {
-          end_arg_operand_list->next = arg_operand;
-        }  /* if */
-        end_arg_operand_list = arg_operand;
+      /* For the overloaded function case, we do not know yet what the
+         parameter type is, so save it as is.  (We do this even in the non-
+         overloaded-function case because it simplifies some things.)  The
+         lvalue-to-rvalue and prototyped parameter conversions will be done
+         once the specific function is identified (see
+         select_overloaded_function). */
+      /* Add an entry to the argument operand list. */
+      arg_operand = alloc_arg_operand();
+      copy_operand(&argument_operand, &arg_operand->operand);
+      if (*arg_operand_list == NULL) {
+        *arg_operand_list = arg_operand;
       } else {
-        /* Check the argument type against the parameter type and convert
-           if necessary.  Add it to the list of argument expressions. */
-        process_call_argument(&argument_operand, &arg_block);
+        end_arg_operand_list->next = arg_operand;
       }  /* if */
+      end_arg_operand_list = arg_operand;
     } while (loop_token(tok_comma));
     remove_stop_token(tok_comma);
   }  /* if */
@@ -697,8 +693,8 @@ the source position of the closing parenthesis of the call.
   arg_block.closing_paren_position = pos_curr_token;
   if (closing_paren_position != NULL) *closing_paren_position = pos_curr_token;
   if (!overloaded_function_case) {
-    /* Do processing for the end of the argument list. */
-    process_end_of_call_arguments(&arg_block);
+    /* Check and transform the call arguments based on the parameter list. */
+    process_call_argument_list(*arg_operand_list, &arg_block);
   }  /* if */
   /* Check for the closing paren. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

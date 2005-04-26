@@ -6198,14 +6198,52 @@ position of the function name identifier in the call.
 }  /* make_resolved_overloaded_function_operand */
 
 
+static int printf_scanf_arg_pos(char  **fmt_string_ptr)
+/*
+*fmt_string_ptr points to the first character following a '%' character of a
+conversion specifier in a format string (representing a literal) for a call
+to a printf- or scanf-like function.  For conversion specifiers of the form
+"%ddd...$..." (where the 'd's stand for decimal digits), scan the positional
+digits and return the associated position.  If the position is larger than
+99 or less than 1, return -1: The caller will be responsible to issue a
+warning and give up on checking the format string specifier.
+*/
+{
+  int   result = 0, k = 0;
+
+  if (check_printf_scanf_positional_args) {
+    char  *pc = *fmt_string_ptr;
+    while (isdigit((unsigned char)*pc)) {
+      result = result*10 + (int)(*pc - '0');
+      ++pc;  ++k;
+    }  /* if */
+    if (k > 0 && *pc == '$') {
+      /* A positional field. */
+      if (k > 2 || result == 0) {
+        /* The position is either larger than what we are willing to check,
+           or zero (which is invalid). */
+        result = -1;
+      }  /* if */
+      ++pc;
+    } else {
+      /* This wasn't a positional field.  Discard the value. */
+      result = 0;
+    }  /* if */
+    *fmt_string_ptr = pc;
+  }  /* if */
+  return result;
+}  /* printf_scanf_arg_pos */
+
+
 static a_type_ptr next_printf_scanf_arg_type(
                                           a_boolean           is_scanf,
                                           char                **fmt_string_ptr,
                                           a_printf_scan_state *pss_ptr,
-                                          a_source_position   *err_pos,
                                           a_boolean           *indirect,
                                           a_boolean           *weakly_typed,
-                                          a_type_ptr          *alt_type)
+                                          a_type_ptr          *alt_type,
+                                          int                 *value_pos,
+                                          int                 *next_value_pos)
 /*
 Return the type that the next argument to a printf or scanf call should have,
 by finding the next thing in the format string that consumes an argument.
@@ -6213,16 +6251,26 @@ Return NULL if no further arguments are needed.  is_scanf is TRUE for
 scanf/FALSE for printf; *fmt_string_ptr points to the current position 
 in the format string (it will be updated); and *pss_ptr is maintained
 to handle resuming the scan after a "*" field width or precision.
-If there is an error in the format string, issue a warning at *err_pos and set
-*fmt_string_ptr to NULL.  *indirect is returned TRUE if the type returned
-has an added pointer level relative to the type indicated in the formatting
-string, e.g., for scanf.  *weakly_typed is returned TRUE if the formatting
-specifier is one that is weakly typed, e.g. "%x".  *alt_type is usually
-returned NULL, but if some alternate type is also valid for the next
-argument (i.e., in addition to the type returned), *alt_type is set to
-the alternate type.
+If there is an error in the format string, set *fmt_string_ptr to NULL.
+*indirect is returned TRUE if the type returned has an added pointer level
+relative to the type indicated in the formatting string, e.g., for scanf.
+*weakly_typed is returned TRUE if the formatting specifier is one that is
+weakly typed, e.g. "%x".  *alt_type is usually returned NULL, but if some
+alternate type is also valid for the next argument (i.e., in addition to
+the type returned), *alt_type is set to the alternate type.
 
 See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
+
+If check_printf_scanf_positional_args is TRUE, positional arguments are
+recognized and returned through *value_pos (a value of zero indicates that
+no positional argument indicator was seen).  A single format specifier may
+contain two positional indicators: One for the value to format and one for
+the field width value (e.g., "%1$*2$s" two output the first following
+argument as a string with the width determined by the second argument).
+In such cases, *value_pos will indicate the field width argument position
+and *next_value_pos will indicate the position of the value to format
+(whose type will be returned by a subsequent call to this routine; this
+subsequent call will not modify *value_pos and *next_value_pos).
 */
 {
   a_type_ptr          required_type;
@@ -6262,6 +6310,7 @@ another_specifier:;
       fmt_string++;
       goto another_specifier;
     }  /* if */
+    *value_pos = printf_scanf_arg_pos(&fmt_string);
     /* For printf, ignore a sequence of flags (-, +, space, #, or 0).
        For scanf, ignore the assignment-suppressing character "*". */
     if (is_scanf) {
@@ -6282,6 +6331,8 @@ another_specifier:;
          int.  Return that, and pick up next time after the field width. */
       required_type = integer_type((an_integer_kind)ik_int);
       fmt_string++;
+      *next_value_pos = *value_pos;
+      *value_pos = printf_scanf_arg_pos(&fmt_string);
       pss = pss_after_field_width;
       goto end_of_scan;
     }  /* if */
@@ -6541,8 +6592,8 @@ after_precision:;
         break;
       default:
 default_case:;
-        /* Unknown formatting character.  Give warning and abandon checking. */
-        pos_warning(ec_bad_printf_format_string, err_pos);
+        /* Unknown formatting character.  Abandon checking and set fmt_string
+           to NULL to notify the caller. */
         required_type = NULL;
         fmt_string = NULL;
         goto end_of_scan;
@@ -6567,90 +6618,76 @@ end_of_scan:;
 }  /* next_printf_scanf_arg_type */
 
 
-static void check_printf_scanf_arg(an_operand          *argument_operand,
-                                   a_boolean           is_scanf,
-                                   char                **fmt_string_ptr,
-                                   a_printf_scan_state *pss_ptr)
+static void check_printf_scanf_arg(an_operand  *argument_operand,
+                                   a_type_ptr  required_type,
+                                   a_type_ptr  alt_type,
+                                   a_boolean   indirect,
+                                   a_boolean   weakly_typed)
 /*
 Check an argument of a printf- or scanf-type function call to see if its
 type matches the corresponding formatting specifier in the format string.
-argument_operand points to the argument, is_scanf is TRUE for scanf/FALSE
-for printf, and *fmt_string_ptr and *pss_ptr give the current position in the
-format string (they are updated on return).
+argument_operand points to the argument to check.  required_type is the
+type expected (based on the formatting specifier) for the argument; in
+some cases an alternative type alt_type may also be valid (otherwise,
+alt_type is NULL).  indirect is TRUE if an extra level of indirection was
+applied to the required type (so a value can be returned).  weakly_typed
+is TRUE if the format specifier does not fully constrain the type (e.g.,
+"%x", "%o", and "%p").
 */
 {
-  a_type_ptr required_type, eff_required_type, eff_argument_type;
-  a_type_ptr alt_type;
-  a_boolean  indirect, weakly_typed;
+  a_type_ptr eff_required_type, eff_argument_type;
 
-  /* Find the next formatting specifier in the string. */
-  required_type = next_printf_scanf_arg_type(is_scanf, fmt_string_ptr,
-                                             pss_ptr,
-                                             &argument_operand->position,
-                                             &indirect, &weakly_typed,
-                                             &alt_type);
-  /* If *fmt_string_ptr was set to NULL there was an error in the format
-     string. */
-  if (*fmt_string_ptr != NULL) {
-    if (required_type == NULL) {
-      /* There were no more formatting specifiers. */
-      pos_warning(ec_too_many_printf_args, &argument_operand->position);
-      /* Stop checking to avoid redundant errors. */
-      *fmt_string_ptr = NULL;
-    } else {
-      /* Check that the argument type matches the specifier type.  Note
-         the use of "interchangeable" rather than "compatible", because
-         we want to allow things like "printf("%lx", (long)i);". */
-      eff_required_type = required_type;
-      eff_argument_type = argument_operand->type;
-      if (indirect) {
-        /* In cases where an extra indirection is added to the required
-           type so that a value can be returned from the routine, remove
-           the extra level of pointer type.  That allows matching things
-           like "int *" and "unsigned int *".  This is slightly looser
-           matching than is allowed without warning for normal function
-           calls, but here we know what the runtime routine is doing. */
-        if (!is_pointer_type(eff_argument_type)) goto mismatch;
-        eff_argument_type = type_pointed_to(eff_argument_type);
-        eff_required_type = type_pointed_to(eff_required_type);
-      }  /* if */
-      /* Drop type qualifiers. */
-      eff_argument_type = skip_typerefs(eff_argument_type);
-      eff_required_type = skip_typerefs(eff_required_type);
-      if (types_are_compatible(eff_required_type, eff_argument_type)) {
-        /* The types are exactly the same. */
-      } else if (alt_type != NULL &&
-                 types_are_compatible(alt_type, eff_argument_type)) {
-        /* The type matches the alternate acceptable type. */
-      } else if (weakly_typed &&
-                 is_integral_or_enum_type(eff_required_type) &&
-                 is_integral_or_enum_type(eff_argument_type) &&
-                 integral_types_the_same_except_for_signedness(
-                                       eff_required_type, eff_argument_type)) {
-        /* For a weakly-typed specifier like "%x", allow an integral type
-           even if its signedness is different. */
-      } else if (weakly_typed &&
-                 is_pointer_type(eff_required_type) &&
-                 is_pointer_type(eff_argument_type)) {
-        /* Allow any pointer type for %p. */
-      } else if (!strict_ansi_mode &&
-                 is_integral_or_enum_type(eff_required_type) &&
-                 is_pointer_type(eff_argument_type) &&
-                 eff_required_type->size == eff_argument_type->size &&
-                 eff_required_type->alignment == eff_argument_type->alignment){
-        /* Allow a pointer to be passed where an integral type is expected
-           as long as the integral type is the right size.   This accommodates
-           lots of code that prints pointers using %lx. */
-      } else if (interchangeable_types(eff_required_type, eff_argument_type)) {
-        /* The types are not exactly the same, but they are interchangeable. */
-        pos_remark(ec_printf_arg_mismatch, &argument_operand->position);
-      } else {
-        /* The argument type does not match the required type. */
+  /* Check that the argument type matches the specifier type.  Note
+     the use of "interchangeable" rather than "compatible", because
+     we want to allow things like "printf("%lx", (long)i);". */
+  eff_required_type = required_type;
+  eff_argument_type = argument_operand->type;
+  if (indirect) {
+    /* In cases where an extra indirection is added to the required
+       type so that a value can be returned from the routine, remove
+       the extra level of pointer type.  That allows matching things
+       like "int *" and "unsigned int *".  This is slightly looser
+       matching than is allowed without warning for normal function
+       calls, but here we know what the runtime routine is doing. */
+    if (!is_pointer_type(eff_argument_type)) goto mismatch;
+    eff_argument_type = type_pointed_to(eff_argument_type);
+    eff_required_type = type_pointed_to(eff_required_type);
+  }  /* if */
+  /* Drop type qualifiers. */
+  eff_argument_type = skip_typerefs(eff_argument_type);
+  eff_required_type = skip_typerefs(eff_required_type);
+  if (types_are_compatible(eff_required_type, eff_argument_type)) {
+    /* The types are exactly the same. */
+  } else if (alt_type != NULL &&
+             types_are_compatible(alt_type, eff_argument_type)) {
+    /* The type matches the alternate acceptable type. */
+  } else if (weakly_typed &&
+             is_integral_or_enum_type(eff_required_type) &&
+             is_integral_or_enum_type(eff_argument_type) &&
+             integral_types_the_same_except_for_signedness(
+                                   eff_required_type, eff_argument_type)) {
+    /* For a weakly-typed specifier like "%x", allow an integral type
+       even if its signedness is different. */
+  } else if (weakly_typed &&
+             is_pointer_type(eff_required_type) &&
+             is_pointer_type(eff_argument_type)) {
+    /* Allow any pointer type for %p. */
+  } else if (!strict_ansi_mode &&
+             is_integral_or_enum_type(eff_required_type) &&
+             is_pointer_type(eff_argument_type) &&
+             eff_required_type->size == eff_argument_type->size &&
+             eff_required_type->alignment == eff_argument_type->alignment){
+    /* Allow a pointer to be passed where an integral type is expected
+       as long as the integral type is the right size.   This accommodates
+       lots of code that prints pointers using %lx. */
+  } else if (interchangeable_types(eff_required_type, eff_argument_type)) {
+    /* The types are not exactly the same, but they are interchangeable. */
+    pos_remark(ec_printf_arg_mismatch, &argument_operand->position);
+  } else {
+    /* The argument type does not match the required type. */
 mismatch:
-        if (!is_error_type(eff_argument_type)) {
-          pos_warning(ec_printf_arg_mismatch, &argument_operand->position);
-        }  /* if */
-      }  /* if */
+    if (!is_error_type(eff_argument_type)) {
+      pos_warning(ec_printf_arg_mismatch, &argument_operand->position);
     }  /* if */
   }  /* if */
 }  /* check_printf_scanf_arg */
@@ -6684,7 +6721,6 @@ or NULL otherwise (e.g., for a call through a pointer to function).
   arg_block->fmt_arg = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   arg_block->fmt_string = NULL;
-  arg_block->pss = pss_new_specifier;
   arg_block->closing_paren_position = null_source_position;
   if (function_type != NULL) {
     /* The function type is known, so set the block to match it. */
@@ -6811,7 +6847,6 @@ format string can be deduced, set appropriate fields in arg_block.
         /* The constant pointed to is a string (and not a wide string).
            Check that it is null-terminated. */
         arg_block->fmt_string = con_ptr->variant.string.value;
-        arg_block->pss = pss_new_specifier;
         if (arg_block->fmt_string[con_ptr->variant.string.length-1] != '\0'){
           /* String is not null-terminated. */
           arg_block->fmt_string = NULL;
@@ -6822,8 +6857,8 @@ format string can be deduced, set appropriate fields in arg_block.
 }  /* obtain_format_string_from_arg */
 
 
-void process_call_argument(an_operand         *argument_operand,
-                           an_arg_check_block *arg_block)
+static void process_call_argument(an_arg_operand_ptr arg,
+                                  an_arg_check_block *arg_block)
 /*
 Check the argument expression indicated by argument_operand against the
 corresponding parameter.  If it is compatible, convert it if necessary and
@@ -6833,9 +6868,9 @@ about the current parameter, and is updated at the end of the call to
 describe the next parameter.
 */
 {
-  an_expr_node_ptr curr_node;
-  a_boolean        do_default_promotion;
-  a_boolean        arg_is_fmt_string = FALSE;
+  a_boolean   do_default_promotion;
+  a_boolean   arg_is_fmt_string = FALSE;
+  an_operand  *argument_operand = &arg->operand;
 
   /* Count the arguments. */
   arg_block->arg_ctr++;
@@ -6933,13 +6968,6 @@ describe the next parameter.
                          &argument_operand->position);
         }  /* if */
       }  /* if */
-    } else if (arg_block->fmt_string != NULL) {
-      /* Check a printf or scanf argument type against the corresponding
-         formatting specifier in the format string. */
-      check_printf_scanf_arg(argument_operand,
-                             (arg_block->arg_list_kind ==
-                                                 (a_pragma_kind)pk_scanf_args),
-                             &arg_block->fmt_string, &arg_block->pss);
     }  /* if */
   } else if (arg_block->unknown_dependent_function) {
     /* Argument of unknown template-dependent function. */
@@ -6953,14 +6981,6 @@ describe the next parameter.
                           /*processed_arg=*/FALSE,
                           (a_conv_descr_ptr)NULL, ec_incompatible_param);
   }  /* if */
-  /* Link the new argument into the list of arguments. */
-  curr_node = make_node_from_operand(argument_operand);
-  if (arg_block->argument_head == NULL) {
-    arg_block->argument_head = curr_node;
-  } else {
-    arg_block->argument_tail->next = curr_node;
-  }  /* if */
-  arg_block->argument_tail = curr_node;
   if (arg_block->curr_param_type != NULL) {
     /* Advance to the next parameter type entry in preparation for the
        next call of this routine. */
@@ -6973,6 +6993,11 @@ describe the next parameter.
      as we scan them. */
   if (arg_block->arg_list_kind == (a_pragma_kind)pk_printf_args ||
       arg_block->arg_list_kind == (a_pragma_kind)pk_scanf_args) {
+    a_boolean  ellipsis_next = (arg_block->have_param_info && 
+                                arg_block->curr_param_type == NULL);
+    if (ellipsis_next) {
+      arg_block->printf_scanf_args = arg->next;
+    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (arg_block->fmt_arg != 0) {
       arg_is_fmt_string = (arg_block->arg_ctr == arg_block->fmt_arg);
@@ -6980,19 +7005,100 @@ describe the next parameter.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     {
-      if (arg_block->have_param_info && 
-          arg_block->curr_param_type == NULL) {
+      if (ellipsis_next) {
+        arg_block->fmt_arg = arg_block->arg_ctr;
         arg_is_fmt_string = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
   if (arg_is_fmt_string) {
-    obtain_format_string_from_arg(curr_node, arg_block);
+    obtain_format_string_from_arg(make_node_from_operand(argument_operand),
+                                  arg_block);
   }  /* if */
 }  /* process_call_argument */
 
 
-void process_end_of_call_arguments(an_arg_check_block *arg_block)
+static an_arg_operand_ptr nth_printf_scanf_arg(int                 n,
+                                               an_arg_check_block  *arg_block)
+/*
+Return the n-th ellipsis argument in a printf/scanf-like argument list
+described by *arg_block.
+*/
+{
+  an_arg_operand_ptr  arg = arg_block->printf_scanf_args;
+  int                 k;
+
+  for (k = 1; k < n && arg != NULL; ++k, arg = arg->next);
+  return arg;
+}  /* nth_printf_scanf_arg */
+
+
+static void check_printf_scanf_arg_list(an_arg_operand_ptr  args,
+                                        an_arg_check_block  *arg_block)
+/*
+We are processing a call to a function with a constant printf/scanf-like
+format string.  Check that the argument list (args) is consistent with the
+contents of that format string.  arg_block contains some information about
+the call arguments (including a pointer to the format string).
+*/
+{
+  char  *fmt_string = arg_block->fmt_string;
+  an_arg_operand_ptr  arg = arg_block->printf_scanf_args;
+  a_type_ptr  type = NULL, alt_type = NULL;
+  a_boolean   indirect, weakly_typed;
+  a_printf_scan_state  pss = pss_new_specifier;
+  a_boolean  is_scanf = (arg_block->arg_list_kind ==
+                                                 (a_pragma_kind)pk_scanf_args);
+  int value_pos = 0, next_value_pos = 0;
+  a_boolean explicit_position_seen = FALSE;
+
+  while (fmt_string != NULL) {
+    /* Determine the type specified by the format string for the next
+       argument. */
+    type = next_printf_scanf_arg_type(is_scanf, &fmt_string, &pss,
+                                      &indirect, &weakly_typed, &alt_type,
+                                      &value_pos, &next_value_pos);
+    if (value_pos != 0) {
+      /* The format specifier contained a positional field indicating which
+         argument is formats. */
+      explicit_position_seen = TRUE;
+      arg = nth_printf_scanf_arg(value_pos, arg_block);
+      /* If two positional fields were encountered (one for the field width
+         and one for the actual value to format), prepare to pick up the
+         argument for the actual value to format on the next iteration. */
+      value_pos = next_value_pos;
+      next_value_pos = 0;
+    }  /* if */
+    if (arg == NULL) {
+      /* There is no argument at the given position: Issue a warning if one
+         was expected and stop further checking. */
+      if (type != NULL) {
+        pos_warning(ec_too_few_printf_args,
+                    &arg_block->closing_paren_position);
+      }  /* if */
+      break;
+    }  /* if */
+    if (fmt_string == NULL) {
+      /* An error occurred while scanning the specifier.  Issue a warning and
+         stop the checking process here. */
+      pos_warning(ec_bad_printf_format_string, &arg->operand.position);
+      break;
+    } else if (type == NULL) {
+      /* There were no more formatting specifiers.  If explicit position
+         fields were seen, arg can validly be non-NULL. */
+      if (!explicit_position_seen) {
+        pos_warning(ec_too_many_printf_args, &arg->operand.position);
+      }  /* if */
+      break;
+    }  /* if */
+    check_printf_scanf_arg(&arg->operand, type, alt_type,
+                           indirect, weakly_typed);
+    arg = arg->next;
+  }  /* if */
+}  /* check_printf_scanf_arg_list */
+
+
+static void process_end_of_call_arguments(an_arg_check_block *arg_block)
 /*
 A sequence of argument expressions has been processed through
 process_call_argument, and *arg_block has been set accordingly.
@@ -7036,24 +7142,42 @@ list checking (e.g., for the presence of too few arguments).
       pos_warning(ec_too_few_arguments, &arg_block->closing_paren_position);
     }  /* if */
   }  /* if */
-  if (arg_block->fmt_string != NULL) {
-    /* For a printf- or scanf-like function, check that all the formatting
-       specifiers were used. */
-    a_boolean  indirect, weakly_typed;
-    a_type_ptr alt_type;
-    if (next_printf_scanf_arg_type((arg_block->arg_list_kind ==
-                                                 (a_pragma_kind)pk_scanf_args),
-                                   &arg_block->fmt_string,
-                                   &arg_block->pss,
-                                   &arg_block->closing_paren_position,
-                                   &indirect, &weakly_typed,
-                                   &alt_type) != NULL) {
-      /* There are no more arguments, but the format string has more
-         formatting specifiers. */
-      pos_warning(ec_too_few_printf_args, &arg_block->closing_paren_position);
-    }  /* if */
-  }  /* if */
 }  /* process_end_of_call_arguments */
+
+
+void process_call_argument_list(an_arg_operand_ptr  args,
+                                an_arg_check_block  *arg_block)
+/*
+Apply various transformations and checks to the given list of operands, which
+is a list of arguments for a function call.  The list is eventually
+transformed into a list of expression nodes (and the operand list is
+deallocated).  Some state information is recorded in *arg_block.
+*/
+{
+  an_arg_operand_ptr  arg = args;
+
+  for (arg = args; arg != NULL; arg = arg->next) {
+    process_call_argument(arg, arg_block);
+  }  /* for */
+  if (arg_block->fmt_string != NULL) {
+    /* Check printf/scanf-like argument lists. */
+    check_printf_scanf_arg_list(args, arg_block);
+  }  /* if */
+  /* Convert the operand list to an expression list. */
+  for (arg = args; arg != NULL; arg = arg->next) {
+    an_expr_node_ptr  arg_expr = make_node_from_operand(&arg->operand);
+    if (arg_block->argument_head == NULL) {
+      arg_block->argument_head = arg_expr;
+    } else {
+      arg_block->argument_tail->next = arg_expr;
+    }  /* if */
+    arg_block->argument_tail = arg_expr;
+  }  /* for */
+  /* Do processing for the end of the argument list. */
+  process_end_of_call_arguments(arg_block);
+  /* Free the argument list. */
+  free_arg_operand_list(args);
+}  /* process_call_argument_list */
 
 
 static void prep_possible_ellipsis_argument_operand(
@@ -7445,7 +7569,6 @@ routine is called only in C++ mode.
        Check now that the arguments match the parameters, and build the
        list of argument expressions. */
     an_arg_check_block arg_block;
-    an_arg_operand_ptr arg_operand;
     /* This shouldn't happen for nonstatic member functions. */
     check_assertion(!have_selector);
     function_symbol = fundamental_symbol_of(function_symbol);
@@ -7455,15 +7578,8 @@ routine is called only in C++ mode.
     if (closing_paren_position != NULL) {
       arg_block.closing_paren_position = *closing_paren_position;
     }  /* if */
-    for (arg_operand = arg_operand_list;
-         arg_operand != NULL;
-         arg_operand = arg_operand->next) {
-      process_call_argument(&arg_operand->operand, &arg_block);
-    }  /* for */
-    process_end_of_call_arguments(&arg_block);
+    process_call_argument_list(arg_operand_list, &arg_block);
     *arg_expr_list = arg_block.argument_head;
-    /* Free the argument list. */
-    free_arg_operand_list(arg_operand_list);
   }  /* if */
   db_exit();
   return routine_type;
