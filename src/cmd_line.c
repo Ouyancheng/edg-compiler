@@ -4758,8 +4758,6 @@ variables declared in cmd_line.h.
   old_specializations_allowed = DEFAULT_OLD_SPECIALIZATIONS_ALLOWED;
   impl_conv_between_c_and_cpp_function_ptrs_allowed =
                      DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED;
-  check_printf_scanf_positional_args =
-                                    DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   multibyte_chars_in_source_enabled =
                                      DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED;

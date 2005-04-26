@@ -447,14 +447,12 @@ typedef struct an_arg_check_block {
 			   the format string is the last argument
 			   before the ellipsis. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  an_arg_operand_ptr
-		printf_scanf_args;
-			/* A pointer to a list of operands passed as the
-			   ellipsis arguments for a printf/scanf-like
-			   function. */
   char		*fmt_string;
 			/* When checking a printf- or scanf-like function,
 			   points to the format string.  NULL otherwise. */
+  a_printf_scan_state
+		pss;
+			/* Current state for printf/scanf argument checking. */
   a_source_position
 		closing_paren_position;
 			/* Source position of the closing parenthesis of
@@ -578,8 +576,10 @@ extern void start_call_argument_processing(a_type_ptr         function_type,
                                            a_routine_ptr      routine,
                                            an_arg_check_block *arg_block);
 
-extern void process_call_argument_list(an_arg_operand_ptr  args,
-                                       an_arg_check_block  *arg_block);
+extern void process_call_argument(an_operand         *argument_operand,
+                                  an_arg_check_block *arg_block);
+
+extern void process_end_of_call_arguments(an_arg_check_block *arg_block);
 
 extern void change_refs_on_selector_if_const_function(
                                           a_type_ptr routine_type,

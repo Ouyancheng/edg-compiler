@@ -1453,25 +1453,6 @@ IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE is TRUE).
 #endif /* DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED */
 
 /*
-Flag that is TRUE if the front end should by default be aware of positional
-argument notation in printf/scanf format strings.  This is a common extension
-to the standard C library that allows format specifiers of the form "%xxx$..."
-(where xxx is a positive decimal integer) to indicate that a particular
-ellipsis argument (as opposed to the next in sequence) should be formatted.
-(The "*" notation for variable-width specifiers is similarly extended to
-allow for "*xxx$".)
-Most Unix-like implementations of the standard C library support the
-extension, but the Microsoft implementation does not.
-*/
-#ifndef DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS
-#if __MICROSOFT_OS__
-#define DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS FALSE
-#else /* __MICROSOFT_OS__ */
-#define DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS TRUE
-#endif /* __MICROSOFT_OS__ */
-#endif /* DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS */
-
-/*
 Flag that is TRUE if, by default, the K&R usual arithmetic conversion rules
 with respect to "long" should be used.  This means the rules of K&R I,
 Appendix A, 6.6, not the rules used by the pcc compiler.

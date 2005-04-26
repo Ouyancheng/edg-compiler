@@ -986,11 +986,6 @@ EXTERN a_boolean
 			   permitted.  It is set to FALSE in strict mode or if
 			   c_and_cpp_function_types_are_distinct is FALSE. */
 
-EXTERN a_boolean
-		check_printf_scanf_positional_args;
-			/* TRUE if positional printf/scanf arguments should be
-			   recognized and checked. */
-
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 EXTERN a_boolean
 		multibyte_chars_in_source_enabled;
