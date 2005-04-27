@@ -1,5 +1,36 @@
 Version 3.6
 
+4/26/05  Microsoft compatibility: special lookup templates vs. injected
+         class names
+
+In Microsoft mode, if a base class of a class template contained an injected
+class name with the same name as a class template from an enclosing scope,
+a lookup of the name followed by a "<" should have found the template from
+the enclosing scope, but did not, resulting in a spurious error.  Now fixed.
+
+  struct A { struct C {}; };
+  template <class T> struct C : public A::C {
+    typedef C<T> my_C;  // spurious error: "C" is not a template
+  };
+  C<int> x;
+
+4/26/05  Microsoft compatibility: special lookup of template names
+
+In Microsoft mode, we emulate a Microsoft bug in which a global template
+is found instead of a base class member.  The 7.1 compiler partially
+fixes this bug when the base class member is a function or a function
+template.  We now implement a revised version of the emulation when
+microsoft_version is >= 1310.
+
+  template <class T> struct x {};
+  class A {
+    void x(int);
+    template <class X> void x(X);
+  };
+  class B : public A {
+    typedef x<int> xi;  // accepted by Microsoft prior to 7.1
+  };
+
 4/26/05  Abort in IL lowering on function try block in destructor, no
          destructible members
 

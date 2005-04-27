@@ -9685,7 +9685,9 @@ template x instead of the base class member.
   };
 
 For this to occur the base class member must be a nonstatic member, or an
-overload set containing nonstatic members.
+overload set containing nonstatic members.  Version 7.1 fixes a portion of
+this problem.  7.1 only finds the enclosing template when it is a nonstatic
+data member or an injected class name.
 
 sym is the progenitor symbol that was found.  Return TRUE if it represents
 a symbol that should be ignored in favor of a template to be found later.
@@ -9696,7 +9698,8 @@ a symbol that should be ignored in favor of a template to be found later.
   if (sym->kind == (a_symbol_kind)sk_field) {
     /* The name found is a nonstatic data member -- discard it. */
     result = TRUE;
-  } else if (is_function_or_template_symbol(sym)) {
+  } else if (microsoft_version <= 1300 &&
+             is_function_or_template_symbol(sym)) {
     a_boolean		mixed_static_nonstatic = FALSE;
     if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
       mixed_static_nonstatic =
@@ -9720,6 +9723,13 @@ a symbol that should be ignored in favor of a template to be found later.
       /* If the name found is a nonstatic member function, discard it. */
       if (rtsp->this_class != NULL) result = TRUE;
     }  /* if */
+  } else if (is_injected_class_symbol(sym) &&
+             depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+             scope_stack[depth_innermost_instantiation_scope].assoc_type
+                                                                     != NULL) {
+    /* The name found is an injected class name referenced from within a
+       class template -- discard it. */
+    result = TRUE;
   }  /* if */
   return result;
 }  /* check_for_microsoft_template_lookup_bug */
