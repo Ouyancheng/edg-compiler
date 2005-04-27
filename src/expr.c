@@ -609,7 +609,7 @@ static void scan_call_arguments(a_type_ptr         function_type,
                                 an_expr_node_ptr   *p_argument_list,
                                 a_boolean          overloaded_function_case,
                                 a_boolean          unknown_dependent_function,
-                                an_arg_operand_ptr *arg_operand_list,
+                                an_arg_operand_ptr *p_arg_operand_list,
                                 a_source_position  *closing_paren_position)
 /*
 Scan the arguments of a function call and return a list of argument
@@ -624,7 +624,7 @@ the add_stop_token call has not been done).  On return, the current token
 is the token following the closing ")".  If overloaded_function_case is
 TRUE, this call is scanning the arguments for a call of an overloaded
 function, so build an argument operand list and return a pointer to it in
-*arg_operand_list.  routine points to the routine being called; it's NULL
+*p_arg_operand_list.  routine points to the routine being called; it's NULL
 if the specific function being called is not known, e.g., when
 overloaded_function_case is TRUE or when calling through a pointer.
 If closing_paren_position is non-NULL, *closing_paren_position is set to
@@ -632,7 +632,7 @@ the source position of the closing parenthesis of the call.
 */
 {
   an_operand         argument_operand;
-  an_arg_operand_ptr end_arg_operand_list, arg_operand;
+  an_arg_operand_ptr arg_operand_list, end_arg_operand_list, arg_operand;
   an_arg_check_block arg_block;
 
   db_enter(4, "scan_call_arguments");
@@ -642,7 +642,7 @@ the source position of the closing parenthesis of the call.
     function_type = NULL;
   }  /* if */
   /* Start with an empty list of argument operands. */
-  *arg_operand_list = NULL;
+  arg_operand_list = NULL;
   end_arg_operand_list = NULL;
   /* Set the block used for checking argument types. */
   start_call_argument_processing(function_type, routine, &arg_block);
@@ -679,8 +679,8 @@ the source position of the closing parenthesis of the call.
       /* Add an entry to the argument operand list. */
       arg_operand = alloc_arg_operand();
       copy_operand(&argument_operand, &arg_operand->operand);
-      if (*arg_operand_list == NULL) {
-        *arg_operand_list = arg_operand;
+      if (arg_operand_list == NULL) {
+        arg_operand_list = arg_operand;
       } else {
         end_arg_operand_list->next = arg_operand;
       }  /* if */
@@ -692,9 +692,11 @@ the source position of the closing parenthesis of the call.
   set_err_pos_to_curr_token();
   arg_block.closing_paren_position = pos_curr_token;
   if (closing_paren_position != NULL) *closing_paren_position = pos_curr_token;
-  if (!overloaded_function_case) {
+  if (overloaded_function_case) {
+    *p_arg_operand_list = arg_operand_list;
+  } else {
     /* Check and transform the call arguments based on the parameter list. */
-    process_call_argument_list(*arg_operand_list, &arg_block);
+    process_call_argument_list(arg_operand_list, &arg_block);
   }  /* if */
   /* Check for the closing paren. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
