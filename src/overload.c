@@ -6726,6 +6726,7 @@ or NULL otherwise (e.g., for a call through a pointer to function).
 #if GNU_EXTENSIONS_ALLOWED
   arg_block->fmt_arg = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  arg_block->printf_scanf_args = NULL;
   arg_block->fmt_string = NULL;
   arg_block->closing_paren_position = null_source_position;
   if (function_type != NULL) {
