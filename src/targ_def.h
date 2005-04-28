@@ -3164,26 +3164,55 @@ When VLAs are allowed, they are enabled by default in C99 mode.
 #endif /* ifndef VLA_ALLOWED */
 
 /*
-Flag that is TRUE if, when VLA support is enabled, the front end should
-generate stmk_vla_dealloc statements to mark the points at which variable
-length arrays go out of scope and may be deallocated.  It is used to set
-global variable vla_dealloc_statements_in_il.
+VLA_DEALLOC_STATEMENTS_IN_IL was previously used to determine whether special
+statements (no longer part of our IL specification) should be included in the
+IL.  Now we generate enk_vla_dealloc expression nodes instead.  In some cases
+we can fairly safely set VLA_DEALLOCATIONS_IN_IL based on the older macro
+value, but in other cases we prefer to avoid surprises by forcing the old
+configuration option to be revised.
 */
-#ifndef VLA_DEALLOC_STATEMENTS_IN_IL
+#if defined(VLA_DEALLOC_STATEMENTS_IN_IL)
+#if defined(VLA_DEALLOCATIONS_IN_IL)
+#define TRIGGER_ERROR_ABOUT_VLA_DEALLOC_STATEMENTS_IN_IL
+#else /* !defined(VLA_DEALLOCATIONS_IN_IL) */
+#if !VLA_DEALLOC_STATEMENTS_IN_IL
+#define VLA_DEALLOCATIONS_IN_IL FALSE
+#else /* VLA_DEALLOC_STATEMENTS_IN_IL */
+#if defined(LOWER_VARIABLE_LENGTH_ARRAYS)
+#define VLA_DEALLOCATIONS_IN_IL VLA_DEALLOC_STATEMENTS_IN_IL
+#else /* !defined(LOWER_VARIABLE_LENGTH_ARRAYS) */
+#define TRIGGER_ERROR_ABOUT_VLA_DEALLOC_STATEMENTS_IN_IL
+#endif /* defined(LOWER_VARIABLE_LENGTH_ARRAYS) */
+#endif /* !VLA_DEALLOC_STATEMENTS_IN_IL */
+#endif /* defined(VLA_DEALLOCATIONS_IN_IL) */
+#endif /* defined(VLA_DEALLOC_STATEMENTS_IN_IL) */
+
+#ifdef TRIGGER_ERROR_ABOUT_VLA_DEALLOC_STATEMENTS_IN_IL
+ #error -- VLA_DEALLOC_STATEMENTS_IN_IL is no longer supported; use \
+           VLA_DEALLOCATIONS_IN_IL instead
+#endif /* TRIGGER_ERROR_ABOUT_VLA_DEALLOC_STATEMENTS_IN_IL */
+
+/*
+Flag that is TRUE if, when VLA support is enabled, the front end should
+generate enk_vla_dealloc expression nodes to mark the points at which variable
+length arrays go out of scope and may be deallocated.  It is used to set global
+variable vla_deallocations_in_il.
+*/
+#ifndef VLA_DEALLOCATIONS_IN_IL
 #if VLA_ALLOWED && !BACK_END_IS_CP_GEN_BE
-#define VLA_DEALLOC_STATEMENTS_IN_IL TRUE
+#define VLA_DEALLOCATIONS_IN_IL TRUE
 #else /* !(VLA_ALLOWED && !BACK_END_IS_CP_GEN_BE) */
-#define VLA_DEALLOC_STATEMENTS_IN_IL FALSE
+#define VLA_DEALLOCATIONS_IN_IL FALSE
 #endif /* VLA_ALLOWED && !BACK_END_IS_CP_GEN_BE */
-#endif /* ifndef VLA_DEALLOC_STATEMENTS_IN_IL */
-#if VLA_DEALLOC_STATEMENTS_IN_IL && !VLA_ALLOWED
-  #error -- VLA_DEALLOC_STATEMENTS_IN_IL cannot be true unless \
+#endif /* ifndef VLA_DEALLOCATIONS_IN_IL */
+#if VLA_DEALLOCATIONS_IN_IL && !VLA_ALLOWED
+  #error -- VLA_DEALLOCATIONS_IN_IL cannot be true unless \
             VLA_ALLOWED is true
-#endif /* VLA_DEALLOC_STATEMENTS_IN_IL && !VLA_ALLOWED */
-#if VLA_DEALLOC_STATEMENTS_IN_IL && BACK_END_IS_CP_GEN_BE
-  #error -- VLA_DEALLOC_STATEMENTS_IN_IL cannot be true when \
+#endif /* VLA_DEALLOCATIONS_IN_IL && !VLA_ALLOWED */
+#if VLA_DEALLOCATIONS_IN_IL && BACK_END_IS_CP_GEN_BE
+  #error -- VLA_DEALLOCATIONS_IN_IL cannot be true when \
             BACK_END_IS_CP_GEN_BE is true
-#endif /* VLA_DEALLOC_STATEMENTS_IN_IL && BACK_END_IS_CP_GEN_BE */
+#endif /* VLA_DEALLOCATIONS_IN_IL && BACK_END_IS_CP_GEN_BE */
 
 /*
 Flag that is used as the default setting for global variable vla_enabled.
@@ -3593,9 +3622,9 @@ on facilities in the run-time support library.
 #if LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED
  #error -- Lowering of VLAs requires VLA_ALLOWED to be TRUE
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED */
-#if LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_DEALLOC_STATEMENTS_IN_IL
- #error -- Lowering of VLAs requires VLA_DEALLOC_STATEMENTS_IN_IL to be TRUE
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_DEALLOC_STATEMENTS_IN_IL */
+#if LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_DEALLOCATIONS_IN_IL
+ #error -- Lowering of VLAs requires VLA_DEALLOCATIONS_IN_IL to be TRUE
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_DEALLOCATIONS_IN_IL */
 
 /*
 This switch controls whether or not "guard" code is placed around

@@ -1488,6 +1488,11 @@ end_sizeof:;
                with a covariant return type. */
             break;
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if VLA_DEALLOCATIONS_IN_IL
+          case enk_vla_dealloc:
+            remap_ptr(ptr->variant.vla_variable, a_variable_ptr, iek_variable);
+            break;
+#endif /* VLA_DEALLOCATIONS_IN_IL */
 #endif /* ifdef CFE */
 #ifdef FFE
           case enk_stmt_label_value:
@@ -1722,9 +1727,6 @@ end_sizeof:;
               remap_ptr(ptr->variant.vla.variant.variable, a_variable_ptr,
                         iek_variable);
             }  /* if */
-            break;
-          case stmk_vla_dealloc:
-            remap_ptr(ptr->variant.vla_variable, a_variable_ptr, iek_variable);
             break;
 #endif /* ifdef CFE */
 #ifdef FFE

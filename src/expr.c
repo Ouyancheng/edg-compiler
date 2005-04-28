@@ -10423,9 +10423,8 @@ both C and C++ modes.
     for (stmt = sp->variant.block.statements;
          stmt != NULL;
          stmt = stmt->next) {
-      /* Remember the last statement, but don't count vla-dealloc
-         statements. */
-      if (stmt->kind != (a_statement_kind)stmk_vla_dealloc) last_stmt = stmt;
+      /* Remember the last statement. */
+      last_stmt = stmt;
     }  /* for */
     if (last_stmt != NULL &&
         last_stmt->kind == (a_statement_kind)stmk_expr &&

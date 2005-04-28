@@ -11662,6 +11662,9 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     case enk_reuse_value:
       lower_reuse_value_expr(expr);
       break;
+#if VLA_DEALLOCATIONS_IN_IL
+    case enk_vla_dealloc:
+#endif /* VLA_DEALLOCATIONS_IN_IL */
     default:
       unexpected_condition_str("lower_expr: bad kind");
   }  /* switch */
@@ -14076,7 +14079,6 @@ Do IL lowering of the indicated statement and everything under it.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       case stmk_set_vla_size:        /* Not expected in C++. */
       case stmk_vla_decl:            /* Not expected in C++. */
-      case stmk_vla_dealloc:         /* Not expected in C++. */
       default:
         unexpected_condition_str("lower_statement: bad kind");
     }  /* switch */

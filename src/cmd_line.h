@@ -462,10 +462,10 @@ EXTERN a_boolean
 			   by command-line options --[no_]vla. */
 
 EXTERN a_boolean
-		vla_dealloc_statements_in_il;
-			/* TRUE if stmk_vla_dealloc statements should be
-			   generated to mark the points at which VLA objects
-			   pass out of scope and may be deallocated. */
+		vla_deallocations_in_il;
+			/* TRUE if enk_vla_dealloc nodes should be generated
+			   to mark the points at which VLA objects pass out of
+			   scope and may be deallocated. */
 
 EXTERN a_boolean
 		operator_overloading_on_enums_enabled;

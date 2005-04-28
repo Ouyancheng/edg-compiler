@@ -45,7 +45,77 @@ static void lower_c99_fixed_point_constant(a_constant_ptr constant);
 static void lower_c99_fixed_point_operation(an_expr_node_ptr expr);
 #endif /* LOWER_FIXED_POINT */
 
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_COMPLEX || LOWER_VARIABLE_LENGTH_ARRAYS
+
+static an_expr_node_ptr make_prototyped_runtime_call_full(
+                                               char             *name,
+                                               a_routine_ptr    *routine,
+                                               a_type_ptr       return_type,
+                                               a_type_ptr       param1_type,
+                                               a_type_ptr       param2_type,
+                                               a_type_ptr       param3_type,
+                                               an_expr_node_ptr arg_expr_list)
+/*
+Create a call node to a runtime routine with arguments given by arg_expr_list.
+The called routine is *routine and is created with the given name and types if
+*routine is NULL (*routine is updated to point to the new routine).  Parameters
+can be left out by passing NULL parameter types (e.g., a non-NULL param1_type
+and a NULL param2_type creates a prototype for a function taking a single
+argument).
+*/
+{
+  an_expr_node_ptr  result;
+  if (*routine == NULL) {
+    /* Make the routine entry if it does not exist already. */
+    a_type_ptr        rout_type;
+    (void)make_runtime_routine(name, routine, return_type);
+    rout_type = (*routine)->type;
+    /* Prototype parameter list. */
+    rout_type->variant.routine.extra_info->prototyped = TRUE;
+    if (param1_type != NULL) {
+      a_param_type_ptr  first_param = alloc_param_type(param1_type);
+      rout_type->variant.routine.extra_info->param_type_list = first_param;
+      if (param2_type != NULL) {
+        first_param->next = alloc_param_type(param2_type);
+        if (param3_type != NULL) {
+          first_param->next->next = alloc_param_type(param3_type);
+        }  /* if */
+      } else {
+        check_assertion(param3_type == NULL);
+      }  /* if */
+    } else {
+      check_assertion(param2_type == NULL && param3_type == NULL);
+    }  /* if */
+  }  /* if */
+  /* Make the call node. */
+  result = make_call_node(*routine, arg_expr_list, /*honor_virtual=*/FALSE,
+                          (an_insert_location *)NULL);
+  return result;
+}  /* make_prototyped_runtime_call_full */
+
+
+static an_expr_node_ptr make_prototyped_runtime_call(
+                                               char             *name,
+                                               a_routine_ptr    *routine,
+                                               a_type_ptr       return_type,
+                                               a_type_ptr       param1_type,
+                                               a_type_ptr       param2_type,
+                                               an_expr_node_ptr arg_expr_list)
+/*
+Version of make_prototyped_runtime_call that handles one or two parameter
+types.
+*/
+{
+  an_expr_node_ptr result;
+
+  result = make_prototyped_runtime_call_full(name, routine, return_type,
+                                             param1_type, param2_type,
+                                             (a_type_ptr)NULL, arg_expr_list);
+  return result;
+}  /* make_prototyped_runtime_call */
+ 
+#endif /* LOWER_COMPLEX || LOWER_VARIABLE_LENGTH_ARRAYS */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
 
 static a_type_list_entry_ptr
 		vla_types;
@@ -337,77 +407,129 @@ done:
   return inits;
 }  /* lower_vla_dimensions */
 
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
-#if LOWER_COMPLEX || (VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS)
 
-static an_expr_node_ptr make_prototyped_runtime_call_full(
-                                               char             *name,
-                                               a_routine_ptr    *routine,
-                                               a_type_ptr       return_type,
-                                               a_type_ptr       param1_type,
-                                               a_type_ptr       param2_type,
-                                               a_type_ptr       param3_type,
-                                               an_expr_node_ptr arg_expr_list)
+static an_expr_node_ptr vla_size_expr(a_type_ptr  vla_type,
+                                      a_boolean   byte_count)
 /*
-Create a call node to a runtime routine with arguments given by arg_expr_list.
-The called routine is *routine and is created with the given name and types if
-*routine is NULL (*routine is updated to point to the new routine).  Parameters
-can be left out by passing NULL parameter types (e.g., a non-NULL param1_type
-and a NULL param2_type creates a prototype for a function taking a single
-argument).
+Return an expression describing the (nonconstant) size of the given VLA type.
+If byte_count is TRUE, the expression should reflect the size as a number of
+bytes; otherwise, the size should be the number of elements.
 */
 {
-  an_expr_node_ptr  result;
-  if (*routine == NULL) {
-    /* Make the routine entry if it does not exist already. */
-    a_type_ptr        rout_type;
-    (void)make_runtime_routine(name, routine, return_type);
-    rout_type = (*routine)->type;
-    /* Prototype parameter list. */
-    rout_type->variant.routine.extra_info->prototyped = TRUE;
-    if (param1_type != NULL) {
-      a_param_type_ptr  first_param = alloc_param_type(param1_type);
-      rout_type->variant.routine.extra_info->param_type_list = first_param;
-      if (param2_type != NULL) {
-        first_param->next = alloc_param_type(param2_type);
-        if (param3_type != NULL) {
-          first_param->next->next = alloc_param_type(param3_type);
-        }  /* if */
-      } else {
-        check_assertion(param3_type == NULL);
-      }  /* if */
-    } else {
-      check_assertion(param2_type == NULL && param3_type == NULL);
-    }  /* if */
+  an_expr_node_ptr     result;
+  a_type_ptr           array_type = skip_typerefs(vla_type);
+  a_type_ptr           ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
+  a_targ_size_t        constant_factor = 1;
+  a_vla_dimension_ptr  vla_dim;
+
+  /* Accumulate any constant dimensions first. */
+  while (!array_type->variant.array.is_vla) {
+    a_targ_size_t  length =
+                         array_type->variant.array.variant.number_of_elements;
+    constant_factor *= length;
+    array_type = skip_typerefs(array_type->variant.array.element_type);
+  }  /* while */
+  if (byte_count) {
+    /* Multiply the constant factor by the size of the underlying element
+       type. */
+    a_type_ptr  element_type = underlying_array_element_type(array_type);
+    constant_factor *= skip_typerefs(element_type)->size;
   }  /* if */
-  /* Make the call node. */
-  result = make_call_node(*routine, arg_expr_list, /*honor_virtual=*/FALSE,
-                          (an_insert_location *)NULL);
+  /* Retrieve the previously computed number of elements in the VLA. */
+  vla_dim = find_vla_dimension(array_type);
+  check_assertion(vla_dim->total_number_of_elements != NULL);
+  result = var_rvalue_expr(vla_dim->total_number_of_elements);
+  if (constant_factor != 1) {
+    /* For an array_type like T[4][5][expr][7] constant_factor is 20 and
+       result is an expression representing expr*7.  Multiply the
+       two factors to obtain the total scaling. */
+    result->next =
+            node_for_host_large_integer((a_host_large_integer)constant_factor,
+                                        targ_ptrdiff_t_int_kind);
+    result = make_operator_node((an_expr_operator_kind)eok_imultiply,
+                                ptrdiff_type, result);
+  }  /* if */
   return result;
-}  /* make_prototyped_runtime_call_full */
+}  /* vla_size_expr */
 
 
-static an_expr_node_ptr make_prototyped_runtime_call(
-                                               char             *name,
-                                               a_routine_ptr    *routine,
-                                               a_type_ptr       return_type,
-                                               a_type_ptr       param1_type,
-                                               a_type_ptr       param2_type,
-                                               an_expr_node_ptr arg_expr_list)
+static a_routine_ptr  vla_alloc_routine;
+
+
+static an_expr_node_ptr make_vla_allocation_expr(a_variable_ptr  vla_var)
 /*
-Version of make_prototyped_runtime_call that handles one or two parameter
-types.
+Create an expression that calls the run-time support library to allocate
+storage for the given VLA variable.
 */
 {
-  an_expr_node_ptr result;
+  an_expr_node_ptr  result = var_lvalue_expr(vla_var), size_expr;
+  a_type_ptr        size_type = integer_type(targ_size_t_int_kind);
 
-  result = make_prototyped_runtime_call_full(name, routine, return_type,
-                                             param1_type, param2_type,
-                                             (a_type_ptr)NULL, arg_expr_list);
+  result = add_lowered_cast_if_necessary(result, void_star_type());
+  size_expr = vla_size_expr(vla_var->type, /*byte_count=*/TRUE);
+  size_expr = add_lowered_cast_if_necessary(size_expr, size_type);
+  result->next = size_expr;
+  result = make_prototyped_runtime_call("__vla_alloc", &vla_alloc_routine,
+                                        void_type(), void_star_type(),
+                                        size_type, result);
   return result;
-}  /* make_prototyped_runtime_call */
- 
-#endif /* LOWER_COMPLEX || (VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS) */
+}  /* make_vla_allocation_expr */
+
+
+static void lower_vla_decl(a_statement_ptr  stmt)
+/*
+Lower the given stmk_vla_decl statement.  If this is a VLA variable, allocate
+memory for it.
+*/
+{
+  a_variable_ptr  vla_var;
+
+  if (stmt->variant.vla.is_typedef_decl) {
+    vla_var = NULL;
+  } else {
+    vla_var = stmt->variant.vla.variant.variable;
+  }  /* if */
+  set_statement_kind(stmt, (a_statement_kind)stmk_expr);
+  /* If necessary, allocate storage for the variable. */
+  if (vla_var != NULL && vla_var->is_vla) {
+    stmt->expr = make_vla_allocation_expr(vla_var);
+  }  /* if */
+  if (stmt->expr == NULL) {
+    /* This may happen for simple VLA typedefs.  Create a dummy expression. */
+    stmt->expr = node_for_host_large_integer((a_host_large_integer)0,
+                                             (an_integer_kind)ik_int);
+  }  /* if */
+  /* The result of the statement expression is not used. */
+  set_expr_result_not_used(stmt->expr);
+}  /* lower_vla_decl */
+
+
+static a_routine_ptr  vla_dealloc_routine;
+
+
+static void lower_vla_dealloc(an_expr_node_ptr  expr)
+/*
+Lower the given enk_vla_dealloc expression.  Currently we call the run-time
+support routine __vla_dealloc in all cases, but this could potentially be
+optimized to only call that routine for the first allocated variable in the
+scope (which would automatically deallocate all the other VLA variables as
+well).
+*/
+{
+  a_variable_ptr    vla_var = expr->variant.vla_variable;
+  an_expr_node_ptr  arg = var_lvalue_expr(vla_var);
+
+  arg = add_lowered_cast_if_necessary(arg, void_star_type());
+  overwrite_node(expr,
+                 make_prototyped_runtime_call("__vla_dealloc",
+                                              &vla_dealloc_routine,
+                                              void_type(), void_star_type(),
+                                              (a_type_ptr)NULL, arg));
+  /* The result of the expression is not used. */
+  set_expr_result_not_used(expr);
+}  /* lower_vla_dealloc */
+
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #if LOWER_COMPLEX
 
 /* Pointers to lowered versions of complex types, once allocated. */
@@ -1545,7 +1667,7 @@ Transform the given cast expression into a function call (compatible with C89).
     a_type_ptr  src_tp = expr->variant.operation.operands->type;
     check_assertion(expr->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_cast);
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
     if (vla_enabled && !tp->visited_for_vla_lowering &&
         !(tp->kind == (a_type_kind)tk_typeref && typeref_is_typedef(tp)) &&
         is_variably_modified_type(tp)) {
@@ -1559,7 +1681,7 @@ Transform the given cast expression into a function call (compatible with C89).
       }  /* if */
       record_vla_component_types_for_lowering(expr->type);
     }  /* if */
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #if LOWER_FIXED_POINT
     if (fixed_point_enabled &&
         (is_fixed_point_type(tp) ||
@@ -1905,52 +2027,7 @@ have been lowered already.
 #endif /* LOWER_FIXED_POINT */
 }  /* lower_c99_call */
 
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-
-static an_expr_node_ptr vla_size_expr(a_type_ptr  vla_type,
-                                      a_boolean   byte_count)
-/*
-Return an expression describing the (nonconstant) size of the given VLA type.
-If byte_count is TRUE, the expression should reflect the size as a number of
-bytes; otherwise, the size should be the number of elements.
-*/
-{
-  an_expr_node_ptr     result;
-  a_type_ptr           array_type = skip_typerefs(vla_type);
-  a_type_ptr           ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
-  a_targ_size_t        constant_factor = 1;
-  a_vla_dimension_ptr  vla_dim;
-
-  /* Accumulate any constant dimensions first. */
-  while (!array_type->variant.array.is_vla) {
-    a_targ_size_t  length =
-                         array_type->variant.array.variant.number_of_elements;
-    constant_factor *= length;
-    array_type = skip_typerefs(array_type->variant.array.element_type);
-  }  /* while */
-  if (byte_count) {
-    /* Multiply the constant factor by the size of the underlying element
-       type. */
-    a_type_ptr  element_type = underlying_array_element_type(array_type);
-    constant_factor *= skip_typerefs(element_type)->size;
-  }  /* if */
-  /* Retrieve the previously computed number of elements in the VLA. */
-  vla_dim = find_vla_dimension(array_type);
-  check_assertion(vla_dim->total_number_of_elements != NULL);
-  result = var_rvalue_expr(vla_dim->total_number_of_elements);
-  if (constant_factor != 1) {
-    /* For an array_type like T[4][5][expr][7] constant_factor is 20 and
-       result is an expression representing expr*7.  Multiply the
-       two factors to obtain the total scaling. */
-    result->next =
-            node_for_host_large_integer((a_host_large_integer)constant_factor,
-                                        targ_ptrdiff_t_int_kind);
-    result = make_operator_node((an_expr_operator_kind)eok_imultiply,
-                                ptrdiff_type, result);
-  }  /* if */
-  return result;
-}  /* vla_size_expr */
-
+#if LOWER_VARIABLE_LENGTH_ARRAYS
 
 static void lower_vla_pointer_integer_arithmetic(an_expr_node_ptr  expr)
 /*
@@ -2051,7 +2128,7 @@ be scaled down by the number of elements in the VLAs pointed to.
                                           ptrdiff_type, copy));
 }  /* lower_vla_pointer_difference */ 
 
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 
 static void lower_runtime_sizeof(an_expr_node_ptr  expr)
 /*
@@ -2061,12 +2138,10 @@ underlying the sizeof expression.  Otherwise, if the eok_runtime_sizeof node
 applies to an expression, the underlying expression is lowered.
 */
 {
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
   an_expr_node_ptr  byte_count, precomputation = NULL;
   a_type_ptr        vla_type;
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
   if (expr->variant.runtime_sizeof.is_type) {
     /* Something like "sizeof(X[2][n][m/2])".  Unlike uses of VLAs in
        declarations there is no stmk_set_vla_size for VLA types named in
@@ -2098,14 +2173,14 @@ applies to an expression, the underlying expression is lowered.
   }  /* if */
   overwrite_node(expr, byte_count);
 done:;
-#else /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#else /* LOWER_VARIABLE_LENGTH_ARRAYS */
   /* We're not lowering the run-time sizeof operator, but we may have to
      lower the argument if that argument is an expression. */
   if (!expr->variant.runtime_sizeof.is_type) {
     lower_c99_expr(expr->variant.runtime_sizeof.variant.expr,
                    /*used_as_lvalue=*/FALSE);
   }  /* if */
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_runtime_sizeof */
 
 
@@ -2251,7 +2326,7 @@ _Bool type, and VLA types.
     case eok_call:
       lower_c99_call(expr);
       break;
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
     case eok_padd:
     case eok_psubtract:
     case eok_padd_subsc:
@@ -2271,7 +2346,7 @@ _Bool type, and VLA types.
         lower_vla_pointer_difference(expr);
       }  /* if */
       break;
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     default:
       /* Nothing needs to be done. */
       break;
@@ -2470,9 +2545,9 @@ in C99 mode to represent a compound literal.
   an_insert_location insert_location;
   an_init_pos_descr  ipd;
   a_boolean          keep_dynamic_init;
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
   an_expr_node_ptr   vla_inits = NULL;
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 
   /* This routine is similar to lower_temp_init. */
   /* The compound literal is rewritten to use a temporary.  The temporary
@@ -2480,7 +2555,7 @@ in C99 mode to represent a compound literal.
      generated for any non-constant parts. */
   /* Determine the type of the temporary. */
   temp_type = expr->type;
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
   if (vla_enabled && !(temp_type->kind == (a_type_kind)tk_typeref &&
                        typeref_is_typedef(temp_type)) &&
       is_variably_modified_type(temp_type)) {
@@ -2489,7 +2564,7 @@ in C99 mode to represent a compound literal.
     vla_inits = lower_vla_dimensions(temp_type);
     record_vla_component_types_for_lowering(expr->type);
   }  /* if */
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
   result_is_addr = expr->variant.init.result_is_addr;
   if (result_is_addr) {
     /* The value of the enk_temp_init node is the address of the
@@ -2534,10 +2609,10 @@ in C99 mode to represent a compound literal.
                      &insert_location,
                      &keep_dynamic_init,
                      (a_constant **)NULL);
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
   /* After lowering, the type will no longer be variably-modified. */
   var->has_variably_modified_type = FALSE;
-#else /* !(VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS) */
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
   if (var->has_variably_modified_type) {
     /* If the variable has variably-modified type, put out an stmk_vla_decl
        for it. */
@@ -2547,7 +2622,7 @@ in C99 mode to represent a compound literal.
     stmk_vla_decl_stmt->variant.vla.variant.variable = var;
     add_to_end_of_temp_init_statements_list(stmk_vla_decl_stmt);
   }  /* if */
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
   if (keep_dynamic_init) {
     add_stmk_init_for_compound_literal(var, dip);
   }  /* if */
@@ -2558,14 +2633,14 @@ in C99 mode to represent a compound literal.
        being entered at the top. */
     zero_automatic_temporary(var, expr);
   }  /* if */
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
   if (vla_inits != NULL) {
     /* Be sure to compute any needed VLA dimension variables before any
        expressions inside the compound literal braces. */
     an_expr_node_ptr  new_expr = make_comma_node(vla_inits, copy_node(expr));
     overwrite_node(expr, new_expr);
   }  /* if */
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_temp_init */
 
 
@@ -2634,7 +2709,7 @@ second parameter.
       lower_c99_temp_init(expr);
       break;
     case enk_variable_address:
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
       if (expr->variant.variable->is_vla) {
         /* VLAs are lowered to pointers (to automatically managed storage).
            The pointer value should be used; not its address. */
@@ -2649,7 +2724,7 @@ second parameter.
         expr->type = make_pointer_type(
                                    underlying_array_element_type(expr->type));
       }  /* if */
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       break;
     case enk_routine_address:
     case enk_variable:
@@ -2682,15 +2757,20 @@ second parameter.
     case enk_reuse_value:
       lower_reuse_value_expr(expr);
       break;
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+    case enk_vla_dealloc:
+      lower_vla_dealloc(expr);
+      break;
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     default:
       unexpected_condition_str("Invalid C99 IL expression kind");
       break;
   }  /* switch */
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
   if (vla_enabled && !expr->type->visited_for_vla_lowering) {
     record_vla_component_types_for_lowering(expr->type);
   }  /* if */
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_expr_full */
 
 
@@ -2813,7 +2893,7 @@ Do C99 lowering on a constant list.
   }  /* if */
 }  /* lower_c99_constant_list */
 
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
 
 static void lower_set_vla_size(a_statement_ptr  stmt)
 /*
@@ -2842,84 +2922,7 @@ associated with the same type is turned into a no-op.
   set_expr_result_not_used(stmt->expr);
 }  /* lower_set_vla_size */
 
-
-static a_routine_ptr  vla_alloc_routine;
-
-
-static an_expr_node_ptr make_vla_allocation_expr(a_variable_ptr  vla_var)
-/*
-Create an expression that calls the run-time support library to allocate
-storage for the given VLA variable.
-*/
-{
-  an_expr_node_ptr  result = var_lvalue_expr(vla_var), size_expr;
-  a_type_ptr        size_type = integer_type(targ_size_t_int_kind);
-
-  result = add_lowered_cast_if_necessary(result, void_star_type());
-  size_expr = vla_size_expr(vla_var->type, /*byte_count=*/TRUE);
-  size_expr = add_lowered_cast_if_necessary(size_expr, size_type);
-  result->next = size_expr;
-  result = make_prototyped_runtime_call("__vla_alloc", &vla_alloc_routine,
-                                        void_type(), void_star_type(),
-                                        size_type, result);
-  return result;
-}  /* make_vla_allocation_expr */
-
-
-static void lower_vla_decl(a_statement_ptr  stmt)
-/*
-Lower the given stmk_vla_decl statement.  If this is a VLA variable, allocate
-memory for it.
-*/
-{
-  a_variable_ptr  vla_var;
-
-  if (stmt->variant.vla.is_typedef_decl) {
-    vla_var = NULL;
-  } else {
-    vla_var = stmt->variant.vla.variant.variable;
-  }  /* if */
-  set_statement_kind(stmt, (a_statement_kind)stmk_expr);
-  /* If necessary, allocate storage for the variable. */
-  if (vla_var != NULL && vla_var->is_vla) {
-    stmt->expr = make_vla_allocation_expr(vla_var);
-  }  /* if */
-  if (stmt->expr == NULL) {
-    /* This may happen for simple VLA typedefs.  Create a dummy expression. */
-    stmt->expr = node_for_host_large_integer((a_host_large_integer)0,
-                                             (an_integer_kind)ik_int);
-  }  /* if */
-  /* The result of the statement expression is not used. */
-  set_expr_result_not_used(stmt->expr);
-}  /* lower_vla_decl */
-
-
-static a_routine_ptr  vla_dealloc_routine;
-
-
-static void lower_vla_dealloc(a_statement_ptr  stmt)
-/*
-Lower the given stmk_vla_dealloc statement.  Currently we call the run-time
-support routine __vla_dealloc in all cases, but this could potentially be
-optimized to only call that routine for the first allocated variable in the
-scope (which would automatically deallocate all the other VLA variables as
-well).
-*/
-{
-  a_variable_ptr    vla_var = stmt->variant.vla_variable;
-  an_expr_node_ptr  arg = var_lvalue_expr(vla_var);
-
-  arg = add_lowered_cast_if_necessary(arg, void_star_type());
-  set_statement_kind(stmt, (a_statement_kind)stmk_expr);
-  stmt->expr = make_prototyped_runtime_call("__vla_dealloc",
-                                            &vla_dealloc_routine,
-                                            void_type(), void_star_type(),
-                                            (a_type_ptr)NULL, arg);
-  /* The result of the statement expression is not used. */
-  set_expr_result_not_used(stmt->expr);
-}  /* lower_vla_dealloc */
-
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 
 static void lower_c99_statement_list(a_statement_ptr statement_list)
 /*
@@ -3054,19 +3057,14 @@ Do C99 lowering on the indicated statement.
         lower_c99_stmk_init(statement);
         break;
       case stmk_set_vla_size:
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
         lower_set_vla_size(statement);
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
       case stmk_vla_decl:
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
         lower_vla_decl(statement);
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
-        break;
-      case stmk_vla_dealloc:
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-        lower_vla_dealloc(statement);
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
       default:
         unexpected_condition_str("lower_c99_statement: bad statement kind");
@@ -3144,12 +3142,12 @@ Do C99 lowering on the indicated variable and its subtree.
     var->init_kind = (an_init_kind)initk_zero;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
   if (var->has_variably_modified_type) {
     var->has_variably_modified_type = FALSE;
     record_vla_component_types_for_lowering(var->type);
   }  /* if */
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
   error_position = saved_error_position;
 }  /* lower_c99_variable */
 
@@ -3175,7 +3173,7 @@ on the scope types list.
     }  /* if */
   }  /* if */
 #endif /* REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING */
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
   if (vla_enabled &&
       type->kind == (a_type_kind)tk_typeref && typeref_is_typedef(type)) {
     record_vla_component_types_for_lowering(type->variant.typeref.type);
@@ -3185,7 +3183,7 @@ on the scope types list.
       record_vla_type_for_lowering(type);
     }  /* if */
   }  /* if */
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_type */
 
 
@@ -3195,11 +3193,11 @@ Do C99 lowering on the indicated routine (the header, not the body).
 */
 {
   lower_c99_source_correspondence(&routine->source_corresp);
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
   if (vla_enabled) {
     record_vla_component_types_for_lowering(routine->type);
   }  /* if */
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_routine */
 
 
@@ -3315,11 +3313,11 @@ Do C99 lowering for all entities in and under the given scope.
     }  /* if */
 #endif /* MINIMAL_INLINING */
   } else if (scope->kind == (a_scope_kind)sck_file) {
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
     if (vla_enabled) {
       lower_vla_types();
     }  /* if */
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #if MINIMAL_INLINING
     if (inlining_enabled) {
       /* For any inline routines for which all calls were expanded inline,
@@ -3616,11 +3614,11 @@ Do one-time initialization of variables related to C99 IL lowering.
       pch_saved_var_array_elem(fixed_incr_routine),
       pch_saved_var_array_elem(fixed_decr_routine),
 #endif /* LOWER_FIXED_POINT */
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
       pch_saved_var_array_elem(vla_types),
       pch_saved_var_array_elem(vla_alloc_routine),
       pch_saved_var_array_elem(vla_dealloc_routine),
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -3696,11 +3694,11 @@ for each translation unit.
     }  /* for */
   }
 #endif /* LOWER_FIXED_POINT */
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
   vla_types = NULL;
   vla_dealloc_routine = NULL;
   vla_alloc_routine = NULL;
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
   temp_init_statements = NULL;
 #if MINIMAL_INLINING
   /* Do inline.c initialization. */
@@ -3718,11 +3716,11 @@ Initialize static variables related to C99 IL lowering that must be
 initialized for each compilation.
 */
 {
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
   /* The code to lower VLAs assumes that the deallocation points have been
-     marked using stmk_vla_dealloc statements. */
-  check_assertion(vla_dealloc_statements_in_il);
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+     marked using enk_vla_dealloc expressions nodes. */
+  check_assertion(vla_deallocations_in_il);
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_init */
 
 #endif /* DO_C99_IL_LOWERING */

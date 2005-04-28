@@ -1473,7 +1473,6 @@ If not, *failed is set.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case stmk_set_vla_size:
       case stmk_vla_decl:
-      case stmk_vla_dealloc:
 #if GNU_EXTENSIONS_ALLOWED
       case stmk_assigned_goto:
 #endif /* GNU_EXTENSIONS_ALLOWED */

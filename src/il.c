@@ -1702,6 +1702,18 @@ Dump the contents of the indicated expression node for debug purposes.
       fputs("result of overriding function\n", f_debug);
       break;
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if VLA_DEALLOCATIONS_IN_IL
+    case enk_vla_dealloc:
+      fprintf(f_debug, "vla deallocation: ");
+      if (node->variant.vla_variable == NULL) {
+        fputs("<null variable>", f_debug);
+      } else {
+        db_name_full(&node->variant.vla_variable->source_corresp,
+                     iek_variable);
+        fputs("\n", f_debug);
+      }  /* if */
+      break;
+#endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_error:
       fputs("error node\n", f_debug);
       break;
@@ -2028,7 +2040,6 @@ Dump a statement kind, for debug purposes.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     case stmk_set_vla_size:    s = "set-vla-size";      break;
     case stmk_vla_decl:        s = "vla-decl";          break;
-    case stmk_vla_dealloc:     s = "vla-dealloc";       break;
 #if GNU_EXTENSIONS_ALLOWED
     case stmk_assigned_goto:   s = "assigned goto";     break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -2082,6 +2093,11 @@ dumping other structures to which the node belongs.
       case enk_condition:
         fprintf(f_debug, " (condition)");
         break;
+#if VLA_DEALLOCATIONS_IN_IL
+      case enk_vla_dealloc:
+        fprintf(f_debug, " (vla deallocation)");
+        break;
+#endif /* VLA_DEALLOCATIONS_IN_IL */
       default:;
     }  /* switch */
   }  /* if */
@@ -12407,6 +12423,11 @@ be called to start a copy.
          copying the statement subtree, the associated scopes, the variables
          in those scopes, the initializers on those variables... */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if VLA_DEALLOCATIONS_IN_IL
+    case enk_vla_dealloc:
+      // FIXME
+      break;
+#endif /* VLA_DEALLOCATIONS_IN_IL */
     default:
       unexpected_condition_str("i_copy_expr_tree: bad expr kind");
   }  /* if */

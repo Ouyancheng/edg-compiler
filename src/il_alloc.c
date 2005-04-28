@@ -1599,9 +1599,9 @@ variant fields to default values.
   pte->type_processed_for_ordering = FALSE;
   pte->type_processed_as_complete_for_ordering = FALSE;
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
   pte->visited_for_vla_lowering = FALSE;
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
   pte->typeinfo_var = NULL;
 #endif /* DO_IL_LOWERING */
   set_type_kind(pte, kind);
@@ -1775,9 +1775,9 @@ pointer to it.
   vdp->in_prototype_scope = FALSE;
   vdp->position = null_source_position;
 #if DO_IL_LOWERING
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
   vdp->total_number_of_elements = NULL;
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #endif /* DO_IL_LOWERING */
   db_exit();
   return vdp;
@@ -2503,6 +2503,11 @@ fields to default values.
       /* No variant fields. */
       break;
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if VLA_DEALLOCATIONS_IN_IL
+    case enk_vla_dealloc:
+      node->variant.vla_variable = NULL;
+      break;
+#endif /* VLA_DEALLOCATIONS_IN_IL */
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");
   }  /* switch */
@@ -2886,9 +2891,6 @@ fields to default values.
     case stmk_vla_decl:
       sp->variant.vla.is_typedef_decl  = FALSE;
       sp->variant.vla.variant.variable = NULL;
-      break;
-    case stmk_vla_dealloc:
-      sp->variant.vla_variable = NULL;
       break;
 #if CHECKING
     default:

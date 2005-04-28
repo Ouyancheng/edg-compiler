@@ -2794,6 +2794,10 @@ as specified in the control block.
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     case enk_routine_address:
       break;
+#if VLA_DEALLOCATIONS_IN_IL
+    case enk_vla_dealloc:
+      break;
+#endif /* VLA_DEALLOCATIONS_IN_IL */
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");
   }  /* switch */
@@ -2983,7 +2987,6 @@ as specified in the control block.
       }
       break;
     case stmk_vla_decl:
-    case stmk_vla_dealloc:
       break;
 #if UPC_EXTENSIONS_ALLOWED
     case stmk_upc_notify:

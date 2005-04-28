@@ -3307,9 +3307,9 @@ the scope must be the file scope.
           /* Variably-modified types are put out where their stmk_vla_decl
              appears.  They cannot be the type of an entity with linkage, so
              not putting them out here is not a problem. */
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
           unexpected_condition_str("VLA types should be lowered");
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         } else {
           if (pass == 1) {
             /* Do some name mangling so that the name remains unique. */
@@ -4911,6 +4911,16 @@ done_with_operation:
       dump_temp_name((char *)covariant_return_expr);
       break;
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if VLA_DEALLOCATIONS_IN_IL
+    case enk_vla_dealloc:
+      /* enk_vla_dealloc nodes are implicitly generated, and therefore do not
+         require any output.  If VLAs are lowered, we should not see them at
+         all. */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+      unexpected_condition_str("VLA statement unexpected");
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+      break;
+#endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
       unexpected_condition_str("dump_expr: enk_field");
@@ -6513,9 +6523,9 @@ interleaved with the variables.
       /* The variable has a variably modified type.  Do not put it out
          now; it will be put out where the corresponding stmk_vla_decl
          statement appears. */
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
       unexpected_condition_str("VLA types should be lowered");
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     } else {
       dump_variable_decl(var_ptr, dump_vars_without_initializers,
                          dump_initializers);
@@ -6538,9 +6548,9 @@ interleaved with the variables.
       /* The variable has a variably modified type.  Do not put it out
          now; it will be put out where the corresponding stmk_vla_decl
          statement appears. */
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
       unexpected_condition_str("VLA types should be lowered");
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     } else {
       dump_variable_decl(var_ptr, dump_vars_without_initializers,
                          dump_initializers);
@@ -6888,7 +6898,7 @@ Generate the code for a switch statement.
         write_tok_ch(':');
       } while ((constant = constant->next) != NULL);
     }  /* if */
-#if VLA_ALLOWED && !LOWER_VARIABLE_LENGTH_ARRAYS
+#if !LOWER_VARIABLE_LENGTH_ARRAYS
     /* If we're in a function with VLAs, there is a chance that the
        next statement to output will be a VLA definition.  In C99 that is
        not a problem, but in C89 + VLA extensions, a label cannot be
@@ -6899,7 +6909,7 @@ Generate the code for a switch statement.
     if (innermost_function_scope->vla_dimensions != NULL) {
       write_tok_ch(';');
     }  /* if */
-#endif /* VLA_ALLOWED && !LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* !LOWER_VARIABLE_LENGTH_ARRAYS */
     /* Indent for the dependent statements. */
     indent += 2;
     dump_statement_list(switch_clause->statements,
@@ -7378,15 +7388,15 @@ statement expression, i.e., ({...}).
       break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     case stmk_set_vla_size:
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
       unexpected_condition_str("VLA statement unexpected");
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       /* No output. */
       break;
     case stmk_vla_decl:
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+#if LOWER_VARIABLE_LENGTH_ARRAYS
       unexpected_condition_str("VLA statement unexpected");
-#else /* !(VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS) */
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
       if (statement->variant.vla.is_typedef_decl) {
         /* Dump out the declaration of a typedef for a variably-modified type
            at the point where it occurs in the executable code sequence. */
@@ -7400,13 +7410,7 @@ statement expression, i.e., ({...}).
                            /*dump_vars_without_initializers=*/TRUE,
                            /*dump_initializers=*/TRUE);
       }  /* if */
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
-      break;
-    case stmk_vla_dealloc:
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-      unexpected_condition_str("VLA statement unexpected");
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
-      /* No output. */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       break;
 #if UPC_EXTENSIONS_ALLOWED
     case stmk_upc_notify:
@@ -7464,15 +7468,8 @@ top-level list in a GNU C statement expression if is_statement_expr is TRUE.
       exec_stmt_put_out = FALSE;
     }  /* if */
     if (is_statement_expr) {
-      /* See whether this statement is the last in a statement expression.
-         Ignore vla-dealloc statements in that determination. */
-      a_statement_ptr next_stmt = statement->next;
-      while (next_stmt != NULL &&
-             next_stmt->kind == (a_statement_kind)stmk_vla_dealloc) {
-        /* Ignore vla-dealloc statements. */
-        next_stmt = next_stmt->next;
-      }  /* while */
-      if (next_stmt == NULL) last_in_statement_expr = TRUE;
+      /* See whether this statement is the last in a statement expression. */
+      if (statement->next == NULL) last_in_statement_expr = TRUE;
     }  /* if */
     dump_statement_full(statement, last_in_statement_expr);
     if (is_exec_stmt) exec_stmt_put_out = TRUE;

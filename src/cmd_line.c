@@ -4627,7 +4627,7 @@ variables declared in cmd_line.h.
   floating_point_template_parameters_allowed =
                             DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED;
   vla_enabled = DEFAULT_VLA_ENABLED;
-  vla_dealloc_statements_in_il = VLA_DEALLOC_STATEMENTS_IN_IL;
+  vla_deallocations_in_il = VLA_DEALLOCATIONS_IN_IL;
   operator_overloading_on_enums_enabled =
                                          DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS;
   string_literals_are_const = DEFAULT_STRING_LITERALS_ARE_CONST;

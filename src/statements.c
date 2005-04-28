@@ -2127,6 +2127,30 @@ the current function scope.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+#if VLA_DEALLOCATIONS_IN_IL
+
+static a_statement_ptr create_vla_deallocation_stmt(a_variable_ptr  vla_var)
+/*
+Allocate and return a statement node for the deallocation of a variable length
+array (represented by the given variable entry).
+*/
+{
+  a_statement_ptr  result = alloc_statement((a_statement_kind)stmk_expr);
+
+  result->expr = alloc_expr_node((an_expr_node_kind)enk_vla_dealloc);
+  result->expr->type = void_type();
+  result->expr->variant.vla_variable = vla_var;
+#if DEBUG
+  if (debug_level >= 4) {
+    fputs("  creating vla-dealloc statement for \"", f_debug);
+    db_name(&vla_var->source_corresp);
+    fputs("\"\n", f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  return result;
+}  /* create_vla_deallocation_stmt */
+
+
 static a_statement_ptr collect_vla_dealloc_stmts(
                                               a_control_flow_descr_ptr  start,
                                               a_control_flow_descr_ptr  end)
@@ -2142,7 +2166,7 @@ by traversing the control-flow list backwards from *start to *end.
   a_boolean                 done;
 
   db_enter(4, "collect_vla_dealloc_stmts");
-  check_assertion(vla_dealloc_statements_in_il);
+  check_assertion(vla_deallocations_in_il);
 #if DEBUG
   if (debug_level == 4) {
     fputs("  start = ", f_debug);
@@ -2204,8 +2228,8 @@ by traversing the control-flow list backwards from *start to *end.
           if (cfdp->variant.init.is_vla_variable) {
             /* The declaration of a VLA variable has been located.  Create a
                new statement to represent its deallocation. */
-            dealloc_stmt = alloc_statement((a_statement_kind)stmk_vla_dealloc);
-            dealloc_stmt->variant.vla_variable = cfdp->variant.init.variable;
+            dealloc_stmt = create_vla_deallocation_stmt(
+                                                 cfdp->variant.init.variable);
             /* Append it to the collected list. */
             if (first == NULL) {
               first = last = dealloc_stmt;
@@ -2213,13 +2237,6 @@ by traversing the control-flow list backwards from *start to *end.
               last->next = dealloc_stmt;
               last = last->next;
             }  /* if */
-#if DEBUG
-            if (debug_level >= 4) {
-              fputs("  adding vla-dealloc statement for \"", f_debug);
-              db_name(&dealloc_stmt->variant.vla_variable->source_corresp);
-              fputs("\"\n", f_debug);
-            }  /* if */
-#endif /* DEBUG */
           }  /* if */
         } else if (cfdp->kind ==
                           (a_control_flow_descr_kind)cfdk_end_of_block) {
@@ -2474,6 +2491,7 @@ the goto, and label_cfsp describes the associated label.
   db_exit();
 }  /* add_vla_dealloc_stmts_for_goto */
 
+#endif /* VLA_DEALLOCATIONS_IN_IL */
 
 void set_vla_size_statement(a_vla_dimension_ptr  vdp,
                             a_source_position    *pos)
@@ -2651,13 +2669,15 @@ headed by goto_cfdp.
                                                variant.label.lifetime;
       *goto_olp_addr = common_object_lifetime(label_olp, *goto_olp_addr);
     }  /* for */
-  } else if (vla_enabled && vla_dealloc_statements_in_il &&
+#if VLA_DEALLOCATIONS_IN_IL
+  } else if (vla_enabled && vla_deallocations_in_il &&
              (label->continue_label || label->break_label)) {
     for (; goto_cfdp != NULL;
          goto_cfdp = goto_cfdp->variant.goto_statement.prev_goto) {
       /* Put out vla-dealloc statements on forward gotos to this label. */
       add_vla_dealloc_stmts_for_goto(goto_cfdp, cfdp);
     }  /* for */
+#endif /* VLA_DEALLOCATIONS_IN_IL */
   }  /* if */
 }  /* define_implicit_label */
 
@@ -3357,12 +3377,14 @@ the block statement.
   /* Remember whether or not the end of the block is reachable.  This
      is helpful in IL lowering. */
   block->end_of_block_reachable = curr_reachability.reachable;
-  if (vla_enabled && vla_dealloc_statements_in_il &&
+#if VLA_DEALLOCATIONS_IN_IL
+  if (vla_enabled && vla_deallocations_in_il &&
       curr_reachability.reachable) {
     /* Put out a vla-dealloc statement for each declaration of a VLA variable
        in the current block. */
     add_vla_dealloc_stmts_for_block(end_of_control_flow_descr_list);
   }  /* if */
+#endif /* VLA_DEALLOCATIONS_IN_IL */
   /* Pop the statement stack. */
   pop_stmt_stack();
   if (block_stmt_is_cfront_dependent_stmt(block_stmt)) {
@@ -4918,10 +4940,12 @@ diagnose the condition.
     *goto_olp_addr = common_object_lifetime(label_olp, *goto_olp_addr);
 
   }  /* if */
-  if (vla_enabled && vla_dealloc_statements_in_il) {
+#if VLA_DEALLOCATIONS_IN_IL
+  if (vla_enabled && vla_deallocations_in_il) {
     /* Put out vla-dealloc statements on the goto, if necessary. */
     add_vla_dealloc_stmts_for_goto(goto_cfdp, label_cfdp);
   }  /* if */
+#endif /* VLA_DEALLOCATIONS_IN_IL */
   db_exit();
 }  /* check_goto_and_label */
 
@@ -5482,7 +5506,10 @@ The syntax is:
 See also 3.6.6.4.
 */
 {
-  a_statement_ptr    sp, vla_dealloc_stmts = NULL;
+  a_statement_ptr    sp;
+#if VLA_DEALLOCATIONS_IN_IL
+  a_statement_ptr    vla_dealloc_stmts = NULL;
+#endif /* VLA_DEALLOCATIONS_IN_IL */
   an_expr_node_ptr   return_expr;
   a_dynamic_init_ptr dip = NULL;
   a_routine_ptr      rout;
@@ -5509,13 +5536,15 @@ See also 3.6.6.4.
   curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   check_for_leaving_statement_expr((a_struct_stmt_stack_entry_ptr)NULL);
-  if (vla_enabled && vla_dealloc_statements_in_il &&
+#if VLA_DEALLOCATIONS_IN_IL
+  if (vla_enabled && vla_deallocations_in_il &&
       curr_reachability.reachable) {
     /* Put out a vla-dealloc statement for each declaration of a VLA variable
        in the currently active blocks of the function. */
     vla_dealloc_stmts = collect_vla_dealloc_stmts_for_function(
                                               end_of_control_flow_descr_list);
   }  /* if */
+#endif /* VLA_DEALLOCATIONS_IN_IL */
   /* Get a pointer to the current routine entry, and its return type. */
   rout = current_routine_entry();
   rout_type = skip_typerefs(rout->type);
@@ -5598,6 +5627,7 @@ See also 3.6.6.4.
                                          ec_bad_return_value_type,
                                          &dip);
   }  /* if */
+#if VLA_DEALLOCATIONS_IN_IL
   if (vla_dealloc_stmts != NULL) {
     /* Insert the deallocation statements, but the return expression must be
        evaluated first if it is not invariant. */
@@ -5623,6 +5653,7 @@ See also 3.6.6.4.
     }  /* if */
     add_statement_list(vla_dealloc_stmts, curr_reachability.reachable);
   }  /* if */
+#endif /* VLA_DEALLOCATIONS_IN_IL */
   if (!return_stmt_allowed) {
     sp = NULL;
   } else if (microsoft_C_mode_void_return) {
@@ -7026,8 +7057,8 @@ e.g., ({ ... }).
          with the current function (i.e., the current function should also
          have type void), and add a return with no expression. */
       an_expr_node_ptr return_expr;
-
-      if (vla_enabled && vla_dealloc_statements_in_il) {
+#if VLA_DEALLOCATIONS_IN_IL
+      if (vla_enabled && vla_deallocations_in_il) {
         /* Put out a vla-dealloc statement for each declaration of a VLA
            variable in the currently active blocks of the function. */
         a_statement_ptr  vla_dealloc_stmts =
@@ -7037,6 +7068,7 @@ e.g., ({ ... }).
           add_statement_list(vla_dealloc_stmts, curr_reachability.reachable);
         }  /* if */
       }  /* if */
+#endif /* VLA_DEALLOCATIONS_IN_IL */
       /* Make sure that a void return is acceptable here.  If this is the main
          routine, generate an implicit return value, if possible. */
       check_void_return_okay(/*is_implicit_return=*/TRUE, &return_expr);
