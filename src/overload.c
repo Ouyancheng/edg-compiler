@@ -7035,13 +7035,14 @@ described by *arg_block.
   an_arg_operand_ptr  arg = arg_block->printf_scanf_args;
   int                 k;
 
-  for (k = 1; k < n && arg != NULL; ++k, arg = arg->next);
+  for (k = 1; k < n && arg != NULL; ++k) {
+    arg = arg->next;
+  }
   return arg;
 }  /* nth_printf_scanf_arg */
 
 
-static void check_printf_scanf_arg_list(an_arg_operand_ptr  args,
-                                        an_arg_check_block  *arg_block)
+static void check_printf_scanf_arg_list(an_arg_check_block  *arg_block)
 /*
 We are processing a call to a function with a constant printf/scanf-like
 format string.  Check that the argument list (args) is consistent with the
@@ -7178,14 +7179,14 @@ transformed into a list of expression nodes (and the operand list is
 deallocated).  Some state information is recorded in *arg_block.
 */
 {
-  an_arg_operand_ptr  arg = args;
+  an_arg_operand_ptr  arg;
 
   for (arg = args; arg != NULL; arg = arg->next) {
     process_call_argument(arg, arg_block);
   }  /* for */
   if (arg_block->fmt_string != NULL) {
     /* Check printf/scanf-like argument lists. */
-    check_printf_scanf_arg_list(args, arg_block);
+    check_printf_scanf_arg_list(arg_block);
   }  /* if */
   /* Convert the operand list to an expression list. */
   for (arg = args; arg != NULL; arg = arg->next) {
