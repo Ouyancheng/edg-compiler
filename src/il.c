@@ -12425,7 +12425,7 @@ be called to start a copy.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
-      // FIXME
+      /* FIXME */
       break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     default:
