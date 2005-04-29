@@ -12227,6 +12227,9 @@ be called to start a copy.
     case enk_field:
     case enk_routine_address:
     case enk_address_of_ellipsis:
+#if VLA_DEALLOCATIONS_IN_IL
+    case enk_vla_dealloc:
+#endif /* VLA_DEALLOCATIONS_IN_IL */
       /* Nothing more to copy. */
       break;
     case enk_constant:
@@ -12423,14 +12426,9 @@ be called to start a copy.
          copying the statement subtree, the associated scopes, the variables
          in those scopes, the initializers on those variables... */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if VLA_DEALLOCATIONS_IN_IL
-    case enk_vla_dealloc:
-      /* FIXME */
-      break;
-#endif /* VLA_DEALLOCATIONS_IN_IL */
     default:
       unexpected_condition_str("i_copy_expr_tree: bad expr kind");
-  }  /* if */
+  }  /* switch */
 #if MINIMAL_INLINING
   if (options & CE_DOING_INLINING_OF_FUNCTION_CALL) {
     /* When doing inlining, look for parameters that should be remapped. */
