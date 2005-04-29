@@ -6868,12 +6868,12 @@ format string can be deduced, set appropriate fields in arg_block.
 }  /* obtain_format_string_from_arg */
 
 
-static void process_call_argument(an_arg_operand_ptr arg_operand_node,
+static void process_call_argument(an_arg_operand_ptr arg_operand,
                                   an_arg_check_block *arg_block)
 /*
-Check the argument expression indicated by argument_operand_node against the
-corresponding parameter.  If it is compatible, convert it if necessary and
-add the expression to the list of argument expressions attached to
+Check the argument expression indicated by arg_operand against the
+corresponding parameter.  If it is compatible, convert it if necessary
+and add the expression to the list of argument expressions attached to
 *arg_block; otherwise, issue an error.  *arg_block contains information
 about the current parameter, and is updated at the end of the call to
 describe the next parameter.
@@ -6881,7 +6881,7 @@ describe the next parameter.
 {
   a_boolean   do_default_promotion;
   a_boolean   arg_is_fmt_string = FALSE;
-  an_operand  *argument_operand = &arg_operand_node->operand;
+  an_operand  *operand = &arg_operand->operand;
 
   /* Count the arguments. */
   arg_block->arg_ctr++;
@@ -6906,12 +6906,12 @@ describe the next parameter.
         if (microsoft_mode && C_mode()) {
           /* MSVC++ 4.2 allows extra arguments with just a warning in
              C mode. */
-          pos_warning(ec_too_many_arguments, &argument_operand->position);
+          pos_warning(ec_too_many_arguments, &operand->position);
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         {
-          pos_error(ec_too_many_arguments, &argument_operand->position);
+          pos_error(ec_too_many_arguments, &operand->position);
         }  /* if */
       }  /* if */
       arg_block->have_param_info = FALSE;
@@ -6924,7 +6924,7 @@ describe the next parameter.
       if (arg_block->varargs_count == NOT_LINT_VARARGS) {
         /* A lint-style varargs comment does not apply, so warning:
            extra actual argument. */
-        pos_warning(ec_too_many_arguments, &argument_operand->position);
+        pos_warning(ec_too_many_arguments, &operand->position);
         arg_block->have_param_info = FALSE;
       }  /* if */
     }  /* if */
@@ -6933,8 +6933,7 @@ describe the next parameter.
   if (do_default_promotion) {
     /* Either an ellipsis was encountered or this is an old-style argument
        list; do the default argument promotion. */
-    arg_default_promote_operand(argument_operand,
-                                arg_block->has_ellipsis);
+    arg_default_promote_operand(operand, arg_block->has_ellipsis);
     /* If this is an old-style call and we have the list of types as
        defined by the function body, check the promoted type of the
        actual against the formal. */
@@ -6947,7 +6946,7 @@ describe the next parameter.
         a_type_ptr        formal_type = default_argument_promotion(
                               skip_typerefs(arg_block->curr_param_type->type));
         an_error_severity severity;
-        severity = arg_okay_for_old_style_param(argument_operand, formal_type);
+        severity = arg_okay_for_old_style_param(operand, formal_type);
 #if GNU_EXTENSIONS_ALLOWED
         if (severity == (an_error_severity)es_warning &&
             (arg_block->curr_param_type->is_transparent ||
@@ -6963,8 +6962,7 @@ describe the next parameter.
           for (f = union_type->variant.class_struct_union.field_list;
                f != NULL;
                f = f->next) {
-            new_severity = arg_okay_for_old_style_param(argument_operand, 
-                                                        f->type);
+            new_severity = arg_okay_for_old_style_param(operand, f->type);
             if ((int)new_severity < (int)severity) {
               severity = new_severity;
               if (severity == (an_error_severity)es_none) {
@@ -6976,19 +6974,19 @@ describe the next parameter.
 #endif /* GNU_EXTENSIONS_ALLOWED */
         if (severity != (an_error_severity)es_none) {
           pos_diagnostic(severity, ec_old_style_incompatible_param,
-                         &argument_operand->position);
+                         &operand->position);
         }  /* if */
       }  /* if */
     }  /* if */
   } else if (arg_block->unknown_dependent_function) {
     /* Argument of unknown template-dependent function. */
-    prep_generic_operand(argument_operand, /*lvalue_expected=*/FALSE);
+    prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
   } else {
     /* Parameter is prototyped. */
     /* Check the argument for compatibility against the parameter,
        casting it if necessary.  Also convert from lvalue to rvalue
        when appropriate. */
-    prep_argument_operand(argument_operand, arg_block->curr_param_type,
+    prep_argument_operand(operand, arg_block->curr_param_type,
                           /*processed_arg=*/FALSE,
                           (a_conv_descr_ptr)NULL, ec_incompatible_param);
   }  /* if */
@@ -7007,7 +7005,7 @@ describe the next parameter.
     a_boolean  ellipsis_next = (arg_block->have_param_info && 
                                 arg_block->curr_param_type == NULL);
     if (ellipsis_next) {
-      arg_block->printf_scanf_args = arg_operand_node->next;
+      arg_block->printf_scanf_args = arg_operand->next;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (arg_block->fmt_arg != 0) {
@@ -7023,8 +7021,7 @@ describe the next parameter.
     }  /* if */
   }  /* if */
   if (arg_is_fmt_string) {
-    obtain_format_string_from_arg(make_node_from_operand(argument_operand),
-                                  arg_block);
+    obtain_format_string_from_arg(make_node_from_operand(operand), arg_block);
   }  /* if */
 }  /* process_call_argument */
 
