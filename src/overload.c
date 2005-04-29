@@ -7030,7 +7030,7 @@ static an_arg_operand_ptr nth_printf_scanf_arg(int                 n,
                                                an_arg_check_block  *arg_block)
 /*
 Return the n-th ellipsis argument in a printf/scanf-like argument list
-described by *arg_block.
+described by *arg_block (or NULL if there is no n-th ellipsis argument).
 */
 {
   an_arg_operand_ptr  arg_operand = arg_block->printf_scanf_args;
