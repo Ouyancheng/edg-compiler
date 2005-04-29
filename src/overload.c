@@ -6206,7 +6206,9 @@ to a printf- or scanf-like function.  For conversion specifiers of the form
 "%ddd$..." (where the 'd's stand for decimal digits), scan the positional
 digits and return the associated position.  If the position is larger than 99,
 return -1 and if it is zero, return -2: The caller is responsible for giving
-up on checking the format string specifier in those cases.
+up on checking the format string specifier in those cases.  *fmt_string_ptr
+is updated to point after the string of digits and the "$" character (when
+present).
 */
 {
   int   result = 0, k = 0, s = 0;
