@@ -6221,6 +6221,7 @@ present).
       if (result != 0 || s != 0) {
         /* Count the number of significant digits. */
         ++s;
+        if (s > 2) break;
       }  /* if */
     }  /* if */
     if (k > 0 && *pc == '$') {
@@ -6229,7 +6230,7 @@ present).
         /* The position is larger than what we are willing to check.*/
         result = -1;
       } else if (result == 0) {
-        /* A position cannot be zero. */
+        /* The position cannot be zero. */
         result = -2;
       }  /* if */
       ++pc;
@@ -6867,10 +6868,10 @@ format string can be deduced, set appropriate fields in arg_block.
 }  /* obtain_format_string_from_arg */
 
 
-static void process_call_argument(an_arg_operand_ptr arg,
+static void process_call_argument(an_arg_operand_ptr arg_operand_node,
                                   an_arg_check_block *arg_block)
 /*
-Check the argument expression indicated by argument_operand against the
+Check the argument expression indicated by argument_operand_node against the
 corresponding parameter.  If it is compatible, convert it if necessary and
 add the expression to the list of argument expressions attached to
 *arg_block; otherwise, issue an error.  *arg_block contains information
@@ -6880,7 +6881,7 @@ describe the next parameter.
 {
   a_boolean   do_default_promotion;
   a_boolean   arg_is_fmt_string = FALSE;
-  an_operand  *argument_operand = &arg->operand;
+  an_operand  *argument_operand = &arg_operand_node->operand;
 
   /* Count the arguments. */
   arg_block->arg_ctr++;
@@ -7006,7 +7007,7 @@ describe the next parameter.
     a_boolean  ellipsis_next = (arg_block->have_param_info && 
                                 arg_block->curr_param_type == NULL);
     if (ellipsis_next) {
-      arg_block->printf_scanf_args = arg->next;
+      arg_block->printf_scanf_args = arg_operand_node->next;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (arg_block->fmt_arg != 0) {
