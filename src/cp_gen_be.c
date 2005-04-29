@@ -8048,10 +8048,6 @@ done_with_operation_after_parens:
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
       unexpected_condition_str("gen_expr: enk_field");
-    case enk_vla_dealloc:
-      /* VLA dealloc nodes should not be generated in configurations with
-         a C++-generating back end.  This should be controlled by the
-         configuration variable VLA_DEALLOCATIONS_IN_IL. */
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");
   }  /* switch */
