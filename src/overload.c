@@ -6201,12 +6201,12 @@ position of the function name identifier in the call.
 static int printf_scanf_arg_pos(char  **fmt_string_ptr)
 /*
 *fmt_string_ptr points to the first character following a '%' character of a
-conversion specifier in a format string (representing a literal) for a call
+conversion specifier in a format string (specified as a literal) for a call
 to a printf- or scanf-like function.  For conversion specifiers of the form
-"%ddd...$..." (where the 'd's stand for decimal digits), scan the positional
+"%ddd$..." (where the 'd's stand for decimal digits), scan the positional
 digits and return the associated position.  If the position is larger than 99,
-return -1 and if it is zero, return -2: The caller is responsible to issue a
-diagnostic and give up on checking the format string specifier.
+return -1 and if it is zero, return -2: The caller is responsible for giving
+up on checking the format string specifier in those cases.
 */
 {
   int   result = 0, k = 0, s = 0;
@@ -7032,13 +7032,13 @@ Return the n-th ellipsis argument in a printf/scanf-like argument list
 described by *arg_block.
 */
 {
-  an_arg_operand_ptr  arg = arg_block->printf_scanf_args;
+  an_arg_operand_ptr  arg_operand = arg_block->printf_scanf_args;
   int                 k;
 
-  for (k = 1; k < n && arg != NULL; ++k) {
-    arg = arg->next;
+  for (k = 1; k < n && arg_operand != NULL; ++k) {
+    arg_operand = arg_operand->next;
   }
-  return arg;
+  return arg_operand;
 }  /* nth_printf_scanf_arg */
 
 
@@ -7050,15 +7050,15 @@ contents of that format string.  arg_block contains some information about
 the call arguments (including a pointer to the format string).
 */
 {
-  char  *fmt_string = arg_block->fmt_string;
-  an_arg_operand_ptr  arg = arg_block->printf_scanf_args;
-  a_type_ptr  type = NULL, alt_type = NULL;
-  a_boolean   indirect, weakly_typed;
+  char                 *fmt_string = arg_block->fmt_string;
+  an_arg_operand_ptr   arg = arg_block->printf_scanf_args;
+  a_type_ptr           type = NULL, alt_type = NULL;
+  a_boolean            indirect, weakly_typed;
   a_printf_scan_state  pss = pss_new_specifier;
-  a_boolean  is_scanf = (arg_block->arg_list_kind ==
+  a_boolean            is_scanf = (arg_block->arg_list_kind ==
                                                  (a_pragma_kind)pk_scanf_args);
-  int value_pos = 0, next_value_pos = 0;
-  a_boolean explicit_position_seen = FALSE;
+  int                  value_pos = 0, next_value_pos = 0;
+  a_boolean            explicit_position_seen = FALSE;
 
   while (fmt_string != NULL) {
     /* Determine the type specified by the format string for the next
@@ -7068,19 +7068,18 @@ the call arguments (including a pointer to the format string).
                                       &value_pos, &next_value_pos);
     if (value_pos != 0) {
       /* The format specifier contained a positional field indicating which
-         argument is formats. */
+         argument it formats. */
       explicit_position_seen = TRUE;
       if (value_pos == -2) {
+        /* The format specifier was zero (e.g. "%00$s"), which is invalid. */
         pos_warning(ec_positional_format_specifier_zero,
                     &arg_block->closing_paren_position);
         break;
       } else if (value_pos == -1) {
         /* The position was larger than 99: If there are at least 100 printf/
-           scanf-like arguments, issue a remark and give up on checking.
+           scanf-like arguments, silently give up on checking.
            Otherwise, issue a warning. */
         if (nth_printf_scanf_arg(100, arg_block) != NULL) {
-          pos_remark(ec_positional_format_specifier_out_of_range,
-                     &arg_block->closing_paren_position);
           break;
         } else {
           arg = NULL;
@@ -7119,7 +7118,7 @@ the call arguments (including a pointer to the format string).
     check_printf_scanf_arg(&arg->operand, type, alt_type,
                            indirect, weakly_typed);
     arg = arg->next;
-  }  /* if */
+  }  /* while */
 }  /* check_printf_scanf_arg_list */
 
 
@@ -7170,27 +7169,32 @@ list checking (e.g., for the presence of too few arguments).
 }  /* process_end_of_call_arguments */
 
 
-void process_call_argument_list(an_arg_operand_ptr  args,
+void process_call_argument_list(an_arg_operand_ptr  arg_operand_list,
                                 an_arg_check_block  *arg_block)
 /*
 Apply various transformations and checks to the given list of operands, which
-is a list of arguments for a function call.  The list is eventually
-transformed into a list of expression nodes (and the operand list is
-deallocated).  Some state information is recorded in *arg_block.
+is a list of arguments for a function call.  The list is transformed into a
+list of expression nodes pointed to by arg_block->argument_head (and the
+operand list is deallocated).  Some state information is recorded in *arg_block
+(which must have been initialized by start_call_argument_processing).
 */
 {
-  an_arg_operand_ptr  arg;
+  an_arg_operand_ptr  arg_operand;
 
-  for (arg = args; arg != NULL; arg = arg->next) {
-    process_call_argument(arg, arg_block);
+  for (arg_operand = arg_operand_list;
+       arg_operand != NULL;
+       arg_operand = arg_operand->next) {
+    process_call_argument(arg_operand, arg_block);
   }  /* for */
   if (arg_block->fmt_string != NULL) {
     /* Check printf/scanf-like argument lists. */
     check_printf_scanf_arg_list(arg_block);
   }  /* if */
   /* Convert the operand list to an expression list. */
-  for (arg = args; arg != NULL; arg = arg->next) {
-    an_expr_node_ptr  arg_expr = make_node_from_operand(&arg->operand);
+  for (arg_operand = arg_operand_list;
+       arg_operand != NULL;
+       arg_operand = arg_operand->next) {
+    an_expr_node_ptr  arg_expr = make_node_from_operand(&arg_operand->operand);
     if (arg_block->argument_head == NULL) {
       arg_block->argument_head = arg_expr;
     } else {
@@ -7201,7 +7205,7 @@ deallocated).  Some state information is recorded in *arg_block.
   /* Do processing for the end of the argument list. */
   process_end_of_call_arguments(arg_block);
   /* Free the argument list. */
-  free_arg_operand_list(args);
+  free_arg_operand_list(arg_operand_list);
 }  /* process_call_argument_list */
 
 

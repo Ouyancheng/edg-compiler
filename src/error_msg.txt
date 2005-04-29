@@ -1448,7 +1448,6 @@ ec_dll_interface_conflict_none_assumed;;"dllexport/dllimport conflict with %nod;
 ec_bad_nonstd_anonymous_union_field;;"invalid member for anonymous member class -- class %t has a disallowed member function"
 ec_nonstd_reinterpret_cast;;"nonstandard reinterpret_cast"
 ec_positional_format_specifier_zero;;"positional format specifier cannot be zero"
-ec_positional_format_specifier_out_of_range;;"positional format specifiers larger than 99 not checked"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

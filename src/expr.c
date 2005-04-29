@@ -670,12 +670,6 @@ the source position of the closing parenthesis of the call.
       /* Scan an argument expression.  Note that it is not converted to an
          rvalue yet. */
       scan_expr(&argument_operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-      /* For the overloaded function case, we do not know yet what the
-         parameter type is, so save it as is.  (We do this even in the non-
-         overloaded-function case because it simplifies some things.)  The
-         lvalue-to-rvalue and prototyped parameter conversions will be done
-         once the specific function is identified (see
-         select_overloaded_function). */
       /* Add an entry to the argument operand list. */
       arg_operand = alloc_arg_operand();
       copy_operand(&argument_operand, &arg_operand->operand);
