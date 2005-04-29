@@ -3649,6 +3649,13 @@ cleanup_state_common:
       (void)printf("enk_result_of_overriding_function\n");
       break;
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if VLA_DEALLOCATIONS_IN_IL
+    case enk_vla_dealloc:
+      (void)printf("enk_vla_dealloc\n");
+      disp_ptr("vla_variable", (char *)ptr->variant.vla_variable,
+               iek_variable);
+      break;
+#endif /* VLA_DEALLOCATIONS_IN_IL */
 #endif /* ifdef CFE */
 #ifdef FFE
     case enk_stmt_label_value:
@@ -4015,11 +4022,6 @@ do_label:
         disp_ptr("vla.variable", (char *)ptr->variant.vla.variant.variable,
                  iek_variable);
       }  /* if */
-      break;
-    case stmk_vla_dealloc:
-      (void)printf("stmk_vla_dealloc\n");
-      disp_ptr("vla_variable", (char *)ptr->variant.vla_variable,
-               iek_variable);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE

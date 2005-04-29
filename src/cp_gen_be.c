@@ -8048,6 +8048,10 @@ done_with_operation_after_parens:
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
       unexpected_condition_str("gen_expr: enk_field");
+    case enk_vla_dealloc:
+      /* VLA dealloc nodes should not be generated in configurations with
+         a C++-generating back end.  This should be controlled by the
+         configuration variable VLA_DEALLOCATIONS_IN_IL. */
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");
   }  /* switch */
@@ -9951,10 +9955,6 @@ statement unless suppress_trailing_space is TRUE.
       write_tok_str("upc_fence;");
       break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-    case stmk_vla_dealloc:
-      /* VLA dealloc statements should not be generated in configurations with
-         a C++-generating back end.  This should be controlled by the
-         configuration variable VLA_DEALLOC_STATEMENTS_IN_IL. */
     default:
       unexpected_condition_str("gen_statement_full: bad statement kind");
   }  /* switch */
