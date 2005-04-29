@@ -2228,14 +2228,23 @@ by traversing the control-flow list backwards from *start to *end.
           if (cfdp->variant.init.is_vla_variable) {
             /* The declaration of a VLA variable has been located.  Create a
                new statement to represent its deallocation. */
-            dealloc_stmt = create_vla_deallocation_stmt(
-                                                 cfdp->variant.init.variable);
-            /* Append it to the collected list. */
-            if (first == NULL) {
-              first = last = dealloc_stmt;
+            if (struct_stmt_stack[depth_stmt_stack].is_statement_expr) {
+              /* Variable-length arrays are not accepted in GNU statement
+                 expressions.  Since a deallocation statement may displace the
+                 actual "last statement", it could also trigger additional
+                 (spurious) errors about the type of the last statement.  So
+                 we don't create the deallocation node in such cases. */
+              check_assertion(total_errors != 0);
             } else {
-              last->next = dealloc_stmt;
-              last = last->next;
+              dealloc_stmt = create_vla_deallocation_stmt(
+                                                 cfdp->variant.init.variable);
+              /* Append it to the collected list. */
+              if (first == NULL) {
+                first = last = dealloc_stmt;
+              } else {
+                last->next = dealloc_stmt;
+                last = last->next;
+              }  /* if */
             }  /* if */
           }  /* if */
         } else if (cfdp->kind ==

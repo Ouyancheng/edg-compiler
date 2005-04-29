@@ -2757,11 +2757,13 @@ second parameter.
     case enk_reuse_value:
       lower_reuse_value_expr(expr);
       break;
-#if LOWER_VARIABLE_LENGTH_ARRAYS
+#if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
+#if LOWER_VARIABLE_LENGTH_ARRAYS
       lower_vla_dealloc(expr);
-      break;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+      break;
+#endif /* VLA_DEALLOCATIONS_IN_IL */
     default:
       unexpected_condition_str("Invalid C99 IL expression kind");
       break;
