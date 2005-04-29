@@ -6269,14 +6269,14 @@ See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
 
 If check_printf_scanf_positional_args is TRUE, positional arguments are
 recognized and returned through *value_pos (a value of zero indicates that
-no positional argument indicator was seen).  A single format specifier may
-contain two positional indicators: One for the value to format and one for
-the field width value (e.g., "%1$*2$s" two output the first following
-argument as a string with the width determined by the second argument).
-In such cases, *value_pos will indicate the field width argument position
-and *next_value_pos will indicate the position of the value to format
-(whose type will be returned by a subsequent call to this routine; this
-subsequent call will not modify *value_pos and *next_value_pos).
+no positional argument indicator was seen; -1 indicates that the position
+was too large to check, and -2 indicates that the position was zero).
+A single format specifier may contain two positional indicators: One for the
+value to format and one for the field width value (e.g., "%1$*2$s" two output
+the first following argument as a string with the width determined by the
+second argument).  In such cases, *value_pos will indicate the field width
+argument position and *next_value_pos will indicate the position of the value
+to format (whose type will be returned by a subsequent call to this routine).
 */
 {
   a_type_ptr          required_type;
@@ -6296,6 +6296,7 @@ subsequent call will not modify *value_pos and *next_value_pos).
   *weakly_typed = FALSE;
   *indirect = FALSE;
   *alt_type = NULL;
+  *value_pos = *next_value_pos = 0;
   /* Pick up in the middle if the previous call returned a field width
      or precision. */
   if (pss == pss_after_field_width) goto after_field_width;
@@ -7057,7 +7058,7 @@ the call arguments (including a pointer to the format string).
   a_printf_scan_state  pss = pss_new_specifier;
   a_boolean            is_scanf = (arg_block->arg_list_kind ==
                                                  (a_pragma_kind)pk_scanf_args);
-  int                  value_pos = 0, next_value_pos = 0;
+  int                  value_pos = 0, next_value_pos = 0, saved_value_pos = 0;
   a_boolean            explicit_position_seen = FALSE;
 
   while (fmt_string != NULL) {
@@ -7066,6 +7067,15 @@ the call arguments (including a pointer to the format string).
     type = next_printf_scanf_arg_type(is_scanf, &fmt_string, &pss,
                                       &indirect, &weakly_typed, &alt_type,
                                       &value_pos, &next_value_pos);
+    if (saved_value_pos != 0) {
+      /* A previous call to next_printf_scanf_arg_type yielded positional
+         information for both a field width argument and a normal value
+         argument.  The current call produced the type of the normal value
+         argument, which should be associated with the previously-saved
+         position. */
+      check_assertion(value_pos == 0 && next_value_pos == 0);
+      value_pos = saved_value_pos;
+    }  /* if */
     if (value_pos != 0) {
       /* The format specifier contained a positional field indicating which
          argument it formats. */
@@ -7090,8 +7100,7 @@ the call arguments (including a pointer to the format string).
       /* If two positional fields were encountered (one for the field width
          and one for the actual value to format), prepare to pick up the
          argument for the actual value to format on the next iteration. */
-      value_pos = next_value_pos;
-      next_value_pos = 0;
+      saved_value_pos = next_value_pos;
     }  /* if */
     if (arg == NULL) {
       /* There is no argument at the given position: Issue a warning if one
