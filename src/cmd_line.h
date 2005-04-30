@@ -988,8 +988,9 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		check_printf_scanf_positional_args;
-			/* TRUE if positional printf/scanf arguments should be
-			   recognized and checked. */
+			/* TRUE if positional printf/scanf arguments, i.e.,
+			   using dollar signs as in printf("%2$d%1$d\n", 1, 2)
+			   should be recognized and checked. */
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 EXTERN a_boolean
