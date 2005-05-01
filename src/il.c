@@ -5093,7 +5093,9 @@ are allowed under a sizeof (etc.) in a template argument expression.
         /* Nonequivalence is assumed. */
         break;
       case enk_condition:
+#if VLA_DEALLOCATIONS_IN_IL
       case enk_vla_dealloc:
+#endif /* VLA_DEALLOCATIONS_IN_IL */
       default:
         unexpected_condition_str(
                         "compare_template_param_constant_expr: bad expr kind");
