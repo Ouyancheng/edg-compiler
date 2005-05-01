@@ -6311,7 +6311,7 @@ typedef struct a_variable {
 			   its type is a VLA type.  Any variable for which
 			   this flag is set will also be specified in a
 			   stmk_vla_decl statement and one or more
-			   stmk_vla_dealloc statements, which indicate where
+			   enk_vla_dealloc nodes, which indicate where
 			   in the execution stream its memory is to be
 			   allocated and deallocated.  (Note: this flag is
 			   TRUE only if has_variably_modified_type is also

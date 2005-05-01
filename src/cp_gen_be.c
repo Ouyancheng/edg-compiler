@@ -8048,6 +8048,9 @@ done_with_operation_after_parens:
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
       unexpected_condition_str("gen_expr: enk_field");
+#if VLA_DEALLOCATIONS_IN_IL
+    case enk_vla_dealloc:
+#endif /* VLA_DEALLOCATIONS_IN_IL */
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");
   }  /* switch */

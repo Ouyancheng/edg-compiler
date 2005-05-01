@@ -2131,13 +2131,16 @@ the current function scope.
 
 static a_statement_ptr create_vla_deallocation_stmt(a_variable_ptr  vla_var)
 /*
-Allocate and return a statement node for the deallocation of a variable length
-array (represented by the given variable entry).
+Allocate and return a statement entry for the deallocation of a variable-length
+array (represented by the given variable entry).  This should only be called in
+C mode (in C++ mode, object life time entries are used instead; C++ IL lowering
+may produce enk_vla_dealloc entries from these elsewhere.
 */
 {
-  a_statement_ptr  result = alloc_statement((a_statement_kind)stmk_expr);
+  a_statement_ptr  result;
 
-  result->expr = alloc_expr_node((an_expr_node_kind)enk_vla_dealloc);
+  result = alloc_expr_statement(
+                         alloc_expr_node((an_expr_node_kind)enk_vla_dealloc));
   result->expr->type = void_type();
   result->expr->variant.vla_variable = vla_var;
 #if DEBUG
@@ -2147,6 +2150,7 @@ array (represented by the given variable entry).
     fputs("\"\n", f_debug);
   }  /* if */
 #endif /* DEBUG */
+  check_assertion(C_mode());
   return result;
 }  /* create_vla_deallocation_stmt */
 
@@ -2228,7 +2232,7 @@ by traversing the control-flow list backwards from *start to *end.
           if (cfdp->variant.init.is_vla_variable) {
             /* The declaration of a VLA variable has been located.  Create a
                new statement to represent its deallocation. */
-            if (struct_stmt_stack[depth_stmt_stack].is_statement_expr) {
+            if (inside_statement_expression()) {
               /* Variable-length arrays are not accepted in GNU statement
                  expressions.  Since a deallocation statement may displace the
                  actual "last statement", it could also trigger additional

@@ -1706,7 +1706,7 @@ Dump the contents of the indicated expression node for debug purposes.
     case enk_vla_dealloc:
       fprintf(f_debug, "vla deallocation: ");
       if (node->variant.vla_variable == NULL) {
-        fputs("<null variable>", f_debug);
+        fputs("<null variable>\n", f_debug);
       } else {
         db_name_full(&node->variant.vla_variable->source_corresp,
                      iek_variable);
@@ -5093,6 +5093,7 @@ are allowed under a sizeof (etc.) in a template argument expression.
         /* Nonequivalence is assumed. */
         break;
       case enk_condition:
+      case enk_vla_dealloc:
       default:
         unexpected_condition_str(
                         "compare_template_param_constant_expr: bad expr kind");

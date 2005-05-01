@@ -4917,7 +4917,7 @@ done_with_operation:
          require any output.  If VLAs are lowered, we should not see them at
          all. */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-      unexpected_condition_str("VLA statement unexpected");
+      unexpected_condition_str("VLA deallocation should be lowered");
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
@@ -6898,7 +6898,7 @@ Generate the code for a switch statement.
         write_tok_ch(':');
       } while ((constant = constant->next) != NULL);
     }  /* if */
-#if !LOWER_VARIABLE_LENGTH_ARRAYS
+#if VLA_ALLOWED && !LOWER_VARIABLE_LENGTH_ARRAYS
     /* If we're in a function with VLAs, there is a chance that the
        next statement to output will be a VLA definition.  In C99 that is
        not a problem, but in C89 + VLA extensions, a label cannot be
@@ -6909,7 +6909,7 @@ Generate the code for a switch statement.
     if (innermost_function_scope->vla_dimensions != NULL) {
       write_tok_ch(';');
     }  /* if */
-#endif /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* VLA_ALLOWED && !LOWER_VARIABLE_LENGTH_ARRAYS */
     /* Indent for the dependent statements. */
     indent += 2;
     dump_statement_list(switch_clause->statements,

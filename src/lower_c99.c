@@ -525,8 +525,6 @@ well).
                                               &vla_dealloc_routine,
                                               void_type(), void_star_type(),
                                               (a_type_ptr)NULL, arg));
-  /* The result of the expression is not used. */
-  set_expr_result_not_used(expr);
 }  /* lower_vla_dealloc */
 
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
@@ -3720,7 +3718,7 @@ initialized for each compilation.
 {
 #if LOWER_VARIABLE_LENGTH_ARRAYS
   /* The code to lower VLAs assumes that the deallocation points have been
-     marked using enk_vla_dealloc expressions nodes. */
+     marked using enk_vla_dealloc expression nodes. */
   check_assertion(vla_deallocations_in_il);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_init */
