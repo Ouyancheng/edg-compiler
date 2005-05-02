@@ -7914,10 +7914,11 @@ enum an_expr_node_kind_tag {
 #endif /* ifdef FIL */
   enk_routine_address,  /* The address of a routine. */
 #if VLA_DEALLOCATIONS_IN_IL
-  enk_vla_dealloc       /* Used to indicate when a variable-length array
+  enk_vla_dealloc,      /* Used to indicate when a variable-length array
                            should be deallocated (in C++, this may require
                            running destructors). */
 #endif /* VLA_DEALLOCATIONS_IN_IL */
+  enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_expr_node_kind;

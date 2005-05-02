@@ -6197,6 +6197,12 @@ position of the function name identifier in the call.
   }  /* if */
 }  /* make_resolved_overloaded_function_operand */
 
+/*
+We currently check a maximum of 99 positional arguments.  The following macro
+must be kept consistent with that limit.  It must be at least a factor of 10
+less than INT_MAX-9 (to avoid overflow).
+*/
+#define CHECKED_PRINTF_SCANF_ARG_POS_LIMIT  100
 
 static int printf_scanf_arg_pos(char  **fmt_string_ptr)
 /*
@@ -6216,17 +6222,18 @@ present).
   if (check_printf_scanf_positional_args) {
     char  *pc = *fmt_string_ptr;
     while (isdigit((unsigned char)*pc)) {
-      result = result*10 + (int)(*pc - '0');
-      ++pc; ++k;
-      if (result != 0 || s != 0) {
-        /* Count the number of significant digits. */
-        ++s;
-        if (s > 2) break;
+      if (result < CHECKED_PRINTF_SCANF_ARG_POS_LIMIT) {
+        result = result*10 + (int)(*pc - '0');
+        if (result != 0) {
+          /* Count the number of significant digits. */
+          ++s;
+        }  /* if */
       }  /* if */
-    }  /* if */
+      ++pc; ++k;
+    }  /* while */
     if (k > 0 && *pc == '$') {
       /* A positional field. */
-      if (s > 2) {
+      if (result >= CHECKED_PRINTF_SCANF_ARG_POS_LIMIT) {
         /* The position is larger than what we are willing to check.*/
         result = -1;
       } else if (result == 0) {
@@ -6234,11 +6241,11 @@ present).
         result = -2;
       }  /* if */
       ++pc;
+      *fmt_string_ptr = pc;
     } else {
       /* This wasn't a positional field.  Discard the value. */
       result = 0;
     }  /* if */
-    *fmt_string_ptr = pc;
   }  /* if */
   return result;
 }  /* printf_scanf_arg_pos */
@@ -6275,7 +6282,7 @@ recognized and returned through *value_pos (a value of zero indicates that
 no positional argument indicator was seen; -1 indicates that the position
 was too large to check, and -2 indicates that the position was zero).
 A single format specifier may contain two positional indicators: One for the
-value to format and one for the field width value (e.g., "%1$*2$s" two output
+value to format and one for the field width value (e.g., "%1$*2$s" to output
 the first following argument as a string with the width determined by the
 second argument).  In such cases, *value_pos will indicate the field width
 argument position and *next_value_pos will indicate the position of the value
@@ -6872,11 +6879,10 @@ static void process_call_argument(an_arg_operand_ptr arg_operand,
                                   an_arg_check_block *arg_block)
 /*
 Check the argument expression indicated by arg_operand against the
-corresponding parameter.  If it is compatible, convert it if necessary
-and add the expression to the list of argument expressions attached to
-*arg_block; otherwise, issue an error.  *arg_block contains information
-about the current parameter, and is updated at the end of the call to
-describe the next parameter.
+corresponding parameter.  If it is compatible, convert it if necessary;
+otherwise, issue an error.  *arg_block contains information about the
+current parameter, and is updated at the end of the call to describe the
+next parameter.
 */
 {
   a_boolean   do_default_promotion;
@@ -7038,17 +7044,18 @@ described by *arg_block (or NULL if there is no n-th ellipsis argument).
 
   for (k = 1; k < n && arg_operand != NULL; ++k) {
     arg_operand = arg_operand->next;
-  }
+  }  /* for */
   return arg_operand;
 }  /* nth_printf_scanf_arg */
 
 
 static void check_printf_scanf_arg_list(an_arg_check_block  *arg_block)
 /*
-We are processing a call to a function with a constant printf/scanf-like
-format string.  Check that the argument list (args) is consistent with the
-contents of that format string.  arg_block contains some information about
-the call arguments (including a pointer to the format string).
+We are processing a call to a function with a constant printf/scanf-like format
+string.  Check that the argument list is consistent with the contents of that
+format string.  arg_block contains some information about the call arguments
+(including a pointer to the format string and a pointer to the ellipsis
+arguments).
 */
 {
   char                 *fmt_string = arg_block->fmt_string;
@@ -7089,7 +7096,8 @@ the call arguments (including a pointer to the format string).
         /* The position was larger than 99: If there are at least 100 printf/
            scanf-like arguments, silently give up on checking.
            Otherwise, issue a warning. */
-        if (nth_printf_scanf_arg(100, arg_block) != NULL) {
+        if (nth_printf_scanf_arg(CHECKED_PRINTF_SCANF_ARG_POS_LIMIT,
+                                 arg_block) != NULL) {
           break;
         } else {
           arg = NULL;
@@ -7110,8 +7118,7 @@ the call arguments (including a pointer to the format string).
                     &arg_block->closing_paren_position);
       }  /* if */
       break;
-    }  /* if */
-    if (fmt_string == NULL) {
+    } else if (fmt_string == NULL) {
       /* An error occurred while scanning the specifier.  Issue a warning and
          stop the checking process here. */
       pos_warning(ec_bad_printf_format_string, &arg->operand.position);
