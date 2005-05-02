@@ -1031,6 +1031,10 @@ the file scope, do not process it (but record an orphan in the latter case).
            a variable name originally. */
         walk_string_ptr(ptr->comdat_group, iek_id_name, 0);
 #endif /* DO_IL_LOWERING && IA64_ABI */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+        remap_ptr(ptr->vla_element_count_variable, a_variable_ptr,
+                  iek_variable);
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

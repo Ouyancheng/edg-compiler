@@ -6409,6 +6409,14 @@ typedef struct a_variable {
 			   Non-NULL only for variable definitions, never for
 			   (e.g.) external references. */
 #endif /* DO_IL_LOWERING && IA64_ABI */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+  a_variable_ptr
+		vla_element_count_variable;
+			/* A variable holding the count of a VLA's elements
+			   (NULL if this is not a VLA variable).  The run-time
+			   support for VLAs lowered in C++ mode requires this
+			   value (stored at run time). */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
 			/* The type as it actually appears in the declaration
