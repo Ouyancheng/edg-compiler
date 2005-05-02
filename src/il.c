@@ -7199,6 +7199,26 @@ based on wchar_t_type.
   return pit;
 }  /* wchar_t_type */
 
+
+a_type_ptr eff_wchar_t_type(void)
+/*
+Return the effective type of wchar_t.  This is a distinct type if
+wchar_t_is_keyword is TRUE, and the appropriate integral type otherwise.
+The type returned by this function is the type of wide character literals
+and the (cv-unqualified) type of the elements of wide string literals.
+*/
+{
+  a_type_ptr eff_wchar_t;
+
+  if (wchar_t_is_keyword) {
+    eff_wchar_t = wchar_t_type();
+  } else {
+    eff_wchar_t = integer_type((an_integer_kind)targ_wchar_t_int_kind);
+  }  /* if */
+  return eff_wchar_t;
+}  /* eff_wchar_t_type */
+
+
 #if C99_IL_EXTENSIONS_SUPPORTED
 
 a_boolean bool_type_used_in_primary_IL(void)
@@ -7499,11 +7519,7 @@ num_chars characters, and return a pointer to it.
     /* The type must be created. */
     a_type_ptr	elem_type;
     pst = alloc_type((a_type_kind)tk_array);
-    if (wchar_t_is_keyword) {
-      elem_type = wchar_t_type();
-    } else {
-      elem_type = integer_type((an_integer_kind)targ_wchar_t_int_kind);
-    }  /* if */
+    elem_type = eff_wchar_t_type();
     if (string_literals_are_const) {
       /* The element type is CONST wchar_t. */
       elem_type = make_qualified_type(elem_type, TQ_CONST);

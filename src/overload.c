@@ -6526,7 +6526,7 @@ after_precision:;
       case 'c':
         /* Character conversion. */
         if (l_size) {
-          required_type = integer_type(targ_wchar_t_int_kind);
+          required_type = eff_wchar_t_type();
         } else {
           required_type = integer_type(plain_char_int_kind);
         }  /* if */
@@ -6535,7 +6535,7 @@ after_precision:;
         /* String conversion.  "pointer to" will be added to make
            "char" into "char *", for both printf and scanf. */
         if (l_size) {
-          required_type = integer_type(targ_wchar_t_int_kind);
+          required_type = eff_wchar_t_type();
         } else {
           required_type = integer_type(plain_char_int_kind);
         }  /* if */
@@ -6595,7 +6595,7 @@ after_precision:;
         }  /* if */
         while (*fmt_string != ']' && *fmt_string != '\0') fmt_string++;
         if (l_size) {
-          required_type = integer_type(targ_wchar_t_int_kind);
+          required_type = eff_wchar_t_type();
         } else {
           required_type = integer_type(plain_char_int_kind);
         }  /* if */

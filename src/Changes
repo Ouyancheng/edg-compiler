@@ -1,5 +1,23 @@
 Version 3.6
 
+5/2/05   printf/scanf format checking for wchar_t arguments in C++
+
+The checking of printf/scanf formatting specifiers was slightly
+incorrect with regard to wchar_t arguments in C++ mode.  The
+argument was checked against the integral type that is the
+underlying type of wchar_t rather than against wchar_t itself.
+As a consequence, examples like the following drew a spurious
+remark (not usually visible because remarks are not enabled by
+default).  Now fixed.
+
+  #pragma __scanf_args
+  extern "C" int sscanf(char *, const char *, ...);
+  int main() {
+     wchar_t buffw[64];
+     char buffer[] = "abcdef hi";
+     sscanf(buffer, "%l[abcdef]", buffw);  // Formerly got spurious remark
+  }
+
 4/29/05  Deallocation of variable-length arrays
 
 The IL representation of variable-length array (VLA) deallocation has changed.

@@ -530,6 +530,8 @@ a_type_ptr other_signedness_integer_type(an_integer_kind ikind);
 
 extern a_type_ptr wchar_t_type(void);
 
+extern a_type_ptr eff_wchar_t_type(void);
+
 #if C99_IL_EXTENSIONS_SUPPORTED
 extern a_boolean bool_type_used_in_primary_IL(void);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */

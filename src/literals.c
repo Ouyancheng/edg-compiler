@@ -918,7 +918,6 @@ processing, and in wide characters if the constant is wide).
   char             *temp_ptr;
   a_boolean        is_wide = FALSE, err;
   a_type_ptr       con_type;
-  an_integer_kind  int_kind;
   sizeof_t         constant_size;
   unsigned long    centity_mask;
   a_boolean        centity_is_signed;
@@ -939,15 +938,16 @@ processing, and in wide characters if the constant is wide).
     is_wide = TRUE;
     /* Skip over the "L". */
     temp_ptr++;
-    int_kind = targ_wchar_t_int_kind;
     constant_size = (sizeof_t)(num_chars*targ_sizeof_wchar_t);
     centity_mask = (unsigned long)1 <<
                                 ((((int)targ_sizeof_wchar_t)*targ_char_bit)-1);
     centity_mask = centity_mask | (centity_mask - 1);
     centity_bits = (int)targ_sizeof_wchar_t*targ_char_bit;
     centity_is_signed = int_kind_is_signed[(int)targ_wchar_t_int_kind];
+    con_type = eff_wchar_t_type();
   } else {
      /* Normal character constant. */
+    an_integer_kind int_kind;
     if (C_dialect == C_dialect_cplusplus && num_chars == 1) {
       int_kind = (an_integer_kind)ik_char;
     } else {
@@ -958,11 +958,6 @@ processing, and in wide characters if the constant is wide).
     centity_mask = centity_mask | (centity_mask - 1);
     centity_bits = targ_char_bit;
     centity_is_signed = targ_has_signed_chars; 
-  }  /* if */
-  if (is_wide && wchar_t_is_keyword) {
-    /* In C++, when wchar_t_is_keyword is set, wchar_t is a distinct type. */
-    con_type = wchar_t_type();
-  } else {
     con_type = integer_type(int_kind);
   }  /* if */
   /* See if the characters we have will fit in the size we've determined. */
