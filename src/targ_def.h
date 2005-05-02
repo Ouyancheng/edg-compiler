@@ -3164,6 +3164,23 @@ When VLAs are allowed, they are enabled by default in C99 mode.
 #endif /* ifndef VLA_ALLOWED */
 
 /*
+This flag controls whether variable-length arrays (a C99 feature also
+available in other modes) are lowered to standard C.  The lowering relies
+on facilities in the run-time support library.
+*/
+#ifndef LOWER_VARIABLE_LENGTH_ARRAYS
+#if VLA_ALLOWED && BACK_END_IS_C_GEN_BE
+#define LOWER_VARIABLE_LENGTH_ARRAYS TRUE
+#else /* !(VLA_ALLOWED && BACK_END_IS_C_GEN_BE) */
+#define LOWER_VARIABLE_LENGTH_ARRAYS FALSE
+#endif /* VLA_ALLOWED && BACK_END_IS_C_GEN_BE */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+
+#if LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED
+ #error -- Lowering of VLAs requires VLA_ALLOWED to be TRUE
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED */
+
+/*
 VLA_DEALLOC_STATEMENTS_IN_IL was previously used to determine whether special
 statements (no longer part of our IL specification) should be included in the
 IL.  Now we generate enk_vla_dealloc expression nodes instead.  In some cases
@@ -3213,6 +3230,9 @@ variable vla_deallocations_in_il.
   #error -- VLA_DEALLOCATIONS_IN_IL cannot be true when \
             BACK_END_IS_CP_GEN_BE is true
 #endif /* VLA_DEALLOCATIONS_IN_IL && BACK_END_IS_CP_GEN_BE */
+#if LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_DEALLOCATIONS_IN_IL
+ #error -- Lowering of VLAs requires VLA_DEALLOCATIONS_IN_IL to be TRUE
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_DEALLOCATIONS_IN_IL */
 
 /*
 Flag that is used as the default setting for global variable vla_enabled.
@@ -3605,26 +3625,6 @@ of times.
 #ifndef LOWER_DESIGNATED_INITIALIZERS
 #define LOWER_DESIGNATED_INITIALIZERS TRUE
 #endif /* ifndef LOWER_DESIGNATED_INITIALIZERS */
-
-/*
-This flag controls whether variable-length arrays (a C99 feature also
-available in other modes) are lowered to standard C.  The lowering relies
-on facilities in the run-time support library.
-*/
-#ifndef LOWER_VARIABLE_LENGTH_ARRAYS
-#if VLA_ALLOWED && BACK_END_IS_C_GEN_BE
-#define LOWER_VARIABLE_LENGTH_ARRAYS TRUE
-#else /* !(VLA_ALLOWED && BACK_END_IS_C_GEN_BE) */
-#define LOWER_VARIABLE_LENGTH_ARRAYS FALSE
-#endif /* VLA_ALLOWED && BACK_END_IS_C_GEN_BE */
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-
-#if LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED
- #error -- Lowering of VLAs requires VLA_ALLOWED to be TRUE
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED */
-#if LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_DEALLOCATIONS_IN_IL
- #error -- Lowering of VLAs requires VLA_DEALLOCATIONS_IN_IL to be TRUE
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_DEALLOCATIONS_IN_IL */
 
 /*
 This switch controls whether or not "guard" code is placed around

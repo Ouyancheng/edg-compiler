@@ -2589,6 +2589,9 @@ base class casts and virtual function calls.
     case enk_throw:
     case enk_field:
     case enk_condition:
+#if VLA_DEALLOCATIONS_IN_IL
+    case enk_vla_dealloc:
+#endif /* VLA_DEALLOCATIONS_IN_IL */
     default:
       unexpected_condition_str(
                              "node_complete_object_type: bad expression kind");

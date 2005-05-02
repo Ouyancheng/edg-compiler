@@ -2663,6 +2663,9 @@ part of a template-dependent expression.
                               in Microsoft property expansions. */
       add_mangling_for_placeholder_expression(mctl);
       break;
+#if VLA_DEALLOCATIONS_IN_IL
+    case enk_vla_dealloc:
+#endif /* VLA_DEALLOCATIONS_IN_IL */
     default:
       /* Unexpected expression kind.  These are allowed in some cases for
          expressions under sizeof in the IA-64 ABI. */
