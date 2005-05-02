@@ -6217,17 +6217,13 @@ is updated to point after the string of digits and the "$" character (when
 present).
 */
 {
-  int   result = 0, k = 0, s = 0;
+  int   result = 0, k = 0;
 
   if (check_printf_scanf_positional_args) {
     char  *pc = *fmt_string_ptr;
     while (isdigit((unsigned char)*pc)) {
       if (result < CHECKED_PRINTF_SCANF_ARG_POS_LIMIT) {
         result = result*10 + (int)(*pc - '0');
-        if (result != 0) {
-          /* Count the number of significant digits. */
-          ++s;
-        }  /* if */
       }  /* if */
       ++pc; ++k;
     }  /* while */
@@ -7100,6 +7096,7 @@ arguments).
                                  arg_block) != NULL) {
           break;
         } else {
+          /* Setting arg NULL here will trigger a warning later on. */
           arg = NULL;
         }  /* if */
       } else {
