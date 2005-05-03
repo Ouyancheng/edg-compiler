@@ -6480,11 +6480,14 @@ interpreted as an argument separator rather than an operator).
 
 
 static void gen_argument(an_expr_node_ptr arg,
-                         a_param_type_ptr param)
+                         a_param_type_ptr param,
+                         a_boolean        operator_notation)
 /*
 Put out an expression that is an argument to a call.  param gives the
 associated parameter, or is NULL if the parameter information is not
-available.
+available.  If operator_notation is TRUE, this is an argument to an
+overloaded operator that is being generated in operator, rather than
+function call, notation.
 */
 {
   if (param != NULL && param->passed_via_copy_constructor &&
@@ -6495,7 +6498,13 @@ available.
                      /*parenthesized_init=*/FALSE,
                      /*force_parens=*/FALSE);
   } else {
-    a_boolean need_parens = expr_has_comma_operation(arg);
+    /* If this is an argument to an overloaded operator being generated in
+       operator notation, we may need extra parentheses to avoid precedence
+       problems; otherwise, parentheses are only necessary to prevent a
+       top-level comma operator in the argument expression from being
+       interpreted as an argument separator. */
+    a_boolean need_parens = operator_notation ||
+                            expr_has_comma_operation(arg);
     if (param != NULL) {
       /* Parameter type known. */
       gen_initializer_expr(arg, param->type, need_parens,
@@ -6550,7 +6559,7 @@ out for them).
       /* The argument must be put out. */
       if (any_arg_put_out) write_tok_str(", ");
       any_arg_put_out = TRUE;
-      gen_argument(arg, param);
+      gen_argument(arg, param, /*operator_notation=*/FALSE);
     }  /* if */
     arg = arg->next;
     if (param != NULL) param = param->next;
@@ -7013,7 +7022,7 @@ return FALSE and let the caller generate the code normally.
     } else {
       /* For non-member functions, there's a parameter declaration to
          guide the generation of the first operand. */
-      gen_argument(arg, param);
+      gen_argument(arg, param, /*operator_notation=*/TRUE);
       arg = arg->next;
       param = param->next;
     }  /* if */
@@ -7063,7 +7072,7 @@ return FALSE and let the caller generate the code normally.
              the loop if we encounter an argument that results from a
              default argument, because these must not appear in the
              generated code. */
-          gen_argument(arg, param);
+          gen_argument(arg, param, /*operator_notation=*/TRUE);
           arg = arg->next;
           if (arg != NULL && !arg->generated_default_arg) {
             write_tok_str(", ");
@@ -10318,7 +10327,7 @@ Note that the destructor, if any, is implicit and need not be put out.
             param = skip_typerefs(ctor->type)->variant.routine.extra_info->
                                                                param_type_list;
           }  /* if */
-          gen_argument(args, param);
+          gen_argument(args, param, /*operator_notation=*/FALSE);
         } else if (default_init && !force_parens) {
           /* Default initialization and parentheses are not required.  Put
              out nothing. */
