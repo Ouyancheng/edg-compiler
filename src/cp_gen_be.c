@@ -2541,6 +2541,61 @@ unqualified is TRUE, force the generation of an unqualified name.
 }  /* gen_name_from_routine_address_node */
 
 
+static void check_for_unprotected_comma_operation(
+                                   an_expr_node_ptr                    expr,
+                                   an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called by traverse_expr in a top-down traversal of an
+expression tree.  It stops the traversal when it either finds an eok_comma
+operation node (setting tblock->result to TRUE) or when it finds an
+operation node that would itself cause an eok_comma operation in one of its
+operands to be parenthesized at that level.
+*/
+{
+  if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_comma ||
+        op == (an_expr_operator_kind)eok_points_to_static ||
+        op == (an_expr_operator_kind)eok_lvalue_dot_static ||
+        op == (an_expr_operator_kind)eok_rvalue_dot_static) {
+      /* Flag a comma operation close enough to the top of the tree that it
+         needs to be enclosed in parentheses and terminate the scan.  (The
+         eok_points_to_static and ...dot_static operators might be generated
+         as a comma operation by gen_dot_static, depending on the context
+         and the operands, so to be on the safe side we treat them as
+         potential comma operations also.) */
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    } else if (!expr->variant.operation.compiler_generated) {
+      /* Compiler-generated operations like casts to the parameter type
+         are typically skipped in the generated output and thus won't
+         cause the operand to be parenthesized.  Everything else
+         presumably will, so we don't need to scan any further. */
+      tblock->terminate = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* check_for_unprotected_comma_operation */
+
+
+static a_boolean expr_has_comma_operation(an_expr_node_ptr expr)
+/*
+Return TRUE if the given expression has a comma operation that would need
+to be protected by parentheses to avoid misinterpretation (e.g., a function
+argument with a top-level comma operation, where the comma would be
+interpreted as an argument separator rather than an operator).
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = check_for_unprotected_comma_operation;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  tblock.process_expressions_for_constants = TRUE;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  traverse_expr(expr, &tblock);
+  return tblock.result;
+}  /* expr_has_comma_operation */
+
+
 static void gen_compound_literal(a_constant_ptr     literal_con,
                                  a_dynamic_init_ptr dip,
                                  a_type_ptr         literal_type)
@@ -2575,11 +2630,11 @@ give the dynamic initialization entry and type for the compound literal.
     gen_initializer_constant(literal_con, literal_type,
                              /*suppress_braces=*/FALSE);
   } else {
+    a_boolean parens_needed;
     check_assertion(is_scalar &&
                     dip->kind == (a_dynamic_init_kind)dik_expression);
-    /* "_with_parens" is needed because the top expression might
-       be a comma expression. */
-    gen_expr_with_parens(dip->variant.expression);
+    parens_needed = expr_has_comma_operation(dip->variant.expression);
+    gen_expr(dip->variant.expression, parens_needed);
   }  /* if */
   if (is_scalar) write_tok_ch('}');
   write_tok_ch(')');
@@ -5707,6 +5762,27 @@ to char *.
 }  /* is_const_string_literal_cast */
 
 
+static a_boolean constant_has_effective_name(a_constant_ptr con)
+/*
+Return TRUE if the constant is either directly named or if it will be
+generated as an expression and the expression is a named variable.
+*/
+{
+  a_boolean has_effective_name;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  if (constant_should_be_put_out_as_expr(con) &&
+      con->expr->kind == (an_expr_node_kind)enk_variable) {
+    has_effective_name = has_name(con->expr->variant.variable);
+  } else
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  /* Do not insert code here. */
+  {
+    has_effective_name = has_name(con);
+  }  /* if */
+  return has_effective_name;
+}  /* constant_has_effective_name */
+
+
 static void gen_dot_static(an_expr_node_ptr operand_1,
                            a_boolean        is_lvalue_1,
                            char             *opstr,
@@ -5764,7 +5840,7 @@ by handle_operator_call).
       }  /* if */
     }  /* if */
     /* Named constants are okay. */
-    if (!has_name(con) && !unknown_function_case) {
+    if (!constant_has_effective_name(con) && !unknown_function_case) {
       opstr = ",";
       use_comma = TRUE;
       if (is_operator_syntax_arrow(operand_1)) {
@@ -6430,53 +6506,6 @@ but a reinterpret_cast is put out when is_reinterpret_cast is TRUE.
     write_tok_ch(')');
   }  /* if */
 }  /* gen_full_cast */
-
-
-static void check_for_unprotected_comma_operation(
-                                   an_expr_node_ptr                    expr,
-                                   an_expr_or_stmt_traversal_block_ptr tblock)
-/*
-This routine is called by traverse_expr in a top-down traversal of an
-expression tree.  It stops the traversal when it either finds an eok_comma
-operation node (setting tblock->result to TRUE) or when it finds an
-operation node that would itself cause an eok_comma operation in one of its
-operands to be parenthesized at that level.
-*/
-{
-  if (is_operation_node(expr)) {
-    if (expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
-      /* Flag a comma operation close enough to the top of the tree that it
-         needs to be enclosed in parentheses and terminate the scan. */
-      tblock->result = TRUE;
-      tblock->terminate = TRUE;
-    } else if (!expr->variant.operation.compiler_generated) {
-      /* Compiler-generated operations like casts to the parameter type
-         are typically skipped in the generated output and thus won't
-         cause the operand to be parenthesized.  Everything else
-         presumably will, so we don't need to scan any further. */
-      tblock->terminate = TRUE;
-    }  /* if */
-  }  /* if */
-}  /* check_for_unprotected_comma_operation */
-
-
-static a_boolean expr_has_comma_operation(an_expr_node_ptr expr)
-/*
-Return TRUE if the given expression has a comma operation that would need
-to be protected by parentheses to avoid misinterpretation (e.g., a function
-argument with a top-level comma operation, where the comma would be
-interpreted as an argument separator rather than an operator).
-*/
-{
-  an_expr_or_stmt_traversal_block tblock;
-  clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = check_for_unprotected_comma_operation;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  tblock.process_expressions_for_constants = TRUE;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-  traverse_expr(expr, &tblock);
-  return tblock.result;
-}  /* expr_has_comma_operation */
 
 
 static void gen_argument(an_expr_node_ptr arg,
