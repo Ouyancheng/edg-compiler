@@ -18,7 +18,7 @@ default).  Now fixed.
      sscanf(buffer, "%l[abcdef]", buffw);  // Formerly got spurious remark
   }
 
-4/29/05  Deallocation of variable-length arrays
+4/29/05  Deallocation of variable-length arrays (IL CHANGE)
 
 The IL representation of variable-length array (VLA) deallocation has changed.
 Instead of stmk_vla_dealloc statement entries, we now generate stmk_expr
