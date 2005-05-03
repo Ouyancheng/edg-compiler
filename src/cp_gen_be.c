@@ -69,6 +69,7 @@ a "for"] would have to be rewritten.)
 
 /* Additional header files. */
 #include "cp_gen_be.h"
+#include "il_walk.h"
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"
@@ -6431,6 +6432,53 @@ but a reinterpret_cast is put out when is_reinterpret_cast is TRUE.
 }  /* gen_full_cast */
 
 
+static void check_for_unprotected_comma_operation(
+                                   an_expr_node_ptr                    expr,
+                                   an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called by traverse_expr in a top-down traversal of an
+expression tree.  It stops the traversal when it either finds an eok_comma
+operation node (setting tblock->result to TRUE) or when it finds an
+operation node that would itself cause an eok_comma operation in one of its
+operands to be parenthesized at that level.
+*/
+{
+  if (is_operation_node(expr)) {
+    if (expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
+      /* Flag a comma operation close enough to the top of the tree that it
+         needs to be enclosed in parentheses and terminate the scan. */
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    } else if (!expr->variant.operation.compiler_generated) {
+      /* Compiler-generated operations like casts to the parameter type
+         are typically skipped in the generated output and thus won't
+         cause the operand to be parenthesized.  Everything else
+         presumably will, so we don't need to scan any further. */
+      tblock->terminate = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* check_for_unprotected_comma_operation */
+
+
+static a_boolean expr_has_comma_operation(an_expr_node_ptr expr)
+/*
+Return TRUE if the given expression has a comma operation that would need
+to be protected by parentheses to avoid misinterpretation (e.g., a function
+argument with a top-level comma operation, where the comma would be
+interpreted as an argument separator rather than an operator).
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = check_for_unprotected_comma_operation;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  tblock.process_expressions_for_constants = TRUE;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  traverse_expr(expr, &tblock);
+  return tblock.result;
+}  /* expr_has_comma_operation */
+
+
 static void gen_argument(an_expr_node_ptr arg,
                          a_param_type_ptr param)
 /*
@@ -6446,13 +6494,16 @@ available.
     gen_dynamic_init(arg->variant.init.dynamic_init, param->type,
                      /*parenthesized_init=*/FALSE,
                      /*force_parens=*/FALSE);
-  } else if (param != NULL) {
-    /* Parameter type known. */
-    gen_initializer_expr(arg, param->type, /*need_parens=*/TRUE,
-                         /*mbr_fcn_default_arg_expr=*/FALSE);
   } else {
-    /* Parameter type not known. */
-    gen_expr_with_parens(arg);
+    a_boolean need_parens = expr_has_comma_operation(arg);
+    if (param != NULL) {
+      /* Parameter type known. */
+      gen_initializer_expr(arg, param->type, need_parens,
+                           /*mbr_fcn_default_arg_expr=*/FALSE);
+    } else {
+      /* Parameter type not known. */
+      gen_expr(arg, need_parens);
+    }  /* if */
   }  /* if */
 }  /* gen_argument */
 
