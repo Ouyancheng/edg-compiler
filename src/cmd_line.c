@@ -2071,11 +2071,14 @@ setting is used, and to set various unmentioned settings as needed.
     long_preserving_rules = FALSE;
   }  /* if */
 #if VLA_ALLOWED
-  if (option_kind_used[(int)optk_vla]) {
-    command_line_error(ec_cl_vla_option_only_in_C);
+  if (!(option_kind_used[(int)optk_vla])) {
+    /* Support for VLAs is turned off by default in C++ mode. */
+    vla_enabled = FALSE;
   }  /* if */
 #endif /* VLA_ALLOWED */
-  vla_enabled = FALSE;
+  /* VLA deallocations are implicit in C++ and tied to object lifetimes,
+     so do not generate the explicit C-mode deallocations. */
+  vla_deallocations_in_il = FALSE;
   if (option_kind_used[(int)optk_designators]) {
     command_line_error(ec_cl_designators_option_only_in_C);
   }  /* if */

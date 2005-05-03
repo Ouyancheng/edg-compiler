@@ -465,7 +465,9 @@ EXTERN a_boolean
 		vla_deallocations_in_il;
 			/* TRUE if enk_vla_dealloc nodes should be generated
 			   to mark the points at which VLA objects pass out of
-			   scope and may be deallocated. */
+			   scope and may be deallocated.  Never TRUE in C++
+			   mode; VLA deallocations are implicit in C++ and tied
+			   to object lifetimes. */
 
 EXTERN a_boolean
 		operator_overloading_on_enums_enabled;
