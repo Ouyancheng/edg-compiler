@@ -74,7 +74,7 @@ destructible members.  Now fixed.
 When a call to a printf/scanf-like function involves a constant format string,
 the front end checks the types of the arguments against the format specifiers.
 Many C library implementations support an extension to format specifiers that
-allows values to be format out of order.  For example:
+allows values to be formatted out of order.  For example:
 
   #include <stdio.h>
   int main() {
