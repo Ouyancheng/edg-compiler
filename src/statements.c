@@ -2137,12 +2137,12 @@ C mode (in C++ mode, object life time entries are used instead; C++ IL lowering
 may produce enk_vla_dealloc entries from these elsewhere.
 */
 {
-  a_statement_ptr  result;
+  an_expr_node_ptr  expr = alloc_expr_node((an_expr_node_kind)enk_vla_dealloc);
+  a_statement_ptr   result;
 
-  result = alloc_expr_statement(
-                         alloc_expr_node((an_expr_node_kind)enk_vla_dealloc));
-  result->expr->type = void_type();
-  result->expr->variant.vla_variable = vla_var;
+  expr->type = void_type();
+  expr->variant.vla_variable = vla_var;
+  result = alloc_expr_statement(expr);
 #if DEBUG
   if (debug_level >= 4) {
     fputs("  creating vla-dealloc statement for \"", f_debug);
