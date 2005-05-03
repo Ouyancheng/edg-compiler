@@ -1856,9 +1856,9 @@ to it.
 #if DO_IL_LOWERING && IA64_ABI
   vp->comdat_group                = NULL;
 #endif /* DO_IL_LOWERING && IA64_ABI */
-#if LOWER_VARIABLE_LENGTH_ARRAYS
+#if DO_IL_LOWERING
   vp->vla_element_count_variable  = NULL;
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* DO_IL_LOWERING */
 #ifdef CIL
   vp->referenced_non_locally      = FALSE;
   vp->modified_within_try_block   = FALSE;

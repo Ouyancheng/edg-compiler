@@ -2111,12 +2111,12 @@ Display the indicated variable.
                     iek_other_text, (sizeof_t)0);
   }  /* if */
 #endif /* DO_IL_LOWERING && IA64_ABI */
-#if LOWER_VARIABLE_LENGTH_ARRAYS
+#if DO_IL_LOWERING
   if (ptr->vla_element_count_variable != NULL) {
     disp_ptr("vla_element_count_variable",
              (char*)ptr->vla_element_count_variable, iek_variable);
   }  /* if */
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* DO_IL_LOWERING */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("initializer_range", &ptr->initializer_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
