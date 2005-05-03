@@ -6211,7 +6211,7 @@ conversion specifier in a format string (specified as a literal) for a call
 to a printf- or scanf-like function.  For conversion specifiers of the form
 "%ddd$..." (where the 'd's stand for decimal digits), scan the positional
 digits and return the associated position.  If the position is larger than 99,
-return -1 and if it is zero, return -2: The caller is responsible for giving
+return -1, and if it is zero, return -2: The caller is responsible for giving
 up on checking the format string specifier in those cases.  *fmt_string_ptr
 is updated to point after the string of digits and the "$" character (when
 present).
@@ -6275,7 +6275,7 @@ See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
 
 If check_printf_scanf_positional_args is TRUE, positional arguments are
 recognized and returned through *value_pos (a value of zero indicates that
-no positional argument indicator was seen; -1 indicates that the position
+no positional argument indicator was seen, -1 indicates that the position
 was too large to check, and -2 indicates that the position was zero).
 A single format specifier may contain two positional indicators: One for the
 value to format and one for the field width value (e.g., "%1$*2$s" to output
@@ -7089,9 +7089,10 @@ arguments).
                     &arg_block->closing_paren_position);
         break;
       } else if (value_pos == -1) {
-        /* The position was larger than 99: If there are at least 100 printf/
-           scanf-like arguments, silently give up on checking.
-           Otherwise, issue a warning. */
+        /* The position was larger than what we are willing to check.
+           If there are at least the limit's worth of printf/scanf-like
+           arguments, silently give up on checking.  Otherwise, issue a
+           warning. */
         if (nth_printf_scanf_arg(CHECKED_PRINTF_SCANF_ARG_POS_LIMIT,
                                  arg_block) != NULL) {
           break;
