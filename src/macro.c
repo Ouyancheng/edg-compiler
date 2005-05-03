@@ -5181,10 +5181,10 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
          "-D" options that do not contain an equal; they'll be processed as
              define id 1
          (i.e., a "=1" is appended, and the "=" will be skipped).  During this
-         processing, ensure that diagnostics are correctly attributed by setting
-         the global variable curr_command_line_macro_def.  This is also used by
-         proc_define to decide that the "=" introducing the macro definition
-         should be skipped. */
+         processing, ensure that diagnostics are correctly attributed by
+         setting the global variable curr_command_line_macro_def.  This is
+         also used by proc_define to decide that the "=" introducing the
+         macro definition should be skipped. */
       curr_command_line_macro_def = du_str;
       du_len = strlen(du_str);
       /* Ensure the buffer holding the logical source line is large enough to
