@@ -2133,8 +2133,8 @@ static a_statement_ptr create_vla_deallocation_stmt(a_variable_ptr  vla_var)
 /*
 Allocate and return a statement entry for the deallocation of a variable-length
 array (represented by the given variable entry).  This should only be called in
-C mode (in C++ mode, object life time entries are used instead; C++ IL lowering
-may produce enk_vla_dealloc entries from these elsewhere.
+C mode (in C++ mode, object lifetime entries are used instead; C++ IL lowering
+may produce enk_vla_dealloc entries from those elsewhere).
 */
 {
   an_expr_node_ptr  expr = alloc_expr_node((an_expr_node_kind)enk_vla_dealloc);
