@@ -3152,8 +3152,8 @@ a code generator.
 Flag that is TRUE if variable length arrays (VLAs) are allowed.  A VLA is
 an array whose size is known only at execution time.  This is supported in
 C mode only.  If VLA_ALLOWED is TRUE, support is enabled and disabled based
-on VLA_ENABLED and command-line options --[no_]vla, which control global
-variable vla_enabled.
+on DEFAULT_VLA_ENABLED and command-line options --[no_]vla, which control
+the global variable vla_enabled.
 */
 #ifndef VLA_ALLOWED
 #if C99_IL_EXTENSIONS_SUPPORTED
