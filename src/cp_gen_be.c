@@ -2566,11 +2566,15 @@ operands to be parenthesized at that level.
          potential comma operations also.) */
       tblock->result = TRUE;
       tblock->terminate = TRUE;
-    } else if (!expr->variant.operation.compiler_generated) {
+    } else if (!(expr->variant.operation.compiler_generated ||
+                 op == (an_expr_operator_kind)eok_lvalue ||
+                 op == (an_expr_operator_kind)eok_rvalue)) {
       /* Compiler-generated operations like casts to the parameter type
          are typically skipped in the generated output and thus won't
          cause the operand to be parenthesized.  Everything else
-         presumably will, so we don't need to scan any further. */
+         presumably will, so we don't need to scan any further.  (In
+         some casess, conversions to lvalue and rvalue are not marked as
+         compiler-generated, so they must be skipped explicitly.) */
       tblock->terminate = TRUE;
     }  /* if */
   }  /* if */
