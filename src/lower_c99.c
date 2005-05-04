@@ -3844,9 +3844,9 @@ initialized for each compilation.
 */
 {
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-  /* The code to lower VLAs assumes that the deallocation points have been
+  /* The code to lower C99 VLAs assumes that the deallocation points have been
      marked using enk_vla_dealloc expression nodes. */
-  check_assertion(vla_deallocations_in_il);
+  check_assertion(vla_deallocations_in_il || !C_mode());
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_init */
 
