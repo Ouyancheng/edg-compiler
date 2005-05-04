@@ -7756,6 +7756,12 @@ Do IL lowering of the indicated variable and everything under it.
   if (!visited_yet(variable)) {
     mark_as_visited(variable);
     lower_source_correspondence(&variable->source_corresp);
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+    if (variable->has_variably_modified_type) {
+      variable->has_variably_modified_type = FALSE;
+      record_vla_component_types_for_lowering(variable->type);
+    }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     lower_os_type(variable->type);
     if (variable->address_taken &&
         variable->storage_class == (a_storage_class)sc_register) {
@@ -7950,6 +7956,11 @@ not include the function scope memory region, if any.
   if (!visited_yet(routine)) {
     mark_as_visited(routine);
     lower_source_correspondence(&routine->source_corresp);
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+  if (vla_enabled) {
+    record_vla_component_types_for_lowering(routine->type);
+  }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     /* "lower_os_type" not needed; the routine and the type must both be
        in the file scope. */
     lower_type(routine->type);
