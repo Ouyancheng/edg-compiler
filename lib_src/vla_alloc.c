@@ -20,6 +20,7 @@ vla_alloc.c -- Runtime support for lowered VLA operations.
 
 #include "basics.h"
 #include "runtime.h"
+#include "vla_alloc.h"
 
 /*
 The general approach to allocating VLAs is to allocate relatively small VLAs
