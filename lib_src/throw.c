@@ -18,6 +18,7 @@ Throw processing for exception handling.
 #include "eh.h"
 #pragma hdrstop
 #include "vec_newdel.h"
+#include "vla_alloc.h"
 
 #if EXCEPTION_HANDLING
 
@@ -489,14 +490,21 @@ Print the contents of a region description entry.
     if (ehrdp->flags) {
       fprintf(__f_debug, "  flags: ");
       if (ehrdp->flags & RDF_INDIRECT) fprintf(__f_debug, " indirect");
+      if (ehrdp->flags & RDF_ARRAY) fprintf(__f_debug, " array");
       if (ehrdp->flags & RDF_NEW_ALLOCATION) fprintf(__f_debug, " new");
-      if (ehrdp->flags & RDF_BASE_CLASS_SUBOBJECT) {
+      if (is_base_class_subobject(ehrdp->flags)) {
         fprintf(__f_debug, " subobject");
         /* The SUBOBJECT_VTABLE and LET_THIS flags share the same bit.
            The meaning depends on the setting of the BASE_CLASS_SUBOBJECT
+           flag.  In addition, the BASE_CLASS_SUBOBJECT and VLA flags share
+           the same bit.  The meaning depends on the setting of the RDF_ARRAY
            flag. */
         if (ehrdp->flags & RDF_SUBOBJECT_VTABLE) {
           fprintf(__f_debug, " subobject vtable");
+        }  /* if */
+      } else if (ehrdp->flags & RDF_ARRAY) {
+        if (ehrdp->flags & RDF_VLA) {
+          fprintf(__f_debug, " VLA");
         }  /* if */
       }  /* if */
       if (ehrdp->flags & RDF_GUARD_VAR_FOR_LOCAL_STATIC) {
@@ -609,7 +617,7 @@ requires cleanup.
       if (!*flag_addr) continue;
     }  /* if */
     if ((flags & RDF_SUBOBJECT_VTABLE) != 0 &&
-        (flags & RDF_BASE_CLASS_SUBOBJECT) != 0) {
+        is_base_class_subobject(flags)) {
       /* This is a subobject destruction that has a special vtable pointer
          that is to be used.  The next region table entry contains a handle
          that points to the vtable address to be used.  If there is a
@@ -689,14 +697,31 @@ requires cleanup.
       a_destructor_ptr	dtor_ptr;
       dtor_ptr = (a_destructor_ptr)ehrdp->destructor_or_delete_routine;
       if (flags & RDF_ARRAY) {
-        an_element_count	elements = ehasp->array_size;
+        /* The destructor pointer can be NULL if the array is a VLA.
+           In such cases, the region table entry is present so that the
+           VLA can be deallocated (although as provided this routine can
+           only perform the deallocation when VLA operations are lowered). */
+        a_boolean		is_vla = (flags & RDF_VLA) != 0;
+        if (dtor_ptr != NULL) {
+          an_element_count	elements = ehasp->array_size;
+          if (is_vla) {
+            /* The array size for a VLA is accessed using the handle in the
+               region table entry that follows the entry for the VLA. */
+            a_sizeof_t		*element_addr;
+            element_addr = (a_sizeof_t*)(obj_addr_array + (ehrdp + 1)->handle);
+            elements = (an_element_count)*element_addr;
+         }  /* if */
 #ifndef __EDG_IA64_ABI
-        __vec_delete(obj_addr, elements, ehasp->element_size, dtor_ptr,
-                    /*delete_flag=*/FALSE, /*unused_arg=*/0);
+          __vec_delete(obj_addr, elements, ehasp->element_size, dtor_ptr,
+                      /*delete_flag=*/FALSE, /*unused_arg=*/0);
 #else /* ifdef __EDG_IA64_ABI */
-        ABI_NAMESPACE::__cxa_vec_dtor(obj_addr, elements, 
-                                      ehasp->element_size, dtor_ptr);
+          ABI_NAMESPACE::__cxa_vec_dtor(obj_addr, elements, 
+                                        ehasp->element_size, dtor_ptr);
 #endif /* ifdef __EDG_IA64_ABI */
+        }  /* if */
+#if __EDG_LOWER_VARIABLE_LENGTH_ARRAYS
+        if (is_vla) __vla_dealloc(obj_addr);
+#endif /* __EDG_LOWER_VARIABLE_LENGTH_ARRAYS */
       } else if (vtbl_ptr != NULL) {
         /* A non-array object for which a special destructor must be called
            in order to supply information about the construction vtable to
@@ -713,7 +738,7 @@ requires cleanup.
            is itself a base class subobject, pass in the value "0"
 	   indicating that only the object (and not any subobjects)
 	   should be destroyed. */
-        (dtor_ptr)(obj_addr, (flags & RDF_BASE_CLASS_SUBOBJECT) ? 0 : 2);
+        (dtor_ptr)(obj_addr, is_base_class_subobject(flags) ? 0 : 2);
 #else /* ifdef __EDG_IA64_ABI */
         (dtor_ptr)(obj_addr);
 #endif /* ifdef __EDG_IA64_ABI */

@@ -1,5 +1,12 @@
 Version 3.6
 
+5/4/05   Support for VLAs in exception handling
+
+VLAs are now supported in some C++ modes.  As a result, the exception handling
+mechanism has been updated to make use of the new data structures generated
+by the front end for the cleanup of variable length arrays.  See the front
+end Changes entry for more information.
+
 3/14/05  Handling of recursive calls of main
 
 Formerly, if main were to call itself recursively, the runtime would print an

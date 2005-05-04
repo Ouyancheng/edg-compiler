@@ -122,12 +122,34 @@ config.h file.
 
 #define RDF_BASE_CLASS_SUBOBJECT	0x40
 			/* TRUE if the object is a base class of some other
-			   object and therefore is not a complete object. */
+			   object and therefore is not a complete object.  Note
+			   that this shares the same value with RDF_VLA.  A
+			   base class subobject is never an array so the
+			   RDF_ARRAY flag can be used to distinguish
+			   which meaning the 0x40 value has. */
+#define RDF_VLA				0x40
+			/* TRUE when RDF_ARRAY is set and the array is a
+			   variable length array.  Note that this shares the
+			   same value with RDF_BASE_CLASS_SUBOBJECT.  When
+			   this flag is set, the next entry in the region
+			   table provides a handle to a size_t variable
+			   that provides the number of elements in the array.
+			   For a multi-dimensional array, it is the total
+			   number of elements for all of the dimensions. */
 #define RDF_GUARD_VAR_FOR_LOCAL_STATIC	0x80
 			/* TRUE if the object is the guard variable associated
 			   with the initialization of a local static variable.
 			   The cleanup action is to set the variable back to
 			   zero. */
+
+/*
+Macro used to test the base class subobject bit.  The RDF_ARRAY test is
+included because RDF_BASE_CLASS_SUBOBJECT shares the same value with
+RDF_VLA.
+*/
+#define is_base_class_subobject(flags)					\
+  (((flags) & RDF_BASE_CLASS_SUBOBJECT) != 0 &&				\
+   ((flags) & RDF_ARRAY) == 0)
 
 #define NULL_REGION_NUMBER ((a_region_number)__EDG_NULL_EH_REGION_NUMBER)
 			/* The value used when there is no active EH
