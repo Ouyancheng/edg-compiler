@@ -6310,10 +6310,10 @@ typedef struct a_variable {
 			/* The variable is a variable length array, i.e.,
 			   its type is a VLA type.  Any variable for which
 			   this flag is set will also be specified in a
-			   stmk_vla_decl statement and one or more
-			   enk_vla_dealloc nodes, which indicate where
+			   stmk_vla_decl statement (and, in C mode, one or
+			   more enk_vla_dealloc nodes), which indicates where
 			   in the execution stream its memory is to be
-			   allocated and deallocated.  (Note: this flag is
+			   allocated (or deallocated).  (Note: this flag is
 			   TRUE only if has_variably_modified_type is also
 			   TRUE.) */
 #if DO_IL_LOWERING

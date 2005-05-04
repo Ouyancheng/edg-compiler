@@ -176,7 +176,13 @@ are cases in which typerefs are produced that are empty, with neither name
 nor qualifier.
 */
 #define typeref_is_typedef(tp)                                        \
- ((tp)->source_corresp.name != NULL)
+  ((tp)->source_corresp.name != NULL)
+
+/*
+Return TRUE if the given type represents a typedef.
+*/
+#define type_is_typedef(tp)                                           \
+  ((tp)->kind == (a_type_kind)tk_typeref && typeref_is_typedef((tp)))
 
 /*
 Return the alignment of the given type.  Normally, a skip_typeref must be

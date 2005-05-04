@@ -7587,6 +7587,11 @@ Do IL lowering of the indicated type and everything under it.
         lower_class_struct_union_type(type);
         break;
       case tk_typeref:
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+        if (vla_enabled && typeref_is_typedef(type)) {
+          prepare_to_lower_variably_modified_typedef(type);
+        }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         lower_type(type->variant.typeref.type);
         break;
       case tk_template_param:
@@ -11077,24 +11082,6 @@ context doesn't care what the type is).
 }  /* rewrite_discarded_lvalue_as_rvalue */
 
 
-static void lower_runtime_sizeof(an_expr_node_ptr expr)
-/*
-Do lowering for an enk_runtime_sizeof, which can appear in C++
-when SIZEOF_TYPE_IS_UNKNOWN is defined.  Normally, it is generated only
-for VLAs.  The "lowering" is really just lowering the subtree and
-leaving the enk_runtime_sizeof itself in the IL.
-*/
-{
-  /* expr->type was lowered by lower_expr. */
-  if (expr->variant.runtime_sizeof.is_type) {
-    lower_os_type(expr->variant.runtime_sizeof.variant.type);
-  } else {
-    lower_expr(expr->variant.runtime_sizeof.variant.expr,
-               (a_boolean)expr->variant.runtime_sizeof.is_lvalue);
-  }  /* if */
-}  /* lower_runtime_sizeof */
-          
-
 static a_boolean is_optimizable_temp_init_indirection(
                                               an_expr_node_ptr operand_node,
                                               an_expr_node_ptr *temp_init_node)
@@ -11226,8 +11213,16 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     case enk_address_of_ellipsis:
       /* No processing required. */
       break;
-    case enk_variable:
     case enk_variable_address:
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+      if (expr->variant.variable->is_vla) {
+        /* VLAs are lowered to pointers (to automatically managed storage).
+           The pointer value should be used; not its address. */
+        lower_vla_address(expr);
+      }  /* if */
+      /*FALLTHROUGH*/
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+    case enk_variable:
       /* If the variable is a parameter that's passed by copy constructor,
          an implicit indirection must be added. */
       var = expr->variant.variable;
@@ -11322,6 +11317,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         expr->type = type;
         lower_temp_init(expr);
       } else {
+        a_type_ptr  type;
         /* Determine which operands if any are lvalues, and whether or not
            the operand has boolean-controlling-expression operands. */
         set_lvalue_and_boolean_controlling_expr_masks(
@@ -11384,13 +11380,25 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                that's harmless.  The pointer to member function case must
                be rewritten, however, since it's now a cast of a struct
                type. */
+            type = expr->type;
             if (is_or_was_ptr_to_member_function_type(expr->type)) {
               /* Preserve the result type because it tells us how to call
                  the kind of routine we've selected. */
-              a_type_ptr type = expr->type;
               overwrite_node(expr, operand_node);
               expr->type = type;
             }  /* if */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+            if (vla_enabled && !type->visited_for_vla_lowering &&
+                !(type->kind == (a_type_kind)tk_typeref &&
+                  typeref_is_typedef(type)) &&
+                is_variably_modified_type(type)) {
+              /* If the cast introduces a VLA type, we need to compute its
+                 dimension variables. Note that compiler-generated casts may
+                 cast to variably modified types that have already been
+                 visited. */
+              lower_vla_cast(expr);
+            }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
             break;
 #if ABI_CHANGES_FOR_RTTI
           case eok_dynamic_cast:
@@ -11411,12 +11419,40 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
               }  /* if */
             }  /* if */
             break;
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+          case eok_pdiff:
+            if (vla_enabled && is_vla_type(type_pointed_to(
+                                   expr->variant.operation.operands->type))) {
+              lower_vla_pointer_difference(expr);
+            }  /* if */
+            break;
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+          case eok_padd_assign:
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+          case eok_padd:
+          case eok_psubtract:
+          case eok_padd_subsc:
+          case eok_psubtract_assign:
+          case eok_ppre_incr:
+          case eok_ppre_decr:
+          case eok_ppost_incr:
+          case eok_ppost_decr:
+            if (vla_enabled && is_vla_type(type_pointed_to(expr->type))) {
+              lower_vla_pointer_integer_arithmetic(expr);
+            }  /* if */
+            if (op != (an_expr_operator_kind)eok_padd_assign) {
+              /* An eok_padd_assign operation of the form "bool_val += ptr"
+                 needs a different transformation handled by the fall-through
+                 code. */
+              break;
+            }  /* if */
+            /*FALLTHROUGH*/
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
           case eok_iadd_assign:
           case eok_isubtract_assign:
           case eok_imultiply_assign:
           case eok_idivide_assign:
           case eok_remainder_assign:
-          case eok_padd_assign:
           case eok_shiftl_assign:
           case eok_shiftr_assign:
           case eok_and_assign:
@@ -11668,6 +11704,11 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     default:
       unexpected_condition_str("lower_expr: bad kind");
   }  /* switch */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+  if (vla_enabled && !expr->type->visited_for_vla_lowering) {
+    record_vla_component_types_for_lowering(expr->type);
+  }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_expr */
 
 
@@ -14077,8 +14118,16 @@ Do IL lowering of the indicated statement and everything under it.
         /* Statement that marks the location of declarations.  Ignored here. */
         break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      case stmk_set_vla_size:        /* Not expected in C++. */
-      case stmk_vla_decl:            /* Not expected in C++. */
+      case stmk_set_vla_size:
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+        lower_set_vla_size(statement);
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+        break;
+      case stmk_vla_decl:
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+        lower_vla_decl(statement);
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+        break;
       default:
         unexpected_condition_str("lower_statement: bad kind");
     }  /* switch */
@@ -15779,6 +15828,15 @@ Do IL lowering of the indicated scope and everything under it.
   /* Add a context entry for the scope, but not for the file scope (the caller
      has done that already). */
   if (scope_kind != (a_scope_kind)sck_file) {
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+    if (scope->kind == (a_scope_kind)sck_function) {
+      /* Visit all VLA dimension expressions for parameters before pushing the
+         function scope.  This matters when there are compound literals in
+         the dimension expression. */
+      /* Entries not in prototype scopes are handled further below. */
+      lower_vla_dimensions_in_scope(scope, /*prototype_scope=*/TRUE);
+    }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     push_context(&context, scope, (an_object_lifetime_ptr)NULL);
   }  /* if */
   /* Mark the scope as lowered.  This is used by
@@ -15986,6 +16044,13 @@ Do IL lowering of the indicated scope and everything under it.
          inside block scopes. */
       lower_function_body(scope->assoc_block);
     }  /* if */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+    /* Visit all VLA dimension expressions not associated with the prototype
+       scope.  This must happen after the statements have been lowered to
+       ensure that any needed VLA dimension variables have been created. */
+    /* Entries from prototype scopes are handled above. */
+    lower_vla_dimensions_in_scope(scope, /*prototype_scope=*/FALSE);
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     /* Add prologue code for exceptions. */
     if (exceptions_enabled
 #if ASM_FUNCTION_ALLOWED
@@ -16029,7 +16094,15 @@ Do IL lowering of the indicated scope and everything under it.
        no longer do anything. */
     unlink_pointless_local_static_variable_inits(scope);
   }  /* if */
-  if (scope_kind != (a_scope_kind)sck_file) pop_context();
+  if (scope_kind == (a_scope_kind)sck_file) {
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+    if (vla_enabled) {
+      lower_vla_types();
+    }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+  } else {
+    pop_context();
+  }  /* if */
   innermost_function_scope = saved_innermost_function_scope;
   db_exit();
 }  /* lower_scope */

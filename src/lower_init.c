@@ -7727,12 +7727,12 @@ block of the temporary will be entered at the top.
 void lower_temp_init(an_expr_node_ptr expr)
 /*
 Do IL lowering of an enk_temp_init expression node.
+// FIXME: see lower_c99_temp_init
 */
 {
   a_dynamic_init_ptr dip;
-  a_type_ptr         temp_type;
   an_init_pos_descr  ipd;
-  a_boolean          result_is_addr, result_is_not_used;
+  a_boolean          result_is_addr;
   an_insert_location insert_location;
   a_boolean          is_constructor_init;
   a_variable_ptr     temp_var;
@@ -7753,9 +7753,20 @@ Do IL lowering of an enk_temp_init expression node.
     lower_expr(dip->variant.expression, /*is_lvalue=*/FALSE);
     overwrite_node(expr, dip->variant.expression);
   } else {
-    result_is_not_used = expr->result_is_not_used;
-    /* Determine the type of the temporary. */
-    temp_type = expr->type;
+    a_type_ptr         temp_type = expr->type;
+    a_boolean          result_is_not_used = expr->result_is_not_used;
+    a_boolean          variably_modified = (vla_enabled &&
+                                        is_variably_modified_type(temp_type));
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+    an_expr_node_ptr   vla_inits = NULL;
+    if (variably_modified && !type_is_typedef(temp_type)) {
+/*FIXME: C++ never introduces a type in temp inits?*/
+      /* If the temporary introduces a VLA type, we need to compute its
+         dimension variables (this is similar to cast operations). */
+      vla_inits = lower_vla_dimensions(temp_type);
+      record_vla_component_types_for_lowering(temp_type);
+    }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     if (result_is_addr) {
       /* The value of the enk_temp_init node is the address of the temporary,
          so drop the pointer-to to get the temporary type. */
@@ -7791,6 +7802,9 @@ Do IL lowering of an enk_temp_init expression node.
          for them). */
       temp_var->is_partially_initialized = TRUE;
     }  /* if */
+    if (variably_modified) {
+      temp_var->has_variably_modified_type = TRUE;
+    }  /* if */
     /* Change the enk_temp_init to a reference to the value or address
        of the temporary. */
     if (result_is_addr) {
@@ -7822,6 +7836,20 @@ Do IL lowering of an enk_temp_init expression node.
                        /*others_follow_in_aggr=*/FALSE,
                        &insert_location, eff_keep_dynamic_init,
                        (a_constant **)NULL);
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+    /* After lowering, the type will no longer be variably-modified. */
+    temp_var->has_variably_modified_type = FALSE;
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+    if (temp_var->has_variably_modified_type) {
+      /* If the variable has variably-modified type, put out an stmk_vla_decl
+         for it. */
+      a_statement_ptr stmk_vla_decl_stmt =
+                              alloc_statement((a_statement_kind)stmk_vla_decl);
+      stmk_vla_decl_stmt->variant.vla.is_typedef_decl = FALSE;
+      stmk_vla_decl_stmt->variant.vla.variant.variable = temp_var;
+      add_to_end_of_temp_init_statements_list(stmk_vla_decl_stmt);
+    }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     if (keep_dynamic_init) {
       /* Record any dynamic initialization that might have been created
          while lowering a compound literal. */
@@ -7906,6 +7934,14 @@ Do IL lowering of an enk_temp_init expression node.
         }  /* if */
       }  /* if */
     }  /* if */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+  if (vla_inits != NULL) {
+    /* Be sure to compute any needed VLA dimension variables before any
+       expressions inside the compound literal braces. */
+    an_expr_node_ptr  new_expr = make_comma_node(vla_inits, copy_node(expr));
+    overwrite_node(expr, new_expr);
+  }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
   }  /* if */
 }  /* lower_temp_init */
 
