@@ -3360,6 +3360,7 @@ Do C99 lowering for all entities in and under the given scope.
   a_local_static_variable_init_ptr lsvip;
   a_context                        context;
 
+#if LOWER_VARIABLE_LENGTH_ARRAYS
   if (scope->kind == (a_scope_kind)sck_function) {
     /* Visit all VLA dimension expressions for parameters before pushing the
        function scope.  This matters when there are compound literals in
@@ -3367,6 +3368,7 @@ Do C99 lowering for all entities in and under the given scope.
     /* Entries not in prototype scopes are handled further below. */
     lower_vla_dimensions_in_scope(scope, /*prototype_scope=*/TRUE);
   }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
   push_context(&context, scope, (an_object_lifetime_ptr)NULL);
   /* Mark the scope as lowered.  This is used by
      check_for_done_with_memory_region to tell whether the code for a function
@@ -3428,11 +3430,13 @@ Do C99 lowering for all entities in and under the given scope.
   if (scope->kind == (a_scope_kind)sck_function) {
     /* Lower the function block statement. */
     lower_c99_statement(scope->assoc_block);
+#if LOWER_VARIABLE_LENGTH_ARRAYS
     /* Visit all VLA dimension expressions not associated with the prototype
        scope.  This must happen after the statements have been lowered to
        ensure that any needed VLA dimension variables have been created. */
     /* Entries from prototype scopes are handled above. */
     lower_vla_dimensions_in_scope(scope, /*prototype_scope=*/FALSE);
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     insert_temp_init_statements(scope->assoc_block);
 #if MINIMAL_INLINING
     if (inlining_enabled && scope->variant.routine.ptr->is_inline) {
