@@ -2809,20 +2809,34 @@ by the EDG-supplied runtime.
                            is available from KAI. */
 			/* Note that this uses the same bit as
 			   RDF_SUBOBJECT_VTABLE, and is valid only when
-			   RDF_BASE_CLASS_SUBOBJECT is FALSE. */
+			   RDF_BASE_CLASS_SUBOBJECT is FALSE and RDF_ARRAY
+			   is FALSE. */
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING && USING_KAI_INLINER */
 #define RDF_SUBOBJECT_VTABLE		0x20
-			/* When RDF_BASE_CLASS_SUBOBJECT is TRUE, this
-			   flag indicates that a region entry following
-			   this one gives the address of the subobject
-			   destruction vtable table to be used when
-			   calling the destructor.  If there is also an
-			   extra entry for a conditional flag, the
-			   subobject vtable entry follows the flag entry.
-			   Note that this uses the same bit as RDF_LET_THIS. */
+			/* When RDF_BASE_CLASS_SUBOBJECT is TRUE and
+			   RDF_ARRAY is FALSE, this flag indicates that
+			   a region entry following this one gives the
+			   address of the subobject destruction vtable
+			   table to be used when calling the destructor.
+			   If there is also an extra entry for a conditional
+			   flag, the subobject vtable entry follows the flag
+			   entry.  Note that this uses the same bit as
+			   RDF_LET_THIS. */
 #define RDF_BASE_CLASS_SUBOBJECT	0x40
 			/* TRUE if the object is a base class of some other
-			   object and therefore is not a complete object. */
+			   object and therefore is not a complete object.
+			   Note that this is meaningful only when RDF_ARRAY
+			   is FALSE, because it uses the same bit as
+			   RDF_VLA. */
+#define RDF_VLA				0x40
+			/* TRUE if the object is a variable-length array
+			   (VLA) and a region entry following this one gives
+			   the address of a variable containing the array
+			   element count.  If there is also an extra entry
+			   for a conditional flag, the element count entry
+			   follows the flag entry.  Note that this is
+			   meaningful only when RDF_ARRAY is TRUE, because
+			   it uses the same bit as RDF_BASE_CLASS_SUBOBJECT. */
 #define RDF_GUARD_VAR_FOR_LOCAL_STATIC	0x80
 			/* TRUE if the object is the guard variable associated
 			   with the initialization of a local static variable.
@@ -3025,13 +3039,15 @@ static a_constant_ptr
 
 
 static void make_array_table_entry(an_init_pos_descr_ptr ipdp,
-                                   a_handle              *handle)
+                                   a_handle              *handle,
+                                   a_boolean             is_vla)
 /*
 Add an entry to the array table (creating the table and its associated
 variable if necessary) for the object whose position is given by ipdp.
 The handle (identifying information for the region table) for
 the object is provided in *handle; it is modified appropriately
-on return.  This routine can also be called for non-arrays in cases
+on return.  is_vla is TRUE if the object is a variable-length
+array (VLA).  This routine can also be called for non-arrays in cases
 where an array table entry is needed to provide information not
 included in the region description entry (for example, for a
 new-allocation record in a case where the delete routine requires a
@@ -3058,7 +3074,16 @@ region description entry).
      elements. */
   /* Make the handle constant. */
   handle_con = make_handle_constant(handle);
-  if (ipdp->array_element_sequence) {
+  if (is_vla) {
+    /* The object is a variable-length array.  The caller will pass RDF_VLA
+       and the location of a variable that gives the number of elements.
+       The value put in the table is arbitrary, but use -1. */
+    elem_count = -1;
+    elem_type = entity_type;
+    if (!ipdp->array_element_sequence) {
+      elem_type = underlying_array_element_type(entity_type);
+    }  /* if */
+  } else if (ipdp->array_element_sequence) {
     /* The entity is a sequence of array elements.  Get the element
        count.  -1 indicates that the runtime should look up the number of
        elements in the array.  Note that the position given is the position
@@ -3345,6 +3370,8 @@ static a_constant_ptr make_region_table_entry(
                              a_handle                *conditional_flag_handle,
                              a_boolean               has_subobject_vtable,
                              a_handle                *subobject_vtable_handle,
+                             a_boolean               is_vla,
+                             a_handle                *vla_elem_count_handle,
                              a_cleanup_region_number next_region_number,
                              a_cleanup_region_number *region_number,
                              an_insert_location      *insert_location)
@@ -3363,12 +3390,15 @@ conditional_flag_handle gives the handle for the address for the
 conditional flag.  has_subobject_vtable is TRUE if a subobject
 construction vtable needs to be passed to the destructor.  In that
 case, subobject_vtable_handle gives the handle for the address
-for the vtable.  next_region_number is used as the
-next-region-table-entry number for the new entry.  The region table
-entry number for the new entry is returned in *region_number.  Any
-initialization code required will be inserted at *insert_location.  The
-region table variable is created if necessary.  Return a pointer to the
-aggregate constant for the region table entry.
+for the vtable.  is_vla is TRUE if the object is a variable-length
+array.  In that case, vla_elem_count_handle gives the handle for the
+address of a variable that contains the number of elements in the
+array.  next_region_number is used as the next-region-table-entry
+number for the new entry.  The region table entry number for the
+new entry is returned in *region_number.  Any initialization code
+required will be inserted at *insert_location.  The region table
+variable is created if necessary.  Return a pointer to the aggregate
+constant for the region table entry.
 */
 {
   a_handle        handle;
@@ -3395,9 +3425,10 @@ aggregate constant for the region table entry.
   }  /* if */
   if (need_array_info) {
     /* We need an entry in the array table. */
-    make_array_table_entry(ipdp, &handle);
+    make_array_table_entry(ipdp, &handle, is_vla);
     /* Set the flag that indicates this object is an array. */
     flags_value |= RDF_ARRAY;
+    if (is_vla) flags_value |= RDF_VLA;
   }  /* if */
   if (is_local_static_guard_var) {
     flags_value |= RDF_GUARD_VAR_FOR_LOCAL_STATIC;
@@ -3461,6 +3492,13 @@ aggregate constant for the region table entry.
        address. */
     (void)add_region_table_entry((a_routine_ptr)NULL,
                                  subobject_vtable_handle,
+                                 null_eh_region_number,
+                                 (a_region_descr_flags_set)RDF_NONE);
+  } else if (is_vla) {
+    /* Make an additional region table entry for the VLA element count
+       variable address. */
+    (void)add_region_table_entry((a_routine_ptr)NULL,
+                                 vla_elem_count_handle,
                                  null_eh_region_number,
                                  (a_region_descr_flags_set)RDF_NONE);
   }  /* if */
@@ -3535,9 +3573,11 @@ The region table variable is created if necessary.
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
   a_handle                        conditional_flag_handle;
   a_handle                        subobject_vtable_handle;
+  a_handle                        vla_elem_count_handle;
   a_cleanup_region_number         next_region_number;
   an_init_pos_descr               ipd;
   a_boolean                       has_subobject_vtable = FALSE;
+  a_boolean                       is_vla = FALSE;
 
   check_assertion(dedp != NULL);
   /* Make a handle that describes the address of the conditional flag if
@@ -3590,6 +3630,19 @@ The region table variable is created if necessary.
 #endif /* IA64_ABI */
   }  /* if */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+#if ABI_COMPATIBILITY_VERSION < 306
+  /* For ABI versions before 3.06, VLA exception handling can't be supported.
+     VLAs aren't supposed to be allowed to be enabled. */
+  check_assertion_str(!vla_enabled,
+                      "Exception handling for VLAs not supported");
+#else /* ABI_COMPATIBILITY_VERSION >= 306 */
+  if (is_dynamic_init_for_vla(dip)) {
+    /* Extra information is needed for variable-length arrays. */
+    is_vla = TRUE;
+    set_var_init_pos_descr(dip->variable->vla_element_count_variable, &ipd);
+    make_handle_for_entity(&ipd, &vla_elem_count_handle, insert_location);
+  }  /* if */    
+#endif /* ABI_COMPATIBILITY_VERSION < 306 */
   dedp->next_in_region_table = next_dip;
   next_region_number = cleanup_region_number(
                          dedp->cleanup_state_to_set_when_starting_destruction);
@@ -3604,6 +3657,8 @@ The region table variable is created if necessary.
                                      &conditional_flag_handle,
                                      has_subobject_vtable,
                                      &subobject_vtable_handle,
+                                     is_vla,
+                                     &vla_elem_count_handle,
                                      next_region_number,
                                      &dedp->region_number,
                                      insert_location);

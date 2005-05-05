@@ -442,6 +442,10 @@ extern int fileno(FILE *);
 /*lint -esym(759,update_extended_decl_info_for_class)*/
 /*lint -esym(765,update_extended_decl_info_for_class)*/
 #endif /* DECL_MODIFIERS_IN_USE && !(MICROSOFT_EXTENSIONS_ALLOWED || ...) */
+#if ABI_COMPATIBILITY_VERSION >= 306
+/*lint -esym(769,ec_cl_vla_option_only_in_C)*/
+#endif /* ABI_COMPATIBILITY_VERSION >= 306 */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *
