@@ -540,7 +540,8 @@ static an_expr_node_ptr vla_size_expr(a_type_ptr  vla_type,
 /*
 Return an expression describing the (nonconstant) size of the given VLA type.
 If byte_count is TRUE, the expression should reflect the size as a number of
-bytes; otherwise, the size should be the number of elements.
+bytes; otherwise, the size should be the number of elements.  In both cases,
+the expression type is ptrdiff_t.
 */
 {
   an_expr_node_ptr     result;
