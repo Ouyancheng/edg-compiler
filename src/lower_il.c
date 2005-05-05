@@ -7957,9 +7957,9 @@ not include the function scope memory region, if any.
     mark_as_visited(routine);
     lower_source_correspondence(&routine->source_corresp);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-  if (vla_enabled) {
-    record_vla_component_types_for_lowering(routine->type);
-  }  /* if */
+    if (vla_enabled) {
+      record_vla_component_types_for_lowering(routine->type);
+    }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     /* "lower_os_type" not needed; the routine and the type must both be
        in the file scope. */
