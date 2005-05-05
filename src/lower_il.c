@@ -15839,7 +15839,6 @@ Do IL lowering of the indicated scope and everything under it.
   /* Add a context entry for the scope, but not for the file scope (the caller
      has done that already). */
   if (scope_kind != (a_scope_kind)sck_file) {
-#if LOWER_VARIABLE_LENGTH_ARRAYS
     if (scope->kind == (a_scope_kind)sck_function) {
       /* Visit all VLA dimension expressions for parameters before pushing the
          function scope.  This matters when there are compound literals in
@@ -15847,7 +15846,6 @@ Do IL lowering of the indicated scope and everything under it.
       /* Entries not in prototype scopes are handled further below. */
       lower_vla_dimensions_in_scope(scope, /*prototype_scope=*/TRUE);
     }  /* if */
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     push_context(&context, scope, (an_object_lifetime_ptr)NULL);
   }  /* if */
   /* Mark the scope as lowered.  This is used by
@@ -16055,13 +16053,11 @@ Do IL lowering of the indicated scope and everything under it.
          inside block scopes. */
       lower_function_body(scope->assoc_block);
     }  /* if */
-#if LOWER_VARIABLE_LENGTH_ARRAYS
     /* Visit all VLA dimension expressions not associated with the prototype
        scope.  This must happen after the statements have been lowered to
        ensure that any needed VLA dimension variables have been created. */
     /* Entries from prototype scopes are handled above. */
     lower_vla_dimensions_in_scope(scope, /*prototype_scope=*/FALSE);
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     /* Add prologue code for exceptions. */
     if (exceptions_enabled
 #if ASM_FUNCTION_ALLOWED
