@@ -4279,6 +4279,19 @@ enable_microsoft_mode:
   generate_rtti_typeinfo = rtti_enabled;
 #endif /* SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI */
+#if VLA_ALLOWED
+#if ABI_COMPATIBILITY_VERSION < 306
+  if (!C_mode() && vla_enabled) {
+    /* The ABI previous to 3.06 could not support exception handling for
+       VLAs.  We turn them off in C++ even if exceptions are not enabled to
+       avoid confusion. */
+    if (option_kind_used[(int)optk_vla]) {
+      command_line_error(ec_cl_vla_option_only_in_C);
+    }  /* if */
+    vla_enabled = FALSE;
+  }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION < 306 */
+#endif /* VLA_ALLOWED */
   /* warning_on_for_init_difference may be TRUE only if the new for-init
      scoping rules are in effect. */
   if (use_nonstandard_for_init_scope) warning_on_for_init_difference = FALSE;
