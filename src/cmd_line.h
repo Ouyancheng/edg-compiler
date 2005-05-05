@@ -458,8 +458,8 @@ EXTERN a_boolean
 EXTERN a_boolean
 		vla_enabled;
 			/* TRUE if support for variable length arrays (VLAs)
-			   is enabled.  Always FALSE in C++ mode.  Controlled
-			   by command-line options --[no_]vla. */
+			   is enabled.  Controlled by command-line options
+			   --[no_]vla and enabled/disabled by some modes. */
 
 EXTERN a_boolean
 		vla_deallocations_in_il;
