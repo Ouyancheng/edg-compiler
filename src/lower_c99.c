@@ -317,12 +317,13 @@ the other entries (after the context is pushed).
   a_scope_ptr          saved_innermost_function_scope =
                                                      innermost_function_scope;
 
+  if (prototype_scope) {
+    /* Temporarily indicate that we're not inside a function. */
+    innermost_function_scope = NULL;
+  }  /* if */
   for (; vla_dim != NULL; vla_dim = vla_dim->next) {
     if (prototype_scope == vla_dim->in_prototype_scope) {
-      /* Temporarily indicate that we're not inside a function. */
-      innermost_function_scope = NULL;
       lower_vla_dimension(vla_dim);
-      innermost_function_scope = saved_innermost_function_scope;
     }  /* if */
   }  /* for */
   innermost_function_scope = saved_innermost_function_scope;
