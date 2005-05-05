@@ -3825,7 +3825,9 @@ elements require destruction; the code generated deallocates the array.
     dealloc_expr->type = void_type();
     check_assertion(dip->variable != NULL);
     dealloc_expr->variant.vla_variable = dip->variable;
+#if LOWER_VARIABLE_LENGTH_ARRAYS
     lower_vla_dealloc(dealloc_expr);
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     (void)insert_expr_statement(dealloc_expr, effective_insert_loc);
   }  /* if */
 }  /* gen_one_destruction */
