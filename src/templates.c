@@ -8497,7 +8497,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     clear_decl_modifiers_block(&decl_modifiers);
     decl_modifiers.flags = templ_rout->decl_modifiers;
     update_routine_decl_modifiers(rp, &decl_modifiers, &locator_position,
-                                  /*is_redecl=*/FALSE, /*is_definition=*/TRUE,
+                                  /*is_redecl=*/FALSE, templ_rout->defined,
                                   (a_boolean)rp->is_inline);
     }
 #endif /* DECL_MODIFIERS_IN_USE */

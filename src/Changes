@@ -1,5 +1,18 @@
 Version 3.6
 
+5/5/05   Microsoft compatibility: Spurious error on imported function template
+
+In Microsoft mode, the front end previously issued a spurious error when
+partially instantiating a "dllimported" function template.  For example:
+
+  template<typename> __declspec(dllimport) void f();
+  int main() {
+    f<char>();  // Triggered an error.
+  }
+
+This is now fixed: An error is only issued if an actual definition is
+produced by the instantiation (i.e., if the function template has a body).
+
 5/5/05   C++-generating back end: unneeded parentheses in function arguments
 
 The C++-generating back end formerly enclosed many function arguments in
