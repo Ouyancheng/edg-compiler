@@ -3556,8 +3556,9 @@ the default constructor (if one exists) is called.
       dtor = select_destructor(tp, tp, err_pos,
                                /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
                                /*instantiate=*/TRUE);
-      if (ctor == NULL && dtor == NULL && !is_nonreal_class) {
-        /* No constructor for default initialization; no destructor either. */
+      if (ctor == NULL && dtor == NULL && !is_nonreal_class && !var->is_vla) {
+        /* No constructor for default initialization; no destructor either.
+           Not a variable-length array (VLA). */
         if (innermost_function_scope != NULL) {
           /* Although no init statement is needed, we still need to track
              attempts to branch past the trivial initialization. */
@@ -3600,11 +3601,13 @@ the default constructor (if one exists) is called.
           /* Default initialization of an object that has a destructor.  We
              generate a dik_none dynamic initialization entry for this object,
              even though it is not actually initialized, so that the existence
-             of the destructor can be duly recorded. */
+             of the destructor can be duly recorded.  VLA cases for non-POD
+             classes with no constructor or destructor also get here. */
           init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
         }  /* if */
-        /* A constructor (or at least a destructor) was found and a dynamic
-           init entry (local_di) was set to represent the initialization. */
+        /* A constructor (or at least a destructor or a VLA) was found and a
+           dynamic init entry (local_di) was set to represent the
+           initialization. */
         init_dip->destructor = dtor;
         /* Allocate a dynamic init entry (a copy of local_di) and attach it
            to the variable. */
@@ -3632,6 +3635,20 @@ the default constructor (if one exists) is called.
           pop_namespace_reactivation_scope();
         }  /* if */
       }  /* if */
+    } else if (var->is_vla) {
+      /* The variable is a variable-length array (VLA) but not one with a
+         constructor or destructor, e.g., an array of int or of a POD
+         class type. */
+      init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+      gen_dynamic_initialization(var, init_dip, &local_static_var_init,
+                                 err_pos, (a_statement_ptr *)NULL);
+#if DEBUG
+      if (debug_level >= 3 || db_flag_is_set("dump_init")) {
+        fputs("Default-initialized VLA: ", f_debug);
+        db_variable(var);
+        fputs("\n", f_debug);
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
   }  /* if */
   db_exit();

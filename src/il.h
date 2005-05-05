@@ -648,6 +648,14 @@ compound) scalar assignment.
    (op) == (an_expr_operator_kind)eok_passign                               \
    or_is_simple_fixed_point_assignment((op)))
 
+/*
+Macro that is TRUE for a dynamic initialization that initializes a
+variable-length array (VLA).
+*/
+#define is_dynamic_init_for_vla(dip) \
+  ((dip)->variable != NULL && (dip)->variable->is_vla)
+
+
 extern a_boolean dynamic_init_has_side_effects(
                                         a_dynamic_init_ptr dip,
                                         a_boolean          *suppress_warning);

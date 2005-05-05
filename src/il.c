@@ -9133,6 +9133,7 @@ options for the copy.  cblock is a control block for the copy.
     }  /* if */
     if (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR) {
       /* Instantiate the destructor. */
+      check_assertion(dip->destructor != NULL);  /* Not expecting VLAs. */
       instantiate_il_entity(&dip->destructor->source_corresp);
     }  /* if */
 #if DO_IL_LOWERING
@@ -13135,6 +13136,9 @@ be suppressed.
   if (dip->destructor != NULL) {
     /* A destructor call causes side effects. */
     has_side_effects = TRUE;
+  } else if (is_dynamic_init_for_vla(dip)) {
+    /* A VLA causes side effects (allocation and deallocation). */
+    has_side_effects = TRUE;
   } else {
     switch (dip->kind) {
       case dik_constant:
@@ -14071,13 +14075,16 @@ lifetime.  If static_lifetime is TRUE, the object in question has static
 storage duration -- it persists till the end of program execution (i.e., till
 final object clean up).  If block_lifetime is TRUE, use the innermost
 olk_block or olk_block_after_label object lifetime (i.e., skip the current
-object lifetime if it is an expr-temporary lifetime).
+object lifetime if it is an expr-temporary lifetime).  This routine
+is also called for variable-length arrays (VLAs), whose deallocation is
+treated as a form of destruction.
 */
 {
   an_object_lifetime_ptr  olp;
 
   db_enter(4, "record_end_of_lifetime_destruction");
-  if (dip->destructor != NULL &&
+  if ((dip->destructor != NULL ||
+       is_dynamic_init_for_vla(dip)) &&
       /* Do not save destructions in prototype instantiations unless we
          are saving the prototype instantiations. */
       (depth_scope_stack == NO_SCOPE_DEPTH ||

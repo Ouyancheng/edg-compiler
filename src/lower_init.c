@@ -1837,6 +1837,61 @@ for the Cfront-like ABI, type size_t for the IA-64 ABI.
 }  /* num_elem_node_from_count */
 
 
+static an_expr_node_ptr num_elem_node_if_array(an_init_pos_descr_ptr ipdp)
+/*
+ipdp gives the position of an entity.  If it is an array, construct an
+expression that gives the number of elements in the array and return
+a pointer to it.  Otherwise, return NULL.  The node has type int
+for the Cfront-like ABI, type size_t for the IA-64 ABI.  For a
+multi-dimensional array, the number of elements is the total across
+all dimensions.
+*/
+{
+  an_expr_node_ptr num_elem_node = NULL;
+
+  if (ipdp->variable != NULL &&
+      ipdp->variable->is_vla &&
+      !ipdp->indirect_through_variable &&
+      (ipdp->modifiers == NULL || ipdp->array_element_sequence)) {
+    /* The entity being destroyed is a variable-length array (VLA). */
+    a_variable_ptr num_elem_var;
+    /* Get the variable that has been set to the number of elements in the
+       VLA.  For multi-dimensional arrays, it gives the total across all
+       bounds. */
+    num_elem_var = ipdp->variable->vla_element_count_variable;
+    num_elem_node = var_rvalue_expr(num_elem_var);
+    num_elem_node = add_cast_if_necessary(num_elem_node,
+                                          integer_type(
+#if IA64_ABI
+                                                       targ_size_t_int_kind
+#else /* !IA64_ABI */
+                                                       (an_integer_kind)ik_int
+#endif /* IA64_ABI */
+                                                      ));
+  } else {
+    /* Not a VLA. */
+    a_boolean        is_array = FALSE;
+    a_targ_ptrdiff_t array_element_count;
+    if (ipdp->array_element_sequence) {
+      /* Destruction of a sequence of array elements. */
+      is_array = TRUE;
+      array_element_count = ipdp->array_element_count;
+    } else {
+      a_type_ptr entity_type = type_from_init_pos_descr(ipdp);
+      if (is_array_type(entity_type)) {
+        /* Destruction of a whole array. */
+        is_array = TRUE;
+        array_element_count = num_array_elements(entity_type);
+      }  /* if */
+    }  /* if */
+    if (is_array) {
+      num_elem_node = num_elem_node_from_count(array_element_count);
+    }  /* if */
+  }  /* if */
+  return num_elem_node;
+}  /* num_elem_node_if_array */
+
+
 static a_type_ptr new_delete_base_type_from_operation_type(a_type_ptr type)
 /*
 type is the type operated on in a new or delete operation.
@@ -2552,25 +2607,26 @@ IA-64 ABI, the routines called are different.
 
 static an_expr_node_ptr make_vec_delete_call(
                                           an_expr_node_ptr entity_node,
-                                          a_targ_ptrdiff_t array_element_count,
+                                          an_expr_node_ptr num_elem_node,
                                           a_routine_ptr    dtor_routine,
                                           a_routine_ptr    delete_routine,
                                           a_boolean        free_storage)
 /*
-Make a call to a runtime routine (__vec_delete or __array_delete)
+Make a call to a runtime routine (__vec_delete or __array_delete
+for the Cfront-like ABI, __cxa_vec_dtor etc. for the IA-64 ABI)
 that will call a destructor for each element of an array and then
 deallocate the array.  entity_node gives the address of the array.
-array_element_count is the number of elements in the array, or -1 for
-a variable-length array.  dtor_routine is the destructor routine to
+num_elem_node is an expression giving the number of elements
+in the array, or NULL for an array allocated with new[] (whose
+size is known to the runtime).  dtor_routine is the destructor routine to
 be called, or NULL if no destructor is to be called.  delete_routine
 is the delete routine to be called, or NULL if the normal delete
 routine should be called.  free_storage is TRUE if the storage for
 the array is to be freed.  A pointer to the expression created is
-returned.  When delete_routine is non-zero, __array_delete is called
-instead of __vec_delete.
+returned.
 */
 {
-  an_expr_node_ptr call_node, arg_expr_list, num_elem_node, size_elem_node;
+  an_expr_node_ptr call_node, arg_expr_list, size_elem_node;
   an_expr_node_ptr dtor_addr_node, delete_addr_node;
 #if !IA64_ABI
   an_expr_node_ptr is_two_arg_node, free_storage_node;
@@ -2578,21 +2634,15 @@ instead of __vec_delete.
   an_expr_node_ptr prefix_size_node;
 #endif /* IA64_ABI */
 
-#if IA64_ABI
-  if (array_element_count != -1) {
-#endif /* IA64_ABI */
-    /* Build a constant node for the number of array elements. */
-    num_elem_node = num_elem_node_from_count(array_element_count);
-#if IA64_ABI
-  } else {
-    num_elem_node = NULL;
-  }  /* if */
-#endif /* IA64_ABI */
   /* Build a constant node for the size of the array elements. */
   size_elem_node = size_elem_node_from_pointer_type(entity_node->type);
   /* Build an expression for the address of the destructor. */
   dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
 #if !IA64_ABI
+  if (num_elem_node == NULL) {
+    /* -1 tells the runtime to use the array size from the "new[]". */
+    num_elem_node = num_elem_node_from_count((a_targ_ptrdiff_t)-1);
+  }  /* if */
   if (delete_routine == NULL) {
     /* The call looks like
          __vec_delete(entity_node, num_elems, size_elem, dtor_routine,
@@ -2634,7 +2684,7 @@ instead of __vec_delete.
 #else /* IA64_ABI */
   arg_expr_list = entity_node;
   entity_node->next = size_elem_node;
-  if (array_element_count != -1) {
+  if (num_elem_node != NULL) {
     size_elem_node->next = dtor_addr_node;
   } else {
     prefix_size_node = get_array_new_padding(
@@ -2645,7 +2695,7 @@ instead of __vec_delete.
     prefix_size_node->next = dtor_addr_node;
   }  /* if */
   if (delete_routine == NULL) {
-    if (array_element_count != -1) {
+    if (num_elem_node != NULL) {
       /* The call looks like
            __cxa_vec_dtor(entity_node, num_elems, size_elem, dtor_routine)
       */
@@ -2668,7 +2718,7 @@ instead of __vec_delete.
   } else {
     delete_addr_node = expr_for_pointer_to_delete(delete_routine);
     dtor_addr_node->next = delete_addr_node;
-    check_assertion(array_element_count == -1 && free_storage);
+    check_assertion(num_elem_node == NULL && free_storage);
     if (is_two_argument_delete(delete_routine)) {
       /* The call looks like
            __cxa_vec_delete3(entity_node, size_elem, padding, dtor_routine,
@@ -2696,28 +2746,29 @@ instead of __vec_delete.
 
 
 static an_expr_node_ptr make_vec_cctor_call(
-                                          an_expr_node_ptr entity_node,
-                                          an_expr_node_ptr source_node,
-                                          a_targ_ptrdiff_t array_element_count,
-                                          a_routine_ptr    cctor_routine,
-                                          a_routine_ptr    dtor_routine)
+                                          an_expr_node_ptr      entity_node,
+                                          an_expr_node_ptr      source_node,
+                                          an_init_pos_descr_ptr ipdp,
+                                          a_routine_ptr         cctor_routine,
+                                          a_routine_ptr         dtor_routine)
 /*
-Make a call to a runtime routine (__vec_cctor) that will call a copy
-constructor for each element of an array.  entity_node gives the address
-of the array.  source_node gives the source for the copy.
-array_element_count is the number of elements in the array.
-cctor_routine is the copy constructor routine to be called.
-dtor_routine is the destructor to be called if an exception is thrown
-during the operation, or NULL if there isn't one.  A pointer to the
-expression created is returned.  For the IA-64 ABI the routine
-called is different.
+Make a call to a runtime routine (__vec_cctor for the Cfront-like ABI,
+__cxa_vec_cctor for the IA-64 ABI) that will call a copy constructor
+for each element of an array.  entity_node gives the address of the
+array.  source_node gives the source for the copy.  ipdp gives more
+information on the destination (in particular, it gives the count of
+array elements).  cctor_routine is the copy constructor routine to be
+called.  dtor_routine is the destructor to be called if an exception
+is thrown during the operation, or NULL if there isn't one.  A pointer
+to the expression created is returned.
 */
 {
   an_expr_node_ptr call_node, arg_expr_list, num_elem_node, size_elem_node;
   an_expr_node_ptr func_addr_node, dtor_addr_node;
 
-  /* Build a constant node for the number of array elements. */
-  num_elem_node = num_elem_node_from_count(array_element_count);
+  /* Build a node for the number of array elements. */
+  num_elem_node = num_elem_node_if_array(ipdp);
+  check_assertion(num_elem_node != NULL);
 #if !IA64_ABI
   /* The num_elems parameter of __vec_cctor has type size_t, which
      is different than most of the similar routines. */
@@ -3514,17 +3565,17 @@ static void add_array_constructor_call(
                                    a_dynamic_init_ptr     dip,
                                    an_expr_node_ptr       entity_node,
                                    an_expr_node_ptr       source_node,
-                                   a_targ_ptrdiff_t       array_element_count,
+                                   an_init_pos_descr_ptr  ipdp,
                                    an_insert_location_ptr insert_location)
 /*
 Generate code that calls a constructor for each element of an array.
 dip indicates the initialization to be performed; entity_node gives the
 address of the array; source_node (if non-NULL) gives the address of
-the source for a copy constructor call; and array_element_count gives the
-number of elements in the array.  Insert the statements at *insert_location
-and update *insert_location.  The additional-arguments list given by
-dip->variant.constructor.args must NOT already be lowered (see comment
-in default_version_of_routine).
+the source for a copy constructor call; and ipdp gives more information
+on the destination (in particular, it gives the count of array elements).
+Insert the statements at *insert_location and update *insert_location.
+The additional-arguments list given by dip->variant.constructor.args
+must NOT already be lowered (see comment in default_version_of_routine).
 */
 {
   a_routine_ptr    ctor_routine, dtor_routine;
@@ -3559,13 +3610,13 @@ in default_version_of_routine).
   if (source_node != NULL) {
     /* Copy constructor case. */
     check_assertion(!dip->variant.constructor.value_initialization);
-    call_node = make_vec_cctor_call(entity_node, source_node,
-                                    array_element_count, ctor_routine,
-                                    dtor_routine);
+    call_node = make_vec_cctor_call(entity_node, source_node, ipdp,
+                                    ctor_routine, dtor_routine);
   } else {
     /* Normal constructor case. */
-    /* Build a constant node for the number of array elements. */
-    num_elem_node = num_elem_node_from_count(array_element_count);
+    /* Build a node for the number of array elements. */
+    num_elem_node = num_elem_node_if_array(ipdp);
+    check_assertion(num_elem_node != NULL);
     call_node = make_vec_new_call(entity_node, entity_node->type,
                                   num_elem_node,
                                   ctor_routine,
@@ -3607,26 +3658,16 @@ routine takes separate dtor_routine and ipdp parameters instead of a
 dynamic init pointer because of the make_destruction_routine case.
 */
 {
-  an_expr_node_ptr entity_node, call_node;
+  an_expr_node_ptr entity_node, call_node, num_elem_node;
   an_expr_node_ptr implied_arg_list;
   a_type_ptr       this_param_type;
-  a_type_ptr       entity_type = type_from_init_pos_descr(ipdp);
-  a_boolean        is_array = FALSE;
-  a_targ_ptrdiff_t array_element_count;
 
   /* Make an expression for the object to be destroyed. */
   entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
                                       /*using_as_dest=*/FALSE);
-  /* See if the entity is an array or a sequence of elements of an array. */
-  if (ipdp->array_element_sequence) {
-    /* Destruction of a sequence of array elements. */
-    is_array = TRUE;
-    array_element_count = ipdp->array_element_count;
-  } else if (is_array_type(entity_type)) {
-    /* Destruction of whole array. */
-    is_array = TRUE;
-    array_element_count = num_array_elements(entity_type);
-  }  /* if */
+  /* If the object is an array, make an expression node for the number
+     of elements, or NULL if the object is not an array. */
+  num_elem_node = num_elem_node_if_array(ipdp);
 #if IA64_ABI
   if (dtor_routine != NULL) {
     dtor_routine = alternate_entry_point(dtor_routine, 
@@ -3637,14 +3678,14 @@ dynamic init pointer because of the make_destruction_routine case.
   }  /* if */
 #endif /* !IA64_ABI */
   /* Generate code for the destructor call. */
-  if (is_array) {
+  if (num_elem_node != NULL) {
 #if !IA64_ABI
     /* default_version_of_routine is not called on purpose; __vec_delete
        knows about the implicit argument for destructors and generates
        it automatically. */
 #endif /* !IA64_ABI */
     /* Generate the __vec_delete call. */
-    call_node = make_vec_delete_call(entity_node, array_element_count,
+    call_node = make_vec_delete_call(entity_node, num_elem_node,
                                      dtor_routine, (a_routine *)NULL,
                                      /*free_storage=*/FALSE);
     /* Make a statement containing the call and insert it at the right
@@ -3720,14 +3761,18 @@ Generate code for the destruction of the indicated dynamic initialization.
 The code is inserted at *insert_location and *insert_location is updated.
 This routine is used for automatically-generated destructions at ends
 of/exits from lifetimes, which means it is not used for static variables
-and not for constructor_init entries in destructors.
+and not for constructor_init entries in destructors.  This routine is
+also called for variable-length arrays (VLAs) whether or not their
+elements require destruction; the code generated deallocates the array.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
   an_insert_location              insert_location2;
   an_insert_location_ptr          effective_insert_loc;
+  a_boolean                       is_vla = is_dynamic_init_for_vla(dip);
 
   check_assertion(dedp != NULL);
+  check_assertion(dip->destructor != NULL || is_vla);
   /* Set the cleanup state to what it should be after the destruction,
      because as soon as we start the destruction it's the destructor's
      job to deal with partial destruction. */
@@ -3766,11 +3811,23 @@ and not for constructor_init entries in destructors.
     }  /* if */
   }  /* if */
 #endif /* DO_UNORDERED_EH_PROCESSING */
-  add_destructor_call(dip->destructor,
-                      &dedp->init_pos_descr,
-                      /*have_complete_object=*/TRUE,
-                      (an_expr_node_ptr)NULL,
-                      effective_insert_loc);
+  if (dip->destructor != NULL) {
+    add_destructor_call(dip->destructor,
+                        &dedp->init_pos_descr,
+                        /*have_complete_object=*/TRUE,
+                        (an_expr_node_ptr)NULL,
+                        effective_insert_loc);
+  }  /* if */
+  if (is_vla) {
+    /* Generate code to deallocate a variable-length array. */
+    an_expr_node_ptr dealloc_expr =
+                           alloc_expr_node((an_expr_node_kind)enk_vla_dealloc);
+    dealloc_expr->type = void_type();
+    check_assertion(dip->variable != NULL);
+    dealloc_expr->variant.vla_variable = dip->variable;
+    lower_vla_dealloc(dealloc_expr);
+    (void)insert_expr_statement(dealloc_expr, effective_insert_loc);
+  }  /* if */
 }  /* gen_one_destruction */
 
 
@@ -6254,8 +6311,7 @@ do_assignment:;
         /* Construct a sequence of array elements. */
         /* Note that dip->variant.constructor.args has not been lowered,
            which is what the subroutine requires. */
-        add_array_constructor_call(dip, entity_node, source_node,
-                                   ipdp->array_element_count,
+        add_array_constructor_call(dip, entity_node, source_node, ipdp,
                                    eff_insert_location);
       } else {
         /* Construct a simple entity (not an array). */
@@ -6418,6 +6474,13 @@ do_assignment:;
       free_destructible_entity_descr(dip->destructible_entity_descr);
       dip->destructible_entity_descr = NULL;
     }  /* if */
+  } else if (variable != NULL && variable->is_vla) {
+    /* A variable-length array requires deallocation at the end of its
+       scope (treated as a kind of destruction).  Cases like arrays of
+       int or arrays of POD class type come here. */
+    add_dyn_init_cleanup(dip, ipdp,
+                         /*set_cond_flag_if_any=*/FALSE,
+                         eff_context, eff_insert_location);
   }  /* if */
   /* If the dynamic init defines a lifetime that surrounds the initialization,
      pop the context for that lifetime. */
@@ -7147,8 +7210,8 @@ i.e., arrays with class elements.
     dtor_routine = NULL;
   }  /* if */
   vec_delete_node = make_vec_delete_call(ptr_node,
-                                         /*array_element_count=*/
-                                                          (a_targ_ptrdiff_t)-1,
+                                         /*num_elem_node=*/
+                                                        (an_expr_node_ptr)NULL,
                                          dtor_routine,
                                          delete_routine,
                                          /*free_storage=*/TRUE);
@@ -8083,6 +8146,10 @@ Generate code for a stmk_init (dynamic initialization) statement.
     non_C_case = TRUE;
   } else if (var_is_return_value_variable(var)) {
     /* Initialization of the return value variable is a C++ case. */
+    non_C_case = TRUE;
+  } else if (var->is_vla) {
+    /* Variable-length arrays (VLAs) require deallocation (treated as a
+       kind of destruction). */
     non_C_case = TRUE;
   }  /* if */
   switch (dip->kind) {
