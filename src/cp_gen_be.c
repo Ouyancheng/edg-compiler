@@ -2573,7 +2573,7 @@ operands to be parenthesized at that level.
          are typically skipped in the generated output and thus won't
          cause the operand to be parenthesized.  Everything else
          presumably will, so we don't need to scan any further.  (In
-         some casess, conversions to lvalue and rvalue are not marked as
+         some cases, conversions to lvalue and rvalue are not marked as
          compiler-generated, so they must be skipped explicitly.) */
       tblock->terminate = TRUE;
     }  /* if */
