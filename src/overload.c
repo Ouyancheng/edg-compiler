@@ -7017,7 +7017,6 @@ next parameter.
     /* Do not insert code here. */
     {
       if (ellipsis_next) {
-        arg_block->fmt_arg = arg_block->arg_ctr;
         arg_is_fmt_string = TRUE;
       }  /* if */
     }  /* if */
