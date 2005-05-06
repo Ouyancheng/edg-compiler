@@ -1111,6 +1111,29 @@ Write a temporary name generated from the given IL pointer.
 }  /* dump_temp_name */
 
 
+static void dump_bare_name(a_source_correspondence *scp)
+/*
+Print the name of an entity.  This is used when the simple name
+used in the source correspondence is used with no added prefixes.
+If the token was named using a Microsoft __identifier operator, that
+is reconstructed here.
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Check for identifiers named with the Microsoft __identifier operator. */
+  if (scp->microsoft_identifier_used) {
+    write_tok_str("__identifier(");
+    write_tok_str(scp->name);
+    write_tok_str(")");
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    m_write_tok_str(scp->name);
+  }
+}  /* dump_bare_name */
+
+
 static void dump_name(a_source_correspondence *scp)
 /*
 Print the name of an entity.  scp is the source correspondence.  If the
@@ -1139,6 +1162,14 @@ entity is unnamed, generate a name.
   } else if (scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
              scp->name_linkage == (a_name_linkage_kind)nlk_external) {
     /* Externally or internally-linked name. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Check for identifiers named with the Microsoft __identifier
+       operator. */
+    if (scp->microsoft_identifier_used) {
+      dump_bare_name(scp);
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
     /* Avoid problems with C reserved identifiers (and other identifiers
        likely to mean something to the underlying C compiler). */
     if (is_C_reserved_word(name)) {
@@ -1156,7 +1187,7 @@ entity is unnamed, generate a name.
     /* No prefix on members of classes or things that aren't local to
        functions (e.g., file-scope typedefs).  Also no prefix if the
        name has been mangled already. */
-    m_write_tok_str(name);
+    dump_bare_name(scp);
   } else {
     /* Name has no linkage; add the declaration position as a prefix to
        the original name, e.g., "i" becomes "__16_12_i". */

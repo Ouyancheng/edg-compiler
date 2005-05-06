@@ -3865,6 +3865,9 @@ are tied to a particular source occurrence.
   sc->parent.class_type     = NULL;
   sc->parent.namespace_ptr  = NULL;
   sc->access                = (an_access_specifier)as_public;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sc->microsoft_identifier_used = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sc->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -4479,6 +4482,10 @@ value.  Several fields are cleared or adjusted.
          correspondence is part of the value.  It was cleared by
          break_source_corresp, so restore it. */
       ucp->source_corresp.name = cp->source_corresp.name;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      ucp->source_corresp.microsoft_identifier_used =
+                                  cp->source_corresp.microsoft_identifier_used;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       ucp->source_corresp.is_class_member = cp->source_corresp.is_class_member;
       ucp->source_corresp.member_of_unknown_base =
                                      cp->source_corresp.member_of_unknown_base;

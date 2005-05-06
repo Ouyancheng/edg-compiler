@@ -7373,6 +7373,61 @@ the cache.
   }  /* if */
 }  /* scan_microsoft_if_exists */
 
+
+static void scan_microsoft_identifier_operator(void)
+/*
+Scan a Microsoft __identifier operator.  The syntax of such an operator is
+
+  __identifier(keyword-token)
+
+The keyword-token is normally a C++ keyword, but can also be an normal
+identifier.  The result of scanning this operator is an identifier token
+where the identifier name is the character sequence of the keyword-token.
+If the operator does not contain a valid identifier, the current token
+is set to tok_error.
+*/
+{
+  a_symbol_locator	locator;
+  a_boolean		err = FALSE;
+
+  /* Bypass the operator token. */
+  (void)get_token();
+  /* Scan the "(". */
+  if (curr_token == tok_lparen) {
+    /* Get the keyword-token. */
+    suppress_keyword_recognition = TRUE;
+    (void)get_token();
+    suppress_keyword_recognition = FALSE;
+    /* Save the symbol locator so that it can be restored after the closing
+       parenthesis is scanned. */
+    locator = locator_for_curr_id;
+  } else {
+    error(ec_exp_lparen);
+  }  /* if */
+  add_stop_token(tok_rparen);
+  if (curr_token == tok_identifier) {
+    /* Bypass the identifier. */
+    (void)get_token();
+  } else {
+    error(ec_exp_identifier);
+    err = TRUE;
+  }  /* if */
+  /* Scan the ")". */
+  (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+  remove_stop_token(tok_rparen);
+  /* If a valid identifier was found, return that as the current token;
+     otherwise return tok_error. */
+  if (err) {
+    curr_token = tok_error;
+  } else {
+    locator_for_curr_id = locator;
+    curr_token = tok_identifier;
+    check_assertion(locator_for_curr_id.symbol_header != NULL);
+    locator_for_curr_id.symbol_header->microsoft_identifier_used = TRUE;
+  }  /* if */
+}  /* scan_microsoft_identifier_operator */
+
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
@@ -8308,7 +8363,7 @@ id_scan:
                 goto end_id_scan;
               } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                if (microsoft_mode){
+                if (microsoft_mode) {
                   if (ctoken == tok_microsoft_asm && !scanning_microsoft_asm) {
                     /* Build a string representation of a Microsoft asm
                        and attach it to the current token. */
@@ -8317,13 +8372,19 @@ id_scan:
                              (ctoken == tok_if_exists ||
                               ctoken == tok_if_not_exists)) {
                     /* A Microsoft __if_exists or __if_not_exists directive.
-                       upon return from this routine the current token will
+                       Upon return from this routine the current token will
 		       be either the first token of the conditional text
 		       or then token following the closing brace of the
 		       directive. */
                     scan_microsoft_if_exists(ctoken);
                     ctoken = curr_token;
                     goto return_from_token_scan;
+                  } else if (ctoken == tok_microsoft_identifier) {
+                    /* A Microsoft __identifier operator.  Upon return from
+                       this routine the current token will be an identifier
+		       token for the name found within the parentheses. */
+                    scan_microsoft_identifier_operator();
+                    ctoken = curr_token;
                   }  /* if */
                 }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13660,9 +13721,22 @@ of characters added.
 #endif /* CHECKING */
   } else if (token == tok_identifier) {
     /* An identifier. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    a_boolean	microsoft_identifier_used;
+    microsoft_identifier_used = ctp->variant.locator.symbol_header->
+                                                     microsoft_identifier_used;
+    if (microsoft_identifier_used) {
+      put_str_to_temp_text_buffer("__identifier(");
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     check_assertion(!ctp->variant.locator.has_been_coalesced);
     put_str_to_temp_text_buffer(ctp->variant.locator.symbol_header->
                                                                identifier);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_identifier_used) {
+      put_str_to_temp_text_buffer(")");
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (token == tok_restrict) {
 #if !SUPPRESS_RESTRICT_IN_GENERATED_CODE
     char *restrict_kw = "restrict";

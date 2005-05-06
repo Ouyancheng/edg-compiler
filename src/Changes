@@ -1,5 +1,12 @@
 Version 3.6
 
+5/6/05   Microsoft compatibility: __identifier operator
+
+In Microsoft mode, the __identifier operator may be used to allow a C++
+keyword to be used as an identifier.
+
+  int __identifier(int) = 1;
+
 5/5/05   Microsoft compatibility: Spurious error on imported function template
 
 In Microsoft mode, the front end previously issued a spurious error when

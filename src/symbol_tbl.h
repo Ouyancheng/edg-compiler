@@ -2852,6 +2852,12 @@ typedef struct a_symbol_header {
 			   non-class-member declaration that can be referred
 			   to with a qualified name). */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	microsoft_identifier_used:1;
+			/* TRUE if the identifier was named using a Microsoft
+			   __identifier operator.  This flag is set if any
+			   reference to the identifier used __identifier. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_symbol_header;
 
 
@@ -3668,6 +3674,11 @@ extern a_symbol_ptr find_progenitor_symbol(
                       a_boolean                *ambiguous,
                       a_boolean                *any_using_decl,
                       a_boolean                *unambiguous_injected_template);
+
+extern void set_source_corresp_name(a_source_correspondence	*sc,
+				    a_symbol_header_ptr		sym_header);
+
+extern void clear_source_corresp_name(a_source_correspondence	*sc);
 
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);

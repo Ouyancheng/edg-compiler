@@ -2045,7 +2045,7 @@ diagnostic.
   tp = alloc_template();
   tp->kind = (a_template_kind)templk_class;
   tp->source_corresp.assoc_info = (char*)sym;
-  tp->source_corresp.name = sym->header->identifier;
+  set_source_corresp_name(&tp->source_corresp, sym->header);
   tp->source_corresp.decl_position = locator_for_curr_id.source_position;
   tp->source_corresp.name_linkage =
                                   (a_name_linkage_kind)nlk_cplusplus_external;
@@ -2821,7 +2821,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
       /* Although the symbol header has a name of sorts, it should not appear
          in the type, so NULL it out after the call to set_source_corresp. */
       set_source_corresp(&(class_type->source_corresp), tag_sym);
-      class_type->source_corresp.name = NULL;
+      clear_source_corresp_name(&class_type->source_corresp);
       class_type->variant.class_struct_union.originally_unnamed = TRUE;
     }  /* if */
     if (C_dialect == C_dialect_cplusplus) {
@@ -3544,7 +3544,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
       tag_sym = make_unnamed_tag_symbol((a_symbol_kind)sk_enum_tag,
                                         &pos_curr_token);
       set_source_corresp(&(enum_type->source_corresp), tag_sym);
-      enum_type->source_corresp.name = NULL;
+      clear_source_corresp_name(&enum_type->source_corresp);
       tag_sym->variant.enumeration.type = enum_type;
       /* set_source_corresp and mark_defined are not called, so clear the
          reference flag and copy in the decl position manually. */

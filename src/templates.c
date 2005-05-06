@@ -12449,7 +12449,7 @@ parameter entry for the parameter.
     /* Reset the name in the source correspondence entry.  An unnamed
        type is represented by NULL, not "<unnamed>" as indicated by the
        symbol header. */
-    template_param_type->source_corresp.name = NULL;
+    clear_source_corresp_name(&template_param_type->source_corresp);
   }  /* if */
   /* The type symbol for the template parameter points for now to the
      template-param type -- "for now", since it will be replaced with
@@ -12554,7 +12554,7 @@ parameter depends on a template parameter.
     /* Reset the name in the source correspondence entry.  An unnamed
        type is represented by NULL, not "<unnamed>" as indicated by the
        symbol header. */
-    param_con->source_corresp.name = NULL;
+    clear_source_corresp_name(&param_con->source_corresp);
   }  /* if */
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
@@ -12744,7 +12744,7 @@ depends on a another template parameter.
     /* Reset the name in the source correspondence entry.  An unnamed
        parameter is represented by NULL, not "<unnamed>" as indicated
        by the symbol header. */
-    templ_ptr->source_corresp.name = NULL;
+    clear_source_corresp_name(&templ_ptr->source_corresp);
   }  /* if */
   /* The templates associated with template parameters and nonreal classes
      have a template_info pointer that points back to the front end

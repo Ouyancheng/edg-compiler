@@ -590,6 +590,9 @@ Display the indicated source correspondence entry.
   if (scp->has_associated_attribute) {
     disp_boolean("  has_associated_attribute", TRUE);
   }  /* if */
+  if (scp->microsoft_identifier_used) {
+    disp_boolean("  microsoft_identifier_used", TRUE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEED_NAME_MANGLING
   /* Do not print out name_has_been_mangled,

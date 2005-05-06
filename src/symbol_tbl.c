@@ -1299,6 +1299,35 @@ Display a template parameter list, for debugging purposes.
 
 #endif /* DEBUG */
 
+void set_source_corresp_name(a_source_correspondence	*sc,
+			     a_symbol_header_ptr	sym_header)
+/*
+Set the name information in the source correspondence entry based on the
+information in sym_header.
+*/
+{
+  /* Note that the identifier name was allocated in the intermediate language
+     memory area (see find_symbol); it can therefore be used without
+     copying. */
+  sc->name = sym_header->identifier;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sc->microsoft_identifier_used = sym_header->microsoft_identifier_used;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* set_source_corresp_name */
+
+
+void clear_source_corresp_name(a_source_correspondence	*sc)
+/*
+Clear the name information in the source correspondence entry.
+*/
+{
+  sc->name = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sc->microsoft_identifier_used = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* clear_source_corresp_name */
+
+
 void set_source_corresp(a_source_correspondence *sc,
                         a_symbol_ptr            sp)
 /*
@@ -1312,10 +1341,8 @@ scope for the symbol must still be active.
   if (sp->header == unnamed_tag_symbol_header) {
     /* Let the name pointer in the IL entry remain NULL. */
   } else {
-    /* Note that the identifier name was allocated in the intermediate language
-       memory area (see find_symbol); it can therefore be used without
-       copying. */
-    sc->name = sp->header->identifier;
+    /* Set the name based on the information in the symbol header. */
+    set_source_corresp_name(sc, sp->header);
   }  /* if */
   if (sc->decl_position.seq != 0) {
     /* The decl-position is already set, so this must be a resetting of
@@ -1636,6 +1663,9 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->any_tag_decl = FALSE;
   ptr->any_decl_in_file_or_namespace_scope = FALSE;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ptr->microsoft_identifier_used = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
 
   return ptr;

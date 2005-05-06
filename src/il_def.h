@@ -1347,6 +1347,9 @@ typedef struct a_source_correspondence {
 			   prototype instantiation.  This flag is TRUE for
 			   entities created to represent members of an
 			   unknown super class. */
+  a_bit_field	microsoft_identifier_used:1;
+			/* TRUE if the name was specified using a
+			   Microsoft __identifier operator. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	marked_as_gnu_extension:1;

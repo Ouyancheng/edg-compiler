@@ -8365,7 +8365,7 @@ NULL.
 #if GNU_EXTENSIONS_ALLOWED
           linkage_name = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-          tp->source_corresp.name = locator->symbol_header->identifier;
+          set_source_corresp_name(&tp->source_corresp, locator->symbol_header);
           if (!is_class_or_enum && !any_cfront_mode()) {
             tp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
           }  /* if */

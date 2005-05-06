@@ -4106,6 +4106,7 @@ in il_alloc_init.)
   def_source_corresp.member_of_unknown_base = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   def_source_corresp.member_of_unknown_super = FALSE;
+  def_source_corresp.microsoft_identifier_used = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
   def_source_corresp.marked_as_gnu_extension = FALSE;

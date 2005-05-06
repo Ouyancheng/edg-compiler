@@ -1806,7 +1806,18 @@ a name.  Never generate a qualified name.
        name. */
     gen_conversion_function_name((a_routine_ptr)scp);
   } else {
-    m_write_tok_str(name);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Check for identifiers named with the Microsoft __identifier operator. */
+    if (scp->microsoft_identifier_used) {
+      write_tok_str("__identifier(");
+      write_tok_str(name);
+      write_tok_str(")");
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      m_write_tok_str(name);
+    }
   }  /* if */
 }  /* gen_bare_name */
 
