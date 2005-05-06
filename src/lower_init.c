@@ -1072,12 +1072,15 @@ cannot be a bitfield selection.
 static an_expr_node_ptr modify_init_entity_node(
                                         an_expr_node_ptr         entity_node,
                                         an_init_pos_modifier_ptr modifiers,
-                                        a_boolean                using_as_dest)
+                                        a_boolean                using_as_dest,
+                                        a_boolean                is_vla)
 /*
 Add the address modifiers from the list given by "modifiers" (from an
 init position description) to the entity address expression "entity_node"
 and return a pointer to the modified expression tree.  If using_as_dest is
 TRUE, the entity is the destination of an initialization operation.
+If is_vla is TRUE, this is the first modifier on a base variable that
+is a variable-length array.
 */
 {
   an_expr_node_ptr elem_num_node;
@@ -1088,7 +1091,7 @@ TRUE, the entity is the destination of an initialization operation.
        qualifier (recall that the modifiers are in order from the innermost
        to the outermost). */
     entity_node = modify_init_entity_node(entity_node, modifiers->next,
-                                          using_as_dest);
+                                          using_as_dest, /*is_vla=*/FALSE);
     /* Add the final modifier. */
     if (modifiers->curr_field != NULL) {
       /* Add a field selection.  ("au_" for possibly from anonymous union.) */
@@ -1105,8 +1108,13 @@ TRUE, the entity is the destination of an initialization operation.
     } else {
       /* Add an array element selection. */
       /* Do the pointer decay from array to pointer to element. */
-      a_type_ptr elem_type = array_element_type(type_pointed_to(
-                                                           entity_node->type));
+      a_type_ptr elem_type = type_pointed_to(entity_node->type);
+      if (is_vla) {
+        /* When VLAs are lowered, the array variable was turned into a
+           pointer so no decay is needed. */
+      } else {
+        elem_type = array_element_type(elem_type);
+      }  /* if */
       entity_node = add_cast(entity_node, make_pointer_type(elem_type));
       if (using_as_dest) {
         /* The entity will be used as the destination of an initialization, so
@@ -1140,6 +1148,7 @@ TRUE, the entity is the destination of an initialization operation.
 */
 {
   an_expr_node_ptr entity_node;
+  a_variable_ptr   var = ipdp->variable;
 
   /* Make a node for the base address. */
 #if !DO_FULL_PORTABLE_EH_LOWERING
@@ -1154,15 +1163,25 @@ TRUE, the entity is the destination of an initialization operation.
   /* Do not insert code here; this is the else of the above if. */
   if (ipdp->indirect_through_variable) {
     /* Indirect through the variable. */
-    check_assertion(ipdp->variable != NULL);
-    entity_node = var_rvalue_expr(ipdp->variable);
+    check_assertion(var != NULL);
+    entity_node = var_rvalue_expr(var);
   } else {
     /* Normal case, a simple variable. */
-    check_assertion(ipdp->variable != NULL);
-    entity_node = var_lvalue_expr(ipdp->variable);
-    /* If we will be using this expression as an address, set the address-taken
-       flag in the variable. */
-    if (using_as_address) set_variable_address_taken(ipdp->variable);
+    check_assertion(var != NULL);
+    entity_node = var_lvalue_expr(var);
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+    /* When VLAs are lowered, the array variable becomes a pointer to the
+       allocated space. */
+    if (var->is_vla) {
+      lower_vla_address(entity_node);
+    } else
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+    /* Do not insert code here. */
+    {
+      /* If we will be using this expression as an address, set the
+         address-taken flag in the variable. */
+      if (using_as_address) set_variable_address_taken(var);
+    }  /* if */
   }  /* if */
   if (using_as_dest) {
     /* The entity will be used as the destination of an initialization, so
@@ -1180,7 +1199,8 @@ TRUE, the entity is the destination of an initialization operation.
   } else {
     /* Normal case. */
     entity_node = modify_init_entity_node(entity_node, ipdp->modifiers,
-                                          using_as_dest);
+                                          using_as_dest,
+                                          (var != NULL && var->is_vla));
   }  /* if */
   return entity_node;
 }  /* make_init_entity_node */
