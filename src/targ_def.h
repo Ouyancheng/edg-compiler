@@ -3214,7 +3214,7 @@ Flag that is TRUE if, when C mode VLA support is enabled, the front end should
 generate enk_vla_dealloc expression nodes to mark the points at which variable
 length arrays go out of scope and may be deallocated.  It is used to set global
 variable vla_deallocations_in_il.  If the front end is only used in C++ mode,
-the flag should be set to FALSE to eliminate the unused code altogether.
+the flag can be set to FALSE to eliminate the unused code altogether.
 */
 #ifndef VLA_DEALLOCATIONS_IN_IL
 #if VLA_ALLOWED && !BACK_END_IS_CP_GEN_BE
