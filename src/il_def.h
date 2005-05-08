@@ -5424,12 +5424,12 @@ typedef struct a_type {
 			/* TRUE if this array is a "variable length array",
 			   one whose dimension is computed at run time.  This
 			   field may be TRUE in the IL passed to the back end.
-			   C mode only. */
+			   Only used in modes that allow VLAs. */
       a_bit_field
 		has_assoc_vla_dimension:1;
 			/* TRUE if the variable length array has an associated
 			   vla_dimension entry.  FALSE for cases like [*].
-			   (C mode only, and only when is_vla is TRUE.)  */
+			   (Only set when is_vla is TRUE.)  */
       a_bit_field
 		bound_is_zero:1;
 			/* TRUE if this array actually has a zero bound.
@@ -10945,9 +10945,9 @@ typedef struct a_scope {
   a_vla_dimension_ptr
 		vla_dimensions;
 			/* List of dimension expressions for VLAs declared
-			   within a given function -- sck_function scopes in
-			   C mode only; NULL otherwise.  The order of entries
-			   on the list is not significant. */
+			   within a given function -- sck_function scopes;
+			   The order of entries on the list is not
+			   significant. */
 #endif /* ifdef CIL */
   a_pragma_ptr	pragmas;
 			/* A linked list of pragma entries.  They may be
