@@ -3447,6 +3447,7 @@ Do C99 lowering for all entities in and under the given scope.
   a_scope_ptr                      block_scope;
   a_local_static_variable_init_ptr lsvip;
   a_context                        context;
+  a_scope_ptr                      saved_innermost_function_scope;
 
   if (scope->kind == (a_scope_kind)sck_function) {
     /* Visit all VLA dimension expressions for parameters before pushing the
@@ -3467,16 +3468,13 @@ Do C99 lowering for all entities in and under the given scope.
       break;
     case sck_function:
       /* Lower all parameters. */
-      {  a_scope_ptr  saved_innermost_function_scope =
-                                                     innermost_function_scope;
-        innermost_function_scope = scope;
-        for (variable = scope->variant.routine.parameters;
-             variable != NULL;
-             variable = variable->next) {
-          lower_c99_variable(variable);
-        }  /* for */
-        innermost_function_scope = saved_innermost_function_scope;
-      }  /* if */
+      saved_innermost_function_scope = innermost_function_scope;
+      innermost_function_scope = scope;
+      for (variable = scope->variant.routine.parameters;
+           variable != NULL;
+           variable = variable->next) {
+        lower_c99_variable(variable);
+      }  /* for */
       break;
     default:
       unexpected_condition_str("lower_c99_scope: bad scope kind");
@@ -3533,6 +3531,7 @@ Do C99 lowering for all entities in and under the given scope.
       set_up_routine_for_inlining(scope);
     }  /* if */
 #endif /* MINIMAL_INLINING */
+    innermost_function_scope = saved_innermost_function_scope;
   } else if (scope->kind == (a_scope_kind)sck_file) {
 #if LOWER_VARIABLE_LENGTH_ARRAYS
     if (vla_enabled) {
