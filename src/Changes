@@ -1,5 +1,32 @@
 Version 3.6
 
+5/9/05   Microsoft compatibility: abort when microsoft_version is <= 1200
+
+In Microsoft bugs mode, the Microsoft compiler will sometimes find a
+class template that should be hidden by a class member.   A problem
+with the way in which this emulation was done could cause an abort (in
+check_for_microsoft_hidden_template_bug) when microsoft_version is <= 1200.
+Now fixed.
+
+  typedef struct A { int  m; } A;
+  template <class T1> struct B {
+    static void f() { new T1; }
+  };
+  template <class T1> struct C {
+    static void f() { T1::f(); }
+  };
+  template <class T> struct D {
+    virtual int foo(A *pA) { if (pA->m < 0 ) return 0; return 1;}
+  };
+  struct E : public D<int> { typedef C< B< E> > C; };
+  namespace N1 {
+    namespace N2 { class m {}; }
+  }
+  namespace N1 { using namespace N2; }
+  int main() {
+    E::C::f();
+  } 
+
 5/9/05   Variable-length arrays in C++ mode
 
 Variable-length arrays (VLAs) are now permitted in C++ mode in some

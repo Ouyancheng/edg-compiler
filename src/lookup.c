@@ -2597,7 +2597,8 @@ the Microsoft 7.0 compiler:
        which could legally be followed by a template argument list. */
     result_sym = scope_stack_lookup(locator, lookup_state, start_depth,
                                     end_depth);
-    if (!is_class_template_symbol(result_sym)) result_sym = orig_sym;
+    if (result_sym == NULL ||
+        !is_class_template_symbol(result_sym)) result_sym = orig_sym;
   }  /* if */
   return result_sym;
 }  /* check_for_microsoft_hidden_template_bug */
