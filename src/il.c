@@ -8582,7 +8582,6 @@ Copy the type entry "from" to "to".
                                      &vdp->position);
         decl_scope_level = saved_decl_scope_level;
         new_vdp->original_dimension = vdp;
-        check_assertion(C_mode());
       }  /* if */
     }  /* if */
     if (is_incomplete_type(tp) && is_immediate_class_type(tp)) {
