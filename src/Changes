@@ -1,5 +1,22 @@
 Version 3.6
 
+5/9/05   Variable-length arrays in C++ mode
+
+Variable-length arrays (VLAs) are now permitted in C++ mode in some
+cases.  They are enabled in GNU C++ mode, and the --vla option can
+be used to enable them in other modes.
+
+IL lowering and the runtime have been updated to handle C++ VLAs,
+including construction/destruction/deallocation of VLAs of class
+types and proper cleanup on exception unwinding.  In C++ mode,
+VLA cleanup is handled through the object lifetime mechanism used
+to schedule destructor calls.  In C mode, it remains handled by
+insertion of VLA-deallocation code by the front end proper (there
+are no object lifetime entries in C).
+
+See the Changes entry of 4/29/05 for information on an IL change
+made to support this feature.
+
 5/6/05   Microsoft compatibility: __identifier operator
 
 In Microsoft mode, the __identifier operator may be used to allow a C++
