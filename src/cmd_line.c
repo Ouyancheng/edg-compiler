@@ -2732,6 +2732,12 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
       nonclass_prototype_instantiations = TRUE;
     }  /* if */
   }  /* if */
+#if VLA_ALLOWED
+  if (!(option_kind_used[(int)optk_vla])) {
+    /* Support for VLAs is turned on by default in g++ mode. */
+    vla_enabled = TRUE;
+  }  /* if */
+#endif /* VLA_ALLOWED */
   /* Even though g++ version 3.4 is more standard conforming with respect to
      name lookup in templates, many of the idiosyncrasies of earlier g++
      versions are still present in g++ 3.4.  Some of the tests of
