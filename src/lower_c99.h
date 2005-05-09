@@ -23,8 +23,9 @@ lower_c99.h -- Declarations related to lower_c99.c.
 
 extern void lower_runtime_sizeof(an_expr_node_ptr expr);
 
-extern void lower_vla_dimensions_in_scope(a_scope_ptr  scope,
-                                          a_boolean    prototype_scope);
+extern void lower_vla_dimension_expressions_in_scope(
+                                                a_scope_ptr  scope,
+                                                a_boolean    prototype_scope);
 
 #if LOWER_VARIABLE_LENGTH_ARRAYS
 #define or_vla_lowering_needed() || vla_enabled

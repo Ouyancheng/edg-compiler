@@ -138,64 +138,6 @@ types.
   return result;
 }  /* make_prototyped_runtime_call */
  
-
-static void lower_vla_dimension(a_vla_dimension_ptr vdp)
-/*
-Lower the expression in a VLA dimension entry.
-*/
-{
-  an_expr_node_ptr  expr = vdp->dimension_expr;
-
-  if (expr != NULL) {
-    if (C_mode()) {
-#if DO_C99_IL_LOWERING
-      lower_c99_full_expr(expr);
-#endif /* DO_C99_IL_LOWERING */
-    } else {
-#if DO_IL_LOWERING
-      lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
-#endif /* DO_IL_LOWERING */
-    }  /* if */
-#if MINIMAL_INLINING
-    /* Catch constant nonpositive sizes introduced by inlining. */
-    if (is_constant_node(expr)) {
-      a_constant_ptr con = expr->variant.constant;
-      if (con->kind == (a_constant_repr_kind)ck_integer &&
-          sign_of_integer_constant(con) <= 0) {
-        pos_error(ec_array_size_must_be_positive, &vdp->position);
-      }  /* if */
-    }  /* if */
-#endif /* MINIMAL_INLINING */
-  }  /* if */
-}  /* lower_vla_dimension */
-
-
-void lower_vla_dimensions_in_scope(a_scope_ptr  scope,
-                                   a_boolean    prototype_scope)
-/*
-Lower the a_vla_dimension entries for the given function scope.  This routine
-is called twice for each function scope: Once with prototype_scope set to TRUE
-for the entries associated with the function's prototype scope (before the
-function's context is pushed), and once with prototype_scope set to FALSE for
-the other entries (after the context is pushed).
-*/
-{
-  a_vla_dimension_ptr  vla_dim = scope->vla_dimensions;
-  a_scope_ptr          saved_innermost_function_scope =
-                                                     innermost_function_scope;
-
-  if (prototype_scope) {
-    /* Temporarily indicate that we're not inside a function. */
-    innermost_function_scope = NULL;
-  }  /* if */
-  for (; vla_dim != NULL; vla_dim = vla_dim->next) {
-    if (prototype_scope == vla_dim->in_prototype_scope) {
-      lower_vla_dimension(vla_dim);
-    }  /* if */
-  }  /* for */
-  innermost_function_scope = saved_innermost_function_scope;
-}  /* lower_vla_dimensions_in_scope */
-
 #endif /* LOWER_COMPLEX || LOWER_VARIABLE_LENGTH_ARRAYS */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
 
@@ -3349,6 +3291,65 @@ Do C99 lowering on the indicated routine (the header, not the body).
 }  /* lower_c99_routine */
 
 
+static void lower_vla_dimension_expression(a_vla_dimension_ptr vdp)
+/*
+Lower the expression in a VLA dimension entry.
+*/
+{
+  an_expr_node_ptr  expr = vdp->dimension_expr;
+
+  if (expr != NULL) {
+    if (C_mode()) {
+#if DO_C99_IL_LOWERING
+      lower_c99_full_expr(expr);
+#endif /* DO_C99_IL_LOWERING */
+    } else {
+#if DO_IL_LOWERING
+      lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
+#endif /* DO_IL_LOWERING */
+    }  /* if */
+#if MINIMAL_INLINING
+    /* Catch constant nonpositive sizes introduced by inlining. */
+    if (is_constant_node(expr)) {
+      a_constant_ptr con = expr->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_integer &&
+          sign_of_integer_constant(con) <= 0) {
+        pos_error(ec_array_size_must_be_positive, &vdp->position);
+      }  /* if */
+    }  /* if */
+#endif /* MINIMAL_INLINING */
+  }  /* if */
+}  /* lower_vla_dimension_expression */
+
+
+void lower_vla_dimension_expressions_in_scope(a_scope_ptr  scope,
+                                              a_boolean    prototype_scope)
+/*
+Lower the dimension expressions in a_vla_dimension entries for the given
+function scope.  This routine is called twice for each function scope: Once
+with prototype_scope set to TRUE for the entries associated with the
+function's prototype scope (before the function's context is pushed), and
+once with prototype_scope set to FALSE for the other entries (after the
+context is pushed).
+*/
+{
+  a_vla_dimension_ptr  vla_dim = scope->vla_dimensions;
+  a_scope_ptr          saved_innermost_function_scope =
+                                                     innermost_function_scope;
+
+  if (prototype_scope) {
+    /* Temporarily indicate that we're not inside a function. */
+    innermost_function_scope = NULL;
+  }  /* if */
+  for (; vla_dim != NULL; vla_dim = vla_dim->next) {
+    if (prototype_scope == vla_dim->in_prototype_scope) {
+      lower_vla_dimension_expression(vla_dim);
+    }  /* if */
+  }  /* for */
+  innermost_function_scope = saved_innermost_function_scope;
+}  /* lower_vla_dimension_expressions_in_scope */
+
+
 static void lower_c99_scope(a_scope_ptr scope)
 /*
 Do C99 lowering for all entities in and under the given scope.
@@ -3366,7 +3367,7 @@ Do C99 lowering for all entities in and under the given scope.
        function scope.  This matters when there are compound literals in
        the dimension expression. */
     /* Entries not in prototype scopes are handled further below. */
-    lower_vla_dimensions_in_scope(scope, /*prototype_scope=*/TRUE);
+    lower_vla_dimension_expressions_in_scope(scope, /*prototype_scope=*/TRUE);
   }  /* if */
   push_context(&context, scope, (an_object_lifetime_ptr)NULL);
   /* Mark the scope as lowered.  This is used by
@@ -3433,7 +3434,7 @@ Do C99 lowering for all entities in and under the given scope.
        scope.  This must happen after the statements have been lowered to
        ensure that any needed VLA dimension variables have been created. */
     /* Entries from prototype scopes are handled above. */
-    lower_vla_dimensions_in_scope(scope, /*prototype_scope=*/FALSE);
+    lower_vla_dimension_expressions_in_scope(scope, /*prototype_scope=*/FALSE);
     insert_temp_init_statements(scope->assoc_block);
 #if MINIMAL_INLINING
     if (inlining_enabled && scope->variant.routine.ptr->is_inline) {

@@ -15844,7 +15844,8 @@ Do IL lowering of the indicated scope and everything under it.
          function scope.  This matters when there are compound literals in
          the dimension expression. */
       /* Entries not in prototype scopes are handled further below. */
-      lower_vla_dimensions_in_scope(scope, /*prototype_scope=*/TRUE);
+      lower_vla_dimension_expressions_in_scope(scope,
+                                               /*prototype_scope=*/TRUE);
     }  /* if */
     push_context(&context, scope, (an_object_lifetime_ptr)NULL);
   }  /* if */
@@ -16057,7 +16058,7 @@ Do IL lowering of the indicated scope and everything under it.
        scope.  This must happen after the statements have been lowered to
        ensure that any needed VLA dimension variables have been created. */
     /* Entries from prototype scopes are handled above. */
-    lower_vla_dimensions_in_scope(scope, /*prototype_scope=*/FALSE);
+    lower_vla_dimension_expressions_in_scope(scope, /*prototype_scope=*/FALSE);
     /* Add prologue code for exceptions. */
     if (exceptions_enabled
 #if ASM_FUNCTION_ALLOWED
