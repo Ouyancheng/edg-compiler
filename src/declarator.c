@@ -1623,8 +1623,13 @@ if this is the function declarator in a friend function declaration.
             /* At the top level this is a typedef declaration. */
             di_flags |= DI_IS_TYPEDEF_DECLARATION;
           }  /* if */
-          if (vla_enabled) {
-            /* Permit a variable length array declaration. */
+          if (vla_enabled && C_mode()) {
+            /* Permit a variable length array declaration in C modes that
+               alloc VLAs (e.g., C99 mode).  While we can accept VLAs in some
+               C++ modes, we cannot accept them in parameters: It causes
+               problems wrt. name mangling, for example.  This restriction is
+               also imposed by GNU C++ compilers (the other known C++ compiler
+               accepting VLAs). */
             di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
           }  /* if */
           declarator(di_flags, &do_flags, param_type_ptr,
