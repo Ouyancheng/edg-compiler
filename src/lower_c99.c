@@ -465,15 +465,14 @@ associated with the same type is turned into a no-op.
     /* There is no associated variable yet: Compute all the necessary
        dimension quantities for the associated VLA type. */
     stmt->expr = lower_vla_dimensions(vla_dim->type);
+    /* The result of the expression is not used. */
+    set_expr_result_not_used(stmt->expr);
   } else {
     /* Since there already is an associated variable, work for this entry was
        presumably done with a preceding stmk_set_vla_size entry.  Turn this
        statement into a no-op. */
-    stmt->expr = node_for_host_large_integer((a_host_large_integer)0,
-                                             (an_integer_kind)ik_int);
+    turn_statement_into_noop(stmt);
   }  /* if */
-  /* The result of the expression is not used. */
-  set_expr_result_not_used(stmt->expr);
 }  /* lower_set_vla_size */
 
 
@@ -530,8 +529,8 @@ static an_expr_node_ptr make_vla_allocation_expr(a_variable_ptr  vla_var)
 /*
 Create an expression that calls the run-time support library to allocate
 storage for the given VLA variable.  In C++ mode, also record a variable
-indicating the number of elements in the VLA (in support of exception
-handling routines).
+indicating the number of elements in the VLA (needed by other parts of C++
+VLA lowering).
 */
 {
   an_expr_node_ptr  result = var_lvalue_expr(vla_var), size_expr;
@@ -539,11 +538,11 @@ handling routines).
 
   if (C_mode()) {
     size_expr = vla_size_expr(vla_var->type, /*byte_count=*/TRUE);
+#if DO_IL_LOWERING
   } else {
-    /* In C++ mode, the run-time support for exception handling expects to
-       have a variable to contain the element count.  So we create and record
-       that variable here (if necessary), and derive a size expression from
-       it. */
+    /* In C++ mode, other aspects of VLA lowering expect to find the element
+       count in a variable.  So we create and record that variable here (if
+       necessary), and derive a size expression from it. */
     a_type_ptr        array_type = skip_typerefs(vla_var->type), element_type;
     a_targ_size_t     element_size;
     an_expr_node_ptr  count_init = NULL;
@@ -581,6 +580,7 @@ handling routines).
     if (count_init != NULL) {
       size_expr = make_comma_node(count_init, size_expr);
     }  /* if */
+#endif /* DO_IL_LOWERING */
   }  /* if */
   size_expr = add_cast_if_necessary(size_expr, ptrdiff_type);
   result = add_lowered_cast_if_necessary(result, void_star_type());
@@ -845,6 +845,92 @@ done:;
   }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_runtime_sizeof */
+
+#if DO_IL_LOWERING && !LOWER_VARIABLE_LENGTH_ARRAYS
+
+void create_element_count_variable_for_vla(a_statement_ptr  stmt)
+/*
+stmt is a stmk_vla_decl statement.  Create a variable holding the total
+number of elements in the associated VLA variable (if any).  Also create
+any IL necessary to initialize this new variable.  This routine is only
+used by configurations that do not lower VLAs (when VLAs are lowered, an
+extended version of this work is done by make_vla_allocation_expr and
+lower_vla_dimensions).
+*/
+{
+  check_assertion(stmt->kind == stmk_vla_decl);
+  if (!stmt->variant.vla.is_typedef_decl &&
+      stmt->variant.vla.variant.variable->is_vla) {
+    /* There is indeed an associated variable. */
+    a_type_ptr        ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
+    a_variable_ptr    var = stmt->variant.vla.variant.variable;
+    a_type_ptr        type = skip_typerefs(var->type);
+    an_expr_node_ptr  count = NULL, count_init;
+    a_targ_size_t     constant_factor = 1;
+    a_statement_ptr   new_stmt;
+    /* Create the temporary and record it. */
+    var->vla_element_count_variable = make_lowered_temporary(ptrdiff_type);
+    /* Multiply all the dimensions of a possibly multi-dimensional array.
+       The variable-length dimensions are represented by the "count" expression
+       and the constant dimensions are accumulated in "constant_factor". */
+    do {
+      if (type->variant.array.is_vla) {
+        /* A variable-length dimension. */
+        a_vla_dimension_ptr  dim = find_vla_dimension(type);
+        an_expr_node_ptr     dim_expr;
+        check_assertion(dim != NULL);
+        dim_expr = make_reusable_copy(dim->dimension_expr,
+                                      /*vars_can_change=*/TRUE);
+        dim_expr = add_cast_if_necessary(dim_expr, ptrdiff_type);
+        if (count == NULL) {
+          count = dim_expr;
+        } else {
+          count->next = dim_expr;
+          count = make_operator_node((an_expr_operator_kind)eok_imultiply,
+                                     ptrdiff_type, count);
+        }  /* if */
+      } else {
+        /* A constant dimension. */
+        constant_factor *= type->variant.array.variant.number_of_elements;
+      }  /* if */
+      type = skip_typerefs(type->variant.array.element_type);
+    } while (type->kind == (a_type_kind)tk_array);
+    check_assertion(count != NULL);
+    if (constant_factor != 1) {
+      /* This was a multi-dimensional array with a nontrivial constant
+         dimension. */
+      count->next = node_for_host_large_integer(
+                                        (a_host_large_integer)constant_factor,
+                                        targ_ptrdiff_t_int_kind);
+      count = make_operator_node((an_expr_operator_kind)eok_imultiply,
+                                 ptrdiff_type, count);
+    }  /* if */
+    /* Assign the total number of elements to the variable we created. */
+    count_init = var_lvalue_expr(var->vla_element_count_variable);
+    count_init->next = count;
+    count_init = make_operator_node((an_expr_operator_kind)eok_iassign,
+                                    ptrdiff_type, count_init);
+    /* Create an expression statement to actually perform the computation.
+       Insert it before the stmk_vla_decl statement.  We cannot use 
+       turn_statement_into_block on stmk_vla_decl statements because that
+       would change the lifetime of the associated VLA.  However, since this
+       is only called for C++ IL, we know the stmk_vla_decl must be part of
+       a block already (declarations cannot appear as the only dependent
+       statement of an "if" statement, for example).  We also count on this
+       being called only from lower_statement_list (via lower_statement),
+       which has code necessary to avoid lowering a statement twice. */
+    check_assertion(!C_mode());
+    new_stmt = alloc_statement((a_statement_kind)stmk_vla_decl);
+    copy_statement(stmt, new_stmt);
+    new_stmt->next = stmt->next;
+    stmt->next = new_stmt;
+    stmt->kind = (a_statement_kind)stmk_expr;
+    stmt->expr = count_init;
+    set_expr_result_not_used(stmt->expr);
+  }  /* if */
+}  /* create_element_count_variable_for_vla */
+
+#endif /* DO_IL_LOWERING  && !LOWER_VARIABLE_LENGTH_ARRAYS */
 
 #endif /* DO_IL_LOWERING || DO_C99_IL_LOWERING */
 #if DO_C99_IL_LOWERING

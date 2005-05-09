@@ -12414,7 +12414,8 @@ there are no statements on the list.
     /* Save the "next" pointer now, so that any statements inserted by lowering
        will not be lowered (in particular, lowering of stmk_init statements
        inserts statements, and the expressions therein should not be lowered
-       again). */
+       again; when not lowering VLAs, new statements are also inserted before
+       stmk_vla_decl statements). */
     statement_next = statement->next;
     eff_statement = statement;
     set_position_from_stmt_source_position(code_pos_for_lowering,
@@ -14137,6 +14138,8 @@ Do IL lowering of the indicated statement and everything under it.
       case stmk_vla_decl:
 #if LOWER_VARIABLE_LENGTH_ARRAYS
         lower_vla_decl(statement);
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+        create_element_count_variable_for_vla(statement);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
       default:

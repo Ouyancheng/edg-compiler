@@ -6574,8 +6574,7 @@ interleaved with the variables.
   for (var_ptr = scope->nonstatic_variables;
        var_ptr != NULL;
        var_ptr = var_ptr->next) {
-    if (il_header.source_language != sl_Cplusplus &&
-        var_ptr->has_variably_modified_type) {
+    if (var_ptr->has_variably_modified_type) {
       /* The variable has a variably modified type.  Do not put it out
          now; it will be put out where the corresponding stmk_vla_decl
          statement appears. */

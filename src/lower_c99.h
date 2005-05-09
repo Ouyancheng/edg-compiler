@@ -52,7 +52,13 @@ extern void lower_vla_address(an_expr_node_ptr  expr);
 
 extern void lower_vla_dealloc(an_expr_node_ptr  expr);
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+
 #define or_vla_lowering_needed() /* Nothing */
+
+#if DO_IL_LOWERING
+void create_element_count_variable_for_vla(a_statement_ptr  stmt);
+#endif /* DO_IL_LOWERING */
+
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 
 #endif /* DO_IL_LOWERING || DO_C99_IL_LOWERING */
