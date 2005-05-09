@@ -11405,9 +11405,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             }  /* if */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
             if (vla_enabled && !type->visited_for_vla_lowering &&
-                !(type->kind == (a_type_kind)tk_typeref &&
-                  typeref_is_typedef(type)) &&
-                is_variably_modified_type(type)) {
+                !type_is_typedef(type) && is_variably_modified_type(type)) {
               /* If the cast introduces a VLA type, we need to compute its
                  dimension variables.  Note that compiler-generated casts may
                  cast to variably modified types that have already been
