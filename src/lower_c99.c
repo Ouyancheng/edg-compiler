@@ -69,7 +69,6 @@ static void lower_c99_fixed_point_operation(an_expr_node_ptr expr);
     lower_any_cpp_expr(expr, is_lvalue);                                    \
   }  /* if */
 
-#if LOWER_COMPLEX || LOWER_VARIABLE_LENGTH_ARRAYS
 
 static an_expr_node_ptr make_prototyped_runtime_call_full(
                                                char             *name,
@@ -118,13 +117,12 @@ argument).
 }  /* make_prototyped_runtime_call_full */
 
 
-static an_expr_node_ptr make_prototyped_runtime_call(
-                                               char             *name,
-                                               a_routine_ptr    *routine,
-                                               a_type_ptr       return_type,
-                                               a_type_ptr       param1_type,
-                                               a_type_ptr       param2_type,
-                                               an_expr_node_ptr arg_expr_list)
+an_expr_node_ptr make_prototyped_runtime_call(char             *name,
+                                              a_routine_ptr    *routine,
+                                              a_type_ptr       return_type,
+                                              a_type_ptr       param1_type,
+                                              a_type_ptr       param2_type,
+                                              an_expr_node_ptr arg_expr_list)
 /*
 Version of make_prototyped_runtime_call that handles one or two parameter
 types.
@@ -138,7 +136,65 @@ types.
   return result;
 }  /* make_prototyped_runtime_call */
  
-#endif /* LOWER_COMPLEX || LOWER_VARIABLE_LENGTH_ARRAYS */
+
+static void lower_vla_dimension_expression(a_vla_dimension_ptr vdp)
+/*
+Lower the expression in a VLA dimension entry.
+*/
+{
+  an_expr_node_ptr  expr = vdp->dimension_expr;
+
+  if (expr != NULL) {
+    if (C_mode()) {
+#if DO_C99_IL_LOWERING
+      lower_c99_full_expr(expr);
+#endif /* DO_C99_IL_LOWERING */
+    } else {
+#if DO_IL_LOWERING
+      lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
+#endif /* DO_IL_LOWERING */
+    }  /* if */
+#if MINIMAL_INLINING
+    /* Catch constant nonpositive sizes introduced by inlining. */
+    if (is_constant_node(expr)) {
+      a_constant_ptr con = expr->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_integer &&
+          sign_of_integer_constant(con) <= 0) {
+        pos_error(ec_array_size_must_be_positive, &vdp->position);
+      }  /* if */
+    }  /* if */
+#endif /* MINIMAL_INLINING */
+  }  /* if */
+}  /* lower_vla_dimension_expression */
+
+
+void lower_vla_dimension_expressions_in_scope(a_scope_ptr  scope,
+                                              a_boolean    prototype_scope)
+/*
+Lower the dimension expressions in a_vla_dimension entries for the given
+function scope.  This routine is called twice for each function scope: Once
+with prototype_scope set to TRUE for the entries associated with the
+function's prototype scope (before the function's context is pushed), and
+once with prototype_scope set to FALSE for the other entries (after the
+context is pushed).
+*/
+{
+  a_vla_dimension_ptr  vla_dim = scope->vla_dimensions;
+  a_scope_ptr          saved_innermost_function_scope =
+                                                     innermost_function_scope;
+
+  if (prototype_scope) {
+    /* Temporarily indicate that we're not inside a function. */
+    innermost_function_scope = NULL;
+  }  /* if */
+  for (; vla_dim != NULL; vla_dim = vla_dim->next) {
+    if (prototype_scope == vla_dim->in_prototype_scope) {
+      lower_vla_dimension_expression(vla_dim);
+    }  /* if */
+  }  /* for */
+  innermost_function_scope = saved_innermost_function_scope;
+}  /* lower_vla_dimension_expressions_in_scope */
+
 #if LOWER_VARIABLE_LENGTH_ARRAYS
 
 static a_type_list_entry_ptr
@@ -261,11 +317,10 @@ The given type must be a typeref representing a typedef.  Record any variably-
 modified component types that may need to be lowered later on.
 */
 {
-  check_assertion(type->kind == (a_type_kind)tk_typeref &&
-                  typeref_is_typedef(type));
+  check_assertion(type_is_typedef(type));
   record_vla_component_types_for_lowering(type->variant.typeref.type);
   if (type->variant.typeref.has_variably_modified_type) {
-    /* The "has_variably_modified_type" flag will need to be cleared when the
+    /* The "has_variably_modified_type" flag will be cleared when the
        underlying type is lowered. */
     record_vla_type_for_lowering(type);
   }  /* if */
@@ -769,7 +824,7 @@ variable is lowered to a pointer, the variable itself should be used; not its
 address.
 */
 {
-    an_expr_node_ptr  new_expr = add_indirection_to_node(expr);
+  an_expr_node_ptr  new_expr = add_indirection_to_node(expr);
 
   /* For the enk_variable_address case, add_indirection_to_node should
      not create a wholly new entry. */
@@ -825,7 +880,7 @@ expression.
   }  /* if */
   byte_count = vla_size_expr(vla_type, /*byte_count=*/TRUE);
   byte_count = add_cast_if_necessary(byte_count,
-                                     integer_type(targ_ptrdiff_t_int_kind));
+                                     integer_type(targ_size_t_int_kind));
   if (precomputation != NULL) {
     byte_count = make_comma_node(precomputation, byte_count);
   }  /* if */
@@ -2072,8 +2127,7 @@ Transform the given cast expression into a function call (compatible with C89).
     check_assertion(expr->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_cast);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-    if (vla_enabled && !tp->visited_for_vla_lowering &&
-        !(tp->kind == (a_type_kind)tk_typeref && typeref_is_typedef(tp)) &&
+    if (vla_enabled && !tp->visited_for_vla_lowering && !type_is_typedef(tp) &&
         is_variably_modified_type(tp)) {
       /* If the cast introduces a VLA type, we need to compute its dimension
          variables. Note that compiler-generated casts may cast to variably
@@ -2580,12 +2634,18 @@ _Bool type, and VLA types.
     case eok_ppost_incr:
     case eok_ppost_decr:
       if (vla_enabled && is_vla_type(type_pointed_to(expr->type))) {
+        /* Arithmetic on pointers to VLAs depends on the run-time sizes of
+           those VLAs.  Since the VLAs are lowered, the pointer arithmetic
+           must be transformed to explicitly include the run-time sizes. */
         lower_vla_pointer_integer_arithmetic(expr);
       }  /* if */
       break;
     case eok_pdiff:
       if (vla_enabled && is_vla_type(type_pointed_to(
                                    expr->variant.operation.operands->type))) {
+        /* Arithmetic on pointers to VLAs depends on the run-time sizes of
+           those VLAs.  Since the VLAs are lowered, the pointer arithmetic
+           must be transformed to explicitly include the run-time sizes. */
         lower_vla_pointer_difference(expr);
       }  /* if */
       break;
@@ -3355,8 +3415,7 @@ on the scope types list.
   }  /* if */
 #endif /* REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-  if (vla_enabled &&
-      type->kind == (a_type_kind)tk_typeref && typeref_is_typedef(type)) {
+  if (vla_enabled && type_is_typedef(type)) {
     prepare_to_lower_variably_modified_typedef(type);
   }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
@@ -3375,65 +3434,6 @@ Do C99 lowering on the indicated routine (the header, not the body).
   }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_routine */
-
-
-static void lower_vla_dimension_expression(a_vla_dimension_ptr vdp)
-/*
-Lower the expression in a VLA dimension entry.
-*/
-{
-  an_expr_node_ptr  expr = vdp->dimension_expr;
-
-  if (expr != NULL) {
-    if (C_mode()) {
-#if DO_C99_IL_LOWERING
-      lower_c99_full_expr(expr);
-#endif /* DO_C99_IL_LOWERING */
-    } else {
-#if DO_IL_LOWERING
-      lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
-#endif /* DO_IL_LOWERING */
-    }  /* if */
-#if MINIMAL_INLINING
-    /* Catch constant nonpositive sizes introduced by inlining. */
-    if (is_constant_node(expr)) {
-      a_constant_ptr con = expr->variant.constant;
-      if (con->kind == (a_constant_repr_kind)ck_integer &&
-          sign_of_integer_constant(con) <= 0) {
-        pos_error(ec_array_size_must_be_positive, &vdp->position);
-      }  /* if */
-    }  /* if */
-#endif /* MINIMAL_INLINING */
-  }  /* if */
-}  /* lower_vla_dimension_expression */
-
-
-void lower_vla_dimension_expressions_in_scope(a_scope_ptr  scope,
-                                              a_boolean    prototype_scope)
-/*
-Lower the dimension expressions in a_vla_dimension entries for the given
-function scope.  This routine is called twice for each function scope: Once
-with prototype_scope set to TRUE for the entries associated with the
-function's prototype scope (before the function's context is pushed), and
-once with prototype_scope set to FALSE for the other entries (after the
-context is pushed).
-*/
-{
-  a_vla_dimension_ptr  vla_dim = scope->vla_dimensions;
-  a_scope_ptr          saved_innermost_function_scope =
-                                                     innermost_function_scope;
-
-  if (prototype_scope) {
-    /* Temporarily indicate that we're not inside a function. */
-    innermost_function_scope = NULL;
-  }  /* if */
-  for (; vla_dim != NULL; vla_dim = vla_dim->next) {
-    if (prototype_scope == vla_dim->in_prototype_scope) {
-      lower_vla_dimension_expression(vla_dim);
-    }  /* if */
-  }  /* for */
-  innermost_function_scope = saved_innermost_function_scope;
-}  /* lower_vla_dimension_expressions_in_scope */
 
 
 static void lower_c99_scope(a_scope_ptr scope)
@@ -3466,13 +3466,17 @@ Do C99 lowering for all entities in and under the given scope.
       /* Nothing to lower. */
       break;
     case sck_function:
-      innermost_function_scope = scope;
       /* Lower all parameters. */
-      for (variable = scope->variant.routine.parameters;
-           variable != NULL;
-           variable = variable->next) {
-        lower_c99_variable(variable);
-      }  /* for */
+      {  a_scope_ptr  saved_innermost_function_scope =
+                                                     innermost_function_scope;
+        innermost_function_scope = scope;
+        for (variable = scope->variant.routine.parameters;
+             variable != NULL;
+             variable = variable->next) {
+          lower_c99_variable(variable);
+        }  /* for */
+        innermost_function_scope = saved_innermost_function_scope;
+      }  /* if */
       break;
     default:
       unexpected_condition_str("lower_c99_scope: bad scope kind");
@@ -3932,7 +3936,7 @@ initialized for each compilation.
 */
 {
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-  /* The code to lower C99 VLAs assumes that the deallocation points have been
+  /* The code to lower C VLAs assumes that the deallocation points have been
      marked using enk_vla_dealloc expression nodes. */
   check_assertion(vla_deallocations_in_il || !C_mode());
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */

@@ -7813,7 +7813,6 @@ block of the temporary will be entered at the top.
 void lower_temp_init(an_expr_node_ptr expr)
 /*
 Do IL lowering of an enk_temp_init expression node.
-// FIXME: see lower_c99_temp_init
 */
 {
   a_dynamic_init_ptr dip;
@@ -7846,9 +7845,9 @@ Do IL lowering of an enk_temp_init expression node.
 #if LOWER_VARIABLE_LENGTH_ARRAYS
     an_expr_node_ptr   vla_inits = NULL;
     if (variably_modified && !type_is_typedef(temp_type)) {
-/*FIXME: C++ never introduces a type in temp inits?*/
       /* If the temporary introduces a VLA type, we need to compute its
-         dimension variables (this is similar to cast operations). */
+         dimension variables (this can happen as the result of compound
+         literals, which may be accepted in GNU C++ mode). */
       vla_inits = lower_vla_dimensions(temp_type);
       record_vla_component_types_for_lowering(temp_type);
     }  /* if */

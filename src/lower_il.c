@@ -7589,6 +7589,7 @@ Do IL lowering of the indicated type and everything under it.
       case tk_typeref:
 #if LOWER_VARIABLE_LENGTH_ARRAYS
         if (vla_enabled && typeref_is_typedef(type)) {
+          /* Collect any VLA types that will need to be lowered later on. */
           prepare_to_lower_variably_modified_typedef(type);
         }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
@@ -7758,6 +7759,9 @@ Do IL lowering of the indicated variable and everything under it.
     lower_source_correspondence(&variable->source_corresp);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
     if (variable->has_variably_modified_type) {
+      /* Collect any VLA types that will need to be lowered later on.  After
+         lowering of those types, the variable will no longer have a variably-
+         modified type. */
       variable->has_variably_modified_type = FALSE;
       record_vla_component_types_for_lowering(variable->type);
     }  /* if */
@@ -7958,6 +7962,7 @@ not include the function scope memory region, if any.
     lower_source_correspondence(&routine->source_corresp);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
     if (vla_enabled) {
+      /* Collect any VLA types that will need to be lowered later on. */
       record_vla_component_types_for_lowering(routine->type);
     }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
@@ -11228,7 +11233,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
 #if LOWER_VARIABLE_LENGTH_ARRAYS
       if (expr->variant.variable->is_vla) {
         /* VLAs are lowered to pointers (to automatically managed storage).
-           The pointer value should be used; not its address. */
+           The pointer value should be used, not its address. */
         lower_vla_address(expr);
       }  /* if */
       /*FALLTHROUGH*/
@@ -11404,7 +11409,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                   typeref_is_typedef(type)) &&
                 is_variably_modified_type(type)) {
               /* If the cast introduces a VLA type, we need to compute its
-                 dimension variables. Note that compiler-generated casts may
+                 dimension variables.  Note that compiler-generated casts may
                  cast to variably modified types that have already been
                  visited. */
               lower_vla_cast(expr);
@@ -11434,6 +11439,10 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           case eok_pdiff:
             if (vla_enabled && is_vla_type(type_pointed_to(
                                    expr->variant.operation.operands->type))) {
+              /* Arithmetic on pointers to VLAs depends on the run-time sizes
+                 of those VLAs.  Since the VLAs are lowered, the pointer
+                 arithmetic must be transformed to explicitly include the
+                 run-time sizes. */
               lower_vla_pointer_difference(expr);
             }  /* if */
             break;
@@ -11449,6 +11458,10 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           case eok_ppost_incr:
           case eok_ppost_decr:
             if (vla_enabled && is_vla_type(type_pointed_to(expr->type))) {
+              /* Arithmetic on pointers to VLAs depends on the run-time sizes
+                 of those VLAs.  Since the VLAs are lowered, the pointer
+                 arithmetic must be transformed to explicitly include the
+                 run-time sizes. */
               lower_vla_pointer_integer_arithmetic(expr);
             }  /* if */
             if (op != (an_expr_operator_kind)eok_padd_assign) {
@@ -11717,6 +11730,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   }  /* switch */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
   if (vla_enabled && !expr->type->visited_for_vla_lowering) {
+    /* Collect all VLA types in a list so they can be lowered later on. */
     record_vla_component_types_for_lowering(expr->type);
   }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
@@ -14132,13 +14146,23 @@ Do IL lowering of the indicated statement and everything under it.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       case stmk_set_vla_size:
 #if LOWER_VARIABLE_LENGTH_ARRAYS
+        /* A statement that marks the point at which a VLA bound should be
+           computed. */
         lower_set_vla_size(statement);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
       case stmk_vla_decl:
 #if LOWER_VARIABLE_LENGTH_ARRAYS
+        /* A variably-modified typedef or variable.  If it is a VLA variable,
+           we must allocate memory for it. */
         lower_vla_decl(statement);
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+        /* The stmk_vla_decl statement must remain in the IL, but an element
+           count variable is expected by other aspect of C++ lowering.  The
+           call to create_element_count_variable_for_vla may cause the
+           insertion of a new statement into which *statement will be copied
+           (and *statement itself is then replaced by the initialization of
+           that the count variable). */
         create_element_count_variable_for_vla(statement);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
@@ -16108,6 +16132,8 @@ Do IL lowering of the indicated scope and everything under it.
   if (scope_kind == (a_scope_kind)sck_file) {
 #if LOWER_VARIABLE_LENGTH_ARRAYS
     if (vla_enabled) {
+      /* We cannot now safely lower all the VLA types that have been collected
+         while lowering this translation unit. */
       lower_vla_types();
     }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
