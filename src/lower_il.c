@@ -16128,13 +16128,6 @@ Do IL lowering of the indicated scope and everything under it.
     unlink_pointless_local_static_variable_inits(scope);
   }  /* if */
   if (scope_kind == (a_scope_kind)sck_file) {
-#if LOWER_VARIABLE_LENGTH_ARRAYS
-    if (vla_enabled) {
-      /* We cannot now safely lower all the VLA types that have been collected
-         while lowering this translation unit. */
-      lower_vla_types();
-    }  /* if */
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
   } else {
     pop_context();
   }  /* if */
@@ -16585,6 +16578,13 @@ C++ to C, so that a C back end can handle it without change.
         mark_inlined_routines_as_unreferenced();
       }  /* if */
 #endif /* MINIMAL_INLINING */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+      if (vla_enabled) {
+        /* We can now safely lower all the VLA types that have been collected
+           while lowering this translation unit. */
+        lower_vla_types();
+      }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     }  /* if */
     /* Do any processing on classes that has to wait until the very end. */
     do_class_lowering_wrapup(scope);
