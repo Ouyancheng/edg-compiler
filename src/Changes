@@ -1,5 +1,18 @@
 Version 3.6
 
+5/10/05  Abort on GNU min/max operator with template-dependent constant
+         operands
+
+The front end aborted in conv_lvalue_expr_to_rvalue in lower_expr.c
+while processing a use of the GNU min or max operators ("<?" or ">?")
+operating on template-dependent constant operands.  Now fixed.
+
+  template <class T> struct A {
+    static const int i = T::a;
+    static const int j = T::b;
+    static const int k = i <? j;  // Formerly provoked an abort
+  }
+
 5/9/05   Microsoft compatibility: abort when microsoft_version is <= 1200
 
 In Microsoft bugs mode, the Microsoft compiler will sometimes find a
