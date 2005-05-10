@@ -11,7 +11,7 @@ operating on template-dependent constant operands.  Now fixed.
     static const int i = T::a;
     static const int j = T::b;
     static const int k = i <? j;  // Formerly provoked an abort
-  }
+  };
 
 5/9/05   Microsoft compatibility: abort when microsoft_version is <= 1200
 

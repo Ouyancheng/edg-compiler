@@ -2220,6 +2220,21 @@ symbol is a function, an rvalue otherwise.
 }  /* make_sym_for_member_operand */
 
 
+static void make_template_param_expr_constant(an_expr_node_ptr node,
+                                              a_constant       *con)
+/*
+Create a template parameter constant that represents the indicated
+expression.
+*/
+{
+  clear_constant(con, (a_constant_repr_kind)ck_template_param);
+  set_template_param_constant_kind(con,
+                              (a_template_param_constant_kind)tpck_expression);
+  con->variant.template_param.variant.expr = node;
+  con->type = node->type;
+}  /* make_template_param_expr_constant */
+
+
 void make_template_param_expr_constant_operand(an_expr_node_ptr node,
                                                an_operand       *result)
 /*
@@ -2231,11 +2246,7 @@ operand in *result.
   a_constant con;
 
   /* Build the ck_template_param constant. */
-  clear_constant(&con, (a_constant_repr_kind)ck_template_param);
-  set_template_param_constant_kind(&con,
-                              (a_template_param_constant_kind)tpck_expression);
-  con.variant.template_param.variant.expr = node;
-  con.type = node->type;
+  make_template_param_expr_constant(node, &con);
   /* Make the operand. */
   make_constant_operand(&con, result);
 }  /* make_template_param_expr_constant_operand */
@@ -9263,7 +9274,9 @@ non-NULL return *con_value == NULL.
 */
 {
   a_constant_ptr con_expr_value = NULL;
+  a_constant     result_con;
   a_boolean      optimized_case = FALSE;
+  a_boolean      template_constant = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range saved_expr_range;
   a_source_position
@@ -9364,19 +9377,25 @@ non-NULL return *con_value == NULL.
           *constant_case = constant_case2 && constant_case3;
           if (is_constant_node(op1) && is_constant_node(op2)) {
             /* Both operands are now constant so fold to a constant result. */
-            a_boolean did_not_fold, template_constant;
-            con_expr_value = alloc_constant(op1->variant.constant->kind);
+            a_boolean did_not_fold;
             binary_operation(op,
                              op1->variant.constant,
                              op2->variant.constant,
                              op1->type,
-                             con_expr_value,
+                             &result_con,
                              curr_expr_kind_is_const(),
                              curr_expr_is_evaluated(),
                              &did_not_fold,
                              &template_constant,
                              &error_position);
-            check_assertion(!did_not_fold);
+            if (template_constant) {
+              /* One or both of the operands is template-dependent.  The
+                 constant produced will be a ck_template_param pointing to
+                 the expression (see below). */
+            } else {
+              check_assertion(!did_not_fold);
+              con_expr_value = alloc_shareable_constant(&result_con);
+            }  /* if */
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         } else {
@@ -9407,15 +9426,6 @@ non-NULL return *con_value == NULL.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-    if (con_value != NULL) {
-      /* The caller wants the constant instead of an expression node for
-         the constant. */
-      *con_value = con_expr_value;
-      node = NULL;
-    } else {
-      /* The caller wants an expression node for the constant. */
-      node = alloc_node_for_constant(con_expr_value);
-    }  /* if */
   } else if (optimized_case) {
     /* For the optimized cases, set the node type to the type pointed to. */
     if (is_template_param_type(node->type)) {
@@ -9433,6 +9443,33 @@ non-NULL return *con_value == NULL.
     /* Not an optimized case.  Just add an indirection.  This also drops
        the type qualifiers as appropriate. */
     node = add_indirection_to_node(node);
+  }  /* if */
+  if (template_constant) {
+    /* The result is a template-dependent constant.  We have a correct
+       expression tree now, so put it under a ck_template_param constant
+       and return that. */
+    check_assertion(node != NULL && con_expr_value == NULL);
+    make_template_param_expr_constant(node, &result_con);
+    if (con_value == NULL) {
+      /* The caller wants an expression node returned, so let the allocation
+         be done by alloc_node_for_constant (below). */
+      con_expr_value = &result_con;
+    } else {
+      /* The caller wants the constant address returned, so allocate it. */
+      con_expr_value = alloc_shareable_constant(&result_con);
+    }  /* if */
+  }  /* if */
+  if (con_expr_value != NULL) {
+    /* Determine how to return the constant value to the caller. */
+    if (con_value != NULL) {
+      /* The caller wants the constant instead of an expression node for
+         the constant. */
+      *con_value = con_expr_value;
+      node = NULL;
+    } else {
+      /* The caller wants an expression node for the constant. */
+      node = alloc_node_for_constant(con_expr_value);
+    }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (node != NULL) {
