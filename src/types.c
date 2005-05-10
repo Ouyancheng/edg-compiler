@@ -6866,6 +6866,9 @@ care about.
   if (type_ptr->source_corresp.is_local_to_function) {
     check_assertion(type_ptr->kind != (a_type_kind)tk_typeref);
     *force_end_of_traversal = is_local = TRUE;
+  } else if (vla_enabled && is_array(type_ptr) && array_is_vla(type_ptr)) {
+    /* VLA types are considered to be local types. */
+    *force_end_of_traversal = is_local = TRUE;
   }  /* if */
   return is_local;
 }  /* ttt_is_local_type */
@@ -6943,6 +6946,9 @@ they are in name mangling; it is the underlying type, not the typedef name
   }  /* if */
   if (type_ptr->source_corresp.is_local_to_function) {
     check_assertion(type_ptr->kind != (a_type_kind)tk_typeref);
+    is_local_type = *force_end_of_traversal = result = TRUE;
+  } else if (vla_enabled && is_array(type_ptr) && array_is_vla(type_ptr)) {
+    /* VLA types are considered to be local types. */
     is_local_type = *force_end_of_traversal = result = TRUE;
   }  /* if */
   return result;
