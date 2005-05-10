@@ -3964,14 +3964,17 @@ NULL.
                                  scope_stack[depth_scope_stack].il_scope,
                                  &init_kind, &ip);
         if (init_kind == (an_init_kind)initk_dynamic) {
-          if (ip->dynamic->kind == (a_dynamic_init_kind)dik_constructor) {
+          a_dynamic_init_ptr dip = ip->dynamic;
+          if (is_dynamic_init_for_vla(dip)) {
+            /* Always issue a warning for an unreferenced VLA, even if
+               the declaration involves construction or destruction. */
+          } else if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
             /* Issue no diagnostic when a variable is initialized by
                a constructor, to avoid spurious diagnostics when the user
                defines a variable simply to assure that the constructor is
                called. */
             severity = es_none;
-          } else if (dynamic_init_has_side_effects(ip->dynamic,
-                                                   &suppress_warning) ||
+          } else if (dynamic_init_has_side_effects(dip, &suppress_warning) ||
                      suppress_warning) {
             /* Initialization has side-effects -- issue a remark. */
             severity = es_remark;
