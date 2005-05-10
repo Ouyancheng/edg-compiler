@@ -903,6 +903,24 @@ done:;
 
 #if DO_IL_LOWERING && !LOWER_VARIABLE_LENGTH_ARRAYS
 
+void create_dimension_variable(a_statement_ptr  stmt)
+/*
+stmt is a stmk_set_vla_size statement.  Create a new variable initialized with
+the dimension expression associated with this statement.  The expression is
+updated to include the initialization of the variable.  This routine is only
+used by configurations that do not lower VLAs.  It is particularly useful for
+the C-generating back end to avoid duplicating side-effect of VLA bounds if
+the type of a VLA variable appears multiple times in the lowered IL.
+*/
+{
+  a_vla_dimension_ptr  vla_dim;
+
+  check_assertion(stmt->kind == stmk_set_vla_size);
+  vla_dim = stmt->variant.vla_dimension;
+  vla_dim->dimension_variable = assign_expr_to_temp(vla_dim->dimension_expr);
+}  /* create_dimension_variable */
+
+
 void create_element_count_variable_for_vla(a_statement_ptr  stmt)
 /*
 stmt is a stmk_vla_decl statement.  Create a variable holding the total
@@ -933,9 +951,8 @@ lower_vla_dimensions).
         /* A variable-length dimension. */
         a_vla_dimension_ptr  dim = find_vla_dimension(type);
         an_expr_node_ptr     dim_expr;
-        check_assertion(dim != NULL);
-        dim_expr = make_reusable_copy(dim->dimension_expr,
-                                      /*vars_can_change=*/TRUE);
+        check_assertion(dim != NULL && dim->dimension_variable != NULL);
+        dim_expr = var_rvalue_expr(dim->dimension_variable);
         dim_expr = add_cast_if_necessary(dim_expr, ptrdiff_type);
         if (count == NULL) {
           count = dim_expr;

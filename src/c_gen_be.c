@@ -7420,6 +7420,15 @@ statement expression, i.e., ({...}).
     case stmk_set_vla_size:
 #if LOWER_VARIABLE_LENGTH_ARRAYS
       unexpected_condition_str("VLA statement unexpected");
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+#if DO_IL_LOWERING
+      if (statement->variant.vla_dimension->dimension_variable != NULL) {
+        /* An unlowered C++ VLA: The dimensions are stored in a temporary
+           that must be initialized. */
+        dump_expression(statement->variant.vla_dimension->dimension_expr);
+        write_tok_ch(';');
+      }  /* if */
+#endif /* DO_IL_LOWERING */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       /* No output. */
       break;

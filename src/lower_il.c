@@ -14143,10 +14143,15 @@ Do IL lowering of the indicated statement and everything under it.
         break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       case stmk_set_vla_size:
-#if LOWER_VARIABLE_LENGTH_ARRAYS
         /* A statement that marks the point at which a VLA bound should be
            computed. */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+        /* Replace this statement by one that computes various variables
+           describing the size of the VLA. */
         lower_set_vla_size(statement);
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+        /* Record the associated VLA dimension in a temporary variable. */
+        create_dimension_variable(statement);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
       case stmk_vla_decl:
