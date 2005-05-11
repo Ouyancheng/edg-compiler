@@ -2475,6 +2475,13 @@ end_sizeof:;
           remap_ptr(ptr->original_dimension, a_vla_dimension_ptr,
                     iek_vla_dimension);
         }  /* if */
+#if DO_IL_LOWERING
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+        remap_ptr(ptr->total_number_of_elements, a_variable_ptr, iek_variable);
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+        remap_ptr(ptr->dimension_variable, a_variable_ptr, iek_variable);
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* DO_IL_LOWERING */
       }
       break;
 #if !NEEDED_FLAG_WALK
