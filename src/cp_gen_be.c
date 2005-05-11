@@ -196,12 +196,6 @@ static a_boolean
 			   in the default argument of a constructor
 			   parameter (needed to work around a Microsoft 6.0
 			   bug). */
-static a_boolean
-		context_disambiguates_functional_cast;
-			/* TRUE if the expression being generated follows an
-			   operator in another expression (used to suppress
-                           disambiguating parentheses around function-style
-                           casts). */
 
 /*
 Entry used to record an adjustment needed at the end of a name context,
@@ -356,9 +350,13 @@ static void gen_pragma(void);
 static void gen_template_header(a_template_decl_ptr tdp);
 static void gen_template(void);
 static void gen_lvalue_full(an_expr_node_ptr node,
-                            a_boolean        need_parens);
-#define gen_lvalue(node) gen_lvalue_full(node, /*need_parens=*/TRUE)
-#define gen_lvalue_no_parens(node) gen_lvalue_full(node, /*need_parens=*/FALSE)
+                            a_boolean        need_parens,
+                            a_boolean        obj_expr_of_mfunc_operator);
+#define gen_lvalue(node) gen_lvalue_full(node, /*need_parens=*/TRUE,  \
+                                         /*obj_expr_of_mfunc_operator=*/FALSE)
+#define gen_lvalue_no_parens(node) gen_lvalue_full(                   \
+                                         node, /*need_parens=*/FALSE, \
+                                         /*obj_expr_of_mfunc_operator=*/FALSE)
 static void gen_initializer_constant(a_constant_ptr constant,
                                      a_type_ptr     type,
                                      a_boolean      suppress_braces);
@@ -369,7 +367,8 @@ static void gen_initializer_expr(an_expr_node_ptr expr,
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_type_ptr         init_entity_type,
                              a_boolean          parenthesized_init,
-                             a_boolean          force_parens);
+                             a_boolean          force_parens,
+                             a_boolean          obj_expr_of_mfunc_operator);
 static void gen_ctor_initializers(a_constructor_init_ptr ctor_init);
 static void gen_statement_full(a_statement_ptr statement,
                                a_boolean       suppress_trailing_space);
@@ -3060,7 +3059,8 @@ constant is an aggregate the braces around it are suppressed.
     /* Dynamic initialization for an element of an aggregate. */
     gen_dynamic_init(constant->variant.dynamic_init, type,
                      /*parenthesized_init=*/FALSE,
-                     /*force_parens=*/FALSE);
+                     /*force_parens=*/FALSE,
+                     /*obj_expr_of_mfunc_operator=*/FALSE);
   } else if ((!msvc_is_generated_code_target ||
               msvc_target_version_number >= 1100) &&
              constant->kind == (a_constant_repr_kind)ck_ptr_to_member &&
@@ -5594,11 +5594,15 @@ of a "?" operation returning a class rvalue.  Generate code for it.
 }  /* gen_class_rvalue_question_mark */
 
 
-static void gen_temp_init(an_expr_node_ptr expr)
+static void gen_temp_init(an_expr_node_ptr expr,
+                          a_boolean        obj_expr_of_mfunc_operator)
 /*
 Generate code for an enk_temp_init node, which does creation/initialization
 of a temporary in an expression.  The caller should check whether the
 result_is_addr flag is set correctly; this routine cannot deal with that.
+If obj_expr_of_mfunc_operator is TRUE, this temporary is used as the object
+expression in a call to an overloaded operator member function (used in
+determining how to generate dynamic initializations).
 */
 {
   a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
@@ -5611,7 +5615,7 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
     /* A temp-init marked as a reused value is just put out as the
        underlying value. */
     gen_dynamic_init(dip, temp_type, /*parenthesized_init=*/FALSE,
-                     /*force_parens=*/FALSE);
+                     /*force_parens=*/FALSE, obj_expr_of_mfunc_operator);
   } else if (C_mode() ||
              ((dip->kind == (a_dynamic_init_kind)dik_constant ||
                dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
@@ -5638,7 +5642,7 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
       }  /* if */
     }  /* if */
     gen_dynamic_init(dip, temp_type, /*parenthesized_init=*/FALSE,
-                     /*force_parens=*/FALSE);
+                     /*force_parens=*/FALSE, obj_expr_of_mfunc_operator);
     if (cast_added) write_tok_ch(')');
   }  /* if */
 }  /* gen_temp_init */
@@ -5979,12 +5983,16 @@ Output a new-style cast.
 
 
 static void gen_lvalue_full(an_expr_node_ptr node,
-                            a_boolean        need_parens)
+                            a_boolean        need_parens,
+                            a_boolean        obj_expr_of_mfunc_operator)
 /*
 Generate an expression that the IL sees as an lvalue address, and C sees as
 an expression.  In effect, add an indirection to the expression.  The
 expression is surrounded by parentheses if there's some possibility of
-precedence confusion and need_parens is TRUE.
+precedence confusion and need_parens is TRUE.  If obj_expr_of_mfunc_operator
+is TRUE, this lvalue is used as the object expression in a call to an
+overloaded operator member function (used in determining how to generate
+temporary expressions).
 */
 {
   an_expr_node_kind  kind;
@@ -6204,7 +6212,8 @@ precedence confusion and need_parens is TRUE.
               processed = TRUE;
             } else {
               /* Normal cast. */
-              gen_lvalue_full(operand_1, need_parens);
+              gen_lvalue_full(operand_1, need_parens,
+                              obj_expr_of_mfunc_operator);
               processed = TRUE;
             }  /* if */
           } else {
@@ -6270,7 +6279,8 @@ precedence confusion and need_parens is TRUE.
           break;
         case eok_lvalue:
           /* Operand is an lvalue where an lvalue is expected. */
-          gen_lvalue_full(operand_1, need_parens);
+          gen_lvalue_full(operand_1, need_parens,
+                          obj_expr_of_mfunc_operator);
           processed = TRUE;
           break;
         default:
@@ -6333,7 +6343,7 @@ precedence confusion and need_parens is TRUE.
              node->variant.init.result_is_addr) {
     /* A temporary initialization with the address of the temporary used as
        the node value.  Just put out the underlying value. */
-    gen_temp_init(node);
+    gen_temp_init(node, obj_expr_of_mfunc_operator);
     processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_temp_init &&
              (dip = node->variant.init.dynamic_init)->is_reused_value &&
@@ -6342,12 +6352,14 @@ precedence confusion and need_parens is TRUE.
                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor)) {
     /* A reused-value temporary initialization, which will be elided in
        the output.  Just put out the underlying value. */
-    gen_lvalue(dip->variant.expression);
+    gen_lvalue_full(dip->variant.expression, /*need_parens=*/TRUE,
+                    obj_expr_of_mfunc_operator);
     processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_object_lifetime) {
     /* Ignore an enk_object_lifetime; the thing underneath is processed as
        an lvalue. */
-    gen_lvalue_full(node->variant.object_lifetime.expr, need_parens);
+    gen_lvalue_full(node->variant.object_lifetime.expr, need_parens,
+                    obj_expr_of_mfunc_operator);
     processed = TRUE;
   }  /* if */
   if (!processed) {
@@ -6452,7 +6464,7 @@ obscure Microsoft bug).
       }  /* if */
     }  /* if */
     /* Put the expression out as an lvalue to remove a level of indirection. */
-    gen_lvalue_full(expr, need_parens);
+    gen_lvalue_full(expr, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
     if (close_paren_needed) {
       write_tok_ch(')');
     }  /* if */
@@ -6540,7 +6552,8 @@ function call, notation.
        the copy constructor reference. */
     gen_dynamic_init(arg->variant.init.dynamic_init, param->type,
                      /*parenthesized_init=*/FALSE,
-                     /*force_parens=*/FALSE);
+                     /*force_parens=*/FALSE,
+                     /*obj_expr_of_mfunc_operator=*/FALSE);
   } else {
     /* If this is an argument to an overloaded operator being generated in
        operator notation, we may need extra parentheses to avoid precedence
@@ -6753,7 +6766,8 @@ Generate code for a new or delete operation.
     if (ndsp->dynamic_init != NULL) {
       /* The allocated entity gets initialized. */
       gen_dynamic_init(ndsp->dynamic_init, type, /*parenthesized_init=*/TRUE,
-                       /*force_parens=*/FALSE);
+                       /*force_parens=*/FALSE,
+                       /*obj_expr_of_mfunc_operator=*/FALSE);
     }  /* if */
   } else {
     /* Delete.  The general form is
@@ -7061,7 +7075,8 @@ return FALSE and let the caller generate the code normally.
     if (routine_type_is_nonstatic_member_function(rp->type)) {
       /* The first operand is the member function's "this" pointer:
          generate it as an lvalue. */
-      gen_lvalue(arg);
+      gen_lvalue_full(arg, /*need_parens=*/TRUE,
+                      /*obj_expr_of_mfunc_operator=*/TRUE);
       arg = arg->next;
     } else {
       /* For non-member functions, there's a parameter declaration to
@@ -7251,8 +7266,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   a_boolean        need_reference_close_paren = FALSE;
   an_expr_operator_kind
                    op;
-  a_boolean        save_context_disambiguates_functional_cast =
-                                        context_disambiguates_functional_cast;
 
   check_assertion_str(expr != NULL, "gen_expr: NULL expression");
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
@@ -7274,7 +7287,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
     /* The void_expression_lvalue flag indicates that the expression
        should be treated as an lvalue. */
     expr->void_expression_lvalue = FALSE;
-    gen_lvalue_full(expr, need_parens);
+    gen_lvalue_full(expr, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
     expr->void_expression_lvalue = TRUE;
     goto done_with_expr;
   }  /* if */
@@ -7306,7 +7319,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       if (op == (an_expr_operator_kind)eok_lvalue) {
         /* Operand is an lvalue where an rvalue was expected. */
         /* Done early to optimize parentheses. */
-        gen_lvalue_full(operand_1, need_parens);
+        gen_lvalue_full(operand_1, need_parens,
+                        /*obj_expr_of_mfunc_operator=*/FALSE);
         goto done_with_operation_after_parens;
       } else if (op == (an_expr_operator_kind)eok_rvalue) {
         /* Operand is an rvalue where an lvalue was expected. */
@@ -8005,7 +8019,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       if (operand_2 == NULL) {
         /* Unary operator; operator goes first. */
         write_tok_str(opstr);
-        context_disambiguates_functional_cast = TRUE;
       }  /* if */
       /* Generate the first operand. */
       if (operand_1_is_lvalue) {
@@ -8018,11 +8031,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         m_write_space();
         write_tok_str(opstr);
         m_write_space();
-        context_disambiguates_functional_cast = TRUE;
         gen_expr_with_parens(operand_2);
       }  /* if */
-      context_disambiguates_functional_cast =
-                                   save_context_disambiguates_functional_cast;
 done_with_operation:
       if (need_parens) m_write_tok_ch(')');
 done_with_operation_after_parens:
@@ -8052,7 +8062,8 @@ done_with_operation_after_parens:
         write_space();
         gen_dynamic_init(tsp->dynamic_init, tsp->type,
                          /*parenthesized_init=*/FALSE,
-                         /*force_parens=*/FALSE);
+                         /*force_parens=*/FALSE,
+                         /*obj_expr_of_mfunc_operator=*/FALSE);
       }  /* if */
       if (need_parens) write_tok_ch(')');
       break;
@@ -8114,7 +8125,8 @@ done_with_operation_after_parens:
          much choice. */
       { a_dynamic_init_ptr dip = expr->variant.reused_value_init;
         gen_dynamic_init(dip, expr->type, /*parenthesized_init=*/FALSE,
-                         /*force_parens=*/FALSE);
+                         /*force_parens=*/FALSE,
+                         /*obj_expr_of_mfunc_operator=*/FALSE);
       }
       break;
     case enk_temp_init:
@@ -8135,12 +8147,12 @@ done_with_operation_after_parens:
           write_tok_ch('(');
           gen_type(temp_type);
           write_tok_str(" &)");
-          gen_temp_init(expr);
+          gen_temp_init(expr, /*obj_expr_of_mfunc_operator=*/FALSE);
         }  /* if */
         write_tok_ch(')');
       } else {
         /* Normal case (using the value of the temp). */
-        gen_temp_init(expr);
+        gen_temp_init(expr, /*obj_expr_of_mfunc_operator=*/FALSE);
       }  /* if */
       break;
     case enk_new_delete:
@@ -9928,7 +9940,8 @@ statement unless suppress_trailing_space is TRUE.
             write_space();
             gen_dynamic_init(statement->variant.return_dynamic_init,
                              return_type, /*parenthesized_init=*/FALSE,
-                             /*force_parens=*/FALSE);
+                             /*force_parens=*/FALSE,
+                             /*obj_expr_of_mfunc_operator=*/FALSE);
           }  /* if */
           write_tok_ch(';');
         }  /* if */
@@ -10140,7 +10153,8 @@ source.
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_type_ptr         init_entity_type,
                              a_boolean          parenthesized_init,
-                             a_boolean          force_parens)
+                             a_boolean          force_parens,
+                             a_boolean          obj_expr_of_mfunc_operator)
 /*
 Output the dynamic initialization described by dip.  init_entity_type
 indicates the type of entity being initialized.
@@ -10159,10 +10173,15 @@ a default constructor, nothing is put out (in either mode), except that,
 if force_parens is TRUE, "()" is put out.
 
 Note that the destructor, if any, is implicit and need not be put out.
+
+If obj_expr_of_mfunc_operator is TRUE, this dynamic initialization is used
+as the object expression in a call to an overloaded operator member function.
+Some compilers (notably Sun) reject a traditional cast in such contexts, so
+such initializations are generated as functional-style casts when possible.
 */
 {
   a_constant_ptr con;
-  a_boolean      might_use_old_style_cast = FALSE, is_value_init;
+  a_boolean      using_old_style_cast = FALSE, is_value_init;
   a_boolean      suppress_outermost_parentheses = FALSE;
 
   if (dip->is_explicit_cast && !parenthesized_init) {
@@ -10187,16 +10206,16 @@ Note that the destructor, if any, is implicit and need not be put out.
     parenthesized_init = TRUE;
     force_parens = TRUE;
     if (has_one_argument) {
-      /* We may want to put out a cast that has one argument as an old-style
-         cast.  This avoids some ambiguities, e.g.,
+      /* Put out a cast that has one argument as an old-style cast.  This
+         avoids some ambiguities, e.g.,
            int f((int)x);
          shouldn't become
            int f(int(x));
          This will also catch casts to types that aren't named, e.g.,
          (const X)y instead of the incorrect const X(y). */
-      might_use_old_style_cast = TRUE;
+      using_old_style_cast = TRUE;
     } else if (has_name_before_mangling(init_entity_type)) {
-      /* Normal case: functional notation cast, e.g., X(y, z). */
+      /* Normal case: functional notation cast, e.g., X(y). */
       gen_type_name(init_entity_type);
     } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
         /* This zero initialization can't be put out as an old-style cast
@@ -10207,9 +10226,9 @@ Note that the destructor, if any, is implicit and need not be put out.
     } else {
       /* Unnamed type: put out as old-style cast.  Most cases of this
          would have fallen out above; see note below. */
-      might_use_old_style_cast = TRUE;
+      using_old_style_cast = TRUE;
     }  /* if */
-    if (might_use_old_style_cast) {
+    if (using_old_style_cast) {
       if (in_ctor_default_argument &&
           msvc_is_generated_code_target &&
           msvc_target_version_number == 1200 &&
@@ -10224,35 +10243,22 @@ Note that the destructor, if any, is implicit and need not be put out.
            in parentheses in that context. */
         suppress_outermost_parentheses = TRUE;
         gen_type_name(init_entity_type);
+      } else if (obj_expr_of_mfunc_operator &&
+                 sun_is_generated_code_target &&
+                 has_name_before_mangling(init_entity_type)) {
+        /* The Sun compiler will not accept an old-style cast as the object
+           expression in a function-notation call to an overloaded operator
+           member function -- e.g., "((S)x) *= 2", where the "*=" is
+           overloaded by a member function of S -- but it does accept
+           functional-notation casts in such contexts.  To make sure that we
+           avoid any declaration/expression ambiguity, we surround the cast
+           with parentheses, which cannot be present in a declaration. */
+        write_tok_ch('(');
+        gen_type_name(init_entity_type);
       } else {
-        if (has_name_before_mangling(init_entity_type) &&
-            !msvc_is_generated_code_target) {
-          /* Generate a functional-notation cast.  If we are in a context
-             where a functional-style cast is ambiguous, we surround it with
-             parentheses -- "(X(y))", because of the surrounding parentheses,
-             can only be an expression, unlike "X(y)", which might be either
-             an expression or a declaration.  Using the functional notation
-             also avoids a Sun quirk where functional casts are lvalues but
-             old-style casts are not  (i.e., we don't want to turn "X(y)"
-             into "(X)(y)"). */
-          /* MSVC versions through at least 7.1 have parser bugs such that
-             "(X(y))" is sometimes treated as a syntax error, so we always
-             generate old-style casts when one of those compilers is the
-             target. */
-          if (context_disambiguates_functional_cast) {
-            /* There is a preceding operator, so the cast is unambiguously an
-               expression -- no disambiguating outermost parentheses are
-               needed. */
-            suppress_outermost_parentheses = TRUE;
-          } else {
-            write_tok_ch('(');
-          }  /* if */
-          gen_type_name(init_entity_type);
-        } else {
-          /* Put out an old-style cast, e.g., ((X)y). */
-          write_tok_ch('(');
-          gen_cast(init_entity_type);
-        }  /* if */
+        /* Put out an old-style cast, e.g., ((X)y). */
+        write_tok_ch('(');
+        gen_cast(init_entity_type);
       }  /* if */
       if (!has_one_argument) {
         /* If the initialization doesn't have exactly one argument, use
@@ -10388,7 +10394,7 @@ Note that the destructor, if any, is implicit and need not be put out.
       unexpected_condition_str("gen_dynamic_init: bad kind");
   }  /* switch */
   /* Generate a closing parenthesis if needed for an old-style cast. */
-  if (might_use_old_style_cast && !suppress_outermost_parentheses) {
+  if (using_old_style_cast && ! suppress_outermost_parentheses) {
     write_tok_ch(')');
   }  /* if */
 end_of_routine:;
@@ -10477,7 +10483,8 @@ initialization is in a condition declaration if is_condition is TRUE.
           write_tok_str(" = ");
         }  /* if */
         gen_dynamic_init(initializer->dynamic, var->type, parenthesized_init,
-                         /*force_parens=*/FALSE);
+                         /*force_parens=*/FALSE,
+                         /*obj_expr_of_mfunc_operator=*/FALSE);
         break;
       default:
         unexpected_condition_str("gen_initializer: bad init kind");
@@ -10892,7 +10899,8 @@ a constructor.
       /* Generate the initialization. */
       gen_dynamic_init(ctor_init->initializer, type,
                        /*parenthesized_init=*/TRUE,
-                       /*force_parens=*/TRUE);
+                       /*force_parens=*/TRUE,
+                       /*obj_expr_of_mfunc_operator=*/FALSE);
     }  /* if */
   }  /* for */
   if (!first_time) write_space();
@@ -11872,7 +11880,6 @@ Initialize for the C++/C-generating back end.
   num_curr_switch_statements = 0;
   in_friend_declaration = FALSE;
   in_ctor_default_argument = FALSE;
-  context_disambiguates_functional_cast = FALSE;
   curr_name_context = NULL;
   avail_hidden_name_fixups = NULL;
   avail_name_contexts = NULL;
