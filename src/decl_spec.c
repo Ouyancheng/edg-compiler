@@ -7666,12 +7666,12 @@ exit_loop:
       check_assertion(microsoft_mode && (decl_specifiers_seen & DS_FRIEND));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if VLA_ALLOWED
-    } else if (vla_enabled && innermost_function_scope == NULL && !C_mode() &&
-               *type_ptr != NULL && is_variably_modified_type(*type_ptr)) {
+    } else if (vla_enabled && inside_local_class && *type_ptr != NULL &&
+               is_variably_modified_type(*type_ptr)) {
       /* In C++ mode with VLAs enabled, a local class could contain a reference
-         to a variably-modified type in the enclosing function.  Issue an error
-         in such cases. */
-      check_assertion(inside_local_class);
+         to a variably-modified type in the enclosing function.  We cannot
+         accept this since it implies that the local class accesses local
+         storage in the enclosing function scope: Issue an error. */
       error(ec_vla_not_allowed);
       *type_ptr = error_type();
       err = TRUE;
