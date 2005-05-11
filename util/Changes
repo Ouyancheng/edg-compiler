@@ -1,5 +1,13 @@
 Version 3.6
 
+5/11/05  eccp: path name of edg_decode program when using --nm option
+
+The --nm option to eccp is a debugging feature used to run nm on the
+object files created by a compilation.  The EDG_DECODE_PATH environment
+variable, if set, is used by eccp to determine the pathname of the
+edg_decode executable, but the --nm option did not make use of this
+environment variable.  This has been fixed.
+
 3/28/05  Minor prelinker cleanup
 
 There were a few routines in edg_prelink.c that should have been declared
