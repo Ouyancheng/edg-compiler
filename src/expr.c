@@ -7544,9 +7544,13 @@ specification allow a variable-sized array as the top type.
        returns int (*)[10] not int * (ARM 5.3.3). */
     base_new_type = element_type = array_element_type(new_type);
     array_new = TRUE;
-    /* Check for a variable size on the first dimension.  Extract the
-       expression for the dimension. */
-    if (unqual_new_type->variant.array.is_variable_size_array) {
+    if (vla_enabled && is_vla_type(new_type)) {
+      /* Variable-length arrays are not allowed.  These can only come from
+         typedefs, because new_type_name will not scan a VLA directly. */
+      pos_error(ec_vla_not_allowed, &type_position);
+      err = TRUE;
+    } else if (unqual_new_type->variant.array.is_variable_size_array) {
+      /* The first bound is an expression.  Extract the expression. */
       new_array_dimension =
                      unqual_new_type->variant.array.variant.element_count_expr;
       /* Change the array type to a simple incomplete array type so
