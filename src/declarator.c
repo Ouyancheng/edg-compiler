@@ -2455,6 +2455,14 @@ expression can be a multiple of the special UPC THREADS constant.
       if (is_constant_bound) {
         /* Save the constant for the bound, which has an attached
            expression. */
+        an_expr_node_ptr expr = constant.expr;
+        if (!in_file_scope(expr)) {
+          /* Copy the expression to the file scope memory region so we
+             can point to it.  This comes up with bound expressions that
+             are permitted to be VLAs but turn out to be constant. */
+          expr = copy_expr_tree(expr, CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+          constant.expr = expr;
+        }  /* if */
         il_constant = alloc_shareable_constant(&constant);
         (*new_type_ptr)->variant.array.bound_constant = il_constant;
       }  /* if */
