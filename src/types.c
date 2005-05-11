@@ -8281,11 +8281,15 @@ pointers to VLA types, arrays whose element types are variably modified, and
 typedefs referring to variably modified types.
 */
 {
-  a_type_tree_traversal_flag_set  tt_flags = (TTT_RETURN_TYPE |
-                                              TTT_PARAM_TYPES);
+  a_type_tree_traversal_flag_set  tt_flags = TTT_RETURN_TYPE;
   a_boolean                       result = FALSE;
 
   if (vla_enabled) {
+    if (C_mode()) {
+      /* In C++ mode we do not allow variably-modified parameter types.  In C,
+         mode they are a possibility. */
+      tt_flags |= TTT_PARAM_TYPES;
+    }  /* if */
     result = traverse_type_tree(tp, ttt_is_variably_modified_type, tt_flags);
   }  /* if */
   return result;
