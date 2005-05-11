@@ -476,7 +476,7 @@ compile_int_c()
     rofiles=$rofiles" "$int_c_output
     if [ $nm_on_objects -eq 1 ] ; then
       # Debug option that runs nm on generated object files
-      nm $int_c_output | edg_decode
+      nm $int_c_output | $EDG_DECODE
     fi
   fi
 }  # compile_int_c #
