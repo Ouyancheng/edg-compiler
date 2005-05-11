@@ -12538,7 +12538,7 @@ third operands of a "?" operator, have the same type.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  types_are_the_same = types_are_compatible(type_2, type_3);
+  types_are_the_same = identical_types(type_2, type_3);
   return types_are_the_same;
 }  /* same_types_for_question_operator */
 
