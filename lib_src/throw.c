@@ -708,7 +708,7 @@ requires cleanup.
             /* The array size for a VLA is accessed using the handle in the
                region table entry that follows the entry for the VLA. */
             a_sizeof_t		*element_addr;
-            element_addr = (a_sizeof_t*)(obj_addr_array + (ehrdp + 1)->handle);
+            element_addr = (a_sizeof_t*)(obj_addr_array[(ehrdp + 1)->handle]);
             elements = (an_element_count)*element_addr;
          }  /* if */
 #ifndef __EDG_IA64_ABI
