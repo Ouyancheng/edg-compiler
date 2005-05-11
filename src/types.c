@@ -7460,6 +7460,25 @@ referring to a variably modified type.
   return found;
 }  /* ttt_is_variably_modified_type */    
 
+
+static a_boolean ttt_is_nonlocal_variably_modified_type(
+                                       a_type_ptr  type_ptr,
+                                       a_boolean   *force_end_of_traversal)
+/*
+Return TRUE if type_ptr is a VLA not associated with the innermost function
+scope (if there is no such scope, any VLA type is a "nonlocal variable-modified
+type).
+*/
+{
+  a_boolean  found = FALSE;
+
+  if (is_array(type_ptr) && array_is_vla(type_ptr) &&
+      find_vla_dimension_in_current_function(type_ptr) == NULL) {
+    *force_end_of_traversal = found = TRUE;
+  }  /* if */
+  return found;
+}  /* ttt_is_nonlocal_variably_modified_type */    
+
 #if !STANDALONE_UTILITY_PROGRAM
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -8262,7 +8281,8 @@ pointers to VLA types, arrays whose element types are variably modified, and
 typedefs referring to variably modified types.
 */
 {
-  a_type_tree_traversal_flag_set  tt_flags = (TTT_RETURN_TYPE);
+  a_type_tree_traversal_flag_set  tt_flags = (TTT_RETURN_TYPE |
+                                              TTT_PARAM_TYPES);
   a_boolean                       result = FALSE;
 
   if (vla_enabled) {
@@ -8270,6 +8290,27 @@ typedefs referring to variably modified types.
   }  /* if */
   return result;
 }  /* is_variably_modified_type */
+
+
+a_boolean is_nonlocal_variably_modified_type(a_type_ptr  tp)
+/*
+Return TRUE if tp is a "variably modified type" (which includes VLA types,
+pointers to VLA types, arrays whose element types are variably modified, and
+typedefs referring to variably modified types) with a VLA component that is
+not associated with the current innermost function scope.  (This is only
+relevant with local classes in C++ mode, which does not allow VLAs in parameter
+types or exception specification types.)
+*/
+{
+  a_type_tree_traversal_flag_set  tt_flags = TTT_RETURN_TYPE;
+  a_boolean                       result = FALSE;
+
+  if (vla_enabled & !C_mode()) {
+    result = traverse_type_tree(tp, ttt_is_nonlocal_variably_modified_type,
+                                tt_flags);
+  }  /* if */
+  return result;
+}  /* is_nonlocal_variably_modified_type */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

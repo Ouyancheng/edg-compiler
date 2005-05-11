@@ -8421,6 +8421,39 @@ it would appear as the type on a call of the function in the IL.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+a_vla_dimension_ptr find_vla_dimension_in_current_function(
+                                                       a_type_ptr  array_type)
+/*
+Find the VLA (variable-length array) dimension entry associated with the given
+array type, and return a pointer to it.  If innermost_function_scope is not
+set, or if the type is not associated with the innermost function scope
+(possible while parsing a member of a local class), NULL is returned.
+For (compiler-generated) copies of array types, return the entry associated
+with the original type entry.
+*/
+{
+  a_vla_dimension_ptr  vlap = NULL;
+
+  if (innermost_function_scope != NULL) {
+    for (vlap = innermost_function_scope->vla_dimensions;
+         vlap != NULL;
+         vlap = vlap->next) {
+      if (vlap->type == array_type) {
+        if (vlap->original_dimension != NULL) {
+          /* vlap points to an entry for a compiler-generated copy of an array
+             type. */
+          check_assertion(vlap->dimension_expr == NULL);
+          vlap = vlap->original_dimension;
+        }  /* if */
+        check_assertion(vlap->dimension_expr != NULL);
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return vlap;
+}  /* find_vla_dimension_in_current_function */
+
+
 a_vla_dimension_ptr find_vla_dimension(a_type_ptr array_type)
 /*
 Find the VLA (variable-length array) dimension entry associated with the
@@ -8430,23 +8463,10 @@ copies of array types, return the entry associated with the original type
 entry.
 */
 {
-  a_vla_dimension_ptr vlap;
+  a_vla_dimension_ptr vlap =
+                           find_vla_dimension_in_current_function(array_type);
 
-  check_assertion_str(innermost_function_scope != NULL,
-                      "find_vla_dimension: innermost_function_scope is NULL");
-  for (vlap = innermost_function_scope->vla_dimensions;
-       ;
-       vlap = vlap->next) {
-    check_assertion_str(vlap != NULL, "find_vla_dimension: not found");
-    if (vlap->type == array_type) break;
-  }  /* for */
-  if (vlap->original_dimension != NULL) {
-    /* vlap points to an entry for a compiler-generated copy of an array
-       type. */
-    check_assertion(vlap->dimension_expr == NULL);
-    vlap = vlap->original_dimension;
-  }  /* if */
-  check_assertion(vlap->dimension_expr != NULL);
+  check_assertion_str(vlap != NULL, "find_vla_dimension: not found");
   return vlap;
 }  /* find_vla_dimension */
 

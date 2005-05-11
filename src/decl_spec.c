@@ -7667,7 +7667,7 @@ exit_loop:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if VLA_ALLOWED
     } else if (vla_enabled && inside_local_class && *type_ptr != NULL &&
-               is_variably_modified_type(*type_ptr)) {
+               is_nonlocal_variably_modified_type(*type_ptr)) {
       /* In C++ mode with VLAs enabled, a local class could contain a reference
          to a variably-modified type in the enclosing function.  We cannot
          accept this since it implies that the local class accesses local

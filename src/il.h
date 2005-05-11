@@ -620,6 +620,9 @@ extern a_type_ptr return_type_of(a_type_ptr routine_type);
 
 extern a_type_ptr il_return_type_of(a_type_ptr routine_type);
 
+extern a_vla_dimension_ptr find_vla_dimension_in_current_function(
+                                                       a_type_ptr  array_type);
+
 extern a_vla_dimension_ptr find_vla_dimension(a_type_ptr array_type);
 
 extern a_type_ptr make_field_selection_type(a_field_ptr           field,
