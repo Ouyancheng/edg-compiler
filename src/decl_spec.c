@@ -7665,6 +7665,17 @@ exit_loop:
          class template. */
       check_assertion(microsoft_mode && (decl_specifiers_seen & DS_FRIEND));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if VLA_ALLOWED
+    } else if (vla_enabled && innermost_function_scope == NULL && !C_mode() &&
+               *type_ptr != NULL && is_variably_modified_type(*type_ptr)) {
+      /* In C++ mode with VLAs enabled, a local class could contain a reference
+         to a variably-modified type in the enclosing function.  Issue an error
+         in such cases. */
+      check_assertion(inside_local_class);
+      error(ec_vla_not_allowed);
+      *type_ptr = error_type();
+      err = TRUE;
+#endif /* VLA_ALLOWED */
     } else {
       /* Combine the type specifiers (except for the type qualifiers) into a
          type.  *type_ptr is updated, based on the basic type, sign, and size
