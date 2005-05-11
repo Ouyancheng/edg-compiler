@@ -2209,15 +2209,15 @@ Scan an array declarator (ISO C 6.5.4.2), or an array declarator in an
 abstract declarator (ISO C 6.5.5).  Allocate and return in *new_type_ptr an
 appropriate array type.  The initial opening bracket is the current token.
 In C++ the dimension may sometimes be a nonconstant expression (e.g., with a
-new type name); that case is indicated by nonconstant_dimension_allowed.  In
-C (when vla_enabled is TRUE), the dimension may be a nonconstant expression
-when vla_allowed is TRUE; and when vla_asterisk_allowed is TRUE, a VLA of
-unknown size can be indicated with the "[*]" syntax in a function prototype.
-top_level_field_decl is TRUE to indicate that this is the declaration of
-a nonstatic data member of a class.  top_level_param_decl is TRUE to
-indicate that this is a a top-level declarator in a function parameter
-declaration.  threads_dimension_allowed indicates whether the dimension
-expression can be a multiple of the special UPC THREADS constant.
+new type name); that case is indicated by nonconstant_dimension_allowed.
+When vla_enabled is TRUE, the dimension may be a nonconstant expression; and
+when vla_asterisk_allowed is TRUE, a VLA of unknown size can be indicated with
+the "[*]" syntax in a function prototype.  top_level_field_decl is TRUE to
+indicate that this is the declaration of a nonstatic data member of a class.
+top_level_param_decl is TRUE to indicate that this is a a top-level declarator
+in a function parameter declaration.  threads_dimension_allowed indicates
+whether the dimension expression can be a multiple of the special UPC THREADS
+constant.
 */
 {
   a_targ_size_t           num_of_elements;
@@ -2410,7 +2410,7 @@ expression can be a multiple of the special UPC THREADS constant.
       /* Expression case. */
       (*new_type_ptr)->variant.array.is_variable_size_array = TRUE;
       if (vla_allowed) {
-        /* VLA case (C only). */
+        /* VLA case. */
         (*new_type_ptr)->variant.array.is_vla = TRUE;
         /* A VLA dimension entry will be created to record the array
            dimension expression. */
