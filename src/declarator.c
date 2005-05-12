@@ -2461,7 +2461,7 @@ constant.
         /* Save the constant for the bound, which has an attached
            expression. */
         an_expr_node_ptr expr = constant.expr;
-        if (!in_file_scope(expr)) {
+        if (expr != NULL && !in_file_scope(expr)) {
           /* Copy the expression to the file scope memory region so we
              can point to it.  This comes up with bound expressions that
              are permitted to be VLAs but turn out to be constant. */
