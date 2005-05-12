@@ -1237,8 +1237,10 @@ TRUE.
     /* Array.  Start with first element. */
     if (type->size == 0) {
       if (type->incomplete) {
-        /* A flexible array member (declared with a[]). */
-        *is_flexible_array = TRUE;
+        if (context->prev_context != NULL) {
+          /* A flexible array member (declared with a[]). */
+          *is_flexible_array = TRUE;
+        }  /* if */
       } else {
         /* A zero-length array (a GNU extension).  This is different from a
            flexible array, in that no initializers are allowed for it. */
