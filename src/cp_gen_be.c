@@ -5601,8 +5601,9 @@ Generate code for an enk_temp_init node, which does creation/initialization
 of a temporary in an expression.  The caller should check whether the
 result_is_addr flag is set correctly; this routine cannot deal with that.
 If obj_expr_of_mfunc_operator is TRUE, this temporary is used as the object
-expression in a call to an overloaded operator member function (used in
-determining how to generate dynamic initializations).
+expression in a call to an overloaded operator member function that is
+being generated using operator notation rather than as a function call (used
+in determining how to generate dynamic initializations).
 */
 {
   a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
@@ -5991,7 +5992,8 @@ an expression.  In effect, add an indirection to the expression.  The
 expression is surrounded by parentheses if there's some possibility of
 precedence confusion and need_parens is TRUE.  If obj_expr_of_mfunc_operator
 is TRUE, this lvalue is used as the object expression in a call to an
-overloaded operator member function (used in determining how to generate
+overloaded operator member function that is being generated using operator
+notation rather than as a function call (used in determining how to generate
 temporary expressions).
 */
 {
@@ -10175,9 +10177,11 @@ if force_parens is TRUE, "()" is put out.
 Note that the destructor, if any, is implicit and need not be put out.
 
 If obj_expr_of_mfunc_operator is TRUE, this dynamic initialization is used
-as the object expression in a call to an overloaded operator member function.
-Some compilers (notably Sun) reject a traditional cast in such contexts, so
-such initializations are generated as functional-style casts when possible.
+as the object expression in a call to an overloaded operator member function
+that is being generated using operator notation rather than as a function
+call.  Some compilers (notably Sun) reject a traditional cast in such
+contexts, so such initializations are generated as functional-style casts
+when possible.
 */
 {
   a_constant_ptr con;
@@ -10215,7 +10219,7 @@ such initializations are generated as functional-style casts when possible.
          (const X)y instead of the incorrect const X(y). */
       using_old_style_cast = TRUE;
     } else if (has_name_before_mangling(init_entity_type)) {
-      /* Normal case: functional notation cast, e.g., X(y). */
+      /* Normal case: functional notation cast, e.g., X(y, z). */
       gen_type_name(init_entity_type);
     } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
         /* This zero initialization can't be put out as an old-style cast
