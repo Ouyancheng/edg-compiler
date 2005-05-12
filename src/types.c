@@ -8286,8 +8286,8 @@ typedefs referring to variably modified types.
 
   if (vla_enabled) {
     if (C_mode()) {
-      /* In C++ mode we do not allow variably-modified parameter types.  In C,
-         mode they are a possibility. */
+      /* In C++ mode we do not allow variably-modified parameter types.  In C
+         mode, they are a possibility. */
       tt_flags |= TTT_PARAM_TYPES;
     }  /* if */
     result = traverse_type_tree(tp, ttt_is_variably_modified_type, tt_flags);
