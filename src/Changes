@@ -1,5 +1,18 @@
 Version 3.6
 
+5/12/05  Microsoft and GNU C++ compatibility: partial specialization declared
+         too late
+
+The standard prohibits declaring a partial specialization after an
+instantiation of a class template has been done that would have used the
+partial specialization if it had been declared earlier.  Neither the Microsoft
+nor g++ compilers diagnose this infraction, so we now reduce the severity
+of such diagnostics to a warning in Microsoft and g++ modes.
+
+  template <class T> class X { };
+  X<int*> xi;
+  template <class T> class X<T*> { };
+
 5/12/05  Abort on invalid array initializer in GNU C++ mode
 
 Under some unusual circumstances the front end sometimes aborted (with an
