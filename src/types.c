@@ -8309,7 +8309,7 @@ types or exception specification types.)
   a_type_tree_traversal_flag_set  tt_flags = TTT_RETURN_TYPE;
   a_boolean                       result = FALSE;
 
-  if (vla_enabled & !C_mode()) {
+  if (vla_enabled && !C_mode()) {
     result = traverse_type_tree(tp, ttt_is_nonlocal_variably_modified_type,
                                 tt_flags);
   }  /* if */
