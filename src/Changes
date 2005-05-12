@@ -1,5 +1,20 @@
 Version 3.6
 
+5/12/05  C++-generating back end: functional-notation casts
+
+The change to generate casts using functional notation (see the entry of
+11/9/04) resulted in spurious errors on the generated code from various
+compilers (see entries of 11/18/04 and 4/7/05 for some examples).  As a
+result, all three of these changes have now been reversed, and the
+C++-generating back end will now again generate C-style casts rather than
+functional-notation casts in all but two circumstances.  The first addresses
+the original problem described in the 11/9/04 entry: when a cast is used as
+the left side of an overloaded operator that is implemented as a class
+member function and the call uses operator notation rather than an explicit
+function call, a functional cast will be used if sun_is_generated_code_target
+is TRUE.  The second case is that described in the Changes entry of 2/26/05,
+which is not affected by this change.
+
 5/10/05  Abort on GNU min/max operator with template-dependent constant
          operands
 
