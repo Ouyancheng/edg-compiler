@@ -355,7 +355,8 @@ purposes.
       break;
     case cfdk_init:
       sp = cfdp->variant.init.statement;
-      if (sp->kind == (a_statement_kind)stmk_init ||
+      if (sp == NULL ||
+          sp->kind == (a_statement_kind)stmk_init ||
           (C_mode() && microsoft_mode &&
            sp->kind == (a_statement_kind)stmk_block)) {
         a_variable_ptr  vp = cfdp->variant.init.variable;
@@ -1237,7 +1238,7 @@ them out and then remove them if they prove superfluous.)
   a_control_flow_descr_ptr  prev;
 
   sp = cfdp->variant.init.statement;
-  check_assertion(sp->kind == (a_statement_kind)stmk_vla_decl);
+  check_assertion(sp != NULL && sp->kind == (a_statement_kind)stmk_vla_decl);
   /* A multidimensional array may have more than one variable dimension, and
      so more than one set-vla-size statement.  Therefore the checking is done
      inside a loop. */
@@ -1245,7 +1246,8 @@ them out and then remove them if they prove superfluous.)
     prev = cfdp->prev;
     if (prev != NULL && prev->kind == (a_control_flow_descr_kind)cfdk_init) {
       prev_sp = prev->variant.init.statement;
-      if (prev_sp->kind == (a_statement_kind)stmk_set_vla_size) {
+      if (prev_sp != NULL &&
+          prev_sp->kind == (a_statement_kind)stmk_set_vla_size) {
         /* The preceding entry is indeed a cfdk_init that points to a
            set-vla-size statement. */
         a_type_ptr           tp = sp->variant.vla.variant.variable->type;
@@ -1516,6 +1518,7 @@ initializing declarations.
      declaration. */
   if (vla_enabled &&
       new_cfdp->kind == (a_control_flow_descr_kind)cfdk_init &&
+      new_cfdp->variant.init.statement != NULL &&
       new_cfdp->variant.init.statement->kind ==
                                       (a_statement_kind)stmk_vla_decl) {
     remove_unneeded_set_vla_size_control_flow_entries(new_cfdp);
