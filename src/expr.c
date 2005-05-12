@@ -6824,7 +6824,8 @@ the type defines something); FALSE is returned if there is an error.
   /* Scan the type.  Note that type_name does not allow definition of types
      in the type-id. */
   *type_position = pos_curr_token;
-  type_name_full(cast_type, &explicit_cv_qualifiers);
+  type_name_full(/*disallow_variably_modified_type=*/curr_expr_kind_is_const(),
+                 cast_type, &explicit_cv_qualifiers);
   /* In Microsoft mode, static_cast allows a cast to an array type if it
      does nothing. */
   if (microsoft_bugs && !C_mode() &&
@@ -10622,7 +10623,9 @@ Also scans GNU statement expressions:
       a_boolean explicit_cv_qualifiers;
       /* Get the type to cast to. */
       type_position = pos_curr_token;
-      type_name_full(&type_cast_to, &explicit_cv_qualifiers);
+      type_name_full(
+                 /*disallow_variably_modified_type=*/curr_expr_kind_is_const(),
+                 &type_cast_to, &explicit_cv_qualifiers);
       /* The next token should be the closing rparen. */
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);

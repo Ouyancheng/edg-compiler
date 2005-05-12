@@ -8892,7 +8892,8 @@ cv-qualifier).
 }  /* report_missing_type_specifier */
 
 
-void type_name_full(a_type_ptr  *type_ptr,
+void type_name_full(a_boolean   disallow_variably_modified_type,
+                    a_type_ptr  *type_ptr,
                     a_boolean   *explicit_cv_qualifiers)
 /*
 Scan a type-name (see 3.5.5) and set *type_ptr to the type.
@@ -8906,6 +8907,10 @@ The syntax is:
 
 In C++ mode an error is issued if a type definition appears in a type-name
 (for class/struct/union and enum types).
+
+Variably-modified types are normally allowed inside function definitions.
+However, if disallow_variably_modified_type is TRUE, then such types are not
+accepted.
 */
 {
   a_storage_class              storage_class;
@@ -8943,7 +8948,8 @@ In C++ mode an error is issued if a type definition appears in a type-name
   /* Note -- the check for dangling_type_specifier is not relevant here. */
   if (is_abstract_declarator_start()) {
     di_flags = DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED;
-    if (vla_enabled && depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    if (vla_enabled && depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+        !disallow_variably_modified_type) {
       /* Note that int[*] is not allowed, but int(*)[*] is okay.  Therefore
          we turn on DI_VLA_ASTERISK_ALLOWED and check for the error case
          once the scan has been completed. */

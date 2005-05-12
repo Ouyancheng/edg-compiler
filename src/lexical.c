@@ -9990,7 +9990,8 @@ this routine.  Its value is unchanged if no errors are detected.
     if (is_type_templ_arg(arg_ptr)) {
       a_boolean		is_unnamed;
       a_boolean		is_local;
-      type_name(&argument_type);
+      type_name_full(/*disallow_variably_modified_type=*/TRUE, &argument_type,
+                     (a_boolean*)NULL);
       /* Be sure the type does not involve any local or unnamed classes -- only
          externally visible types are allowed, since template classes are
          themselves externally linked. */
