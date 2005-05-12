@@ -9678,7 +9678,10 @@ pos is used to mark the location that carries any diagnostic.
 */
 {
   a_boolean result = FALSE;
-  if (is_incomplete_type(type)) {
+  if (vla_enabled && is_variably_modified_type(type)) {
+    pos_error(ec_vla_not_allowed, pos);
+    result = TRUE;
+  } else if (is_incomplete_type(type)) {
     pos_error(ec_incomplete_type_not_allowed, pos);
     result = TRUE;
   } else if (is_ptr_or_ref_type(type)) {
@@ -9784,9 +9787,12 @@ a normal try.
         }  /* if */
         sym = NULL;
         if (is_abstract_or_real_declarator_start()) {
-          declarator(DI_REAL_DECLARATOR_ALLOWED |
-                       DI_ABSTRACT_DECLARATOR_ALLOWED,
-                     &do_flags, type_ptr,
+          a_decl_flag_set  di_flags = (DI_REAL_DECLARATOR_ALLOWED |
+                                       DI_ABSTRACT_DECLARATOR_ALLOWED);
+          if (vla_enabled) {
+            di_flags |= DI_VLA_ALLOWED;
+          }  /* if */
+          declarator(di_flags, &do_flags, type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL,
                      &locator, &type_ptr, &declarator_ssep,
                      (a_func_info_block_ptr)NULL, &decl_pos_block,
