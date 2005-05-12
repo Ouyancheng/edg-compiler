@@ -8908,9 +8908,9 @@ The syntax is:
 In C++ mode an error is issued if a type definition appears in a type-name
 (for class/struct/union and enum types).
 
-Variably-modified types are normally allowed inside function definitions.
-However, if disallow_variably_modified_type is TRUE, then such types are not
-accepted.
+Variably-modified types are normally allowed inside function definitions when
+vla_enabled is TRUE.  However, if disallow_variably_modified_type is TRUE, then
+such types are not accepted.
 */
 {
   a_storage_class              storage_class;
