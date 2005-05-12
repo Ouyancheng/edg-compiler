@@ -13927,6 +13927,9 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     } else if (is_incomplete_type(incomp_test_type)) {
       /* Cannot throw an incomplete type. */
       error_in_operand(ec_incomplete_type_not_allowed, &operand);
+    } else if (vla_enabled && is_variably_modified_type(throw_type)) {
+      /* Cannot throw a variably-modified type, because can't catch it. */
+      error_in_operand(ec_vla_not_allowed, &operand);
     } else if (is_pointer_type(throw_type)) {
       /* Cannot throw a pointer to incomplete type, except a pointer
          to (possibly cv-qualified) void. */
