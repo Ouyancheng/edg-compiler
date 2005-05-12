@@ -6122,6 +6122,10 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
       error(ec_incomplete_type_not_allowed);
       err = TRUE;
     }  /* if */
+  } else if (vla_enabled && is_variably_modified_type(typeid_type)) {
+    /* typeid of a variable-length array is not allowed. */
+    error(ec_vla_not_allowed);
+    err = TRUE;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = end_pos_curr_token;
