@@ -10728,7 +10728,7 @@ subordinate templates.
          see which of the specializations is a better match. */
       a_symbol_ptr			instance_ct_sym;
       a_template_symbol_supplement_ptr	instance_tssp;
-      an_error_severity			severity = es_warning;
+      an_error_severity			severity = es_error;
       /* The GNU and Microsoft compilers do not diagnose these infractions.
          Reduce the diagnostic to a warning in GNU and MIcrosoft modes. */
       if (microsoft_mode || gpp_mode) severity = es_warning;
