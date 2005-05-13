@@ -9691,9 +9691,14 @@ parameter field of the current block scope, and return a pointer to it.
 }  /* make_handler_parameter */
 
 
-a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type)
+a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type,
+                                        a_boolean  force_static)
 /*
 Make a temporary variable whose type is temp_type.  Return a pointer to it.
+If force_static is TRUE, make the temporary static (otherwise, it will
+be automatic if we're currently inside a function).  This is used in the
+rare cases where the front end proper (as opposed to, say, IL lowering)
+needs to generate an explicit temporary.
 */
 {
   a_variable_ptr  temp_var;
@@ -9705,12 +9710,18 @@ Make a temporary variable whose type is temp_type.  Return a pointer to it.
      However, if the temp is involved in an expression at file scope (within
      a class scope, for instance, or a default argument expression), it
      should be static and be allocated in file scope memory region. */
-  if (curr_il_region_number != file_scope_region_number) {
-    storage_class = (a_storage_class)sc_auto;
-    at_file_scope = FALSE;
-  } else {
+  if (curr_il_region_number == file_scope_region_number) {
     storage_class = (a_storage_class)sc_static;
     at_file_scope = TRUE;
+  } else {
+    /* We're inside a function, so the temporary can be auto, unless
+       we're told to force a static temporary. */
+    at_file_scope = FALSE;
+    if (force_static) {
+      storage_class = (a_storage_class)sc_static;
+    } else {
+      storage_class = (a_storage_class)sc_auto;
+    }  /* if */
   }  /* if */
   /* make_variable/alloc_variable uses the appropriate memory region,
      based on storage class.*/

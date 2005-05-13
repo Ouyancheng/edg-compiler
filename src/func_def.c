@@ -2111,7 +2111,8 @@ operator routine or do bitwise assignment.
               a_targ_size_t    num_elems;
 
               size_t_type = integer_type(targ_size_t_int_kind);
-              temp_var = alloc_temporary_variable(size_t_type);
+              temp_var = alloc_temporary_variable(size_t_type,
+                                                  /*force_static=*/FALSE);
               /* Make "tmp = 0;" */
               temp_node = var_lvalue_expr(temp_var);
               sp = sp->next =

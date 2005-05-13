@@ -9882,7 +9882,9 @@ The given constant has nonscalar type (presumably the result of a compound
 literal).  Make the given operand a variable initialized with that constant.
 */
 {
-  a_variable_ptr temp_var = alloc_temporary_variable(constant->type);
+  /* Use a static temporary so it can be statically initialized. */
+  a_variable_ptr temp_var = alloc_temporary_variable(constant->type,
+                                                     /*force_static=*/TRUE);
   temp_var->is_compound_literal = TRUE;
   temp_var->init_kind = (an_init_kind)initk_static;
   temp_var->initializer.constant = constant;
@@ -9903,9 +9905,9 @@ operand is an array rvalue.  Convert it to an lvalue for the array.
   check_assertion(is_an_rvalue(operand) && is_array_type(operand->type));
   orig_operand = *operand;
   if (!is_expression_operand(operand)) {
-    /* In GNU C mode, compound literals can really be constants. */
+    /* In GNU mode, compound literals can really be constants. */
     a_constant_ptr  constant;
-    check_assertion(gcc_mode && is_constant_operand(operand));
+    check_assertion(gnu_mode && is_constant_operand(operand));
     constant = alloc_unshared_constant(&operand->variant.constant);
     make_lvalue_operand_from_compound_constant(constant, operand);
   } else {

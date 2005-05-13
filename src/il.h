@@ -884,7 +884,8 @@ extern a_variable_ptr make_variable(a_type_ptr      type_ptr,
 
 extern a_variable_ptr make_handler_parameter(a_type_ptr  type_ptr);
 
-extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type);
+extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type,
+                                               a_boolean  force_static);
 
 extern a_field_ptr next_initializable_field(a_field_ptr field);
 

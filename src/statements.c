@@ -5658,7 +5658,9 @@ See also 3.6.6.4.
         eval->expr = return_expr;
         return_expr = NULL;
       } else {
-        a_variable_ptr    tmp_var = alloc_temporary_variable(return_type);
+        a_variable_ptr    tmp_var =
+                              alloc_temporary_variable(return_type,
+                                                       /*force_static=*/FALSE);
         an_expr_node_ptr  lhs = var_lvalue_expr(tmp_var);
         eval->expr = make_assignment_expr(
                           lhs, which_binary_operator(tok_assign, return_type),
