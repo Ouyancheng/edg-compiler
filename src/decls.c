@@ -5303,10 +5303,10 @@ declaration.
          statement indicating where in the executable stream this declaration
          appears.  */
       if (depth_stmt_stack < 0) {
-        /* Some (unlikely) error situations can cause us to get here outside a
-           function scope: for such cases we cannot actually add a statement
-           (there is no active statement stack). */
-        check_assertion(total_errors > 0);
+        /* We can get here with a namespace scope declaration of the form
+             void (*pf)(int[*][*]);
+           Some (unlikely) error situations can also cause us to get here. */
+        check_assertion(total_errors > 0 || !is_vla_type(type_ptr));
       } else {
         a_statement_ptr vla_stmt;
 
