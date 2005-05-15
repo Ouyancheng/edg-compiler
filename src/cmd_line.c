@@ -4581,7 +4581,7 @@ variables declared in cmd_line.h.
   opt_ind = 1;
   last_defs_from_cmd_line = NULL;
   optchar = NULL;
-  memzero(option_kind_used, sizeof(option_kind_used));
+  memzero((a_void_ptr)option_kind_used, sizeof(option_kind_used));
   old_style_preprocessing = FALSE;
 #if COMPILE_MULTIPLE_SOURCE_FILES || COMPILE_MULTIPLE_TRANSLATION_UNITS
   argc_file_list = 0;

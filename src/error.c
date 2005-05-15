@@ -4749,10 +4749,10 @@ line processing is done.
                                   DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE;
   error_message_head = NULL;
   /* Zeroing this array causes it to be set to es_default. */
-  memzero(default_severity_for_error_code,
+  memzero((a_void_ptr)default_severity_for_error_code,
            sizeof(default_severity_for_error_code));
   /* Zeroing this array causes it to be set to es_default. */
-  memzero(current_severity_for_error_code,
+  memzero((a_void_ptr)current_severity_for_error_code,
            sizeof(current_severity_for_error_code));
 }  /* error_early_init */
 

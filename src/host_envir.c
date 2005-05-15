@@ -3470,7 +3470,8 @@ This is done before command line processing.
   in_front_end = FALSE;
   pragma_define_type_info_is_required = PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED;
   use_predefined_macro_file = DEFAULT_USE_PREDEFINED_MACRO_FILE;
-  memzero(predef_macro_mode_values, sizeof(predef_macro_mode_values));
+  memzero((a_void_ptr)predef_macro_mode_values,
+	  sizeof(predef_macro_mode_values));
 #if MAKE_FRONT_END_CALLABLE
   exit_status = 0;
 #endif /* MAKE_FRONT_END_CALLABLE */
