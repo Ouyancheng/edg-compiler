@@ -3636,6 +3636,11 @@ for exact pointer equality.
               /* Check that the bounds match. */
               if (identical_array_type_level(type_1, type_2)) {
                 compat = TRUE;
+              } else if (vla_enabled &&
+                         (array_is_vla(type_1) || array_is_vla(type_2))) {
+                /* One or the other is a VLA, which is compatible with any
+                   array of the same element type. */
+                compat = TRUE;
               } else if (C_mode() || top_level_for_redeclaration) {
                 /* Check whether one of the arrays has unknown bounds.  Note
                    that in C++ this produces "compatibility" only for top-level
@@ -3649,11 +3654,6 @@ for exact pointer equality.
                   /* One or the other is an unknown-bound array type, which is
                      compatible with any known-bound array of the same element
                      type. */
-                  compat = TRUE;
-                } else if (vla_enabled &&
-                           (array_is_vla(type_1) || array_is_vla(type_2))) {
-                  /* One or the other is a VLA, which is compatible with any
-                     array of the same element type. */
                   compat = TRUE;
                 }  /* if */
               }  /* if */
