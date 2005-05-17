@@ -7467,8 +7467,8 @@ static a_boolean ttt_is_nonlocal_variably_modified_type(
                                        a_boolean   *force_end_of_traversal)
 /*
 Return TRUE if type_ptr is a VLA not associated with the innermost function
-scope (if there is no such scope, any VLA type is a "nonlocal variable-modified
-type).
+scope (if there is no such scope, any VLA type is a "nonlocal variably
+modified type").
 */
 {
   a_boolean  found = FALSE;
@@ -7479,6 +7479,26 @@ type).
   }  /* if */
   return found;
 }  /* ttt_is_nonlocal_variably_modified_type */    
+
+
+static a_boolean ttt_type_has_side_effects(a_type_ptr  type_ptr,
+                                           a_boolean   *force_end_of_traversal)
+/*
+Return TRUE if type_ptr is a VLA type with a dimension expression that has a
+side effect.
+*/
+{
+  a_boolean  found = FALSE;
+
+  if (is_array(type_ptr) && array_is_vla(type_ptr)) {
+    a_vla_dimension_ptr  vla_dim = find_vla_dimension(type_ptr);
+    if (vla_dim->dimension_expr != NULL &&
+        node_has_side_effects(vla_dim->dimension_expr, (a_boolean*)NULL)) {
+      *force_end_of_traversal = found = TRUE;
+    }  /* if */
+  }  /* if */
+  return found;
+}  /* ttt_type_has_side_effects */    
 
 #if !STANDALONE_UTILITY_PROGRAM
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -8280,7 +8300,7 @@ a_boolean is_variably_modified_type(a_type_ptr  tp)
 Return TRUE if tp is a "variably modified type", which includes VLA types,
 pointers to VLA types, arrays whose element types are variably modified, and
 typedefs referring to variably modified types.  Note that parameter types
-are not considered to make a function type "variably-modified" in C, and
+are not considered to make a function type "variably modified" in C, and
 that in C++ we do not allow VLAs in function signatures at all (and hence
 neither parameter types nor exception specifications need to be searched
 for VLAs).
@@ -8315,6 +8335,30 @@ types or exception specification types.)
   }  /* if */
   return result;
 }  /* is_nonlocal_variably_modified_type */
+
+
+a_boolean type_has_side_effects(a_type_ptr  tp)
+/*
+Return TRUE if tp is a type which causes a side effect (e.g., when it appears
+in a cast).  Currently, this is the case only for certain variably modified
+types containing a VLA component with a dimension expression that has a side
+effect.  Note that referring to a typedef whose underlying type has such side
+effects does not itself create a side effect at the point of reference.
+*/
+{
+  a_type_tree_traversal_flag_set  tt_flags = TTT_RETURN_TYPE |
+                                             TTT_STOP_AT_TYPEDEFS;
+  a_boolean                       result = FALSE;
+
+  if (vla_enabled && innermost_function_scope != NULL) {
+    if (C_mode()) {
+      /* C++ modes do not allow VLAs in parameters, but C modes do. */
+      tt_flags |= TTT_PARAM_TYPES;
+    }  /* if */
+    result = traverse_type_tree(tp, ttt_type_has_side_effects, tt_flags);
+  }  /* if */
+  return result;
+}  /* type_has_side_effects */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

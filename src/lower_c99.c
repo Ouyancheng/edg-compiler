@@ -414,7 +414,7 @@ variables also make indexing into the VLA arrays more efficient.
           tp = tp->variant.typeref.type;
         }  /* if */
       } else {
-        /* Since tp was a variably-modified type, the only remaining case is
+        /* Since tp was a variably modified type, the only remaining case is
            tk_array.  Top-level non-VLA array components can be skipped (e.g.,
            "int[2][3][n][m][6]" can be handled as "int[n][m][6]". */
         check_assertion(tp->kind == (a_type_kind)tk_array);
@@ -2928,11 +2928,11 @@ in C99 mode to represent a compound literal.
                      &keep_dynamic_init,
                      (a_constant **)NULL);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-  /* After lowering, the type will no longer be variably-modified. */
+  /* After lowering, the type will no longer be variably modified. */
   var->has_variably_modified_type = FALSE;
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
   if (var->has_variably_modified_type) {
-    /* If the variable has variably-modified type, put out an stmk_vla_decl
+    /* If the variable has variably modified type, put out an stmk_vla_decl
        for it. */
     a_statement_ptr stmk_vla_decl_stmt =
                               alloc_statement((a_statement_kind)stmk_vla_decl);

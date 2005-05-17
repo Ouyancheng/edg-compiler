@@ -11017,12 +11017,14 @@ context doesn't care what the type is).
   /* In many cases, the expression for an lvalue could simply be treated
      as the rvalue address of the lvalue without any rewriting.  However, that
      doesn't work right for (a) bit field lvalues, and (b) register variables
-     (the address_taken flag was not set on those variables).  And such
-     things can appear under lvalue-returning "?" and "," operations.
-     So eliminate the entire expression if it has no side effects, and
-     otherwise go down through the tree and eliminate subtrees which
-     have no side effects, including the troublesome cases listed above. */
-  if (!node_has_side_effects(expr, (a_boolean *)NULL)) {
+     (the address_taken flag was not set on those variables).  And such things
+     can appear under lvalue-returning "?" and "," operations.  So eliminate
+     the entire expression if it has no side effects and if it does not have a
+     type that may require VLA-related quantities to be computed.  Otherwise,
+     go down through the tree and eliminate subtrees which have no side
+     effects, including the troublesome cases listed above. */
+  if (!node_has_side_effects(expr, (a_boolean *)NULL) &&
+      !is_variably_modified_type(expr_type)) {
     /* No side effects, so replace the expression tree with one that casts
        zero to the right pointer type. */
     make_zero_of_proper_type(expr_type, &zero_con);
@@ -14156,7 +14158,7 @@ Do IL lowering of the indicated statement and everything under it.
         break;
       case stmk_vla_decl:
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-        /* A variably-modified typedef or variable.  If it is a VLA variable,
+        /* A variably modified typedef or variable.  If it is a VLA variable,
            we must allocate memory for it. */
         lower_vla_decl(statement);
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */

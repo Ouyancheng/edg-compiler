@@ -13352,6 +13352,8 @@ first_op_volatile_test:
            is_floating_type(node->variant.operation.operands->type))) {
         /* Floating-point conversions can cause side effects in C99. */
         goto c99_float_operations;
+      } else if (vla_enabled && type_has_side_effects(node->type)) {
+        has_side_effects = TRUE;
       }  /* if */
       break;
     case eok_fnegate:
