@@ -3173,6 +3173,7 @@ be issued at the given position.
     /* Either the current declaration has a DLL interface, or the routine was
        previously declared with a DLL interface. */
     a_boolean  new_dll_export = FALSE, clear_dll_import = FALSE;
+    a_boolean  freeze_dll_import = FALSE;
     if (routine->is_inline) is_inline = TRUE;
     if (new_dll_flags != 0) {
       if (routine->source_corresp.name_linkage ==
@@ -3185,14 +3186,27 @@ be issued at the given position.
     } else if (!is_inline) {
       /* The current declaration has no DLL interface, but a previous
          declaration did.  A previous dllexport is preserved, but a previous
-         dllimport is dropped. */
+         dllimport is dropped.  Exceptions appear to be block-extern
+         declarations and out-of-class definitions of members of class
+         templates. */
       if ((old_dll_flags & DM_DLLIMPORT) != 0) {
-        clear_dll_import = TRUE;
-        if (microsoft_version <= 1200 || is_definition) {
-          /* If the current declaration is a definition (or if we're emulating
-             an older Microsoft version), dllimport is implicitly replaced by
-             dllexport. */
-          new_dll_flags = DM_DLLEXPORT;
+        if (innermost_function_scope != NULL ||
+            (routine->is_prototype_instantiation && is_definition &&
+             routine->source_corresp.is_class_member)) {
+          /* Block-extern declarations and out-of-class definitions of members
+             of class templates retain the dllimport attribute specified on
+             the original declaration.  Setting freeze_dll_import ensurs the
+             dllimport attribute won't be discarded in what follows. */
+          freeze_dll_import = TRUE;
+          new_dll_flags = DM_DLLIMPORT;
+        } else {
+          clear_dll_import = TRUE;
+          if (microsoft_version <= 1200 || is_definition) {
+            /* If the current declaration is a definition (or if we're
+               emulating an older Microsoft version), dllimport is
+               implicitly replaced by dllexport. */
+            new_dll_flags = DM_DLLEXPORT;
+          }  /* if */
         }  /* if */
       } else {
         /* Preserve the dllexport attribute of the previous declaration. */
@@ -3202,8 +3216,11 @@ be issued at the given position.
     if (old_dll_flags == new_dll_flags) {
       /* This is a redeclaration and it is compatible with the previous
          declaration: Nothing to be done.  (It could also be a full
-         instantiation compatible with a prior partial instantiation.) */
-      check_assertion(is_redecl || routine->is_template_function);
+         instantiation compatible with a prior partial instantiation.)
+         The "compatibility" may be a result of carrying over the dll
+         attribute on a block-extern declaration. */
+      check_assertion(is_redecl || routine->is_template_function ||
+                      innermost_function_scope != NULL);
     } else if (old_dll_flags == 0) {
       /* This is the first time a DLL interface is specified: If there was a
          previous declaration, issue an error. */
@@ -3219,7 +3236,7 @@ be issued at the given position.
            should only be used for inlining.  It should never be spilled. */
         routine->suppress_inline_body = TRUE;
       }  /* if */
-    } else {
+    } else if (!freeze_dll_import) {
       /* A declaration that conflicts with a previous declaration: Issue a
          warning and ignore any dllimport attribute. */
       an_error_code  err_code;
@@ -3415,6 +3432,7 @@ position. */
     /* Either the current declaration has a DLL interface, or the variable was
        previously declared with a DLL interface. */
     a_boolean  new_dll_export = FALSE, clear_dll_import = FALSE;
+    a_boolean  freeze_dll_import = FALSE;
     if (var->source_corresp.is_class_member) {
       /* A static data member. */
       if (is_definition &&
@@ -3439,14 +3457,23 @@ position. */
     } else {
       /* The current declaration has no DLL interface, but a previous
          declaration did.  A previous dllexport is preserved, but a previous
-         dllimport is dropped. */
+         dllimport is dropped (except if the current declaration is in block
+         scope). */
       if (old_dll_flags & DM_DLLIMPORT) {
-        clear_dll_import = TRUE;
-        if (microsoft_version <= 1200 || is_definition) {
-          /* If the current declaration is a definition (or if we're emulating
-             an older Microsoft version), dllimport is implicitly replaced by
-             dllexport. */
-          new_dll_flags = DM_DLLEXPORT;
+        if (innermost_function_scope != NULL) {
+          /* A block-extern declaration: Carry over the dllimport attribute.
+             Setting freeze_dll_import ensurs the dllimport attribute won't
+             be discarded in what follows. */
+          freeze_dll_import = TRUE;
+          new_dll_flags = DM_DLLIMPORT;
+        } else {
+          clear_dll_import = TRUE;
+          if (microsoft_version <= 1200 || is_definition) {
+            /* If the current declaration is a definition (or if we're
+               emulating an older Microsoft version), dllimport is implicitly
+               replaced by dllexport. */
+            new_dll_flags = DM_DLLEXPORT;
+          }  /* if */
         }  /* if */
       } else {
         /* Preserve the dllexport attribute of the previous declaration. */
@@ -3456,8 +3483,11 @@ position. */
     if (old_dll_flags == new_dll_flags) {
       /* This is a redeclaration and it is compatible with the previous
          declaration: Nothing to be done.  (It could also be a full
-         instantiation compatible with a prior partial instantiation.) */
-      check_assertion(is_redecl || var->is_template_static_data_member);
+         instantiation compatible with a prior partial instantiation.)
+         The "compatibility" may be a result of carrying over the dll
+         attribute on a block-extern declaration. */
+      check_assertion(is_redecl || var->is_template_static_data_member ||
+                      innermost_function_scope != NULL);
     } else if (old_dll_flags == 0) {
       /* This is the first time a DLL interface is specified: If there was a
          previous declaration, issue an error. */

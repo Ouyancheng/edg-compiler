@@ -739,8 +739,12 @@ template class, its DLL interface may need to be adjusted implicitly.
   if (new_dll_flags != 0) {
     a_class_type_supplement_ptr  
                ctsp = class_type->variant.class_struct_union.extra_info;
-    if (is_incomplete_type(class_type)) {
-      /* Apply the new flag values to the class type. */
+    if (is_incomplete_type(class_type) ||
+        (class_type->variant.class_struct_union.is_nonreal_class &&
+         !class_type->variant.class_struct_union.is_prototype_instantiation)) {
+      /* Apply the new flag values to the class type only.  (Note that nonreal
+         nonprototype template instantiations are marked as "complete", but
+         that they do not actually have a definition.) */
       ctsp->decl_modifiers &= ~DM_DLLFLAGS;
       ctsp->decl_modifiers |= new_dll_flags;
     } else if (explicit_inst || adjust_template_base) {
@@ -777,18 +781,44 @@ template class, its DLL interface may need to be adjusted implicitly.
         ctsp->decl_modifiers |= new_dll_flags;
         for (; rp != NULL; rp = rp->next) {
           if (!rp->is_specialized) {
-            check_assertion((rp->decl_modifiers & DM_DLLFLAGS) == 0);
-            update_dll_info_for_routine(
+            if ((rp->decl_modifiers & DM_DLLFLAGS) != 0) {
+              /* This can only happen in situations like the following:
+                   template<class T> struct B {
+                      __declspec(dllexport) void f();
+                   };
+                   struct __declspec(dllexport) D: B<int> ();
+                 Microsoft compilers raise an error on such constructs and
+                 we follow suit. */
+              check_assertion(adjust_template_base);
+              pos_sy_error(
+                    ec_class_and_inherited_member_instance_have_dll_interface,
+                    err_pos, symbol_for(rp));
+            } else {
+              update_dll_info_for_routine(
                         rp, new_dll_flags, (a_boolean)rp->is_inline,
                         /*is_redecl=*/FALSE, /*is_definition=*/FALSE, err_pos);
+            }  /* if */
           }  /* if */
         }  /* for */
         for (; vp != NULL; vp = vp->next) {
           if (!vp->is_specialized) {
-            check_assertion((vp->decl_modifiers & DM_DLLFLAGS) == 0);
-            update_dll_info_for_variable(
+            if ((vp->decl_modifiers & DM_DLLFLAGS) != 0) {
+              /* This can only happen in situations like the following:
+                   template<class T> struct B {
+                      __declspec(dllexport) static int s;
+                   };
+                   struct __declspec(dllexport) D: B<int> ();
+                 Microsoft compilers raise an error on such constructs and
+                 we follow suit. */
+              check_assertion(adjust_template_base);
+              pos_sy_error(
+                    ec_class_and_inherited_member_instance_have_dll_interface,
+                    err_pos, symbol_for(vp));
+            } else {
+              update_dll_info_for_variable(
                                        vp, new_dll_flags, /*is_redecl=*/FALSE,
                                        /*is_definition=*/FALSE, err_pos);
+            }  /* if */
           }  /* if */
         }  /* for */
 #if DO_IL_LOWERING
