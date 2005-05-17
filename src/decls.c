@@ -12804,6 +12804,7 @@ continue_with_declaration:
                been declared with "[*]".  (Had this been a definition, we
                would have kept a record of the expressions through a call to
                process_vla_parameters.) */
+            check_assertion(C_mode() || total_errors != 0);
             free_vla_fixup_list(func_info.vla_fixup_list);
             func_info.vla_fixup_list = NULL;
           }  /* if */
