@@ -909,7 +909,7 @@ stmt is a stmk_set_vla_size statement.  Create a new variable initialized with
 the dimension expression associated with this statement.  The expression is
 updated to include the initialization of the variable.  This routine is only
 used by configurations that do not lower VLAs.  It is particularly useful for
-the C-generating back end to avoid duplicating side-effect of VLA bounds if
+the C-generating back end to avoid duplicating side-effects of VLA bounds if
 the type of a VLA variable appears multiple times in the lowered IL.
 */
 {
