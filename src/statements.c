@@ -6949,21 +6949,17 @@ e.g., ({ ... }).
   if (explicit_return_type) {
     struct_stmt_stack[depth_stmt_stack].rout_type_explicitly_specified = TRUE;
   }  /* if */
-  if (at_function_level || is_function_try_block) {
-    if (vla_enabled) {
-      /* Generate an stmk_set_vla_size for each vla_dimension appearing in
-         function scope.  At this point, the list will include only
-         declarations that appeared in the function prototype.  (All other
-         cases are handled in array_declarator when the VLA is parsed.) */
-      a_vla_dimension_ptr  vdp;
-      check_assertion(decl_scope_level >= depth_innermost_function_scope &&
-                      depth_innermost_function_scope != NO_SCOPE_DEPTH);
-      vdp = scope_stack[depth_innermost_function_scope].il_scope
-                                                             ->vla_dimensions;
-      for (; vdp != NULL; vdp = vdp->next) {
-        set_vla_size_statement(vdp, &pos_curr_token);
-      }  /* for */
-    }  /* if */
+  if (at_function_level && C_mode() && vla_enabled) {
+    /* Generate an stmk_set_vla_size for each vla_dimension appearing in
+       function scope.  At this point, the list will include only
+       declarations that appeared in the function prototype.  (All other
+       cases are handled in array_declarator when the VLA is parsed.) */
+    a_vla_dimension_ptr  vdp;
+    check_assertion(decl_scope_level == depth_innermost_function_scope);
+    vdp = scope_stack[decl_scope_level].il_scope->vla_dimensions;
+    for (; vdp != NULL; vdp = vdp->next) {
+      set_vla_size_statement(vdp, &pos_curr_token);
+    }  /* for */
   }  /* if */
   /* Clear the entry for "else" in the stop tokens set.  Without this,
      an else encountered where a statement is expected could cause an
