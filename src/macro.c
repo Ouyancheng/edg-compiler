@@ -424,7 +424,7 @@ ensure_macro_buffer_space.
        the already-compacted space as a result of rescanning), but the time
        saved makes this a good tradeoff. */
     (void)memcpy(new_macro_buffer, macro_buffer,
-                 num_compacted_macro_buffer_chars);
+                 size_t_arg(num_compacted_macro_buffer_chars));
     adjust_curr_source_line_structure_after_realloc(macro_buffer,
                            macro_buffer + num_compacted_macro_buffer_chars - 1,
                            new_macro_buffer,
@@ -511,7 +511,8 @@ ensure_macro_buffer_space.
                                  next_avail_in_macro_buffer + 1));
     num_chars_to_copy =
                   next_avail_in_macro_buffer - macro_buffer_region_in_progress;
-    (void)memcpy(dst, macro_buffer_region_in_progress, num_chars_to_copy);
+    (void)memcpy(dst, macro_buffer_region_in_progress,
+                 size_t_arg(num_chars_to_copy));
     adjust_curr_source_line_structure_after_realloc(
                                           macro_buffer_region_in_progress,
                                           next_avail_in_macro_buffer, dst,
