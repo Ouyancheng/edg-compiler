@@ -1006,6 +1006,34 @@ lower_vla_dimensions).
 
 #endif /* DO_IL_LOWERING || DO_C99_IL_LOWERING */
 #if DO_C99_IL_LOWERING
+#if LOWER_COMPLEX || LOWER_FIXED_POINT
+
+static char* select_name_from_float_kind(a_float_kind  fkind,
+                                         char          *names[3])
+/*
+Return one of the three given strings depending on the given floating-point
+precision.
+*/
+{
+  char  *result;
+
+  switch (fkind) {
+    case fk_float:
+      result = names[0];
+      break;
+    case fk_double:
+      result = names[1];
+      break;
+    case fk_long_double:
+      result = names[2];
+      break;
+    default:
+      unexpected_condition_str("invalid floating-point kind");
+  }  /* switch */
+  return result;
+}  /* select_name_from_float_kind */
+
+#endif /* LOWER_COMPLEX || LOWER_FIXED_POINT */
 #if LOWER_COMPLEX
 
 /* Pointers to lowered versions of complex types, once allocated. */
@@ -1129,32 +1157,6 @@ static a_routine_ptr  cast_clong_double_to_long_double;
 static a_routine_ptr  cast_cfloat_to_ifloat;
 static a_routine_ptr  cast_cdouble_to_idouble;
 static a_routine_ptr  cast_clong_double_to_ilong_double;
-
-
-static char* select_name_from_float_kind(a_float_kind  fkind,
-                                         char          *names[3])
-/*
-Return one of the three given strings depending on the given floating-point
-precision.
-*/
-{
-  char  *result;
-
-  switch (fkind) {
-    case fk_float:
-      result = names[0];
-      break;
-    case fk_double:
-      result = names[1];
-      break;
-    case fk_long_double:
-      result = names[2];
-      break;
-    default:
-      unexpected_condition_str("invalid floating-point kind");
-  }  /* switch */
-  return result;
-}  /* select_name_from_float_kind */
 
 
 /* Names of the complex negate runtime routines. */

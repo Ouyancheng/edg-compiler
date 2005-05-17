@@ -1,5 +1,11 @@
 Version 3.6
 
+5/17/05  Build errors when LOWER_COMPLEX is FALSE and LOWER_FIXED_POINT is TRUE
+
+In some configurations with C99 lowering enabled, the front end did not build
+correctly due to link errors.  This was particularly the case when
+LOWER_COMPLEX is FALSE and LOWER_FIXED_POINT is TRUE.  Now fixed.
+
 5/12/05  Microsoft and GNU C++ compatibility: partial specialization declared
          too late
 
