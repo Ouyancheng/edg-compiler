@@ -953,8 +953,7 @@ specification is handled later (see check_exception_specification).
       estp->type = error_type();
     } else {
       type_name(&estp->type);
-      if (vla_enabled && !is_error_type(estp->type) &&
-          is_variably_modified_type(estp->type)) {
+      if (vla_enabled && is_variably_modified_type(estp->type)) {
         pos_error(ec_vla_not_allowed, &type_pos);
         estp->type = error_type();
       }  /* if */
