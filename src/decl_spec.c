@@ -7672,7 +7672,7 @@ exit_loop:
          to a variably-modified type in the enclosing function.  We cannot
          accept this since it implies that the local class accesses local
          storage in the enclosing function scope: Issue an error. */
-      error(ec_vla_not_allowed);
+      error(ec_nonlocal_vla_not_allowed);
       *type_ptr = error_type();
       err = TRUE;
 #endif /* VLA_ALLOWED */
