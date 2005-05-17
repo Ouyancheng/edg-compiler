@@ -1448,7 +1448,7 @@ ec_dll_interface_conflict_none_assumed;;"dllexport/dllimport conflict with %nod;
 ec_bad_nonstd_anonymous_union_field;;"invalid member for anonymous member class -- class %t has a disallowed member function"
 ec_nonstd_reinterpret_cast;;"nonstandard reinterpret_cast"
 ec_positional_format_specifier_zero;;"positional format specifier cannot be zero"
-ec_nonlocal_vla_not_allowed;;"a local class cannot reference a variable-length array type from the enclosing function scope"
+ec_nonlocal_vla_not_allowed;;"a local class cannot reference a variable-length array type from an enclosing function"
 ec_class_and_inherited_member_instance_have_dll_interface;;"member %nd already has an explicit dllexport/dllimport specifier"
 ###############################################################################
 #                                                             \  ___  /       #
