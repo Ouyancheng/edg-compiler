@@ -8497,7 +8497,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     clear_decl_modifiers_block(&decl_modifiers);
     decl_modifiers.flags = templ_rout->decl_modifiers;
     update_routine_decl_modifiers(rp, &decl_modifiers, &locator_position,
-                                  /*is_redecl=*/FALSE, templ_rout->defined,
+                                  /*is_redecl=*/FALSE,
+                                  (a_boolean)templ_rout->defined,
                                   (a_boolean)rp->is_inline);
     }
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -16099,7 +16100,8 @@ that follows.
              declarations in diagnostics).  Since record_symbol_declaration
              may already have updated the position, we must temporarily
              restore the previous value. */
-          a_source_position  saved_sym_pos = sym->decl_position;
+          a_source_position  saved_sym_pos;
+          saved_sym_pos = sym->decl_position;
           sym->decl_position = prev_sym_pos;
           update_variable_decl_modifiers(vp, &decl_modifiers,
                                          &locator.source_position,
@@ -16197,7 +16199,8 @@ that follows.
              declarations in diagnostics).  Since record_symbol_declaration
              may already have updated the position, we must temporarily
              restore the previous value. */
-          a_source_position  saved_sym_pos = sym->decl_position;
+          a_source_position  saved_sym_pos;
+          saved_sym_pos = sym->decl_position;
           sym->decl_position = prev_sym_pos;
           update_routine_decl_modifiers(rp, &decl_modifiers,
                                         &locator.source_position,
