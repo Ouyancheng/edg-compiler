@@ -3499,7 +3499,7 @@ position. */
       if ((new_dll_flags & DM_DLLEXPORT) != 0) {
         new_dll_export = TRUE;
       }  /* if */
-    } else {
+    } else if (!freeze_dll_import) {
       /* A declaration that conflicts with a previous declaration: Issue a
          warning and ignore any dllimport attribute. */
       an_error_code  err_code;
