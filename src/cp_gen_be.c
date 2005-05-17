@@ -10251,12 +10251,13 @@ when possible.
                  sun_is_generated_code_target &&
                  has_name_before_mangling(init_entity_type)) {
         /* The Sun compiler will not accept an old-style cast as the object
-           expression in a function-notation call to an overloaded operator
+           expression in a operator-notation call to an overloaded operator
            member function -- e.g., "((S)x) *= 2", where the "*=" is
-           overloaded by a member function of S -- but it does accept
-           functional-notation casts in such contexts.  To make sure that we
-           avoid any declaration/expression ambiguity, we surround the cast
-           with parentheses, which cannot be present in a declaration. */
+           overloaded by a member function of S -- so we generate a
+           functional-notation cast in this context.  To make sure that we
+           avoid any declaration/expression ambiguity resulting from the
+           functional-notation cast, we surround it with parentheses, which
+           cannot be present in those positions in a declaration. */
         write_tok_ch('(');
         gen_type_name(init_entity_type);
       } else {
