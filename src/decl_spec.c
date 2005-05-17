@@ -779,8 +779,8 @@ template class, its DLL interface may need to be adjusted implicitly.
           if (!rp->is_specialized) {
             check_assertion((rp->decl_modifiers & DM_DLLFLAGS) == 0);
             update_dll_info_for_routine(
-                        rp, new_dll_flags, rp->is_inline, /*is_redecl=*/FALSE,
-                        /*is_definition=*/FALSE, err_pos);
+                        rp, new_dll_flags, (a_boolean)rp->is_inline,
+                        /*is_redecl=*/FALSE, /*is_definition=*/FALSE, err_pos);
           }  /* if */
         }  /* for */
         for (; vp != NULL; vp = vp->next) {
