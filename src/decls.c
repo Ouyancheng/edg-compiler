@@ -12768,12 +12768,18 @@ continue_with_declaration:
         /* A function declaration with no body. */
         if (vla_enabled) {
           if (func_info.vla_fixup_list != NULL) {
-            /* Throw away VLA info created for the function prototype. */
+            /* Throw away VLA info created for the function prototype.  By
+               doing this we discard the details of the VLAs' dimension
+               expressions.  The type of those VLAs is then "as if" they had
+               been declared with "[*]".  (Had this been a definition, we
+               would have kept a record of the expressions through a call to
+               process_vla_parameters.) */
             free_vla_fixup_list(func_info.vla_fixup_list);
             func_info.vla_fixup_list = NULL;
           }  /* if */
-          /* A function declaration at function or block scope. */
           if (is_variably_modified_type(local_type_ptr)) {
+            /* This can only occur when a block-extern function declaration
+               has a variably-modified return type. */
             pos_error(ec_variably_modified_type_not_allowed,
                       &locator.source_position);
           }  /* if */
