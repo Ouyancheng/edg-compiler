@@ -445,6 +445,13 @@ extern int fileno(FILE *);
 #if ABI_COMPATIBILITY_VERSION >= 306
 /*lint -esym(769,ec_cl_vla_option_only_in_C)*/
 #endif /* ABI_COMPATIBILITY_VERSION >= 306 */
+#if DO_IL_LOWERING || DO_C99_IL_LOWERING
+#if !defined(LOWER_COMPLEX) && !defined(LOWER_VARIABLE_LENGTH_ARRAY) && \
+    !defined(LOWER_FIXED_POINT)
+/*lint -esym(759,make_prototyped_runtime_call)*/
+/*lint -esym(765,make_prototyped_runtime_call)*/
+#endif /* !defined(LOWER_COMPLEX) && ... */
+#endif /* DO_IL_LOWERING || DO_C99_IL_LOWERING */
 
 
 /******************************************************************************
