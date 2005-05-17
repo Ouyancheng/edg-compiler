@@ -5045,16 +5045,16 @@ Display the indicated vla_dimension entry.
     disp_ptr("original_dimension", (char *)ptr->original_dimension,
              iek_vla_dimension);
   }  /* if */
+  if (ptr->in_prototype_scope) {
+    disp_boolean("in_prototype_scope", TRUE);
+  }  /* if */
+  disp_source_position("position", &ptr->position);
 #if DO_IL_LOWERING && !LOWER_VARIABLE_LENGTH_ARRAYS
   if (ptr->dimension_variable != NULL) {
     disp_ptr("dimension_variable", (char *)ptr->dimension_variable,
              iek_variable);
   }  /* if */
 #endif /* DO_IL_LOWERING && !LOWER_VARIABLE_LENGTH_ARRAYS */
-  if (ptr->in_prototype_scope) {
-    disp_boolean("in_prototype_scope", TRUE);
-  }  /* if */
-  disp_source_position("position", &ptr->position);
 }  /* disp_vla_dimension */
 
 #if DO_IL_LOWERING && IA64_ABI
