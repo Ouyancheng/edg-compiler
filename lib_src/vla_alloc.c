@@ -194,8 +194,12 @@ point to that storage.
   ptrdiff_t             alloc_idx, padding;
   a_vla_allocation_ptr  allocation;
   
-  if (n_bytes <= 0) {
-    __abort_execution(ec_nonpositive_vla_size);
+  if (n_bytes == 0) {
+    /* If a zero-length array is requested, allocate a single byte of
+       storage. */
+    n_bytes = 1;
+  } else if (n_bytes < 0) {
+    __abort_execution(ec_negative_vla_size);
   }  /* if */
   padding = MOST_STRICT_ALIGNMENT - n_bytes % MOST_STRICT_ALIGNMENT;
   if (padding != MOST_STRICT_ALIGNMENT) {

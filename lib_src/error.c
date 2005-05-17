@@ -55,8 +55,8 @@ Return the string associated with the specified error code.
     case ec_terminate_called_more_than_once:
       s = "terminate() called itself recursively";
       break;
-    case ec_nonpositive_vla_size:
-      s = "nonpositive size for variable-length array";
+    case ec_negative_vla_size:
+      s = "negative size for variable-length array";
       break;
     case ec_vla_allocation_failed:
       s = "VLA allocation failed";

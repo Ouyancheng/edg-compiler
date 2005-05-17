@@ -1,5 +1,12 @@
 Version 3.6
 
+5/17/05  Zero-length VLAs supported
+
+When the front end lowers VLA operations (i.e., when the __vla_alloc
+runtime routine is called to allocate VLAs), the runtime required the VLA
+size to be positive.  The runtime now supports zero-length VLAs.  They are
+treated as if they had a size of 1 for allocation purposes.
+
 5/4/05   Support for VLAs in exception handling
 
 VLAs are now supported in some C++ modes.  As a result, the exception handling
