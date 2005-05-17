@@ -5272,7 +5272,7 @@ is not passed through).
                                           internal_try.catch_expr = catch_expr;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   return internal_try_node;
-}  /* insert_internal_try_block */
+}  /* make_internal_try_expr */
 
 
 #if DO_FULL_PORTABLE_EH_LOWERING
