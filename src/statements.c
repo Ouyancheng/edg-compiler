@@ -6955,10 +6955,11 @@ e.g., ({ ... }).
          function scope.  At this point, the list will include only
          declarations that appeared in the function prototype.  (All other
          cases are handled in array_declarator when the VLA is parsed.) */
-      a_vla_dimension_ptr      vdp;
-
-      check_assertion(decl_scope_level == depth_innermost_function_scope);
-      vdp = scope_stack[decl_scope_level].il_scope->vla_dimensions;
+      a_vla_dimension_ptr  vdp;
+      check_assertion(decl_scope_level >= depth_innermost_function_scope &&
+                      depth_innermost_function_scope != NO_SCOPE_DEPTH);
+      vdp = scope_stack[depth_innermost_function_scope].il_scope
+                                                             ->vla_dimensions;
       for (; vdp != NULL; vdp = vdp->next) {
         set_vla_size_statement(vdp, &pos_curr_token);
       }  /* for */
