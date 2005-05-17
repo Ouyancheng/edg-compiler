@@ -14661,18 +14661,16 @@ information returned from decl_specifiers and declarator.
                          decl_state->orig_decl_level,
                          decl_state->is_specialization,
                          decl_state->il_template_entry);
-  if (func_info->is_definition) {
-    
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  } else if (!source_sequence_entries_disallowed) {
+  if (!func_info->is_definition && !source_sequence_entries_disallowed) {
     /* Turn the source sequence entry for the a_template entry into a
        secondary source sequence entry. */
     a_src_seq_secondary_decl_ptr sssdp = secondary_src_seq_for_template(
                                                decl_state->il_template_entry);
     sssdp->declared_type = func_info->declared_type;
     sssdp->friend_decl = decl_state->is_template_friend;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_member_function &&
       decl_state->is_specialization) {
     /* Earlier, we thought this was a specialization but it turned out to
