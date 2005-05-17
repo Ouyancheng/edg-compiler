@@ -5060,8 +5060,8 @@ from the front end to the runtime.
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* GENERATE_EH_TABLES */
   (void)enter_predef_macro(conv_unsigned_long_to_str
-                                 ((unsigned long)VLA_ALLOWED &&
-                                  LOWER_VARIABLE_LENGTH_ARRAYS), /*lint !e506*/
+                                ((unsigned long)(VLA_ALLOWED &&
+                                 LOWER_VARIABLE_LENGTH_ARRAYS)), /*lint !e506*/
 			   "__EDG_LOWER_VARIABLE_LENGTH_ARRAYS",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
@@ -5142,11 +5142,11 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
       a_boolean  err = FALSE, suppress_error = FALSE;
       a_symbol_ptr     assoc_symbol;
       a_symbol_locator locator;
-  #if DEBUG
+#if DEBUG
       if (debug_level >= 4) {
         fprintf(f_debug, "Command-line undef: %s\n", du_str);
       }  /* if */
-  #endif /* DEBUG */
+#endif /* DEBUG */
       /* Check the identifier to make sure it is valid. */
       if (!is_valid_identifier(du_str, strlen(du_str), &assoc_symbol,
                                &locator)) {
