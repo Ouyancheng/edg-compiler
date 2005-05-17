@@ -5149,7 +5149,7 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
       }  /* if */
 #endif /* DEBUG */
       /* Check the identifier to make sure it is valid. */
-      if (!is_valid_identifier(du_str, strlen(du_str), &assoc_symbol,
+      if (!is_valid_identifier(du_str, (sizeof_t)strlen(du_str), &assoc_symbol,
                                &locator)) {
         err = TRUE;
         /* The Microsoft compiler ignores invalid definitions. */
