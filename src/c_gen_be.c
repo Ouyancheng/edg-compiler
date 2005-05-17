@@ -7421,14 +7421,17 @@ statement expression, i.e., ({...}).
 #if LOWER_VARIABLE_LENGTH_ARRAYS
       unexpected_condition_str("VLA statement unexpected");
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
-#if DO_IL_LOWERING
-      if (statement->variant.vla_dimension->dimension_variable != NULL) {
-        /* An unlowered C++ VLA: The dimensions are stored in a temporary
-           that must be initialized. */
-        dump_expression(statement->variant.vla_dimension->dimension_expr);
-        write_tok_ch(';');
-      }  /* if */
-#endif /* DO_IL_LOWERING */
+      /* An unlowered C++ VLA: The dimension is stored in a temporary that
+         must be initialized here.  form_array_declarator creates references
+         to the variable.  Doing things this way avoids duplicating side-
+         effects when lowering duplicates the type.
+         (See also create_dimension_variable, which turns the expression
+         pointed to by the dimension_expr field into an assignment to the
+         variable pointed to by dimension_variable.) */
+      check_assertion(
+                statement->variant.vla_dimension->dimension_variable != NULL);
+      dump_expression(statement->variant.vla_dimension->dimension_expr);
+      write_tok_ch(';');
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       /* No output. */
       break;
