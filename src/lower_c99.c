@@ -124,7 +124,7 @@ an_expr_node_ptr make_prototyped_runtime_call(char             *name,
                                               a_type_ptr       param2_type,
                                               an_expr_node_ptr arg_expr_list)
 /*
-Version of make_prototyped_runtime_call that handles one or two parameter
+Wrapper for make_prototyped_runtime_call_full to handle one or two parameter
 types.
 */
 {
