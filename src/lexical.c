@@ -7380,7 +7380,7 @@ Scan a Microsoft __identifier operator.  The syntax of such an operator is
 
   __identifier(keyword-token)
 
-The keyword-token is normally a C++ keyword, but can also be an normal
+The keyword-token is normally a C++ keyword, but can also be a normal
 identifier.  The result of scanning this operator is an identifier token
 where the identifier name is the character sequence of the keyword-token.
 If the operator does not contain a valid identifier, the current token
@@ -7398,14 +7398,14 @@ is set to tok_error.
     suppress_keyword_recognition = TRUE;
     (void)get_token();
     suppress_keyword_recognition = FALSE;
-    /* Save the symbol locator so that it can be restored after the closing
-       parenthesis is scanned. */
-    locator = locator_for_curr_id;
   } else {
     error(ec_exp_lparen);
   }  /* if */
   add_stop_token(tok_rparen);
   if (curr_token == tok_identifier) {
+    /* Save the symbol locator so that it can be restored after the closing
+       parenthesis is scanned. */
+    locator = locator_for_curr_id;
     /* Bypass the identifier. */
     (void)get_token();
   } else {
