@@ -6088,9 +6088,12 @@ points to the template parameter list.
         case tk_array:
           /* Array types match if their element types match and the number of
              elements is the same. */
-          check_assertion(!type->variant.array.is_variable_size_array &&
-                          !templ_type->variant.array.is_variable_size_array);
-          if (type->variant.array.is_template_dependent_size_array &&
+          check_assertion(!templ_type->variant.array.is_variable_size_array);
+          if (type->variant.array.is_variable_size_array) {
+            /* If the actual type is a variable length array, deduction
+               fails. */
+            match = FALSE;
+          } else if (type->variant.array.is_template_dependent_size_array &&
               templ_type->variant.array.is_template_dependent_size_array) {
             /* Both the type and the template type are dependent size
                arrays.  This should only occur when comparing two
