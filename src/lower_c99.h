@@ -28,12 +28,6 @@ extern void lower_vla_dimension_expressions_in_scope(
                                                 a_boolean    prototype_scope);
 
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-#define or_vla_lowering_needed() || vla_enabled
-#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
-#define or_vla_lowering_needed() /* Nothing */
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-
-#if LOWER_VARIABLE_LENGTH_ARRAYS
 
 extern void record_vla_component_types_for_lowering(a_type_ptr  tp);
 
@@ -73,9 +67,8 @@ extern void create_element_count_variable_for_vla(a_statement_ptr  stmt);
 #endif /* FIXED_POINT_ALLOWED */
 
 #define c99_il_lowering_needed()                                             \
-  ((c99_mode || gcc_mode || compound_literals_allowed                        \
-    or_fixed_point_lowering_needed()                                         \
-    or_vla_lowering_needed()) &&                                             \
+  ((c99_mode || gcc_mode || compound_literals_allowed || vla_enabled         \
+    or_fixed_point_lowering_needed()) &&                                     \
    !suppress_il_lowering && total_errors == 0)
 
 #if LOWER_FIXED_POINT
