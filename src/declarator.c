@@ -669,6 +669,13 @@ fields).
         } else if (is_array_type(new_type_ptr)) {
           error(ec_function_returning_array);
           err = TRUE;
+#if VLA_ALLOWED
+        } else if (!C_mode() && vla_enabled &&
+                   is_variably_modified_type(new_type_ptr)) {
+          /* We do not accept variably-modified return types in C++. */
+          error(ec_vla_in_return_type);
+          err = TRUE;
+#endif /* VLA_ALLOWED */
         } else if (C_dialect == C_dialect_pcc) {
           /* In pcc mode, promote float functions to double functions.
              Any type qualifiers or typedef information on the new type
