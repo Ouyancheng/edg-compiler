@@ -849,72 +849,7 @@ address.
   expr->type = make_pointer_type(underlying_array_element_type(expr->type));
 }  /* lower_vla_address */
 
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-
-void lower_runtime_sizeof(an_expr_node_ptr expr)
-/*
-Do lowering for an enk_runtime_sizeof, which can appear for VLAs or when
-SIZEOF_TYPE_IS_UNKNOWN is defined.  In the non-VLA case, the "lowering" is
-really just lowering the subtree and leaving the enk_runtime_sizeof itself
-in the IL.  If VLAs are lowered, the node is replaced by an expression
-representing the number of bytes of the VLA type underlying the sizeof
-expression.
-*/
-{
-#if LOWER_VARIABLE_LENGTH_ARRAYS
-  an_expr_node_ptr  byte_count, precomputation = NULL;
-  a_type_ptr        vla_type;
-
-  if (expr->variant.runtime_sizeof.is_type) {
-    /* Something like "sizeof(X[2][n][m/2])".  Unlike uses of VLAs in
-       declarations there is no stmk_set_vla_size for VLA types named in
-       expressions.  So we may have to perform computations on the fly. */
-    vla_type = expr->variant.runtime_sizeof.variant.type;
-    if (!(vla_enabled && is_vla_type(vla_type))) {
-      if (!C_mode()) {
-        lower_os_type(vla_type);
-      }  /* if */
-      goto done;
-    }  /* if */
-    precomputation = lower_vla_dimensions(vla_type);
-  } else {
-    /* sizeof was applied to a VLA expression. */
-    precomputation = expr->variant.runtime_sizeof.variant.expr;
-    vla_type = precomputation->type;
-    if (expr->variant.runtime_sizeof.is_lvalue) {
-      vla_type = type_pointed_to(vla_type);
-    }  /* if */
-    if (!(vla_enabled && is_vla_type(vla_type))) {
-      goto done;
-    }  /* if */
-    /* Lower the argument expression, but be sure to have extracted the
-       type first.  (The lowered type is no longer a VLA.) */
-    lower_any_expr(precomputation, /*used_as_lvalue=*/FALSE);
-  }  /* if */
-  byte_count = vla_size_expr(vla_type, /*byte_count=*/TRUE);
-  byte_count = add_cast_if_necessary(byte_count,
-                                     integer_type(targ_size_t_int_kind));
-  if (precomputation != NULL) {
-    byte_count = make_comma_node(precomputation, byte_count);
-  }  /* if */
-  overwrite_node(expr, byte_count);
-done:;
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
-  /* We're not lowering the run-time sizeof operator, but we may have to
-     lower the argument if that argument is an expression.  (expr->type
-     was lowered by the caller.)*/
-  if (expr->variant.runtime_sizeof.is_type) {
-    if (!C_mode()) {
-      lower_os_type(expr->variant.runtime_sizeof.variant.type);
-    }  /* if */
-  } else {
-    lower_any_expr(expr->variant.runtime_sizeof.variant.expr,
-                   (a_boolean)expr->variant.runtime_sizeof.is_lvalue);
-  }  /* if */
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-}  /* lower_runtime_sizeof */
-
-#if DO_IL_LOWERING && !LOWER_VARIABLE_LENGTH_ARRAYS
 
 void create_dimension_variable(a_statement_ptr  stmt)
 /*
@@ -933,7 +868,8 @@ the type of a VLA variable appears multiple times in the lowered IL.
   vla_dim->dimension_variable = assign_expr_to_temp(vla_dim->dimension_expr);
 }  /* create_dimension_variable */
 
-
+#if DO_IL_LOWERING
+ 
 void create_element_count_variable_for_vla(a_statement_ptr  stmt)
 /*
 stmt is a stmk_vla_decl statement.  Create a variable holding the total
@@ -1022,7 +958,72 @@ lower_vla_dimensions).
   }  /* if */
 }  /* create_element_count_variable_for_vla */
 
-#endif /* DO_IL_LOWERING  && !LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* DO_IL_LOWERING */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+
+
+void lower_runtime_sizeof(an_expr_node_ptr expr)
+/*
+Do lowering for an enk_runtime_sizeof, which can appear for VLAs or when
+SIZEOF_TYPE_IS_UNKNOWN is defined.  In the non-VLA case, the "lowering" is
+really just lowering the subtree and leaving the enk_runtime_sizeof itself
+in the IL.  If VLAs are lowered, the node is replaced by an expression
+representing the number of bytes of the VLA type underlying the sizeof
+expression.
+*/
+{
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+  an_expr_node_ptr  byte_count, precomputation = NULL;
+  a_type_ptr        vla_type;
+
+  if (expr->variant.runtime_sizeof.is_type) {
+    /* Something like "sizeof(X[2][n][m/2])".  Unlike uses of VLAs in
+       declarations there is no stmk_set_vla_size for VLA types named in
+       expressions.  So we may have to perform computations on the fly. */
+    vla_type = expr->variant.runtime_sizeof.variant.type;
+    if (!(vla_enabled && is_vla_type(vla_type))) {
+      if (!C_mode()) {
+        lower_os_type(vla_type);
+      }  /* if */
+      goto done;
+    }  /* if */
+    precomputation = lower_vla_dimensions(vla_type);
+  } else {
+    /* sizeof was applied to a VLA expression. */
+    precomputation = expr->variant.runtime_sizeof.variant.expr;
+    vla_type = precomputation->type;
+    if (expr->variant.runtime_sizeof.is_lvalue) {
+      vla_type = type_pointed_to(vla_type);
+    }  /* if */
+    if (!(vla_enabled && is_vla_type(vla_type))) {
+      goto done;
+    }  /* if */
+    /* Lower the argument expression, but be sure to have extracted the
+       type first.  (The lowered type is no longer a VLA.) */
+    lower_any_expr(precomputation, /*used_as_lvalue=*/FALSE);
+  }  /* if */
+  byte_count = vla_size_expr(vla_type, /*byte_count=*/TRUE);
+  byte_count = add_cast_if_necessary(byte_count,
+                                     integer_type(targ_size_t_int_kind));
+  if (precomputation != NULL) {
+    byte_count = make_comma_node(precomputation, byte_count);
+  }  /* if */
+  overwrite_node(expr, byte_count);
+done:;
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+  /* We're not lowering the run-time sizeof operator, but we may have to
+     lower the argument if that argument is an expression.  (expr->type
+     was lowered by the caller.)*/
+  if (expr->variant.runtime_sizeof.is_type) {
+    if (!C_mode()) {
+      lower_os_type(expr->variant.runtime_sizeof.variant.type);
+    }  /* if */
+  } else {
+    lower_any_expr(expr->variant.runtime_sizeof.variant.expr,
+                   (a_boolean)expr->variant.runtime_sizeof.is_lvalue);
+  }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+}  /* lower_runtime_sizeof */
 
 #endif /* DO_IL_LOWERING || DO_C99_IL_LOWERING */
 #if DO_C99_IL_LOWERING
@@ -3338,7 +3339,12 @@ Do C99 lowering on the indicated statement.
         break;
       case stmk_set_vla_size:
 #if LOWER_VARIABLE_LENGTH_ARRAYS
+        /* Replace this statement by one that computes various variables
+           describing the size of the VLA. */
         lower_set_vla_size(statement);
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+        /* Record the associated VLA dimension in a temporary variable. */
+        create_dimension_variable(statement);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
       case stmk_vla_decl:
