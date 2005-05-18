@@ -345,7 +345,14 @@ assignment to the given expression tree (which could be NULL initially).
     an_expr_node_ptr  expr = vla_dim->dimension_expr, assign_ops;
     /* Create a new temporary variable and assign to it the expression
        computing the array length. */
-    vla_dim->total_number_of_elements = make_lowered_temporary(ptrdiff_type);
+    /* make_lowered_temporary is not used here because we want the
+       variable to be in the same scope as the vla-size, and not in
+       any block added by lowering (e.g., the block used to group
+       the statements in the initialization clause of a "for" statement). */
+    vla_dim->total_number_of_elements =
+                               make_temporary_in_scope(ptrdiff_type,
+                                                       curr_context->scope,
+                                                       /*force_static=*/FALSE);
     assign_ops = var_lvalue_expr(vla_dim->total_number_of_elements);
     assign_ops->next = add_cast_if_necessary(expr, ptrdiff_type);
     assign_ops = make_operator_node((an_expr_operator_kind)eok_iassign,
@@ -613,8 +620,14 @@ VLA lowering).
       /* An element count variable must be created and initialized. */
       an_expr_node_ptr  count_expr = vla_size_expr(vla_var->type,
                                                    /*byte_count=*/FALSE);
+      /* make_lowered_temporary is not used here because we want the
+         variable to be in the same scope as the variable, and not in
+         any block added by lowering (e.g., the block used to group
+         the statements in the initialization clause of a "for" statement). */
       vla_var->vla_element_count_variable =
-                                         make_lowered_temporary(ptrdiff_type);
+                               make_temporary_in_scope(ptrdiff_type,
+                                                       curr_context->scope,
+                                                       /*force_static=*/FALSE);
       count_init = var_lvalue_expr(vla_var->vla_element_count_variable);
       count_init->next = add_cast_if_necessary(count_expr, ptrdiff_type);
       count_init = make_operator_node((an_expr_operator_kind)eok_iassign,
@@ -942,7 +955,14 @@ lower_vla_dimensions).
     a_targ_size_t     constant_factor = 1;
     a_statement_ptr   new_stmt;
     /* Create the temporary and record it. */
-    var->vla_element_count_variable = make_lowered_temporary(ptrdiff_type);
+    /* make_lowered_temporary is not used here because we want the
+       variable to be in the same scope as the vla-decl, and not in
+       any block added by lowering (e.g., the block used to group
+       the statements in the initialization clause of a "for" statement). */
+    var->vla_element_count_variable =
+                               make_temporary_in_scope(ptrdiff_type,
+                                                       curr_context->scope,
+                                                       /*force_static=*/FALSE);
     /* Multiply all the dimensions of a possibly multi-dimensional array.
        The variable-length dimensions are represented by the "count" expression
        and the constant dimensions are accumulated in "constant_factor". */
