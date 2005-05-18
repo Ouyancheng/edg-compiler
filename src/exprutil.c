@@ -2928,7 +2928,6 @@ user-defined conversions.
         /* Cast the constant by changing its type.  In a nonconstant
            context, reduce any error to a warning and leave the
            conversion to be done at runtime. */
-        did_not_fold = TRUE;
         copy_constant(&operand->variant.constant, &local_constant);
         type_change_constant(&local_constant, new_type, is_implicit_cast,
                              curr_expr_kind_is_const(),
