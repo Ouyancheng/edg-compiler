@@ -739,12 +739,8 @@ template class, its DLL interface may need to be adjusted implicitly.
   if (new_dll_flags != 0) {
     a_class_type_supplement_ptr  
                ctsp = class_type->variant.class_struct_union.extra_info;
-    if (is_incomplete_type(class_type) ||
-        (class_type->variant.class_struct_union.is_nonreal_class &&
-         !class_type->variant.class_struct_union.is_prototype_instantiation)) {
-      /* Apply the new flag values to the class type only.  (Note that nonreal
-         nonprototype template instantiations are marked as "complete", but
-         that they do not actually have a definition.) */
+    if (!class_type_has_body(class_type)) {
+      /* Apply the new flag values to the class type only. */
       ctsp->decl_modifiers &= ~DM_DLLFLAGS;
       ctsp->decl_modifiers |= new_dll_flags;
     } else if (explicit_inst || adjust_template_base) {
