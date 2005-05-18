@@ -11806,16 +11806,21 @@ selection operator, in which case it points to the type of the left operand.
       qualifier_separator = tok_period;
     }  /* if */
   } else if (dtor_must_be_nonclass) {
-    dtor_class_type = type_keyword();
-    if (dtor_class_type != NULL) {
-      next_tok = next_two_tokens_if_qualifier_delimiter(tok_colon_colon,
-                                                        &next_tok_2);
-      if (next_tok == tok_colon_colon && next_tok_2 == tok_compl) {
-        might_be_qualifier = TRUE;
-        if (strict_ansi_mode) {
-          /* A vacuous destructor reference is no longer permitted to
-             use a type keyword, only a typedef name. */
-          error(ec_exp_identifier);
+    if (is_global_qualified_name && curr_token != tok_identifier) {
+      /* Something of the form "::~int", which is not allowed. */
+      error(ec_exp_identifier);
+    } else {
+      dtor_class_type = type_keyword();
+      if (dtor_class_type != NULL) {
+        next_tok = next_two_tokens_if_qualifier_delimiter(tok_colon_colon,
+                                                          &next_tok_2);
+        if (next_tok == tok_colon_colon && next_tok_2 == tok_compl) {
+          might_be_qualifier = TRUE;
+          if (strict_ansi_mode) {
+            /* A vacuous destructor reference is no longer permitted to
+               use a type keyword, only a typedef name. */
+            error(ec_exp_identifier);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

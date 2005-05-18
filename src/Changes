@@ -1,5 +1,18 @@
 Version 3.6
 
+5/18/05  Internal error on pseudo-destructor of the form "x.::~int"
+
+Because the front end failed to issue a diagnostic, an internal error
+would occur (in lower_expr) on a pseudo-destructor reference that used
+a global qualifier in conjunction with a type name specified using
+a type keyword.  Note that the standard does not permit type keywords
+to be used in pseudo-destructors at all.
+
+  void f() {
+    int x;
+    x.::~int(); 
+  }
+
 5/17/05  Build errors when LOWER_COMPLEX is FALSE and LOWER_FIXED_POINT is TRUE
 
 In some configurations with C99 lowering enabled, the front end did not build
