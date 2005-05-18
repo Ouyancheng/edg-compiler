@@ -25,7 +25,7 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Only include this code if it is needed: */
-#if DO_C99_IL_LOWERING || DO_IL_LOWERING
+#if DO_IL_LOWERING
 
 /* Header files common to all files. */
 #include "fe_common.h"
@@ -37,7 +37,7 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
-#endif /* DO_C99_IL_LOWERING || DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING */
 #if DO_C99_IL_LOWERING
 /* Forward declarations (needed because of mutual recursion situations). */
 static void lower_c99_constant_list(a_constant_ptr constant_list);
@@ -48,7 +48,7 @@ static void lower_c99_fixed_point_operation(an_expr_node_ptr expr);
 #endif /* LOWER_FIXED_POINT */
 #endif /* DO_C99_IL_LOWERING */
 
-#if DO_C99_IL_LOWERING || DO_IL_LOWERING
+#if DO_IL_LOWERING
 
 #if DO_C99_IL_LOWERING
 #define lower_any_c99_expr(expr, is_lvalue)  lower_c99_expr(expr, is_lvalue)
@@ -56,11 +56,7 @@ static void lower_c99_fixed_point_operation(an_expr_node_ptr expr);
 #define lower_any_c99_expr(expr, is_lvalue)  /* Nothing */
 #endif /* DO_C99_IL_LOWERING */
 
-#if DO_IL_LOWERING
 #define lower_any_cpp_expr(expr, is_lvalue)  lower_expr(expr, is_lvalue)
-#else /* !DO_IL_LOWERING */
-#define lower_any_cpp_expr(expr, is_lvalue)  /* Nothing */
-#endif /* DO_IL_LOWERING */
 
 #define lower_any_expr(expr, is_lvalue)                                     \
   if (C_mode()) {                                                           \
@@ -150,9 +146,7 @@ Lower the expression in a VLA dimension entry.
       lower_c99_full_expr(expr);
 #endif /* DO_C99_IL_LOWERING */
     } else {
-#if DO_IL_LOWERING
       lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
-#endif /* DO_IL_LOWERING */
     }  /* if */
 #if MINIMAL_INLINING
     /* Catch constant nonpositive sizes introduced by inlining. */
@@ -600,7 +594,6 @@ VLA lowering).
 
   if (C_mode()) {
     size_expr = vla_size_expr(vla_var->type, /*byte_count=*/TRUE);
-#if DO_IL_LOWERING
   } else {
     /* In C++ mode, other aspects of VLA lowering expect to find the element
        count in a variable.  So we create and record that variable here (if
@@ -648,7 +641,6 @@ VLA lowering).
     if (count_init != NULL) {
       size_expr = make_comma_node(count_init, size_expr);
     }  /* if */
-#endif /* DO_IL_LOWERING */
   }  /* if */
   size_expr = add_cast_if_necessary(size_expr, ptrdiff_type);
   result = add_lowered_cast_if_necessary(result, void_star_type());
@@ -868,7 +860,6 @@ the type of a VLA variable appears multiple times in the lowered IL.
   vla_dim->dimension_variable = assign_expr_to_temp(vla_dim->dimension_expr);
 }  /* create_dimension_variable */
 
-#if DO_IL_LOWERING
  
 void create_element_count_variable_for_vla(a_statement_ptr  stmt)
 /*
@@ -958,9 +949,7 @@ lower_vla_dimensions).
   }  /* if */
 }  /* create_element_count_variable_for_vla */
 
-#endif /* DO_IL_LOWERING */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-
 
 void lower_runtime_sizeof(an_expr_node_ptr expr)
 /*
@@ -1025,7 +1014,7 @@ done:;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_runtime_sizeof */
 
-#endif /* DO_IL_LOWERING || DO_C99_IL_LOWERING */
+#endif /* DO_IL_LOWERING */
 #if DO_C99_IL_LOWERING
 #if LOWER_COMPLEX || LOWER_FIXED_POINT
 
@@ -3819,7 +3808,7 @@ Do C99 lowering for a memory region (for the file scope or a function scope).
 }  /* lower_c99_il_memory_region */
 
 #endif /* DO_C99_IL_LOWERING */
-#if DO_IL_LOWERING || DO_C99_IL_LOWERING
+#if DO_IL_LOWERING
 
 void lower_c99_one_time_init(void)
 /*
@@ -3986,7 +3975,7 @@ initialized for each compilation.
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_init */
 
-#endif /* DO_IL_LOWERING || DO_C99_IL_LOWERING */
+#endif /* DO_IL_LOWERING */
 
 /******************************************************************************
 *                                                             \  ___  /       *

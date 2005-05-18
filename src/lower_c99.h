@@ -17,9 +17,9 @@ lower_c99.h -- Declarations related to lower_c99.c.
 /* Avoid including these declarations more than once. */
 #ifndef LOWER_C99_H
 #define LOWER_C99_H 1
-#include "il.h"
+#if DO_IL_LOWERING
 
-#if DO_IL_LOWERING || DO_C99_IL_LOWERING
+#include "il.h"
 
 extern void lower_runtime_sizeof(an_expr_node_ptr expr);
 
@@ -58,15 +58,11 @@ extern void lower_vla_address(an_expr_node_ptr  expr);
 extern void lower_vla_dealloc(an_expr_node_ptr  expr);
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
 
-#if DO_IL_LOWERING
 extern void create_dimension_variable(a_statement_ptr  stmt);
 
 extern void create_element_count_variable_for_vla(a_statement_ptr  stmt);
-#endif /* DO_IL_LOWERING */
 
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-
-#endif /* DO_IL_LOWERING || DO_C99_IL_LOWERING */
 
 #if DO_C99_IL_LOWERING
 
@@ -103,7 +99,6 @@ void post_lower_c99_bool_cast(an_expr_node_ptr expr);
 extern void lower_c99_il_memory_region(a_memory_region_number region_number);
 
 #endif /* DO_C99_IL_LOWERING */
-#if DO_IL_LOWERING || DO_C99_IL_LOWERING
 
 extern void lower_c99_one_time_init(void);
 
@@ -111,7 +106,7 @@ extern void lower_c99_trans_unit_init(void);
 
 extern void lower_c99_init(void);
 
-#endif /* DO_IL_LOWERING || DO_C99_IL_LOWERING */
+#endif /* DO_IL_LOWERING */
 #endif /* #ifndef LOWER_C99_H */
 
 /******************************************************************************
