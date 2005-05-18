@@ -3195,7 +3195,7 @@ be issued at the given position.
              routine->source_corresp.is_class_member)) {
           /* Block-extern declarations and out-of-class definitions of members
              of class templates retain the dllimport attribute specified on
-             the original declaration.  Setting freeze_dll_import ensurs the
+             the original declaration.  Setting freeze_dll_import ensures the
              dllimport attribute won't be discarded in what follows. */
           freeze_dll_import = TRUE;
           new_dll_flags = DM_DLLIMPORT;
@@ -3462,7 +3462,7 @@ position. */
       if (old_dll_flags & DM_DLLIMPORT) {
         if (innermost_function_scope != NULL) {
           /* A block-extern declaration: Carry over the dllimport attribute.
-             Setting freeze_dll_import ensurs the dllimport attribute won't
+             Setting freeze_dll_import ensures the dllimport attribute won't
              be discarded in what follows. */
           freeze_dll_import = TRUE;
           new_dll_flags = DM_DLLIMPORT;
