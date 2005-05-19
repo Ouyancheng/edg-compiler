@@ -30,6 +30,9 @@ types.c -- Utility routines that check types.
 #include "templates.h"
 #include "func_def.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#if DO_IL_LOWERING
+#include "lower_c99.h"
+#endif /* DO_IL_LOWERING */
 #include "trans_corresp.h"
 
 /*
@@ -7501,6 +7504,24 @@ side effect.
   return found;
 }  /* ttt_type_has_side_effects */    
 
+#if DO_IL_LOWERING
+
+static a_boolean ttt_lower_vla_dimensions(a_type_ptr  type_ptr,
+                                          a_boolean   *force_end_of_traversal)
+/*
+If type_ptr is a VLA type, lower its dimension expression.
+*/
+{
+  a_boolean  found = FALSE;
+
+  if (is_array(type_ptr) && array_is_vla(type_ptr)) {
+    lower_vla_dimension_expression(find_vla_dimension(type_ptr));
+  }  /* if */
+  return found;
+}  /* ttt_lower_vla_dimensions */ 
+
+#endif /* DO_IL_LOWERING */
+
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean ttt_warn_about_use_of_deprecated_type(
@@ -8359,6 +8380,27 @@ effects does not itself create a side effect at the point of reference.
   }  /* if */
   return result;
 }  /* type_has_side_effects */
+
+#if DO_IL_LOWERING
+
+void lower_vla_dimensions_in_type(a_type_ptr  tp)
+/*
+Lower the dimension expressions of any VLA type component in tp.
+*/
+{
+  a_type_tree_traversal_flag_set  tt_flags = TTT_RETURN_TYPE |
+                                             TTT_STOP_AT_TYPEDEFS;
+
+  if (vla_enabled && innermost_function_scope != NULL) {
+    if (C_mode()) {
+      /* C++ modes do not allow VLAs in parameters, but C modes do. */
+      tt_flags |= TTT_PARAM_TYPES;
+    }  /* if */
+    (void)traverse_type_tree(tp, ttt_lower_vla_dimensions, tt_flags);
+  }  /* if */
+}  /* lower_vla_dimensions_in_type */ 
+
+#endif /* DO_IL_LOWERING */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

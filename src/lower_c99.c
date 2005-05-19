@@ -133,7 +133,7 @@ types.
 }  /* make_prototyped_runtime_call */
  
 
-static void lower_vla_dimension_expression(a_vla_dimension_ptr vdp)
+void lower_vla_dimension_expression(a_vla_dimension_ptr  vdp)
 /*
 Lower the expression in a VLA dimension entry.
 */
@@ -160,34 +160,6 @@ Lower the expression in a VLA dimension entry.
 #endif /* MINIMAL_INLINING */
   }  /* if */
 }  /* lower_vla_dimension_expression */
-
-
-void lower_vla_dimension_expressions_in_scope(a_scope_ptr  scope,
-                                              a_boolean    prototype_scope)
-/*
-Lower the dimension expressions in a_vla_dimension entries for the given
-function scope.  This routine is called twice for each function scope: Once
-with prototype_scope set to TRUE for the entries associated with the
-function's prototype scope (before the function's context is pushed), and
-once with prototype_scope set to FALSE for the other entries (after the
-context is pushed).
-*/
-{
-  a_vla_dimension_ptr  vla_dim = scope->vla_dimensions;
-  a_scope_ptr          saved_innermost_function_scope =
-                                                     innermost_function_scope;
-
-  if (prototype_scope) {
-    /* Temporarily indicate that we're not inside a function. */
-    innermost_function_scope = NULL;
-  }  /* if */
-  for (; vla_dim != NULL; vla_dim = vla_dim->next) {
-    if (prototype_scope == vla_dim->in_prototype_scope) {
-      lower_vla_dimension_expression(vla_dim);
-    }  /* if */
-  }  /* for */
-  innermost_function_scope = saved_innermost_function_scope;
-}  /* lower_vla_dimension_expressions_in_scope */
 
 #if LOWER_VARIABLE_LENGTH_ARRAYS
 
@@ -336,9 +308,11 @@ assignment to the given expression tree (which could be NULL initially).
 
   if (vla_dim->total_number_of_elements == NULL) {
     a_type_ptr        ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
-    an_expr_node_ptr  expr = vla_dim->dimension_expr, assign_ops;
+    an_expr_node_ptr  expr, assign_ops;
     /* Create a new temporary variable and assign to it the expression
        computing the array length. */
+    lower_vla_dimension_expression(vla_dim);
+    expr = vla_dim->dimension_expr;
     /* make_lowered_temporary is not used here because we want the
        variable to be in the same scope as the vla-size, and not in
        any block added by lowering (e.g., the block used to group
@@ -857,6 +831,7 @@ the type of a VLA variable appears multiple times in the lowered IL.
 
   check_assertion(stmt->kind == stmk_set_vla_size);
   vla_dim = stmt->variant.vla_dimension;
+  lower_vla_dimension_expression(vla_dim);
   vla_dim->dimension_variable = assign_expr_to_temp(vla_dim->dimension_expr);
 }  /* create_dimension_variable */
 
@@ -1004,8 +979,10 @@ done:;
      lower the argument if that argument is an expression.  (expr->type
      was lowered by the caller.)*/
   if (expr->variant.runtime_sizeof.is_type) {
+    a_type_ptr  type = expr->variant.runtime_sizeof.variant.type;
+    lower_vla_dimensions_in_type(type);
     if (!C_mode()) {
-      lower_os_type(expr->variant.runtime_sizeof.variant.type);
+      lower_os_type(type);
     }  /* if */
   } else {
     lower_any_expr(expr->variant.runtime_sizeof.variant.expr,
@@ -2152,18 +2129,25 @@ Transform the given cast expression into a function call (compatible with C89).
     lower_bool_cast(expr);
   } else {
     a_type_ptr  tp = expr->type;
+#if LOWER_FIXED_POINT || LOWER_COMPLEX
     a_type_ptr  src_tp = expr->variant.operation.operands->type;
+#endif /* LOWER_FIXED_POINT || LOWER_COMPLEX */
     check_assertion(expr->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_cast);
+    if (vla_enabled &&
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-    if (vla_enabled && !tp->visited_for_vla_lowering && !type_is_typedef(tp) &&
-        is_variably_modified_type(tp)) {
-      /* If the cast introduces a VLA type, we need to compute its dimension
+        !tp->visited_for_vla_lowering &&
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+        is_directly_variably_modified_type(tp)) {
+      /* If the cast introduces a VLA type, we need to lower its dimension
+         expression and (in some configurations) compute its dimension
          variables. Note that compiler-generated casts may cast to variably
          modified types that have already been visited. */
+      lower_vla_dimensions_in_type(tp);
+#if LOWER_VARIABLE_LENGTH_ARRAYS
       lower_vla_cast(expr);
-    }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+    }  /* if */
 #if LOWER_FIXED_POINT
     if (fixed_point_enabled &&
         (is_fixed_point_type(tp) ||
@@ -3483,13 +3467,6 @@ Do C99 lowering for all entities in and under the given scope.
   a_context                        context;
   a_scope_ptr                      saved_innermost_function_scope;
 
-  if (scope->kind == (a_scope_kind)sck_function) {
-    /* Visit all VLA dimension expressions for parameters before pushing the
-       function scope.  This matters when there are compound literals in
-       the dimension expression. */
-    /* Entries not in prototype scopes are handled further below. */
-    lower_vla_dimension_expressions_in_scope(scope, /*prototype_scope=*/TRUE);
-  }  /* if */
   push_context(&context, scope, (an_object_lifetime_ptr)NULL);
   /* Mark the scope as lowered.  This is used by
      check_for_done_with_memory_region to tell whether the code for a function
@@ -3552,11 +3529,6 @@ Do C99 lowering for all entities in and under the given scope.
   if (scope->kind == (a_scope_kind)sck_function) {
     /* Lower the function block statement. */
     lower_c99_statement(scope->assoc_block);
-    /* Visit all VLA dimension expressions not associated with the prototype
-       scope.  This must happen after the statements have been lowered to
-       ensure that any needed VLA dimension variables have been created. */
-    /* Entries from prototype scopes are handled above. */
-    lower_vla_dimension_expressions_in_scope(scope, /*prototype_scope=*/FALSE);
     insert_temp_init_statements(scope->assoc_block);
 #if MINIMAL_INLINING
     if (inlining_enabled && scope->variant.routine.ptr->is_inline) {

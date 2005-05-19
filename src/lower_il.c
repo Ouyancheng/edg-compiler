@@ -11405,16 +11405,21 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
               overwrite_node(expr, operand_node);
               expr->type = type;
             }  /* if */
+            if (vla_enabled &&
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-            if (vla_enabled && !type->visited_for_vla_lowering &&
-                !type_is_typedef(type) && is_variably_modified_type(type)) {
-              /* If the cast introduces a VLA type, we need to compute its
-                 dimension variables.  Note that compiler-generated casts may
+                !type->visited_for_vla_lowering &&
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+                is_directly_variably_modified_type(type)) {
+              /* If the cast introduces a VLA type, we need to lower its
+                 dimension expression and (in some configurations) compute its
+                 dimension variables. Note that compiler-generated casts may
                  cast to variably modified types that have already been
                  visited. */
+              lower_vla_dimensions_in_type(type);
+#if LOWER_VARIABLE_LENGTH_ARRAYS
               lower_vla_cast(expr);
-            }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+            }  /* if */
             break;
 #if ABI_CHANGES_FOR_RTTI
           case eok_dynamic_cast:
@@ -15871,14 +15876,6 @@ Do IL lowering of the indicated scope and everything under it.
   /* Add a context entry for the scope, but not for the file scope (the caller
      has done that already). */
   if (scope_kind != (a_scope_kind)sck_file) {
-    if (scope->kind == (a_scope_kind)sck_function) {
-      /* Visit all VLA dimension expressions for parameters before pushing the
-         function scope.  This matters when there are compound literals in
-         the dimension expression. */
-      /* Entries not in prototype scopes are handled further below. */
-      lower_vla_dimension_expressions_in_scope(scope,
-                                               /*prototype_scope=*/TRUE);
-    }  /* if */
     push_context(&context, scope, (an_object_lifetime_ptr)NULL);
   }  /* if */
   /* Mark the scope as lowered.  This is used by
@@ -16086,11 +16083,6 @@ Do IL lowering of the indicated scope and everything under it.
          inside block scopes. */
       lower_function_body(scope->assoc_block);
     }  /* if */
-    /* Visit all VLA dimension expressions not associated with the prototype
-       scope.  This must happen after the statements have been lowered to
-       ensure that any needed VLA dimension variables have been created. */
-    /* Entries from prototype scopes are handled above. */
-    lower_vla_dimension_expressions_in_scope(scope, /*prototype_scope=*/FALSE);
     /* Add prologue code for exceptions. */
     if (exceptions_enabled
 #if ASM_FUNCTION_ALLOWED
