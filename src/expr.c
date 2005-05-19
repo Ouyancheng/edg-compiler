@@ -17357,7 +17357,7 @@ FALSE and a pointer to the expression tree in *expression.
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
   int                 constant_sign;
-  a_boolean           processed = FALSE;
+  a_boolean           processed = FALSE, is_nonconstant;
   an_expression_kind  ekind;
 
   db_enter(3, "scan_nonconstant_dimension_expression");
@@ -17379,6 +17379,7 @@ FALSE and a pointer to the expression tree in *expression.
   } else {
     scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   }  /* if */
+  is_nonconstant = !is_constant_operand(&result);
   /* Convert from a class type to integral if necessary. */
   if (C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(result.type)) {
@@ -17403,6 +17404,12 @@ FALSE and a pointer to the expression tree in *expression.
       /* Some sort of error; message was already issued. */
       set_error_constant(constant);
       discard_curr_expr_object_lifetime();
+      if (is_vla_decl && is_nonconstant) {
+        /* Return an error expression if the expression was nonconstant
+           and a VLA is allowed. */
+        *expression = error_node();
+        *is_constant = FALSE;
+      }  /* if */
       break;
     case ok_expression:
       *expression = result.variant.expression;
