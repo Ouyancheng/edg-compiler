@@ -7441,7 +7441,6 @@ bound (i.e., one declared with "[*]").
   return found;
 }  /* ttt_is_or_contains_vla_with_unspecified_bound */
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static a_boolean ttt_is_variably_modified_type(
                                        a_type_ptr  type_ptr,
@@ -7500,7 +7499,6 @@ side effect.
   return found;
 }  /* ttt_type_has_side_effects */    
 
-#if !STANDALONE_UTILITY_PROGRAM
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean ttt_warn_about_use_of_deprecated_type(
