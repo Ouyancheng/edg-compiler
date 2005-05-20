@@ -7844,14 +7844,18 @@ Do IL lowering of an enk_temp_init expression node.
                                         is_variably_modified_type(temp_type));
 #if LOWER_VARIABLE_LENGTH_ARRAYS
     an_expr_node_ptr   vla_inits = NULL;
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     if (variably_modified && !type_is_typedef(temp_type)) {
-      /* If the temporary introduces a VLA type, we need to compute its
-         dimension variables (this can happen as the result of compound
-         literals, which may be accepted in GNU C++ mode). */
+      /* If the construct introduces a VLA type, we need to lower its dimension
+         expression (even when not lowering VLAs). */
+      lower_vla_dimensions_in_type(temp_type);
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+      /* If the compound literal introduces a VLA type, we need to compute its
+         dimension variables (this is similar to cast operations). */
       vla_inits = lower_vla_dimensions(temp_type);
       record_vla_component_types_for_lowering(temp_type);
-    }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+    }  /* if */
     if (result_is_addr) {
       /* The value of the enk_temp_init node is the address of the temporary,
          so drop the pointer-to to get the temporary type. */

@@ -2871,14 +2871,17 @@ in C99 mode to represent a compound literal.
   /* The compound literal is rewritten to use a temporary.  The temporary
      is initialized to the constant part of the aggregate, and code is
      generated for any non-constant parts. */
-#if LOWER_VARIABLE_LENGTH_ARRAYS
   if (variably_modified && !type_is_typedef(temp_type)) {
+    /* If the construct introduces a VLA type, we need to lower its dimension
+       expression (even when not lowering VLAs). */
+    lower_vla_dimensions_in_type(temp_type);
+#if LOWER_VARIABLE_LENGTH_ARRAYS
     /* If the compound literal introduces a VLA type, we need to compute its
        dimension variables (this is similar to cast operations). */
     vla_inits = lower_vla_dimensions(temp_type);
     record_vla_component_types_for_lowering(temp_type);
-  }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+  }  /* if */
   result_is_addr = expr->variant.init.result_is_addr;
   if (result_is_addr) {
     /* The value of the enk_temp_init node is the address of the
