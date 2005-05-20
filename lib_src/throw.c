@@ -719,9 +719,6 @@ requires cleanup.
                                         ehasp->element_size, dtor_ptr);
 #endif /* ifdef __EDG_IA64_ABI */
         }  /* if */
-#if __EDG_LOWER_VARIABLE_LENGTH_ARRAYS
-        if (is_vla) __vla_dealloc(&obj_addr);
-#endif /* __EDG_LOWER_VARIABLE_LENGTH_ARRAYS */
       } else if (vtbl_ptr != NULL) {
         /* A non-array object for which a special destructor must be called
            in order to supply information about the construction vtable to

@@ -22,6 +22,8 @@ vla_alloc.c -- Runtime support for lowered VLA operations.
 #include "runtime.h"
 #include "vla_alloc.h"
 
+#if __EDG_LOWER_VARIABLE_LENGTH_ARRAYS
+
 /*
 The general approach to allocating VLAs is to allocate relatively small VLAs
 within "normal blocks" of storage allocated with malloc.  Larger VLAs are
@@ -321,6 +323,17 @@ ptr points to a pointer variable.  Deallocate the storage pointed to by *ptr.
   curr_vla_pool->last_allocation = alloc_idx - 1;
 }  /* __vla_dealloc */
 
+
+EXTERN_C void __vla_dealloc_eh(void  *ptr)
+/*
+Interface to __vla_dealloc that takes a pointer to the array, instead of
+the address of a pointer to the array.
+*/
+{
+  __vla_dealloc(&ptr);
+}  /* __vla_dealloc_eh */
+
+
 #if DEBUG
 
 EXTERN_C long __vla_number_of_active_allocations(void)
@@ -333,6 +346,7 @@ Return the number of active allocations (useful for complex tests).
 
 #endif /* DEBUG */
 
+#endif /* __EDG_LOWER_VARIABLE_LENGTH_ARRAYS */
 
 /******************************************************************************
 *                                                             \  ___  /       *
