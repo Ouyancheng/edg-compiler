@@ -7506,6 +7506,8 @@ side effect.
 
 #if DO_IL_LOWERING
 
+/*ARGSUSED*/  /* force_end_of_traversal is not used (but part of the
+                 interface). */
 static a_boolean ttt_lower_vla_dimensions(a_type_ptr  type_ptr,
                                           a_boolean   *force_end_of_traversal)
 /*
