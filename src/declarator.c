@@ -4455,13 +4455,17 @@ function_lparen:
                                (input_flags & (DI_IS_SPECIALIZATION |
                                                DI_IS_EXPLICIT_INSTANTIATION)));
       /* Pass in a flag to indicate whether exception specifications are
-         allowed.  They are allowed on a top-level function declaration and
-         on a top-level pointer-to-function-type declaration that does not
-         appear in a typedef declaration.  (Note: pointer-to-member-functions
-         declarations are not mentioned in WP 15.4 [except.spec] as allowing
-         exception specifications.) */
+         allowed.  They are allowed on a declaration of a function, a pointer
+         or reference to function, or a pointer to member function.  The
+         declaration must be a top-level declaration or a parameter
+         declaration; it cannot be a typedef declaration.  That turns out to
+         correspond to places where real declarators are allowed.  GNU and
+         Microsoft compilers also allow exception specifications in other
+         places (e.g., types in casts). */
       disallow_exception_spec = TRUE;
-      if (!C_mode() && !(input_flags & DI_IS_TYPEDEF_DECLARATION)) {
+      if (!C_mode() && !(input_flags & DI_IS_TYPEDEF_DECLARATION) &&
+          ((input_flags & DI_REAL_DECLARATOR_ALLOWED) ||
+           gpp_mode || microsoft_mode)) {
         if (derived_type == NULL || is_function_type(derived_type)) {
           /* Top level function declaration, or return type of function
              type. */

@@ -1,5 +1,23 @@
 Version 3.6
 
+5/20/05  Invalid uses of throw specifications
+
+The C++ standards committee has clarified (through its decision on core
+issue 294) that exception specifications can only appear in a limited
+number of declarative contexts.  In particular, casts to types with
+exception specifications are invalid, but the front end previously
+accepted such casts.  For example:
+
+  void f() {
+    (void (*)() throw(int))0;  // Previously accepted in all modes.
+  }                            // Now an error in many modes.
+
+In strict mode and in default mode with exceptions enabled, the invalid
+constructs are now diagnosed with a discretionary error.  If support for
+exception handling is disabled, the diagnostic is reduced to a warning.
+In GNU and Microsoft modes, the previous behavior is retained (e.g., no
+diagnostic is issued on the example above).
+
 5/18/05  Internal error on pseudo-destructor of the form "x.::~int"
 
 Because the front end failed to issue a diagnostic, an internal error
