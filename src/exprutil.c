@@ -1242,6 +1242,22 @@ prototype instantiations.
 }  /* discard_curr_expr_object_lifetime */
 
 
+void discard_constant_expr_object_lifetime(void)
+/*
+The current expression has turned out to be constant.  If the object
+lifetime being maintained for it has destructions in it, discard them.
+This should only happen when there are errors.
+*/
+{
+  an_object_lifetime_ptr lifetime = expr_stack->lifetime;
+
+  if (lifetime != NULL && lifetime->destructions != NULL) {
+    check_assertion(total_errors != 0);
+    discard_curr_expr_object_lifetime();
+  }  /* if */
+}  /* discard_constant_expr_object_lifetime */
+
+
 void set_operand_kind(an_operand      *operand,
                       an_operand_kind kind)
 /*

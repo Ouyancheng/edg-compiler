@@ -827,6 +827,8 @@ extern an_expr_node_ptr wrap_up_full_expression(an_expr_node_ptr expr);
 
 extern void discard_curr_expr_object_lifetime(void);
 
+extern void discard_constant_expr_object_lifetime(void);
+
 extern void wrap_up_dynamic_init_full_expression(a_dynamic_init_ptr dip);
 
 extern a_constant_ptr var_constant_value(a_variable_ptr var);
