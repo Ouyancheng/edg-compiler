@@ -10393,8 +10393,7 @@ both C and C++ modes.
     }  /* if */
     flush_until_matching_token();
     /* Skip the closing brace. */
-    check_assertion(curr_token == tok_rbrace);
-    (void)get_token();
+    if (curr_token == tok_rbrace) (void)get_token();
   } else {
     /* Save, clear, and later restore the expression stack, since the
        statements are not part of any expression we may currently be
