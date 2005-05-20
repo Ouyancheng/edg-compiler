@@ -2776,7 +2776,8 @@ typedef unsigned long a_region_descr_flags_set;
 			   location of the flag. */
 #define RDF_NEW_ALLOCATION	0x04
 			/* TRUE if the object was allocated by new and
-			   is to be freed in the event of a throw. */
+			   is to be freed in the event of a throw.  Also
+			   used to deallocate VLAs. */
 #define RDF_ARRAY		0x08
 			/* TRUE if the object is an array (or requires
 			   information normally provided only for arrays). */
@@ -3361,11 +3362,18 @@ the aggregate constant.
 }  /* add_region_table_entry */
 
 
+/*
+Pointer to the runtime routine __vla_dealloc_eh.  NULL until allocated.
+*/
+static a_routine_ptr vla_dealloc_eh_routine;
+
+
 static a_constant_ptr make_region_table_entry(
                              an_init_pos_descr_ptr   ipdp,
                              a_routine_ptr           routine,
                              a_boolean               is_delete,
                              a_boolean               is_local_static_guard_var,
+                             a_boolean               is_vla_deallocation,
                              a_boolean               has_conditional_flag,
                              a_handle                *conditional_flag_handle,
                              a_boolean               has_subobject_vtable,
@@ -3376,29 +3384,32 @@ static a_constant_ptr make_region_table_entry(
                              a_cleanup_region_number *region_number,
                              an_insert_location      *insert_location)
 /*
-Add an entry to the region table (which describes destructible objects)
-related to the object whose position is given by ipdp.  routine is
-a destructor (is_delete == FALSE) or a delete routine (is_delete ==
-TRUE) to be called to do cleanup on the object.  is_local_static_guard_var
-is TRUE if the object is the guard variable for a local static variable
-initialization, and the region entry should indicate that the guard variable
-is to be reset to zero (that's the "destruction" associated with
-the guard variable).  has_conditional_flag is TRUE if there is a
+Add an entry to the region table (which describes destructible
+objects) related to the object whose position is given by ipdp.
+routine is a destructor (is_delete == FALSE) or a delete routine
+(is_delete == TRUE) to be called to do cleanup on the object.
+is_local_static_guard_var is TRUE if the object is the guard variable
+for a local static variable initialization, and the region entry
+should indicate that the guard variable is to be reset to zero (that's
+the "destruction" associated with the guard variable).
+is_vla_deallocation is TRUE if the object is a variable-length array
+(VLA) and the region table entry should indicate that the array must
+be deallocated.  has_conditional_flag is TRUE if there is a
 conditional flag variable that is non-zero to indicate that the
 destruction or deletion should be done.  In that case,
 conditional_flag_handle gives the handle for the address for the
 conditional flag.  has_subobject_vtable is TRUE if a subobject
 construction vtable needs to be passed to the destructor.  In that
-case, subobject_vtable_handle gives the handle for the address
-for the vtable.  is_vla is TRUE if the object is a variable-length
-array.  In that case, vla_elem_count_handle gives the handle for the
-address of a variable that contains the number of elements in the
-array.  next_region_number is used as the next-region-table-entry
-number for the new entry.  The region table entry number for the
-new entry is returned in *region_number.  Any initialization code
-required will be inserted at *insert_location.  The region table
-variable is created if necessary.  Return a pointer to the aggregate
-constant for the region table entry.
+case, subobject_vtable_handle gives the handle for the address for the
+vtable.  is_vla is TRUE if the object is a variable-length array.  In
+that case, vla_elem_count_handle gives the handle for the address of a
+variable that contains the number of elements in the array.
+next_region_number is used as the next-region-table-entry number for
+the new entry.  The region table entry number for the new entry is
+returned in *region_number.  Any initialization code required will be
+inserted at *insert_location.  The region table variable is created if
+necessary.  Return a pointer to the aggregate constant for the region
+table entry.
 */
 {
   a_handle        handle;
@@ -3441,9 +3452,19 @@ constant for the region table entry.
        was not constructed.  See init_conditional_flag_var. */
     flags_value |= RDF_CONDITIONAL_FLAG;
   }  /* if */
-  if (is_delete) {
+  if (is_delete || is_vla_deallocation) {
     /* Indicate the delete case. */
     flags_value |= RDF_NEW_ALLOCATION;
+    if (is_vla_deallocation) {
+      /* VLA deallocation uses an RDF_NEW_ALLOCATION and passes the
+         runtime routine __vla_dealloc_h as the "delete" routine. */
+      routine = make_prototyped_runtime_routine("__vla_dealloc_eh",
+                                                &vla_dealloc_eh_routine,
+                                                void_type(),
+                                                void_star_type(),
+                                                (a_type_ptr)NULL,
+                                                (a_type_ptr)NULL);
+    }  /* if */
   }  /* if */
   if (ipdp->base_class_subobject) {
     /* The entity is a base class subobject (in a constructor or
@@ -3653,6 +3674,7 @@ The region table variable is created if necessary.
                                             is_freeing_of_storage_on_exception,
                                      (a_boolean)dip->
                                         is_guard_var_for_local_static_var_init,
+                                     (a_boolean)dip->is_vla_deallocation,
                                      (dedp->conditional_flag_var != NULL),
                                      &conditional_flag_handle,
                                      has_subobject_vtable,
@@ -5785,6 +5807,7 @@ involved in exception handling.
 #if GENERATE_EH_TABLES
       pch_saved_var_array_elem(array_descr_type),
       pch_saved_var_array_elem(region_descr_type),
+      pch_saved_var_array_elem(vla_dealloc_eh_routine),
 #endif /* GENERATE_EH_TABLES */
 #if DO_FULL_PORTABLE_EH_LOWERING
       pch_saved_var_array_elem(eh_curr_region_var),
@@ -5908,6 +5931,7 @@ must be initialized for each translation unit.
 #if GENERATE_EH_TABLES
   array_descr_type = NULL;
   region_descr_type = NULL;
+  vla_dealloc_eh_routine = NULL;
 #endif /* GENERATE_EH_TABLES */
 #if DO_FULL_PORTABLE_EH_LOWERING
   eh_curr_region_var = NULL;

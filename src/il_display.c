@@ -4967,6 +4967,11 @@ Display the indicated dynamic_init structure.
   if (ptr->is_reused_value) {
     disp_boolean("is_reused_value", TRUE);
   }  /* if */
+#if DO_IL_LOWERING
+  if (ptr->is_vla_deallocation) {
+    disp_boolean("is_vla_deallocation", TRUE);
+  }  /* if */
+#endif /* DO_IL_LOWERING */
   if (ptr->master_entry != NULL) {
     disp_ptr("master_entry", (char *)ptr->master_entry, iek_dynamic_init);
   }  /* if */

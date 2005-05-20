@@ -1699,6 +1699,9 @@ Initialize a dynamic_init entry of the kind specified.
   dip->is_result_for_class_rvalue_question_mark = FALSE;
   dip->is_optimized_class_rvalue_question_mark = FALSE;
   dip->is_reused_value = FALSE;
+#if DO_IL_LOWERING
+  dip->is_vla_deallocation = FALSE;
+#endif /* DO_IL_LOWERING */
 #if CENTERLINE_CHECKING
   dip->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

@@ -14104,6 +14104,30 @@ of the indicated object lifetime entry.
 }  /* add_to_end_of_destructions_list */
 
 
+void add_to_destructions_list_following(a_dynamic_init_ptr dip,
+                                        a_dynamic_init_ptr new_dip)
+/*
+Add new_dip to the destructions list following dip.  "Following" means
+it's the next entry on the next_in_destruction_list chain; the "next"
+pointer is not set.
+*/
+{
+  an_object_lifetime_ptr olp = dip->lifetime, colp;
+
+  check_assertion(olp != NULL);
+  new_dip->next_in_destruction_list = dip->next_in_destruction_list;
+  dip->next_in_destruction_list = new_dip;
+  new_dip->lifetime = olp;
+  /* If any child lifetime has its parent_destruction_sublist pointing
+     to dip, change the pointer to new_dip. */
+  for (colp = olp->child_lifetime; colp != NULL; colp = colp->next) {
+    if (colp->parent_destruction_sublist == dip) {
+      colp->parent_destruction_sublist = new_dip;
+    }  /* if */
+  }  /* for */
+}  /* add_to_destructions_list_following */
+
+
 void record_end_of_lifetime_destruction(a_dynamic_init_ptr  dip,
                                         a_boolean           static_lifetime,
                                         a_boolean           block_lifetime)

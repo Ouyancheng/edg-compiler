@@ -200,6 +200,46 @@ its return type is return_type.
 }  /* make_runtime_routine */
 
 
+a_routine_ptr make_prototyped_runtime_routine(char             *name,
+                                              a_routine_ptr    *routine,
+                                              a_type_ptr       return_type,
+                                              a_type_ptr       param1_type,
+                                              a_type_ptr       param2_type,
+                                              a_type_ptr       param3_type)
+/*
+Make a routine entry for the runtime routine named "name" and return a
+pointer to it.  Also save the pointer in *routine.  If *routine is non-NULL
+on entry, use that pointer.  The routine has the indicated return type
+and parameter types and is prototyped.  Parameters can be left out by
+passing NULL parameter types (e.g., a non-NULL param1_type and a NULL
+param2_type creates a prototype for a function taking a single argument).
+*/
+{
+  if (*routine == NULL) {
+    a_type_ptr rout_type;
+
+    (void)make_runtime_routine(name, routine, return_type);
+    rout_type = (*routine)->type;
+    rout_type->variant.routine.extra_info->prototyped = TRUE;
+    if (param1_type != NULL) {
+      a_param_type_ptr first_param = alloc_param_type(param1_type);
+      rout_type->variant.routine.extra_info->param_type_list = first_param;
+      if (param2_type != NULL) {
+        first_param->next = alloc_param_type(param2_type);
+        if (param3_type != NULL) {
+          first_param->next->next = alloc_param_type(param3_type);
+        }  /* if */
+      } else {
+        check_assertion(param3_type == NULL);
+      }  /* if */
+    } else {
+      check_assertion(param2_type == NULL && param3_type == NULL);
+    }  /* if */
+  }  /* if */
+  return *routine;
+}  /* make_prototyped_runtime_routine */
+
+
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- class_type and bcp are unused in that case. */
 #endif /* !IA64_ABI */
@@ -3782,18 +3822,15 @@ Generate code for the destruction of the indicated dynamic initialization.
 The code is inserted at *insert_location and *insert_location is updated.
 This routine is used for automatically-generated destructions at ends
 of/exits from lifetimes, which means it is not used for static variables
-and not for constructor_init entries in destructors.  This routine is
-also called for variable-length arrays (VLAs) whether or not their
-elements require destruction; the code generated deallocates the array.
+and not for constructor_init entries in destructors.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
   an_insert_location              insert_location2;
   an_insert_location_ptr          effective_insert_loc;
-  a_boolean                       is_vla = is_dynamic_init_for_vla(dip);
 
   check_assertion(dedp != NULL);
-  check_assertion(dip->destructor != NULL || is_vla);
+  check_assertion(dip->destructor != NULL);
   /* Set the cleanup state to what it should be after the destruction,
      because as soon as we start the destruction it's the destructor's
      job to deal with partial destruction. */
@@ -3805,7 +3842,7 @@ elements require destruction; the code generated deallocates the array.
                                           /*unreachable=*/FALSE);
   }  /* if */
   effective_insert_loc = insert_location;
-  /* If the entity is conditionally-created temporary, generate an
+  /* If the entity is a conditionally-created temporary, generate an
      "if" statement to test whether or not the variable was ever
      initialized.  Only do the destruction if it was. */
   if (dip->inside_conditional_expression) {
@@ -3832,27 +3869,46 @@ elements require destruction; the code generated deallocates the array.
     }  /* if */
   }  /* if */
 #endif /* DO_UNORDERED_EH_PROCESSING */
-  if (dip->destructor != NULL) {
-    add_destructor_call(dip->destructor,
-                        &dedp->init_pos_descr,
-                        /*have_complete_object=*/TRUE,
-                        (an_expr_node_ptr)NULL,
-                        effective_insert_loc);
-  }  /* if */
-  if (is_vla) {
-    /* Generate code to deallocate a variable-length array. */
-    an_expr_node_ptr dealloc_expr =
-                           alloc_expr_node((an_expr_node_kind)enk_vla_dealloc);
-    dealloc_expr->type = void_type();
-    check_assertion(dip->variable != NULL);
-    dealloc_expr->variant.vla_variable = dip->variable;
-#if LOWER_VARIABLE_LENGTH_ARRAYS
-    lower_vla_dealloc(dealloc_expr);
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-    (void)insert_expr_statement(dealloc_expr, effective_insert_loc);
-  }  /* if */
+  add_destructor_call(dip->destructor,
+                      &dedp->init_pos_descr,
+                      /*have_complete_object=*/TRUE,
+                      (an_expr_node_ptr)NULL,
+                      effective_insert_loc);
 }  /* gen_one_destruction */
 
+#if VLA_DEALLOCATION_REQUIRED
+
+void gen_vla_deallocation(a_dynamic_init_ptr dip,
+                          an_insert_location *insert_location)
+/*
+dip points to a dynamic-init entry that represents the deallocation of
+a variable-length array.  Generate code to do the deallocation.
+The code is inserted at *insert_location and *insert_location is updated.
+*/
+{
+  a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+  an_expr_node_ptr                dealloc_expr;
+
+  check_assertion(dedp != NULL);
+  /* Set the cleanup state to what it should be after the deallocation. */
+  curr_context->curr_cleanup_state =
+                          dedp->cleanup_state_to_set_when_starting_destruction;
+  if (exceptions_enabled) {
+    insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
+                                          insert_location,
+                                          /*unreachable=*/FALSE);
+  }  /* if */
+  dealloc_expr = alloc_expr_node((an_expr_node_kind)enk_vla_dealloc);
+  dealloc_expr->type = void_type();
+  check_assertion(dip->variable != NULL);
+  dealloc_expr->variant.vla_variable = dip->variable;
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+  lower_vla_dealloc(dealloc_expr);
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+  (void)insert_expr_statement(dealloc_expr, insert_location);
+}  /* gen_vla_deallocation */
+
+#endif /* VLA_DEALLOCATION_REQUIRED */
 
 static void lower_ck_dynamic_init(a_constant_ptr         con_ptr,
                                   an_init_pos_descr_ptr  ipdp,
@@ -5871,6 +5927,29 @@ The expression passed in has not been lowered yet and must be lowered.
   (void)insert_expr_statement(expr, insert_location);
 }  /* lower_optimized_class_rvalue_question_mark */
 
+#if VLA_DEALLOCATION_REQUIRED
+
+static a_dynamic_init_ptr add_vla_deallocation_dynamic_init(
+                                                        a_dynamic_init_ptr dip)
+/*
+Insert a new dynamic-init entry that represents the deallocation of
+the variable-length array (VLA) whose allocation/initialization is
+indicated by dip.  Return a pointer to the new entry.  The new entry is
+placed immediately following dip on the next_in_destruction_list chain.
+*/
+{
+  a_dynamic_init_ptr dealloc_dip;
+
+  check_assertion(vla_enabled && !C_mode());
+  dealloc_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+  dealloc_dip->variable = dip->variable;
+  dealloc_dip->is_vla_deallocation = TRUE;
+  dealloc_dip->destructible_entity_descr = alloc_destructible_entity_descr();
+  add_to_destructions_list_following(dip, dealloc_dip);
+  return dealloc_dip;
+}  /* add_vla_deallocation_dynamic_init */
+
+#endif /* VLA_DEALLOCATION_REQUIRED */
 
 void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_init_pos_descr_ptr  ipdp,
@@ -6105,6 +6184,30 @@ C99 mode for the same reason.
       }  /* if */
     }  /* if */
   }  /* if */
+#if VLA_DEALLOCATION_REQUIRED
+  if (is_dynamic_init_for_vla(dip)) {
+    a_dynamic_init_ptr dealloc_dip;
+    /* This initialization is for a variable-length array (VLA). */
+    if (dip->destructor != NULL) {
+      /* The VLA requires destruction of its elements.  We need to add
+         a separate dynamic-init entry to represent the deallocation of
+         the storage, because destruction and deallocation have to be
+         distinct cleanup steps for exception handling. */
+      dealloc_dip = add_vla_deallocation_dynamic_init(dip);
+    } else {
+      /* The VLA requires no destruction of its elements (e.g., it's
+         an array of a non-class type or of a POD class).  The dynamic
+         init entry becomes the indication of the deallocation point
+         for the array. */
+      dealloc_dip = dip;
+      dip->is_vla_deallocation = TRUE;
+    }  /* if */
+    /* Update the cleanup information so that this entity will be
+       deallocated at the appropriate time. */
+    add_dyn_init_cleanup(dealloc_dip, ipdp, /*set_cond_flag_if_any=*/FALSE,
+                         eff_context, eff_insert_location);
+  }  /* if */
+#endif /* VLA_DEALLOCATION_REQUIRED */
   init_expr_lifetime = dip->init_expr_lifetime;
   /* See if this is an initialization of an array via a constructor.  For
      such initializations certain things get delayed because the actual
@@ -6497,13 +6600,6 @@ do_assignment:;
       free_destructible_entity_descr(dip->destructible_entity_descr);
       dip->destructible_entity_descr = NULL;
     }  /* if */
-  } else if (variable != NULL && variable->is_vla) {
-    /* A variable-length array requires deallocation at the end of its
-       scope (treated as a kind of destruction).  Cases like arrays of
-       int or arrays of POD class type come here. */
-    add_dyn_init_cleanup(dip, ipdp,
-                         /*set_cond_flag_if_any=*/FALSE,
-                         eff_context, eff_insert_location);
   }  /* if */
   /* If the dynamic init defines a lifetime that surrounds the initialization,
      pop the context for that lifetime. */

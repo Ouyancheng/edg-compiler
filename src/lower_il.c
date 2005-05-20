@@ -12339,6 +12339,7 @@ the destructions and before the original statement.
     if (dip->has_temporary_lifetime &&
         !dip->is_freeing_of_storage_on_exception &&
         !dip->destruction_is_for_partially_constructed_aggregate &&
+        !dip->is_vla_deallocation &&
         !dip->is_guard_var_for_local_static_var_init) {
       /* Found a destruction for a temporary.  */
       /* If this is the first one, make an insert location by rewriting
@@ -12981,6 +12982,17 @@ code.
           /* This is the initialization of the parameter substituted for the
              return value optimization variable.  The destruction doesn't get
              done on exit from the routine (the caller does it). */
+#if VLA_DEALLOCATION_REQUIRED
+        } else if (dip->is_vla_deallocation) {
+          /* Deallocation of a variable-length array (VLA).  This is
+             needed both on exception cleanup and exit via branch. */
+          any_cleanup_needed = TRUE;
+          if (check_only) goto done;
+          dump_pending_cleanup_state_setting(&state_set_pending,
+                                             pending_cleanup_state,
+                                             insert_location);
+          gen_vla_deallocation(dip, insert_location);
+#endif /* VLA_DEALLOCATION_REQUIRED */
         } else {
           /* Normal case -- a destruction is needed. */
           any_cleanup_needed = TRUE;

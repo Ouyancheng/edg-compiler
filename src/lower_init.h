@@ -58,6 +58,14 @@ extern a_routine_ptr make_runtime_routine(char          *name,
                                           a_routine_ptr *routine,
                                           a_type_ptr    return_type);
 
+extern a_routine_ptr make_prototyped_runtime_routine(
+                                               char             *name,
+                                               a_routine_ptr    *routine,
+                                               a_type_ptr       return_type,
+                                               a_type_ptr       param1_type,
+                                               a_type_ptr       param2_type,
+                                               a_type_ptr       param3_type);
+
 extern void make_call_statement(a_routine_ptr      routine,
                                 an_expr_node_ptr   arg_list,
                                 an_insert_location *insert_location);
@@ -155,6 +163,11 @@ extern void make_dtor_implied_arg_list(a_routine_ptr    dtor_routine,
 
 extern void gen_one_destruction(a_dynamic_init_ptr     dip,
                                 an_insert_location_ptr insert_location);
+
+#if VLA_DEALLOCATION_REQUIRED
+void gen_vla_deallocation(a_dynamic_init_ptr dip,
+                          an_insert_location *insert_location);
+#endif /* VLA_DEALLOCATION_REQUIRED */
 
 #if IA64_ABI
 extern void define_construction_vtbls_array(a_type_ptr              class_type,

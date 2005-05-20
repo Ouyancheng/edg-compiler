@@ -3236,6 +3236,41 @@ the flag can be set to FALSE to eliminate the unused code altogether.
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_DEALLOCATIONS_IN_IL */
 
 /*
+Flag that is TRUE if variable-length arrays (VLAs) need to be deallocated
+at the ends of their lifetimes.  FALSE if deallocation is not needed,
+e.g., because it happens automatically.  If the VLA scheme does allocation
+by extending the stack frame, for example, deallocation may not be required.
+This flag controls IL lowering, specifically generation of deallocation
+code and whether special exception cleanup entries are added to request
+deallocation of VLAs on exceptions.
+
+If LOWER_VARIABLE_LENGTH_ARRAYS is FALSE, the usual deallocation will
+remain as an enk_vla_dealloc node, but the deallocation on exception
+cleanup is still done (as in the configuration with VLA lowering) via
+a call of the runtime routine __vla_dealloc_eh, and that call receives
+only a pointer to the allocated space (but no size).  If some other
+implementation is required, IL lowering would have to be changed.
+(Changing the name of the routine is of course one of the easy
+possible changes.)
+*/
+#ifndef VLA_DEALLOCATION_REQUIRED
+#if !DO_IL_LOWERING
+/* No lowering, so no chance to insert deallocation code. */
+#define VLA_DEALLOCATION_REQUIRED FALSE
+#else /* DO_IL_LOWERING */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+#define VLA_DEALLOCATION_REQUIRED TRUE
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+#define VLA_DEALLOCATION_REQUIRED FALSE
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#endif /* DO_IL_LOWERING */
+#endif /* ifndef VLA_DEALLOCATION_REQUIRED */
+
+#if LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_DEALLOCATION_REQUIRED
+ #error -- Lowering of VLAs requires VLA_DEALLOCATION_REQUIRED
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_DEALLOCATION_REQUIRED */
+
+/*
 Flag that is used as the default setting for global variable vla_enabled.
 The variable can also be controlled from the command line by --[no_]vla.
 Whatever the default, vla_enabled is forced on or off in certain modes

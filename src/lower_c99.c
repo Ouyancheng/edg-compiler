@@ -86,25 +86,9 @@ argument).
   an_expr_node_ptr  result;
   if (*routine == NULL) {
     /* Make the routine entry if it does not exist already. */
-    a_type_ptr        rout_type;
-    (void)make_runtime_routine(name, routine, return_type);
-    rout_type = (*routine)->type;
-    /* Prototype parameter list. */
-    rout_type->variant.routine.extra_info->prototyped = TRUE;
-    if (param1_type != NULL) {
-      a_param_type_ptr  first_param = alloc_param_type(param1_type);
-      rout_type->variant.routine.extra_info->param_type_list = first_param;
-      if (param2_type != NULL) {
-        first_param->next = alloc_param_type(param2_type);
-        if (param3_type != NULL) {
-          first_param->next->next = alloc_param_type(param3_type);
-        }  /* if */
-      } else {
-        check_assertion(param3_type == NULL);
-      }  /* if */
-    } else {
-      check_assertion(param2_type == NULL && param3_type == NULL);
-    }  /* if */
+    (void)make_prototyped_runtime_routine(name, routine, return_type,
+                                          param1_type, param2_type,
+                                          param3_type);
   }  /* if */
   /* Make the call node. */
   result = make_call_node(*routine, arg_expr_list, /*honor_virtual=*/FALSE,
