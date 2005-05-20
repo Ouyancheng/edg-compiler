@@ -29,10 +29,10 @@ types.c -- Utility routines that check types.
 #include "symbol_ref.h"
 #include "templates.h"
 #include "func_def.h"
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if DO_IL_LOWERING
 #include "lower_c99.h"
 #endif /* DO_IL_LOWERING */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #include "trans_corresp.h"
 
 /*
