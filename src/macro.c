@@ -5061,8 +5061,8 @@ from the front end to the runtime.
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* GENERATE_EH_TABLES */
   (void)enter_predef_macro(conv_unsigned_long_to_str
-                                ((unsigned long)(VLA_ALLOWED &&
-                                 LOWER_VARIABLE_LENGTH_ARRAYS)), /*lint !e506*/
+                                 ((unsigned long)VLA_ALLOWED &&
+                                  LOWER_VARIABLE_LENGTH_ARRAYS), /*lint !e506*/
 			   "__EDG_LOWER_VARIABLE_LENGTH_ARRAYS",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
