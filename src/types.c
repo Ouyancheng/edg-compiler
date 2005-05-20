@@ -7516,7 +7516,8 @@ If type_ptr is a VLA type, lower its dimension expression.
 {
   a_boolean  found = FALSE;
 
-  if (is_array(type_ptr) && array_is_vla(type_ptr)) {
+  if (is_array(type_ptr) && array_is_vla(type_ptr) &&
+      type_ptr->variant.array.has_assoc_vla_dimension) {
     lower_vla_dimension_expression(find_vla_dimension(type_ptr));
   }  /* if */
   return found;
