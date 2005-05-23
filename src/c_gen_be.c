@@ -4022,10 +4022,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                   implicit conversions from "void *" in some cases.)
           */
           if (expr->variant.operation.compiler_generated &&
-              il_header.source_language == sl_C &&
               is_pointer_type(expr->type) &&
               is_directly_variably_modified_type(expr->type)) {
-            /* Do not put out an implicit cast to a variably-modified type. */
+            /* Do not put out an implicit cast to a variably-modified type:
+               Otherwise we may cause the side-effects of VLA dimension
+               expressions to be duplicated. */
           } else {
             dump_cast(expr->type);
           }  /* if */
@@ -7420,18 +7421,6 @@ statement expression, i.e., ({...}).
     case stmk_set_vla_size:
 #if LOWER_VARIABLE_LENGTH_ARRAYS
       unexpected_condition_str("VLA statement unexpected");
-#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
-      /* An unlowered C++ VLA: The dimension is stored in a temporary that
-         must be initialized here.  form_array_declarator creates references
-         to the variable.  Doing things this way avoids duplicating side-
-         effects when lowering duplicates the type.
-         (See also create_dimension_variable, which turns the expression
-         pointed to by the dimension_expr field into an assignment to the
-         variable pointed to by dimension_variable.) */
-      check_assertion(
-                statement->variant.vla_dimension->dimension_variable != NULL);
-      dump_expression(statement->variant.vla_dimension->dimension_expr);
-      write_tok_ch(';');
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       /* No output. */
       break;

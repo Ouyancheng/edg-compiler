@@ -1780,8 +1780,6 @@ pointer to it.
 #if DO_IL_LOWERING
 #if LOWER_VARIABLE_LENGTH_ARRAYS
   vdp->total_number_of_elements = NULL;
-#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
-  vdp->dimension_variable = NULL;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #endif /* DO_IL_LOWERING */
   db_exit();

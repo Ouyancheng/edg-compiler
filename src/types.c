@@ -8310,7 +8310,7 @@ unspecified bound (i.e., declared with [*]).
                                               TTT_SKIP_TYPEREFS);
   a_boolean                       result = FALSE;
 
-  if (vla_enabled) {
+  if (il_header.vla_used) {
     result = traverse_type_tree(tp,
                                 ttt_is_or_contains_vla_with_unspecified_bound,
                                 tt_flags);
@@ -8333,7 +8333,7 @@ for VLAs).
   a_type_tree_traversal_flag_set  tt_flags = TTT_RETURN_TYPE;
   a_boolean                       result = FALSE;
 
-  if (vla_enabled) {
+  if (il_header.vla_used) {
     result = traverse_type_tree(tp, ttt_is_variably_modified_type, tt_flags);
   }  /* if */
   return result;
@@ -8353,7 +8353,7 @@ types or exception specification types.)
   a_type_tree_traversal_flag_set  tt_flags = TTT_RETURN_TYPE;
   a_boolean                       result = FALSE;
 
-  if (vla_enabled && !C_mode()) {
+  if (il_header.vla_used && !C_mode()) {
     result = traverse_type_tree(tp, ttt_is_nonlocal_variably_modified_type,
                                 tt_flags);
   }  /* if */
@@ -8374,7 +8374,7 @@ effects does not itself create a side effect at the point of reference.
                                              TTT_STOP_AT_TYPEDEFS;
   a_boolean                       result = FALSE;
 
-  if (vla_enabled && innermost_function_scope != NULL) {
+  if (il_header.vla_used && innermost_function_scope != NULL) {
     if (C_mode()) {
       /* C++ modes do not allow VLAs in parameters, but C modes do. */
       tt_flags |= TTT_PARAM_TYPES;
@@ -8394,7 +8394,7 @@ Lower the dimension expressions of any VLA type component in tp.
   a_type_tree_traversal_flag_set  tt_flags = TTT_RETURN_TYPE |
                                              TTT_STOP_AT_TYPEDEFS;
 
-  if (vla_enabled && innermost_function_scope != NULL) {
+  if (il_header.vla_used && innermost_function_scope != NULL) {
     if (C_mode()) {
       /* C++ modes do not allow VLAs in parameters, but C modes do. */
       tt_flags |= TTT_PARAM_TYPES;
@@ -8451,13 +8451,8 @@ array bound appears directly (rather than hidden under a typedef).
   a_type_tree_traversal_flag_set  tt_flags = (TTT_RETURN_TYPE |
                                               TTT_STOP_AT_TYPEDEFS);
   a_boolean                       result = FALSE;
-#if STANDALONE_UTILITY_PROGRAM
-  /* The global variable "vla_enabled" doesn't exist in standalone
-     programs. */
-  a_boolean                       vla_enabled = VLA_ALLOWED;
-#endif /* STANDALONE_UTILITY_PROGRAM */
 
-  if (vla_enabled) {
+  if (il_header.vla_used) {
     result = traverse_type_tree(tp, ttt_is_variably_modified_type, tt_flags);
   }  /* if */
   return result;

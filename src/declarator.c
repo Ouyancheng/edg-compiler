@@ -2417,12 +2417,14 @@ constant.
          there is no need to allocate a_vla_dimension. */
       (*new_type_ptr)->variant.array.is_vla = TRUE;
       (*new_type_ptr)->variant.array.is_variable_size_array = TRUE;
+      il_header.vla_used = TRUE;
     } else if (dim_expr != NULL) {
       /* Expression case. */
       (*new_type_ptr)->variant.array.is_variable_size_array = TRUE;
       if (vla_allowed) {
         /* VLA case. */
         (*new_type_ptr)->variant.array.is_vla = TRUE;
+        il_header.vla_used = TRUE;
         /* A VLA dimension entry will be created to record the array
            dimension expression. */
         if (scope_stack[decl_scope_level].kind ==

@@ -5054,12 +5054,6 @@ Display the indicated vla_dimension entry.
     disp_boolean("in_prototype_scope", TRUE);
   }  /* if */
   disp_source_position("position", &ptr->position);
-#if DO_IL_LOWERING && !LOWER_VARIABLE_LENGTH_ARRAYS
-  if (ptr->dimension_variable != NULL) {
-    disp_ptr("dimension_variable", (char *)ptr->dimension_variable,
-             iek_variable);
-  }  /* if */
-#endif /* DO_IL_LOWERING && !LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* disp_vla_dimension */
 
 #if DO_IL_LOWERING && IA64_ABI
@@ -5948,6 +5942,9 @@ Display the IL for the file scope in human-readable form.
 #endif /* NEAR_AND_FAR_ALLOWED */
   disp_boolean("UCN_identifiers_used",
                (a_boolean)il_header.UCN_identifiers_used);
+  disp_boolean("vla_used", (a_boolean)il_header.vla_used);
+  disp_boolean("il_has_all_prototype_instantiations",
+               (a_boolean)il_header.il_has_all_prototype_instantiations);
 #if ONE_INSTANTIATION_PER_OBJECT
   if (il_header.instantiation_dir_name != NULL) {
     disp_string_ptr("instantiation_dir_name",

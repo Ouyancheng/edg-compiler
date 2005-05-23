@@ -801,25 +801,6 @@ address.
 
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
 
-void create_dimension_variable(a_statement_ptr  stmt)
-/*
-stmt is a stmk_set_vla_size statement.  Create a new variable initialized with
-the dimension expression associated with this statement.  The expression is
-updated to include the initialization of the variable.  This routine is only
-used by configurations that do not lower VLAs.  It is particularly useful for
-the C-generating back end to avoid duplicating side-effects of VLA bounds if
-the type of a VLA variable appears multiple times in the lowered IL.
-*/
-{
-  a_vla_dimension_ptr  vla_dim;
-
-  check_assertion(stmt->kind == stmk_set_vla_size);
-  vla_dim = stmt->variant.vla_dimension;
-  lower_vla_dimension_expression(vla_dim);
-  vla_dim->dimension_variable = assign_expr_to_temp(vla_dim->dimension_expr);
-}  /* create_dimension_variable */
-
- 
 void create_element_count_variable_for_vla(a_statement_ptr  stmt)
 /*
 stmt is a stmk_vla_decl statement.  Create a variable holding the total
@@ -857,8 +838,9 @@ lower_vla_dimensions).
         /* A variable-length dimension. */
         a_vla_dimension_ptr  dim = find_vla_dimension(type);
         an_expr_node_ptr     dim_expr;
-        check_assertion(dim != NULL && dim->dimension_variable != NULL);
-        dim_expr = var_rvalue_expr(dim->dimension_variable);
+        check_assertion(dim != NULL);
+        dim_expr = make_reusable_copy(dim->dimension_expr,
+                                      /*vars_can_change=*/TRUE);
         dim_expr = add_cast_if_necessary(dim_expr, ptrdiff_type);
         if (count == NULL) {
           count = dim_expr;
@@ -889,22 +871,13 @@ lower_vla_dimensions).
     count_init = make_operator_node((an_expr_operator_kind)eok_iassign,
                                     ptrdiff_type, count_init);
     /* Create an expression statement to actually perform the computation.
-       Insert it before the stmk_vla_decl statement.  We cannot use 
-       turn_statement_into_block on stmk_vla_decl statements because that
-       would change the lifetime of the associated VLA.  However, since this
-       is only called for C++ IL, we know the stmk_vla_decl must be part of
-       a block already (declarations cannot appear as the only dependent
-       statement of an "if" statement, for example).  We also count on this
-       being called only from lower_statement_list (via lower_statement),
-       which has code necessary to avoid lowering a statement twice. */
+       Insert it after the stmk_vla_decl statement.  We count on this being
+       called only from lower_statement_list (via lower_statement), which
+       has code necessary to avoid lowering a statement twice. */
     check_assertion(!C_mode());
-    new_stmt = alloc_statement((a_statement_kind)stmk_vla_decl);
-    copy_statement(stmt, new_stmt);
+    new_stmt = alloc_expr_statement(count_init);
     new_stmt->next = stmt->next;
     stmt->next = new_stmt;
-    stmt->kind = (a_statement_kind)stmk_expr;
-    stmt->expr = count_init;
-    set_expr_result_not_used(stmt->expr);
   }  /* if */
 }  /* create_element_count_variable_for_vla */
 
@@ -3302,9 +3275,6 @@ Do C99 lowering on the indicated statement.
         /* Replace this statement by one that computes various variables
            describing the size of the VLA. */
         lower_set_vla_size(statement);
-#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
-        /* Record the associated VLA dimension in a temporary variable. */
-        create_dimension_variable(statement);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
       case stmk_vla_decl:
