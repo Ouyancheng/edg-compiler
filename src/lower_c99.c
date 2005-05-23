@@ -3275,6 +3275,8 @@ Do C99 lowering on the indicated statement.
         /* Replace this statement by one that computes various variables
            describing the size of the VLA. */
         lower_set_vla_size(statement);
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+        lower_vla_dimension_expression(statement->variant.vla_dimension);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
       case stmk_vla_decl:
