@@ -16134,6 +16134,10 @@ Do IL lowering of the indicated scope and everything under it.
       create_alternate_entry_points(routine, /*define_now=*/TRUE);
     }  /* if */
 #endif /* IA64_ABI */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+    /* Discard the VLA dimensions list since the VLAs have all been lowered. */
+    scope->vla_dimensions = NULL;
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     /* Unlink any local static variable initialization entries that
        no longer do anything. */
     unlink_pointless_local_static_variable_inits(scope);

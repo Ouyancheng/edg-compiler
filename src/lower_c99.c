@@ -884,8 +884,15 @@ lower_vla_dimensions).
         /* A variable-length dimension. */
         a_vla_dimension_ptr  dim = find_vla_dimension(type);
         an_expr_node_ptr     dim_expr;
-        check_assertion(dim != NULL && dim->dimension_variable != NULL);
-        dim_expr = var_rvalue_expr(dim->dimension_variable);
+        check_assertion(dim != NULL);
+        if (dim->dimension_variable != NULL) {
+          /* The dimension expression's value has already been stored in a
+             variable.  Reuse that. */
+          dim_expr = var_rvalue_expr(dim->dimension_variable);
+        } else {
+          dim_expr = make_reusable_copy(dim->dimension_expr,
+                                        /*vars_can_change=*/TRUE);
+        }  /* if */
         dim_expr = add_cast_if_necessary(dim_expr, ptrdiff_type);
         if (count == NULL) {
           count = dim_expr;
@@ -3551,6 +3558,10 @@ Do C99 lowering for all entities in and under the given scope.
       set_up_routine_for_inlining(scope);
     }  /* if */
 #endif /* MINIMAL_INLINING */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+    /* Discard the VLA dimensions list since the VLAs have all been lowered. */
+    scope->vla_dimensions = NULL;
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     innermost_function_scope = saved_innermost_function_scope;
   } else if (scope->kind == (a_scope_kind)sck_file) {
 #if LOWER_VARIABLE_LENGTH_ARRAYS
