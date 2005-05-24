@@ -6027,6 +6027,19 @@ typedef struct a_vla_dimension {
 			   Valid only in the front end.  NULL until the
 			   associated stmk_set_vla_size statement has been
 			   lowered. */
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+  a_variable_ptr
+		dimension_variable;
+			/* A variable initialized with the original expression
+			   recorded in dimension_expr.  It is used by the
+			   C-generating back end to avoid duplicating side-
+			   effects in VLA bounds.  For example, if a VLA is
+			   originally of type "int[++k]" and the C-generating
+			   back end must express this type several times, it
+			   will do so as "int[n]" where "n" is the variable
+			   recorded in this field (and initialized with "++k"
+			   at the appropriate time).  NULL for entries not
+			   pointed to by a stmk_set_vla_size statement. */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #endif /* DO_IL_LOWERING */
 } a_vla_dimension;

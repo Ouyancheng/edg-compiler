@@ -12129,16 +12129,11 @@ be added on a tested condition in the IL.
 an_expr_node_ptr add_cast(an_expr_node_ptr node,
                           a_type_ptr       new_type)
 /*
-Add a cast to new_type to the node and return the cast node.  new_type should
-not have any top-level type qualifiers.  The cast is assumed to be compiler-
-generated; the caller has to modify the associated flag if that is not the
-case.
+Add a cast to new_type to the node and return the cast node.
+new_type should not have any top-level type qualifiers.
 */
 {
-  an_expr_node_ptr  result =  make_operator_node(
-                              (an_expr_operator_kind)eok_cast, new_type, node);
-  result->variant.operation.compiler_generated = TRUE;
-  return result;
+  return make_operator_node((an_expr_operator_kind)eok_cast, new_type, node);
 }  /* add_cast */
 
 

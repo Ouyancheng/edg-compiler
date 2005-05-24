@@ -1718,7 +1718,18 @@ the way described by octl.
     } else {
       /* Variable-length array with an associated expression. */
       a_vla_dimension_ptr vlap = find_vla_dimension(type);
-      form_expression(vlap->dimension_expr, octl);
+#if DO_IL_LOWERING && !LOWER_VARIABLE_LENGTH_ARRAYS
+      if (octl->gen_compilable_code && vlap->dimension_variable != NULL) {
+        /* The expression was fixed in a separate variable.  Use that instead
+           of the expression (to avoid potential duplicate side-effects). */
+        form_name(&vlap->dimension_variable->source_corresp, iek_variable,
+                  octl);
+      } else
+#endif /* DO_IL_LOWERING && !LOWER_VARIABLE_LENGTH_ARRAYS */
+      /* Do not insert code here. */
+      {
+        form_expression(vlap->dimension_expr, octl);
+      }  /* if */
     }  /* if */      
   } else if (type->variant.array.is_variable_size_array) {
     an_expr_node_ptr count = type->variant.array.variant.element_count_expr;

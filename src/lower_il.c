@@ -14169,7 +14169,8 @@ Do IL lowering of the indicated statement and everything under it.
            describing the size of the VLA. */
         lower_set_vla_size(statement);
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
-        lower_vla_dimension_expression(statement->variant.vla_dimension);
+        /* Record the associated VLA dimension in a temporary variable. */
+        create_dimension_variable(statement);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
       case stmk_vla_decl:

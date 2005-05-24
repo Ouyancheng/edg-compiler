@@ -3271,6 +3271,30 @@ possible changes.)
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_DEALLOCATION_REQUIRED */
 
 /*
+Flag that is TRUE if, when lowering IL in general but not variable-length
+arrays (VLAs), no temporaries should be introduced to hold the dimensions
+of VLAs appearing in function parameters (a possibility in some C modes).
+
+In the C-generating back end, the temporaries are useful to avoid duplicating
+side effects of VLA dimensions when a VLA type is reused in compiler-generated
+casts.  However, function prototype scopes do not permit the declaration of a
+temporary variable.  So this flag should always be TRUE when using the
+C-generating back end.
+*/
+#if DO_IL_LOWERING && !LOWER_VARIABLE_LENGTH_ARRAYS
+#ifndef NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES
+#define NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES \
+                                                         BACK_END_IS_C_GEN_BE
+#endif /* NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES */
+
+#if BACK_END_IS_C_GEN_BE && \
+    !NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES
+ #error -- The C-generating back end requires \
+           NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES set to TRUE
+#endif /* BACK_END_IS_C_GEN_BE && !NO_VLA_DIMENSION_TEMPORARIES... */
+#endif /* DO_IL_LOWERING && !LOWER_VARIABLE_LENGTH_ARRAYS */
+
+/*
 Flag that is used as the default setting for global variable vla_enabled.
 The variable can also be controlled from the command line by --[no_]vla.
 Whatever the default, vla_enabled is forced on or off in certain modes

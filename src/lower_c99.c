@@ -125,12 +125,29 @@ Lower the expression in a VLA dimension entry.
   an_expr_node_ptr  expr = vdp->dimension_expr;
 
   if (expr != NULL) {
+    a_context    context;
+    a_scope_ptr  saved_innermost_function_scope;
+    if (vdp->in_prototype_scope) {
+      /* We've already pushed the function scope on the context stack, but
+         VLA dimensions appearing in prototype scope are not defined in that
+         context.  Temporarily restore the file scope context.  (Note that
+         VLAs can only appear in prototype scope in C modes.) */
+      check_assertion(C_mode());
+      saved_innermost_function_scope = innermost_function_scope;
+      innermost_function_scope = NULL;
+      push_context(&context, il_header.primary_scope,
+                   (an_object_lifetime_ptr)NULL);
+    }  /* if */
     if (C_mode()) {
 #if DO_C99_IL_LOWERING
       lower_c99_full_expr(expr);
 #endif /* DO_C99_IL_LOWERING */
     } else {
       lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
+    }  /* if */
+    if (vdp->in_prototype_scope) {
+      pop_context();
+      innermost_function_scope = saved_innermost_function_scope;
     }  /* if */
 #if MINIMAL_INLINING
     /* Catch constant nonpositive sizes introduced by inlining. */
@@ -801,6 +818,35 @@ address.
 
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
 
+void create_dimension_variable(a_statement_ptr  stmt)
+/*
+stmt is a stmk_set_vla_size statement.  Create a new variable initialized with
+the dimension expression associated with this statement.  The expression is
+updated to include the initialization of the variable.  This routine is only
+used by configurations that do not lower VLAs.  It is particularly useful for
+the C-generating back end to avoid duplicating side-effects of VLA bounds if
+the type of a VLA variable appears multiple times in the lowered IL.
+*/
+{
+  a_vla_dimension_ptr  vla_dim;
+
+  check_assertion(stmt->kind == stmk_set_vla_size);
+  vla_dim = stmt->variant.vla_dimension;
+  lower_vla_dimension_expression(vla_dim);
+#if NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES
+  if (vla_dim->in_prototype_scope) {
+    /* VLA dimension variables should not be created in function prototype
+       scopes (probably because we are using the C-generating back end, which
+       cannot validly declare such a variable). */
+  } else
+#endif /* NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES */
+  /* Do not insert code here. */
+  {
+    vla_dim->dimension_variable = assign_expr_to_temp(vla_dim->dimension_expr);
+  }  /* if */
+}  /* create_dimension_variable */
+
+ 
 void create_element_count_variable_for_vla(a_statement_ptr  stmt)
 /*
 stmt is a stmk_vla_decl statement.  Create a variable holding the total
@@ -838,9 +884,8 @@ lower_vla_dimensions).
         /* A variable-length dimension. */
         a_vla_dimension_ptr  dim = find_vla_dimension(type);
         an_expr_node_ptr     dim_expr;
-        check_assertion(dim != NULL);
-        dim_expr = make_reusable_copy(dim->dimension_expr,
-                                      /*vars_can_change=*/TRUE);
+        check_assertion(dim != NULL && dim->dimension_variable != NULL);
+        dim_expr = var_rvalue_expr(dim->dimension_variable);
         dim_expr = add_cast_if_necessary(dim_expr, ptrdiff_type);
         if (count == NULL) {
           count = dim_expr;
@@ -871,13 +916,22 @@ lower_vla_dimensions).
     count_init = make_operator_node((an_expr_operator_kind)eok_iassign,
                                     ptrdiff_type, count_init);
     /* Create an expression statement to actually perform the computation.
-       Insert it after the stmk_vla_decl statement.  We count on this being
-       called only from lower_statement_list (via lower_statement), which
-       has code necessary to avoid lowering a statement twice. */
+       Insert it before the stmk_vla_decl statement.  We cannot use 
+       turn_statement_into_block on stmk_vla_decl statements because that
+       would change the lifetime of the associated VLA.  However, since this
+       is only called for C++ IL, we know the stmk_vla_decl must be part of
+       a block already (declarations cannot appear as the only dependent
+       statement of an "if" statement, for example).  We also count on this
+       being called only from lower_statement_list (via lower_statement),
+       which has code necessary to avoid lowering a statement twice. */
     check_assertion(!C_mode());
-    new_stmt = alloc_expr_statement(count_init);
+    new_stmt = alloc_statement((a_statement_kind)stmk_vla_decl);
+    copy_statement(stmt, new_stmt);
     new_stmt->next = stmt->next;
     stmt->next = new_stmt;
+    stmt->kind = (a_statement_kind)stmk_expr;
+    stmt->expr = count_init;
+    set_expr_result_not_used(stmt->expr);
   }  /* if */
 }  /* create_element_count_variable_for_vla */
 
@@ -3276,7 +3330,8 @@ Do C99 lowering on the indicated statement.
            describing the size of the VLA. */
         lower_set_vla_size(statement);
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
-        lower_vla_dimension_expression(statement->variant.vla_dimension);
+        /* Record the associated VLA dimension in a temporary variable. */
+        create_dimension_variable(statement);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
       case stmk_vla_decl:
