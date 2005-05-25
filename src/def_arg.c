@@ -342,7 +342,8 @@ that was scanned.
   a_type_ptr	tp = NULL;
 
   db_enter(3, "delayed_scan_of_template_default_type_arg");
-  type_name(&tp);
+  type_name_full(/*disallow_variably_modified_type=*/TRUE, &tp,
+                 (a_boolean*)NULL);
   check_for_valid_end_of_template_def_arg();
   db_exit();
   return tp;

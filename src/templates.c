@@ -12484,7 +12484,8 @@ parameter entry for the parameter.
       def_arg_involves_template_param = TRUE;
     } else {
       rescan_copy_of_cache(&def_arg_cache);
-      type_name(&default_arg_type);
+      type_name_full(/*disallow_variably_modified_type=*/TRUE,
+                     &default_arg_type, (a_boolean*)NULL);
       if (is_or_contains_template_param(default_arg_type)) {
         def_arg_involves_template_param = TRUE;
       }  /* if */
