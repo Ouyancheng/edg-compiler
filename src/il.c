@@ -1766,12 +1766,20 @@ entry.
 {
   a_routine_ptr  dtor = dip->destructor;
 
-  fprintf(f_debug, "%sdtor: ",
+#if DO_IL_LOWERING
+  if (dip->is_vla_deallocation) {
+    fprintf(f_debug, "VLA deallocation");
+  } else
+#endif /* DO_IL_LOWERING */
+  /* Do not insert code here. */
+  {
+    fprintf(f_debug, "%sdtor: ",
         dip->destruction_is_for_partially_constructed_aggregate ? "EH-" : "");
-  if (dtor != NULL) {
-    db_name_full(&dtor->source_corresp, iek_routine);
-  } else {
-    fputs("<NULL>", f_debug);
+    if (dtor != NULL) {
+      db_name_full(&dtor->source_corresp, iek_routine);
+    } else {
+      fputs("<NULL>", f_debug);
+    }  /* if */
   }  /* if */
 }  /* db_destructor */
 
@@ -14112,19 +14120,15 @@ it's the next entry on the next_in_destruction_list chain; the "next"
 pointer is not set.
 */
 {
-  an_object_lifetime_ptr olp = dip->lifetime, colp;
+  an_object_lifetime_ptr olp = dip->lifetime;
 
   check_assertion(olp != NULL);
   new_dip->next_in_destruction_list = dip->next_in_destruction_list;
   dip->next_in_destruction_list = new_dip;
   new_dip->lifetime = olp;
-  /* If any child lifetime has its parent_destruction_sublist pointing
-     to dip, change the pointer to new_dip. */
-  for (colp = olp->child_lifetime; colp != NULL; colp = colp->next) {
-    if (colp->parent_destruction_sublist == dip) {
-      colp->parent_destruction_sublist = new_dip;
-    }  /* if */
-  }  /* for */
+  /* We don't need to update the parent_destruction_sublist pointer of
+     any child lifetimes, because the new entry is after the existing
+     entry, so it isn't the end of the list. */
 }  /* add_to_destructions_list_following */
 
 
