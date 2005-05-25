@@ -12455,9 +12455,21 @@ be called to start a copy.
     case enk_runtime_sizeof:
       /* If there is an expression, copy it. */
       if (!expr->variant.runtime_sizeof.is_type) {
-        expr_copy->variant.runtime_sizeof.variant.expr =
+        if (in_file_scope(expr_copy) && !in_file_scope(expr)) {
+          /* Potential memory region problem -- the expression under the
+             runtime sizeof may refer to function-local variables, so
+             drop the expression and just use the type.  This comes up when
+             copying VLA bound expressions that are overall constant, but
+             have a nonconstant part under a sizeof. */
+          expr_copy->variant.runtime_sizeof.is_type = TRUE;
+          expr_copy->variant.runtime_sizeof.is_lvalue = FALSE;
+          expr_copy->variant.runtime_sizeof.variant.type =
+                               expr->variant.runtime_sizeof.variant.expr->type;
+        } else {
+          expr_copy->variant.runtime_sizeof.variant.expr =
                     i_copy_expr_tree(expr->variant.runtime_sizeof.variant.expr,
                                      options, cblock);
+        }  /* if */
       }  /* if */
       break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
