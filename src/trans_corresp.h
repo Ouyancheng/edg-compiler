@@ -44,18 +44,33 @@ Routine to record builtin type correspondences.
 extern void record_builtin_type(a_type_ptr  type);
 
 /*
-Routines to retrieve certain canonical builtin types.
+Routines to retrieve the primary builtin types.
 */
+extern a_type_ptr primary_int_type(an_integer_kind  kind);
+
+extern a_type_ptr primary_signed_int_type(an_integer_kind  kind);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_type_ptr primary_microsoft_sized_int_type(an_integer_kind  kind);
+
+extern a_type_ptr primary_microsoft_sized_signed_int_type(
+                                                       an_integer_kind  kind);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+extern a_type_ptr primary_wchar_t_type(void);
+
+extern a_type_ptr primary_float_type(an_integer_kind  kind);
+
 #if C99_IL_EXTENSIONS_SUPPORTED
-extern a_type_ptr canonical_bool_type(void);
+extern a_type_ptr primary_bool_type(void);
 
-extern a_type_ptr canonical_complex_type(a_float_kind  kind);
+extern a_type_ptr primary_complex_type(a_float_kind  kind);
 
-extern a_type_ptr canonical_imaginary_type(a_float_kind  kind);
+extern a_type_ptr primary_imaginary_type(a_float_kind  kind);
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if FIXED_POINT_ALLOWED
-extern a_type_ptr canonical_fixed_point_type(a_fixed_point_type_descr descr);
+extern a_type_ptr primary_fixed_point_type(a_fixed_point_type_descr descr);
 #endif /* FIXED_POINT_ALLOWED */
 
 /*

@@ -2841,6 +2841,11 @@ therefore will not be copied.
     /* Rebuild the befriending lists. */
     rebuild_scope_befriending_lists(il_header.primary_scope);
   }  /* if */
+  /* Update the tables of fundamental types kept for the primary translation
+     unit. */
+  if (secondary_translation_unit_seen()) {
+    record_fundamental_types_copied_from_secondary_IL();
+  }  /* if */
   db_exit();
 }  /* copy_secondary_trans_unit_IL_to_primary */
 

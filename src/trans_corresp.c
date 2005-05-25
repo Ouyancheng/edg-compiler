@@ -1299,63 +1299,171 @@ is set to point to the first created type.
 }  /* record_builtin_type */
 
 
+a_type_ptr primary_int_type(an_integer_kind  kind)
+/*
+Return the primary integer type entry of the given kind.  This routine takes
+into account the possibility that the trans_copy process (which must have
+completed) created a new canonical entry in the primary IL.
+*/
+{
+  a_type_ptr  result = canonical_int_types[kind];
+
+  if (result != NULL) {
+    result = (a_type_ptr)canonical_il_entry_of(result);
+    check_assertion(!in_secondary_trans_unit(result));
+  }  /* if */
+  return result;
+}  /* primary_int_type */
+
+
+a_type_ptr primary_signed_int_type(an_integer_kind  kind)
+/*
+Return the explicitly signed primary integer type entry of the given kind.
+This routine takes into account the possibility that the trans_copy process
+(which must have completed) created a new canonical entry in the primary IL.
+*/
+{
+  a_type_ptr  result = canonical_signed_int_types[kind];
+
+  if (result != NULL) {
+    result = (a_type_ptr)canonical_il_entry_of(result);
+    check_assertion(!in_secondary_trans_unit(result));
+  }  /* if */
+  return result;
+}  /* primary_signed_int_type */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_type_ptr primary_microsoft_sized_int_type(an_integer_kind  kind)
+/*
+Return the primary sized integer type (__intN) entry of the given kind.  This
+routine takes into account the possibility that the trans_copy process (which
+must have completed) created a new canonical entry in the primary IL.
+*/
+{
+  a_type_ptr  result = canonical_microsoft_sized_int_types[kind];
+
+  if (result != NULL) {
+    result = (a_type_ptr)canonical_il_entry_of(result);
+    check_assertion(!in_secondary_trans_unit(result));
+  }  /* if */
+  return result;
+}  /* primary_microsoft_sized_int_type */
+
+
+a_type_ptr primary_microsoft_sized_signed_int_type(an_integer_kind  kind)
+/*
+Return the primary explicitly signed sized integer type (signed __intN) entry
+of the given kind.  This routine takes into account the possibility that the
+trans_copy process (which must have completed) created a new canonical entry
+in the primary IL.
+*/
+{
+  a_type_ptr  result = canonical_microsoft_sized_signed_int_types[kind];
+
+  if (result != NULL) {
+    result = (a_type_ptr)canonical_il_entry_of(result);
+    check_assertion(!in_secondary_trans_unit(result));
+  }  /* if */
+  return result;
+}  /* primary_microsoft_sized_signed_int_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+a_type_ptr primary_wchar_t_type(void)
+/*
+Return the primary wchar_t type entry.  This routine takes into account the
+possibility that the trans_copy process (which must have completed) created
+a new canonical entry in the primary IL.
+*/
+{
+  a_type_ptr  result = canonical_il_wchar_t_type;
+
+  if (result != NULL) {
+    result = (a_type_ptr)canonical_il_entry_of(result);
+    check_assertion(!in_secondary_trans_unit(result));
+  }  /* if */
+  return result;
+}  /* primary_wchar_t_type */
+
+
+a_type_ptr primary_float_type(a_float_kind  kind)
+/*
+Return the primary float type entry of the given kind.  This routine takes
+into account the possibility that the trans_copy process (which must have
+completed) created a new canonical entry in the primary IL.
+*/
+{
+  a_type_ptr  result = canonical_float_types[kind];
+
+  if (result != NULL) {
+    result = (a_type_ptr)canonical_il_entry_of(result);
+    check_assertion(!in_secondary_trans_unit(result));
+  }  /* if */
+  return result;
+}  /* primary_float_type */
+
 #if C99_IL_EXTENSIONS_SUPPORTED
 
-a_type_ptr canonical_bool_type(void)
+a_type_ptr primary_bool_type(void)
 /*
-Return the canonical bool type entry.  This routine takes into account the
-possibility that the trans_copy process created a new canonical entry in the
-primary IL.
+Return the primary bool type entry.  This routine takes into account the
+possibility that the trans_copy process (which must have completed) created
+a new canonical entry in the primary IL.
 */
 {
   a_type_ptr  result = canonical_il_bool_type;
 
   if (result != NULL) {
     result = (a_type_ptr)canonical_il_entry_of(result);
+    check_assertion(!in_secondary_trans_unit(result));
   }  /* if */
   return result;
-}  /* canonical_bool_type */
+}  /* primary_bool_type */
 
 
-a_type_ptr canonical_complex_type(a_float_kind  kind)
+a_type_ptr primary_complex_type(a_float_kind  kind)
 /*
-Return the canonical complex type entry of the given kind.  This routine takes
-into account the possibility that the trans_copy process created a new
-canonical entry in the primary IL.
+Return the primary complex type entry of the given kind.  This routine takes
+into account the possibility that the trans_copy process (which must have
+completed) created a new canonical entry in the primary IL.
 */
 {
   a_type_ptr  result = canonical_complex_types[kind];
 
   if (result != NULL) {
     result = (a_type_ptr)canonical_il_entry_of(result);
+    check_assertion(!in_secondary_trans_unit(result));
   }  /* if */
   return result;
-}  /* canonical_complex_type */
+}  /* primary_complex_type */
 
 
-a_type_ptr canonical_imaginary_type(a_float_kind  kind)
+a_type_ptr primary_imaginary_type(a_float_kind  kind)
 /*
-Return the canonical imaginary type entry of the given kind.  This routine
-takes into account the possibility that the trans_copy process created a new
-canonical entry in the primary IL.
+Return the primary imaginary type entry of the given kind.  This routine
+takes into account the possibility that the trans_copy process (which must
+have completed) created a new canonical entry in the primary IL.
 */
 {
   a_type_ptr  result = canonical_imaginary_types[kind];
 
   if (result != NULL) {
     result = (a_type_ptr)canonical_il_entry_of(result);
+    check_assertion(!in_secondary_trans_unit(result));
   }  /* if */
   return result;
-}  /* canonical_imaginary_type */
+}  /* primary_imaginary_type */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if FIXED_POINT_ALLOWED
 
-a_type_ptr canonical_fixed_point_type(a_fixed_point_type_descr descr)
+a_type_ptr primary_fixed_point_type(a_fixed_point_type_descr descr)
 /*
-Return the canonical fixed-point type entry for the type described by
+Return the primary fixed-point type entry for the type described by
 descr.  This routine takes into account the possibility that the trans_copy
-process created a new canonical entry in the primary IL.
+process (which must have completed) created a new canonical entry in the
+primary IL.
 */
 {
   a_type_ptr  result = canonical_fixed_point_types[descr.precision]
@@ -1364,9 +1472,10 @@ process created a new canonical entry in the primary IL.
                                                   [(int)descr.saturating];
   if (result != NULL) {
     result = (a_type_ptr)canonical_il_entry_of(result);
+    check_assertion(!in_secondary_trans_unit(result));
   }  /* if */
   return result;
-}  /* canonical_fixed_point_type */
+}  /* primary_fixed_point_type */
 
 #endif /* FIXED_POINT_ALLOWED */
 

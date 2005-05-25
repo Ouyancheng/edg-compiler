@@ -6982,6 +6982,59 @@ indicated string type.
 }  /* char_int_kind_from_string_type */
 
 
+void record_fundamental_types_copied_from_secondary_IL(void)
+/*
+This routine should be called after all the secondary translation units have
+been merged into the primary translation unit.  This merging might have copied
+fundamental types to the primary translation unit.  This routine records any
+such updates so that future calls to e.g. "wchar_t_type()" will return a
+pre-existing fundamental type if one exists.  Must only be called for the
+primary translation unit.
+*/
+{
+  int k, l, m, n;
+
+  check_assertion(is_primary_translation_unit);
+  for (k = 0; k < (int)ik_last; ++k) {
+    int_types[k] = primary_int_type((an_integer_kind)k);
+    signed_int_types[k] = primary_signed_int_type((an_integer_kind)k);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    microsoft_sized_int_types[k] =
+                         primary_microsoft_sized_int_type((an_integer_kind)k);
+    microsoft_sized_signed_int_types[k] =
+                  primary_microsoft_sized_signed_int_type((an_integer_kind)k);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* for */
+  il_wchar_t_type = primary_wchar_t_type();
+#if C99_IL_EXTENSIONS_SUPPORTED
+  il_bool_type = primary_bool_type();
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if FIXED_POINT_ALLOWED
+  for (k = 0; k < (int)fpp_last; ++k) {
+    a_fixed_point_type_descr  descr;
+    descr.precision = (a_fixed_point_precision)k;
+    for (l = 0; l < 2; ++l) {
+      descr.is_unsigned = (a_boolean)l;
+      for (m = 0; m < 2; ++m) {
+        descr.is_fract_type = (a_boolean)m;
+        for (n = 0; n < 2; ++n) {
+          descr.saturating = (a_boolean)n;
+          fixed_point_types[k][l][m][n] = primary_fixed_point_type(descr);
+        }  /* for */
+      }  /* for */
+    }  /* for */
+  }  /* for */
+#endif /* FIXED_POINT_ALLOWED */
+  for (k = 0; k < (int)fk_last; ++k) {
+    float_types[k] = primary_float_type((a_float_kind)k);
+#if C99_IL_EXTENSIONS_SUPPORTED
+    complex_types[k] = primary_complex_type((a_float_kind)k);
+    imaginary_types[k] = primary_imaginary_type((a_float_kind)k);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  }  /* for */
+}  /* record_fundamental_types_copied_from_secondary_IL */
+
+
 a_type_ptr integer_type(an_integer_kind kind)
 /*
 Make or find a type entry for an integer type of the indicated kind, and
@@ -7238,23 +7291,11 @@ and the (cv-unqualified) type of the elements of wide string literals.
 
 a_boolean bool_type_used_in_primary_IL(void)
 /*
-Return TRUE if the bool type has been used in the primary IL so far.  If the
-bool type was used in a secondary translation unit it will probably have been
-copied to the primary IL, but the trans_copy process does not update
-il_bool_type.  Therefore, this routine should be called before calling
-bool_type during IL lowering: it will perform the update if needed.
+Return TRUE if the bool type has been used in the primary IL so far.  This
+routine should be called before calling bool_type during IL lowering.
 */
 {
   check_assertion(is_primary_translation_unit);
-  if (il_bool_type == NULL && secondary_translation_unit_seen()) {
-    /* We haven't seen a bool type in the primary translation unit, but
-       it might have been copied into the primary IL from a secondary
-       translation unit. */
-    a_type_ptr  canonical_type = canonical_bool_type();
-    if (canonical_type != NULL && !in_secondary_trans_unit(canonical_type)) {
-      il_bool_type = canonical_type;
-    }  /* if */
-  }  /* if */
   return il_bool_type != NULL;
 }  /* bool_type_used_in_primary_IL */
 
@@ -7291,11 +7332,8 @@ Make or find a type entry for a bool type and return a pointer to it.
 a_boolean fixed_point_type_used_in_primary_IL(a_fixed_point_type_descr descr)
 /*
 Return TRUE if the fixed-point type with the indicated description was used
-in the primary IL so far.  If the fixed-point type was used in a secondary
-translation unit it will probably have been copied to the primary IL, but
-the trans_copy process does not update the fixed_point_types array.
-Therefore, this routine should be called to determine if a fixed_point
-type should be lowered: it will perform the update if needed.
+in the primary IL so far.  This routine should be called to determine if a
+fixed_point type should be lowered.
 */
 {
   a_type_ptr *array_entry = &fixed_point_types[descr.precision]
@@ -7303,15 +7341,6 @@ type should be lowered: it will perform the update if needed.
                                               [(int)descr.is_fract_type]
                                               [(int)descr.saturating];
   check_assertion(is_primary_translation_unit);
-  if (*array_entry == NULL && secondary_translation_unit_seen()) {
-    /* We haven't seen a fixed-point type in the primary translation unit, but
-       it might have been copied into the primary IL from a secondary
-       translation unit. */
-    a_type_ptr  canonical_type = canonical_fixed_point_type(descr);
-    if (canonical_type != NULL && !in_secondary_trans_unit(canonical_type)) {
-      *array_entry = canonical_type;
-    }  /* if */
-  }  /* if */
   return *array_entry != NULL;
 }  /* fixed_point_type_used_in_primary_IL */
 
@@ -7327,9 +7356,7 @@ return a pointer to it.
                                             [(int)descr.is_fract_type]
                                             [(int)descr.saturating];
 
-  if (*p_result == NULL &&
-      (!is_primary_translation_unit ||
-       !fixed_point_type_used_in_primary_IL(descr))) {
+  if (*p_result == NULL) {
     /* The type hasn't been created yet: Do so now. */
     *p_result = alloc_type((a_type_kind)tk_fixed_point);
     (*p_result)->variant.fixed_point = descr;
@@ -7377,24 +7404,12 @@ return a pointer to it.
 
 a_boolean complex_type_used_in_primary_IL(a_float_kind kind)
 /*
-Return TRUE if the complex type of the indicated kind was used in the
-primary IL so far.  If the complex type was used in a secondary translation
-unit it will probably have been copied to the primary IL, but the trans_copy
-process does not update the complex_types array.  Therefore, this routine
-should be called to determine if a complex type should be lowered: it will
-perform the update if needed.
+Return TRUE if the complex type of the indicated kind was used in the primary
+IL so far.  This routine should be called to determine if a complex type
+should be lowered.
 */
 {
   check_assertion(is_primary_translation_unit);
-  if (complex_types[kind] == NULL && secondary_translation_unit_seen()) {
-    /* We haven't seen a complex type in the primary translation unit, but
-       it might have been copied into the primary IL from a secondary
-       translation unit. */
-    a_type_ptr  canonical_type = canonical_complex_type(kind);
-    if (canonical_type != NULL && !in_secondary_trans_unit(canonical_type)) {
-      complex_types[kind] = canonical_type;
-    }  /* if */
-  }  /* if */
   return complex_types[kind] != NULL;
 }  /* complex_type_used_in_primary_IL */
 
@@ -7407,8 +7422,7 @@ return a pointer to it.
 {
   a_type_ptr pft;
 
-  if (complex_types[kind] != NULL ||
-      (is_primary_translation_unit && complex_type_used_in_primary_IL(kind))) {
+  if (complex_types[kind] != NULL) {
     /* The type has previously been created, and can be reused. */
     pft = complex_types[kind];
   } else {
@@ -7430,23 +7444,11 @@ return a pointer to it.
 a_boolean imaginary_type_used_in_primary_IL(a_float_kind kind)
 /*
 Return TRUE if the imaginary type of the indicated kind was used in the
-primary IL so far.  If the imaginary type was used in a secondary translation
-unit it will probably have been copied to the primary IL, but the trans_copy
-process does not update the imaginary_types array.  Therefore, this routine
-should be called to determine if an imaginary type should be lowered: it will
-perform the update if needed.
+primary IL so far.  This routine should be called to determine if an
+imaginary type should be lowered.
 */
 {
   check_assertion(is_primary_translation_unit);
-  if (imaginary_types[kind] == NULL && secondary_translation_unit_seen()) {
-    /* We haven't seen a complex type in the primary translation unit, but
-       it might have been copied into the primary IL from a secondary
-       translation unit. */
-    a_type_ptr  canonical_type = canonical_imaginary_type(kind);
-    if (canonical_type != NULL && !in_secondary_trans_unit(canonical_type)) {
-      imaginary_types[kind] = canonical_type;
-    }  /* if */
-  }  /* if */
   return imaginary_types[kind] != NULL;
 }  /* imaginary_type_used_in_primary_IL */
 
@@ -7459,9 +7461,7 @@ return a pointer to it.
 {
   a_type_ptr pft;
 
-  if (imaginary_types[kind] != NULL ||
-      (is_primary_translation_unit &&
-       imaginary_type_used_in_primary_IL(kind))) {
+  if (imaginary_types[kind] != NULL) {
     /* The type has previously been created, and can be reused. */
     pft = imaginary_types[kind];
   } else {
