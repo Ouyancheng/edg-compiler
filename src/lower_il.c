@@ -11415,9 +11415,10 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                  dimension variables. Note that compiler-generated casts may
                  cast to variably modified types that have already been
                  visited. */
-              lower_vla_dimensions_in_type(type);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
               lower_vla_cast(expr);
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+              lower_vla_dimensions_in_type(type);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
             }  /* if */
             break;

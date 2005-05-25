@@ -2161,9 +2161,10 @@ Transform the given cast expression into a function call (compatible with C89).
          expression and (in some configurations) compute its dimension
          variables. Note that compiler-generated casts may cast to variably
          modified types that have already been visited. */
-      lower_vla_dimensions_in_type(tp);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
       lower_vla_cast(expr);
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+      lower_vla_dimensions_in_type(tp);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     }  /* if */
 #if LOWER_FIXED_POINT

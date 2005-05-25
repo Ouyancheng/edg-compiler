@@ -3466,6 +3466,8 @@ destructors in the IA-64 ABI.
   check_assertion(kind == (a_ctor_or_dtor_kind)cdk_complete ||
                   kind == (a_ctor_or_dtor_kind)cdk_subobject ||
                   kind == (a_ctor_or_dtor_kind)cdk_deleting);
+  /* routine should not already correspond to a secondary entry point. */
+  check_assertion(routine->primary_ctor_or_dtor != NULL);
   /* Check to see if the routine already exists on the alternate_entry_points
      list. */
   for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
