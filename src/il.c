@@ -14146,8 +14146,11 @@ treated as a form of destruction.
   an_object_lifetime_ptr  olp;
 
   db_enter(4, "record_end_of_lifetime_destruction");
-  if ((dip->destructor != NULL ||
-       is_dynamic_init_for_vla(dip)) &&
+  if ((dip->destructor != NULL
+#if VLA_DEALLOCATION_REQUIRED
+       || is_dynamic_init_for_vla(dip)
+#endif /* VLA_DEALLOCATION_REQUIRED */
+      ) &&
       /* Do not save destructions in prototype instantiations unless we
          are saving the prototype instantiations. */
       (depth_scope_stack == NO_SCOPE_DEPTH ||
