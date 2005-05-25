@@ -564,10 +564,9 @@ indicating the number of elements in the VLA (needed by other parts of C++
 VLA lowering).
 */
 {
-  an_expr_node_ptr  result = var_lvalue_expr(vla_var), size_expr;
+  an_expr_node_ptr  result = var_addr_expr(vla_var), size_expr;
   a_type_ptr        ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
 
-  set_variable_address_taken(vla_var);
   if (C_mode()) {
     size_expr = vla_size_expr(vla_var->type, /*byte_count=*/TRUE);
   } else {
@@ -669,9 +668,8 @@ well).
 */
 {
   a_variable_ptr    vla_var = expr->variant.vla_variable;
-  an_expr_node_ptr  arg = var_lvalue_expr(vla_var);
+  an_expr_node_ptr  arg = var_addr_expr(vla_var);
 
-  set_variable_address_taken(vla_var);
   arg = add_lowered_cast_if_necessary(arg, void_star_type());
   overwrite_node(expr,
                  make_prototyped_runtime_call("__vla_dealloc",

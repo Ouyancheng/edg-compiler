@@ -1020,6 +1020,8 @@ extern an_expr_node_ptr var_lvalue_expr(a_variable_ptr var);
 
 extern an_expr_node_ptr var_rvalue_expr(a_variable_ptr var);
 
+extern an_expr_node_ptr var_addr_expr(a_variable_ptr var);
+
 extern an_expr_node_ptr function_addr_expr(
                                          a_routine_ptr rout,
                                          a_boolean     set_address_taken_flag);

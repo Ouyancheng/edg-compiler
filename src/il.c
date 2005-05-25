@@ -12724,6 +12724,21 @@ for variables with reference type.
 }  /* var_rvalue_expr */
 
 
+an_expr_node_ptr var_addr_expr(a_variable_ptr var)
+/*
+Build an expression node that represents the address of var as an rvalue and
+return a pointer to it.  This differs from var_lvalue_expr in that it
+assumes that the address of the variable will in fact be used.  Note that
+this routine does not do anything special for variables with reference type.
+*/
+{
+  an_expr_node_ptr node = var_lvalue_expr(var);
+
+  set_variable_address_taken(var);
+  return node;
+}  /* var_addr_expr */
+
+
 an_expr_node_ptr function_addr_expr(a_routine_ptr rout,
                                     a_boolean     set_address_taken_flag)
 /*
