@@ -14221,9 +14221,12 @@ to reflect the error.
              contains the class. */
           /* Only nonstatic variables are a problem. */
           if (!has_static_storage_duration(var->storage_class)) {
-            if (!strict_ansi_mode && !expr_stack->potentially_evaluated) {
+            if (!strict_ansi_mode && !expr_stack->potentially_evaluated &&
+                !is_vla_type(var->type)) {
               /* As an extension, allow references to nonstatic variables
-                 inside sizeof expressions. */
+                 inside sizeof expressions.  (Except VLA variables, since
+                 sizeof applied to such variables involves a run-time
+                 computation.) */
               warning(ec_ref_to_nested_function_var);
             } else {
               bad_ref = TRUE;
