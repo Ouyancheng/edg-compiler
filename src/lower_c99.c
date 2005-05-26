@@ -381,6 +381,8 @@ variables also make indexing into the VLA arrays more efficient.
     for (;;) {
       if (tp->kind == (a_type_kind)tk_pointer) {
         tp = tp->variant.pointer.type;
+      } else if (tp->kind == (a_type_kind)tk_ptr_to_member) {
+        tp = tp->variant.ptr_to_member.type;
       } else if (tp->kind == (a_type_kind)tk_routine) {
         tp = tp->variant.routine.return_type;
       } else if (tp->kind == (a_type_kind)tk_typeref) {
