@@ -4162,9 +4162,9 @@ if everything went fine.
       } else {
         object_size = object_type->size;
       }  /* if */
-      /* Division by zero can come up in gcc mode with pointers to empty class
-         types. */
-      check_assertion_str(object_size != 0 || gcc_mode,
+      /* Division by zero can come up in GNU mode with pointers to empty class
+         types or pointers to zero-length arrays. */
+      check_assertion_str(object_size != 0 || gnu_mode,
                           "do_pdiff: size of object pointed to is zero");
       set_unsigned_integer_value(&size_intval, object_size);
       /* Note that we treat &difference as signed here even if it was unsigned

@@ -1,5 +1,17 @@
 Version 3.6
 
+5/26/05  Abort on pointer difference folding in GNU C++ mode
+
+In GNU C++ mode, the front end sometimes aborted with an internal error in
+"do_pdiff" when attempting to constant-fold a difference between two pointers
+to zero-length arrays.  For example:
+
+  typedef int (*P)[0];
+  int d = (P)0 - (P)0;  // Previously an internal error in GNU C++ mode.
+
+This is now fixed.  An "our of range" warning is issued because of the
+division by zero implied by such pointer differences.
+
 5/20/05  Invalid uses of throw specifications
 
 The C++ standards committee has clarified (through its decision on core
