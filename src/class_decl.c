@@ -8572,9 +8572,9 @@ be the last in the anonymous-union-parent chain.
 
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+#if !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 /*ARGSUSED*/ /* new_apo_syms is not used in some configurations. */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+#endif /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 static void promote_anonymous_union_field_symbol(
                                          a_symbol_ptr         sym,
                                          a_type_ptr           class_type,
