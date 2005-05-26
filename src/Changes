@@ -1,5 +1,17 @@
 Version 3.6
 
+5/26/05  Sun compatibility: #pragma pack(0)
+
+In Sun mode (a C++ mode), the front end now accepts a zero argument for the
+pack pragma.  As is already the case in GNU modes, "#pragma pack(0)" restores
+the default packing alignment for subsequent declarations.  For example
+(assuming a common 32-bit layout model):
+
+  #pragma pack(1)               // Pack fields maximally.
+  struct S { int i; char c; };  // sizeof(S) == 5.
+  #pragma pack(0)               // Restore default field alignments.
+  struct T { int i; char c; };  // sizeof(T) == 8.
+
 5/26/05  Abort on pointer difference folding in GNU C++ mode
 
 In GNU C++ mode, the front end sometimes aborted with an internal error in
