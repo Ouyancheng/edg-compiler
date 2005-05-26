@@ -3416,7 +3416,7 @@ table entry.
   a_region_descr_flags_set
                   flags_value = 0;
   a_constant_ptr  region_table_entry;
-  a_boolean       need_array_info = FALSE;
+  a_boolean       need_array_info = FALSE, need_elem_count = FALSE;
 
   /* Make the handle for the entity. */
   make_handle_for_entity(ipdp, &handle, insert_location);
@@ -3452,7 +3452,10 @@ table entry.
     make_array_table_entry(ipdp, &handle, is_vla);
     /* Set the flag that indicates this object is an array. */
     flags_value |= RDF_ARRAY;
-    if (is_vla) flags_value |= RDF_VLA;
+    if (is_vla) {
+      flags_value |= RDF_VLA;
+      need_elem_count = TRUE;
+    }  /* if */
   }  /* if */
   if (is_local_static_guard_var) {
     flags_value |= RDF_GUARD_VAR_FOR_LOCAL_STATIC;
@@ -3528,7 +3531,7 @@ table entry.
                                  subobject_vtable_handle,
                                  null_eh_region_number,
                                  (a_region_descr_flags_set)RDF_NONE);
-  } else if (flags_value & RDF_VLA) {
+  } else if (need_elem_count) {
     /* Make an additional region table entry for the VLA element count
        variable address. */
     (void)add_region_table_entry((a_routine_ptr)NULL,
