@@ -7175,7 +7175,6 @@ variable does not.
   return const_addr;
 }  /* variable_has_constant_address */
 
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 a_boolean operand_is_lvalue_for_variable(an_operand      *operand,
                                          a_variable_ptr  *var)
@@ -7204,7 +7203,6 @@ make *var point to the IL entry for that variable.  Otherwise, return FALSE.
   return result;
 }  /* operand_is_lvalue_for_variable */
 
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !RECORD_CONSTANT_EXPRESSIONS_IN_IL
 /*ARGSUSED*/  /* <-- record_expr is not used in that case. */
