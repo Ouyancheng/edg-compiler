@@ -3421,6 +3421,19 @@ table entry.
   /* Make the handle for the entity. */
   make_handle_for_entity(ipdp, &handle, insert_location);
   /* See if we need array information on the entity. */
+#ifndef RUNTIME_VLA_DEALLOCATION_NEEDS_ELEMENT_COUNT
+  /* The EDG-supplied runtime VLA deallocation routine doesn't need the
+     array element count.  If a different runtime routine is used, this
+     macro can be changed accordingly. */
+#define RUNTIME_VLA_DEALLOCATION_NEEDS_ELEMENT_COUNT FALSE
+#endif /* ifndef RUNTIME_VLA_DEALLOCATION_NEEDS_ELEMENT_COUNT */
+#if !RUNTIME_VLA_DEALLOCATION_NEEDS_ELEMENT_COUNT
+  if (is_vla_deallocation) {
+    /* The runtime doesn't need the element count or array information. */
+    /* need_array_info = FALSE;  -- already set. */
+  } else
+#endif /* !RUNTIME_VLA_DEALLOCATION_NEEDS_ELEMENT_COUNT */
+  /* Do not insert code here. */
   if (ipdp->array_element_sequence ||
       is_array_type(type_from_init_pos_descr(ipdp))) {
     need_array_info = TRUE;
@@ -3515,7 +3528,7 @@ table entry.
                                  subobject_vtable_handle,
                                  null_eh_region_number,
                                  (a_region_descr_flags_set)RDF_NONE);
-  } else if (is_vla) {
+  } else if (flags_value & RDF_VLA) {
     /* Make an additional region table entry for the VLA element count
        variable address. */
     (void)add_region_table_entry((a_routine_ptr)NULL,
@@ -3659,9 +3672,18 @@ The region table variable is created if necessary.
 #else /* ABI_COMPATIBILITY_VERSION >= 306 */
   if (is_dynamic_init_for_vla(dip)) {
     /* Extra information is needed for variable-length arrays. */
-    is_vla = TRUE;
-    set_var_init_pos_descr(dip->variable->vla_element_count_variable, &ipd);
-    make_handle_for_entity(&ipd, &vla_elem_count_handle, insert_location);
+#if !RUNTIME_VLA_DEALLOCATION_NEEDS_ELEMENT_COUNT
+    if (dip->is_vla_deallocation) {
+      /* The runtime doesn't need the array element count in a VLA
+         deallocation. */
+    } else
+#endif /* !RUNTIME_VLA_DEALLOCATION_NEEDS_ELEMENT_COUNT */
+    /* Do not insert code here. */
+    {
+      is_vla = TRUE;
+      set_var_init_pos_descr(dip->variable->vla_element_count_variable, &ipd);
+      make_handle_for_entity(&ipd, &vla_elem_count_handle, insert_location);
+    }  /* if */
   }  /* if */    
 #endif /* ABI_COMPATIBILITY_VERSION < 306 */
   dedp->next_in_region_table = next_dip;
@@ -3738,7 +3760,7 @@ stop_before == NULL means stop at the beginning of the current lifetime.
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
   a_cleanup_region_number         next_region_number, region_number;
-  a_constant_ptr                  orig_region_table_entry;
+  a_constant_ptr                  orig_region_table_entry, next_entry;
   a_dynamic_init_ptr              next_dip = dedp->next_in_region_table;
 
   if (next_dip != stop_before) {
@@ -3752,11 +3774,23 @@ stop_before == NULL means stop at the beginning of the current lifetime.
   dedp->region_table_entry = clone_raw_region_table_entry(
                                                        orig_region_table_entry,
                                                        &dedp->region_number);
+  next_entry = orig_region_table_entry->next;
   if (dedp->conditional_flag_var != NULL) {
     /* The entry has a conditional flag, so clone the region table entry for
        the conditional flag too. */
-    (void)clone_raw_region_table_entry(orig_region_table_entry->next,
-                                       &region_number);
+    (void)clone_raw_region_table_entry(next_entry, &region_number);
+    next_entry = next_entry->next;
+  }  /* if */
+#if !RUNTIME_VLA_DEALLOCATION_NEEDS_ELEMENT_COUNT
+  if (dip->is_vla_deallocation) {
+    /* The runtime doesn't need the array element count in a VLA
+        deallocation. */
+  } else
+#endif /* !RUNTIME_VLA_DEALLOCATION_NEEDS_ELEMENT_COUNT */
+  /* Do not insert code here. */
+  if (is_dynamic_init_for_vla(dip)) {
+    /* The entry has a VLA element count entry, so clone that too. */
+    (void)clone_raw_region_table_entry(next_entry, &region_number);
   }  /* if */
   /* Link the clone to the proper next entry. */
   next_dip = normalize_cleanup_state_for_outer_lifetimes(next_dip);
