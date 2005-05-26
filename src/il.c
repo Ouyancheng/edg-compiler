@@ -7293,7 +7293,7 @@ and the (cv-unqualified) type of the elements of wide string literals.
 a_boolean bool_type_used_in_primary_IL(void)
 /*
 Return TRUE if the bool type has been used in the primary IL so far.  This
-routine should be called before calling bool_type during IL lowering.
+routine should be called to determine if the bool type should be lowered.
 */
 {
   check_assertion(is_primary_translation_unit);

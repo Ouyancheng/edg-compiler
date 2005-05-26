@@ -1301,9 +1301,11 @@ is set to point to the first created type.
 
 a_type_ptr primary_int_type(an_integer_kind  kind)
 /*
-Return the primary integer type entry of the given kind.  This routine takes
-into account the possibility that the trans_copy process (which must have
-completed) created a new canonical entry in the primary IL.
+Return the integer type entry of the given kind used in the primary translation
+unit IL, or NULL if the type hasn't been used in the primary IL.  This routine
+takes into account the possibility that the trans_copy process (which must have
+completed) created such an entry as a result of copying an entry into the
+primary IL.
 */
 {
   a_type_ptr  result = canonical_int_types[kind];
@@ -1318,9 +1320,11 @@ completed) created a new canonical entry in the primary IL.
 
 a_type_ptr primary_signed_int_type(an_integer_kind  kind)
 /*
-Return the explicitly signed primary integer type entry of the given kind.
-This routine takes into account the possibility that the trans_copy process
-(which must have completed) created a new canonical entry in the primary IL.
+Return the explicitly signed integer type entry of the given kind used in the
+primary translation unit IL, or NULL if the type hasn't been used in the
+primary IL.  This routine takes into account the possibility that the
+trans_copy process (which must have completed) created such an entry as a
+result of copying an entry into the primary IL.
 */
 {
   a_type_ptr  result = canonical_signed_int_types[kind];
@@ -1336,9 +1340,11 @@ This routine takes into account the possibility that the trans_copy process
 
 a_type_ptr primary_microsoft_sized_int_type(an_integer_kind  kind)
 /*
-Return the primary sized integer type (__intN) entry of the given kind.  This
-routine takes into account the possibility that the trans_copy process (which
-must have completed) created a new canonical entry in the primary IL.
+Return the sized integer type (__intN) entry of the given kind used in the
+primary translation unit IL, or NULL if the type hasn't been used in the
+primary IL.  This routine takes into account the possibility that the
+trans_copy process (which must have completed) created such an entry as a
+result of copying an entry into the primary IL.
 */
 {
   a_type_ptr  result = canonical_microsoft_sized_int_types[kind];
@@ -1353,10 +1359,11 @@ must have completed) created a new canonical entry in the primary IL.
 
 a_type_ptr primary_microsoft_sized_signed_int_type(an_integer_kind  kind)
 /*
-Return the primary explicitly signed sized integer type (signed __intN) entry
-of the given kind.  This routine takes into account the possibility that the
-trans_copy process (which must have completed) created a new canonical entry
-in the primary IL.
+Return the explicitly signed sized integer type (signed __intN) entry of the
+given kind used in the primary translation unit IL, or NULL if the type hasn't
+been used in the primary IL.  This routine takes into account the possibility
+that the trans_copy process (which must have completed) created such an entry
+as a result of copying an entry into the primary IL.
 */
 {
   a_type_ptr  result = canonical_microsoft_sized_signed_int_types[kind];
@@ -1372,9 +1379,10 @@ in the primary IL.
 
 a_type_ptr primary_wchar_t_type(void)
 /*
-Return the primary wchar_t type entry.  This routine takes into account the
-possibility that the trans_copy process (which must have completed) created
-a new canonical entry in the primary IL.
+Return the wchar_t type entry used in the primary translation unit IL, or NULL
+if the type hasn't been used in the primary IL.  This routine takes into
+account the possibility that the trans_copy process (which must have completed)
+created such an entry as a result of copying an entry into the primary IL.
 */
 {
   a_type_ptr  result = canonical_il_wchar_t_type;
@@ -1389,9 +1397,11 @@ a new canonical entry in the primary IL.
 
 a_type_ptr primary_float_type(a_float_kind  kind)
 /*
-Return the primary float type entry of the given kind.  This routine takes
-into account the possibility that the trans_copy process (which must have
-completed) created a new canonical entry in the primary IL.
+Return the float type entry of the given kind used in the primary translation
+unit IL, or NULL if the type hasn't been used in the primary IL.  This routine
+takes into account the possibility that the trans_copy process (which must have
+completed) created such an entry as a result of copying an entry into the
+primary IL.
 */
 {
   a_type_ptr  result = canonical_float_types[kind];
@@ -1407,9 +1417,10 @@ completed) created a new canonical entry in the primary IL.
 
 a_type_ptr primary_bool_type(void)
 /*
-Return the primary bool type entry.  This routine takes into account the
-possibility that the trans_copy process (which must have completed) created
-a new canonical entry in the primary IL.
+Return the bool type entry used in the primary translation unit IL, or NULL
+if the type hasn't been used in the primary IL.  This routine takes into
+account the possibility that the trans_copy process (which must have completed)
+created such an entry as a result of copying an entry into the primary IL.
 */
 {
   a_type_ptr  result = canonical_il_bool_type;
@@ -1424,9 +1435,11 @@ a new canonical entry in the primary IL.
 
 a_type_ptr primary_complex_type(a_float_kind  kind)
 /*
-Return the primary complex type entry of the given kind.  This routine takes
-into account the possibility that the trans_copy process (which must have
-completed) created a new canonical entry in the primary IL.
+Return the complex type entry of the given kind used in the primary translation
+unit IL, or NULL if the type hasn't been used in the primary IL.  This routine
+takes into account the possibility that the trans_copy process (which must have
+completed) created such an entry as a result of copying an entry into the
+primary IL.
 */
 {
   a_type_ptr  result = canonical_complex_types[kind];
@@ -1441,9 +1454,11 @@ completed) created a new canonical entry in the primary IL.
 
 a_type_ptr primary_imaginary_type(a_float_kind  kind)
 /*
-Return the primary imaginary type entry of the given kind.  This routine
-takes into account the possibility that the trans_copy process (which must
-have completed) created a new canonical entry in the primary IL.
+Return the imaginary type entry of the given kind used in the primary
+translation unit IL, or NULL if the type hasn't been used in the primary IL.
+This routine takes into account the possibility that the trans_copy process
+(which must have completed) created such an entry as a result of copying an
+entry into the primary IL.
 */
 {
   a_type_ptr  result = canonical_imaginary_types[kind];
@@ -1460,10 +1475,11 @@ have completed) created a new canonical entry in the primary IL.
 
 a_type_ptr primary_fixed_point_type(a_fixed_point_type_descr descr)
 /*
-Return the primary fixed-point type entry for the type described by
-descr.  This routine takes into account the possibility that the trans_copy
-process (which must have completed) created a new canonical entry in the
-primary IL.
+Return the fixed-point type entry of the given kind used in the primary
+translation unit IL, or NULL if the type hasn't been used in the primary IL.
+This routine takes into account the possibility that the trans_copy process
+(which must have completed) created such an entry as a result of copying an
+entry into the primary IL.
 */
 {
   a_type_ptr  result = canonical_fixed_point_types[descr.precision]
