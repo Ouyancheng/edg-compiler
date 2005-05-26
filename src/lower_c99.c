@@ -800,20 +800,20 @@ be scaled down by the number of elements in the VLAs pointed to.
 void lower_vla_address(an_expr_node_ptr  expr)
 /*
 The given node is an enk_variable_address for a VLA variable.  Since the array
-variable is lowered to a pointer, the variable itself should be used; not its
-address.
+variable is lowered to a pointer, the variable itself should be used, not its
+address, so change the node to an enk_variable node.
 */
 {
-  an_expr_node_ptr  new_expr = add_indirection_to_node(expr);
+  a_variable_ptr var;
 
-  /* For the enk_variable_address case, add_indirection_to_node should
-     not create a wholly new entry. */
-  check_assertion(expr == new_expr);
+  check_assertion(is_variable_address_node(expr));
+  expr->kind = (an_expr_node_kind)enk_variable;
   /* Adjust the type of the expression node to the type the variable will
      eventually have (after lower_vla_types is complete) to avoid confusing
      parent nodes (e.g., an eok_pdiff operation expects operands of pointer
      type). */
-  expr->type = make_pointer_type(underlying_array_element_type(expr->type));
+  var = expr->variant.variable;
+  expr->type = make_pointer_type(underlying_array_element_type(var->type));
 }  /* lower_vla_address */
 
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
