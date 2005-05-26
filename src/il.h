@@ -516,6 +516,8 @@ extern void do_based_type_fixup(void);
 
 extern an_integer_kind char_int_kind_from_string_type(a_type_ptr str_type);
 
+extern void record_fundamental_types_copied_from_secondary_IL(void);
+
 extern a_type_ptr integer_type(an_integer_kind kind);
 
 extern a_type_ptr signed_integer_type(an_integer_kind kind);

@@ -6992,7 +6992,7 @@ pre-existing fundamental type if one exists.  Must only be called for the
 primary translation unit.
 */
 {
-  int k, l, m, n;
+  int k;
 
   check_assertion(is_primary_translation_unit);
   for (k = 0; k < (int)ik_last; ++k) {
@@ -7011,6 +7011,7 @@ primary translation unit.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if FIXED_POINT_ALLOWED
   for (k = 0; k < (int)fpp_last; ++k) {
+    int l, m, n;
     a_fixed_point_type_descr  descr;
     descr.precision = (a_fixed_point_precision)k;
     for (l = 0; l < 2; ++l) {
