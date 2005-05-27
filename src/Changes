@@ -1,5 +1,25 @@
 Version 3.6
 
+5/26/05  Abort when creating fundamental types after merging secondary
+         translation units
+
+When simultaneously processing multiple translation units, attempts to create
+new IL with fundamental types (e.g., calls to float_type(...)) could trigger
+an internal error in f_set_trans_unit_corresp.  Such aborts only occurred
+when IL_SHOULD_BE_WRITTEN_TO_FILE was TRUE and when the fundamental type
+involved had been used only in secondary translation units.  For example:
+
+  // Primary translation unit:
+  int main() {}
+
+  // Secondary translation unit:
+  bool x = 3.0;  // "bool" used in secondary translation unit, but not in
+                 // primary translation unit.  A call to "bool_type()" after
+                 // the translation units were merged could previously trigger
+                 // an internal error.
+
+This is now fixed.
+
 5/26/05  Sun compatibility: #pragma pack(0)
 
 In Sun mode (a C++ mode), the front end now accepts a zero argument for the
