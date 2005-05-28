@@ -41,7 +41,7 @@ to zero-length arrays.  For example:
   typedef int (*P)[0];
   int d = (P)0 - (P)0;  // Previously an internal error in GNU C++ mode.
 
-This is now fixed.  An "our of range" warning is issued because of the
+This is now fixed.  An "out of range" warning is issued because of the
 division by zero implied by such pointer differences.
 
 5/20/05  Invalid uses of throw specifications
