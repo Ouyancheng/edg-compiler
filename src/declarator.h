@@ -238,7 +238,11 @@ abstract or real declarator.
 			   reference component (including pointer-to-members).
 			   E.g., it is set for "(*x[3])[4]" but not for
 			   "y[3][4]"). */
-#define DO_LAST DO_POSTFIX_ATTRIBUTES
+#define DO_HAS_PTR_TO_MEMBER_COMPONENT ((a_decl_flag_set)0x100)
+			/* This bit is set if a pointer-to-member declarator
+			   was scanned.  DO_HAS_PTR_OR_REF_COMPONENT is always
+			   set when this bit is set. */
+#define DO_LAST DO_HAS_PTR_TO_MEMBER_COMPONENT
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DO_LAST)*/
 
@@ -284,6 +288,7 @@ a_type_ptr pointer_declarator(
                       a_call_conv_descr_ptr unbound_calling_convention,
                       a_type_qualifier_set  *left_qualifiers,
                       a_type_qualifier_set  *unbound_qualifiers,
+                      a_boolean             *ptr_to_member_scanned,
                       a_decl_pos_block_ptr  decl_pos_block,
 		      an_attribute_ptr      *attributes);
 

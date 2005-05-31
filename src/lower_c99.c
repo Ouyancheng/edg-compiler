@@ -377,12 +377,11 @@ variables also make indexing into the VLA arrays more efficient.
        typedef we can stop since variably modified typedefs have their own
        stmk_decl that would have caused this processing for the underlying
        type already.  For this reason we cannot easily call is_vla_type since
-       it ignores typedefs. */
+       it ignores typedefs.  (Note that we don't have to worry about pointer
+       to member types since they are not allowed to be variably modified.) */
     for (;;) {
       if (tp->kind == (a_type_kind)tk_pointer) {
         tp = tp->variant.pointer.type;
-      } else if (tp->kind == (a_type_kind)tk_ptr_to_member) {
-        tp = tp->variant.ptr_to_member.type;
       } else if (tp->kind == (a_type_kind)tk_routine) {
         tp = tp->variant.routine.return_type;
       } else if (tp->kind == (a_type_kind)tk_typeref) {
@@ -395,7 +394,8 @@ variables also make indexing into the VLA arrays more efficient.
         /* Since tp was a variably modified type, the only remaining case is
            tk_array.  Top-level non-VLA array components can be skipped (e.g.,
            "int[2][3][n][m][6]" can be handled as "int[n][m][6]". */
-        check_assertion(tp->kind == (a_type_kind)tk_array);
+        check_assertion_str(tp->kind == (a_type_kind)tk_array,
+                            "lower_vla_dimensions: unexpected type kind");
         if (tp->variant.array.is_vla) {
           if (tp->variant.array.has_assoc_vla_dimension) {
             /* The normal case. */

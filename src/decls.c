@@ -9115,6 +9115,7 @@ within this routine if is_parenthesized comes in FALSE.
   } else {
     /* In the non-parenthesized form, a limited declarator syntax is
        allowed. */
+    a_boolean  ptr_to_member_scanned;
     /* Scan pointer declarators. */
     complete_type = pointer_declarator(*type_ptr,
                                        /*reference_allowed=*/FALSE,
@@ -9122,6 +9123,7 @@ within this routine if is_parenthesized comes in FALSE.
 				       (a_call_conv_descr_ptr)NULL,
                                        (a_type_qualifier_set *)NULL,
                                        (a_type_qualifier_set *)NULL,
+                                       &ptr_to_member_scanned,
                                        &decl_pos_block,
                                        (an_attribute_ptr *)NULL);
     derived_type = NULL;
@@ -9170,6 +9172,12 @@ within this routine if is_parenthesized comes in FALSE.
       }  /* if */
     }  /* if */
     remove_stop_token(tok_lbracket);
+    if (ptr_to_member_scanned &&
+        check_for_vla_in_pointer_to_member(complete_type, &start_pos)) {
+      /* Complete type is or contains a pointer-to-member to a variably
+         modified type, which is an error. */
+      complete_type = error_type();
+    }  /* if */
     *type_ptr = complete_type;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -9299,6 +9307,7 @@ operator function reference.
   (void)get_token();
   if (is_type_start(/*is_expr_context=*/FALSE)) {
     /* It is the start of a type name. */
+    a_boolean  ptr_to_member_scanned;
     is_conversion_operator = TRUE;
     set_err_pos_to_curr_token();
     copy_source_position(pos_curr_token, type_pos);
@@ -9326,12 +9335,18 @@ operator function reference.
                                        (a_call_conv_descr_ptr)NULL,
                                        (a_type_qualifier_set *)NULL,
                                        (a_type_qualifier_set *)NULL,
+                                       &ptr_to_member_scanned,
                                        &decl_pos_block,
                                        (an_attribute_ptr *)NULL);
     if (any_cfront_mode() &&
         check_member_function_typedef(complete_type, &type_pos)) {
       /* The type is a cfront-style member function typedef -- it is an error
          to use it anywhere but in a pointer-to-member declaration. */
+      complete_type = error_type();
+    } else if (ptr_to_member_scanned &&
+               check_for_vla_in_pointer_to_member(complete_type, &type_pos)) {
+      /* Complete type is or contains a pointer-to-member to a variably
+         modified type, which is an error. */
       complete_type = error_type();
     }  /* if */
     unget_token();

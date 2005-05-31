@@ -103,6 +103,9 @@ extern a_type_ptr f_underlying_type_of_derived_type(
 #define underlying_type_of_derived_type(tp)                       \
   f_underlying_type_of_derived_type((tp), (a_boolean*)NULL)
 
+extern a_boolean check_for_vla_in_pointer_to_member(a_type_ptr         type,
+                                                    a_source_position  *pos);
+
 #if BACK_END_IS_CP_GEN_BE
 extern a_type_ptr type_specifier_of_type(a_type_ptr type);
 #endif /* BACK_END_IS_CP_GEN_BE */

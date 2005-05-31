@@ -2939,6 +2939,7 @@ a_type_ptr pointer_declarator(
                       a_call_conv_descr_ptr unbound_calling_convention,
                       a_type_qualifier_set  *left_qualifiers,
                       a_type_qualifier_set  *unbound_qualifiers,
+                      a_boolean             *ptr_to_member_scanned,
                       a_decl_pos_block_ptr  decl_pos_block,
                       an_attribute_ptr      *attributes)
 /*
@@ -2962,7 +2963,9 @@ The pointer type modifiers are placed on top of the type passed in as
 specifiers_type, and a pointer to the complete type is returned.
 specifiers_type is NULL for a nested declarator (one enclosed in
 parentheses); in that case the pointer type modifiers are built up
-but nothing is attached to the bottom-most modifier.
+but nothing is attached to the bottom-most modifier.  In either case,
+ptr_to_member_scanned is set to TRUE if a pointer-to-member declarator
+was scanned, and to FALSE otherwise.
 
 In Microsoft mode, the Microsoft __cdecl, __stdcall, and __fastcall are
 recognized as calling conventions.  The handling of calling conventions
@@ -3026,6 +3029,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
   a_upc_block_size      upc_block_size = UPC_BLOCK_SIZE_NONE;
 
   db_enter(3, "pointer_declarator");
+  *ptr_to_member_scanned = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   if (microsoft_mode or_near_and_far_enabled()) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3079,6 +3083,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       /* A pointer-to-member "Name::*". */
       another_pointer_declarator = TRUE;
       ptr_to_member_case = TRUE;
+      *ptr_to_member_scanned = TRUE;
     }  /* if */
     /* Exit the loop if there is not another pointer declarator. */
     if (!another_pointer_declarator) break;
@@ -4061,6 +4066,7 @@ The syntax is:
   a_func_info_block     *local_func_info;
   an_attribute_ptr      *last_attribute_ptr = NULL;
   a_boolean             threads_dimension_allowed = FALSE;
+  a_boolean             pointer_to_member_scanned;
 
   db_enter(3, "r_declarator");
   set_err_pos_to_curr_token();
@@ -4092,10 +4098,15 @@ The syntax is:
                                        C_dialect == C_dialect_cplusplus,
                                      &left_call_conv, &unbound_call_conv,
                                      &left_qualifiers, &unbound_qualifiers,
+                                     &pointer_to_member_scanned,
                                      decl_pos_block, attributes);
   if (complete_type != NULL && complete_type != specifiers_type) {
     /* We scanned a pointer or reference component. */
     *output_flags |= DO_HAS_PTR_OR_REF_COMPONENT;
+    if (pointer_to_member_scanned) {
+      /* We scanned a pointer-to-member declarator. */
+      *output_flags |= DO_HAS_PTR_TO_MEMBER_COMPONENT;
+    }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (attributes != NULL) {
@@ -4200,6 +4211,9 @@ The syntax is:
       }  /* if */
       /* Propagate the flag up. */
       *output_flags |= DO_HAS_PTR_OR_REF_COMPONENT;
+      if (local_do_flags & DO_HAS_PTR_TO_MEMBER_COMPONENT) {
+        *output_flags |= DO_HAS_PTR_TO_MEMBER_COMPONENT;
+      }  /* if */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode &&
@@ -4859,14 +4873,16 @@ need not be supplied on other calls.  See r_declarator for the meaning of
 the parameters.
 */
 {
-  a_type_ptr  bottom_derived_type = NULL;
-  a_boolean   is_constructor = FALSE, is_destructor = FALSE;
+  a_type_ptr         bottom_derived_type = NULL;
+  a_boolean          is_constructor = FALSE, is_destructor = FALSE;
+  a_source_position  start_pos;
 
   is_constructor = (input_flags & DI_IS_CONSTRUCTOR) != 0;
   /* If DI_IS_CONSTRUCTOR is set, the parent class should be provided. */
   check_assertion_str(!is_constructor || member_parent_type != NULL ||
                       (input_flags & DI_IS_FRIEND_DECL),
                       "declarator: parent class is NULL for ctor");
+  start_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     decl_pos_block->declarator_range.start = pos_curr_token;
@@ -4884,6 +4900,9 @@ the parameters.
   }  /* if */
   if (is_destructor) {
     *output_flags |= DO_IS_DESTRUCTOR;
+  }  /* if */
+  if (*output_flags & DO_HAS_PTR_TO_MEMBER_COMPONENT) {
+    check_for_vla_in_pointer_to_member(*p_complete_type, &start_pos);
   }  /* if */
 }  /* declarator */
 

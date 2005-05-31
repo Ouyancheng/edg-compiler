@@ -969,6 +969,34 @@ being NULL.
   return type;
 }  /* f_underlying_type_of_derived_type */
 
+
+a_boolean check_for_vla_in_pointer_to_member(a_type_ptr         type,
+                                             a_source_position  *pos)
+/*
+Return TRUE and issue a diagnostic at the given position if the given type
+or one of it underlying components is a pointer-to-member type to a variably
+modified member type.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (il_header.vla_used) {
+    while (type != NULL) {
+      if (is_ptr_to_member(type)) {
+        a_type_ptr  member_type = type->variant.ptr_to_member.type;
+        if (is_variably_modified_type(member_type)) {
+          pos_ty_error(ec_ptr_to_vla_member, pos, member_type);
+          set_type_kind(type, (a_type_kind)tk_error);
+          result = TRUE;
+        }  /* if */
+        break;
+      }  /* if */
+      type = underlying_type_of_derived_type(type);
+    }  /* while */
+  }  /* if */
+  return result;
+}  /* check_for_vla_in_pointer_to_member */
+
 #if BACK_END_IS_CP_GEN_BE
 
 a_type_ptr type_specifier_of_type(a_type_ptr type)
