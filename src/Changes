@@ -50,17 +50,17 @@ The C++ standards committee has clarified (through its decision on core
 issue 294) that exception specifications can only appear in a limited
 number of declarative contexts.  In particular, casts to types with
 exception specifications are invalid, but the front end previously
-accepted such casts.  For example:
+accepted such casts in all all modes.  For example:
 
   void f() {
     (void (*)() throw(int))0;  // Previously accepted in all modes.
-  }                            // Now an error in many modes.
+  }                            // Now an error in strict ANSI mode.
 
-In strict mode and in default mode with exceptions enabled, the invalid
-constructs are now diagnosed with a discretionary error.  If support for
-exception handling is disabled, the diagnostic is reduced to a warning.
-In GNU and Microsoft modes, the previous behavior is retained (e.g., no
-diagnostic is issued on the example above).
+In strict ANSI mode, the invalid constructs are now diagnosed with a
+discretionary error.  In other modes, the previous behavior is retained:
+If exception handling is enabled, no diagnostic is issues, and if exception
+handling is disabled, a warning is issued (and the exception specification
+is ignored).
 
 5/18/05  Internal error on pseudo-destructor of the form "x.::~int"
 

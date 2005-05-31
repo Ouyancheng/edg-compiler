@@ -4463,11 +4463,11 @@ function_lparen:
          declaration; it cannot be a typedef declaration.  That turns out to
          correspond to places where real declarators are allowed.  GNU and
          Microsoft compilers also allow exception specifications in other
-         places (e.g., types in casts). */
+         places (e.g., types in casts) and we also allow it as an extension
+         in other nonstrict modes. */
       disallow_exception_spec = TRUE;
       if (!C_mode() && !(input_flags & DI_IS_TYPEDEF_DECLARATION) &&
-          ((input_flags & DI_REAL_DECLARATOR_ALLOWED) ||
-           gpp_mode || microsoft_mode)) {
+          ((input_flags & DI_REAL_DECLARATOR_ALLOWED) || !strict_ansi_mode)) {
         if (derived_type == NULL || is_function_type(derived_type)) {
           /* Top level function declaration, or return type of function
              type. */
