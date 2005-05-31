@@ -4045,11 +4045,10 @@ detected, or *err_code == ec_no_error if everything went fine.
     } else {
       size = object_type->size;
     }  /* if */
-    if (size == 0) {
-      /* gcc mode allows empty classes with size zero, so pointers to
-         such classes produce size zero here. */
-      check_assertion_str(gcc_mode, "do_padd: size is zero");
-    }  /* if */
+    /* gnu mode allows empty classes with size zero, so pointers to
+       such classes produce size zero here.  Likewise for some cases
+       of arrays with zero bounds in gnu mode. */
+    check_assertion_str(size != 0 || gnu_mode, "do_padd: size is zero");
   }  /* if */
   /* Multiply the increment constant by the size. */
   set_unsigned_integer_value(&op2, size);

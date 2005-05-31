@@ -1,5 +1,17 @@
 Version 3.6
 
+5/31/05  GNU mode: abort on folding pointer addition with GNU zero-length
+         array
+
+An assertion failure in do_padd in folding.c ("size is zero") occurred
+on an attempt to fold a pointer addition involving an array with
+a zero bound in GNU mode.  Now fixed.
+
+  int main() {
+    typedef int T1[0];
+    int a[(((T1 *)0)[1], 1)];
+  }
+
 5/26/05  Abort when creating fundamental types after merging secondary
          translation units
 
