@@ -136,7 +136,7 @@ so that it can be used by cache_token_stream_coalesce_identifiers.
                                                                 NO_SCOPE_DEPTH;
   if (state->stmt_cache.first_token == NULL) {
     cache_rest_of_declaration(&state->stmt_cache,
-                              /*stop_on_colon=*/not_in_function,
+                              /*stop_on_colon=*/FALSE,
                               /*stop_on_lbrace=*/not_in_function);
     state->stmt_cache_created = TRUE;
   }  /* if */
