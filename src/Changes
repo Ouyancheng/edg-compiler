@@ -1,5 +1,17 @@
 Version 3.6
 
+6/1/05   Abort in lowering of VLAs appearing in GNU C typeof constructs
+
+In GNU C mode, applying "typeof" to a variably modified type could lead to
+an abort during lowering of the variable-length array (VLA) types appearing
+in the "typeof" construct.  For example:
+
+  void f(int n) {
+    typeof(float[n][n]) x;  // Previously triggered an abort in GNU C mode
+  }                         // if VLAs were lowered.
+
+This is now fixed.
+
 6/1/05   GNU C++ compatibility: disambiguation problem with compound literals
 
 The disambiguation routines did not handle compound literals (which
