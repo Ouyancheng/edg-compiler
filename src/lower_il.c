@@ -15054,6 +15054,11 @@ with the outermost enclosing class, for later promotion out of the class
     }  /* if */
     for (; type != NULL; type = next_type) {
       next_type = type->next;
+      if (type_is_typedef(type) &&
+          type->variant.typeref.has_variably_modified_type) {
+        /* Variably modified types cannot be moved outside their scope. */
+        continue;
+      }  /* if */
 #if DEBUG
       if (debug_level >= 4) {
         (void)fprintf(f_debug, "Promoting local type out of routine ");
