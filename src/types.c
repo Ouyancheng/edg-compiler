@@ -985,7 +985,7 @@ modified member type.
       if (is_ptr_to_member(type)) {
         a_type_ptr  member_type = type->variant.ptr_to_member.type;
         if (is_variably_modified_type(member_type)) {
-          pos_ty_error(ec_ptr_to_vla_member, pos, member_type);
+          pos_ty_error(ec_ptr_to_member_of_vla_type, pos, member_type);
           set_type_kind(type, (a_type_kind)tk_error);
           result = TRUE;
         }  /* if */
