@@ -1,5 +1,15 @@
 Version 3.6
 
+6/1/05   Abort scanning asm functions
+
+An abort could occur (in copy_from_source_to_asm_func_buffer) in certain
+conditions when an asm function followed a declaration that required
+disambiguation to determine whether the entity declared is a function
+or object.  Now fixed.
+
+  void f(int (*p)[10], int) {}
+  asm void g() { int x[10][10]; }
+
 6/1/05   Continue preprocessing after missing include file
 
 In modes in which the compiler is doing preprocessing only, the diagnostic
