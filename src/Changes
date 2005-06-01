@@ -1,5 +1,14 @@
 Version 3.6
 
+6/1/05   GNU C++ compatibility: disambiguation problem with compound literals
+
+The disambiguation routines did not handle compound literals (which
+are enabled in g++ mode) properly, resulting in spurious errors.  Now fixed.
+
+  void f() {
+    int *i = (int(*)){0};
+  }
+
 6/1/05   Abort scanning asm functions
 
 An abort could occur (in copy_from_source_to_asm_func_buffer) in certain

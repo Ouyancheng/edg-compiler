@@ -1278,8 +1278,12 @@ types separated by commas (when single_type_required is FALSE).
         (void)get_token();
         /* If the thing after the right parenthesis is not the start of
            an expression, then this is not a cast -- so indicate that this
-           is not a declaration. */
-        if (!is_expr_start_token(curr_token)) state.may_be_decl = FALSE;
+           is not a declaration.  A compound literal (e.g., "(int){0}")
+           looks like a cast followed by a brace. */
+        if (!is_expr_start_token(curr_token) &&
+            (!compound_literals_allowed || curr_token != tok_lbrace)) {
+          state.may_be_decl = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
 done:
