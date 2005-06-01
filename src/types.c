@@ -4005,6 +4005,10 @@ ignores type qualifiers.
 If any qualifiers are added, the flag pointed to by p_qualifiers_added
 is set to TRUE.  Otherwise it is set to FALSE.  p_qualifiers_added
 can be NULL if the caller does not need this flag returned.
+
+Note that a VLA array level is considered equivalent to any other
+array type, by the (C99 standard-conforming) logic that for the right
+value of the expression they are equivalent.
 */
 {
   a_boolean   same;
@@ -4028,35 +4032,47 @@ can be NULL if the caller does not need this flag returned.
       }  /* if */
       dest_type = skip_typerefs(dest_type);
       source_type = skip_typerefs(source_type);
-      if (is_pointer_type(dest_type) && is_pointer_type(source_type)
+      if (is_pointer(dest_type) && is_pointer(source_type)) {
 #ifdef pointer_types_have_same_repr
-          && pointer_types_have_same_repr(dest_type, source_type)
+        if (!pointer_types_have_same_repr(dest_type, source_type)) {
+          same = FALSE;
+        } else
 #endif /* ifdef pointer_types_have_same_repr */
-                                                                 ) {
-        /* Continue at the next level for pointers. */
-        dest_type = type_pointed_to(dest_type);
-        source_type = type_pointed_to(source_type);
-      } else if (is_ptr_to_member_type(dest_type) &&
-                 is_ptr_to_member_type(source_type) &&
-                 f_types_are_compatible(
-                                 pm_class_type(dest_type),
-                                 pm_class_type(source_type),
-                                 TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
-        /* Continue at the next level for pointers to members. */
-        dest_type = pm_member_type(dest_type);
-        source_type = pm_member_type(source_type);
-      } else if (is_array_type(dest_type) && is_array_type(source_type) &&
+        /* Do not add code here. */
+        {
+          /* Continue at the next level for pointers. */
+          dest_type = type_pointed_to(dest_type);
+          source_type = type_pointed_to(source_type);
+        }  /* if */
+      } else if (is_ptr_to_member(dest_type) &&
+                 is_ptr_to_member(source_type)) {
+        if (f_types_are_compatible(pm_class_type(dest_type),
+                                   pm_class_type(source_type),
+                                   TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
+          /* Continue at the next level for pointers to members. */
+          dest_type = pm_member_type(dest_type);
+          source_type = pm_member_type(source_type);
+        } else {
+          same = FALSE;
+        }  /* if */
+      } else if (is_array(dest_type) && is_array(source_type)) {
+        if (((!has_unknown_specified_bound(dest_type) &&
+              !has_unknown_specified_bound(source_type) &&
+              dest_type->variant.array.variant.number_of_elements ==
+                      source_type->variant.array.variant.number_of_elements) ||
+             (vla_enabled &&
+              (array_is_vla(dest_type) || array_is_vla(source_type))))
 #if UPC_EXTENSIONS_ALLOWED
-                 dest_type->variant.array.is_threads_dimension ==
-                            source_type->variant.array.is_threads_dimension &&
+             && (dest_type->variant.array.is_threads_dimension ==
+                            source_type->variant.array.is_threads_dimension)
 #endif /* UPC_EXTENSIONS_ALLOWED */
-                 !has_unknown_specified_bound(dest_type) &&
-                 !has_unknown_specified_bound(source_type) &&
-                 dest_type->variant.array.variant.number_of_elements ==
-                     source_type->variant.array.variant.number_of_elements) {
-        /* Continue at the next level for arrays. */
-        dest_type = array_element_type(dest_type);
-        source_type = array_element_type(source_type);
+                                                                            ) {
+          /* Continue at the next level for arrays. */
+          dest_type = array_element_type(dest_type);
+          source_type = array_element_type(source_type);
+        } else {
+          same = FALSE;
+        }  /* if */
       } else {
         /* For other types, the underlying types must be the same. */
         same = types_are_compatible(dest_type, source_type);
