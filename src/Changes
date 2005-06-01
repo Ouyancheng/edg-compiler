@@ -1,6 +1,6 @@
 Version 3.6
 
-5/1/05   Continue preprocessing after missing include file
+6/1/05   Continue preprocessing after missing include file
 
 In modes in which the compiler is doing preprocessing only, the diagnostic
 issued for a missing include file has been reduced from a catastrophic
