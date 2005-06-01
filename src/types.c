@@ -974,7 +974,7 @@ a_boolean check_for_vla_in_pointer_to_member(a_type_ptr         type,
                                              a_source_position  *pos)
 /*
 Return TRUE and issue a diagnostic at the given position if the given type
-or one of it underlying components is a pointer-to-member type to a variably
+or one of its underlying components is a pointer-to-member type to a variably
 modified member type.
 */
 {
