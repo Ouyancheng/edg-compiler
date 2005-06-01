@@ -6336,17 +6336,18 @@ typedef struct a_variable {
 			   latter is treated as the "official" variable. */
   a_bit_field	has_variably_modified_type:1;
 			/* The type of the variable is a variably modified
-			   type, i.e., is or contains a VLA type. */
+			   type, i.e., is or contains a VLA type.  Any variable
+			   for which this flag is set will also be specified
+			   in a stmk_vla_decl statement, which indicates where
+			   in the execution stream the declaration fits. */
   a_bit_field	is_vla:1;
-			/* The variable is a variable length array, i.e.,
-			   its type is a VLA type.  Any variable for which
-			   this flag is set will also be specified in a
-			   stmk_vla_decl statement (and, in C mode, one or
-			   more enk_vla_dealloc nodes), which indicates where
+			/* The variable is a variable length array, i.e., its
+			   type is a VLA type.  This flag is TRUE only if
+			   has_variably_modified_type is also TRUE.  The
+			   associated stmk_vla_decl statement (and, in C mode,
+			   one or more enk_vla_dealloc nodes), indicates where
 			   in the execution stream its memory is to be
-			   allocated (or deallocated).  (Note: this flag is
-			   TRUE only if has_variably_modified_type is also
-			   TRUE.) */
+			   allocated (or deallocated). */
 #if DO_IL_LOWERING
   a_bit_field	initialization_rewritten_as_assignment:1;
 			/* TRUE if IL lowering has rewritten some part of
