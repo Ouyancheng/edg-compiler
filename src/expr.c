@@ -5390,26 +5390,33 @@ The parentheses are required, unlike for sizeof.
   an_operand           operand;
   a_boolean            is_type;
 
+  /* Note that, unlike e.g. sizeof, typeof can appear directly in a declarative
+     context (without any intervening expression context).  The expression
+     stack should therefore not be pushed until we know that the argument is
+     indeed an expression.  Otherwise, "in_expression_context()" may return
+     the wrong answer. */
   /* Skip the typeof or __typeof__ token. */
   check_assertion(gnu_mode && curr_token == tok_typeof);
   (void)get_token();
-  /* Prepare for the possibility of having to scan an expression. */
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/(curr_object_lifetime != NULL));
-  expr_stack_entry.evaluated = FALSE;
-  expr_stack_entry.potentially_evaluated = FALSE;
   /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
-  add_matching_stop_token(tok_rparen);
   /* Distinguish between the type-name and expression case. */
   if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                        DFS_SINGLE_TYPE_REQUIRED)) {
     /* Scan a type name. */
+    add_stop_token(tok_rparen);
     type_name(&result);
     is_type = TRUE;
+    remove_stop_token(tok_rparen);
   } else {
     /* Scan an expression. */
+    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/
+                                              (curr_object_lifetime != NULL));
+    expr_stack_entry.evaluated = FALSE;
+    expr_stack_entry.potentially_evaluated = FALSE;
+    add_matching_stop_token(tok_rparen);
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     error_if_indefinite_function(&operand);
     force_complete_type_if_a_variable(&operand);
@@ -5424,6 +5431,8 @@ The parentheses are required, unlike for sizeof.
       }  /* if */
     }  /* if */
     is_type = FALSE;
+    remove_matching_stop_token(tok_rparen);
+    pop_expr_stack();
   }  /* if */
   if (is_error_type(result)) {
     /* We'll just return the error type. */
@@ -5456,8 +5465,6 @@ The parentheses are required, unlike for sizeof.
   }  /* if */
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_matching_stop_token(tok_rparen);
-  pop_expr_stack();
   return result;
 }  /* scan_typeof_operator */
 
