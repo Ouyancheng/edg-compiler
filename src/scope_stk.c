@@ -2172,7 +2172,8 @@ the scope being pushed.
     depth_innermost_namespace_scope =
             ssep->depth_innermost_namespace_scope = depth_scope_stack;
   } else if (C_dialect == C_dialect_cplusplus &&
-             kind == (a_scope_kind)sck_class_struct_union) {
+             (kind == (a_scope_kind)sck_class_struct_union ||
+              kind == (a_scope_kind)sck_class_reactivation)) {
     /* When we enter a class scope, the containing function scope (if any)
        becomes invisible in some respects.  (In particular, some expression
        processing routines need to know whether a function scope is the
