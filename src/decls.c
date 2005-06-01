@@ -9104,8 +9104,7 @@ within this routine if is_parenthesized comes in FALSE.
          in "new (int)[3]" the new expression is normally restricted to
          "new (int)", but GNU C++ also picks up the "[3]". */
       declarator(DI_ABSTRACT_DECLARATOR_ALLOWED |
-                    DI_QUALIFIED_NAME_ALLOWED |
-                    DI_DIMENSION_EXPRESSION_ALLOWED,
+                    DI_QUALIFIED_NAME_ALLOWED,
                  &do_flags, *type_ptr,
                  /*member_parent_type=*/(a_type_ptr)NULL,
                  (a_symbol_locator *)NULL, type_ptr,

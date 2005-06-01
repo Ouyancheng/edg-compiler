@@ -1,5 +1,18 @@
 Version 3.6
 
+5/31/05  GNU C++ mode: abort on incorrect non-top-level nonconstant array
+         bound in "new"
+
+A case like the following, which uses the g++ "feature" that allows
+an array declarator after a parenthesized type in a "new", aborted in
+expr.c.  The front end now correctly diagnoses the incorrect
+nonconstant bound after the first level.
+
+  int main() {
+    int n = 10;
+    new ( int [n] ) [ n ] ; 
+  }
+
 5/31/05  GNU mode: abort on folding pointer addition with GNU zero-length
          array
 
