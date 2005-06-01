@@ -15843,7 +15843,8 @@ been annotated in the source with the GNU keyword __extension__.
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       break;
     default:
-      unexpected_condition();
+      /* Ignore others, which can come up in error cases. */
+      break;
   }  /* switch */
 }  /* mark_operand_as_gnu_extension */
 
