@@ -1967,13 +1967,16 @@ extern void open_file_and_push_input_stack(char      *file_name,
                                            a_boolean is_preinclude,
 					   a_boolean preinclude_macros,
                                            a_boolean is_implicit_include,
-                                           a_boolean is_include_next);
+                                           a_boolean is_include_next,
+					   a_boolean continue_on_open_failure);
+
 extern FILE *open_file_for_input(
                            char                       *file_name,
                            a_boolean                  use_search_path,
                            a_boolean                  is_system_include,
                            a_boolean                  is_include_next,
                            a_boolean                  replace_suffix,
+			   a_boolean		      continue_on_open_failure,
                            char                       **full_file_name,
                            char                       **display_name,
                            a_directory_name_entry_ptr *dir_entry);

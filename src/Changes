@@ -1,5 +1,13 @@
 Version 3.6
 
+5/1/05   Continue preprocessing after missing include file
+
+In modes in which the compiler is doing preprocessing only, the diagnostic
+issued for a missing include file has been reduced from a catastrophic
+error to a discretionary error.  This can be used, for example, to produce
+makefile dependency information that is as complete as possible even in
+the presence of missing include files.
+
 5/31/05  GNU C++ mode: abort on incorrect non-top-level nonconstant array
          bound in "new"
 

@@ -16606,6 +16606,7 @@ file we simply return.
                                      is_system_include,
                                      /*is_include_next=*/FALSE,
 				     /*replace_suffix=*/TRUE,
+				     /*continue_on_open_failure=*/FALSE,
 				     &full_file_name, &display_name,
 				     &dir_entry);
       if (f_source != NULL) {

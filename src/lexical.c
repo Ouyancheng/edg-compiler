@@ -3438,7 +3438,8 @@ list, we process the normal (non-macro-only) preincludes.
                  /*is_preinclude=*/TRUE,
                  /*is_macro_preinclude=*/processing_macro_preincludes,
                  /*is_implicit_include=*/FALSE,
-                 /*is_include_next=*/FALSE);
+                 /*is_include_next=*/FALSE,
+                 /*continue_on_open_failure=*/FALSE);
     next_preinclude_file = next_preinclude_file->next;
   } else if (preinclude_file_list != NULL ||
              macro_preinclude_file_list != NULL) {
@@ -3476,22 +3477,24 @@ void open_file_and_push_input_stack(char      *file_name,
                                     a_boolean is_preinclude,
 				    a_boolean preinclude_macros,
                                     a_boolean is_implicit_include,
-                                    a_boolean is_include_next)
+                                    a_boolean is_include_next,
+				    a_boolean continue_on_open_failure)
 /*
 Push the indicated file onto the input stack, so that the next time a line
 is read, it will come from that file.  If the file cannot be opened,
-generate a catastrophic error and do not return.  use_search_path
-is TRUE if the search path of include directories should be used
-when trying the open.  file_name must be allocated in IL storage.
-is_include_file is TRUE if the file is being read as the result of a
-#include directive or a --preinclude command-line-option.  It is
-FALSE for implicitly included files.  is_system_include is TRUE for
-files included with the #include <file.h> notation and FALSE for all
-other files.  is_preinclude is TRUE for files included via the
-preinclude or preinclude_macros command-line options (preinclude_macros
-specifies which).  is_implicit_include is TRUE for files included for
-template implicit inclusion.  is_include_next is TRUE if the file is
-being pushed for an #include_next directive.
+generate a catastrophic error and do not return, unless continue_on_open_error
+is TRUE, in which case a discretionary error is issued and processing
+continues use_search_path is TRUE if the search path of include directories
+should be used when trying the open.  file_name must be allocated in IL
+storage.  is_include_file is TRUE if the file is being read as the result of
+a #include directive or a --preinclude command-line-option.  It is FALSE for
+implicitly included files.  is_system_include is TRUE for files included with
+the #include <file.h> notation and FALSE for all other files.  is_preinclude
+is TRUE for files included via the preinclude or preinclude_macros
+command-line options (preinclude_macros specifies which).
+is_implicit_include is TRUE for files included for template implicit
+inclusion.  is_include_next is TRUE if the file is being pushed for an
+#include_next directive.
 */
 {
   char				*full_file_name;
@@ -3503,9 +3506,12 @@ being pushed for an #include_next directive.
   db_enter(2, "open_file_and_push_input_stack");
   input_file = open_file_for_input(file_name, use_search_path,
                                    is_system_include, is_include_next,
-                                   /*replace_suffix=*/FALSE, &full_file_name,
+                                   /*replace_suffix=*/FALSE,
+				   continue_on_open_failure,
+                                   &full_file_name,
                                    &display_name, &dir_entry);
-  check_assertion(input_file != NULL);
+  check_assertion(input_file != NULL || continue_on_open_failure);
+  if (input_file == NULL) goto done;
   if (is_include_file &&
       suppress_subsequent_include_of_file(full_file_name, &ifhp)) {
     /* This file contains include guard code.  An inclusion here would
@@ -3691,6 +3697,7 @@ FILE *open_file_for_input(char                       *file_name,
                           a_boolean                  is_system_include,
                           a_boolean                  is_include_next,
                           a_boolean                  replace_suffix,
+			  a_boolean		     continue_on_open_failure,
                           char                       **full_file_name,
                           char                       **display_name,
                           a_directory_name_entry_ptr *dir_entry)
@@ -3708,9 +3715,13 @@ TRUE if the file is being opened for an #include_next directive.
 replace_suffix is TRUE when this routine is used to search for an
 implicitly included template definition file.  When replace_suffix is
 used, each suffix in the implicit_instantiation_file_suffix_list is
-used to search for a template definition file.  When replace_suffix is
-FALSE, the open must be successful and a catastrophic error will be
-issued if it is not; otherwise, a NULL file pointer will be returned.
+used to search for a template definition file.
+
+When replace_suffix is FALSE, a catastrophic error is normally issued if a file
+cannot be opened.  But if continue_on_open_failure is TRUE, a discretionary
+error is issued instead.  continue_on_open_failure can only be TRUE when
+doing preprocessing only.  If a file cannot be opened, and a catastrophic
+error is not issued, a NULL file pointer is returned.
 */
 {
   char                        *temp_file_name;
@@ -3757,8 +3768,15 @@ issued if it is not; otherwise, a NULL file pointer will be returned.
                                        /*replace_suffix=*/FALSE,
                                        &temp_file_name, dir_entry);
     if (new_input_file == NULL) {
-      /* The file could not be opened. */
-      str_catastrophe(ec_source_file_could_not_be_opened, file_name);
+      /* The file could not be opened.  This is normally a catastrophic error
+         unless continue_on_open_failure is TRUE. */
+      if (continue_on_open_failure) {
+        pos_st_diagnostic(es_discretionary_error,
+                          ec_source_file_could_not_be_opened, &error_position,
+                          file_name);
+      } else {
+        str_catastrophe(ec_source_file_could_not_be_opened, file_name);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (new_input_file != NULL) {
@@ -4208,6 +4226,7 @@ at the next level down.
                               (a_boolean)sfp->included_by_system_include,
                               /*is_include_next=*/FALSE,
  			      /*replace_suffix=*/TRUE,
+			      /*continue_on_open_failure=*/FALSE,
 			      &full_file_name, &display_name,
                               &dir_entry);
       if (f_source != NULL) {

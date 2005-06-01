@@ -984,7 +984,9 @@ in which the current file was found).
                                      /*is_preinclude=*/FALSE,
 			             /*preinclude_macros=*/FALSE,
                                      /*is_implicit_include=*/FALSE,
-                                     is_include_next);
+                                     is_include_next,
+				     /*continue_on_open_failure=*/
+                                                        do_preprocessing_only);
     }  /* if */
   }  /* if */
 }  /* proc_include */
@@ -1050,7 +1052,8 @@ simply include that.
                                    /*is_preinclude=*/FALSE,
 			           /*preinclude_macros=*/FALSE,
                                    /*is_implicit_include=*/FALSE,
-                                   /*is_include_next=*/FALSE);
+                                   /*is_include_next=*/FALSE,
+				   /*continue_on_open_failure=*/FALSE);
   }  /* if */
 }  /* proc_import */
 
