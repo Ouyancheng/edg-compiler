@@ -4903,7 +4903,7 @@ the parameters.
     *output_flags |= DO_IS_DESTRUCTOR;
   }  /* if */
   if (*output_flags & DO_HAS_PTR_TO_MEMBER_COMPONENT) {
-    check_for_vla_in_pointer_to_member(*p_complete_type, &start_pos);
+    (void)check_for_vla_in_pointer_to_member(*p_complete_type, &start_pos);
   }  /* if */
 }  /* declarator */
 
