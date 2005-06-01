@@ -4074,12 +4074,13 @@ The syntax is:
      position of the declarator-id).  It will be changed later if required. */
   copy_source_position(pos_curr_token, declarator_pos);
   *output_flags = DO_NO_OUTPUT_FLAGS;
-  real_declarator_allowed = input_flags & DI_REAL_DECLARATOR_ALLOWED;
-  abstract_declarator_allowed = input_flags & DI_ABSTRACT_DECLARATOR_ALLOWED;
+  real_declarator_allowed = (input_flags & DI_REAL_DECLARATOR_ALLOWED) != 0;
+  abstract_declarator_allowed =
+                          (input_flags & DI_ABSTRACT_DECLARATOR_ALLOWED) != 0;
   parenthesized_initializer_allowed =
-                       (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED);
+                    (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED) != 0;
   nonconstant_dimension_allowed =
-                            (input_flags & DI_DIMENSION_EXPRESSION_ALLOWED);
+                         (input_flags & DI_DIMENSION_EXPRESSION_ALLOWED) != 0;
   vla_allowed = (input_flags & DI_VLA_ALLOWED) != 0;
   vla_asterisk_allowed = (input_flags & DI_VLA_ASTERISK_ALLOWED) != 0;
   if (!real_declarator_allowed) {
