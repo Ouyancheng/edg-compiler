@@ -91,7 +91,7 @@ accepted such casts in all all modes.  For example:
 
 In strict ANSI mode, the invalid constructs are now diagnosed with a
 discretionary error.  In other modes, the previous behavior is retained:
-If exception handling is enabled, no diagnostic is issues, and if exception
+If exception handling is enabled, no diagnostic is issued, and if exception
 handling is disabled, a warning is issued (and the exception specification
 is ignored).
 
