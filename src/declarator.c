@@ -2256,6 +2256,11 @@ constant.
        as the declared size of the array. */
     static_seen = TRUE;
     (void)get_token();
+  } else if (!C_mode() && (decl_scope_level == NO_SCOPE_DEPTH ||
+                           scope_stack[decl_scope_level].kind ==
+                                          (a_scope_kind)sck_func_prototype)) {
+    /* In non-C modes, VLAs are never allowed in function prototypes. */
+    vla_allowed = vla_asterisk_allowed = FALSE;
   }  /* if */
   /* In some modes, "restrict" is allowed inside the brackets:
        int x[restrict 5]
