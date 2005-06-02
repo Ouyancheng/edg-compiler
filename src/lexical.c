@@ -3484,7 +3484,7 @@ Push the indicated file onto the input stack, so that the next time a line
 is read, it will come from that file.  If the file cannot be opened,
 generate a catastrophic error and do not return, unless continue_on_open_error
 is TRUE, in which case a discretionary error is issued and processing
-continues use_search_path is TRUE if the search path of include directories
+continues.  use_search_path is TRUE if the search path of include directories
 should be used when trying the open.  file_name must be allocated in IL
 storage.  is_include_file is TRUE if the file is being read as the result of
 a #include directive or a --preinclude command-line-option.  It is FALSE for
