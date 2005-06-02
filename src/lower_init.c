@@ -3738,7 +3738,7 @@ dynamic init pointer because of the make_destruction_routine case.
                                           (a_ctor_or_dtor_kind)cdk_subobject),
                                          /*define_now=*/FALSE);
   }  /* if */
-#endif /* !IA64_ABI */
+#endif /* IA64_ABI */
   /* Generate code for the destructor call. */
   if (num_elem_node != NULL) {
 #if !IA64_ABI
