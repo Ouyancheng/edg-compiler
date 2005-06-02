@@ -425,7 +425,7 @@ compile_int_c()
   if [ $strip_line_dirs -eq 1 ] ; then
     # Replace the #line directives with blank lines.  Also replace
     # GNU-style line directives with blank lines.
-    sed -e "s/#line.*//" -s "/# [0-9].*//" $int_c_file >/tmp/$$sld
+    sed -e "s/#line.*//" -e "s/# [0-9].*//" $int_c_file >/tmp/$$sld
     mv -f /tmp/$$sld $int_c_file
   fi
   command="$cc_command $c_to_obj_options -c $int_c_file"
