@@ -425,6 +425,8 @@ extern int fileno(FILE *);
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
 /*lint -esym(759,add_to_end_of_temp_init_statements_list)*/
 /*lint -esym(765,add_to_end_of_temp_init_statements_list)*/
+/*lint -esym(759,change_expr_into_assignment_to_temp)*/
+/*lint -esym(765,change_expr_into_assignment_to_temp)*/
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 #if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
 /*lint -esym(759, fixed_point_type_used_in_primary_IL)*/

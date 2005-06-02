@@ -789,6 +789,9 @@ extern an_expr_node_ptr make_vbase_class_lvalue_from_var(
                                              a_boolean        complete_object);
 #endif /* !IA64_ABI */
 
+extern void change_expr_into_assignment_to_temp(an_expr_node_ptr expr,
+                                                a_variable_ptr   temp);
+
 extern a_variable_ptr assign_expr_to_temp(an_expr_node_ptr expr);
 
 extern an_expr_node_ptr assign_expr_to_temp_and_make_expr_for_reuse(

@@ -832,7 +832,7 @@ the type of a VLA variable appears multiple times in the lowered IL.
 {
   a_vla_dimension_ptr  vla_dim;
 
-  check_assertion(stmt->kind == stmk_set_vla_size);
+  check_assertion(stmt->kind == (a_statement_kind)stmk_set_vla_size);
   vla_dim = stmt->variant.vla_dimension;
   lower_vla_dimension_expression(vla_dim);
 #if NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES
@@ -844,7 +844,16 @@ the type of a VLA variable appears multiple times in the lowered IL.
 #endif /* NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES */
   /* Do not insert code here. */
   {
-    vla_dim->dimension_variable = assign_expr_to_temp(vla_dim->dimension_expr);
+    /* assign_expr_to_temp is not used here because we want the
+       temporary be in the same scope as the vla-size, and not in
+       any block added by lowering (e.g., the block used to group
+       the statements in the initialization clause of a "for" statement). */
+    an_expr_node_ptr dim_expr = vla_dim->dimension_expr;
+    vla_dim->dimension_variable =
+                         make_temporary_in_scope(dim_expr->type,
+                                                 curr_context->scope,
+                                                 /*force_static=*/FALSE);
+    change_expr_into_assignment_to_temp(dim_expr, vla_dim->dimension_variable);
   }  /* if */
 }  /* create_dimension_variable */
 
@@ -859,7 +868,7 @@ extended version of this work is done by make_vla_allocation_expr and
 lower_vla_dimensions).
 */
 {
-  check_assertion(stmt->kind == stmk_vla_decl);
+  check_assertion(stmt->kind == (a_statement_kind)stmk_vla_decl);
   if (!stmt->variant.vla.is_typedef_decl &&
       stmt->variant.vla.variant.variable->is_vla) {
     /* There is indeed an associated variable. */

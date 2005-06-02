@@ -2707,15 +2707,32 @@ FALSE and *temp_var set to NULL.
 }  /* is_assignment_to_temp */
 
 
+void change_expr_into_assignment_to_temp(an_expr_node_ptr expr,
+                                         a_variable_ptr   temp)
+/*
+Change the indicated expression node into one that assigns the value
+of the expression to the indicated temporary.
+*/
+{
+  an_expr_node_ptr expr_copy, temp_node;
+
+  temp_node = var_lvalue_expr(temp);
+  expr_copy = copy_node(expr);
+  temp_node->next = expr_copy;
+  set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
+  set_node_operator(expr, lowered_assignment_operator(temp->type),
+                    temp->type, temp_node);
+}  /* change_expr_into_assignment_to_temp */
+
+
 a_variable_ptr assign_expr_to_temp(an_expr_node_ptr expr)
 /*
 Change the indicated expression into an assignment of the expression to a
 temporary, and return a pointer to the temporary.
 */
 {
-  an_expr_node_ptr expr_copy, temp_node;
-  a_variable_ptr   temp;
-  a_type_ptr       temp_type;
+  a_variable_ptr temp;
+  a_type_ptr     temp_type;
 
   temp_type = expr->type;
 #if CHECKING
@@ -2733,12 +2750,7 @@ temporary, and return a pointer to the temporary.
   }  /* if */
 #endif /* CHECKING */
   temp = make_lowered_temporary(temp_type);
-  temp_node = var_lvalue_expr(temp);
-  expr_copy = copy_node(expr);
-  temp_node->next = expr_copy;
-  set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
-  set_node_operator(expr, lowered_assignment_operator(temp_type),
-                    temp_type, temp_node);
+  change_expr_into_assignment_to_temp(expr, temp);
   return temp;
 }  /* assign_expr_to_temp */
 
