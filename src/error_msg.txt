@@ -1452,6 +1452,7 @@ ec_nonlocal_vla_not_allowed;;"a local class cannot reference a variable-length a
 ec_class_and_inherited_member_instance_have_dll_interface;;"member %nd already has an explicit dllexport/dllimport specifier"
 ec_vla_in_return_type;;"a variable-length array is not allowed in a function return type"
 ec_ptr_to_member_of_vla_type;;"variable-length array type is not allowed in pointer to member of type %t"
+ec_statement_expr_with_vla_type;;"the result of a statement expression cannot have a type involving a variable-length array"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

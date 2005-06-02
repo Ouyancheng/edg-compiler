@@ -10453,11 +10453,19 @@ both C and C++ modes.
     } else {
       expr_type = void_type();
     }  /* if */
-    expr = alloc_expr_node((an_expr_node_kind)enk_statement);
-    expr->variant.statement = sp;
-    expr->type = expr_type;
-    make_expression_operand(expr, expr_type, result);
-    current_routine_entry()->contains_statement_expression = TRUE;
+    if (is_variably_modified_type(expr_type)) {
+      /* Do not allow a statement expression to have a variably-modified type.
+         (It's an unlikely case that would cause undue difficulties during IL
+         lowering.) */
+      pos_error(ec_statement_expr_with_vla_type, &start_position);
+      make_error_operand(result);
+    } else {
+      expr = alloc_expr_node((an_expr_node_kind)enk_statement);
+      expr->variant.statement = sp;
+      expr->type = expr_type;
+      make_expression_operand(expr, expr_type, result);
+      current_routine_entry()->contains_statement_expression = TRUE;
+    }  /* if */
   }  /* if */
   (void)required_token(tok_rparen, ec_exp_rparen);
   set_operand_position(result, &start_position, &pos_curr_token,
