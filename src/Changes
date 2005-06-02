@@ -1,5 +1,25 @@
 Version 3.6
 
+6/2/05   C++-generating back end: __builtin_va_start in template strings
+
+When GCC_BUILTIN_VARARGS is TRUE, alternative spellings of the va_start,
+etc. tokens are provided (e.g., __builtin_va_start).  When the front end
+creates template strings (for use by the C++-generating back end) the
+alternative spellings were not used, which could cause problems if the
+generated C++ code was compiled with a GNU compiler.  In GNU mode when
+GCC_BUILTIN_VARARGS is TRUE, the alternative spellings (__builtin_va_start,
+__builtin_va_arg, __builtin_va_copy, __builtin_va_end) are now used when
+creating template strings.
+
+  #include <stdarg.h>
+  template <class T> inline void f(T i, ...) {
+    va_list v, v2;
+    __builtin_va_start(v, i);
+    __builtin_va_copy(v2, v);
+    int j = __builtin_va_arg(v, int);
+    __builtin_va_end(v);
+  }
+
 6/1/05   Abort in lowering of VLAs appearing in GNU C typeof constructs
 
 In GNU C mode, applying "typeof" to a variably modified type could lead to

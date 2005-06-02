@@ -13777,6 +13777,20 @@ of characters added.
     /* In Microsoft mode always put out "__asm", since "asm" is not
        necessarily accepted by the Microsoft compiler. */
     put_str_to_temp_text_buffer("__asm");
+#if GCC_BUILTIN_VARARGS
+  } else if (gnu_mode && token == tok_va_start) {
+    /* In GNU mode when using GCC_BUILTIN_VARARGS, several spellings of
+       the va_start, etc. tokens are accepted.  In such cases, put out
+       the built-in spelling as it is accepted by the GNU compilers even if
+       the header that defines va_start, etc. has not been included. */
+    put_str_to_temp_text_buffer("__builtin_va_start");
+  } else if (gnu_mode && token == tok_va_arg) {
+    put_str_to_temp_text_buffer("__builtin_va_arg");
+  } else if (gnu_mode && token == tok_va_end) {
+    put_str_to_temp_text_buffer("__builtin_va_end");
+  } else if (gnu_mode && token == tok_va_copy) {
+    put_str_to_temp_text_buffer("__builtin_va_copy");
+#endif /* GCC_BUILTIN_VARARGS */
   } else {
     /* A keyword or other token whose literal name can be put out. */
     put_str_to_temp_text_buffer(token_names[(int)token]);
