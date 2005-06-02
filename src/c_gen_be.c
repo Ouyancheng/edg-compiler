@@ -89,26 +89,6 @@ instead of K&R C.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 
 /*
-This macro indicates that it is okay to intermix statements and declarations
-in a block in the generated code.  C99 allows that, but C89 does not.
-*/
-#ifndef INTERMIXED_STMTS_AND_DECLS_ALLOWED
-#if VLA_ALLOWED && !LOWER_VARIABLE_LENGTH_ARRAYS
-/* If we're not lowering VLAs, we need the capability to intermix statements
-   and declarations.  This is not really a big deal, since if the target
-   C compiler accepts VLAs it's likely either a C99 compiler or it's gcc,
-   and both of those accept intermixed statements and declarations. */
-#define INTERMIXED_STMTS_AND_DECLS_ALLOWED TRUE
-#else /* !VLA_ALLOWED || LOWER_VARIABLE_LENGTH_ARRAYS */
-#define INTERMIXED_STMTS_AND_DECLS_ALLOWED FALSE
-#endif /* VLA_ALLOWED && !LOWER_VARIABLE_LENGTH_ARRAYS */
-#endif /* ifndef INTERMIXED_STMTS_AND_DECLS_ALLOWED */
-#if VLA_ALLOWED && !LOWER_VARIABLE_LENGTH_ARRAYS && \
-    !INTERMIXED_STMTS_AND_DECLS_ALLOWED
- #error -- Need INTERMIXED_STMTS_AND_DECLS_ALLOWED if VLAs are not lowered
-#endif /* VLA_ALLOWED && !LOWER_VARIABLE_LENGTH_ARRAYS && ... */
-
-/*
 See if the target is the SunPro C compiler.
 */
 #ifndef SUNPRO_C_IS_C_GEN_BE_TARGET
@@ -7218,12 +7198,15 @@ statement expression, i.e., ({...}).
         init_expr = NULL;
       } else {
         if (init_stmt->kind == (a_statement_kind)stmk_expr) {
+          /* Simple C89-like initialization expression. */
           init_expr = init_stmt->expr;
         } else {
-#if !INTERMIXED_STMTS_AND_DECLS_ALLOWED
+          /* Complicated initialization.  Note that lowering for C++
+             rewrites such cases so they shouldn't get here.  Only C99/gcc
+             cases get here. */
+          check_assertion(C_mode());
           write_tok_ch('{');
           need_for_init_closing_brace = TRUE;
-#endif /* !INTERMIXED_STMTS_AND_DECLS_ALLOWED */
           if (init_stmt->kind == (a_statement_kind)stmk_block) {
             /* Put out the statements in a block instead of the block
                itself.  The block is generated and doesn't appear in the
@@ -7510,14 +7493,11 @@ Generate code for the indicated list of statements.  The list is the
 top-level list in a GNU C statement expression if is_statement_expr is TRUE.
 */
 {
-#if !INTERMIXED_STMTS_AND_DECLS_ALLOWED
   a_boolean     exec_stmt_put_out = FALSE;
   unsigned long num_closing_braces_needed = 0;
-#endif /* !INTERMIXED_STMTS_AND_DECLS_ALLOWED */
   a_boolean     last_in_statement_expr = FALSE;
 
   for (; statement != NULL; statement = statement->next) {
-#if !INTERMIXED_STMTS_AND_DECLS_ALLOWED
     /* Put out extra braces before declarative statements that would
        otherwise be put out after executable statements in a block. */
     a_boolean is_exec_stmt =
@@ -7533,19 +7513,14 @@ top-level list in a GNU C statement expression if is_statement_expr is TRUE.
       num_closing_braces_needed++;
       exec_stmt_put_out = FALSE;
     }  /* if */
-#endif /* !INTERMIXED_STMTS_AND_DECLS_ALLOWED */
     if (is_statement_expr) {
       /* See whether this statement is the last in a statement expression. */
       if (statement->next == NULL) last_in_statement_expr = TRUE;
     }  /* if */
     dump_statement_full(statement, last_in_statement_expr);
-#if !INTERMIXED_STMTS_AND_DECLS_ALLOWED
     if (is_exec_stmt) exec_stmt_put_out = TRUE;
-#endif /* !INTERMIXED_STMTS_AND_DECLS_ALLOWED */
   }  /* for */
-#if !INTERMIXED_STMTS_AND_DECLS_ALLOWED
   while (num_closing_braces_needed-- > 0) write_tok_ch('}');
-#endif /* !INTERMIXED_STMTS_AND_DECLS_ALLOWED */
 }  /* dump_statement_list */
 
 
