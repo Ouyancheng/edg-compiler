@@ -1,5 +1,27 @@
 Version 3.6
 
+6/2/05   Missing destruction on recursively abandoned throw operation
+
+A throw operation is "abandoned" if the object is being constructed
+directly into the temporary used by the EH runtime and an exception is
+thrown by the construction.  If this process occurred recursively, the
+object that was ultimately thrown was never destroyed.  Now fixed.
+
+  int ctor, dtor, cnt;
+  struct A {
+    A() {
+      cnt++;
+      if (cnt == 5 || cnt == 6) throw A();
+      ctor++;
+    }
+    ~A() { dtor++; }
+  };
+  int main() {
+    try { A a[10]; }
+    catch (...) { }
+    return ctor != dtor;
+  }
+
 5/17/05  Zero-length VLAs supported
 
 When the front end lowers VLA operations (i.e., when the __vla_alloc

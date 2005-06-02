@@ -1396,6 +1396,26 @@ Push an entry onto the throw stack and initialize its fields.
 
   tsep =
       (a_throw_stack_entry_ptr)eh_alloc_on_stack(sizeof(a_throw_stack_entry));
+  /* Record a pointer to the nearest enclosing try block in the throw
+     stack entry.  If this throw has the same nearest enclosing try block
+     as the previous throw then the previous throw should be discarded.
+     This can occur if a throw is done from a copy constructor called
+     after __throw_alloc but before __throw. */
+  ehsep = __curr_eh_stack_entry;
+  while (ehsep != NULL) {
+    /* Try blocks that are currently inside a handler are not considered. */
+    if (ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block &&
+        ehsep->variant.try_block.catch_info == NULL) break;
+    ehsep = ehsep->next;
+  }  /* while */
+  tsep->nearest_enclosing_try_block = ehsep;
+  if (curr_throw_stack_entry != NULL) {
+    if (curr_throw_stack_entry->nearest_enclosing_try_block == ehsep) {
+      /* There is a previous throw and it does point to the same nearest
+         enclosing try block. */
+      destroy_thrown_object(curr_throw_stack_entry);
+    }  /* if */
+  }  /* if */
   tsep->next = curr_throw_stack_entry;
   curr_throw_stack_entry = tsep;
   tsep->type_info = type_info;
@@ -1423,26 +1443,6 @@ Push an entry onto the throw stack and initialize its fields.
   tsep->object_evaluation_complete = FALSE;
   tsep->throw_marker.next = NULL;
   tsep->throw_marker.kind = ehsek_throw_processing_marker;
-  /* Record a pointer to the nearest enclosing try block in the throw
-     stack entry.  If this throw has the same nearest enclosing try block
-     as the previous throw then the previous throw should be discarded.
-     This can occur if a throw is done from a copy constructor called
-     after __throw_alloc but before __throw. */
-  ehsep = __curr_eh_stack_entry;
-  while (ehsep != NULL) {
-    /* Try blocks that are currently inside a handler are not considered. */
-    if (ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block &&
-        ehsep->variant.try_block.catch_info == NULL) break;
-    ehsep = ehsep->next;
-  }  /* while */
-  tsep->nearest_enclosing_try_block = ehsep;
-  if (tsep->next != NULL) {
-    if (tsep->next->nearest_enclosing_try_block == ehsep) {
-      /* There is a previous throw and it does point to the same nearest
-         enclosing try block. */
-      destroy_thrown_object(tsep);
-    }  /* if */
-  }  /* if */
 }  /* push_throw_stack */
 
 
