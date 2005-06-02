@@ -2604,7 +2604,8 @@ created, or NULL it there is none.
   db_enter(4, "gen_dynamic_initialization");
   *local_static_var_init = NULL;
   if (p_init_stmt != NULL) *p_init_stmt = NULL;
-  at_file_scope = (depth_innermost_function_scope == NO_SCOPE_DEPTH);
+  at_file_scope = (depth_innermost_function_scope == NO_SCOPE_DEPTH &&
+                   !inside_local_class);
   if (!at_file_scope) {
     check_assertion(ssep->kind == (a_scope_kind)sck_function ||
                     ssep->kind == (a_scope_kind)sck_block ||
