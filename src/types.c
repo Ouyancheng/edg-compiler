@@ -969,6 +969,7 @@ being NULL.
   return type;
 }  /* f_underlying_type_of_derived_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean check_for_vla_in_pointer_to_member(a_type_ptr         type,
                                              a_source_position  *pos)
@@ -997,6 +998,7 @@ modified member type.
   return result;
 }  /* check_for_vla_in_pointer_to_member */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if BACK_END_IS_CP_GEN_BE
 
 a_type_ptr type_specifier_of_type(a_type_ptr type)
