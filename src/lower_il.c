@@ -13986,16 +13986,46 @@ handled).
 }  /* lower_condition */
 
 
+void reinsert_for_loop_initialization(a_statement_ptr    init_stmt,
+                                      an_insert_location *insert_location)
+/*
+init_stmt is the initialization statement from a for-loop.  It has been
+detached from the for statement.  Reinsert it at *insert_location.
+The initialization statement has been lowered already, and may be a
+sequence of statements starting with init_stmt.  Used in both C++ and C.
+*/
+{
+  a_statement_ptr stmt, stmt_next;
+
+  /* If the initialization statement is a block, insert its statements.
+     This is important for VLA declarations. */
+  stmt = init_stmt;
+  if (stmt->kind == (a_statement_kind)stmk_block &&
+      stmt->next == NULL) {
+    check_assertion(stmt->variant.block.extra_info->assoc_scope == NULL);
+    stmt = stmt->variant.block.statements;
+  }  /* if */
+  /* Insert the statements. */
+  for (; stmt != NULL; stmt = stmt_next) {
+    stmt_next = stmt->next;
+    stmt->next = NULL;
+    if (!is_noop_statement(stmt)) {
+      insert_statement(stmt, insert_location);
+    }  /* if */
+  }  /* for */
+}  /* reinsert_for_loop_initialization */
+
+
 static void lower_for_statement(a_statement_ptr statement)
 /*
 Do IL lowering of the indicated "for" statement and everything under it.
 */
 {
-  a_for_loop_ptr     extra_info = statement->variant.for_loop.extra_info;
+  a_for_loop_ptr     flp = statement->variant.for_loop.extra_info;
   a_statement_ptr    for_stmt = statement;
-  a_statement_ptr    init_stmt = extra_info->initialization;
+  a_statement_ptr    init_stmt = flp->initialization;
   a_statement_ptr    block_stmt = NULL;
-  a_scope_ptr        for_init_scope = extra_info->for_init_scope;
+  a_scope_ptr        for_init_scope = flp->for_init_scope;
   a_context          context;
   an_insert_location insert_location;
 
@@ -14008,7 +14038,7 @@ Do IL lowering of the indicated "for" statement and everything under it.
     block_stmt = for_stmt;
     turn_statement_into_block(for_stmt, &insert_location, &for_stmt);
     block_stmt->variant.block.extra_info->assoc_scope = for_init_scope;
-    extra_info->for_init_scope = NULL;
+    flp->for_init_scope = NULL;
     for_init_scope->assoc_block = block_stmt;
     if (for_init_scope->lifetime != NULL) {
       begin_object_lifetime(for_init_scope->lifetime, &insert_location);
@@ -14018,38 +14048,21 @@ Do IL lowering of the indicated "for" statement and everything under it.
     /* There is an initialization statement. */
     check_assertion(init_stmt->next == NULL);
     lower_statement(init_stmt);
-    if (init_stmt->kind == (a_statement_kind)stmk_expr) {
+    if (init_stmt->kind == (a_statement_kind)stmk_expr &&
+        init_stmt->next == NULL) {
       /* The simple C-like case: the initialization is an expression.
          Leave it attached to the for loop. */
     } else {
       /* The C++ case: move the initialization code out into the
          block we created above.  Note that this is particularly
          desirable when there is a VLA declaration in the initialization. */
-      a_statement_ptr stmt, stmt_next;
-      extra_info->initialization = NULL;
+      flp->initialization = NULL;
       /* Put a block around the for loop if we didn't previously. */
       if (block_stmt == NULL) {
         block_stmt = for_stmt;
         turn_statement_into_block(for_stmt, &insert_location, &for_stmt);
       }  /* if */
-      /* If the initialization statement is a block, insert its statements.
-         Again, this is important for VLA declarations. */
-      stmt = init_stmt;
-      if (stmt->kind == (a_statement_kind)stmk_block &&
-          stmt->next == NULL) {
-        check_assertion(stmt->variant.block.extra_info->assoc_scope == NULL);
-        stmt = stmt->variant.block.statements;
-      }  /* if */
-      /* Insert the statements in the generated block.  Even a non-block
-         statement can now be a sequence of statements after lowering
-         (e.g., for an inlined function call). */
-      for (; stmt != NULL; stmt = stmt_next) {
-        stmt_next = stmt->next;
-        stmt->next = NULL;
-        if (!is_noop_statement(stmt)) {
-          insert_statement(stmt, &insert_location);
-        }  /* if */
-      }  /* for */
+      reinsert_for_loop_initialization(init_stmt, &insert_location);
     }  /* if */
   }  /* if */
   lower_condition(for_stmt);

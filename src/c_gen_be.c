@@ -7093,7 +7093,6 @@ statement expression, i.e., ({...}).
   a_statement_ptr  init_stmt, else_stmt;
   an_expr_node_ptr init_expr;
   a_statement_kind kind;
-  a_boolean        need_for_init_closing_brace;
 
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
   check_assertion(statement != NULL);
@@ -7192,34 +7191,16 @@ statement expression, i.e., ({...}).
 #endif /* UPC_EXTENSIONS_ALLOWED */
       /* Put the initializing statement outside the "for" if it's not
          a simple expression statement. */
-      need_for_init_closing_brace = FALSE;
       init_stmt = statement->variant.for_loop.extra_info->initialization;
       if (init_stmt == NULL) {
         init_expr = NULL;
       } else {
-        if (init_stmt->kind == (a_statement_kind)stmk_expr) {
-          /* Simple C89-like initialization expression. */
-          init_expr = init_stmt->expr;
-        } else {
-          /* Complicated initialization.  Note that lowering for C++
-             rewrites such cases so they shouldn't get here.  Only C99/gcc
-             cases get here. */
-          check_assertion(C_mode());
-          write_tok_ch('{');
-          need_for_init_closing_brace = TRUE;
-          if (init_stmt->kind == (a_statement_kind)stmk_block) {
-            /* Put out the statements in a block instead of the block
-               itself.  The block is generated and doesn't appear in the
-               source.  This comes up when source sequence lists are
-               configured in and stmk_decl statements are added, and
-               also when stmk_vla_decl statements are added.  Note
-               that dump_block does not put out the surrounding braces. */
-            dump_block(init_stmt, /*is_statement_expr=*/FALSE);
-          } else {
-            dump_statement(init_stmt);
-          }  /* if */
-          init_expr = NULL;
-        }  /* if */
+        /* Lowering (C++ or C99) should have moved complex initializations
+           out of the statement. */
+        check_assertion(init_stmt->kind == (a_statement_kind)stmk_expr &&
+                        init_stmt->next == NULL);
+        /* Simple C89-like initialization expression. */
+        init_expr = init_stmt->expr;
       }  /* if */
       set_output_position_for_stmt(&statement->position);
       write_tok_str(kind == (a_statement_kind)stmk_for ?
@@ -7261,7 +7242,6 @@ statement expression, i.e., ({...}).
       indent += 2;
       dump_statement(statement->variant.for_loop.statement);
       indent -= 2;
-      if (need_for_init_closing_brace) write_tok_ch('}');
       break;
     case stmk_goto:
       write_tok_str("goto ");

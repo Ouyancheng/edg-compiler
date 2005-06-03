@@ -3167,6 +3167,40 @@ Do C99 lowering on the indicated stmk_init statement.
 }  /* lower_c99_stmk_init */
 
 
+static void lower_c99_for_statement(a_statement_ptr statement)
+/*
+Do C99 lowering on an stmk_for statement.
+*/
+{
+  a_statement_ptr for_stmt = statement;
+  a_for_loop_ptr  flp = for_stmt->variant.for_loop.extra_info;
+
+  if (flp->initialization != NULL) {
+    /* Process the initialization expression or declaration. */
+    a_statement_ptr init_stmt = flp->initialization;
+    check_assertion(init_stmt->next == NULL);
+    lower_c99_statement(init_stmt);
+    if (init_stmt->kind == (a_statement_kind)stmk_expr &&
+        init_stmt->next == NULL) {
+      /* The simple C89 case: the initialization is an expression.
+         Leave it attached to the for loop. */
+    } else {
+      /* The C99 case: move the initialization code out into a
+         block surrounding the for loop.  Note that this is particularly
+         desirable when there is a VLA declaration in the initialization. */
+      an_insert_location insert_location;
+      flp->initialization = NULL;
+      turn_statement_into_block(for_stmt, &insert_location, &for_stmt);
+      reinsert_for_loop_initialization(init_stmt, &insert_location);
+    }  /* if */
+  }  /* if */
+  if (flp->increment != NULL) {
+    lower_c99_full_expr(flp->increment);
+  }  /* if */
+  lower_c99_statement(statement->variant.for_loop.statement);
+}  /* lower_c99_for_statement */
+
+
 static void lower_c99_constant_list(a_constant_ptr constant_list)
 /*
 Do C99 lowering on a constant list.
@@ -3268,25 +3302,7 @@ Do C99 lowering on the indicated statement.
 #if UPC_EXTENSIONS_ALLOWED
       case stmk_upc_forall:
 #endif /* UPC_EXTENSIONS_ALLOWED */
-        { a_for_loop_ptr flp = statement->variant.for_loop.extra_info;
-          if (flp->initialization != NULL) {
-            a_statement_ptr init_stmt = flp->initialization, init_stmt_next;
-            lower_c99_statement(init_stmt);
-            /* If the initialization was rewritten as a sequence of statements,
-               make it into a block, because the stmk_for can only point at a
-               single statement. */
-            init_stmt_next = init_stmt->next;
-            if (init_stmt_next != NULL) {
-              init_stmt->next = NULL;
-              change_statement_into_block(init_stmt, &init_stmt);
-              init_stmt->next = init_stmt_next;
-            }  /* if */
-          }  /* if */
-          if (flp->increment != NULL) {
-            lower_c99_full_expr(flp->increment);
-          }  /* if */
-        }
-        lower_c99_statement(statement->variant.for_loop.statement);
+        lower_c99_for_statement(statement);
         break;
       case stmk_block:
         { a_context context;
