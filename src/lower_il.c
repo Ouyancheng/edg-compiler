@@ -1389,6 +1389,8 @@ scope.  If scope is NULL, use the nearest enclosing scope.
       if (block->assoc_scope != NULL) {
         /* This statement has already had a scope added to it, so use that. */
         scope = block->assoc_scope;
+      } else if (block->implicit_scope_not_allowed) {
+        /* This block doesn't allow implicit addition of a scope. */
       } else {
         /* If the nearest scope has subscopes we don't try to add a scope,
            because it's a little difficult to figure out where the new scope

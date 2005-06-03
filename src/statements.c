@@ -1757,6 +1757,7 @@ should be set to TRUE.
       extra_block = alloc_statement((a_statement_kind)stmk_block);
       /* This doesn't get added to the source sequence list; it's not
          in the source. */
+      extra_block->variant.block.extra_info->implicit_scope_not_allowed = TRUE;
       extra_block->variant.block.statements = *head_ptr;
       *head_ptr = extra_block;
     }  /* if */

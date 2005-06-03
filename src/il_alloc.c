@@ -2845,6 +2845,7 @@ fields to default values.
 #if GNU_EXTENSIONS_ALLOWED
       bp->is_statement_expression = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      bp->implicit_scope_not_allowed = FALSE;
 #if UPC_EXTENSIONS_ALLOWED
       bp->upc_access_method      = (a_upc_access_method)upc_access_unspecified;
 #endif /* UPC_EXTENSIONS_ALLOWED */

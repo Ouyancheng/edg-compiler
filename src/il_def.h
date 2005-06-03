@@ -9225,6 +9225,11 @@ typedef struct a_block {
 			/* TRUE if this block is the outer block created for
 			   a GNU statement expression. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_bit_field	implicit_scope_not_allowed:1;
+			/* TRUE if this block was added by the front end
+			   merely to allow grouping some statements together
+			   and a scope should not be added to it (e.g., to
+			   contain generated temporaries). */
 #if UPC_EXTENSIONS_ALLOWED
   a_upc_access_method
 		upc_access_method;

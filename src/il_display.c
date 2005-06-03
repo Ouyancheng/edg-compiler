@@ -3827,6 +3827,9 @@ Display the indicated block.
     disp_boolean("is_statement_expression", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (ptr->implicit_scope_not_allowed) {
+    disp_boolean("implicit_scope_not_allowed", TRUE);
+  }  /* if */
 #endif /* ifdef CFE */
 }  /* disp_block */
 
