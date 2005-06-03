@@ -14004,9 +14004,6 @@ Do IL lowering of the indicated "for" statement and everything under it.
   a_for_loop_ptr     extra_info = statement->variant.for_loop.extra_info;
   a_statement_ptr    for_stmt = statement;
   a_statement_ptr    init_stmt = extra_info->initialization;
-  a_boolean          complicated_init =
-                              (init_stmt != NULL &&
-                               init_stmt->kind != (a_statement_kind)stmk_expr);
   a_statement_ptr    block_stmt = NULL;
   a_scope_ptr        for_init_scope = extra_info->for_init_scope;
   a_context          context;
@@ -14026,53 +14023,41 @@ Do IL lowering of the indicated "for" statement and everything under it.
     if (for_init_scope->lifetime != NULL) {
       begin_object_lifetime(for_init_scope->lifetime, &insert_location);
     }  /* if */
-  } else if (complicated_init) {
-    /* Put a block around the for-loop if the initialization is complicated
-       so we can move the initialization there. */
-    block_stmt = for_stmt;
-    turn_statement_into_block(for_stmt, &insert_location, &for_stmt);
   }  /* if */
   if (init_stmt != NULL) {
     /* There is an initialization statement. */
     check_assertion(init_stmt->next == NULL);
-    if (!complicated_init) {
+    lower_statement(init_stmt);
+    if (init_stmt->kind == (a_statement_kind)stmk_expr) {
       /* The simple C-like case: the initialization is an expression.
          Leave it attached to the for loop. */
-      lower_statement(init_stmt);
     } else {
       /* The C++ case: move the initialization code out into the
          block we created above.  Note that this is particularly
          desirable when there is a VLA declaration in the initialization. */
-      a_statement_ptr stmt, prev_stmt, last_stmt;
-      check_assertion(block_stmt != NULL);
       extra_info->initialization = NULL;
-      /* Find the statement preceding the "for" and insert after it. */
-      for (prev_stmt = NULL, stmt = block_stmt->variant.block.statements;
-           stmt != for_stmt;
-           prev_stmt = stmt, stmt = stmt->next) {
-        check_assertion(stmt != NULL);
-      }  /* for */
+      /* Put a block around the for loop if we didn't previously. */
+      if (block_stmt == NULL) {
+        block_stmt = for_stmt;
+        turn_statement_into_block(for_stmt, &insert_location, &for_stmt);
+      }  /* if */
       /* If the initialization statement is a block, insert its statements.
          Again, this is important for VLA declarations. */
-      stmt = last_stmt = init_stmt;
-      if (stmt->kind == (a_statement_kind)stmk_block) {
-        check_assertion(stmt->variant.block.extra_info->assoc_scope == NULL);
-        stmt = stmt->variant.block.statements;
-        last_stmt = stmt;
-        if (last_stmt != NULL) {
-          while (last_stmt->next != NULL) last_stmt = last_stmt->next;
-        }  /* if */
-      }  /* if */
-      if (prev_stmt == NULL) {
-        block_stmt->variant.block.statements = stmt;
+      if (init_stmt->kind == (a_statement_kind)stmk_block) {
+        a_statement_ptr stmt, stmt_next;
+        check_assertion(
+                     init_stmt->variant.block.extra_info->assoc_scope == NULL);
+        for (stmt = init_stmt->variant.block.statements;
+             stmt != NULL;
+             stmt = stmt_next) {
+          stmt_next = stmt->next;
+          stmt->next = NULL;
+          insert_statement(stmt, &insert_location);
+        }  /* for */
       } else {
-        prev_stmt->next = stmt;
+        /* Normal case: just one statement to insert. */
+        insert_statement(init_stmt, &insert_location);
       }  /* if */
-      last_stmt->next = NULL;  /* Disconnect temporarily. */
-      /* Lower the statements in their new location.  (This may be overkill,
-         but it can't hurt.) */
-      lower_statement_list(stmt, &last_stmt);
-      last_stmt->next = for_stmt;
     }  /* if */
   }  /* if */
   lower_condition(for_stmt);
