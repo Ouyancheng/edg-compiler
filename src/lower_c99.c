@@ -314,14 +314,7 @@ assignment to the given expression tree (which could be NULL initially).
        computing the array length. */
     lower_vla_dimension_expression(vla_dim);
     expr = vla_dim->dimension_expr;
-    /* make_lowered_temporary is not used here because we want the
-       variable to be in the same scope as the vla-size, and not in
-       any block added by lowering (e.g., the block used to group
-       the statements in the initialization clause of a "for" statement). */
-    vla_dim->total_number_of_elements =
-                               make_temporary_in_scope(ptrdiff_type,
-                                                       curr_context->scope,
-                                                       /*force_static=*/FALSE);
+    vla_dim->total_number_of_elements = make_lowered_temporary(ptrdiff_type);
     assign_ops = var_lvalue_expr(vla_dim->total_number_of_elements);
     assign_ops->next = add_cast_if_necessary(expr, ptrdiff_type);
     assign_ops = make_operator_node((an_expr_operator_kind)eok_iassign,
@@ -590,14 +583,8 @@ VLA lowering).
       /* An element count variable must be created and initialized. */
       an_expr_node_ptr  count_expr = vla_size_expr(vla_var->type,
                                                    /*byte_count=*/FALSE);
-      /* make_lowered_temporary is not used here because we want the
-         variable to be in the same scope as the variable, and not in
-         any block added by lowering (e.g., the block used to group
-         the statements in the initialization clause of a "for" statement). */
       vla_var->vla_element_count_variable =
-                               make_temporary_in_scope(ptrdiff_type,
-                                                       curr_context->scope,
-                                                       /*force_static=*/FALSE);
+                                          make_lowered_temporary(ptrdiff_type);
       count_init = var_lvalue_expr(vla_var->vla_element_count_variable);
       count_init->next = add_cast_if_necessary(count_expr, ptrdiff_type);
       count_init = make_operator_node((an_expr_operator_kind)eok_iassign,
@@ -844,16 +831,7 @@ the type of a VLA variable appears multiple times in the lowered IL.
 #endif /* NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES */
   /* Do not insert code here. */
   {
-    /* assign_expr_to_temp is not used here because we want the
-       temporary be in the same scope as the vla-size, and not in
-       any block added by lowering (e.g., the block used to group
-       the statements in the initialization clause of a "for" statement). */
-    an_expr_node_ptr dim_expr = vla_dim->dimension_expr;
-    vla_dim->dimension_variable =
-                         make_temporary_in_scope(dim_expr->type,
-                                                 curr_context->scope,
-                                                 /*force_static=*/FALSE);
-    change_expr_into_assignment_to_temp(dim_expr, vla_dim->dimension_variable);
+    vla_dim->dimension_variable = assign_expr_to_temp(vla_dim->dimension_expr);
   }  /* if */
 }  /* create_dimension_variable */
 
@@ -879,14 +857,7 @@ lower_vla_dimensions).
     a_targ_size_t     constant_factor = 1;
     a_statement_ptr   new_stmt;
     /* Create the temporary and record it. */
-    /* make_lowered_temporary is not used here because we want the
-       variable to be in the same scope as the vla-decl, and not in
-       any block added by lowering (e.g., the block used to group
-       the statements in the initialization clause of a "for" statement). */
-    var->vla_element_count_variable =
-                               make_temporary_in_scope(ptrdiff_type,
-                                                       curr_context->scope,
-                                                       /*force_static=*/FALSE);
+    var->vla_element_count_variable = make_lowered_temporary(ptrdiff_type);
     /* Multiply all the dimensions of a possibly multi-dimensional array.
        The variable-length dimensions are represented by the "count" expression
        and the constant dimensions are accumulated in "constant_factor". */
