@@ -14035,6 +14035,7 @@ Do IL lowering of the indicated "for" statement and everything under it.
       /* The C++ case: move the initialization code out into the
          block we created above.  Note that this is particularly
          desirable when there is a VLA declaration in the initialization. */
+      a_statement_ptr stmt, stmt_next;
       extra_info->initialization = NULL;
       /* Put a block around the for loop if we didn't previously. */
       if (block_stmt == NULL) {
@@ -14043,21 +14044,22 @@ Do IL lowering of the indicated "for" statement and everything under it.
       }  /* if */
       /* If the initialization statement is a block, insert its statements.
          Again, this is important for VLA declarations. */
-      if (init_stmt->kind == (a_statement_kind)stmk_block) {
-        a_statement_ptr stmt, stmt_next;
-        check_assertion(
-                     init_stmt->variant.block.extra_info->assoc_scope == NULL);
-        for (stmt = init_stmt->variant.block.statements;
-             stmt != NULL;
-             stmt = stmt_next) {
-          stmt_next = stmt->next;
-          stmt->next = NULL;
-          insert_statement(stmt, &insert_location);
-        }  /* for */
-      } else {
-        /* Normal case: just one statement to insert. */
-        insert_statement(init_stmt, &insert_location);
+      stmt = init_stmt;
+      if (stmt->kind == (a_statement_kind)stmk_block &&
+          stmt->next == NULL) {
+        check_assertion(stmt->variant.block.extra_info->assoc_scope == NULL);
+        stmt = stmt->variant.block.statements;
       }  /* if */
+      /* Insert the statements in the generated block.  Even a non-block
+         statement can now be a sequence of statements after lowering
+         (e.g., for an inlined function call). */
+      for (; stmt != NULL; stmt = stmt_next) {
+        stmt_next = stmt->next;
+        stmt->next = NULL;
+        if (!is_noop_statement(stmt)) {
+          insert_statement(stmt, &insert_location);
+        }  /* if */
+      }  /* for */
     }  /* if */
   }  /* if */
   lower_condition(for_stmt);
