@@ -28,6 +28,7 @@ scope_stk.c - Management of the scope stack and related routines.
 /* Additional header files. */
 #if DO_IL_LOWERING
 #include "lower_il.h"
+#include "lower_c99.h"
 #endif /* DO_IL_LOWERING */
 /* exprutil.h is needed to get an_expr_stack_entry for the scope stack. */
 #include "exprutil.h"
@@ -6908,7 +6909,9 @@ given translation unit.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DO_IL_LOWERING
   source_sequence_entries_disallowed = !is_primary_translation_unit ||
-                                       il_lowering_needed();
+                                       (C_mode() ? c99_il_lowering_needed() :
+                                                   il_lowering_needed());
+  source_sequence_entries_disallowed = FALSE;
 #else /* !DO_IL_LOWERING */
   source_sequence_entries_disallowed = !is_primary_translation_unit;
 #endif /* DO_IL_LOWERING */
