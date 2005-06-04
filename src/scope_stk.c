@@ -6911,7 +6911,6 @@ given translation unit.
   source_sequence_entries_disallowed = !is_primary_translation_unit ||
                                        (C_mode() ? c99_il_lowering_needed() :
                                                    il_lowering_needed());
-  source_sequence_entries_disallowed = FALSE;
 #else /* !DO_IL_LOWERING */
   source_sequence_entries_disallowed = !is_primary_translation_unit;
 #endif /* DO_IL_LOWERING */
