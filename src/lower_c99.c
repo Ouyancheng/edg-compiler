@@ -3197,7 +3197,7 @@ Do C99 lowering on an stmk_for statement.
   if (flp->increment != NULL) {
     lower_c99_full_expr(flp->increment);
   }  /* if */
-  lower_c99_statement(statement->variant.for_loop.statement);
+  lower_c99_statement(for_stmt->variant.for_loop.statement);
 }  /* lower_c99_for_statement */
 
 
