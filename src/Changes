@@ -1,5 +1,16 @@
 Version 3.6
 
+6/4/05   Source sequence entries suppressed when C lowering is done
+
+Source sequence entries are now suppressed in C modes in which IL lowering
+is done (e.g., C99, gcc).  This is appropriate, because transformations
+done in lowering may eliminate and reorder IL in a way that invalidates
+the source sequence entries, and it matches what is done in C++ mode.
+Note, however, that until a change done as part of the implementation
+of VLAs in C++ mode this was only a theoretical problem; we don't
+know of any cases where bad IL was produced because the source
+sequence entries were present.
+
 6/2/05   C++-generating back end: __builtin_va_start in template strings
 
 When GCC_BUILTIN_VARARGS is TRUE, alternative spellings of the va_start,
