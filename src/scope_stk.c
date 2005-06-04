@@ -4005,7 +4005,8 @@ NULL.
         a_src_seq_secondary_decl_ptr  sssdp;
 
         ssep = var_ptr->source_corresp.source_sequence_entry;
-        if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+        if (ssep != NULL &&
+            ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
           /* This source sequence entry must represent a tentative definition
              of the variable (the first, if there were more than one) -- turn
              it into a primary declaration. */
