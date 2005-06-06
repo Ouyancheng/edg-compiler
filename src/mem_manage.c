@@ -1134,7 +1134,7 @@ Free a block of memory to general storage.
 }  /* free_general */
 
 
-a_void_ptr alloc_resizable_buffer(sizeof_t size)
+char *alloc_resizable_buffer(sizeof_t size)
 /*
 Allocate "size" bytes of storage that can be resized later using
 realloc_general.  Because these buffers can be resized, they can't be
