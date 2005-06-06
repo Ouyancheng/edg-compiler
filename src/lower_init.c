@@ -7889,7 +7889,7 @@ void zero_automatic_temporary(a_variable_ptr   temp_var,
                               an_expr_node_ptr expr)
 /*
 temp_var is a temporary variable with automatic storage duration
-and initk_zero intialization kind.  Insert code to zero the variable,
+and initk_zero initialization kind.  Insert code to zero the variable,
 placing it before "expr", and set the variable's initialization kind
 to initk_none.  This is necessary because we don't know that the
 block of the temporary will be entered at the top.
