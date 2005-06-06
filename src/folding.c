@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -4853,6 +4853,6 @@ through the usual interface because a field cannot be passed as a constant.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

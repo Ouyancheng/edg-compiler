@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1577,6 +1577,6 @@ EXTERN a_upc_block_size
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

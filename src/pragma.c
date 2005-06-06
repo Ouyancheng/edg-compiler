@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1994-2004 Edison Design Group Inc.                   [_]          *
+* Copyright 1994-2005 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1999,6 +1999,6 @@ Initialize the pragma description table.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1994-2004 Edison Design Group Inc.                   [_]          *
+* Copyright 1994-2005 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

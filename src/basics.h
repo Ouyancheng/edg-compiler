@@ -4,7 +4,7 @@
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -683,6 +683,6 @@ one.
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

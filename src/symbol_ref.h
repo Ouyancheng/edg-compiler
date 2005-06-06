@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -226,6 +226,6 @@ extern void symbol_ref_one_time_init(void);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
