@@ -1294,7 +1294,7 @@ sun_is_generated_code_target is TRUE.  For example:
     friend void f(E2 = D::e2);  // Was "e2", now "D::e2" for Sun target
   };
 
-3/14/05  Double mangling of class-as-suboject name for local class
+3/14/05  Double mangling of class-as-subobject name for local class
 
 The mangled name generated for the class-as-subobject version of
 a local class had double mangling in it -- the containing function
