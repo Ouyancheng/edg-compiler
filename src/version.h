@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -18,13 +18,13 @@ version.h -- Front end version number.
 Definition of the version number of this version.  It is made a separate
 file to make updates easy.
 */
-#define VERSION_NUMBER "3.5"  /* November 8, 2004. */
+#define VERSION_NUMBER "3.6"  /* June 7, 2005. */
 
 /*
 Version number used to set a predefined macro that expands to the
 front end version.  This must be a numeric value.
 */
-#define VERSION_NUMBER_FOR_MACRO 305
+#define VERSION_NUMBER_FOR_MACRO 306
 
 /*
 The date and time that this version was built.  These variables will
@@ -59,6 +59,6 @@ EXTERN char	*build_time
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2004 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
