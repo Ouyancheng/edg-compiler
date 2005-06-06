@@ -1142,9 +1142,9 @@ allocated in a memory region.  A list of these allocations is maintained so
 that the memory can be freed when the front end is reset.
 */
 {
-  a_void_ptr			ptr;
+  char	*ptr;
 
-  ptr = malloc_with_check(size);
+  ptr = (char*)malloc_with_check(size);
   add_memory_allocation((a_void_ptr)ptr, size, /*is_resizable=*/TRUE);
   return ptr;
 }  /* alloc_resizable_buffer */

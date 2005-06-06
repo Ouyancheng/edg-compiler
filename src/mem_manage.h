@@ -106,7 +106,7 @@ extern char *alloc_general(sizeof_t size);
 extern void free_general(a_void_ptr ptr,
                     sizeof_t   size);
 /* Allocate memory that can be resized later. */
-extern a_void_ptr alloc_resizable_buffer(sizeof_t size);
+extern char *alloc_resizable_buffer(sizeof_t size);
 /* Resize allocated space in "general" storage. */
 extern char *realloc_buffer(char     *old_ptr,
                             sizeof_t old_size,
