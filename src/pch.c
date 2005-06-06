@@ -194,6 +194,20 @@ Macro to do an fseek on the output file with an error check.
 static long	num_pch_events_allocated;
 #endif /* DEBUG */
 
+
+static void prepare_to_write_precompiled_header_file(void)
+/*
+We're about to write a precompiled header file.  Make any needed updates to
+the data structures that will be written out.
+*/
+{
+  /* To avoid any surprises, we ensure that the routines list is up-to-date by
+     performing all scheduled moves prior to writing the precompiled header
+     file. */
+  perform_scheduled_routine_moves();
+}  /* prepare_to_write_precompiled_header_file */
+
+
 #if CHECKING
 /* Enumeration of sections of the PCH file.  This is used to make sure that
    the file is positioned at the correct location before a section of the
@@ -220,19 +234,6 @@ static char	*file_section_names[(int)pfs_last + 1] =
   "last"
 };
 #endif /* DEBUG */
-
-
-static void prepare_to_write_precompiled_header_file(void)
-/*
-We're about to write a precompiled header file.  Make any needed updates to
-the data structures that will be written out.
-*/
-{
-  /* To avoid any surprises, we ensure that the routines list is up-to-date by
-     performing all scheduled moves prior to writing the precompiled header
-     file. */
-  perform_scheduled_routine_moves();
-}  /* prepare_to_write_precompiled_header_file */
 
 
 static void write_file_section_id(a_pch_file_section section)
