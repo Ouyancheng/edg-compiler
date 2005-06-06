@@ -2666,7 +2666,7 @@ part of a template-dependent expression.
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
-    default:
+    default:;
       /* Unexpected expression kind.  These are allowed in some cases for
          expressions under sizeof in the IA-64 ABI. */
 #if CHECKING
