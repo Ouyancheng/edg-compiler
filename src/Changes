@@ -191,18 +191,6 @@ of such diagnostics to a warning in Microsoft and g++ modes.
   X<int*> xi;
   template <class T> class X<T*> { };
 
-5/12/05  Abort on invalid array initializer in GNU C++ mode
-
-Under some unusual circumstances the front end sometimes aborted (with an
-internal error) while processing an invalid initializer for an array with
-an unspecified bound.  For example:
-
-  class T {};
-  class T x [] = { [ 5 ] = [ 5 ] } ;  // Previously an internal error in
-                                      // GNU C++ mode.
-
-This is now fixed: Ordinary errors are issued.
-
 5/12/05  C++-generating back end: functional-notation casts
 
 The change to generate casts using functional notation (see the entry of
