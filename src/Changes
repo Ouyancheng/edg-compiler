@@ -1,4 +1,6 @@
-Version 3.6
+Version 3.6, June 7, 2005
+
+6/6/05   IL version number updated to 3.6
 
 6/4/05   Source sequence entries suppressed when C lowering is done
 
