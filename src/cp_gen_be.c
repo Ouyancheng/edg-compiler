@@ -5679,6 +5679,7 @@ Return TRUE if expr is a comparison of the form x != 0 of any type.
   return is_ne_0;
 }  /* is_ne_0_operation */
 
+#if GNU_EXTENSIONS_ALLOWED
 
 static void strip_first_operand_of_two_operand_question_mark(
                                                      an_expr_node_ptr *operand)
@@ -5698,6 +5699,7 @@ it as necessary.
   }  /* if */
 }  /* strip_first_operand_of_two_operand_question_mark */
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static unsigned long array_level_count(a_type_ptr type)
 /*
@@ -6040,9 +6042,11 @@ temporary expressions).
           /* Lvalue-returning "?".  Put out the second and third operands as
              lvalues. */
           if (need_parens) write_tok_ch('(');
+#if GNU_EXTENSIONS_ALLOWED
           if (node->variant.operation.is_gnu_two_operand_question_mark) {
             strip_first_operand_of_two_operand_question_mark(&operand_1);
           }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
           gen_boolean_controlling_expression(operand_1);
           write_tok_str(" ? ");
 #if GNU_EXTENSIONS_ALLOWED
@@ -7843,9 +7847,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_question:
           /* Three operand operator. */
+#if GNU_EXTENSIONS_ALLOWED
           if (expr->variant.operation.is_gnu_two_operand_question_mark) {
             strip_first_operand_of_two_operand_question_mark(&operand_1);
           }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
           gen_boolean_controlling_expression(operand_1);
           write_tok_str(" ? ");
 #if GNU_EXTENSIONS_ALLOWED
