@@ -1865,7 +1865,7 @@ not present, the first declaration).  For example:
 
 Previously, the simple algorithm to ensure this ordering lead to a performance
 bottleneck in some cases where thousands of routine declarations were followed
-by a hundreds of definitions.  (Much of the front end's processing time was
+by hundreds of definitions.  (Much of the front end's processing time was
 spent in the function "remove_from_routines_list" in these cases.) The
 algorithm has been reworked to drastically improve the front end's performance
 on such code.
