@@ -5699,11 +5699,15 @@ to point to a routine entry attached to an existing compatible external symbol
 */
 {
   a_symbol_ptr  result = NULL;
+  a_symbol_ptr  linked_symbol = idlbp->linked_symbol;
 
+  check_assertion(linked_symbol == NULL ||
+                  linked_symbol->kind == (a_symbol_kind)sk_routine ||
+                  linked_symbol->kind == (a_symbol_kind)sk_member_function);
   if (locator->is_template_id ||
       microsoft_specialization_redef ||
-      (idlbp->linked_symbol != NULL &&
-       idlbp->linked_symbol->variant.routine.instance_ptr != NULL)) {
+      (linked_symbol != NULL &&
+       linked_symbol->variant.routine.instance_ptr != NULL)) {
     /* We're dealing with a template instance (or an explicit specialization):
        Do not create an external symbol.  (External symbols cannot really deal
        with template signatures anyway.) */
@@ -6444,7 +6448,7 @@ skip_overloading:;
        declaration or the new declaration is a redefinition.  Force a
        new symbol and a new IL entry. */
     sym = NULL;
-    linked_symbol = NULL;
+    linked_symbol = idlb.linked_symbol = NULL;
     routine_ptr = NULL;
     *old_type = NULL;
     redeclaration = FALSE;
