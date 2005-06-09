@@ -1,3 +1,16 @@
+Version 3.7
+
+6/9/05   GNU compatibility: handling of missing include file
+
+Version 3.6 changed the handling of a missing include file when doing
+preprocessing only.  The error for such cases was changed to a normal
+error from a catastrophic error.  The GNU compiler continues processing
+when generating preprocessed output, but terminates processing when doing
+other kinds of preprocessing (e.g., creating makefile dependency information).
+In GNU mode, we now continue processing only when generating preprocessed
+output.  The behavior in non-GNU mode has not changed.
+
+-------------------------------------------------------------------------------
 Version 3.6, June 7, 2005
 
 6/6/05   IL version number updated to 3.6

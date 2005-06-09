@@ -976,7 +976,11 @@ in which the current file was found).
       check_for_generation_of_pch_on_return_to_primary_file();
     } else {
       /* Push the name and associated search directory onto the input stack,
-         thus starting input from that file. */
+         thus starting input from that file.  If the include file cannot be
+         opened, we continue processing if we're doing preprocessing only,
+         except in GNU mode where we only continue if actually creating
+         preprocessed output (e.g., not when creating Makefile
+         dependencies). */
       open_file_and_push_input_stack(name_start_pos,
                                      /*use_search_path=*/TRUE,
                                      /*is_include_file=*/TRUE,
@@ -986,7 +990,8 @@ in which the current file was found).
                                      /*is_implicit_include=*/FALSE,
                                      is_include_next,
 				     /*continue_on_open_failure=*/
-                                                        do_preprocessing_only);
+                                            do_preprocessing_only &&
+                                            (!gnu_mode || generate_pp_output));
     }  /* if */
   }  /* if */
 }  /* proc_include */
