@@ -4617,6 +4617,10 @@ is the one associated with the definition of the class.
     gen_microsoft_class_decl_modifiers(type, /*is_definition=*/TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  /* Emit any attributes associated with the type. */
+  (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Write the name of the class. */
   if (ctsp != NULL &&
       ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
@@ -4692,10 +4696,6 @@ is the one associated with the definition of the class.
   }
   if (il_header.source_language == sl_Cplusplus) pop_name_context();
   write_tok_ch('}');
-#if GNU_EXTENSIONS_ALLOWED
-  /* Emit any attributes associated with the type. */
-  (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if USER_CONTROL_OF_STRUCT_PACKING
   if (pack_alignment > 0 && !gcc_is_generated_code_target) {
     /* Restore the packing alignment to a default state. */

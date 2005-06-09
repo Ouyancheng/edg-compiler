@@ -297,6 +297,12 @@ extern a_boolean check_transparent_union(a_type_ptr        tp,
 extern a_type_ptr copy_gnu_type_attributes(a_type_ptr  dst,
                                            a_type_ptr  src);
 
+extern void copy_class_attributes_to_variable(a_type_ptr      class_type,
+                                              a_variable_ptr  var);
+
+extern void copy_class_attributes_to_routine(a_type_ptr     class_type,
+                                             a_routine_ptr  routine);
+
 extern void attribute_one_time_init(void);
 
 #endif /* GNU_EXTENSIONS_ALLOWED */

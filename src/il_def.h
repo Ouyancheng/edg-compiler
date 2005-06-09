@@ -4743,6 +4743,13 @@ typedef struct a_class_type_supplement {
 			   result of an explicit specification on the class
 			   declaration. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  a_bit_field   ELF_visibility:2;
+			/* The visibility of the variable in the generated
+			   ELF object code. */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Qualifiers that apply to the class as a whole,

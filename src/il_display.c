@@ -5265,6 +5265,13 @@ Display the indicated class type supplement entry.
                  (a_boolean)ptr->inheritance_kind_is_explicit);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  if (ptr->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified) {
+    disp_ELF_visibility_kind(ptr->ELF_visibility);
+  }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   if (ptr->qualifiers != TQ_NONE) {
     disp_name("qualifiers");

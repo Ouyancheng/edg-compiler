@@ -4127,6 +4127,54 @@ described by octl.
 }  /* form_unsigned_argument_attribute */
 
 #endif /* USER_CONTROL_OF_STRUCT_PACKING || GNU_INIT_PRIORITY_ATTRIBUTE... */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+
+static void form_ELF_visibility_attribute(
+                   an_ELF_visibility_kind                 visibility,
+                   a_source_correspondence_ptr            scp,
+                   a_boolean                              *need_leading_space,
+                   an_il_to_str_output_control_block_ptr  octl)
+/*
+Output the given visibility as an attribute specification (provided it is
+not evk_unspecified).  If *need_leading_space is TRUE, precede the attribute
+with a leading space.  If an attribute is output, set *need_leading_space to
+TRUE.  Do the output in the way described by octl.  If the attribute is for
+a variable or a routine, scp points to the source correspondence of the
+IL entry; otherwise, scp is NULL.
+*/
+{
+  if (scp != NULL && scp->is_class_member && !octl->c_generating_back_end) {
+    a_class_type_supplement_ptr
+                            ctsp = scp->parent.class_type
+                                      ->variant.class_struct_union.extra_info;
+    if (ctsp->ELF_visibility == visibility) {
+      /* The visibility is already implicitly set through an attribute on the
+         enclosing class.  Do not emit it on the individual members. */
+      visibility = (an_ELF_visibility_kind)evk_unspecified;
+    }  /* if */
+  }  /* if */
+  switch (visibility) {
+    case evk_unspecified:
+      /* No visibility attribute. */
+      break;
+    case evk_hidden:
+      form_simple_attribute("visibility(\"hidden\")", need_leading_space,
+                            octl);
+      break;
+    case evk_protected:
+      form_simple_attribute("visibility(\"protected\")", need_leading_space,
+                            octl);
+      break;
+    case evk_internal:
+      form_simple_attribute("visibility(\"internal\")", need_leading_space,
+                            octl);
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* form_ELF_visibility_attribute */
+
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 static void form_routine_type_attributes(
                    a_type_ptr                             type,
@@ -4203,6 +4251,17 @@ described by octl.
       form_simple_attribute("__packed__", &need_leading_space, octl);
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    if (is_immediate_class_type(type) && !octl->c_generating_back_end) {
+      a_class_type_supplement_ptr
+                           ctsp = type->variant.class_struct_union.extra_info;
+      if (ctsp != NULL) {
+        form_ELF_visibility_attribute(ctsp->ELF_visibility,
+                                      (a_source_correspondence_ptr)NULL,
+                                      &need_leading_space, octl);
+      }  /* if */
+    }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     if (type->variables_are_implicitly_referenced) {
       /* Output the "unused" attribute. */
       form_simple_attribute("__unused__", &need_leading_space, octl);
@@ -4229,43 +4288,6 @@ described by octl.
   }  /* if */
   return need_leading_space;
 }  /* form_type_attributes */
-  
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-
-static void form_ELF_visibility_attribute(
-                   an_ELF_visibility_kind                 visibility,
-                   a_boolean                              *need_leading_space,
-                   an_il_to_str_output_control_block_ptr  octl)
-/*
-Output the given visibility as an attribute specification (provided it is
-not evk_unspecified).  If *need_leading_space is TRUE, precede the attribute
-with a leading space.  If an attribute is output, set *need_leading_space to
-TRUE.  Do the output in the way described by octl.
-
-*/
-{
-  switch (visibility) {
-    case evk_unspecified:
-      /* No visibility attribute. */
-      break;
-    case evk_hidden:
-      form_simple_attribute("visibility(\"hidden\")", need_leading_space,
-                            octl);
-      break;
-    case evk_protected:
-      form_simple_attribute("visibility(\"protected\")", need_leading_space,
-                            octl);
-      break;
-    case evk_internal:
-      form_simple_attribute("visibility(\"internal\")", need_leading_space,
-                            octl);
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-}  /* form_ELF_visibility_attribute */
-
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 #if BACK_END_IS_CP_GEN_BE
 
@@ -4331,8 +4353,8 @@ Do the output in the way described by octl.
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    form_ELF_visibility_attribute(var->ELF_visibility, &need_leading_space,
-                                  octl);
+    form_ELF_visibility_attribute(var->ELF_visibility, &var->source_corresp,
+                                  &need_leading_space, octl);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     if (var->is_weak) {
       form_simple_attribute("__weak__", &need_leading_space, octl);
@@ -4487,8 +4509,8 @@ Do the output in the way described by octl.
                       &need_leading_space, octl);
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    form_ELF_visibility_attribute(rout->ELF_visibility, &need_leading_space,
-                                  octl);
+    form_ELF_visibility_attribute(rout->ELF_visibility, &rout->source_corresp,
+                                  &need_leading_space, octl);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   }  /* if */
   return need_leading_space;

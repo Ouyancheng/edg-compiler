@@ -7247,6 +7247,9 @@ is set to NULL by this function.
     if (attributes != NULL) {
       apply_attributes_to_routine(attributes, rtn);
     }  /* if */
+    /* Propagate any class attributes that also apply to its member
+       functions. */
+    copy_class_attributes_to_routine(class_type, rtn);
     /* Record the assembly name. */
     if (asm_name != NULL) {
       rtn->asm_name = asm_name;
@@ -8264,6 +8267,9 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
       /* Apply the attributes to the variable declaration. */
       apply_attributes_to_variable(attributes, var, /*is_definition=*/FALSE);
     }  /* if */
+    /* Propagate any class attributes that also apply to its static data
+       members. */
+    copy_class_attributes_to_variable(class_type, var);
     /* If applicable, record the asm-name. */
     if (asm_name != NULL) {
       var->asm_name_or_reg.name = asm_name;

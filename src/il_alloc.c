@@ -1245,6 +1245,12 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->inheritance_kind                  = (an_inheritance_kind)ihk_none;
   ctsp->inheritance_kind_is_explicit      = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  ctsp->ELF_visibility                    =
+                                      (an_ELF_visibility_kind)evk_unspecified;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if BACK_END_IS_CP_GEN_BE
   ctsp->surrounding_name_linkage_state    = (a_name_linkage_kind)nlk_none;
 #endif /* BACK_END_IS_CP_GEN_BE */

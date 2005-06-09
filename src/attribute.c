@@ -1870,6 +1870,20 @@ a typedef, is_typedef is TRUE.
       }
       break;
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    case ak_visibility:
+      if (!C_mode() && is_immediate_class_type(tp) && gnu_version >= 40000 &&
+          !class_type_has_body(tp)) {
+        a_class_type_supplement_ptr
+                             ctsp = tp->variant.class_struct_union.extra_info;
+        check_assertion(ctsp != NULL);
+        ctsp->ELF_visibility = ap->variant.ELF_visibility;
+      } else {
+        pos_ty_warning(ec_attribute_does_not_apply_to_type, 
+                       &ap->position, tp);
+      }  /* if */
+      break;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     default:
       /* An invalid attribute. */
       pos_ty_warning(ec_attribute_does_not_apply_to_type, &ap->position, type);
@@ -2192,6 +2206,40 @@ Copy any GNU type attributes in type dst to type src.
   }  /* if */
   return result;
 }  /* copy_gnu_type_attributes */
+
+
+void copy_class_attributes_to_variable(a_type_ptr      class_type,
+                                       a_variable_ptr  var)
+/*
+var is a static data member of class_type.  Copy any attributes of class_type
+that should be propagated to its static data members.
+*/
+{
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  if (var->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+    a_class_type_supplement_ptr
+                     ctsp = class_type->variant.class_struct_union.extra_info;
+    var->ELF_visibility = ctsp->ELF_visibility;
+  }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+}  /* copy_class_attributes_to_variable */
+
+
+void copy_class_attributes_to_routine(a_type_ptr     class_type,
+                                      a_routine_ptr  routine)
+/*
+routine is a member function of class_type.  Copy any attributes of class_type
+that should be propagated to its member functions.
+*/
+{
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  if (routine->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+    a_class_type_supplement_ptr
+                     ctsp = class_type->variant.class_struct_union.extra_info;
+    routine->ELF_visibility = ctsp->ELF_visibility;
+  }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+}  /* copy_class_attributes_to_routine */
 
 
 void attribute_one_time_init(void)
