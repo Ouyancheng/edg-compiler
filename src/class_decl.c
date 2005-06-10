@@ -4761,14 +4761,12 @@ issue an error and return FALSE.
 {
   a_boolean   okay = TRUE;
   a_type_ptr  base_class_type = skip_typerefs(base_type);
-  /* If it is a const or volatile qualified type name or if it is the class
-     now being defined or if it is a union or if it has been declared but
-     not yet defined, issue an error and skip over this class: it is not a
-     valid base class name. */
+  /* If it is the class now being defined or if it is a union or if it has
+     been declared but not yet defined, issue an error and skip over this
+     class: it is not a valid base class name. */
   /* In Microsoft mode the last field of a class may be a zero-length array;
      such a class may not be a base class. */
-  if (is_qualified_type(base_type) ||
-      base_class_type->kind == (a_type_kind)tk_union ||
+  if (base_class_type->kind == (a_type_kind)tk_union ||
       base_class_type->
                   variant.class_struct_union.contains_flexible_array_member) {
     error(ec_bad_base_class);

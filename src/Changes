@@ -1,5 +1,25 @@
 Version 3.7
 
+6/10/05  Qualified class types
+
+A relatively recent decision by the C++ standards committee (the resolution
+of core issue 298) makes class types qualified with const and/or volatile
+qualifiers more like their unqualified counterparts.  We have implemented the
+following two consequences of this language change:
+  - Base classes can be specified using typedefs for const and/or volatile
+    qualifiers (the qualifiers are ignored).
+  - A typedef of a const- and/or volatile-qualified unnamed class gives
+    that class a name for linkage purposes.
+
+For example:
+
+  typedef struct { int i; } const B;
+  struct D: B {} d;  // Now okay.
+  void f(B b) {      // Now okay: The unnamed class underlying B has name "B"
+                     //           for linkage purposes.
+    d.i = b.i;       // Okay: The base class of D is not "const".
+  }
+
 6/10/05  Spurious error on mixed dependent/nondependent destructor reference
 
 When parsing nonclass templates, a spurious error was issued on a destructor

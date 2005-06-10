@@ -8337,16 +8337,19 @@ NULL.
           tp = type_ptr;
         }  /* if */
       }  /* if */
-#if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
+#if ABI_COMPATIBILITY_VERSION >= 307 ||  \
+    (ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY)
     } else {
-      /* Normally, inferring a linkage name from a typedef name is allowed
-         only for unqualified class/struct/union and enum types.  However, in
-         cfront's name mangling scheme it is also done when there is a type
-         qualifier on top of the tagless class or enum:
+      /* In the original C++ standard, inferring a linkage name from a typedef
+         name was allowed only for unqualified class/struct/union and enum
+         types.  However, in cfront's name mangling scheme it was also done
+         when there is a type qualifier on top of the tagless class or enum:
            typedef struct { ... } A;         // linkage name "A" (all modes)
            typedef const struct { ... } B;   // linkage name "B" (cfront mode)
            typedef enum { ... } C;           // linkage name "C" (all modes)
            typedef const enum { ... } D;     // linkage name "D" (cfront mode)
+         The C++ standard has been revised to make the Cfront behavior be the
+         default.
       */
       if (is_class_struct_union_type(type_ptr) || is_enum_type(type_ptr)) {
         if (skip_typedefs(type_ptr) == type_ptr &&
@@ -8354,9 +8357,12 @@ NULL.
           /* A possibly qualified class or enum type with no name.  Get at the
              underlying type. */
           tp = skip_typerefs(type_ptr);
+          /*  In non-Cfront mode, this will give the type linkage: Treat this
+              like the unqualified case. */
+          is_class_or_enum = !any_cfront_mode();
         }  /* if */
       }  /* if */
-#endif /* ABI_COMPATIBILITY_VERSION >= 230 && ... */
+#endif /* ABI_COMPATIBILITY_VERSION >= 307 || ... */
     }  /* if */
     if (tp != NULL) {
       if (any_cfront_mode()) {
