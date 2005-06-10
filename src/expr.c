@@ -6101,11 +6101,7 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
           /* The type must be determined dynamically at runtime. */
           expr = operand.variant.expression;
         }  /* if */
-      } else if (is_constant_operand(&operand) &&
-                 constant_bool_value_known_at_compile_time(
-                                                  &operand.variant.constant) &&
-                 /* "false" means zero, i.e., a null pointer. */
-                 is_false_constant(&operand.variant.constant)) {
+      } else if (op_is_null_pointer_value(&operand)) {
         /* Special case for (*(T *)0), which should throw an exception. */
         expr = make_node_from_operand(&operand);
       }  /* if */
@@ -7048,9 +7044,11 @@ Syntax:
     copy_operand(&operand, result);
   } else if (same_type_with_added_qualifiers(operand_type, operation_type,
                                              /*ignore_qualifiers=*/TRUE,
-                                             (a_boolean *)NULL)) {
+                                             (a_boolean *)NULL) ||
+             op_is_null_pointer_value(&operand)) {
     /* The types are already the same except for qualifiers.  The result
        is just the source cast to the destination type. */
+    /* Likewise for a null pointer value. */
     cast_operand(operation_type, &operand, /*check_cast_access=*/FALSE,
                  /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
                  /*reinterpret_semantics=*/FALSE);

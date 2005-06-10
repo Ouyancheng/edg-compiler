@@ -939,6 +939,8 @@ extern a_boolean op_is_zero_constant(an_operand *operand);
 
 extern a_boolean op_is_false_constant(an_operand *operand);
 
+extern a_boolean op_is_null_pointer_value(an_operand *operand);
+
 extern void add_reference_indirection(an_operand *result);
 
 extern a_boolean variable_has_constant_address(a_variable_ptr variable);

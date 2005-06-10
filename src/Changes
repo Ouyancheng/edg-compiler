@@ -1,5 +1,11 @@
 Version 3.7
 
+6/10/05  dynamic_cast of null pointer value done at compile time
+
+A dynamic_cast of a constant null pointer value is now done at compile
+time rather than as a runtime cast.  The result is the same, but
+the generated code is more efficient.
+
 6/9/05   GNU C++ compatibility: "visibility" attribute on class types
 
 In GNU C++ mode with gnu_version >= 40000, the front end now accepts that

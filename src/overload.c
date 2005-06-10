@@ -12900,11 +12900,7 @@ to be acceptable, and *conversion describes it.
                             SRK_ADDRESS_TAKEN,
                             SRK_ADDRESS_TAKEN | SRK_CONST_ADDRESS_TAKEN);
     }  /* if */
-    if (is_constant_operand(source_operand) &&
-        constant_bool_value_known_at_compile_time(
-                                          &source_operand->variant.constant) &&
-        /* "false" means zero, i.e., a null pointer. */
-        is_false_constant(&source_operand->variant.constant)) {
+    if (op_is_null_pointer_value(source_operand)) {
       /* Initializing a reference to NULL, which is not allowed:
            int &p = *(int *)0;
       */

@@ -5265,6 +5265,30 @@ to rule out certain cases before calling this routine.
 }  /* op_is_false_constant */
 
 
+a_boolean op_is_null_pointer_value(an_operand *operand)
+/*
+Return TRUE if the given operand represents a null pointer value.  Note
+that is "null pointer value" not "null pointer constant".  Also note that
+we are looking at the representation, not whether the operand is an lvalue
+or an rvalue, so an lvalue with address zero is considered to be a null
+pointer value.
+*/
+{
+  a_boolean is_null = FALSE;
+
+  if (is_constant_operand(operand)) {
+    a_constant_ptr con = &operand->variant.constant;
+    if (is_pointer_type(con->type) &&
+        constant_bool_value_known_at_compile_time(con) &&
+        /* "false" means zero, i.e., a null pointer. */
+        is_false_constant(con)) {
+      is_null = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_null;
+}  /* op_is_null_pointer_value */
+
+
 static a_boolean valid_node_if_subscript(an_expr_node_ptr node,
                                          a_boolean        *just_past_end)
 /*
