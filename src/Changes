@@ -10,6 +10,8 @@ following two consequences of this language change:
     qualifiers (the qualifiers are ignored).
   - A typedef of a const- and/or volatile-qualified unnamed class gives
     that class a name for linkage purposes.
+The latter change impacts the name mangling of some functions in some modes.
+It is therefore only enabled when ABI_COMPATIBILITY_VERSION >= 307.
 
 For example:
 
