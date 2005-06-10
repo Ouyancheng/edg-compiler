@@ -1,5 +1,12 @@
 Version 3.7
 
+6/10/05  Folding of floating-point comparisons involving NaN
+
+Floating-point comparisons of constants involving a NaN are no longer
+folded to a constant true or false at compile time if they appear in
+a nonconstant context.  They are left to be done at runtime, so that
+the floating-point exception status flags can be set appropriately.
+
 6/10/05  Qualified class types
 
 A relatively recent decision by the C++ standards committee (the resolution

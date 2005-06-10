@@ -3160,7 +3160,8 @@ Do the division operation on all types of float.
 static void do_fcompare(a_constant            *constant_1,
                         an_expr_operator_kind op,
                         a_constant            *constant_2,
-                        a_constant            *result)
+                        a_constant            *result,
+                        a_boolean             *depends_on_fp_mode)
 /*
 Compare floating constants constant_1 and constant_2 according to the
 relational operator "op", and return a 0 or 1 integer in "result".
@@ -3172,6 +3173,7 @@ relational operator "op", and return a 0 or 1 integer in "result".
   a_float_kind float_kind =
                            skip_typerefs(constant_1->type)->variant.float_kind;
 
+   *depends_on_fp_mode = FALSE;
   /* Develop a strcmp-like relation value in cmp:
        constant_1 > constant_2   1
        constant_1 = constant_2   0
@@ -3185,6 +3187,7 @@ relational operator "op", and return a 0 or 1 integer in "result".
                    &unordered);
   /* Now determine the result value for this particular operator. */
   if (unordered) {
+   *depends_on_fp_mode = TRUE;
    if (op == (an_expr_operator_kind)eok_fne) {
      /* If two values are unordered, they are unequal.  This is needed for
         NaN != NaN. */
@@ -4635,7 +4638,7 @@ as the position for any diagnostics issued.
         case eok_flt:
         case eok_fge:
         case eok_fle:
-          do_fcompare(constant_1, op, constant_2, result);
+          do_fcompare(constant_1, op, constant_2, result, &depends_on_fp_mode);
           break;
 
 #if FIXED_POINT_ALLOWED
