@@ -1,5 +1,18 @@
 Version 3.7
 
+6/10/05  Spurious error on mixed dependent/nondependent destructor reference
+
+When parsing nonclass templates, a spurious error was issued on a destructor
+reference in which the qualifier portion was specified using a nondependent
+name but the destructor name itself was dependent.  Now fixed.
+
+  struct A {
+    ~A();
+  };
+  template <class T> void destroy(T* p) {
+    p->A::~T();
+  }
+
 6/10/05  dynamic_cast of null pointer value done at compile time
 
 A dynamic_cast of a constant null pointer value is now done at compile

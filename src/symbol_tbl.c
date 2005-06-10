@@ -11068,6 +11068,23 @@ Allocate a new function instantiation entry and return a pointer to it.
 }  /* alloc_template_instance */
 
 
+a_type_ptr strip_proxy_class(a_type_ptr tp)
+/*
+If "tp" is a proxy class, return the underlying template parameter;
+otherwise return tp.
+*/
+{
+  if (is_immediate_class_type(tp)) {
+    a_class_symbol_supplement_ptr	cssp;
+    cssp = symbol_supplement_for_class(tp);
+    if (cssp->template_param_for_proxy_class != NULL) {
+      tp = cssp->template_param_for_proxy_class;
+    }  /* if */
+  }  /* if */
+  return tp;
+}  /* strip_proxy_class */
+
+
 a_scope_number take_next_scope_number(void)
 /*
 Assign the next scope number in sequence, and return it.

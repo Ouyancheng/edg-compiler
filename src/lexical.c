@@ -9470,6 +9470,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
       if (error_already_issued) {
         /* Skip this section if an error was already issued. */
       } else if (field_sym->header == locator_for_curr_id.symbol_header &&
+                 !is_proxy_class(field_sel_type) &&
                  (!locator_for_curr_id.is_template_id ||
                   acceptable_dtor_template_id(field_sel_type))) {
         /* The destructor name matches the class name -- this is a normal
@@ -12474,7 +12475,8 @@ selection operator, in which case it points to the type of the left operand.
 	(e.g., int::~int). */
      is_nonclass_dtor = is_vacuous_dtor;
      if (can_be_vacuous_dtor && field_sel_type != NULL &&
-         !is_class_struct_union_type(field_sel_type)) {
+         (!is_class_struct_union_type(field_sel_type) ||
+          is_proxy_class(field_sel_type))) {
        /* A destructor call for a non-class type is always vacuous, even if
           the destructor name erroneously named a class type. */
        is_nonclass_dtor = is_vacuous_dtor = TRUE;
@@ -12622,7 +12624,9 @@ selection operator, in which case it points to the type of the left operand.
            left operand. */
         check_assertion(dtor_type != NULL);
         if (!identical_types(make_unqualified_type(field_sel_type),
-                             f_skip_typerefs(dtor_type))) { /*lint !e666*/
+                             f_skip_typerefs(dtor_type)) /*lint !e666*/ &&
+            !is_template_param_type(dtor_type) &&
+            !is_proxy_class(field_sel_type)) {
           if (!in_if_exists) {
             pos_ty_error(ec_invalid_destructor_name, &tilde_position,
                          field_sel_type);
@@ -12698,7 +12702,8 @@ selection operator, in which case it points to the type of the left operand.
         if (dtor_class_type == NULL) {
 	  qualifier_type = NULL;
         } else if (dtor_type == NULL ||
-                        !identical_types(dtor_class_type, dtor_type)) {
+                        (!identical_types(dtor_class_type, dtor_type) &&
+                         !is_template_param_type(dtor_type))) {
           if (!in_if_exists) {
             pos_ty_error(ec_destructor_type_mismatch, &tilde_position,
 		         dtor_class_type);

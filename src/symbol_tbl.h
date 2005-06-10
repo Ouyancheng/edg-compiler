@@ -4243,6 +4243,15 @@ cases that are not template classes.
 extern a_symbol_ptr class_template_for_injected_template_symbol(
 							a_symbol_ptr sym);
 
+extern a_type_ptr strip_proxy_class(a_type_ptr tp);
+
+/*
+Return TRUE if "tp" is a proxy class.
+*/
+#define is_proxy_class(tp)						\
+  (is_immediate_class_type(tp) &&					\
+   symbol_supplement_for_class(tp)->template_param_for_proxy_class != NULL)
+
 extern a_scope_number take_next_scope_number(void);
 
 extern a_boolean symbol_is_from_trans_unit(a_symbol_ptr			sym,
