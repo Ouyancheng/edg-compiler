@@ -21,7 +21,7 @@ the generated code is more efficient.
 
 6/9/05   GNU C++ compatibility: "visibility" attribute on class types
 
-In GNU C++ mode with gnu_version >= 40000, the front end now accepts that
+In GNU C++ mode with gnu_version >= 40000, the front end now accepts the
 "visibility" attribute on class type definitions.  Such an attribute
 determines the ELF visibility of the class' member functions and static
 data members.  For example:
