@@ -4147,7 +4147,7 @@ IL entry; otherwise, scp is NULL.
     a_class_type_supplement_ptr
                             ctsp = scp->parent.class_type
                                       ->variant.class_struct_union.extra_info;
-    if (ctsp->ELF_visibility == visibility) {
+    if (ctsp != NULL && ctsp->ELF_visibility == visibility) {
       /* The visibility is already implicitly set through an attribute on the
          enclosing class.  Do not emit it on the individual members. */
       visibility = (an_ELF_visibility_kind)evk_unspecified;
