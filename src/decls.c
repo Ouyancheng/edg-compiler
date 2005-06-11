@@ -3183,20 +3183,21 @@ be issued at the given position.
         pos_error(ec_dll_interface_requires_external_linkage, diag_pos);
         goto done;
       }  /* if */
-    } else if (!is_inline) {
+    } else {
       /* The current declaration has no DLL interface, but a previous
          declaration did.  A previous dllexport is preserved, but a previous
-         dllimport is dropped.  Exceptions appear to be block-extern
-         declarations and out-of-class definitions of members of class
-         templates. */
+         dllimport is dropped.  Exceptions appear to be inline functions,
+         block-extern declarations, and out-of-class definitions of members
+         of class templates. */
       if ((old_dll_flags & DM_DLLIMPORT) != 0) {
-        if (innermost_function_scope != NULL ||
+        if (innermost_function_scope != NULL || is_inline ||
             (routine->is_prototype_instantiation && is_definition &&
              routine->source_corresp.is_class_member)) {
-          /* Block-extern declarations and out-of-class definitions of members
-             of class templates retain the dllimport attribute specified on
-             the original declaration.  Setting freeze_dll_import ensures the
-             dllimport attribute won't be discarded in what follows. */
+          /* Inline functions, block-extern declarations, and out-of-class
+             definitions of members of class templates retain the dllimport
+             attribute specified on the original declaration.  Setting
+             freeze_dll_import ensures the dllimport attribute won't be
+             discarded in what follows. */
           freeze_dll_import = TRUE;
           new_dll_flags = DM_DLLIMPORT;
         } else {

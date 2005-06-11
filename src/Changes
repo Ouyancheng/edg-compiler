@@ -1,5 +1,18 @@
 Version 3.7
 
+6/10/05  Microsoft compatibility: dllimport and inline functions
+
+In Microsoft mode, when an inline function was first declared with dllimport,
+and later redeclared without a DLL attribute, the front end previously ignored
+the dllimport attribute (with a warning).  For example:
+
+  __declspec(dllimport) void f();
+  inline void f() {}  // Previously, the dllimport was dropped.  Now it is
+                      // retained.
+
+Now, the dllimport attribute is retained in such cases, which matches the
+behavior of the Microsoft compilers.
+
 6/10/05  Folding of floating-point comparisons involving NaN
 
 Floating-point comparisons of constants involving a NaN are no longer
