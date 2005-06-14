@@ -3219,9 +3219,10 @@ be issued at the given position.
          declaration: Nothing to be done.  (It could also be a full
          instantiation compatible with a prior partial instantiation.)
          The "compatibility" may be a result of carrying over the dll
-         attribute on a block-extern declaration. */
+         attribute (e.g., for inline functions or block-extern
+         declarations). */
       check_assertion(is_redecl || routine->is_template_function ||
-                      innermost_function_scope != NULL);
+                      is_inline || innermost_function_scope != NULL);
     } else if (old_dll_flags == 0) {
       /* This is the first time a DLL interface is specified: If there was a
          previous declaration, issue an error. */
