@@ -59,7 +59,7 @@ extern a_type_ptr primary_microsoft_sized_signed_int_type(
 
 extern a_type_ptr primary_wchar_t_type(void);
 
-extern a_type_ptr primary_float_type(an_integer_kind  kind);
+extern a_type_ptr primary_float_type(a_float_kind  kind);
 
 #if C99_IL_EXTENSIONS_SUPPORTED
 extern a_type_ptr primary_bool_type(void);

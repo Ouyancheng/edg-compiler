@@ -1,5 +1,13 @@
 Version 3.7
 
+6/14/05  Typo in header file declaration
+
+The prototype declaration of primary_float_type (in trans_corresp.h)
+incorrectly declared its parameter to be of type an_integer_kind.  This
+has been corrected to a_float_kind.  (The two types are typedefs for the
+same underlying integer type.  So this correction has no effect on the
+front end's behavior.)
+
 6/10/05  Microsoft compatibility: dllimport and inline functions
 
 In Microsoft mode, when an inline function was first declared with dllimport,
