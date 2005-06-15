@@ -4072,6 +4072,7 @@ The syntax is:
   an_attribute_ptr      *last_attribute_ptr = NULL;
   a_boolean             threads_dimension_allowed = FALSE;
   a_boolean             pointer_to_member_scanned;
+  a_boolean             parenthesized_new_declarator = FALSE;
 
   db_enter(3, "r_declarator");
   set_err_pos_to_curr_token();
@@ -4084,8 +4085,14 @@ The syntax is:
                           (input_flags & DI_ABSTRACT_DECLARATOR_ALLOWED) != 0;
   parenthesized_initializer_allowed =
                     (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED) != 0;
-  nonconstant_dimension_allowed =
-                         (input_flags & DI_DIMENSION_EXPRESSION_ALLOWED) != 0;
+  if (input_flags & DI_DIMENSION_EXPRESSION_ALLOWED) {
+    /* A call from "new_type_name" to scan a declarator that is part of a
+       new-expression with a parenthesized type name (in some GNU modes, part
+       of the declarator may be outside the parentheses).  A top level array
+       declarator may have a nonconstant dimension in that case. */
+    parenthesized_new_declarator = TRUE;
+    nonconstant_dimension_allowed = TRUE;
+  }  /* if */
   vla_allowed = (input_flags & DI_VLA_ALLOWED) != 0;
   vla_asterisk_allowed = (input_flags & DI_VLA_ASTERISK_ALLOWED) != 0;
   if (!real_declarator_allowed) {
@@ -4326,7 +4333,26 @@ The syntax is:
      If a nested declarator was scanned above, there may already be
      a derived type list, and the new entries are added to its bottom.
   */
-  while (curr_token == tok_lparen || curr_token == tok_lbracket) {
+  while (curr_token == tok_lparen || curr_token == tok_lbracket ||
+         curr_token == tok_rparen) {
+    a_boolean  break_after_one_array_dimension = FALSE;
+    if (curr_token == tok_rparen) {
+      /* Normally, a right parenthesis at this point is not part of the
+         declarator.  An exception occurs when emulating the new-expression
+         syntax of early GNU C++ compilers.  For example, "new (int[n])[3]"
+         treats the "[3]" as part of the type being allocated.  Only one
+         (array) declarator level is allowed after the right parentheses in
+         those cases. */
+      if (parenthesized_new_declarator && gpp_mode && gnu_version < 30400 &&
+          next_token() == tok_lbracket) {
+        (void)get_token();
+        remove_stop_token(tok_rparen);
+        *output_flags |= DO_RPAREN_IN_NEW_DECLARATOR;
+        break_after_one_array_dimension = TRUE;
+      } else {
+        break;
+      }  /* if */
+    }  /* if */
     if (curr_token == tok_lparen) {
       /* Appears to be a function declarator.  But be sure it's not the
          start of a parenthesized initializer (C++ only). */

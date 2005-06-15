@@ -9063,6 +9063,7 @@ within this routine if is_parenthesized comes in FALSE.
   a_storage_class             storage_class;
   a_source_sequence_entry_ptr declarator_ssep = NULL;
   a_decl_pos_block            decl_pos_block;
+  a_boolean                   rparen_in_new_declarator = FALSE;
 
   db_enter(3, "new_type_name");
   /* Check for the parenthesized form. */
@@ -9089,6 +9090,17 @@ within this routine if is_parenthesized comes in FALSE.
   if (*type_ptr != NULL) {
     (skip_typerefs(*type_ptr))->source_corresp.referenced = TRUE;
   }  /* if */
+  if (gpp_mode && gnu_version < 30400 &&
+      curr_token == tok_rparen && next_token() == tok_lbracket) {
+    /* GNU compilers accept new-expressions like "new (int)[n]" where the
+       "[n]" is part of the type specifier.  (It also accepts forms like
+       "new (int[n])[3]", which are handled in the call to declarator
+       below.) */
+    rparen_in_new_declarator = TRUE;
+    is_parenthesized = FALSE;
+    (void)get_token();
+    remove_stop_token(tok_rparen);
+  }  /* if */
   /* Note -- the check for dangling_type_specifier is not relevant here. */
   if (is_parenthesized) {
     /* In the parenthesized form, the full declarator syntax is allowed. */
@@ -9102,20 +9114,13 @@ within this routine if is_parenthesized comes in FALSE.
                  &declarator_ssep, (a_func_info_block_ptr)NULL,
                  &decl_pos_block, (an_attribute_ptr *)NULL);
     }  /* if */
-    (void)required_token(tok_rparen, ec_exp_rparen);
-    remove_stop_token(tok_rparen);
-    if (gpp_mode && gnu_version < 30400 && curr_token == tok_lbracket) {
-      /* GNU C++ treats a left bracket after a parenthesized type name as
-         an array declarator that is part of the type name.  For example,
-         in "new (int)[3]" the new expression is normally restricted to
-         "new (int)", but GNU C++ also picks up the "[3]". */
-      declarator(DI_ABSTRACT_DECLARATOR_ALLOWED |
-                    DI_QUALIFIED_NAME_ALLOWED,
-                 &do_flags, *type_ptr,
-                 /*member_parent_type=*/(a_type_ptr)NULL,
-                 (a_symbol_locator *)NULL, type_ptr,
-                 &declarator_ssep, (a_func_info_block_ptr)NULL,
-                 &decl_pos_block, (an_attribute_ptr *)NULL);
+    if (do_flags & DO_RPAREN_IN_NEW_DECLARATOR) {
+      /* We parsed something like "new (int[n])[3]" in a GNU C++ mode.  The
+         right parenthesis was consumed as part of declarator processing. */
+      check_assertion(gpp_mode && gnu_version < 30400);
+    } else {
+      (void)required_token(tok_rparen, ec_exp_rparen);
+      remove_stop_token(tok_rparen);
     }  /* if */
   } else {
     /* In the non-parenthesized form, a limited declarator syntax is
@@ -9148,21 +9153,26 @@ within this routine if is_parenthesized comes in FALSE.
                                &derived_type, &bottom_derived_type,
                                /*parameter_type=*/FALSE,
                                /*microsoft_property=*/FALSE);
-      while (curr_token == tok_lbracket) {
-        array_declarator(&new_type_ptr, /*nonconstant_allowed=*/FALSE,
-                         /*vla_is_allowed=*/FALSE,
-                         /*vla_asterisk_allowed=*/FALSE,
-                         /*threads_dimension_allowed=*/FALSE,
-                         /*top_level_field_decl=*/FALSE,
-                         /*top_level_param_decl=*/FALSE,
-                         &decl_pos_block);
-        /* Add the new type to the bottom of the existing derived type list.
-           Note that this involves error checking. */
-        add_to_derived_type_list(new_type_ptr,
-                                 &derived_type, &bottom_derived_type,
-                                 /*parameter_type=*/FALSE,
-                                 /*microsoft_property=*/FALSE);
-      }  /* while */
+      if (rparen_in_new_declarator) {
+        /* A form like "new (int)[n]" accepted in some GNU C++ modes: Only one
+           array declarator level is permitted after the right parenthesis. */
+      } else {
+        while (curr_token == tok_lbracket) {
+          array_declarator(&new_type_ptr, /*nonconstant_allowed=*/FALSE,
+                           /*vla_is_allowed=*/FALSE,
+                           /*vla_asterisk_allowed=*/FALSE,
+                           /*threads_dimension_allowed=*/FALSE,
+                           /*top_level_field_decl=*/FALSE,
+                           /*top_level_param_decl=*/FALSE,
+                           &decl_pos_block);
+          /* Add the new type to the bottom of the existing derived type list.
+             Note that this involves error checking. */
+          add_to_derived_type_list(new_type_ptr,
+                                   &derived_type, &bottom_derived_type,
+                                   /*parameter_type=*/FALSE,
+                                   /*microsoft_property=*/FALSE);
+        }  /* while */
+      }  /* if */
       if (derived_type != NULL) {
         if (complete_type != NULL) {
           if (!is_error_type(bottom_derived_type)) {

@@ -1,5 +1,21 @@
 Version 3.7
 
+6/15/05  GNU C++ compatibility: New expressions
+
+A change made previously to emulate the behavior of early GNU C++ compilers
+when parsing new expressions (see Changes entry of 11/5/02) turned out not
+to model the GNU behavior in all cases.  Furthermore, some cases could trigger
+an internal error.  For example:
+
+  void f(int n) {
+    char **p = new (char*)[n];  // Previously triggered an error, even in GNU
+                                // C++ mode.
+    new (int[n])[2];  // Previously triggered an internal error in GNU C++
+  }                   // mode.
+
+This is now fixed.  (Note that such nonstandard new expressions are only
+accepted when gnu_version < 30400.)
+
 6/14/05  Typo in header file declaration
 
 The prototype declaration of primary_float_type (in trans_corresp.h)

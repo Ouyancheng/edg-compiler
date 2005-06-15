@@ -242,6 +242,10 @@ abstract or real declarator.
 			/* This bit is set if a pointer-to-member declarator
 			   was scanned.  DO_HAS_PTR_OR_REF_COMPONENT is always
 			   set when this bit is set. */
+#define DO_RPAREN_IN_NEW_DECLARATOR ((a_decl_flag_set)0x200)
+			/* This bit is set in GNU C++ mode when a right
+			   parenthesis has been seen inside a new-declarator
+			   (which is only possible due to a GNU bug). */
 #define DO_LAST DO_HAS_PTR_TO_MEMBER_COMPONENT
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DO_LAST)*/
