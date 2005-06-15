@@ -4058,7 +4058,7 @@ The syntax is:
   a_boolean             abstract_declarator_allowed;
   a_boolean             is_name_start;
   a_boolean             is_nonstatic_member_function = FALSE;
-  a_boolean             nonconstant_dimension_allowed;
+  a_boolean             nonconstant_dimension_allowed = FALSE;
   a_boolean             vla_allowed;
   a_boolean             vla_asterisk_allowed;
   a_boolean             parenthesized_initializer_allowed;
@@ -4335,7 +4335,7 @@ The syntax is:
   */
   while (curr_token == tok_lparen || curr_token == tok_lbracket ||
          curr_token == tok_rparen) {
-    a_boolean  break_after_one_array_dimension = FALSE;
+    a_boolean  break_at_end_of_loop = FALSE;
     if (curr_token == tok_rparen) {
       /* Normally, a right parenthesis at this point is not part of the
          declarator.  An exception occurs when emulating the new-expression
@@ -4348,7 +4348,7 @@ The syntax is:
         (void)get_token();
         remove_stop_token(tok_rparen);
         *output_flags |= DO_RPAREN_IN_NEW_DECLARATOR;
-        break_after_one_array_dimension = TRUE;
+        break_at_end_of_loop = TRUE;
       } else {
         break;
       }  /* if */
@@ -4632,6 +4632,9 @@ function_lparen:
                              (input_flags & DI_IS_PARAMETER_DECL) != 0,
                              (input_flags & DI_IS_MICROSOFT_PROPERTY) != 0);
     consume_any_stray_microsoft_rparen();
+    if (break_at_end_of_loop) {
+      break;
+    }  /* if */
   }  /* while */
   /* Set the referenced flag on the specifiers type if this is the top-level
      scan of the declarator (i.e., if specifiers_type is non-NULL) -- but
