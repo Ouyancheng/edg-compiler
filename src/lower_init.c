@@ -8057,12 +8057,10 @@ Do IL lowering of an enk_temp_init expression node.
 #endif /* IA64_ABI */
       }  /* if */
     }  /* if */
-    /* Optimization -- if the initialization is done by a constructor,
-       and the enk_temp_init returns the address of the temporary,
-       use the pointer returned from the constructor as the value of
-       the expression.  Likewise, if the result of the expression is not
-       used, the node for the temporary value or address is not needed. */
-    if ((result_is_addr && is_constructor_init) || result_is_not_used) {
+    /* Try to optimize away the final term that just returns the address
+       or value of the temporary if that can be gotten from a constructor
+       call or if it isn't needed because the result is not used. */
+    if (is_constructor_init || result_is_not_used) {
       /* Check for the form (ctor-call(args),  temp)
                          or (ctor-call(args), &temp) as appropriate.
          Note that we do not do the optimization if some other terms have
@@ -8084,16 +8082,16 @@ Do IL lowering of an enk_temp_init expression node.
                we may be changing the type of the overall expression,
                but that's okay because the result is not used. */
             can_optimize = TRUE;
-          } else if (result_is_addr && is_constructor_init &&
+          } else if (is_constructor_init &&
                      is_ptr_or_ref_type(first_operand->type) &&
                      is_constructor_call(first_operand)) {
-            /* The first operand is a constructor call and the overall
-               return value is the address of the entity initialized.
-               The pointer type test rules out ABIs where the constructor
+            /* The first operand is a constructor call. */
+            /* The pointer type test rules out ABIs where the constructor
                returns void (e.g., the IA-64 ABI) and guards the
                type_pointed_to call below. */
-            a_type_ptr expr_type = type_pointed_to(expr->type);
             a_type_ptr first_op_type = type_pointed_to(first_operand->type);
+            a_type_ptr expr_type = expr->type;
+            if (result_is_addr) expr_type = type_pointed_to(expr->type);
             /* See whether the type of the first operand is the same as the
                required result type or close enough that we can cast to adjust
                cv-qualifiers.  The first pointer level has been removed
@@ -8105,11 +8103,17 @@ Do IL lowering of an enk_temp_init expression node.
                                                 (a_boolean *)NULL)) {
               /* The optimization can be done. */
               can_optimize = TRUE;
+              first_operand->result_is_not_used = FALSE;
               /* If necessary, add a cast to adjust qualification. */
               if (!il_identical_types(expr_type, first_op_type)) {
                 first_operand->next = NULL;
                 first_operand->result_is_not_used = FALSE;
                 first_operand = add_cast(first_operand, expr->type);
+              }  /* if */
+              if (!result_is_addr) {
+                /* If the result of the initialization is the class value,
+                   add an indirection to the constructor call. */
+                first_operand = add_indirection_to_node(first_operand);
               }  /* if */
             }  /* if */
           }  /* if */

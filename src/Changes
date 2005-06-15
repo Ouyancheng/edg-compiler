@@ -1,5 +1,14 @@
 Version 3.7
 
+6/15/05  Optimization of constructor-call code in Cfront-like ABI
+
+The code generated for constructor calls has been improved in
+some cases in the Cfront-like ABI.  In particular, for classes
+that have bitwise copy construction semantics, an indirection
+through the address returned by the constructor is used
+in place of a comma expression with a second operand that
+names the initialized temporary.
+
 6/15/05  GNU C++ compatibility: New expressions
 
 A change made previously to emulate the behavior of early GNU C++ compilers
