@@ -9154,8 +9154,9 @@ within this routine if is_parenthesized comes in FALSE.
                                /*parameter_type=*/FALSE,
                                /*microsoft_property=*/FALSE);
       if (rparen_in_new_declarator) {
-        /* A form like "new (int)[n]" accepted in some GNU C++ modes: Only one
-           array declarator level is permitted after the right parenthesis. */
+        /* A form like "new (int)[n]" is accepted in some GNU C++ modes: Only
+           one array declarator level is permitted after the right
+           parenthesis. */
       } else {
         while (curr_token == tok_lbracket) {
           array_declarator(&new_type_ptr, /*nonconstant_allowed=*/FALSE,
