@@ -4243,8 +4243,6 @@ cases that are not template classes.
 extern a_symbol_ptr class_template_for_injected_template_symbol(
 							a_symbol_ptr sym);
 
-extern a_type_ptr strip_proxy_class(a_type_ptr tp);
-
 /*
 Return TRUE if "tp" is a proxy class.
 */
