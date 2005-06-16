@@ -376,7 +376,7 @@ initialization; otherwise, these pointers are NULL.
         /* An expression is next.  It might be a parenthesized string literal,
            a string literal cast to "char*" (processed like a string literal
            in Microsoft mode), or something else altogether. */
-        a_constant_ptr  cp;
+        a_constant_ptr  cp = NULL;
         (void)tentative_aggregate_init(init_info, init_context, &cp);
         if (cp != NULL) {
           /* An initializer expression was parsed, but an error prevented it
