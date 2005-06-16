@@ -12398,12 +12398,17 @@ passed via template_decl.
           decl_info.decl_modifiers.put_property_name != NULL) {
         di_flags |= DI_IS_MICROSOFT_PROPERTY;
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Microsoft compilers allow redundant qualifiers when declaring
-         members. */
-      if (microsoft_mode) {
+         members.  In g++ mode, allow additional qualifiers when rescanning
+         a member template declaration to generate a partial instantiation.
+         The initial declaration is accepted in g++ mode as a result of
+         processing in simplify_curr_class_qualified_name. */
+      if (microsoft_mode ||
+          (gpp_mode && scope_stack[depth_scope_stack].kind ==
+                                   (a_scope_kind)sck_template_instantiation)) {
         di_flags |= DI_QUALIFIED_NAME_ALLOWED;
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
       /* Look for optional attributes, which are added to the specifier
          attributes.  Note that the draft GNU C manual for version 3.1

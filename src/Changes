@@ -1,5 +1,21 @@
 Version 3.7
 
+6/16/05  GNU C++ compatibility: qualified name in member template declaration
+
+g++ allows a qualified name to be used in the initial declaration of a class
+member.  The front end accepts such declarations in g++ mode, but an error
+was issued later if the member template was referenced.  Now fixed.
+
+  struct A {
+    template <class T> void A::f(T t){}
+    void A::g(){}
+  };
+  int main() {
+    A a;
+    a.g();  // accepted
+    a.f(1);  // error during instantiation
+  }
+
 6/15/05  Optimization of constructor-call code in Cfront-like ABI
 
 The code generated for constructor calls has been improved in
