@@ -376,15 +376,15 @@ initialization; otherwise, these pointers are NULL.
         /* An expression is next.  It might be a parenthesized string literal,
            a string literal cast to "char*" (processed like a string literal
            in Microsoft mode), or something else altogether. */
-        a_constant_ptr  cp = NULL;
-        (void)tentative_aggregate_init(init_info, init_context, &cp);
-        if (cp != NULL) {
+        a_constant_ptr  error_cp = NULL;
+        (void)tentative_aggregate_init(init_info, init_context, &error_cp);
+        if (error_cp != NULL) {
           /* An initializer expression was parsed, but an error prevented it
              from being processed.  For recovery purposes, record it as a
              pending constant for the initialization of the first element of
              the array being initialized. */
-          check_assertion(is_error_constant(cp));
-          init_context->pending_init_con = cp;
+          check_assertion(is_error_constant(error_cp));
+          init_context->pending_init_con = error_cp;
           init_context->pending_init_levels = 1;
           goto done;
         } else {
