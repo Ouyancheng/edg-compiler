@@ -4745,7 +4745,7 @@ typedef struct a_class_type_supplement {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  a_bit_field   ELF_visibility:2;
+  a_bit_field   ELF_visibility:3;
 			/* The visibility of the variable in the generated
 			   ELF object code. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -6074,7 +6074,8 @@ enum an_ELF_visibility_kind_tag {
   evk_unspecified,
   evk_hidden,
   evk_protected,
-  evk_internal
+  evk_internal,
+  evk_default
 };
 
 /* Define as "a_byte" to explicitly control storage size. */
@@ -6180,7 +6181,7 @@ typedef struct a_variable {
 			   if the attribute was not specified. */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  a_bit_field   ELF_visibility:2;
+  a_bit_field   ELF_visibility:3;
 			/* The visibility of the variable in the generated
 			   ELF object code. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -7351,7 +7352,7 @@ typedef struct a_routine {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  a_bit_field	ELF_visibility:2;
+  a_bit_field	ELF_visibility:3;
 			/* The visibility of the routine in the generated
 			   ELF object code. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */

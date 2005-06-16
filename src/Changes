@@ -1,5 +1,25 @@
 Version 3.7
 
+6/16/05   GNU compatibility: "visibility" attribute
+
+In GNU modes, the front end now accepts "default" as an argument for the
+ELF visibility attribute (see also the Changes entry of 6/27/02).
+Furthermore, in GNU C++ mode with gnu_version >= 40000, the front end now
+accepts the visibility attribute on class type definitions.  Such an attribute
+determines the ELF visibility of the class' member functions and static data
+members.  For example:
+
+  struct __attribute__((visibility("hidden"))) S {
+    void f();
+    void g() __attribute__((visibility("default")));
+  };
+  void S::f() {
+    // Routine will have "hidden" visibility in ELF object file.
+  }
+  void S::g() {
+    // Routine will have "default" visibility in ELF object file.
+  }
+
 6/16/05  Microsoft compatibility: Cast string literals in initializers
 
 In Microsoft mode, the front end now treats string literals cast to a pointer
@@ -110,26 +130,6 @@ name but the destructor name itself was dependent.  Now fixed.
 A dynamic_cast of a constant null pointer value is now done at compile
 time rather than as a runtime cast.  The result is the same, but
 the generated code is more efficient.
-
-6/9/05   GNU C++ compatibility: "visibility" attribute on class types
-
-In GNU C++ mode with gnu_version >= 40000, the front end now accepts the
-"visibility" attribute on class type definitions.  Such an attribute
-determines the ELF visibility of the class' member functions and static
-data members.  For example:
-
-  struct __attribute__((visibility("hidden"))) S {
-    void f();
-    void g() __attribute__((visibility("protected")));
-  };
-  void S::f() {
-    // Routine will have "hidden" visibility in ELF object file.
-  }
-  void S::g() {
-    // Routine will have "protected" visibility in ELF object file.
-  }
-
-See also the Changes entry of 6/27/02.
 
 6/9/05   GNU compatibility: handling of missing include file
 

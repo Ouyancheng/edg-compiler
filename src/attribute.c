@@ -733,6 +733,9 @@ that do take arguments.
         } else if (strcmp(visibility_str, "internal") == 0) {
           attribute->variant.ELF_visibility =
                                          (an_ELF_visibility_kind)evk_internal;
+        } else if (strcmp(visibility_str, "default") == 0) {
+          attribute->variant.ELF_visibility =
+                                          (an_ELF_visibility_kind)evk_default;
         } else {
           result = FALSE;
           goto error;

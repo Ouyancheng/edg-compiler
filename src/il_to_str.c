@@ -4169,6 +4169,10 @@ IL entry; otherwise, scp is NULL.
       form_simple_attribute("visibility(\"internal\")", need_leading_space,
                             octl);
       break;
+    case evk_default:
+      form_simple_attribute("visibility(\"default\")", need_leading_space,
+                            octl);
+      break;
     default:
       unexpected_condition();
   }  /* switch */
