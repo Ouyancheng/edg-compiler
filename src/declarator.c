@@ -4073,6 +4073,7 @@ The syntax is:
   a_boolean             threads_dimension_allowed = FALSE;
   a_boolean             pointer_to_member_scanned;
   a_boolean             parenthesized_new_declarator = FALSE;
+  a_boolean             allow_one_more_array_dimension = FALSE;
 
   db_enter(3, "r_declarator");
   set_err_pos_to_curr_token();
@@ -4086,12 +4087,16 @@ The syntax is:
   parenthesized_initializer_allowed =
                     (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED) != 0;
   if (input_flags & DI_DIMENSION_EXPRESSION_ALLOWED) {
-    /* A call from "new_type_name" to scan a declarator that is part of a
-       new-expression with a parenthesized type name (in some GNU modes, part
-       of the declarator may be outside the parentheses).  A top level array
-       declarator may have a nonconstant dimension in that case. */
-    parenthesized_new_declarator = TRUE;
+    /* A (direct or indirect) call from "new_type_name" to scan a declarator
+       that is part of a new-expression with a parenthesized type name (in
+       some GNU modes, part of the declarator may be outside the parentheses).
+       A top-level array declarator may have a nonconstant dimension in that
+       case. */
     nonconstant_dimension_allowed = TRUE;
+    if (specifiers_type != NULL) {
+      /* The top-level declarator. */
+      parenthesized_new_declarator = TRUE;
+    }  /* if */
   }  /* if */
   vla_allowed = (input_flags & DI_VLA_ALLOWED) != 0;
   vla_asterisk_allowed = (input_flags & DI_VLA_ASTERISK_ALLOWED) != 0;
@@ -4335,7 +4340,6 @@ The syntax is:
   */
   while (curr_token == tok_lparen || curr_token == tok_lbracket ||
          curr_token == tok_rparen) {
-    a_boolean  break_at_end_of_loop = FALSE;
     if (curr_token == tok_rparen) {
       /* Normally, a right parenthesis at this point is not part of the
          declarator.  An exception occurs when emulating the new-expression
@@ -4348,7 +4352,7 @@ The syntax is:
         (void)get_token();
         remove_stop_token(tok_rparen);
         *output_flags |= DO_RPAREN_IN_NEW_DECLARATOR;
-        break_at_end_of_loop = TRUE;
+        allow_one_more_array_dimension = TRUE;
       } else {
         break;
       }  /* if */
@@ -4632,7 +4636,7 @@ function_lparen:
                              (input_flags & DI_IS_PARAMETER_DECL) != 0,
                              (input_flags & DI_IS_MICROSOFT_PROPERTY) != 0);
     consume_any_stray_microsoft_rparen();
-    if (break_at_end_of_loop) {
+    if (allow_one_more_array_dimension) {
       break;
     }  /* if */
   }  /* while */

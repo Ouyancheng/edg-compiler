@@ -9056,7 +9056,7 @@ within this routine if is_parenthesized comes in FALSE.
 {
   a_type_ptr                  complete_type, new_type_ptr;
   a_type_ptr                  derived_type, bottom_derived_type;
-  a_decl_flag_set             dso_flags, do_flags;
+  a_decl_flag_set             dso_flags, do_flags = DO_NO_OUTPUT_FLAGS;
   a_type_qualifier_set        qualifiers;
   a_decl_modifiers_block      decl_modifiers;
   a_source_position           start_pos;
