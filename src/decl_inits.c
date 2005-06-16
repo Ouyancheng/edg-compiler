@@ -333,6 +333,12 @@ and the type may be modified (e.g., to set the length of the string).
 }  /* check_string_constant_initializer */
 
 
+static a_boolean tentative_aggregate_init(
+                                   an_aggregate_init_info_ptr  init_info,
+                                   an_aggregate_init_context   *context,
+                                   a_constant_ptr              *init_constant);
+
+
 static a_boolean process_string_constant_initializer(
                                  a_type_ptr                     *type_ptr,
                                  a_constant_ptr                 *init_con,
@@ -360,7 +366,33 @@ initialization; otherwise, these pointers are NULL.
 
   if (is_string_type(*type_ptr) ||
       (is_template_dependent_type(*type_ptr) && is_array_type(*type_ptr))) {
-    if (init_context != NULL && init_context->pending_init_con != NULL) {
+    a_boolean  use_pending_init_con = FALSE;
+    if (init_context != NULL) {
+      /* We may need to work with a preparsed expression instead of an
+         upcoming string literal token. */
+      if (init_context->pending_init_con != NULL) {
+        use_pending_init_con = TRUE;
+      } else if (/* FIXME microsoft_mode && */curr_token == tok_lparen) {
+        /* An expression is next.  It might be a parenthesized string literal,
+           a string literal cast to "char*" (processed like a string literal
+           in Microsoft mode), or something else altogether. */
+        a_constant_ptr  cp;
+        (void)tentative_aggregate_init(init_info, init_context, &cp);
+        if (cp != NULL) {
+          /* An initializer expression was parsed, but an error prevented it
+             from being processed.  For recovery purposes, record it as a
+             pending constant for the initialization of the first element of
+             the array being initialized. */
+          check_assertion(is_error_constant(cp));
+          init_context->pending_init_con = cp;
+          init_context->pending_init_levels = 1;
+          goto done;
+        } else {
+          use_pending_init_con = (init_context->pending_init_con != NULL);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (use_pending_init_con) {
       /* The initializer has already been scanned. */
       if (init_context->pending_init_levels == 0) {
         /* It applies to the current level.  Check whether it's a string
@@ -456,6 +488,7 @@ initialization; otherwise, these pointers are NULL.
       (void)required_token(tok_rparen, ec_exp_rparen);
     }  /* if */
   }  /* if */
+done:
   return is_string_init;
 }  /* process_string_constant_initializer */
 
@@ -1030,6 +1063,113 @@ NULL if the return value is not needed.
 }  /* designator_coming */ 
 
 
+static a_boolean tentative_aggregate_init(
+                                   an_aggregate_init_info_ptr  init_info,
+                                   an_aggregate_init_context   *context,
+                                   a_constant_ptr              *init_constant)
+/*
+We are parsing an aggregate initializer, which the state of processing
+described by init_info and context.  The next construct is expected to be an
+expression that may (or may not, hence "tentative") initialize a complete
+aggregate (array or class) subobject.  This can happen when the expression is
+either a string literal (or a variant thereof in some modes) that initializes
+an array of characters, or when it is another kind of expression in the
+so-called "whole object initialization" situation see (for details, see
+process_whole_object_init).  In the latter case, processing is completed here,
+the initializer is returned through *init_constant, and TRUE is returned.  In
+all other cases, the initializer expression is parsed and stored in
+context->pending_init_con (unless that was already done by a previous call
+to this routine).
+*/
+{
+  a_boolean                      is_whole_object_init = TRUE;
+  a_boolean                      err = FALSE, is_constant = FALSE;
+  a_boolean                      string_literal = FALSE;
+  a_constant                     constant;
+  unsigned long                  levels_down;
+  a_class_symbol_supplement_ptr  cssp;
+  a_dynamic_init_ptr             dip;
+
+  if (!is_array_type(context->type)) {
+    cssp = symbol_supplement_for_class(context->type);
+    check_assertion_str(c99_mode || gcc_mode ||
+                        cssp->has_copy_constructor ||
+                        cssp->construction_by_bitwise_copy_allowed ||
+                        skip_typerefs(context->type)->
+                                variant.class_struct_union.is_nonreal_class,
+                        "tentative_aggregate_init: missing copy constructor");
+  }  /* if */
+  if (context->pending_init_con != NULL) {
+    /* The initializer has already been scanned. */
+    levels_down = context->pending_init_levels;
+    if (levels_down == 0) {
+      /* This is the level at which the initializer is to be applied. */
+      *init_constant = context->pending_init_con;
+      if ((*init_constant)->kind == (a_constant_repr_kind)ck_dynamic_init) {
+        dip = (*init_constant)->variant.dynamic_init;
+      } else {
+        is_constant = TRUE;
+      }  /* if */
+    }  /* if */
+  } else if (!scan_aggregate_initializer_expression(
+                                  context->type, init_info->static_lifetime,
+                                  init_info->compound_literal, &levels_down,
+                                  &is_constant, &dip, &constant)) {
+    /* No appropriate initializer was found. */
+    err = TRUE;
+  } else {
+    if (is_constant) {
+      /* A constant initializer was found. */
+      *init_constant = alloc_unshared_constant(&constant);
+      if (constant.kind == (a_constant_repr_kind)ck_string) {
+        /* The initializer is a string literal: this is a special case
+           that should be handled by process_string_constant_initializer.
+           Set string_literal to TRUE to indicate that this is not a
+           whole object initializer and that the constant should be
+           remembered for later processing. */
+        string_literal = TRUE;
+      }  /* if */
+    } else {
+      /* A dynamic initialization. */
+      check_assertion(dip != NULL);
+      *init_constant = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      (*init_constant)->variant.dynamic_init = dip;
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    if (levels_down == 0 && !string_literal) {
+      /* The initialization applies at the current level. */
+      (*init_constant)->type = rvalue_type(context->type);
+      if (!is_constant) {
+        context->any_dynamic_initialization = TRUE;
+        if (exceptions_enabled) {
+          if (cssp->destructor != NULL) {
+            /* If appropriate, add a destructor pointer to the dynamic
+               init entry. This is for the case in which an exception is
+               thrown by the constructor before the entire array has been
+               initialized. */
+            a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
+            add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    } else {
+      /* Whole object initialization will not be done at this level after
+         all.  (This will only occur for aggregate classes.) */
+      is_whole_object_init = FALSE;
+      if (*init_constant != NULL) {
+        /* The initialization applies one or more levels down.  Remember
+           what was "prescanned". */
+        context->pending_init_con = *init_constant;
+        context->pending_init_levels = levels_down;
+        *init_constant = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_whole_object_init;
+}  /* tentative_aggregate_init */
+
+
 static a_boolean process_whole_object_init(
                                    an_aggregate_init_info_ptr  init_info,
                                    an_aggregate_init_context   *context,
@@ -1061,21 +1201,16 @@ aggregate are not considered.  For example:
    struct B {
        A a1, a2;
        int z;
-   } b = { 4, a, a}; // b.a1.i == 4, b.a2.i == 0, b.z == 20 after this
-The bulk of this work is done in scan_aggregate_initializer_expression.
-If a value was scanned but whole object initialization did not apply, the
-resulting constant is placed on context->pending_init_con for use further on.
-In C99 mode, the processing is similar to that in C++.
+   } b = { 4, a, a }; // b.a1.i == 4, b.a2.i == 0, b.z == 20 after this
+The bulk of this work is done in tentative_aggregate_init which in turn
+delegates most of the work to scan_aggregate_initializer_expression.  If a
+value was scanned but whole object initialization did not apply, the resulting
+constant is placed on context->pending_init_con for use further on.  In C99
+and GNU C modes, the processing is similar to that in C++.
 */
 {
   a_boolean                      is_whole_object_init; /* result */
   a_boolean                      top_level = (context->prev_context == NULL);
-  a_boolean                      err = FALSE, is_constant = FALSE;
-  a_boolean                      string_literal = FALSE;
-  a_constant                     constant;
-  unsigned long                  levels_down;
-  a_class_symbol_supplement_ptr  cssp;
-  a_dynamic_init_ptr             dip;
 
   if ((!C_mode() || c99_mode || gcc_mode) &&
       (is_class_struct_union_type(context->type) ||
@@ -1089,84 +1224,8 @@ In C99 mode, the processing is similar to that in C++.
        scan_aggregate_initializer_expression will determine this.
        In GNU modes, compound literals could have array type and can be
        valid whole-object initializers. */
-    is_whole_object_init = TRUE;
-    if (!is_array_type(context->type)) {
-      cssp = symbol_supplement_for_class(context->type);
-      check_assertion_str(c99_mode || gcc_mode ||
-                          cssp->has_copy_constructor ||
-                          cssp->construction_by_bitwise_copy_allowed ||
-                          skip_typerefs(context->type)->
-                                  variant.class_struct_union.is_nonreal_class,
-                        "process_whole_object_init: missing copy constructor");
-    }  /* if */
-    if (context->pending_init_con != NULL) {
-      /* The initializer has already been scanned. */
-      levels_down = context->pending_init_levels;
-      if (levels_down == 0) {
-        /* This is the level at which the initializer is to be applied. */
-        *init_constant = context->pending_init_con;
-        if ((*init_constant)->kind == (a_constant_repr_kind)ck_dynamic_init) {
-          dip = (*init_constant)->variant.dynamic_init;
-        } else {
-          is_constant = TRUE;
-        }  /* if */
-      }  /* if */
-    } else if (!scan_aggregate_initializer_expression(
-                                    context->type, init_info->static_lifetime,
-                                    init_info->compound_literal, &levels_down,
-                                    &is_constant, &dip, &constant)) {
-      /* No appropriate initializer was found. */
-      err = TRUE;
-    } else {
-      if (is_constant) {
-        /* A constant initializer was found. */
-        *init_constant = alloc_unshared_constant(&constant);
-        if (constant.kind == (a_constant_repr_kind)ck_string) {
-          /* The initializer is a string literal: this is a special case
-             that should be handled by process_string_constant_initializer.
-             Set string_literal to TRUE to indicate that this is not a
-             whole object initializer and that the constant should be
-             remembered for later processing. */
-          check_assertion(gnu_mode || levels_down != 0);
-          string_literal = TRUE;
-        }  /* if */
-      } else {
-        /* A dynamic initialization. */
-        check_assertion(dip != NULL);
-        *init_constant = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-        (*init_constant)->variant.dynamic_init = dip;
-      }  /* if */
-    }  /* if */
-    if (!err) {
-      if (levels_down == 0 && !string_literal) {
-        /* The initialization applies at the current level. */
-        (*init_constant)->type = rvalue_type(context->type);
-        if (!is_constant) {
-          context->any_dynamic_initialization = TRUE;
-          if (exceptions_enabled) {
-            if (cssp->destructor != NULL) {
-              /* If appropriate, add a destructor pointer to the dynamic
-                 init entry. This is for the case in which an exception is
-                 thrown by the constructor before the entire array has been
-                 initialized. */
-              a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
-              add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      } else {
-        /* Whole object initialization will not be done at this level after
-           all.  (This will only occur for aggregate classes.) */
-        is_whole_object_init = FALSE;
-        if (*init_constant != NULL) {
-          /* The initialization applies one or more levels down.  Remember
-             what was "prescanned". */
-          context->pending_init_con = *init_constant;
-          context->pending_init_levels = levels_down;
-          *init_constant = NULL;
-        }  /* if */
-      }  /* if */
-    }  /* if */
+    is_whole_object_init = tentative_aggregate_init(init_info, context,
+                                                    init_constant);
   } else {
     is_whole_object_init = FALSE;
   }  /* if */
@@ -1187,7 +1246,6 @@ type.
 {
   if (C_dialect != C_dialect_pcc) {
     an_error_severity  severity;
-
     if (C_dialect == C_dialect_cplusplus) {
       severity = es_error;
     } else if (strict_ansi_mode) {
@@ -1201,7 +1259,7 @@ type.
        setting dest_type to an error type. */
     if (severity == es_error) {
       *dest_type = error_type();
-    }
+    }  /* if */
   }  /* if */
 }  /* handle_missing_brace */
 

@@ -1,5 +1,14 @@
 Version 3.7
 
+6/16/05  Microsoft compatibility: Cast string literals in initializers
+
+In Microsoft mode, the front end now treats string literals cast to a pointer
+to the underlying character type as plain string literals when they appear in
+brace-enclosed initializers.  For example:
+
+  char s[] = { (char*)"msg" };  // Normally an error, but now accepted in
+                                // Microsoft modes.
+
 6/16/05  GNU C++ compatibility: qualified name in member template declaration
 
 g++ allows a qualified name to be used in the initial declaration of a class

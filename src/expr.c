@@ -15822,6 +15822,36 @@ Return TRUE if the indicated operand is an lvalue for a string literal
   return is_string_literal;
 }  /* operand_is_string_literal */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean operand_is_cast_string_literal(an_operand *operand)
+/*
+Return TRUE if the indicated operand is a string literal (not wide) cast
+to pointer to char.  This comes up in a Microsoft quirk.
+*/
+{
+  a_boolean is_cast_string_literal = FALSE;
+
+  if (is_an_rvalue(operand) &&
+      is_constant_operand(operand) &&
+      is_pointer_type(operand->type) &&
+      is_character_type(type_pointed_to(operand->type))) {
+    a_constant_ptr string_con = &operand->variant.constant;
+    if (string_con->kind == (a_constant_repr_kind)ck_address &&
+        string_con->variant.address.kind ==
+                                          (an_address_base_kind)abk_constant &&
+        string_con->variant.address.offset == 0 &&
+        string_con->implicit_cast) {
+      string_con = string_con->variant.address.variant.constant;
+      if (string_con->kind == (a_constant_repr_kind)ck_string) {
+        is_cast_string_literal = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_cast_string_literal;
+}  /* operand_is_cast_string_literal */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
 static void mark_operand_as_gnu_extension(an_operand  *op)
@@ -18148,7 +18178,7 @@ This routine is also called in C99 and GNU C modes.
 
   db_enter(3, "scan_aggregate_initializer_expression");
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
-  check_assertion(!C_mode() || c99_mode || gcc_mode);
+  /* FIXME check_assertion(!C_mode() || c99_mode || gcc_mode); */
   expr_kind = (an_expression_kind)ek_normal;
   if (C_mode() && static_lifetime) {
     /* C mode aggregate initializers for statics have to be constant. */
@@ -18210,6 +18240,15 @@ This routine is also called in C99 and GNU C modes.
              wide.  Don't go down to the member type. */
           string_case = TRUE;
           goto required_type_determined;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (microsoft_mode && is_string_type(required_type) &&
+                   operand_is_cast_string_literal(&result)) {
+          /* MSVC++ allows
+               char x[] = { (char *)"ABC" };
+          */
+          string_case = TRUE;
+          goto required_type_determined;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (gcc_mode && is_array_type(result.type) &&
                    types_are_compatible(result.type, required_type)) {
           /* In GNU C mode a compound literal may initialize an element of
