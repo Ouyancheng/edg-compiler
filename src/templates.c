@@ -18603,8 +18603,9 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
     db_symbol_name_trans_unit(tip->instance_sym);
     fprintf(f_debug, "  defined=%d", sym->defined);
     if (is_function_symbol(sym)) {
-      fprintf(f_debug, ", inline=%d\n", sym->variant.routine.ptr->is_inline);
+      fprintf(f_debug, ", inline=%d", sym->variant.routine.ptr->is_inline);
     }  /* if */
+    fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
   /* Master instances are created immediately in the primary translation unit,
