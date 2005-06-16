@@ -1,5 +1,17 @@
 Version 3.7
 
+6/16/05  Microsoft compatibility: injected class name vs. constructor name
+
+The Microsoft compiler finds the injected class name in certain contexts
+where, according to the standard, the constructor should be found.  We now
+emulate this in Microsoft mode.
+
+  struct A {};
+  void f(const A&);
+  int main() {
+    f(A::A());
+  }
+
 6/16/05   GNU compatibility: "visibility" attribute
 
 In GNU modes, the front end now accepts "default" as an argument for the

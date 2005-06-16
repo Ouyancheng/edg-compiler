@@ -5723,13 +5723,14 @@ is TRUE if we're scanning a parameter declaration.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_boolean gpp_type_name_matches_class_name(a_symbol_ptr	sym)
+static a_boolean type_name_matches_class_name(a_symbol_ptr	sym)
 /*
-This routine is used in g++ mode to determine whether the parent class
-in the current symbol locator has the same name as "sym". In g++ mode a
-declaration like "A<1>::A<1>() is taken to name the constructor.  This routine
-is used to detect this case.  The current token must be the identifier of
-the prospective constructor name.  The caller is responsible for checking that
+This routine is used in nonstandard_injected_class_lookup mode to determine
+whether the parent class in the current symbol locator has the same name
+as "sym".  In nonstandard_injected_class_lookup mode a declaration like
+"A<1>::A<1>() is taken to name the constructor.  This routine is used to
+detect this case.  The current token must be the identifier of the
+prospective constructor name.  The caller is responsible for checking that
 the current identifier is a class member and a template-id.
 */
 {
@@ -5748,7 +5749,7 @@ the current identifier is a class member and a template-id.
     }
   }  /* if */
   return result;
-}  /* gpp_type_name_matches_class_name */
+}  /* type_name_matches_class_name */
 
 
 #if !NAMED_ADDRESS_SPACES_ALLOWED
@@ -7243,14 +7244,16 @@ process_class_specifier:
           if (locator_for_curr_id.is_class_member &&
               ((curr_token_type_symbol->kind == (a_symbol_kind)sk_type &&
                 curr_token_type_symbol->variant.type.is_injected_class_name) ||
-	       (gpp_mode && locator_for_curr_id.is_template_id &&
-		gpp_type_name_matches_class_name(curr_token_type_symbol))) && 
+	       (nonstandard_injected_class_lookup &&
+                locator_for_curr_id.is_template_id &&
+		type_name_matches_class_name(curr_token_type_symbol))) && 
 	      (!(decl_specifiers_seen &
                  ~(DS_FRIEND | DS_INLINE | DS_DECLSPEC |
                    DS_MICROSOFT_INLINE | DS_FORCEINLINE))) &&
-              /* g++ allows X::X to be used in most places as a type name.
-                 A left parenthesis seems to be used to detect the constructor
-                 case (but this must be suppressed for new type names). */
+              /* When nonstandard_injected_class_lookup is TRUE, X::X may be
+                 used in most places as a type name.  A left parenthesis
+                 seems to be used to detect the constructor case (but this
+                 must be suppressed for new type names). */
               (!gpp_mode ||
                ((input_flags & DSI_IS_NEW_TYPE_NAME) == 0 &&
                 next_token() == tok_lparen))) {

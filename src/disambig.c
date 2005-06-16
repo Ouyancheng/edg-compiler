@@ -468,7 +468,8 @@ definition.  The locator must refer to a qualified name.
       if (sym != NULL) {
         if (is_constructor_symbol(sym)) {
           result = TRUE;
-        } else if (gpp_mode && is_injected_class_symbol(sym) &&
+        } else if (nonstandard_injected_class_lookup &&
+                   is_injected_class_symbol(sym) &&
                    locator_for_curr_id.is_qualified_name &&
                    locator_for_curr_id.is_class_member &&
                    same_entities(locator_for_curr_id.parent.class_type,

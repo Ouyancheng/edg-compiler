@@ -1638,6 +1638,7 @@ by a command line option.
     allow_nonconst_call_anachronism = (microsoft_version < 1000);
     flexible_array_members_allowed = TRUE;
     allow_default_arg_on_template_member_definition = TRUE;
+    nonstandard_injected_class_lookup = TRUE;
     /* Make template parameters visible in specialization scopes. */
     use_microsoft_specialization_scope = microsoft_version < 1310;
     /* A friend class declaration finds names made visible by
@@ -2766,6 +2767,7 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   /* Early GNU C++ compilers do not check accessibility of friend function
      declarations. */
   no_access_check_on_friend_declarator_ids = (gnu_version < 30400);
+  nonstandard_injected_class_lookup = TRUE;
 }  /* check_and_set_gpp_mode_options */
 
 
@@ -4898,6 +4900,7 @@ variables declared in cmd_line.h.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   microsoft_version = DEFAULT_MICROSOFT_VERSION;
   c99_mode = DEFAULT_C99_MODE;
+  nonstandard_injected_class_lookup = FALSE;
 }  /* cmd_line_static_var_init */
 
 
