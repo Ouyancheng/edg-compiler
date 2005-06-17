@@ -3133,7 +3133,8 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
       tag_sym->kind != (a_symbol_kind)sk_type) {
     update_extended_decl_info_for_class(class_type, &extended_decl_info,
                                         is_class_definition,
-                                        is_explicit_instantiation,
+                                        (is_explicit_instantiation &&
+                                         curr_token == tok_semicolon),
                                         &locator.source_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
