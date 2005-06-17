@@ -102,6 +102,12 @@ Macros used to test for flags from the __vmi_class_tyupe_info.
 #define non_diamond_repeat(flags) \
   ((flags & abi::__vmi_class_type_info::__non_diamond_repeat_mask) != 0)
 
+/*
+Values used to record the way in which a given base class was found during
+the derived to base conversion search.
+*/
+enum a_result_virtuality { rv_unknown, rv_nonvirtual, rv_directvirtual };
+
 #endif /* ifdef __EDG_IA64_ABI */
 
 
@@ -242,14 +248,16 @@ end_of_routine:;
 #ifdef __EDG_IA64_ABI
 
 static a_boolean derived_to_base_conversion_r(
-				void			*ptr,
-				void			**p_new_ptr,
-				a_type_info_impl_ptr	class_info,
-				a_type_info_impl_ptr	base_info,
-				unsigned int		vmi_flags,
-				a_boolean		*p_is_ambiguous,
-				a_boolean		is_accessible,
-				a_boolean		*result_is_accessible)
+			void			*ptr,
+			void			**p_new_ptr,
+			a_type_info_impl_ptr	class_info,
+			a_type_info_impl_ptr	base_info,
+			unsigned int		vmi_flags,
+			a_boolean		*p_is_ambiguous,
+			a_boolean		is_accessible,
+			a_type_info_impl_ptr    *p_virtual_class_above_result,
+			a_result_virtuality     *p_result_virtuality,
+			a_boolean		*result_is_accessible)
 /* 
 Perform a derived to base conversion from ptr (the derived object, whose type
 is given by class_info) to the base indicated by base_info.  If the base is
@@ -264,6 +272,15 @@ result_is_accessible is set to FALSE.  vmi_flags is a bit set of flags that
 are used to optimize the base class search.  These flags are passed by
 the initial caller of this routine and are passed down when the routine
 is called recursively.
+
+p_result_virtuality records whether the matching base class that was found
+was virtual.  If the matching base class is an indirect virtual base,
+p_virtual_class_above_result records the direct virtual base under which
+the indirect virtual base was located.  These values are used to determine
+whether two matching base classes actually represent the same virtual base
+class.  These are needed in the case where "ptr" is NULL.  When ptr is
+non-NULL, the address of the matching base class can be used to identify
+redundant matching virtual base classes.
 */
 {
   a_boolean result = FALSE;
@@ -283,12 +300,14 @@ is called recursively.
                                        (abi::__si_class_type_info *)class_info;
     if (matching_type_info(si_obj_info->__base_type, base_info)) {
       if ((*p_new_ptr != NULL && *p_new_ptr != ptr) ||
+	  *p_result_virtuality == rv_directvirtual ||
           *p_is_ambiguous) {
         /* The base class is ambiguous. */
         *p_is_ambiguous = TRUE;
         *p_new_ptr = NULL;
         result = FALSE;
       } else {
+        *p_result_virtuality = rv_nonvirtual;
         *result_is_accessible = is_accessible;
         *p_new_ptr = ptr;
         result = TRUE;
@@ -297,6 +316,8 @@ is called recursively.
                                             si_obj_info->__base_type,
                                             base_info, vmi_flags,
                                             p_is_ambiguous, is_accessible,
+					    p_virtual_class_above_result,
+					    p_result_virtuality,
 					    result_is_accessible) ||
                *p_is_ambiguous) {
       if ((*p_is_ambiguous)) {
@@ -333,6 +354,8 @@ is called recursively.
       if (matching_type_info(bcsp->__base_type, base_info)) {
         /* We found the base for which we were looking. */
         if ((*p_new_ptr != NULL && base_ptr != *p_new_ptr) || 
+	    ((bcsp->__offset_flags & BCS_VIRTUAL) &&
+             *p_result_virtuality == rv_nonvirtual) ||
             *p_is_ambiguous) {
           /* The base class is ambiguous. */
           *p_is_ambiguous = TRUE;
@@ -341,6 +364,8 @@ is called recursively.
           break;
         } else {
           /* The base class is unambiguous -- at least so far. */
+	  *p_result_virtuality = (bcsp->__offset_flags & BCS_VIRTUAL) ?
+                                              rv_directvirtual : rv_nonvirtual;
           *result_is_accessible = base_is_accessible;
           *p_new_ptr = base_ptr;
           result = TRUE;
@@ -353,27 +378,54 @@ is called recursively.
             }  /* if */
           }  /* if */
         }  /* if */
-      } else if (derived_to_base_conversion_r(base_ptr, p_new_ptr,
-                                              bcsp->__base_type,
-                                              base_info, vmi_flags,
-                                              p_is_ambiguous,
-                                              base_is_accessible,
-                                              result_is_accessible) ||
-                 *p_is_ambiguous) {
-        if ((*p_is_ambiguous)) {
-          result = FALSE;
-          break;
-        } else {
-          result = TRUE;
-          /* We can stop searching if the vmi_flags indicate that this
-             base class is known to be unique. */
-          if (*result_is_accessible) {
-            if (is_virtual ? !diamond_shaped(vmi_flags)
-                           : !non_diamond_repeat(vmi_flags)) {
-              break;
+      } else {
+	a_type_info_impl_ptr virtual_class_above_result_here = NULL;
+	a_result_virtuality result_virtuality_here = rv_unknown;
+	if (derived_to_base_conversion_r(base_ptr, p_new_ptr,
+					 bcsp->__base_type,
+					 base_info, vmi_flags,
+					 p_is_ambiguous,
+					 base_is_accessible,
+					 &virtual_class_above_result_here,
+					 &result_virtuality_here,
+					 result_is_accessible) ||
+	    *p_is_ambiguous) {
+	  if (*p_is_ambiguous) {
+	    result = FALSE;
+	    break;
+	  } else {
+	    if (virtual_class_above_result_here == NULL &&
+                (bcsp->__offset_flags & BCS_VIRTUAL) != 0) {
+	      virtual_class_above_result_here = bcsp->__base_type;
             }  /* if */
-          }  /* if */
-        } /* if */
+	    if (/* The result virtuality will be unknown on the first match. */
+                *p_result_virtuality == rv_unknown ||
+		/* All of the matches are direct virtual. */
+		(result_virtuality_here == rv_directvirtual &&
+		 *p_result_virtuality == rv_directvirtual) ||
+                /* An indirect virtual base with the same virtual parent as
+                   the earlier match. */
+		(*p_virtual_class_above_result != NULL &&
+		 *p_virtual_class_above_result ==
+                                            virtual_class_above_result_here)) {
+	      *p_result_virtuality = result_virtuality_here;
+	      *p_virtual_class_above_result = virtual_class_above_result_here;
+	      result = TRUE;
+	      /* We can stop searching if the vmi_flags indicate that this
+		 base class is known to be unique. */
+	      if (*result_is_accessible) {
+		if (is_virtual ? !diamond_shaped(vmi_flags)
+		    : !non_diamond_repeat(vmi_flags)) {
+		  break;
+		}  /* if */
+	      }  /* if */
+	    } else {
+	      *p_is_ambiguous = TRUE;
+	      result = FALSE;
+	      break;
+	    }
+	  } /* if */
+	}
       } /* if */
     }  /* for */
   }  /* if */
@@ -566,9 +618,13 @@ The access_flags string was retained for backward compatibility.
       vmi_flags = abi::__vmi_class_type_info::__non_diamond_repeat_mask |
                   abi::__vmi_class_type_info::__diamond_shaped_mask;
     }  /* if */
+    a_type_info_impl_ptr virtual_class_above_result = NULL;
+    a_result_virtuality result_virtuality = rv_unknown;
     if (derived_to_base_conversion_r(ptr, p_new_ptr, class_info, base_info,
                                      vmi_flags, &is_ambiguous,
                                      /*is_accessible=*/TRUE,
+				     &virtual_class_above_result,
+				     &result_virtuality,
                                      &result_is_accessible) &&
         result_is_accessible) {
       result = TRUE;

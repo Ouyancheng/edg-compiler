@@ -1,5 +1,25 @@
 Version 3.6, June 7, 2005
 
+6/17/05  IA-64 ABI: Incorrect result of throw of null pointer to derived
+         class with ambiguous base
+
+When using the IA-64 ABI, the EH runtime did not properly handle a throw of
+a null pointer to a derived class with ambiguous base classes.  A catch
+of the ambiguous base class succeeded when it should have failed.  Now fixed.
+
+  #include <stdio.h>
+  struct B { };
+  struct C1 : B { };
+  struct C2 : B { };
+  struct D : C1, C2 { };
+  void g() { throw (D*)0; }
+  int main() {
+    try { g(); }
+    catch (B*) { printf("wrong_place\n"); return 1; }
+    catch (D*) { printf("right_place\n"); }
+    return 0;
+  };
+
 6/2/05   Missing destruction on recursively abandoned throw operation
 
 A throw operation is "abandoned" if the object is being constructed
