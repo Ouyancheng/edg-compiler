@@ -1233,7 +1233,7 @@ and GNU C modes, the processing is similar to that in C++.
 }  /* process_whole_object_init */
 
 
-static void handle_missing_brace(a_type_ptr *dest_type)
+static void handle_missing_brace(an_aggregate_init_context  *context)
 /*
 In ANSI C and C++, the top-level initializer for a class, struct, union, or
 array must be surrounded by braces (except for whole object initialization of
@@ -1255,10 +1255,12 @@ type.
       severity = es_warning;
     }  /* if */
     diagnostic(severity, ec_missing_initializer_list);
-    /* If we're issuing an error, avoid error recovery problems by
-       setting dest_type to an error type. */
-    if (severity == es_error) {
-      *dest_type = error_type();
+    /* If we're issuing an error, avoid error recovery problems by setting
+       the aggregate type to an error type.  We don't do this if the
+       initializer has been scanned already since that would make it look
+       like there weren't any initializers at all. */
+    if (severity == es_error && context->pending_init_con == NULL) {
+      context->type = error_type();
     }  /* if */
   }  /* if */
 }  /* handle_missing_brace */
@@ -2008,7 +2010,7 @@ this function points to a tree that includes a dynamic-init entry.
       if (top_level && !brace_flag) {
         /* If a hard error is decided, context.type will become an error
            type. */
-        handle_missing_brace(&context.type);
+        handle_missing_brace(&context);
       }  /* if */
       /* Get information on the first member of the aggregate to be
          initialized (if any). */
