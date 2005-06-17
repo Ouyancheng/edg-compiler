@@ -372,7 +372,7 @@ initialization; otherwise, these pointers are NULL.
          upcoming string literal token. */
       if (init_context->pending_init_con != NULL) {
         use_pending_init_con = TRUE;
-      } else if (/* FIXME microsoft_mode && */curr_token == tok_lparen) {
+      } else if (curr_token == tok_lparen) {
         /* An expression is next.  It might be a parenthesized string literal,
            a string literal cast to "char*" (processed like a string literal
            in Microsoft mode), or something else altogether. */

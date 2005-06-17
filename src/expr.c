@@ -18166,7 +18166,9 @@ pointer in the dynamic initialization is not set.  The caller must set
 it to indicate destruction for a partially-constructed aggregate (on
 a thrown exception) if that is appropriate.
 
-This routine is also called in C99 and GNU C modes.
+This routine is called in C++, C99, and GNU C modes for whole object
+initialization.  It is called in any C or C++ mode for certain character
+string initializers.
 */
 {
   an_operand          result;
@@ -18178,10 +18180,10 @@ This routine is also called in C99 and GNU C modes.
 
   db_enter(3, "scan_aggregate_initializer_expression");
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
-  /* FIXME check_assertion(!C_mode() || c99_mode || gcc_mode); */
   expr_kind = (an_expression_kind)ek_normal;
-  if (C_mode() && static_lifetime) {
-    /* C mode aggregate initializers for statics have to be constant. */
+  if (C_mode() && (static_lifetime || !(c99_mode || gcc_mode))) {
+    /* In C89 mode aggregate initializers have to be constant.  In C99 and
+       GNU C modes, that is only only true for static initializers. */
     expr_kind = (an_expression_kind)ek_init_constant;
   }  /* if */
   push_expr_stack(expr_kind, &expr_stack_entry,
