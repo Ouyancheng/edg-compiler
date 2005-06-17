@@ -636,13 +636,6 @@ EXTERN a_boolean
                         /* TRUE if compilation timing statistics should be
 			   displayed. */
 
-EXTERN a_boolean
-		nonstandard_injected_class_lookup;
-			/* Some compilers find the injected class name when
-			   the standard says that the constructor should
-			   be found.  When this flag is TRUE, the nonstandard
-			   lookup is done. */
-
 typedef enum /*a_template_instantiation_mode*/ {
   /* Defines the methods of handling template instantiation.  Used to
      determine which template functions and member functions of

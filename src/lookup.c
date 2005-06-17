@@ -3540,7 +3540,6 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                  = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
   a_boolean    must_be_tag = (options & IDL_MUST_BE_TAG);
   a_boolean    must_be_class = (options & IDL_MUST_BE_CLASS);
-  a_boolean    is_expr_context = (options & IDL_IS_EXPR_CONTEXT);
   a_boolean    is_field_selection_operand =
                                     (options & IDL_IS_FIELD_SELECTION_OPERAND);
   a_class_symbol_supplement_ptr
@@ -3561,17 +3560,12 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
    symbol will be returned later.  An injected class name is accepted
    when doing a class-or-namespace or tag lookup, because such a lookup
    could never find the constructor.  An injected class name is also
-   accepted in nonstandard_injected_class_lookup mode, but not in prototype
-   instantiation contexts to avoid a problem with names like A<T>::A<T>.
-   In addition, the Microsoft compiler does not find the injected class name
-   in expression contexts (e.g., p->A::A()). */
+   accepted in g++ mode, but not in prototype instantiation contexts to
+   avoid a problem with names like A<T>::A<T>. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((sym)->is_class_member &&					      \
    (!is_injected_class_symbol(sym) ||				      \
-    (nonstandard_injected_class_lookup  &&			      \
-     !is_prototype_instantiation_lookup &&			      \
-     !(options & IDL_USING_DECLARATION) != 0 &&			      \
-     (!microsoft_mode || !is_expr_context)) ||			      \
+    (gpp_mode  && !is_prototype_instantiation_lookup) ||	      \
     is_field_selection_operand ||				      \
     must_be_class_or_namespace ||				      \
     must_be_class ||						      \
