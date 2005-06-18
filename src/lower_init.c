@@ -8126,12 +8126,12 @@ Do IL lowering of an enk_temp_init expression node.
       }  /* if */
     }  /* if */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-  if (vla_inits != NULL) {
-    /* Be sure to compute any needed VLA dimension variables before any
-       expressions inside the compound literal braces. */
-    an_expr_node_ptr  new_expr = make_comma_node(vla_inits, copy_node(expr));
-    overwrite_node(expr, new_expr);
-  }  /* if */
+    if (vla_inits != NULL) {
+      /* Be sure to compute any needed VLA dimension variables before any
+         expressions inside the compound literal braces. */
+      an_expr_node_ptr  new_expr = make_comma_node(vla_inits, copy_node(expr));
+      overwrite_node(expr, new_expr);
+    }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
   }  /* if */
 }  /* lower_temp_init */
