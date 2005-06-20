@@ -14560,10 +14560,12 @@ the point at which the compilation was terminated.
 {
   int	depth;
 
-  /* Close any files on the input stack that are currently open. */
-  for (depth = depth_input_stack; depth >= 0; --depth) {
-    close_file_if_open(&input_stack[depth].file);
-  }  /* for */
+  if (input_stack != NULL) {
+    /* Close any files on the input stack that are currently open. */
+    for (depth = depth_input_stack; depth >= 0; --depth) {
+      close_file_if_open(&input_stack[depth].file);
+    }  /* for */
+  }  /* if */
 }  /* lexical_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */

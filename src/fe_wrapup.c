@@ -24,6 +24,7 @@ fe_wrapup.c - End of front end processing.
 
 #include "fe_wrapup.h"
 #include "class_decl.h"
+#include "macro.h"
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_write.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
@@ -43,7 +44,6 @@ fe_wrapup.c - End of front end processing.
 #endif /* MANGLE_ALL_NAMES */
 #if DEBUG
 #include "exprutil.h"
-#include "macro.h"
 #include "preproc.h"
 #include "statements.h"
 #endif /* DEBUG */
