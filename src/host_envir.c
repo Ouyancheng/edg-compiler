@@ -3448,7 +3448,6 @@ This is done before command line processing.
   module_id = NULL;
 #endif /* MODULE_ID_NEEDED */
 #if !STANDALONE_UTILITY_PROGRAM
-  page_size = 0;
   dir_buffer1 = NULL;
   dir_buffer2 = NULL;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -3476,6 +3475,7 @@ This is done before command line processing.
   exit_status = 0;
 #endif /* MAKE_FRONT_END_CALLABLE */
 #if USE_MMAP_FOR_MEMORY_REGIONS
+  page_size = 0;
 #if EDG_WIN32
   f_mmap_file = NULL;
   f_mapped_input = NULL;
