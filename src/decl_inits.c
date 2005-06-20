@@ -1068,7 +1068,7 @@ static a_boolean tentative_aggregate_init(
                                    an_aggregate_init_context   *context,
                                    a_constant_ptr              *init_constant)
 /*
-We are parsing an aggregate initializer, which the state of processing
+We are parsing an aggregate initializer, with the state of processing
 described by init_info and context.  The next construct is expected to be an
 expression that may (or may not, hence "tentative") initialize a complete
 aggregate (array or class) subobject.  This can happen when the expression is

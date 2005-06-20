@@ -18183,7 +18183,7 @@ string initializers.
   expr_kind = (an_expression_kind)ek_normal;
   if (C_mode() && (static_lifetime || !(c99_mode || gcc_mode))) {
     /* In C89 mode aggregate initializers have to be constant.  In C99 and
-       GNU C modes, that is only only true for static initializers. */
+       GNU C modes, that is only true for static initializers. */
     expr_kind = (an_expression_kind)ek_init_constant;
   }  /* if */
   push_expr_stack(expr_kind, &expr_stack_entry,
