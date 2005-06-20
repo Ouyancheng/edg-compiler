@@ -11862,6 +11862,7 @@ Generate C++ or C from the intermediate language.
       (f_C_output != stdout && fclose(f_C_output))) {
     str_catastrophe(ec_file_write_error, "generated C output");
   }  /* if */
+  f_C_output = NULL;
 }  /* cp_gen_be */
 
 

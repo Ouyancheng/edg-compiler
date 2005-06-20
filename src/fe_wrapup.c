@@ -770,6 +770,7 @@ and before the back end (if any) is executed.
       str_catastrophe(ec_file_write_error, "preprocessing output");
     }  /* if */
   }  /* if */
+  f_pp_output = NULL;
 
   /* Close the raw listing file if one is being generated. */
   if (f_raw_listing != NULL) {

@@ -8595,6 +8595,7 @@ If C_output_file_name is NULL, use stdout for the output.
       (f_C_output != stdout && fclose(f_C_output))) {
     str_catastrophe(ec_file_write_error, "generated C output");
   }  /* if */
+  f_primary = f_C_output = NULL;
 }  /* generate_C_output_file */
 
 
