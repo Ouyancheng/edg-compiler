@@ -5541,7 +5541,7 @@ When templates_only is TRUE, only function templates members are considered.
                     sym->kind == (a_symbol_kind)sk_member_function);
     /* If looking only for templates, ignore nontemplates.  When looking
        for nontemplates, ignore templates. */
-    if (sym->kind == (a_symbol_kind)sk_function_template != templates_only) {
+    if ((sym->kind == (a_symbol_kind)sk_function_template) != templates_only) {
       continue;
     }  /* if */
     /* Get the routine pointer associated with either the routine symbol
