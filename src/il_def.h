@@ -4746,7 +4746,7 @@ typedef struct a_class_type_supplement {
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   a_bit_field   ELF_visibility:3;
-			/* The visibility of the variable in the generated
+			/* The visibility of the class members in the generated
 			   ELF object code. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
