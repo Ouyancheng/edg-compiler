@@ -1,5 +1,19 @@
 Version 3.7
 
+6/20/05  Minor issues with front end reinitialization changes
+
+The changes made to allow the front end to be restarted introduced several
+problems:
+
+- The front end did not build properly when USE_MMAP_FOR_MEMORY_REGIONS is
+  FALSE, or when DEBUG is FALSE.
+- There were a few cases where file variables were not cleared after a file
+  had been closed.
+- lexical_cleanup could fail if a catastrophic error occurred before the
+  first input file was opened.
+
+These problems have been fixed.
+
 6/16/05  Microsoft compatibility: DLL specifiers in explicit instantiations
 
 The Changes entry of 3/1/05 describes how DLL specifiers on an explicit class
