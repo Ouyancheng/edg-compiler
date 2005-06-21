@@ -79,6 +79,55 @@ static char	*macro_buffer_region_in_progress;
 			   though the region is not associated with a source
 			   line modification at the time that macro_buffer is
 			   reallocated. */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+static a_macro_text_map
+		macro_text_map;
+			/* Map from text in macro_buffer to the original
+			   source locations from which the text came, i.e.,
+			   from the macro definition or macro argument.  Like
+			   macro_buffer, this is cumulative for an entire
+			   logical source line; each source line modiffication
+			   will refer to a subset of the map entries to
+			   describe the offsets in its inserted_text portion
+			   of macro_buffer.  (Note that the offsets in entries
+			   in macro_text_map are relative to the beginning of
+			   the inserted text of the associated source line
+			   modification, not to the beginning of
+			   macro_buffer.)  Also like macro_buffer, this data
+			   structure is used for both macro definitions and
+			   expansions. */
+#define MACRO_TEXT_MAP_INITIAL_COUNT 500
+			/* Initial number of map entries for macro_text_map.
+			   The initial allocation should be such that almost
+			   all cases can be accepted (so that the realloc is
+			   hardly ever needed).  Subsequent reallocations will
+			   double the number of entries previously
+			   allocated. */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+
+#if MACRO_INVOCATION_TREE_IN_IL
+static a_macro_invocation_record_block_ptr
+		last_macro_invocation_record_block;
+			/* Pointer to the macro invocation record block
+			   containing the record with the largest index so
+			   far. */
+static a_macro_invocation_record_index
+		num_macro_invocation_records;
+			/* The total number of macro invocation records used
+			   so far. */
+static int	max_macro_invocation_depth;
+			/* The largest number of levels that have been pushed
+			   onto the macro invocation stack. */
+static int	depth_of_curr_macro_invocation_record;
+			/* The macro invocation stack depth of the current
+			   macro invocation record.  Note that this differs
+			   from macro_depth: while macro_depth refers to the
+			   number of active (recursive) calls to the
+			   macro_invocation function,
+			   depth_of_curr_macro_invocation_record takes into
+			   account macro invocations occurring during the
+			   rescan of macro expansions. */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 static char	*aux_buffer_for_pcc_macros;
 			/* Auxiliary buffer allocated in pcc mode only and
 			   used to construct the full text of a first-level
@@ -94,6 +143,22 @@ static char	*aux_buffer_for_pcc_macros;
 static char	*after_end_of_aux_buffer_for_pcc_macros;
 			/* Pointer to just after the end of
 			   aux_buffer_for_pcc_macros. */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+static a_macro_text_map
+		aux_text_map_for_pcc_macros;
+			/* Map from offsets into aux_buffer_for_pcc_macros to
+			   the original source locations from which the text
+			   came, i.e., from the macro definition or macro
+			   argument.  Its allocation and use parallel those
+			   of aux_buffer_for_pcc_macros. */
+#define AUX_TEXT_MAP_FOR_PCC_MACROS_INITIAL_COUNT 500
+			/* Initial number of map entries for
+			   aux_text_map_for_pcc_macros.  The initial
+			   allocation should be such that almost all cases can
+			   be accepted (so that the realloc is hardly ever
+			   needed).  Subsequent reallocations will double the
+			   number of entries previously allocated. */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
 static a_symbol_ptr
 		Pragma_macro_symbol;
@@ -197,6 +262,25 @@ typedef struct a_macro_arg {
 			   double the amount previously allocated. */
   sizeof_t	expanded_alloc_len;
 			/* Allocated size of the expanded_text array. */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  a_macro_text_map
+		raw_text_map;
+			/* A map of offsets within raw_text to the original
+			   positions (macro definition and arguments) from
+			   which they came. */
+  a_macro_text_map
+		exp_text_map;
+			/* A map of offsets within expanded_text to the
+			   original positions (macro definition and arguments)
+			   from which they came. */
+#define MACRO_ARGUMENT_TEXT_MAP_INITIAL_COUNT 10
+			/* Initial number of map entries for raw_text_map and
+			   exp_text_map.  The initial allocation should be
+			   such that almost all cases can be accepted (so that
+			   the realloc is hardly ever needed).  Subsequent
+			   reallocations will double the number of entries
+			   previously allocated. */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 } a_macro_arg;
 
 static a_macro_arg_ptr
@@ -247,6 +331,646 @@ static a_symbol_ptr
 		time_macro_symbol;
 			/* Pointers to the symbol entries for the special
 			   macros "__DATE__" and "__TIME__". */
+
+
+#if FULLY_RESOLVED_MACRO_POSITIONS
+/*
+Declaration for the data structure used to track the mapping from source
+positions to target offsets in a buffer that is built incrementally by
+copying one token at a time.  When active, these are kept in a singly-linked
+list to allow updates to the offsets being tracked if macro_buffer reallocation
+results in compaction of a source line modification that is being scanned.
+*/
+typedef struct a_text_map_position_tracker *a_text_map_position_tracker_ptr;
+
+typedef struct a_text_map_position_tracker {
+  a_text_map_position_tracker_ptr
+		next_active_tracker;
+			/* Pointer to the next active position tracker, or NULL
+			   if none. */
+  sizeof_t	src_region_starting_offset;
+			/* The offset in the source (input line or source
+			   line modification inserted text) at which the
+			   current region begins. */
+  sizeof_t	targ_region_starting_offset;
+			/* The offset in the buffer to which token text is
+			   being copied corresponding to
+			   src_region_starting_offset. */
+  sizeof_t	src_region_len;
+			/* The length of the source region so far. */
+  a_source_line_modif_ptr
+		src_slmp;
+			/* The source line modification from whose inserted
+			   text tokens are being extracted, or NULL if the
+			   input is coming from the current source line. */
+  a_simple_source_position
+		starting_pos;
+			/* The source position corresponding to
+			   src_region_starting_offset, if tokens are coming
+			   from the current source line, or (the
+			   simple-source-position part of) null_source_position
+			   if input is coming from a source line
+			   modification. */
+  a_macro_text_map_ptr
+		text_map;
+			/* The macro text map in which source positions are
+			   being accumulated. */
+  a_macro_invocation_record_index
+		macro_context;
+			/* The macro context to set for map entries that are
+			   added. */
+} a_text_map_position_tracker;
+
+static a_text_map_position_tracker_ptr
+		active_text_map_position_trackers;
+			/* Pointer to a list of all active position trackers,
+			   so they can be updated appropriately after a
+                           macro_buffer reallocation. */
+
+
+void init_macro_text_map(sizeof_t             num_entries,
+                         a_macro_text_map_ptr mtmp)
+/*
+Initialize a macro text map object with room for num_entries macro text map
+entries.
+*/
+{
+  if (num_entries != 0) {
+    mtmp->entries = (a_macro_text_map_entry_ptr)alloc_resizable_buffer(
+                       (sizeof_t)(num_entries*sizeof(a_macro_text_map_entry)));
+  } else {
+    mtmp->entries = NULL;
+  }  /* if */
+  mtmp->max_entries = num_entries;
+  mtmp->num_entries = 0;
+}  /* init_macro_text_map */
+
+
+static void ensure_avail_text_map_entries(a_macro_text_map_ptr mtmp,
+                                          sizeof_t             num_entries)
+/*
+Make sure that the text map designated by tmpt has at least num_entries free
+map entries, extending the array of entries if necessary.
+*/
+{
+  if (mtmp->num_entries + num_entries > mtmp->max_entries) {
+    /* The entry array is full; double (at least) the size (implicitly copying
+       the previous contents). */
+    a_macro_text_map_entry_ptr old_first_entry = mtmp->entries;
+    a_macro_text_map_entry_ptr after_old_last_entry =
+                                             mtmp->entries + mtmp->num_entries;
+    a_boolean                  source_line_modifs_need_adjustment =
+                                                     (mtmp == &macro_text_map);
+    sizeof_t                   new_max_entries = mtmp->max_entries * 2;
+    /* Make sure this is an extensible map -- maps that are just subranges of
+       others, like the one in a_source_line_modif, have a max_entries value
+       of 0 to indicate that they cannot be extended independently. */
+    check_assertion(new_max_entries > 0);
+    if (mtmp->num_entries + num_entries > new_max_entries) {
+      /* Doubling wasn't enough for the requested number.  This only happens
+         when a block of entries is desired (e.g., for copying the
+         aux_text_map_for_pcc_macros to macro_text_map); because that is for
+         the exact number that will be needed, there is no need to provide a
+         "cushion" in the allocation. */
+      new_max_entries = mtmp->num_entries + num_entries;
+    }  /* if */
+    mtmp->entries = (a_macro_text_map_entry_ptr)realloc_buffer(
+                                   (char *)mtmp->entries,
+                                   (sizeof_t)(mtmp->max_entries*
+                                              sizeof(a_macro_text_map_entry)),
+                                   (sizeof_t)(new_max_entries*
+                                              sizeof(a_macro_text_map_entry)));
+    if (source_line_modifs_need_adjustment) {
+      /* We reallocated the entries for macro_text_map.  The text maps
+         in source line modifications do not have their own entries
+         but point to subranges of the entries in macro_text_map, so
+         those pointers must be adjusted to point into the reallocated
+         array. */
+      a_source_line_modif_ptr slmp;
+      for (slmp = source_line_modif_list; slmp != NULL; slmp = slmp->next) {
+        if (ptr_in_range(slmp->text_map.entries, old_first_entry,
+                         after_old_last_entry)) {
+          slmp->text_map.entries = mtmp->entries + (slmp->text_map.entries -
+                                                    old_first_entry);
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    mtmp->max_entries = new_max_entries;
+  }  /* if */
+}  /* ensure_avail_text_map_entries */
+
+
+static a_macro_text_map_entry_ptr next_macro_text_map_entry(
+                                                     a_macro_text_map_ptr mtmp)
+/*
+Return a pointer to the next free macro text map entry in the specified map.
+*/
+{
+  ensure_avail_text_map_entries(mtmp, 1);
+  return mtmp->entries + mtmp->num_entries++;
+}  /* next_macro_text_map_entry */
+
+
+static void add_entry_to_macro_text_map(
+                               a_macro_text_map_ptr            mtmp,
+                               sizeof_t                        start_of_region,
+                               a_seq_number                    seq,
+                               a_column_number                 column,
+                               a_macro_invocation_record_index macro_context)
+/*
+Add a new entry to the specified macro text map with the specified offset,
+sequence number, and column.
+*/
+{
+  a_macro_text_map_entry_ptr mtmep = next_macro_text_map_entry(mtmp);
+  mtmep->start_of_region = start_of_region;
+  mtmep->corresponding_source_pos.seq = seq;
+  mtmep->corresponding_source_pos.column = column;
+#if MACRO_INVOCATION_TREE_IN_IL
+  mtmep->macro_context = macro_context;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+}  /* add_entry_to_macro_text_map */
+
+
+#if !MACRO_INVOCATION_TREE_IN_IL
+/*ARGSUSED*/  /* <-- macro_context is not used in that case. */
+#endif /* !MACRO_INVOCATION_TREE_IN_IL */
+static void clone_macro_text_map_entries(
+                          a_macro_text_map_ptr            src_map,
+                          sizeof_t                        starting_src_offset,
+                          sizeof_t                        src_region_len,
+                          a_macro_text_map_ptr            targ_map,
+                          sizeof_t                        starting_targ_offset,
+                          a_macro_invocation_record_index macro_context)
+/*
+Copy the range of macro text map entries in the region designated by
+starting_src_offset and src_region_len from src_map to targ_map, adjusting the
+offsets appropriately.  If MACRO_INVOCATION_TREE_IN_IL is TRUE, the
+macro_context of the positions in the new text map entries will be set to
+the value specified by macro_context unless it has the value
+NO_PARENT_MACRO_INVOCATION; in that case, the macro_context value from the
+source entry will be preserved.
+*/
+{
+  a_macro_text_map_entry_ptr      mtmep;
+  a_macro_invocation_record_index ctx = macro_context;
+
+  /* Call bsearch to find the macro text map entry that covers the specified
+     source buffer starting offset. */
+  mtmep = (a_macro_text_map_entry_ptr)bsearch(
+                                     (a_bsearch_arg_type)&starting_src_offset,
+                                     (a_bsearch_arg_type)src_map->entries,
+                                     size_t_arg(src_map->num_entries-1),
+                                     sizeof(a_macro_text_map_entry),
+                                     compare_macro_text_map_entry_with_offset);
+  check_assertion_str2(mtmep != NULL, "clone_macro_text_map_entries",
+                       "offset not found");
+#if MACRO_INVOCATION_TREE_IN_IL
+  if (macro_context == NO_PARENT_MACRO_INVOCATION) {
+    /* Copy the context from the source entry. */
+    ctx = mtmep->macro_context;
+  }  /* if */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+  /* The first map entry requires special treatment because we may only be
+     cloning a part of its region, i.e., the source buffer starting offset
+     might not correspond to the starting location of the map entry,
+     requiring the column of the corresponding source position to be adjusted
+     accordingly. */
+  add_entry_to_macro_text_map(targ_map, starting_targ_offset,
+                              mtmep->corresponding_source_pos.seq,
+                              mtmep->corresponding_source_pos.column +
+                                (starting_src_offset - mtmep->start_of_region),
+                              ctx);
+  /* Now just loop through the source map entries.  The start_of_region for
+     each target map entry will be at the same relative offset to the starting
+     target offset as the source entry's start of region is to the starting
+     source offset.  The corresponding source position will be identical. */
+  ++mtmep;
+  while (mtmep->start_of_region < starting_src_offset + src_region_len) {
+#if MACRO_INVOCATION_TREE_IN_IL
+    if (macro_context == NO_PARENT_MACRO_INVOCATION) {
+      /* Copy the context from the source entry. */
+      ctx = mtmep->macro_context;
+    }  /* if */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+    add_entry_to_macro_text_map(targ_map, starting_targ_offset +
+                                (mtmep->start_of_region - starting_src_offset),
+                                mtmep->corresponding_source_pos.seq,
+                                mtmep->corresponding_source_pos.column, ctx);
+    ++mtmep;
+  }  /* while */
+}  /* clone_macro_text_map_entries */
+
+
+static void init_text_map_position_tracker(
+                                a_text_map_position_tracker_ptr  tmpt,
+                                a_macro_text_map_ptr             text_map,
+                                a_macro_invocation_record_index  macro_context)
+/*
+Add the specified position tracker to the list of active trackers and
+initialize it with the offset of the current token as target offset 0 and
+referring to the specified macro text map.  If macro_context is
+NO_PARENT_MACRO_INVOCATION, the context from any cloned entries will be
+preserved; otherwise, the specified context will be saved in newly-created
+text map entries.
+*/
+{
+  tmpt->next_active_tracker = active_text_map_position_trackers;
+  active_text_map_position_trackers = tmpt;
+  if (within_curr_source_line(start_of_curr_token)) {
+    /* Tokens are coming from the current source line. */
+    tmpt->src_region_starting_offset = start_of_curr_token - curr_source_line;
+    tmpt->src_slmp = NULL;
+    tmpt->starting_pos.seq = pos_curr_token.seq;
+    tmpt->starting_pos.column = pos_curr_token.column;
+  } else {
+    /* Tokens are coming from a source line modification. */
+    tmpt->src_slmp = assoc_source_line_modif(start_of_curr_token);
+    ++tmpt->src_slmp->num_active_position_trackers;
+    tmpt->src_region_starting_offset = start_of_curr_token -
+                                                 tmpt->src_slmp->inserted_text;
+    tmpt->starting_pos.seq = 0;
+    tmpt->starting_pos.column = SP_COL_UNKNOWN;
+  }  /* if */
+  tmpt->targ_region_starting_offset = 0;
+  tmpt->src_region_len = 0;
+  tmpt->text_map = text_map;
+  tmpt->macro_context = macro_context;
+}  /* init_text_map_position_tracker */
+
+
+static void add_token_to_macro_text_map(
+                              a_text_map_position_tracker_ptr tmpt,
+                              sizeof_t                        next_targ_offset)
+/*
+This routine is called for each token that is to be added to a buffer with
+which a macro text map is associated.  It updates the macro text map pointed
+to by tmpt->text_map to reflect copying the current token into the target
+buffer at next_targ_offset and makes any necessary adjustments to the state
+information in *tmpt.
+*/
+{
+  sizeof_t  rel_src_offset;
+  sizeof_t  rel_targ_offset;
+  a_boolean new_region_required = FALSE;
+  if (tmpt->src_slmp != NULL) {
+    /* Previous tokens were from the inserted text of a source line
+       modification. */
+    a_boolean in_curr_slmp = ptr_in_range(start_of_curr_token,
+                                          tmpt->src_slmp->inserted_text,
+                                          tmpt->src_slmp->end_inserted_text);
+    if (!in_curr_slmp) {
+      /* If the new token is not part of the inserted_text of the source line
+         modification from which the previous tokens came, we need a new
+         region. */
+      new_region_required = TRUE;
+    } else {
+      /* Check to see if the new token will be at the same relative offset in
+         the target as it was in the source; if not, we need a new region. */
+      rel_src_offset = start_of_curr_token -
+              tmpt->src_slmp->inserted_text - tmpt->src_region_starting_offset;
+      rel_targ_offset = next_targ_offset - tmpt->targ_region_starting_offset;
+      new_region_required = (rel_src_offset != rel_targ_offset);
+    }  /* if */
+    if (new_region_required) {
+      /* The new token will not be covered by the range of the current map
+         entry -- clone the src_slmp map entries and set up for the new
+         token. */
+      clone_macro_text_map_entries(&tmpt->src_slmp->text_map,
+                                   tmpt->src_region_starting_offset,
+                                   tmpt->src_region_len, tmpt->text_map,
+                                   tmpt->targ_region_starting_offset,
+                                   tmpt->macro_context);
+      if (!in_curr_slmp) {
+        /* Release the associated source line modification. */
+        --tmpt->src_slmp->num_active_position_trackers;
+      }  /* if */
+      if (within_curr_source_line(start_of_curr_token)) {
+        /* We fell out of the source line modification back to the original
+           source line. */
+        tmpt->src_region_starting_offset = start_of_curr_token -
+                                                              curr_source_line;
+        tmpt->src_slmp = NULL;
+        tmpt->starting_pos.seq = pos_curr_token.seq;
+        tmpt->starting_pos.column = pos_curr_token.column;
+      } else {
+        /* We're still in a source line modification. */
+        if (!in_curr_slmp) {
+          /* We entered or re-entered a different source line modification
+             from the one we were in. */
+          tmpt->src_slmp = assoc_source_line_modif(start_of_curr_token);
+          ++tmpt->src_slmp->num_active_position_trackers;
+        }  /* if */
+        tmpt->src_region_starting_offset = start_of_curr_token -
+                                                 tmpt->src_slmp->inserted_text;
+      }  /* if */
+      tmpt->targ_region_starting_offset = next_targ_offset;
+      rel_src_offset = 0;
+    }  /* if */
+  } else {
+    /* Previous tokens were from the current source line. */
+    a_boolean in_same_source_line =
+                                within_curr_source_line(start_of_curr_token) &&
+                                tmpt->starting_pos.seq == pos_curr_token.seq;
+    if (!in_same_source_line) {
+      /* If the new token is not part of the same source line from which the
+         previous tokens came, we need a new region. */
+      new_region_required = TRUE;
+    } else {
+      /* Check to see if the new token will be at the same relative offset in
+         the target as it was in the source; if not, we need a new region. */
+      rel_src_offset = start_of_curr_token - curr_source_line -
+                                              tmpt->src_region_starting_offset;
+      rel_targ_offset = next_targ_offset - tmpt->targ_region_starting_offset;
+      new_region_required = (rel_src_offset != rel_targ_offset);
+    }  /* if */
+    if (new_region_required) {
+      /* The new token will not be covered by the range of the current map
+         entry -- step to a new entry. */
+      add_entry_to_macro_text_map(tmpt->text_map,
+                                  tmpt->targ_region_starting_offset,
+                                  tmpt->starting_pos.seq,
+                                  tmpt->starting_pos.column,
+                                  tmpt->macro_context);
+      if (within_curr_source_line(start_of_curr_token)) {
+        /* The new token is still in the current source line. */
+        tmpt->src_region_starting_offset = start_of_curr_token -
+                                                              curr_source_line;
+        tmpt->starting_pos.seq = pos_curr_token.seq;
+        tmpt->starting_pos.column = pos_curr_token.column;
+      } else {
+        /* We've entered a source line modification. */
+        tmpt->src_slmp = assoc_source_line_modif(start_of_curr_token);
+        ++tmpt->src_slmp->num_active_position_trackers;
+        tmpt->starting_pos.seq = 0;
+        tmpt->starting_pos.column = SP_COL_UNKNOWN;
+        tmpt->src_region_starting_offset = start_of_curr_token -
+                                                 tmpt->src_slmp->inserted_text;
+      }  /* if */
+      tmpt->targ_region_starting_offset = next_targ_offset;
+      rel_src_offset = 0;
+    }  /* if */
+  }  /* if */
+  tmpt->src_region_len = rel_src_offset + len_of_curr_token;
+  check_assertion(!(tmpt->src_slmp != NULL &&
+                    tmpt->src_slmp->inserted_text + tmpt->src_region_len >
+                    tmpt->src_slmp->end_inserted_text));
+}  /* add_token_to_macro_text_map */
+
+
+static void terminate_macro_text_map(
+                              a_text_map_position_tracker_ptr tmpt,
+                              sizeof_t                        after_end_offset)
+/*
+Complete the macro_text_map pointed to by tmpt->text_map by adding the final
+region that was in process and a terminating region at the after_end_offset,
+then remove it from the list of active trackers.
+*/
+{
+  if (tmpt->src_slmp != NULL) {
+    /* The mapped text is from a source line modification -- clone the
+       regions from its text map. */
+    clone_macro_text_map_entries(&tmpt->src_slmp->text_map,
+                                 tmpt->src_region_starting_offset,
+                                 tmpt->src_region_len,
+                                 tmpt->text_map,
+                                 tmpt->targ_region_starting_offset,
+                                 tmpt->macro_context);
+    /* Release the associated source line modification. */
+    --tmpt->src_slmp->num_active_position_trackers;
+  } else {
+    /* The mapped text is from the current source line -- add a single
+       region for the last token(s). */
+    add_entry_to_macro_text_map(tmpt->text_map,
+                                tmpt->targ_region_starting_offset,
+                                tmpt->starting_pos.seq,
+                                tmpt->starting_pos.column,
+                                tmpt->macro_context);
+  }  /* if */
+  /* Add a terminating region to allow the bsearch routine to access the
+     "next" region when searching for the last token. */
+  add_entry_to_macro_text_map(tmpt->text_map, after_end_offset, /*seq=*/0,
+                              SP_COL_UNKNOWN, NO_PARENT_MACRO_INVOCATION);
+  /* This tracker should be at the top of the stack. */
+  check_assertion(tmpt == active_text_map_position_trackers);
+  active_text_map_position_trackers = tmpt->next_active_tracker;
+}  /* terminate_macro_text_map */
+
+
+static void adjust_macro_text_map_after_compaction(
+                                     a_source_line_modif_ptr slmp,
+                                     sizeof_t                orig_deletion_len,
+                                     sizeof_t                new_deletion_len,
+                                     sizeof_t                deletion_offset)
+/*
+Adjust the offsets in a source line modification's macro text map to reflect
+the removal of deleted characters resulting from reallocating macro_buffer.
+*/
+{
+  sizeof_t i;
+  sizeof_t num_compacted_characters = orig_deletion_len - new_deletion_len;
+  for (i = 0; i < slmp->text_map.num_entries; ++i) {
+    if (slmp->text_map.entries[i].start_of_region < deletion_offset) {
+      /* Do nothing -- this entry refers to text before the deletion and thus
+         is not affected by the compaction. */
+    } else if (slmp->text_map.entries[i].start_of_region >=
+               deletion_offset + orig_deletion_len) {
+      /* This entry refers to text after the deletion: adjust the offset by
+         the number of compacted characters. */
+      slmp->text_map.entries[i].start_of_region -= num_compacted_characters;
+    } else {
+      /* This entry refers to text in the deletion and thus would never be
+         used: move the offset to the beginning of the deletion to keep it
+         out of consideration. */
+      slmp->text_map.entries[i].start_of_region = deletion_offset;
+    }  /* if */
+  }  /* for */
+  if (slmp->num_active_position_trackers > 0) {
+    /* There are active text map position trackers referring to this
+       source line modification.  Adjust their current source offset if it
+       is past the location of the compacted deletion. */
+    a_text_map_position_tracker_ptr tmpt;
+    for (tmpt = active_text_map_position_trackers; tmpt != NULL;
+         tmpt = tmpt->next_active_tracker) {
+      if (tmpt->src_slmp == slmp &&
+          tmpt->src_region_starting_offset >=
+                                         deletion_offset + orig_deletion_len) {
+        /* The tracker source starting offset must be adjusted to allow for
+           the compaction. */
+        tmpt->src_region_starting_offset -= num_compacted_characters;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* adjust_macro_text_map_after_compaction */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+
+
+#if MACRO_INVOCATION_TREE_IN_IL
+a_macro_invocation_record_ptr macro_invocation_record_at_index(int index)
+/*
+Return a pointer to the macro invocation record with the specified index.
+
+At the end of front-end processing, when the number of entries is known, the
+list of macro invocation record blocks is transformed into a binary tree to
+allow for relatively-efficient random access.  Until that point, however, the
+blocks are simply maintained on a doubly-linked list, and only a pointer to
+the tail of the list is kept.  This is acceptable because the only indexed
+access to the list is in the case of diagnostic output, which does not need
+to be especially efficient, and even then the messages will usually refer to
+the most recent macro invocations, near the tail of the list.  In cases where
+no diagnostic output is needed, balancing the tree once at the end of
+processing is more efficient than maintaining a balanced tree throughout the
+growth of the list.
+*/
+{
+  a_macro_invocation_record_block_ptr mirbp;
+  a_macro_invocation_record_ptr       mirp = NULL;
+
+  for (mirbp = last_macro_invocation_record_block;
+       mirbp != NULL && mirbp->first_record_in_block > index;
+       mirbp = mirbp->prev) {}
+  if (mirbp != NULL) {
+    int index_in_block = index - mirbp->first_record_in_block;
+    mirp = mirbp->records + index_in_block;
+  }
+  return mirp;
+}  /* macro_invocation_record_at_index */
+
+
+static a_macro_invocation_record_ptr next_macro_invocation_record(void)
+/*
+Return a pointer to the next available macro invocation record, allocating a
+new macro invocation record block if necessary.
+*/
+{
+  int index_in_block;
+  if (last_macro_invocation_record_block == NULL ||
+      num_macro_invocation_records -
+                   last_macro_invocation_record_block->first_record_in_block ==
+                   MACRO_INVOCATION_RECORDS_PER_BLOCK) {
+    /* Need a new block for the next record. */
+    a_macro_invocation_record_block_ptr new_block =
+                                         alloc_macro_invocation_record_block();
+    if (last_macro_invocation_record_block != NULL) {
+      last_macro_invocation_record_block->next = new_block;
+    }  /* if */
+    new_block->prev = last_macro_invocation_record_block;
+    last_macro_invocation_record_block = new_block;
+    new_block->first_record_in_block = num_macro_invocation_records;
+  }  /* if */
+  index_in_block = num_macro_invocation_records -
+                     last_macro_invocation_record_block->first_record_in_block;
+  ++num_macro_invocation_records;
+  return last_macro_invocation_record_block->records + index_in_block;
+}  /* next_macro_invocation_record */
+
+
+static a_macro_invocation_record_index register_macro_invocation(
+                                a_macro_invocation_record_index parent_index,
+                                int                             stack_depth,
+                                a_macro_def_ptr                 mdp,
+                                a_source_position_ptr           macro_name_pos,
+                                a_macro_invocation_record_ptr   *mirpp)
+/*
+Add an entry to the list of macro invocation records, reflecting the invocation
+of the macro indicated by mdp.  parent_index gives the index of the macro
+invocation record in whose expansion the current invocation begins or
+NO_PARENT_MACRO_INVOCATION if the invocation occurs directly in source text
+(invocations in an argument to a given macro are treated as if they occurred in
+the expansion of that macro).  stack_depth is the depth of the invocation
+stack after pushing the current invocation (i.e., it will always be at least
+1), and macro_name_pos gives the position of the macro name in this macro
+invocation.  The return value is the index of the newly-added record, and
+*mirpp is set to point to that record, as well.
+*/
+{
+  a_macro_invocation_record_ptr mirp = next_macro_invocation_record();
+  if (stack_depth < depth_of_curr_macro_invocation_record - 1) {
+    /* In order to make a tree-like traversal of the invocation records easier,
+       whenever a transition reflects popping more than one stack level, we
+       must add a placeholder record reflecting the number of levels popped in
+       the transition. */
+    mirp->parent_macro_index = stack_depth -
+                                         depth_of_curr_macro_invocation_record;
+    mirp->assoc_macro = NULL;
+    mirp = next_macro_invocation_record();
+  }  /* if */
+  mirp->parent_macro_index = parent_index;
+  mirp->assoc_macro = mdp->macro;
+  /* Record the original location of the macro name in this invocation. */
+  mirp->start.seq = macro_name_pos->orig_seq;
+  mirp->start.column = macro_name_pos->orig_column;
+  if (stack_depth > max_macro_invocation_depth) {
+    max_macro_invocation_depth = stack_depth;
+  }  /* if */
+  depth_of_curr_macro_invocation_record = stack_depth;
+  *mirpp = mirp;
+  return num_macro_invocation_records - 1;
+}  /* register_macro_invocation */
+
+
+static a_macro_invocation_record_block_ptr create_macro_inv_record_tree(
+                         a_macro_invocation_record_block_ptr mirbp,
+                         a_macro_invocation_record_index     first_record,
+                         a_macro_invocation_record_index     after_last_record)
+/*
+Recursively arrange the list of macro invocation record blocks containing the
+indices first_record through after_last_record-1 into a binary tree and return
+the address of the root block.  mirbp is a pointer to an arbitrary macro
+invocation record block.
+*/
+{
+  int                             num_blocks_in_tree;
+  int                             num_blocks_in_left_subtree;
+  int                             i;
+  a_macro_invocation_record_index first_record_in_root_block;
+
+  if (mirbp != NULL) {
+    num_blocks_in_tree = (after_last_record - first_record + 
+                          MACRO_INVOCATION_RECORDS_PER_BLOCK - 1)
+                         / MACRO_INVOCATION_RECORDS_PER_BLOCK;
+    num_blocks_in_left_subtree = num_blocks_in_tree/2;
+    first_record_in_root_block = first_record +
+               num_blocks_in_left_subtree * MACRO_INVOCATION_RECORDS_PER_BLOCK;
+    /* mirbp might point either before or after the root block, so we need both
+       of the following loops to find it. */
+    while (mirbp->first_record_in_block < first_record_in_root_block) {
+      mirbp = mirbp->next;
+    }  /* while */
+    while (mirbp->first_record_in_block > first_record_in_root_block) {
+      mirbp = mirbp->prev;
+    }  /* while */
+    /* Recursively create subtrees. */
+    if (num_blocks_in_left_subtree != 0) {
+      mirbp->left_subtree =
+                      create_macro_inv_record_tree(mirbp, first_record,
+                                                   first_record_in_root_block);
+    }  /* if */
+    if (num_blocks_in_tree > num_blocks_in_left_subtree + 1) {
+      mirbp->right_subtree =
+               create_macro_inv_record_tree(mirbp,
+                                            mirbp->next->first_record_in_block,
+                                            after_last_record);
+    }  /* if */
+  }  /* if */
+  return mirbp;
+}  /* create_macro_inv_record_tree */
+
+
+void copy_macro_invocation_tree_to_il(void)
+/*
+Create the binary tree of macro invocation record blocks, copying the
+macro_invocation_records list, and set the appropriate fields in il_header.
+*/
+{
+  il_header.num_macro_invocation_records = num_macro_invocation_records;
+  il_header.max_macro_invocation_depth = max_macro_invocation_depth;
+  il_header.root_macro_invocation_record_block =
+               create_macro_inv_record_tree(last_macro_invocation_record_block,
+                                            /*first_record=*/0,
+                                            num_macro_invocation_records);
+}  /* copy_macro_invocation_tree_to_il */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 
 
 void adjust_curr_source_line_structure_after_realloc(
@@ -483,9 +1207,17 @@ ensure_macro_buffer_space.
           /* This is the location of a macro replacement or deleted text.  Copy
              only the ATTENTION_MARKER to the new buffer and adjust the source
              pointer appropriately. */
+          sizeof_t orig_deletion_len;
           nested_slmp = nested_source_line_modif(src - 1);
-          src += nested_slmp->num_chars_to_delete - 1;
+          orig_deletion_len = nested_slmp->num_chars_to_delete;
+          src += orig_deletion_len - 1;
           dst = copy_attention_markers(nested_slmp, dst);
+#if FULLY_RESOLVED_MACRO_POSITIONS
+          adjust_macro_text_map_after_compaction(
+                 slmp, orig_deletion_len,
+                 nested_slmp->num_chars_to_delete,
+                 dst - nested_slmp->num_chars_to_delete - slmp->inserted_text);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
         } else if (src > old_start_for_remapping + 1 &&
                    src[-LE_ESCAPE_LEN] == LE_ESCAPE) {
           /* This is an end-of-insertion marker (and not just a stray
@@ -814,6 +1546,9 @@ Clear a macro definition entry to default values.
 #if RECORD_MACROS_IN_IL
   mdp->macro                               = NULL;
 #endif /* RECORD_MACROS_IN_IL */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  init_macro_text_map(/*num_entries=*/0, &mdp->text_map);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 }  /* clear_macro_def */
 
 
@@ -847,6 +1582,10 @@ and return a pointer to it.
     /* Reuse a freed entry. */
     map = avail_macro_args;
     avail_macro_args = avail_macro_args->next;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    map->raw_text_map.num_entries = 0;
+    map->exp_text_map.num_entries = 0;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   } else {
     /* Allocate a new entry.  Note the use of alloc_general rather than
        alloc_fe, so that the raw_text storage can be kept around. */
@@ -876,6 +1615,12 @@ and return a pointer to it.
 #if DEBUG
     macro_arg_text_space += map->expanded_alloc_len;
 #endif /* DEBUG */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    init_macro_text_map(MACRO_ARGUMENT_TEXT_MAP_INITIAL_COUNT,
+                        &map->raw_text_map);
+    init_macro_text_map(MACRO_ARGUMENT_TEXT_MAP_INITIAL_COUNT,
+                        &map->exp_text_map);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   } /* if */
   map->next         = NULL;
   map->raw_len      = 0;
@@ -1128,6 +1873,7 @@ so a hanging delete is in effect).
       /* We are on a new line, so re-insertion is necessary. */
       /* Make enough room for the insertion text.  "+2*LE_ESCAPE_LEN"
          covers the LE_NEWLINE and LE_END_OF_INSERTION lexical escapes. */
+      a_source_line_modif_ptr slmp;
       ensure_macro_buffer_space(len_of_curr_token+2*LE_ESCAPE_LEN);
       /* Insert the identifier name. */
       ins_loc = next_avail_in_macro_buffer;
@@ -1143,10 +1889,24 @@ so a hanging delete is in effect).
          a strange kind of entry: line_loc == NULL indicates that
          the insertion is to be done preceding the first character
          of curr_source_line. */
-      (void)add_source_line_modif((char *)NULL, 0,
-                                  ins_loc,
-                                  ins_loc+len_of_curr_token+LE_ESCAPE_LEN);
+      slmp = add_source_line_modif((char *)NULL, 0,
+                                   ins_loc,
+                                   ins_loc+len_of_curr_token+LE_ESCAPE_LEN);
       start_of_curr_token = ins_loc;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+      /* Add text map entries to describe the original position of the
+         re-inserted token. */
+      add_entry_to_macro_text_map(&macro_text_map, /*start_of_region=*/0,
+                                  pos_curr_token.seq, pos_curr_token.column,
+                                  NO_PARENT_MACRO_INVOCATION);
+      add_entry_to_macro_text_map(&macro_text_map,
+                                  len_of_curr_token+2*LE_ESCAPE_LEN,
+                                  /*seq=*/0, SP_COL_UNKNOWN,
+                                  NO_PARENT_MACRO_INVOCATION);
+      slmp->text_map.num_entries = 2;
+      slmp->text_map.entries = macro_text_map.entries +
+                                                macro_text_map.num_entries - 2;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     }  /* if */
     end_of_curr_token = start_of_curr_token + len_of_curr_token - 1;
   }  /* if */
@@ -1704,6 +2464,15 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
   a_token_kind  last_token_of_expansion;
   a_boolean     aux_buffer_modified = FALSE;
   sizeof_t      num_chars_added_from_source_line = 0;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  a_text_map_position_tracker
+                tracker;
+  a_boolean     tracker_inited = FALSE;
+  a_source_position
+                pos_of_rest_of_text;
+  sizeof_t      next_targ_offset;
+  sizeof_t      save_num_macro_text_map_entries = macro_text_map.num_entries;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -1793,12 +2562,34 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
       *pos_in_aux_buffer++ = LE_INERT_MACRO;
     }  /* if */
     /* Copy the text of the token to the auxiliary buffer. */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    if (!tracker_inited) {
+      /* Initialize the position tracker to reflect the start of the text
+         being scanned and the position in the auxiliary buffer.  (We must do
+         it this way, with an "inited" flag, rather than before the loop
+         because the first get_token() is done as part of the loop, and the
+         tracker initialization depends on information about the current
+         token.)  Use NO_PARENT_MACRO_INVOCATION to preserve the context
+         from cloned text map entries. */
+      init_text_map_position_tracker(&tracker, &aux_text_map_for_pcc_macros,
+                                     NO_PARENT_MACRO_INVOCATION);
+      tracker_inited = TRUE;
+    }  /* if */
+    add_token_to_macro_text_map(&tracker,
+                                pos_in_aux_buffer - aux_buffer_for_pcc_macros);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     (void)memcpy(pos_in_aux_buffer, start_of_curr_token,
                  size_t_arg(len_of_curr_token));
     pos_in_aux_buffer += len_of_curr_token;
     last_token_of_expansion = curr_token;
   }  /* while */
 end_loop:
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  if (tracker_inited) {
+    terminate_macro_text_map(&tracker,
+                             pos_in_aux_buffer - aux_buffer_for_pcc_macros);
+  }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   /* Determine the location in the primary source line that immediately
      follows the end of the accumulated text. */
   if (curr_token == tok_end_of_source) {
@@ -1848,7 +2639,7 @@ end_loop:
          buffer so that the macro and what follows have a chance to be pasted
          together. */
       /* Find the end of the primary source line. */
-      { char *temp;  /* Not registered, not kept long. */
+      { char              *temp;  /* Not registered, not kept long. */
         for (num_chars_added_from_source_line = 0,
                temp = loc_following_insertion;
              ;
@@ -1878,6 +2669,28 @@ end_loop:
 #endif /* DEBUG */
       ensure_aux_buffer_for_pcc_macros_space(num_chars_added_from_source_line,
                                              pos_in_aux_buffer);
+#if FULLY_RESOLVED_MACRO_POSITIONS
+      /* We're adding text after the supposed end of the mapped regions in
+         the buffer (as reflected in the preceding call to
+         terminate_macro_text_map): back up over the final entry and add a
+         new region and a new termination directly.  (We can't use the
+         tracker mechanism because that depends on information about the
+         current token, and this additional text has not yet been
+         tokenized.) */
+      --aux_text_map_for_pcc_macros.num_entries;
+      conv_line_loc_to_source_pos(loc_following_insertion,
+                                  &pos_of_rest_of_text);
+      next_targ_offset = pos_in_aux_buffer - aux_buffer_for_pcc_macros;
+      add_entry_to_macro_text_map(&aux_text_map_for_pcc_macros,
+                                  next_targ_offset,
+                                  pos_of_rest_of_text.seq,
+                                  pos_of_rest_of_text.column,
+                                  NO_PARENT_MACRO_INVOCATION);
+      next_targ_offset += num_chars_added_from_source_line + LE_ESCAPE_LEN;
+      add_entry_to_macro_text_map(&aux_text_map_for_pcc_macros,
+                                  next_targ_offset, /*seq=*/0,
+                                  SP_COL_UNKNOWN, NO_PARENT_MACRO_INVOCATION);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
       (void)memcpy(pos_in_aux_buffer, loc_following_insertion,
                    size_t_arg(num_chars_added_from_source_line));
       pos_in_aux_buffer += num_chars_added_from_source_line;
@@ -1943,9 +2756,30 @@ end_loop:
       main_slmp->text_from_primary_source_line =
              next_avail_in_macro_buffer - num_chars_added_from_source_line - 1;
     }  /* if */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    /* Copy the entries from the auxiliary text map to the macro text map
+       (after resetting the count to ignore ones that were associated with
+       now-discarded text in macro_buffer) and point the text_map of the
+       main_slmp at the copied entries. */
+    macro_text_map.num_entries = save_num_macro_text_map_entries;
+    ensure_avail_text_map_entries(&macro_text_map,
+                                  aux_text_map_for_pcc_macros.num_entries);
+    (void)memcpy((char *)(macro_text_map.entries + macro_text_map.num_entries),
+                 (char *)aux_text_map_for_pcc_macros.entries,
+                 size_t_arg(sizeof(a_macro_text_map_entry)*
+                            aux_text_map_for_pcc_macros.num_entries));
+    main_slmp->text_map.num_entries = aux_text_map_for_pcc_macros.num_entries;
+    main_slmp->text_map.entries =
+                           macro_text_map.entries + macro_text_map.num_entries;
+    macro_text_map.num_entries += aux_text_map_for_pcc_macros.num_entries;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   }  /* if */
   /* Drop any local pointer registrations. */
   registered_pointers = save_registered_pointers;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  /* Empty the map in preparation for next time. */
+  aux_text_map_for_pcc_macros.num_entries = 0;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   db_exit();
 }  /* expand_top_level_pcc_macro */
 
@@ -2312,7 +3146,31 @@ associated global variables will also have been set).
 			   parameters beyond that, a slow linear search
 			   is used. */
   a_macro_arg_ptr arg_values[ARG_VALUES_SIZE];
-
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  a_text_map_position_tracker
+                  tracker;
+  sizeof_t        src_offset;
+  sizeof_t        src_token_len;
+  a_simple_source_position
+                  src_pos;
+  sizeof_t        next_targ_offset;
+  sizeof_t        first_text_map_entry;
+  sizeof_t        ending_src_offset;
+  sizeof_t        bytes_before_token;
+  a_source_line_modif_ptr
+                  invocation_slmp = NULL;
+  a_macro_invocation_record_index
+                  this_macro_invocation_record = NO_PARENT_MACRO_INVOCATION;
+  a_macro_text_map_entry_ptr
+                  tmep;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#if MACRO_INVOCATION_TREE_IN_IL
+  a_macro_invocation_record_ptr
+                  this_mirp;
+  a_macro_invocation_record_index
+                  parent_macro_invocation_record;
+  int             macro_invocation_stack_depth;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -2381,6 +3239,9 @@ associated global variables will also have been set).
   next_avail_in_macro_buffer = macro_buffer;
   num_chars_deleted_in_macro_buffer = 0;
   num_compacted_macro_buffer_chars = 0;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  macro_text_map.num_entries = 0;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 end_scan_for_macro_modifs:;
   /* Normal case is that the macro expansion is rescanned after this routine
      exits. */
@@ -2412,6 +3273,13 @@ end_scan_for_macro_modifs:;
        see if it's associated with the macro we are about to expand.  If
        so, the macro name is inert and should be left alone. */
     slmp = assoc_source_line_modif(temp_ptr);
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    invocation_slmp = slmp;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#if MACRO_INVOCATION_TREE_IN_IL
+    parent_macro_invocation_record = slmp->invocation_record;
+    macro_invocation_stack_depth = slmp->invocation_depth + 1;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
     do {
       if (slmp->assoc_macro == mdp) {
         /* The identifier does appear within its own expansion. */
@@ -2443,6 +3311,11 @@ end_scan_for_macro_modifs:;
          expansion that contains the location we started with, and stop
          when we reach the primary source line. */
     } while ((slmp = parent_source_line_modif(slmp)) != NULL);
+#if MACRO_INVOCATION_TREE_IN_IL
+  } else {
+    parent_macro_invocation_record = NO_PARENT_MACRO_INVOCATION;
+    macro_invocation_stack_depth = 1;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
   }  /* if */
   /* Set a flag to cause deletion of the text of the macro invocation.
      This is a global flag so that if we go to a new line during skipping
@@ -2477,6 +3350,21 @@ end_scan_for_macro_modifs:;
     (void)memcpy(text_loc,
                  locator_for_curr_id.symbol_header->identifier,
                  size_t_arg(len_of_curr_token));
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    /* Map the inert macro name in the raw text back to its original source
+       position (which will have been preserved in the source line modification
+       containing the token) and add a terminating entry for the offset after
+       the name. */
+    src_offset = start_of_curr_token - invocation_slmp->inserted_text;
+    clone_macro_text_map_entries(&invocation_slmp->text_map,
+                                 src_offset,
+                                 len_of_curr_token,
+                                 &special_macro_arg->raw_text_map,
+                                 LE_ESCAPE_LEN, NO_PARENT_MACRO_INVOCATION);
+    add_entry_to_macro_text_map(&special_macro_arg->raw_text_map,
+                                repl_text_len, /*seq=*/0, SP_COL_UNKNOWN,
+                                NO_PARENT_MACRO_INVOCATION);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   } else if (mdp->object_like) {
     /* "Object-like" macro (has no arguments).  Or, a special predefined
        macro, which might have arguments. */
@@ -2493,6 +3381,21 @@ end_scan_for_macro_modifs:;
       add_to_macro_arg_list(special_macro_arg);
       special_repl_text = TRUE;
       repl_text = special_macro_arg->raw_text;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+      if (invocation_slmp != NULL) {
+        /* The macro name comes from a source line modification.  Remember
+           the offset of the token and its length to allow the existing map
+           entry to be cloned later. */
+        src_offset = start_of_curr_token - invocation_slmp->inserted_text;
+        src_token_len = len_of_curr_token;
+      } else {
+        /* The macro name comes from the current source line.  Remember the
+           position of the token to allow a map entry for it to be added
+           later. */
+        src_pos.seq = pos_curr_token.seq;
+        src_pos.column = pos_curr_token.column;
+      }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
       if (macro_symbol == line_macro_symbol) {
         /* __LINE__.  Make and return the string for a decimal integer
            indicating the current line number. */
@@ -2631,9 +3534,46 @@ end_scan_for_macro_modifs:;
 #if CHECKING
       } else {
         internal_error("macro_invocation: unknown special predefined macro");
-#endif /* DEBUG */
+#endif /* CHECKING */
       }  /* if */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+      if (invocation_slmp != NULL) {
+        /* The macro name was in a source line modification.  Clone the map
+           entry for the macro name (to preserve its original source
+           position). */
+        clone_macro_text_map_entries(&invocation_slmp->text_map,
+                                     src_offset,
+                                     src_token_len,
+                                     &special_macro_arg->raw_text_map,
+                                     /*starting_targ_offset=*/0,
+                                     NO_PARENT_MACRO_INVOCATION);
+      } else {
+        /* The macro name was in the current source line.  Add a map entry
+           mapping the the expansion back to the original position. */
+        add_entry_to_macro_text_map(&special_macro_arg->raw_text_map,
+                                    /*start_of_region=*/0, src_pos.seq,
+                                    src_pos.column,
+                                    NO_PARENT_MACRO_INVOCATION);
+      }  /* if */
+      add_entry_to_macro_text_map(&special_macro_arg->raw_text_map,
+                                  (sizeof_t)strlen(repl_text), /*seq=*/0,
+                                  SP_COL_UNKNOWN, NO_PARENT_MACRO_INVOCATION);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     }  /* if */
+#if MACRO_INVOCATION_TREE_IN_IL
+    if (is_macro_call) {
+      /* Only register real macro invocations. */
+      this_macro_invocation_record =
+                      register_macro_invocation(parent_macro_invocation_record,
+                                                macro_invocation_stack_depth,
+                                                mdp, &start_pos, &this_mirp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      this_mirp->end.seq = pos_curr_token.orig_seq;
+      this_mirp->end.column = pos_curr_token.orig_column +
+                                     (end_of_curr_token - start_of_curr_token);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    }  /* if */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
   } else {
     /* Function-like macro.  Look for a "(".  If the left parenthesis is
        not found, return the original identifier as simply an identifier. */
@@ -2656,6 +3596,17 @@ end_scan_for_macro_modifs:;
       macro_depth++;
       fetch_pp_tokens = TRUE;
       expand_macros = FALSE;
+#if MACRO_INVOCATION_TREE_IN_IL
+      /* Register this macro invocation.  We need to do this here so that we
+         can put the index of the macro invocation record into the source
+         line modifications used for expanding the macro arguments, so that
+         macro invocations in the argument list will list this invocation as
+         the parent. */
+      this_macro_invocation_record =
+                      register_macro_invocation(parent_macro_invocation_record,
+                                                macro_invocation_stack_depth,
+                                                mdp, &start_pos, &this_mirp);
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
       /* Get the "(" as a token, and delete its characters. */
       (void)arg_get_token(&any_white_space_skipped);
       add_stop_token(tok_rparen);
@@ -2725,6 +3676,13 @@ do_argument_again:
                                              arg_get_token_start_of_curr_token;
             scanning_text_not_in_primary_source_line = TRUE;
           }  /* if */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+          /* Initialize the position tracker for the raw text buffer.  Use
+             the current macro invocation record to stamp that context into
+             the map entries. */
+          init_text_map_position_tracker(&tracker, &map->raw_text_map,
+                                         this_macro_invocation_record);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
           /* A macro argument ends when we encounter:
                (a) the end of the current line or the current translation
                    unit, or
@@ -2757,6 +3715,15 @@ do_argument_again:
             token_text_len =
                           length_for_curr_token_save(need_end_of_token_marker,
                                                      any_white_space_skipped);
+#if FULLY_RESOLVED_MACRO_POSITIONS
+            /* Map the buffer offset (allowing for added spaces and escapes,
+               which are reflected in the difference between len_of_curr_token
+               and token_text_len and will occur before the token text itself)
+               to the original position of the token. */
+            next_targ_offset = map->raw_len +
+                                            token_text_len - len_of_curr_token;
+            add_token_to_macro_text_map(&tracker, next_targ_offset);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             ensure_arg_raw_text_space(token_text_len, map);
             add_curr_token_text_to_buffer(need_end_of_token_marker,
                                           any_white_space_skipped,
@@ -2792,6 +3759,9 @@ do_argument_again:
           ensure_arg_raw_text_space(LE_ESCAPE_LEN, map);
           map->raw_text[map->raw_len]   = LE_ESCAPE;
           map->raw_text[map->raw_len+1] = LE_END_OF_INSERTION;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+          terminate_macro_text_map(&tracker, map->raw_len+LE_ESCAPE_LEN);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if DEBUG
           if (debug_level >= 4) {
             fprintf(f_debug, "raw argument %s: \"",
@@ -2845,6 +3815,16 @@ do_argument_again:
                                        map->raw_text+map->raw_len);
           slmp->is_isolated_text = TRUE;
           slmp->source_position = start_pos;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+          /* Use the raw_text_map as the source line modification's
+             text_map. */
+          slmp->text_map.num_entries = map->raw_text_map.num_entries;
+          slmp->text_map.entries = map->raw_text_map.entries;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#if MACRO_INVOCATION_TREE_IN_IL
+          slmp->invocation_record = this_macro_invocation_record;
+          slmp->invocation_depth = macro_invocation_stack_depth;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
           if (map->initial_raw_text_not_in_primary_source_line != NULL) {
             /* Start in the macro-expanded part of the original text of the
                raw argument. */
@@ -2879,6 +3859,14 @@ do_argument_again:
           /* Ignore initial white space. */
           any_white_space_skipped = FALSE;  /* Should be FALSE already. */
           need_end_of_token_marker = FALSE;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+          /* Reinitialize the tracker for the scan through the raw text.  This
+             time we use NO_PARENT_MACRO_INVOCATION as the context to preserve
+             either the context set while scanning the raw text or the context
+             set by nested macro invocations. */
+          init_text_map_position_tracker(&tracker, &map->exp_text_map,
+                                         NO_PARENT_MACRO_INVOCATION);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 scan_expanded_tokens:
           /* Note that the tok_end_of_source here is returned because
              of the is_isolated_text flag; it's not actually the end of
@@ -2890,6 +3878,13 @@ scan_expanded_tokens:
                           length_for_curr_token_save(need_end_of_token_marker,
                                                      any_white_space_skipped);
             ensure_arg_expanded_text_space(token_text_len, map);
+#if FULLY_RESOLVED_MACRO_POSITIONS
+            /* Map the buffer offset (allowing for added spaces and escapes)
+               to the original position of the token. */
+            next_targ_offset = map->expanded_len +
+                                            token_text_len - len_of_curr_token;
+            add_token_to_macro_text_map(&tracker, next_targ_offset);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             add_curr_token_text_to_buffer(need_end_of_token_marker,
                                           any_white_space_skipped,
                                          map->expanded_text+map->expanded_len);
@@ -2914,6 +3909,9 @@ scan_expanded_tokens:
           ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
           map->expanded_text[map->expanded_len]   = LE_ESCAPE;
           map->expanded_text[map->expanded_len+1] = LE_END_OF_INSERTION;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+          terminate_macro_text_map(&tracker, map->expanded_len+LE_ESCAPE_LEN);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if DEBUG
           if (debug_level >= 4) {
             fprintf(f_debug, "expanded argument %s: \"",
@@ -2996,6 +3994,27 @@ end_arg_expansion:;
           map->expanded_len = 0;
           map->expanded_text[0] = LE_ESCAPE;
           map->expanded_text[1] = LE_END_OF_INSERTION;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+          /* Add empty text map entries. */
+          add_entry_to_macro_text_map(&map->raw_text_map,
+                                      /*start_of_region=*/0,
+                                      pos_curr_token.orig_seq,
+                                      pos_curr_token.orig_column,
+                                      this_macro_invocation_record);
+          add_entry_to_macro_text_map(&map->raw_text_map,
+                                      LE_ESCAPE_LEN, /*seq=*/0,
+                                      SP_COL_UNKNOWN,
+                                      this_macro_invocation_record);
+          add_entry_to_macro_text_map(&map->exp_text_map,
+                                      /*start_of_region=*/0,
+                                      pos_curr_token.orig_seq,
+                                      pos_curr_token.orig_column,
+                                      this_macro_invocation_record);
+          add_entry_to_macro_text_map(&map->exp_text_map,
+                                      LE_ESCAPE_LEN, /*seq=*/0,
+                                      SP_COL_UNKNOWN,
+                                      this_macro_invocation_record);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
           pp = pp->next;
           ++n_params;
         } while (pp != NULL);
@@ -3015,6 +4034,14 @@ end_arg_expansion:;
            runs into the end of file. */
         pos_error(ec_improperly_terminated_macro_call, &start_pos);
       }  /* if */
+#if MACRO_INVOCATION_TREE_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL
+      if (got_proper_closing_token) {
+        /* Record the ending position of the macro invocation, i.e., the
+           original position of the closing parenthesis. */
+        this_mirp->end.seq = pos_curr_token.orig_seq;
+        this_mirp->end.column = pos_curr_token.orig_column;
+      }  /* if */
+#endif /* MACRO_INVOCATION_TREE_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
   }  /* if */
 #if DEBUG
@@ -3087,10 +4114,32 @@ end_arg_expansion:;
   if (special_repl_text) {
     /* __LINE__,  __FILE__, or defined; the text is just a string. */
     (void)memcpy(src_loc, repl_text, size_t_arg(repl_text_len));
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    /* Remember where the text map entries begin for the source line
+       modification we will add and copy the entries from the special
+       argument. */
+    first_text_map_entry = macro_text_map.num_entries;
+    next_targ_offset = next_avail_in_macro_buffer - rescan_loc;
+    if (!pcc_mode_macro_recursion) {
+      int inert_macro_offset = (is_inert_macro) ? 2 : 0;
+      clone_macro_text_map_entries(&special_macro_arg->raw_text_map,
+                                   inert_macro_offset,
+                                   repl_text_len - inert_macro_offset,
+                                   &macro_text_map,
+                                   /*starting_targ_offset=*/0,
+                                   this_macro_invocation_record);
+    }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   } else {
     /* More complicated expansion; do it by interpreting the replacement
        text sections. */
     a_boolean prev_section_is_paste = FALSE;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    /* Remember where the text map entries begin for the source line
+       modification we will add. */
+    first_text_map_entry = macro_text_map.num_entries;
+    next_targ_offset = next_avail_in_macro_buffer - rescan_loc;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     for (rtp = repl_text; *rtp != (int)rt_null;) {
       rts_kind = (a_repl_text_seq_kind)*(rtp++);
       /* Extract the section length or argument number. */
@@ -3099,6 +4148,24 @@ end_arg_expansion:;
         sect_len = rts_number;
         text_loc = rtp;
         rtp += sect_len;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+        /* Clone the text map regions from the text section.  If the section
+           begins with an escape, possibly followed by a space, skip over
+           them -- the offsets in the text map reflect the location of the
+           first token, not that of the preceding escape sequence and/or
+           space character. */
+        bytes_before_token = (*text_loc == LE_ESCAPE) ? LE_ESCAPE_LEN : 0;
+        if (text_loc[bytes_before_token] == ' ') {
+          ++bytes_before_token;
+        }  /* if */
+        clone_macro_text_map_entries(
+                             &mdp->text_map,
+                             text_loc - mdp->repl_text + bytes_before_token,
+                             sect_len - bytes_before_token,
+                             &macro_text_map,
+                             src_loc - rescan_loc + bytes_before_token,
+                             this_macro_invocation_record);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
       } else if (rts_kind == rt_paste) {
         sect_len = 0;
       } else {
@@ -3145,6 +4212,15 @@ end_arg_expansion:;
                 *src_loc++ = '(';
                 /* Copy the function-name keyword. */
                 fnk_len = post_end - map->raw_text;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+                /* Copy the map entry for the function keyword. */
+                clone_macro_text_map_entries(&map->raw_text_map,
+                                             /*starting_src_offset=*/0,
+                                             fnk_len - 1,
+                                             &macro_text_map,
+                                             src_loc - rescan_loc,
+                                             this_macro_invocation_record);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
                 (void)memcpy(src_loc, text_loc, size_t_arg(fnk_len));
                 src_loc += fnk_len;
                 /* Add the closing parenthesis. */
@@ -3168,6 +4244,15 @@ end_arg_expansion:;
                    after the escape (the identifier name) in the normal
                    code below. */
                 sizeof_t initial_len = final_inert_escape - text_loc;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+                /* Copy the map entries for the text preceding the escape. */
+                clone_macro_text_map_entries(&map->raw_text_map,
+                                             text_loc - map->raw_text,
+                                             initial_len - 1,
+                                             &macro_text_map,
+                                             src_loc - rescan_loc,
+                                             this_macro_invocation_record);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
                 (void)memcpy(src_loc, text_loc,
                              size_t_arg(initial_len)); /*lint !e668 */
                 src_loc += initial_len;
@@ -3177,17 +4262,72 @@ end_arg_expansion:;
                 sect_len -= initial_len+LE_ESCAPE_LEN;
               }  /* if */
             }
+#if FULLY_RESOLVED_MACRO_POSITIONS
+            /* Copy the rest of the map entries (or all of them, if none were
+               copied above). */
+            ending_src_offset = map->raw_text_map.
+                    entries[map->raw_text_map.num_entries-1].start_of_region-1;
+            clone_macro_text_map_entries(&map->raw_text_map,
+                                         text_loc - map->raw_text,
+                                         ending_src_offset,
+                                         &macro_text_map,
+                                         src_loc - rescan_loc,
+                                         this_macro_invocation_record);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             break;
           case rt_stringized_raw_argument:
           case rt_charized_raw_argument:
             /* The stringized or charized value of the argument. */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+            /* Copy the raw text map entries. */
+            ending_src_offset = map->raw_text_map.
+                    entries[map->raw_text_map.num_entries-1].start_of_region-1;
+            clone_macro_text_map_entries(&map->raw_text_map,
+                                         /*starting_src_offset=*/0,
+                                         ending_src_offset,
+                                         &macro_text_map,
+                                         src_loc - rescan_loc,
+                                         this_macro_invocation_record);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             (void)stringized_arg(map, &src_loc,
                                  rts_kind == rt_charized_raw_argument);
+#if FULLY_RESOLVED_MACRO_POSITIONS
+            /* Add an extra entry to macro_text_map so that the ending
+               position of the stringized token will map to the last character
+               of the argument text.  The starting offset for the entry will
+               be the closing quote, i.e., one before the next available space
+               in the buffer, and the source position will be the same as the
+               last region in the argument's raw text map, offset to the end
+               of the argument text (i.e., one before the ending offset less
+               the final LE_END_OF_INSERTION escape). */
+            tmep = map->raw_text_map.entries + map->raw_text_map.num_entries-2;
+            src_offset = tmep[1].start_of_region - tmep[0].start_of_region -
+                                                             LE_ESCAPE_LEN - 1;
+            add_entry_to_macro_text_map(&macro_text_map,
+                                        src_loc - rescan_loc - 1,
+                                        tmep->corresponding_source_pos.seq,
+                                        tmep->corresponding_source_pos.column +
+                                                                    src_offset,
+                                        this_macro_invocation_record);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             goto copy_done;
           case rt_argument:
             /* The macro-expanded value of the argument. */
             sect_len = map->expanded_len;
             text_loc = map->expanded_text;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+            /* Copy the expanded text map entries, using
+               NO_PARENT_MACRO_INVOCATION as the macro context to preserve
+               the context from the expanded argument. */
+            ending_src_offset = map->exp_text_map.
+                    entries[map->exp_text_map.num_entries-1].start_of_region-1;
+            clone_macro_text_map_entries(&map->exp_text_map,
+                                         /*starting_src_offset=*/0,
+                                         ending_src_offset,
+                                         &macro_text_map,
+                                         src_loc - rescan_loc,
+                                         NO_PARENT_MACRO_INVOCATION);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             break;
 #if CHECKING
           default:
@@ -3237,6 +4377,28 @@ copy_done:
   }  /* if */
   slmp->assoc_macro = mdp;
   slmp->source_position = start_pos;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  if (first_text_map_entry == macro_text_map.num_entries) {
+    /* If the replacement text is empty, the loop exits immediately and no map
+       entries are copied.  Clone the initial map entry here. */
+    clone_macro_text_map_entries(&mdp->text_map, /*starting_src_offset=*/0,
+                                 /*src_region_len=*/0, &macro_text_map,
+                                 /*starting_targ_offset=*/0,
+                                 this_macro_invocation_record);
+  }  /* if */
+  /* Add a terminal entry to macro_text_map and point the source line
+     modification's text_map at the appropriate subset of those entries. */
+  add_entry_to_macro_text_map(&macro_text_map, next_targ_offset,
+                              /*seq=*/0, SP_COL_UNKNOWN,
+                              this_macro_invocation_record);
+  slmp->text_map.num_entries =
+                             macro_text_map.num_entries - first_text_map_entry;
+  slmp->text_map.entries = macro_text_map.entries + first_text_map_entry;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#if MACRO_INVOCATION_TREE_IN_IL
+  slmp->invocation_record = this_macro_invocation_record;
+  slmp->invocation_depth = macro_invocation_stack_depth;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
   /* Can't set the parent modification here without looking it up.  In
      particular, the modification from which the macro identifier came may
      not be the right one in the case of a multi-line macro call or when
@@ -3585,12 +4747,13 @@ parameter of the indicated macro (1-origined).
 }  /* macro_param_name */
 
 
-static void make_il_macro_entry(a_symbol_ptr          macro_sym,
-                                a_source_position_ptr macro_pos)
+static a_macro_ptr make_il_macro_entry(a_symbol_ptr          macro_sym,
+                                       a_source_position_ptr macro_pos)
 /*
 Create an IL entry for the macro described by macro_sym.  The macro has
 source position *macro_pos.  The IL entry contains a string version of
-the macro definition.
+the macro definition.  The return value is a pointer to the newly-created
+IL entry.
 */
 {
   a_macro_def_ptr      mdp = macro_sym->variant.macro_def;
@@ -3697,6 +4860,7 @@ the macro definition.
   mp->is_predefined = mdp->is_predefined;
   /* Add the macro to the IL list. */
   add_to_macros_list(mp);
+  return mp;
 }  /* make_il_macro_entry */
 
 #endif /* RECORD_MACROS_IN_IL */
@@ -3821,6 +4985,19 @@ Scan and process a #define directive.
   a_boolean       need_end_of_token_marker;
   static char     str_end_of_token_marker[LE_ESCAPE_LEN] =
                                                 { LE_ESCAPE, LE_END_OF_TOKEN };
+  a_macro_ptr     mp;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  a_text_map_position_tracker
+                  tracker;
+  sizeof_t        next_targ_offset;
+  sizeof_t        first_text_map_entry = macro_text_map.num_entries;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+                  start_of_replacement;
+  a_source_position
+                  end_of_replacement;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -4025,6 +5202,10 @@ Scan and process a #define directive.
       next_avail_in_macro_buffer = macro_buffer;
       num_chars_deleted_in_macro_buffer = 0;
       num_compacted_macro_buffer_chars = 0;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+      macro_text_map.num_entries = 0;
+      first_text_map_entry = 0;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     }  /* if */
     buffer_start = begin_macro_buffer_region();
     /* Not inside a cpp string. */
@@ -4037,6 +5218,11 @@ Scan and process a #define directive.
     /* Ignore leading white space.  See standard, 3.8.3, semantics. */
     any_white_space_skipped = FALSE;
     need_end_of_token_marker = FALSE;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    init_text_map_position_tracker(&tracker, &macro_text_map,
+                                   NO_PARENT_MACRO_INVOCATION);
+    start_of_replacement = pos_curr_token;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     while (curr_token != tok_newline) {
       if (curr_token == tok_paste) {
         /* "##".  Can be preceded and/or followed by a parameter, but
@@ -4169,6 +5355,20 @@ Scan and process a #define directive.
         } else {
           /* Any other tokens -- not special, just put into macro buffer
              as raw text. */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+          if (curr_command_line_macro_def == NULL) {
+            /* This token is from the source file, so we need register its
+               position in the macro text map.  (Command-line definitions are
+               handled all at once at the end of processing the definition.) */
+            next_targ_offset = next_avail_in_macro_buffer - buffer_start;
+            if (curr_text_section == NULL) {
+              /* Allow for the section header, which will be added before the
+                 token is stored. */
+              next_targ_offset += 1+NUM_BYTES_IN_MULTI_BYTE_REPL_TEXT_NUMBER;
+            }  /* if */
+            add_token_to_macro_text_map(&tracker, next_targ_offset);
+          }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
           put_text_to_macro_buffer(start_of_curr_token, len_of_curr_token);
           /* Request an end-of_token marker after this token.  This will be
              put out later unless the next thing is "##" or the end of the
@@ -4192,6 +5392,9 @@ Scan and process a #define directive.
         }  /* if */
       }  /* if */
     }  /* while */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    end_of_replacement = pos_curr_token;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     /* Store final terminator.  We've ensured that there is room for this. */
     *next_avail_in_macro_buffer = (char)rt_null;
     /* Not inside a cpp string.  Could still be set if there is an 
@@ -4257,6 +5460,32 @@ redef_error:
       mdp->param_list     = param_list;
       mdp->repl_text      = repl_text;
       mdp->variadic       = variadic;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+      if (curr_command_line_macro_def == NULL) {
+        /* The definition is in the program text, so the text map has been
+           built via add_token_to_macro_text_map.  We need to terminate that
+           map and then copy it to the one in the macro definition. */
+        sizeof_t num_entries;
+        terminate_macro_text_map(&tracker, repl_text_len+1);
+        num_entries = macro_text_map.num_entries - first_text_map_entry;
+        init_macro_text_map(num_entries, &mdp->text_map);
+        (void)memcpy((char *)mdp->text_map.entries,
+                     (char *)macro_text_map.entries,
+                     size_t_arg(num_entries * sizeof(a_macro_text_map_entry)));
+        mdp->text_map.num_entries = num_entries;
+      } else {
+        /* The definition came from the command line.  There are no positions
+           to map, so we just add a beginning and ending map entry, both
+           pointing to the command line. */
+        init_macro_text_map(2, &mdp->text_map);
+        add_entry_to_macro_text_map(&mdp->text_map, /*start_of_region=*/0,
+                                    /*seq=*/0, SP_COL_CMD_LINE,
+                                    NO_PARENT_MACRO_INVOCATION);
+        add_entry_to_macro_text_map(&mdp->text_map, repl_text_len, /*seq=*/0,
+                                    SP_COL_CMD_LINE,
+                                    NO_PARENT_MACRO_INVOCATION);
+      }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
       /* Put the macro def block pointer into the symbol entry. */
       assoc_symbol->variant.macro_def = mdp;
     }  /* if */
@@ -4264,7 +5493,11 @@ def_done:;
     if (assoc_symbol != NULL) {
 #if RECORD_MACROS_IN_IL
       /* Make an IL entry for the macro. */
-      make_il_macro_entry(assoc_symbol, &start_pos);
+      mp = make_il_macro_entry(assoc_symbol, &start_pos);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      mp->replacement_text_range.start = start_of_replacement;
+      mp->replacement_text_range.end = end_of_replacement;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* RECORD_MACROS_IN_IL */
       /* Mark the symbol as defined. */
       assoc_symbol->defined = FALSE;  /* Avoid secondary declarations. */
@@ -4894,10 +6127,22 @@ symbol entry is returned.
     if (mdp->repl_text != NULL) {
       a_source_position pos;
       pos.seq = 0;
-      pos.column = SP_COL_UNKNOWN;
-      make_il_macro_entry(sym_ptr, &pos);
+      pos.column = SP_COL_PREDEFINED_MACRO;
+      (void)make_il_macro_entry(sym_ptr, &pos);
     }  /* if */
 #endif /* RECORD_MACROS_IN_IL */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    /* There are no positions to map, so we just add a beginning and ending
+       map entry, both indicating the original location as a predefined
+       macro. */
+    init_macro_text_map(2, &mdp->text_map);
+    add_entry_to_macro_text_map(&mdp->text_map, /*start_of_region=*/0,
+                                /*seq=*/0, SP_COL_PREDEFINED_MACRO,
+                                NO_PARENT_MACRO_INVOCATION);
+    add_entry_to_macro_text_map(&mdp->text_map, repl_text_length, /*seq=*/0,
+                                SP_COL_PREDEFINED_MACRO,
+                                NO_PARENT_MACRO_INVOCATION);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   }  /* if */
   return(sym_ptr);
 }  /* enter_predef_macro */
@@ -5971,6 +7216,11 @@ Do one-time initialization of variables related to macro processing.
      memory. */
   macro_buffer = alloc_general((sizeof_t)(MACRO_BUFFER_INITIAL_ALLOCATION+1));
   after_end_of_macro_buffer = macro_buffer + MACRO_BUFFER_INITIAL_ALLOCATION;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  /* Initialize macro_text_map.  It is like macro_buffer, with its storage
+     surviving each source file and being extended as needed. */
+  init_macro_text_map(MACRO_TEXT_MAP_INITIAL_COUNT, &macro_text_map);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   if (pcc_preprocessing_mode || microsoft_mode) {
     /* Allocate the auxiliary buffer for pcc mode.  It is used to construct
        the full text of a first-level macro expansion so that the token
@@ -5982,10 +7232,17 @@ Do one-time initialization of variables related to macro processing.
                  (sizeof_t)(AUX_BUFFER_FOR_PCC_MACROS_INITIAL_ALLOCATION+1));
     after_end_of_aux_buffer_for_pcc_macros = aux_buffer_for_pcc_macros +
                                 AUX_BUFFER_FOR_PCC_MACROS_INITIAL_ALLOCATION;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    init_macro_text_map(AUX_TEXT_MAP_FOR_PCC_MACROS_INITIAL_COUNT,
+                        &aux_text_map_for_pcc_macros);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   } else {
     /* Auxiliary buffer will not be used. */
     aux_buffer_for_pcc_macros = NULL;
     after_end_of_aux_buffer_for_pcc_macros = NULL;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    init_macro_text_map(/*num_entries=*/0, &aux_text_map_for_pcc_macros);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   }  /* if */
   avail_macro_args = NULL;
 #if DEBUG
@@ -6019,6 +7276,11 @@ Do one-time initialization of variables related to macro processing.
       pch_saved_var_array_elem(param_name_string_space),
       pch_saved_var_array_elem(macro_definition_space),
 #endif /* DEBUG */
+#if MACRO_INVOCATION_TREE_IN_IL
+      pch_saved_var_array_elem(last_macro_invocation_record_block),
+      pch_saved_var_array_elem(num_macro_invocation_records),
+      pch_saved_var_array_elem(max_macro_invocation_depth),
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -6073,6 +7335,11 @@ after this function.
   assert_predicates = NULL;
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
   end_of_cpp_string = NULL;
+#if MACRO_INVOCATION_TREE_IN_IL
+  last_macro_invocation_record_block = NULL;
+  num_macro_invocation_records = 0;
+  max_macro_invocation_depth = 0;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 }  /* macro_trans_unit_init */
 
 
@@ -6084,6 +7351,9 @@ initialized for each compilation.
 {
   /* avail_macro_args is not per-compilation and should not be cleared. */
   num_macro_invocations_in_process = 0;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  active_text_map_position_trackers = NULL;
+#endif  /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if DEBUG
   num_macro_params_allocated    = 0;
   num_macro_defs_allocated      = 0;

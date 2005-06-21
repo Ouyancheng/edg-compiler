@@ -127,6 +127,10 @@ static unsigned long
 static unsigned long
 		num_macros_allocated;
 #endif /* RECORD_MACROS_IN_IL */
+#if MACRO_INVOCATION_TREE_IN_IL
+static unsigned long
+		num_macro_invocation_record_blocks_allocated;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 static unsigned long
 		num_decl_position_supplements_allocated;
@@ -3619,12 +3623,50 @@ fields, and return a pointer to it.
   mp->is_undef = FALSE;
   mp->is_command_line_definition = FALSE;
   mp->is_predefined = FALSE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  mp->replacement_text_range = null_source_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   mp->text = NULL;
 
   return mp;
 }  /* alloc_macro */
 
 #endif /* RECORD_MACROS_IN_IL */
+#if MACRO_INVOCATION_TREE_IN_IL
+
+a_macro_invocation_record_block_ptr alloc_macro_invocation_record_block(void)
+/*
+Allocate a macro invocation record block entry in the file-scope memory
+region, initialize the fields, and return a pointer to it.
+*/
+{
+  a_macro_invocation_record_block_ptr mirbp;
+  int                                 i;
+
+  mirbp = (a_macro_invocation_record_block_ptr)
+                             alloc_il(sizeof(a_macro_invocation_record_block));
+#if DEBUG
+  num_macro_invocation_record_blocks_allocated++;
+#endif /* DEBUG */
+  mirbp->first_record_in_block = 0;
+  mirbp->left_subtree = NULL;
+  mirbp->right_subtree = NULL;
+  mirbp->prev = NULL;
+  mirbp->next = NULL;
+  for (i = 0; i < MACRO_INVOCATION_RECORDS_PER_BLOCK; ++i) {
+    mirbp->records[i].parent_macro_index = NO_PARENT_MACRO_INVOCATION;
+    mirbp->records[i].assoc_macro = NULL;
+    mirbp->records[i].start.seq = 0;
+    mirbp->records[i].start.column = SP_COL_UNKNOWN;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    mirbp->records[i].end.seq = 0;
+    mirbp->records[i].end.column = SP_COL_UNKNOWN;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* for */
+
+  return mirbp;
+}  /* alloc_macro_invocation_record_block */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 
 void clear_decl_position_supplement(a_decl_position_supplement_ptr  dpsp)
@@ -3957,6 +3999,11 @@ Display and return the amount of space used for various IL tables.
 #if RECORD_MACROS_IN_IL
   db_space_used("macros", num_macros_allocated, a_macro);
 #endif /* RECORD_MACROS_IN_IL */
+#if MACRO_INVOCATION_TREE_IN_IL
+  db_space_used("macro_invocation_record_blocks",
+                num_macro_invocation_record_blocks_allocated,
+                a_macro_invocation_record_block);
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   db_space_used("decl-position supplement",
                 num_decl_position_supplements_allocated,
@@ -4401,6 +4448,10 @@ initializations that are done for each compilation.
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;
 #endif /* RECORD_MACROS_IN_IL */
+#if MACRO_INVOCATION_TREE_IN_IL
+  num_macro_invocation_record_blocks_allocated
+                                         = 0;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   num_decl_position_supplements_allocated = 0;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

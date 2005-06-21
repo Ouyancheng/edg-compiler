@@ -510,6 +510,12 @@ typedef struct a_macro_def {
   a_macro_ptr	macro;	/* The IL macro entry.  NULL for predefined macros
 			   and those defined on the command line. */
 #endif /* RECORD_MACROS_IN_IL */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  a_macro_text_map
+		text_map;
+			/* Map from offsets into repl_text to the original
+			   source locations from which the text came. */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 } a_macro_def;
 
 /*

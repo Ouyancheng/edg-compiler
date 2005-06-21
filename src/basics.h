@@ -552,15 +552,49 @@ typedef unsigned long
 			   indicates "unknown position".  A sequence
 			   number one larger than all those in use indicates
 			   "after end of file, after the last line". */
+#if FULLY_RESOLVED_MACRO_POSITIONS || MACRO_INVOCATION_TREE_IN_IL
+typedef long 	a_macro_invocation_record_index;
+			/* The index of a macro invocation record (defined in
+			   il_def.h; all we need is the index type here). */
+#define NO_PARENT_MACRO_INVOCATION -1L
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS || MACRO_INVOCATION_TREE_IN_IL */
 typedef struct a_source_position *a_source_position_ptr;
 typedef struct a_source_position {
   /* A source position: sequence number, column.  A source position with
      a sequence number of 0 indicates something special (see list below). */
-  /* Remember to change the macro copy source_position below if the
-     structure here is changed. */
+  /* Remember to change the struct a_simple_source_position and the macro
+     copy_source_position below if the structure here is changed. */
   a_seq_number	seq;
   a_column_number
 		column;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  /* The position originally occupied by the associated location.  If the
+     location occurs inside a macro expansion, seq and column will give the
+     position in the source text of the start of the top-level macro
+     invocation, while orig_seq and orig_column reflect the origin of the text
+     at that location in the macro buffer -- either from a macro argument in
+     the top-level macro invocation or from the text of a macro definition.
+     orig_seq will be 0 and orig_column will be SP_COL_PREDEFINED_MACRO or
+     SP_COL_CMD_LINE, respectively, for text resulting from the expansion of
+     predefined macros and macros defined on the command line.  If the
+     location is not within a macro expansion, orig_seq and orig_column will
+     have the same values as seq and column. */
+  a_seq_number	orig_seq;
+  a_column_number
+		orig_column;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#if MACRO_INVOCATION_TREE_IN_IL
+  a_macro_invocation_record_index
+		macro_context;
+			/* If this location occurs within a macro expansion,
+			   macro_context is the index of the associated
+			   macro invocation record within the macro
+			   invocation tree.  This index can be used to
+			   determine the macro associated with that expansion
+			   as well as its invocation tree.  If this location
+			   is not within a macro expansion, macro_context
+			   will have the value NO_PARENT_MACRO_INVOCATION. */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 } a_source_position;
 
 /*
@@ -577,6 +611,9 @@ following, indicating something special:
 			/* A special source position used for precompiled
 			   header processing to indicate that the header
 			   stop position is after the preincluded file. */
+
+#define SP_COL_PREDEFINED_MACRO 3
+			/* The position is in a predefined macro. */
 
 /* Macro to copy a source position. */
 #define copy_source_position(from, to) ((to) = (from))
@@ -596,19 +633,44 @@ Macro to compare two source positions.
 EXTERN a_source_position
 		null_source_position
 #if VAR_INITIALIZERS
-                                     = { 0, SP_COL_UNKNOWN }
+                                     = { 0, SP_COL_UNKNOWN
+#if FULLY_RESOLVED_MACRO_POSITIONS
+                                         , 0, SP_COL_UNKNOWN
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#if MACRO_INVOCATION_TREE_IN_IL
+                                         , NO_PARENT_MACRO_INVOCATION
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+                                       }
 #endif /* VAR_INITIALIZERS */
-                                                            ;
+                                       ;
 			/* NULL source position, for initialization. */
 
 EXTERN a_source_position
 		preinclude_source_position
 #if VAR_INITIALIZERS
-                                     = { 0, SP_PREINCLUDE }
+                                     = { 0, SP_PREINCLUDE
+#if FULLY_RESOLVED_MACRO_POSITIONS
+                                         , 0, SP_PREINCLUDE
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#if MACRO_INVOCATION_TREE_IN_IL
+                                         , NO_PARENT_MACRO_INVOCATION
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+                                       }
 #endif /* VAR_INITIALIZERS */
-                                                            ;
+                                       ;
 			/* Special position used for PCH processing of
 			   preincluded files. */
+
+#if FULLY_RESOLVED_MACRO_POSITIONS || MACRO_INVOCATION_TREE_IN_IL
+typedef struct a_simple_source_position *a_simple_source_position_ptr;
+typedef struct a_simple_source_position {
+  /* Indicates a source position without the dual-resolution (macro)
+     features of a_source_position. */
+  a_seq_number	seq;
+  a_column_number
+		column;
+} a_simple_source_position;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS || MACRO_INVOCATION_TREE_IN_IL */
 
 typedef enum /*a_C_dialect*/ {
   /* Possible C/C++ dialects to compile. */

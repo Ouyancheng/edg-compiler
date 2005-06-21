@@ -1897,6 +1897,26 @@ end_sizeof:;
       }
       break;
 #endif /* RECORD_MACROS_IN_IL */
+#if MACRO_INVOCATION_TREE_IN_IL
+    case iek_macro_invocation_record_block:
+      {
+        a_macro_invocation_record_block_ptr ptr =
+                                (a_macro_invocation_record_block_ptr)entry_ptr;
+        int                                 i;
+        walk_ptr(ptr->left_subtree, a_macro_invocation_record_block_ptr,
+                 iek_macro_invocation_record_block);
+        for (i = 0; i < MACRO_INVOCATION_RECORDS_PER_BLOCK; ++i) {
+          remap_ptr(ptr->records[i].assoc_macro, a_macro_ptr, iek_macro);
+        }  /* for */
+        walk_ptr(ptr->right_subtree, a_macro_invocation_record_block_ptr,
+                 iek_macro_invocation_record_block);
+        remap_ptr(ptr->next, a_macro_invocation_record_block_ptr,
+                  iek_macro_invocation_record_block);
+        remap_ptr(ptr->prev, a_macro_invocation_record_block_ptr,
+                  iek_macro_invocation_record_block);
+      }
+      break;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     case iek_decl_position_supplement:
       /* No pointers. */
@@ -3227,6 +3247,11 @@ pointers.  The subtree is not processed.
                  iek_type);
   remap_list_ptr(il_header.seq_number_lookup_entries,
                  a_seq_number_lookup_entry_ptr, iek_seq_number_lookup_entry);
+#if MACRO_INVOCATION_TREE_IN_IL
+  remap_ptr(il_header.root_macro_invocation_record_block,
+            a_macro_invocation_record_block_ptr,
+            iek_macro_invocation_record_block);
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
   /* region_scope_entry should not be changed; it's not a pointer into
      IL memory in the usual way.  It's changed explicitly as needed. */
   walk_remap_func = saved_walk_remap_func;

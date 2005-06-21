@@ -277,6 +277,12 @@ That is what the remap function does.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   walk_list(il_header.nontag_types_used_in_exception_or_rtti,
             a_type_ptr, iek_type);
+#if MACRO_INVOCATION_TREE_IN_IL
+  if (il_header.root_macro_invocation_record_block != NULL) {
+    walk_entry_and_subtree((char *)il_header.root_macro_invocation_record_block,
+                           iek_macro_invocation_record_block);
+  }  /* if */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
   /* Restore the state of global variables. */
   restore_il_walk_state(saved_state);
   db_exit();
@@ -1768,6 +1774,11 @@ only the entries marked as "needed" are marked to keep in the IL.
        keep_in_il flags have been set. */
     set_keep_in_il_on_source_sequence_entries(scope);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MACRO_INVOCATION_TREE_IN_IL
+    walk_ptr(il_header.root_macro_invocation_record_block,
+             a_macro_invocation_record_block_ptr,
+             iek_macro_invocation_record_block);
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 #if DEBUG
     if (db_flag_is_set("needed_flags")) {
       fprintf(f_debug, "Ending file scope keep_in_il walk\n");

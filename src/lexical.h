@@ -967,6 +967,68 @@ EXTERN an_input_stack_entry_ptr
 			   if depth_input_stack == -1. */
 
 
+#if FULLY_RESOLVED_MACRO_POSITIONS
+/*
+Data structures allowing offsets in a given buffer -- a macro definition,
+argument, or expansion -- to be translated into the source positions from
+which they originally came.
+*/
+typedef struct a_macro_text_map_entry *a_macro_text_map_entry_ptr;
+typedef struct a_macro_text_map_entry {
+  /* One of an array of entries that enables a given position in a macro
+     definition string, a macro argument, or a macro expansion (source line
+     modification) to be mapped into the corresponding source location.  Each
+     entry has an offset from the beginning of the text buffer of the macro
+     definition, argument, or expansion, and the source location to which it
+     corresponds. */
+  sizeof_t	start_of_region;
+  a_simple_source_position
+		corresponding_source_pos;
+#if MACRO_INVOCATION_TREE_IN_IL
+  a_macro_invocation_record_index
+		macro_context;
+			/* Identifies the macro invocation to which this
+			   entry belongs.  (Logically, this information is
+			   part of the source line modification with which
+			   this entry is associated.  However, in pcc and
+			   Microsoft modes, all the source line modifications
+			   for a given top-level macro invocation are
+			   coalesced into a single source line modification,
+			   so having the macro context here allows the parent
+			   macro chain to be preserved in spite of the loss of
+			   the source line modifications. */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+} a_macro_text_map_entry;
+
+typedef struct a_macro_text_map *a_macro_text_map_ptr;
+typedef struct a_macro_text_map {
+  /* A data structure that enables each offset in a macro definition string,
+     a macro argument, or a macro expansion (source line modification) to be
+     mapped to the corresponding source location.  This is done via a sorted
+     extensible array of a_macro_text_map_entry objects; each entry specifies
+     the corresponding source position for that offset in the text buffer of
+     the macro definition, argument, or expansion and, by extension, for all
+     offsets up to that of the next entry. */
+  sizeof_t	max_entries;
+			/* The number of a_macro_text_map_entry objects that
+			   can be stored in the current allocation of the
+			   entries array. */
+  sizeof_t	num_entries;
+			/* The number of a_macro_text_map_entry objects that
+			   are currently in the entries array. */
+  a_macro_text_map_entry_ptr
+		entries;
+			/* Pointer to an extensible array (i.e., must be
+			   allocated via alloc_resizable_buffer) of
+			   a_macro_text_map_entry objects.  These are kept
+			   in order of increasing offset into the buffer with
+			   which this map is associated.  (Note: the text map
+			   associated with source line modifications is not
+			   extensible but is managed differently; see the
+			   commentary there.) */
+} a_macro_text_map;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+
 /*
 Variables pertaining to the current logical source line.  A "logical"
 source line is what results after trigraph characters (see standard,
@@ -1295,6 +1357,38 @@ typedef struct a_source_line_modif {
 			   source line, placed in this modification so that
 			   it can be token-pasted with the end of a macro
 			   expansion in pcc mode. */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  a_macro_text_map
+		text_map;
+			/* A map of offsets within inserted_text to the
+			   original positions (macro definition and arguments)
+			   from which they came.  (This field is unused for
+			   modifications not resulting from macro expansions.)
+			   Note that this text map is not "standalone" -- the
+			   num_entries and entries fields denote a subset of
+			   the macro_text_map defined in macro.c, so this
+			   array is not extensible. */
+  int		num_active_position_trackers;
+			/* The number of a_text_map_position_trackers that are
+			   currently referring to this source line modif (see
+			   macro.c).  If the inserted text is compacted when
+			   the macro_buffer is reallocated, any position
+			   trackers referring to this source line modification
+			   may need to be updated accordingly. */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#if MACRO_INVOCATION_TREE_IN_IL
+  a_macro_invocation_record_index
+		invocation_record;
+			/* The invocation record for the macro invocation
+			   that resulted in this modification, or
+			   NO_PARENT_MACRO_INVOCATION if this modification is
+			   not the result of a macro expansion. */
+  a_macro_invocation_record_index
+		invocation_depth;
+			/* The depth in the invocation stack of this
+			   invocation (0 for modifications that are not the
+			   result of a macro expansion). */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 } a_source_line_modif;
 
 EXTERN a_source_line_modif_ptr
@@ -1809,6 +1903,17 @@ extern void finish_raw_listing_file(void);
 extern void add_source_line_modif_to_hash_table(a_source_line_modif_ptr slmp);
 extern void rem_source_line_modif_from_hash_table(
                                                 a_source_line_modif_ptr slmp);
+#if FULLY_RESOLVED_MACRO_POSITIONS
+extern int compare_macro_text_map_entry_with_offset(
+                                                   a_const_void_ptr offset_ptr,
+                                                   a_const_void_ptr entry_ptr);
+extern void get_source_pos_from_macro_text_map(
+                               a_macro_text_map_ptr            mtmp,
+                               sizeof_t                        offset,
+                               a_seq_number                    *seq,
+                               a_column_number                 *column,
+                               a_macro_invocation_record_index *macro_context);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 /* Add an entry recording a logical modification to the source line. */
 extern a_source_line_modif_ptr add_source_line_modif(
                           char                      *line_loc,

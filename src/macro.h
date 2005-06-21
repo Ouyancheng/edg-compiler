@@ -81,6 +81,16 @@ EXTERN a_symbol_ptr
 			/* Pointer to the symbol entry for the special
 			   GNU macro __BASE_FILE__. */
 
+#if MACRO_INVOCATION_TREE_IN_IL
+extern void copy_macro_invocation_tree_to_il(void);
+extern a_macro_invocation_record_ptr macro_invocation_record_at_index(
+                                                                    int index);
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+
+#if FULLY_RESOLVED_MACRO_POSITIONS
+extern void init_macro_text_map(sizeof_t             num_entries,
+                                a_macro_text_map_ptr mtmp);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
 /* Find a macro symbol on a list of symbols. */
 extern a_symbol_ptr find_defined_macro(a_symbol_header_ptr sym_hdr);

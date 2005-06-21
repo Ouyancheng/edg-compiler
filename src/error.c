@@ -29,6 +29,9 @@ error.c -- Error reporting routines.
 #include "il_write.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #include "pch.h"
+#if MACRO_INVOCATION_TREE_IN_IL
+#include "macro.h"
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /*
@@ -2545,7 +2548,29 @@ additional messages in a multiple message diagnostic.
   static a_boolean         source_text_needed;
   static a_boolean         in_current_source_line;
   int                      line_len;
+  a_source_position        local_pos;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  char                     *full_name;
+  a_boolean                at_end_of_source;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  /* Unless it is from a command-line or predefined macro, we will use the
+     original position of the text for the first part of the message.  (I.e.,
+     if the position is inside a macro expansion, we will refer to the point
+     in the macro definition or macro argument from which it was copied.)  For
+     text expanded from a predefined or command-line macro, there is no
+     original location to refer to, so we just use the normal (invocation)
+     position. */
+  if (error_pos->orig_seq != 0) {
+    local_pos.seq = error_pos->orig_seq;
+    local_pos.column = error_pos->orig_column;
+  } else {
+    local_pos = *error_pos;
+  }  /* if */
+#else /* !FULLY_RESOLVED_MACRO_POSITIONS */
+  local_pos = *error_pos;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   if ((int)severity < (int)error_threshold) {
     /* Ignore the message if its severity is below the threshold. */
   } else {
@@ -2566,11 +2591,25 @@ additional messages in a multiple message diagnostic.
 
     if (diag_kind == dck_standalone || diag_kind == dck_primary) {
       /* Collect and output error position and severity information. */
-      write_position_and_severity(error_code, severity, error_pos, &file_name,
+      write_position_and_severity(error_code, severity, &local_pos, &file_name,
                                   &line_number,
                                   &source_text_needed,
                                   &in_current_source_line,
                                   &line_len);
+#if FULLY_RESOLVED_MACRO_POSITIONS
+      if (local_pos.seq != error_pos->seq ||
+          local_pos.column != error_pos->column) {
+        /* The values of file_name and line_number set by
+           write_position_and_severity were based on the original position
+           in error_pos.  Those are possibly not suitable for use by
+           write_diag_to_raw_listing below, as they may reflect a macro
+           definition line, making it impossible to associate the error with
+           the section of code where it occurred.  We therefore reset those
+           values to reflect the normal position in error_pos. */
+        conv_seq_to_file_and_line(error_pos->seq, &file_name, &full_name,
+                                  &line_number, &at_end_of_source);
+      }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     }  /* if */
 
     if (diag_kind != dck_end_list && diag_kind != dck_end_context) {
@@ -2585,6 +2624,9 @@ additional messages in a multiple message diagnostic.
          the raw-listing file in coded form, for later incorporation into the
          listing.  */
       if (f_raw_listing != NULL) {
+        /* We will use the normal position, not the original position, for
+           the raw listing, because otherwise there is no way to figure out
+           where in the source code the error originated. */
         write_diag_to_raw_listing(severity, file_name, line_number,
                                   error_pos, diag_kind);
       }  /* if */
@@ -2599,12 +2641,91 @@ additional messages in a multiple message diagnostic.
            of the error. */
         if (in_current_source_line) {
           /* Write the source line text from the curr_source_line buffer. */
-          write_orig_source_line(error_pos);
+          write_orig_source_line(&local_pos);
         }  else {
           /* Write the source line text from the error_source_line buffer. */
-          write_error_source_line(error_pos);
+          write_error_source_line(&local_pos);
+        }  /* if */
+#if MACRO_INVOCATION_TREE_IN_IL
+        if (error_pos->macro_context != NO_PARENT_MACRO_INVOCATION) {
+          a_macro_invocation_record_index i;
+          a_macro_invocation_record_ptr   mirp;
+          for (i = error_pos->macro_context; i != NO_PARENT_MACRO_INVOCATION;
+               i = mirp->parent_macro_index) {
+            char          *macro_frame_file_name;
+            a_line_number macro_frame_line_number;
+            mirp = macro_invocation_record_at_index(i);
+            check_assertion(mirp != NULL);
+            if (mirp->parent_macro_index == NO_PARENT_MACRO_INVOCATION) {
+              /* With FULLY_RESOLVED_MACRO_POSITIONS, we'll print the source
+                 line for the outermost macro invocation below, so it would
+                 be redundant to print the summary line here. */
+              break;
+            }  /* if */
+            conv_seq_to_file_and_line(mirp->start.seq, &macro_frame_file_name,
+                                      &full_name, &macro_frame_line_number,
+                                      &at_end_of_source);
+            (void)fprintf(stderr, " in expansion of macro \"%s\" at \"",
+                          (mirp->assoc_macro != NULL) ?
+                          mirp->assoc_macro-> source_corresp.name :
+                          "<UNKNOWN>");
+            (void)write_file_name(macro_frame_file_name, stderr,
+                                  /*process_escapes=*/FALSE);
+            (void)fprintf(stderr, "\", line %lu%c\n",
+                          macro_frame_line_number,
+                          (mirp->parent_macro_index ==
+                           NO_PARENT_MACRO_INVOCATION) ? '.' : ',');
+          }  /* for */
+        }  /* if */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+      }  /* if */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+      if (local_pos.seq != error_pos->seq ||
+          local_pos.column != error_pos->column) {
+        /* The position displayed above was in a macro definition or
+           argument; now display the position of the macro call.  (This
+           code relies on the results of the call to
+           conv_seq_to_file_and_line above.) */
+        if (error_pos->seq == 0) {
+          /* Position in command line text, predefined macro, etc. --
+             nothing to print. */
+        } else {
+          if (at_end_of_source) {
+            /* Nothing to print. */
+          } else {
+            (void)fprintf(stderr, " in macro expansion at ");
+            if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
+              (void)fprintf(stderr, "line %lu (col. %d).\n", line_number,
+                            error_pos->column);
+            } else {
+              (void)fprintf(stderr, "\"");
+              (void)write_file_name(file_name, stderr,
+                                    /*process_escapes=*/FALSE);
+              source_text_needed = source_text_needed && !brief_diagnostics;
+              if (error_pos->seq < curr_seq_number) {
+                /* Not in current source line -- see if we can print it. */
+                source_text_needed = can_locate_source_line(error_pos->seq);
+              }  /* if */
+              if (source_text_needed) {
+                if (error_pos->seq >= curr_seq_number) {
+                  /* In current source line. */
+                  (void)fprintf(stderr, "\", line %lu:\n", line_number);
+                  write_orig_source_line(error_pos);
+                } else {
+                  /* Text is in the error source line. */
+                  (void)fprintf(stderr, "\", line %lu:\n", line_number);
+                  write_error_source_line(error_pos);
+                }  /* if */
+              } else {
+                /* No source line, just line and column number. */
+                (void)fprintf(stderr, "\", line %lu (col. %d).\n",
+                              line_number, error_pos->column);
+              }  /* if */
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     }  /* if */
     if ((diag_kind == dck_standalone || diag_kind == dck_end_list ||

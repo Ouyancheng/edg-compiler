@@ -543,6 +543,10 @@ typedef enum /*an_il_entry_kind*/ {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   iek_seq_number_lookup_entry,
 			/* a_seq_number_lookup_entry */
+#if MACRO_INVOCATION_TREE_IN_IL
+  iek_macro_invocation_record_block,
+			/* a_macro_invocation_record_block */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -680,6 +684,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_ms_attribute_arg */		"ms-attribute-arg",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* iek_seq_number_lookup_entry */	"seq-number-lookup-entry",
+#if MACRO_INVOCATION_TREE_IN_IL
+/* iek_macro_invocation_record_block */ "macro-invocation-record-block",
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -703,7 +710,21 @@ typedef struct a_source_range {
 EXTERN a_source_range
 		null_source_range
 #if VAR_INITIALIZERS
-                                  = {{0, SP_COL_UNKNOWN}, {0, SP_COL_UNKNOWN}}
+                                  = {{0, SP_COL_UNKNOWN
+#if FULLY_RESOLVED_MACRO_POSITIONS
+                                      , 0, SP_COL_UNKNOWN
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#if MACRO_INVOCATION_TREE_IN_IL
+                                      , NO_PARENT_MACRO_INVOCATION
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+                                     }, {0, SP_COL_UNKNOWN
+#if FULLY_RESOLVED_MACRO_POSITIONS
+                                         , 0, SP_COL_UNKNOWN
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#if MACRO_INVOCATION_TREE_IN_IL
+                                         , NO_PARENT_MACRO_INVOCATION
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+                                     }}
 #endif /* VAR_INITIALIZERS */
                                                                               ;
 			/* NULL source range, for initialization. */
@@ -10399,6 +10420,13 @@ typedef struct a_macro {
 		is_predefined;
 			/* TRUE if this entry is for a predefined macro
 			   (e.g., __DATE__). */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_range
+		replacement_text_range;
+			/* The beginning and ending source positions of the
+			   replacement text.  Will be null_source_range for
+			   predefined and command-line macros. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   char		*text;
 			/* A null-terminated string representing the text of
 			   the macro declaration, starting with the keyword
@@ -10407,6 +10435,117 @@ typedef struct a_macro {
 
 #endif /* RECORD_MACROS_IN_IL */
 
+#if MACRO_INVOCATION_TREE_IN_IL
+
+/*
+An entry representing a single invocation of a single macro, for use in the
+macro invocation tree.
+*/
+typedef struct a_macro_invocation_record *a_macro_invocation_record_ptr;
+typedef struct a_macro_invocation_record {
+  a_macro_invocation_record_index
+		parent_macro_index;
+			/* If non-negative, the index in the macro invocation
+			   tree of the macro invocation record for the macro
+			   expansion in which this macro invocation occurred.
+			   If equal to NO_PARENT_MACRO_INVOCATION, this macro
+			   invocation occurred directly in program text.
+			   All other negative values indicate that this
+			   macro invocation record does not denote an actual
+			   macro invocation but is simply a placeholder
+			   specifying the number of levels of nesting that
+			   are to be popped in the transition to the next
+			   record.  (A single-level pop is implicit.) */
+  a_macro_ptr	assoc_macro;
+			/* The macro whose expansion this invocation record
+			   represents.  Will be NULL for negative values of
+			   parent_macro_index other than
+			   NO_PARENT_MACRO_INVOCATION. */
+  a_simple_source_position
+		start;	/* The original location of the macro name for this
+			   invocation (i.e., if this invocation occurs in
+			   the expansion of another, this position will be in
+			   either a macro definition line or in a macro
+			   argument). */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_simple_source_position
+		end;	/* The original location of the last character of the
+			   macro invocation -- i.e., the last character of the
+			   name for an object-like macro or the position of
+			   the closing parenthesis for a function-like
+			   macro. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+} a_macro_invocation_record;
+
+/*
+A block of macro invocation records, part of the macro invocation tree.
+Because representing variable-length data in the IL is awkward, the macro
+invocation records are grouped into blocks and the blocks arranged into a
+binary tree.  This represents a compromise between ease of representation and
+efficiency.  (During front-end processing, the blocks are kept in a doubly-
+linked list and are reorganized into a binary tree at the end of processing,
+when the total number of records is known, before assigning the root of the
+tree to il_header.root_macro_invocation_record_block.)
+*/
+#define MACRO_INVOCATION_RECORDS_PER_BLOCK 128
+			/* Number of macro invocation records in
+			   a_macro_invocation_record_block. */
+typedef struct a_macro_invocation_record_block 
+                                          *a_macro_invocation_record_block_ptr;
+typedef struct a_macro_invocation_record_block {
+  a_macro_invocation_record_index
+		first_record_in_block;
+			/* The index represented by the first macro invocation
+			   record in this block.  That is, the array of macro
+			   invocation records represents the range of indices
+			   from first_record_in_block up through
+			   first_record_in_block +
+			   MACRO_INVOCATION_RECORDS_PER_BLOCK-1. */
+  a_macro_invocation_record_block_ptr
+		left_subtree;
+			/* Pointer to a binary tree containing all the macro
+			   invocation records whose indices are less than that
+			   of the first record in this block (NULL if
+			   first_record_in_block is 0). */
+  a_macro_invocation_record_block_ptr
+		right_subtree;
+			/* Pointer to a binary tree containing all the macro
+			   invocation records whose indices are greater than
+			   that of the last record in this block (NULL if this
+			   block contains the last invocation record in this
+			   subtree). */
+  a_macro_invocation_record_block_ptr
+		prev;
+			/* Pointer to the previous block in the doubly-linked
+			   list, or NULL for the first block in the list. */
+  a_macro_invocation_record_block_ptr
+		next;
+			/* Pointer to the next block in the doubly-linked
+			   list, or NULL for the last block in the list. */
+  a_macro_invocation_record
+		records[MACRO_INVOCATION_RECORDS_PER_BLOCK];
+			/* The macro invocation records for this block. */
+} a_macro_invocation_record_block;
+
+/*
+A macro to set mirp to point to the macro invocation record for a specified
+index, given a pointer to the root block in the binary tree (i.e.,
+il_header.root_macro_invocation_record_block).
+*/
+#define set_macro_inv_record_ptr_to_index(root, index, mirp)                  \
+  { a_macro_invocation_record_block_ptr this_block = (root);                  \
+    a_macro_invocation_record_index     idx = (index);                        \
+    while (this_block != NULL &&                                              \
+           !(idx >= this_block->first_record_in_block &&                      \
+             idx < this_block->first_record_in_block +                        \
+                                       MACRO_INVOCATION_RECORDS_PER_BLOCK)) { \
+      this_block = (idx < this_block->first_record_in_block) ?                \
+                        this_block->left_subtree : this_block->right_subtree; \
+    }  /* while */                                                            \
+    (mirp) = (this_block != NULL) ?                                           \
+      this_block->records + (idx - this_block->first_record_in_block) : NULL; \
+  }
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 
 enum an_object_lifetime_kind_tag {
   olk_global_static,	/* Lifetime of file-scope global variables. */
@@ -11268,6 +11407,22 @@ typedef struct an_il_header {
   unsigned long	num_seq_number_lookup_entries;
 			/* The number of sequence number lookup entries in
 			   use. */ 
+#if MACRO_INVOCATION_TREE_IN_IL
+  a_macro_invocation_record_index
+		num_macro_invocation_records;
+			/* The number of macro invocation records in the macro
+			   invocation tree.  This number includes placeholder
+			   records that represent multi-level stack pops, so
+			   it will typically be larger than the actual number
+			   of macro invocations that were performed. */
+  int		max_macro_invocation_depth;
+			/* The number of levels in the deepest part of the
+			   macro invocation tree. */
+  a_macro_invocation_record_block_ptr
+		root_macro_invocation_record_block;
+			/* Pointer to the root block in the binary tree of
+			   macro invocation record blocks. */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 } an_il_header;
 
 EXTERN an_il_header il_header;
@@ -11512,6 +11667,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_ms_attribute_arg),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sizeof(a_seq_number_lookup_entry),
+#if MACRO_INVOCATION_TREE_IN_IL
+  sizeof(a_macro_invocation_record_block),
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

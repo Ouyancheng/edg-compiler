@@ -2010,6 +2010,93 @@ original source line because of trigraphs and line splices.
   return(olmp);
 }  /* add_orig_line_modif */
 
+
+#if FULLY_RESOLVED_MACRO_POSITIONS
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+BEGIN_EXTERN_C_BLOCK
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
+int compare_macro_text_map_entry_with_offset(a_const_void_ptr offset_ptr,
+                                             a_const_void_ptr entry_ptr)
+/*
+Comparison function used by bsearch to test whether a given offset is in the
+range of a specified macro text map entry.  This assumes that the specified
+macro text map entry always has a succeeding entry, i.e., that the entries in
+a given macro text map will always have a terminating entry whose offset is
+higher than any actual offset.
+*/
+{
+  a_macro_text_map_entry_ptr mtmep = (a_macro_text_map_entry_ptr)entry_ptr;
+  sizeof_t                   offset = *(sizeof_t*)offset_ptr;
+  int                        result;
+  if (offset >= mtmep[0].start_of_region &&
+      offset < mtmep[1].start_of_region) {
+    /* The offset is in the range of this entry. */
+    result = 0;
+  } else if (offset < mtmep->start_of_region) {
+    /* The matching entry precedes this one. */
+    result = -1;
+  } else {
+    /* The matching entry follows this one. */
+    result = 1;
+  }  /* if */
+  return result;
+}  /* compare_macro_text_map_entry_with_offset */
+
+
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+END_EXTERN_C_BLOCK
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
+
+void get_source_pos_from_macro_text_map(
+                                a_macro_text_map_ptr            mtmp,
+                                sizeof_t                        offset,
+                                a_seq_number                    *seq,
+                                a_column_number                 *column,
+                                a_macro_invocation_record_index *macro_context)
+/*
+Find the source position associated with the specified offset in the specified
+macro text map and return the results in *seq, *column, and *macro_context.
+*/
+{
+  a_macro_text_map_entry_ptr mtmep;
+  /* Call bsearch to find the macro text map entry that covers the specified
+     offset.  Note the "-1" in the bsearch argument for the number of entries;
+     the last entry is assumed to be a terminator whose offset is larger than
+     any actual offset in the text buffer.  This allows the search routine to
+     rely on having a "next" entry for the range comparison in all cases. */
+  mtmep = (a_macro_text_map_entry_ptr)bsearch(
+                                     (a_bsearch_arg_type)&offset,
+                                     (a_bsearch_arg_type)mtmp->entries,
+                                     size_t_arg(mtmp->num_entries-1),
+                                     sizeof(a_macro_text_map_entry),
+                                     compare_macro_text_map_entry_with_offset);
+  check_assertion_str2(mtmep != NULL, "get_source_pos_from_macro_text_map:",
+                       "offset not found");
+  /* Copy the corresponding source position, with the appropriate offset from
+     the start of the region. */
+  *seq = mtmep->corresponding_source_pos.seq;
+  if (mtmep->corresponding_source_pos.seq != 0) {
+    /* Apply the offset from the start of the region in the buffer to the
+       column position. */
+    *column = mtmep->corresponding_source_pos.column +
+                                             (offset - mtmep->start_of_region);
+  } else {
+    /* Special positions like predefined macros and command line macros are
+       identified by special values of the column field, which must be
+       maintained verbatim. */
+    *column = mtmep->corresponding_source_pos.column;
+  }  /* if */
+#if MACRO_INVOCATION_TREE_IN_IL
+  *macro_context = mtmep->macro_context;
+#else /* !MACRO_INVOCATION_TREE_IN_IL */
+  *macro_context = NO_PARENT_MACRO_INVOCATION;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+}  /* get_source_pos_from_macro_text_map */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+
+
 /*
 Compute the hash value to be used in source_line_modif_hash_table for
 the indicated address (often the line_loc field value of a source
@@ -2142,6 +2229,14 @@ invocations.
                             = SP_COL_UNKNOWN;
   slmp->text_from_primary_source_line
                             = NULL;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  init_macro_text_map(/*num_entries=*/0, &slmp->text_map);
+  slmp->num_active_position_trackers = 0;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#if MACRO_INVOCATION_TREE_IN_IL
+  slmp->invocation_record   = NO_PARENT_MACRO_INVOCATION;
+  slmp->invocation_depth    = 0;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
   if (line_loc != NULL) {
     /* Normal case: line_loc points to the point of insertion.  Save the
        original character, and replace it with a marker that will call
@@ -4359,6 +4454,13 @@ macro_line_loc_to_source_pos should be used when speed is critical.
   char                    *start_of_curr_phys_line = curr_source_line;
   a_seq_number            seq_number               = curr_seq_number;
   int                     column_adjustment        = 0;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  a_boolean               use_orig_position = FALSE;
+  a_seq_number            orig_seq;
+  a_column_number         orig_column;
+  a_macro_invocation_record_index
+                          macro_context;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
   if (in_token_insertion_from_string) {
     /* We are processing a token insertion from a string.  Just use
@@ -4376,6 +4478,13 @@ macro_line_loc_to_source_pos should be used when speed is critical.
        convert.  Remember the innermost modification entry in orig_slmp
        so the position can be put into it once determined. */
     orig_slmp = slmp = assoc_source_line_modif(adj_loc_in_line);
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    get_source_pos_from_macro_text_map(&orig_slmp->text_map,
+                                       loc_in_line - orig_slmp->inserted_text,
+                                       &orig_seq, &orig_column,
+                                       &macro_context);
+    use_orig_position = TRUE;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     for (;;) {
       /* If a source line modification includes a source position, we
          are done. */
@@ -4450,8 +4559,48 @@ have_position:
      this routine faster. */
   if (orig_slmp != NULL) orig_slmp->source_position = *position_var;
 done:
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  if (use_orig_position) {
+    /* The position is in a macro expansion -- copy the original position,
+       too. */
+    position_var->orig_seq = orig_seq;
+    position_var->orig_column = orig_column;
+#if MACRO_INVOCATION_TREE_IN_IL
+    position_var->macro_context = macro_context;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+  } else if (!in_token_insertion_from_string) {
+    /* The position is in the current source, so the original position is the
+       same as the normal position. */
+    position_var->orig_seq = position_var->seq;
+    position_var->orig_column = position_var->column;
+#if MACRO_INVOCATION_TREE_IN_IL
+    position_var->macro_context = NO_PARENT_MACRO_INVOCATION;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+  }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   return;
 }  /* conv_line_loc_to_source_pos */
+
+
+#if FULLY_RESOLVED_MACRO_POSITIONS
+/* Copy the normal position (seq and column) to orig_seq and orig_column, as
+   required for positions in ordinary source text, not part of a macro
+   expansion. */
+#define copy_pos_to_orig_pos(position_var) \
+  (position_var).orig_seq    = (position_var).seq; \
+  (position_var).orig_column = (position_var).column;
+#else /* !FULLY_RESOLVED_MACRO_POSITIONS */
+#define copy_pos_to_orig_pos(position_var) /* nothing */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+
+#if MACRO_INVOCATION_TREE_IN_IL
+/* Set the macro context to NO_PARENT_MACRO_INVOCATION, as required for
+   positions in ordinary source text, not part of a macro expansion. */
+#define set_macro_context_to_none(position_var) \
+  (position_var).macro_context = NO_PARENT_MACRO_INVOCATION;
+#else /* !MACRO_INVOCATION_TREE_IN_IL */
+#define set_macro_context_to_none(position_var) /* nothing */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 
 
 /*
@@ -4474,6 +4623,8 @@ most common case.
        orig_line_modif_list == NULL)) { \
     (position_var).seq    = curr_seq_number; \
     (position_var).column = (loc_in_line) - curr_source_line + 1; \
+    copy_pos_to_orig_pos((position_var)); \
+    set_macro_context_to_none((position_var)); \
   } else { \
     conv_line_loc_to_source_pos((loc_in_line), &(position_var)); \
   }  /* if */ \

@@ -961,6 +961,11 @@ source file's compilation.
 #if ONE_INSTANTIATION_PER_OBJECT
   il_header.number_of_external_nonclass_template_entities = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if MACRO_INVOCATION_TREE_IN_IL
+  il_header.num_macro_invocation_records = 0;
+  il_header.max_macro_invocation_depth = 0;
+  il_header.root_macro_invocation_record_block = NULL;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
   if (pp_output_file_needed) {
     /* Open the preprocessing output file. */
     open_pp_output_file();
@@ -1136,6 +1141,9 @@ when it is a secondary file.
 #if RECORD_MACROS_IN_IL
   il_header.macros = NULL;
 #endif /* RECORD_MACROS_IN_IL */
+#if MACRO_INVOCATION_TREE_IN_IL
+  il_header.root_macro_invocation_record_block = NULL;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
   /* Suppress PCH processing on secondary translation units. */
   if (!is_primary_translation_unit) {
     abandon_pch_processing();

@@ -314,6 +314,9 @@ be written.
 #ifdef FFE
       case iek_namelist_group:
 #endif /* ifdef FFE */
+#if RECORD_MACROS_IN_IL
+      case iek_macro:
+#endif /* RECORD_MACROS_IN_IL */
       case iek_template_parameter:
         /* Entry has a source correspondence field. */
         name = ((a_constant_ptr)entry_ptr)->source_corresp.name;
@@ -447,6 +450,27 @@ string.  Note that nothing is printed out when *pos is null_source_position.
     disp_unsigned_long(buffer, (unsigned long)pos->seq);
     (void)sprintf(buffer, "%s.column", str);
     disp_unsigned_long(buffer, (unsigned long)pos->column);
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    if (pos->orig_seq != pos->seq || pos->orig_column != pos->column) {
+      /* If the orig_seq/orig_column are different from seq/column, they
+         represent the location from which the text was copied into a macro
+         expansion (from a macro definition or macro argument) and should be
+         printed. */
+      (void)sprintf(buffer, "%s.orig_seq", str);
+      disp_unsigned_long(buffer, (unsigned long)pos->orig_seq);
+      (void)sprintf(buffer, "%s.orig_column", str);
+      disp_unsigned_long(buffer, (unsigned long)pos->orig_column);
+    }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#if MACRO_INVOCATION_TREE_IN_IL
+    if (pos->macro_context != NO_PARENT_MACRO_INVOCATION) {
+      /* Values other than NO_PARENT_MACRO_INVOCATION indicate that the
+         position is in the expansion of the macro invocation whose record is
+         indexed by macro_context: print it. */
+      (void)sprintf(buffer, "%s.macro_context", str);
+      disp_long(buffer, (long)pos->macro_context);
+    }  /* if */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
   }  /* if */
 }  /* disp_source_position */
 
@@ -4376,10 +4400,75 @@ Display the indicated macro entry.
   disp_boolean("is_command_line_definition",
                (a_boolean)ptr->is_command_line_definition);
   disp_boolean("is_predefined", (a_boolean)ptr->is_predefined);
+  disp_source_range("replacement_text_range", &ptr->replacement_text_range);
   disp_string_ptr("text", ptr->text, iek_other_text, (sizeof_t)0);
 }  /* disp_macro */
 
 #endif /* RECORD_MACROS_IN_IL */
+
+#if MACRO_INVOCATION_TREE_IN_IL
+
+static void disp_simple_source_position(char                      *str,
+                                        a_simple_source_position  *pos)
+/*
+Display the indicated source position, preceding it with the specified
+string.  Note that nothing is printed out when *pos is (the
+simple-source-position portion of) null_source_position.
+*/
+{
+  char buffer[40];
+
+  check_assertion(str != NULL);
+  if (pos->seq != 0 || pos->column != 0) {
+    (void)sprintf(buffer, "%s.seq", str);
+    disp_unsigned_long(buffer, (unsigned long)pos->seq);
+    (void)sprintf(buffer, "%s.column", str);
+    disp_unsigned_long(buffer, (unsigned long)pos->column);
+  }  /* if */
+}  /* disp_simple_source_position */
+
+static void disp_macro_invocation_record(a_macro_invocation_record_ptr   mirp,
+                                         a_macro_invocation_record_index idx)
+/*
+Display the fields of the specified macro invocation record, which is at
+offset idx.
+*/
+{
+  (void)printf("\nmacro_invocation_record#%ld\n", (long)idx);
+  disp_long("parent_macro_index", (long)mirp->parent_macro_index);
+  disp_ptr("assoc_macro", (char*)mirp->assoc_macro, iek_macro);
+  disp_simple_source_position("start", &mirp->start);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_simple_source_position("end", &mirp->end);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* disp_macro_invocation_record */
+
+static void disp_macro_invocation_record_block(
+                                   a_macro_invocation_record_block_ptr mirbp,
+                                   a_macro_invocation_record_index num_records)
+/*
+Display, in numerical order,  the tree of macro invocation records rooted in
+mirbp, up through index num_records-1.
+*/
+{
+  a_macro_invocation_record_index num_records_to_display;
+  int                             i;
+  if (mirbp->left_subtree != NULL) {
+    disp_macro_invocation_record_block(mirbp->left_subtree, num_records);
+  }  /* if */
+  num_records_to_display = num_records - mirbp->first_record_in_block;
+  if (num_records_to_display > MACRO_INVOCATION_RECORDS_PER_BLOCK) {
+    num_records_to_display = MACRO_INVOCATION_RECORDS_PER_BLOCK;
+  }  /* if */
+  for (i = 0; i < num_records_to_display; ++i) {
+    disp_macro_invocation_record(mirbp->records + i, i);
+  }  /* for */
+  if (mirbp->right_subtree != NULL) {
+    disp_macro_invocation_record_block(mirbp->right_subtree, num_records);
+  }  /* if */
+}  /* disp_macro_invocation_record_block */
+
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 
 static void disp_seq_number_lookup_entry(a_seq_number_lookup_entry_ptr ptr)
 /*
@@ -5646,6 +5735,9 @@ This routine is called during IL walking.
     case iek_ms_attribute_arg:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
+#if MACRO_INVOCATION_TREE_IN_IL
+    case iek_macro_invocation_record_block:
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
       break;
     default:
       (void)printf("\n");
@@ -5978,6 +6070,17 @@ Display the IL for the file scope in human-readable form.
   disp_ptr("seq_number_lookup_entries",
            (char *)il_header.seq_number_lookup_entries,
            iek_seq_number_lookup_entry);
+#if MACRO_INVOCATION_TREE_IN_IL
+  disp_long("num_macro_invocation_records",
+            (long)il_header.num_macro_invocation_records);
+  disp_long("max_macro_invocation_depth",
+            (long)il_header.max_macro_invocation_depth);
+  if (il_header.root_macro_invocation_record_block != NULL) {
+    disp_macro_invocation_record_block(
+                                  il_header.root_macro_invocation_record_block,
+                                  il_header.num_macro_invocation_records);
+  }  /* if */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,
                      (a_remap_function_ptr)NULL, (a_remap_function_ptr)NULL,
                      (a_walk_termination_test_function_ptr)NULL,

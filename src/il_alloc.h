@@ -222,6 +222,11 @@ extern a_template_ptr alloc_template(void);
 extern a_macro_ptr alloc_macro(void);
 #endif /* RECORD_MACROS_IN_IL */
 
+#if MACRO_INVOCATION_TREE_IN_IL
+extern a_macro_invocation_record_block_ptr alloc_macro_invocation_record_block(
+                                                                         void);
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 extern void clear_decl_position_supplement(a_decl_position_supplement *dpsp);
 
