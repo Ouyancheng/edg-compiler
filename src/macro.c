@@ -389,20 +389,34 @@ static a_text_map_position_tracker_ptr
 
 
 void init_macro_text_map(sizeof_t             num_entries,
-                         a_macro_text_map_ptr mtmp)
+                         a_macro_text_map_ptr mtmp,
+                         a_boolean            resizable)
 /*
 Initialize a macro text map object with room for num_entries macro text map
-entries.
+entries.  If resizable is TRUE, the space will be allocated so that the array
+can be extended to accommodate more entries; otherwise, it will be allocated
+in front-end memory so it can be saved in a precompiled header.
 */
 {
   if (num_entries != 0) {
-    mtmp->entries = (a_macro_text_map_entry_ptr)alloc_resizable_buffer(
+    if (resizable) {
+      /* The map can grow -- use alloc resizable_buffer. */
+      mtmp->entries = (a_macro_text_map_entry_ptr)alloc_resizable_buffer(
                        (sizeof_t)(num_entries*sizeof(a_macro_text_map_entry)));
+    } else {
+      /* The map is fixed size -- use alloc_fe. */
+      mtmp->entries = (a_macro_text_map_entry_ptr)alloc_fe(
+                       (sizeof_t)(num_entries*sizeof(a_macro_text_map_entry)));
+      }  /* if */
   } else {
+    /* No entries for now (i.e., will probably be just a reference to entries
+       that are part of another text map). */
+    mtmp->max_entries = 0;
     mtmp->entries = NULL;
   }  /* if */
   mtmp->max_entries = num_entries;
   mtmp->num_entries = 0;
+  mtmp->resizable = resizable;
 }  /* init_macro_text_map */
 
 
@@ -422,10 +436,8 @@ map entries, extending the array of entries if necessary.
     a_boolean                  source_line_modifs_need_adjustment =
                                                      (mtmp == &macro_text_map);
     sizeof_t                   new_max_entries = mtmp->max_entries * 2;
-    /* Make sure this is an extensible map -- maps that are just subranges of
-       others, like the one in a_source_line_modif, have a max_entries value
-       of 0 to indicate that they cannot be extended independently. */
-    check_assertion(new_max_entries > 0);
+    /* Make sure this map can be extended. */
+    check_assertion(mtmp->resizable);
     if (mtmp->num_entries + num_entries > new_max_entries) {
       /* Doubling wasn't enough for the requested number.  This only happens
          when a block of entries is desired (e.g., for copying the
@@ -1546,7 +1558,7 @@ Clear a macro definition entry to default values.
   mdp->macro                               = NULL;
 #endif /* RECORD_MACROS_IN_IL */
 #if FULLY_RESOLVED_MACRO_POSITIONS
-  init_macro_text_map(/*num_entries=*/0, &mdp->text_map);
+  init_macro_text_map(/*num_entries=*/0, &mdp->text_map, /*resizable=*/FALSE);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 }  /* clear_macro_def */
 
@@ -1616,9 +1628,9 @@ and return a pointer to it.
 #endif /* DEBUG */
 #if FULLY_RESOLVED_MACRO_POSITIONS
     init_macro_text_map(MACRO_ARGUMENT_TEXT_MAP_INITIAL_COUNT,
-                        &map->raw_text_map);
+                        &map->raw_text_map, /*resizable=*/TRUE);
     init_macro_text_map(MACRO_ARGUMENT_TEXT_MAP_INITIAL_COUNT,
-                        &map->exp_text_map);
+                        &map->exp_text_map, /*resizable=*/TRUE);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   } /* if */
   map->next         = NULL;
@@ -5471,7 +5483,7 @@ redef_error:
         sizeof_t num_entries;
         terminate_macro_text_map(&tracker, repl_text_len+1);
         num_entries = macro_text_map.num_entries - first_text_map_entry;
-        init_macro_text_map(num_entries, &mdp->text_map);
+        init_macro_text_map(num_entries, &mdp->text_map, /*resizable=*/FALSE);
         (void)memcpy((char *)mdp->text_map.entries,
                      (char *)macro_text_map.entries,
                      size_t_arg(num_entries * sizeof(a_macro_text_map_entry)));
@@ -5480,7 +5492,7 @@ redef_error:
         /* The definition came from the command line.  There are no positions
            to map, so we just add a beginning and ending map entry, both
            pointing to the command line. */
-        init_macro_text_map(2, &mdp->text_map);
+        init_macro_text_map(2, &mdp->text_map, /*resizable=*/FALSE);
         add_entry_to_macro_text_map(&mdp->text_map, /*start_of_region=*/0,
                                     /*seq=*/0, SP_COL_CMD_LINE,
                                     NO_PARENT_MACRO_INVOCATION);
@@ -6138,7 +6150,7 @@ symbol entry is returned.
     /* There are no positions to map, so we just add a beginning and ending
        map entry, both indicating the original location as a predefined
        macro. */
-    init_macro_text_map(2, &mdp->text_map);
+    init_macro_text_map(2, &mdp->text_map, /*resizable=*/FALSE);
     add_entry_to_macro_text_map(&mdp->text_map, /*start_of_region=*/0,
                                 /*seq=*/0, SP_COL_PREDEFINED_MACRO,
                                 NO_PARENT_MACRO_INVOCATION);
@@ -7222,7 +7234,8 @@ Do one-time initialization of variables related to macro processing.
 #if FULLY_RESOLVED_MACRO_POSITIONS
   /* Initialize macro_text_map.  It is like macro_buffer, with its storage
      surviving each source file and being extended as needed. */
-  init_macro_text_map(MACRO_TEXT_MAP_INITIAL_COUNT, &macro_text_map);
+  init_macro_text_map(MACRO_TEXT_MAP_INITIAL_COUNT, &macro_text_map,
+                      /*resizable=*/TRUE);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   if (pcc_preprocessing_mode || microsoft_mode) {
     /* Allocate the auxiliary buffer for pcc mode.  It is used to construct
@@ -7237,14 +7250,15 @@ Do one-time initialization of variables related to macro processing.
                                 AUX_BUFFER_FOR_PCC_MACROS_INITIAL_ALLOCATION;
 #if FULLY_RESOLVED_MACRO_POSITIONS
     init_macro_text_map(AUX_TEXT_MAP_FOR_PCC_MACROS_INITIAL_COUNT,
-                        &aux_text_map_for_pcc_macros);
+                        &aux_text_map_for_pcc_macros, /*resizable=*/TRUE);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   } else {
     /* Auxiliary buffer will not be used. */
     aux_buffer_for_pcc_macros = NULL;
     after_end_of_aux_buffer_for_pcc_macros = NULL;
 #if FULLY_RESOLVED_MACRO_POSITIONS
-    init_macro_text_map(/*num_entries=*/0, &aux_text_map_for_pcc_macros);
+    init_macro_text_map(/*num_entries=*/0, &aux_text_map_for_pcc_macros,
+                        /*resizable=*/FALSE);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   }  /* if */
   avail_macro_args = NULL;

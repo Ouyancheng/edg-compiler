@@ -89,7 +89,8 @@ extern a_macro_invocation_record_ptr macro_invocation_record_at_index(
 
 #if FULLY_RESOLVED_MACRO_POSITIONS
 extern void init_macro_text_map(sizeof_t             num_entries,
-                                a_macro_text_map_ptr mtmp);
+                                a_macro_text_map_ptr mtmp,
+                                a_boolean            resizable);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
 /* Find a macro symbol on a list of symbols. */

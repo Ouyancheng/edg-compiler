@@ -2230,7 +2230,7 @@ invocations.
   slmp->text_from_primary_source_line
                             = NULL;
 #if FULLY_RESOLVED_MACRO_POSITIONS
-  init_macro_text_map(/*num_entries=*/0, &slmp->text_map);
+  init_macro_text_map(/*num_entries=*/0, &slmp->text_map, /*resizable=*/FALSE);
   slmp->num_active_position_trackers = 0;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if MACRO_INVOCATION_TREE_IN_IL

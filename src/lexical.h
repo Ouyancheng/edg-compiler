@@ -1016,6 +1016,13 @@ typedef struct a_macro_text_map {
   sizeof_t	num_entries;
 			/* The number of a_macro_text_map_entry objects that
 			   are currently in the entries array. */
+  a_boolean	resizable;
+			/* If TRUE, the entries array is allocated using
+			   alloc_resizable_buffer and can be extended to
+			   accommodate more entries.  If FALSE, the array is
+			   allocated in front-end memory (and thus will be
+			   saved in precompiled headers) and is fixed in
+			   size. */
   a_macro_text_map_entry_ptr
 		entries;
 			/* Pointer to an extensible array (i.e., must be
