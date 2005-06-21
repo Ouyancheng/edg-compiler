@@ -2680,12 +2680,13 @@ additional messages in a multiple message diagnostic.
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
       }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
-      if (local_pos.seq != error_pos->seq ||
-          local_pos.column != error_pos->column) {
-        /* The position displayed above was in a macro definition or
-           argument; now display the position of the macro call.  (This
-           code relies on the results of the call to
-           conv_seq_to_file_and_line above.) */
+      if (local_pos.seq != error_pos->seq) {
+        /* The position displayed above was in a macro definition or argument;
+           now display the position of the macro call (for a macro argument,
+           display the macro call source line only if it is different from the
+           one containing the argument, to avoid repetition).  (This code
+           relies on the results of the call to conv_seq_to_file_and_line
+           above.) */
         if (error_pos->seq == 0) {
           /* Position in command line text, predefined macro, etc. --
              nothing to print. */
