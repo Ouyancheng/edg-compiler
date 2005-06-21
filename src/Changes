@@ -1,5 +1,17 @@
 Version 3.7
 
+6/21/05  GNU C++ compatibility: Block-extern declaration conflicts
+
+GNU C++ compilers accept block-extern declarations of routines (or variables)
+whose names conflict with previously-declared namespace variables (or
+routines).  The behavior is now emulated by the EDG front end (with a warning)
+when the routine has C++ name linkage.  For example:
+
+  int x;
+  void f() {
+    void x(int);  // Accepted in GNU C++ mode.
+  }
+
 6/20/05  Minor issues with front end reinitialization changes
 
 The changes made to allow the front end to be restarted introduced several

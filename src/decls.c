@@ -2909,7 +2909,23 @@ created; the caller must set it.
     }  /* if */
     if (ext_sym_kind != ext_sym->kind) {
       /* The old entity is a variable and the new one is a routine, or
-         vice-versa; error. */
+         vice-versa.  This is normally an error, but GNU C++ compilers
+         accept the code if this is a block-extern declaration.  We only
+         emulate the GNU behavior (with a warning) if the function has C++
+         name linkage. */
+      if (gpp_mode && idlbp->is_block_extern_decl) {
+        /* Reduce the error to a warning if the routine has C++ name
+           linkage. */
+        a_name_linkage_kind  name_linkage;
+        if (ext_sym->kind == (a_symbol_kind)sk_extern_routine) {
+          name_linkage = scp->name_linkage;
+        } else {
+          name_linkage = idlbp->name_linkage;
+        }  /* if */
+        if (name_linkage == (a_name_linkage_kind)nlk_cplusplus_external) {
+          incomp_severity = es_warning;
+        }  /* if */
+      }  /* if */
       if (!suppress_incompatible_error) {
         pos_sy_diagnostic(incomp_severity,
                           ec_decl_incompatible_with_previous_use,
