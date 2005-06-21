@@ -922,7 +922,6 @@ invocation record block.
 {
   int                             num_blocks_in_tree;
   int                             num_blocks_in_left_subtree;
-  int                             i;
   a_macro_invocation_record_index first_record_in_root_block;
 
   if (mirbp != NULL) {
