@@ -5223,8 +5223,10 @@ Scan and process a #define directive.
 #if FULLY_RESOLVED_MACRO_POSITIONS
     init_text_map_position_tracker(&tracker, &macro_text_map,
                                    NO_PARENT_MACRO_INVOCATION);
-    start_of_replacement = pos_curr_token;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    start_of_replacement = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     while (curr_token != tok_newline) {
       if (curr_token == tok_paste) {
         /* "##".  Can be preceded and/or followed by a parameter, but
@@ -5394,9 +5396,9 @@ Scan and process a #define directive.
         }  /* if */
       }  /* if */
     }  /* while */
-#if FULLY_RESOLVED_MACRO_POSITIONS
+#if EXTRA_SOURCE_POSITIONS_IN_IL
     end_of_replacement = pos_curr_token;
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Store final terminator.  We've ensured that there is room for this. */
     *next_avail_in_macro_buffer = (char)rt_null;
     /* Not inside a cpp string.  Could still be set if there is an 
