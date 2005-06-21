@@ -4985,7 +4985,9 @@ Scan and process a #define directive.
   a_boolean       need_end_of_token_marker;
   static char     str_end_of_token_marker[LE_ESCAPE_LEN] =
                                                 { LE_ESCAPE, LE_END_OF_TOKEN };
+#if RECORD_MACROS_IN_IL
   a_macro_ptr     mp;
+#endif /* RECORD_MACROS_IN_IL */
 #if FULLY_RESOLVED_MACRO_POSITIONS
   a_text_map_position_tracker
                   tracker;
