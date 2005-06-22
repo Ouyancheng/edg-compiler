@@ -2648,20 +2648,12 @@ additional messages in a multiple message diagnostic.
         }  /* if */
 #if MACRO_INVOCATION_TREE_IN_IL
         if (error_pos->macro_context != NO_PARENT_MACRO_INVOCATION) {
-          a_macro_invocation_record_index i;
-          a_macro_invocation_record_ptr   mirp;
-          for (i = error_pos->macro_context; i != NO_PARENT_MACRO_INVOCATION;
-               i = mirp->parent_macro_index) {
+          a_macro_invocation_record_ptr   mirp =
+                    macro_invocation_record_at_index(error_pos->macro_context);
+          while (mirp != NULL &&
+                 mirp->parent_macro_index != NO_PARENT_MACRO_INVOCATION) {
             char          *macro_frame_file_name;
             a_line_number macro_frame_line_number;
-            mirp = macro_invocation_record_at_index(i);
-            check_assertion(mirp != NULL);
-            if (mirp->parent_macro_index == NO_PARENT_MACRO_INVOCATION) {
-              /* With FULLY_RESOLVED_MACRO_POSITIONS, we'll print the source
-                 line for the outermost macro invocation below, so it would
-                 be redundant to print the summary line here. */
-              break;
-            }  /* if */
             conv_seq_to_file_and_line(mirp->start.seq, &macro_frame_file_name,
                                       &full_name, &macro_frame_line_number,
                                       &at_end_of_source);
@@ -2671,10 +2663,13 @@ additional messages in a multiple message diagnostic.
                           "<UNKNOWN>");
             (void)write_file_name(macro_frame_file_name, stderr,
                                   /*process_escapes=*/FALSE);
+            mirp = macro_invocation_record_at_index(mirp->parent_macro_index);
+            check_assertion(mirp != NULL);
             (void)fprintf(stderr, "\", line %lu%c\n",
                           macro_frame_line_number,
                           (mirp->parent_macro_index ==
-                           NO_PARENT_MACRO_INVOCATION) ? '.' : ',');
+                           NO_PARENT_MACRO_INVOCATION &&
+                           local_pos.seq == error_pos->seq) ? '.' : ',');
           }  /* for */
         }  /* if */
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
