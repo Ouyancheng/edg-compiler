@@ -13245,6 +13245,15 @@ check_for_semicolon:
   /* Check for a final semicolon. */
   if (required_token_no_advance(tok_semicolon, ec_exp_semicolon)) {
 advance_past_final_token:
+#if GENERATE_SOURCE_SEQUENCE_LISTS && EXTRA_SOURCE_POSITIONS_IN_IL
+    if (depth_stmt_stack >= 0) {
+      a_statement_ptr  decl_stmt =
+                       struct_stmt_stack[depth_stmt_stack].curr_decl_statement;
+      if (decl_stmt != NULL) {
+        decl_stmt->end_position = pos_curr_token;
+      }  /* if */
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && EXTRA_SOURCE_POSITIONS_IN_IL */
     if (access_checks_deferred) {
       /* We are processing a declaration for which access checks were
          deferred.  Normally, any deferred checks will have already been

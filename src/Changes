@@ -1,5 +1,20 @@
 Version 3.7
 
+6/22/05  End position of stmk_decl statements
+
+In configurations with both GENERATE_SOURCE_SEQUENCE_LISTS and
+EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE, the front end failed to record
+the end position of a declaration associated with an stmk_decl statement.
+For example:
+
+  void f() {
+    int a, b, c;  // Declaration may have associated stmk_decl entry.
+  }               // Previously, no end position was recorded in the entry.
+                  // Now the end position is the position of the semicolon.
+
+This is now fixed: The position of the semicolon terminating such declarations
+is recorded in the end_position field of the stmk_decl statement.
+
 6/21/05  GNU C++ compatibility: Block-extern declaration conflicts
 
 GNU C++ compilers accept block-extern declarations of routines (or variables)
