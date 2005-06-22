@@ -954,45 +954,6 @@ enable this only if you really need it.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 /*
-Flag that is TRUE if the IL should contain information detailing the tree
-of macro invocations from the translation unit.  This also expands source
-positions to include a mechanism for determining the macro invocation stack
-in effect at the point the position was captured.
-*/
-#ifndef MACRO_INVOCATION_TREE_IN_IL
-#define MACRO_INVOCATION_TREE_IN_IL FALSE
-#else /* defined(MACRO_INVOCATION_TREE_IN_IL) */
-#if MACRO_INVOCATION_TREE_IN_IL
-#ifndef RECORD_MACROS_IN_IL
-#define RECORD_MACROS_IN_IL TRUE
-#else /* defined(RECORD_MACROS_IN_IL) */
-#if !RECORD_MACROS_IN_IL
- #error -- RECORD_MACROS_IN_IL must be TRUE when \
-           MACRO_INVOCATION_TREE_IN_IL is set.
-#endif /* !RECORD_MACROS_IN_IL */
-#endif /* ifndef RECORD_MACROS_IN_IL */
-#ifndef FULLY_RESOLVED_MACRO_POSITIONS
-#define FULLY_RESOLVED_MACRO_POSITIONS TRUE
-#else /* defined(FULLY_RESOLVED_MACRO_POSITIONS) */
-#if !FULLY_RESOLVED_MACRO_POSITIONS
- #error -- FULLY_DEFINED_MACRO_POSITIONS must be TRUE when \
-           MACRO_INVOCATION_TREE_IN_IL is set.
-#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
-#endif /* ifndef FULLY_RESOLVED_MACRO_POSITIONS */
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
-#endif /* ifndef MACRO_INVOCATION_TREE_IN_IL */
-
-/*
-Flag that is TRUE to add an extra seq/column pair to source positions, giving
-the original location of text that occurs in a macro expansion (i.e., the
-location in the macro argument or macro definition from which the text was
-copied into the macro expansion).
-*/
-#ifndef FULLY_RESOLVED_MACRO_POSITIONS
-#define FULLY_RESOLVED_MACRO_POSITIONS FALSE
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-
-/*
 Flag that is TRUE to cause the IL entry for a statement to contain a full
 source position (sequence number, column number) instead of just a
 sequence number.  It should always be TRUE if EXTRA_SOURCE_POSITIONS_IN_IL
