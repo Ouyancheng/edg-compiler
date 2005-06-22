@@ -2916,13 +2916,13 @@ created; the caller must set it.
       if (gpp_mode && idlbp->is_block_extern_decl) {
         /* Reduce the error to a warning if the routine has C++ name
            linkage. */
-        a_name_linkage_kind  name_linkage;
+        a_name_linkage_kind  rtn_name_linkage;
         if (ext_sym->kind == (a_symbol_kind)sk_extern_routine) {
-          name_linkage = scp->name_linkage;
+          rtn_name_linkage = scp->name_linkage;
         } else {
-          name_linkage = idlbp->name_linkage;
+          rtn_name_linkage = idlbp->name_linkage;
         }  /* if */
-        if (name_linkage == (a_name_linkage_kind)nlk_cplusplus_external) {
+        if (rtn_name_linkage == (a_name_linkage_kind)nlk_cplusplus_external) {
           incomp_severity = es_warning;
         }  /* if */
       }  /* if */
