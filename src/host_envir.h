@@ -2251,7 +2251,8 @@ extern char *make_module_id(void);
 
 extern unsigned long write_file_name(char      *name,
                                      FILE      *f_output,
-                                     a_boolean process_escapes);
+                                     a_boolean process_escapes,
+				     a_boolean escape_nonprintable_chars);
 
 extern char *suffix_of(char		*file_name);
 

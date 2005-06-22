@@ -1,5 +1,19 @@
 Version 3.7
 
+6/22/05  Output of file names containing multibyte characters
+
+When a file name is output in a diagnostic message, nonprintable
+characters are no longer output using escape sequences.  This is done
+so that file names containing multibyte characters will be output as
+expected by users.  File names that are emitted in #line directives in
+preprocessed output or in generated C or C++ files are still emitted
+with escape sequences.  Note that version 3.5 changed the behavior of
+extended ASCII characters (those >= 128) in file names.  See the 4/20/05
+Changes entry for more information.  That change caused characters >= 128
+to be emitted without escapes in both error messages and #line directives.
+This change restores the escapes when such file names are emitted in #line
+directives.
+
 6/22/05  End position of stmk_decl statements
 
 In configurations with both GENERATE_SOURCE_SEQUENCE_LISTS and

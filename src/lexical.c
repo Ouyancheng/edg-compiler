@@ -2504,7 +2504,8 @@ else.  This routine should only be called when generate_pp_output is TRUE.
     /* Put out the file name.  For ANSI/ISO output, add escapes as
        necessary. */
     (void)write_file_name(curr_ise->file_name, f_pp_output,
-                          /*process_escapes=*/!pcc_preprocessing_mode);
+                          /*process_escapes=*/!pcc_preprocessing_mode,
+                          /*escape_nonprintable_chars=*/TRUE);
     fputc('"', f_pp_output);
 #if GEN_EXTRA_LINE_ID_INFO
     if (pcc_preprocessing_mode) {

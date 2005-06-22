@@ -565,7 +565,7 @@ Write a #line directive for the indicated line number and file.
     (void)putc(' ', f_C_output);
     (void)putc('"', f_C_output);
     (void)write_file_name(curr_output_file->file_name, f_C_output,
-                          process_escapes);
+                          process_escapes, /*escape_nonprintable_chars=*/TRUE);
     (void)putc('"', f_C_output);
     if (gcc_is_generated_code_target &&
         new_output_file->from_system_include_dir) {

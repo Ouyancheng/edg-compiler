@@ -3320,13 +3320,19 @@ file names are not known to be relative to the current directory.
 
 unsigned long write_file_name(char      *name,
                               FILE      *f_output,
-                              a_boolean process_escapes)
+                              a_boolean process_escapes,
+			      a_boolean escape_nonprintable_chars)
 /*
 Write out the null-terminated file name "name" to the output file f_output.
-If process_escapes is TRUE, escape special characters as necessary.
-Return the number of characters written.  The caller must put out
-surrounding quotes if they are needed.  This routine is used to write
-out the file name in #line directives and error messages.
+If process_escapes is TRUE, an escape is added for quotes and backslashes.
+If escape_nonprintable_chars is TRUE, nonprintable characters will be
+put out using escape sequences.  Escape processing is generally suppressed
+for names appearing in error messages, so that multibyte characters will
+be output without escapes.  Escape processing is done when outputting names
+in preprocessed output, and similar contexts.  Return the number of characters
+written.  The caller must put out surrounding quotes if they are needed.
+This routine is used to write out the file name in #line directives and
+error messages.
 */
 {
   char          *p;
@@ -3334,11 +3340,13 @@ out the file name in #line directives and error messages.
 
   for (p = name; *p != '\0'; p++) {
     char ch = *p;
-    if (isprint((unsigned char)ch) || (unsigned char)ch >= 128) {
-      /* If the character is >= 128 treat it as printable.  This is done so
-         that characters from extended character-sets will be output as
-         expected and not as octal escapes.  We have to assume that each such
-         character occupies a single position in the length returned. */
+    if (!escape_nonprintable_chars || isprint((unsigned char)ch)) {
+      /* If the character is printable, or if we are not escaping nonprintable
+         characters, emit the character normally.  This is done so that
+         characters from extended character sets and multibyte characters will
+         be output as expected and not as octal escapes.  We have to assume
+         that each such character occupies a single position in the length
+         returned. */
       if (process_escapes && (ch == '"' || ch == '\\')) {
         putc('\\', f_output);
         len++;

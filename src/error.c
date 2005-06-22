@@ -2381,7 +2381,8 @@ the output.
            name should be displayed as written by the user.  This also
            prevents doubling of directory separators on Windows. */
         *line_len += write_file_name(*file_name, stderr,
-                                     /*process_escapes=*/FALSE);
+                                     /*process_escapes=*/FALSE,
+                                     /*escape_nonprintable_chars=*/FALSE);
         *line_len += fprintf(stderr, "\", line %lu", *line_number);
       }  /* if */
       if (column_needed) {
@@ -2662,7 +2663,8 @@ additional messages in a multiple message diagnostic.
                           mirp->assoc_macro-> source_corresp.name :
                           "<UNKNOWN>");
             (void)write_file_name(macro_frame_file_name, stderr,
-                                  /*process_escapes=*/FALSE);
+                                  /*process_escapes=*/FALSE,
+                                  /*escape_nonprintable_chars=*/FALSE);
             mirp = macro_invocation_record_at_index(mirp->parent_macro_index);
             check_assertion(mirp != NULL);
             (void)fprintf(stderr, "\", line %lu%c\n",
@@ -2696,7 +2698,8 @@ additional messages in a multiple message diagnostic.
             } else {
               (void)fprintf(stderr, "\"");
               (void)write_file_name(file_name, stderr,
-                                    /*process_escapes=*/FALSE);
+                                    /*process_escapes=*/FALSE,
+                                    /*escape_nonprintable_chars=*/FALSE);
               source_text_needed = source_text_needed && !brief_diagnostics;
               if (error_pos->seq < curr_seq_number) {
                 /* Not in current source line -- see if we can print it. */
