@@ -1996,6 +1996,10 @@ from the PCH file) to reflect the information loaded from the file.
       (void)take_next_scope_number();
     }  /* for */
   }
+  /* Update the translation unit stack entry to refer to the restored
+     translation unit entry.  There should only be one entry on the stack. */
+  check_assertion(curr_translation_unit_stack_entry->next == NULL);
+  curr_translation_unit_stack_entry->translation_unit = curr_translation_unit;
   /* Clear the stop tokens array that was restored. */
   clear_stop_tokens();
   /* Reset the directory name list.  It points to a list of entries in
