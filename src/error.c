@@ -2635,6 +2635,7 @@ additional messages in a multiple message diagnostic.
     }  /* if */
 
     if (diag_kind == dck_standalone || diag_kind == dck_end_list) {
+      a_boolean stack_trace_printed = FALSE;
 #if !STANDALONE_UTILITY_PROGRAM
       if (source_text_needed && !brief_diagnostics &&
           (diag_kind == dck_standalone || diag_kind == dck_end_list)) {
@@ -2649,30 +2650,60 @@ additional messages in a multiple message diagnostic.
         }  /* if */
 #if MACRO_INVOCATION_TREE_IN_IL
         if (error_pos->macro_context != NO_PARENT_MACRO_INVOCATION) {
-          a_macro_invocation_record_ptr   mirp =
+          a_macro_invocation_record_ptr   mirp;
+          int                             stack_depth = 0;
+          int                             i;
+          a_boolean                       frames_omitted_msg_printed = FALSE;
+          for (mirp =
                     macro_invocation_record_at_index(error_pos->macro_context);
-          while (mirp != NULL &&
-                 mirp->parent_macro_index != NO_PARENT_MACRO_INVOCATION) {
-            char          *macro_frame_file_name;
-            a_line_number macro_frame_line_number;
-            conv_seq_to_file_and_line(mirp->start.seq, &macro_frame_file_name,
-                                      &full_name, &macro_frame_line_number,
-                                      &at_end_of_source);
-            (void)fprintf(stderr, " in expansion of macro \"%s\" at \"",
-                          (mirp->assoc_macro != NULL) ?
-                          mirp->assoc_macro-> source_corresp.name :
-                          "<UNKNOWN>");
-            (void)write_file_name(macro_frame_file_name, stderr,
-                                  /*process_escapes=*/FALSE,
-                                  /*escape_nonprintable_chars=*/FALSE);
-            mirp = macro_invocation_record_at_index(mirp->parent_macro_index);
-            check_assertion(mirp != NULL);
-            (void)fprintf(stderr, "\", line %lu%c\n",
-                          macro_frame_line_number,
-                          (mirp->parent_macro_index ==
-                           NO_PARENT_MACRO_INVOCATION &&
-                           local_pos.seq == error_pos->seq) ? '.' : ',');
+               mirp != NULL;
+               mirp =
+                  macro_invocation_record_at_index(mirp->parent_macro_index)) {
+            ++stack_depth;
           }  /* for */
+          mirp = macro_invocation_record_at_index(error_pos->macro_context);
+          for (i = 0; i < stack_depth; ++i) {
+            if (i < 5 || i >= stack_depth - 5) {
+              char          *macro_frame_file_name;
+              a_line_number macro_frame_line_number;
+              conv_seq_to_file_and_line(mirp->start.seq, &macro_frame_file_name,
+                                        &full_name, &macro_frame_line_number,
+                                        &at_end_of_source);
+              (void)fprintf(stderr, " in expansion of macro \"%s\" at ",
+                            (mirp->assoc_macro != NULL) ?
+                            mirp->assoc_macro-> source_corresp.name :
+                            "<UNKNOWN>");
+              if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
+                (void)fprintf(stderr, "line %lu", macro_frame_line_number);
+              } else {
+                (void)fprintf(stderr, "\"");
+                (void)write_file_name(macro_frame_file_name, stderr,
+                                      /*process_escapes=*/FALSE,
+                                      /*escape_nonprintable_chars=*/FALSE);
+                (void)fprintf(stderr, "\", line %lu", macro_frame_line_number);
+              }  /* if */
+              if (mirp->parent_macro_index == NO_PARENT_MACRO_INVOCATION) {
+                /* This is the last frame of the stack trace. */
+                if (local_pos.seq == error_pos->seq) {
+                  /* There will be no source line printed; end the message
+                     with a '.'.  (Otherwise, the line termination will be
+                     handled by the code below, to allow for cases where the
+                     source line might have been printed but isn't. */
+                  (void)fprintf(stderr, ".\n");
+                }  /* if */
+              } else {
+                /* There are more stack frames coming, end this line with a
+                   ','. */
+                (void)fprintf(stderr, ",\n");
+              }  /* if */
+            } else if (!frames_omitted_msg_printed) {
+              (void)fprintf(stderr, " [ %d macro expansions not shown ]\n",
+                            stack_depth - 10);
+              frames_omitted_msg_printed = TRUE;
+            }  /* if */
+            mirp = macro_invocation_record_at_index(mirp->parent_macro_index);
+          }  /* for */
+          stack_trace_printed = TRUE;
         }  /* if */
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
       }  /* if */
@@ -2684,43 +2715,50 @@ additional messages in a multiple message diagnostic.
            one containing the argument, to avoid repetition).  (This code
            relies on the results of the call to conv_seq_to_file_and_line
            above.) */
-        if (error_pos->seq == 0) {
-          /* Position in command line text, predefined macro, etc. --
-             nothing to print. */
+        if (error_pos->seq == 0 || at_end_of_source) {
+          /* Nothing to print here. */
+          if (stack_trace_printed) {
+            /* Terminate the last line. */
+            (void)fprintf(stderr, ".\n");
+          }  /* if */
         } else {
-          if (at_end_of_source) {
-            /* Nothing to print. */
-          } else {
+          source_text_needed = source_text_needed && !brief_diagnostics;
+          if (error_pos->seq < curr_seq_number) {
+            /* Not in current source line -- see if we can print it. */
+            source_text_needed = can_locate_source_line(error_pos->seq);
+          }  /* if */
+          if (!stack_trace_printed) {
+            /* The location was not printed above; do so now. */
             (void)fprintf(stderr, " in macro expansion at ");
             if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
-              (void)fprintf(stderr, "line %lu (col. %d).\n", line_number,
+              (void)fprintf(stderr, "line %lu (col. %d)", line_number,
                             error_pos->column);
             } else {
               (void)fprintf(stderr, "\"");
               (void)write_file_name(file_name, stderr,
                                     /*process_escapes=*/FALSE,
                                     /*escape_nonprintable_chars=*/FALSE);
-              source_text_needed = source_text_needed && !brief_diagnostics;
-              if (error_pos->seq < curr_seq_number) {
-                /* Not in current source line -- see if we can print it. */
-                source_text_needed = can_locate_source_line(error_pos->seq);
-              }  /* if */
-              if (source_text_needed) {
-                if (error_pos->seq >= curr_seq_number) {
-                  /* In current source line. */
-                  (void)fprintf(stderr, "\", line %lu:\n", line_number);
-                  write_orig_source_line(error_pos);
-                } else {
-                  /* Text is in the error source line. */
-                  (void)fprintf(stderr, "\", line %lu:\n", line_number);
-                  write_error_source_line(error_pos);
-                }  /* if */
-              } else {
-                /* No source line, just line and column number. */
-                (void)fprintf(stderr, "\", line %lu (col. %d).\n",
-                              line_number, error_pos->column);
+              (void)fprintf(stderr, "\", line %lu", line_number);
+              if (!source_text_needed) {
+                /* Not printing the source, so display the column number. */
+                (void)fprintf(stderr, " (col. %d)", error_pos->column);
               }  /* if */
             }  /* if */
+          }  /* if */
+          if (source_text_needed) {
+            /* Terminate the position line (either the last line of the
+               stack trace or the line we just printed). */
+            (void)fprintf(stderr, ":\n");
+            if (error_pos->seq >= curr_seq_number) {
+              /* In current source line. */
+              write_orig_source_line(error_pos);
+            } else {
+              /* Text is in the error source line. */
+              write_error_source_line(error_pos);
+            }  /* if */
+          } else {
+            /* Not printing source text: just terminate the position line. */
+            (void)fprintf(stderr, ".\n");
           }  /* if */
         }  /* if */
       }  /* if */

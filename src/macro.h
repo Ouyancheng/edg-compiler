@@ -84,7 +84,7 @@ EXTERN a_symbol_ptr
 #if MACRO_INVOCATION_TREE_IN_IL
 extern void copy_macro_invocation_tree_to_il(void);
 extern a_macro_invocation_record_ptr macro_invocation_record_at_index(
-                                                                    int index);
+                                        a_macro_invocation_record_index index);
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
 
 #if FULLY_RESOLVED_MACRO_POSITIONS

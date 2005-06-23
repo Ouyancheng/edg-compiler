@@ -821,9 +821,11 @@ the removal of deleted characters resulting from reallocating macro_buffer.
 
 
 #if MACRO_INVOCATION_TREE_IN_IL
-a_macro_invocation_record_ptr macro_invocation_record_at_index(int index)
+a_macro_invocation_record_ptr macro_invocation_record_at_index(
+                                         a_macro_invocation_record_index index)
 /*
-Return a pointer to the macro invocation record with the specified index.
+Return a pointer to the macro invocation record with the specified index
+(NULL if the index is out of the range of existing macro invocation records).
 
 At the end of front-end processing, when the number of entries is known, the
 list of macro invocation record blocks is transformed into a binary tree to
@@ -841,13 +843,15 @@ growth of the list.
   a_macro_invocation_record_block_ptr mirbp;
   a_macro_invocation_record_ptr       mirp = NULL;
 
-  for (mirbp = last_macro_invocation_record_block;
-       mirbp != NULL && mirbp->first_record_in_block > index;
-       mirbp = mirbp->prev) {}
-  if (mirbp != NULL) {
-    int index_in_block = index - mirbp->first_record_in_block;
-    mirp = mirbp->records + index_in_block;
-  }
+  if (index >= 0 && index < num_macro_invocation_records) {
+    for (mirbp = last_macro_invocation_record_block;
+         mirbp != NULL && mirbp->first_record_in_block > index;
+         mirbp = mirbp->prev) {}
+    if (mirbp != NULL) {
+      int index_in_block = index - mirbp->first_record_in_block;
+      mirp = mirbp->records + index_in_block;
+    }  /* if */
+  }  /* if */
   return mirp;
 }  /* macro_invocation_record_at_index */
 
@@ -4287,7 +4291,8 @@ end_arg_expansion:;
                     entries[map->raw_text_map.num_entries-1].start_of_region-1;
             clone_macro_text_map_entries(&map->raw_text_map,
                                          text_loc - map->raw_text,
-                                         ending_src_offset,
+                                         ending_src_offset -
+                                                    (text_loc - map->raw_text),
                                          &macro_text_map,
                                          src_loc - rescan_loc,
                                          this_macro_invocation_record);
@@ -5907,6 +5912,9 @@ and processing should continue in sequence.
   char                    *after_matched_str;
   unsigned long           paren_count;
   a_boolean               err = FALSE;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  a_source_position       start_pos;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
   db_enter(4, "scan_assert_predicate_reference");
   *rescan = FALSE;
@@ -5914,6 +5922,9 @@ and processing should continue in sequence.
   delete_source_from_loc = start_of_curr_token;
   fetch_pp_tokens = TRUE;
   expand_macros = FALSE;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  conv_line_loc_to_source_pos(start_of_curr_token, &start_pos);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   if (get_token() != tok_identifier) {
     /* Error -- expected an identifier. */
     error(ec_exp_identifier);
@@ -6028,6 +6039,18 @@ try_match_again:
     slmp->inserted_text = curr_char_loc = slmp->inserted_chars;
     slmp->end_inserted_text = slmp->inserted_chars+1;
     *rescan = TRUE;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    /* Add text map entries to describe the original position of the
+       predicate reference. */
+    add_entry_to_macro_text_map(&macro_text_map, /*start_of_region=*/0,
+                                start_pos.seq, start_pos.column,
+                                NO_PARENT_MACRO_INVOCATION);
+    add_entry_to_macro_text_map(&macro_text_map, LE_ESCAPE_LEN+1, /*seq=*/0,
+                                SP_COL_UNKNOWN, NO_PARENT_MACRO_INVOCATION);
+    slmp->text_map.num_entries = 2;
+    slmp->text_map.entries = macro_text_map.entries +
+                                                macro_text_map.num_entries - 2;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   }  /* if */
   delete_source_from_loc = NULL;
   db_exit();
