@@ -796,49 +796,56 @@ template class, its DLL interface may need to be adjusted implicitly.
             }  /* if */
           }  /* if */
         }  /* for */
-        for (; vp != NULL; vp = vp->next) {
-          if (!vp->is_specialized) {
-            if ((vp->decl_modifiers & DM_DLLFLAGS) != 0) {
-              /* This can only happen in situations like the following:
-                   template<class T> struct B {
-                      __declspec(dllexport) static int s;
-                   };
-                   struct __declspec(dllexport) D: B<int> ();
-                 Microsoft compilers raise an error on such constructs and
-                 we follow suit. */
-              check_assertion(adjust_template_base);
-              pos_sy_error(
+        if (new_dll_flags & DM_DLLIMPORT) {
+          /* Microsoft compilers do not propagate the dllimport flag to
+             static data members of template instances, nor to compiler-
+             generated data (like virtual function tables) associated with
+             those instances. */
+        } else {
+          for (; vp != NULL; vp = vp->next) {
+            if (!vp->is_specialized) {
+              if ((vp->decl_modifiers & DM_DLLFLAGS) != 0) {
+                /* This can only happen in situations like the following:
+                     template<class T> struct B {
+                        __declspec(dllexport) static int s;
+                     };
+                     struct __declspec(dllexport) D: B<int> ();
+                   Microsoft compilers raise an error on such constructs and
+                   we follow suit. */
+                check_assertion(adjust_template_base);
+                pos_sy_error(
                     ec_class_and_inherited_member_instance_have_dll_interface,
                     err_pos, symbol_for(vp));
-            } else {
-              update_dll_info_for_variable(
+              } else {
+                update_dll_info_for_variable(
                                        vp, new_dll_flags, /*is_redecl=*/FALSE,
                                        /*is_definition=*/FALSE, err_pos);
+              }  /* if */
             }  /* if */
-          }  /* if */
-        }  /* for */
+          }  /* for */
 #if DO_IL_LOWERING
-        if (class_type->typeinfo_var != NULL) {
-          update_dll_info_for_variable(class_type->typeinfo_var,
-                                       new_dll_flags, /*is_redecl=*/FALSE,
-                                       /*is_definition=*/FALSE,
-                                       (a_source_position*)NULL);
-        }  /* if */
-        if (ctsp->virtual_function_table_var != NULL) {
-          update_dll_info_for_variable(ctsp->virtual_function_table_var,
-                                       new_dll_flags, /*is_redecl=*/FALSE,
-                                       /*is_definition=*/FALSE,
-                                       (a_source_position*)NULL);
-        }  /* if */
+          if (class_type->typeinfo_var != NULL) {
+            update_dll_info_for_variable(class_type->typeinfo_var,
+                                         new_dll_flags, /*is_redecl=*/FALSE,
+                                         /*is_definition=*/FALSE,
+                                         (a_source_position*)NULL);
+          }  /* if */
+          if (ctsp->virtual_function_table_var != NULL) {
+            update_dll_info_for_variable(ctsp->virtual_function_table_var,
+                                         new_dll_flags, /*is_redecl=*/FALSE,
+                                         /*is_definition=*/FALSE,
+                                         (a_source_position*)NULL);
+          }  /* if */
 #if IA64_ABI
-        if (ctsp->virtual_table_table_var != NULL) {
-          update_dll_info_for_variable(ctsp->virtual_table_table_var,
-                                       new_dll_flags, /*is_redecl=*/FALSE,
-                                       /*is_definition=*/FALSE,
-                                       (a_source_position*)NULL);
-        }  /* if */
+          if (ctsp->virtual_table_table_var != NULL) {
+            update_dll_info_for_variable(ctsp->virtual_table_table_var,
+                                         new_dll_flags, /*is_redecl=*/FALSE,
+                                         /*is_definition=*/FALSE,
+                                         (a_source_position*)NULL);
+          }  /* if */
 #endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING */
+        }  /* if */
         for (; bcp != NULL; bcp = bcp->next) {
           if (bcp->direct) {
             a_type_ptr       base_type = skip_typerefs(bcp->type);
@@ -3133,8 +3140,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
       tag_sym->kind != (a_symbol_kind)sk_type) {
     update_extended_decl_info_for_class(class_type, &extended_decl_info,
                                         is_class_definition,
-                                        (is_explicit_instantiation &&
-                                         curr_token == tok_semicolon),
+                                        is_explicit_instantiation,
                                         &locator.source_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */

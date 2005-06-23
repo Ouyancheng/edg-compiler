@@ -1,5 +1,30 @@
 Version 3.7
 
+6/23/05  Microsoft compatibility: DLL specifiers in explicit instantiations
+
+The Changes entry of 3/1/05 describes how DLL specifiers on an explicit class
+template instantiation are propagated to the members of that instantiation.
+However, Microsoft compilers do not propagate the dllimport attribute to
+static data member of the instantiated class, nor to compiler-generated data
+structures (e.g., virtual function tables) associated with that class.  For
+example:
+
+  template<typename T> struct S {
+    static void f();
+    static int i;
+  };
+  template<class T> int S<T>::i = 3;
+  int main() {
+    // Trigger instantiations through use:
+    S<int> s;
+    s.f();
+    return s.i;
+  }
+  template struct __declspec(dllimport) S<int>;
+    // S<int>::f() acquires the dllimport attribute, but S<int>::i does not.
+
+We now emulate that behavior.
+
 6/22/05  Internal error popping translation unit stack when using PCH file
 
 An internal error could occur when popping the translation unit stack
@@ -59,24 +84,6 @@ problems:
   first input file was opened.
 
 These problems have been fixed.
-
-6/16/05  Microsoft compatibility: DLL specifiers in explicit instantiations
-
-The Changes entry of 3/1/05 describes how DLL specifiers on an explicit class
-template instantiation are propagated to the members of that instantiation.
-However, the front end failed to distinguish cases where a class is really
-being instantiated from cases where the class only contributes to the
-declaration of another entity that must be instantiated.  For example:
-
-  template<typename T> struct S { void f(); };
-  template<class T> S<T>* g(T) { return 0; };
-  template struct __declspec(dllimport) S<float>;
-        // Okay.  S<float>::f() is dllimport.
-  template struct __declspec(dllimport) S<int>* g(int);
-        // Previously caused S<int>::f() to become a dllimport member.
-        // Now no longer affects the members of S<int>.
-
-This is now fixed.
 
 6/16/05  GNU compatibility: "visibility" attribute
 
