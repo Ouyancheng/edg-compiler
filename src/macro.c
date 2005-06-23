@@ -483,6 +483,9 @@ Return a pointer to the next free macro text map entry in the specified map.
 }  /* next_macro_text_map_entry */
 
 
+#if !MACRO_INVOCATION_TREE_IN_IL
+/*ARGSUSED*/  /* <-- macro_context is not used in that case. */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 static void add_entry_to_macro_text_map(
                                a_macro_text_map_ptr            mtmp,
                                sizeof_t                        start_of_region,
