@@ -735,17 +735,17 @@ and before the back end (if any) is executed.
   check_assertion_str2(is_primary_translation_unit,
                        "fe_wrapup:", "bad translation unit in fe_wrapup");
 
-#if MACRO_INVOCATION_TREE_IN_IL
-  /* Transform the macro invocation tree from its front-end (list) form into
-     the IL (binary tree) form and set the related fields in il_header. */
-  copy_macro_invocation_tree_to_il();
-#endif /* MACRO_INVOCATION_TREE_IN_IL */
   if (!C_mode()) {
     /* For each translation unit, generate any instantiations that are
        needed, and determine which inline functions require definitions. */
     template_and_inline_function_wrapup();
   }  /* if */
 
+#if MACRO_INVOCATION_TREE_IN_IL
+  /* Transform the macro invocation tree from its front-end (list) form into
+     the IL (binary tree) form and set the related fields in il_header. */
+  copy_macro_invocation_tree_to_il();
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
   /* Lower the file scope, remove unneeded entities, etc. */
   wrap_up_file_scopes();
 
