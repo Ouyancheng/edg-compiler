@@ -1884,7 +1884,10 @@ so a hanging delete is in effect).
       /* We are on a new line, so re-insertion is necessary. */
       /* Make enough room for the insertion text.  "+2*LE_ESCAPE_LEN"
          covers the LE_NEWLINE and LE_END_OF_INSERTION lexical escapes. */
-      a_source_line_modif_ptr slmp;
+      a_source_line_modif_ptr hanging_slmp;
+                              /* Used when FULLY_RESOLVED_MACRO_POSITIONS
+                                 is TRUE: */
+                              /*lint -esym(550,hanging_slmp)*/
       ensure_macro_buffer_space(len_of_curr_token+2*LE_ESCAPE_LEN);
       /* Insert the identifier name. */
       ins_loc = next_avail_in_macro_buffer;
@@ -1900,9 +1903,10 @@ so a hanging delete is in effect).
          a strange kind of entry: line_loc == NULL indicates that
          the insertion is to be done preceding the first character
          of curr_source_line. */
-      slmp = add_source_line_modif((char *)NULL, 0,
-                                   ins_loc,
-                                   ins_loc+len_of_curr_token+LE_ESCAPE_LEN);
+      hanging_slmp = 
+                add_source_line_modif((char *)NULL, 0,
+                                      ins_loc,
+                                      ins_loc+len_of_curr_token+LE_ESCAPE_LEN);
       start_of_curr_token = ins_loc;
 #if FULLY_RESOLVED_MACRO_POSITIONS
       /* Add text map entries to describe the original position of the
@@ -1914,8 +1918,8 @@ so a hanging delete is in effect).
                                   len_of_curr_token+2*LE_ESCAPE_LEN,
                                   /*seq=*/0, SP_COL_UNKNOWN,
                                   NO_PARENT_MACRO_INVOCATION);
-      slmp->text_map.num_entries = 2;
-      slmp->text_map.entries = macro_text_map.entries +
+      hanging_slmp->text_map.num_entries = 2;
+      hanging_slmp->text_map.entries = macro_text_map.entries +
                                                 macro_text_map.num_entries - 2;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     }  /* if */
