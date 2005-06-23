@@ -541,23 +541,23 @@ in order to be effective for conditional fields in a_source_position.
 #else /* defined(MACRO_INVOCATION_TREE_IN_IL) */
 #if MACRO_INVOCATION_TREE_IN_IL
 #ifndef RECORD_MACROS_IN_IL
-#define RECORD_MACROS_IN_IL TRUE
-#else /* defined(RECORD_MACROS_IN_IL) */
-#if !RECORD_MACROS_IN_IL
- #error -- RECORD_MACROS_IN_IL must be TRUE when \
-           MACRO_INVOCATION_TREE_IN_IL is set.
-#endif /* !RECORD_MACROS_IN_IL */
+#define RECORD_MACROS_IN_IL TRUE /* Do not change this. */
 #endif /* ifndef RECORD_MACROS_IN_IL */
 #ifndef FULLY_RESOLVED_MACRO_POSITIONS
-#define FULLY_RESOLVED_MACRO_POSITIONS TRUE
-#else /* defined(FULLY_RESOLVED_MACRO_POSITIONS) */
-#if !FULLY_RESOLVED_MACRO_POSITIONS
- #error -- FULLY_DEFINED_MACRO_POSITIONS must be TRUE when \
-           MACRO_INVOCATION_TREE_IN_IL is set.
-#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
+#define FULLY_RESOLVED_MACRO_POSITIONS TRUE /* Do not change this. */
 #endif /* ifndef FULLY_RESOLVED_MACRO_POSITIONS */
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
 #endif /* ifndef MACRO_INVOCATION_TREE_IN_IL */
+
+#if MACRO_INVOCATION_TREE_IN_IL && !RECORD_MACROS_IN_IL
+ #error -- RECORD_MACROS_IN_IL must be TRUE when \
+           MACRO_INVOCATION_TREE_IN_IL is set.
+#endif /* MACRO_INVOCATION_TREE_IN_IL && !RECORD_MACROS_IN_IL */
+
+#if MACRO_INVOCATION_TREE_IN_IL && !FULLY_RESOLVED_MACRO_POSITIONS
+ #error -- FULLY_DEFINED_MACRO_POSITIONS must be TRUE when \
+           MACRO_INVOCATION_TREE_IN_IL is set.
+#endif /* MACRO_INVOCATION_TREE_IN_IL && !FULLY_RESOLVED_MACRO_POSITIONS */
 
 /*
 Flag that is TRUE to add an extra seq/column pair to source positions, giving
