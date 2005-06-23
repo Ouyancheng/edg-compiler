@@ -2494,6 +2494,79 @@ scope.
 }  /* push_for_init_scope */
 
 
+static void microsoft_using_directive_bug_processing(
+					a_namespace_ptr		nsp,
+					a_boolean		end_of_scope)
+/*
+The Microsoft compiler (as of Visual C++ 6.0) has a bug that causes a
+namespace nominated by a using-directive to be visible in the file scope.
+
+  namespace M  { 
+    class C {};
+  }
+  namespace N {
+    using namespace M;
+  }
+  namespace N {}
+  void f(C*); // C is visible in the global namespace
+
+This bug only occurs when the using-directive is in a namespace that
+has been extended (i.e., not one for which there has only been a
+primary namespace definition).
+
+This routine implements this bug by taking the using-directives from the
+namespace being pushed (when end_of_scope is FALSE) and applying them to
+the file scope.
+
+Another aspect of this bug involves a using-directive that refers to the
+current namespace:
+
+  namespace N {}
+  namespace N {
+  class C{};
+    using namespace N;
+  }
+  void f(C*); // C is visible in the global namespace
+
+If such a using-directive appears in a reactivated namespace, using-directives
+from that namespace act as if they appeared in the file scope.  This routine
+implements this bug by taking the using-directives from the namespace being
+popped (when end_of_scope is TRUE) and applying the using-directive to the
+file scope if it refers to the namespace being popped.
+*/
+{
+  a_using_decl_ptr	udp = nsp->variant.assoc_scope->using_decls;
+  a_scope_depth		depth;
+  a_boolean		any_using_dirs_added = FALSE;
+
+  /* Create using-directives for each of the namespaces nominated in a
+     using-directive of the namespace scope specified by nsp. */
+  while (udp != NULL) {
+    if (udp->is_using_directive) {
+      a_namespace_ptr	udp_nsp;
+      check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_namespace);
+      /* Get a pointer to the namespace to be used. */
+      udp_nsp = skip_namespace_aliases((a_namespace_ptr)udp->entity.ptr);
+      if (!end_of_scope || udp_nsp == nsp) {
+        make_using_directive(udp_nsp, DEPTH_OF_FILE_SCOPE,
+                             &null_source_position,
+                             /*compiler_generated=*/TRUE,
+			     (an_attribute_ptr)NULL);
+        any_using_dirs_added = TRUE;
+      }  /* if */
+    }  /* if */
+    udp = udp->next;
+  }  /* while */
+  /* Update all of the scopes on the scope stack to indicate that symbols
+     visible as a result of a using-directive may be visible. */
+  if (any_using_dirs_added) {
+    for (depth = depth_scope_stack; depth >= DEPTH_OF_FILE_SCOPE; depth--) {
+      scope_stack[depth].inactive_symbols_may_be_visible = TRUE;
+    }  /* for */
+  }  /* if */
+}  /* microsoft_using_directive_bug_processing */
+
+
 a_scope_ptr push_namespace_scope(a_scope_kind    kind,
                                  a_namespace_ptr assoc_namespace)
 /*
@@ -2513,6 +2586,13 @@ template defined in a namespace.
                       ((assoc_namespace->variant.assoc_scope == NULL) ==
                                        (kind == (a_scope_kind)sck_namespace)),
                       "push_namespace_scope: bad assoc_namespace ptr");
+  if (microsoft_bugs && microsoft_version <= 1200 &&
+      kind == (a_scope_kind)sck_namespace_extension) {
+    /* Make any using-directives in this namespace visible in the file
+       scope (to emulate a Microsoft bug). */
+    microsoft_using_directive_bug_processing(assoc_namespace,
+                                             /*end_of_scope=*/FALSE);
+  }  /* if */
   if (kind == (a_scope_kind)sck_namespace_extension ||
       kind == (a_scope_kind)sck_namespace_reactivation) {
     scope_number_to_reuse = assoc_namespace->variant.assoc_scope->number;
@@ -2533,53 +2613,6 @@ template defined in a namespace.
 }  /* push_namespace_scope */
 
 
-static void microsoft_using_directive_bug_processing(a_namespace_ptr	nsp)
-/*
-The Microsoft compiler (as of Visual C++ 6.0) has a bug that causes a
-namespace nominated by a using-directive to be visible in the file scope.
-
-  namespace M  { 
-    class C{};
-  }
-  namespace N {
-    using namespace M;
-  }
-  namespace N {}
-  void f(C*); // C is visible in the global namespace
-
-This bug only occurs when the using-directive is in a namespace that
-has been extended (i.e., not one for which there has only been a
-primary namespace definition).
-
-This routine implements this bug by taking the using-directives from the
-namespace being popped and applying them to the file scope.
-*/
-{
-  a_using_decl_ptr	udp = nsp->variant.assoc_scope->using_decls;
-  a_scope_depth		depth;
-
-  /* Create using-directives for each of the namespaces nominated in a
-     using-directive of the namespace scope specified by nsp. */
-  while (udp != NULL) {
-    if (udp->is_using_directive) {
-      a_namespace_ptr	udp_nsp;
-      check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_namespace);
-      /* Get a pointer to the namespace to be used. */
-      udp_nsp = skip_namespace_aliases((a_namespace_ptr)udp->entity.ptr);
-      make_using_directive(udp_nsp, DEPTH_OF_FILE_SCOPE, &null_source_position,
-                           /*compiler_generated=*/TRUE,
-			  (an_attribute_ptr)NULL);
-    }  /* if */
-    udp = udp->next;
-  }  /* while */
-  /* Update all of the scopes on the scope stack to indicate that symbols
-     visible as a result of a using-directive may be visible. */
-  for (depth = depth_scope_stack; depth >= DEPTH_OF_FILE_SCOPE; depth--) {
-    scope_stack[depth].inactive_symbols_may_be_visible = TRUE;
-  }  /* for */
-}  /* microsoft_using_directive_bug_processing */
-
-
 void pop_namespace_scope(void)
 /*
 Pop a namespace or namespace extension scope.  Unlike push_namespace_scope,
@@ -2588,7 +2621,6 @@ program, not used when popping the namespace scope pushed as part of the
 template instantiation process.
 */
 {
-  a_namespace_ptr		assoc_namespace;
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
   a_scope_kind			kind;
   a_boolean			initial_decl_of_namespace_std;
@@ -2600,14 +2632,14 @@ template instantiation process.
   initial_decl_of_namespace_std = ssep->initial_decl_of_namespace_std;
   check_assertion(kind == (a_scope_kind)sck_namespace ||
                   kind == (a_scope_kind)sck_namespace_extension);
-  assoc_namespace = ssep->assoc_namespace;
   pop_scope();
   if (microsoft_bugs && microsoft_version <= 1200 &&
       kind == (a_scope_kind)sck_namespace_extension &&
       !initial_decl_of_namespace_std) {
-    /* Make any using-directives in this namespace visible in the file
+    /* Make certain using-directives in this namespace visible in the file
        scope (to emulate a Microsoft bug). */
-    microsoft_using_directive_bug_processing(assoc_namespace);
+    microsoft_using_directive_bug_processing(ssep->assoc_namespace,
+                                             /*end_of_scope=*/TRUE);
   }  /* if */
 }  /* pop_namespace_scope */
 

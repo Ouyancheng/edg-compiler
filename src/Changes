@@ -1,5 +1,27 @@
 Version 3.7
 
+6/23/05  Microsoft compatibility: VC 6 using-directive bug emulation
+
+In Microsoft bugs mode, when microsoft_version is <= 1200, we emulate
+a Microsoft using-directive bug that makes certain names visible in the
+file scope when they should not be.  A flaw in this emulation caused
+spurious ambiguities in some cases.  Now fixed.
+
+  namespace N {}
+  namespace O {}
+  namespace N {
+    using namespace O;
+  }
+  // namespace N {}  // VC 6 issues an error if this line is uncommented
+  template <class C> void f(C, C) {}
+  namespace O {
+    template <class C> void f(C, C) {}
+  }
+  int main() {
+    f(1, 2);  // spurious ambiguity on this call
+    return 0;
+ }
+
 6/23/05  Microsoft compatibility: DLL specifiers in explicit instantiations
 
 The Changes entry of 3/1/05 describes how DLL specifiers on an explicit class
