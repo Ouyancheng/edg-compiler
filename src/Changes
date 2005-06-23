@@ -1,5 +1,11 @@
 Version 3.7
 
+6/23/05  Incorrect conditional compilation in cmd_line.c
+
+Version 3.6 introduced a problem in cmd_line.c that caused many of the
+global variables initialized by cmd_line.c to be set incorrectly if
+EXPORT_ENABLING_POSSIBLE was FALSE.  Now fixed.
+
 6/23/05  Microsoft compatibility: VC 6 using-directive bug emulation
 
 In Microsoft bugs mode, when microsoft_version is <= 1200, we emulate

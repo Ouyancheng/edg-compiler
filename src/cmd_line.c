@@ -4588,7 +4588,6 @@ variables declared in cmd_line.h.
   argv_file_list = NULL;
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES ||
           COMPILE_MULTIPLE_TRANSLATION_UNITS */
-#if EXPORT_ENABLING_POSSIBLE
   /* External variables declared in cmd_line.h. */
   strict_ansi_mode = FALSE;
   cfront_2_1_mode = FALSE;
@@ -4689,7 +4688,6 @@ variables declared in cmd_line.h.
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if NAMED_REGISTERS_ALLOWED
   named_registers_enabled = DEFAULT_NAMED_REGISTERS_ENABLED;
-#endif /* VAR_INITIALIZERS */
 #endif /* NAMED_REGISTERS_ALLOWED */
 #if DO_IL_LOWERING
   pointer_to_member_call_optimization_allowed =
