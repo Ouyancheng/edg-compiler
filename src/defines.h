@@ -560,6 +560,7 @@ Flags to be set when using the KAI inliner.
 #define EXTRA_SOURCE_POSITIONS_IN_IL 1
 #define FULL_SOURCE_POS_IN_IL_STATEMENT 1
 #define MACRO_INVOCATION_TREE_IN_IL 1
+#define DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS TRUE
 /* Settings needed in order for bit-field allocation to match gcc. */
 #define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
 #define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C TRUE
