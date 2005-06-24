@@ -1070,6 +1070,16 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  add_option_description(optk_macro_positions_in_diagnostics,
+                         "macro_positions_in_diagnostics",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
+  add_option_description(optk_macro_positions_in_diagnostics,
+                         "no_macro_positions_in_diagnostics",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_none);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 }  /* initialize_option_descriptions */
 
 
@@ -4078,6 +4088,15 @@ enable_microsoft_mode:
         thread_local_storage_specifier_enabled = opt_value;
         break;
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+      case optk_macro_positions_in_diagnostics:
+        /* Diagnostics that refer to text in macro expansions should or should
+           not contain information about the original location from which that
+           text was copied and (if MACRO_INVOCATION_TREE_IN_IL is TRUE) the
+           stack of macro invocations in effect at that point. */
+        macro_positions_in_diagnostics = opt_value;
+        break;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

@@ -113,6 +113,15 @@ EXTERN a_boolean
                         /* TRUE if error context information should be
 			   displayed following a catastrophic error. */
 
+#if FULLY_RESOLVED_MACRO_POSITIONS
+EXTERN a_boolean
+		macro_positions_in_diagnostics;
+			/* TRUE if diagnostic output referring to text in
+			   macro expansions should display original position
+			   and (if MACRO_INVOCATION_TREE_IN_IL is TRUE) macro
+			   invocation context information. */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+
 /*
 Error routines.
 */

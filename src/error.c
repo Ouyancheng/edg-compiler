@@ -2556,14 +2556,17 @@ additional messages in a multiple message diagnostic.
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
 #if FULLY_RESOLVED_MACRO_POSITIONS
-  /* Unless it is from a command-line or predefined macro, we will use the
-     original position of the text for the first part of the message.  (I.e.,
-     if the position is inside a macro expansion, we will refer to the point
-     in the macro definition or macro argument from which it was copied.)  For
-     text expanded from a predefined or command-line macro, there is no
-     original location to refer to, so we just use the normal (invocation)
-     position. */
-  if (error_pos->orig_seq != 0) {
+  if (error_pos->orig_seq != 0 &&
+      (macro_positions_in_diagnostics ||
+       error_pos->orig_seq >= error_pos->seq)) {
+    /* Use the original position of the text for the first part of the
+       message (i.e., if the text is in a macro expansion, the position will
+       indicate the macro definition or macro argument from which the text
+       was copied).  We use the normal position if the original position is
+       in a command-line or predefined macro (orig_seq == 0), and if
+       macro_positions_in_diagnostics is FALSE, we only use the original
+       position if it is in a macro argument (a reference to a macro definition
+       will necessarily have orig_seq < seq). */
     local_pos.seq = error_pos->orig_seq;
     local_pos.column = error_pos->orig_column;
   } else {
@@ -2651,7 +2654,8 @@ additional messages in a multiple message diagnostic.
           write_error_source_line(&local_pos);
         }  /* if */
 #if MACRO_INVOCATION_TREE_IN_IL
-        if (error_pos->macro_context != NO_PARENT_MACRO_INVOCATION) {
+        if (error_pos->macro_context != NO_PARENT_MACRO_INVOCATION &&
+            macro_positions_in_diagnostics) {
           a_macro_invocation_record_ptr   mirp;
           int                             stack_depth = 0;
           int                             i;
@@ -2710,7 +2714,8 @@ additional messages in a multiple message diagnostic.
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
       }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
-      if (local_pos.seq != error_pos->seq) {
+      if (local_pos.seq != error_pos->seq &&
+          macro_positions_in_diagnostics) {
         /* The position displayed above was in a macro definition or argument;
            now display the position of the macro call (for a macro argument,
            display the macro call source line only if it is different from the
@@ -4907,6 +4912,9 @@ line processing is done.
   do_not_wrap_diagnostics = FALSE;
   display_error_context_on_catastrophe =
                                   DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  macro_positions_in_diagnostics = DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   error_message_head = NULL;
   /* Zeroing this array causes it to be set to es_default. */
   memzero((a_void_ptr)default_severity_for_error_code,

@@ -237,6 +237,9 @@ typedef enum /*an_option_kind*/ {
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   optk_thread_local_storage,
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  optk_macro_positions_in_diagnostics,
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   optk_last		/* Must be last. */
 } an_option_kind;
 

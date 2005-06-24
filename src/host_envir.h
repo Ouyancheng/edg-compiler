@@ -307,6 +307,20 @@ initial value of the variable context_limit, which can be overridden by the
 #define DEFAULT_CONTEXT_LIMIT 10
 #endif /* ifndef DEFAULT_CONTEXT_LIMIT */
 
+#if FULLY_RESOLVED_MACRO_POSITIONS
+/*
+Flag that is TRUE if diagnostics referring to text in macro expansions should
+include information about the original position from which the text was copied
+and, if MACRO_INVOCATION_TREE_IN_IL is TRUE, the macro invocation stack in
+effect at that point.  This is the initial value of the variable
+macro_positions_in_diagnostics, which can be overridden by the
+--[no_]macro_positions_in_diagnostics command-line option.
+*/
+#ifndef DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS
+#define DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS FALSE
+#endif /* ifndef DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+
 /*
 Is the C-generating back end being used as the back end?
 See also C_GEN_BE_GENERATES_ANSI_C et al. in targ_def.h.
