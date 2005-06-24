@@ -1891,10 +1891,6 @@ so a hanging delete is in effect).
       /* We are on a new line, so re-insertion is necessary. */
       /* Make enough room for the insertion text.  "+2*LE_ESCAPE_LEN"
          covers the LE_NEWLINE and LE_END_OF_INSERTION lexical escapes. */
-      a_source_line_modif_ptr hanging_slmp;
-                              /* Used when FULLY_RESOLVED_MACRO_POSITIONS
-                                 is TRUE: */
-                              /*lint -esym(550,hanging_slmp)*/
       ensure_macro_buffer_space(len_of_curr_token+2*LE_ESCAPE_LEN);
       /* Insert the identifier name. */
       ins_loc = next_avail_in_macro_buffer;
@@ -1910,10 +1906,8 @@ so a hanging delete is in effect).
          a strange kind of entry: line_loc == NULL indicates that
          the insertion is to be done preceding the first character
          of curr_source_line. */
-      hanging_slmp = 
-                add_source_line_modif((char *)NULL, 0,
-                                      ins_loc,
-                                      ins_loc+len_of_curr_token+LE_ESCAPE_LEN);
+      slmp = add_source_line_modif((char *)NULL, 0, ins_loc,
+                                   ins_loc+len_of_curr_token+LE_ESCAPE_LEN);
       start_of_curr_token = ins_loc;
 #if FULLY_RESOLVED_MACRO_POSITIONS
       /* Add text map entries to describe the original position of the
@@ -1925,8 +1919,8 @@ so a hanging delete is in effect).
                                   len_of_curr_token+2*LE_ESCAPE_LEN,
                                   /*seq=*/0, SP_COL_UNKNOWN,
                                   NO_PARENT_MACRO_INVOCATION);
-      hanging_slmp->text_map.num_entries = 2;
-      hanging_slmp->text_map.entries = macro_text_map.entries +
+      slmp->text_map.num_entries = 2;
+      slmp->text_map.entries = macro_text_map.entries +
                                                 macro_text_map.num_entries - 2;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     }  /* if */
@@ -2049,6 +2043,9 @@ with \.  Return the macro argument created.
   a_macro_arg_ptr	map;
   sizeof_t		length;
   char			*end_of_string;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  a_source_position     curr_pos;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
   /* Compute the length of the string.  Note that this will include the
      quotes on either end.  The size may be slightly larger than what is
@@ -2070,11 +2067,27 @@ with \.  Return the macro argument created.
     /* Skip over the opening quote. */
     check_assertion(*src == '"');
     src++;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    /* Record initial offset in text map. */
+    conv_line_loc_to_source_pos(src, &curr_pos);
+    add_entry_to_macro_text_map(&map->raw_text_map, /*start_of_region=*/0,
+                                curr_pos.seq, curr_pos.column,
+                                NO_PARENT_MACRO_INVOCATION);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     for (; src < end_of_string;) {
       /* If this is a \" or \\, ignore the initial character. */
       if (*src == '\\') {
         char	next = *(src+1);
-        if (next == '"' || next == '\\') ++src;
+        if (next == '"' || next == '\\') {
+          ++src;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+          /* Reflect change in buffer and source-position column offsets. */
+          conv_line_loc_to_source_pos(src, &curr_pos);
+          add_entry_to_macro_text_map(&map->raw_text_map, dest - map->raw_text,
+                                      curr_pos.seq, curr_pos.column,
+                                      NO_PARENT_MACRO_INVOCATION);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+        }  /* if */
       }  /* if */
       *dest++ = *src++;
     }  /* for */
@@ -2084,6 +2097,12 @@ with \.  Return the macro argument created.
     /* Append an end-of-buffer escape. */
     *dest++ = LE_ESCAPE;
     *dest++ = LE_END_OF_INSERTION;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    /* Add the terminating map entry. */
+    add_entry_to_macro_text_map(&map->raw_text_map, dest - map->raw_text,
+                                /*seq=*/0, SP_COL_UNKNOWN,
+                                NO_PARENT_MACRO_INVOCATION);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   }
   return map;
 }  /* copy_pragma_string */
@@ -2119,6 +2138,11 @@ is the source position of the _Pragma token.
                                &map->raw_text[map->raw_len]);
   slmp->is_isolated_text = TRUE;
   curr_char_loc = map->raw_text;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  /* Use the raw text map entries from the macro argument. */
+  slmp->text_map.num_entries = map->raw_text_map.num_entries;
+  slmp->text_map.entries = map->raw_text_map.entries;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   /* Actually scan the tokens that make up the pragma. */
   { a_pragma_kind_description_ptr	pkdp = NULL;
     a_source_position			id_position;

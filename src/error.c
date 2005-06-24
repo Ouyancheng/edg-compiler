@@ -2635,7 +2635,9 @@ additional messages in a multiple message diagnostic.
     }  /* if */
 
     if (diag_kind == dck_standalone || diag_kind == dck_end_list) {
+#if FULLY_RESOLVED_MACRO_POSITIONS
       a_boolean stack_trace_printed = FALSE;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if !STANDALONE_UTILITY_PROGRAM
       if (source_text_needed && !brief_diagnostics &&
           (diag_kind == dck_standalone || diag_kind == dck_end_list)) {
