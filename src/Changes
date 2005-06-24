@@ -1,5 +1,28 @@
 Version 3.7
 
+6/24/05  Incorrect symbol variant used in
+         push_instantiation_scope_for_templ_param_rescan
+
+In some cases, push_instantiation_scope_for_templ_param_rescan referenced
+the incorrect variant of a symbol.  Although this has been a potential
+problem for a long time, an actual problem was not observed until the
+additional source position information for macros was added.  The test
+case below referenced the incorrect symbol variant, and could result in
+an abort or internal error in certain configurations.  Now fixed.
+
+  template <typename T, T I> struct A {};
+  struct B {
+    static const int i = 5;
+    template <typename T, T I> static void f( A<T, I> );
+    template <typename T> static void f( A<T, B::i> );
+  };
+  A<int, B::i> a1;
+  A<int const&, B::i> a2;
+  int main() {
+    B::f( a1 );
+    B::f( a2 );
+  }
+
 6/23/05  LONG_LONG_ALLOWED and GNU_EXTENSIONS_ALLOWED
 
 The front end configuration file targ_def.h has been modified so that

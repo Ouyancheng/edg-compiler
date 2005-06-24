@@ -3342,7 +3342,8 @@ template declaration scope or a template instantiation scope.
   a_template_symbol_supplement_ptr tssp;
 
   tssp = template_sym->variant.template_info;
-  if (tssp->variant.class_template.template_template_param) {
+  if (template_sym->kind == (a_symbol_kind)sk_class_template &&
+      tssp->variant.class_template.template_template_param) {
     a_boolean			is_local_to_function = FALSE;
     a_scope_depth		depth;
     depth = scope_depth_of_symbol(template_sym, &is_local_to_function);
