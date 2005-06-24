@@ -55,8 +55,8 @@ We now emulate that behavior.
 
 6/22/05  Internal error popping translation unit stack when using PCH file
 
-An internal error could occur when popping the translation unit stack
-when using a precompiled header file.  Now fixed.
+An internal error could occur in pop_translation_unit_stack when using a
+precompiled header file.  Now fixed.
 
 6/22/05  Output of file names containing multibyte characters
 
