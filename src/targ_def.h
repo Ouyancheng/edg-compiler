@@ -302,6 +302,7 @@ support library.
 Flag that is TRUE if the "long long" data type and the associated language
 features (e.g., suffixes for constants) are allowed.  "long long" is
 standard in C99, and Microsoft mode needs the IL support for __int64.
+"long long" is also accepted by GNU C and C++ compilers.
 
 This is really a language feature configuration macro, and as such should
 be in lang_feat.h.  However, it affects the IL and requires support
@@ -309,11 +310,12 @@ from a back end, and the most sensible default takes into account
 whether C99 IL extensions are supported, and that is only known here.
 */
 #ifndef LONG_LONG_ALLOWED
-#if MICROSOFT_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_SUPPORTED
+#if MICROSOFT_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_SUPPORTED || \
+    GNU_EXTENSIONS_ALLOWED
 #define LONG_LONG_ALLOWED TRUE
-#else /* !(MICROSOFT_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_SUPPORTED) */
+#else /* !(MICROSOFT_EXTENSIONS_ALLOWED || ...) */
 #define LONG_LONG_ALLOWED FALSE
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_SUPPORTED || ... */
 #endif /* ifndef LONG_LONG_ALLOWED */
 
 /*

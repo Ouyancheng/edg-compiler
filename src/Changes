@@ -1,5 +1,11 @@
 Version 3.7
 
+6/23/05  LONG_LONG_ALLOWED and GNU_EXTENSIONS_ALLOWED
+
+The front end configuration file targ_def.h has been modified so that
+LONG_LONG_ALLOWED is set to TRUE by default when GNU_EXTENSIONS_ALLOWED is
+TRUE.
+
 6/23/05  Incorrect conditional compilation in cmd_line.c
 
 Version 3.6 introduced a problem in cmd_line.c that caused many of the
