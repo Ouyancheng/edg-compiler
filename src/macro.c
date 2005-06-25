@@ -3287,6 +3287,9 @@ associated global variables will also have been set).
   num_compacted_macro_buffer_chars = 0;
 #if FULLY_RESOLVED_MACRO_POSITIONS
   macro_text_map.num_entries = 0;
+  /* There shouldn't be any leftover text map position trackers at this
+     point. */
+  check_assertion(active_text_map_position_trackers == NULL);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 end_scan_for_macro_modifs:;
   /* Normal case is that the macro expansion is rescanned after this routine
@@ -5254,6 +5257,9 @@ Scan and process a #define directive.
 #if FULLY_RESOLVED_MACRO_POSITIONS
       macro_text_map.num_entries = 0;
       first_text_map_entry = 0;
+      /* There shouldn't be any leftover text map position trackers at this
+         point. */
+      check_assertion(active_text_map_position_trackers == NULL);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     }  /* if */
     buffer_start = begin_macro_buffer_region();
@@ -5268,8 +5274,13 @@ Scan and process a #define directive.
     any_white_space_skipped = FALSE;
     need_end_of_token_marker = FALSE;
 #if FULLY_RESOLVED_MACRO_POSITIONS
-    init_text_map_position_tracker(&tracker, &macro_text_map,
-                                   NO_PARENT_MACRO_INVOCATION);
+    /* Initialize the token position tracker (but not if this is a
+       command-line definition, which will be completely handled at the end of
+       processing). */
+    if (curr_command_line_macro_def == NULL) {
+      init_text_map_position_tracker(&tracker, &macro_text_map,
+                                     NO_PARENT_MACRO_INVOCATION);
+    }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     start_of_replacement = pos_curr_token;
@@ -5476,7 +5487,17 @@ Scan and process a #define directive.
              pp = pp->next, pp2 = pp2->next) {
           if (strcmp(pp->name, pp2->name) != 0) goto redef_error;
         }  /* for */
-        if (pp == NULL && pp2 == NULL) goto def_done;
+        if (pp == NULL && pp2 == NULL) {
+#if FULLY_RESOLVED_MACRO_POSITIONS
+          /* A benign redefinition -- terminate the tracker (and just abandon
+             the text map entries added to macro_text_map: they'll be
+             discarded the next time macro_buffer is truncated). */
+          terminate_macro_text_map(&tracker,
+                                   next_avail_in_macro_buffer - buffer_start);
+                                   
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+          goto def_done;
+        }  /* if */
       }  /* if */
 redef_error:
       /* Bad redefinition.  Keep the new definition, give a diagnostic. */
