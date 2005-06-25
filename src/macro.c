@@ -5489,12 +5489,14 @@ Scan and process a #define directive.
         }  /* for */
         if (pp == NULL && pp2 == NULL) {
 #if FULLY_RESOLVED_MACRO_POSITIONS
-          /* A benign redefinition -- terminate the tracker (and just abandon
-             the text map entries added to macro_text_map: they'll be
-             discarded the next time macro_buffer is truncated). */
-          terminate_macro_text_map(&tracker,
-                                   next_avail_in_macro_buffer - buffer_start);
-                                   
+          if (curr_command_line_macro_def == NULL) {
+            /* A benign redefinition -- terminate the tracker (and just abandon
+               the text map entries added to macro_text_map: they'll be
+               discarded the next time macro_buffer is truncated). */
+            terminate_macro_text_map(
+                                    &tracker,
+                                    next_avail_in_macro_buffer - buffer_start);
+          }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
           goto def_done;
         }  /* if */
