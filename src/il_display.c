@@ -4400,7 +4400,9 @@ Display the indicated macro entry.
   disp_boolean("is_command_line_definition",
                (a_boolean)ptr->is_command_line_definition);
   disp_boolean("is_predefined", (a_boolean)ptr->is_predefined);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("replacement_text_range", &ptr->replacement_text_range);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   disp_string_ptr("text", ptr->text, iek_other_text, (sizeof_t)0);
 }  /* disp_macro */
 
