@@ -4102,6 +4102,11 @@ is the one associated with the definition of the enum.
       check_for_and_take_source_seq_entry(
                                enum_con->source_corresp.source_sequence_entry);
       set_output_position(&enum_con->source_corresp.decl_position);
+      /* Skip any type declarations in the expression following an
+         enumerator, as in
+           enum E { e1, e2 = sizeof(struct A *) };
+      */
+      skip_embedded_declarations();
       /* Output the constant's name. */
       gen_unqualified_name(&enum_con->source_corresp, iek_constant);
       /* Output the value if it's not the next value in sequence. */
@@ -4119,11 +4124,6 @@ is the one associated with the definition of the enum.
         }  /* if */
         next_enum_value = *enum_con;
       }  /* if */
-      /* Skip any type declarations in the expression following an
-         enumerator, as in
-           enum E { e1, e2 = sizeof(struct A *) };
-      */
-      skip_embedded_declarations();
       enum_con = enum_con->next;
       /* Stop if at the end of the list of constants. */
       if (enum_con == NULL) break;
