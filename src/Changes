@@ -1,5 +1,20 @@
 Version 3.7
 
+6/25/05  C++-generating back end: declarations introduced in enumeration
+         members of prototype instantiations
+
+With PROTOTYPE_INSTANTIATIONS_IN_IL and --parse_templates, a class or struct
+first declared in the enumerator list of an enumeration member of a class
+template was generated without the necessary class or struct keyword.  For
+example:
+
+  template<int> struct X { X(...); };
+  template <int N> struct Z {
+    enum { E=sizeof(X<N>((struct S *)(0))) };
+  };
+
+The initializer for E formerly dropped the "struct" keyword.  Now fixed.
+
 6/24/05  Incorrect symbol variant used in
          push_instantiation_scope_for_templ_param_rescan
 
