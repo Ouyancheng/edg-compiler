@@ -432,7 +432,7 @@ map entries, extending the array of entries if necessary.
        the previous contents). */
     a_macro_text_map_entry_ptr old_first_entry = mtmp->entries;
     a_macro_text_map_entry_ptr after_old_last_entry =
-                                             mtmp->entries + mtmp->num_entries;
+                                             &mtmp->entries[mtmp->num_entries];
     a_boolean                  source_line_modifs_need_adjustment =
                                                      (mtmp == &macro_text_map);
     sizeof_t                   new_max_entries = mtmp->max_entries * 2;
@@ -462,8 +462,8 @@ map entries, extending the array of entries if necessary.
       for (slmp = source_line_modif_list; slmp != NULL; slmp = slmp->next) {
         if (ptr_in_range(slmp->text_map.entries, old_first_entry,
                          after_old_last_entry)) {
-          slmp->text_map.entries = mtmp->entries + (slmp->text_map.entries -
-                                                    old_first_entry);
+          slmp->text_map.entries = &mtmp->entries[slmp->text_map.entries -
+                                                  old_first_entry];
         }  /* if */
       }  /* for */
     }  /* if */
@@ -479,7 +479,7 @@ Return a pointer to the next free macro text map entry in the specified map.
 */
 {
   ensure_avail_text_map_entries(mtmp, 1);
-  return mtmp->entries + mtmp->num_entries++;
+  return &mtmp->entries[mtmp->num_entries++];
 }  /* next_macro_text_map_entry */
 
 
@@ -1920,8 +1920,8 @@ so a hanging delete is in effect).
                                   /*seq=*/0, SP_COL_UNKNOWN,
                                   NO_PARENT_MACRO_INVOCATION);
       slmp->text_map.num_entries = 2;
-      slmp->text_map.entries = macro_text_map.entries +
-                                                macro_text_map.num_entries - 2;
+      slmp->text_map.entries =
+                       &macro_text_map.entries[macro_text_map.num_entries - 2];
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     }  /* if */
     end_of_curr_token = start_of_curr_token + len_of_curr_token - 1;
@@ -2810,13 +2810,13 @@ end_loop:
     macro_text_map.num_entries = save_num_macro_text_map_entries;
     ensure_avail_text_map_entries(&macro_text_map,
                                   aux_text_map_for_pcc_macros.num_entries);
-    (void)memcpy((char *)(macro_text_map.entries + macro_text_map.num_entries),
-                 (char *)aux_text_map_for_pcc_macros.entries,
+    (void)memcpy((char *)&macro_text_map.entries[macro_text_map.num_entries],
+                 (char *)&aux_text_map_for_pcc_macros.entries[0],
                  size_t_arg(sizeof(a_macro_text_map_entry)*
                             aux_text_map_for_pcc_macros.num_entries));
     main_slmp->text_map.num_entries = aux_text_map_for_pcc_macros.num_entries;
     main_slmp->text_map.entries =
-                           macro_text_map.entries + macro_text_map.num_entries;
+                           &macro_text_map.entries[macro_text_map.num_entries];
     macro_text_map.num_entries += aux_text_map_for_pcc_macros.num_entries;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   }  /* if */
@@ -3209,6 +3209,7 @@ associated global variables will also have been set).
                   this_macro_invocation_record = NO_PARENT_MACRO_INVOCATION;
   a_macro_text_map_entry_ptr
                   tmep;
+  a_boolean       macro_text_map_in_use = FALSE;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if MACRO_INVOCATION_TREE_IN_IL
   a_macro_invocation_record_ptr
@@ -3280,16 +3281,29 @@ associated global variables will also have been set).
     if (slmp->inserted_text != slmp->inserted_chars) {
       goto end_scan_for_macro_modifs;
     }  /* if */
+#if FULLY_RESOLVED_MACRO_P0SITIONS
+    if (ptr_in_range(slmp->text_map.entries, &macro_text_map.entries[0],
+                     &macro_text_map.entries[macro_text_map.num_entries])) {
+      /* We can't truncate macro_text_map yet (even if macro_buffer can be
+         truncated: there may be macro_text_map entries associated with a
+         modification that uses only its inserted_chars). */
+      macro_text_map_in_use = TRUE;
+    }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   }  /* for */
   /* No source line modifications from macros. */
   next_avail_in_macro_buffer = macro_buffer;
   num_chars_deleted_in_macro_buffer = 0;
   num_compacted_macro_buffer_chars = 0;
 #if FULLY_RESOLVED_MACRO_POSITIONS
-  macro_text_map.num_entries = 0;
-  /* There shouldn't be any leftover text map position trackers at this
-     point. */
-  check_assertion(active_text_map_position_trackers == NULL);
+  if (!macro_text_map_in_use) {
+    /* There are no live references into the macro text map, so we can
+       truncate it and start over, to save space. */
+    macro_text_map.num_entries = 0;
+    /* There shouldn't be any leftover text map position trackers at this
+       point. */
+    check_assertion(active_text_map_position_trackers == NULL);
+  }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 end_scan_for_macro_modifs:;
   /* Normal case is that the macro expansion is rescanned after this routine
@@ -4175,7 +4189,7 @@ end_arg_expansion:;
                                    inert_macro_offset,
                                    repl_text_len - inert_macro_offset,
                                    &macro_text_map,
-                                   /*starting_targ_offset=*/0,
+                                   inert_macro_offset,
                                    this_macro_invocation_record);
     }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
@@ -4350,7 +4364,7 @@ end_arg_expansion:;
                last region in the argument's raw text map, offset to the end
                of the argument text (i.e., one before the ending offset less
                the final LE_END_OF_INSERTION escape). */
-            tmep = map->raw_text_map.entries + map->raw_text_map.num_entries-2;
+            tmep = &map->raw_text_map.entries[map->raw_text_map.num_entries-2];
             src_offset = tmep[1].start_of_region - tmep[0].start_of_region -
                                                              LE_ESCAPE_LEN - 1;
             add_entry_to_macro_text_map(&macro_text_map,
@@ -4443,7 +4457,7 @@ copy_done:
                               this_macro_invocation_record);
   slmp->text_map.num_entries =
                              macro_text_map.num_entries - first_text_map_entry;
-  slmp->text_map.entries = macro_text_map.entries + first_text_map_entry;
+  slmp->text_map.entries = &macro_text_map.entries[first_text_map_entry];
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if MACRO_INVOCATION_TREE_IN_IL
   slmp->invocation_record = this_macro_invocation_record;
@@ -4816,85 +4830,91 @@ IL entry.
   /* Make a string for the macro in temp_text_buffer, then copy it into
      the file-scope IL. */
   pos_in_temp_text_buffer = 0;
-  /* Put out #define. */
-  put_str_to_temp_text_buffer("#define ");
-  /* Put out the macro name. */
-  put_str_to_temp_text_buffer(macro_sym->header->identifier);
-  /* If the macro is function-like, put out the parameters. */
-  if (!mdp->object_like) {
-    put_ch_to_temp_text_buffer('(');
-    for (pp = mdp->param_list; pp != NULL; pp = pp->next) {
-      /* Put out a macro parameter name. */
-      if (mdp->variadic && pp->next == NULL) {
-        /* This is a variadic parameter (declared with an ellipsis). */
-        if (extended_variadic_macros_allowed) {
-          /* Generate a variadic macro name as in "M(x, y, z...)". */
+  if (mdp->repl_text == NULL) {
+    /* Predefined macros, like __LINE__ and __FILE__, whose replacement text
+       varies between invocations have a NULL replacement text and will be
+       identified in the IL by an empty string (not even "#define"). */
+  } else {
+    /* Put out #define. */
+    put_str_to_temp_text_buffer("#define ");
+    /* Put out the macro name. */
+    put_str_to_temp_text_buffer(macro_sym->header->identifier);
+    /* If the macro is function-like, put out the parameters. */
+    if (!mdp->object_like) {
+      put_ch_to_temp_text_buffer('(');
+      for (pp = mdp->param_list; pp != NULL; pp = pp->next) {
+        /* Put out a macro parameter name. */
+        if (mdp->variadic && pp->next == NULL) {
+          /* This is a variadic parameter (declared with an ellipsis). */
+          if (extended_variadic_macros_allowed) {
+            /* Generate a variadic macro name as in "M(x, y, z...)". */
+            put_str_to_temp_text_buffer(pp->name);
+          }  /* if */
+          put_str_to_temp_text_buffer("...");
+        } else {
+          /* The normal case of a nonvariadic macro parameter. */
           put_str_to_temp_text_buffer(pp->name);
         }  /* if */
-        put_str_to_temp_text_buffer("...");
-      } else {
-        /* The normal case of a nonvariadic macro parameter. */
-        put_str_to_temp_text_buffer(pp->name);
-      }  /* if */
-      /* There are more parameters, so put out a comma separator. */
-      if (pp->next != NULL) put_ch_to_temp_text_buffer(',');
-    }  /* for */
-    put_ch_to_temp_text_buffer(')');
-  }  /* if */
-  put_ch_to_temp_text_buffer(' ');
-  /* Put out the macro body, converting from the internal form to a plain
-     string. */
-  for (ptr = mdp->repl_text; *ptr != (int)rt_null;) {
-    rts_kind = (a_repl_text_seq_kind)*(ptr++);
-    /* Extract the section length or argument number. */
-    get_macro_repl_text_number(rts_number, ptr);
-    switch (rts_kind) {
-      case rt_text:
-        /* Raw text.  rts_number gives its length.  Copy the text, ignoring
-           end-of-token markers. */
-        for (; rts_number > 0; rts_number--) {
-          char ch = *ptr++;
-          if (ch == LE_ESCAPE) {
-            if (*ptr == LE_NULL) {
-              /* Null (zero) character in line. */
-              put_ch_to_temp_text_buffer('\0');
+        /* There are more parameters, so put out a comma separator. */
+        if (pp->next != NULL) put_ch_to_temp_text_buffer(',');
+      }  /* for */
+      put_ch_to_temp_text_buffer(')');
+    }  /* if */
+    put_ch_to_temp_text_buffer(' ');
+    /* Put out the macro body, converting from the internal form to a plain
+       string. */
+    for (ptr = mdp->repl_text; *ptr != (int)rt_null;) {
+      rts_kind = (a_repl_text_seq_kind)*(ptr++);
+      /* Extract the section length or argument number. */
+      get_macro_repl_text_number(rts_number, ptr);
+      switch (rts_kind) {
+        case rt_text:
+          /* Raw text.  rts_number gives its length.  Copy the text, ignoring
+             end-of-token markers. */
+          for (; rts_number > 0; rts_number--) {
+            char ch = *ptr++;
+            if (ch == LE_ESCAPE) {
+              if (*ptr == LE_NULL) {
+                /* Null (zero) character in line. */
+                put_ch_to_temp_text_buffer('\0');
+              } else {
+                /* End of token marker, ignored. */
+                check_assertion_str(*ptr == LE_END_OF_TOKEN,
+                                    "make_il_macro_entry: bad lexical escape");
+              }  /* if */
+              ptr++;
+              rts_number--;
             } else {
-              /* End of token marker, ignored. */
-              check_assertion_str(*ptr == LE_END_OF_TOKEN,
-                                  "make_il_macro_entry: bad lexical escape");
-            }  /* if */
-            ptr++;
-            rts_number--;
-          } else {
-            put_ch_to_temp_text_buffer(ch);
+              put_ch_to_temp_text_buffer(ch);
+            }  /* for */
           }  /* for */
-        }  /* for */
-        break;
-      case rt_raw_argument:
-        /* parameter ## normal or parameter ## parameter, or pcc-mode
-           parameter. */
-        put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
-        break;
-      case rt_paste:
-        /* ## placeholder */
-        put_str_to_temp_text_buffer("##");
-        break;
-      case rt_stringized_raw_argument:
-      case rt_charized_raw_argument:
-        /* #parameter or #@parameter */
-        put_str_to_temp_text_buffer(
-           rts_kind == rt_charized_raw_argument ? (char *)"#@" : (char *)"#");
-        put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
-        break;
-      case rt_argument:
-        /* Simple parameter name. */
-        put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
-        break;
-      default:
-        unexpected_condition_str(
+          break;
+        case rt_raw_argument:
+          /* parameter ## normal or parameter ## parameter, or pcc-mode
+             parameter. */
+          put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
+          break;
+        case rt_paste:
+          /* ## placeholder */
+          put_str_to_temp_text_buffer("##");
+          break;
+        case rt_stringized_raw_argument:
+        case rt_charized_raw_argument:
+          /* #parameter or #@parameter */
+          put_str_to_temp_text_buffer(
+            rts_kind == rt_charized_raw_argument ? (char *)"#@" : (char *)"#");
+          put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
+          break;
+        case rt_argument:
+          /* Simple parameter name. */
+          put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
+          break;
+        default:
+          unexpected_condition_str(
                     "make_il_macro_entry: bad text section kind in macro def");
-    }  /* switch */
-  }  /* for */
+      }  /* switch */
+    }  /* for */
+  }  /* if */
   /* Allocate an IL area of the right size and copy the string into it. */
   ptr = alloc_il((sizeof_t)(pos_in_temp_text_buffer + 1));
   (void)memcpy(ptr, temp_text_buffer, size_t_arg(pos_in_temp_text_buffer));
@@ -6099,8 +6119,8 @@ try_match_again:
     add_entry_to_macro_text_map(&macro_text_map, LE_ESCAPE_LEN+1, /*seq=*/0,
                                 SP_COL_UNKNOWN, NO_PARENT_MACRO_INVOCATION);
     slmp->text_map.num_entries = 2;
-    slmp->text_map.entries = macro_text_map.entries +
-                                                macro_text_map.num_entries - 2;
+    slmp->text_map.entries =
+                       &macro_text_map.entries[macro_text_map.num_entries - 2];
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   }  /* if */
   delete_source_from_loc = NULL;
@@ -6218,14 +6238,14 @@ symbol entry is returned.
     mdp->param_list  = NULL;
     mdp->repl_text   = repl_text;
 #if RECORD_MACROS_IN_IL
-    /* Insert predefined macros into the macro list.  This covers
-       macros like __STDC__, __cplusplus, and __DATE__. */
-    if (mdp->repl_text != NULL) {
-      a_source_position pos;
+    /* Insert predefined macros into the macro list.  Predefined macros that
+       have a varying replacement list (like __LINE__ and __FILE__) will have
+       an empty replacement text in the IL entry. */
+    { a_source_position pos;
       pos.seq = 0;
       pos.column = SP_COL_PREDEFINED_MACRO;
       (void)make_il_macro_entry(sym_ptr, &pos);
-    }  /* if */
+    }
 #endif /* RECORD_MACROS_IN_IL */
 #if FULLY_RESOLVED_MACRO_POSITIONS
     /* There are no positions to map, so we just add a beginning and ending
@@ -7290,6 +7310,10 @@ Display and return the amount of space used for various macro tables.
     db_space_used_general_buffer("Aux pcc buffer", total);
   }  /* if */
 
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  db_space_used("macro text map", macro_text_map.max_entries,
+                a_macro_text_map_entry);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   db_space_used_total();
 
   return (grand_total);

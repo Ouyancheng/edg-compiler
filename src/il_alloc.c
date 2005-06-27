@@ -4279,6 +4279,9 @@ in il_alloc_init.)
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(num_macros_allocated),
 #endif /* RECORD_MACROS_IN_IL */
+#if MACRO_INVOCATION_TREE_IN_IL
+      pch_saved_var_array_elem(num_macro_invocation_record_blocks_allocated),
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       pch_saved_var_array_elem(num_decl_position_supplements_allocated),
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

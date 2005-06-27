@@ -10430,7 +10430,10 @@ typedef struct a_macro {
   char		*text;
 			/* A null-terminated string representing the text of
 			   the macro declaration, starting with the keyword
-			   "#define" or "#undef". */
+			   "#define" or "#undef".  Predefined macros whose
+			   replacement text is constructed for each invocation,
+			   such as __FILE__ and __LINE__, are identified by an
+			   empty (zero-length) text field. */
 } a_macro;
 
 #endif /* RECORD_MACROS_IN_IL */
