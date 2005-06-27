@@ -5276,8 +5276,9 @@ Scan and process a #define directive.
 #if FULLY_RESOLVED_MACRO_POSITIONS
     /* Initialize the token position tracker (but not if this is a
        command-line definition, which will be completely handled at the end of
-       processing). */
-    if (curr_command_line_macro_def == NULL) {
+       processing, or a disallowed redefinition, which will be ignored). */
+    if (curr_command_line_macro_def == NULL &&
+        assoc_symbol != NULL) {
       init_text_map_position_tracker(&tracker, &macro_text_map,
                                      NO_PARENT_MACRO_INVOCATION);
     }  /* if */
@@ -5418,10 +5419,12 @@ Scan and process a #define directive.
           /* Any other tokens -- not special, just put into macro buffer
              as raw text. */
 #if FULLY_RESOLVED_MACRO_POSITIONS
-          if (curr_command_line_macro_def == NULL) {
-            /* This token is from the source file, so we need register its
+          if (curr_command_line_macro_def == NULL &&
+              assoc_symbol != NULL) {
+            /* This token is from the source file, so we need to register its
                position in the macro text map.  (Command-line definitions are
-               handled all at once at the end of processing the definition.) */
+               handled all at once at the end of processing the definition,
+               and disallowed redefinitions are ignored.) */
             next_targ_offset = next_avail_in_macro_buffer - buffer_start;
             if (curr_text_section == NULL) {
               /* Allow for the section header, which will be added before the
@@ -5489,7 +5492,8 @@ Scan and process a #define directive.
         }  /* for */
         if (pp == NULL && pp2 == NULL) {
 #if FULLY_RESOLVED_MACRO_POSITIONS
-          if (curr_command_line_macro_def == NULL) {
+          if (curr_command_line_macro_def == NULL &&
+              assoc_symbol != NULL) {
             /* A benign redefinition -- terminate the tracker (and just abandon
                the text map entries added to macro_text_map: they'll be
                discarded the next time macro_buffer is truncated). */
