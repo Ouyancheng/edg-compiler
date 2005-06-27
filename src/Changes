@@ -1,5 +1,12 @@
 Version 3.7
 
+6/27/05  Precompiled headers: command-line event comparisons broken by 3.6
+
+Version 3.6 introduced a problem that caused a precompiled header file to
+be used even though the command-line options did not match the compilation
+that produced the PCH file.  This could result in internal errors, aborts,
+or other incorrect behavior.  Now fixed.
+
 6/25/05  C++-generating back end: declarations introduced in enumeration
          members of prototype instantiations
 

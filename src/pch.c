@@ -2233,8 +2233,6 @@ Initialize variables used by the precompiled header routines.
   cannot_create_pch_file = FALSE;
   pch_event_list_head = NULL;
   pch_event_list_tail = NULL;
-  pch_cmd_line_event_list_head = NULL;
-  pch_cmd_line_event_list_tail = NULL;
   pch_file_name = NULL;
   f_pch_input = NULL;
   f_pch_output = NULL;
@@ -2286,6 +2284,8 @@ This is done before command line processing.
 */
 {
   num_of_saved_variable_lists = 0;
+  pch_cmd_line_event_list_head = NULL;
+  pch_cmd_line_event_list_tail = NULL;
 }  /* pch_early_init */
 
 #if MAKE_FRONT_END_CALLABLE
