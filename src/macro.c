@@ -3210,6 +3210,9 @@ associated global variables will also have been set).
   a_macro_text_map_entry_ptr
                   tmep;
   a_boolean       macro_text_map_in_use = FALSE;
+  char            *after_last_invocation_token;
+  a_pointer_registration
+                  after_last_invocation_token_reg;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if MACRO_INVOCATION_TREE_IN_IL
   a_macro_invocation_record_ptr
@@ -3253,7 +3256,10 @@ associated global variables will also have been set).
   register_pointer_variable(repl_text,  repl_text_reg);
   register_pointer_variable(save_delete_source_from_loc,
                                         save_delete_source_from_loc_reg);
-
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  register_pointer_variable(after_last_invocation_token,
+                                        after_last_invocation_token_reg);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   /* See standard, 3.8.3 (Macro Replacement). */
   db_enter(4, "macro_invocation");
 #if DEBUG
@@ -3281,7 +3287,7 @@ associated global variables will also have been set).
     if (slmp->inserted_text != slmp->inserted_chars) {
       goto end_scan_for_macro_modifs;
     }  /* if */
-#if FULLY_RESOLVED_MACRO_P0SITIONS
+#if FULLY_RESOLVED_MACRO_POSITIONS
     if (ptr_in_range(slmp->text_map.entries, &macro_text_map.entries[0],
                      &macro_text_map.entries[macro_text_map.num_entries])) {
       /* We can't truncate macro_text_map yet (even if macro_buffer can be
@@ -3673,6 +3679,11 @@ end_scan_for_macro_modifs:;
       /* Get the "(" as a token, and delete its characters. */
       (void)arg_get_token(&any_white_space_skipped);
       add_stop_token(tok_rparen);
+#if FULLY_RESOLVED_MACRO_POSITIONS
+      /* Save a pointer to after the "(", in case we need it for the error
+         position in a message about a missing ")". */
+      after_last_invocation_token = start_of_curr_token + len_of_curr_token;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
       /* Get another token to prime the loop. */
       (void)arg_get_token(&any_white_space_skipped);
       pp = param_list;
@@ -3947,6 +3958,8 @@ scan_expanded_tokens:
             next_targ_offset = map->expanded_len +
                                             token_text_len - len_of_curr_token;
             add_token_to_macro_text_map(&tracker, next_targ_offset);
+            after_last_invocation_token =
+                                       start_of_curr_token + len_of_curr_token;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             add_curr_token_text_to_buffer(need_end_of_token_marker,
                                           any_white_space_skipped,
@@ -4086,6 +4099,20 @@ end_arg_expansion:;
          token is not deleted yet; that happens at the time of insertion
          below. */
       if (curr_token != tok_rparen) {
+#if FULLY_RESOLVED_MACRO_POSITIONS
+        if (curr_token == tok_end_of_source && macro_depth > 1) {
+          /* We are expanding a macro argument.  The position of the
+             end-of-source token will be in the argument list of the
+             containing macro invocation, which could lead to inanities like
+             pointing to a right parenthesis for the "expected a ')'"
+             message.  Instead, set error_position to point after the last
+             token we got in this nested macro invocation; if we're lucky,
+             that will look like the end of an incomplete macro invocation,
+             depending on where the token came from. */
+          conv_line_loc_to_source_pos(after_last_invocation_token,
+                                      &error_position);
+        }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
         syntax_error(ec_exp_rparen);
       }  /* if */
       remove_stop_token(tok_rparen);
