@@ -1,5 +1,29 @@
 Version 3.7
 
+6/27/05  Position and context tracking in macro invocations
+
+Two new configuration options have been added to provide additional
+information about macro invocations and expanded text.  When
+FULLY_RESOLVED_MACRO_POSITIONS is TRUE, an extra sequence number and column
+pair is available in a_source_position; for source positions associated with
+text in macro expansions, these fields designate the original position (in a
+macro definition or top-level macro argument) at which the text appeared.
+Setting MACRO_INVOCATION_TREE_IN_IL to TRUE records every macro invocation
+in a translation unit in a flattened tree in the file-scope IL (see
+il_header.root_macro_invocation_record_block and related declarations).
+MACRO_INVOCATION_TREE_IN_IL also extendes a_source_position to contain an
+index into this tree, identifying the particular invocation in whose
+expansion the position appears and allowing a stack trace of the macro
+invocations that led to that expansion.
+
+This extra information can be reflected in diagnostic output concerning text
+in macro expansions.  A new command-line option,
+--[no_]macro_positions_in_diagnostics, controls whether the original source
+position is displayed in addition to the current source display of the
+beginning of the top-level macro invocation, along with the macro invocation
+stack for the referenced position (if the front end is configured with
+MACRO_INVOCATION_TREE_IN_IL as TRUE).
+
 6/27/05  Precompiled headers: command-line event comparisons broken by 3.6
 
 Version 3.6 introduced a problem that caused a precompiled header file to
