@@ -4112,14 +4112,10 @@ used to find this file.
                                                           pp_if_stack_depth;
   }  /* if */
 #if DEBUG
-  if (debug_level >= 5) {
-    a_directory_name_entry_ptr	dnep = incl_search_path;
-    fprintf(f_debug, "Include search path after pushing %s:\n",
+  if (db_flag_is_set("incl_search_path")) {
+    fprintf(f_debug, "push_input_stack: search path after pushing %s:\n",
             full_file_name);
-    while (dnep != NULL) {
-      fprintf(f_debug, "  %s\n", dnep->dir_name);
-      dnep = dnep->next;
-    }  /* while */
+    db_incl_search_path();
   }  /* if */
 #endif /* DEBUG */
   db_exit();
@@ -4288,9 +4284,20 @@ at the next level down.
     }  /* if */
     /* Modify the search rules for #include directives found within this
        source file, so that the directory containing the current include
-       file will be searched first. */
-    pop_primary_include_search_dir(
-             curr_ise->dir_name, (a_boolean)curr_ise->from_system_include_dir);
+       file will be searched first.  Normally, we pop back to the directory
+       of the current input stack entry, but when popping a preinclude file
+       we must (in some modes) pop back to the current directory. */
+    { char	*prev_dir_name;
+      if (is_end_of_preinclude &&
+          put_dir_of_each_opened_source_file_on_incl_search_path &&
+          !microsoft_mode) {
+        prev_dir_name = current_directory_name;
+      } else {
+        prev_dir_name = curr_ise->dir_name;
+      }  /* if */
+      pop_primary_include_search_dir(
+             prev_dir_name, (a_boolean)curr_ise->from_system_include_dir);
+    }
     if (C_dialect != C_dialect_pcc) {
       /* If not in pcc mode, keep the base of the preprocessing if stack
          up to date.  Each file's #ifs are kept separate; an #if must
@@ -4382,13 +4389,9 @@ at the next level down.
     push_next_preinclude_file();
   }  /* if */
 #if DEBUG
-  if (debug_level >= 5) {
-    a_directory_name_entry_ptr	dnep = incl_search_path;
-    fprintf(f_debug, "Include search path after popping:\n");
-    while (dnep != NULL) {
-      fprintf(f_debug, "  %s\n", dnep->dir_name);
-      dnep = dnep->next;
-    }  /* while */
+  if (db_flag_is_set("incl_search_path")) {
+    fprintf(f_debug, "pop_input_stack: include search path after popping:\n");
+    db_incl_search_path();
   }  /* if */
 #endif /* DEBUG */
   db_exit();

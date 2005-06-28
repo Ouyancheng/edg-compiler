@@ -2397,6 +2397,8 @@ extern char *generate_instantiation_output_file_name(char *mangled_name);
 #if !EDG_WIN32
 extern void set_cpu_time_limit(int	seconds);
 #endif /* !EDG_WIN32 */
+
+extern void db_incl_search_path(void);
 #endif /* DEBUG */
 
 EXTERN a_boolean

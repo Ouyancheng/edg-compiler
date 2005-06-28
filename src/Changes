@@ -1,5 +1,12 @@
 Version 3.7
 
+6/28/05  Internal error in pop_primary_include_search_dir on preinclude
+
+When STACK_REFERENCED_INCLUDE_DIRECTORIES is TRUE, but when not using
+Microsoft mode, an internal error in pop_primary_include_search_dir could
+occur when doing a preinclude in a compilation in which the primary
+source file is not in the current directory.  Now fixed.
+
 6/27/05  Position and context tracking in macro invocations
 
 Two new configuration options have been added to provide additional

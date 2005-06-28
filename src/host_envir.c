@@ -484,6 +484,21 @@ include files to the end of the search path lists.
 #endif /* __VMS__ */
 }  /* add_default_include_search_path */
 
+#if DEBUG
+
+void db_incl_search_path(void)
+/*
+Display the include search path, for debugging purposes.
+*/
+{
+  a_directory_name_entry_ptr	dnep = incl_search_path;
+  while (dnep != NULL) {
+    fprintf(f_debug, "  %s\n", dnep->dir_name);
+    dnep = dnep->next;
+  }  /* while */
+}  /* db_incl_search_path */
+
+#endif /* DEBUG */
 
 void change_primary_include_search_dir(char *dir_name)
 /*
@@ -492,6 +507,14 @@ entry by "dir_name".  The directory name string should be allocated in
 general memory.
 */
 {
+#if DEBUG
+  if (db_flag_is_set("incl_search_path")) {
+    fprintf(f_debug,
+            "change_primary_include_search_dir: before changing %s to %s\n",
+            incl_search_path->dir_name, dir_name);
+    db_incl_search_path();
+  }  /* if */
+#endif /*  DEBUG */
   incl_search_path->dir_name = dir_name;
 }  /* change_primary_include_search_dir */
 
@@ -514,6 +537,13 @@ this approach (as employed by Microsoft C compilers) follows from setting
 stack_referenced_include_directories to TRUE.
 */
 {
+#if DEBUG
+  if (db_flag_is_set("incl_search_path")) {
+    fprintf(f_debug, "push_primary_include_search_dir: pushing %s\n",
+            dir_name);
+    db_incl_search_path();
+  }  /* if */
+#endif /*  DEBUG */
   /* The "-I-" option disables these changes. */
   if (put_dir_of_each_opened_source_file_on_incl_search_path) {
     if (stack_referenced_include_directories) {
@@ -528,6 +558,13 @@ stack_referenced_include_directories to TRUE.
     }  /* if */
     incl_search_path->system_include_dir = system_include_dir;
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("incl_search_path")) {
+    fprintf(f_debug, "push_primary_include_search_dir: after pushing %s\n",
+            dir_name);
+    db_incl_search_path();
+  }  /* if */
+#endif /*  DEBUG */
 }  /* push_primary_include_search_dir */
 
 
@@ -540,6 +577,13 @@ input stack.  system_include_dir is TRUE if the original entry should be
 considered a system include directory.
 */
 {
+#if DEBUG
+  if (db_flag_is_set("incl_search_path")) {
+    fprintf(f_debug, "pop_primary_include_search_dir: popping to %s\n",
+            dir_name);
+    db_incl_search_path();
+  }  /* if */
+#endif /*  DEBUG */
   /* The "-I-" option disables these changes. */
   if (put_dir_of_each_opened_source_file_on_incl_search_path) {
     if (stack_referenced_include_directories) {
@@ -560,6 +604,13 @@ considered a system include directory.
     }  /* if */
     incl_search_path->system_include_dir = system_include_dir;
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("incl_search_path")) {
+    fprintf(f_debug, "pop_primary_include_search_dir: after popping to %s\n",
+            dir_name);
+    db_incl_search_path();
+  }  /* if */
+#endif /*  DEBUG */
 }  /* pop_primary_include_search_dir */
 
 
