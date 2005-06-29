@@ -663,6 +663,7 @@ check_abbreviation()
 --no_sun_linker_scope
 --no_svr4
 --no_thread_local_storage
+--no_trigraphs
 --no_typename
 --no_upc
 --no_use_before_set_warnings
@@ -731,6 +732,7 @@ check_abbreviation()
 --timing
 --trace_includes
 --trans_unit_test_mode
+--trigraphs
 --typename
 --undefine_macro
 --unsigned_chars
@@ -1221,6 +1223,8 @@ process_option()
          --no_embedded_c | \
          --thread_local_storage | \
          --no_thread_local_storage | \
+         --trigraphs | \
+         --no_trigraphs | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
