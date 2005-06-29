@@ -1,5 +1,14 @@
 Version 3.7
 
+6/29/05  Thread local storage option description
+
+The 12/13/04 entry of the Changes files (i.e., this file) shipped with
+version 3.6 of the front end erroneously documented the command-line option
+to enable the __thread specifier as being "--thread_local_specifier".
+Instead, it should have been "--thread_local_storage".  The entry is now
+fixed.  (The option was correctly spelled in the "External Interface"
+chapter of the C++ Front End Internal Documentation.)
+
 6/28/05  Internal error in pop_primary_include_search_dir on preinclude
 
 When STACK_REFERENCED_INCLUDE_DIRECTORIES is TRUE, but when not using
@@ -3092,10 +3101,10 @@ the variable should be placed in "thread-local storage".  For example:
     __thread int i = s;  // Error: i does not have static lifetime.
   }
 
-The command-line option --thread_local_specifier enables the new specifier.
+The command-line option --thread_local_storage enables the new specifier.
 By default it is also accepted in GNU and Sun modes (because the GNU and Sun
 compilers also accept this extension), but this can be turned off using the
-command-line option --no_thread_local_specifier.
+command-line option --no_thread_local_storage.
 
 12/13/04 Microsoft compatibility: injected class names in MSVC 6
 
