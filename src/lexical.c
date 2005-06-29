@@ -4290,6 +4290,7 @@ at the next level down.
     { char	*prev_dir_name;
       if (is_end_of_preinclude &&
           put_dir_of_each_opened_source_file_on_incl_search_path &&
+          stack_referenced_include_directories &&
           !microsoft_mode) {
         prev_dir_name = current_directory_name;
       } else {
