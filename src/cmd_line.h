@@ -240,6 +240,7 @@ typedef enum /*an_option_kind*/ {
 #if FULLY_RESOLVED_MACRO_POSITIONS
   optk_macro_positions_in_diagnostics,
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+  optk_trigraphs,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -884,6 +885,10 @@ EXTERN a_boolean
 			   "and", "or", "not", etc.) and digraphs should
 			   be allowed.  This flag is automatically set
 			   in strict mode. */
+
+EXTERN a_boolean
+		trigraphs_allowed;
+			/* TRUE if trigraphs should be allowed. */
 
 #if DO_IL_LOWERING && MINIMAL_INLINING
 EXTERN a_boolean

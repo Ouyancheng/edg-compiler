@@ -1,5 +1,13 @@
 Version 3.7
 
+6/29/05  Control over recognition of trigraphs
+
+Recognition of trigraphs may now be disabled.  The default mode behavior is
+specified by the DEFAULT_TRIGRAPHS_ALLOWED macro (which defaults to TRUE).
+Trigraphs are enabled by default in strict mode, Microsoft mode, and Sun mode.
+They are disabled by default in GNU modes.  The default can be explicitly
+overridden using the --[no_]trigraphs command-line options.
+
 6/29/05  Thread local storage option description
 
 The 12/13/04 entry of the Changes files (i.e., this file) shipped with

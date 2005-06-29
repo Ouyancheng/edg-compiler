@@ -1080,6 +1080,14 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_none);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+  add_option_description(optk_trigraphs,
+			 "trigraphs",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_trigraphs,
+			 "no_trigraphs",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1550,6 +1558,10 @@ by a command line option.
      version 7.0. */
   floating_point_template_parameters_allowed = microsoft_version <= 1300;
   null_chars_allowed_in_source = TRUE;
+  if (!(option_kind_used[(int)optk_trigraphs])) {
+    /* Trigraphs should be allowed if not disabled by a command-line option. */
+    trigraphs_allowed = TRUE;
+  }  /* if */
   if (!C_mode()) {
     /* Microsoft C++ mode. */
     if (!option_kind_used[(int)optk_bool_is_keyword]) {
@@ -2345,6 +2357,10 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
 	long_preserving_rules = FALSE;
     }  /* if */
   }  /* if */
+  if (!(option_kind_used[(int)optk_trigraphs])) {
+    /* Trigraphs should be allowed if not disabled by a command-line option. */
+    trigraphs_allowed = TRUE;
+  }  /* if */
   if (!(option_kind_used[(int)optk_extended_designators])) {
     /* Support for extended designators is turned off by default in
        strict mode. */
@@ -2606,6 +2622,10 @@ checked again here.)
     sun_linker_scope_allowed = DEFAULT_SUN_LINKER_SCOPE_ALLOWED;
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
+  if (!(option_kind_used[(int)optk_trigraphs])) {
+    /* Trigraphs should be allowed if not disabled by a command-line option. */
+    trigraphs_allowed = TRUE;
+  }  /* if */
   /* The Sun compiler suffers from the same problem as the Microsoft
      compiler with respect to making template parameters visible in
      specializations. */
@@ -2669,6 +2689,10 @@ exclude the GNU modes already.  Hence those are not checked again here.)
   if (!(option_kind_used[(int)optk_alternative_tokens])) {
     /* Enable recognition of digraphs. */
     alternative_tokens_allowed = TRUE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_trigraphs])) {
+    /* Disable trigraphs. */
+    trigraphs_allowed = FALSE;
   }  /* if */
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   if (!(option_kind_used[(int)optk_thread_local_storage])) {
@@ -4097,6 +4121,10 @@ enable_microsoft_mode:
         macro_positions_in_diagnostics = opt_value;
         break;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+      case optk_trigraphs:
+        /* Trigraphs should or should not be allowed. */
+        trigraphs_allowed = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -4777,6 +4805,7 @@ variables declared in cmd_line.h.
   default_max_member_alignment = 0;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   alternative_tokens_allowed = DEFAULT_ALTERNATIVE_TOKENS_ALLOWED;
+  trigraphs_allowed = DEFAULT_TRIGRAPHS_ALLOWED;
 #if DO_IL_LOWERING && MINIMAL_INLINING
   inlining_enabled = TRUE;
 #endif /* DO_IL_LOWERING && MINIMAL_INLINING */

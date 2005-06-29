@@ -540,6 +540,18 @@ static a_boolean
 		caching_tokens;
 			/* TRUE when caching a token stream to be scanned
 			   later. */
+static a_boolean
+		trigraph_diagnostic_issued;
+			/* TRUE if a diagnostic indicating that trigraphs are
+			   disabled has already been issued.  Actually, it
+			   is set to TRUE once trigraph_column has been
+			   set. */
+
+static a_column_number
+		trigraph_column;
+			/* If a trigraph was encountered when trigraphs are
+			   disabled, this is the column in the line of
+			   the trigraph so that a diagnostic can be issued. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static a_boolean
@@ -5056,6 +5068,12 @@ simple_return:
                                          (currently_in_pp_if_skip ? 'S' : 'N');
     }  /* if */
   }  /* if */
+  if (trigraph_column != 0) {
+    /* This line contained the first ignored trigraph.  Issue a warning. */
+    warning_at_line_pos(ec_trigraph_ignored,
+                        curr_source_line + trigraph_column - 1);
+    trigraph_column = 0;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 1) {
     /* Display the line just read. */
@@ -5188,6 +5206,7 @@ entry_for_possible_trigraph:
 #endif /* QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
                                                 ) {
+            int	orig_ch = ch;
             /* Get the next character, the one following the two "?"s. */
             next_ch = getc(curr_input_stream);
             /* Check for the possible third characters of trigraphs.  If one
@@ -5207,7 +5226,18 @@ entry_for_possible_trigraph:
               case '-':  ch = '~'; break;
               default:   char_is_trapped = TRUE;
             }  /* switch */
-            if (!char_is_trapped) {
+            if (!char_is_trapped && !trigraphs_allowed) {
+              /* Restore the original value of "ch" as we are actually
+                 recognizing the trigraph. */
+              ch = orig_ch;
+              char_is_trapped = TRUE;
+              if (!trigraph_diagnostic_issued) {
+                /* Note that we want trigraph_column to reflect the position
+                   of the initial "?". */
+                trigraph_column = loc_in_line - curr_source_line;
+                trigraph_diagnostic_issued = TRUE;
+              }  /* if */
+            } else if (!char_is_trapped) {
               /* Trigraph detected.  Add a modification entry indicating
                  the position of the trigraph, remove the first "?" from the
                  buffer, then go on to store the remapped character. */
@@ -14630,6 +14660,8 @@ Initialize variables that are specific to a given translation unit.
      since it is related to tokenization. */
   next_token_is_top_level_decl_start = FALSE;
   include_file_history_list = NULL;
+  trigraph_diagnostic_issued = FALSE;
+  trigraph_column = 0;
   /* Clear the set of tokens on which to stop a flush following a
      syntax error. */
   curr_stop_token_stack_entry = NULL;

@@ -1174,6 +1174,15 @@ using command line options.
 #endif /* ifndef DEFAULT_ALTERNATIVE_TOKENS_ALLOWED */
 
 /*
+Flag that is TRUE if trigraphs are recognized.  This is the default value for
+the global flag trigraphs_allowed, the value of which may also be modified
+using command line options.
+*/
+#ifndef DEFAULT_TRIGRAPHS_ALLOWED
+#define DEFAULT_TRIGRAPHS_ALLOWED TRUE
+#endif /* ifndef DEFAULT_TRIGRAPHS_ALLOWED */
+
+/*
 Flag that is TRUE if "&..." should be accepted in the source code.  This
 extension is provided to support the form of macro va_start that is provided
 in some versions of stdarg.h, e.g.,
