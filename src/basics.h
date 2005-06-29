@@ -597,7 +597,7 @@ typedef unsigned long
 typedef long 	a_macro_invocation_record_index;
 			/* The index of a macro invocation record (defined in
 			   il_def.h; all we need is the index type here). */
-#define NO_PARENT_MACRO_INVOCATION -1L
+#define NO_PARENT_MACRO_INVOCATION (-1L)
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS || MACRO_INVOCATION_TREE_IN_IL */
 typedef struct a_source_position *a_source_position_ptr;
 typedef struct a_source_position {

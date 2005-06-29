@@ -2672,8 +2672,9 @@ additional messages in a multiple message diagnostic.
             if (i < 5 || i >= stack_depth - 5) {
               char          *macro_frame_file_name;
               a_line_number macro_frame_line_number;
-              conv_seq_to_file_and_line(mirp->start.seq, &macro_frame_file_name,
-                                        &full_name, &macro_frame_line_number,
+              conv_seq_to_file_and_line(mirp->start.seq,
+                                        &macro_frame_file_name, &full_name,
+                                        &macro_frame_line_number,
                                         &at_end_of_source);
               (void)fprintf(stderr, " in expansion of macro \"%s\" at ",
                             (mirp->assoc_macro != NULL) ?
@@ -2694,7 +2695,7 @@ additional messages in a multiple message diagnostic.
                   /* There will be no source line printed; end the message
                      with a '.'.  (Otherwise, the line termination will be
                      handled by the code below, to allow for cases where the
-                     source line might have been printed but isn't. */
+                     source line might have been printed but isn't.) */
                   (void)fprintf(stderr, ".\n");
                 }  /* if */
               } else {

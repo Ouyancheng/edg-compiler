@@ -86,7 +86,7 @@ static a_macro_text_map
 			   source locations from which the text came, i.e.,
 			   from the macro definition or macro argument.  Like
 			   macro_buffer, this is cumulative for an entire
-			   logical source line; each source line modiffication
+			   logical source line; each source line modification
 			   will refer to a subset of the map entries to
 			   describe the offsets in its inserted_text portion
 			   of macro_buffer.  (Note that the offsets in entries
@@ -115,10 +115,12 @@ static a_macro_invocation_record_index
 		num_macro_invocation_records;
 			/* The total number of macro invocation records used
 			   so far. */
-static int	max_macro_invocation_depth;
+static unsigned long
+		max_macro_invocation_depth;
 			/* The largest number of levels that have been pushed
 			   onto the macro invocation stack. */
-static int	depth_of_curr_macro_invocation_record;
+static unsigned long
+		depth_of_curr_macro_invocation_record;
 			/* The macro invocation stack depth of the current
 			   macro invocation record.  Note that this differs
 			   from macro_depth: while macro_depth refers to the
@@ -275,11 +277,13 @@ typedef struct a_macro_arg {
 			   from which they came. */
 #define MACRO_ARGUMENT_TEXT_MAP_INITIAL_COUNT 10
 			/* Initial number of map entries for raw_text_map and
-			   exp_text_map.  The initial allocation should be
-			   such that almost all cases can be accepted (so that
-			   the realloc is hardly ever needed).  Subsequent
-			   reallocations will double the number of entries
-			   previously allocated. */
+			   exp_text_map.  The initial allocation is kept low
+			   to reduce overall memory usage: most macro
+			   invocations tend to have only a few tokens per
+			   argument, and deeply-nested invocations can result
+			   in the allocation of many a_macro_arg entries, so
+			   it's best to start small and extend only those maps
+			   where the extra entries are actually needed. */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 } a_macro_arg;
 
@@ -423,7 +427,7 @@ in front-end memory so it can be saved in a precompiled header.
 static void ensure_avail_text_map_entries(a_macro_text_map_ptr mtmp,
                                           sizeof_t             num_entries)
 /*
-Make sure that the text map designated by tmpt has at least num_entries free
+Make sure that the text map designated by mtmp has at least num_entries free
 map entries, extending the array of entries if necessary.
 */
 {
@@ -498,6 +502,7 @@ sequence number, and column.
 */
 {
   a_macro_text_map_entry_ptr mtmep = next_macro_text_map_entry(mtmp);
+
   mtmep->start_of_region = start_of_region;
   mtmep->corresponding_source_pos.seq = seq;
   mtmep->corresponding_source_pos.column = column;
@@ -628,6 +633,7 @@ information in *tmpt.
   sizeof_t  rel_src_offset;
   sizeof_t  rel_targ_offset;
   a_boolean new_region_required = FALSE;
+
   if (tmpt->src_slmp != NULL) {
     /* Previous tokens were from the inserted text of a source line
        modification. */
@@ -764,8 +770,9 @@ then remove it from the list of active trackers.
   }  /* if */
   /* Add a terminating region to allow the bsearch routine to access the
      "next" region when searching for the last token. */
-  add_entry_to_macro_text_map(tmpt->text_map, after_end_offset, /*seq=*/0,
-                              SP_COL_UNKNOWN, NO_PARENT_MACRO_INVOCATION);
+  add_entry_to_macro_text_map(tmpt->text_map, after_end_offset,
+                              (a_seq_number)0, SP_COL_UNKNOWN,
+                              NO_PARENT_MACRO_INVOCATION);
   /* This tracker should be at the top of the stack. */
   check_assertion(tmpt == active_text_map_position_trackers);
   active_text_map_position_trackers = tmpt->next_active_tracker;
@@ -784,6 +791,7 @@ the removal of deleted characters resulting from reallocating macro_buffer.
 {
   sizeof_t i;
   sizeof_t num_compacted_characters = orig_deletion_len - new_deletion_len;
+
   for (i = 0; i < slmp->text_map.num_entries; ++i) {
     if (slmp->text_map.entries[i].start_of_region < deletion_offset) {
       /* Do nothing -- this entry refers to text before the deletion and thus
@@ -842,15 +850,14 @@ growth of the list.
 {
   a_macro_invocation_record_block_ptr mirbp;
   a_macro_invocation_record_ptr       mirp = NULL;
+  int                                 index_in_block;
 
   if (index >= 0 && index < num_macro_invocation_records) {
     for (mirbp = last_macro_invocation_record_block;
          mirbp != NULL && mirbp->first_record_in_block > index;
          mirbp = mirbp->prev) {}
-    if (mirbp != NULL) {
-      int index_in_block = index - mirbp->first_record_in_block;
-      mirp = mirbp->records + index_in_block;
-    }  /* if */
+    index_in_block = index - mirbp->first_record_in_block;
+    mirp = mirbp->records + index_in_block;
   }  /* if */
   return mirp;
 }  /* macro_invocation_record_at_index */
@@ -863,6 +870,7 @@ new macro invocation record block if necessary.
 */
 {
   int index_in_block;
+
   if (last_macro_invocation_record_block == NULL ||
       num_macro_invocation_records -
                    last_macro_invocation_record_block->first_record_in_block ==
@@ -904,6 +912,7 @@ invocation.  The return value is the index of the newly-added record, and
 */
 {
   a_macro_invocation_record_ptr mirp = next_macro_invocation_record();
+
   if (stack_depth < depth_of_curr_macro_invocation_record - 1) {
     /* In order to make a tree-like traversal of the invocation records easier,
        whenever a transition reflects popping more than one stack level, we
@@ -939,8 +948,8 @@ the address of the root block.  mirbp is a pointer to an arbitrary macro
 invocation record block.
 */
 {
-  int                             num_blocks_in_tree;
-  int                             num_blocks_in_left_subtree;
+  unsigned long                   num_blocks_in_tree;
+  unsigned long                   num_blocks_in_left_subtree;
   a_macro_invocation_record_index first_record_in_root_block;
 
   if (mirbp != NULL) {
@@ -985,7 +994,8 @@ macro_invocation_records list, and set the appropriate fields in il_header.
   il_header.max_macro_invocation_depth = max_macro_invocation_depth;
   il_header.root_macro_invocation_record_block =
                create_macro_inv_record_tree(last_macro_invocation_record_block,
-                                            /*first_record=*/0,
+                                            /*first_record=*/
+                                            (a_macro_invocation_record_index)0,
                                             num_macro_invocation_records);
 }  /* copy_macro_invocation_tree_to_il */
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
@@ -1234,7 +1244,8 @@ ensure_macro_buffer_space.
           adjust_macro_text_map_after_compaction(
                  slmp, orig_deletion_len,
                  nested_slmp->num_chars_to_delete,
-                 dst - nested_slmp->num_chars_to_delete - slmp->inserted_text);
+                 (sizeof_t)(dst - nested_slmp->num_chars_to_delete -
+                            slmp->inserted_text));
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
         } else if (src > old_start_for_remapping + 1 &&
                    src[-LE_ESCAPE_LEN] == LE_ESCAPE) {
@@ -1917,7 +1928,7 @@ so a hanging delete is in effect).
                                   NO_PARENT_MACRO_INVOCATION);
       add_entry_to_macro_text_map(&macro_text_map,
                                   len_of_curr_token+2*LE_ESCAPE_LEN,
-                                  /*seq=*/0, SP_COL_UNKNOWN,
+                                  (a_seq_number)0, SP_COL_UNKNOWN,
                                   NO_PARENT_MACRO_INVOCATION);
       slmp->text_map.num_entries = 2;
       slmp->text_map.entries =
@@ -2083,7 +2094,8 @@ with \.  Return the macro argument created.
 #if FULLY_RESOLVED_MACRO_POSITIONS
           /* Reflect change in buffer and source-position column offsets. */
           conv_line_loc_to_source_pos(src, &curr_pos);
-          add_entry_to_macro_text_map(&map->raw_text_map, dest - map->raw_text,
+          add_entry_to_macro_text_map(&map->raw_text_map,
+                                      (sizeof_t)(dest - map->raw_text),
                                       curr_pos.seq, curr_pos.column,
                                       NO_PARENT_MACRO_INVOCATION);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
@@ -2099,8 +2111,9 @@ with \.  Return the macro argument created.
     *dest++ = LE_END_OF_INSERTION;
 #if FULLY_RESOLVED_MACRO_POSITIONS
     /* Add the terminating map entry. */
-    add_entry_to_macro_text_map(&map->raw_text_map, dest - map->raw_text,
-                                /*seq=*/0, SP_COL_UNKNOWN,
+    add_entry_to_macro_text_map(&map->raw_text_map,
+                                (sizeof_t)(dest - map->raw_text),
+                                (a_seq_number)0, SP_COL_UNKNOWN,
                                 NO_PARENT_MACRO_INVOCATION);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   }
@@ -2622,7 +2635,8 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
       tracker_inited = TRUE;
     }  /* if */
     add_token_to_macro_text_map(&tracker,
-                                pos_in_aux_buffer - aux_buffer_for_pcc_macros);
+                                (sizeof_t)(pos_in_aux_buffer -
+                                           aux_buffer_for_pcc_macros));
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     (void)memcpy(pos_in_aux_buffer, start_of_curr_token,
                  size_t_arg(len_of_curr_token));
@@ -2632,8 +2646,8 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
 end_loop:
 #if FULLY_RESOLVED_MACRO_POSITIONS
   if (tracker_inited) {
-    terminate_macro_text_map(&tracker,
-                             pos_in_aux_buffer - aux_buffer_for_pcc_macros);
+    terminate_macro_text_map(&tracker, (sizeof_t)(pos_in_aux_buffer -
+                                                  aux_buffer_for_pcc_macros));
   }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   /* Determine the location in the primary source line that immediately
@@ -2734,7 +2748,7 @@ end_loop:
                                   NO_PARENT_MACRO_INVOCATION);
       next_targ_offset += num_chars_added_from_source_line + LE_ESCAPE_LEN;
       add_entry_to_macro_text_map(&aux_text_map_for_pcc_macros,
-                                  next_targ_offset, /*seq=*/0,
+                                  next_targ_offset, (a_seq_number)0,
                                   SP_COL_UNKNOWN, NO_PARENT_MACRO_INVOCATION);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
       (void)memcpy(pos_in_aux_buffer, loc_following_insertion,
@@ -3219,7 +3233,7 @@ associated global variables will also have been set).
                   this_mirp;
   a_macro_invocation_record_index
                   parent_macro_invocation_record;
-  int             macro_invocation_stack_depth;
+  unsigned long   macro_invocation_stack_depth;
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
@@ -3431,7 +3445,7 @@ end_scan_for_macro_modifs:;
                                  &special_macro_arg->raw_text_map,
                                  LE_ESCAPE_LEN, NO_PARENT_MACRO_INVOCATION);
     add_entry_to_macro_text_map(&special_macro_arg->raw_text_map,
-                                repl_text_len, /*seq=*/0, SP_COL_UNKNOWN,
+                                repl_text_len, (a_seq_number)0, SP_COL_UNKNOWN,
                                 NO_PARENT_MACRO_INVOCATION);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   } else if (mdp->object_like) {
@@ -3625,7 +3639,7 @@ end_scan_for_macro_modifs:;
                                     NO_PARENT_MACRO_INVOCATION);
       }  /* if */
       add_entry_to_macro_text_map(&special_macro_arg->raw_text_map,
-                                  (sizeof_t)strlen(repl_text), /*seq=*/0,
+                                  (sizeof_t)strlen(repl_text), (a_seq_number)0,
                                   SP_COL_UNKNOWN, NO_PARENT_MACRO_INVOCATION);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     }  /* if */
@@ -4078,7 +4092,7 @@ end_arg_expansion:;
                                       pos_curr_token.orig_column,
                                       this_macro_invocation_record);
           add_entry_to_macro_text_map(&map->raw_text_map,
-                                      LE_ESCAPE_LEN, /*seq=*/0,
+                                      LE_ESCAPE_LEN, (a_seq_number)0,
                                       SP_COL_UNKNOWN,
                                       this_macro_invocation_record);
           add_entry_to_macro_text_map(&map->exp_text_map,
@@ -4087,7 +4101,7 @@ end_arg_expansion:;
                                       pos_curr_token.orig_column,
                                       this_macro_invocation_record);
           add_entry_to_macro_text_map(&map->exp_text_map,
-                                      LE_ESCAPE_LEN, /*seq=*/0,
+                                      LE_ESCAPE_LEN, (a_seq_number)0,
                                       SP_COL_UNKNOWN,
                                       this_macro_invocation_record);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
@@ -4211,7 +4225,7 @@ end_arg_expansion:;
     first_text_map_entry = macro_text_map.num_entries;
     next_targ_offset = next_avail_in_macro_buffer - rescan_loc;
     if (!pcc_mode_macro_recursion) {
-      int inert_macro_offset = (is_inert_macro) ? 2 : 0;
+      sizeof_t inert_macro_offset = (is_inert_macro) ? 2 : 0;
       clone_macro_text_map_entries(&special_macro_arg->raw_text_map,
                                    inert_macro_offset,
                                    repl_text_len - inert_macro_offset,
@@ -4308,7 +4322,7 @@ end_arg_expansion:;
                                              /*starting_src_offset=*/0,
                                              fnk_len - 1,
                                              &macro_text_map,
-                                             src_loc - rescan_loc,
+                                             (sizeof_t)(src_loc - rescan_loc),
                                              this_macro_invocation_record);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
                 (void)memcpy(src_loc, text_loc, size_t_arg(fnk_len));
@@ -4337,10 +4351,11 @@ end_arg_expansion:;
 #if FULLY_RESOLVED_MACRO_POSITIONS
                 /* Copy the map entries for the text preceding the escape. */
                 clone_macro_text_map_entries(&map->raw_text_map,
-                                             text_loc - map->raw_text,
+                                             (sizeof_t)(text_loc -
+                                                        map->raw_text),
                                              initial_len - 1,
                                              &macro_text_map,
-                                             src_loc - rescan_loc,
+                                             (sizeof_t)(src_loc - rescan_loc),
                                              this_macro_invocation_record);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
                 (void)memcpy(src_loc, text_loc,
@@ -4358,11 +4373,11 @@ end_arg_expansion:;
             ending_src_offset = map->raw_text_map.
                     entries[map->raw_text_map.num_entries-1].start_of_region-1;
             clone_macro_text_map_entries(&map->raw_text_map,
-                                         text_loc - map->raw_text,
+                                         (sizeof_t)(text_loc - map->raw_text),
                                          ending_src_offset -
                                                     (text_loc - map->raw_text),
                                          &macro_text_map,
-                                         src_loc - rescan_loc,
+                                         (sizeof_t)(src_loc - rescan_loc),
                                          this_macro_invocation_record);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             break;
@@ -4377,7 +4392,7 @@ end_arg_expansion:;
                                          /*starting_src_offset=*/0,
                                          ending_src_offset,
                                          &macro_text_map,
-                                         src_loc - rescan_loc,
+                                         (sizeof_t)(src_loc - rescan_loc),
                                          this_macro_invocation_record);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             (void)stringized_arg(map, &src_loc,
@@ -4395,7 +4410,7 @@ end_arg_expansion:;
             src_offset = tmep[1].start_of_region - tmep[0].start_of_region -
                                                              LE_ESCAPE_LEN - 1;
             add_entry_to_macro_text_map(&macro_text_map,
-                                        src_loc - rescan_loc - 1,
+                                        (sizeof_t)(src_loc - rescan_loc - 1),
                                         tmep->corresponding_source_pos.seq,
                                         tmep->corresponding_source_pos.column +
                                                                     src_offset,
@@ -4416,7 +4431,7 @@ end_arg_expansion:;
                                          /*starting_src_offset=*/0,
                                          ending_src_offset,
                                          &macro_text_map,
-                                         src_loc - rescan_loc,
+                                         (sizeof_t)(src_loc - rescan_loc),
                                          NO_PARENT_MACRO_INVOCATION);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             break;
@@ -4480,7 +4495,7 @@ copy_done:
   /* Add a terminal entry to macro_text_map and point the source line
      modification's text_map at the appropriate subset of those entries. */
   add_entry_to_macro_text_map(&macro_text_map, next_targ_offset,
-                              /*seq=*/0, SP_COL_UNKNOWN,
+                              (a_seq_number)0, SP_COL_UNKNOWN,
                               this_macro_invocation_record);
   slmp->text_map.num_entries =
                              macro_text_map.num_entries - first_text_map_entry;
@@ -5544,9 +5559,9 @@ Scan and process a #define directive.
             /* A benign redefinition -- terminate the tracker (and just abandon
                the text map entries added to macro_text_map: they'll be
                discarded the next time macro_buffer is truncated). */
-            terminate_macro_text_map(
-                                    &tracker,
-                                    next_avail_in_macro_buffer - buffer_start);
+            terminate_macro_text_map(&tracker,
+                                     (sizeof_t)(next_avail_in_macro_buffer -
+                                                buffer_start));
           }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
           goto def_done;
@@ -5604,10 +5619,10 @@ redef_error:
            pointing to the command line. */
         init_macro_text_map(2, &mdp->text_map, /*resizable=*/FALSE);
         add_entry_to_macro_text_map(&mdp->text_map, /*start_of_region=*/0,
-                                    /*seq=*/0, SP_COL_CMD_LINE,
+                                    (a_seq_number)0, SP_COL_CMD_LINE,
                                     NO_PARENT_MACRO_INVOCATION);
-        add_entry_to_macro_text_map(&mdp->text_map, repl_text_len, /*seq=*/0,
-                                    SP_COL_CMD_LINE,
+        add_entry_to_macro_text_map(&mdp->text_map, repl_text_len,
+                                    (a_seq_number)0, SP_COL_CMD_LINE,
                                     NO_PARENT_MACRO_INVOCATION);
       }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
@@ -6143,8 +6158,9 @@ try_match_again:
     add_entry_to_macro_text_map(&macro_text_map, /*start_of_region=*/0,
                                 start_pos.seq, start_pos.column,
                                 NO_PARENT_MACRO_INVOCATION);
-    add_entry_to_macro_text_map(&macro_text_map, LE_ESCAPE_LEN+1, /*seq=*/0,
-                                SP_COL_UNKNOWN, NO_PARENT_MACRO_INVOCATION);
+    add_entry_to_macro_text_map(&macro_text_map, LE_ESCAPE_LEN+1,
+                                (a_seq_number)0, SP_COL_UNKNOWN,
+                                NO_PARENT_MACRO_INVOCATION);
     slmp->text_map.num_entries = 2;
     slmp->text_map.entries =
                        &macro_text_map.entries[macro_text_map.num_entries - 2];
@@ -6280,10 +6296,10 @@ symbol entry is returned.
        macro. */
     init_macro_text_map(2, &mdp->text_map, /*resizable=*/FALSE);
     add_entry_to_macro_text_map(&mdp->text_map, /*start_of_region=*/0,
-                                /*seq=*/0, SP_COL_PREDEFINED_MACRO,
+                                (a_seq_number)0, SP_COL_PREDEFINED_MACRO,
                                 NO_PARENT_MACRO_INVOCATION);
-    add_entry_to_macro_text_map(&mdp->text_map, repl_text_length, /*seq=*/0,
-                                SP_COL_PREDEFINED_MACRO,
+    add_entry_to_macro_text_map(&mdp->text_map, repl_text_length,
+                                (a_seq_number)0, SP_COL_PREDEFINED_MACRO,
                                 NO_PARENT_MACRO_INVOCATION);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   }  /* if */

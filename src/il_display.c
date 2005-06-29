@@ -4455,6 +4455,7 @@ mirbp, up through index num_records-1.
 {
   a_macro_invocation_record_index num_records_to_display;
   int                             i;
+
   if (mirbp->left_subtree != NULL) {
     disp_macro_invocation_record_block(mirbp->left_subtree, num_records);
   }  /* if */

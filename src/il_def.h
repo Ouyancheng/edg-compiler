@@ -11418,7 +11418,7 @@ typedef struct an_il_header {
 			   records that represent multi-level stack pops, so
 			   it will typically be larger than the actual number
 			   of macro invocations that were performed. */
-  int		max_macro_invocation_depth;
+  unsigned long	max_macro_invocation_depth;
 			/* The number of levels in the deepest part of the
 			   macro invocation tree. */
   a_macro_invocation_record_block_ptr

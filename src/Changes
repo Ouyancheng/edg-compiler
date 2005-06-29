@@ -36,7 +36,7 @@ macro definition or top-level macro argument) at which the text appeared.
 Setting MACRO_INVOCATION_TREE_IN_IL to TRUE records every macro invocation
 in a translation unit in a flattened tree in the file-scope IL (see
 il_header.root_macro_invocation_record_block and related declarations).
-MACRO_INVOCATION_TREE_IN_IL also extendes a_source_position to contain an
+MACRO_INVOCATION_TREE_IN_IL also extends a_source_position to contain an
 index into this tree, identifying the particular invocation in whose
 expansion the position appears and allowing a stack trace of the macro
 invocations that led to that expansion.

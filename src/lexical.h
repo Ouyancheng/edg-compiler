@@ -996,7 +996,7 @@ typedef struct a_macro_text_map_entry {
 			   coalesced into a single source line modification,
 			   so having the macro context here allows the parent
 			   macro chain to be preserved in spite of the loss of
-			   the source line modifications. */
+			   the source line modifications.) */
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
 } a_macro_text_map_entry;
 
@@ -1019,20 +1019,17 @@ typedef struct a_macro_text_map {
   a_boolean	resizable;
 			/* If TRUE, the entries array is allocated using
 			   alloc_resizable_buffer and can be extended to
-			   accommodate more entries.  If FALSE, the array is
-			   allocated in front-end memory (and thus will be
-			   saved in precompiled headers) and is fixed in
-			   size. */
+			   accommodate more entries.  Otherwise, the size is
+			   fixed, and either entries is a pointer to a
+			   subrange of the entries in another text map or the
+			   array is allocated in front-end memory and thus
+			   will be saved in precompiled headers. */
   a_macro_text_map_entry_ptr
 		entries;
-			/* Pointer to an extensible array (i.e., must be
-			   allocated via alloc_resizable_buffer) of
-			   a_macro_text_map_entry objects.  These are kept
-			   in order of increasing offset into the buffer with
-			   which this map is associated.  (Note: the text map
-			   associated with source line modifications is not
-			   extensible but is managed differently; see the
-			   commentary there.) */
+			/* Pointer to an array of a_macro_text_map_entry
+			   objects.  These are kept in order of increasing
+			   offset into the buffer with which this map is
+			   associated. */
 } a_macro_text_map;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 

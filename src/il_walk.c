@@ -279,7 +279,8 @@ That is what the remap function does.
             a_type_ptr, iek_type);
 #if MACRO_INVOCATION_TREE_IN_IL
   if (il_header.root_macro_invocation_record_block != NULL) {
-    walk_entry_and_subtree((char *)il_header.root_macro_invocation_record_block,
+    walk_entry_and_subtree((char *)
+                           il_header.root_macro_invocation_record_block,
                            iek_macro_invocation_record_block);
   }  /* if */
 #endif /* MACRO_INVOCATION_TREE_IN_IL */

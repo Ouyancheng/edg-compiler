@@ -2041,6 +2041,7 @@ higher than any actual offset.
   a_macro_text_map_entry_ptr mtmep = (a_macro_text_map_entry_ptr)entry_ptr;
   sizeof_t                   offset = *(sizeof_t*)offset_ptr;
   int                        result;
+
   if (offset >= mtmep[0].start_of_region &&
       offset < mtmep[1].start_of_region) {
     /* The offset is in the range of this entry. */
@@ -2073,6 +2074,7 @@ macro text map and return the results in *seq, *column, and *macro_context.
 */
 {
   a_macro_text_map_entry_ptr mtmep;
+
   /* Call bsearch to find the macro text map entry that covers the specified
      offset.  Note the "-1" in the bsearch argument for the number of entries;
      the last entry is assumed to be a terminator whose offset is larger than
@@ -4496,10 +4498,10 @@ macro_line_loc_to_source_pos should be used when speed is critical.
        so the position can be put into it once determined. */
     orig_slmp = slmp = assoc_source_line_modif(adj_loc_in_line);
 #if FULLY_RESOLVED_MACRO_POSITIONS
-    get_source_pos_from_macro_text_map(&orig_slmp->text_map,
-                                       loc_in_line - orig_slmp->inserted_text,
-                                       &orig_seq, &orig_column,
-                                       &macro_context);
+    get_source_pos_from_macro_text_map(
+                            &orig_slmp->text_map,
+                            (sizeof_t)(loc_in_line - orig_slmp->inserted_text),
+                            &orig_seq, &orig_column, &macro_context);
     use_orig_position = TRUE;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     for (;;) {
