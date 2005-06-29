@@ -6,7 +6,8 @@ Recognition of trigraphs may now be disabled.  The default mode behavior is
 specified by the DEFAULT_TRIGRAPHS_ALLOWED macro (which defaults to TRUE).
 Trigraphs are enabled by default in strict mode, Microsoft mode, and Sun mode.
 They are disabled by default in GNU modes.  The default can be explicitly
-overridden using the --[no_]trigraphs command-line options.
+overridden using the --[no_]trigraphs command-line options.  When trigraphs
+are disabled, a warning is issued on the first attempted use of a trigraph.
 
 6/29/05  Thread local storage option description
 
