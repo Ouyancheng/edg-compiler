@@ -115,15 +115,15 @@ block size is returned through upc_block_size (when non-NULL).
   a_storage_class         dummy_storage_class;
   a_type_ptr              dummy_type_ptr;
   a_decl_modifiers_block  dummy_decl_modifiers;
-  a_type_qualifier_set    qualifiers;
+  a_decl_parse_state      state;
   a_decl_pos_block        local_decl_pos_block;
 
+  init_decl_parse_state(&state);
   clear_decl_pos_block(&local_decl_pos_block);
   dsi_flags = DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS;
   if (microsoft_mode) { dsi_flags |= DSI_INLINE_ALLOWED; }
-  (void)decl_specifiers(dsi_flags, &dso_flags,
-                        &dummy_storage_class, &dummy_type_ptr,
-                        &qualifiers, (an_attribute_ptr*)NULL,
+  (void)decl_specifiers(dsi_flags, &dso_flags, &dummy_storage_class,
+                        &dummy_type_ptr, &state, (an_attribute_ptr*)NULL,
                         (an_ms_attribute_ptr*)NULL, &dummy_decl_modifiers,
                         (a_named_register_id*)NULL, &local_decl_pos_block,
                         upc_block_size);
@@ -134,7 +134,7 @@ block size is returned through upc_block_size (when non-NULL).
                        local_decl_pos_block.specifiers_range.end;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  return qualifiers;
+  return state.qualifiers;
 }  /* collect_type_qualifiers */
 
 
@@ -397,16 +397,16 @@ fields).
 
   db_enter(3, "add_to_derived_type_list");
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 4 || db_flag_is_set("declarators")) {
     fprintf(f_debug, "At start of add_to_derived_type_list:\n");
     fprintf(f_debug, "  new_type_ptr = ");
-    if (new_type_ptr != NULL) db_type(new_type_ptr);
+    db_type(new_type_ptr);
     fprintf(f_debug, "\n");
-    fprintf(f_debug, "  derived_type = ");
-    if (*derived_type != NULL) db_type(*derived_type);
+    fprintf(f_debug, "  *derived_type = ");
+    db_type(*derived_type);
     fprintf(f_debug, "\n");
     fprintf(f_debug, "  *bottom_derived_type = ");
-    if (*bottom_derived_type != NULL) db_type(*bottom_derived_type);
+    db_type(*bottom_derived_type);
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
@@ -606,11 +606,7 @@ fields).
       } else if (is_reference_type(*bottom_derived_type)) {
         /* Reference type. */
         temp_type = skip_typerefs(new_type_ptr);
-	if (is_reference_type(temp_type)) {
-	  /* Reference to reference is illegal. */
-          error(ec_reference_to_reference);
-	  err = TRUE;
-	} else if (is_void_type(temp_type)) {
+        if (is_void_type(temp_type)) {
 	  /* Reference to void is illegal. */
           error(ec_reference_to_void);
 	  err = TRUE;
@@ -620,7 +616,7 @@ fields).
           sym_error(ec_bad_use_of_member_function_typedef, mft_sym);
           err = TRUE;
         }  /* if */
-	if (err) new_type_ptr = error_type();
+        if (err) new_type_ptr = error_type();
         check_for_restrict_qualifier_on_derived_type(new_type_ptr,
                                                      derived_type,
                                                      bottom_derived_type);
@@ -1534,7 +1530,7 @@ if this is the function declarator in a friend function declaration.
       unsigned long	param_number = 0;
       last_param_type = NULL;
       do {
-        a_type_qualifier_set qualifiers = TQ_NONE;
+        a_decl_parse_state   state;
         a_decl_pos_block     local_decl_pos_block;
         an_ms_attribute_ptr  ms_attributes = NULL;
         an_attribute_ptr     attributes = NULL;
@@ -1555,11 +1551,12 @@ if this is the function declarator in a friend function declaration.
         /* Count the number of parameters encountered. */
         param_number++;
         add_stop_token(tok_comma);
+        init_decl_parse_state(&state);
         copy_source_position(pos_curr_token, param_type_pos);
         clear_decl_pos_block(&local_decl_pos_block);
         /* Scan a parameter-declaration. */
         (void)decl_specifiers(dsi_flags, &dso_flags, &param_storage_class,
-                              &param_type_ptr, &qualifiers, &attributes,
+                              &param_type_ptr, &state, &attributes,
                               &ms_attributes, &decl_modifiers,
                               (a_named_register_id*)NULL,
                               &local_decl_pos_block, (a_upc_block_size *)NULL);
@@ -1643,7 +1640,7 @@ if this is the function declarator in a friend function declaration.
                accepting VLAs). */
             di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
           }  /* if */
-          declarator(di_flags, &do_flags, param_type_ptr,
+          declarator(di_flags, &do_flags, &state, param_type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL,
                      &param_locator, &param_type_ptr, &param_ssep,
                      (a_func_info_block_ptr)NULL, &local_decl_pos_block,
@@ -1657,6 +1654,7 @@ if this is the function declarator in a friend function declaration.
         } else {
           /* No declarator. */
           set_to_error_locator(param_locator);
+          check_pending_qualifiers_used(&state);
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
         if (gnu_mode) {
@@ -2939,6 +2937,7 @@ and the existing ones (explicit and implied), issue an error (at position
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_type_ptr pointer_declarator(
                       a_type_ptr            specifiers_type,
+                      a_decl_parse_state    *state,
                       a_boolean   	    reference_allowed,
                       a_call_conv_descr_ptr left_calling_convention,
                       a_call_conv_descr_ptr unbound_calling_convention,
@@ -2971,6 +2970,8 @@ parentheses); in that case the pointer type modifiers are built up
 but nothing is attached to the bottom-most modifier.  In either case,
 ptr_to_member_scanned is set to TRUE if a pointer-to-member declarator
 was scanned, and to FALSE otherwise.
+
+*state describes some state information about the current declaration.
 
 In Microsoft mode, the Microsoft __cdecl, __stdcall, and __fastcall are
 recognized as calling conventions.  The handling of calling conventions
@@ -3019,19 +3020,20 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 (which is what the Microsoft compiler itself appears to do).
 */
 {
-  a_type_ptr     		complete_type = specifiers_type;
-  a_boolean      		err = FALSE;
-  a_type_qualifier_set		qualifiers;
-  a_type_ptr     		class_type;
-  a_type_ptr     		rout_type;
-  a_variable_ptr		based_var = NULL;
+  a_type_ptr            complete_type = specifiers_type;
+  a_boolean             err = FALSE;
+  a_type_qualifier_set  qualifiers;
+  a_type_ptr            class_type;
+  a_type_ptr            rout_type;
+  a_variable_ptr        based_var = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-  a_type_qualifier_set		pending_qualifiers = TQ_NONE;
-  a_source_position		pending_qualifiers_pos;
-  a_call_conv_descr		ccd;
-  a_source_position		based_pos;
+  a_type_qualifier_set  pending_qualifiers = TQ_NONE;
+  a_source_position     pending_qualifiers_pos;
+  a_call_conv_descr     ccd;
+  a_source_position     based_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
   a_upc_block_size      upc_block_size = UPC_BLOCK_SIZE_NONE;
+  a_boolean             ref_to_ref_allowed = TRUE;
 
   db_enter(3, "pointer_declarator");
   *ptr_to_member_scanned = FALSE;
@@ -3210,9 +3212,16 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
           /* Make sure this was not preceded by __based. */
           based_not_allowed_here(based_var, based_pos);
           if (is_reference_type(temp_type)) {
-            /* Type "reference to reference" is illegal. */
-            error(ec_reference_to_reference);
-            err = TRUE;
+            if (ref_to_ref_allowed) {
+              complete_type = make_reference_to_reference(
+                                complete_type, state->qualifiers,
+                                (a_boolean*)NULL);
+              state->unused_qualifiers = FALSE;
+            } else {
+              /* Type "reference to reference" is illegal. */
+              error(ec_reference_to_reference);
+              err = TRUE;
+            }  /* if */
           } else if (is_void_type(temp_type)) {
             /* Type "reference to void" is illegal. */
             error(ec_reference_to_void);
@@ -3222,10 +3231,13 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                forming a pointer-to-member type. */
             sym_error(ec_bad_use_of_member_function_typedef, sym);
             err = TRUE;
+          } else {
+            /* Make the reference type. */
+            complete_type = make_reference_type(complete_type);
           }  /* if */
-          /* Make the reference type. */
-          complete_type = err ? error_type() :
-                                make_reference_type(complete_type);
+          if (err) {
+            complete_type = error_type();
+          }  /* if */
         }  /* if */
       } else {
         /* The specifiers type is not known, so the bottom-most pointer type
@@ -3352,6 +3364,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       attributes = last_attribute_link(attributes);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    ref_to_ref_allowed = FALSE;
     /* Keep looping as long as there are pointer declarators. */
   }  /* for */
 #if DEBUG
@@ -3967,6 +3980,7 @@ passed to r_declarator.)
 static void r_declarator(
 		  a_decl_flag_set             input_flags,
                   a_decl_flag_set             *output_flags,
+                  a_decl_parse_state          *state,
                   a_type_ptr                  specifiers_type,
                   a_type_ptr                  member_parent_type,
                   a_symbol_locator            *locator,
@@ -3983,13 +3997,16 @@ static void r_declarator(
                   a_decl_pos_block_ptr        decl_pos_block,
                   an_attribute_ptr            *attributes)
 /*
-Scan a declarator (3.5.4) or an abstract declarator (3.5.5), depending
-on the values of real_declarator_allowed and abstract_declarator_allowed
-(real, abstract, or either can be allowed).  specifiers_type points
-to the type scanned in a preceding specifiers list, or is NULL when this
-routine calls itself to scan a nested declarator.  Return in *locator
-the symbol table locator and source position for the identifier in the
-declarator (if only an abstract declarator is allowed, locator is not
+Scan a declarator (3.5.4) or an abstract declarator (3.5.5), depending on the
+values of real_declarator_allowed and abstract_declarator_allowed (real,
+abstract, or either can be allowed).  input_flags indicates various options
+for parsing (e.g., whether variable-length array declarators should be allowed)
+and *output_flags returns some properties about the scanned declarator to the
+caller.  *state contains state information about the declaration being parsed.
+specifiers_type points to the type scanned in a preceding specifiers list, or
+is NULL when this routine calls itself to scan a nested declarator.  Return in
+*locator the symbol table locator and source position for the identifier in
+the declarator (if only an abstract declarator is allowed, locator is not
 used; if both real and abstract declarators are allowed, and an abstract
 declarator is scanned, *locator is set to a null declarator).  Return
 the final type (declarator derived types, if any, combined with the
@@ -4111,9 +4128,8 @@ The syntax is:
   /* Set the locator to indicate there is no identifier. */
   if (locator != NULL) set_to_error_locator(*locator);
   /* Scan a list of pointer, reference and pointer-to-member declarators. */
-  complete_type = pointer_declarator(specifiers_type,
-                                     /*reference_allowed=*/
-                                       C_dialect == C_dialect_cplusplus,
+  complete_type = pointer_declarator(specifiers_type, state,
+                                     /*reference_allowed=*/!C_mode(),
                                      &left_call_conv, &unbound_call_conv,
                                      &left_qualifiers, &unbound_qualifiers,
                                      &pointer_to_member_scanned,
@@ -4211,7 +4227,7 @@ The syntax is:
        initializers from the input_flags bit vector.  (The other flags are
        passed on in the recursive call.) */
     r_declarator((input_flags & ~DI_PARENTHESIZED_INITIALIZER_ALLOWED),
-                 &local_do_flags, /*specifiers_type=*/(a_type_ptr)NULL,
+                 &local_do_flags, state, /*specifiers_type=*/(a_type_ptr)NULL,
                  member_parent_type, locator,
                  &derived_type, &bottom_derived_type,
                  is_constructor, is_destructor,
@@ -4776,14 +4792,34 @@ function_lparen:
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Combine the derived type list with the earlier complete type
-     (pointer derived type list plus specifiers_list), making
-     the full type.  Note that this involves error checking. */
   if (derived_type != NULL && complete_type != NULL) {
-    add_to_derived_type_list(complete_type,
-                             &derived_type, &bottom_derived_type,
-                             (input_flags & DI_IS_PARAMETER_DECL) != 0,
-                             (input_flags & DI_IS_MICROSOFT_PROPERTY) != 0);
+    if (bottom_derived_type->kind == (a_type_kind)tk_pointer &&
+        bottom_derived_type->variant.pointer.is_reference &&
+        is_reference_type(complete_type)) {
+      /* If we are creating a reference (bottom_derived_type) to a reference
+         (complete_type), complete_type must be a reference as a consequence
+         of specifiers_type being a reference (i.e., the specifiers contained
+         a typedef or template parameter referring to a reference).  Otherwise,
+         an error should be issued. */
+      if (specifiers_type == NULL || !is_reference_type(specifiers_type)) {
+        error(ec_reference_to_reference);
+      }  /* if */
+      derived_type = make_reference_to_reference(complete_type,
+                                                 state->qualifiers,
+                                                 (a_boolean*)NULL);
+      state->unused_qualifiers = FALSE;
+      /* The second reference component is essentially ignored.  We do not
+         need to call add_to_derived_type_list in this case. */
+      bottom_derived_type = derived_type;
+    } else {
+      /* Combine the derived type list with the earlier complete type
+         (pointer derived type list plus specifiers_list), making
+         the full type.  Note that this involves error checking. */
+      add_to_derived_type_list(complete_type,
+                               &derived_type, &bottom_derived_type,
+                               (input_flags & DI_IS_PARAMETER_DECL) != 0,
+                               (input_flags & DI_IS_MICROSOFT_PROPERTY) != 0);
+    }  /* if */
     complete_type = derived_type;
   } else {
     if (derived_type != NULL) complete_type = derived_type;
@@ -4897,6 +4933,7 @@ function_lparen:
 
 void declarator(a_decl_flag_set             input_flags,
                 a_decl_flag_set             *output_flags,
+                a_decl_parse_state          *state,
                 a_type_ptr                  specifiers_type,
                 a_type_ptr                  member_parent_type,
                 a_symbol_locator            *locator,
@@ -4928,7 +4965,7 @@ the parameters.
     decl_pos_block->declarator_range.end = end_pos_curr_token;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  r_declarator(input_flags, output_flags, specifiers_type,
+  r_declarator(input_flags, output_flags, state, specifiers_type,
                member_parent_type, locator, p_complete_type,
                &bottom_derived_type, &is_constructor, &is_destructor,
                (a_call_conv_descr_ptr)NULL, (a_call_conv_descr_ptr)NULL,
@@ -4943,6 +4980,7 @@ the parameters.
   if (*output_flags & DO_HAS_PTR_TO_MEMBER_COMPONENT) {
     (void)check_for_vla_in_pointer_to_member(*p_complete_type, &start_pos);
   }  /* if */
+  check_pending_qualifiers_used(state);
 }  /* declarator */
 
 

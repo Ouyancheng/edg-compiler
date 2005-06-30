@@ -7033,12 +7033,16 @@ a pointer over a reference type or creating an array of references.
         tp = copy_type_with_substitution(tp, templ_arg_list, templ_param_list,
                                          source_pos, options, copy_error);
         if (type->variant.pointer.is_reference) {
-          if (!is_reference_type(tp) && !is_void_type(tp)) {
-            new_type = make_reference_type(tp);
-          } else {
-            /* A reference to reference or reference to void would be
-               invalid. */
+          if (is_void_type(tp)) {
+            /* A reference to void would be invalid. */
             *copy_error = TRUE;
+          } else if (is_reference_type(tp)) {
+            /* A reference to reference.  We may have to merge qualifiers. */
+            new_type = make_reference_to_reference(
+                         tp, get_type_qualifiers(type->variant.pointer.type),
+                         copy_error);
+          } else {
+            new_type = make_reference_type(tp);
           }  /* if */
         } else {
           if (!is_reference_type(tp)) {
@@ -8016,7 +8020,7 @@ information.
   a_decl_flag_set              dsi_flags;
   a_decl_flag_set              di_flags;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
-  a_type_qualifier_set         qualifiers;
+  a_decl_parse_state           state;
   a_source_position            decl_start_pos;
 
   dsi_flags = DSI_INLINE_ALLOWED |
@@ -8048,8 +8052,9 @@ information.
     /* This is a declaration inside a class definition. */
     dsi_flags |= DSI_IS_MEMBER_DECLARATION;
   }  /* if */
+  init_decl_parse_state(&state);
   decl_start_pos = pos_curr_token;
-  (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type, &qualifiers,
+  (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type, &state,
                         attributes, (an_ms_attribute_ptr*)NULL, decl_modifiers,
                         (a_named_register_id*)NULL, decl_pos_block,
                         (a_upc_block_size *)NULL);
@@ -8076,10 +8081,10 @@ information.
       di_flags |= DI_IS_CONSTRUCTOR;
     }  /* if */
     if (!(*dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
-        qualifiers == TQ_NONE) {
+        state.qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
-    declarator(di_flags, do_flags, *type,
+    declarator(di_flags, do_flags, &state, *type,
                !friend_specified ? parent_class : (a_type_ptr)NULL,
                locator, type,
                &declarator_ssep, func_info, decl_pos_block,
@@ -12225,7 +12230,7 @@ depends on a template parameter type, return TRUE in *template_dependent
 {
   a_decl_flag_set              do_flags;
   a_decl_flag_set              dso_flags;
-  a_type_qualifier_set         qualifiers;
+  a_decl_parse_state           state;
   a_decl_modifiers_block       decl_modifiers;
   a_storage_class              param_storage_class;
   a_source_position            param_pos;
@@ -12236,10 +12241,11 @@ depends on a template parameter type, return TRUE in *template_dependent
   /* Scan the declaration specifiers. */
   param_pos = pos_curr_token;
   clear_decl_pos_block(&decl_pos_block);
+  init_decl_parse_state(&state);
   (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_TEMPLATE_PARAMETER),
                         &dso_flags, &param_storage_class, param_type_ptr,
-                        &qualifiers, (an_attribute_ptr *)NULL,
+                        &state, (an_attribute_ptr *)NULL,
                         (an_ms_attribute_ptr*)NULL, &decl_modifiers,
                         (a_named_register_id*)NULL, &decl_pos_block,
                         (a_upc_block_size *)NULL);
@@ -12261,7 +12267,7 @@ depends on a template parameter type, return TRUE in *template_dependent
   declarator((DI_REAL_DECLARATOR_ALLOWED |
               DI_ABSTRACT_DECLARATOR_ALLOWED |
               DI_IS_TEMPLATE_PARAM_DECL),
-             &do_flags, *param_type_ptr,
+             &do_flags, &state, *param_type_ptr,
              /*member_parent_type=*/(a_type_ptr)NULL, param_locator,
              param_type_ptr, &declarator_ssep,
              (a_func_info_block_ptr)NULL, &decl_pos_block,
@@ -15686,7 +15692,7 @@ that follows.
   a_type_ptr                    type;
   a_symbol_locator              locator;
   a_decl_flag_set               do_flags, dso_flags, di_flags;
-  a_type_qualifier_set          qualifiers;
+  a_decl_parse_state            state;
   a_decl_modifiers_block        decl_modifiers;
   a_source_sequence_entry_ptr   declarator_ssep = NULL;
   a_symbol_ptr		        sym;
@@ -15714,6 +15720,7 @@ that follows.
 
   db_enter(3, "full_specialization");
   decl_start_pos = pos_curr_token;
+  init_decl_parse_state(&state);
   clear_decl_pos_block(&decl_pos_block);
   /* The pragmas were extracted before the "template <>" was scanned.
      Reactivate them now. */
@@ -15732,7 +15739,7 @@ that follows.
                                   ? DSI_IS_MEMBER_DECLARATION |
 				    DSI_STORAGE_CLASS_SPECIFIER_ALLOWED
                                   : DSI_NO_INPUT_FLAGS)),
-                        &dso_flags, &storage_class, &type, &qualifiers,
+                        &dso_flags, &storage_class, &type, &state,
                         p_attributes, (an_ms_attribute_ptr*)NULL, 
                         &decl_modifiers, (a_named_register_id*)NULL,
                         &decl_pos_block, (a_upc_block_size*)NULL);
@@ -15752,6 +15759,7 @@ that follows.
     /* The argument is something like class A<int>.  Note that this also
        permits the class to be a nested class within a template class.  All
        of the remaining processing is done in class_specifier. */
+    check_pending_qualifiers_used(&state);
     sym = (a_symbol_ptr)type->source_corresp.assoc_info;
     check_assertion(sym != NULL);
     if (!is_any_template_instance_class_symbol(sym)) {
@@ -15807,7 +15815,7 @@ that follows.
       }  /* if */
     }  /* if */
     if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
-        qualifiers == TQ_NONE) {
+        state.qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
@@ -15817,9 +15825,9 @@ that follows.
       p_attributes = last_attribute_link(p_attributes);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    declarator(di_flags, &do_flags, type, decl_state->class_declared_in,
-               &locator, &type, &declarator_ssep, &func_info, &decl_pos_block,
-               p_attributes);
+    declarator(di_flags, &do_flags, &state, type,
+               decl_state->class_declared_in, &locator, &type,
+               &declarator_ssep, &func_info, &decl_pos_block, p_attributes);
     sym = NULL;
     has_parenthesized_initializer =
                               (do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
@@ -20671,7 +20679,7 @@ instantiation.
   a_symbol_locator             locator;
   a_decl_flag_set              do_flags = DO_NO_OUTPUT_FLAGS;
   a_decl_flag_set              dso_flags, dsi_flags, di_flags;
-  a_type_qualifier_set         qualifiers;
+  a_decl_parse_state           state;
   a_decl_modifiers_block       decl_modifiers;
   a_symbol_ptr                 new_sym;
   a_source_sequence_entry_ptr  declarator_ssep;
@@ -20696,6 +20704,7 @@ instantiation.
     (void)get_token();
     *start_pos = pos_curr_token;
   }  /* if */    
+  init_decl_parse_state(&state);
   clear_decl_pos_block(&decl_pos_block);
   /* If this is a pragma it will end with a tok_end_of_source, if not
      it will end with a semicolon. */
@@ -20749,8 +20758,7 @@ instantiation.
        instantiations. */
     dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
   }  /* if */
-  (void)decl_specifiers(dsi_flags, &dso_flags,
-                        &storage_class, &type, &qualifiers,
+  (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type, &state,
                         (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
                         &decl_modifiers, (a_named_register_id*)NULL,
                         &decl_pos_block, (a_upc_block_size*)NULL);
@@ -20770,6 +20778,7 @@ instantiation.
     /* The argument is something like class A<int> -- instantiate all the
        members of the class.  Note that this also permits the class to
        be a nested class within a template class. */
+    check_pending_qualifiers_used(&state);
     sym = (a_symbol_ptr)type->source_corresp.assoc_info;
     check_assertion(sym != NULL);
     if (is_template_instance_class_symbol(sym) &&
@@ -20804,11 +20813,11 @@ instantiation.
                DI_IS_EXPLICIT_INSTANTIATION |
                DI_OPERATOR_NAME_ALLOWED;
     if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
-        qualifiers == TQ_NONE) {
+        state.qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
-    declarator(di_flags, &do_flags, type, (a_type_ptr)NULL, &locator, &type,
-               &declarator_ssep, &func_info, &decl_pos_block,
+    declarator(di_flags, &do_flags, &state, type, (a_type_ptr)NULL, &locator,
+               &type, &declarator_ssep, &func_info, &decl_pos_block,
                (an_attribute_ptr *)NULL);
     record_param_id_list_declarations(&func_info);
     /* Issue diagnostic on an incomplete-type in an exception specification. */

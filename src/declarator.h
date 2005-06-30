@@ -275,6 +275,7 @@ Clear a calling convention description.
 extern
 void declarator(a_decl_flag_set             input_flags,
                 a_decl_flag_set             *output_flags,
+                a_decl_parse_state          *state,
                 a_type_ptr                  specifiers_type,
                 a_type_ptr                  member_parent_type,
                 a_symbol_locator            *locator,
@@ -287,6 +288,7 @@ void declarator(a_decl_flag_set             input_flags,
 extern
 a_type_ptr pointer_declarator(
                       a_type_ptr            specifiers_type,
+                      a_decl_parse_state    *state,
                       a_boolean   	    reference_allowed,
                       a_call_conv_descr_ptr left_calling_convention,
                       a_call_conv_descr_ptr unbound_calling_convention,

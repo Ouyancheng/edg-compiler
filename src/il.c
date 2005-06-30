@@ -8085,6 +8085,63 @@ an existing entry if possible.
 }  /* make_reference_type */
 
 
+a_type_ptr make_reference_to_reference(a_type_ptr            base_ref_type,
+                                       a_type_qualifier_set  qualifiers,
+                                       a_boolean             *is_error)
+/*
+Make a type "T cv1 &" where T is a reference type given by base_ref_type and
+the type qualifiers cv are given by qualifiers.  If T is a type "X cv2 &"
+the result type must be "X cv &" where cv is the union of the qualifiers sets
+cv1 and cv2.  If cv1 does not add qualifiers to cv2, base_ref_type itself is
+returned.
+When is_error is NULL, a diagnostic is issued in error cases (e.g., when the
+result would produce a result that is both "near" and "far").  Otherwise,
+*is_error is set to TRUE and no diagnostic is issued (useful during type
+deduction for templates).  In all error cases, an error type is returned.
+*/
+{
+  a_type_ptr            result;
+  a_type_ptr            under_ref = type_pointed_to(base_ref_type);
+  a_type_qualifier_set  base_qualifiers = get_type_qualifiers(under_ref);
+
+#if NEAR_AND_FAR_ALLOWED
+  if (((qualifiers | base_qualifiers) & (TQ_NEAR | TQ_FAR)) ==
+                                                         (TQ_NEAR | TQ_FAR)) {
+    /* Merging qualifiers would result in a reference to a type that is
+       both near and far -- an error. */
+    if (is_error == NULL) {
+      error(ec_mem_attrib_incompatible);
+    } else {
+      *is_error = TRUE;
+    }  /* if */
+    result = error_type();
+  } else
+#endif /* NEAR_AND_FAR_ALLOWED */
+  /* Do not insert code here. */
+  {
+    if ((qualifiers & ~base_qualifiers) != TQ_NONE) {
+      /* Additional qualifiers must be merged in. */
+      result = make_reference_type(make_qualified_type(under_ref, qualifiers));
+    } else {
+      /* Return the original type.  (Merging qualifiers even when there are
+         no new ones would be harmless, but doing it this way preserves
+         typedefs, which makes for nicer output if the C++-generating back
+         end is used. */
+      result = base_ref_type;
+    }  /* if */
+#if DEBUG
+    if (db_flag_is_set("ref_to_ref")) {
+      fprintf(f_debug, "Ref-to-ref resulted in (line %ld): ",
+              pos_curr_token.seq);
+      db_type(result);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  return result;
+}  /* make_reference_to_reference */
+
+
 static a_type_ptr copy_array_type_replacing_element_type(
                                                       a_type_ptr  old_array,
                                                       a_type_ptr  element_type)

@@ -206,6 +206,40 @@ function parameter and return types.
 
 
 /*
+A structure to carry state information through the declaration parsing process.
+*/
+typedef struct a_decl_parse_state {
+  a_type_qualifier_set
+		qualifiers;
+			/* Type qualifiers that have been scanned as part of
+			   the declaration specifiers. */
+  a_source_position
+		qualifiers_pos;
+			/* The position of the type qualifiers (except for
+                           the "restrict" qualifiers. */
+  a_source_position
+		restrict_pos;
+			/* The position of the "restrict" qualifier (if
+			   any). */
+  a_bit_field
+		unused_qualifiers:1;
+			/* TRUE if there are pending qualifiers that have
+			   not had an effect on the current declaration.
+			   ("An effect" may be a diagnostic.) */
+} a_decl_parse_state;
+
+
+extern void init_decl_parse_state(a_decl_parse_state  *ps);
+
+extern void f_check_pending_qualifiers_used(a_decl_parse_state  *ps);
+
+#define check_pending_qualifiers_used(ps)                                    \
+  if ((ps)->unused_qualifiers) {                                             \
+    f_check_pending_qualifiers_used((ps));                                   \
+  }  /* if */
+
+
+/*
 A collection of source positions passed around during declaration processing.
 */
 typedef struct a_decl_pos_block *a_decl_pos_block_ptr;

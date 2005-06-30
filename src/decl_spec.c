@@ -5065,43 +5065,40 @@ modifier _Sat was specified.
 
 
 static a_boolean add_type_qualifiers(a_type_ptr            *type_ptr,
-                                     a_type_qualifier_set  *qualifiers,
-                                     a_upc_block_size      upc_block_size,
-                                     a_source_position     *qualifier_pos,
-                                     a_source_position     *restrict_pos)
+                                     a_decl_parse_state    *state,
+                                     a_upc_block_size      upc_block_size)
 /*
-Add the type qualifiers specified by *qualifiers to the type specified by
-*type_ptr (upc_block_size is the block size associated with any UPC shared
-qualifier).  *qualifier_pos is the source position of the first of the type
-qualifiers (if any), not counting restrict.  *restrict_pos is the source
-position of the restrict keyword (if it's there).  This function is called
-from decl_specifiers only.
+Add the type qualifiers specified by state->qualifiers to the type specified
+by *type_ptr (upc_block_size is the block size associated with any UPC shared
+qualifier).  This function is called from decl_specifiers only.
 */
 {
-  a_boolean          err = FALSE;
-  an_error_severity  severity;
+  a_boolean             err = FALSE;
+  an_error_severity     severity;
+  a_type_qualifier_set  qualifiers = state->qualifiers;
 
-  if (*qualifiers != TQ_NONE) {
+  if (qualifiers != TQ_NONE) {
 #if UPC_EXTENSIONS_ALLOWED
     a_type_qualifier_set  new_upc_access, old_upc_access;
     if (upc_mode) {
       /* Retrieve the UPC strict/relax qualifiers for possible later
          checking. */
-      new_upc_access = *qualifiers & (TQ_UPC_RELAXED | TQ_UPC_STRICT);
+      new_upc_access = qualifiers & (TQ_UPC_RELAXED | TQ_UPC_STRICT);
       old_upc_access = f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE) &
                                               (TQ_UPC_RELAXED | TQ_UPC_STRICT);
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
-    if (named_address_spaces_enabled && *qualifiers != TQ_NONE) {
+    if (named_address_spaces_enabled && qualifiers != TQ_NONE) {
       a_named_address_space_id  new_nas =
-                           named_address_space_from_qualifier_set(*qualifiers);
+                            named_address_space_from_qualifier_set(qualifiers);
       if (new_nas != 0) {
         if (is_function_type(*type_ptr)) {
           /* Function types cannot be qualified with named address spaces. */
           err = TRUE;
-          pos_error(ec_named_address_space_on_function_type, qualifier_pos);
-          *qualifiers = simple_qualifiers(*qualifiers);
+          pos_error(ec_named_address_space_on_function_type,
+                    &state->qualifiers_pos);
+          state->qualifiers = simple_qualifiers(qualifiers);
         } else {
           a_type_ptr                type = *type_ptr;
           a_type_qualifier_set      old_quals;
@@ -5122,8 +5119,8 @@ from decl_specifiers only.
               err = TRUE;
             }  /* if */
             pos_diagnostic(severity, ec_multiple_named_address_spaces,
-                           qualifier_pos);
-            *qualifiers = simple_qualifiers(*qualifiers);
+                           &state->qualifiers_pos);
+            state->qualifiers = simple_qualifiers(qualifiers);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -5136,15 +5133,15 @@ from decl_specifiers only.
            an error.  Note that make_qualified_type will not actually add
            superfluous qualifiers. */
         /* However, adding a qualifier to a typedef for a reference type
-           is not allowed.  More precisely, the qualifier is ignored.
-           Issue a diagnostic. */
+           may not have any effect.  More precisely, if the construct is
+           followed by a declarator creating a reference, the qualifier
+           should be merged with any qualifiers of the type underlying the
+           reference. */
         if (is_reference_type(*type_ptr)) {
-          /* "restrict" may be applied to reference types, but the other
-              qualifiers may not. */
-          if ((*qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
-            *qualifiers &= TQ_RESTRICT;
-            pos_warning(ec_useless_type_qualifiers, qualifier_pos);
-          }  /* if */
+          /* "restrict" applies directly to reference types; other qualifiers
+              do not. */
+          state->unused_qualifiers = (qualifiers & ~TQ_RESTRICT) != TQ_NONE;
+          qualifiers &= TQ_RESTRICT;
         }  /* if */
       } else {
         /* In C we check for duplicate qualifiers on a declaration, even
@@ -5158,7 +5155,7 @@ from decl_specifiers only.
            to the ultimate element type.  This can only happen with typedefs,
            as in "typedef int A[2][3]; const A a;", which makes "a" an
            array of array of const int. */
-        if ((*qualifiers &
+        if ((qualifiers &
              f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE)) != 0) {
           /* Duplication of type qualifier (probably because of a typedef
              that is already qualified).  In strict ANSI C89 mode issue an
@@ -5173,7 +5170,7 @@ from decl_specifiers only.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (!C_mode() && *qualifiers != TQ_NONE) {
+    if (!C_mode() && qualifiers != TQ_NONE) {
       /* Type qualifiers occurring on function types through typedef or
          template parameter substitutions are ignored. */
       if (is_function_type(*type_ptr) ||
@@ -5183,21 +5180,22 @@ from decl_specifiers only.
             scope_stack[decl_scope_level].in_prototype_instantiation) {
           /* If we're not instantiating a template, applying a cv-qualifier
              to a function type was probably not intended: Issue a warning. */
-          a_source_position_ptr  diag_pos = (*qualifiers == TQ_RESTRICT) ?
-                                                 restrict_pos : qualifier_pos;
+          a_source_position_ptr  diag_pos =
+                          (qualifiers == TQ_RESTRICT) ? &state->restrict_pos
+                                                      : &state->qualifiers_pos;
           pos_warning(ec_cv_qualified_function_type, diag_pos);
         }  /* if */
-        *qualifiers = TQ_NONE;
+        qualifiers = TQ_NONE;
       }  /* if */
     }  /* if */
     /* The restrict qualifier may only be applied to pointer and reference
        types (but not pointer-to-function-type), pointer-to-member types,
        and (in parameter declarations only) array types. */
-    if ((*qualifiers & TQ_RESTRICT) &&
-        !restrict_qualifier_is_allowed(*type_ptr, restrict_pos)) {
+    if ((qualifiers & TQ_RESTRICT) &&
+        !restrict_qualifier_is_allowed(*type_ptr, &state->restrict_pos)) {
       /* Diagnostic has already been issued.  Just remove TQ_RESTRICT
          from the qualifier set. */
-      *qualifiers &= ~TQ_RESTRICT;
+      qualifiers &= ~TQ_RESTRICT;
       err = TRUE;
     }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
@@ -5210,18 +5208,18 @@ from decl_specifiers only.
         err = TRUE;
       }  /* if */
       /* Disallow strict or relaxed without shared. */
-      if (new_upc_access != TQ_NONE && !(*qualifiers & TQ_UPC_SHARED)) {
+      if (new_upc_access != TQ_NONE && !(qualifiers & TQ_UPC_SHARED)) {
         /* Check whether shared was specified in the base type. */
         if ((f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE) &
                                                          TQ_UPC_SHARED) == 0) {
           /* Issue an error and remove the offending qualifiers. */
           error(ec_nonshared_strict_relaxed);
-          *qualifiers &= ~(TQ_UPC_STRICT | TQ_UPC_RELAXED);
+          qualifiers &= ~(TQ_UPC_STRICT | TQ_UPC_RELAXED);
           new_upc_access = TQ_NONE;
         }  /* if */
       }  /* if */
       /* Disallow duplicate shared if the block sizes do not match. */
-      if ((*qualifiers & TQ_UPC_SHARED &
+      if ((qualifiers & TQ_UPC_SHARED &
            f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE)) != 0 &&
           upc_block_size !=
                         f_get_upc_block_size(*type_ptr, /*top_level=*/FALSE)) {
@@ -5230,14 +5228,18 @@ from decl_specifiers only.
       }  /* if */
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-    if (*qualifiers != TQ_NONE) {
+    if (qualifiers != TQ_NONE) {
       if (is_unknown_type(*type_ptr)) {
         *type_ptr = integer_type((an_integer_kind)ik_int);
       }  /* if */
       /* Add the qualifiers if necessary.  make_qualified_type understands
          the strange array case too. */
-      *type_ptr = f_make_qualified_type(*type_ptr, *qualifiers,
-                                        upc_block_size);
+      *type_ptr = f_make_qualified_type(*type_ptr, qualifiers, upc_block_size);
+    }  /* if */
+    if (err) {
+      /* Some qualifiers were dropped due to errors.  Ignore those from now
+         on. */
+      state->qualifiers = qualifiers;
     }  /* if */
   }  /* if */
   return !err;
@@ -6131,7 +6133,7 @@ a_boolean decl_specifiers(a_decl_flag_set            input_flags,
                           a_decl_flag_set            *output_flags,
                           a_storage_class            *storage_class,
                           a_type_ptr                 *type_ptr,
-                          a_type_qualifier_set       *qualifiers,
+                          a_decl_parse_state         *state,
                           an_attribute_ptr           *attributes,
                           an_ms_attribute_ptr        *p_ms_attributes,
                           a_decl_modifiers_block_ptr decl_modifiers,
@@ -6219,24 +6221,23 @@ qualifiers are only recognized when MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
 The additional storage class specifiers are recognized anywhere that
 storage classes are normally allowed.
 
-Returns *storage_class set to the storage class scanned (or
-sc_unspecified if none was scanned), *type_ptr pointing to the type
-scanned (including qualifiers, if any), and any of various flags in
-*output_flags: DSO_HAS_EXPLICIT_TYPE_SPECIFIER is set if there was at
-least one type specifier; DSO_DECLARES_SOMETHING is set if the
-specifiers declare something (a tag or enumeration members);
-DSO_JUST_VOID is set if the specifiers are simply the one keyword
-"void"; and DSO_CONST_QUALIFIED and DSO_VOLATILE_QUALIFIED are set
-if the associated qualifiers appear directly in the qualifiers list
-(these flags are useful when this routine is called to scan only type
-qualifiers, since in that case no type is built).  For C++ specifically,
-DSO_VIRTUAL, DSO_INLINE, and DSO_FRIEND are set to report that a
-"virtual", "inline", or "friend" keyword was scanned.  It also returns
-a name linkage specifier to signal when, for instance, ``extern "C"''
-was encountered (C++ only).  If DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER is
-true, then DSO_DANGLING_TYPE_SPECIFIER may be set for cases that are
-recognized as an omitted semi-colon or comma after a class or enum
-definition (e.g., "typedef int T; struct A { ... } T x;").
+Returns *storage_class set to the storage class scanned (or sc_unspecified
+if none was scanned), *type_ptr pointing to the type scanned (including
+qualifiers, if any), and any of various flags in *output_flags:
+DSO_HAS_EXPLICIT_TYPE_SPECIFIER is set if there was at least one type
+specifier; DSO_DECLARES_SOMETHING is set if the specifiers declare something
+(a tag or enumeration members); DSO_JUST_VOID is set if the specifiers are
+simply the one keyword "void".  For C++ specifically, DSO_VIRTUAL, DSO_INLINE,
+and DSO_FRIEND are set to report that a "virtual", "inline", or "friend"
+keyword was scanned.  It also returns a name linkage specifier to signal when,
+for instance, ``extern "C"'' was encountered (C++ only).  If
+DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER is true, then
+DSO_DANGLING_TYPE_SPECIFIER may be set for cases that are recognized as an
+omitted semi-colon or comma after a class or enum definition (e.g.,
+"typedef int T; struct A { ... } T x;").  *state describes various bits of
+information about the declaration currently being parsed (e.g., type
+qualifiers that are part of the declaration-specifiers sequence).
+
 When supporting GNU extensions, returns *attributes indicating any
 attributes that were present in the specifiers.  If attributes is
 NULL, then attributes are not allowed.  p_ms_attributes is used similarly
@@ -6251,7 +6252,6 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean                  err = FALSE;
   a_boolean                  bad_combination_of_type_specifiers = FALSE;
   a_source_position          start_pos;
-  a_source_position          non_restrict_qualifier_pos;
   a_boolean                  is_parameter = (input_flags & DSI_IS_PARAMETER);
   a_boolean                  is_member_decl =
                                     (input_flags & DSI_IS_MEMBER_DECLARATION);
@@ -6270,7 +6270,6 @@ Returns TRUE if there is an error in the specifiers.
   a_type_size                size = size_none;
   a_complex_attribute        complex_attr = cxa_none;
   a_boolean                  saturating_fixed_point = FALSE;
-  a_source_position          restrict_pos;
   a_source_position          storage_class_pos;
   a_boolean                  bad_type_name_error;
   a_decl_specifiers_set      decl_specifiers_seen;
@@ -6287,12 +6286,12 @@ Returns TRUE if there is an error in the specifiers.
   a_source_position          microsoft_w64_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_named_address_space_id   named_address_space;
+  a_type_qualifier_set       qualifiers = TQ_NONE;
  
   db_enter(3, "decl_specifiers");
   *output_flags = DSO_NO_OUTPUT_FLAGS;
   *storage_class = (a_storage_class)sc_unspecified;
   *type_ptr = NULL;
-  *qualifiers = TQ_NONE;
   clear_decl_modifiers_block(decl_modifiers);
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_block_size != NULL) *upc_block_size = 0;
@@ -6472,7 +6471,7 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_const:
         /* const type qualifier (3.5.3). */
-        if (*qualifiers & TQ_CONST) {
+        if (qualifiers & TQ_CONST) {
           /* const may not appear more than once (except in Microsoft and
              C99 modes). */
           if (c99_mode || microsoft_mode) {
@@ -6487,14 +6486,14 @@ Returns TRUE if there is an error in the specifiers.
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          non_restrict_qualifier_pos = pos_curr_token;
-          *qualifiers |= TQ_CONST;
+          state->qualifiers_pos = pos_curr_token;
+          qualifiers |= TQ_CONST;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
       case tok_volatile:
         /* volatile type qualifier (3.5.3). */
-        if (*qualifiers & TQ_VOLATILE) {
+        if (qualifiers & TQ_VOLATILE) {
           /* volatile may not appear more than once (except in Microsoft and
              C99 modes). */
           if (c99_mode || microsoft_mode) {
@@ -6509,8 +6508,8 @@ Returns TRUE if there is an error in the specifiers.
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          non_restrict_qualifier_pos = pos_curr_token;
-          *qualifiers |= TQ_VOLATILE;
+          state->qualifiers_pos = pos_curr_token;
+          qualifiers |= TQ_VOLATILE;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
@@ -6518,42 +6517,42 @@ Returns TRUE if there is an error in the specifiers.
       case tok_upc_strict:
         /* UPC strict type qualifier. */
         check_assertion(C_mode() && upc_mode);
-        if (*qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) {
+        if (qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) {
           /* Duplicate qualifiers are allowed in C99 mode (with a warning). */
           es = c99_mode ? es_warning : es_error;
-          if (*qualifiers & TQ_UPC_RELAXED) {
+          if (qualifiers & TQ_UPC_RELAXED) {
             /* It is an error to have both strict and relaxed. */
             es = es_error;
           }  /* if */
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          non_restrict_qualifier_pos = pos_curr_token;
-          *qualifiers |= TQ_UPC_STRICT;
+          state->qualifiers_pos = pos_curr_token;
+          qualifiers |= TQ_UPC_STRICT;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
       case tok_upc_relaxed:
         /* UPC relaxed type qualifier. */
         check_assertion(C_mode() && upc_mode);
-        if (*qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) {
+        if (qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) {
           /* Duplicate qualifiers are allowed in C99 mode (with a warning). */
           es = c99_mode ? es_warning : es_error;
-          if (*qualifiers & TQ_UPC_STRICT) {
+          if (qualifiers & TQ_UPC_STRICT) {
             /* It is an error to have both strict and relaxed. */
             es = es_error;
           }  /* if */
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          non_restrict_qualifier_pos = pos_curr_token;
-          *qualifiers |= TQ_UPC_RELAXED;
+          state->qualifiers_pos = pos_curr_token;
+          qualifiers |= TQ_UPC_RELAXED;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
       case tok_upc_shared:
         /* UPC shared type qualifier. */
-        if (*qualifiers & TQ_UPC_SHARED) {
+        if (qualifiers & TQ_UPC_SHARED) {
           /* Duplicate qualifiers are allowed in C99 mode (with a warning). */
           es = c99_mode ? es_warning : es_error;
           /* Save information to compare the block sizes.  If the block
@@ -6561,8 +6560,8 @@ Returns TRUE if there is an error in the specifiers.
           multiple_shared_seen = TRUE;
           saved_block_size = block_size;
         } else {
-          non_restrict_qualifier_pos = pos_curr_token;
-          *qualifiers |= TQ_UPC_SHARED;
+          state->qualifiers_pos = pos_curr_token;
+          qualifiers |= TQ_UPC_SHARED;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         /* Go past "shared" to see if a block size is specified. */
@@ -6584,7 +6583,7 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* UPC_EXTENSIONS_ALLOWED */
       case tok_restrict:
         /* restrict type qualifier. */
-        if (*qualifiers & TQ_RESTRICT) {
+        if (qualifiers & TQ_RESTRICT) {
           /* Issue a diagnostic if restrict appears more than once. */
           if (c99_mode || microsoft_mode) {
             /* In Microsoft and C99 mode, duplicate qualifiers result in a
@@ -6596,20 +6595,20 @@ Returns TRUE if there is an error in the specifiers.
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          *qualifiers |= TQ_RESTRICT;
-          restrict_pos = pos_curr_token;
+          qualifiers |= TQ_RESTRICT;
+          state->restrict_pos = pos_curr_token;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_unaligned:
         /* Microsoft __unaligned type qualifier. */
-        if (*qualifiers & TQ_UNALIGNED) {
+        if (qualifiers & TQ_UNALIGNED) {
           /* __unaligned may not appear more than once. */
           warning(ec_dupl_type_qualifier);
         } else {
-          non_restrict_qualifier_pos = pos_curr_token;
-          *qualifiers |= TQ_UNALIGNED;
+          state->qualifiers_pos = pos_curr_token;
+          qualifiers |= TQ_UNALIGNED;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
@@ -6622,15 +6621,15 @@ Returns TRUE if there is an error in the specifiers.
         if ((input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) == 0) {
           goto something_unexpected;
         }  /* if */
-        if (*qualifiers & TQ_NEAR) {
+        if (qualifiers & TQ_NEAR) {
           /* near may not appear more than once. */
           warning(ec_dupl_mem_attrib);
-        } else if (*qualifiers & TQ_FAR) {
+        } else if (qualifiers & TQ_FAR) {
           /* near and far are incompatible. */
           error(ec_mem_attrib_incompatible);
         } else {
-          non_restrict_qualifier_pos = pos_curr_token;
-          *qualifiers |= TQ_NEAR;
+          state->qualifiers_pos = pos_curr_token;
+          qualifiers |= TQ_NEAR;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
@@ -6641,15 +6640,15 @@ Returns TRUE if there is an error in the specifiers.
         if ((input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) == 0) {
           goto something_unexpected;
         }  /* if */
-        if (*qualifiers & TQ_FAR) {
+        if (qualifiers & TQ_FAR) {
           /* far may not appear more than once. */
           warning(ec_dupl_mem_attrib);
-        } else if (*qualifiers & TQ_NEAR) {
+        } else if (qualifiers & TQ_NEAR) {
           /* near and far are incompatible. */
           error(ec_mem_attrib_incompatible);
         } else {
-          non_restrict_qualifier_pos = pos_curr_token;
-          *qualifiers |= TQ_FAR;
+          state->qualifiers_pos = pos_curr_token;
+          qualifiers |= TQ_FAR;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         break;
@@ -7222,11 +7221,11 @@ process_class_specifier:
             }  /* if */
 #if NAMED_ADDRESS_SPACES_ALLOWED
           } else if (named_address_space != 0) {
-            if (named_address_space_from_qualifier_set(*qualifiers) != 0) {
+            if (named_address_space_from_qualifier_set(qualifiers) != 0) {
               error(ec_multiple_named_address_spaces);
             } else {
-              non_restrict_qualifier_pos = pos_curr_token;
-              set_named_address_space_in_qualifier_set(*qualifiers,
+              state->qualifiers_pos = pos_curr_token;
+              set_named_address_space_in_qualifier_set(qualifiers,
                                                        named_address_space);
             }  /* if */
             break;
@@ -7596,8 +7595,8 @@ no_get_token:
       }  /* if */
     }  /* if */
   }  /* for */
-
 exit_loop:
+  state->qualifiers = qualifiers;
   if ((microsoft_mode || sun_mode) &&
       (decl_specifiers_seen & DS_STORAGE_CLASS)) {
     /* Certain Microsoft-mode diagnostics involving storage class specifiers
@@ -7718,9 +7717,7 @@ exit_loop:
         err = TRUE;
       } else {
         /* Add any type qualifiers (const or volatile) to the type. */
-        if (!add_type_qualifiers(type_ptr, qualifiers, block_size,
-                                 &non_restrict_qualifier_pos,
-                                 &restrict_pos)) {
+        if (!add_type_qualifiers(type_ptr, state, block_size)) {
           err = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_w64_seen) {
@@ -7731,7 +7728,7 @@ exit_loop:
     }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   } else if (upc_mode && !err) {
-    if (*qualifiers & TQ_UPC_SHARED) {
+    if (qualifiers & TQ_UPC_SHARED) {
     /* A shared type qualifier was correctly parsed.  Pass the associated
        block size back to the caller if needed. */
       if (upc_block_size != NULL) {
@@ -7740,7 +7737,7 @@ exit_loop:
     } else if (!err) {
       /* The UPC strict and relaxed qualifiers can only appear combined with
          the shared qualifier. */
-      if (*qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) {
+      if (qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) {
         error(ec_nonshared_strict_relaxed);
         err = TRUE;
       }  /* if */

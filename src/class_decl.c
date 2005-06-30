@@ -12105,7 +12105,7 @@ passed via template_decl.
   a_source_position    decl_start_pos;
   a_decl_flag_set      dsi_flags;
   a_decl_flag_set      dso_flags;
-  a_type_qualifier_set qualifiers;
+  a_decl_parse_state   state;
   a_type_ptr           member_type;
   a_boolean            no_decl_specifiers;
   a_boolean            friend_specified;
@@ -12128,6 +12128,7 @@ passed via template_decl.
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
   decl_start_pos = pos_curr_token;
+  init_decl_parse_state(&state);
   initialize_member_decl_info(&decl_info, &decl_start_pos);
   is_member_template_rescan = (scope_stack[depth_scope_stack].kind ==
                                  (a_scope_kind)sck_template_instantiation);
@@ -12160,7 +12161,7 @@ passed via template_decl.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   add_stop_token(tok_colon);
   (void)decl_specifiers(dsi_flags, &dso_flags, &decl_info.storage_class,
-                        &member_type, &qualifiers, &specifier_attributes,
+                        &member_type, &state, &specifier_attributes,
                         &ms_attributes, &decl_info.decl_modifiers,
                         (a_named_register_id*)NULL, &decl_info.decl_pos_block,
                         (a_upc_block_size *)NULL);
@@ -12306,18 +12307,15 @@ passed via template_decl.
         decl_start_pos = pos_curr_token;
         member_type = integer_type((an_integer_kind)ik_int);
       }  /* if */
-    }  /* if */
-    /* The declarator can be omitted for an unnamed bit-field. */
-    set_err_pos_to_curr_token();
-    if (curr_token == tok_colon && !no_decl_specifiers) {
-      /* Unnamed bit-field. */
+    } else if ((curr_token == tok_colon && !no_decl_specifiers)) {
       decl_info.is_unnamed_field = TRUE;
+    }  /* if */
+    /* The declarator can be omitted some cases. */
+    set_err_pos_to_curr_token();
+    if (decl_info.is_unnamed_field || decl_info.is_anonymous_union) {
       local_type = member_type;
       set_to_error_locator(locator);
-    } else if (decl_info.is_anonymous_union) {
-      /* There is no declarator. */
-      local_type = member_type;
-      set_to_error_locator(locator);
+      check_pending_qualifiers_used(&state);
     } else if (no_decl_specifiers && !decl_info.is_constructor &&
                !decl_info.is_destructor && !is_declarator_start()) {
       remove_stop_token(tok_comma);
@@ -12365,7 +12363,7 @@ passed via template_decl.
         add_stop_token(tok_lbrace);
         /* Set the various flags for declarator processing (C++ only). */
         di_flags |= DI_OPERATOR_NAME_ALLOWED;
-        if (!type_explicitly_specified && qualifiers == TQ_NONE) {
+        if (!type_explicitly_specified && state.qualifiers == TQ_NONE) {
           di_flags |= DI_NO_TYPE_SPECIFIERS;
         }  /* if */
         if (decl_info.is_constructor) di_flags |= DI_IS_CONSTRUCTOR;
@@ -12434,7 +12432,7 @@ passed via template_decl.
          implicit "this" parameter type to be created. (Static member
          functions do not have an implicit "this" pointer. The class pointer
          will be ignored for data members.) */
-      declarator(di_flags, &decl_info.do_flags, member_type,
+      declarator(di_flags, &decl_info.do_flags, &state, member_type,
                  friend_specified ? (a_type_ptr)NULL : class_type,
                  &locator, &local_type, &decl_info.declarator_ssep, &func_info,
                  &decl_info.decl_pos_block, &declarator_attributes);

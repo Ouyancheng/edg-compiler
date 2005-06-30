@@ -85,6 +85,33 @@ specifier.
   (curr_token == tok_inline   || curr_token == tok_virtual ||        \
    curr_token == tok_explicit)
 
+
+void init_decl_parse_state(a_decl_parse_state  *ps)
+/*
+Initialize the given a_decl_parse_state structure in preparation of parsing
+an upcoming declaration.
+*/
+{
+  ps->qualifiers = TQ_NONE;
+  ps->qualifiers_pos = null_source_position;
+  ps->restrict_pos = null_source_position;
+  ps->unused_qualifiers = FALSE;
+}  /* init_decl_parse_state */
+
+
+void f_check_pending_qualifiers_used(a_decl_parse_state  *state)
+/*
+If the given a_decl_parse_state object indicates that pending type qualifiers
+have not had an effect on the declaration, issue a warning and mark the
+qualifiers as now having had an effect.
+*/
+{
+  if (state->unused_qualifiers) {
+    state->unused_qualifiers = FALSE;
+    pos_warning(ec_useless_type_qualifiers, &state->qualifiers_pos);
+  }  /* if */
+}  /* f_check_pending_qualifiers_used */
+
 #if GNU_EXTENSIONS_ALLOWED
 
 static char *scan_asm_name(a_source_position_ptr asm_name_pos)
@@ -8967,19 +8994,20 @@ such types are not accepted.
 {
   a_storage_class              storage_class;
   a_decl_flag_set              dso_flags, do_flags, di_flags;
-  a_type_qualifier_set         qualifiers;
   a_decl_modifiers_block       decl_modifiers;
   a_source_position            start_pos;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
+  a_decl_parse_state           state;
 
   db_enter(3, "type_name_full");
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
-  (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
-                        &storage_class, type_ptr, &qualifiers,
-                        (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
-                        &decl_modifiers, (a_named_register_id*)NULL,
-                        (a_decl_pos_block_ptr)NULL, (a_upc_block_size*)NULL);
+  init_decl_parse_state(&state);
+  (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags, &storage_class,
+                        type_ptr, &state, (an_attribute_ptr*)NULL,
+                        (an_ms_attribute_ptr*)NULL, &decl_modifiers,
+                        (a_named_register_id*)NULL, (a_decl_pos_block_ptr)NULL,
+                        (a_upc_block_size*)NULL);
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) &&
       (!gpp_mode || gnu_version >= 30400)) {
@@ -8992,7 +9020,7 @@ such types are not accepted.
     report_implicit_int(&start_pos, *type_ptr);
   }  /* if */
   if (explicit_cv_qualifiers != NULL) {
-    *explicit_cv_qualifiers = (qualifiers != TQ_NONE);
+    *explicit_cv_qualifiers = (state.qualifiers != TQ_NONE);
   }  /* if */
   if (*type_ptr != NULL) {
     (skip_typerefs(*type_ptr))->source_corresp.referenced = TRUE;
@@ -9007,7 +9035,7 @@ such types are not accepted.
          once the scan has been completed. */
       di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
     }  /* if */
-    declarator(di_flags, &do_flags, *type_ptr,
+    declarator(di_flags, &do_flags, &state, *type_ptr,
                /*member_parent_type=*/(a_type_ptr)NULL,
                (a_symbol_locator *)NULL, type_ptr,
                &declarator_ssep, (a_func_info_block_ptr)NULL,
@@ -9035,6 +9063,7 @@ such types are not accepted.
        pointer-to-member declaration. */
     *type_ptr = error_type();
   }  /* if */
+  check_pending_qualifiers_used(&state);
   copy_source_position(start_pos, error_position);
   db_exit();
 }  /* type_name_full */
@@ -9073,13 +9102,13 @@ within this routine if is_parenthesized comes in FALSE.
   a_type_ptr                  complete_type, new_type_ptr;
   a_type_ptr                  derived_type, bottom_derived_type;
   a_decl_flag_set             dso_flags, do_flags = DO_NO_OUTPUT_FLAGS;
-  a_type_qualifier_set        qualifiers;
   a_decl_modifiers_block      decl_modifiers;
   a_source_position           start_pos;
   a_storage_class             storage_class;
   a_source_sequence_entry_ptr declarator_ssep = NULL;
   a_decl_pos_block            decl_pos_block;
   a_boolean                   rparen_in_new_declarator = FALSE;
+  a_decl_parse_state          state;
 
   db_enter(3, "new_type_name");
   /* Check for the parenthesized form. */
@@ -9089,10 +9118,11 @@ within this routine if is_parenthesized comes in FALSE.
   }  /* if */
   if (is_parenthesized) add_stop_token(tok_rparen);
   set_err_pos_to_curr_token();
+  init_decl_parse_state(&state);
   clear_decl_pos_block(&decl_pos_block);
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME,
-                        &dso_flags, &storage_class, type_ptr, &qualifiers,
+                        &dso_flags, &storage_class, type_ptr, &state,
                         (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
                         &decl_modifiers, (a_named_register_id*)NULL,
                         &decl_pos_block, (a_upc_block_size*)NULL);
@@ -9124,7 +9154,7 @@ within this routine if is_parenthesized comes in FALSE.
       declarator(DI_ABSTRACT_DECLARATOR_ALLOWED |
                     DI_QUALIFIED_NAME_ALLOWED |
                     DI_DIMENSION_EXPRESSION_ALLOWED,
-                 &do_flags, *type_ptr,
+                 &do_flags, &state, *type_ptr,
                  /*member_parent_type=*/(a_type_ptr)NULL,
                  (a_symbol_locator *)NULL, type_ptr,
                  &declarator_ssep, (a_func_info_block_ptr)NULL,
@@ -9143,14 +9173,13 @@ within this routine if is_parenthesized comes in FALSE.
        allowed. */
     a_boolean  ptr_to_member_scanned;
     /* Scan pointer declarators. */
-    complete_type = pointer_declarator(*type_ptr,
+    complete_type = pointer_declarator(*type_ptr, &state,
                                        /*reference_allowed=*/FALSE,
 				       (a_call_conv_descr_ptr)NULL,
 				       (a_call_conv_descr_ptr)NULL,
                                        (a_type_qualifier_set *)NULL,
                                        (a_type_qualifier_set *)NULL,
-                                       &ptr_to_member_scanned,
-                                       &decl_pos_block,
+                                       &ptr_to_member_scanned, &decl_pos_block,
                                        (an_attribute_ptr *)NULL);
     derived_type = NULL;
     bottom_derived_type = NULL;
@@ -9219,6 +9248,7 @@ within this routine if is_parenthesized comes in FALSE.
     curr_construct_end_position = decl_pos_block.specifiers_range.end;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  check_pending_qualifiers_used(&state);
   if (any_cfront_mode() &&
       check_member_function_typedef(*type_ptr, &start_pos)) {
     /* The type is a cfront-style member function typedef -- it is an error
@@ -9237,22 +9267,24 @@ resulting type.  This is called in Microsoft mode for function-style casts
 where the type involves more than one token -- e.g., "unsigned int(x)".
 */
 {
-  a_decl_flag_set             dso_flags;
-  a_storage_class             storage_class;
-  a_type_ptr                  type_ptr;
-  a_type_qualifier_set        qualifiers;
-  a_decl_modifiers_block      decl_modifiers;
-  a_source_position           pos;
-  a_decl_pos_block            decl_pos_block;
+  a_decl_flag_set         dso_flags;
+  a_storage_class         storage_class;
+  a_type_ptr              type_ptr;
+  a_decl_modifiers_block  decl_modifiers;
+  a_source_position       pos;
+  a_decl_pos_block        decl_pos_block;
+  a_decl_parse_state      state;
 
   check_assertion(microsoft_mode);
   pos = pos_curr_token;
+  init_decl_parse_state(&state);
   clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
-                        &storage_class, &type_ptr, &qualifiers,
+                        &storage_class, &type_ptr, &state,
                         (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
                         &decl_modifiers, (a_named_register_id*)NULL,
                         &decl_pos_block, (a_upc_block_size*)NULL);
+  check_pending_qualifiers_used(&state);
   /* Set error_position to the start of the type-specifier sequence. */
   error_position = pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -9284,7 +9316,6 @@ operator function reference.
 {
   a_storage_class         storage_class;
   a_decl_flag_set         dso_flags;
-  a_type_qualifier_set    qualifiers;
   a_decl_modifiers_block  decl_modifiers;
   a_type_ptr              specifiers_type, complete_type;
   a_source_position       type_pos;
@@ -9339,16 +9370,19 @@ operator function reference.
   (void)get_token();
   if (is_type_start(/*is_expr_context=*/FALSE)) {
     /* It is the start of a type name. */
-    a_boolean  ptr_to_member_scanned;
+    a_boolean           ptr_to_member_scanned;
+    a_decl_parse_state  state;
     is_conversion_operator = TRUE;
     set_err_pos_to_curr_token();
     copy_source_position(pos_curr_token, type_pos);
+    init_decl_parse_state(&state);
     clear_decl_pos_block(&decl_pos_block);
-    (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
-                          &storage_class, &specifiers_type, &qualifiers,
-                          (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
-                          &decl_modifiers, (a_named_register_id*)NULL,
-                          &decl_pos_block, (a_upc_block_size*)NULL);
+    (void)decl_specifiers(
+             DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags, &storage_class,
+             &specifiers_type, &state, (an_attribute_ptr*)NULL,
+             (an_ms_attribute_ptr*)NULL, &decl_modifiers,
+             (a_named_register_id*)NULL, &decl_pos_block,
+             (a_upc_block_size*)NULL);
     if (dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
       pos_error(ec_type_definition_not_allowed, &type_pos);
@@ -9361,14 +9395,13 @@ operator function reference.
     ssep = &scope_stack[depth_scope_stack];
     ssep->conversion_parent_type = NULL;
     ssep->qualified_conversion_operator = FALSE;
-    complete_type = pointer_declarator(specifiers_type,
+    complete_type = pointer_declarator(specifiers_type, &state,
                                        /*reference_allowed=*/TRUE,
                                        (a_call_conv_descr_ptr)NULL,
                                        (a_call_conv_descr_ptr)NULL,
                                        (a_type_qualifier_set *)NULL,
                                        (a_type_qualifier_set *)NULL,
-                                       &ptr_to_member_scanned,
-                                       &decl_pos_block,
+                                       &ptr_to_member_scanned, &decl_pos_block,
                                        (an_attribute_ptr *)NULL);
     if (any_cfront_mode() &&
         check_member_function_typedef(complete_type, &type_pos)) {
@@ -9393,6 +9426,7 @@ operator function reference.
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     make_type_conversion_locator(complete_type, &locator_for_curr_id, id_pos);
+    check_pending_qualifiers_used(&state);
   } else {
     is_conversion_operator = FALSE;
   }  /* if */
@@ -9798,7 +9832,6 @@ a normal try.
   a_type_ptr                   type_ptr = NULL;
   a_storage_class              storage_class;
   a_decl_flag_set              dso_flags, do_flags;
-  a_type_qualifier_set         qualifiers;
   a_decl_modifiers_block       decl_modifiers;
   a_symbol_ptr                 sym;
   a_symbol_locator             locator;
@@ -9841,12 +9874,14 @@ a normal try.
         set_to_error_locator(locator);
         remove_stop_token(tok_rparen);
       } else {
-        a_decl_pos_block  decl_pos_block;
+        a_decl_parse_state  state;
+        a_decl_pos_block    decl_pos_block;
+        init_decl_parse_state(&state);
         clear_decl_pos_block(&decl_pos_block);
         (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                                DSI_EMPTY_DECL_SPECIFIERS_ALLOWED),
                               &dso_flags, &storage_class, &type_ptr,
-                              &qualifiers, (an_attribute_ptr*)NULL,
+                              &state, (an_attribute_ptr*)NULL,
                               (an_ms_attribute_ptr*)NULL, &decl_modifiers,
                               (a_named_register_id*)NULL, &decl_pos_block,
                               (a_upc_block_size*)NULL);
@@ -9869,7 +9904,7 @@ a normal try.
           if (vla_enabled) {
             di_flags |= DI_VLA_ALLOWED;
           }  /* if */
-          declarator(di_flags, &do_flags, type_ptr,
+          declarator(di_flags, &do_flags, &state, type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL,
                      &locator, &type_ptr, &declarator_ssep,
                      (a_func_info_block_ptr)NULL, &decl_pos_block,
@@ -9880,6 +9915,7 @@ a normal try.
                                /*suppress_redecl_error=*/FALSE);
           }  /* if */
         }  /* if */
+        check_pending_qualifiers_used(&state);
         if (!exceptions_enabled) {
           /* Don't bother with the semantic checks on the handler type.  Set
              type to error type to avoid inappropriate errors downstream. */
@@ -10267,7 +10303,6 @@ Return a pointer to the variable that is declared.
   a_storage_class              storage_class;
   a_type_ptr                   type_ptr = NULL;
   a_decl_flag_set              dsi_flags, dso_flags, do_flags;
-  a_type_qualifier_set         qualifiers;
   a_decl_modifiers_block       decl_modifiers;
   a_symbol_ptr                 sym;
   a_variable_ptr               vp;
@@ -10278,6 +10313,7 @@ Return a pointer to the variable that is declared.
   a_boolean                    missing_declarator = FALSE;
   a_symbol_reference_kind      srk_flags;
   a_decl_pos_block             decl_pos_block;
+  a_decl_parse_state           state;
 
   db_enter(3, "condition_declaration");
   decl_pos = pos_curr_token;
@@ -10286,9 +10322,10 @@ Return a pointer to the variable that is declared.
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
               DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
               DSI_IS_CONDITION_DECL;
+  init_decl_parse_state(&state);
   clear_decl_pos_block(&decl_pos_block);
   (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
-                        &qualifiers, (an_attribute_ptr*)NULL,
+                        &state, (an_attribute_ptr*)NULL,
                         (an_ms_attribute_ptr*)NULL, &decl_modifiers,
                         (a_named_register_id*)NULL, &decl_pos_block,
                         (a_upc_block_size*)NULL);
@@ -10305,7 +10342,7 @@ Return a pointer to the variable that is declared.
   if (is_declarator_start()) {
     /* Scan the declarator, which is not allowed to specify a function or an
        array. */
-    declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type_ptr,
+    declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, &state, type_ptr,
                /*member_parent_type=*/(a_type_ptr)NULL, &locator, &type_ptr,
                &declarator_ssep, (a_func_info_block_ptr)NULL, &decl_pos_block,
                (an_attribute_ptr *)NULL);
@@ -10316,6 +10353,7 @@ Return a pointer to the variable that is declared.
     set_to_error_locator(locator);
     error_position = pos_curr_token;
   }  /* if */
+  check_pending_qualifiers_used(&state);
   complete_type_is_needed(type_ptr);
   if (is_incomplete_type(type_ptr)) {
     /* Incomplete type is not allowed. */
@@ -11796,7 +11834,6 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    has_explicit_type_specifier;
   a_boolean                    defines_something;
   a_decl_flag_set              dso_flags, do_flags;
-  a_type_qualifier_set         qualifiers;
   a_decl_modifiers_block       decl_modifiers, local_decl_modifiers;
   a_decl_flag_set              dsi_flags, di_flags;
   a_symbol_ptr                 symbol_ptr = NULL, ext_sym;
@@ -11841,6 +11878,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_token_kind                 final_token = tok_semicolon;
   a_boolean                    is_linkage_spec_decl = FALSE;
   a_boolean                    restore_name_linkage = FALSE;
+  a_decl_parse_state           state;
   a_decl_pos_block             decl_pos_block;
   a_boolean                    out_of_class_redecl = FALSE;
 
@@ -11852,7 +11890,11 @@ of local variables (and types, etc.) of functions and in blocks.
     marked_as_gnu_extension = TRUE;
   }  /* if */
   set_err_pos_to_curr_token();
+  /* Initialize structures to hold information about the declaration to be
+     parsed. */
   copy_source_position(pos_curr_token, decl_start_pos);
+  init_decl_parse_state(&state);
+  clear_decl_pos_block(&decl_pos_block);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (decl_scope_level == depth_innermost_namespace_scope) {
@@ -12053,15 +12095,12 @@ of local variables (and types, etc.) of functions and in blocks.
     }  /* if */
   }  /* if */
 continue_with_declaration:
-  /* Initialize source position information associated with this
-     declaration. */
-  clear_decl_pos_block(&decl_pos_block);
   if (marked_as_gnu_extension) {
     dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
   }  /* if */
   /* Scan the specifiers. */
   err = decl_specifiers(dsi_flags, &dso_flags, &declared_storage_class,
-                        &type_ptr, &qualifiers, &specifier_attributes,
+                        &type_ptr, &state, &specifier_attributes,
                         &ms_attributes, &decl_modifiers, &register_id,
                         &decl_pos_block, (a_upc_block_size*)NULL);
 #if GNU_EXTENSIONS_ALLOWED
@@ -12190,7 +12229,7 @@ continue_with_declaration:
         }  /* if */
       }  /* if */
     }  /* if */
-    if (!has_explicit_type_specifier && qualifiers == TQ_NONE) {
+    if (!has_explicit_type_specifier && state.qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
     /* Scan the declarator list. */
@@ -12237,7 +12276,7 @@ continue_with_declaration:
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Save the source position of the first token of the declarator. */
       declarator_start_pos = pos_curr_token;
-      declarator(di_flags, &do_flags, type_ptr, 
+      declarator(di_flags, &do_flags, &state, type_ptr, 
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
                  &local_type_ptr, &declarator_ssep, &func_info,
                  &decl_pos_block, &declarator_attributes);
@@ -13277,6 +13316,7 @@ advance_past_final_token:
     }  /* if */
   }  /* if */
 return_point:
+  check_pending_qualifiers_used(&state);
   if (access_checks_deferred) {
     /* We are processing a declaration for which access checks were
        deferred.  Normally, any deferred checks will have already been
