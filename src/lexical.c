@@ -4538,7 +4538,7 @@ macro_line_loc_to_source_pos should be used when speed is critical.
            of a file ends with a backslash. */
         if (*adj_loc_in_line   == LE_ESCAPE &&
             adj_loc_in_line[1] == LE_NEWLINE &&
-            olmp->next == NULL) break;
+            adj_loc_in_line == olmp->line_loc) break;
         /* Keep track of the current physical line. */
         start_of_curr_phys_line = olmp->line_loc;
         if (olmp->kind == olm_multiline_string_splice) {
