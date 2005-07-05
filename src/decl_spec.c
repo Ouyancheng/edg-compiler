@@ -5098,7 +5098,7 @@ qualifier).  This function is called from decl_specifiers only.
           err = TRUE;
           pos_error(ec_named_address_space_on_function_type,
                     &state->qualifiers_pos);
-          state->qualifiers = simple_qualifiers(qualifiers);
+          state->qualifiers = qualifiers = simple_qualifiers(qualifiers);
         } else {
           a_type_ptr                type = *type_ptr;
           a_type_qualifier_set      old_quals;
@@ -5120,7 +5120,7 @@ qualifier).  This function is called from decl_specifiers only.
             }  /* if */
             pos_diagnostic(severity, ec_multiple_named_address_spaces,
                            &state->qualifiers_pos);
-            state->qualifiers = simple_qualifiers(qualifiers);
+            state->qualifiers = qualifiers = simple_qualifiers(qualifiers);
           }  /* if */
         }  /* if */
       }  /* if */
