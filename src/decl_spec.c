@@ -773,6 +773,7 @@ template class, its DLL interface may need to be adjusted implicitly.
         a_routine_ptr     rp = ctsp->assoc_scope->routines;
         a_variable_ptr    vp = ctsp->assoc_scope->variables;
         a_base_class_ptr  bcp = ctsp->base_classes;
+        a_boolean         specialized_destructor = FALSE;
         /* First update the DLL interface of the class itself. */
         ctsp->decl_modifiers |= new_dll_flags;
         for (; rp != NULL; rp = rp->next) {
@@ -794,13 +795,14 @@ template class, its DLL interface may need to be adjusted implicitly.
                         rp, new_dll_flags, (a_boolean)rp->is_inline,
                         /*is_redecl=*/FALSE, /*is_definition=*/FALSE, err_pos);
             }  /* if */
+          } else if (rp->special_kind ==
+                                     (a_special_function_kind)sfk_destructor) {
+            specialized_destructor = TRUE;
           }  /* if */
         }  /* for */
         if (new_dll_flags & DM_DLLIMPORT) {
           /* Microsoft compilers do not propagate the dllimport flag to
-             static data members of template instances, nor to compiler-
-             generated data (like virtual function tables) associated with
-             those instances. */
+             static data members of template instances. */
         } else {
           for (; vp != NULL; vp = vp->next) {
             if (!vp->is_specialized) {
@@ -823,7 +825,15 @@ template class, its DLL interface may need to be adjusted implicitly.
               }  /* if */
             }  /* if */
           }  /* for */
+        }  /* if */
 #if DO_IL_LOWERING
+        if ((new_dll_flags & DM_DLLIMPORT) && !specialized_destructor) {
+          /* Microsoft compilers do not propagate the dllimport flag to
+             compiler-generated data (like virtual function tables)
+             associated with class template instances, except (apparently)
+             when such an instance contains an explicitly specialized
+             destructor. */
+        } else {
           if (class_type->typeinfo_var != NULL) {
             update_dll_info_for_variable(class_type->typeinfo_var,
                                          new_dll_flags, /*is_redecl=*/FALSE,
@@ -844,8 +854,8 @@ template class, its DLL interface may need to be adjusted implicitly.
                                          (a_source_position*)NULL);
           }  /* if */
 #endif /* IA64_ABI */
-#endif /* DO_IL_LOWERING */
         }  /* if */
+#endif /* DO_IL_LOWERING */
         for (; bcp != NULL; bcp = bcp->next) {
           if (bcp->direct) {
             a_type_ptr       base_type = skip_typerefs(bcp->type);
