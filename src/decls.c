@@ -3315,6 +3315,7 @@ be issued at the given position.
       new_dll_export = ((routine->decl_modifiers & DM_DLLEXPORT) != 0);
     }  /* if */
     if (new_dll_export && !routine->compiler_generated &&
+        !routine->is_prototype_instantiation &&
         ((routine->is_template_function && !routine->is_specialized)
 #if INSTANTIATE_EXTERN_INLINE
          || is_inline

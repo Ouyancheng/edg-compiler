@@ -1,5 +1,22 @@
 Version 3.7
 
+7/5/05   Abort when applying dllexport to template class with member template
+
+In Microsoft mode with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE, the front
+end sometimes aborted in instantiate_template_function (templates.c) when
+handling the instantiation of a template base class that was marked with the
+Microsoft "dllexport" specifier through a derived class.  For the problem to
+occur, the base class template needed to have a member function template.
+For example:
+
+  template<typename T> struct B {      
+    template<typename> void f() {}
+  };
+  struct __declspec(dllexport) D: B<int> {};
+    // An abort was triggered while attempting to instantiate B<int>::f.
+
+This is now fixed.
+
 6/30/05  Reference-to-reference constructs
 
 The C++ standards committee has resolved core issue 106 to allow reference-
