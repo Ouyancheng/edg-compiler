@@ -1606,8 +1606,12 @@ messages about any invalid attributes.
           ensure_routine_type_is_modifiable(&rp->type);
           rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
           if (!rtsp->prototyped) {
-            /* For an unprototyped function, no checks are
-               required. */
+            /* For an unprototyped function, no checks are required.  However,
+               we currently do not record the substitution argument for later
+               checking.  So we silently ignore the attribute in that case
+               (which is achieved by setting the substituted argument field
+               to zero). */
+            ap->variant.format.first_subst_arg = 0;
           } else if (!rtsp->has_ellipsis) {
             if (ap->variant.format.first_subst_arg != 0) {
               /* A function without an ellipsis cannot have the "format"

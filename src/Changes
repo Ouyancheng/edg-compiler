@@ -1,5 +1,18 @@
 Version 3.7
 
+7/6/05   Spurious printf/scanf format warning in GNU C mode
+
+In GNU C mode, applying the "format" attribute to a nonprototyped function
+declaration resulted in a spurious warning.  For example:
+
+  int myprintf() __attribute__((format(printf, 1, 2)));
+  int main() {
+    myprintf("%s\n","Hello");  // Previously triggered a spurious error in
+  }                            // GNU C mode.
+
+This has been fixed by silently ignoring the "format" attribute on
+nonprototyped function declarations.
+
 7/6/05   GNU compatibility: Attribute "weak" and internal linkage
 
 In GNU modes, the front end previously silently applied the "weak" attribute
