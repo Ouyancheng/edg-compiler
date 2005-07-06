@@ -12950,8 +12950,7 @@ continue_with_declaration:
           /* Variable declaration in C++ mode with no explicit initializer. */
           if (microsoft_mode &&
               local_storage_class == (a_storage_class)sc_unspecified &&
-              is_incomplete_type(local_type_ptr) &&
-              is_array_type(local_type_ptr) &&
+              is_incomplete_array_type(local_type_ptr) &&
               !is_const_qualified_type(local_type_ptr)) {
             /* In Microsoft C++ mode, a non-const variable at file scope
                that is a zero-length array is treated like a C-mode tentative

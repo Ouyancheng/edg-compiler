@@ -1,5 +1,20 @@
 Version 3.7
 
+7/6/05   Microsoft compatibility: missing definition for array of
+         uninstantiated element type
+
+The Microsoft compiler accepts a definition of an object with an incomplete
+array type and treats it as an extern declaration.  A problem in the
+emulation of this feature could result in a link error (in Microsoft mode) if
+a program contains a definition of an array with an element type that is a
+class template that has not previously been instantiated.  Now fixed.
+
+  template <class T> struct A { };
+  A<int> a[10];
+  int main(void) {
+    return a != 0;
+  }
+
 7/5/05   Abort when applying dllexport to template class with member template
 
 In Microsoft mode with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE, the front

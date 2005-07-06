@@ -275,6 +275,23 @@ Return TRUE if the given type is an incomplete type (3.1.2.5).
 }  /* is_incomplete_type */
 
 
+a_boolean is_incomplete_array_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an incomplete array type (i.e., one
+declared without an array bound).  This differs from is_incomplete_type,
+which returns TRUE if an array with a specified bound has an incomplete
+element type.  If the type is not an array type, FALSE is returned.
+*/
+{
+  a_boolean	result;
+  tp = skip_typerefs(tp);
+  result = is_array(tp) && !tp->variant.array.bound_is_zero &&
+           !has_unknown_specified_bound(tp) &&
+           tp->variant.array.variant.number_of_elements == 0;
+  return result;
+}  /* is_incomplete_array_type */
+
+
 a_boolean class_type_has_body(a_type_ptr tp)
 /*
 Return TRUE if the indicated type (a struct, union, or class type) has
