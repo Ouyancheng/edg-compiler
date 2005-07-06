@@ -5304,12 +5304,10 @@ declaration.
      declaration, and report inconsistencies, if appropriate. */
   set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
-#if DECL_MODIFIERS_IN_USE
   /* Copy the decl-modifiers into the variable entry. */
   update_variable_decl_modifiers(variable_ptr, decl_modifiers,
                                  &locator->source_position, redeclaration,
                                  is_variable_def);
-#endif /* DECL_MODIFIERS_IN_USE */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (!variable_ptr->source_corresp.is_deprecated) {
     /* Check if a deprecated type was involved in this declaration. */
@@ -6887,12 +6885,10 @@ skip_overloading:;
      declaration, and report inconsistencies, if appropriate. */
   set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
-#if DECL_MODIFIERS_IN_USE
   update_routine_decl_modifiers(routine_ptr, decl_modifiers,
                                 &locator->source_position, redeclaration,
                                 is_function_def,
                                 (a_boolean)func_info->is_inline);
-#endif /* DECL_MODIFIERS_IN_USE */
   if (notify_correspondence_processing) {
     /* This had to be delayed until the name linkage was set. */
     establish_block_extern_function_correspondence(routine_ptr);

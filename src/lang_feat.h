@@ -681,27 +681,45 @@ are supported (e.g., in Microsoft 16-bit mode).
 #endif /* ifndef DEFAULT_FAR_CODE_POINTERS */
 #endif /* NEAR_AND_FAR_ALLOWED */
 
+/*
+Flag that is TRUE if a "__thread" specifier (to indicate that a variable should
+be stored in thread-local storage) should be supported.
+*/
+#ifndef THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+#define THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED FALSE
+#endif /* ifndef THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+
+/*
+Flag indicating whether the "__thread" specifier is recognized by default.
+This is the default value of thread_local_storage_specifier_enabled.
+*/
+#ifndef DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED
+#define DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED FALSE
+#endif /* DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED */
+
 
 /*
 Flag that is TRUE when extensions are allowed for additional declaration
 modifiers.  It should always be TRUE when support for Microsoft and/or Sun
-extensions is included.  (The decl-modifiers mechanism is a hook by which an
-implementation can provide a certain class of custom extensions; the only
-decl-modifiers currently supported by EDG are for Microsoft and Sun
-compatibility.)
+extensions is included.  It must also be TRUE when support for the __thread
+specifier is enabled.  (The decl-modifiers mechanism is a hook by which an
+implementation can provide a certain class of custom extensions.)
 */
 #ifndef DECL_MODIFIERS_IN_USE
-#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED || \
+    THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 #define DECL_MODIFIERS_IN_USE TRUE          /* Do not change this. */
-#else /* !(MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED) */
+#else /* !(MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED || ...) */
 #define DECL_MODIFIERS_IN_USE FALSE         /* You can change this. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED || ... */
 #endif /* ifndef DECL_MODIFIERS_IN_USE */
-#if (MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED) && \
-    !DECL_MODIFIERS_IN_USE
- #error -- DECL_MODIFIERS_IN_USE must be true when \
-           MICROSOFT_EXTENSIONS_ALLOWED or SUN_EXTENSIONS_ALLOWED is true
-#endif /* (MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED) && ... */
+#if !DECL_MODIFIERS_IN_USE &&                                                \
+    (MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED ||               \
+     THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED)
+ #error -- DECL_MODIFIERS_IN_USE must be true when any of                    \
+           MICROSOFT_EXTENSIONS_ALLOWED, SUN_EXTENSIONS_ALLOWED,             \
+           or THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED is true
+#endif /* !DECL_MODIFIERS_IN_USE && (MICROSOFT_EXTENSIONS_ALLOWED || ...) */
 
 /*
 Flag that indicates the version of the Microsoft compiler that should
@@ -748,28 +766,6 @@ verification that the attributes are used in appropriate locations is done.
 #ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING
 #define SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING TRUE
 #endif /* ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING */
-
-/*
-Flag that is TRUE if a "__thread" specifier (to indicate that a variable should
-be stored in thread-local storage) should be supported.
-*/
-#ifndef THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
-#define THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED FALSE
-#endif /* ifndef THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
-
-/*
-Flag indicating whether the "__thread" specifier is recognized by default.
-This is the default value of thread_local_storage_specifier_enabled.
-*/
-#ifndef DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED
-#define DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED FALSE
-#endif /* DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED */
-
-#if !DECL_MODIFIERS_IN_USE && THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
- #error -- THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED requires \
-           DECL_MODIFIERS_IN_USE
-#endif /* !DECL_MODIFIERS_IN_USE && THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
-
 
 /*
 The global variable sun_mode is defined here (rather than in cmd_line.h) so

@@ -16103,8 +16103,8 @@ that follows.
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         }  /* if */
-#if SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-        if (sun_mode || microsoft_mode) {
+#if DECL_MODIFIERS_IN_USE
+        {
           /* update_variable_decl_modifiers expects the position recorded in
              the symbol not to be updated yet (to reference previous
              declarations in diagnostics).  Since record_symbol_declaration
@@ -16117,8 +16117,8 @@ that follows.
                                          &locator.source_position,
                                          already_specialized, is_definition);
           sym->decl_position = saved_sym_pos;
-        }  /* if */
-#endif /* SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+        }
+#endif /* DECL_MODIFIERS_IN_USE */
       } else {
         /* A specialization of a routine. */
         /* Issue an error if the exception specification on the instance does
@@ -16202,8 +16202,8 @@ that follows.
           apply_attributes_to_routine(attributes, rp);
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-        if (sun_mode || microsoft_mode) {
+#if DECL_MODIFIERS_IN_USE
+        {
           /* update_routine_decl_modifiers expects the position recorded in
              the symbol not to be updated yet (to reference previous
              declarations in diagnostics).  Since record_symbol_declaration
@@ -16217,8 +16217,8 @@ that follows.
                                         already_specialized, is_definition,
                                         (a_boolean)rp->is_inline);
           sym->decl_position = saved_sym_pos;
-        }  /* if */
-#endif /* SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+        }
+#endif /* DECL_MODIFIERS_IN_USE */
         if (is_definition) {
           /* This is a defining declaration of the function template. */
           func_info.is_definition = TRUE;
@@ -20936,7 +20936,6 @@ instantiation.
                                         &func_info.throw_position,
                                         /*is_redecl=*/TRUE);
         }  /* if */
-#if DECL_MODIFIERS_IN_USE
         /* In Microsoft mode __declspec(...) modifiers are accepted -- e.g.,
            dllimport on an "extern template" declaration. */
         update_routine_decl_modifiers(
@@ -20945,7 +20944,6 @@ instantiation.
                              (kind != (a_pragma_kind)pk_do_not_instantiate),
                              (a_boolean)new_sym->
                                           variant.routine.ptr->is_inline);
-#endif /* DECL_MODIFIERS_IN_USE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (!is_pragma) {
           make_instantiation_directive(kind, new_sym, ssep,
