@@ -1,5 +1,19 @@
 Version 3.7
 
+7/6/05   GNU C++ compatibility: Return types of virtual function overriders
+
+In GNU C++ mode, the front end now accepts a virtual function overrider whose
+return type is a pointer to a nonclass type T that is identical to the return
+type of the overridden function except for type T having fewer type
+qualifiers that its counterpart in the overridden function.  For example:
+
+  struct B {
+    virtual int const* f();
+  };
+  struct D: B {
+    virtual int* f();  // Now accepted in GNU C++ mode (and overrides B::f).
+  };
+
 7/6/05   Spurious printf/scanf format warning in GNU C mode
 
 In GNU C mode, applying the "format" attribute to a nonprototyped function

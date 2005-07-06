@@ -2513,10 +2513,15 @@ entry for the class associated with the overridden function.
       /* Both types are references or both are pointers with identical type
          qualifiers on top of the pointer type.  Now check the types pointed
          to. */
+      a_boolean  pointers_to_classes;
       tp1 = type_pointed_to(tp1);
       tp2 = type_pointed_to(tp2);
-      if (is_class_struct_union_type(tp1) && is_class_struct_union_type(tp2)) {
-        /* The types referenced/pointed to are both classes. */
+      pointers_to_classes = is_class_struct_union_type(tp1) &&
+                            is_class_struct_union_type(tp2);
+      if (pointers_to_classes || gpp_mode) {
+        /* In most modes, the types referenced/pointed to must both be
+           (related) classes.  GNU C++ also accepts other types, provided
+           they differ only in qualification. */
         a_type_qualifier_set  tp1_quals = get_type_qualifiers(tp1);
         a_type_qualifier_set  tp2_quals = get_type_qualifiers(tp2);
         if (!any_qualifier_in_set_missing(tp2_quals, tp1_quals)) {
@@ -2527,12 +2532,13 @@ entry for the class associated with the overridden function.
           tp2 = skip_typerefs(tp2);
           /* Next see if the class associated with the overridden function
              is the same as or a base class of the class associated with the
-             overriding function. */
+             overriding function.  (In GNU mode, they might also be identical
+             nonclass types.) */
           if (identical_types(tp1, tp2)) {
-            /* The class types are the same. */
+            /* The underlying types types are the same. */
             compatible = TRUE;
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-          } else {
+          } else if (pointers_to_classes) {
             a_base_class_ptr bcp;
             complete_type_is_needed(tp1);
             /* We don't need to test the completeness of the classes.  This
