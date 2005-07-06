@@ -1264,6 +1264,50 @@ when allow_local_static is TRUE.
 }  /* check_variable_not_local */
 
 
+static a_boolean check_variable_has_external_linkage(
+                                                  a_variable_ptr    variable,
+                                                  an_attribute_ptr  attribute)
+/*
+The given attribute only applies to variables with external linkage.  If the
+given variable does not have external linkage issue an error and return FALSE.
+Otherwise, return TRUE.
+*/
+{
+  a_boolean has_external_linkage = TRUE;
+
+  if (variable->storage_class != (a_storage_class)sc_extern &&
+      variable->storage_class != (a_storage_class)sc_unspecified) {
+    pos_st_error(ec_attribute_requires_external_linkage,
+                 &attribute->position, 
+                 attribute_kind_names[(int)attribute->kind]);
+    has_external_linkage = FALSE;
+  }  /* if */
+  return has_external_linkage;
+}  /* check_variable_has_external_linkage */
+
+
+static a_boolean check_routine_has_external_linkage(
+                                                  a_routine_ptr     routine,
+                                                  an_attribute_ptr  attribute)
+/*
+The given attribute only applies to routines with external linkage.  If the
+given routine does not have external linkage issue an error and return FALSE.
+Otherwise, return TRUE.
+*/
+{
+  a_boolean has_external_linkage = TRUE;
+
+  if (routine->storage_class != (a_storage_class)sc_extern &&
+      routine->storage_class != (a_storage_class)sc_unspecified) {
+    pos_st_error(ec_attribute_requires_external_linkage,
+                 &attribute->position, 
+                 attribute_kind_names[(int)attribute->kind]);
+    has_external_linkage = FALSE;
+  }  /* if */
+  return has_external_linkage;
+}  /* check_routine_has_external_linkage */
+
+
 a_boolean check_transparent_union(a_type_ptr        tp,
                                   a_source_position *pos)
 /*
@@ -1339,7 +1383,7 @@ attributes were specified on a definition.
            apply_attributes_to_variable_type. */
         break;
       case ak_weak:
-        if (check_variable_not_local(vp, ap, /*allow_local_static=*/FALSE)) {
+        if (check_variable_has_external_linkage(vp, ap)) {
           vp->is_weak = TRUE;
         }  /* if */
         break;
@@ -1524,7 +1568,9 @@ messages about any invalid attributes.
         }
         break;
       case ak_weak:
-        rp->is_weak = TRUE;
+        if (check_routine_has_external_linkage(rp, ap)) {
+          rp->is_weak = TRUE;
+        }  /* if */
         break;
       case ak_section:
         rp->section = ap->variant.section;

@@ -1,5 +1,13 @@
 Version 3.7
 
+7/6/05   GNU compatibility: Attribute "weak" and internal linkage
+
+In GNU modes, the front end previously silently applied the "weak" attribute
+to variables and routines with internal linkage.  Now an error is issued in
+such cases.  For example:
+
+  static __attribute__((weak)) int g;  // Previously accepted.  Now an error.
+
 7/6/05   DECL_MODIFIERS_IN_USE
 
 The configuration macro DECL_MODIFIERS_IN_USE (see Changes entry of 12/16/98)

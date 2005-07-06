@@ -1454,6 +1454,7 @@ ec_vla_in_return_type;;"a variable-length array is not allowed in a function ret
 ec_ptr_to_member_of_vla_type;;"variable-length array type is not allowed in pointer to member of type %t"
 ec_statement_expr_with_vla_type;;"the result of a statement expression cannot have a type involving a variable-length array"
 ec_trigraph_ignored;;"support for trigraphs is disabled"
+ec_attribute_requires_external_linkage;;"the %sq attribute can only appear on functions and variables with external linkage"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
