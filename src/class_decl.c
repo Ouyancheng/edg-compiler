@@ -9783,6 +9783,9 @@ non-NULL, *p_ms_attributes is returned NULL.
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr               *last_attribute;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position              bit_field_size_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(3, "decl_nonstatic_data_member");
   if (decl_info->is_member_template) {
@@ -9809,6 +9812,9 @@ non-NULL, *p_ms_attributes is returned NULL.
   /* A colon next indicates a bit-field. */
   if (curr_token == tok_colon) {
     field->is_bit_field = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    bit_field_size_pos = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Scan the bit-field size and determine the bit-field type. */
     scan_bit_field_size(field, &unnamed_field, &member_type, locator);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -9837,6 +9843,11 @@ non-NULL, *p_ms_attributes is returned NULL.
     /* Update the source correspondence information manually -- there's no
        symbol. */
     field->source_corresp.decl_position = locator->source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    field->source_corresp.decl_pos_info = alloc_decl_position_supplement(
+                                                      /*at_file_scope=*/TRUE);
+    decl_info->decl_pos_block.declarator_range.start = bit_field_size_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Ordinarily we create source sequence entries only for named
        entities (see sym_update_source_sequence_list, called for fields
