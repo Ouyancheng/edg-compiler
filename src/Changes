@@ -1,5 +1,15 @@
 Version 3.7
 
+7/7/05   Microsoft compatibility: -D and -U command-line options
+
+Traditionally, the command-line option -U takes precedence over the -D option.
+For example, "-DF=1 -UF -DF=2" is normally equivalent to "-UF".  Version 3.5
+of the front end changed this behavior in all GNU modes: In those modes, the
+options are handled in the order given (see Changes entry of 4/18/05).  It
+appears that recent Microsoft compilers also handle the options in the order
+given: We therefore emulate that behavior in Microsoft mode when
+microsoft_version >= 1300.
+
 7/7/05   Extended position information for unnamed bit fields
 
 When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the front end now records extended

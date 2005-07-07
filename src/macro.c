@@ -6982,6 +6982,8 @@ Enter symbols for predefined macros, including those established by
 command line -D options.
 */
 {
+  a_boolean  process_defs_undefs_in_order = FALSE;
+
   if (targ_has_signed_chars) {
     /* Target has signed characters. */
     /* Enter macro __SIGNED_CHARS__, which is used to modify the definition
@@ -7312,10 +7314,14 @@ command line -D options.
   /* Look for a file containing predefined macro definitions. */
   if (use_predefined_macro_file) process_predefined_macro_file();
   /* The cpp preprocessor first processes all the -D options, and later all
-     the -U options: That is our default behavior as well.  However, the GNU
-     preprocessor processes the options in the order they appear: We emulate
-     that behavior in GNU modes. */
-  if (gnu_mode) {
+     the -U options: That is our default behavior as well.  However, some
+     versions of the GNU and Microsoft compilers process the options in the
+     order they appear. */
+  if ((gnu_mode && gnu_version >= 30000) ||
+      (microsoft_mode && microsoft_version >= 1300)) {
+    process_defs_undefs_in_order = TRUE;
+  }  /* if */
+  if (process_defs_undefs_in_order) {
     process_command_line_macro_definitions(/*process_defs=*/TRUE,
                                            /*process_undefs=*/TRUE);
   } else {
