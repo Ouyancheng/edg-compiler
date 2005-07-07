@@ -1,5 +1,20 @@
 Version 3.7
 
+7/7/05   Microsoft compatibility: properties using virtual functions
+
+Certain uses of properties in which the get and/or put functions are virtual
+resulted in a segmentation violation in the front end.  Now fixed.
+
+  struct B {
+    virtual int get_c();
+    virtual void put_c(int);
+    __declspec(property(get=get_c, put=put_c)) int c;
+  }
+
+  void f(B* p) {
+    p->c += 5;
+  }
+
 7/7/05   Pragma text for preprocessing immediate pragmas
 
 Version 3.6 introduced a change in the handling of preprocessing immediate

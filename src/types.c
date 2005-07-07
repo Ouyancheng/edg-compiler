@@ -2634,7 +2634,22 @@ base class casts and virtual function calls.
       complete_object_type = node->type;
       break;
     case enk_reuse_value:
-      complete_object_type = node->type;
+      /* The details of the reused value determine whether we know the
+         complete object type. */
+      { a_dynamic_init_ptr init = node->variant.reused_value_init;
+        if (init->kind == dik_constant ||
+            init->kind == dik_nonconstant_aggregate) {
+          complete_object_type =
+                              con_complete_object_type(init->variant.constant);
+        } else if (init->kind == dik_expression ||
+                   init->kind == dik_call_returning_class_via_cctor) {
+          complete_object_type =
+                node_complete_object_type(init->variant.expression, call_case);
+        } else {
+          /* We don't know what the pointer being initialized might point
+             to. */
+        }  /* if */
+      }
       break;
     case enk_throw:
     case enk_field:
