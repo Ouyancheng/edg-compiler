@@ -263,7 +263,9 @@ typedef struct a_pending_pragma {
 			   the file scope IL memory region, so this pointer
 			   may be copied directly to the IL entry created
 			   for this pragma (if any).  The string does not
-			   need to be moved. */
+			   need to be moved.  For pbk_preproc_immediate
+			   pragmas, the pragma_text is only present if the
+			   automatically_include_in_il flag is TRUE. */
   a_pragma_ptr	il_pragma_entry;
 			/* A pointer to the IL pragma entry associated with
 			   this pending pragma, if any. */

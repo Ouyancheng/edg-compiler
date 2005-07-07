@@ -1,5 +1,19 @@
 Version 3.7
 
+7/7/05   Pragma text for preprocessing immediate pragmas
+
+Version 3.6 introduced a change in the handling of preprocessing immediate
+pragmas.  The change allows such pragmas to be passed in the IL, including
+a string representation of the pragma.  This change could cause problems
+if the pragma included a processing function to be called when the
+pragma was encountered.  Before the change, the processing function could
+scan the tokens of the pragma.  After the change, the tokens had already
+been scanned when the processing function was called.  An additional
+change has been made so that that the pragma text string is only created
+if the pragma has its automatically_include_in_il flag set (this flag was
+always FALSE before the earlier change was made).  If this flag is not set,
+the tokens are not scanned and are available to the processing function.
+
 7/6/05   GNU C++ compatibility: Return types of virtual function overriders
 
 In GNU C++ mode, the front end now accepts a virtual function overrider whose

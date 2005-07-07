@@ -1499,14 +1499,23 @@ being scanned is a Microsoft __pragma operator.
   if (pkdp->fetch_pp_tokens) {
     /* When fetching pp-tokens, convert the tokens to a string in
        such a way that no additional white space is added. */
-    convert_pp_directive_to_string(is_microsoft_pragma_operator);
-    ppp->pragma_text = copy_string_to_region(file_scope_region_number,
-                                             pp_dir_string_buffer);
+    if (pkdp->binding_kind == pbk_preproc_immediate &&
+        !pkdp->automatically_include_in_il) {
+      /* A pragma string is not created for preprocessing immediate pragmas
+         that are not automatically included in the IL.  This is done for
+         backward compatibility purposes so that the pragma processing
+         routines for such pragmas can scan the tokens themselves rather
+         than having only the string representation. */
+    } else {
+      convert_pp_directive_to_string(is_microsoft_pragma_operator);
+      ppp->pragma_text = copy_string_to_region(file_scope_region_number,
+                                               pp_dir_string_buffer);
 #if DEBUG
-    if (db_flag_is_set("pragma_string")) {
-      fprintf(f_debug, "pp-token pragma string: '%s'\n", ppp->pragma_text);
-    }  /* if */
+      if (db_flag_is_set("pragma_string")) {
+        fprintf(f_debug, "pp-token pragma string: '%s'\n", ppp->pragma_text);
+      }  /* if */
 #endif /* DEBUG */
+    }  /* if */
   } else {
     /* Cache the tokens that make up the pragma directive. */
     cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
