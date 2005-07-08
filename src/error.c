@@ -3076,7 +3076,7 @@ current source position and severity or restore the previously saved settings.
 {
   static a_source_position  saved_error_position;
   static an_error_severity  saved_error_threshold;
-  an_error_severity	    error_threshold_to_use;
+  an_error_severity	    error_threshold_to_use = es_none;
 
 #if CHECKING
   /* The saved severity level should be es_default if and only if this is a
@@ -3135,6 +3135,7 @@ current source position and severity or restore the previously saved settings.
     }  /* if */
 #endif /* CHECKING */
   }  /* if */
+  check_assertion((int)error_threshold_to_use != (int)es_none);
   /* Return FALSE if the current severity is below the threshold. */
   return ((int)*severity >= (int)error_threshold_to_use);
 }  /* check_severity */
