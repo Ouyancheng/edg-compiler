@@ -1574,6 +1574,8 @@ Record this information in the input stack entry.
     set_ifg_state(IFG_STATE_ONCE);
     curr_ise->include_history->pragma_once = TRUE;
   }  /* if */
+  /* Bypass the "once" token. */
+  (void)get_token();
 }  /* once_pragma */
 
 
@@ -1586,6 +1588,9 @@ preprocessing directives.  When they are encountered during a
 real compilation, they should just be ignored.
 */
 {
+  while (curr_token != tok_newline && curr_token != tok_end_of_source) {
+    (void)get_token();
+  }  /* while */
 }  /* hdrstop_or_no_pch_pragma */
 
 
