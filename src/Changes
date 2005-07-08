@@ -1,5 +1,15 @@
 Version 3.7
 
+7/8/05   Diagnostic on member function redeclaration
+
+The diagnostic for invalid member function redeclarations has been reworded to
+include position information for the original declaration.  For example:
+
+  struct S {
+    void f(int);
+    void f(int);  // Invalid.  Diagnostic now includes position information
+  };              // for the first declaration.
+
 7/7/05   Microsoft compatibility: -D and -U command-line options
 
 Traditionally, the command-line option -U takes precedence over the -D option.
