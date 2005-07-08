@@ -773,7 +773,7 @@ template class, its DLL interface may need to be adjusted implicitly.
         a_routine_ptr     rp = ctsp->assoc_scope->routines;
         a_variable_ptr    vp = ctsp->assoc_scope->variables;
         a_base_class_ptr  bcp = ctsp->base_classes;
-        a_boolean         specialized_destructor = FALSE;
+        a_boolean         specialized_dtor_or_ctor = FALSE;
         /* First update the DLL interface of the class itself. */
         ctsp->decl_modifiers |= new_dll_flags;
         for (; rp != NULL; rp = rp->next) {
@@ -796,8 +796,10 @@ template class, its DLL interface may need to be adjusted implicitly.
                         /*is_redecl=*/FALSE, /*is_definition=*/FALSE, err_pos);
             }  /* if */
           } else if (rp->special_kind ==
+                                     (a_special_function_kind)sfk_destructor ||
+                     rp->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
-            specialized_destructor = TRUE;
+            specialized_dtor_or_ctor = TRUE;
           }  /* if */
         }  /* for */
         if (new_dll_flags & DM_DLLIMPORT) {
@@ -827,12 +829,12 @@ template class, its DLL interface may need to be adjusted implicitly.
           }  /* for */
         }  /* if */
 #if DO_IL_LOWERING
-        if ((new_dll_flags & DM_DLLIMPORT) && !specialized_destructor) {
+        if ((new_dll_flags & DM_DLLIMPORT) && !specialized_dtor_or_ctor) {
           /* Microsoft compilers do not propagate the dllimport flag to
              compiler-generated data (like virtual function tables)
              associated with class template instances, except (apparently)
              when such an instance contains an explicitly specialized
-             destructor. */
+             destructor or constructor. */
         } else {
           if (class_type->typeinfo_var != NULL) {
             update_dll_info_for_variable(class_type->typeinfo_var,

@@ -282,7 +282,7 @@ static data members of the instantiated class, nor (in most cases) to
 compiler-generated data structures (e.g., virtual function tables) associated
 with that class.  (Virtual function tables do acquire the dllimport attribute
 when the instantiated class contains an explicit specialization of a
-destructor.)  For example:
+constructor or destructor.)  For example:
 
   template<typename T> struct S {
     static void f();
