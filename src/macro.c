@@ -3632,7 +3632,7 @@ end_scan_for_macro_modifs:;
                                      NO_PARENT_MACRO_INVOCATION);
       } else {
         /* The macro name was in the current source line.  Add a map entry
-           mapping the the expansion back to the original position. */
+           mapping the expansion back to the original position. */
         add_entry_to_macro_text_map(&special_macro_arg->raw_text_map,
                                     /*start_of_region=*/0, src_pos.seq,
                                     src_pos.column,
