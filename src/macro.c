@@ -534,6 +534,7 @@ source entry will be preserved.
 {
   a_macro_text_map_entry_ptr      mtmep;
   a_macro_invocation_record_index ctx = macro_context;
+  a_column_number                 adjusted_column;
 
   /* Call bsearch to find the macro text map entry that covers the specified
      source buffer starting offset. */
@@ -551,16 +552,22 @@ source entry will be preserved.
     ctx = mtmep->macro_context;
   }  /* if */
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
-  /* The first map entry requires special treatment because we may only be
-     cloning a part of its region, i.e., the source buffer starting offset
-     might not correspond to the starting location of the map entry,
-     requiring the column of the corresponding source position to be adjusted
-     accordingly. */
+  if (mtmep->corresponding_source_pos.seq == 0) {
+    /* Don't change the column number -- it's a special flag, not an actual
+       column number. */
+    adjusted_column = mtmep->corresponding_source_pos.column;
+  } else {
+    /* The first map entry requires special treatment because we may only be
+       cloning a part of its region, i.e., the source buffer starting offset
+       might not correspond to the starting location of the map entry,
+       requiring the column of the corresponding source position to be adjusted
+       accordingly. */
+    adjusted_column = mtmep->corresponding_source_pos.column +
+                                (starting_src_offset - mtmep->start_of_region);
+  }  /* if */
   add_entry_to_macro_text_map(targ_map, starting_targ_offset,
                               mtmep->corresponding_source_pos.seq,
-                              mtmep->corresponding_source_pos.column +
-                                (starting_src_offset - mtmep->start_of_region),
-                              ctx);
+                              adjusted_column, ctx);
   /* Now just loop through the source map entries.  The start_of_region for
      each target map entry will be at the same relative offset to the starting
      target offset as the source entry's start of region is to the starting
@@ -913,7 +920,8 @@ invocation.  The return value is the index of the newly-added record, and
 {
   a_macro_invocation_record_ptr mirp = next_macro_invocation_record();
 
-  if (stack_depth < depth_of_curr_macro_invocation_record - 1) {
+  if (depth_of_curr_macro_invocation_record > 0 &&
+      stack_depth < depth_of_curr_macro_invocation_record - 1) {
     /* In order to make a tree-like traversal of the invocation records easier,
        whenever a transition reflects popping more than one stack level, we
        must add a placeholder record reflecting the number of levels popped in
@@ -5621,7 +5629,7 @@ redef_error:
         add_entry_to_macro_text_map(&mdp->text_map, /*start_of_region=*/0,
                                     (a_seq_number)0, SP_COL_CMD_LINE,
                                     NO_PARENT_MACRO_INVOCATION);
-        add_entry_to_macro_text_map(&mdp->text_map, repl_text_len,
+        add_entry_to_macro_text_map(&mdp->text_map, repl_text_len + 1,
                                     (a_seq_number)0, SP_COL_CMD_LINE,
                                     NO_PARENT_MACRO_INVOCATION);
       }  /* if */
