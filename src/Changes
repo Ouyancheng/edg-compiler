@@ -1,5 +1,13 @@
 Version 3.7
 
+7/11/05  Strict ANSI C++ mode and --ignore_std
+
+The front end now diagnoses as a command-line error the combination of strict
+ANSI C++ mode and the --ignore_std option to request that namespace std be
+treated as an alias for the global namespace (the latter option is meant to
+be used to emulate older GNU C++ compilers).  Previously, this combination
+was inadvertently accepted, but could lead to somewhat surprising errors.
+
 7/11/05  Microsoft compatibility: Implicit int return type and type names
 
 Prior to version 3.5, the front end accepted code such as the following

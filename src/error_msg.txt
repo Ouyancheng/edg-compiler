@@ -1455,6 +1455,7 @@ ec_ptr_to_member_of_vla_type;;"variable-length array type is not allowed in poin
 ec_statement_expr_with_vla_type;;"the result of a statement expression cannot have a type involving a variable-length array"
 ec_trigraph_ignored;;"support for trigraphs is disabled"
 ec_attribute_requires_external_linkage;;"the %sq attribute can only appear on functions and variables with external linkage"
+ec_cl_strict_ansi_incompatible_with_ignore_std;;"strict ANSI mode is incompatible with treating namespace std as an alias for the global namespace"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

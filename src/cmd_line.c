@@ -2577,6 +2577,18 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     if (!option_kind_used[(int)optk_exception_handling]) {
       exceptions_enabled = TRUE;
     }  /* if */
+    if (ignore_std_namespace) {
+      /*  An option to treat namespace std as an alias for the global
+          namespace is contradictory to strict ANSI adherence.  Issue an
+          error if this was explicitly requested on the command line, or
+          silently ignore the option otherwise. */
+      if (option_kind_used[(int)optk_ignore_namespace_std]) {
+        command_line_error(ec_cl_strict_ansi_incompatible_with_ignore_std);
+      
+      } else {
+        ignore_std_namespace = FALSE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* Make sure that strict ANSI messages come out even if the
      error threshold was set at a higher level. */
