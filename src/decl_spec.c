@@ -5267,6 +5267,8 @@ modes accept:
 and take Y::X to be an ordinary member function returning int.
 Note that Microsoft will not accept such function declarations if they take
 any parameters.  Cfront will, but that behavior is not imitated here.
+Recent Microsoft compilers (microsoft_version >= 1310) still accept the code
+above, but reject the code if X is neither a class type nor an enum type.
 */
 {
   a_boolean    result;
@@ -5278,6 +5280,11 @@ any parameters.  Cfront will, but that behavior is not imitated here.
   if (sym != NULL && is_type_symbol(sym)) {
     (void)next_two_tokens(tok_lparen, &token_after_next);
     result = (token_after_next == tok_rparen);
+    if (result && microsoft_bugs && microsoft_version >= 1310) {
+      a_type_ptr  type = type_symbol_type(sym);
+      result = (is_class_struct_union_type(type) ||
+                is_enum_type(type));
+    }  /* if */
   } else {
     result = FALSE;
   }  /* if */
@@ -5849,8 +5856,7 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
              the constructor name (= class name) upon return to the
              caller. */
           result = TRUE;
-        } else if (((microsoft_bugs && microsoft_version < 1310) ||
-                    any_cfront_mode()) &&
+        } else if ((microsoft_bugs || any_cfront_mode()) &&
                    !is_error_locator(locator_for_curr_id) &&
                    implicit_int_member_with_name_of_type()) {
           /* Microsoft and Cfront will accept:
