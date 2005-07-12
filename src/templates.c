@@ -3579,9 +3579,20 @@ user later during real instantiations.
     /* By pass end-of-source token, which is probably the terminator token
        in the cache. */
     (void)get_token();
+  } else if (var_ptr->init_kind != (an_init_kind)initk_none) {
+    /* The static data is already initialized (presumably by an in-class
+       initializer). */
   } else {
-    /* There's no explicit initializer. */
-    (void)def_initializer(template_sym, &template_sym->decl_position);
+    a_boolean	def_init_okay;
+    /* There's no explicit initializer.  See if the static data member
+       can be default-initialized. */
+    def_init_okay = def_initializer(template_sym,
+                                    &template_sym->decl_position);
+    if (!def_init_okay) {
+      /* It could not be default initialized.  See if an initializer is
+         required. */
+      check_for_missing_initializer(template_sym, var_ptr->type);
+    }  /* if */
   }  /* if */
   if (instantiation_scope_needed) {
     pop_template_instantiation_scope();
@@ -4198,10 +4209,20 @@ and the class instantiation will detect the runaway case.
     /* By pass end-of-source token, which is probably the terminator token
        in the cache. */
     (void)get_token();
+  } else if (var_ptr->init_kind != (an_init_kind)initk_none) {
+    /* The static data is already initialized (presumably by an in-class
+       initializer). */
   } else {
-    /* There's no explicit initializer. */
-    (void)def_initializer(static_data_member_sym,
-                          &tip->template_sym->decl_position);
+    a_boolean	def_init_okay;
+    /* There's no explicit initializer.  See if the static data member
+       can be default-initialized. */
+    def_init_okay = def_initializer(static_data_member_sym,
+                                    &tip->template_sym->decl_position);
+    if (!def_init_okay) {
+      /* It could not be default initialized.  See if an initializer is
+         required. */
+      check_for_missing_initializer(static_data_member_sym, var_ptr->type);
+    }  /* if */
   }  /* if */
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(static_data_member_sym,

@@ -1,5 +1,16 @@
 Version 3.7
 
+7/11/05  Missing diagnostic on template static data member with no initializer
+
+No diagnostic was issued if a const template static data member was defined
+without an explicit initializer.  Now fixed.
+
+  template <class T> struct A {
+    static const int i;
+  };
+  template <class T> const int A<T>::i;
+  template struct A<int>;
+
 7/11/05  Strict ANSI C++ mode and --ignore_std
 
 The front end now diagnoses as a command-line error the combination of strict
