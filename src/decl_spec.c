@@ -776,6 +776,12 @@ template class, its DLL interface may need to be adjusted implicitly.
         a_boolean         specialized_dtor_or_ctor = FALSE;
         /* First update the DLL interface of the class itself. */
         ctsp->decl_modifiers |= new_dll_flags;
+        if (new_dll_flags & DM_DLLIMPORT) {
+          /* Members of a dllimport class are not instantiated. */
+          update_instantiation_flags_for_class(
+             symbol_for(class_type), (a_pragma_kind)pk_do_not_instantiate,
+             err_pos, /*is_pragma=*/FALSE, /*top_level=*/TRUE);
+        }  /* if */
         for (; rp != NULL; rp = rp->next) {
           if (!rp->is_specialized) {
             if ((rp->decl_modifiers & DM_DLLFLAGS) != 0) {

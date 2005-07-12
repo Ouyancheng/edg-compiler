@@ -1,5 +1,20 @@
 Version 3.7
 
+7/12/05  Microsoft compatibility: Effect of dllimport on template base class
+
+In Microsoft mode, when a derived class marked with the dllimport specifier
+has a base class instantiated from a template, that base class also acquires
+the dllimport attribute (see Changes entry of 3/1/05).  Now, the front end
+also disables the instantiation of the members of such a base class (see
+also the Changes entry of 2/13/04).  For example:
+
+  template<typename T> struct B { void f(); };
+  template<typename T> void B<T>::f() {}
+  struct __declspec(dllimport) D: B<int> {};  // B<int> is now dllimport.
+  void g(D d) {
+    d.f();  // Does not cause the instantiation of B<int>::f().
+  }
+
 7/12/05  Strict mode description in diagnostics
 
 Diagnostics that previously included the phrase "strict ANSI mode" have been
