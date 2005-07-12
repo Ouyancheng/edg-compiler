@@ -2469,9 +2469,11 @@ entry appears on a linked list pointed to from base_class.
 /*ARGSUSED*/ /* class_type is used only to support covariant return types. */
 #endif /* !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 static a_boolean return_types_are_override_compatible(
-                                 a_type_ptr       type_of_overriding_routine,
-                                 a_type_ptr       type_of_overridden_routine,
-                                 a_base_class_ptr *return_adjustment_bcp)
+                                 a_type_ptr        type_of_overriding_routine,
+                                 a_type_ptr        type_of_overridden_routine,
+                                 a_base_class_ptr  *return_adjustment_bcp,
+                                 a_symbol_ptr      diag_sym,
+                                 a_source_position *diag_pos)
 /*
 Given the routine types of overriding and overridden virtual functions,
 return TRUE if the return types are identical or "covariant" (WP 10.3).
@@ -2479,7 +2481,9 @@ Covariance means both return types are references or pointers to class types
 that are related by derivation, where the class associated with the overridden
 function is a base class of the class associated with the overriding function.
 When covariance is detected, return in *return_adjustment_bcp the base class
-entry for the class associated with the overridden function.
+entry for the class associated with the overridden function.  Compatibility
+problems are diagnosed at the given position for the given symbol describing
+the overridden symbol.
 */
 {
   a_type_ptr             tp1, tp2;
@@ -2537,6 +2541,13 @@ entry for the class associated with the overridden function.
           if (identical_types(tp1, tp2)) {
             /* The underlying types types are the same. */
             compatible = TRUE;
+            if (!pointers_to_classes) {
+              pos_syty_warning(
+                        ec_different_return_type_on_virtual_function_override,
+                        diag_pos, diag_sym,
+                        skip_typerefs(type_of_overridden_routine)
+                                               ->variant.routine.return_type);
+            }  /* if */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
           } else if (pointers_to_classes) {
             a_base_class_ptr bcp;
@@ -2557,6 +2568,19 @@ entry for the class associated with the overridden function.
         }  /* if */
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (!compatible) {
+    /* Error -- return type must be identical to or covariant with that of the
+       overridden function. */
+    an_error_code  error_code =
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+                        ec_bad_return_type_on_virtual_function_override;
+#else /* !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+                        ec_different_return_type_on_virtual_function_override;
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+    pos_syty_error(error_code, diag_pos, diag_sym,
+                   skip_typerefs(type_of_overridden_routine)
+                                               ->variant.routine.return_type);
   }  /* if */
   db_exit();
   return compatible;      
@@ -3118,18 +3142,8 @@ routine entry and return TRUE; otherwise return FALSE.
             }  /* if */
             /* The parameter types correspond; now compare the return types. */
             if (!return_types_are_override_compatible(rout->type, rp->type,
-                                                     &return_adjustment_bcp)) {
-              /* Error -- return type must be identical to or covariant
-                 with that of the overridden function. */
-              an_error_code  error_code =
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-                        ec_bad_return_type_on_virtual_function_override;
-#else /* !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-                        ec_different_return_type_on_virtual_function_override;
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-              pos_syty_error(error_code, source_pos, sym,
-                             skip_typerefs(rp->type)->
-                                             variant.routine.return_type);
+                                                      &return_adjustment_bcp,
+                                                      sym, source_pos)) {
               /* Since, except for the return types, there is a match, there
                  is no need to look any further in the current base class.
                  Advance to the next base class. */
