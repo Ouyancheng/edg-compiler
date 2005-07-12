@@ -796,9 +796,9 @@ template class, its DLL interface may need to be adjusted implicitly.
                         /*is_redecl=*/FALSE, /*is_definition=*/FALSE, err_pos);
             }  /* if */
           } else if (rp->special_kind ==
-                                     (a_special_function_kind)sfk_destructor ||
+                                    (a_special_function_kind)sfk_destructor ||
                      rp->special_kind ==
-                                     (a_special_function_kind)sfk_destructor) {
+                                    (a_special_function_kind)sfk_constructor) {
             specialized_dtor_or_ctor = TRUE;
           }  /* if */
         }  /* for */
