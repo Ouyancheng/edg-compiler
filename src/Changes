@@ -58,7 +58,8 @@ position information for unnamed bit fields.  For example:
 7/7/05   Microsoft compatibility: properties using virtual functions
 
 Certain uses of properties in which the get and/or put functions are virtual
-resulted in a segmentation violation in the front end.  Now fixed.
+resulted in a segmentation violation in the front end.  This problem was
+introduced in version 3.6 (see Changes entries of 2/13/05) and is now fixed.
 
   struct B {
     virtual int get_c();
