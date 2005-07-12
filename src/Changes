@@ -10,18 +10,19 @@ was inadvertently accepted, but could lead to somewhat surprising errors.
 
 7/11/05  Microsoft compatibility: Implicit int return type and type names
 
-Prior to version 3.5, the front end accepted code such as the following
+Prior to version 3.5, the front end accepted code such as the following (with
+T a type name) in Microsoft bugs mode:
 
-  struct S { T(); };
+  struct S { T(); };  // Sometimes treated as a member with name "T" and
+                      // implicit int return type.
 
-where T is a type name in Microsoft bugs mode.  Version 3.5 disabled the
-emulation of this behavior when microsoft_version >= 1310 because it seemed
-that MSVC++ 7.1 had fixed the associated bug.  However, upon closer
-examination of the MSVC++ 7.1 behavior, it appears it still accepts the
-code above when T is a class or enum type, but not when T is another type
-(e.g., "int" or a pointer or array type).  When microsoft_version >= 1310
-and when T is a class or enum type, the front end now accepts the construct
-above again.  (See also Changes entries of 7/28/04 and 7/12/99.)
+Version 3.5 disabled this behavior when microsoft_version >= 1310 because it
+seemed that MSVC++ 7.1 had fixed the associated bug.  However, upon closer
+examination of the MSVC++ 7.1 behavior, it appears it still accepts the code
+above when T is a class or enum type, but not when T is another type (e.g.,
+"int" or a pointer or array type).  When microsoft_version >= 1310 and when T
+is a class or enum type, the front end now accepts the construct above again.
+(See also Changes entries of 7/28/04 and 7/12/99.)
 
 7/8/05   Diagnostic on member function redeclaration
 
