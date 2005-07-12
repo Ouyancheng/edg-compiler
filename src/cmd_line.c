@@ -2330,7 +2330,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
   if (allow_anachronisms) {
     if (option_kind_used[(int)optk_cplusplus_anachronisms]) {
       /* Anachronisms were enabled by a command line option. */
-      command_line_error(ec_cl_strict_ansi_incompatible_with_anachronisms);
+      command_line_error(ec_cl_strict_mode_incompatible_with_anachronisms);
     } else {
       /* Anachronisms enabled by default.  Silently disable them in
          strict mode. */
@@ -2341,7 +2341,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     if (option_kind_used[(int)optk_nonconst_ref_anachronism]) {
       /* The nonconst ref anachronism was enabled by a command line
          option. */
-      command_line_error(ec_cl_strict_ansi_incompatible_with_anachronisms);
+      command_line_error(ec_cl_strict_mode_incompatible_with_anachronisms);
     } else {
       /* The nonconst ref anachronism was enabled by default.
          Silently disable it in strict mode. */
@@ -2351,7 +2351,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
   if (long_preserving_rules) {
     if (option_kind_used[(int)optk_long_preserving_rules]) {
       command_line_error(
-                        ec_cl_strict_ansi_incompatible_with_long_preserving);
+                        ec_cl_strict_mode_incompatible_with_long_preserving);
     } else {
       /* Long preserving rules enabled by default.  Silently disable them. */
 	long_preserving_rules = FALSE;
@@ -2583,7 +2583,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
           error if this was explicitly requested on the command line, or
           silently ignore the option otherwise. */
       if (option_kind_used[(int)optk_ignore_namespace_std]) {
-        command_line_error(ec_cl_strict_ansi_incompatible_with_ignore_std);
+        command_line_error(ec_cl_strict_mode_incompatible_with_ignore_std);
       
       } else {
         ignore_std_namespace = FALSE;
@@ -2986,13 +2986,13 @@ order of development of this front end, and is inconsistent and strange.
   if (strict_ansi_mode) {
     /* Strict ANSI mode is incompatible with K&R/pcc mode. */
     if (C_dialect == C_dialect_pcc) {
-      command_line_error(ec_cl_strict_ansi_incompatible_with_pcc);
+      command_line_error(ec_cl_strict_mode_incompatible_with_pcc);
     }  /* if */
     /* Strict ANSI mode is incompatible with cfront compatibility mode. */
-    exclude_cfront_mode(ec_cl_strict_ansi_incompatible_with_cfront);
-    exclude_microsoft_mode(ec_cl_strict_ansi_incompatible_with_microsoft);
-    exclude_sun_mode(ec_cl_strict_ansi_incompatible_with_sun);
-    exclude_SVR4_C_mode(ec_cl_strict_ansi_incompatible_with_SVR4);
+    exclude_cfront_mode(ec_cl_strict_mode_incompatible_with_cfront);
+    exclude_microsoft_mode(ec_cl_strict_mode_incompatible_with_microsoft);
+    exclude_sun_mode(ec_cl_strict_mode_incompatible_with_sun);
+    exclude_SVR4_C_mode(ec_cl_strict_mode_incompatible_with_SVR4);
     exclude_gcc_mode(ec_cl_incompatible_language_modes);
     exclude_gpp_mode(ec_cl_incompatible_language_modes);
   }  /* if */

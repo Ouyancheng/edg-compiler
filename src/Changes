@@ -1,5 +1,11 @@
 Version 3.7
 
+7/12/05  Strict mode description in diagnostics
+
+Diagnostics that previously included the phrase "strict ANSI mode" have been
+reworded to use just "strict mode" to reflect the broader scope of standards
+that are involved.
+
 7/11/05  Missing diagnostic on template static data member with no initializer
 
 No diagnostic was issued if a const template static data member was defined
