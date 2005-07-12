@@ -517,12 +517,19 @@ function that does not return.
 Most versions of gcc accept the "noreturn" attribute.  Some older versions
 of gcc, recognized a return type of "volatile void" as meaning that a function
 does not return.
+
+Microsoft compilers accept the "__declspec(noreturn)" specifier for this
+purpose.
 */
 #ifdef __GNUC__
 #if __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 70)
 #define DOES_NOT_RETURN void __attribute__ ((noreturn))
 #endif /* __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 70) */
 #endif /* ifndef __GNUC__ */
+
+#if defined(_MSC_VER) && !defined(DOES_NOT_RETURN)
+#define DOES_NOT_RETURN void __declspec(noreturn)
+#endif /* _MSC_VER */
 
 /* If not set above, use "void" for DOES_NOT_RETURN. */
 #ifndef DOES_NOT_RETURN

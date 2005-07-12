@@ -1,5 +1,11 @@
 Version 3.7
 
+7/12/05  Configuration of DOES_NOT_RETURN for Microsoft compilers
+
+The macro DOES_NOT_RETURN (used in the front end's source to indicate functions
+that never return) is now automatically configured when the source is compiled
+with a Microsoft C/C++ compiler.
+
 7/12/05  Microsoft compatibility: Effect of dllimport on template base class
 
 In Microsoft mode, when a derived class marked with the dllimport specifier
