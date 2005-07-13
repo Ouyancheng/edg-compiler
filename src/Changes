@@ -1,5 +1,21 @@
 Version 3.7
 
+7/13/05  Lowering of designator initializer of union member
+
+The lowering of designated initializers had a bug when the first
+member of a union is partially initialized twice.  The initialization
+from the first designator was lost.  Now fixed.
+
+  struct A {
+    union {
+      struct {
+        int i;
+        int j;
+      } s;
+    } u;
+  };
+  struct A s = {.u.s.i = 1, .u.s.j = 2};  // Init of "i" was lost
+
 7/12/05  Configuration of DOES_NOT_RETURN for Microsoft compilers
 
 The macro DOES_NOT_RETURN (used in the front end's source to indicate functions

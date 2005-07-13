@@ -8922,10 +8922,15 @@ have already had their designated initializers lowered.
       /* For a union, see whether the previous initialization and the
          new one initialize the same member. */
       a_constant_ptr prev_union_designator = NULL;
+      a_field_ptr    first_field = next_initializable_field(
+                             aggr_type->variant.class_struct_union.field_list);
       if (temp_con != NULL &&
           temp_con->kind == (a_constant_repr_kind)ck_designator) {
         /* Take the designator off the old list. */
         prev_union_designator = temp_con;
+        if (prev_union_designator->variant.designator.field == first_field) {
+          prev_union_designator = NULL;
+        }  /* if */
         advance_init_con_pos(&earlier_con);
         temp_con = temp_con->next;
 #if DEBUG
@@ -8940,6 +8945,9 @@ have already had their designated initializers lowered.
           con.ptr->kind == (a_constant_repr_kind)ck_designator) {
         /* Take the designator off the new list. */
         union_designator = con.ptr;
+        if (union_designator->variant.designator.field == first_field) {
+          union_designator = NULL;
+        }  /* if */
         advance_init_con_pos(&con);
         aggr_con->variant.aggregate.first_constant = con.ptr;
       }  /* if */
