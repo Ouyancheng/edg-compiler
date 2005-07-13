@@ -521,15 +521,15 @@ does not return.
 Microsoft compilers accept the "__declspec(noreturn)" specifier for this
 purpose.
 */
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(DOES_NOT_RETURN)
 #if __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 70)
 #define DOES_NOT_RETURN void __attribute__ ((noreturn))
 #endif /* __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 70) */
-#endif /* ifndef __GNUC__ */
+#endif /* defined(__GNUC__) && !defined(DOES_NOT_RETURN) */
 
 #if defined(_MSC_VER) && !defined(DOES_NOT_RETURN)
 #define DOES_NOT_RETURN void __declspec(noreturn)
-#endif /* _MSC_VER */
+#endif /* defined(_MSC_VER) && !defined(DOES_NOT_RETURN) */
 
 /* If not set above, use "void" for DOES_NOT_RETURN. */
 #ifndef DOES_NOT_RETURN
