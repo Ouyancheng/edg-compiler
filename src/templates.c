@@ -20367,11 +20367,14 @@ void update_instantiation_flags(a_symbol_ptr	      sym,
  		                a_pragma_kind	      pragma_kind,
 				a_source_position     *pos,
                                 a_boolean	      is_class_instantiation,
-                                a_boolean	      is_pragma)
+                                a_boolean	      is_pragma,
+                                a_boolean             is_dll_directive)
 /*
 Given a pointer to either a routine, member function, or static data member
 symbol, set either the instantiation required flag (if instantiate is TRUE)
 or the specific definition flag (if instantiate is FALSE).
+is_dll_directive is TRUE if the update is the result of applying a Microsoft
+dllimport or dllexport attribute to a template instance.
 */
 {
   a_template_instance_ptr	tip = NULL;
@@ -20390,7 +20393,7 @@ or the specific definition flag (if instantiate is FALSE).
   }  /* if */
   if (tip != NULL) {
     a_boolean	instantiation_required_flag;
-    if (!is_pragma && tip->explicit_instantiation) {
+    if (!(is_pragma || is_dll_directive) && tip->explicit_instantiation) {
       /* A template cannot be instantiated more than once using an explicit
          instantiation. */
       sym_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
@@ -20457,16 +20460,20 @@ or the specific definition flag (if instantiate is FALSE).
 }  /* update_instantiation_flags */
 
 
-void update_instantiation_flags_for_class(a_symbol_ptr          sym,
-					  a_pragma_kind         pragma_kind,
-					  a_source_position     *pos,
-                                          a_boolean             is_pragma,
-                                          a_boolean             top_level)
+void update_instantiation_flags_for_class(
+                                  a_symbol_ptr          sym,
+                                  a_pragma_kind         pragma_kind,
+                                  a_source_position     *pos,
+                                  a_boolean             is_pragma,
+                                  a_boolean             top_level,
+                                  a_boolean             is_dll_directive)
 /*
 Updates the instantiation flags for all of the member functions and static
 data members within a given template class.  top_level is TRUE if
 this is the call for the template class itself.  It is FALSE if this
 is a recursive call for a class nested within the template class.
+is_dll_directive is TRUE if the update is the result of applying a Microsoft
+dllimport or dllexport attribute to a template instance.
 */
 {
   a_symbol_ptr	mem_sym;
@@ -20541,7 +20548,7 @@ is a recursive call for a class nested within the template class.
                                         is_pragma, pragma_kind)) {
               update_instantiation_flags(list_sym, pragma_kind, pos,
                                          /*is_class_instantiation=*/TRUE,
-                                         is_pragma);
+                                         is_pragma, is_dll_directive);
             }  /* if */
           }  /* for */
         } else if (mem_sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -20549,13 +20556,15 @@ is a recursive call for a class nested within the template class.
                                       is_pragma, pragma_kind)) {
             update_instantiation_flags(mem_sym, pragma_kind, pos,
                                        /*is_class_instantiation=*/TRUE,
-                                       is_pragma);
+                                       is_pragma, is_dll_directive);
           }  /* if */
         } else if (mem_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
                    mem_sym->kind == (a_symbol_kind)sk_union_tag) {
-          /* Instantiate the members of any nested classes. */
-          update_instantiation_flags_for_class(mem_sym, pragma_kind, pos,
-                                               is_pragma, /*top_level=*/FALSE);
+          /* Instantiate the members of any nested classes.  (The effect of
+             a Microsoft DLL attribute does not propagate to these.) */
+          update_instantiation_flags_for_class(
+                             mem_sym, pragma_kind, pos, is_pragma,
+                             /*top_level=*/FALSE, /*is_dll_directive=*/FALSE);
         }  /* if */
       }  /* for */
     }  /* if */
@@ -20749,7 +20758,8 @@ instantiation.
         !is_template_instance_specific_def_symbol(sym)) {
       /* Process all member functions and static data members. */
       update_instantiation_flags_for_class(sym, kind, start_pos, is_pragma,
-                                           /*top_level=*/TRUE);
+                                           /*top_level=*/TRUE,
+                                           /*is_dll_directive=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (!is_pragma) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -20806,7 +20816,8 @@ instantiation.
         !is_template_instance_specific_def_symbol(sym)) {
       /* Process all member functions and static data members. */
       update_instantiation_flags_for_class(sym, kind, start_pos, is_pragma,
-                                           /*top_level=*/TRUE);
+                                           /*top_level=*/TRUE,
+                                           /*is_dll_directive=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (!is_pragma) {
         make_instantiation_directive(kind, sym, ssep, &template_keyword_pos,
@@ -20902,7 +20913,7 @@ instantiation.
         } else {
           update_instantiation_flags(sym, kind, start_pos,
                                      /*is_class_instantiation=*/FALSE,
-                                     is_pragma);
+                                     is_pragma, /*is_dll_directive=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!is_pragma) {
             make_instantiation_directive(kind, sym, ssep,
@@ -20947,7 +20958,7 @@ instantiation.
         /* Update the flags for the symbol found. */
         update_instantiation_flags(new_sym, kind, start_pos,
                                    /*is_class_instantiation=*/FALSE,
-                                   is_pragma);
+                                   is_pragma, /*is_dll_directive=*/FALSE);
         /* If a throw specification was mentioned in the instantiation
            directive, check that it matches up with that of the instantiated
            routine. */
@@ -21090,19 +21101,22 @@ assumed if the return type is omitted.
            class nested within a template class. */
 	update_instantiation_flags_for_class(sym, pragma_kind, &start_pos,
                                              /*is_pragma=*/TRUE,
-                                             /*top_level=*/TRUE);
+                                             /*top_level=*/TRUE,
+                                             /*is_dll_directive=*/FALSE);
       } else if ((new_sym = sym_if_template_class_member_function(sym))
 								 != NULL) {
 	sym = new_sym;
 	update_instantiation_flags(sym, pragma_kind, &start_pos,
                                    /*is_class_instantiation=*/FALSE,
-                                   /*is_pragma=*/TRUE);
+                                   /*is_pragma=*/TRUE,
+                                   /*is_dll_directive=*/FALSE);
       } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
                  sym->variant.static_data_member.instance_ptr != NULL) {
 	/* A static data member -- set the instantiation flags. */
 	update_instantiation_flags(sym, pragma_kind, &start_pos,
                                    /*is_class_instantiation=*/FALSE,
-                                   /*is_pragma=*/TRUE);
+                                   /*is_pragma=*/TRUE,
+                                   /*is_dll_directive=*/FALSE);
       } else if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
 		 sym->kind == (a_symbol_kind)sk_function_template) {
         /* An overloaded function name or a plain function template name.

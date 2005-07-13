@@ -780,7 +780,8 @@ template class, its DLL interface may need to be adjusted implicitly.
           /* Members of a dllimport class are not instantiated. */
           update_instantiation_flags_for_class(
              symbol_for(class_type), (a_pragma_kind)pk_do_not_instantiate,
-             err_pos, /*is_pragma=*/FALSE, /*top_level=*/TRUE);
+             err_pos, /*is_pragma=*/FALSE, /*top_level=*/TRUE,
+             /*is_dll_directive=*/TRUE);
         }  /* if */
         for (; rp != NULL; rp = rp->next) {
           if (!rp->is_specialized) {
@@ -877,7 +878,8 @@ template class, its DLL interface may need to be adjusted implicitly.
               check_assertion(type_sym != NULL);
               update_instantiation_flags_for_class(
                              type_sym, (a_pragma_kind)pk_instantiate,
-                             err_pos, /*is_pragma=*/FALSE, /*top_level=*/TRUE);
+                             err_pos, /*is_pragma=*/FALSE, /*top_level=*/TRUE,
+                             /*is_dll_directive=*/TRUE);
             }  /* if */
             update_dll_info_for_class(skip_typerefs(bcp->type), new_dll_flags,
                                       /*explicit_inst=*/FALSE,
