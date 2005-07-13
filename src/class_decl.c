@@ -12330,7 +12330,7 @@ passed via template_decl.
         decl_start_pos = pos_curr_token;
         member_type = integer_type((an_integer_kind)ik_int);
       }  /* if */
-    } else if ((curr_token == tok_colon && !no_decl_specifiers)) {
+    } else if (curr_token == tok_colon && !no_decl_specifiers) {
       decl_info.is_unnamed_field = TRUE;
     }  /* if */
     /* The declarator can be omitted some cases. */
