@@ -44,9 +44,11 @@ Constants, structures and static variables used to format diagnostic
 messages.
 */
 
-#define NORMAL_DIAG_INDENT 0;	/* The number of spaces to be indented prior
+#define NORMAL_DIAG_INDENT 0	/* The number of spaces to be indented prior
 				   to conventional single message
 				   diagnostics. */
+#define SOURCE_INDENT 2		/* The number of spaces by which source lines
+				   are indented. */
 #define INDENT_AMOUNT 10	/* Number of additional spaces at the start of
 				   continuation lines. */
 #define LIST_DIAG_INDENT 12	/* The number of spaces to be indented prior
@@ -55,6 +57,11 @@ messages.
 				   error diagnostic followed by a list of
 				   entities.  For appearances, this value
 				   should be greater than INDENT_AMOUNT. */
+#define MACRO_CONTEXT_INDENT 1	/* The number of spaces to indent macro
+				   context lines.  For best appearances, this
+				   value should be greater than
+				   NORMAL_DIAG_INDENT and less than
+				   SOURCE_INDENT. */
 
 static int	diagnostic_indent;
 				/* Typically all diagnostic messages will
@@ -110,8 +117,9 @@ typedef enum a_diagnostic_category_kind_tag {
 				   line, location, and severity are not
 				   printed (because they were printed
 				   as part of the original message). */
-  dck_end_context		/* Like dck_end_list except that the source
+  dck_end_context,		/* Like dck_end_list except that the source
 				   line is not output. */
+  dck_macro_context		/* A line in the macro context stack trace. */
 } a_diagnostic_category_kind;
 
 #define BASE_MSG_SEGMENT_SIZE 100
@@ -1926,8 +1934,9 @@ a blank line instead of the caret line.
     /* Indent both the source line and the caret line.  This is done so
        that programs (like emacs) that read the error output will ignore
        these lines. */
-    putcb(' ');
-    putcb(' ');
+    for (i = 0; i < SOURCE_INDENT; ++i) {
+      putcb(' ');
+    }  /* for */
     /* Perform any additional indentation needed (based on the category
        kind) */
     for (i = 0; i < diagnostic_indent; i++) {
@@ -2045,8 +2054,9 @@ instead of the caret line.
     /* Indent both the source line and the caret line.  This is done so
        that programs (like emacs) that read the error output will ignore
        these lines. */
-    putcb(' ');
-    putcb(' ');
+    for (i = 0; i < SOURCE_INDENT; ++i) {
+      putcb(' ');
+    }  /* for */
     /* Perform any additional indentation needed (based on the category
        kind). */
     for (i = 0; i < diagnostic_indent; i++) {
@@ -2290,6 +2300,37 @@ handle_embedded_quoted_text:
 }  /* write_message */
 
 
+static void write_position(char              *file_name,
+                           a_line_number     line_number,
+                           a_column_number   column_number,
+                           int               *line_len)
+/*
+Write the source position (filename and line number) to stderr.  If
+column_number is not SP_COL_UNKNOWN, the column number is added into the
+output.
+*/
+{
+  /* Print the file and line number, with a column number if it is not
+     SP_COL_UNKINOWN. */
+  /* If the line is from stdin, do not display the file name. */
+  if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
+    *line_len += fprintf(stderr, "Line %lu", line_number);
+  } else {
+    *line_len += fprintf(stderr, "\"");
+    /* Don't convert '\' to '\\' in error message output.  The
+       name should be displayed as written by the user.  This also
+       prevents doubling of directory separators on Windows. */
+    *line_len += write_file_name(file_name, stderr,
+                                 /*process_escapes=*/FALSE,
+                                 /*escape_nonprintable_chars=*/FALSE);
+    *line_len += fprintf(stderr, "\", line %lu", line_number);
+  }  /* if */
+  if (column_number != SP_COL_UNKNOWN) {
+    *line_len += fprintf(stderr, " (col. %d)", column_number);
+  }  /* if */
+}  /* write_position */
+
+
 static void write_position_and_severity(an_error_code     error_code,
                                         an_error_severity severity,
                                         a_source_position *error_pos,
@@ -2372,22 +2413,9 @@ the output.
       /* Print the file and line number, with a column number if the
          position could not be indicated via a caret pointing to the
          source of the current line. */
-      /* If the line is from stdin, do not display the file name. */
-      if (strcmp(*file_name, FILE_NAME_FOR_STDIN) == 0) {
-        *line_len += fprintf(stderr, "Line %lu", *line_number);
-      } else {
-        *line_len += fprintf(stderr, "\"");
-        /* Don't convert '\' to '\\' in error message output.  The
-           name should be displayed as written by the user.  This also
-           prevents doubling of directory separators on Windows. */
-        *line_len += write_file_name(*file_name, stderr,
-                                     /*process_escapes=*/FALSE,
-                                     /*escape_nonprintable_chars=*/FALSE);
-        *line_len += fprintf(stderr, "\", line %lu", *line_number);
-      }  /* if */
-      if (column_needed) {
-        *line_len += fprintf(stderr, " (col. %d)", error_pos->column);
-      }  /* if */
+      write_position(*file_name, *line_number,
+                     column_needed ? error_pos->column : SP_COL_UNKNOWN,
+                     line_len);
       *line_len += fprintf(stderr, ": ");
     }  /* if */
   }  /* if */
@@ -2527,6 +2555,13 @@ in lower case.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+/* Forward declaration. */
+static void diag_message(an_error_code              error_code,
+                         a_source_position          *error_pos,
+                         an_error_severity          severity,
+                         a_diagnostic_category_kind diag_kind);
+
+
 static void write_diagnostic(an_error_code              error_code,
                              a_source_position          *error_pos,
                              an_error_severity          severity,
@@ -2544,16 +2579,21 @@ additional messages in a multiple message diagnostic.
 */
 {
 		
-  static char              *file_name;
-  static a_line_number     line_number;
-  static a_boolean         source_text_needed;
-  static a_boolean         in_current_source_line;
-  int                      line_len;
-  a_source_position        local_pos;
+  static char                   *file_name;
+  static a_line_number          line_number;
+  static a_boolean              source_text_needed;
+  static a_boolean              in_current_source_line;
+  int                           line_len;
+  a_source_position             local_pos;
 #if FULLY_RESOLVED_MACRO_POSITIONS
-  char                     *full_name;
-  a_boolean                at_end_of_source;
+  char                          *full_name;
+  a_boolean                     at_end_of_source;
+  a_source_position             full_pos;
+  int                           save_diagnostic_indent;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+#if MACRO_INVOCATION_TREE_IN_IL
+  a_macro_invocation_record_ptr mirp = NULL;
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 
 #if FULLY_RESOLVED_MACRO_POSITIONS
   if (error_pos->orig_seq != 0 &&
@@ -2582,10 +2622,15 @@ additional messages in a multiple message diagnostic.
       diagnostic_indent = LIST_DIAG_INDENT;
     } else if (diag_kind == (a_diagnostic_category_kind)dck_context_primary) {
       diagnostic_indent = INDENT_AMOUNT;
+    } else if (diag_kind == (a_diagnostic_category_kind)dck_macro_context) {
+      diagnostic_indent = MACRO_CONTEXT_INDENT;
     } else {
       diagnostic_indent = NORMAL_DIAG_INDENT;
     }  /* if */
-  
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    save_diagnostic_indent = diagnostic_indent;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+
     if (diag_kind != dck_end_list && diag_kind != dck_end_context) {
       /* Perform any indentation needed (based on the category kind) */
       for (line_len = 0; line_len < diagnostic_indent; line_len++) {
@@ -2627,7 +2672,7 @@ additional messages in a multiple message diagnostic.
          If raw-listing information has been requested, it is also output to
          the raw-listing file in coded form, for later incorporation into the
          listing.  */
-      if (f_raw_listing != NULL) {
+      if (f_raw_listing != NULL && diag_kind != dck_macro_context) {
         /* We will use the normal position, not the original position, for
            the raw listing, because otherwise there is no way to figure out
            where in the source code the error originated. */
@@ -2638,12 +2683,8 @@ additional messages in a multiple message diagnostic.
     }  /* if */
 
     if (diag_kind == dck_standalone || diag_kind == dck_end_list) {
-#if FULLY_RESOLVED_MACRO_POSITIONS
-      a_boolean stack_trace_printed = FALSE;
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if !STANDALONE_UTILITY_PROGRAM
-      if (source_text_needed && !brief_diagnostics &&
-          (diag_kind == dck_standalone || diag_kind == dck_end_list)) {
+      if (source_text_needed && !brief_diagnostics) {
         /* Write the source text line, with a caret pointing to the location
            of the error. */
         if (in_current_source_line) {
@@ -2656,117 +2697,119 @@ additional messages in a multiple message diagnostic.
 #if MACRO_INVOCATION_TREE_IN_IL
         if (error_pos->macro_context != NO_PARENT_MACRO_INVOCATION &&
             macro_positions_in_diagnostics) {
-          a_macro_invocation_record_ptr   mirp;
+          /* Print a trace of the macro invocation stack in effect at
+             error_pos.  Note that the last (bottommost) stack frame is
+             omitted in this trace because it will refer to the same position
+             as the normal position in error_pos, which will be printed
+             below before the source line. */
           int                             stack_depth = 0;
           int                             i;
           a_boolean                       frames_omitted_msg_printed = FALSE;
+          a_source_position               save_error_pos = *error_pos;
+
           for (mirp =
                     macro_invocation_record_at_index(error_pos->macro_context);
-               mirp != NULL;
+               mirp != NULL &&
+                        mirp->parent_macro_index != NO_PARENT_MACRO_INVOCATION;
                mirp =
                   macro_invocation_record_at_index(mirp->parent_macro_index)) {
             ++stack_depth;
           }  /* for */
           mirp = macro_invocation_record_at_index(error_pos->macro_context);
           for (i = 0; i < stack_depth; ++i) {
-            if (i < 5 || i >= stack_depth - 5) {
-              char          *macro_frame_file_name;
-              a_line_number macro_frame_line_number;
-              conv_seq_to_file_and_line(mirp->start.seq,
-                                        &macro_frame_file_name, &full_name,
-                                        &macro_frame_line_number,
-                                        &at_end_of_source);
-              (void)fprintf(stderr, " in expansion of macro \"%s\" at ",
-                            (mirp->assoc_macro != NULL) ?
-                            mirp->assoc_macro-> source_corresp.name :
-                            "<UNKNOWN>");
-              if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
-                (void)fprintf(stderr, "line %lu", macro_frame_line_number);
+            if (i < 5 || i >= stack_depth - 4) {
+              init_error_params();
+              if (mirp->assoc_macro != NULL) {
+                error_msg_strings[1] = mirp->assoc_macro->source_corresp.name;
               } else {
-                (void)fprintf(stderr, "\"");
-                (void)write_file_name(macro_frame_file_name, stderr,
-                                      /*process_escapes=*/FALSE,
-                                      /*escape_nonprintable_chars=*/FALSE);
-                (void)fprintf(stderr, "\", line %lu", macro_frame_line_number);
+                error_msg_strings[1] = error_text(ec_name_of_unknown_macro);
               }  /* if */
-              if (mirp->parent_macro_index == NO_PARENT_MACRO_INVOCATION) {
-                /* This is the last frame of the stack trace. */
-                if (local_pos.seq == error_pos->seq) {
-                  /* There will be no source line printed; end the message
-                     with a '.'.  (Otherwise, the line termination will be
-                     handled by the code below, to allow for cases where the
-                     source line might have been printed but isn't.) */
-                  (void)fprintf(stderr, ".\n");
-                }  /* if */
-              } else {
-                /* There are more stack frames coming, end this line with a
-                   ','. */
-                (void)fprintf(stderr, ",\n");
-              }  /* if */
+              copy_simple_position_to_full_position(mirp->start, full_pos);
+              error_msg_positions[1] = &full_pos;
+              diag_message(ec_in_expansion_of_macro, &null_source_position,
+                           severity, dck_macro_context);
             } else if (!frames_omitted_msg_printed) {
-              (void)fprintf(stderr, " [ %d macro expansions not shown ]\n",
-                            stack_depth - 10);
+              char buffer[20];
+              init_error_params();
+              (void)sprintf(buffer, "%d", stack_depth - 9);
+              error_msg_strings[1] = buffer;
+              diag_message(ec_macro_context_lines_skipped, error_pos,
+                           severity, dck_macro_context);
               frames_omitted_msg_printed = TRUE;
             }  /* if */
             mirp = macro_invocation_record_at_index(mirp->parent_macro_index);
           }  /* for */
-          stack_trace_printed = TRUE;
+          *error_pos = save_error_pos;
         }  /* if */
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
       }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
-      if (local_pos.seq != error_pos->seq &&
-          macro_positions_in_diagnostics) {
-        /* The position displayed above was in a macro definition or argument;
-           now display the position of the macro call (for a macro argument,
-           display the macro call source line only if it is different from the
-           one containing the argument, to avoid repetition).  (This code
-           relies on the results of the call to conv_seq_to_file_and_line
-           above.) */
-        if (error_pos->seq == 0 || at_end_of_source) {
-          /* Nothing to print here. */
-          if (stack_trace_printed) {
-            /* Terminate the last line. */
-            (void)fprintf(stderr, ".\n");
-          }  /* if */
-        } else {
-          source_text_needed = source_text_needed && !brief_diagnostics;
-          if (error_pos->seq < curr_seq_number) {
-            /* Not in current source line -- see if we can print it. */
-            source_text_needed = can_locate_source_line(error_pos->seq);
-          }  /* if */
-          if (!stack_trace_printed) {
-            /* The location was not printed above; do so now. */
-            (void)fprintf(stderr, " in macro expansion at ");
-            if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
-              (void)fprintf(stderr, "line %lu (col. %d)", line_number,
-                            error_pos->column);
-            } else {
-              (void)fprintf(stderr, "\"");
-              (void)write_file_name(file_name, stderr,
-                                    /*process_escapes=*/FALSE,
-                                    /*escape_nonprintable_chars=*/FALSE);
-              (void)fprintf(stderr, "\", line %lu", line_number);
-              if (!source_text_needed) {
-                /* Not printing the source, so display the column number. */
-                (void)fprintf(stderr, " (col. %d)", error_pos->column);
-              }  /* if */
-            }  /* if */
-          }  /* if */
-          if (source_text_needed) {
-            /* Terminate the position line (either the last line of the
-               stack trace or the line we just printed). */
-            (void)fprintf(stderr, ":\n");
-            if (error_pos->seq >= curr_seq_number) {
-              /* In current source line. */
-              write_orig_source_line(error_pos);
-            } else {
-              /* Text is in the error source line. */
-              write_error_source_line(error_pos);
-            }  /* if */
+      if (macro_positions_in_diagnostics) {
+        a_boolean need_generic_introducer;
+        if (local_pos.seq != error_pos->seq) {
+          /* The original source line printed above was a #define, so we will
+             try to display the source line containing the macro invocation.
+             (This code relies on the results of the call to
+             conv_seq_to_file_and_line above.) */
+          if (error_pos->seq == 0 || at_end_of_source) {
+            /* This should never happen, but just in case... */
+            source_text_needed = FALSE;
           } else {
-            /* Not printing source text: just terminate the position line. */
-            (void)fprintf(stderr, ".\n");
+            source_text_needed = source_text_needed && !brief_diagnostics;
+            if (source_text_needed && error_pos->seq < curr_seq_number) {
+              /* Not in current source line -- see if we can print it. */
+              source_text_needed = can_locate_source_line(error_pos->seq);
+            }  /* if */
+          }  /* if */
+          need_generic_introducer = TRUE;
+        } else {
+          /* Either there was no macro invocation involved in the position or
+             the original position designated a macro argument; in either
+             case, there will be no second source line. */
+          source_text_needed = FALSE;
+          need_generic_introducer = (local_pos.column != error_pos->column);
+        }  /* if */
+#if MACRO_INVOCATION_TREE_IN_IL
+        if (mirp != NULL) {
+          /* We still need to print the last line of the stack trace.  That
+             will either stand alone or be the introducer for the source line,
+             if one is to be printed, so we do not need a generic introducer,
+             regardless of the calculations above. */
+          need_generic_introducer = FALSE;
+          init_error_params();
+          if (mirp->assoc_macro != NULL) {
+            error_msg_strings[1] = mirp->assoc_macro->source_corresp.name;
+          } else {
+            error_msg_strings[1] = error_text(ec_name_of_unknown_macro);
+          }  /* if */
+          error_msg_strings[2] = source_text_needed ? ":" : ".";
+          copy_simple_position_to_full_position(mirp->start, full_pos);
+          error_msg_positions[1] = &full_pos;
+          diag_message(ec_in_expansion_of_macro_last, &null_source_position,
+                       severity, dck_macro_context);
+        }  /* if */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+        if (need_generic_introducer) {
+          /* There was no stack trace, so we don't know the name of the
+             macro involved -- use a more generic message. */
+          for (line_len = 0; line_len < MACRO_CONTEXT_INDENT; ++line_len) {
+            fprintf(stderr, " ");
+          }  /* for */
+          line_len += fprintf(stderr, "%s",
+                              error_text(ec_in_macro_expansion_at));
+          write_position(file_name, line_number,
+                         source_text_needed ? SP_COL_UNKNOWN :
+                         error_pos->column, &line_len);
+          (void)fprintf(stderr, "%c\n", source_text_needed ? ':' : '.');
+        }  /* if */
+        if (source_text_needed) {
+          diagnostic_indent = save_diagnostic_indent;
+          if (error_pos->seq >= curr_seq_number) {
+            /* In current source line. */
+            write_orig_source_line(error_pos);
+          } else {
+            /* Text is in the error source line. */
+            write_error_source_line(error_pos);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -3082,7 +3125,8 @@ current source position and severity or restore the previously saved settings.
   /* The saved severity level should be es_default if and only if this is a
      diagnostic without extra message lines or if it is the first message
      with such extra lines. */
-  if ((cs_saved_severity == (an_error_severity)es_default) !=
+  if (diag_kind != dck_macro_context &&
+      (cs_saved_severity == (an_error_severity)es_default) !=
       (diag_kind == (a_diagnostic_category_kind)dck_standalone ||
        diag_kind == (a_diagnostic_category_kind)dck_primary ||
        diag_kind == (a_diagnostic_category_kind)dck_context_primary)) {
@@ -3119,8 +3163,8 @@ current source position and severity or restore the previously saved settings.
          arguments for later calls. */
       copy_source_position(**error_pos, saved_error_position);
       cs_saved_severity = *severity;
-      saved_error_threshold = error_threshold_to_use;
     }  /* if */
+    saved_error_threshold = error_threshold_to_use;
   } else if (diag_kind == (a_diagnostic_category_kind)dck_list ||
              diag_kind == (a_diagnostic_category_kind)dck_end_list ||
              diag_kind == (a_diagnostic_category_kind)dck_end_context) {
@@ -3134,6 +3178,12 @@ current source position and severity or restore the previously saved settings.
       cs_saved_severity = (an_error_severity)es_default;
     }  /* if */
 #endif /* CHECKING */
+  } else {
+    /* The only remaining diagnostic kind is for macro context lines, which
+       are issued directly from write_diagnostic and thus should not change
+       either the current or saved position and severity. */
+    check_assertion(diag_kind == dck_macro_context);
+    error_threshold_to_use = saved_error_threshold;
   }  /* if */
   check_assertion((int)error_threshold_to_use != (int)es_none);
   /* Return FALSE if the current severity is below the threshold. */
@@ -3335,13 +3385,6 @@ Return TRUE if the diagnostic should be suppressed.
   }  /* if */
   return suppress_diagnostic;
 }  /* diagnostic_already_issued_for_prototype */
-
-
-/* Forward declaration. */
-static void diag_message(an_error_code              error_code,
-                         a_source_position          *error_pos,
-                         an_error_severity          severity,
-                         a_diagnostic_category_kind diag_kind);
 
 
 static void display_trans_unit_context(

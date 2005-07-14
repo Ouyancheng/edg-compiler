@@ -8052,6 +8052,10 @@ return_end_of_source_token:
             pos_curr_token.column -= 1;
           }  /* if */
           error_position.column = pos_curr_token.column;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+          pos_curr_token.orig_column = error_position.orig_column =
+                                                         pos_curr_token.column;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
         }  /* if */
         /* Go exit with the end-of-source token. */
         goto end_of_token_scan_b;

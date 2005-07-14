@@ -666,6 +666,23 @@ following, indicating something special:
 /* Macro to copy a source position. */
 #define copy_source_position(from, to) ((to) = (from))
 
+#if FULLY_RESOLVED_MACRO_POSITIONS
+/* Macro to copy the seq/column from a simple source position to both the
+   seq/column and orig_seq/orig_column of a full source position, as well as
+   setting the macro_context (if any) to NO_PARENT_MACRO_INVOCATION. */
+#if MACRO_INVOCATION_TREE_IN_IL
+#define set_macro_context_to_no_parent(to) \
+  (to).macro_context = NO_PARENT_MACRO_INVOCATION;
+#else /* !MACRO_INVOCATION_TREE_IN_IL */
+#define set_macro_context_to_no_parent(to)  /* nothing */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
+#define copy_simple_position_to_full_position(from, to) \
+{ (to).seq = (to).orig_seq = (from).seq;                \
+  (to).column = (to).orig_column = (from).column;       \
+  set_macro_context_to_no_parent((to));                 \
+}
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+
 /*
 Macro to compare two source positions.
 

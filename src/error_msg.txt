@@ -1456,6 +1456,11 @@ ec_statement_expr_with_vla_type;;"the result of a statement expression cannot ha
 ec_trigraph_ignored;;"support for trigraphs is disabled"
 ec_attribute_requires_external_linkage;;"the %sq attribute can only appear on functions and variables with external linkage"
 ec_cl_strict_mode_incompatible_with_ignore_std;;"strict mode is incompatible with treating namespace std as an alias for the global namespace"
+ec_in_expansion_of_macro;INTERNAL;"in expansion of macro \"%s\" %p,"
+ec_name_of_unknown_macro;INTERNAL;"<UNKNOWN>"
+ec_in_expansion_of_macro_last;INTERNAL;"in expansion of macro \"%s\" %p%s2"
+ec_macro_context_lines_skipped;INTERNAL;"[ %s macro expansions not shown ]"
+ec_in_macro_expansion_at;INTERNAL;"in macro expansion at "
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
