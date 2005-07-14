@@ -7177,11 +7177,10 @@ Add len characters to the asm function body buffer, beginning at start_char
 }  /* add_to_asm_func_buffer */
 
 /*
-These two remember where the previous copy_from_source_to_asm_func_buffer()
-left off.  They are set by scan_asm_function_body() to start
-just after the initial left brace.
+This variable and the EXTERN prev_asm_stop_char remember where the previous
+copy_from_source_to_asm_func_buffer() left off.  They are set by
+scan_asm_function_body() to start just after the initial left brace.
 */
-static char *prev_stop_char;
 static a_seq_number prev_seq_number;
 
 #if !ASM_FUNCTION_ALLOWED
@@ -7194,7 +7193,7 @@ of an asm function or Microsoft asm block.
 */
 {
   pos_in_asm_func_body_buffer = 0;
-  prev_stop_char = NULL;
+  prev_asm_stop_char = NULL;
   prev_seq_number = curr_seq_number;
 }  /* reset_asm_buffer */
 
@@ -7209,7 +7208,7 @@ void copy_from_source_to_asm_func_buffer(char *stop_char,
 /*
 The buffer in which to collect the characters comprising the asm function is
 asm_func_body_buffer.  Append to it all the characters in the source beginning
-at *prev_stop_char through, but not including, *stop_char.  Then, if
+at *prev_asm_stop_char through, but not including, *stop_char.  Then, if
 INCLUDE_COMMENTS_IN_ASM_FUNC_BODY is TRUE and after_comment_stop_char is
 non-NULL, also append the characters in the comment, through but not including
 *after_comment_stop_char.
@@ -7222,22 +7221,22 @@ non-NULL, also append the characters in the comment, through but not including
   a_boolean                ends_with_newline = FALSE;
 
   if (prev_seq_number != curr_seq_number) {
-    /* We've advanced to a new source line.  Update prev_stop_char to point to
-       the start of the new line. */
+    /* We've advanced to a new source line.  Update prev_asm_stop_char to
+       point to the start of the new line. */
     if (line_start_source_line_modif != NULL) {
-      prev_stop_char = line_start_source_line_modif->inserted_text;
+      prev_asm_stop_char = line_start_source_line_modif->inserted_text;
     } else {
-      prev_stop_char = curr_source_line;
+      prev_asm_stop_char = curr_source_line;
     }  /* if */
     prev_seq_number = curr_seq_number;
   }  /* if */
   /* curr_char is the pointer into the source line.  Its initial value is
-     usually prev_stop_char, which is usually the character following the
+     usually prev_asm_stop_char, which is usually the character following the
      last character that was copied into the buffer. */
-  if (prev_stop_char != NULL) {
-    curr_char = prev_stop_char;
+  if (prev_asm_stop_char != NULL) {
+    curr_char = prev_asm_stop_char;
   } else {
-    /* prev_stop_char is NULL, which is the case on the first call to this
+    /* prev_asm_stop_char is NULL, which is the case on the first call to this
        routine for a given asm function.  Use the initial character of the
        current token. */
     curr_char = start_of_curr_token;
@@ -7245,7 +7244,7 @@ non-NULL, also append the characters in the comment, through but not including
       /* Rare case -- there is no start_of_curr_token pointer. */
       curr_char = stop_char;
     }  /* if */
-    prev_stop_char = curr_char;
+    prev_asm_stop_char = curr_char;
   }  /* if */
   while (curr_char != stop_char) {
     switch (*curr_char) {
@@ -7254,11 +7253,11 @@ non-NULL, also append the characters in the comment, through but not including
         if (ch == LE_END_OF_TOKEN ||
             ch == LE_INERT_MACRO ||
             ch == LE_NULL) {
-          /* Marker put into text by preprocessing of macros, to force the same
-             interpretation of token boundaries as during the macro definition.
-             Or, marker that indicates that a macro name should not be
-             expanded, or represents a null (zero) character.  Skip over the
-             escape and don't put it out. */
+          /* Marker put into text by preprocessing of macros, to force the
+             same interpretation of token boundaries as during the macro
+             definition.  Or, marker that indicates that a macro name should
+             not be expanded, or represents a null (zero) character.  Skip
+             over the escape and don't put it out. */
           next_char = curr_char + LE_ESCAPE_LEN;
         } else if (ch == LE_END_OF_INSERTION) {
           /* End of the expansion text for a macro.  Find the character
@@ -7273,7 +7272,7 @@ non-NULL, also append the characters in the comment, through but not including
           next_char = curr_char + LE_ESCAPE_LEN;
         } else {
           unexpected_condition_str(
-                    "copy_from_source_to_asm_func_buffer: bad lexical escape");
+                   "copy_from_source_to_asm_func_buffer: bad lexical escape");
         }  /* if */
         break;
       case ATTENTION_MARKER:
@@ -7290,34 +7289,35 @@ non-NULL, also append the characters in the comment, through but not including
         continue;
     }  /* switch */
     /* Falling through to here mean one of the special characters was seen.
-       Copy the characters from prev_stop_char through (but not including)
-       curr_char into the buffer, and then reset prev_stop_char and curr_char
-       to next_char. */
-    if ((len = curr_char - prev_stop_char) != 0) {
-      /* Add "len" characters to the buffer, starting at prev_stop_char. */
-      add_to_asm_func_buffer(prev_stop_char, len);
+       Copy the characters from prev_asm_stop_char through (but not including)
+       curr_char into the buffer, and then reset prev_asm_stop_char and
+       curr_char to next_char. */
+    if ((len = curr_char - prev_asm_stop_char) != 0) {
+      /* Add "len" characters to the buffer, starting at
+         prev_asm_stop_char. */
+      add_to_asm_func_buffer(prev_asm_stop_char, len);
     }  /* if */
-    curr_char = prev_stop_char = next_char;
+    curr_char = prev_asm_stop_char = next_char;
     if (ends_with_newline) {
       ends_with_newline = FALSE;
       len = 1;
       add_to_asm_func_buffer("\n", len);
     }  /* if */
   }  /* while */
-  if (curr_char > prev_stop_char) {
-    /* Copy the characters from prev_stop_char through (but not including)
+  if (curr_char > prev_asm_stop_char) {
+    /* Copy the characters from prev_asm_stop_char through (but not including)
        curr_char into the buffer. */
-    len = curr_char - prev_stop_char;
-    /* Add "len" characters to the buffer, starting at prev_stop_char. */
-    add_to_asm_func_buffer(prev_stop_char, len);
-    prev_stop_char = curr_char;
+    len = curr_char - prev_asm_stop_char;
+    /* Add "len" characters to the buffer, starting at prev_asm_stop_char. */
+    add_to_asm_func_buffer(prev_asm_stop_char, len);
+    prev_asm_stop_char = curr_char;
   }  /* if */
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
   if (after_comment_stop_char != NULL) {
     /* Append text of commentary, too. */
     ends_with_newline = FALSE;
-    check_assertion(after_comment_stop_char > prev_stop_char);
-    len = after_comment_stop_char - prev_stop_char;
+    check_assertion(after_comment_stop_char > prev_asm_stop_char);
+    len = after_comment_stop_char - prev_asm_stop_char;
     if (len >= LE_ESCAPE_LEN &&
         after_comment_stop_char[-LE_ESCAPE_LEN  ] == LE_ESCAPE &&
         after_comment_stop_char[-LE_ESCAPE_LEN+1] == LE_NEWLINE) {
@@ -7327,14 +7327,14 @@ non-NULL, also append the characters in the comment, through but not including
       ends_with_newline = TRUE;
       len -= LE_ESCAPE_LEN;
     }  /* if */
-    /* Add "len" characters to the buffer, starting at prev_stop_char. */
-    add_to_asm_func_buffer(prev_stop_char, len);
+    /* Add "len" characters to the buffer, starting at prev_asm_stop_char. */
+    add_to_asm_func_buffer(prev_asm_stop_char, len);
     if (ends_with_newline) {
       len = 1;
       add_to_asm_func_buffer("\n", len);
     }  /* if */
-    /* Reset prev_stop_char. */
-    prev_stop_char = after_comment_stop_char;
+    /* Reset prev_asm_stop_char. */
+    prev_asm_stop_char = after_comment_stop_char;
   }  /* if */
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
 }  /* copy_from_source_to_asm_func_buffer */

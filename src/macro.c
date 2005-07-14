@@ -1086,6 +1086,9 @@ the pointers in all source line modifications will be adjusted as needed.
     fix_ptr(start_of_curr_token);
     fix_ptr(end_of_curr_token);
     fix_ptr(arg_get_token_start_of_curr_token);
+#if ASM_SUPPORT_NEEDED
+    fix_ptr(prev_asm_stop_char);
+#endif /* ASM_SUPPORT_NEEDED */
     /* Adjust local variables that point into the curr_source_line structure.
        Such variables are registered by calling register_pointer_variable. */
     for (prp = registered_pointers; prp != NULL; prp = prp->next) {

@@ -1,5 +1,11 @@
 Version 3.7
 
+7/13/05  asm functions involving large macro expansions
+
+In certain cases where the body of an asm function involves a large macro
+expansion, the result was unpredictable behavior, including aborts and
+segmentation faults.  Now fixed.
+
 7/13/05  Lowering of designator initializer of union member
 
 The lowering of designated initializers had a bug when the first

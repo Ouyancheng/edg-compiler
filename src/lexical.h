@@ -1549,7 +1549,11 @@ EXTERN char *asm_func_body_buffer;
 EXTERN sizeof_t size_asm_func_body_buffer;
 			/* The size of the asm buffer. */
 
-
+EXTERN char *prev_asm_stop_char;
+			/* The last character copied by the previous call to
+			   copy_from_source_to_asm_func_buffer.  (Must be
+			   EXTERN so it can be relocated if macro_buffer is
+			   reallocated.) */
 
 
 #if ASM_FUNCTION_ALLOWED
