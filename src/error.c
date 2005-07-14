@@ -4155,7 +4155,6 @@ indicated by error_position.
 }  /* type_warning */
 
 #if !STANDALONE_UTILITY_PROGRAM
-#if GNU_EXTENSIONS_ALLOWED
 
 void pos_syty_warning(an_error_code     error_code,
                       a_source_position *error_pos,
@@ -4172,7 +4171,6 @@ indicated position.
   diag_message(error_code, error_pos, es_warning, dck_standalone);
 }  /* pos_syty_warning */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void pos_sy_warning(an_error_code     error_code,
                     a_source_position *error_pos,

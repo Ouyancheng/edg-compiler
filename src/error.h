@@ -352,12 +352,10 @@ extern void pos_opt_ty2_warning(an_error_code     error_code,
 extern void type_warning(an_error_code error_code,
                          struct a_type *type);
 #if !STANDALONE_UTILITY_PROGRAM
-#if GNU_EXTENSIONS_ALLOWED
 extern void pos_syty_warning(an_error_code     error_code,
                              a_source_position *error_pos,
                              struct a_symbol   *symbol,
                              struct a_type     *type);
-#endif /* GNU_EXTENSIONS_ALLOWED */
 extern void pos_sy_warning(an_error_code     error_code,
                            a_source_position *error_pos,
                            struct a_symbol   *symbol);
