@@ -1,5 +1,12 @@
 Version 3.7
 
+7/15/05  Microsoft compatibility: POD_CLASS().field is not an lvalue
+
+The 3/29/05 change to make POD_func().field be considered an lvalue
+in Microsoft mode went a bit too far.  A field selection off a
+"constructor call," as in POD_CLASS().field, should not be considered
+an lvalue.  Now fixed.
+
 7/15/05  GNU compatibility: Symbolic asm operands
 
 In GNU modes, the front end now accepts GNU symbolic asm operands.  For

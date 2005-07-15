@@ -2553,10 +2553,18 @@ is the current set of expression-scanning options.
         } else if (microsoft_mode && !C_mode() &&
                    is_class_struct_union_type(orig_class_struct_union_type) &&
                    symbol_supplement_for_class(orig_class_struct_union_type)->
-                                                                      is_POD) {
-          /* MSVC++ treats a field selection off an rvalue POD type as an
-             lvalue. */
-          revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
+                                                                      is_POD &&
+                   is_expression_operand(operand_1)) {
+          /* MSVC++ treats a field selection off a function call returning
+             a POD type as an lvalue.  Note that f().i is an rvalue but
+             A().i (where A is a POD class name) is not. */
+          an_expr_node_ptr op_1 = operand_1->variant.expression;
+          if (is_operation_node(op_1)) {
+            an_expr_operator_kind op = op_1->variant.operation.kind;
+            if (op == (an_expr_operator_kind)eok_call) {
+              revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
+            }  /* if */
+          }  /* if */
         }  /* if */
         if (is_an_lvalue(operand_1)) using_lvalue(operand_1);
       }  /* if */
