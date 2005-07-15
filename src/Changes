@@ -2,10 +2,10 @@ Version 3.7
 
 7/15/05  Microsoft compatibility: __if_exists entries in the IL
 
-Representing __if_exists entries in the IL is problematic because,
-although the Microsoft documentation describes the contents of
-an __if_exists block as a statement, the Microsoft compiler actually
-accepts any fragment of a statement or declaration in the block
+Representing __if_exists (and __if_not_exists) entries in the IL is
+problematic because, although the Microsoft documentation describes the
+contents of an __if_exists block as a statement, the Microsoft compiler
+actually accepts any fragment of a statement or declaration in the block
 (as does our front end in Microsoft mode).  We have implemented a
 mechanism that can represent __if_exists blocks that appear in class
 definitions, and which surround complete declarations of the class.
