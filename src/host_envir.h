@@ -1140,6 +1140,13 @@ instantiations are included in the IL
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
 #endif /* ifndef GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+#if !GENERATE_SOURCE_SEQUENCE_LISTS || !PROTOTYPE_INSTANTIATIONS_IN_IL
+ #error -- GENERATE_MICROSOFT_IF_EXISTS_ENTRIES requires \
+           GENERATE_SOURCE_SEQUENCE_LISTS and PROTOTYPE_INSTANTIATIONS_IN_IL
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS || !PROTOTYPE_INSTANTIATIONS_IN_IL */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+
 /*
 Flag that indicates whether friend and member definitions that appear inside
 classes may be moved outside those classes.  This flag is only applicable to
