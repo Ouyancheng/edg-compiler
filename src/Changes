@@ -21,6 +21,11 @@ are not represented in the IL (but are still included in the textual
 representation of templates).  If an __if_exists appears in an invalid
 context in a class definition, an error is issued.
 
+IL entries are only created for __if_exists blocks that appear in
+the prototype instantiation of class templates and classes nested
+within class templates.  In non-template contexts, the __if_exists
+is simply evaluated when it is encountered.
+
 7/15/05  Microsoft compatibility: POD_CLASS().field is not an lvalue
 
 The 3/29/05 change to make POD_func().field be considered an lvalue
