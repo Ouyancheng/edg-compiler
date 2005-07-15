@@ -365,20 +365,6 @@ typedef a_byte a_name_linkage_kind;
 #endif /* NEED_NAME_MANGLING */
 
 /*
-The Microsoft __if_exists entry is only needed when Microsoft extensions
-are enabled, source sequence entries are being generated, and prototype
-instantiations are included in the IL
-*/
-#ifndef GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL &&	\
-    MICROSOFT_EXTENSIONS_ALLOWED
-#define GENERATE_MICROSOFT_IF_EXISTS_ENTRIES TRUE
-#else /* !(GENERATE_SOURCE_SEQUENCE_LISTS && ...) */
-#define GENERATE_MICROSOFT_IF_EXISTS_ENTRIES FALSE
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
-#endif /* ifndef GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-
-/*
 Names of linkage kinds.  These are used to recognize the string in a
 linkage specification (extern "xxx") and for debug output.
 */

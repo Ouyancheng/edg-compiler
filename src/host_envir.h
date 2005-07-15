@@ -1127,6 +1127,20 @@ would be less common.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 /*
+The Microsoft __if_exists entry is only needed when Microsoft extensions
+are enabled, source sequence entries are being generated, and prototype
+instantiations are included in the IL
+*/
+#ifndef GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL &&	\
+    MICROSOFT_EXTENSIONS_ALLOWED
+#define GENERATE_MICROSOFT_IF_EXISTS_ENTRIES TRUE
+#else /* !(GENERATE_SOURCE_SEQUENCE_LISTS && ...) */
+#define GENERATE_MICROSOFT_IF_EXISTS_ENTRIES FALSE
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
+#endif /* ifndef GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+
+/*
 Flag that indicates whether friend and member definitions that appear inside
 classes may be moved outside those classes.  This flag is only applicable to
 configurations where TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is
