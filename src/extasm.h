@@ -26,8 +26,7 @@ extern an_asm_operand_ptr asm_operands_spec(void);
 
 extern a_named_register_list_ptr asm_clobbers_spec(void);
 
-extern void validate_operands_and_clobbers(an_asm_operand_ptr        operands,
-                                           a_named_register_list_ptr clobbers);
+extern void validate_operands_and_clobbers(an_asm_entry_ptr  asm_entry);
 
 extern void extasm_one_time_init(void);
 

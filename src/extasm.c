@@ -217,15 +217,112 @@ provided by the author of the back end.
 }  /* validate_expr_for_constraint */
 
 
+static int find_symbolic_operand(char                **pc,
+                                 an_asm_operand_ptr  operands,
+                                 a_source_position   *diag_pos)
+/*
+*pc points to a left bracket ('[') that starts a reference to a symbolic asm
+operand.  Advance the *pc pointer to the matching right bracket (or the last
+character in the string if there is no right bracket) and return the position
+of the indicated operand.  If the indicated operand name does not correspond
+to a previous operand, issue an error (at the given source position) and
+return -1.
+*/
+{
+  int   result = -1, n = 0;
+  char  *start;
+
+  check_assertion(**pc == '[');
+  start = ++*pc;
+  /* Find the end of the symbolic operand name. */
+  while (**pc != ']' && *(*pc + 1) != '\0') {
+    ++*pc;
+  }  /* while */
+  /* Look for an operand with that name in the list of preceding operands. */
+  while (operands != NULL) {
+    if (operands->name != NULL &&
+        strncmp(operands->name, start, *pc-start) == 0) {
+      result = n;
+      break;
+    }  /* if */
+    operands = operands->next;
+    ++n;
+  }  /* while */
+  if (result == -1) {
+    char saved_char = **pc;
+    **pc = '\0';
+    pos_st_error(ec_invalid_symbolic_asm_operand_name, diag_pos, start);
+    **pc = saved_char;
+  }  /* if */
+  return result;
+}  /* find_symbolic_operand */
+
+
+static void validate_symbolic_operand_references(
+                                              a_constant_ptr      asm_string,
+                                              an_asm_operand_ptr  operands,
+                                              a_source_position   *diag_pos)
+/*
+Traverse the given asm string and validate any symbolic operand references of
+the form "%[<name>]" it contains against the given list of operands.  Invalid
+references are reported at the given position.
+*/
+{
+  char  *pc = asm_string->variant.string.value;
+
+  while (*pc != '\0') {
+    if (pc[0] == '%' && pc[1] == '[') {
+      /* We found a "%[" construct.  Look up the symbolic operand reference
+         that (normally) follows.  The call to find_symbol_operand with
+         trigger any needed diagnostics. */
+      ++pc;
+      (void)find_symbolic_operand(&pc, operands, diag_pos);
+    } else {
+      ++pc;
+    }  /* if */
+  }  /* if */
+}  /* valid_symbolic_operand_references */
+
+
+static an_asm_operand_constraint_kind get_symbolic_matching_constraint(
+                                                 char                **pc,
+                                                 an_asm_operand_ptr  operands,
+                                                 a_source_position   *diag_pos)
+/*
+*pc points to a '[' character starting a symbolic operand name.  Advance this
+pointer to the matching ']' character (or to the last character in the string
+if none is found) and return a "matching constraint kind" for the operand
+name indicated.  operands points to the list of operands already created.
+Errors are diagnosed at the given position.
+*/
+{
+  an_asm_operand_constraint_kind  result;
+  int                             op_num = find_symbolic_operand(pc, operands,
+                                                                 diag_pos);
+
+  if (op_num < 0) {
+    /* An error was already issued. */
+    result = (an_asm_operand_constraint_kind)aoc_invalid;
+  } else if (op_num > 9) {
+    pos_error(ec_match_limit_for_symbolic_asm_operand, diag_pos);
+    result = (an_asm_operand_constraint_kind)aoc_invalid;
+  } else {
+    result = (an_asm_operand_constraint_kind)(aoc_match_0 + op_num);
+  }  /* if */
+  return result;
+}  /* get_symbolic_matching_constraint */
+
+
 static void process_asm_operand(an_asm_operand_ptr  operand,
+                                an_asm_operand_ptr  operands,
                                 an_expr_node_ptr    expr,
                                 char                *cstring,
                                 a_boolean           output)
 /*
 Validate the semantic consistency of expr, cstring (which gives the
-constraints), and output.  If they all match, fill in operand
-accordingly.  Otherwise, issue an error, and set operand to "error
-placemarker" values.  
+constraints), and output.  If they all match, fill in operand accordingly.
+Otherwise, issue an error, and set operand to "error placemarker" values.
+operands points to the operands created so far.
 */
 {
   an_asm_operand_constraint_ptr  *constraint;
@@ -312,6 +409,11 @@ done_with_modifiers:
         break;
       case '9': 
         ck = (an_asm_operand_constraint_kind)aoc_match_9; 
+        break;
+      case '[':
+        ck = get_symbolic_matching_constraint(&p, operands,
+                                              &operand->position);
+        error_occurred = (ck == (an_asm_operand_constraint_kind)aoc_invalid);
         break;
       /* Registers */
       case 'r': 
@@ -502,17 +604,17 @@ static a_named_register fixed_registers[] = {
 };
 
 
-void validate_operands_and_clobbers(an_asm_operand_ptr        operands,
-                                    a_named_register_list_ptr clobbers)
+void validate_operands_and_clobbers(an_asm_entry_ptr  asm_entry)
 /*
-Validate the operands and clobbers lists.  The machine-independent
-portion of this code simply checks that no duplicates appear in the
-clobbers list, no single-register constraint is used when the
-corresponding register is clobbered, and no un-clobberable registers
-appear in the clobber list.  Back end authors should augment this code
-to do complete validation of the lists; it is easy to write an asm
-statement with unsatisfiable register allocation requirements that
-does not trip over any of the machine-independent checks.
+Validate the given asm entry.  The machine-independent portion of this code
+simply checks that no duplicates appear in the clobbers list, no single-
+register constraint is used when the corresponding register is clobbered,
+and no un-clobberable registers appear in the clobber list.  It also
+verifies that symbolic operand names appearing in the asm string itself do
+refer to actual operands.  Back end authors should augment this code to do
+complete validation of the lists; it is easy to write an asm statement with
+unsatisfiable register allocation requirements that does not trip over any
+of the machine-independent checks.
 
 Note that this function never modifies the operands or clobbers lists,
 even if they are invalid.
@@ -521,8 +623,8 @@ even if they are invalid.
   a_byte                        regs_clobbered[(int)anr_last];
   a_byte                        regs_used_in[(int)anr_last];
   a_byte                        regs_used_out[(int)anr_last];
-  an_asm_operand_ptr            operand;
-  a_named_register_list_ptr     clobber;
+  an_asm_operand_ptr            operand, operands = asm_entry->operands;
+  a_named_register_list_ptr     clobber, clobbers = asm_entry->clobbers;
   an_asm_operand_constraint_ptr c;
   int                           i;
   a_named_register              r;
@@ -595,16 +697,23 @@ even if they are invalid.
     }  /* if */
 #endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
   }  /* for */
+  validate_symbolic_operand_references(
+                                    asm_entry->asm_string, operands,
+                                    &asm_entry->source_corresp.decl_position);
 }  /* validate_operands_and_clobbers */
 
 
-static void asm_operand (an_asm_operand_ptr operand,
-                         a_boolean output)
+static void asm_operand(an_asm_operand_ptr operand,
+                        an_asm_operand_ptr operands,
+                        a_boolean output)
 /*
-Scan a single asm-statement operand, writing it into the structure
-pointed to by operand.  The syntax is
+Scan a single asm-statement operand, writing it into the structure pointed to
+by operand.  The syntax is
 
    string-literal ( expression )
+
+operands points to the list of operands created so far and output is TRUE
+if we're scanning an output operand.
 */
 {
   char              *constraint_string = NULL;
@@ -615,6 +724,22 @@ pointed to by operand.  The syntax is
   add_stop_token(tok_colon);
   add_stop_token(tok_colon_colon);
   operand->position = pos_curr_token;
+  if (curr_token == tok_lbracket) {
+    /* Presumably a named operand.  The next token must be an identifier. */
+    (void)get_token();
+    add_stop_token(tok_rbracket);
+    if (curr_token != tok_identifier) {
+      syntax_error(ec_exp_identifier);
+    } else {
+      /* Record the identifier as the name of the operand. */
+      a_symbol_header  *sym_hdr = locator_for_curr_id.symbol_header;
+      operand->name = alloc_il(sym_hdr->identifier_length);
+      (void)strcpy(operand->name, sym_hdr->identifier);
+      (void)get_token();
+    }  /* if */
+    (void)required_token(tok_rbracket, ec_exp_rbracket);
+    remove_stop_token(tok_rbracket);
+  }  /* if */
   if (curr_token != tok_string_literal) {
     syntax_error(ec_exp_string_literal);
   } else {
@@ -628,7 +753,7 @@ pointed to by operand.  The syntax is
       remove_stop_token(tok_rparen);
     }  /* if */
   }  /* if */
-  process_asm_operand(operand, expr, constraint_string, output);
+  process_asm_operand(operand, operands, expr, constraint_string, output);
   remove_stop_token(tok_comma);
   remove_stop_token(tok_colon);
   remove_stop_token(tok_colon_colon);
@@ -670,13 +795,13 @@ colons, which will be tokenized as a single tok_colon_colon (in C++).  */
     output = FALSE;
     (void)get_token();
   }  /* if */
-  while (curr_token == tok_string_literal) {
+  while (curr_token == tok_string_literal || curr_token == tok_lbracket) {
     /* There is a hard limit of thirty operands per assembly instruction. */
     if (n == 30) {
       error(ec_too_many_asm_operands);
     }  /* if */
     *p_operands = alloc_asm_operand();
-    asm_operand(*p_operands, output);
+    asm_operand(*p_operands, operands, output);
     p_operands = &(*p_operands)->next;
     ++n;
     if (operands->modifiers == (an_asm_operand_modifier)aom_modify) {
@@ -699,7 +824,7 @@ colons, which will be tokenized as a single tok_colon_colon (in C++).  */
       }  /* if */
     } else if (curr_token == tok_comma) {
       (void)get_token();
-      if (curr_token != tok_string_literal) {
+      if (curr_token != tok_string_literal && curr_token != tok_lbracket) {
         syntax_error(ec_exp_asm_operand);
       }  /* if */
     }  /* if */

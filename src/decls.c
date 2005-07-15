@@ -10235,7 +10235,6 @@ instruction's operands.
         gnu_asm_form = TRUE;
         operands = asm_operands_spec();
         clobbers = asm_clobbers_spec();
-        validate_operands_and_clobbers(operands, clobbers);
       }  /* if */
       /* An asm() with no outputs is automatically volatile. */
       if (operands == NULL ||
@@ -10269,6 +10268,9 @@ instruction's operands.
     ap->is_volatile = is_volatile;
     ap->operands = operands;
     ap->clobbers = clobbers;
+    if (gnu_asm_form) {
+      validate_operands_and_clobbers(ap);
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (!is_asm_statement) {
       /* Add the asm entry to the list for the current scope.  This is only

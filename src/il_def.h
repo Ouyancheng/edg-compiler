@@ -3011,6 +3011,10 @@ typedef struct an_asm_operand *an_asm_operand_ptr;
 typedef struct an_asm_operand {
   an_asm_operand_ptr
                 next;   /* Next entry on the list, or NULL if last. */
+  char
+		*name;	/* The symbolic name indicated for this operand (using
+			   the "[ <identifier> ]" syntax), or NULL if none was
+			   given. */
   an_asm_operand_constraint_ptr
                 constraints;     
                         /* Constraints on where the operand may appear

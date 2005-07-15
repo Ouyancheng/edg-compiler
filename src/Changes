@@ -1,5 +1,36 @@
 Version 3.7
 
+7/15/05  GNU compatibility: Symbolic asm operands
+
+In GNU modes, the front end now accepts GNU symbolic asm operands.  For
+example:
+
+  float f(float a) {
+    register float r;
+    asm("fsinx %[Rads], %[Res]": [Res]"=f"(r): [Rads]"f"(a));
+    return r;
+  }
+
+In addition to recording the symbolic names in the IL, the front end also
+checks that references to such symbolic names in the asm instruction do
+resolve to actual operands.  For example:
+
+  asm("mov %[S], %[D]": "=X"(d): "X"(s));  // Error: No operands named
+                                           // [S] or [D].
+
+Finally, "symbolic matching constraints" are translated into positional
+matching constraint.  For example:
+
+  asm("ins %[A], %[B]": : [A]"X"(1), [B]"[A]"(2));
+    // [B] operands refers to constraints of [A] (i.e., position zero).
+
+is equivalent to:
+
+  asm("ins %[A], %[B]": : [A]"X"(1), [B]"0"(2));
+
+"Matching constraints" (symbolic or not) must still refer to one of the first
+ten operands.
+
 7/13/05  asm functions involving large macro expansions
 
 In certain cases where the body of an asm function involves a large macro

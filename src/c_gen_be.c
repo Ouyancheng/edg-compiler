@@ -6404,6 +6404,12 @@ Dump the GNU C operand descriptions for the given asm entry.
   }  /* if */
   for (aop = aep->operands; aop != NULL; aop = aop->next) {
     write_tok_ch(' ');
+    if (aop->name != NULL) {
+      /* This is a named operand. */
+      write_tok_ch('[');
+      write_tok_str(aop->name);
+      write_tok_ch(']');
+    }  /* if */
     m_write_ch('"');
     if (aop->modifiers & (an_asm_operand_modifier)aom_output) {
       if (aop->modifiers & (an_asm_operand_modifier)aom_input) {

@@ -2305,6 +2305,7 @@ Allocate space for an asm operand and return a pointer to it.
                                             alloc_cil(sizeof(an_asm_operand));
 
   aop->next = NULL;
+  aop->name = NULL;
   aop->constraints = NULL;
   aop->modifiers = (an_asm_operand_modifier)aom_invalid;
   aop->position = null_source_position;

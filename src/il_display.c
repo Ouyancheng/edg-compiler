@@ -5488,6 +5488,9 @@ Display the indicated asm operand.
   an_asm_operand_constraint_ptr c;
 
   disp_ptr("next", (char *)ptr->next, iek_asm_operand);
+  if (ptr->name != NULL) {
+    disp_string_ptr("name", ptr->name, iek_other_text, (sizeof_t)0);
+  }  /* if */
   if (ptr->modifiers & aom_output) {
     disp_boolean("aom_output", TRUE);
   }  /* if */

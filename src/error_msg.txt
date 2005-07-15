@@ -1461,6 +1461,8 @@ ec_name_of_unknown_macro;INTERNAL;"<UNKNOWN>"
 ec_in_expansion_of_macro_last;INTERNAL;"in expansion of macro \"%s\" %p%s2"
 ec_macro_context_lines_skipped;INTERNAL;"[ %s macro expansions not shown ]"
 ec_in_macro_expansion_at;INTERNAL;"in macro expansion at "
+ec_invalid_symbolic_asm_operand_name;;"invalid symbolic operand name %sq"
+ec_match_limit_for_symbolic_asm_operand;;"a symbolic match constraint must refer to one of the first ten operands"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
