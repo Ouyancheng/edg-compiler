@@ -1631,6 +1631,9 @@ Initialize the fields in a scope-pointers-block substructure.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   spbp->last_ms_attribute             = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  spbp->last_ms_if_exists             = NULL;
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 }  /* clear_scope_pointers_block */
 
 
@@ -1931,6 +1934,9 @@ the scope being pushed.
                    file_scope_pointers_block.last_source_sequence_entry = NULL;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  ssep->create_ms_if_exists_entries = FALSE;
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   ssep->depth_template_declaration_scope = depth_template_declaration_scope;
   ssep->depth_innermost_instantiation_scope =
                                        depth_innermost_instantiation_scope;
@@ -2044,6 +2050,22 @@ the scope being pushed.
     ssep->inactive_symbols_may_be_visible =
                                    (ssep-1)->inactive_symbols_may_be_visible;
   }  /* if */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  /* Determine whether Microsoft __if_exist enties and associated source
+     sequence entries should be created for this scope.  Such entries are
+     created in class scopes.  The flag is also set for function prototype
+     scopes within class scopes, so that a diagnostic may be issued for
+     such cases. */
+  if (create_microsoft_if_exists_entries) {
+    a_boolean	create_ms_if_exists_entries = FALSE;
+    if (kind == (a_scope_kind)sck_class_struct_union) {
+      create_ms_if_exists_entries = TRUE;
+    } else if (kind == (a_scope_kind)sck_func_prototype) {
+      create_ms_if_exists_entries = (ssep-1)->create_ms_if_exists_entries;
+    }  /* if */
+    ssep->create_ms_if_exists_entries = create_ms_if_exists_entries;
+  }  /* if */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   if (!C_mode()) {
     if (kind == (a_scope_kind)sck_class_reactivation) {
       /* Determine whether the class being reactivated is still in the process
@@ -5805,6 +5827,13 @@ End a name scope by popping an entry off the scope stack.
       generate_required_virtual_destructor_bodies(il_scope);
     }  /* if */
   }  /* if */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  if (pointers_block->last_ms_if_exists != NULL) {
+    /* The block contains entries for Microsoft __if_exists blocks.  Make
+       sure that any opened blocks have been closed. */
+    check_for_unclosed_if_exists_blocks();
+  }  /* if */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   if (ssep->curr_construct_pragmas != NULL && total_errors != 0) {
     /* There should be no items remaining on the list.  If any errors
        occurred, the list items may be a result of the errors.  Discard

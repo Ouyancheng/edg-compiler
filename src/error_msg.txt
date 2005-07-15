@@ -1463,6 +1463,8 @@ ec_macro_context_lines_skipped;INTERNAL;"[ %s macro expansions not shown ]"
 ec_in_macro_expansion_at;INTERNAL;"in macro expansion at "
 ec_invalid_symbolic_asm_operand_name;;"invalid symbolic operand name %sq"
 ec_match_limit_for_symbolic_asm_operand;;"a symbolic match constraint must refer to one of the first ten operands"
+ec_if_exists_not_allowed;;"use of __if_exists is not supported in this context"
+ec_if_exists_not_closed;;"__if_exists block not closed in the same scope in which it was opened"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -1996,6 +1996,16 @@ end_sizeof:;
       }
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+    case iek_ms_if_exists:
+      {
+        an_ms_if_exists_ptr ptr = (an_ms_if_exists_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, an_ms_if_exists_ptr, iek_ms_if_exists);
+        walk_ptr(ptr->entity.ptr, a_char_ptr,
+                 (an_il_entry_kind)ptr->entity.kind);
+      }
+      break;
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
     case iek_object_lifetime:
       {
         an_object_lifetime_ptr ptr = (an_object_lifetime_ptr)entry_ptr;
@@ -2176,6 +2186,9 @@ end_sizeof:;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_list(ptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+        walk_list(ptr->ms_if_exists, an_ms_if_exists_ptr, iek_ms_if_exists);
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 #ifdef FFE
         walk_list(ptr->entries, an_entry_description_ptr,
                   iek_entry_description);

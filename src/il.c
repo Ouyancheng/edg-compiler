@@ -15560,6 +15560,34 @@ Add the Microsoft attribute entry pointed to by msap to the indicated scope.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+
+void add_to_ms_if_exists_list(an_ms_if_exists_ptr	msiep,
+                              a_scope_depth		scope_depth)
+/*
+Add the Microsoft __if_exists entry pointed to by msiep to the indicated scope.
+*/
+{
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_ptr              sp;
+  a_scope_pointers_block_ptr  pointers_block;
+
+  assert_is_valid_scope_depth(scope_depth);
+  ssep = &scope_stack[scope_depth];
+  sp = ensure_il_scope_exists(ssep);
+  check_assertion_str(sp != NULL, "add_to_if_exists_list: NULL IL scope");
+  pointers_block = assoc_pointers_block_of(ssep);
+  if (sp->ms_if_exists == NULL) {
+    sp->ms_if_exists = msiep;
+  } else {
+    pointers_block->last_ms_if_exists->next = msiep;
+  }  /* if */
+  pointers_block->last_ms_if_exists = msiep;
+  msiep->next = NULL;
+}  /* add_to_ms_if_exists_list */
+
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+
 #if RECORD_MACROS_IN_IL
 
 void add_to_macros_list(a_macro_ptr  mp)

@@ -79,6 +79,9 @@ static unsigned long
 		num_ms_attributes_allocated,
 		num_ms_attribute_args_allocated,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+		num_ms_if_exists_allocated,
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 		num_blocks_allocated,
 		num_for_loops_allocated,
 		num_statements_allocated,
@@ -3092,6 +3095,10 @@ in the current IL memory region.
     case pk_define_type_info:
       break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+    case pk_if_exists:
+      break;
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
     case pk_stdc:
       pp->variant.stdc.kind = (a_stdc_pragma_kind)stdc_pk_none;
       break;
@@ -3330,7 +3337,9 @@ points to the associated routine if the kind is sck_function.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sp->ms_attributes               = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  sp->ms_if_exists                = NULL;
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   db_exit();
   return sp;
 }  /* alloc_scope */
@@ -3784,6 +3793,31 @@ a pointer to it.
   return snlep;
 }  /* alloc_seq_number_lookup_entry */
 
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+
+an_ms_if_exists_ptr alloc_ms_if_exists(void)
+/*
+Allocate a Microsoft __if_exists entry, set its fields to default values,
+and return a pointer to it.
+*/
+{
+  an_ms_if_exists_ptr msiep;
+
+  msiep = alloc_cil_of_type(an_ms_if_exists);
+#if DEBUG
+  num_ms_if_exists_allocated++;
+#endif /* DEBUG */
+  msiep->next = NULL;
+  msiep->entity.kind = (a_byte_il_entry_kind)iek_none;
+  msiep->entity.ptr  = NULL;
+  msiep->position = null_source_position;
+  msiep->is_if_exists = FALSE;
+  msiep->pending = FALSE;
+  return msiep;
+}  /* alloc_ms_if_exists */
+
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 an_ms_attribute_ptr alloc_ms_attribute(void)
@@ -3957,6 +3991,11 @@ Display and return the amount of space used for various IL tables.
                 num_ms_attribute_args_allocated,
                 an_ms_attribute_arg);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  db_space_used("Microsoft __if_exists",
+                num_ms_if_exists_allocated,
+                an_ms_if_exists);
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   db_space_used("block", num_blocks_allocated, a_block);
   db_space_used("for_loop", num_for_loops_allocated, a_for_loop);
   db_space_used("statement", num_statements_allocated, a_statement);
@@ -4226,6 +4265,9 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_ms_attributes_allocated),
       pch_saved_var_array_elem(num_ms_attribute_args_allocated),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+      pch_saved_var_array_elem(num_ms_if_exists_allocated),
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
       pch_saved_var_array_elem(num_seq_number_lookup_entries_allocated),
       pch_saved_var_array_elem(num_il_entry_prefixes_allocated),
       pch_saved_var_array_elem(num_labels_allocated),
@@ -4411,6 +4453,9 @@ initializations that are done for each compilation.
   num_ms_attributes_allocated            = 0;
   num_ms_attribute_args_allocated        = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  num_ms_if_exists_allocated             = 0;
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   num_seq_number_lookup_entries_allocated
                                          = 0;
   num_blocks_allocated                   = 0;

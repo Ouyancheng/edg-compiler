@@ -148,6 +148,13 @@ typedef struct a_scope_pointers_block {
 			   entered on the corresponding IL scope entry; NULL
 			   if none. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  an_ms_if_exists_ptr
+		last_ms_if_exists;
+			/* End of the list of Microsoft __if_exists entries
+			   entered on the corresponding IL scope entry; NULL
+			   if none. */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		last_source_sequence_entry;
@@ -324,6 +331,15 @@ typedef struct a_scope_stack_entry {
 			   will be inserted in the enclosing scope's list. */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  a_bit_field	create_ms_if_exists_entries:1;
+			/* TRUE if Microsoft __if_exist entries should be
+			   created for this scope.  Such entries are created
+			   for __if_exist directives in class scopes.  This
+			   flag is also set for function prototype scopes
+			   with class scopes so that the use of an __if_exists
+			   in that context may be diagnosed. */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   a_bit_field	nested_instantiation:1;
                         /* TRUE for a template instantiation scope that
 			   is expected to be nested inside of another

@@ -7482,22 +7482,72 @@ mechanism.  This routine scans and builds the asm string.
 }  /* build_microsoft_asm_string */
 
 
-static a_boolean scan_if_exists_identifier(void)
+#if !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+/*ARGSUSED*/ /* <-- "start_pos" is not used in that case. */
+#endif /* !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+static a_boolean scan_if_exists_identifier(a_boolean		is_if_exists,
+					   a_boolean		*is_dependent,
+					   a_source_position	*start_pos)
 /*
-Scan the identifier in a Microsoft __if_exists or __if_not_exists
-directive.  Return TRUE if the identifier exists.
+Scan the identifier in a Microsoft __if_exists or __if_not_exists directive.
+"if_if_exists" is TRUE for __if_exists and FALSE for __if_not_exists.
+Return TRUE if the tokens should be scanned.  This is not strictly the
+same as whether or not the identifier exists because of special handling
+of prototype instantiations.  is_dependent is returned to indicate whether
+the identifier refers to a template-dependent entity.  start_pos is the
+position of the __if_exists or __if_not_exists token.
 */
 {
-  a_boolean	result = FALSE;
+  a_boolean		result = FALSE;
 
+  check_assertion(depth_scope_stack != NO_SCOPE_DEPTH);
+  *is_dependent = FALSE;
   if (is_generalized_identifier_start(GID_IN_IF_EXISTS)) {
     a_boolean		err;
     a_symbol_ptr	sym;
     sym = coalesce_and_lookup_generalized_identifier(
                                  GID_IN_IF_EXISTS, ilm_normal, &err);
-    result = sym != NULL && !sym->is_error;
+    /* Determine whether the symbol refers to a dependent entity.  If the
+       symbol is dependent, the tokens are always retained during the
+       prototype instantiation. */
+    if (sym != NULL && is_template_dependent_context()) {
+      if (is_type_symbol(sym)) {
+        *is_dependent = is_template_param_type_symbol(sym);
+      } else if (sym->kind == (a_symbol_kind)sk_constant) {
+        *is_dependent = is_nontype_template_param_symbol(sym);
+      } else if (sym->kind == (a_symbol_kind)sk_class_template) {
+        *is_dependent = is_template_template_param_symbol(sym);
+      }  /* if */
+    }  /* if */
+    if (*is_dependent) {
+      /* The tokens are always retained in prototype instantiations. */
+      result = TRUE;
+    } else {
+      /* For non-dependent identifiers the tokens are only retained if
+         the condition is TRUE. */
+      result = is_if_exists == (sym != NULL && !sym->is_error);
+    }  /* if */
     /* Bypass the identifier. */
     (void)get_token();
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+    /* For a dependent identifier, create a source sequence entry to
+       mark the start of the __if_exists. */
+    if (*is_dependent && generate_microsoft_if_exists_entries()) {
+      an_ms_if_exists_ptr	msiep;
+      char			*entity;
+      an_il_entry_kind		kind;
+      entity = il_entry_for_symbol(sym, &kind);
+      msiep = alloc_ms_if_exists();
+      msiep->entity.ptr = entity;
+      msiep->entity.kind = kind;
+      msiep->position = *start_pos;
+      msiep->is_if_exists = is_if_exists;
+      msiep->pending = TRUE;
+      add_to_ms_if_exists_list(msiep, decl_scope_level);
+      add_to_source_sequence_list((char *)msiep,
+                                  (an_il_entry_kind)iek_ms_if_exists);
+    }  /* if */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   } else {
     error(ec_exp_identifier);
   }  /* if */
@@ -7505,7 +7555,8 @@ directive.  Return TRUE if the identifier exists.
 }  /* scan_if_exists_identifier */
 
 
-static void cache_if_exists_tokens(a_token_cache_ptr	cache)
+static void cache_if_exists_tokens(a_token_cache_ptr	cache,
+				   a_boolean		is_dependent)
 /*
 Cache then tokens between the braces of an __if_exists or __if_not_exists
 directive.
@@ -7517,6 +7568,16 @@ directive.
   incr_token_set_array_element(stop_tokens, tok_rbrace);
   clear_token_cache(cache, /*reusable=*/FALSE);
   cache_token_stream(cache, stop_tokens);
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  /* Add a special token to the end of the cache to mark the end of the
+     tokens that come from the __if_exists. */
+  if (is_dependent && generate_microsoft_if_exists_entries()) {
+    a_token_kind	saved_curr_token = curr_token;
+    curr_token = tok_end_of_if_exists;
+    cache_curr_token(cache);
+    curr_token = saved_curr_token;
+  }  /* if */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 }  /* cache_if_exists_tokens */
 
 
@@ -7533,10 +7594,16 @@ to be scanned, a cache is created and the tokens are rescanned from
 the cache.
 */
 {
-  a_boolean	exists;
-  a_boolean	keep_tokens;
-  a_token_cache	cache;
+  a_boolean		keep_tokens;
+  a_token_cache		cache;
+  a_boolean		is_dependent;
+  a_source_position	start_pos = pos_curr_token;
+  a_pending_pragma_ptr	saved_curr_token_pragmas;
 
+  /* Clear the curr_token_pragmas list so that it can be restored after the
+     tokens of the __if_exists directive have been scanned. */
+  saved_curr_token_pragmas = curr_token_pragmas;
+  curr_token_pragmas = NULL;
   /* Bypass the directive token. */
   (void)get_token();
   /* Scan the "(". */
@@ -7548,7 +7615,8 @@ the cache.
   add_stop_token(tok_rparen);
   add_stop_token(tok_lbrace);
   /* Scan the identifier. */
-  exists = scan_if_exists_identifier();
+  keep_tokens = scan_if_exists_identifier(ctoken == tok_if_exists,
+                                          &is_dependent, &start_pos);
   /* Scan the ")". */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
@@ -7560,13 +7628,8 @@ the cache.
     /* Bypass the open brace of the directive. */
     (void)get_token();
   }  /* if */
-  /* Determine whether we should keep or discard the tokens.  Always
-     keep the tokens in a prototype instantiation. */
-  check_assertion(depth_scope_stack != NO_SCOPE_DEPTH);
-  keep_tokens = exists == (ctoken == tok_if_exists) ||
-                is_prototype_instantiation_context();
   /* Cache tokens up to the matching brace. */
-  cache_if_exists_tokens(&cache);
+  cache_if_exists_tokens(&cache, is_dependent);
   /* If keeping the tokens, rescan the from the cache; otherwise just
      discard the tokens. */
   if (keep_tokens) {
@@ -7578,8 +7641,133 @@ the cache.
     /* Bypass the closing brace. */
     if (curr_token != tok_end_of_source) (void)get_token();
   }  /* if */
+  /* Add the saved curr_token_pragmas list to the current list.  It will
+     usually be empty, but this is done just in case a new entry was added. */
+  add_to_curr_token_pragma_list(saved_curr_token_pragmas);
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  /* Create a pseudo-pragma that indicates that a source sequence entry
+     was created for this __if_exists.  This is used to detect cases
+     where an __if_exists appears in an invalid context. */
+  if (is_dependent && generate_microsoft_if_exists_entries()) {
+    (void)add_curr_token_pseudo_pragma((a_pragma_kind)pk_if_exists,
+                                       &start_pos);
+  }  /* if */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 }  /* scan_microsoft_if_exists */
 
+
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+
+void f_check_for_if_exists_pragmas(void)
+/*
+If there are any current token pragmas that are __if_exists pseudo-pragmas
+process them now.  This routine is called in locations in which an
+__if_exists is permitted.  The pragma entry is removed from the list,
+so that the pragma processing function (if_exists_pragma) will not be
+called.  If a pragma appears in an invalid location, if_exists_pragma
+is called, resulting in a diagnostic.
+*/
+{
+  a_pending_pragma_ptr	ppp;
+  a_pending_pragma_ptr	prev_ppp = NULL;
+  a_pending_pragma_ptr	next_ppp;
+
+  for (ppp = curr_token_pragmas; ppp != NULL; ppp = next_ppp) {
+    next_ppp = ppp->next;
+    if (ppp->descr_ptr->kind == (a_pragma_kind)pk_if_exists) {
+      /* Unlink this entry from the list of current token pragmas. */
+      if (prev_ppp == NULL) {
+        curr_token_pragmas = ppp->next;
+      } else {
+        prev_ppp->next = ppp->next;
+      }  /* if */
+      free_pending_pragma(ppp);
+    } else {
+      prev_ppp = ppp;
+    }  /* if */
+  }  /* for */
+}  /* f_check_for_if_exists_pragmas */
+
+
+void if_exists_pragma(a_pending_pragma_ptr	ppp)
+/*
+The routine called when a if_exists pseudo pragma is encountered on the
+current token pragmas list.  Such pragmas are processed specially in
+locations where they are allowed.  A diagnostic is issued for any
+entries that have not been handled.
+*/
+{
+  pos_diagnostic(ppp->descr_ptr->error_severity,
+                 ec_if_exists_not_allowed, &ppp->pragma_position);
+}  /* if_exists_pragma */
+
+
+static an_ms_if_exists_ptr last_pending_if_exists(void)
+/*
+Return a pointer to the last unclosed __if_exists block, or NULL if there
+are no such blocks.
+*/
+{
+  an_ms_if_exists_ptr		msiep;
+  an_ms_if_exists_ptr		opening_msiep = NULL;
+  a_scope_stack_entry_ptr	ssep;
+
+  /* Find the __if_exists entry that this brace closes.  Note that this
+     finds the last pending entry on the list. */
+  ssep = &scope_stack[decl_scope_level];
+  for (msiep = ssep->il_scope != NULL ? ssep->il_scope->ms_if_exists : NULL;
+       msiep != NULL; msiep = msiep->next) {
+    if (msiep->pending) opening_msiep = msiep;
+  }  /* for */
+  return opening_msiep;
+}  /* last_pending_if_exists */
+
+
+void check_for_unclosed_if_exists_blocks(void)
+/*
+Make sure the current scope does not contain any unclosed __if_exists
+blocks.  Issue an error if any are found.
+*/
+{
+  an_ms_if_exists_ptr	msiep;
+
+  msiep = last_pending_if_exists();
+  if (msiep != NULL) {
+    pos_error(ec_if_exists_not_closed, &msiep->position);
+  }  /* if */
+}  /* check_for_unclosed_if_exists_blocks */
+
+
+static void process_end_of_if_exists(void)
+/*
+This routine is called by the lexical routines when a special "end of
+__if_exists" token is encountered.  Generate a source sequence entry
+to mark the end of the __if_exists.
+*/
+{
+  an_ms_if_exists_ptr		msiep;
+  an_ms_if_exists_ptr		opening_msiep;
+
+  /* Reset the pending flag of the last pending __if_exists block. */
+  opening_msiep = last_pending_if_exists();
+  if (opening_msiep == NULL) {
+    /* No open entry was found.  An error will have been issued at the end
+       of the scope containing the unclosed block. */
+  } else {
+    opening_msiep->pending = FALSE;
+  }  /* if */
+  msiep = alloc_ms_if_exists();
+  msiep->position = pos_curr_token;
+  add_to_ms_if_exists_list(msiep, decl_scope_level);
+  add_to_source_sequence_list((char *)msiep,
+                              (an_il_entry_kind)iek_ms_if_exists);
+  /* Create a pseudo-pragma that indicates that a source sequence entry
+     was created for this __if_exists. */
+  (void)add_curr_token_pseudo_pragma((a_pragma_kind)pk_if_exists,
+                                     &pos_curr_token);
+}  /* process_end_of_if_exists */
+
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
 static void scan_microsoft_identifier_operator(void)
 /*
@@ -7956,6 +8144,9 @@ to speed in some cases.
       process_curr_token_pragmas();
       recalc_any_initial_get_token_tests_needed();
     }  /* if */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+restart:
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
     /* If there are cached tokens to be rescanned, first check the
        cached_token_rescan_list and take the first token on the list if
        it is non-NULL, otherwise check the reusable cache stack. */
@@ -7963,6 +8154,14 @@ to speed in some cases.
        list. */
     if (cached_token_rescan_list != NULL) {
       ctoken = get_token_from_cached_token_rescan_list();
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+      /* Mark the point at which the end of the __if_exists tokens was
+         encountered. */
+      if (ctoken == tok_end_of_if_exists) {
+        process_end_of_if_exists();
+        goto restart;
+      }  /* if */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
       gotten_from_cache = TRUE;
     } else if (reusable_cache_stack != NULL) {
       /* If there are tokens to be rescanned from the reusable cache stack

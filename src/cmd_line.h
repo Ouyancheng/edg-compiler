@@ -1103,6 +1103,13 @@ EXTERN char	*import_dir_name;
 			   sought for the Microsoft #import directive. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+EXTERN a_boolean
+		create_microsoft_if_exists_entries;
+			/* TRUE if IL entries should be created for Microsoft
+			   __if_exist directives in certain contexts. */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+
 EXTERN a_boolean
 		enum_types_can_be_larger_than_int;
 			/* TRUE when an enumerator type can be based on an

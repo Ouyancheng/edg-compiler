@@ -372,6 +372,10 @@ possible.
     case pk_db_name:
       break;
 #endif /* DEBUG */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+    case pk_if_exists:
+      break;
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
     case pk_unrecognized:
       /* No special initialization is required. */
@@ -1932,6 +1936,23 @@ Initialize the pragma description table.
 		 /*il_info_is_complete=*/FALSE,
                  es_error);
 #endif /* DEBUG */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  if (microsoft_mode) {
+    (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_if_exists,
+                 (an_immediate_pragma_function_ptr)if_exists_pragma,
+		 /*is_pseudo_pragma=*/TRUE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/TRUE,
+                 /*expand_macros=*/TRUE,
+                 /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+                 es_error);
+  }  /* if */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   /* When unrecognized pragmas are being included in the IL, we need a
      pragma description that can be used for the unrecognized pragmas.

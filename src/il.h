@@ -1094,6 +1094,10 @@ extern a_boolean has_nonreal_parent_type(a_source_correspondence	*scp);
 extern void add_to_ms_attributes_list(an_ms_attribute_ptr	msap,
                                       a_scope_depth		scope_depth);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+extern void add_to_ms_if_exists_list(an_ms_if_exists_ptr	msiep,
+                                     a_scope_depth		scope_depth);
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
 #if RECORD_MACROS_IN_IL
 extern void add_to_macros_list(a_macro_ptr  mp);

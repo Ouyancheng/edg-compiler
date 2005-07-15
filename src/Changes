@@ -1,5 +1,26 @@
 Version 3.7
 
+7/15/05  Microsoft compatibility: __if_exists entries in the IL
+
+Representing __if_exists entries in the IL is problematic because,
+although the Microsoft documentation describes the contents of
+an __if_exists block as a statement, the Microsoft compiler actually
+accepts any fragment of a statement or declaration in the block
+(as does our front end in Microsoft mode).  We have implemented a
+mechanism that can represent __if_exists blocks that appear in class
+definitions, and which surround complete declarations of the class.
+This mechanism is controlled by the GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+configuration macro, which is enabled by default when the front end is
+configured to generate source sequence entries, include prototype
+instantiations in the IL, and accept Microsoft extensions.
+
+When an __if_exists appears in a valid location in a class definition, an
+IL entry (an_ms_if_exists) and source sequence entry are created for the
+start and end of the block (IL CHANGE).  __if_exists blocks in other scopes
+are not represented in the IL (but are still included in the textual
+representation of templates).  If an __if_exists appears in an invalid
+context in a class definition, an error is issued.
+
 7/15/05  Microsoft compatibility: POD_CLASS().field is not an lvalue
 
 The 3/29/05 change to make POD_func().field be considered an lvalue

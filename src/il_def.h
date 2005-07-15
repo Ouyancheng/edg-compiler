@@ -364,6 +364,19 @@ typedef a_byte a_name_linkage_kind;
 #endif /* ifndef is_name_linkage_kind_subject_to_name_mangling */
 #endif /* NEED_NAME_MANGLING */
 
+/*
+The Microsoft __if_exists entry is only needed when Microsoft extensions
+are enabled, source sequence entries are being generated, and prototype
+instantiations are included in the IL
+*/
+#ifndef GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL &&	\
+    MICROSOFT_EXTENSIONS_ALLOWED
+#define GENERATE_MICROSOFT_IF_EXISTS_ENTRIES TRUE
+#else /* !(GENERATE_SOURCE_SEQUENCE_LISTS && ...) */
+#define GENERATE_MICROSOFT_IF_EXISTS_ENTRIES FALSE
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
+#endif /* ifndef GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
 /*
 Names of linkage kinds.  These are used to recognize the string in a
@@ -547,6 +560,9 @@ typedef enum /*an_il_entry_kind*/ {
   iek_macro_invocation_record_block,
 			/* a_macro_invocation_record_block */
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  iek_ms_if_exists,	/* an_ms_if_exists */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -687,6 +703,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if MACRO_INVOCATION_TREE_IN_IL
 /* iek_macro_invocation_record_block */ "macro-invocation-record-block",
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+/* iek_ms_if_exists */			"ms-if-exists",
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -1026,6 +1045,64 @@ typedef struct an_instantiation_directive {
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } an_instantiation_directive;
 
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+
+/*
+Entry describing a Microsoft __if_exists (or __if_not_exists) block.
+An entry is created at the start and end of the block.  Note that
+although the Microsoft documentation describes the contents of an
+__if_exists block as a statement, the Microsoft compiler actually
+permits any fragment of a statement or declaration to be specified in
+the block.  Our emulation of __if_exists in the front end permits this
+usage too.  However, when source sequence entries are created for
+__if_exists blocks, the starting and ending markers are recorded in
+the source sequence list, which means that the C++-generating back end
+can only correctly recreate an __if_exists from IL in cases where the
+the __if_exists block contains a complete statement or declaration.
+At this time, __if_exists entries are only created for uses that appear
+in class definitions.  Most other uses (at least in the Microsoft headers)
+do not conform to the rules described above.  If an __if_exists appears in
+a class in a way that violates the rules above, an error is issued.
+
+__if_exists entries are only created for __if_exists blocks in which
+the tested entity is a dependent name.  When the __if_exists is not
+dependent, it is simply evaluated during the prototype instantiation
+(and any actual instantiations).
+*/
+typedef struct an_ms_if_exists *an_ms_if_exists_ptr;
+typedef struct an_ms_if_exists {
+  an_ms_if_exists_ptr
+		next;
+                        /* Pointer to the next entry in a given scope.
+                           NULL if this the last attribute in the scope. */
+  a_tagged_pointer
+		entity;
+			/* The entity whose existence is being tested.  Note
+			   that a test of a dependent name such as T::X will
+			   result in the creation of a nonreal member X of T,
+			   so an entity will be exist for this entry to point
+			   to in such cases.  This pointer will be NULL in the
+			   entry for the end of the block. */
+  a_source_position
+		position;
+			/* The position of the start of the __if_exists
+			   block, or the position of the closing brace if
+			   this entry marks the end of the block. */
+  a_byte_boolean
+		is_if_exists;
+			/* TRUE if this an __if_exists, FALSE if it is
+			   an __if_not_exists.  This field is only set
+			   for the entry that records the start of the
+			   __if_exists. */
+  a_byte_boolean
+		pending;
+			/* TRUE if the closing brace of the block has not yet
+			   been encountered.  This is used by the front end,
+			   and is only used for entries for the start of a
+			   block. */
+} an_ms_if_exists;
+
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 
@@ -3404,6 +3481,10 @@ enum a_pragma_kind_tag {
   pk_db_opt,		/* Used to specify a debugging option string. */
   pk_db_name,		/* Used to specify a debug entity name. */
 #endif /* DEBUG */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  pk_if_exists,		/* Used in the implementation of the Microsoft
+			   __if_exists feature. */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   pk_unrecognized,	/* This pragma kind is used for pragmas that are
 			   not recognized by the front end but are to be
@@ -3487,6 +3568,9 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 /* pk_db_opt */			"db_opt",
 /* pk_db_name */		"db_name",
 #endif /* DEBUG */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+/* pk_if_exists */		"__if_exists",
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
 /* pk_unrecognized */		"unrecognized",
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
@@ -11199,6 +11283,11 @@ typedef struct a_scope {
 			   entries are present only in namespace scopes
 			   (including the file scope) and class scopes. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  an_ms_if_exists_ptr
+		ms_if_exists;
+			/* Linked list of Microsoft __if_exists entries. */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 } a_scope;
 
 /*
@@ -11677,6 +11766,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if MACRO_INVOCATION_TREE_IN_IL
   sizeof(a_macro_invocation_record_block),
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  sizeof(an_ms_if_exists),
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

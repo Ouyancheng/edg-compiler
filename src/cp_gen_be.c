@@ -2320,6 +2320,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
              keyword.  Use it for this reference. */
           write_tok_str("__super");
           write_tok_str("::");
+        } else if (scp->member_of_unknown_base) {
+          /* Suppress the class qualifier if it is an unknown base class. */
         } else {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           gen_class_qualifier(class_type,
@@ -9426,6 +9428,38 @@ Generate code for an instantiation directive.
   }  /* if */
 }  /* gen_instantiation_directive */
 
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+
+static void gen_ms_if_exists()
+/*
+Generate code for a Microsoft __if_exists directive.  IL entries for
+__if_exists entries are only generated for uses that appear in class
+definitions.  When generating these entries, the front end verifies that
+the __if_exist appears between top-level declarations of the class.
+*/
+{
+  an_ms_if_exists_ptr	msiep = ss_entry_ptr(curr_source_sequence_entry,
+                                             an_ms_if_exists_ptr);
+  char			*entity = msiep->entity.ptr;
+
+  /* Advance past the source sequence entry for the __if_exists. */
+  adv_curr_source_sequence_entry();
+  if (entity != NULL) {
+    /* A non-NULL entity pointer indicates that this is the start of the
+       __if_exists block. */
+    set_output_position(&msiep->position);
+    write_tok_str((char *)(msiep->is_if_exists ? "__if_exists("
+                                               : "__if_not_exists("));
+    gen_name((a_source_correspondence*)entity, msiep->entity.kind,
+             GN_NO_OPTIONS, (a_boolean*)NULL);
+    write_tok_str(") {");
+  } else {
+    /* Mark the end of the block. */
+    write_tok_str("}");
+  }  /* if */
+}  /* gen_ms_if_exists */
+
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       top_statement_of_switch)
@@ -11738,6 +11772,11 @@ that case) and old-style parameter declarations.
       case iek_instantiation_directive:
         gen_instantiation_directive();
         break;
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+      case iek_ms_if_exists:
+        gen_ms_if_exists();
+        break;
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
       default:
         unexpected_condition_str(
                         "gen_declaration: bad entity kind on source seq list");

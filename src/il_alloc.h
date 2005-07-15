@@ -126,6 +126,9 @@ extern an_ms_attribute_ptr alloc_ms_attribute(void);
 extern
 an_ms_attribute_arg_ptr alloc_ms_attribute_arg(an_ms_attribute_arg_kind	kind);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+extern an_ms_if_exists_ptr alloc_ms_if_exists(void);
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
 extern a_seq_number_lookup_entry_ptr alloc_seq_number_lookup_entry(void);
 
@@ -275,6 +278,12 @@ Macro that allocates an entry for the specified type in the file scope
 memory region.
 */
 #define alloc_il_of_type(type) (type*)alloc_il(sizeof(type))
+
+/*
+Macro that allocates an entry for the specified type in the current
+memory region.
+*/
+#define alloc_cil_of_type(type) (type*)alloc_cil(sizeof(type))
 
 #endif /* ifndef IL_ALLOC_H */
 

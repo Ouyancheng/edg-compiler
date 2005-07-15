@@ -13787,11 +13787,6 @@ classes.
   }  /* if */
   if (curr_token == tok_lbrace) {
     /* Scan the structure or union definition. */
-    /* Begin a new stop token state. */
-    push_stop_token_stack();
-    /* Advance past the left brace. */
-    (void)get_token();
-    add_stop_token(tok_rbrace);
     /* Start a scope for the fields and other members.  Since the class type
        is allocated in the file scope memory region, all its members must also
        allocated there -- push_scope will switch to the file scope memory
@@ -13799,6 +13794,11 @@ classes.
     scope_ptr = push_scope((a_scope_kind)sck_class_struct_union,
                            NO_SCOPE_NUMBER, class_type, (a_routine_ptr)NULL);
     scope_stack[depth_scope_stack].class_def_state = &class_state;
+    /* Begin a new stop token state. */
+    push_stop_token_stack();
+    /* Advance past the left brace. */
+    (void)get_token();
+    add_stop_token(tok_rbrace);
     if (C_dialect == C_dialect_cplusplus) {
       /* In C++ every class, struct, and union type entry will have a non-NULL
          pointer to a class type supplement entry.  Put a pointer to the
@@ -13849,6 +13849,9 @@ classes.
       do {
         an_ms_attribute_ptr  ms_attributes = NULL;
         add_stop_token(tok_semicolon);
+        /* This is a valid location for an __if_exists pragma to appear when
+           creating source sequence entries for __if_exists. */
+        check_for_if_exists_pragmas();
         /* Move cached #pragma declarations (if any) to the current scope
            stack entry so they can be examined and acted upon in subsequent
            processing. */
@@ -14018,6 +14021,9 @@ next_declaration:
       /* Force the functions to compute the scope depth, if any. */
       effective_decl_level = NO_SCOPE_DEPTH;
     }  /* if */
+    /* This is a valid location for an __if_exists pragma to appear when
+       creating source sequence entries for __if_exists. */
+    check_for_if_exists_pragmas();
     /* Process pragmas associated with the closing brace before the current
        scope is popped and before add_end_of_construct_source_sequence_entry
        is called. */

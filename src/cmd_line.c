@@ -1676,6 +1676,9 @@ by a command line option.
   /* The Microsoft C++ compiler does not check accessibility of friend function
      declarations. */
   no_access_check_on_friend_declarator_ids = TRUE;
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  create_microsoft_if_exists_entries = TRUE;
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4862,6 +4865,9 @@ variables declared in cmd_line.h.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   import_dir_name = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  create_microsoft_if_exists_entries = FALSE;
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   enum_types_can_be_larger_than_int = FALSE;
   enum_types_can_be_smaller_than_int = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS

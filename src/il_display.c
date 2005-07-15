@@ -4387,6 +4387,26 @@ Display the indicated Microsoft attribute entry.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+
+static void disp_ms_if_exists(an_ms_if_exists_ptr ptr)
+/*
+Display the indicated Microsoft __if_exists entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_ms_if_exists);
+  if (ptr->entity.ptr != NULL) {
+    disp_ptr("entity", (char *)ptr->entity.ptr,
+             (an_il_entry_kind)ptr->entity.kind);
+    /* is_if_exists is only set for the start of a block. */
+    disp_boolean("is_if_exists", (a_boolean)ptr->is_if_exists);
+  }  /* if */
+  disp_source_position("position", &ptr->position);
+  if (ptr->pending) disp_boolean("pending", (a_boolean)ptr->pending);
+}  /* disp_ms_if_exists */
+
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+
 #if RECORD_MACROS_IN_IL
 
 static void disp_macro(a_macro_ptr  ptr)
@@ -4657,6 +4677,9 @@ do_assoc_type:
 #if MICROSOFT_EXTENSIONS_ALLOWED
   disp_ptr("ms_attributes", (char *)ptr->ms_attributes, iek_ms_attribute);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  disp_ptr("ms_if_exists", (char *)ptr->ms_if_exists, iek_ms_if_exists);
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 #ifdef FFE
   disp_ptr("entries", (char *)ptr->entries, iek_entry_description);
   disp_ptr("namelist_groups", (char *)ptr->namelist_groups,
@@ -5829,6 +5852,11 @@ This routine is called during IL walking.
           disp_ms_attribute((an_ms_attribute_ptr)entry_ptr);
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+        case iek_ms_if_exists:
+          disp_ms_if_exists((an_ms_if_exists_ptr)entry_ptr);
+          break;
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 #if RECORD_MACROS_IN_IL
         case iek_macro:
           disp_macro((a_macro_ptr)entry_ptr);

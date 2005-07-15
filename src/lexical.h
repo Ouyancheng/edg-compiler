@@ -186,6 +186,9 @@ typedef enum /*a_token_kind*/ {
   tok_charize,
   tok_if_exists,
   tok_if_not_exists,
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  tok_end_of_if_exists,		/* Generated token used by front end. */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   tok_super,
   tok_noop,
   tok_interface,
@@ -313,7 +316,11 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__cdecl", "__declspec", "__fastcall", "__inline", "__forceinline",
    "__stdcall", "__unaligned", "__try", "__finally", "__leave", "__except",
    "__int8", "__int16", "__int32", "__int64", "__based",
-   "__uuidof", "__assume", "#@", "__if_exists", "__if_not_exists", "__super",
+   "__uuidof", "__assume", "#@", "__if_exists", "__if_not_exists",
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+   "end of __if_exists",
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+   "__super",
    "__noop", "__interface", "__w64", "__LPREFIX", "__identifier",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__asm",
@@ -692,6 +699,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_charize */
    (an_opname_kind)onk_none,          /* tok_if_exists */
    (an_opname_kind)onk_none,          /* tok_if_not_exists */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+   (an_opname_kind)onk_none,          /* tok_end_of_if_exists */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
    (an_opname_kind)onk_none,          /* tok_super */
    (an_opname_kind)onk_none,          /* tok_noop */
    (an_opname_kind)onk_none,          /* tok_interface */
@@ -2338,6 +2348,32 @@ Convert a character hex digit to the associated hex digit value.
 */
 #define hexvalue(ch) ((ch) - (isdigit((unsigned char)ch) ? '0' : \
                              (islower((unsigned char)ch) ? 'a'-0xa : 'A'-0xA)))
+
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+/*
+Macro used in locations where a source sequence entry can be created for
+an __if_exists directive.
+*/
+#define check_for_if_exists_pragmas()					\
+  if (curr_token_pragmas != NULL) f_check_for_if_exists_pragmas()
+/*
+Macro used to determine whether a source sequence entry should be created
+for a given __if_exists directive.
+*/
+#define generate_microsoft_if_exists_entries()				\
+  (create_microsoft_if_exists_entries &&				\
+   prototype_instantiations_in_il &&					\
+   depth_scope_stack != NO_SCOPE_DEPTH &&				\
+   scope_stack[depth_scope_stack].create_ms_if_exists_entries)
+#else /* !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+#define check_for_if_exists_pragmas() /* nothing */
+#endif /* !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+extern void if_exists_pragma(a_pending_pragma_ptr	ppp);
+extern void f_check_for_if_exists_pragmas(void);
+extern void check_for_unclosed_if_exists_blocks(void);
+#endif /* !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
 #endif /* ifndef LEXICAL_H */
 
