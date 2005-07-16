@@ -1,5 +1,16 @@
 Version 3.7
 
+7/15/05  GNU C compatibility: asm output operands of type void
+
+In GNU C mode, the front end now accepts asm output operands of type void
+(such operands must still be lvalues).  For example:
+
+  void f(void *p) {
+    asm("ins %0": "=X"(*p));  // Now accepted in GNU C mode.
+  }
+
+Such constructs remain invalid in GNU C++ mode.
+
 7/15/05  Microsoft compatibility: __if_exists entries in the IL
 
 Representing __if_exists (and __if_not_exists) entries in the IL is

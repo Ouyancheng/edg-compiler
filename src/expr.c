@@ -4427,8 +4427,12 @@ to scan_integer_expression with slightly different checks.
     do_operand_transformations(&result, options);
   }  /* if */
   if (output) {
-    /* Output operands must be modifiable lvalues. */
-    if (check_modifiable_lvalue_operand(&result)) {
+    /* Output operands must be modifiable lvalues.  Some versions of the GNU C
+       (but not GNU C++) compiler also accept void lvalues.  Since these
+       versions seem to be platform-dependent, we accept that variation for
+       all values of gnu_version.  */
+    if ((gcc_mode && is_an_lvalue(&result) && is_void_type(result.type)) ||
+        check_modifiable_lvalue_operand(&result)) {
       modifying_lvalue(&result, /*value_used=*/FALSE);
     }  /* if */
   }  /* if */
