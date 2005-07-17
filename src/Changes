@@ -1,5 +1,25 @@
 Version 3.7
 
+7/17/05  GNU C++ compatibility: f().field as lvalue
+
+The emulation for g++'s treatment of a field selected from a class
+rvalue as itself an lvalue has been improved.  The selection is
+now considered an lvalue only in contexts that require an lvalue,
+not ones (like overload resolution) that can accept either
+an lvalue or an rvalue.
+
+  struct A {
+    int i;
+  } a;
+  A f() { return a; }
+  extern "C" int printf(const char *, ...);
+  void fff(int &) { printf("int &\n"); }
+  void fff(const int &) { printf("const int &\n"); }
+  int main() {
+    int *p = &f().i;  // Still accepted in g++ mode
+    fff(f().i);       // Prints "const int &" now in g++ mode
+  }
+
 7/15/05  GNU C compatibility: asm output operands of type void
 
 In GNU C mode, the front end now accepts asm output operands of type void

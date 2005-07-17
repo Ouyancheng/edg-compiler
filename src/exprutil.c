@@ -4808,6 +4808,7 @@ for example, in something like "(short)i = 0").
       a_boolean  casts_removed = FALSE;
       a_type_ptr type_cast_to = NULL, type_before_cast = NULL;
       an_expr_node_ptr expr = operand->variant.expression;
+      an_expr_operator_kind op;
       if (gpp_mode &&
           is_operation_node(expr) &&
           expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
@@ -4820,15 +4821,14 @@ for example, in something like "(short)i = 0").
           expr = expr->variant.operation.operands;
         }  /* if */
       }  /* if */
+      if (is_operation_node(expr)) op = expr->variant.operation.kind;
       if (is_operation_node(expr) &&
-          (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast ||
+          (op == (an_expr_operator_kind)eok_cast ||
            (gcc_mode &&
-            (expr->variant.operation.kind ==
-                                         (an_expr_operator_kind)eok_question ||
-             expr->variant.operation.kind ==
-                                         (an_expr_operator_kind)eok_comma)))) {
+            (op == (an_expr_operator_kind)eok_question ||
+             op == (an_expr_operator_kind)eok_comma)))) {
         casts_removed = 
-            (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
+            (op == (an_expr_operator_kind)eok_cast &&
              !expr->variant.operation.compiler_generated);
         /* See whether we can find an underlying lvalue. */
         conv_rvalue_expr_to_object_pointer(&expr, &do_recovery,
@@ -4836,6 +4836,35 @@ for example, in something like "(short)i = 0").
                                            /*gcc_lvalue=*/gcc_mode,
                                            ignore_casts,
                                            (a_type_ptr *)NULL);
+      } else if (!C_mode() &&
+                 is_operation_node(expr) &&
+                 op == (an_expr_operator_kind)eok_value_field) {
+        /* A field selection out of an rvalue in C++ can be converted to an
+           lvalue selection. */
+        an_expr_node_ptr texpr = expr->variant.operation.operands;
+        an_expr_node_ptr texpr2 = texpr->next;
+        a_field_ptr      field = texpr2->variant.field;
+        an_operand       class_operand;
+        texpr->next = NULL;
+        /* Turn the first operand, the class object, into an lvalue. */
+        make_expression_operand(texpr, texpr->type, &class_operand);
+        revert_class_rvalue_to_lvalue_if_possible(&class_operand);
+        if (is_an_lvalue(&class_operand)) {
+          an_operand orig_operand;
+          orig_operand = *operand;
+          check_assertion(is_expression_operand(&class_operand));
+          texpr = class_operand.variant.expression;
+          /* Add the field selection. */
+          texpr = fe_field_lvalue_selection_expr(texpr, field);
+          make_expression_operand(texpr, type_pointed_to(texpr->type),
+                                  operand);
+          operand->state = (an_operand_state)os_lvalue;
+          restore_operand_details(operand, &orig_operand);
+        } else {
+          /* We failed to make an lvalue.  Keep the original operation
+             and  relink the operands. */
+          texpr->next = texpr2;
+        }  /* if */
       } else if (!C_mode() &&
                  is_class_struct_union_type(operand->type)) {
         /* A function call returning a class value can be treated as
