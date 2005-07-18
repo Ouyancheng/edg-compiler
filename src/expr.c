@@ -12767,7 +12767,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     } else if (types_are_the_same) {
       /* If the types are the same, we do not look for conversions to
          or from class types. */
-      if (microsoft_mode && !C_mode() &&
+      if (microsoft_mode &&
           is_class_struct_union_type(operand_2.type)) {
         /* Try to get lvalues back to get an lvalue result. */
         revert_microsoft_rvalue_to_lvalue_if_possible(&operand_2);
