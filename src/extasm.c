@@ -307,7 +307,7 @@ Errors are diagnosed at the given position.
     pos_error(ec_match_limit_for_symbolic_asm_operand, diag_pos);
     result = (an_asm_operand_constraint_kind)aoc_invalid;
   } else {
-    result = (an_asm_operand_constraint_kind)(aoc_match_0 + op_num);
+    result = (an_asm_operand_constraint_kind)((int)aoc_match_0 + op_num);
   }  /* if */
   return result;
 }  /* get_symbolic_matching_constraint */
