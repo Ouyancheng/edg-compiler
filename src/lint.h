@@ -455,7 +455,7 @@ extern int fileno(FILE *);
 #endif /* LOWER_COMPLEX || LOWER_VARIABLE_LENGTH_ARRAY || ... */
 #endif /* DO_IL_LOWERING */
 #if !FULLY_RESOLVED_MACRO_POSITIONS
-/*lint -esym(769,ec_in_macro_expansion_of)*/
+/*lint -esym(769,ec_in_macro_expansion_at)*/
 #endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
 #if !MACRO_INVOCATION_TREE_IN_IL
 /*lint -esym(769,ec_name_of_unknown_macro)*/
