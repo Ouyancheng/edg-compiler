@@ -222,11 +222,12 @@ static int find_symbolic_operand(char                **pc,
                                  a_source_position   *diag_pos)
 /*
 *pc points to a left bracket ('[') that starts a reference to a symbolic asm
-operand.  Advance the *pc pointer to the matching right bracket (or the last
-character in the string if there is no right bracket) and return the position
-of the indicated operand.  If the indicated operand name does not correspond
-to a previous operand, issue an error (at the given source position) and
-return -1.
+operand.  Advance the *pc pointer to the matching right bracket (or the null
+character terminating the string if there is no right bracket) and return the
+position of the indicated operand.  If the indicated operand name does not
+correspond to a previous operand, issue an error (at the given source
+position) and return -1.  operands points to the list of operands created so
+far (this routine is sometimes called when that list is still incomplete).
 */
 {
   int   result = -1, n = 0;
@@ -235,7 +236,7 @@ return -1.
   check_assertion(**pc == '[');
   start = ++*pc;
   /* Find the end of the symbolic operand name. */
-  while (**pc != ']' && *(*pc + 1) != '\0') {
+  while (**pc != ']' && **pc != '\0') {
     ++*pc;
   }  /* while */
   /* Look for an operand with that name in the list of preceding operands. */
@@ -273,14 +274,14 @@ references are reported at the given position.
   while (*pc != '\0') {
     if (pc[0] == '%' && pc[1] == '[') {
       /* We found a "%[" construct.  Look up the symbolic operand reference
-         that (normally) follows.  The call to find_symbol_operand with
+         that (normally) follows.  The call to find_symbol_operand will
          trigger any needed diagnostics. */
       ++pc;
       (void)find_symbolic_operand(&pc, operands, diag_pos);
     } else {
       ++pc;
     }  /* if */
-  }  /* if */
+  }  /* while */
 }  /* valid_symbolic_operand_references */
 
 
@@ -705,7 +706,7 @@ even if they are invalid.
 
 static void asm_operand(an_asm_operand_ptr operand,
                         an_asm_operand_ptr operands,
-                        a_boolean output)
+                        a_boolean          output)
 /*
 Scan a single asm-statement operand, writing it into the structure pointed to
 by operand.  The syntax is
@@ -733,7 +734,7 @@ if we're scanning an output operand.
     } else {
       /* Record the identifier as the name of the operand. */
       a_symbol_header  *sym_hdr = locator_for_curr_id.symbol_header;
-      operand->name = alloc_il(sym_hdr->identifier_length);
+      operand->name = alloc_il(sym_hdr->identifier_length+1);
       (void)strcpy(operand->name, sym_hdr->identifier);
       (void)get_token();
     }  /* if */
