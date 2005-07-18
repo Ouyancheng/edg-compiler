@@ -2330,8 +2330,6 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
              keyword.  Use it for this reference. */
           write_tok_str("__super");
           write_tok_str("::");
-        } else if (scp->member_of_unknown_base) {
-          /* Suppress the class qualifier if it is an unknown base class. */
         } else {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           gen_class_qualifier(class_type,
