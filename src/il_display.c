@@ -4402,6 +4402,12 @@ Display the indicated Microsoft __if_exists entry.
     disp_boolean("is_if_exists", (a_boolean)ptr->is_if_exists);
   }  /* if */
   disp_source_position("position", &ptr->position);
+#if RECORD_FORM_OF_NAME_REFERENCE
+  if (ptr->name_reference != NULL) {
+    disp_ptr("name_reference", (char *)ptr->name_reference,
+             iek_name_reference);
+  }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   if (ptr->pending) disp_boolean("pending", (a_boolean)ptr->pending);
 }  /* disp_ms_if_exists */
 

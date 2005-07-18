@@ -7527,8 +7527,6 @@ position of the __if_exists or __if_not_exists token.
          the condition is TRUE. */
       result = is_if_exists == (sym != NULL && !sym->is_error);
     }  /* if */
-    /* Bypass the identifier. */
-    (void)get_token();
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
     /* For a dependent identifier, create a source sequence entry to
        mark the start of the __if_exists. */
@@ -7543,11 +7541,18 @@ position of the __if_exists or __if_not_exists token.
       msiep->position = *start_pos;
       msiep->is_if_exists = is_if_exists;
       msiep->pending = TRUE;
+#if RECORD_FORM_OF_NAME_REFERENCE
+      msiep->name_reference = qualifiable_name_reference(
+                                             &locator_for_curr_id,
+                                             (a_source_correspondence*)entity);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       add_to_ms_if_exists_list(msiep, decl_scope_level);
       add_to_source_sequence_list((char *)msiep,
                                   (an_il_entry_kind)iek_ms_if_exists);
     }  /* if */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+    /* Bypass the identifier. */
+    (void)get_token();
   } else {
     error(ec_exp_identifier);
   }  /* if */

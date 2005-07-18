@@ -2003,6 +2003,10 @@ end_sizeof:;
         remap_next_ptr(ptr->next, an_ms_if_exists_ptr, iek_ms_if_exists);
         walk_ptr(ptr->entity.ptr, a_char_ptr,
                  (an_il_entry_kind)ptr->entity.kind);
+#if RECORD_FORM_OF_NAME_REFERENCE
+        walk_ptr(ptr->name_reference, a_name_reference_ptr,
+                 iek_name_reference);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       }
       break;
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */

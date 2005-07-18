@@ -3811,6 +3811,9 @@ and return a pointer to it.
   msiep->entity.kind = (a_byte_il_entry_kind)iek_none;
   msiep->entity.ptr  = NULL;
   msiep->position = null_source_position;
+#if RECORD_FORM_OF_NAME_REFERENCE
+  msiep->name_reference = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   msiep->is_if_exists = FALSE;
   msiep->pending = FALSE;
   return msiep;

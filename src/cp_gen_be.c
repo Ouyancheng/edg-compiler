@@ -9461,8 +9461,21 @@ the __if_exist appears between top-level declarations of the class.
     set_output_position(&msiep->position);
     write_tok_str((char *)(msiep->is_if_exists ? "__if_exists("
                                                : "__if_not_exists("));
-    gen_name((a_source_correspondence*)entity, msiep->entity.kind,
-             GN_NO_OPTIONS, (a_boolean*)NULL);
+#if RECORD_FORM_OF_NAME_REFERENCE
+    if (msiep->name_reference != NULL) {
+      /* We have information on the exact form of reference, so use that
+         to generate the name. */
+write_tok_str("/*from name ref*/");
+      gen_name_from_name_reference(msiep->name_reference,
+                                   (a_source_correspondence*)entity,
+                                   msiep->entity.kind);
+    } else
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+    /* Do not insert code here. */
+    {
+      gen_name((a_source_correspondence*)entity, msiep->entity.kind,
+               GN_NO_OPTIONS, (a_boolean*)NULL);
+    }
     write_tok_str(") {");
   } else {
     /* Mark the end of the block. */

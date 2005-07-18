@@ -1074,6 +1074,11 @@ typedef struct an_ms_if_exists {
 			/* The position of the start of the __if_exists
 			   block, or the position of the closing brace if
 			   this entry marks the end of the block. */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  a_name_reference_ptr
+		name_reference;
+			/* The form of the identifier used. */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   a_byte_boolean
 		is_if_exists;
 			/* TRUE if this an __if_exists, FALSE if it is
