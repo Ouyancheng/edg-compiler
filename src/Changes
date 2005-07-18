@@ -1,5 +1,27 @@
 Version 3.7
 
+7/18/05  C++-generating back end: placement of #pragma pack() directives
+
+When USER_CONTROL_OF_STRUCT_PACKING is TRUE, the C++-generating back end
+precedes a class definition that has non-default member alignment with a
+"#pragma pack" directive specifying that alignment and, unless
+gcc_is_generated_code_target is TRUE, follows it with "#pragma pack()" to
+restore the alignment to the default value.  The latter directive was formerly
+generated immediately following the closing brace of the class definition;
+now it is generated after the closing semicolon of the declaration in which
+the class definition appears.  This change avoids a problem where Sun
+compilers interpret the "#pragma pack()" as applying to a typedef-name that
+follows the directive.  For example:
+
+  Original source:       Previously generated:        Now generated:
+  ----------------       ---------------------        --------------
+  #pragma pack(1)        typedef                      typedef
+  typedef struct {       #pragma pack(1)              #pragma pack(1)
+  } S;                   struct {                     struct {
+                         }                            } S;
+                         #pragma pack()               #pragma pack()
+                         S;
+
 7/17/05  GNU C++ compatibility: f().field as lvalue
 
 The emulation for g++'s treatment of a field selected from a class

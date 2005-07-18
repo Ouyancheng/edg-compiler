@@ -334,6 +334,16 @@ typedef int a_gen_name_options_set;
 			   to support the extension in which pure virtual
 			   functions can be defined in derived classes. */
 
+#if USER_CONTROL_OF_STRUCT_PACKING
+/*
+The following variable is TRUE if a #pragma pack directive was issued for a
+particular class definition to indicate that "#pragma pack()" must be issued
+at the end of the complete declaration to restore the default setting.
+*/
+static a_boolean
+		need_pragma_pack_restore;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+
 /* Needed because of forward references: */
 static a_boolean is_default_dynamic_init(a_dynamic_init_ptr dip);
 static void gen_name(a_source_correspondence *scp,
@@ -4700,9 +4710,12 @@ is the one associated with the definition of the class.
   write_tok_ch('}');
 #if USER_CONTROL_OF_STRUCT_PACKING
   if (pack_alignment > 0 && !gcc_is_generated_code_target) {
-    /* Restore the packing alignment to a default state. */
-    begin_pp_directive("#pragma pack()");
-    end_pp_directive();
+    /* Notify gen_declaration that "#pragma pack()" is needed to restore the
+       packing to the default state.  (If we issued it here, it would precede
+       any declarators and the terminating ";", which both looks odd and
+       actually causes the Sun compiler to give different packing to the
+       class and the typedef-names in a typedef declaration.) */
+    need_pragma_pack_restore = TRUE;
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* gen_class_definition */
@@ -11785,6 +11798,14 @@ that case) and old-style parameter declarations.
     /* Loop to do another declaration as part of a comma list. */
     suppress_specifiers = TRUE;
   }  /* for */
+#if USER_CONTROL_OF_STRUCT_PACKING
+  if (need_pragma_pack_restore) {
+    /* Restore the packing alignment to a default state. */
+    begin_pp_directive("#pragma pack()");
+    end_pp_directive();
+    need_pragma_pack_restore = FALSE;
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 end_of_routine:;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -11960,6 +11981,9 @@ Initialize for the C++/C-generating back end.
      underlying _Bool. */
   octl.render_c99_bool = c99_mode || gcc_mode;
   in_template_argument_list = FALSE;
+#if USER_CONTROL_OF_STRUCT_PACKING
+  need_pragma_pack_restore = FALSE;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* init_cp_gen_be */
 
 
