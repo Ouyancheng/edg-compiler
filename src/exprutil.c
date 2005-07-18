@@ -6833,13 +6833,16 @@ void do_question_operation(an_operand *operand_1,
                            an_operand *operand_3,
                            a_type_ptr result_type,
                            a_boolean  result_is_an_lvalue,
+                           a_boolean  suppress_class_rvalue_temp,
                            a_boolean  is_gnu_two_operand_form,
                            an_operand *result)
 /*
 Build an operand for a "?" operation.  operand_1, operand_2, and operand_3
 are the operands.  result_type is the result type.  The result is an lvalue
 if result_is_an_lvalue is TRUE.  The operand is built in *result.
-Constant operations are folded if appropriate.  is_gnu_two_operand_form
+Constant operations are folded if appropriate.  suppress_class_rvalue_temp
+is TRUE if the generation of an extra temporary for the result of a
+class rvalue case should be suppressed.  is_gnu_two_operand_form
 is TRUE if this is a GNU two-operand "?" (a synthesized operand_2 is
 still provided).
 */
@@ -6860,7 +6863,7 @@ still provided).
     operation_type = result_type;
     /* Cases that return a class rvalue have to be handled specially: an
        extra copy to a temporary is needed at the end. */
-    if (!C_mode() &&
+    if (!C_mode() && !suppress_class_rvalue_temp &&
         is_class_struct_union_type(result_type)) {
       class_rvalue_case = TRUE;
     }  /* if */
@@ -7103,6 +7106,7 @@ still provided).
   do_question_operation(operand_1, operand_2, operand_3,
                         type_of_unknown_templ_param_nontype,
                         /*result_is_an_lvalue=*/FALSE,
+                        /*suppress_class_rvalue_temp=*/TRUE,
                         is_gnu_two_operand_form, result);
 }  /* template_question_operation */
 

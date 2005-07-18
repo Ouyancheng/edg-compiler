@@ -1296,6 +1296,7 @@ extern void do_question_operation(an_operand *operand_1,
                                   an_operand *operand_3,
                                   a_type_ptr result_type,
                                   a_boolean  result_is_an_lvalue,
+                                  a_boolean  suppress_class_rvalue_temp,
                                   a_boolean  is_gnu_two_operand_form,
                                   an_operand *result);
 

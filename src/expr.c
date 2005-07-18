@@ -12646,6 +12646,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   a_boolean             saved_inside_conditional_expression =
                                      expr_stack->inside_conditional_expression;
   a_boolean             is_gnu_two_operand_form;
+  a_boolean             suppress_class_rvalue_temp = FALSE;
 
   db_enter(4, "scan_conditional_operator");
 
@@ -12808,7 +12809,25 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
           conv_3_to_2_possible = FALSE;
         }  /* if */
       }  /* if */
-      if (microsoft_bugs || any_cfront_mode()) force_copy = FALSE;
+      /* Decide whether the extra temporary for the case where the result
+         is a class rvalue should be suppressed. */
+      if (microsoft_bugs) {
+        /* MSVC++ (6.0 through 8.0 beta at least) does not add the temp. */
+        force_copy = FALSE;
+      } else if (any_cfront_mode()) {
+        force_copy = FALSE;
+      } else if (gpp_mode && gnu_version < 40000 &&
+                 !types_are_compatible_ignoring_qualifiers(operand_2.type,
+                                                           operand_3.type) &&
+                 ((is_an_lvalue(&operand_2) && !is_an_lvalue(&operand_3) &&
+                   conv_3_to_2_possible && !conv_2_to_3_possible) ||
+                 ((is_an_lvalue(&operand_3) && !is_an_lvalue(&operand_2) &&
+                   conv_2_to_3_possible && !conv_3_to_2_possible)))) {
+        /* g++ before 4.0 does not do the extra copy for mixed lvalue/rvalue
+           cases where the lvalue is a base and the rvalue a derived. */
+        force_copy = FALSE;
+        suppress_class_rvalue_temp = TRUE;
+      }  /* if */
       expr_stack->inside_conditional_expression = TRUE;
       if (conv_2_to_3_possible && conv_3_to_2_possible) {
         /* Each operand can be converted to the other, so the operation
@@ -13178,8 +13197,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   } else {
     /* Build the expression. */
     do_question_operation(operand_1, &operand_2, &operand_3, result_type,
-                          result_is_an_lvalue, is_gnu_two_operand_form,
-                          result);
+                          result_is_an_lvalue, suppress_class_rvalue_temp,
+                          is_gnu_two_operand_form, result);
     if (result_is_an_lvalue) {
       /* The result is an lvalue, so its reference list is the union
          of the operand 2 and operand 3 reference lists. */
