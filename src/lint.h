@@ -84,6 +84,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(759,insert_string_into_token_stream)*/
 /*lint -esym(765,insert_string_into_token_stream)*/
 /*lint -esym(714,insert_string_into_token_stream)*/
+/*lint -esym(755,alloc_cil_of_type)*/
 
 /* Used in the main programs for the standalone c_gen_be, cp_gen_be, and
    il_display: */
@@ -462,6 +463,10 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_macro_context_lines_skipped)*/
 /*lint -esym(769,ec_in_expansion_of_macro_last)*/
 #endif /* !MACRO_INVOCATION_TREE_IN_IL */
+#if !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+/*lint -esym(769,ec_ec_if_exists_not_allowed)*/
+/*lint -esym(769,ec_ec_if_exists_not_closed)*/
+#endif /* !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
 
 /******************************************************************************

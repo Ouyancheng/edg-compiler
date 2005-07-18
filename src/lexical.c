@@ -7555,6 +7555,9 @@ position of the __if_exists or __if_not_exists token.
 }  /* scan_if_exists_identifier */
 
 
+#if !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+/*ARGSUSED*/ /* <-- "is_dependent" is not used in that case. */
+#endif /* !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 static void cache_if_exists_tokens(a_token_cache_ptr	cache,
 				   a_boolean		is_dependent)
 /*
