@@ -453,6 +453,15 @@ extern int fileno(FILE *);
 /*lint -esym(769,make_prototyped_runtime_call)*/
 #endif /* LOWER_COMPLEX || LOWER_VARIABLE_LENGTH_ARRAY || ... */
 #endif /* DO_IL_LOWERING */
+#if !FULLY_RESOLVED_MACRO_POSITIONS
+/*lint -esym(769,ec_in_macro_expansion_of)*/
+#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
+#if !MACRO_INVOCATION_TREE_IN_IL
+/*lint -esym(769,ec_name_of_unknown_macro)*/
+/*lint -esym(769,ec_in_expansion_of_macro)*/
+/*lint -esym(769,ec_macro_context_lines_skipped)*/
+/*lint -esym(769,ec_in_expansion_of_macro_last)*/
+#endif /* !MACRO_INVOCATION_TREE_IN_IL */
 
 
 /******************************************************************************
