@@ -463,10 +463,10 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_macro_context_lines_skipped)*/
 /*lint -esym(769,ec_in_expansion_of_macro_last)*/
 #endif /* !MACRO_INVOCATION_TREE_IN_IL */
-#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-/*lint -esym(769,ec_ec_if_exists_not_allowed)*/
-/*lint -esym(769,ec_ec_if_exists_not_closed)*/
-#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+#if !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+/*lint -esym(769,ec_if_exists_not_allowed)*/
+/*lint -esym(769,ec_if_exists_not_closed)*/
+#endif /* !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
 
 /******************************************************************************
