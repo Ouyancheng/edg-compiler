@@ -105,7 +105,7 @@ resolve to actual operands.  For example:
                                            // [S] or [D].
 
 Finally, "symbolic matching constraints" are translated into positional
-matching constraint.  For example:
+matching constraints.  For example:
 
   asm("ins %[A], %[B]": : [A]"X"(1), [B]"[A]"(2));
     // [B] operands refers to constraints of [A] (i.e., position zero).
