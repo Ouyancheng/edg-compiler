@@ -1,5 +1,16 @@
 Version 3.7
 
+7/19/05  Errors after macro_buffer reallocation in pcc and Microsoft modes
+
+As a space optimization, expand_top_level_pcc_macro (which is also used in
+Microsoft mode) formerly simply overwrote the text of the initial macro
+expansion with the fully-expanded text.  This optimization was based on the
+assumption that any text following the initial expansion in the macro_buffer
+must be the result of macro invocations performed during its own processing
+and thus could be discarded.  That assumption was no longer valid after the
+changes described below in the 2/18/05 entry, as the compaction process can
+reorder sections of inserted text inside macro_buffer.  Now fixed.
+
 7/19/05  GNU mode and thread-local storage
 
 Previously, support for thread-local storage in GNU mode (the "__thread"

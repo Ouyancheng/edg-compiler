@@ -2548,16 +2548,15 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
      are dangerous, since those things can be reallocated.  Such pointers
      must be registered by calling register_pointer_variable so that they
      can be updated on any reallocation. */
-  char          *pos_in_aux_buffer, *pos_in_macro_buffer, *save_curr_char_loc;
+  char          *pos_in_aux_buffer, *save_curr_char_loc;
   char          *loc_following_insertion;
   a_pointer_registration
-                pos_in_aux_buffer_reg, pos_in_macro_buffer_reg,
-                save_curr_char_loc_reg, loc_following_insertion_reg;
+                pos_in_aux_buffer_reg, save_curr_char_loc_reg,
+                loc_following_insertion_reg;
   a_pointer_registration_ptr
                 save_registered_pointers = registered_pointers;
 
   register_pointer_variable(pos_in_aux_buffer,   pos_in_aux_buffer_reg);
-  register_pointer_variable(pos_in_macro_buffer, pos_in_macro_buffer_reg);
   register_pointer_variable(save_curr_char_loc,  save_curr_char_loc_reg);
   register_pointer_variable(loc_following_insertion,
                                                  loc_following_insertion_reg);
@@ -2574,7 +2573,7 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
   save_fetch_pp_tokens = fetch_pp_tokens;
   fetch_pp_tokens = TRUE;
   save_curr_char_loc = curr_char_loc;
-  curr_char_loc = pos_in_macro_buffer = main_slmp->inserted_text;
+  curr_char_loc = main_slmp->inserted_text;
   delete_source_from_loc = NULL;
   expand_macros = TRUE;
   /* Turn on some special processing at the end of the macro insertion
@@ -2803,23 +2802,22 @@ end_loop:
     }  /* for */
   }  /* if */
   if (aux_buffer_modified) {
-    /* Copy the aux. buffer text into macro_buffer, replacing the old
-       expansion of the macro. */
-    /* The new text can be copied onto the old, since the old text and
-       everything following it is no longer necessary.  However, since the
-       new text may be longer than the old, we have to make sure we have
-       enough room. */
-    next_avail_in_macro_buffer = pos_in_macro_buffer;
+    /* Copy the aux. buffer text into macro_buffer.  We will just abandon the
+       previous contents of the main_slmp's inserted text; it will be
+       reclaimed during the next macro_buffer reallocation or truncation.  For
+       now, just make the insertion appear empty, in case this call to
+       ensure_macro_buffer_space() causes reallocation. */
+    main_slmp->inserted_text = main_slmp->end_inserted_text;
     len_new = pos_in_aux_buffer - aux_buffer_for_pcc_macros;
     ensure_macro_buffer_space(len_new);
-    /* Copy the new text over the old text.  This will copy up to and
+    /* Copy the new text into macro_buffer.  This will copy up to and
        including the final lexical escape. */
-    (void)memcpy(pos_in_macro_buffer, aux_buffer_for_pcc_macros,
+    (void)memcpy(next_avail_in_macro_buffer, aux_buffer_for_pcc_macros,
                  size_t_arg(len_new));
-    /* Reset the next available position in macro_buffer to just after
+    /* Adjust the main_slmp insertion and macro_buffer pointers to reflect
        the new text. */
+    main_slmp->inserted_text = next_avail_in_macro_buffer;
     next_avail_in_macro_buffer += len_new;
-    /* The end position for the inserted text needs to be updated as well. */
     main_slmp->end_inserted_text = next_avail_in_macro_buffer-LE_ESCAPE_LEN;
     if (num_chars_added_from_source_line != 0) {
       /* Some characters from the primary source line were tacked onto
@@ -4535,6 +4533,8 @@ copy_done:
        in the macro expansions about to be done. */
     free_macro_arg_entries(prev_end_of_macro_arg_list);
     expand_top_level_pcc_macro(slmp);
+    /* The location of the inserted text may have changed. */
+    rescan_loc = slmp->inserted_text;
   }  /* if */
   if (!*rescan) {
     /* Here, we have a case where we have changed the source line because
