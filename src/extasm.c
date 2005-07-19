@@ -675,12 +675,16 @@ even if they are invalid.
         !regs_clobbered[(int)r]) {
       /* Test used and not clobbered so the error is issued at most once per
          register. */
-      str_error(ec_register_used_and_clobbered, named_register_names[(int)r]);
+      pos_st_error(ec_register_used_and_clobbered,
+                   &asm_entry->source_corresp.decl_position,
+                   named_register_names[(int)r]);
     } else if (r != (a_named_register)anr_invalid &&
                regs_clobbered[(int)r] == 1) {
       /* Test clobbered == 1 so the diagnostic is issued at most once per
          register. */
-      str_warning(ec_register_clobbered_twice, named_register_names[(int)r]);
+      pos_st_warning(ec_register_clobbered_twice,
+                     &asm_entry->source_corresp.decl_position,
+                     named_register_names[(int)r]);
     }  /* if */
 #endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
     ++regs_clobbered[(int)r];
@@ -692,9 +696,13 @@ even if they are invalid.
     if (r == (a_named_register)anr_unrecognized) continue;
 #else /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
     if (regs_used_in[(int)r] || regs_used_out[(int)r]) {
-      str_error(ec_fixed_register_used, named_register_names[(int)r]);
+      pos_st_error(ec_fixed_register_used,
+                   &asm_entry->source_corresp.decl_position,
+                   named_register_names[(int)r]);
     } else if (regs_clobbered[(int)r]) {
-      str_error(ec_fixed_register_clobbered, named_register_names[(int)r]);
+      pos_st_error(ec_fixed_register_clobbered,
+                   &asm_entry->source_corresp.decl_position,
+                   named_register_names[(int)r]);
     }  /* if */
 #endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
   }  /* for */
