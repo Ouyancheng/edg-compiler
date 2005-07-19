@@ -2712,8 +2712,8 @@ exclude the GNU modes already.  Hence those are not checked again here.)
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   if (!(option_kind_used[(int)optk_thread_local_storage])) {
     /* Support for "__thread" is turned on by default when emulating GNU C/C++
-       versions 3.4 and higher. */
-    thread_local_storage_specifier_enabled = (gnu_version >= 30400);
+       versions 3.3 and higher. */
+    thread_local_storage_specifier_enabled = (gnu_version >= 30300);
   }  /* if */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   /* Treat "long long" as a standard feature. */

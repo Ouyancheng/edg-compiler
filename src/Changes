@@ -1,5 +1,13 @@
 Version 3.7
 
+7/19/05  GNU mode and thread-local storage
+
+Previously, support for thread-local storage in GNU mode (the "__thread"
+keyword in particular) was enabled by default when gnu_version >= 30400.
+Now it is enabled by default when gnu_version >= 30300 since it appears
+that gcc/g++ version 3.3 is usually (but not always) configured to support
+thread-local storage on popular platforms.
+
 7/18/05  C++-generating back end: placement of #pragma pack() directives
 
 When USER_CONTROL_OF_STRUCT_PACKING is TRUE, the C++-generating back end
