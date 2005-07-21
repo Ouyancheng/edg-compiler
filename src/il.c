@@ -8094,6 +8094,8 @@ the type qualifiers cv are given by qualifiers.  If T is a type "X cv2 &"
 the result type must be "X cv &" where cv is the union of the qualifiers sets
 cv1 and cv2.  If cv1 does not add qualifiers to cv2, base_ref_type itself is
 returned.
+If the given reference type is restrict-qualifiers (e.g. "int & restrict"),
+the restrict qualifier is silently dropped.
 When is_error is NULL, a diagnostic is issued in error cases (e.g., when the
 result would produce a result that is both "near" and "far").  Otherwise,
 *is_error is set to TRUE and no diagnostic is issued (useful during type
@@ -8102,6 +8104,7 @@ deduction for templates).  In all error cases, an error type is returned.
 {
   a_type_ptr            result;
   a_type_ptr            under_ref = type_pointed_to(base_ref_type);
+  a_type_qualifier_set  top_qualifiers = get_type_qualifiers(base_ref_type);
   a_type_qualifier_set  base_qualifiers = get_type_qualifiers(under_ref);
 
 #if NEAR_AND_FAR_ALLOWED
@@ -8119,9 +8122,20 @@ deduction for templates).  In all error cases, an error type is returned.
 #endif /* NEAR_AND_FAR_ALLOWED */
   /* Do not insert code here. */
   {
-    if ((qualifiers & ~base_qualifiers) != TQ_NONE) {
-      /* Additional qualifiers must be merged in. */
-      result = make_reference_type(make_qualified_type(under_ref, qualifiers));
+    if ((qualifiers & ~base_qualifiers) != TQ_NONE ||
+        (top_qualifiers & TQ_RESTRICT) != TQ_NONE) {
+      /* Additional qualifiers must be merged in or a restrict qualifier must
+         be dropped. */
+      qualifiers &= ~TQ_RESTRICT;
+      top_qualifiers &= ~TQ_RESTRICT;
+      result = under_ref;
+      if (qualifiers != TQ_NONE) {
+        result = make_qualified_type(under_ref, qualifiers);
+      }  /* if */
+      result = make_reference_type(result);
+      if (top_qualifiers != TQ_NONE) {
+        result = make_qualified_type(result, top_qualifiers);
+      }  /* if */
     } else {
       /* Return the original type.  (Merging qualifiers even when there are
          no new ones would be harmless, but doing it this way preserves
@@ -8270,8 +8284,12 @@ are not already present.
      block size. */
   qualifiers_to_add |= (qualifiers & TQ_UPC_SHARED);
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  /* cv-qualifiers are ignored when applied to a reference type. */
-  if (qualifiers_to_add != TQ_NONE && !is_reference_type(base_type)) {
+  if (qualifiers_to_add != TQ_NONE && is_reference_type(base_type)) {
+    /* cv-qualifiers are ignored when applied to a reference type.
+       However, the "restrict" qualifier should be retained. */
+    qualifiers_to_add &= TQ_RESTRICT;
+  }  /* if */
+  if (qualifiers_to_add != TQ_NONE) {
 #if NEAR_AND_FAR_ALLOWED
     if (qualifiers_to_add & (TQ_NEAR | TQ_FAR)) {
        /* Don't add explicit qualifiers for memory attributes that are

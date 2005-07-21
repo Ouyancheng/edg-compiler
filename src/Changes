@@ -1,5 +1,18 @@
 Version 3.7
 
+7/21/05  Restricted references
+
+The front end previously silently ignored the "restrict" (or "__restrict__")
+type qualifier when applied to reference types.  Now, the qualifier is
+correctly retained.  For example:
+
+  void f(int & __restrict__ a) {
+    // The "__restrict__" modifier was previously silently ignored.
+    // Now it is retained (and the reference becomes a restricted pointer
+    // after lowering).
+    // ...
+  }
+
 7/19/05  Errors after macro_buffer reallocation in pcc and Microsoft modes
 
 As a space optimization, expand_top_level_pcc_macro (which is also used in
