@@ -2862,6 +2862,38 @@ none was recorded.
   return result;
 }  /* inheritance_kind_of */
 
+#if DECL_MODIFIERS_IN_USE
+
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* The parameters are only used to check Microsoft-specific
+                declaration modifiers. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+static a_boolean incompatible_class_decl_modifiers(a_type_ptr  tp1,
+                                                   a_type_ptr  tp2)
+/*
+Return TRUE if and only if the two corresponding class types have incompatible
+declaration modifiers.
+*/
+{
+  a_boolean  result = FALSE;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    a_class_type_supplement_ptr
+         sup1 = tp1->variant.class_struct_union.extra_info,
+         sup2 = tp2->variant.class_struct_union.extra_info;
+    if (sup1 != NULL && sup1->decl_modifiers != sup2->decl_modifiers) {
+      /* Currently, the decl_modifiers applying to a class (novtable,
+         dllexport, and dllimport) must only match when the declarations
+         in both translation units are also definitions. */
+      result = class_type_has_body(tp1) && class_type_has_body(tp2);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
+}  /* incompatible_class_decl_modifiers */
+
+#endif /* DECL_MODIFIERS_IN_USE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean verify_class_type_correspondence(a_type_ptr  type)
@@ -3168,7 +3200,7 @@ type is in fact valid.
           sup->qualifiers != corresp_sup->qualifiers ||
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if DECL_MODIFIERS_IN_USE
-          sup->decl_modifiers != corresp_sup->decl_modifiers ||
+          incompatible_class_decl_modifiers(type, corresp_type) ||
 #endif /* DECL_MODIFIERS_IN_USE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           (sup->uuid_string != NULL && corresp_sup->uuid_string != NULL &&

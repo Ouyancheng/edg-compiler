@@ -1,5 +1,23 @@
 Version 3.7
 
+7/21/05  Microsoft class specifier differences across translation units
+
+When simultaneously processing multiple translation units in Microsoft mode,
+the front end now ignores differences in extended specifiers for corresponding
+class type entries if the two entries do not both describe a complete class.
+For example:
+
+  // File 1:
+  struct S;
+  struct T {};
+
+  // File 2:
+  struct __declspec(dllexport) S {};  // Okay: The corresponding entry in
+                                      // "File 1" is not defined.
+  struct __declspec(novtable) T {};   // Error: The extended declaration
+                                      // specifiers differ from those on the
+                                      // definition in "File 1".
+
 7/21/05  Thread-local variables and initialization
 
 The front end now issues an error when attempting to dynamically initialize a
