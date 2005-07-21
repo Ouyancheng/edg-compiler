@@ -11780,6 +11780,53 @@ a variable with such an initializer (which was just scanned).
 }  /* gnu_attributes_after_parenthesized_initializer */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if DECL_MODIFIERS_IN_USE
+
+static void check_variable_decl_modifiers(a_variable_ptr          var_ptr,
+                                          a_symbol_locator        *locator,
+                                          a_decl_modifiers_block  *modifiers)
+/*
+Check that the given variable is compatible with the given declaration
+modifiers.  *locator is used to determine the position at which the
+variable was declared with these modifiers.
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  if (modifiers->flags & DM_THREAD) {
+    if (var_ptr->init_kind == (an_init_kind)initk_dynamic &&
+        !var_ptr->source_corresp.is_local_to_function) {
+      pos_error(ec_bad_init_for_thread_local, &locator->source_position);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && (modifiers->flags & DM_SELECTANY)) {
+    /* Checking the "selectany" decl-modifier was deferred until
+       after the initializer (if any) was scanned. */
+    if (!(var_ptr->storage_class == (a_storage_class)sc_unspecified ||
+          var_ptr->storage_class == (a_storage_class)sc_extern)) {
+      /* The "selectany" specifier requires external linkage. */
+      pos_st_error(ec_decl_modifiers_invalid_for_this_decl,
+                   &locator->source_position,
+                   decl_modifier_names[(int)dmt_selectany]);
+    } else if (var_ptr->init_kind == (an_init_kind)initk_dynamic ||
+               (var_ptr->init_kind == (an_init_kind)initk_none &&
+                has_static_storage_duration(var_ptr->storage_class))) {
+      /* The "selectany" decl-modifier cannot appear with a dynamic
+         initialization in Microsoft versions prior to 1300.  The same
+         thing applies for variables with no initializer. */
+      if (microsoft_version < 1300) {
+        pos_st_diagnostic(es_discretionary_error,
+                          ec_decl_modifiers_invalid_for_this_decl,
+                          &locator->source_position,
+                          decl_modifier_names[(int)dmt_selectany]);
+      }  /* if */
+    }  /* if */        
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* check_variable_decl_modifiers */
+
+#endif /* DECL_MODIFIERS_IN_USE */
 
 void declaration(a_boolean       function_definition_allowed,
                  a_boolean       is_old_style_param_decl,
@@ -13177,31 +13224,7 @@ continue_with_declaration:
            as though it were a definition. */
         mark_variable_value_set(symbol_ptr);
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode && (decl_modifiers.flags & DM_SELECTANY)) {
-        /* Checking the "selectany" decl-modifier was deferred until
-           after the initializer (if any) was scanned. */
-        if (!(var_ptr->storage_class == (a_storage_class)sc_unspecified ||
-              var_ptr->storage_class == (a_storage_class)sc_extern)) {
-          /* The "selectany" specifier requires external linkage. */
-          pos_st_error(ec_decl_modifiers_invalid_for_this_decl,
-                       &locator.source_position,
-                       decl_modifier_names[(int)dmt_selectany]);
-        } else if (var_ptr->init_kind == (an_init_kind)initk_dynamic ||
-                   (var_ptr->init_kind == (an_init_kind)initk_none &&
-                    has_static_storage_duration(var_ptr->storage_class))) {
-          /* The "selectany" decl-modifier cannot appear with a dynamic
-             initialization in Microsoft versions prior to 1300.  The same
-             thing applies for variables with no initializer. */
-          if (microsoft_version < 1300) {
-            pos_st_diagnostic(es_discretionary_error,
-                              ec_decl_modifiers_invalid_for_this_decl,
-                              &locator.source_position,
-                              decl_modifier_names[(int)dmt_selectany]);
-          }  /* if */
-        }  /* if */        
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      check_variable_decl_modifiers(var_ptr, &locator, &decl_modifiers);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 #if DEBUG
       if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {

@@ -1,5 +1,21 @@
 Version 3.7
 
+7/21/05  Thread-local variables and initialization
+
+The front end now issues an error when attempting to dynamically initialize a
+thread-local variable that is not a local static variable.  For example:
+
+  int f();
+  __thread int i = f();  // Previously accepted (e.g., in GNU C++ mode); now
+                         // an error.
+
+Furthermore, the address of a thread-local variable is no longer considered
+to be a constant.  For example:
+
+  __thread int i = 2;
+  __thread int *p = &i;  // Previously accepted (e.g., in GNU C++ mode); now
+                         // an error.
+
 7/21/05  Restricted references
 
 The front end previously silently ignored the "restrict" (or "__restrict__")

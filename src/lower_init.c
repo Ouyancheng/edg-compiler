@@ -5240,6 +5240,12 @@ location is the insert_location2 value (after the assignment statement).
     *test_var = make_unnamed_local_static_variable(int_type,
                                                   /*in_function_scope=*/FALSE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  /* Thread-local variables call for thread-local test variables. */
+  if (guarded_var->decl_modifiers & DM_THREAD) {
+    (*test_var)->decl_modifiers |= DM_THREAD;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
   /* Make "test_var == 0". */
 #if !IA64_ABI
   test_var_node = var_rvalue_expr(*test_var);
