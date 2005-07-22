@@ -1238,14 +1238,16 @@ attributes.  */
 }  /* apply_attributes_to_variable_type */
 
 
-static a_boolean check_variable_not_local(a_variable_ptr   variable,
-                                          an_attribute_ptr attribute,
-                                          a_boolean        allow_local_static)
+static a_boolean check_variable_not_local(
+                                        a_variable_ptr     variable,
+                                        an_attribute_ptr   attribute,
+                                        a_boolean          allow_local_static,
+                                        an_error_severity  severity)
 /*
 The attribute only applies to variables that are not local to a function.
-If variable is not such a variable, issue an error and return FALSE.
-Otherwise, return TRUE.  Local static variables are treated as non-local
-when allow_local_static is TRUE.
+If variable is not such a variable, issue an diagnostic with the given
+severity and return FALSE.  Otherwise, return TRUE.  Local static variables
+are treated as non-local when allow_local_static is TRUE.
 */
 {
   a_boolean is_not_local = TRUE;
@@ -1255,9 +1257,9 @@ when allow_local_static is TRUE.
       variable->storage_class != (a_storage_class)sc_extern &&
       (!allow_local_static ||
        variable->storage_class != (a_storage_class)sc_static)) {
-    pos_st_error(ec_attribute_does_not_apply_to_local_variable,
-                 &attribute->position, 
-                 attribute_kind_names[(int)attribute->kind]);
+    pos_st_diagnostic(severity, ec_attribute_does_not_apply_to_local_variable,
+                      &attribute->position, 
+                      attribute_kind_names[(int)attribute->kind]);
     is_not_local = FALSE;
   }  /* if */
   return is_not_local;
@@ -1368,7 +1370,8 @@ attributes were specified on a definition.
         vp->has_gnu_unused_attribute = TRUE;
         break;
       case ak_used:
-        if (check_variable_not_local(vp, ap, /*allow_local_static=*/TRUE)) {
+        if (check_variable_not_local(vp, ap, /*allow_local_static=*/TRUE,
+                                     (an_error_severity)es_warning)) {
           vp->has_gnu_used_attribute = TRUE;
         }  /* if */
         break;
@@ -1388,18 +1391,21 @@ attributes were specified on a definition.
         }  /* if */
         break;
       case ak_section:
-        if (check_variable_not_local(vp, ap, /*allow_local_static=*/TRUE)) {
+        if (check_variable_not_local(vp, ap, /*allow_local_static=*/TRUE,
+                                     (an_error_severity)es_error)) {
           vp->section = ap->variant.section;
         }  /* if */
         break;
       case ak_alias:
-        if (check_variable_not_local(vp, ap, /*allow_local_static=*/FALSE)) {
+        if (check_variable_not_local(vp, ap, /*allow_local_static=*/FALSE,
+                                     (an_error_severity)es_error)) {
           add_alias_fixup((a_symbol_ptr)vp->source_corresp.assoc_info,
                           (char*)NULL, ap->variant.alias, &ap->position);
         }  /* if */
         break;
       case ak_nocommon:
-        if (check_variable_not_local(vp, ap, /*allow_local_static=*/TRUE)) {
+        if (check_variable_not_local(vp, ap, /*allow_local_static=*/TRUE,
+                                     (an_error_severity)es_warning)) {
           vp->is_not_common = TRUE;
         }  /* if */
         break;

@@ -1,5 +1,16 @@
 Version 3.7
 
+7/22/05  GNU compatibility: Invalid attributes on automatic variables
+
+The severity of the diagnostic issued when attempting to apply a GNU "used"
+or "nocommon" attribute to an automatic (local) variable has been reduced to
+a warning (previously, it was a strict error).  The invalid attributes are
+otherwise ignored.  For example:
+
+  void f() {
+    int a __attribute__((used));  // Previously an error; now a warning.
+  }
+
 7/22/05  Incorrect preprocessed output when including both cstdarg and stdarg.h
 
 In configurations with DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE set
