@@ -11,6 +11,16 @@ in the preprocessed output).  Now fixed.
   #include <stdarg.h>
   ::va_list x; 
 
+7/21/05  Microsoft compatibility: x ? f() : g() is an lvalue only up to 7.1
+
+A Microsoft compatibility feature first introduced as one small
+piece of a change dated 8/14/03 has now been turned off when
+microsoft_version >= 1310.  Specifically, a "?" operator with
+second and third operands of the same class type, and at least
+one of them an rvalue, is treated as an lvalue by MSVC++ up
+to version 7.0.  But 7.1 changed that, and our front end now
+does the same.
+
 7/21/05  Microsoft class specifier differences across translation units
 
 When simultaneously processing multiple translation units in Microsoft mode,
