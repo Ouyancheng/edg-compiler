@@ -13224,7 +13224,9 @@ continue_with_declaration:
            as though it were a definition. */
         mark_variable_value_set(symbol_ptr);
       }  /* if */
+#if DECL_MODIFIERS_IN_USE
       check_variable_decl_modifiers(var_ptr, &locator, &decl_modifiers);
+#endif /* DECL_MODIFIERS_IN_USE */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 #if DEBUG
       if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {
