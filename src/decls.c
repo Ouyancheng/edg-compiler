@@ -13225,7 +13225,9 @@ continue_with_declaration:
         mark_variable_value_set(symbol_ptr);
       }  /* if */
 #if DECL_MODIFIERS_IN_USE
-      check_variable_decl_modifiers(var_ptr, &locator, &decl_modifiers);
+      if (var_ptr != NULL) {
+        check_variable_decl_modifiers(var_ptr, &locator, &decl_modifiers);
+      }  /* if */
 #endif /* DECL_MODIFIERS_IN_USE */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 #if DEBUG
