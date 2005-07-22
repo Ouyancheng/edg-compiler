@@ -1,5 +1,16 @@
 Version 3.7
 
+7/22/05  Incorrect preprocessed output when including both cstdarg and stdarg.h
+
+In configurations with DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE set
+to TRUE, the preprocessed output for files including both cstdarg and
+stdarg.h was not correct (only the first of the includes was emitted
+in the preprocessed output).  Now fixed.
+
+  #include <cstdarg>
+  #include <stdarg.h>
+  ::va_list x; 
+
 7/21/05  Microsoft class specifier differences across translation units
 
 When simultaneously processing multiple translation units in Microsoft mode,
