@@ -8094,7 +8094,7 @@ the type qualifiers cv are given by qualifiers.  If T is a type "X cv2 &"
 the result type must be "X cv &" where cv is the union of the qualifiers sets
 cv1 and cv2.  If cv1 does not add qualifiers to cv2, base_ref_type itself is
 returned.
-If the given reference type is restrict-qualifiers (e.g. "int & restrict"),
+If the given reference type is restrict-qualified (e.g. "int & restrict"),
 the restrict qualifier is silently dropped.
 When is_error is NULL, a diagnostic is issued in error cases (e.g., when the
 result would produce a result that is both "near" and "far").  Otherwise,
