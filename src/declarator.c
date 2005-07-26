@@ -2476,7 +2476,15 @@ constant.
           /* Copy the expression to the file scope memory region so we
              can point to it.  This comes up with bound expressions that
              are permitted to be VLAs but turn out to be constant. */
-          expr = copy_expr_tree(expr, CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+          if (is_variable_node(expr) &&
+              !in_file_scope(expr->variant.variable)) {
+            /* A reference to a const variable comes out as a variable
+               reference only at the top level.  In that case, just drop the
+               expression. */
+            expr = NULL;
+          } else {
+            expr = copy_expr_tree(expr, CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+          }  /* if */
           constant.expr = expr;
         }  /* if */
         il_constant = alloc_shareable_constant(&constant);

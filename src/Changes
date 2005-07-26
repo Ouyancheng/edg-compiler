@@ -1,5 +1,24 @@
 Version 3.7
 
+7/26/05  Bad IL for constant array bound in VLA context, with
+         RECORD_CONSTANT_EXPRESSIONS_IN_IL
+
+A bug was introduced in the changes made for variable-length arrays
+(VLAs) in version 3.6.  It affects configurations with
+RECORD_CONSTANT_EXPRESSIONS_IN_IL set to TRUE (e.g., C++-generating
+back end versions) and source cases that have a use of a simple
+const variable as an array bound in a context that allows a VLA
+(e.g., in GNU C++ mode).  The IL created had a memory region problem,
+which could cause later aborts.  In particular, the abort
+"non_fs_remap_checking: func number in file scope" occurred in
+versions that write and read an IL file.  Now fixed.
+
+  int main() {
+    const int SIZE = 1;
+    int array[SIZE] = { 0 };
+    return array[0];
+  }
+
 7/25/05  Deduction failure on pointer-to-member with qualification conversion
 
 Template argument deduction could fail if a member type and a
