@@ -1,5 +1,18 @@
 Version 3.7
 
+7/25/05  Deduction failure on pointer-to-member with qualification conversion
+
+Template argument deduction could fail if a member type and a
+pointer-to-member class type were both deduced from the same type,
+and the member type required a qualification conversion.  Now fixed.
+
+  template <class CLASS, class T> void f(const T CLASS::*offset){}
+  struct A { int i; };
+  int main() {
+    int A::*pi = &A::i;
+    f(pi);
+  }
+
 7/22/05  GNU compatibility: Invalid attributes on automatic variables
 
 The severity of the diagnostic issued when attempting to apply a GNU "used"

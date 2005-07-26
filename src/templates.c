@@ -6179,16 +6179,16 @@ points to the template parameter list.
         case tk_ptr_to_member:
           /* For ptr-to-member types, there needs to be a match on both the
              member types and the class-of-which-a-member. */
-          tp = type->variant.ptr_to_member.type;
-          ttp = templ_type->variant.ptr_to_member.type;
+          tp = type->variant.ptr_to_member.class_of_which_a_member;
+          ttp = templ_type->variant.ptr_to_member.class_of_which_a_member;
           if (matches_template_type(tp, ttp, templ_arg_list,
                                     templ_param_list,
                                     new_flags)) {
-            tp = type->variant.ptr_to_member.class_of_which_a_member;
-            ttp = templ_type->variant.ptr_to_member.class_of_which_a_member;
-            match = (matches_template_type(tp, ttp, templ_arg_list,
-                                           templ_param_list,
-                                           new_flags));
+            tp = type->variant.ptr_to_member.type;
+            ttp = templ_type->variant.ptr_to_member.type;
+            match = matches_template_type(tp, ttp, templ_arg_list,
+                                          templ_param_list,
+                                          new_flags);
           }  /* if */
           break;
         case tk_routine:
