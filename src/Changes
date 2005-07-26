@@ -16,8 +16,8 @@ and the member type required a qualification conversion.  Now fixed.
 7/22/05  GNU compatibility: Invalid attributes on automatic variables
 
 The severity of the diagnostic issued when attempting to apply a GNU "used"
-or "nocommon" attribute to an automatic (local) variable has been reduced to
-a warning (previously, it was a strict error).  The invalid attributes are
+or "nocommon" attribute to an automatic (local) variable has been reduced
+to a warning (previously, it was an error).  The invalid attributes are
 otherwise ignored.  For example:
 
   void f() {

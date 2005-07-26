@@ -1238,14 +1238,13 @@ attributes.  */
 }  /* apply_attributes_to_variable_type */
 
 
-static a_boolean check_variable_not_local(
-                                        a_variable_ptr     variable,
-                                        an_attribute_ptr   attribute,
-                                        a_boolean          allow_local_static,
-                                        an_error_severity  severity)
+static a_boolean check_variable_is_local(a_variable_ptr     variable,
+                                         an_attribute_ptr   attribute,
+                                         a_boolean          allow_local_static,
+                                         an_error_severity  severity)
 /*
 The attribute only applies to variables that are not local to a function.
-If variable is not such a variable, issue an diagnostic with the given
+If variable is not such a variable, issue a diagnostic with the given
 severity and return FALSE.  Otherwise, return TRUE.  Local static variables
 are treated as non-local when allow_local_static is TRUE.
 */
@@ -1263,7 +1262,7 @@ are treated as non-local when allow_local_static is TRUE.
     is_not_local = FALSE;
   }  /* if */
   return is_not_local;
-}  /* check_variable_not_local */
+}  /* check_variable_is_local */
 
 
 static a_boolean check_variable_has_external_linkage(
@@ -1370,8 +1369,8 @@ attributes were specified on a definition.
         vp->has_gnu_unused_attribute = TRUE;
         break;
       case ak_used:
-        if (check_variable_not_local(vp, ap, /*allow_local_static=*/TRUE,
-                                     (an_error_severity)es_warning)) {
+        if (check_variable_is_local(vp, ap, /*allow_local_static=*/TRUE,
+                                    (an_error_severity)es_warning)) {
           vp->has_gnu_used_attribute = TRUE;
         }  /* if */
         break;
@@ -1391,21 +1390,21 @@ attributes were specified on a definition.
         }  /* if */
         break;
       case ak_section:
-        if (check_variable_not_local(vp, ap, /*allow_local_static=*/TRUE,
-                                     (an_error_severity)es_error)) {
+        if (check_variable_is_local(vp, ap, /*allow_local_static=*/TRUE,
+                                    (an_error_severity)es_error)) {
           vp->section = ap->variant.section;
         }  /* if */
         break;
       case ak_alias:
-        if (check_variable_not_local(vp, ap, /*allow_local_static=*/FALSE,
-                                     (an_error_severity)es_error)) {
+        if (check_variable_is_local(vp, ap, /*allow_local_static=*/FALSE,
+                                    (an_error_severity)es_error)) {
           add_alias_fixup((a_symbol_ptr)vp->source_corresp.assoc_info,
                           (char*)NULL, ap->variant.alias, &ap->position);
         }  /* if */
         break;
       case ak_nocommon:
-        if (check_variable_not_local(vp, ap, /*allow_local_static=*/TRUE,
-                                     (an_error_severity)es_warning)) {
+        if (check_variable_is_local(vp, ap, /*allow_local_static=*/TRUE,
+                                    (an_error_severity)es_warning)) {
           vp->is_not_common = TRUE;
         }  /* if */
         break;
