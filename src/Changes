@@ -1,5 +1,17 @@
 Version 3.7
 
+7/27/05  Microsoft compatibility: Spurious error when dropping "__unaligned"
+
+In Microsoft mode, the front end previously issued an error if a pointer
+qualified as "__unaligned" was implicitly converted to a pointer that is
+not so qualified.  For example:
+
+  int* f(__unaligned int *p) {
+    return p;  // Previously an error; now a warning.
+  }
+
+Now a warning is issued instead.
+
 7/27/05  GNU C++ mode: Spurious error on designator for anonymous union member
 
 In GNU C++ mode, the front end failed to resolve field designators in

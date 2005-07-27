@@ -4879,6 +4879,17 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
                                      get_type_qualifiers(dest_type_pointed_to);
       a_type_qualifier_set source_type_qualifiers =
                                    get_type_qualifiers(source_type_pointed_to);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_boolean            unaligned_dropped = FALSE;
+      if (!(dest_type_qualifiers & TQ_UNALIGNED) &&
+          (source_type_qualifiers & TQ_UNALIGNED)) {
+        /* The Microsoft-specific qualifier "__unaligned" can be dropped.
+           Since this is somewhat suspect, we will issue a warning about it
+           (see below) except if another conversion warning is issued. */
+        unaligned_dropped = TRUE;
+        source_type_qualifiers &= ~TQ_UNALIGNED;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (dest_type_qualifiers == source_type_qualifiers) {
         /* The qualifiers are the same. */
       } else if (!C_mode() && is_template_dependent_context() &&
@@ -4922,6 +4933,14 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         /* Qualifiers are being added. */
         std_conv->type_qualifiers_added = TRUE;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (unaligned_dropped && std_conv->warning_suggested == ec_no_error) {
+        /* Trigger a diagnostic about the __unaligned property being
+           implicitly dropped. */
+        std_conv->warning_suggested = ec_unaligned_qualifier_dropped;
+        std_conv->is_mild_warning = TRUE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode || gcc_mode ||
              (C_mode() && microsoft_mode)) &&
