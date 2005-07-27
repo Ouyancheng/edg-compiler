@@ -1,5 +1,18 @@
 Version 3.7
 
+7/27/05  GNU C++ mode: Spurious error on designator for anonymous union member
+
+In GNU C++ mode, the front end failed to resolve field designators in
+anonymous union contexts.  For example:
+
+  struct S {
+    union {
+      int i;
+    };
+  } s = {{ i:3 }};  // Previously a spurious error.  Now accepted.
+
+This is now fixed.
+
 7/27/05  Spurious warnings on enum bit fields
 
 In some cases involving bit fields with enumeration types whose enumerator

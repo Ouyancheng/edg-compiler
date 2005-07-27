@@ -1668,7 +1668,7 @@ multiple designators are handled by the recursion in get_initializer.
   } else {
     check_assertion(extended_designators_allowed &&
                     curr_token == tok_identifier);
-    /* Extended form: identifier followed by period. */
+    /* Extended form: identifier followed by colon. */
     extended_form = TRUE;
   }  /* if */
   if (have_id) {
@@ -1676,9 +1676,21 @@ multiple designators are handled by the recursion in get_initializer.
     if (!okay) {
       /* Can't look up the identifier; we don't know where we are. */
     } else {
-      a_symbol_ptr member_sym = class_qualified_id_lookup(&locator_for_curr_id,
-                                                          context->type,
-                                                          IDL_NO_OPTIONS);
+      a_type_ptr    type_to_look_in = skip_typerefs(context->type);
+      a_symbol_ptr  member_sym;
+      if (!C_mode()) {
+        /* If we're in an anonymous union (the field case), look for the field
+           in the enclosing class scope. */
+        a_class_type_supplement_ptr  ctsp = 
+                        type_to_look_in->variant.class_struct_union.extra_info;
+        while (ctsp != NULL && ctsp->anonymous_union_kind ==
+                                          (an_anonymous_union_kind)auk_field) {
+          type_to_look_in = type_to_look_in->source_corresp.parent.class_type;
+          ctsp = type_to_look_in->variant.class_struct_union.extra_info;
+        }  /* while */
+      }  /* if */
+      member_sym = class_qualified_id_lookup(&locator_for_curr_id,
+                                             type_to_look_in, IDL_NO_OPTIONS);
       if (member_sym == NULL) {
         /* The name was not found. */
         pos_stsy_error(ec_not_a_field, &error_position,
