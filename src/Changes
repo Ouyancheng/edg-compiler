@@ -10,7 +10,8 @@ not so qualified.  For example:
     return p;  // Previously an error; now a warning.
   }
 
-Now a warning is issued instead.
+Now a warning is issued instead (or no diagnostic at all if the destination
+is a pointer to void type).
 
 7/27/05  GNU C++ mode: Spurious error on designator for anonymous union member
 

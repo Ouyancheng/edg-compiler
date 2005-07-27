@@ -4934,7 +4934,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         std_conv->type_qualifiers_added = TRUE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (unaligned_dropped && std_conv->warning_suggested == ec_no_error) {
+      if (unaligned_dropped && std_conv->warning_suggested == ec_no_error &&
+          !is_void_type(unqual_dest_type_pointed_to)) {
         /* Trigger a diagnostic about the __unaligned property being
            implicitly dropped. */
         std_conv->warning_suggested = ec_unaligned_qualifier_dropped;
