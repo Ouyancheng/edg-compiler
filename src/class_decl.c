@@ -9246,9 +9246,9 @@ must be unsigned.
            never get here for a bit field of length one. */
         use_signed = !targ_plain_int_bit_field_is_unsigned;
       }  /* if */
-      if (use_signed && sign_of_integer_constant(&largest) >= 0) {
-        /* Using a signed bit field and the largest is nonnegative, so the
-           largest really requires one more bit for a zero sign. */
+      if (use_signed && sign_of_integer_constant(&largest) > 0) {
+        /* Using a signed bit field and the largest is positive, so the
+           largest value really requires one more bit for a zero sign. */
         bits_needed_largest++;
       }  /* if */
       /* Determine the number of bits needed. */
@@ -9439,8 +9439,11 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
     }  /* if */
   }  /* if */
   /* Give a warning for a signed one-bit field; ANSI C allows it, but it's
-     strange. */
-  if (!err && !*unnamed_bit_field && is_signed && bit_field_size == 1) {
+     strange.  If the bit field type is an enumeration type, warnings were
+     already issued if the enumerator constant value cannot be represented
+     by the field; so we don't issue another warning here. */
+  if (!err && !*unnamed_bit_field && is_signed && bit_field_size == 1 &&
+      !bit_field_type->variant.integer.enum_type) {
     pos_warning(ec_signed_one_bit_field, &locator->source_position);
   }  /* if */
   /* Set base_type to bit_field_type with the proper type qualifiers. */

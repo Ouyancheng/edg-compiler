@@ -1,5 +1,25 @@
 Version 3.7
 
+7/27/05  Spurious warnings on enum bit fields
+
+In some cases involving bit fields with enumeration types whose enumerator
+constants are all nonpositive, the front end issues a spurious warning about
+the field being unable to represent all the enumerator values.  Furthermore,
+if the field was one bit wide, an additional diagnostic warned about a signed
+bit field having length one even when the enumerators only included the values
+"0" and "-1" (which fit in a signed one-bit field).  For example:
+
+  enum E { a = -1, b = 0 };
+  enum F { c = -2, d = 0 };
+  struct S {
+    E x:1;  // Previously triggered two spurious warnings.  Now none.
+    F y:1;  // Previously triggered two warnings.  Now just one.
+  };
+
+This is now fixed: At most one warning is issued and only when it is justified.
+Only configurations with TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED set to FALSE
+are affected by this change.  Other configurations produce different warnings.
+
 7/26/05  Bad IL for constant array bound in VLA context, with
          RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
