@@ -4743,8 +4743,8 @@ static void revert_class_rvalue_to_lvalue_if_possible(an_operand *operand)
 /*
 If the given operand is a class rvalue, try to change it back to
 an lvalue.  This is used in GNU and Microsoft modes, which believe
-that a function call returning a class by value can be considered
-to be an lvalue in some cases.
+that some class rvalues can be used as lvalues (e.g., a function call
+returning a class by value).
 */
 {
   if (!C_mode() &&
@@ -4779,6 +4779,11 @@ to be an lvalue in some cases.
           op == (an_expr_operator_kind)eok_pm_call) {
         /* A function call that returns a class can be changed back
            into an lvalue. */
+        revertible = TRUE;
+      } else if (microsoft_mode &&
+                 op == (an_expr_operator_kind)eok_question) {
+        /* A class rvalue "?" can be turned into an lvalue in Microsoft
+           mode. */
         revertible = TRUE;
       }  /* if */
     }  /* if */

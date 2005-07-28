@@ -1,5 +1,14 @@
 Version 3.7
 
+7/28/05  Microsoft and GNU compatibility: class rvalue "?" result temporary
+
+The changes of 11/14/04 that implemented core issue 446, which
+force a temporary as the result of a "?" operator returning a class rvalue,
+introduced Microsoft and GNU compatibility issues, because MSVC++
+and g++ do not implement that adjustment to the standard yet.
+The front end has been changed to more closely emulate the
+behavior of those compilers.
+
 7/27/05  Microsoft compatibility: Spurious error when dropping "__unaligned"
 
 In Microsoft mode, the front end previously issued an error if a pointer

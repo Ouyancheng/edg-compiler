@@ -2547,10 +2547,8 @@ is the current set of expression-scanning options.
       } else {
         /* "." operator. */
         orig_class_struct_union_type = operand_1->type;
-        if (microsoft_mode && !C_mode() &&
+        if (microsoft_mode && !C_mode() && is_an_rvalue(operand_1) &&
             is_class_struct_union_type(orig_class_struct_union_type) &&
-            symbol_supplement_for_class(orig_class_struct_union_type)->
-                                                                      is_POD &&
             is_expression_operand(operand_1)) {
           /* MSVC++ treats a field selection off a function call returning
              a POD type as an lvalue.  Note that f().i is an rvalue but
@@ -2559,6 +2557,13 @@ is the current set of expression-scanning options.
           if (is_operation_node(op_1)) {
             an_expr_operator_kind op = op_1->variant.operation.kind;
             if (op == (an_expr_operator_kind)eok_call) {
+              if (symbol_supplement_for_class(orig_class_struct_union_type)->
+                                                                      is_POD) {
+                revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
+              }  /* if */
+            } else if (op == (an_expr_operator_kind)eok_question) {
+              /* A selection from a class rvalue "?" is also considered
+                 an lvalue, whether or not the class is a POD. */
               revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
             }  /* if */
           }  /* if */
@@ -12767,11 +12772,16 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     } else if (types_are_the_same) {
       /* If the types are the same, we do not look for conversions to
          or from class types. */
-      if (microsoft_mode && microsoft_version < 1310 &&
+      if (microsoft_mode &&
           is_class_struct_union_type(operand_2.type)) {
-        /* Try to get lvalues back to get an lvalue result. */
-        revert_microsoft_rvalue_to_lvalue_if_possible(&operand_2);
-        revert_microsoft_rvalue_to_lvalue_if_possible(&operand_3);
+        /* MSVC++ (6.0 through 8.0 beta at least) does not add the temp on
+           a class rvalue "?". */
+        if (microsoft_bugs) suppress_class_rvalue_temp = TRUE;
+        if (microsoft_version < 1310) {
+          /* Try to get lvalues back to get an lvalue result. */
+          revert_microsoft_rvalue_to_lvalue_if_possible(&operand_2);
+          revert_microsoft_rvalue_to_lvalue_if_possible(&operand_3);
+        }  /* if */
       }  /* if */
     } else if (is_class_struct_union_type(operand_2.type) ||
                is_class_struct_union_type(operand_3.type)) {
@@ -12810,12 +12820,17 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
         }  /* if */
       }  /* if */
       /* Decide whether the extra temporary for the case where the result
-         is a class rvalue should be suppressed. */
+         is a class rvalue should be suppressed (suppress_class_rvalue_temp),
+         and whether a conversion from derived to base should force a copy
+         to a temporary rather than just treating the object as having the
+         new type. */
       if (microsoft_bugs) {
         /* MSVC++ (6.0 through 8.0 beta at least) does not add the temp. */
-        force_copy = FALSE;
+        force_copy = TRUE;
+        suppress_class_rvalue_temp = TRUE;
       } else if (any_cfront_mode()) {
         force_copy = FALSE;
+        suppress_class_rvalue_temp = TRUE;
       } else if (gpp_mode && gnu_version < 40000 &&
                  !types_are_compatible_ignoring_qualifiers(operand_2.type,
                                                            operand_3.type) &&

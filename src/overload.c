@@ -12159,9 +12159,8 @@ in C++ mode.
       /* cctor_case = FALSE;  -- already set */
     } else {
       /* A copy constructor must be used.  An error is issued if there
-         is no applicable copy constructor or if it is inaccessible.
-         No access checking is done here because set_up_for_constructor_call
-         does it below. */
+         is no applicable copy constructor.  No access checking is done
+         here because set_up_for_constructor_call does it below. */
       cctor_routine = select_copy_constructor(
                                 unqual_temp_type,
                                 get_type_qualifiers(operand->type),
@@ -12723,6 +12722,36 @@ Issue a warning if it is a local entity.
   }  /* if */
 }  /* check_for_returning_reference_to_local_entity */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void add_copy_to_temp_for_microsoft_rvalue_question_mark(
+                                                           an_operand *operand)
+/*
+According to the C++ standard, a "?" operator that returns a class
+rvalue copies one or the other of its operands into a single result
+temporary (see core issue 446).  MSVC++ doesn't do that.  Its
+approximation of that is to add an additional copy into a temporary
+when a reference variable is bound to a class rvalue "?", which
+solves the trickiest problem, that of extending the lifetime of the
+temporary to match the lifetime of the reference.  This routine
+is called in Microsoft mode when a reference is being bound to "operand".
+If the operand is a class rvalue "?" operation, the extra copy to a
+temporary is added.
+*/
+{
+  check_assertion(microsoft_mode);
+  if (is_an_rvalue(operand) &&
+      is_class_struct_union_type(operand->type) &&
+      is_expression_operand(operand)) {
+    an_expr_node_ptr expr = operand->variant.expression;
+    if (is_operation_node(expr) &&
+        expr->variant.operation.kind == (an_expr_operator_kind)eok_question) {
+      temp_init_from_operand(operand, /*result_is_addr=*/FALSE);
+    }  /* if */
+  }  /* if */
+}  /* add_copy_to_temp_for_microsoft_rvalue_question_mark */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void prep_reference_initializer_operand(
                               an_operand    *source_operand,
@@ -12995,6 +13024,11 @@ to be acceptable, and *conversion describes it.
       check_access_to_elided_copy_constructor(orig_source_type,
                                               &source_operand->position);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && direct_binding_possible && initializing_variable) {
+      add_copy_to_temp_for_microsoft_rvalue_question_mark(source_operand);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Convert the operand to a pointer to the class object. */
     conv_class_operand_to_object_pointer(source_operand);
     cast_operand(result_ptr_type, source_operand, /*check_cast_access=*/TRUE,
