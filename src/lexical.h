@@ -2096,6 +2096,7 @@ extern void open_file_and_push_input_stack(char      *file_name,
 extern FILE *open_file_for_input(
                            char                       *file_name,
                            a_boolean                  use_search_path,
+			   a_boolean		      is_include_file,
                            a_boolean                  is_system_include,
                            a_boolean                  is_include_next,
                            a_boolean                  replace_suffix,

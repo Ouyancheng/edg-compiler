@@ -2321,6 +2321,8 @@ the ignore_delimiters and is_partial_file_name parameters.
   (f_compare_file_names(s1, s2, /*ignore_delimiters=*/FALSE,		\
                         /*is_partial_file_name=*/FALSE))
 
+extern char *normalize_file_name(char	*file_name);
+
 extern int f_compare_file_names(char		*file1,
 	 		        char		*file2,
 		                a_boolean	ignore_delimiters,

@@ -16632,6 +16632,7 @@ file we simply return.
       /* Call a routine to search for a file with an appropriate suffix. */
       f_source = open_file_for_input(sfp->name_as_written, 
                                      /*use_search_path=*/TRUE,
+				     /*is_include_file=*/TRUE,
                                      is_system_include,
                                      /*is_include_next=*/FALSE,
 				     /*replace_suffix=*/TRUE,

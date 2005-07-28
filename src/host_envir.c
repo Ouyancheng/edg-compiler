@@ -3300,6 +3300,8 @@ to the current directory.
      to construct the normalized directory names. */
   if (dir_buffer1 == NULL) {
     dir_buffer1 = alloc_text_buffer(128);
+  }  /* if */
+  if (dir_buffer2 == NULL) {
     dir_buffer2 = alloc_text_buffer(128);
   }  /* if */
   dir1 = normalize_dir_name(dir1, dir_buffer1, is_partial_file_name);
@@ -3307,6 +3309,27 @@ to the current directory.
   result = compare_file_chars(dir1, dir2);
   return result;
 }  /* compare_dir_names */
+
+
+char *normalize_file_name(char	*file_name)
+/*
+Normalize "file_name" by converting it into a canonical form.  For
+example, if the file name is "/a/b/../c", the normalized name will
+be "/a/c".  The string returned points to the contexts of a text
+buffer.  The buffer will be overwritten by subsequent calls of
+this routine or compare_dir_names.
+*/
+{
+  char	*result;
+
+  /* Allocate a directory buffer if not already allocated. */
+  if (dir_buffer1 == NULL) {
+    dir_buffer1 = alloc_text_buffer(128);
+  }  /* if */
+  result = normalize_dir_name(file_name, dir_buffer1,
+                              /*is_partial_file_name*/FALSE);
+  return result;
+}  /* normalize_file_name */
 
 
 int f_compare_file_names(char		*file1,

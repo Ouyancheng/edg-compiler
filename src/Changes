@@ -1,5 +1,12 @@
 Version 3.7
 
+7/28/05  Microsoft compatibility: full path name of primary source file
+
+To simplify the generation of debug information that is similar to that
+of the Microsoft compiler, the full_name field of the source file entry
+for the primary source file now contains the full path name of the
+file.  This is done in Microsoft mode when microsoft_version is >= 1300.
+
 7/28/05  Microsoft and GNU compatibility: class rvalue "?" result temporary
 
 The changes of 11/14/04 that implemented core issue 446, which
