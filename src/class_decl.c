@@ -7203,6 +7203,7 @@ is set to NULL by this function.
     /* The storage class will be changed to sc_unspecified if a definition is
        seen. */
     rtn->storage_class = (a_storage_class)sc_extern;
+    check_constituent_types_have_linkage(sym, &locator->source_position);
   }  /* if */
   if (func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or
@@ -8151,6 +8152,7 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
        the storage is sc_static (already set), which is changed to sc_extern
        or sc_unspecified during a final fixup pass. */
     var->storage_class = (a_storage_class)sc_extern;
+    check_constituent_types_have_linkage(sym, &locator->source_position);
   }  /* if */
   var->source_corresp.access = class_state->access;
   if (curr_token == tok_assign) {

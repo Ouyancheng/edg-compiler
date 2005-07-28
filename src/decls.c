@@ -4154,8 +4154,8 @@ the routine-name-linkages of the two declarations are compatible.
 }  /* routine_name_linkages_are_compatible */
 
 
-static void check_constituent_types_have_linkage(a_symbol_ptr      sym,
-                                                 a_source_position *error_pos)
+void check_constituent_types_have_linkage(a_symbol_ptr      sym,
+                                          a_source_position *error_pos)
 /*
 If a variable or routine is to have linkage, its type (and any types that
 that type is made up of) should have linkage as well. This excludes local
@@ -4175,8 +4175,8 @@ should be reported.
                    is_function ? ec_local_type_in_function :
                                  ec_local_type_in_nonlocal_var,
                    error_pos);
-  } else if (contains_type_with_no_name_linkage(type)) {
-    /* Catch the use of typedefs that do not have linkage.
+  } else if (is_or_contains_type_with_no_name_linkage(type)) {
+    /* Catch the use of types that do not have linkage.
        E.g., typedef enum { e1 } *pE; void f(pE); */
     pos_diagnostic(strict_ansi_mode? es_error: es_warning,
                    is_function ? ec_type_with_no_linkage_in_function :
