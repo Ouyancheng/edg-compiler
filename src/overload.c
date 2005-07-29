@@ -12810,7 +12810,6 @@ to be acceptable, and *conversion describes it.
   } else {
     /* Compare the operand type and the reference type to see if direct
        binding is possible. */
-    revert_microsoft_rvalue_to_lvalue_if_possible(source_operand);
     direct_binding_possible =
                   direct_reference_binding_possible(source_operand,
                                                     (a_type_ptr)NULL,
