@@ -4146,20 +4146,33 @@ describes Microsoft attributes preceding the enum specifier (if any).
                                            (an_integer_kind)ik_long)) {
         /* Long. */
         enum_type->variant.integer.int_kind = (an_integer_kind)ik_long;
-#if LONG_LONG_ALLOWED
       } else if (in_range_for_integer_kind(&min_value, &max_value,
                                           (an_integer_kind)ik_unsigned_long)) {
         /* Unsigned long. */
         enum_type->variant.integer.int_kind =
                                           (an_integer_kind)ik_unsigned_long;
-      } else if (in_range_for_integer_kind(&min_value, &max_value,
+#if LONG_LONG_ALLOWED
+      } else if ((!strict_ansi_mode || long_long_is_standard) &&
+                 in_range_for_integer_kind(&min_value, &max_value,
                                            (an_integer_kind)ik_long_long)) {
         /* Long long. */
         enum_type->variant.integer.int_kind = (an_integer_kind)ik_long_long;
+      } else if ((!strict_ansi_mode || long_long_is_standard) &&
+                 in_range_for_integer_kind(
+                                    &min_value, &max_value,
+                                    (an_integer_kind)ik_unsigned_long_long)) {
+        /* Unsigned long long. */
+        enum_type->variant.integer.int_kind =
+                                       (an_integer_kind)ik_unsigned_long_long;
 #endif /* LONG_LONG_ALLOWED */
       } else {
-        /* Representation should be largest_enum_int_kind. */
+        /* No integer type can hold all the values.  We'll use the largest
+           available integer type and issue a diagnostic. */
         enum_type->variant.integer.int_kind = largest_enum_int_kind;
+        if (!err) {
+          pos_diagnostic(strict_ansi_mode ? es_error : es_warning,
+                         ec_insufficient_enum_range, &tag_position);
+        }  /* if */
       }  /* if */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
@@ -7800,10 +7813,14 @@ decl-specifiers.
     largest_enum_int_kind = (an_integer_kind)ik_int;
   } else {
 #if LONG_LONG_ALLOWED
-    largest_enum_int_kind = (an_integer_kind)ik_unsigned_long_long;
-#else /* !LONG_LONG_ALLOWED */
-    largest_enum_int_kind = (an_integer_kind)ik_unsigned_long;
+    if (long_long_is_standard) {
+      largest_enum_int_kind = (an_integer_kind)ik_unsigned_long_long;
+    } else
 #endif /* LONG_LONG_ALLOWED */
+    /* Do not insert code here. */
+    {
+      largest_enum_int_kind = (an_integer_kind)ik_unsigned_long;
+    }  /* if */
   }  /* if */
 
   /* Save variables from decl_spec.c that are needed for precompiled

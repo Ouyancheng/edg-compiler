@@ -1467,6 +1467,7 @@ ec_if_exists_not_allowed;;"use of __if_exists is not supported in this context"
 ec_if_exists_not_closed;;"__if_exists block not closed in the same scope in which it was opened"
 ec_bad_init_for_thread_local;;"thread-local variable cannot be dynamically initialized" 
 ec_unaligned_qualifier_dropped;;"conversion drops \"__unaligned\" qualifier"
+ec_insufficient_enum_range;;"some enumerator values cannot be represented by the integral type underlying the enum type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
