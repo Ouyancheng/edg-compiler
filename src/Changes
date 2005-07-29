@@ -1,5 +1,20 @@
 Version 3.7
 
+7/29/05  Internal error on nondeduced parameter in partial ordering
+
+Version 3.6 introduced a change to allow partial ordering of functions
+in which certain template parameters are not used in the signatures
+of the functions (see Changes entry of 2/4/05).  Certain cases that
+were ambiguous before that change could result in an internal error in
+wrapup_template_argument_deduction after the change.  Now fixed.
+
+  template <int N, class T> void f(T const&) {}
+  template <int N, class T> void f(T&) {}
+  int main() {
+    int const ci = 3;
+    f<1>(ci);
+  }
+
 7/28/05  Types without linkage used for entities with linkage
 
 In C++ mode, the front end sometimes silently accepted declarations of entities

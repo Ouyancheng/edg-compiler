@@ -1664,6 +1664,9 @@ during wrapup processing by compare_function_templates.
     tap = templ_arg_list;
     for (; tpp != NULL; tpp = tpp->next, tap = tap->next) {
       a_type_ptr	constant_type;
+      /* Some template arguments may not have values when
+         is_partial_order_check is TRUE.  Skip such arguments. */
+      if (is_partial_order_check && !template_arg_has_value(tap)) continue;
       if (is_nontype_templ_arg(tap)) {
         /* Check whether this nontype template parameter must be rescanned
            because of a dependence on another template argument. */
