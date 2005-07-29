@@ -4262,9 +4262,9 @@ associated sk_external_variable or sk_external_routine symbol, if any.
                           ext_sym == NULL ? idlbp->linked_symbol : ext_sym);
       }  /* if */
     }  /* if */
-    if (C_dialect == C_dialect_cplusplus) {
-      /* A variable or routine with linkage should not be declared in terms of
-         types with no linkage. */
+    if (!C_mode() && scp->name_linkage != (a_name_linkage_kind)nlk_internal) {
+      /* A variable or routine with external linkage should not be declared in
+         terms of types with no linkage. */
       check_constituent_types_have_linkage(sym, error_pos);
     }  /* if */
   }  /* if */

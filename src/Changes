@@ -15,18 +15,20 @@ wrapup_template_argument_deduction after the change.  Now fixed.
     f<1>(ci);
   }
 
-7/28/05  Types without linkage used for entities with linkage
+7/28/05  Types without linkage used for entities with external linkage
 
 In C++ mode, the front end sometimes silently accepted declarations of entities
-with linkage involving class types or enumeration types without linkage.  Now
-such declarations are always diagnosed (an error in strict C++ mode, a warning
-otherwise).  For example:
+with external linkage involving class types or enumeration types without
+linkage.  Now such declarations are always diagnosed (an error in strict C++
+mode, a warning otherwise).  For example:
 
   enum { no, yes } anwer;  // Previously silently accepted; now a diagnostic.
   struct S {
     typedef struct {} *P;
     static P x;  // Previously silently accepted; now a diagnostic.
   };
+
+This is a change related to the C++ standards committee's core issue 389.
 
 7/28/05  Microsoft compatibility: full path name of primary source file
 
