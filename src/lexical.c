@@ -4320,15 +4320,20 @@ at the next level down.
        source file, so that the directory containing the current include
        file will be searched first.  Normally, we pop back to the directory
        of the current input stack entry, but when popping a preinclude file
-       we must (in some modes) pop back to the current directory. */
-    { char	*prev_dir_name;
-      if (is_end_of_preinclude &&
-          put_dir_of_each_opened_source_file_on_incl_search_path &&
-          stack_referenced_include_directories &&
-          !microsoft_mode) {
-        prev_dir_name = current_directory_name;
-      } else {
-        prev_dir_name = curr_ise->dir_name;
+       we must (in some modes) pop back to the current directory.  In
+       Microsoft mode, the directory name in the input stack entry may be
+       updated to be the full path name of the primary source file (as
+       opposed to the directory name portion of the primary source file name
+       as specified on the command line). */
+    { char	*prev_dir_name = curr_ise->dir_name;
+      if (put_dir_of_each_opened_source_file_on_incl_search_path &&
+          stack_referenced_include_directories) {
+        if (is_end_of_preinclude && !microsoft_mode) {
+          prev_dir_name = current_directory_name;
+        } else if (microsoft_mode && microsoft_version >= 1300 &&
+                   curr_ise->assoc_actual_il_file->top_level_file) {
+          prev_dir_name = dir_name_of_primary_source_file;
+        }  /* if */
       }  /* if */
       pop_primary_include_search_dir(
              prev_dir_name, (a_boolean)curr_ise->from_system_include_dir);
