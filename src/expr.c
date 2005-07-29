@@ -12793,6 +12793,24 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       a_boolean    conv_2_to_3_possible, conv_3_to_2_possible;
       a_boolean    ambig_2_to_3, ambig_3_to_2;
       a_boolean    force_copy = TRUE;
+      if (gpp_mode && gnu_version < 40000 &&
+          is_class_struct_union_type(operand_2.type) &&
+          is_class_struct_union_type(operand_3.type)) {
+        /* g++ before 4.0 treats a mixed lvalue/rvalue case where the
+           lvalue is a base and the rvalue is a derived as if both were
+           lvalues (i.e., the result is an lvalue). */
+        if (is_an_lvalue(&operand_2) && is_an_rvalue(&operand_3) &&
+            find_base_class_of(operand_3.type, operand_2.type) != NULL) {
+          /* Change the derived-class rvalue to an lvalue. */
+          revert_gcc_rvalue_to_lvalue_if_possible(&operand_3,
+                                                  /*ignore_casts=*/FALSE);
+        } else if (is_an_lvalue(&operand_3) && is_an_rvalue(&operand_2) &&
+                   find_base_class_of(operand_2.type, operand_3.type) != NULL){
+          /* Change the derived-class rvalue to an lvalue. */
+          revert_gcc_rvalue_to_lvalue_if_possible(&operand_2,
+                                                  /*ignore_casts=*/FALSE);
+        }  /* if */        
+      }  /* if */
       conv_2_to_3_possible =
                        conditional_operator_conversion_possible(&operand_2,
                                                                 &operand_3,
@@ -12823,23 +12841,12 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
          is a class rvalue should be suppressed (suppress_class_rvalue_temp),
          and whether a conversion from derived to base should force a copy
          to a temporary rather than just treating the object as having the
-         new type. */
+         new type (force_copy). */
       if (microsoft_bugs) {
         /* MSVC++ (6.0 through 8.0 beta at least) does not add the temp. */
         force_copy = TRUE;
         suppress_class_rvalue_temp = TRUE;
       } else if (any_cfront_mode()) {
-        force_copy = FALSE;
-        suppress_class_rvalue_temp = TRUE;
-      } else if (gpp_mode && gnu_version < 40000 &&
-                 !types_are_compatible_ignoring_qualifiers(operand_2.type,
-                                                           operand_3.type) &&
-                 ((is_an_lvalue(&operand_2) && !is_an_lvalue(&operand_3) &&
-                   conv_3_to_2_possible && !conv_2_to_3_possible) ||
-                 ((is_an_lvalue(&operand_3) && !is_an_lvalue(&operand_2) &&
-                   conv_2_to_3_possible && !conv_3_to_2_possible)))) {
-        /* g++ before 4.0 does not do the extra copy for mixed lvalue/rvalue
-           cases where the lvalue is a base and the rvalue a derived. */
         force_copy = FALSE;
         suppress_class_rvalue_temp = TRUE;
       }  /* if */
