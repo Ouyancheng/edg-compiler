@@ -74,7 +74,7 @@ not so qualified.  For example:
   }
 
 Now a warning is issued instead (or no diagnostic at all if the destination
-is a pointer to void type).
+is a pointer to a type with not alignment requirements, like void or char).
 
 7/27/05  GNU C++ mode: Spurious error on designator for anonymous union member
 

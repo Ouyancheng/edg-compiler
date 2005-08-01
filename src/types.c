@@ -4882,7 +4882,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_boolean            unaligned_dropped = FALSE;
       if (!(dest_type_qualifiers & TQ_UNALIGNED) &&
-          (source_type_qualifiers & TQ_UNALIGNED)) {
+          (source_type_qualifiers & TQ_UNALIGNED) &&
+          !suppress_extensions) {
         /* The Microsoft-specific qualifier "__unaligned" can be dropped.
            Since this is somewhat suspect, we will issue a warning about it
            (see below) except if another conversion warning is issued. */
@@ -4935,11 +4936,10 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (unaligned_dropped && std_conv->warning_suggested == ec_no_error &&
-          !is_void_type(unqual_dest_type_pointed_to)) {
+          unqual_dest_type_pointed_to->alignment != 1) {
         /* Trigger a diagnostic about the __unaligned property being
            implicitly dropped. */
         std_conv->warning_suggested = ec_unaligned_qualifier_dropped;
-        std_conv->is_mild_warning = TRUE;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
