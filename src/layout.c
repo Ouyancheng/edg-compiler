@@ -845,6 +845,13 @@ GNU attributes specified on that field.
        directly. */
     field_alignment = alignment_of_type(field->type);
 #endif /* IA64_ABI */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode &&
+             (field->type->alignment_set_explicitly ||
+              skip_typerefs(field->type)->alignment_set_explicitly)) {
+    /* Microsoft does not apply packing/alignment directives to fields of
+       types with explicit alignment requirements. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */

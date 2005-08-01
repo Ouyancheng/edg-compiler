@@ -1,5 +1,19 @@
 Version 3.7
 
+8/1/05   Microsoft compatibility: Packing and explicitly aligned types
+
+In Microsoft modes, the front end now ignores packing directives for fields
+of types with explicit alignment requirements.  For example:
+
+  #pragma pack(2)
+  struct __declspec(align(4)) A {
+    char a;
+  };
+  struct S {
+    char s;
+    A a;  // Aligned on a 4-byte boundary despite the 2-byte boundary
+  };      // packing in effect.  Therefore, sizeof(S) == 8 (not 4).
+
 8/1/05   Abort on direct-initialization elision optimization
 
 A bug was introduced in version 3.6 by the changes for copy
