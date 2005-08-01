@@ -3914,7 +3914,8 @@ error is not issued, a NULL file pointer is returned.
       /* Eliminate any relative components of the path name. */
       temp = normalize_file_name(buffer->buffer);
       /*  Copy the path name to IL memory. */
-      *full_file_name = copy_string_to_region(file_scope_region_number, temp);
+      *full_file_name = alloc_primary_file_scope_il(strlen(temp) + 1);
+      (void)strcpy(*full_file_name, temp);
     } else {
       *full_file_name = temp_file_name;
     }  /* if */
