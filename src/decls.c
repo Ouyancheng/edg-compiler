@@ -4274,10 +4274,13 @@ associated sk_external_variable or sk_external_routine symbol, if any.
                           ext_sym == NULL ? idlbp->linked_symbol : ext_sym);
       }  /* if */
     }  /* if */
-    if (!C_mode() && scp->name_linkage != (a_name_linkage_kind)nlk_internal &&
+    if (!C_mode() &&
+        scp->name_linkage != (a_name_linkage_kind)nlk_internal &&
+        scp->name_linkage != (a_name_linkage_kind)nlk_external &&
         !scope_stack[depth_scope_stack].in_prototype_instantiation) {
       /* A variable or routine with external linkage should not be declared in
-         terms of types with no linkage. */
+         terms of types with no linkage.  Entities with extern "C" linkage are
+         exempt from this constraint. */
       check_constituent_types_have_linkage(sym, error_pos);
     }  /* if */
   }  /* if */
