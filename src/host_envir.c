@@ -3315,7 +3315,7 @@ char *normalize_file_name(char	*file_name)
 /*
 Normalize "file_name" by converting it into a canonical form.  For
 example, if the file name is "/a/b/../c", the normalized name will
-be "/a/c".  The string returned points to the contexts of a text
+be "/a/c".  The string returned points to the contents of a text
 buffer.  The buffer will be overwritten by subsequent calls of
 this routine or compare_dir_names.
 */
