@@ -213,9 +213,9 @@ allocation and generates a catastrophic error.
   /* Can't do this conditionally on db_active since db_active is not yet
      set when command line processing is done. */
   adjust_record_of_total_allocation((long)size);
-  if (debug_level >= 5) {
-    fprintf(f_debug, "malloc_with_check: allocating %lu, total = %lu\n",
-                     (unsigned long)size,
+  if (db_flag_is_set("malloc") || debug_level >= 5) {
+    fprintf(f_debug, "malloc_with_check: allocating %lu at %p, total = %lu\n",
+                     (unsigned long)size, ptr,
                      (unsigned long)total_mem_allocated);
   }  /* if */
 #endif /* DEBUG */
