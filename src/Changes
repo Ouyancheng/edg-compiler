@@ -22,7 +22,7 @@ by a bitwise copy.  Now fixed.
 
 7/29/05  Unrepresentable enumerator constants
 
-When enumeration types can be larger that int types (e.g., in most C++ modes),
+When enumeration types can be larger than int types (e.g., in most C++ modes),
 the front end now issues an error (in strict mode) or a warning (in other
 modes) when not all the enumerator constants can be represented by a single
 integral type.  For example (assuming "long" is the signed integral type with
@@ -33,9 +33,9 @@ the largest range):
                                            // both a and b.
 
 Also, in strict C++ mode with LONG_LONG_ALLOWED set to TRUE, the front end
-would always select "long long" as the type underlying the enumeration in the
-example above.  Now, an error is issued instead, unless type "long long" was
-explicitly enabled (using the --long_long option).
+formerly always selected "long long" as the type underlying the enumeration in
+the example above.  Now, an error is issued instead, unless type "long long"
+was explicitly enabled (using the --long_long option).
 
 7/29/05  Internal error on nondeduced parameter in partial ordering
 
