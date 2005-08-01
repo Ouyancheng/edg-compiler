@@ -36,8 +36,8 @@ wrapup_template_argument_deduction after the change.  Now fixed.
 
 In C++ mode, the front end sometimes silently accepted declarations of entities
 with external linkage involving class types or enumeration types without
-linkage.  Now such declarations are always diagnosed (an error in strict C++
-mode, a warning otherwise).  For example:
+linkage.  Now such declarations are always diagnosed (an error in strict mode;
+otherwise, a warning for functions or a remark for variables).  For example:
 
   enum { no, yes } anwer;  // Previously silently accepted; now a diagnostic.
   struct S {

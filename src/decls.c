@@ -4177,8 +4177,20 @@ should be reported.
                    error_pos);
   } else if (is_or_contains_type_with_no_name_linkage(type)) {
     /* Catch the use of types that do not have linkage.
-       E.g., typedef enum { e1 } *pE; void f(pE); */
-    pos_diagnostic(strict_ansi_mode? es_error: es_warning,
+       E.g., typedef enum { e1 } *pE; void f(pE);
+       In strict mode, we issue a discretionary error.  In other modes, we
+       issue a warning for functions and a remark for variables (the variable
+       case is not all that uncommon and few other compilers diagnose it at
+       all). */
+    an_error_severity  severity;
+    if (strict_ansi_mode) {
+      severity = strict_ansi_discretionary_severity;
+    } else if (is_function) {
+      severity = es_warning;
+    } else {
+      severity = es_remark;
+    }  /* if */
+    pos_diagnostic(severity,
                    is_function ? ec_type_with_no_linkage_in_function :
                                  ec_type_with_no_linkage_in_var_with_linkage,
                    error_pos);
