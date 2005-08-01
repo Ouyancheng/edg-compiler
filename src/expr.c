@@ -942,6 +942,7 @@ source position is after the closing parenthesis of the argument list.
         /* Avoid problems with specified arguments with defaults: */
         arg_operand_list->next == NULL) {
       a_routine_ptr conv_routine;
+      a_type_ptr    conv_rout_type;
       /* The constructor selected is a copy constructor, so certain
          optimizations may be possible. */
       param_type =
@@ -972,10 +973,12 @@ source position is after the closing parenthesis of the argument list.
                                    class_type)) ||
                   (conv_routine->special_kind ==
                                     (a_special_function_kind)sfk_conversion &&
-                   f_same_entities(f_skip_typerefs(
-                                        f_skip_typerefs(conv_routine->type)->
+                   ((conv_rout_type = f_skip_typerefs(conv_routine->type)),
+                    f_same_entities(f_skip_typerefs(conv_rout_type->
                                                   variant.routine.return_type),
-                                   class_type)))) {
+                                    class_type) &&
+                    conv_rout_type->variant.routine.extra_info->
+                                              value_returned_by_cctor)))) {
         /* The argument will be a temporary of the right type after the
            user-defined conversion indicated for the argument is applied,
            and elision can be done on that. */

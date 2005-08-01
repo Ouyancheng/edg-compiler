@@ -1,5 +1,25 @@
 Version 3.7
 
+8/1/05   Abort on direct-initialization elision optimization
+
+A bug was introduced in version 3.6 by the changes for copy
+constructor elision in direct-initialization cases (see Changes
+entry of 3/21/05).  This caused an assertion failure in expr.c/
+scan_ctor_arguments on cases that use conversion functions
+returning a class for which copy construction can be done
+by a bitwise copy.  Now fixed.
+
+
+  struct A {
+    A(int);
+  };
+  struct B {
+    operator const A();
+  } b;
+  int main() {
+    A a(b);  // Formerly aborted
+  }
+
 7/29/05  Unrepresentable enumerator constants
 
 When enumeration types can be larger that int types (e.g., in most C++ modes),
