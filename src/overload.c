@@ -13768,6 +13768,11 @@ used only in C++ mode.
     }  /* if */
   }  /* if */
   if (ambiguous != NULL) {
+    if (microsoft_bugs && local_ambiguous) {
+      /* MSVC++ considers an ambiguous conversion to be impossible. */
+      possible = FALSE;
+      local_ambiguous = FALSE;
+    }  /* if */
     *ambiguous = local_ambiguous;
   } else if (local_ambiguous) {
     /* The conversion is ambiguous.  Issue an error. */

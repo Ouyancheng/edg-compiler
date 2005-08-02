@@ -1,5 +1,22 @@
 Version 3.7
 
+8/2/05   Microsoft compatibility: Ambiguous conversions on "?" operator
+
+When determining the applicable conversions between the second and
+third operands of a "?" operator, MSVC++ appears to consider ambiguous
+conversions as impossible.  The EDG front end now does likewise.
+
+  struct A {
+    A(int);
+    operator unsigned long() const;
+    operator double() const;
+  };
+  int main() {
+    int i = 1;
+    A u(0);
+    A x(i ? u : 0);  // Now accepted in Microsoft bugs mode
+  }
+
 8/1/05   Microsoft compatibility: Packing and explicitly aligned types
 
 In Microsoft modes, the front end now ignores packing directives for fields
