@@ -4169,7 +4169,8 @@ describes Microsoft attributes preceding the enum specifier (if any).
         /* No integer type can hold all the values.  We'll use the largest
            available integer type and issue a diagnostic. */
         enum_type->variant.integer.int_kind = largest_enum_int_kind;
-        if (!err) {
+        if (!err &&
+            !scope_stack[depth_scope_stack].in_prototype_instantiation) {
           pos_diagnostic(strict_ansi_mode ? es_error : es_warning,
                          ec_insufficient_enum_range, &tag_position);
         }  /* if */
