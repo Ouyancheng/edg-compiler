@@ -11155,6 +11155,33 @@ the necessary processing can be done.
 }  /* create_out_of_class_entry_for_partial_spec */
 
 
+void check_friend_class_template_default_args(
+				a_template_param_ptr	param_list,
+				a_symbol_locator	*locator)
+/*
+This routine is called for friend class template declarations.  Such
+declarations are not permitted to have default template arguments.
+Check for the presence of such default argument and issue a diagnostic
+if any are found.
+*/
+{
+  a_template_param_ptr	tpp;
+  a_boolean		has_default_arg = FALSE;
+
+  for (tpp = param_list; tpp != NULL; tpp = tpp->next) {
+    if (tpp->has_default_arg) {
+       has_default_arg = TRUE;
+       break;
+     }  /* if */
+  }  /* for */
+  if (has_default_arg) {
+    pos_diagnostic(strict_ansi_discretionary_severity,
+                   ec_friend_class_template_default_arg_not_allowed,
+                   &locator->source_position);
+  }  /* if */
+}  /* check_friend_class_template_default_args */
+
+
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
@@ -11376,7 +11403,6 @@ declaration of a partial specialization declared outside of its class.
           sym = NULL;
           goto friend_template_checks_done;
         } else {
-
           pos_error(ec_template_friend_definition_not_allowed,
                     &locator.source_position);
           decl_state->decl_scope_err = TRUE;
@@ -11395,6 +11421,9 @@ declaration of a partial specialization declared outside of its class.
            is not allowed. */
         pos_error(ec_friend_is_nonreal_template, &locator.source_position);
       }  /* if */
+      /* A default argument may not be specified in a friend template class
+         declaration. */
+      check_friend_class_template_default_args(templ_params, &locator);
     } else if (friend_token_seen) {
       /* A friend declaration in a nonclass scope.  Only issue the error
          if we actually scanned the friend token in this routine.  If
