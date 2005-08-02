@@ -4827,9 +4827,16 @@ prototype instantiation is considered as a potential match.
                       (an_access_specifier)tssp->variant.class_template.access;
     }  /* if */
     /* A template instantiation will have the same name-linkage (C++ or
-       internal) as the template itself has. */
-    class_type->source_corresp.name_linkage =
-                             tssp->variant.class_template.name_linkage;
+       internal) as the template itself has.  In some error cases, it is
+       simpler to force C++ linkage to avoid linkage-related errors during
+       error recovery. */
+    if (tssp->is_error) {
+      class_type->source_corresp.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
+    } else {
+      class_type->source_corresp.name_linkage =
+                                     tssp->variant.class_template.name_linkage;
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
     if (microsoft_mode or_near_and_far_enabled()) {
       a_symbol_ptr	prototype_template_prototype_sym;
