@@ -1,5 +1,16 @@
 Version 3.7
 
+8/2/05   gcc compatibility: comma expression with function as second operand
+
+In gcc mode, a comma expression whose second operand is a function now
+again returns a pointer to function.  The change of 7/13/03 incorrectly
+had changed that to preserve the second operand as a function.
+
+  void foo(void);
+  int main() {
+    int i = sizeof(1, foo); // i set to sizeof pointer-to-function
+  }
+
 8/2/05   Microsoft compatibility: Ambiguous conversions on "?" operator
 
 When determining the applicable conversions between the second and
