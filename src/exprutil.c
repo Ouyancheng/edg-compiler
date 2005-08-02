@@ -6868,8 +6868,7 @@ still provided).
     operation_type = result_type;
     /* Cases that return a class rvalue have to be handled specially: an
        extra copy to a temporary is needed at the end. */
-    if (!C_mode() && !suppress_class_rvalue_temp &&
-        is_class_struct_union_type(result_type)) {
+    if (!C_mode() && is_class_struct_union_type(result_type)) {
       class_rvalue_case = TRUE;
     }  /* if */
   }  /* if */
@@ -6987,6 +6986,7 @@ still provided).
     error_in_operand(ec_constant_value_not_known, operand_1);
     make_error_operand(result);
   } else {
+    if (suppress_class_rvalue_temp) class_rvalue_case = FALSE;
     if (class_rvalue_case) {
       /* When the result is a class rvalue, we will do a final copy. */
       /* See if this operation can be optimized to avoid a copy. */
