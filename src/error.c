@@ -284,6 +284,18 @@ static an_error_severity
 				   contains values set from the command-line
 				   or by pragmas. */
 
+static a_byte_boolean
+		once_flag_for_error_code[(int)ec_last + 1];
+				/* Array indicating whether the "once" flag
+				   is set for a given error code.  This
+				   flag indicates that a non-error
+				   diagnostic should be issued only once. */
+
+static a_byte_boolean
+		diagnostic_issued_for_error_code[(int)ec_last + 1];
+				/* Array indicating whether a diagnostic
+				   has been issued for a given error code. */
+
 static an_il_to_str_output_control_block
 		octl;	/* Output control block for interface to il_to_str
 			   routines. */
@@ -3387,6 +3399,27 @@ Return TRUE if the diagnostic should be suppressed.
 }  /* diagnostic_already_issued_for_prototype */
 
 
+static a_boolean should_diag_be_issued_only_once(
+					an_error_code		error_code,
+					an_error_severity	severity)
+/*
+This routine records the fact that a given diagnostic has been issued and
+also checks whether this occurrence of the diagnostic should be suppressed
+because of the use of the "once" diagnostic control.  Return TRUE if the
+diagnostic should be issued.
+*/
+{
+  a_boolean		result = TRUE;
+
+  if (severity <= (int)es_warning &&
+      once_flag_for_error_code[(int)error_code]) {
+    result = !diagnostic_issued_for_error_code[(int)error_code];
+  }  /* if */
+  diagnostic_issued_for_error_code[(int)error_code] = TRUE;
+  return result;
+}  /* should_diag_be_issued_only_once */
+
+
 static void display_trans_unit_context(
 			a_source_position	*error_pos,
 			an_error_severity	severity,
@@ -3478,6 +3511,12 @@ and doing any required expansions, the diagnostic is written.
 
   diag_should_be_issued = check_severity(error_code, &error_pos,
                                          &severity, diag_kind);
+  if (diag_should_be_issued) {
+    /* Determine whether this diagnostic should not be issued because
+       of the use of the "once" diagnostic control. */
+    diag_should_be_issued = should_diag_be_issued_only_once(error_code,
+                                                            severity);
+  }  /* if */
 #if !STANDALONE_UTILITY_PROGRAM
    if (diag_should_be_issued) {
      /* Suppress the diagnostic if it has already been issued during the
@@ -3797,6 +3836,10 @@ table is used to reset the value in the current table.
       /* Restore the severity from the default table. */
       current_severity_for_error_code[error_number] =
                                  default_severity_for_error_code[error_number];
+    } else if (severity == es_once) {
+      /* Set the flag indicating that a given non-error diagnostic
+         should be issued only once. */
+      once_flag_for_error_code[error_number] = TRUE;
     } else {
       current_severity_for_error_code[error_number] = severity;
       if (make_default) {
@@ -4837,6 +4880,7 @@ where "arg" is either an error number or an error tag.
     case pk_diag_remark:   severity = es_remark;              break;
     case pk_diag_warning:  severity = es_warning;             break;
     case pk_diag_error:    severity = es_discretionary_error; break;
+    case pk_diag_once:     severity = es_once;                break;
     case pk_diag_default:  severity = es_default;             break;
     default: unexpected_condition();
   }  /* switch */
@@ -4965,6 +5009,8 @@ line processing is done.
   /* Zeroing this array causes it to be set to es_default. */
   memzero((a_void_ptr)current_severity_for_error_code,
            sizeof(current_severity_for_error_code));
+  memzero((a_void_ptr)once_flag_for_error_code,
+           sizeof(once_flag_for_error_code));
 }  /* error_early_init */
 
 
@@ -5006,6 +5052,8 @@ of each compilation.
   clear_file_index_list();
   memzero((char *)recorded_diagnostic_table,
           sizeof(recorded_diagnostic_table));
+  memzero((a_void_ptr)diagnostic_issued_for_error_code,
+           sizeof(diagnostic_issued_for_error_code));
 }  /* error_init */
 
 #if MAKE_FRONT_END_CALLABLE

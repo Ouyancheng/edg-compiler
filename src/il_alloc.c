@@ -3053,6 +3053,7 @@ in the current IL memory region.
     case pk_diag_remark:
     case pk_diag_warning:
     case pk_diag_error:
+    case pk_diag_once:
     case pk_diag_default:
 #if INCLUDE_EDG_TEST_PRAGMAS
     case pk_test_next_statement:

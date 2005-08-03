@@ -93,6 +93,7 @@ typedef enum /*an_option_kind*/ {
   optk_diag_remark,
   optk_diag_warning,
   optk_diag_error,
+  optk_diag_once,
   optk_display_error_number,
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   optk_gen_c_file_name,

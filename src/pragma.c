@@ -393,6 +393,7 @@ possible.
     case pk_diag_remark:
     case pk_diag_warning:
     case pk_diag_error:
+    case pk_diag_once:
     case pk_diag_default:
 #if USER_CONTROL_OF_STRUCT_PACKING
     case pk_pack:
@@ -1772,6 +1773,19 @@ Initialize the pragma description table.
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_error,
+                 (an_immediate_pragma_function_ptr)diag_pragma,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+                 es_error);
+  (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_diag_once,
                  (an_immediate_pragma_function_ptr)diag_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,

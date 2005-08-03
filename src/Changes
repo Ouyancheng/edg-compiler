@@ -1,5 +1,18 @@
 Version 3.7
 
+8/3/05   Issuing certain warnings or remarks only once
+
+A feature has been added to the diagnostic control facilities to
+permit a given diagnostic to be issued only once as a warning or remark.
+The --diag_once command-line option and the diag_once pragma are used to
+specify the error messages that are to be issued only once during a
+compilation.  Note that errors are not affected by this feature; they
+are always issued.
+
+  #pragma diag_once 177
+  static int i;  // declared but never reference warning emitted
+  static int j;  // warning suppressed on this line
+
 8/2/05   Friend class template declarations not allowed
 
 The C++ standards committee has clarified that a friend class template

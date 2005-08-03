@@ -408,6 +408,9 @@ Initialize the option information table.
   add_option_description(optk_diag_error, "diag_error", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_diag_once, "diag_once", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_display_error_number, "display_error_number",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
@@ -1416,6 +1419,7 @@ processing routine to update the severity.
     case optk_diag_remark:   severity = es_remark;              break;
     case optk_diag_warning:  severity = es_warning;             break;
     case optk_diag_error:    severity = es_discretionary_error; break;
+    case optk_diag_once:     severity = es_once;                break;
     default: unexpected_condition();
   }  /* switch */
   /* Loop through the arguments and call a routine to update the
@@ -3565,6 +3569,7 @@ Process the arguments on the command line that invoked the compiler.
       case optk_diag_remark:
       case optk_diag_warning:
       case optk_diag_error:
+      case optk_diag_once:
         /* Options that override the severity of a given diagnostic.  The
            option argument contains a comma separated list of error tags. */
         process_diag_override_option(kind, opt_arg);
