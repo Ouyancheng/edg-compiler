@@ -500,6 +500,8 @@ Flags to be set when using the KAI inliner.
 #if MACOSX_TEST_VERSION
 #define MICROSOFT_EXTENSIONS_ALLOWED 1
 #define DEFAULT_MICROSOFT_MODE 0
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
+#define ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE 1
 #endif /* MACOSX_TEST_VERSION */
 
 #include "defines_macosx.h"
