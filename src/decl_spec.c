@@ -7818,7 +7818,7 @@ decl-specifiers.
     largest_enum_int_kind = (an_integer_kind)ik_int;
   } else {
 #if LONG_LONG_ALLOWED
-    if (long_long_is_standard) {
+    if (!strict_ansi_mode || long_long_is_standard) {
       largest_enum_int_kind = (an_integer_kind)ik_unsigned_long_long;
     } else
 #endif /* LONG_LONG_ALLOWED */
