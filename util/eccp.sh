@@ -541,6 +541,7 @@ check_abbreviation()
 --dependencies
 --designators
 --diag_error
+--diag_once
 --diag_remark
 --diag_suppress
 --diag_warning
@@ -1296,6 +1297,7 @@ process_option()
          --diag_remark | \
          --diag_warning | \
          --diag_error | \
+         --diag_once | \
          --microsoft_version | \
          --gnu_version | \
 	 --definition_list_file | \
@@ -1368,6 +1370,7 @@ process_option()
           --diag_remark=* | \
           --diag_warning=* | \
           --diag_error=* | \
+          --diag_once=* | \
           --microsoft_version=* | \
           --gnu_version=* | \
           --pending_instantiations=* | \
