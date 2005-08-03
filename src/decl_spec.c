@@ -773,7 +773,9 @@ template class, its DLL interface may need to be adjusted implicitly.
         a_routine_ptr     rp = ctsp->assoc_scope->routines;
         a_variable_ptr    vp = ctsp->assoc_scope->variables;
         a_base_class_ptr  bcp = ctsp->base_classes;
+#if DO_IL_LOWERING
         a_boolean         specialized_dtor_or_ctor = FALSE;
+#endif /* DO_IL_LOWERING */
         /* First update the DLL interface of the class itself. */
         ctsp->decl_modifiers |= new_dll_flags;
         if (new_dll_flags & DM_DLLIMPORT) {
@@ -802,11 +804,13 @@ template class, its DLL interface may need to be adjusted implicitly.
                         rp, new_dll_flags, (a_boolean)rp->is_inline,
                         /*is_redecl=*/FALSE, /*is_definition=*/FALSE, err_pos);
             }  /* if */
+#if DO_IL_LOWERING
           } else if (rp->special_kind ==
                                     (a_special_function_kind)sfk_destructor ||
                      rp->special_kind ==
                                     (a_special_function_kind)sfk_constructor) {
             specialized_dtor_or_ctor = TRUE;
+#endif /* DO_IL_LOWERING */
           }  /* if */
         }  /* for */
         if (new_dll_flags & DM_DLLIMPORT) {
