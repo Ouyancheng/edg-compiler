@@ -11155,7 +11155,7 @@ the necessary processing can be done.
 }  /* create_out_of_class_entry_for_partial_spec */
 
 
-void check_friend_class_template_default_args(
+static void check_friend_class_template_default_args(
 				a_template_param_ptr	param_list,
 				a_symbol_locator	*locator)
 /*
