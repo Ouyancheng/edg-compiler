@@ -3511,13 +3511,13 @@ and doing any required expansions, the diagnostic is written.
 
   diag_should_be_issued = check_severity(error_code, &error_pos,
                                          &severity, diag_kind);
+#if !STANDALONE_UTILITY_PROGRAM
   if (diag_should_be_issued) {
     /* Determine whether this diagnostic should not be issued because
        of the use of the "once" diagnostic control. */
     diag_should_be_issued = should_diag_be_issued_only_once(error_code,
                                                             severity);
   }  /* if */
-#if !STANDALONE_UTILITY_PROGRAM
    if (diag_should_be_issued) {
      /* Suppress the diagnostic if it has already been issued during the
         prototype instantiation. */
