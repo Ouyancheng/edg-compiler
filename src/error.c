@@ -3411,7 +3411,7 @@ diagnostic should be issued.
 {
   a_boolean		result = TRUE;
 
-  if (severity <= (int)es_warning &&
+  if ((int)severity <= (int)es_warning &&
       once_flag_for_error_code[(int)error_code]) {
     result = !diagnostic_issued_for_error_code[(int)error_code];
   }  /* if */
