@@ -1,5 +1,20 @@
 Version 3.7
 
+8/4/05   Abort on local aggregate initializer with Microsoft C99 mode
+
+The front end aborted in lower_c99_initializer ("bad init kind") on
+processing a nonconstant aggregate initializer on a local variable when
+Microsoft and C99 modes were enabled together.  Now fixed.
+
+  struct S {
+    int a, b;
+  };
+  int x;
+  struct S test() {
+    struct S s = {x};  // Caused assertion failure with --microsoft --c99
+    return s;
+  }
+
 8/3/05   Issuing certain warnings or remarks only once
 
 A feature has been added to the diagnostic control facilities to

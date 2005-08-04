@@ -31,6 +31,7 @@ decl_inits.c -- Scanning of initializers in declarations.
 #if DO_IL_LOWERING
 #if MICROSOFT_EXTENSIONS_ALLOWED && LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
 #include "lower_init.h"
+#include "lower_c99.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && ... */
 #if LOWER_DESIGNATED_INITIALIZERS
 #include "lower_init.h"
@@ -3364,6 +3365,8 @@ returned set to TRUE.
       /* Note that the equivalent C99 and GNU C feature is not lowered here;
          that's done in the normal C99 lowering phase. */
       if (microsoft_mode && C_mode() &&
+          /* Skip if C99 lowering will be done anyway. */
+          !c99_il_lowering_needed() &&
           init_dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
         lower_microsoft_C_mode_nonconstant_aggregate_init(vp, init_stmt);
         /* Force re-determination of the last statement of the current
