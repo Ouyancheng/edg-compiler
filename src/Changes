@@ -1,5 +1,19 @@
 Version 3.7
 
+8/5/04   Implicit conversion of function types and template deduction
+
+In some modes, an implicit conversion between pointers to functions with
+with C and C++ linkage is permitted.  This conversion was not considered
+when deducing template arguments from a C function type, resulting in
+a spurious type deduction failure for examples like the one below.  Now
+fixed.
+
+  extern "C" typedef void (*fp)(int);
+  template <class T> void f(T){}
+  int main() {
+    fp x = f;
+  }
+
 8/4/05   Abort on local aggregate initializer with Microsoft C99 mode
 
 The front end aborted in lower_c99_initializer ("bad init kind") on

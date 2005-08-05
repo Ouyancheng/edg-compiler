@@ -8834,8 +8834,11 @@ matching process.
         match = unknown_this_class_identical_types(curr_type, new_type);
       } else {
         /* In nondeclarative contexts, the this class parameter types must
-           match exactly. */
-        match = identical_types(curr_type, new_type);
+           match exactly.  types_are_compatible is used so that a conversion
+           from a C++ linkage function to C linkage can be permitted in
+	   some modes. */
+        match = f_types_are_compatible(
+                            curr_type, new_type, TCF_IMPLICIT_CONVERSION);
       }  /* if */
     }  /* if */
   }  /* if */
