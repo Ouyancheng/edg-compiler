@@ -4164,9 +4164,10 @@ symbol whose type is to be verified.  error_pos determines where any error
 should be reported.
 */
 {
-  a_boolean  is_function = (sym->kind == (a_symbol_kind)sk_routine);
-  a_type_ptr type = is_function? sym->variant.routine.ptr->type :
-                                 sym->variant.variable.ptr->type;
+  a_boolean  is_function = sym->kind == (a_symbol_kind)sk_routine ||
+                           sym->kind == (a_symbol_kind)sk_member_function;
+  a_type_ptr type = is_function ? sym->variant.routine.ptr->type :
+                                  sym->variant.variable.ptr->type;
   if (is_or_contains_local_type(type)) {
     /* A block extern declaration that involves a local type.  Issue an
        error (except in cfront or Microsoft compatibility mode). */
