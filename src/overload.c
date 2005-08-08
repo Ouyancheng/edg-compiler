@@ -13519,7 +13519,8 @@ Generate a dynamic initializer node which initializes given field of a
 union of type dest_type.  The initializer is given by source_operand and
 the resulting initializer node is returned through source_operand.
 (This is used to implement transparent unions and union casts: both are
-GNU C extensions.)
+GNU C extensions.)  In a constant expression, the result is a constant
+aggregate constant.
 */
 {
   a_constant_ptr      aggr_con;
@@ -13529,6 +13530,7 @@ GNU C extensions.)
   a_dynamic_init_ptr  aggr_init;
   an_expr_node_ptr    init_expr;
   a_type_ptr          field_type = rvalue_type(field->type);
+  an_operand          orig_operand;
 
   db_enter(3, "prep_transparent_union_conversion_operand");
   /* Make sure we have an rvalue. */
@@ -13539,6 +13541,7 @@ GNU C extensions.)
                /*is_implicit_cast=*/TRUE,
                /*is_reinterpret_cast=*/FALSE,
                /*reinterpret_sementics=*/FALSE);
+  orig_operand = *source_operand;
   /* Build a designator indicating which field should be initialized. */
   designator_con = alloc_constant((a_constant_repr_kind)ck_designator);
   designator_con->variant.designator.field = field;
@@ -13547,12 +13550,12 @@ GNU C extensions.)
   if (is_expression_operand(source_operand)) {
     field_init = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
     field_init->variant.expression = source_operand->variant.expression;
+    member_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+    member_con->type = field_type;
+    member_con->variant.dynamic_init = field_init;
   } else if (is_constant_operand(source_operand)) {
-    field_init = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-    field_init->variant.constant =
-                        alloc_constant(source_operand->variant.constant.kind);
-    extract_constant_from_operand(source_operand, 
-                                  field_init->variant.constant);
+    member_con = alloc_constant(source_operand->variant.constant.kind);
+    extract_constant_from_operand(source_operand, member_con);
   } else {
     /* There should not be any other operand kinds in C, and GCC
        extensions are only available in C mode.  Note that we do
@@ -13560,25 +13563,29 @@ GNU C extensions.)
        already erroneous. */
     unexpected_condition();
   } /* if */
-  member_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-  member_con->type = field_type;
-  member_con->variant.dynamic_init = field_init;
   /* Build the entire aggregate initializer. */
   designator_con->next = member_con;
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
   aggr_con->type = dest_type;
   aggr_con->variant.aggregate.first_constant = designator_con;
   aggr_con->variant.aggregate.last_constant = member_con;
-  /* Build a dynamic initializer for the aggregate. */
-  aggr_init = 
-    alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-  aggr_init->variant.constant = aggr_con;
-  /* Build an expression for the initializer. */
-  init_expr = alloc_temp_init_node(dest_type, aggr_init, 
-                                   /*result_is_addr=*/FALSE,
-                                   /*is_explicit_cast=*/FALSE);
-  make_expression_operand(init_expr, dest_type, source_operand);
-  rule_out_expr_kinds(ROEK_CONSTANT, source_operand);
+  if (curr_expr_kind_is_const()) {
+    /* Return a constant aggregate in a constant expression.  This can
+       then be used as the initializer for a variable. */
+    make_constant_operand(aggr_con, source_operand);
+  } else {
+    /* Build a dynamic initializer for the aggregate. */
+    aggr_init = 
+      alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
+    aggr_init->variant.constant = aggr_con;
+    /* Build an expression for the initializer. */
+    init_expr = alloc_temp_init_node(dest_type, aggr_init, 
+                                     /*result_is_addr=*/FALSE,
+                                     /*is_explicit_cast=*/FALSE);
+    make_expression_operand(init_expr, dest_type, source_operand);
+    rule_out_expr_kinds(ROEK_CONSTANT, source_operand);
+  }  /* if */
+  restore_operand_details(source_operand, &orig_operand);
   db_exit();
 }  /* prep_transparent_union_conversion_operand */
 

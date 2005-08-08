@@ -8913,6 +8913,15 @@ expressions allow only certain limited casts).
                                ITF_NO_FLAGS)) {
     /* GNU C allows a do-nothing cast to a struct or union type. */
     valid_in_const_expr = TRUE;
+  } else if (gcc_mode &&
+             is_constant_operand(operand) &&
+             is_union_type(dest_type) &&
+             transparent_union_conversion_possible(operand, dest_type)) {
+    /* GNU C allows a cast to a union type if the operand has the type of
+       one of the members of the union.  We allow that in constant mode if the
+       operand is constant, so the result is a constant aggregate
+       initializer. */
+    valid_in_const_expr = TRUE;
   } else if (is_template_param_type(dest_type)) {
     /* Casting to an unknown template parameter type is okay. */
     valid_in_const_expr = TRUE;

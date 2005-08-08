@@ -1,5 +1,22 @@
 Version 3.7
 
+8/8/05   GNU C compatibility: casting to union type in constant expression
+
+gcc allows a cast to a union if the source expression has a type
+compatible with the type of one of the members of the union.  This is
+related to the "transparent union" feature.  Heretofore, the EDG
+front end has not allowed such a cast in a constant expression.
+Now, it does.  The operand of the cast must be constant.
+
+  typedef union {
+    long long v;
+    struct {
+       int low;
+       int high;
+    } w;
+  } int64;
+  int64 null = (int64)0LL;  /* Now accepted in gcc mode. */
+
 8/5/04   Implicit conversion of function types and template deduction
 
 In some modes, an implicit conversion between pointers to functions with
