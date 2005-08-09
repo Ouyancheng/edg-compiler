@@ -1,5 +1,19 @@
 Version 3.7
 
+8/9/05   Microsoft C compatibility: mixed void/non-void operands to "?"
+
+A tweak to the change of 12/21/04 regarding void/non-void operands to
+the "?" operator in Microsoft mode: In Microsoft C mode with
+microsoft_version > 1200, mixed void and non-void operands should
+still be accepted.  The result type is void.
+
+  void f();
+  int main() {
+    int i = 1;
+    i ? 0 : f();  // Okay in Microsoft C mode, all versions
+                  // With microsoft_version > 1200, result type is void
+  }
+
 8/9/05   No array-to-pointer decay in second operand of comma operator
 
 The array-to-pointer conversion is not supposed to be applied to the

@@ -13021,10 +13021,10 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       adjust_void_operand_for_microsoft_void_vs_scalar_conditional(&operand_3,
                                                                   result_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if ((gcc_mode || (microsoft_mode && !C_mode())) &&
+    } else if ((gcc_mode || microsoft_mode) &&
                (is_void_type(operand_2.type) ||
                 is_void_type(operand_3.type))) {
-      /* gcc mode and Microsoft C++ mode allow mixed void/non-void operands.
+      /* gcc mode and Microsoft mode allow mixed void/non-void operands.
          The result type is void. */
       result_type = void_type();
       if (!is_void_type(operand_2.type)) {
