@@ -1,5 +1,25 @@
 Version 3.7
 
+8/9/05   IA-64 ABI exception handling, typeinfo variables for reference types
+
+When the EDG front end is configured with IA64_ABI true and
+GENERATE_EH_TABLES false (i.e., roll-your-own IA-64 ABI exception
+handling), a use of a catch parameter or exception specification of
+reference type causes an internal error in get_typeinfo_kind ("bad
+type").  This is in code that a customer would probably have to change
+anyway as part of implementing exception handling, but it does seem
+like bad form for the front end "out of the box" to abort like that,
+so we've made a localized fix to eliminate the abort.  The underlying
+problem is that the specification for the Itanium/IA-64 ABI does not
+provide a typeinfo representation for reference types.  This is okay
+in general, since objects never have reference types, but it is a
+problem for catch parameters and exception specifications of reference
+types.  The current g++ implementation manages to handle those without
+typeinfos for references (it uses pointers instead), but we're told
+that's probably a bug.  The ABI spec may be updated at some point to
+add a typeinfo representation for references, and when it does we will
+add that as well.  In the meantime, the abort is gone.
+
 8/8/05   GNU C compatibility: casting to union type in constant expression
 
 gcc allows a cast to a union if the source expression has a type
