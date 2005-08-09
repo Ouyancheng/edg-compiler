@@ -675,6 +675,7 @@ check_abbreviation()
 --no_wchar_t_keyword
 --no_wrap_diagnostics
 --nonconst_ref_anachronism
+--nonstd_default_arg_deduction
 --nonstd_qualifier_deduction
 --nonstd_using_decl
 --old_c
@@ -1164,6 +1165,7 @@ process_option()
          --enum_overloading | \
          --no_enum_overloading | \
          --embedded_c++ | \
+         --nonstd_default_arg_deduction | \
          --nonstd_qualifier_deduction | \
          --no_nonstd_qualifier_deduction | \
          --nonstd_using_decl | \
