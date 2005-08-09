@@ -11051,12 +11051,18 @@ context doesn't care what the type is).
            operand and continue. */
         rewrite_discarded_lvalue_as_rvalue(op1, /*can_change_type=*/FALSE);
       } else if (op == (an_expr_operator_kind)eok_bit_field) {
-        /* Rewrite eok_bit_field (which returns an lvalue) as
-           eok_extract_bit_field (which returns an rvalue), which then
-           requires no further changes. */
-        expr->variant.operation.kind =
-                                  (an_expr_operator_kind)eok_extract_bit_field;
-        expr->type = rvalue_type(type_pointed_to(expr_type));
+        /* eok_bit_field returns an lvalue but it's not one whose
+           address can be taken, so the field-selection rewrite above can't
+           be used.  Also, changing to an eok_extract_bit_field does not work
+           when the bit field is volatile.  Just discard the bit field
+           selection and rewrite the first operand. */
+        rewrite_discarded_lvalue_as_rvalue(op1, /*can_change_type=*/FALSE);
+        if (!can_change_type) {
+          /* Add a cast to an integral type to preserve the original
+             bit-field selection result type. */
+          op1 = add_cast_if_necessary(op1, expr->type);
+        }  /* if */
+        overwrite_node(expr, op1);
       } else if (expr->variant.operation.
                                       returns_lvalue_instead_of_usual_rvalue) {
         /* An lvalue-returning operation. */

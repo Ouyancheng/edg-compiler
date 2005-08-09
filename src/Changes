@@ -1,5 +1,23 @@
 Version 3.7
 
+8/9/05   Incorrect IL on C++ mode top-level volatile bit field reference
+         with side effects
+
+IL lowering did an incorrect transformation on a reference to a volatile
+bit field when it is a top-level expression in C++ mode and the first
+operand of the bit field selection has side effects.  The incorrect
+IL indicated that a load of the bit field should be done.  Now fixed
+(no load is indicated).  Note that the C mode behavior of such cases
+is unchanged (the load should be done).
+
+  struct A {
+    volatile int j:3;
+  };
+  extern struct A* h();
+  void f() {
+    (h())->j;  // The bit field should not be accessed
+  }
+
 8/9/05   Microsoft C compatibility: mixed void/non-void operands to "?"
 
 A tweak to the change of 12/21/04 regarding void/non-void operands to
