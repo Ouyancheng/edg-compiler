@@ -646,6 +646,7 @@ check_abbreviation()
 --no_named_registers
 --no_namespaces
 --no_nonconst_ref_anachronism
+--no_nonstd_default_arg_deduction
 --no_nonstd_qualifier_deduction
 --no_nonstd_using_decl
 --no_old_specializations
@@ -1166,6 +1167,7 @@ process_option()
          --no_enum_overloading | \
          --embedded_c++ | \
          --nonstd_default_arg_deduction | \
+         --no_nonstd_default_arg_deduction | \
          --nonstd_qualifier_deduction | \
          --no_nonstd_qualifier_deduction | \
          --nonstd_using_decl | \
