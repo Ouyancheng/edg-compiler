@@ -1,5 +1,16 @@
 Version 3.7
 
+8/9/05   No array-to-pointer decay in second operand of comma operator
+
+The array-to-pointer conversion is not supposed to be applied to the
+second operand of a comma operator.  The front end formerly applied
+it, and no longer does.
+
+  int main() {
+    char arr[100];
+    int i = sizeof(0, arr);  // i should be set to 100
+  }
+
 8/9/05   IA-64 ABI exception handling, typeinfo variables for reference types
 
 When the EDG front end is configured with IA64_ABI true and

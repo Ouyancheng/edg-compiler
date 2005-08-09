@@ -14176,6 +14176,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
       if (C_dialect == C_dialect_cplusplus) {
         do_operand_transformations(&operand_2,
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                                 TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                  TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
         result_is_an_lvalue = is_a_cplusplus_lvalue(&operand_2);
       } else if (gcc_mode) {
