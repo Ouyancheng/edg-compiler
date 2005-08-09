@@ -8823,7 +8823,6 @@ param-type entry of the new type.
   return to_type;
 }  /* copy_routine_type_with_param_types */
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
 
 a_type_ptr routine_type_without_default_args(a_type_ptr  orig_type)
 /*
@@ -8854,6 +8853,7 @@ unchanged.
   return tp;
 }  /* routine_type_without_default_args */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
 

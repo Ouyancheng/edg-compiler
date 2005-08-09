@@ -1536,6 +1536,15 @@ that were either explicitly specified or deduced elsewhere.
 #endif /* ifndef DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION */
 
 /*
+Flag that is TRUE if the default arguments should be retained as part
+of deduced function types.  It is the initial value of the global variable
+nonstandard_default_arg_deduction. 
+*/
+#ifndef DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION
+#define DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION FALSE
+#endif /* ifndef DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION */
+
+/*
 Flag that is TRUE if a nonstandard nonmember using-declaration that
 uses an unqualified name should be accepted.  It is the initial
 value of the global variable nonstandard_using_decl_allowed.

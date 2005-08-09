@@ -8587,6 +8587,22 @@ modification was done) is returned in *new_type.
 }  /* tmtt_remove_assoc_vla_dimensions */
 
 
+/*ARGSUSED*/ /* flags is not required but is part of the general interface. */
+static a_boolean tmtt_strip_routine_default_args(
+                                    a_type_ptr                      type,
+                                    a_type_tree_traversal_flag_set  flags,
+                                    a_type_ptr                      *new_type)
+/*
+Modify type so that any routine types that it contains no longer have
+any default arguments.  The modified type (or the original type if no
+modification was done) is returned in *new_type.
+*/
+{
+  *new_type = strip_routine_default_args(type);
+  return !same_entities(type, *new_type);
+}  /* tmtt_strip_routine_default_args */
+
+
 static a_type_ptr traverse_and_modify_type_tree(
                                          a_type_ptr                     type,
                                          a_type_modifier_function_ptr   func,
@@ -8814,6 +8830,22 @@ to the caller.  If no modification is done return the original type.
 				       tmtt_strip_local_and_nonreal_typedefs,
                                        TTT_NO_INPUT_FLAGS);
 }  /* strip_local_and_nonreal_typedefs */
+
+
+a_type_ptr strip_routine_default_args(a_type_ptr  type)
+/*
+If type contains any routine types, remove the default arguments from the
+type.
+*/
+{
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_SKIP_TYPEREFS);
+  if (type->kind == (a_type_kind)tk_routine) {
+    type = routine_type_without_default_args(type);
+  }  /* if */
+  return traverse_and_modify_type_tree(type,
+				       tmtt_strip_routine_default_args,
+                                       ttt_flags);
+}  /* strip_routine_default_args */
 
 
 a_type_ptr remove_assoc_vla_dimensions(a_type_ptr  type)

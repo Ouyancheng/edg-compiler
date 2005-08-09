@@ -242,6 +242,7 @@ typedef enum /*an_option_kind*/ {
   optk_macro_positions_in_diagnostics,
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   optk_trigraphs,
+  optk_nonstandard_default_arg_deduction,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1042,6 +1043,11 @@ EXTERN a_boolean
 			   contexts that use the values of template parameters
 			   that were either explicitly specified or deduced
 			   elsewhere. */
+
+EXTERN a_boolean
+		nonstandard_default_arg_deduction;
+			/* TRUE if default arguments should not be removed
+			   from deduced function types. */
 
 EXTERN a_boolean
 		do_late_ovl_res_tiebreaker;

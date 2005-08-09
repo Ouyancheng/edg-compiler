@@ -5936,6 +5936,11 @@ points to the template parameter list.
           if (tap->variant.type == NULL) {
             /* No type has been bound to this template argument yet, so just
                use "type".  This counts as a match. */
+            if (!nonstandard_default_arg_deduction) {
+              /* Default arguments from deduced function types should not
+                 be part of the argument type. */
+              type = strip_routine_default_args(type);
+            }  /* if */
             tap->variant.type = type;
             match = TRUE;
           } else {

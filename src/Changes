@@ -1,5 +1,32 @@
 Version 3.7
 
+8/9/05   Template argument deduction and functions with default arguments
+
+When a function type is deduced as a template argument, the default arguments
+of the function should not be part of the deduced type.  Formerly, the front
+end would use the default arguments, if any, from the first function type
+used to produce a given instantiation of a template.  The front end now
+discards the default arguments associated with deduced function types, as
+mandated by the C++ standard.
+
+The new handling of default arguments is enabled and disabled by the
+command-line options --[no_]nonstd_default_arg_deduction.  The default
+is specified by DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION.  The old
+behavior is retained by default in MIcrosoft mode (when microsoft_version
+is <= 1300), g++ mode, Sun mode, and Cfront mode.  The new behavior is
+used by default in strict mode.
+
+  template <class T> inline void g(T f) {
+    f(1);
+    f();  // should get an error
+  }
+  void f1(int i = 99){}
+  void f2(int i = 999){}
+  int main() {
+    g(f1);
+    g(f2);
+  }
+
 8/9/05   Incorrect IL on C++ mode top-level volatile bit field reference
          with side effects
 

@@ -692,12 +692,12 @@ extern a_type_ptr copy_routine_type_with_param_types(
                                                a_type_ptr  from_type,
                                                a_boolean   copy_default_args);
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
 extern void copy_routine_type_default_args(a_type_ptr  from_type,
                                            a_type_ptr  to_type);
 
 extern a_type_ptr routine_type_without_default_args(a_type_ptr orig_type);
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
 extern a_boolean class_type_can_be_named_in_namespace_scope(a_type_ptr  type);

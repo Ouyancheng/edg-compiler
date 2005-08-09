@@ -1091,6 +1091,14 @@ Initialize the option information table.
 			 "no_trigraphs",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_nonstandard_default_arg_deduction,
+                         "nonstd_default_arg_deduction",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_nonstandard_default_arg_deduction,
+                         "no_nonstd_default_arg_deduction",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1639,6 +1647,11 @@ by a command line option.
     if (!option_kind_used[(int)optk_nonstandard_using_decl]) {
       nonstandard_using_decl_allowed = FALSE;
     }  /* if */
+    if (!option_kind_used[(int)optk_nonstandard_default_arg_deduction]) {
+      /* Versions prior to 7.1 include the default arguments as part of the
+         deduced function type. */
+      nonstandard_default_arg_deduction = microsoft_version <= 1300;
+    }  /* if */
     if (!option_kind_used[(int)optk_export_template]) {
       export_template_allowed = FALSE;
       export_keyword_enabled = FALSE;
@@ -1783,6 +1796,9 @@ by a command line option.
   }  /* if */
   if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
     nonclass_prototype_instantiations = FALSE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_nonstandard_default_arg_deduction]) {
+    nonstandard_default_arg_deduction = TRUE;
   }  /* if */
   /* Set flags that cannot be overridden by command line options. */
   ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
@@ -2573,6 +2589,11 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
          turn it off now. */
       nonstandard_qualifier_deduction = FALSE;
     }  /* if */
+    if (!option_kind_used[(int)optk_nonstandard_default_arg_deduction]) {
+      /* If nonstandard_default_arg_deduction was not set on the command line,
+         turn it off now. */
+      nonstandard_default_arg_deduction = FALSE;
+    }  /* if */
     if (!(option_kind_used[(int)optk_late_tiebreaker])) {
       /* If late tiebreaker was not explicitly set by a command line
          option, force it off. */
@@ -2644,6 +2665,10 @@ checked again here.)
   if (!(option_kind_used[(int)optk_trigraphs])) {
     /* Trigraphs should be allowed if not disabled by a command-line option. */
     trigraphs_allowed = TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_nonstandard_default_arg_deduction]) {
+    /* Default arguments are part of the deduced function type in Sun mode. */
+    nonstandard_default_arg_deduction = TRUE;
   }  /* if */
   /* The Sun compiler suffers from the same problem as the Microsoft
      compiler with respect to making template parameters visible in
@@ -2784,6 +2809,10 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
          command line option, set it now. */
       nonclass_prototype_instantiations = TRUE;
     }  /* if */
+  }  /* if */
+  if (!option_kind_used[(int)optk_nonstandard_default_arg_deduction]) {
+    /* Default arguments are part of the deduced function type in g++ mode. */
+    nonstandard_default_arg_deduction = TRUE;
   }  /* if */
 #if VLA_ALLOWED
   if (!(option_kind_used[(int)optk_vla])) {
@@ -4145,6 +4174,9 @@ enable_microsoft_mode:
         /* Trigraphs should or should not be allowed. */
         trigraphs_allowed = opt_value;
         break;
+      case optk_nonstandard_default_arg_deduction:
+        nonstandard_default_arg_deduction = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -4857,6 +4889,8 @@ variables declared in cmd_line.h.
   ptr_to_unknown_bound_array_allowed_in_param_type =
                       DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE;
   nonstandard_qualifier_deduction = DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION;
+  nonstandard_default_arg_deduction =
+                                     DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION;
   do_late_ovl_res_tiebreaker = DEFAULT_DO_LATE_OVL_RES_TIEBREAKER;
   single_ref_qual_ovl_res_tiebreaker =
                                     DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER;
