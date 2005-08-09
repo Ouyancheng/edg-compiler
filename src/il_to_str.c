@@ -2738,7 +2738,10 @@ parentheses are not needed.
           /* Add a subscripting operation. */
           a_type_ptr       element_type = array_element_type(unqual_type);
           a_targ_ptrdiff_t element_size = f_skip_typerefs(element_type)->size;
-          a_targ_ptrdiff_t index = *offset / element_size;
+          a_targ_ptrdiff_t index;
+          /* g++ allows zero-length arrays. */
+          if (element_size == 0) element_size = 1;
+          index = *offset / element_size;
           /* C division of negative numbers does not necessarily truncate
              towards zero.  If it doesn't, adjust to the result one would get
              if it did.  See comments in the routine divide_integers. */
