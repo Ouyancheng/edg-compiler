@@ -12,7 +12,7 @@ mandated by the C++ standard.
 The new handling of default arguments is enabled and disabled by the
 command-line options --[no_]nonstd_default_arg_deduction.  The default
 is specified by DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION.  The old
-behavior is retained by default in MIcrosoft mode (when microsoft_version
+behavior is retained by default in Microsoft mode (when microsoft_version
 is <= 1300), g++ mode, Sun mode, and Cfront mode.  The new behavior is
 used by default in strict mode.
 
