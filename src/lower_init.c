@@ -4049,7 +4049,7 @@ aggregate, set *keep_constant to TRUE.
   an_init_pos_descr    ipd;
   an_init_pos_modifier ipm, *ipmp;
   a_type_ptr           aggr_type;
-  a_constant_ptr       con_ptr, repeated_con, prev_con;
+  a_constant_ptr       con_ptr, repeated_con, prev_con, next_con;
   a_boolean            array_aggr;
 
   /* Mark the constant as visited.  This is necessary if the aggregate
@@ -4102,7 +4102,7 @@ aggregate, set *keep_constant to TRUE.
      the aggregate. */
   for (prev_con = NULL;
        con_ptr != NULL;
-       prev_con = con_ptr, con_ptr = con_ptr->next) {
+       prev_con = con_ptr, con_ptr = next_con) {
     a_boolean others_follow;
     if (con_ptr->kind == (a_constant_repr_kind)ck_designator) {
       /* A designator appears (e.g., in a C99 nonconstant aggregate
@@ -4118,7 +4118,8 @@ aggregate, set *keep_constant to TRUE.
       check_assertion(con_ptr != NULL &&
                       con_ptr->kind != (a_constant_repr_kind)ck_designator);
     }  /* if */
-    others_follow = (others_follow_in_aggr || con_ptr->next != NULL);
+    next_con = con_ptr->next;
+    others_follow = (others_follow_in_aggr || next_con != NULL);
     if (!array_aggr) {
       check_assertion_str(ipmp->curr_field != NULL,
              "lower_dynamic_init_aggregate_constant: have constant, no field");

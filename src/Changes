@@ -1,5 +1,28 @@
 Version 3.7
 
+8/10/05  Initialization in aggregate lost by IL lowering
+
+IL lowering lost an initialization in a non-POD aggregate class in a
+case where the variable being initialized is optimized away by the
+return value optimization, a member initializer is constant, and
+there is another member initializer following the constant
+initializer.  Any initializers after the constant were lost.  Now
+fixed.
+
+  struct B {
+    int j;
+    B(int jj) : j(jj) {}
+    B(const B&s) : j(s.j) {}
+  };
+  struct A {  // "A" must be an aggregate class but not a POD
+    int i;
+    B b;
+  };
+  A f() {
+    A x = { 1, 2 };  // The "2" initializer was previously lost
+    return x;
+  }
+
 8/9/05   Template argument deduction and functions with default arguments
 
 When a function type is deduced as a template argument, the default arguments
