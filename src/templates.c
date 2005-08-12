@@ -597,7 +597,7 @@ Initialize a template declaration state block.
   tdsp->number_of_template_decl_scopes = 0;
   tdsp->number_of_template_param_clauses = 0;
   tdsp->enclosing_scope = NULL;
-  tdsp->class_declared_in = FALSE;
+  tdsp->class_declared_in = NULL;
   tdsp->start_pos = null_source_position;
   clear_token_cache(&tdsp->param_list_cache, /*reusable=*/TRUE);
   clear_token_cache(&tdsp->decl_token_cache, /*reusable=*/TRUE);
@@ -19335,7 +19335,7 @@ be processed.
        version and the flag would have no effect in the prelinker. */
     if (is_static_data_member) {
       variable->can_be_instantiated = can_be_instantiated;
-      do_not_instantiate = variable->do_not_instantiate
+      variable->do_not_instantiate = do_not_instantiate
                          = tip->explicit_do_not_instantiate &&
                            variable->specialized_with_old_syntax;
       instance_required = (mip->instance_required_count &&
@@ -19343,7 +19343,7 @@ be processed.
       variable->instance_required = instance_required;
     } else {
       routine->can_be_instantiated = can_be_instantiated;
-      do_not_instantiate = routine->do_not_instantiate
+      routine->do_not_instantiate = do_not_instantiate
                          = tip->explicit_do_not_instantiate &&
                            routine->specialized_with_old_syntax;
       instance_required = (mip->instance_required_count &&

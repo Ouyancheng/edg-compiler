@@ -6584,8 +6584,8 @@ pp tokens).
 BEGIN_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
-static a_boolean UCN_char_is_in_range(const void* char_ptr,
-                                      const void* table_entry_ptr)
+static int UCN_char_is_in_range(const void* char_ptr,
+                                const void* table_entry_ptr)
 /*
 Comparison function used by bsearch to test whether a given UCN
 value is within the specified range.  char_ptr points to the UCN

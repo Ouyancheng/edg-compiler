@@ -2559,7 +2559,7 @@ and return a pointer to it.
       tssp->variant.function.def_arg_expr_list = NULL;
       clear_template_cache(&tssp->variant.function.decl_cache,
                           /*reusable=*/TRUE);
-      tssp->variant.function.substituted_types = FALSE;
+      tssp->variant.function.substituted_types = NULL;
       tssp->variant.function.unused_instantiations = 0;
       tssp->variant.function.pending_partial_instantiations = 0;
       tssp->variant.function.prototype_friend_symbol = NULL;

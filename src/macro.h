@@ -70,8 +70,7 @@ EXTERN a_symbol_ptr
 		defined_macro_symbol;
 			/* Pointers to the symbol entries for the special
 			   macros "__LINE__", "__FILE__", and "defined". */
-EXTERN a_boolean
-		num_macro_invocations_in_process;
+EXTERN int	num_macro_invocations_in_process;
 			/* Number of macro invocations currently being
 			   processed.  This is used to suppress PCH creation
 			   if a macro is in the process of being expanded. */

@@ -210,11 +210,33 @@ Definition of a generic byte.  Always "unsigned char".
 */
 typedef unsigned char a_byte;
 
+/*
+Flag that is TRUE if, when compiling the front end as C++ code, the
+C++ bool type should be used for a_boolean.  This option is provided
+primarily as a checking facility to make sure boolean values are used
+appropriately.
+*/
+#ifndef USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS
+#define USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS 0
+#endif /* USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS */
+
+#if !defined(__cplusplus) && USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS
+ #error -- USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS must be FALSE when not \
+           compiling the front end as C++ code.
+#endif /* !defined(__cplusplus) && USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS */
+
 /* Simple boolean type: */
+#if USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS
+typedef bool a_boolean;
+typedef bool a_byte_boolean;
+#define TRUE (0==0)   /* Allow for use in #if. */
+#define FALSE (0!=0)
+#else /* !USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS */
 typedef int	a_boolean;
 typedef a_byte	a_byte_boolean;
 #define FALSE 0
 #define TRUE 1
+#endif /* USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS */
 
 /*
 USING_ISO_C is TRUE if the compiler being used to build the front end

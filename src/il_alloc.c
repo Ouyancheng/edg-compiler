@@ -1519,7 +1519,7 @@ to default values.
       break;
     case tk_ptr_to_member:
       pte->variant.ptr_to_member.class_of_which_a_member = FALSE;
-      pte->variant.ptr_to_member.type                    = FALSE;
+      pte->variant.ptr_to_member.type                    = NULL;
       break;
     case tk_template_param:
       {

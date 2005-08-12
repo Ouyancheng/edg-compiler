@@ -1905,7 +1905,7 @@ a blank line instead of the caret line.
   an_orig_line_modif_ptr  line_olmp, olmp, olmp_next;
   char                    *line_start, *loc_in_line;
   a_column_number         curr_column;
-  a_boolean               pass_for_caret;
+  int                     pass_for_caret;
   char                    ch;
   a_source_line_modif_ptr slmp;
   int                     i;
@@ -2052,7 +2052,7 @@ instead of the caret line.
 {
   char            *loc_in_line;
   char            ch;
-  a_boolean       pass_for_caret;
+  int             pass_for_caret;
   a_column_number curr_column;
   int             i;
   char            putcbuffer[PUTCBUFFER_ARRAY_SIZE];

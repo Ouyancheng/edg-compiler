@@ -2093,7 +2093,7 @@ the scope being pushed.
       /* Note that this is done before depth_innermost_function_scope is
          cleared below. */
       if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-        inside_local_class = ssep->inside_local_class = TRUE;
+        ssep->inside_local_class = inside_local_class = TRUE;
       }  /* if */
       /* Determine whether this scope represents the specialization of a
          class. */

@@ -11619,7 +11619,7 @@ static a_boolean get_sign_for_constant_in_unsigned_operation(
                                                  an_operand *operand_1,
                                                  an_operand *operand_2,
                                                  a_boolean  second_is_constant,
-                                                 a_boolean  *constant_sign)
+                                                 int        *constant_sign)
 /*
 operand_1 and operand_2 are the operands of a comparison after the usual
 arithmetic conversions.  is_comparison_of_unsigned_with_constant has
@@ -11785,7 +11785,7 @@ standard.
          The expression is not simplified.  Note that we check the nonconstant
          operand type before any type promotions and the constant value after
          any type change. */
-      a_boolean constant_sign;
+      int constant_sign;
       if (get_sign_for_constant_in_unsigned_operation(operand_1, &operand_2,
                                                       second_is_constant,
                                                       &constant_sign)) {
@@ -11934,7 +11934,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
          The expression is not simplified.  Note that we check the
          nonconstant operand type before any type promotions and the
          constant value after any type change. */
-      a_boolean constant_sign;
+      int constant_sign;
       if (get_sign_for_constant_in_unsigned_operation(operand_1, &operand_2,
                                                       second_is_constant,
                                                       &constant_sign) &&
@@ -12086,7 +12086,7 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
          The expression is not simplified.  Note that we check the nonconstant
          operand type before any type promotions and the constant value after
          any type change. */
-      a_boolean constant_sign;
+      int constant_sign;
       if (get_sign_for_constant_in_unsigned_operation(operand_1, &operand_2,
                                                       second_is_constant,
                                                       &constant_sign)) {

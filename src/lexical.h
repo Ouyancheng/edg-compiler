@@ -1907,8 +1907,8 @@ extern void concat_adjacent_string_literals(a_boolean function_name_case);
 /* Get next token. */
 extern a_token_kind get_token(void);
 /* Generate a line-identifying directive in preprocessing output. */
-extern void gen_pp_line_info(char kind,
-		             int  increment);
+extern void gen_pp_line_info(char      kind,
+		             a_boolean next_line);
 /* Generate textual preprocessing output for the current line. */
 extern void gen_pp_output_for_curr_line(void);
 /* Generate a line information record in the raw listing file. */

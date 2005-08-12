@@ -5049,7 +5049,7 @@ or struct definition.  The syntax is
           } else {
             /* At least one is non-virtual, so there is an ambiguity.  Mark
                both as ambiguous.  */
-            ambiguous = bcp->ambiguous = TRUE;
+            bcp->ambiguous = ambiguous = TRUE;
           }  /* if */
         }  /* if */
       }  /* for */

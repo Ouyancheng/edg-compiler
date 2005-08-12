@@ -1,5 +1,15 @@
 Version 3.7
 
+8/11/05  Ability to use C++ bool type as a_boolean
+
+The front end can now be configured to use the C++ bool type as the
+type of a_boolean and a_byte_boolean.  This can be useful for checking
+that boolean types are used appropriately.  This feature can be enabled
+by setting the USE_BOOL_AS_BOOLEAN_IN_CPLUSPLUS macro to TRUE.  There
+were several places in the front end where a_boolean values were incorrectly
+being used as integers.  As part of this change, such incorrect usage has been
+fixed.
+
 8/10/05  Initialization in aggregate lost by IL lowering
 
 IL lowering lost an initialization in a non-POD aggregate class in a
