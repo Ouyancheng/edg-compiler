@@ -3254,23 +3254,30 @@ this is not allowed, an error will be issued by the caller.
            can be part of an overload set, but otherwise there can be no
            declaration of the same name. */
         /* err = TRUE; */
-      } else if (is_tag_symbol(fund_new_sym)) {
-        /* New symbol is a tag symbol. */
-        if (!is_type_symbol(fund_old_sym) &&
-            !is_class_template_symbol(fund_old_sym)) {
-          /* The old symbol is a non-type name.  Be sure the new symbol
-             inserted into the list after the old one. */
-          err = FALSE;
-          if (insert_sym != NULL) *insert_sym = old_sym;
-        }  /* if */
-      } else if (is_tag_symbol(fund_old_sym)) {
-        /* The old symbol is a tag symbol. */
-        if (!is_type_symbol(fund_new_sym) &&
-            !is_class_template_symbol(fund_new_sym)) {
-          /* The new one is not a type symbol or a class template name.  It
-             will be placed at the front of the list automatically. */
-          err = FALSE;
-        }  /* if */
+      } else if (is_tag_symbol(fund_new_sym) &&
+                 !is_type_symbol(fund_old_sym) &&
+                 !is_class_template_symbol(fund_old_sym)) {
+        /* The new symbol is a tag symbol and the old symbol is a non-type
+           name.  Be sure the new symbol inserted into the list after the
+           old one. */
+        err = FALSE;
+        if (insert_sym != NULL) *insert_sym = old_sym;
+      } else if (is_tag_symbol(fund_old_sym) &&
+                 !is_type_symbol(fund_new_sym) &&
+                 !is_class_template_symbol(fund_new_sym)) {
+        /* The old symbol is a tag symbol and the new one is not a type
+           symbol or a class template name.  It will be placed at the front
+           of the list automatically. */
+        err = FALSE;
+      } else if (!strict_ansi_mode &&
+                 old_sym->kind == (a_symbol_kind)sk_projection &&
+                 !old_sym->variant.projection.is_using_decl &&
+                 new_sym->kind != (a_symbol_kind)sk_projection) {
+        /* A previously created projection symbol can be hidden by a new
+           declaration.  In strict mode this is an error because it
+           violates the rule that a name must mean the same thing when
+           considered in the complete class definition. */
+        err = FALSE;
       } else if (scope_stack[scope_depth].in_prototype_instantiation &&
                  scope_stack[scope_depth].kind ==
                                  (a_scope_kind)sck_class_struct_union) {

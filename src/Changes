@@ -1,5 +1,20 @@
 Version 3.7
 
+8/12/05  Declaration with the same name as a referenced base class member
+
+An error was issued if a class declared a member with the same name as
+a base class member that had already been referenced by the derived class.
+While such an error is permitted by the standard, most compilers allow
+the usage.  We now diagnose such errors only in strict mode.
+
+  struct A {
+    class B;
+  };
+  struct D : public A {
+    B f();
+    class B;
+  };
+
 8/11/05  Ability to use C++ bool type as a_boolean
 
 The front end can now be configured to use the C++ bool type as the
