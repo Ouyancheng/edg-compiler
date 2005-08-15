@@ -961,19 +961,18 @@ processing, and in wide characters if the constant is wide).
     con_type = integer_type(int_kind);
   }  /* if */
   /* See if the characters we have will fit in the size we've determined. */
-  if (constant_size > con_type->size) {
-    /* Too many characters to fit. */
+  if (constant_size > con_type->size && !is_wide) {
+    /* Too many characters to fit.  For wide character literals, make this
+       a allowed (with a warning below) because the C standard says it is
+       implementation-defined, and several test suites have something like
+        L'ab' in them. */
     *err_code = ec_too_many_characters;
     *err_pos = start_of_curr_token;
-    /* For wide character literals, make this a warning because the C standard
-       says it is implementation-defined, and several test suites have
-       something like L'ab' in them. */
-    if (is_wide) {
-      conv_line_loc_to_source_pos(*err_pos, &error_position);
-      warning(*err_code);
-      *err_code = ec_no_error;
-      *err_pos = NULL;
-    }  /* if */
+  } else if (num_chars > 1) {
+    /* A character literal with more than one character produces an
+       implementation-defined value.  Issue a warning. */
+    conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
+    warning(ec_multi_char_literal);
   }  /* if */
   if (*err_code == ec_no_error) {
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED

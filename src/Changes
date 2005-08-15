@@ -1,5 +1,12 @@
 Version 3.7
 
+8/15/05  Warning on use of multicharacter character literal
+
+Character literals with more than one character yield an implementation-defined
+value.  A warning is now issued for such constructs.
+
+  int i = 'ab';
+
 8/15/05  Incorrect variant used in set_mixed_static_nonstatic_flag
 
 An incorrect symbol variant was referenced in set_mixed_static_nonstatic_flag
