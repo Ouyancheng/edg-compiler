@@ -809,10 +809,10 @@ typedef struct a_tagged_pointer {
 /*
 A entry on a list that represents the order in which declarations,
 statements, macros, pragmas, and comments appear within the source program.
-There is a list for the file scope, a list for each function and block scope,
-and a list for each class-struct-union scope.  Each entry on the list points
-to the entity represented, and when that entity is a declared entity or a
-statement, it has a pointer back to its source sequence entry.
+There is a list for the file scope and a list for each function scope.
+Each entry on the list points to the entity represented, and when that 
+entity is a declared entity or a statement, it has a pointer back to 
+its source sequence entry.
 */
 typedef struct a_source_sequence_entry {
   a_source_sequence_entry_ptr
