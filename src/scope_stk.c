@@ -3885,6 +3885,7 @@ type.  This rules out arrays of incomplete struct/union types (an extension).
 
 
 static void end_of_scope_symbol_check(a_symbol_ptr  sym,
+				      a_scope_kind  scope_kind,
                                       a_routine_ptr curr_routine)
 /*
 The symbol sym is about to be removed from the symbol table at the end of
@@ -4085,7 +4086,7 @@ NULL.
       for (sym = sym->variant.overloaded_function.symbols;
            sym != NULL;
            sym = sym->next) {
-        end_of_scope_symbol_check(sym, curr_routine);
+        end_of_scope_symbol_check(sym, scope_kind, curr_routine);
       }  /* for */
       break;
 #if CHECKING
@@ -4105,11 +4106,15 @@ NULL.
            defined in the current translation unit.  We require this only
            in strict mode.  Make sure we issue an error, not a warning,
            if the function is actually referenced. */
-        pos_sy_diagnostic(rout_ptr->source_corresp.referenced ?
+        if (scope_kind == (a_scope_kind)sck_namespace ||
+            scope_kind == (a_scope_kind)sck_file) {
+          /* The diagnostic is not issued for block extern declarations. */
+          pos_sy_diagnostic(rout_ptr->source_corresp.referenced ?
                                             es_discretionary_error :
                                             strict_ansi_discretionary_severity,
-                          ec_inline_never_defined,
-                          &sym->decl_position, sym);
+                            ec_inline_never_defined,
+                            &sym->decl_position, sym);
+        }  /* if */
       } else if (storage_class == (a_storage_class)sc_unspecified &&
                  (!is_member_of_unnamed_namespace(&rout_ptr->source_corresp) ||
                   rout_ptr->source_corresp.name_linkage ==
@@ -4145,15 +4150,19 @@ NULL.
                    (rout_ptr->decl_modifiers & DM_DLLIMPORT)) {
           /* No diagnostic. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else if (rout_ptr->is_inline &&
+        } else if (!C_mode() && rout_ptr->is_inline &&
                    !routine_defined(rout_ptr)) {
           /* An extern-inline function that was referenced but not defined.
              Note that the Microsoft and GNU compilers accept such code
              (though linker errors may result from this). */
-          pos_sy_diagnostic((microsoft_mode || gnu_mode || sun_mode)
+          if (scope_kind == (a_scope_kind)sck_namespace ||
+              scope_kind == (a_scope_kind)sck_file) {
+            /* The diagnostic is not issued for block extern declarations. */
+            pos_sy_diagnostic((microsoft_mode || gnu_mode || sun_mode)
                                                        ? es_warning : es_error,
-                            ec_extern_inline_never_defined,
-                            &sym->decl_position, sym);
+                              ec_extern_inline_never_defined,
+                              &sym->decl_position, sym);
+          }  /* if */
         }  /* if */
       } else if (!sym->referenced) {
         /* Unreferenced function. */
@@ -4420,7 +4429,8 @@ NULL.
           /* Skip the recursive check for prototype instantiation of a class
              template. */
         } else {
-          end_of_scope_symbol_check(template_class_sym, curr_routine);
+          end_of_scope_symbol_check(template_class_sym, scope_kind,
+                                    curr_routine);
         }  /* if */
       }  /* for */
       }
@@ -4435,7 +4445,8 @@ NULL.
           /* A user declaration was provided, so the associated symbol should
              be on the overload list -- ignore it here. */
         } else {
-          end_of_scope_symbol_check(tip->instance_sym, curr_routine);
+          end_of_scope_symbol_check(tip->instance_sym, scope_kind,
+                                    curr_routine);
         }  /* if */
       }  /* for */
       }
@@ -4928,7 +4939,7 @@ unit.
         /* File scope symbols are not checked until the file scope is popped
            again after processing all translation units. */
       } else {
-        end_of_scope_symbol_check(sym, curr_routine);
+        end_of_scope_symbol_check(sym, kind, curr_routine);
 #if RECORD_HIDDEN_NAMES_IN_IL
 #if CHECKING
         if (!C_mode() && total_errors == 0) {

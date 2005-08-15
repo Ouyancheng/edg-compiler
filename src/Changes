@@ -1,5 +1,21 @@
 Version 3.7
 
+8/15/05  Spurious error on block extern declaration of inline function
+
+In C++ and C99 modes, a spurious "referenced but not defined" error was
+issued if an inline function was called via a block extern declaration
+and the inline function was not defined until later in the translation unit.
+Now fixed.
+
+  inline int f(int, int);
+  int main() {
+    int f(int, int);
+    return f(1,2);
+  }
+  inline int f(int a, int b) {
+    return a+b;
+  }
+
 8/12/05  Declaration with the same name as a referenced base class member
 
 An error was issued if a class declared a member with the same name as
