@@ -6390,13 +6390,21 @@ the first two need be checked.)
         tp1 = sym1->variant.template_info->variant.function.routine->type;
       }  /* if */
       sym2 = fundamental_symbol_of(sym2);
-      if (sym2->kind != (a_symbol_kind)sk_function_template) {
+      if (sym2->kind == (a_symbol_kind)sk_function_template) {
+        tp2 = sym2->variant.template_info->variant.function.routine->type;
+      } else if (sym2->kind == (a_symbol_kind)sk_routine ||
+                 sym2->kind == (a_symbol_kind)sk_member_function) {
         tp2 = routine_symbol_type(sym2);
       } else {
-        tp2 = sym2->variant.template_info->variant.function.routine->type;
+        /* In a prototype instantiation, the overload set can contain
+           symbols for nonreal base class members brought in by
+           using-declarations. */
+        check_assertion(is_prototype_instantiation_context());
+        tp2 = NULL;
       }  /* if */
-      if (routine_type_is_nonstatic_member_function(tp1) !=
-                routine_type_is_nonstatic_member_function(tp2)) {
+      if (tp2 != NULL &&
+          routine_type_is_nonstatic_member_function(tp1) !=
+                              routine_type_is_nonstatic_member_function(tp2)) {
         overload_sym->
            variant.overloaded_function.mixed_static_nonstatic = TRUE;
       }  /* if */
