@@ -963,7 +963,7 @@ processing, and in wide characters if the constant is wide).
   /* See if the characters we have will fit in the size we've determined. */
   if (constant_size > con_type->size && !is_wide) {
     /* Too many characters to fit.  For wide character literals, make this
-       a allowed (with a warning below) because the C standard says it is
+       allowed (with a warning below) because the C standard says it is
        implementation-defined, and several test suites have something like
         L'ab' in them. */
     *err_code = ec_too_many_characters;
