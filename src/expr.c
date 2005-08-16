@@ -1713,7 +1713,8 @@ Syntax:
           pos_st_error(ec_undefined_identifier, &operand->position,
                        func_sym->header->identifier);
         } else {
-          pos_remark(ec_implicit_func_decl, &operand->position);
+          pos_st_remark(ec_implicit_func_decl, &operand->position,
+                        func_sym->header->identifier);
         }  /* if */
         make_function_designator_operand(func_sym,
                                          /*is_qualified_name=*/FALSE,
