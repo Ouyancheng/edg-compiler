@@ -1,5 +1,16 @@
 Version 3.7
 
+8/16/05  Partial specializations and assoc_template field for classes
+
+Formerly, the assoc_template field of a class would point to the
+primary template even if the class was instantiated based on a partial
+specialization.  In such cases, the assoc_template field now points
+to the partial specialization.
+
+  template <class T, class U> class A;
+  template <class U> class A<int, U> {};
+  A<int, float> a;
+
 8/16/05  Name of function in diagnostic about implicitly-declared function
 
 The diagnostic in C mode indicating that a function was implicitly

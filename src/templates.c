@@ -2636,6 +2636,7 @@ might not be able to if the template itself has not yet been defined.
     } else {
       /* We proceed with the instantiation. */
       a_class_symbol_supplement_ptr	prototype_cssp;
+      a_class_type_supplement_ptr	ctsp;
       prototype_cssp = cssp->corresp_prototype_sym->
                                          variant.class_struct_union.extra_info;
       if (prototype_cssp->routine_fixup_list != NULL) {
@@ -2665,6 +2666,11 @@ might not be able to if the template itself has not yet been defined.
          the type kind of the partial specialization may be different than
          that of the primary template. */
       class_type->kind = tssp->variant.class_template.type_kind;
+      /* Update the associated template.  This is set when the incomplete
+         class type is created, but must be updated now in case the actual
+         definition is from a partial specialization. */
+      ctsp = class_type->variant.class_struct_union.extra_info;
+      ctsp->assoc_template = tssp_of_prototype->il_template_entry;
 #if DEBUG
       if (db_sym_trace("instantiations", instance_sym)) {
         fprintf(f_debug, "Beginning full instantiation of: ");
