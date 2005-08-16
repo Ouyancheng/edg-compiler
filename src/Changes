@@ -1,5 +1,36 @@
 Version 3.7
 
+8/16/05  Template keyword permitted before nonmember template
+
+The C++ standards committee has relaxed the rules regarding the use of
+the template keyword for syntactic disambiguation (core issue 228).  It is
+now permitted before any template name, not just before member template
+names.  We now implement the relaxed rules.
+
+  template<class T>
+  struct X {
+     virtual void f();
+  };
+  template<class T>
+  struct Y {
+    void g(X<T> *p) {
+      p->template X<T>::f();  // now accepted in strict mode
+    }
+  };
+
+8/16/05  Missing diagnostic on improper use of template keyword
+
+The front end failed to diagnose certain improper uses of the template
+keyword for syntactic disambiguation when the name that follows the
+template keyword was not followed by a "<".  Now fixed.
+
+  template<class T> struct X { virtual void f(); }; 
+  template<class T> struct Y {
+    void g(X<int> *p) {
+      p->template f();  // now gets diagnostic in strict mode
+    }
+  };
+
 8/16/05  Missing destructor call on object without constructor
 
 In some cases involving variables of a class type with a destructor but no

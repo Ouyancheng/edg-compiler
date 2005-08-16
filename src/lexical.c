@@ -12007,17 +12007,10 @@ permitted to follow the template keyword.
   /* The symbol must represent a template or an overload set containing
      a template. */
   if (symbol_is_or_contains_template(sym)) {
-    if (is_injected_class_symbol(sym)) {
-      /* For the purpose of this test, use the "real" symbol for a class in
-         place of the injected class symbol. */
-      a_type_ptr	tp;
-      tp = sym->variant.type.ptr;
-      sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
-    }  /* if */
-    /* The symbol must name a member template. */
-    if (sym->is_class_member) {
-      result = TRUE;
-    }  /* if */
+    /* Originally, the symbol after the template keyword was required to name
+       a member template.  Core issue 228 modified this rule so that any
+       template symbol is acceptable. */
+    result = TRUE;
   }  /* if */
   return result;
 }  /* sym_can_follow_template_keyword */
@@ -12413,12 +12406,9 @@ selection operator, in which case it points to the type of the left operand.
         }  /* if */
       }  /* if */
       if (follows_template && qualifier_sym != NULL &&
-          next_tok == tok_lt &&
           !sym_can_follow_template_keyword(qualifier_sym)) {
         /* A construct like "p->template X< ...".  When the template keyword
-           is so used, "X" must be a member template.   The test of next_tok
-               is used to suppress this error if we already complained
-               about a missing template argument list.*/
+           is so used, "X" must be a template. */
         diagnostic(strict_ansi_discretionary_severity,
                    ec_invalid_name_after_template);
       }  /* if */
@@ -12820,13 +12810,10 @@ selection operator, in which case it points to the type of the left operand.
             }  /* if */
           }  /* if */
           if (is_template && qualifier_sym != NULL &&
-              !err && next_tok == tok_lt &&
-              !sym_can_follow_template_keyword(qualifier_sym) &&
+              !err && !sym_can_follow_template_keyword(qualifier_sym) &&
               !in_if_exists) {
             /* A construct like "p->A::template X< ...".  When the template
-               keyword is so used, "X" must be a member template. The test of
-               next_tok is used to suppress this error if we already complained
-               about a missing template argument list. */
+               keyword is so used, "X" must be a template. */
             diagnostic(strict_ansi_discretionary_severity,
                        ec_invalid_name_after_template);
           }  /* if */
