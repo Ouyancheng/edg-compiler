@@ -69,6 +69,9 @@ extern a_boolean scan_class_definition(
                                    a_template_ptr   il_template_entry,
                                    a_decl_pos_block *decl_pos_block);
 
+extern void default_argument_fixup_for_class(a_type_ptr  class_type,
+                                             a_boolean   is_template_based);
+
 extern void process_deferred_class_fixups_and_instantiations(void);
 
 extern void set_mixed_static_nonstatic_flag(a_symbol_ptr  overload_sym);

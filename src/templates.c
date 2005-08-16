@@ -2635,6 +2635,17 @@ might not be able to if the template itself has not yet been defined.
       class_type->variant.class_struct_union.is_specialized = TRUE;
     } else {
       /* We proceed with the instantiation. */
+      a_class_symbol_supplement_ptr	prototype_cssp;
+      prototype_cssp = cssp->corresp_prototype_sym->
+                                         variant.class_struct_union.extra_info;
+      if (prototype_cssp->routine_fixup_list != NULL) {
+        /* If a nested class is instantiated before the enclosing class has
+           been completed, it may not have been fixed up yet.  Do any
+           default argument fixup now. */
+        default_argument_fixup_for_class(
+                                 type_symbol_type(cssp->corresp_prototype_sym),
+                                 /*is_template_based=*/TRUE);
+      }  /* if */
       /* Increment the count of instantiations-in-progress for the current
          class template.  It will be decremented when the instantiation is
          complete. */

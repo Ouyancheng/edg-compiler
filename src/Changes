@@ -1,5 +1,22 @@
 Version 3.7
 
+8/16/05  Default argument problem with member of nested class of class template
+
+If a member function of a nested class (or class template) of a class template
+contains a default argument, that default argument may not have be visible
+to instantiations of the nested class that occur during the definition of
+the enclosing class.  Now fixed.
+
+  struct A { 
+    template<typename T> struct B { 
+      static void f(T, bool=true); 
+    }; 
+    B<int> bi;
+  }; 
+  int main() { 
+    A::B<int>::f(1);  // spurious "too few arguments" error
+  } 
+
 8/15/05  Warning on use of multicharacter character literal
 
 Character literals with more than one character yield an implementation-defined

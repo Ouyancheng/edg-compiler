@@ -876,8 +876,8 @@ parameter type description.
 }  /* corresponding_param_type */
 
 
-static void default_argument_fixup_for_class(a_type_ptr  class_type,
-                                             a_boolean   is_template_based)
+void default_argument_fixup_for_class(a_type_ptr  class_type,
+                                      a_boolean   is_template_based)
 /*
 Process the default argument expressions for the indicated class.
 */
@@ -1008,6 +1008,7 @@ Process the default argument expressions for the indicated class.
         fixup_class_is_nonreal_template_instantiation = FALSE;
       }  /* if */
       daefp = rfp->def_arg_expr_fixup_list;
+      rfp->def_arg_expr_fixup_list = NULL;
       if (rfp->is_template) {
         /* A routine fixup for a template function declaration.  The default
            arguments have already been attached to the template.  Do the
@@ -1086,7 +1087,6 @@ Process the default argument expressions for the indicated class.
             /* Make sure no further processing will be done here and
                make sure that the list isn't freed. */
             daefp = NULL;
-            rfp->def_arg_expr_fixup_list = NULL;
           } else {
             /* The default arg token cache is discarded for declarations
                that are not member functions of the current class (including
