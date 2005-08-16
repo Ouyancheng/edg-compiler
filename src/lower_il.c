@@ -1383,7 +1383,11 @@ scope.  If scope is NULL, use the nearest enclosing scope.
     /* We may be able to take a scopeless compound statement inside the
        nearest existing scope and add a scope to it. */
     scsp = curr_context->scopeless_compound_stmts;
-    if (scsp != NULL) {
+    if (scsp != NULL &&
+        /* Don't create scopes for local static variables, because that
+           makes it too hard to figure out the scope to use when
+           calling make_local_static_variable_init later. */
+        !has_static_storage_duration(temp->storage_class)) {
       a_statement_ptr stmt = scsp->stmt;
       a_block_ptr     block = stmt->variant.block.extra_info;
       if (block->assoc_scope != NULL) {

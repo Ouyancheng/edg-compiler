@@ -1,5 +1,25 @@
 Version 3.7
 
+8/16/05  Abort in find_local_static_variable_init on exception handling
+         lowering
+
+During IL lowering, while processing a throw of a pointer to a pointer
+in the Cfront-like ABI, the front end aborted in
+find_local_static_variable_init ("none found for specified variable").
+The throw has to be inside a block with no declarations which is
+inside another block that does contain local variables.  The IL
+constructed was incorrect: it had the local static variable
+initialization entry for a generated array in the wrong scope, which
+could cause aborts in later phases.  With the C-generating back end,
+the abort described above resulted.  Now fixed.
+
+  int main() {
+    int **ptrptr = 0;
+    {
+      throw ptrptr;
+    }
+  }
+
 8/16/05  Abort on typedefs of unnamed types matched across translation units
 
 When simultaneously processing multiple translation units in C++ mode, the
