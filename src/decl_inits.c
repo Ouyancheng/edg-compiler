@@ -3206,6 +3206,14 @@ returned set to TRUE.
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       check_closing_paren_after_expr_list();
+      /* Although the entity has no constructor, it may have a destructor that
+         needs to be recorded in the dynamic init entry (if any). */
+      if (cssp != NULL && cssp->destructor != NULL && init_dip != NULL) {
+        init_dip->destructor = select_destructor(vp_type, vp_type, source_pos,
+                                                 /*honor_virtual=*/FALSE,
+                                                 /*evaluated=*/TRUE,
+                                                 /*instantiate=*/TRUE);
+      }  /* if */
     }  /* if */
   } else if (is_aggregate_or_union_type(vp_type) ||
              (curr_token == tok_lbrace &&
