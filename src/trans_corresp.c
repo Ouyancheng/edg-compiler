@@ -1920,97 +1920,6 @@ visited; otherwise, they may yet be set to correspond to another entry.
 }  /* clear_scope_correspondence */
 
 
-static void set_type_corresp(a_type_ptr  type,
-                             a_type_ptr  corresp_type)
-/*
-Make type (and its inner structure) correspond to corresp_type.  This routine
-also deals with the consequences of type becoming the new canonical entry.
-*/
-{
-  a_type_ptr  canon;
- 
-  if (trans_unit_corresp_of(corresp_type) == NULL &&
-      trans_unit_corresp_of(type) != NULL) {
-    /* corresp_type is the newer type: swap the arguments. */
-    a_type_ptr  tmp = type;
-    type = corresp_type;
-    corresp_type = tmp;
-  }  /* if */
-  canon = (a_type_ptr)canonical_il_entry_of(corresp_type);
-  set_trans_unit_corresp(iek_type, type, corresp_type);
-  if (type->kind != corresp_type->kind &&
-      (!is_class_or_struct(type) || !is_class_or_struct(corresp_type))) {
-    /* This is an error and will be caught later (in the verification process).
-       Don't attempt to handle the substructure of the type.  (However, don't
-       worry about struct vs. class differences.) */
-    if (is_immediate_class_type(type)) {
-      if (class_type_has_body(type)) {
-        clear_class_type_correspondence(type, /*visited=*/TRUE);
-      }  /* if */
-    } else if (is_immediate_enum_type(type)) {
-      clear_enum_type_correspondence(type, /*visited=*/TRUE);
-    }  /* if */
-    expect_error();
-  } else if (type == (a_type_ptr)canonical_il_entry_of(corresp_type)) {
-    /* The canonical IL entry changed to type. */
-    if (!type_has_definition(canon)) {
-      /* This is the first definition.  The members of type should therefore
-         be marked as having no correspondence. */
-      if (is_immediate_class_type(type)) {
-        if (class_type_has_body(type)) {
-          clear_class_type_correspondence(type, /*visited=*/TRUE);
-        }  /* if */
-      } else if (is_immediate_enum_type(type)) {
-        clear_enum_type_correspondence(type, /*visited=*/TRUE);
-      }  /* if */
-    } else {
-      /* Make the members of canon correspond to those of type. */
-      if (is_immediate_class_type(canon)) {
-        establish_trans_unit_correspondences_for_class(canon);
-      } else if (is_immediate_enum_type(canon)) {
-        establish_trans_unit_correspondences_for_enum(canon);
-      }  /* if */
-    }  /* if */
-  } else {
-    /* The canonical IL entry didn't change.  Set the correspondences for
-       the members. */
-    if (is_immediate_class_type(type)) {
-      establish_trans_unit_correspondences_for_class(type);
-      if (type->variant.class_struct_union.is_template_class) {
-        /* Make sure this instance will be compared against the canonical
-           entry. */
-        add_verification_entry(iek_type, (char*)type);
-      }  /* if */
-    } else if (is_immediate_enum_type(type)) {
-      establish_trans_unit_correspondences_for_enum(type);
-    }  /* if */
-  }  /* if */
-  if (type->kind == (a_type_kind)tk_typeref && typeref_is_typedef(type)) {
-    /* Setting a correspondence for a typedef sometimes also requires
-       matching the underlying types. */
-    a_type_ptr  tp = skip_typerefs(type);
-    a_type_ptr  corresp_tp = skip_typerefs(corresp_type);
-    /* In C mode, correspondences are only set for enum and class types
-       (and not for typedefs of such types). */
-    check_assertion(!C_mode());
-    if (is_immediate_class_type(tp) &&
-        tp->variant.class_struct_union.originally_unnamed &&
-        is_immediate_class_type(corresp_tp) &&
-        corresp_tp->variant.class_struct_union.originally_unnamed) {
-      /* These are unnamed class types that acquired linkage through a typedef.
-         Since the typedefs correspond, these types should too. */
-      set_type_corresp(tp, corresp_tp);
-    } else if (is_immediate_enum_type(tp) &&
-               tp->variant.integer.originally_unnamed &&
-               is_immediate_enum_type(corresp_tp) &&
-               corresp_tp->variant.integer.originally_unnamed) {
-      /* Same for unnamed enum types. */
-      set_type_corresp(tp, corresp_tp);
-    }  /* if */
-  }  /* if */
-}  /* set_type_corresp */
-
-
 static a_boolean f_same_name(char  *entity1,
                              char  *entity2)
 /*
@@ -2164,6 +2073,101 @@ pointers.
 }  /* same_str */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+static void set_type_corresp(a_type_ptr  type,
+                             a_type_ptr  corresp_type)
+/*
+Make type (and its inner structure) correspond to corresp_type.  This routine
+also deals with the consequences of type becoming the new canonical entry.
+*/
+{
+  a_type_ptr  canon;
+ 
+  if (trans_unit_corresp_of(corresp_type) == NULL &&
+      trans_unit_corresp_of(type) != NULL) {
+    /* corresp_type is the newer type: swap the arguments. */
+    a_type_ptr  tmp = type;
+    type = corresp_type;
+    corresp_type = tmp;
+  }  /* if */
+  canon = (a_type_ptr)canonical_il_entry_of(corresp_type);
+  set_trans_unit_corresp(iek_type, type, corresp_type);
+  if (type->kind != corresp_type->kind &&
+      (!is_class_or_struct(type) || !is_class_or_struct(corresp_type))) {
+    /* This is an error and will be caught later (in the verification process).
+       Don't attempt to handle the substructure of the type.  (However, don't
+       worry about struct vs. class differences.) */
+    if (is_immediate_class_type(type)) {
+      if (class_type_has_body(type)) {
+        clear_class_type_correspondence(type, /*visited=*/TRUE);
+      }  /* if */
+    } else if (is_immediate_enum_type(type)) {
+      clear_enum_type_correspondence(type, /*visited=*/TRUE);
+    }  /* if */
+    expect_error();
+  } else if (type == (a_type_ptr)canonical_il_entry_of(corresp_type)) {
+    /* The canonical IL entry changed to type. */
+    if (!type_has_definition(canon)) {
+      /* This is the first definition.  The members of type should therefore
+         be marked as having no correspondence. */
+      if (is_immediate_class_type(type)) {
+        if (class_type_has_body(type)) {
+          clear_class_type_correspondence(type, /*visited=*/TRUE);
+        }  /* if */
+      } else if (is_immediate_enum_type(type)) {
+        clear_enum_type_correspondence(type, /*visited=*/TRUE);
+      }  /* if */
+    } else {
+      /* Make the members of canon correspond to those of type. */
+      if (is_immediate_class_type(canon)) {
+        establish_trans_unit_correspondences_for_class(canon);
+      } else if (is_immediate_enum_type(canon)) {
+        establish_trans_unit_correspondences_for_enum(canon);
+      }  /* if */
+    }  /* if */
+  } else {
+    /* The canonical IL entry didn't change.  Set the correspondences for
+       the members. */
+    if (is_immediate_class_type(type)) {
+      establish_trans_unit_correspondences_for_class(type);
+      if (type->variant.class_struct_union.is_template_class) {
+        /* Make sure this instance will be compared against the canonical
+           entry. */
+        add_verification_entry(iek_type, (char*)type);
+      }  /* if */
+    } else if (is_immediate_enum_type(type)) {
+      establish_trans_unit_correspondences_for_enum(type);
+    }  /* if */
+  }  /* if */
+  if (type->kind == (a_type_kind)tk_typeref && typeref_is_typedef(type)) {
+    /* Setting a correspondence for a typedef sometimes also requires
+       matching the underlying types. */
+    a_type_ptr  tp = skip_typerefs(type);
+    a_type_ptr  corresp_tp = skip_typerefs(corresp_type);
+    /* In C mode, correspondences are only set for enum and class types
+       (and not for typedefs of such types). */
+    check_assertion(!C_mode());
+    if (is_immediate_class_type(tp) &&
+        tp->variant.class_struct_union.originally_unnamed &&
+        is_immediate_class_type(corresp_tp) &&
+        corresp_tp->variant.class_struct_union.originally_unnamed) {
+      /* These are unnamed class types that acquired linkage through a typedef.
+         Since the typedefs correspond, these types should too. */
+      if (same_name(tp, corresp_tp)) {
+        set_type_corresp(tp, corresp_tp);
+      }  /* if */
+    } else if (is_immediate_enum_type(tp) &&
+               tp->variant.integer.originally_unnamed &&
+               is_immediate_enum_type(corresp_tp) &&
+               corresp_tp->variant.integer.originally_unnamed) {
+      /* Same for unnamed enum types. */
+      if (same_name(tp, corresp_tp)) {
+        set_type_corresp(tp, corresp_tp);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* set_type_corresp */
+
 
 static a_boolean verify_field_correspondence(a_field_ptr  field)
 /*

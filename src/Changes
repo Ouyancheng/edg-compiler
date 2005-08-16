@@ -1,5 +1,22 @@
 Version 3.7
 
+8/16/05  Abort on typedefs of unnamed types matched across translation units
+
+When simultaneously processing multiple translation units in C++ mode, the
+front end sometimes aborted with an internal error when trying to match two
+unnamed class or enumeration types that have acquired a name for linkage
+purposes through a typedef.  For example:
+
+  // File 1:
+  typedef struct {} S1;
+  typedef S1 T;
+
+  // File 2:
+  typedef struct {} S2;
+  typedef S2 T;  // Previously triggered an internal error; now a normal error.
+
+This is now fixed: A normal error is issued in such cases.
+
 8/16/05  Partial specializations and assoc_template field for classes
 
 Formerly, the assoc_template field of a class would point to the
