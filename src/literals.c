@@ -970,9 +970,11 @@ processing, and in wide characters if the constant is wide).
     *err_pos = start_of_curr_token;
   } else if (num_chars > 1) {
     /* A character literal with more than one character produces an
-       implementation-defined value.  Issue a warning. */
+       implementation-defined value.  Issue a warning.  The "too many
+       characters" message is used for wide characters as this is
+       unlikely to produce a meaningful result. */
     conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
-    warning(ec_multi_char_literal);
+    warning(is_wide ? ec_too_many_characters : ec_multi_char_literal);
   }  /* if */
   if (*err_code == ec_no_error) {
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
