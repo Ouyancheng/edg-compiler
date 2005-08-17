@@ -1,9 +1,9 @@
 Version 3.7
 
-8/17/05  GNU compatibility: __offsetof
+8/17/05  GNU C++ compatibility: __offsetof
 
-In GNU modes with gnu_version >= 30400, the front end now treats __offsetof
-(and __offsetof__) as a synonym for __INTADDR__ (the latter is a EDG-specific
+In GNU C++ mode with gnu_version >= 30400, the front end now treats __offsetof
+(and __offsetof__) as a synonym for __INTADDR__ (the latter is an EDG-specific
 device to implement the standard offsetof macro).
 
 8/16/05  Abort in find_local_static_variable_init on exception handling
