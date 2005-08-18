@@ -109,7 +109,7 @@ This is now fixed.
 
 If a member function of a nested class (or nested class template) of a
 class template contains a default argument, that default argument may not
-have be visible to instantiations of the nested class that occur during
+have been visible to instantiations of the nested class that occur during
 the definition of the enclosing class.  Now fixed.
 
   struct A { 
