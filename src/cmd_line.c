@@ -3545,6 +3545,10 @@ Process the arguments on the command line that invoked the compiler.
           str_command_line_error(ec_cl_cannot_open_error_output_file,
                                  opt_arg);
         }  /* if */
+#if DEBUG
+        /* Direct debug output to the new error output file. */
+        f_debug = f_error;
+#endif /* DEBUG */
         break;
       case optk_output_file_name:
         /* Specify output file for preprocessing output or IL. */

@@ -4985,6 +4985,9 @@ line processing is done.
   /* The initialization of f_error is also done in cfe.c, but is done here
      also so that it will be reset if the front end is reinitialized. */
   f_error = stderr;
+#if DEBUG
+  f_debug = stderr;
+#endif /* DEBUG */
   catastrophe_has_occurred = FALSE;
   error_threshold = es_warning;
   error_source_line = NULL;
@@ -5077,6 +5080,9 @@ the point at which the compilation was terminated.
      be directed to stderr, not wherever the previous compilation directed
      error output. */
   f_error = stderr;
+#if DEBUG
+  f_debug = stderr;
+#endif /* DEBUG */
 }  /* error_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
