@@ -2617,16 +2617,17 @@ is the current set of expression-scanning options.
               GID_IS_EXPR_CONTEXT;
   if (C_dialect == C_dialect_cplusplus) {
     if (curr_token == tok_template) {
-      /* A construct like "p->template f<x>...".  Pass a flag to the
-         identifier coalescing routine that the name is known to
-         be a template. */
-      gid_flags |= GID_FOLLOWS_TEMPLATE;
+      /* A construct like "p->template f<x>...".  If it is allowed in this
+         context, pass a flag to the identifier coalescing routine that
+         the name is known to be a template. */
       if (!is_template_context()) {
         /* The template keyword, when used for syntactic disambiguation,
            may only appear within a template. */
         diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
                                     : es_warning,
                    ec_template_not_in_template);
+      } else {
+        gid_flags |= GID_FOLLOWS_TEMPLATE;
       }  /* if */
       (void)get_token();
     }  /* if */

@@ -12603,6 +12603,7 @@ selection operator, in which case it points to the type of the left operand.
             diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
                                         : es_warning,
                        ec_template_not_in_template);
+            is_template = FALSE;
           }  /* if */
           (void)get_token();
           if (curr_token == tok_star) {
