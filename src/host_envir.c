@@ -1308,45 +1308,6 @@ otherwise return NULL.
 }  /* open_input_file */
 
 
-void reopen_error_output_file(char          *file_name,
-                              a_boolean     *cannot_open,
-                              a_boolean     *bad_name)
-/*
-Reopen stderr (the standard error output file).  If the file cannot be
-opened, stderr is left as it was, and one of the two flags is set to
-indicate the type of error: file could not be opened or the file name
-is bad (incorrectly formed or has an illegal suffix).
-*/
-{
-  *cannot_open = *bad_name = FALSE;
-  if (!okay_as_output_file(file_name)) {
-    *bad_name = TRUE;
-  } else {
-#if __VMS__
-    /* Under VMS, if we opened the file twice we would create two versions,
-       so we don't do that. */
-#else /* !__VMS__ */
-    /* Open first as a normal file, so if the open fails we still have
-       stderr as it was. */
-    { FILE *temp_file = fopen(file_name, FOPEN_MODE_FOR_WRITE);
-      if (temp_file == NULL) {
-        *cannot_open = TRUE;
-      } else {
-        (void)fclose(temp_file);
-      }  /* if */
-    }
-#endif /* __VMS__ */
-    if (!*cannot_open) {
-      if (freopen(file_name, FOPEN_MODE_FOR_WRITE, stderr) == NULL) {
-        /* Unlikely but possible -- something's changed since the file was
-           opened before.  We probably will terminate without being able
-           to write a message, since stderr is closed. */
-        *cannot_open = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* reopen_error_output_file */
-
 #if __VMS__
 EXTERN_C int delete(char *file_name);
 #endif /* __VMS__ */
@@ -1552,7 +1513,7 @@ appears on the command line.
 {
 #if !USING_DRIVER
   if (more_than_one_source_file) {
-    fprintf(stderr, "%s:\n", primary_source_file_name);
+    fprintf(f_error, "%s:\n", primary_source_file_name);
   }  /* if */
 #endif /* !USING_DRIVER */
 }  /* identify_source_file */
@@ -1582,24 +1543,24 @@ Only write the signoff if there ARE errors, and if we are supposed to.
 #if WRITE_SIGNOFF_MESSAGE && !STANDALONE_UTILITY_PROGRAM
   if (total_errors + total_catastrophes > 0) {
     if (total_errors > 0) {
-      fprintf(stderr, "%lu error%s", total_errors,
+      fprintf(f_error, "%lu error%s", total_errors,
                       (total_errors != 1) ? "s" : "");
       if (total_catastrophes > 0) {
-        fputs(" and ", stderr);
+        fputs(" and ", f_error);
       }  /* if */
     }  /* if */
     if (total_catastrophes > 0) {
-      fprintf(stderr, "%lu catastrophic error%s", total_catastrophes,
+      fprintf(f_error, "%lu catastrophic error%s", total_catastrophes,
                       (total_catastrophes != 1) ? "s" : "");
     }  /* if */
     if (primary_source_file_name != NULL &&
         strlen(primary_source_file_name) != 0 &&
         strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
-      fprintf(stderr, " detected in the compilation of \"%s\".\n",
+      fprintf(f_error, " detected in the compilation of \"%s\".\n",
                       primary_source_file_name);
     } else {
       /* Source file name is not known. */
-      fputs(" detected in this compilation.\n", stderr);
+      fputs(" detected in this compilation.\n", f_error);
     }  /* if */
   }  /* if */
 #endif /* WRITE_SIGNOFF_MESSAGE && !STANDALONE_UTILITY_PROGRAM */
@@ -1647,9 +1608,9 @@ severe diagnostic issued in this compilation.  This routine does not return.
   /* For the more serious severities, write a message about the abrupt
       termination. */
   if (severity == es_catastrophe || severity == es_command_line_error) {
-    fprintf(stderr, "Compilation terminated.\n");
+    fprintf(f_error, "Compilation terminated.\n");
   } else if (severity == es_internal_error) {
-    fprintf(stderr, "Compilation aborted.\n");
+    fprintf(f_error, "Compilation aborted.\n");
   }  /* if */
 #endif /* !USING_DRIVER && !STANDALONE_UTILITY_PROGRAM */
 
@@ -1675,7 +1636,7 @@ severe diagnostic issued in this compilation.  This routine does not return.
       cfe_exit(RC_CATASTROPHE);
       break;
 #else /* !EXIT_ON_INTERNAL_ERROR */
-      (void)fflush(stderr);
+      (void)fflush(f_error);
       abort();
 #endif /* EXIT_ON_INTERNAL_ERROR */
   }  /* switch */
@@ -1712,7 +1673,7 @@ receipt of a signal.
 {
 #if !USING_DRIVER
   /* Print newline to make console output clean. */
-  fprintf(stderr, "\n");
+  fprintf(f_error, "\n");
 #endif /* !USING_DRIVER */
 #if MAKE_FRONT_END_CALLABLE
   signal_caught = TRUE;
@@ -1732,9 +1693,9 @@ with an internal error on receipt of a signal.
 {
 #if !USING_DRIVER
   /* Print newline to make console output clean. */
-  fprintf(stderr, "\n");
+  fprintf(f_error, "\n");
 #endif /* !USING_DRIVER */
-  fprintf(stderr, "Internal error: CPU time limit exceeded.\n");
+  fprintf(f_error, "Internal error: CPU time limit exceeded.\n");
   term_compilation(es_internal_error);
   /*NOTREACHED*/
 }  /* abort_on_cpu_limit */
@@ -1921,7 +1882,7 @@ Display the difference in CPU time and elapsed time between two timers.
   double	real_time;
 
   calc_time_difference(start_time, end_time, &cpu_time, &real_time);
-  fprintf(stderr, "%-30s %10.2f (CPU) %10.2f (elapsed)\n", message,
+  fprintf(f_error, "%-30s %10.2f (CPU) %10.2f (elapsed)\n", message,
           cpu_time, real_time);
 }  /* display_time_used */
 

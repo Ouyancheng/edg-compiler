@@ -1,5 +1,15 @@
 Version 3.7
 
+8/18/05  Microsoft compatibility: directing diagnostic messages to stdout
+
+In most cases, the Microsoft compiler outputs diagnostic messages to stdout
+instead of stderr.  The front end can now be configured to emulate this
+behavior.  When DIRECT_ERROR_OUTPUT_TO_STDOUT is TRUE, diagnostic output is
+directed to stdout instead of stderr, except when doing preprocessing only.
+This flag applies to messages output after command-line processing has
+completed.  Diagnostics output during command-line processing are always
+directed to stderr.
+
 8/18/05  GNU C++ compatibility: Type definitions in compound literals
 
 A change in version 3.6 of the front end caused type definitions in compound

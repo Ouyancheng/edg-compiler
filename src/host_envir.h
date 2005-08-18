@@ -322,6 +322,20 @@ macro_positions_in_diagnostics, which can be overridden by the
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
 /*
+Flag that is TRUE if diagnostic output should be directed to stdout instead
+of stderr, except when doing preprocessing only.  This is the way that
+the Microsoft compiler outputs diagnostics, so this feature is enabled
+by default when the Microsoft mode is the default mode.
+*/
+#ifndef DIRECT_ERROR_OUTPUT_TO_STDOUT
+#if DEFAULT_MICROSOFT_MODE
+#define DIRECT_ERROR_OUTPUT_TO_STDOUT TRUE
+#else /* !DEFAULT_MICROSOFT_MODE */
+#define DIRECT_ERROR_OUTPUT_TO_STDOUT FALSE
+#endif /* DEFAULT_MICROSOFT_MODE */
+#endif /* ifndef DIRECT_ERROR_OUTPUT_TO_STDOUT */
+
+/*
 Is the C-generating back end being used as the back end?
 See also C_GEN_BE_GENERATES_ANSI_C et al. in targ_def.h.
 Note that this means we're using the C-generating back end,
@@ -2127,10 +2141,6 @@ a_boolean okay_as_output_file(char *file_name);
 /* Open an input file. */
 extern FILE *open_input_file(char          *file_name,
                              a_boolean     binary_file);
-/* Reopen standard error. */
-extern void reopen_error_output_file(char          *file_name,
-                                     a_boolean     *cannot_open,
-                                     a_boolean     *bad_name);
 
 extern void delete_file(char *file_name);
 

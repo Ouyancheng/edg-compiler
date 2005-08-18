@@ -1817,7 +1817,7 @@ return_point:
 #if !STANDALONE_UTILITY_PROGRAM
 
 /*
-Size of the local buffer used to buffer characters going to stderr.
+Size of the local buffer used to buffer characters going to f_error.
 Should be comparable in size to a source line.  The actual array is
 allocated with an extra element to be used to store a terminating
 character.  This is used to avoid a purify/clcc bug that causes
@@ -1829,7 +1829,7 @@ purify to issue a spurious error.
 static void flush_putcbuffer(char *putcbuffer,
                              int  *num_putcbuffer_chars)
 /*
-Flush characters out of the local buffer putcbuffer to stderr.
+Flush characters out of the local buffer putcbuffer to f_error.
 *num_putcbuffer_chars indicates how many characters there are in the buffer;
 it is reset to 0.
 */
@@ -1840,8 +1840,11 @@ it is reset to 0.
      Specifically, the clcc runtime does this. */
   putcbuffer[*num_putcbuffer_chars] = '\0';
   if (*num_putcbuffer_chars > 0) {
-     fprintf(stderr, "%.*s", *num_putcbuffer_chars, putcbuffer);
+     fprintf(f_error, "%.*s", *num_putcbuffer_chars, putcbuffer);
      *num_putcbuffer_chars = 0;
+     /* Force the buffer to be flushed.  This is needed when f_error does
+        not point to stderr. */
+     (void)fflush(f_error);
   }  /* if */
 }  /* flush_putcbuffer */
 
@@ -1852,7 +1855,7 @@ static void add_to_putcbuffer(char *putcbuffer,
 /*
 Add out_char to the local buffer putcbuffer.  Increment the number of
 characters in the buffer, *num_putcbuffer_chars.  Flush the buffer
-to stderr if it is full.
+to f_error if it is full.
 */
 {
   /* Flush the buffer if it is full. */
@@ -1866,9 +1869,9 @@ to stderr if it is full.
 
 
 /*
-Put out_char into a local buffer for later writing to stderr.  This is
-done to avoid lots of costly system calls in the usual case that stderr
-is unbuffered.
+Put out_char into a local buffer for later writing to f_error.  This is
+done to avoid lots of costly system calls in the usual case that f_error
+points to stderr, and stderr is unbuffered.
 */
 #define putcb(out_char)                                               \
   add_to_putcbuffer(putcbuffer, &num_putcbuffer_chars, (out_char));
@@ -2317,7 +2320,7 @@ static void write_position(char              *file_name,
                            a_column_number   column_number,
                            int               *line_len)
 /*
-Write the source position (filename and line number) to stderr.  If
+Write the source position (filename and line number) to f_error.  If
 column_number is not SP_COL_UNKNOWN, the column number is added into the
 output.
 */
@@ -2326,19 +2329,19 @@ output.
      SP_COL_UNKINOWN. */
   /* If the line is from stdin, do not display the file name. */
   if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
-    *line_len += fprintf(stderr, "Line %lu", line_number);
+    *line_len += fprintf(f_error, "Line %lu", line_number);
   } else {
-    *line_len += fprintf(stderr, "\"");
+    *line_len += fprintf(f_error, "\"");
     /* Don't convert '\' to '\\' in error message output.  The
        name should be displayed as written by the user.  This also
        prevents doubling of directory separators on Windows. */
-    *line_len += write_file_name(file_name, stderr,
+    *line_len += write_file_name(file_name, f_error,
                                  /*process_escapes=*/FALSE,
                                  /*escape_nonprintable_chars=*/FALSE);
-    *line_len += fprintf(stderr, "\", line %lu", line_number);
+    *line_len += fprintf(f_error, "\", line %lu", line_number);
   }  /* if */
   if (column_number != SP_COL_UNKNOWN) {
-    *line_len += fprintf(stderr, " (col. %d)", column_number);
+    *line_len += fprintf(f_error, " (col. %d)", column_number);
   }  /* if */
 }  /* write_position */
 
@@ -2353,7 +2356,7 @@ static void write_position_and_severity(an_error_code     error_code,
                                         int               *line_len)
 /*
 Write the source position (file name and line number) and severity to
-stderr.  Determine if the actual source line is available, either in the 
+f_error.  Determine if the actual source line is available, either in the 
 current source line or able to be reread from one of the source files.   If
 the actual source line is not available, the column number is added into
 the output.
@@ -2390,7 +2393,7 @@ the output.
                               line_number, &at_end_of_source);
     if (at_end_of_source) {
       /* After end of source. */
-      *line_len += fprintf(stderr, "At end of source: ");
+      *line_len += fprintf(f_error, "At end of source: ");
     } else {
       /* Normal line in file, not end of file. */
 #if STANDALONE_UTILITY_PROGRAM
@@ -2428,7 +2431,7 @@ the output.
       write_position(*file_name, *line_number,
                      column_needed ? error_pos->column : SP_COL_UNKNOWN,
                      line_len);
-      *line_len += fprintf(stderr, ": ");
+      *line_len += fprintf(f_error, ": ");
     }  /* if */
   }  /* if */
   /* Determine the appropriate severity string, and also count this
@@ -2473,10 +2476,10 @@ the output.
   if (capitalize_severity && *severity_string != '\0') {
     /* Capitalize the first letter of the severity, because it's the first
        thing on the line. */
-    *line_len += fprintf(stderr, "%c%s", toupper(*severity_string),
+    *line_len += fprintf(f_error, "%c%s", toupper(*severity_string),
                                           severity_string+1);
   } else {
-    *line_len += fprintf(stderr, "%s", severity_string);
+    *line_len += fprintf(f_error, "%s", severity_string);
   }  /* if */
   /* The error number may optionally be displayed based on a command
      line option. */
@@ -2485,10 +2488,10 @@ the output.
        severity may be changed. */
     a_boolean	is_discretionary;
     is_discretionary = ((int)severity <= (int)es_discretionary_error);
-    *line_len += fprintf(stderr, " #%d%s: ", (int)error_code,
+    *line_len += fprintf(f_error, " #%d%s: ", (int)error_code,
                          is_discretionary ? "-D" : "");
   } else {
-    *line_len += fprintf(stderr, ": ");
+    *line_len += fprintf(f_error, ": ");
   }  /* if */
 }  /* write_position_and_severity */
 
@@ -2646,7 +2649,7 @@ additional messages in a multiple message diagnostic.
     if (diag_kind != dck_end_list && diag_kind != dck_end_context) {
       /* Perform any indentation needed (based on the category kind) */
       for (line_len = 0; line_len < diagnostic_indent; line_len++) {
-        putc(' ', stderr);
+        putc(' ', f_error);
       }  /* for */
     }  /* if */
 
@@ -2675,12 +2678,12 @@ additional messages in a multiple message diagnostic.
 
     if (diag_kind != dck_end_list && diag_kind != dck_end_context) {
       /* There is a message to be formatted and written. */
-      /* Put out the error message text to stderr. */
-      write_message(stderr, &line_len, /*wrap=*/!brief_diagnostics && 
+      /* Put out the error message text to f_error. */
+      write_message(f_error, &line_len, /*wrap=*/!brief_diagnostics && 
                                                 !do_not_wrap_diagnostics);
 
 #if !STANDALONE_UTILITY_PROGRAM
-      /* The message is always output to stderr so that the user can see it.
+      /* The message is always output to f_error so that the user can see it.
          If raw-listing information has been requested, it is also output to
          the raw-listing file in coded form, for later incorporation into the
          listing.  */
@@ -2805,14 +2808,14 @@ additional messages in a multiple message diagnostic.
           /* There was no stack trace, so we don't know the name of the
              macro involved -- use a more generic message. */
           for (line_len = 0; line_len < MACRO_CONTEXT_INDENT; ++line_len) {
-            fprintf(stderr, " ");
+            fprintf(f_error, " ");
           }  /* for */
-          line_len += fprintf(stderr, "%s",
+          line_len += fprintf(f_error, "%s",
                               error_text(ec_in_macro_expansion_at));
           write_position(file_name, line_number,
                          source_text_needed ? SP_COL_UNKNOWN :
                          error_pos->column, &line_len);
-          (void)fprintf(stderr, "%c\n", source_text_needed ? ':' : '.');
+          (void)fprintf(f_error, "%c\n", source_text_needed ? ':' : '.');
         }  /* if */
         if (source_text_needed) {
           diagnostic_indent = save_diagnostic_indent;
@@ -2834,7 +2837,7 @@ additional messages in a multiple message diagnostic.
       /* Put out an extra space line after the error, for clarity.  The
          space is suppressed if a context message is to follow since the
          space should follow the context. */
-      putc('\n', stderr);
+      putc('\n', f_error);
     }  /* if */
   }  /* if */
 
@@ -2858,7 +2861,7 @@ additional messages in a multiple message diagnostic.
        that remarks and warnings are never counted. */
     if (total_errors + total_catastrophes >= error_limit) {
 #if !USING_DRIVER
-      fprintf(stderr, "Error limit reached.\n");
+      fprintf(f_error, "Error limit reached.\n");
 #endif /* !USING_DRIVER */
 #if !STANDALONE_UTILITY_PROGRAM
       if (f_raw_listing != NULL) {
@@ -2889,7 +2892,7 @@ An internal error has occurred.  Write the given message and abort.
   /* Make sure that if one internal error leads to another, we abort
      the compilation instead of looping. */
   if (internal_error_loop) {
-    fprintf(stderr, "Internal error loop: %s\n", error_message);
+    fprintf(f_error, "Internal error loop: %s\n", error_message);
     term_compilation(es_internal_error);
   }  /* if */
   internal_error_loop = TRUE;
@@ -3541,7 +3544,7 @@ and doing any required expansions, the diagnostic is written.
       /* Make sure that if catastrophic error leads to another, we abort
          the compilation instead of looping. */
       if (catastrophe_has_occurred) {
-        fprintf(stderr, "Loop in catastrophic error processing.\n");
+        fprintf(f_error, "Loop in catastrophic error processing.\n");
         term_compilation(es_catastrophe);
       }  /* if */
       catastrophe_has_occurred = TRUE;
@@ -4835,8 +4838,8 @@ two string fill-ins for the source file name and PCH file name.
 
   if (!suppress_pch_messages) {
     text = error_text(error_code);
-    fprintf(stderr, text, primary_source_file_name, fill_in_str);
-    fprintf(stderr, "\n");
+    fprintf(f_error, text, primary_source_file_name, fill_in_str);
+    fprintf(f_error, "\n");
   }  /* if */
 }  /* pch_message */
 
@@ -4979,6 +4982,9 @@ line processing is done.
 #if CHECKING
   internal_error_loop = FALSE;
 #endif /* CHECKING */
+  /* The initialization of f_error is also done in cfe.c, but is done here
+     also so that it will be reset if the front end is reinitialized. */
+  f_error = stderr;
   catastrophe_has_occurred = FALSE;
   error_threshold = es_warning;
   error_source_line = NULL;
@@ -5067,6 +5073,10 @@ the point at which the compilation was terminated.
 */
 {
   close_file_if_open(&f_err_src_file);
+  /* Reset f_error so that an internal error during initialization will
+     be directed to stderr, not wherever the previous compilation directed
+     error output. */
+  f_error = stderr;
 }  /* error_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */

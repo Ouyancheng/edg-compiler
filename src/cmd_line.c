@@ -3424,14 +3424,14 @@ Process the arguments on the command line that invoked the compiler.
       case optk_display_compiler_version:
         /* Print out compiler version. */
         check_assertion(opt_value == TRUE);
-        fprintf(stderr,
+        fprintf(f_error,
                 "Edison Design Group C/C++ Front End, version %s (%s %s)\n",
                 VERSION_NUMBER, build_date, build_time);
-        fprintf(stderr, "Copyright 1988-2005 Edison Design Group, Inc.\n");
+        fprintf(f_error, "Copyright 1988-2005 Edison Design Group, Inc.\n");
 #ifdef DEMO_VERSION_ID
-        fprintf(stderr, "Demonstration version for %s\n", DEMO_VERSION_ID);
+        fprintf(f_error, "Demonstration version for %s\n", DEMO_VERSION_ID);
 #endif /* ifdef DEMO_VERSION_ID */
-        fputc('\n', stderr);
+        fputc('\n', f_error);
         break;
       case optk_suppress_warnings:
         /* Suppress warnings. */
@@ -3533,9 +3533,11 @@ Process the arguments on the command line that invoked the compiler.
         }  /* if */
         break;
       case optk_stderr_file_name:
-        /* Redirect stderr to a file.  This is useful on systems where
+        /* Redirect error output to a file.  This is useful on systems where
            redirection is not well supported. */
-        reopen_error_output_file(opt_arg, &cannot_open, &bad_name);
+        f_error = open_output_file(opt_arg, /*binary_file=*/FALSE,
+                                   /*update_mode=*/FALSE,
+                                   &cannot_open, &bad_name);
         if (bad_name) {
           str_command_line_error(ec_cl_invalid_error_output_file,
                                  opt_arg);
@@ -4572,6 +4574,17 @@ enable_microsoft_mode:
       error_threshold = es_discretionary_error;
     }  /* if */
   }  /* if */
+#if DIRECT_ERROR_OUTPUT_TO_STDOUT
+  if (microsoft_mode && !do_preprocessing_only &&
+      !option_kind_used[(int)optk_stderr_file_name]) {
+    /* In Microsoft mode, when not doing only preprocessing, error output
+       is directed to stdout instead of stderr.  Don't do this if an
+       alternate error output file was specified.  This is done here,
+       and not in set_microsoft_mode_flags, so that any errors issued
+       during command-line processing will go to stderr. */
+    f_error = stdout;
+  }  /* if */
+#endif /* DIRECT_ERROR_OUTPUT_TO_STDOUT */
 #if DO_IL_LOWERING
   /* Prototype instantiations cannot be lowered, so make sure that they are
      not generated when doing IL lowering. */

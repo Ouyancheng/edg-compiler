@@ -4110,13 +4110,13 @@ you will need to modify or remove these tests.
   };
   expected = offsetof(struct host_alignment_test, constant);  /*lint !e413*/
   if (expected != HOST_ALIGNMENT_REQUIRED) {
-    fprintf(stderr, "Expected HOST_ALIGNMENT_REQUIRED is %d\n", expected);
+    fprintf(f_error, "Expected HOST_ALIGNMENT_REQUIRED is %d\n", expected);
     internal_error(
     "check_host_alignment...: HOST_ALIGNMENT_REQUIRED set incorrectly");
   }  /* if */
   expected = offsetof(struct pointer_alignment_test, ptr);  /*lint !e413*/
   if (expected != HOST_POINTER_ALIGNMENT) {
-    fprintf(stderr, "Expected HOST_POINTER_ALIGNMENT is %d\n", expected);
+    fprintf(f_error, "Expected HOST_POINTER_ALIGNMENT is %d\n", expected);
     internal_error(
     "check_host_alignment...: HOST_POINTER_ALIGNMENT set incorrectly");
   }  /* if */
@@ -4126,7 +4126,7 @@ you will need to modify or remove these tests.
     /* The specified alignment can be greater than or equal to the expected
        alignment.  This is required because the prefix alignment must be
        a multiple of the pointer alignment. */
-    fprintf(stderr, "Expected HOST_IL_ENTRY_PREFIX_ALIGNMENT is %d\n",
+    fprintf(f_error, "Expected HOST_IL_ENTRY_PREFIX_ALIGNMENT is %d\n",
             expected);
     internal_error(
     "check_host_alignment...: HOST_IL_ENTRY_PREFIX_ALIGNMENT set incorrectly");

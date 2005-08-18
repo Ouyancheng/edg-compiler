@@ -8494,15 +8494,15 @@ by IL lowering.
         /* The file-scope-init routine was not called from anywhere in
            this module.  It must be called from the main program, by using
            the appropriate option. */
-        (void)fprintf(stderr,
+        (void)fprintf(f_error,
 "This file contains file-scope initializations that involve executable code.\n"
                      );
-        (void)fprintf(stderr,
+        (void)fprintf(f_error,
 "For it to execute correctly, include \"%s\" in the list of modules\n",
                       module_init_id);
-        (void)fprintf(stderr,
+        (void)fprintf(f_error,
 "in the \"--module_init\" option during compilation of the associated main\n");
-        (void)fprintf(stderr,
+        (void)fprintf(f_error,
 "program.\n");
       }  /* if */
     }  /* if */

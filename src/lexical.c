@@ -3576,7 +3576,7 @@ to be displayed.
   /* Indent the output by the input stack depth. */
   int indent = depth - 1;
   check_assertion(indent >= 0);
-  fprintf(stderr, "%*s%s\n", indent, "", file_name);
+  fprintf(f_error, "%*s%s\n", indent, "", file_name);
 }  /* display_included_file_name */
   
 

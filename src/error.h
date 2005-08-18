@@ -44,6 +44,9 @@ typedef struct an_error_tag_entry {
 			/* The error code that this tag refers to. */
 } an_error_tag_entry;
 
+EXTERN FILE	*f_error;
+			/* The file to which error output is written. */
+
 /*
 Current error position, used as default in error reporting.  Set
 implicitly to the start of a construct whenever one is scanned (e.g.,
