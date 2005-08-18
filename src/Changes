@@ -95,7 +95,7 @@ template keyword was not followed by a "<".  Now fixed.
 
 In some cases involving variables of a class type with a destructor but no
 user-defined constructor, the front end failed to generate a destructor call
-for the end of the variable's lifetime.  For the problem to occur, the
+for the end of the variable's lifetime.  For the problem to occur the
 variable needed a parenthesized initializer (i.e., direct-initialization
 syntax).  For example:
 
