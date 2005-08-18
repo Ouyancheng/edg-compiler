@@ -6851,7 +6851,7 @@ the type defines something); FALSE is returned if there is an error.
      in the type-id. */
   *type_position = pos_curr_token;
   type_name_full(/*disallow_variably_modified_type=*/curr_expr_kind_is_const(),
-                 cast_type, &explicit_cv_qualifiers);
+                 cast_type, &explicit_cv_qualifiers, (a_boolean*)NULL);
   /* In Microsoft mode, static_cast allows a cast to an array type if it
      does nothing. */
   if (microsoft_bugs && !C_mode() &&
@@ -10664,12 +10664,12 @@ Also scans GNU statement expressions:
                              DFS_SINGLE_TYPE_REQUIRED |
                              DFS_IS_CAST)) {
       /* This is a cast operation. */
-      a_boolean explicit_cv_qualifiers;
+      a_boolean explicit_cv_qualifiers, type_defined;
       /* Get the type to cast to. */
       type_position = pos_curr_token;
       type_name_full(
                  /*disallow_variably_modified_type=*/curr_expr_kind_is_const(),
-                 &type_cast_to, &explicit_cv_qualifiers);
+                 &type_cast_to, &explicit_cv_qualifiers, &type_defined);
       /* The next token should be the closing rparen. */
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);
@@ -10677,6 +10677,11 @@ Also scans GNU statement expressions:
       if (compound_literals_allowed &&
           curr_token == tok_lbrace) {
         /* A compound literal, e.g., (int []){1, 2, 3}.  See 6.5.2.5 in C99. */
+        if (type_defined && !C_mode() && !gpp_mode) {
+          /* All g++ versions allow type definitions as part of compound
+             literals. */
+          error(ec_type_definition_not_allowed);
+        }  /* if */
         scan_compound_literal(&type_cast_to, &type_position, result,
                               local_options);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -10689,6 +10694,11 @@ Also scans GNU statement expressions:
         error_position = type_position;
         err = cast_type_pre_check(&type_cast_to, explicit_cv_qualifiers,
                                   allow_array);
+        if (type_defined && !C_mode() && (!gpp_mode || gnu_version >= 30400)) {
+          /* Only g++ versions earlier than 3.4 allow type definitions as part
+             of casts. */
+          error(ec_type_definition_not_allowed);
+        }  /* if */
         set_err_pos_to_curr_token();
         /* Scan the expression to be cast. */
         scan_cast_expression(type_cast_to, /*allow_comma=*/TRUE, PREC_CAST,

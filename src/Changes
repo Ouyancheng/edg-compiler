@@ -1,5 +1,16 @@
 Version 3.7
 
+8/18/05  GNU C++ compatibility: Type definitions in compound literals
+
+A change in version 3.6 of the front end caused type definitions in compound
+literals to be rejected in GNU C++ mode when gnu_version >= 30400 (see Changes
+entry of 3/22/05).  Now such definitions are allowed in all GNU C++ modes.
+For example:
+
+  void f() {
+    (struct S { int i; }){ 3 };  // Previously an error in some GNU C++ modes.
+  }                              // Now accepted in all GNU C++ modes.
+
 8/17/05  GNU C++ compatibility: __offsetof
 
 In GNU C++ mode with gnu_version >= 30400, the front end now treats __offsetof

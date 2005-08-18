@@ -10328,7 +10328,7 @@ done using the disambiguation routines.
     arg_ptr->explicitly_specified = !is_nonreal;
     if (is_type_templ_arg(arg_ptr)) {
       type_name_full(/*disallow_variably_modified_type=*/TRUE, &argument_type,
-                     (a_boolean*)NULL);
+                     (a_boolean*)NULL, (a_boolean*)NULL);
       arg_ptr->variant.type = argument_type;
     } else if (is_nontype_templ_arg(arg_ptr)) {
       if (is_nonreal) {
@@ -10439,7 +10439,7 @@ this routine.  Its value is unchanged if no errors are detected.
       a_boolean		is_unnamed;
       a_boolean		is_local;
       type_name_full(/*disallow_variably_modified_type=*/TRUE, &argument_type,
-                     (a_boolean*)NULL);
+                     (a_boolean*)NULL, (a_boolean*)NULL);
       /* Be sure the type does not involve any local or unnamed classes -- only
          externally visible types are allowed, since template classes are
          themselves externally linked. */

@@ -8987,7 +8987,8 @@ cv-qualifier).
 
 void type_name_full(a_boolean   disallow_variably_modified_type,
                     a_type_ptr  *type_ptr,
-                    a_boolean   *explicit_cv_qualifiers)
+                    a_boolean   *explicit_cv_qualifiers,
+                    a_boolean   *type_defined)
 /*
 Scan a type-name (see 3.5.5) and set *type_ptr to the type.
 If explicit_cv_qualifiers is non-NULL, set *explicit_cv_qualifiers to TRUE if
@@ -9004,6 +9005,12 @@ In C++ mode an error is issued if a type definition appears in a type-name
 Variably-modified types are normally allowed inside function definitions when
 vla_enabled is TRUE.  However, if disallow_variably_modified_type is TRUE, then
 such types are not accepted.
+
+If type_defined is non-NULL, *type_defined is set to TRUE if a class or
+enumeration type was defined as part of the type-name.  In most C++ modes,
+this is an error, but a diagnostic is only issued when type_defined is non-
+NULL (otherwise, the caller is responsible for issuing such a diagnostic,
+if needed).
 */
 {
   a_storage_class              storage_class;
@@ -9022,13 +9029,19 @@ such types are not accepted.
                         (an_ms_attribute_ptr*)NULL, &decl_modifiers,
                         (a_named_register_id*)NULL, (a_decl_pos_block_ptr)NULL,
                         (a_upc_block_size*)NULL);
-  if (C_dialect == C_dialect_cplusplus &&
-      (dso_flags & DSO_DEFINES_SOMETHING) &&
-      (!gpp_mode || gnu_version >= 30400)) {
-    /* Definition of a class, struct, union, or enum type is not allowed
-       in non-GNU C++ mode.  Older GNU C++ compilers did allow such
-       definitions. */
-    pos_error(ec_type_definition_not_allowed, &start_pos);
+  if (type_defined != NULL) {
+    *type_defined = (dso_flags & DSO_DEFINES_SOMETHING) != 0;
+  }  /* if */
+  if (dso_flags & DSO_DEFINES_SOMETHING) {
+    if (type_defined == NULL &&
+        C_dialect == C_dialect_cplusplus &&
+        (!gpp_mode || gnu_version >= 30400)) {
+      /* Definition of a class, struct, union, or enum type is not allowed
+         in non-GNU C++ mode.  Older GNU C++ compilers did allow such
+         definitions.  Newer GNU C++ modes only allow it in compound
+         literals (e.g., "(struct { int i; }){0}"). */
+      pos_error(ec_type_definition_not_allowed, &start_pos);
+    }  /* if */
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
     report_implicit_int(&start_pos, *type_ptr);
