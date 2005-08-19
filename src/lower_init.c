@@ -9218,12 +9218,14 @@ have already had their designated initializers lowered.
     }  /* if */
     set_init_con_pos(temp_con, &con_pos);
     while (con_pos.ptr != NULL) {
+      a_type_ptr member_type = skip_typerefs(aggr_pos.member_type);
       temp_con = con_pos.ptr;
       if (temp_con->kind == (a_constant_repr_kind)ck_init_repeat) {
         temp_con = temp_con->variant.init_repeat.constant;
+        member_type = array_element_type(member_type);
+        member_type = skip_typerefs(member_type);   
       }  /* if */
       { a_type_ptr con_type = skip_typerefs(temp_con->type);
-        a_type_ptr member_type = skip_typerefs(aggr_pos.member_type);
         check_assertion_str(
                      identical_types(con_type, member_type) ||
                      /* A short string literal can initialize a longer
