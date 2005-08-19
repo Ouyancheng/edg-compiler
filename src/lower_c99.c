@@ -2915,10 +2915,13 @@ in C99 mode to represent a compound literal.
   set_expr_insert_location(expr, &insert_location);
   set_var_init_pos_descr(var, &ipd);
   /* Lower the initialization. */
-  if (dip->kind == (a_dynamic_init_kind)dik_constant ||
-      dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+#if LOWER_DESIGNATED_INITIALIZERS
+  if (designators_allowed &&
+      (dip->kind == (a_dynamic_init_kind)dik_constant ||
+       dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate)) {
     lower_designated_initializers(dip->variant.constant);
   }  /* if */
+#endif /* LOWER_DESIGNATED_INITIALIZERS */
   lower_dynamic_init(dip, &ipd,
                      (a_constructor_init_ptr)NULL,
                      (a_variable_ptr)NULL,
@@ -3124,6 +3127,13 @@ Do C99 lowering on the indicated stmk_init statement.
 {
   a_dynamic_init_ptr dip = statement->variant.dynamic_init;
 
+#if LOWER_DESIGNATED_INITIALIZERS
+  if (designators_allowed &&
+      (dip->kind == (a_dynamic_init_kind)dik_constant ||
+       dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate)) {
+    lower_designated_initializers(dip->variant.constant);
+  }  /* if */
+#endif /* LOWER_DESIGNATED_INITIALIZERS */
   /* This routine is similar to lower_stmk_init. */
   switch (dip->kind) {
     case dik_constant:
@@ -3365,6 +3375,11 @@ indicates the kind of initialization, and *initializer provides the details.
   switch (init_kind) {
     case initk_static:
       /* The initializer is a constant. */
+#if LOWER_DESIGNATED_INITIALIZERS
+      if (designators_allowed) {
+        lower_designated_initializers(initializer->constant);
+      }  /* if */
+#endif /* LOWER_DESIGNATED_INITIALIZERS */
       lower_c99_constant(initializer->constant);
       break;
     case initk_dynamic:

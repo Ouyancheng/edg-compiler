@@ -1,5 +1,14 @@
 Version 3.7
 
+8/18/05  Failure to lower some designated initializers
+
+Certain designated initializers were not lowered by IL lowering,
+specifically ones appearing in compound literals in C mode.  Now
+fixed.
+
+  struct X { int a; char *b; };
+  struct X *p = &(struct X){ .b = "hello", .a = 42 };  // Not lowered
+
 8/18/05  Microsoft compatibility: directing diagnostic messages to stdout
 
 In most cases, the Microsoft compiler outputs diagnostic messages to stdout

@@ -553,7 +553,8 @@ EXTERN a_boolean
 EXTERN a_boolean
 		designators_allowed;
 			/* TRUE if '.x' and '[expr]' designators should be
-			   accepted. */
+			   accepted.  Always TRUE if
+			   extended_designators_allowed is TRUE. */
 
 EXTERN a_boolean
 		extended_designators_allowed;

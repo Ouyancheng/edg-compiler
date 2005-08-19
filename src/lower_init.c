@@ -8019,10 +8019,13 @@ Do IL lowering of an enk_temp_init expression node.
        inserted before the (modified) original expression. */
     set_expr_insert_location(expr, &insert_location);
     /* Lower the initialization. */
-    if (dip->kind == (a_dynamic_init_kind)dik_constant ||
-        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+#if LOWER_DESIGNATED_INITIALIZERS
+    if (designators_allowed &&
+        (dip->kind == (a_dynamic_init_kind)dik_constant ||
+         dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate)) {
       lower_designated_initializers(dip->variant.constant);
     }  /* if */
+#endif /* LOWER_DESIGNATED_INITIALIZERS */
     lower_dynamic_init(dip, &ipd,
                        (a_constructor_init_ptr)NULL,
                        (a_variable_ptr)NULL,
@@ -8267,6 +8270,13 @@ Generate code for a stmk_init (dynamic initialization) statement.
   a_variable_ptr     var = dip->variable;
   a_boolean          non_C_case = FALSE;
 
+#if LOWER_DESIGNATED_INITIALIZERS
+  if (designators_allowed &&
+      (dip->kind == (a_dynamic_init_kind)dik_constant ||
+       dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate)) {
+    lower_designated_initializers(dip->variant.constant);
+  }  /* if */
+#endif /* LOWER_DESIGNATED_INITIALIZERS */
   /* Only lower the cases that do not come up in C: */
   if (dip->destructor != NULL) {
     /* Initialization with a later destructor. */
@@ -9252,12 +9262,10 @@ designated initializers, rewrite them as standard C.  Note that this is
 called in C mode as well as C++ mode.
 */
 {
-  check_assertion(C_mode() || gpp_mode);
-  if (!suppress_il_lowering && total_errors == 0) {
-    if (init_con->kind == (a_constant_repr_kind)ck_aggregate) {
-      lower_aggregate_designated_initializers(init_con,
-                                              (a_constant_ptr)NULL);
-    }  /* if */
+  check_assertion(designators_allowed);
+  if (init_con->kind == (a_constant_repr_kind)ck_aggregate) {
+    lower_aggregate_designated_initializers(init_con,
+                                            (a_constant_ptr)NULL);
   }  /* if */
 }  /* lower_designated_initializers */
 

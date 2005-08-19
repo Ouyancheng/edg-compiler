@@ -33,9 +33,6 @@ decl_inits.c -- Scanning of initializers in declarations.
 #include "lower_init.h"
 #include "lower_c99.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && ... */
-#if LOWER_DESIGNATED_INITIALIZERS
-#include "lower_init.h"
-#endif /* LOWER_DESIGNATED_INITIALIZERS */
 #endif /* DO_IL_LOWERING */
 
 
@@ -3353,16 +3350,6 @@ returned set to TRUE.
       a_statement_ptr init_stmt;
       gen_dynamic_initialization(vp, init_dip, &local_static_var_init,
                                  source_pos, &init_stmt);
-#if DO_IL_LOWERING
-#if LOWER_DESIGNATED_INITIALIZERS
-      if (designators_allowed &&
-          (init_dip->kind == (a_dynamic_init_kind)dik_constant ||
-           init_dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate)) {
-        /* Rewrite designated initializers into standard C89. */
-        lower_designated_initializers(init_dip->variant.constant);
-      }  /* if */
-#endif /* LOWER_DESIGNATED_INITIALIZERS */
-#endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED && DO_IL_LOWERING
 #if LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
       /* Note that if microsoft_mode and C_mode() are TRUE, *vp may be an
@@ -3403,14 +3390,6 @@ returned set to TRUE.
                                               (an_init_kind)initk_static,
                                               init_con,
                                               (a_dynamic_init_ptr)NULL);
-#if DO_IL_LOWERING
-#if LOWER_DESIGNATED_INITIALIZERS
-        if (designators_allowed) {
-          /* Rewrite designated initializers into standard C89. */
-          lower_designated_initializers(init_con);
-        }  /* if */
-#endif /* LOWER_DESIGNATED_INITIALIZERS */
-#endif /* DO_IL_LOWERING */
       } else {
         /* The initializer is a simple constant, so it can just be attached
            to the variable.  However, the variable is in file scope memory
@@ -3426,14 +3405,6 @@ returned set to TRUE.
          dynamic. */
       vp->init_kind = (an_init_kind)initk_static;
       vp->initializer.constant = init_con;
-#if DO_IL_LOWERING
-#if LOWER_DESIGNATED_INITIALIZERS
-      if (designators_allowed) {
-        /* Rewrite designated initializers into standard C. */
-        lower_designated_initializers(init_con);
-      }  /* if */
-#endif /* LOWER_DESIGNATED_INITIALIZERS */
-#endif /* DO_IL_LOWERING */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (decl_pos_block != NULL) {

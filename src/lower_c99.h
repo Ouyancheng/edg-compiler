@@ -65,7 +65,8 @@ extern void create_element_count_variable_for_vla(a_statement_ptr  stmt);
 #endif /* FIXED_POINT_ALLOWED */
 
 #define c99_il_lowering_needed()                                             \
-  ((c99_mode || gcc_mode || compound_literals_allowed || vla_enabled         \
+  ((c99_mode || gcc_mode || compound_literals_allowed || vla_enabled ||      \
+    designators_allowed                                                      \
     or_fixed_point_lowering_needed()) &&                                     \
    !suppress_il_lowering && total_errors == 0)
 
