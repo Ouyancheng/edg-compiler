@@ -1,5 +1,12 @@
 Version 3.7
 
+8/19/05  GNU mode: Built-in infinity functions
+
+In GNU modes, the front end now constant-folds calls to the built-in functions
+__builtin_inff, __builtin_inf, and __builtin_infl (when the configuration macro
+TARG_HAS_IEEE_FLOATING_POINT is set to TRUE).  See also the Changes entry of
+11/19/03.
+
 8/18/05  Failure to lower some designated initializers
 
 Certain designated initializers were not lowered by IL lowering,

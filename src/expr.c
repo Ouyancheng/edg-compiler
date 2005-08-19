@@ -1166,6 +1166,9 @@ sizeof arguments); otherwise, *pseudo_call is set to FALSE.
       case bfk_nanf:
       case bfk_nan:
       case bfk_nanl:
+      case bfk_inff:
+      case bfk_inf:
+      case bfk_infl:
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
         result = TRUE;
         break;
@@ -1355,6 +1358,17 @@ given operand by a constant operand if appropriate.
             result.type = call->type;
             folded = make_fp_nan(&result.variant.float_value,
                                  result_type->variant.float_kind);
+          }  /* if */
+          break;
+        case bfk_inff:
+        case bfk_inf:
+        case bfk_infl:
+          /* A positive infinity value. */
+          if (args == NULL && is_floating_type(result_type)) {
+            clear_constant(&result, (a_constant_repr_kind)ck_float);
+            result.type = call->type;
+            folded = make_fp_infinity(&result.variant.float_value,
+                                      result_type->variant.float_kind);
           }  /* if */
           break;
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
