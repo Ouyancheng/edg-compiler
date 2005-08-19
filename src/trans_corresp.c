@@ -2866,6 +2866,7 @@ none was recorded.
   return result;
 }  /* inheritance_kind_of */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
@@ -2898,7 +2899,6 @@ declaration modifiers.
 }  /* incompatible_class_decl_modifiers */
 
 #endif /* DECL_MODIFIERS_IN_USE */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean verify_class_type_correspondence(a_type_ptr  type)
 /*
