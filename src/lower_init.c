@@ -8020,11 +8020,7 @@ Do IL lowering of an enk_temp_init expression node.
     set_expr_insert_location(expr, &insert_location);
     /* Lower the initialization. */
 #if LOWER_DESIGNATED_INITIALIZERS
-    if (designators_allowed &&
-        (dip->kind == (a_dynamic_init_kind)dik_constant ||
-         dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate)) {
-      lower_designated_initializers(dip->variant.constant);
-    }  /* if */
+    lower_dynamic_init_designated_initializers(dip);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
     lower_dynamic_init(dip, &ipd,
                        (a_constructor_init_ptr)NULL,
@@ -8271,11 +8267,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
   a_boolean          non_C_case = FALSE;
 
 #if LOWER_DESIGNATED_INITIALIZERS
-  if (designators_allowed &&
-      (dip->kind == (a_dynamic_init_kind)dik_constant ||
-       dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate)) {
-    lower_designated_initializers(dip->variant.constant);
-  }  /* if */
+  lower_dynamic_init_designated_initializers(dip);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
   /* Only lower the cases that do not come up in C: */
   if (dip->destructor != NULL) {
@@ -9035,6 +9027,11 @@ have already had their designated initializers lowered.
         }  /* if */
       } else {
         /* Non-aggregate constant. */
+        if (con.ptr->kind == (a_constant_repr_kind)ck_dynamic_init) {
+          /* Lower designators in a dynamic initialization subtree. */
+          lower_dynamic_init_designated_initializers(
+                                                con.ptr->variant.dynamic_init);
+        }  /* if */
         if (earlier_con.ptr != NULL) {
           /* con overwrites an earlier initialization at the same location,
              given by earlier_con. */
@@ -9262,12 +9259,27 @@ designated initializers, rewrite them as standard C.  Note that this is
 called in C mode as well as C++ mode.
 */
 {
-  check_assertion(designators_allowed);
-  if (init_con->kind == (a_constant_repr_kind)ck_aggregate) {
+  if (designators_allowed &&
+      init_con->kind == (a_constant_repr_kind)ck_aggregate) {
     lower_aggregate_designated_initializers(init_con,
                                             (a_constant_ptr)NULL);
   }  /* if */
 }  /* lower_designated_initializers */
+
+
+void lower_dynamic_init_designated_initializers(a_dynamic_init_ptr dip)
+/*
+If the dynamic initialization pointed to by dip contains any designated
+initializers, rewrite them as standard C.  Note that this is called in
+C mode as well as C++ mode.
+*/
+{
+  if (designators_allowed &&
+      (dip->kind == (a_dynamic_init_kind)dik_constant ||
+       dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate)) {
+    lower_designated_initializers(dip->variant.constant);
+  }  /* if */
+}  /* lower_dynamic_init_designated_initializers */
 
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
 

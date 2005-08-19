@@ -219,6 +219,7 @@ extern void lower_microsoft_C_mode_nonconstant_aggregate_init(
 
 #if LOWER_DESIGNATED_INITIALIZERS
 extern void lower_designated_initializers(a_constant_ptr init_con);
+extern void lower_dynamic_init_designated_initializers(a_dynamic_init_ptr dip);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
 
 extern void lower_file_scope_dynamic_inits(void);

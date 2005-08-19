@@ -7732,9 +7732,7 @@ a location at which code can be inserted.
       break;
     case initk_static:
 #if LOWER_DESIGNATED_INITIALIZERS
-      if (designators_allowed) {
-        lower_designated_initializers(initializer->constant);
-      }  /* if */
+      lower_designated_initializers(initializer->constant);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
       lower_constant(initializer->constant);
       break;
