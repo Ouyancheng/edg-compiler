@@ -5855,6 +5855,12 @@ block with state information for the processing.
           } else {
             ipdp->curr_field = elem_con->variant.designator.field;
           }  /* if */
+#if LOWER_DESIGNATED_INITIALIZERS
+          /* If we're lowering designated initializers, designators should
+             not appear except to identify a field of a union. */
+          check_assertion_str(type->kind == (a_type_kind)tk_union,
+                              "designator was missed by lowering");
+#endif /* LOWER_DESIGNATED_INITIALIZERS */
           elem_con = elem_con->next;
           check_assertion(elem_con != NULL &&
                           elem_con->kind!=(a_constant_repr_kind)ck_designator);
