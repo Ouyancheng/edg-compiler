@@ -1,5 +1,17 @@
 Version 3.7
 
+8/19/05  End position of typeof construct used in a declaration
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the front end failed to record the
+end position of a GNU typeof construct used as the last component of a set of
+declaration specifiers.  For example:
+
+  typeof(int) x;  // End position of typeof was not recorded in the
+                  // specifiers_range of the a_decl_position_supplement
+                  // associated with "x".
+
+This is now fixed.
+
 8/19/05  GNU mode: Built-in infinity functions
 
 In GNU modes, the front end now constant-folds calls to the built-in functions

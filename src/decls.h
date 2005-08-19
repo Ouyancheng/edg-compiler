@@ -239,50 +239,10 @@ extern void f_check_pending_qualifiers_used(a_decl_parse_state  *ps);
   }  /* if */
 
 
-/*
-A collection of source positions passed around during declaration processing.
-*/
-typedef struct a_decl_pos_block *a_decl_pos_block_ptr;
-typedef struct a_decl_pos_block {
-  a_source_position
-		decl_pos;
-			/* Source position of the identifier. */
-  a_source_position
-		storage_class_pos;
-			/* Source position of storage-class, if any. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_range
-		identifier_range;
-			/* Start and end positions of coalesced identifier. */
-  a_source_range
-		specifiers_range;
-			/* Start and end positions of decl-specifiers. */
-  a_source_range
-		declarator_range;
-			/* Start and end positions of declarator. */
-  a_source_range
-		var_init_range;
-			/* Start and end positions of initializer. */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-} a_decl_pos_block;
-
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-
-extern a_decl_position_supplement_ptr make_decl_pos_supplement(
-                                        a_boolean             at_file_scope,
-                                        a_decl_pos_block_ptr  decl_pos_block);
-
-extern void update_decl_pos_info(a_source_correspondence  *scp,
-                                 a_decl_pos_block_ptr     decl_pos_block);
-
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-
 extern a_boolean reconcile_static_data_member_types(
 					a_symbol_ptr		sym,
 					a_type_ptr		type_ptr,
 					a_source_position_ptr	err_pos);
-
-extern void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block);
 
 extern a_boolean simplify_curr_class_qualified_name(void);
 

@@ -7224,7 +7224,7 @@ process_class_specifier:
         }  /* if */
         basic_type = bt_typedef;
         decl_specifiers_seen |= DS_TYPE;
-        *type_ptr = scan_typeof_operator();
+        *type_ptr = scan_typeof_operator(decl_pos_block);
         goto no_get_token;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case QUALIFIED_NAME_START_CASE:  /* Identifier or "::". */

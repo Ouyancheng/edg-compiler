@@ -348,68 +348,6 @@ of declarations that are permitted.
 }  /* is_decl_start */
 
 
-void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block)
-/*
-Initialize the fields of the specified decl-pos block.
-*/
-{
-  decl_pos_block->decl_pos = null_source_position;
-  decl_pos_block->storage_class_pos = null_source_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  decl_pos_block->identifier_range = null_source_range;
-  decl_pos_block->specifiers_range = null_source_range;
-  decl_pos_block->declarator_range = null_source_range;
-  decl_pos_block->var_init_range = null_source_range;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-}  /* clear_decl_pos_block */
-
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-
-a_decl_position_supplement_ptr make_decl_pos_supplement(
-                                        a_boolean             at_file_scope,
-                                        a_decl_pos_block_ptr  decl_pos_block)
-/*
-If the specified decl-pos block pointer is non-NULL, allocate a
-decl-position-supplement entry, set its values, and return it.  at_file_scope
-is TRUE when the entry should be allocated in the file scope memory region.
-*/
-{
-  a_decl_position_supplement_ptr  dpsp;
-
-  if (decl_pos_block != NULL) {
-    dpsp = alloc_decl_position_supplement(at_file_scope);
-    dpsp->identifier_range = decl_pos_block->identifier_range;
-    dpsp->specifiers_range = decl_pos_block->specifiers_range;
-    dpsp->variant.declarator_range = decl_pos_block->declarator_range;
-  } else {
-    dpsp = NULL;
-  }  /* if */
-  return dpsp;
-}  /* make_decl_pos_supplement */
-
-
-void update_decl_pos_info(a_source_correspondence  *scp,
-                          a_decl_pos_block_ptr     decl_pos_block)
-/*
-If the specified decl-pos block pointer is non-NULL, set the values in
-the decl-position-supplement entry pointed to from the specified source
-correspondence entry.
-*/
-{
-  a_decl_position_supplement_ptr  dpsp;
-
-  if (decl_pos_block != NULL) {
-    dpsp = scp->decl_pos_info;
-    if (dpsp != NULL) {
-      dpsp->identifier_range = decl_pos_block->identifier_range;
-      dpsp->specifiers_range = decl_pos_block->specifiers_range;
-      dpsp->variant.declarator_range = decl_pos_block->declarator_range;
-    }  /* if */
-  }  /* if */
-}  /* update_decl_pos_info */
-
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-
 a_boolean f_check_for_overload_anachronism(void)
 /*
 Issue a diagnostic, bypass the current token, which is "overload", and check

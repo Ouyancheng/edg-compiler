@@ -197,7 +197,7 @@ extern char *scan_uuidof_operand(void);
 
 #if GNU_EXTENSIONS_ALLOWED 
 
-extern a_type_ptr scan_typeof_operator(void);
+extern a_type_ptr scan_typeof_operator(a_decl_pos_block  *decl_pos_block);
 
 extern void typedef_initializer(a_symbol_ptr  symbol_ptr);
 

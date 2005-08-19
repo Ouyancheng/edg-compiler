@@ -414,6 +414,46 @@ a function can be substituted that does something else.
 extern void set_inline_flag(a_routine_ptr  rp,
                             a_boolean      flag);
 
+/*
+A collection of source positions passed around during declaration processing.
+*/
+typedef struct a_decl_pos_block *a_decl_pos_block_ptr;
+typedef struct a_decl_pos_block {
+  a_source_position
+		decl_pos;
+			/* Source position of the identifier. */
+  a_source_position
+		storage_class_pos;
+			/* Source position of storage-class, if any. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_range
+		identifier_range;
+			/* Start and end positions of coalesced identifier. */
+  a_source_range
+		specifiers_range;
+			/* Start and end positions of decl-specifiers. */
+  a_source_range
+		declarator_range;
+			/* Start and end positions of declarator. */
+  a_source_range
+		var_init_range;
+			/* Start and end positions of initializer. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+} a_decl_pos_block;
+
+extern void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block);
+
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+
+extern a_decl_position_supplement_ptr make_decl_pos_supplement(
+                                        a_boolean             at_file_scope,
+                                        a_decl_pos_block_ptr  decl_pos_block);
+
+extern void update_decl_pos_info(a_source_correspondence  *scp,
+                                 a_decl_pos_block_ptr     decl_pos_block);
+
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
 extern int compare_source_positions(a_source_position  *pos1,
 				    a_source_position  *pos2);
 

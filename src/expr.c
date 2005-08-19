@@ -5405,7 +5405,10 @@ implement <stdarg.h>, a standard feature.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-a_type_ptr scan_typeof_operator(void)
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+/* ARGSUSED */  /* <-- decl_pos_block is not used in some configurations. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+a_type_ptr scan_typeof_operator(a_decl_pos_block  *decl_pos_block)
 /*
 Scan the typeof operator.  This is a GNU C/C++ extension that is similar
 to sizeof, but returns the type rather than the size.  It is used
@@ -5415,7 +5418,8 @@ Syntax:
         typeof ( type-name )    or   __typeof__ ( type-name )
         typeof ( expression )   or   __typeof__ ( expression )
 
-The parentheses are required, unlike for sizeof.
+The parentheses are required, unlike for sizeof.  If  decl_pos_block is not
+NULL, the end position in its specifiers_range is updated.
 */
 {
   a_type_ptr           result;
@@ -5496,6 +5500,13 @@ The parentheses are required, unlike for sizeof.
       result = typeof_type;
     }  /* if */
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL) {
+    /* Update the end of the specifiers range to describe the end of the
+       typeof construct. */
+    decl_pos_block->specifiers_range.end = end_pos_curr_token;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   return result;
@@ -16496,7 +16507,7 @@ handle_trapped_left_paren:
                              (a_decl_pos_block_ptr)NULL);
 #if GNU_EXTENSIONS_ALLOWED
         } else if (curr_token == tok_typeof) {
-          cast_type = scan_typeof_operator();
+          cast_type = scan_typeof_operator((a_decl_pos_block*)NULL);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode) {
