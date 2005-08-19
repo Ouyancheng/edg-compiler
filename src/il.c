@@ -2322,6 +2322,7 @@ only be used for inlining (i.e., the suppress_inline_body flag should be set).
   }  /* if */
 }  /* set_inline_flag */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block)
 /*
@@ -2384,6 +2385,7 @@ correspondence entry.
 }  /* update_decl_pos_info */
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 int compare_source_positions(a_source_position	*pos1,
 			     a_source_position  *pos2)
