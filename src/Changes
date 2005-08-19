@@ -1,5 +1,15 @@
 Version 3.7
 
+8/19/05  Source position of stmk_init statements
+
+The source position of stmk_init statements was previously set to the
+position of the variable being initialized.  However, stmk_init statements
+do not always correspond to source constructs, and having a position at all
+caused some confusion is some cases.  Now a null position is recorded for
+all stmk_init statements, and the position (including the position of the
+initializer) information associated with an initialized variable should be
+retrieved from the IL variable entry itself.
+
 8/19/05  End position of typeof construct used in a declaration
 
 When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the front end failed to record the

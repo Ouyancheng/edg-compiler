@@ -2754,7 +2754,7 @@ created, or NULL it there is none.
     /* Build the initialization statement and add it to the statement block.
        This must be done after record_end_of_lifetime_destruction is called. */
     init_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_init,
-                                          &vp->source_corresp.decl_position);
+                                          &null_source_position);
     if (p_init_stmt != NULL) *p_init_stmt = init_stmt;
     init_stmt->variant.dynamic_init = dip;
     update_init_statement_control_flow(init_stmt);
