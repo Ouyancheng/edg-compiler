@@ -1,5 +1,25 @@
 Version 3.7
 
+8/22/05  C99 inline specifier and block-extern function declarations
+
+Version 3.6 corrected some issues with the C99 "inline definitions" (see
+Changes entry of 3/24/05).  However, the front end incorrectly included
+block-extern declarations in the determination of whether a definition of
+a function was an "inline definition" or not.  For example:
+
+  inline void f() {}  // Inline definition of f().
+  int main() {
+    void f();  // No longer affects whether the definition of f() is an
+    f();       // "inline definition" or not.
+  }
+
+In addition, the front end now accepts the "inline" specifier on block-extern
+declarations in C99 mode.  For example:
+
+  void g() {
+    inline void f();  // Now accepted in C99 mode.
+  }
+
 8/19/05  Source position of stmk_init statements
 
 The source position of stmk_init statements was previously set to the
