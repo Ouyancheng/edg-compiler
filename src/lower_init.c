@@ -9222,8 +9222,12 @@ have already had their designated initializers lowered.
       temp_con = con_pos.ptr;
       if (temp_con->kind == (a_constant_repr_kind)ck_init_repeat) {
         temp_con = temp_con->variant.init_repeat.constant;
-        member_type = array_element_type(member_type);
-        member_type = skip_typerefs(member_type);   
+        /* For constructor initializations of a multi-dimensional array,
+           the array is flattened to an initialization in one dimension. */
+        if (is_array_type(member_type)) {
+          member_type = underlying_array_element_type(member_type);
+          member_type = skip_typerefs(member_type);   
+        }  /* if */
       }  /* if */
       { a_type_ptr con_type = skip_typerefs(temp_con->type);
         check_assertion_str(
