@@ -8942,11 +8942,11 @@ Variably-modified types are normally allowed inside function definitions when
 vla_enabled is TRUE.  However, if disallow_variably_modified_type is TRUE, then
 such types are not accepted.
 
-If type_defined is non-NULL, *type_defined is set to TRUE if a class or
+If type_defined is non-NULL, *type_defined is returned TRUE if a class or
 enumeration type was defined as part of the type-name.  In most C++ modes,
-this is an error, but a diagnostic is only issued when type_defined is non-
-NULL (otherwise, the caller is responsible for issuing such a diagnostic,
-if needed).
+this is an error, but a diagnostic is only issued when type_defined is NULL
+(otherwise, the caller is responsible for issuing such a diagnostic, if
+needed).
 */
 {
   a_storage_class              storage_class;
