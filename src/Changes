@@ -1,5 +1,19 @@
 Version 3.7
 
+8/23/05  Microsoft compatibility: dropping cv-qualifiers on "?" operator
+
+Microsoft mode nows allows dropping cv-qualifiers (e.g., const) when
+converting the second or third operand of a "?" operator to the other
+operand type, if the conversion is from derived to base.
+
+  class B {};
+  B b;
+  struct D : public B {
+     void foo(const D& cd) {
+       0 ? cd : b;  // Now accepted in Microsoft mode
+    }
+  };
+
 8/22/05  C99 inline specifier and block-extern function declarations
 
 Version 3.6 corrected some issues with the C99 "inline definitions" (see

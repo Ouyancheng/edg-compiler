@@ -13718,7 +13718,14 @@ used only in C++ mode.
       /* The types are related classes. */
       if (possible) {
         /* Make sure that cv-qualifiers aren't dropped in the conversion. */
-        if (any_qualifier_missing(op2_type, op1_type)) possible = FALSE;
+        if (any_qualifier_missing(op2_type, op1_type)) {
+          possible = FALSE;
+          if (microsoft_bugs && bcp != NULL) {
+            /* MSVC++ allows dropping cv-qualifiers on a conversion from
+               derived to base. */
+            possible = TRUE;
+          }  /* if */
+        }  /* if */
         /* Check for an ambiguous base class. */
         if (bcp != NULL && bcp->ambiguous) {
           conv->unusable = TRUE;
