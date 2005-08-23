@@ -5809,9 +5809,7 @@ declaration.
   an_id_linkage_block      idlb;
   a_boolean                suppress_inline_body = FALSE;
   a_boolean                notify_correspondence_processing = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   a_storage_class          declared_storage_class = storage_class;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                microsoft_specialization_redef = FALSE;
 
   db_enter(3, "decl_routine");
@@ -5950,14 +5948,14 @@ declaration.
        has external linkage, is not visible outside the current translation
        unit.  (This does not apply to block-extern declarations. */
     if (func_info->is_inline && !idlb.is_block_extern_decl &&
-        storage_class == (a_storage_class)sc_unspecified) {
+        declared_storage_class == (a_storage_class)sc_unspecified) {
       /* "inline" was present in the declaration, but no storage class was
          specified. */
       suppress_inline_body = TRUE;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (gcc_mode && 
-             storage_class == (a_storage_class)sc_extern &&
+             declared_storage_class == (a_storage_class)sc_extern &&
              func_info->is_inline && func_info->is_definition) {
     /* In GNU C mode, if a function definition uses both the "extern" and
        "inline" keywords then no definition of the function should be emitted,
