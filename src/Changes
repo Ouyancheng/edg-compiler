@@ -1,5 +1,23 @@
 Version 3.7
 
+8/23/05  Sun compatibility: overloaded operator []
+
+In Sun compatibility mode, the processing for the overloaded
+subscripting operator [] no longer considers integer[pointer]
+as a pattern satisfying the operator.
+
+  struct String {
+    String(const char*);
+  };
+  struct node {
+    operator bool ( ) const;
+    int operator [ ] (const String &);
+  };
+  int main() {
+    node a;
+    a["FILE"];  // No longer ambiguous in Sun mode
+ };
+
 8/23/05  Microsoft compatibility: dropping cv-qualifiers on "?" operator
 
 Microsoft mode nows allows dropping cv-qualifiers (e.g., const) when

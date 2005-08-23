@@ -8274,7 +8274,11 @@ as its first operand.
         break;
       case onk_subscript:
         /* "[]" takes pointer[ptrdiff_t] or ptrdiff_t[pointer]. */
-        operand_type_pattern = "OD;DO";
+        if (sun_mode) {
+          operand_type_pattern = "OD";
+        } else {
+          operand_type_pattern = "OD;DO";
+        }  /* if */
         break;
       case onk_plus_plus:
       case onk_minus_minus:
