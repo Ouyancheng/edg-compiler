@@ -5752,11 +5752,14 @@ overrides both of them.
 #endif /* IA64_ABI */
 
 #if !IA64_ABI
-/*ARGSUSED*/ /* <-- primary_function is not used in that case. */
+/*ARGSUSED*/ /* <-- primary_function, subobject_bcp not used in that case. */
 #endif /* !IA64_ABI */
 static void find_delta_and_vcall_index(a_routine_ptr         primary_function,
                                        a_base_class_ptr      overriding_bcp,
                                        a_base_class_ptr      overridden_bcp,
+                                       a_base_class_ptr      subobject_bcp,
+                                       a_base_class_ptr      adjustment_bcp,
+                                       a_boolean             filling_vtable,
                                        a_targ_ptrdiff_t      *delta,
                                        a_virtual_table_index *vcall_index)
 /*
@@ -5767,7 +5770,12 @@ constant adjustment to "this" that should be performed when calling the
 function from the overridden_bcp, and where *vcall_index, if non-zero, gives
 the virtual function table index where an additional dynamic adjustment is
 located.  For the Cfront-like ABI, *vcall_index is not used (it is set to
-zero).
+zero).  If filling_vtable is TRUE, the result will be used directly for a
+vtable entry and thus can be optimized without affecting the ABI.
+subobject_bcp identifies the subobject whose vtable is being created (NULL
+if it is the same as the class of the overriding function).  adjustment_bcp
+gives the covariant return type adjustment required for the overriding
+function (NULL if none is required).
 */
 {
 #if IA64_ABI
@@ -5799,18 +5807,82 @@ zero).
     derived_bcp = step->base_class;
   }  /* while */
   if (derived_bcp != overriding_bcp) {
+    a_boolean        both_virtual_and_nonvirtual_base = FALSE;
+    a_boolean        non_primary_subobject_without_override = FALSE;
+    a_base_class_ptr bcp;
     check_assertion(derived_bcp->is_virtual);
-    /* Look through the derived_bcp to find the overrider on the vcall
-       offset list. */
-    voep = derived_bcp->type->variant.class_struct_union.extra_info->
-                                                             vcall_offsets;
-    while (!virtual_functions_match(voep->routine, primary_function)) {
-      voep = voep->next;
-    }  /* while */
-    *vcall_index = voep->vcall_offset_index;
-    /* The delta (i.e., the fixed offset) will be the offset required to
-       reach the virtual base. */
-    overriding_bcp = derived_bcp;
+    /* There is a virtual step in the derivation.  Check to see if we need to
+       use the two-stage thunk (adjust "this" to the beginning of the virtual
+       base sub-object, then adjust it from the virtual base sub-object to the
+       overriding function's sub-object using the vcall offset) or can
+       optimize to use a single stage thunk or the overriding function
+       directly.  In general, this optimization is possible when the "this"
+       pointer already points to the beginning of the virtual base sub-object.
+       However, applying the optimization in all such cases can cause
+       interoperability problems (for example, using a thunk that the IA-64
+       ABI does not require to be generated).  The additional conditions
+       applied below approximate the cases in which g++ performs this
+       optimization, for maximum interoperability. */
+    for (bcp = overridden_bcp->derived_class->
+                           variant.class_struct_union.extra_info->base_classes;
+         bcp != NULL; bcp = bcp->next) {
+      if (identical_types(bcp->type, derived_bcp->type) && !bcp->is_virtual) {
+        both_virtual_and_nonvirtual_base = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+    if (subobject_bcp != NULL && subobject_bcp->offset != 0) {
+      an_overriding_virtual_function_ptr ovfp;
+      for (ovfp = subobject_bcp->overriding_virtual_functions; ovfp != NULL;
+           ovfp = ovfp->next) {
+        if (virtual_functions_match(ovfp->primary_function,
+                                    primary_function)) {
+          break;
+        }  /* if */
+      }  /* for */
+      if (ovfp == NULL) {
+        non_primary_subobject_without_override = TRUE;
+      }  /* if */
+    }  /* if */
+    if (filling_vtable && derived_bcp->shares_virtual_function_info &&
+        !(overridden_bcp->direct && subobject_bcp != NULL) &&
+        !(subobject_bcp != NULL &&
+          (subobject_bcp->is_virtual || !subobject_bcp->direct)) &&
+        !(overriding_bcp != NULL && overriding_bcp->is_virtual) &&
+        !both_virtual_and_nonvirtual_base &&
+        !(non_primary_subobject_without_override &&
+          overriding_bcp != subobject_bcp) &&
+        !(overriding_bcp != NULL && overriding_bcp->offset != 0 &&
+          (subobject_bcp == NULL ||
+           subobject_bcp->offset != overriding_bcp->offset)) &&
+        (adjustment_bcp == NULL ||
+         !any_virtual_steps_in_derivation(adjustment_bcp)) &&
+        (derived_bcp->offset == 0 ||
+         (subobject_bcp != NULL &&
+          derived_bcp->offset == subobject_bcp->offset))) {
+      /* The overridden function's sub-object is at the beginning of the
+         complete object or of the sub-object whose virtual table we are
+         creating, so we can optimize to a more efficient call.  The offset
+         will be that of the sub-object, if any.  (Using subobject_bcp instead
+         of overridden_bcp handles cases where the sub-object is not the
+         leftmost node in a diamond inheritance.) */
+      if (subobject_bcp != NULL) {
+        overridden_bcp = subobject_bcp;
+      }  /* if */
+    } else {
+      /* Need to use the two-stage thunk (that uses the vcall offset).  Look
+         through the derived_bcp to find the overrider on the vcall offset
+         list. */
+      voep = derived_bcp->type->variant.class_struct_union.extra_info->
+                                                                 vcall_offsets;
+      while (!virtual_functions_match(voep->routine, primary_function)) {
+        voep = voep->next;
+      }  /* while */
+      *vcall_index = voep->vcall_offset_index;
+      /* The delta (i.e., the fixed offset) will be the offset required to
+         reach the virtual base. */
+      overriding_bcp = derived_bcp;
+    }  /* if */
   } /* if */
 #endif /* IA64_ABI */
   if (overriding_bcp == NULL) {
@@ -6021,7 +6093,10 @@ table.
         }  /* if */
       }  /* if */
       find_delta_and_vcall_index(primary_function, overriding_bcp,
-                                 overridden_bcp, &delta, &vcall_index);
+                                 overridden_bcp, derived_bcp,
+                                 override_list->return_adjustment_base_class,
+                                 /* filling_vtable=*/TRUE, &delta,
+                                 &vcall_index);
       func_to_call = override_list->overriding_function;
 #if IA64_ABI
       if (func_to_call->special_kind ==
@@ -15855,7 +15930,9 @@ when a base class return type is needed.  Definitions will be put out later.
         a_virtual_table_index vcall_index = 0;
 #if IA64_ABI
         find_delta_and_vcall_index(ovf->primary_function, ovf->base_class,
-                                   bcp, &delta, &vcall_index);
+                                   bcp, /*subobject_bcp=*/NULL,
+                                   adjustment_bcp, /*filling_vtable=*/FALSE,
+                                   &delta, &vcall_index);
 #endif /* IA64_ABI */
         /* Ignore this entry if in this case the override is not covariant.
            (It is covariant for the overrides in other base classes.) */
