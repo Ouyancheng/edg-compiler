@@ -221,6 +221,9 @@ typedef struct a_decl_parse_state {
 		restrict_pos;
 			/* The position of the "restrict" qualifier (if
 			   any). */
+  a_source_position
+		inline_pos;
+			/* The position of the "inline" specifier (if any). */
   a_bit_field
 		unused_qualifiers:1;
 			/* TRUE if there are pending qualifiers that have

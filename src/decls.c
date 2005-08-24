@@ -95,6 +95,7 @@ an upcoming declaration.
   ps->qualifiers = TQ_NONE;
   ps->qualifiers_pos = null_source_position;
   ps->restrict_pos = null_source_position;
+  ps->inline_pos = null_source_position;
   ps->unused_qualifiers = FALSE;
 }  /* init_decl_parse_state */
 
@@ -12566,7 +12567,7 @@ continue_with_declaration:
           /* Not a function declaration.  GNU C (but not GNU C++) allows
              this. */
           pos_diagnostic(gcc_mode ? es_warning : es_error,
-                         ec_inline_and_nonfunction, &decl_start_pos);
+                         ec_inline_and_nonfunction, &state.inline_pos);
         } else {
           func_info.is_inline = TRUE;
         }  /* if */

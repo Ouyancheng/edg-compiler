@@ -6803,6 +6803,7 @@ Returns TRUE if there is an error in the specifiers.
         } else {
           decl_specifiers_seen |= DS_INLINE;
           *output_flags |= DSO_INLINE;
+          copy_source_position(pos_curr_token, state->inline_pos);
         }  /* if */
         break;
       case tok_explicit:
