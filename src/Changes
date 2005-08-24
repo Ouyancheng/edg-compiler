@@ -1,5 +1,13 @@
 Version 3.7
 
+8/24/05  Uninitialized fields in statement source position
+
+In configurations with FULL_SOURCE_POS_IN_IL_STATEMENT and
+FULLY_RESOLVED_MACRO_POSITIONS set to TRUE, the orig_seq and orig_column
+(and, if MACRO_INVOCATION_TREE_IN_IL is TRUE, the macro_context) fields were
+left with garbage values for statements that that do not have source
+positions.  Now fixed.
+
 8/24/05  IA-64 ABI: optimized virtual function invocation
 
 When a virtual function in a virtual base class is overridden, the IA-64
