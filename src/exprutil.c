@@ -3232,13 +3232,13 @@ up to the caller to do the cast if desired.
   orig_ikind = ikind = promoted_type->variant.integer.int_kind;
 #if LONG_LONG_ALLOWED
   if ((microsoft_mode || gpp_mode ||
-      (gcc_mode &&
-       field->bit_size > (unsigned int)(targ_sizeof_long*targ_char_bit))) &&
+      (gcc_mode && gnu_version < 40000 &&
+       field->bit_size >= (unsigned int)(targ_sizeof_long*targ_char_bit))) &&
       (ikind == (an_integer_kind)ik_long_long ||
        ikind == (an_integer_kind)ik_unsigned_long_long)) {
     /* MSVC++ and gcc/g++ promote long long and unsigned long long bit
        fields to those types.  gcc does the unusual promotion only
-       for fields bigger than long. */
+       for fields at least as big as long. */
   } else
 #endif /* LONG_LONG_ALLOWED */
   /* Do not insert code here. */

@@ -1,5 +1,12 @@
 Version 3.7
 
+8/24/05  GNU C compatibility: promotion of long long bit fields of same size
+         as long
+
+The emulation of gcc's promotion rules for bit fields of type long long
+and unsigned long long has been tweaked slightly for fields that are
+exactly the same size as "long".
+
 8/24/05  Uninitialized fields in statement source position
 
 In configurations with FULL_SOURCE_POS_IN_IL_STATEMENT and
