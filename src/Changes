@@ -1,5 +1,17 @@
 Version 3.7
 
+8/25/05  GNU statement expressions in unevaluated contexts
+
+The front end sometimes aborted while processing a GNU statement
+expression inside a sizeof or a similar construct that does not
+evaluate its operand (e.g., __builtin_constant_p).  In particular,
+a local declaration within the statement expression caused the
+abort.
+
+  int main() {
+    sizeof( ({ int i; 0; }) );  // Previously aborted
+  }
+
 8/25/05  Return value optimization in spite of cv-qualifier difference
 
 The return value optimization is now done even when the local variable

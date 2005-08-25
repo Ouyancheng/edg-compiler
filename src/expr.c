@@ -10456,12 +10456,33 @@ both C and C++ modes.
     /* Save, clear, and later restore the expression stack, since the
        statements are not part of any expression we may currently be
        inside of.  Likewise the object lifetime stack. */
+    a_boolean               statement_will_be_discarded = FALSE;
     an_expr_stack_entry_ptr saved_expr_stack;
-    an_object_lifetime_ptr saved_curr_object_lifetime;
+    an_object_lifetime_ptr  saved_curr_object_lifetime;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    a_boolean               saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    a_scope_ptr             saved_first_scope, saved_last_scope;
     save_expr_stack(&saved_expr_stack);
     saved_curr_object_lifetime = curr_object_lifetime;
     check_assertion(innermost_function_scope != NULL);
     curr_object_lifetime = innermost_function_scope->lifetime;
+    if (!saved_expr_stack->potentially_evaluated) {
+      /* This statement expression is in a not-evaluated context like a
+         sizeof.  Set things up so we don't create any side effects that
+         link the statements into the IL. */
+      statement_will_be_discarded = TRUE;
+      /* Remember the subscopes of the current scope, so we can remove any
+         subscopes added by the statement expression. */
+      saved_first_scope = scope_stack[depth_scope_stack].first_scope;
+      saved_last_scope  = scope_stack[depth_scope_stack].last_scope;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Prevent the generation of source sequence entries for the
+         statements. */
+      saved_sses_disallowed = source_sequence_entries_disallowed;
+      source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
     /* Scan the compound statement. */
     sp = compound_statement(/*at_function_level=*/FALSE,
                             /*explicit_return_type=*/FALSE,
@@ -10469,6 +10490,14 @@ both C and C++ modes.
                             /*is_statement_expr=*/TRUE);
     restore_expr_stack(saved_expr_stack);
     curr_object_lifetime = saved_curr_object_lifetime;
+    if (statement_will_be_discarded) {
+      /* Remove any subscopes added by the statement expression. */
+      scope_stack[depth_scope_stack].first_scope = saved_first_scope;
+      scope_stack[depth_scope_stack].last_scope  = saved_last_scope;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      source_sequence_entries_disallowed = saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
     if (!C_mode()) {
       /* Check that no destructible entities were declared in the
          statement. */
