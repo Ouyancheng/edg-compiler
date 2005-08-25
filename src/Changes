@@ -1,5 +1,23 @@
 Version 3.7
 
+8/24/05  C++-generating back end: placement of #pragma pack() directives in
+         typedef declarations
+
+When the C++-generating back end generated a "#pragma pack" directive to
+control the member alignment of a class definition that appears inside a
+typedef declaration, the directive was inserted between the "typedef" keyword
+and the class declaration.  Recent versions of the GNU compiler no longer
+accept the "#pragma pack" directive in this position, so the C++-generating
+back end now emits the directive before the "typedef" keyword.  For example:
+
+  Original source:       Previously generated:        Now generated:
+  ----------------       ---------------------        --------------
+  #pragma pack(1)        typedef                      #pragma pack(1)
+  typedef struct {       #pragma pack(1)              typedef
+  } S;                   struct {                     struct {
+                         } S;                         } S;
+                         #pragma pack()               #pragma pack()
+
 8/24/05  GNU C compatibility: promotion of long long bit fields of same size
          as long
 

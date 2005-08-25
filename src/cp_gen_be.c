@@ -4566,6 +4566,43 @@ Put out the list of direct base classes of the class associated with ctsp
 }  /* gen_base_class_list */
 
 
+#if USER_CONTROL_OF_STRUCT_PACKING
+static void gen_pragma_pack_if_needed(a_type_ptr type)
+/*
+Check the alignment of the specified class type; if it is not the default and
+we are not already under the influence of a #pragma pack directive, issue a
+#pragma pack with the requisite alignment.
+*/
+{
+  if (!need_pragma_pack_restore) {
+    /* No #pragma pack in force currently. */
+    a_targ_alignment  pack_alignment = type->variant.class_struct_union.
+                                                          max_member_alignment;
+    /* If required, put out a #pragma pack directive to set the pack alignment
+       for the current class.  (Some GNU compilers ignore the pragma;
+       attributes are issued instead.  If we know attribute packed will be
+       emitted, we don't issue the pragma.) */
+    if (pack_alignment > 0
+#if GNU_EXTENSIONS_ALLOWED
+        && !(gcc_is_generated_code_target && pack_alignment == 1 &&
+             type->variant.class_struct_union.is_packed)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                        ) {
+      if (pack_alignment != il_header.default_max_member_alignment) {
+        /* Put out a #pragma pack directive to indicate the special alignment
+           requirements for this struct. */
+        begin_pp_directive("#pragma pack(");
+        write_unsigned_num((unsigned long)pack_alignment);
+        write_str(")");
+        end_pp_directive();
+        need_pragma_pack_restore = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* gen_pragma_pack_if_needed */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+
+
 static void gen_class_definition(a_type_ptr type)
 /*
 Output the definition of the indicated class type.  This is in the form of
@@ -4576,31 +4613,7 @@ is the one associated with the definition of the class.
   a_class_type_supplement_ptr
                     ctsp = type->variant.class_struct_union.extra_info;
 #if USER_CONTROL_OF_STRUCT_PACKING
-  a_targ_alignment  pack_alignment = type->variant.class_struct_union.
-                                                       max_member_alignment;
-
-  /* If required, put out a #pragma pack directive to set the pack
-     alignment for the current class.  (Some GNU compilers ignore the
-     pragma; attributes are issued instead.  If we know attribute packed
-     will be emitted, we don't issue the pragma.) */
-  if (pack_alignment > 0
-#if GNU_EXTENSIONS_ALLOWED
-      && !(gcc_is_generated_code_target && pack_alignment == 1 &&
-           type->variant.class_struct_union.is_packed)
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                                      ) {
-    if (pack_alignment == il_header.default_max_member_alignment) {
-      /* No need to put out a pragma to override the default value. */
-      pack_alignment = 0;
-    } else {
-      /* Put out a #pragma pack directive to indicate the special alignment
-         requirements for this struct. */
-      begin_pp_directive("#pragma pack(");
-      write_unsigned_num((unsigned long)pack_alignment);
-      write_str(")");
-      end_pp_directive();
-    }  /* if */
-  }  /* if */
+  gen_pragma_pack_if_needed(type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* Advance past the source sequence entry for the class itself. */
   check_and_take_source_seq_entry_for_type(type);
@@ -4706,16 +4719,6 @@ is the one associated with the definition of the class.
   }
   if (il_header.source_language == sl_Cplusplus) pop_name_context();
   write_tok_ch('}');
-#if USER_CONTROL_OF_STRUCT_PACKING
-  if (pack_alignment > 0 && !gcc_is_generated_code_target) {
-    /* Notify gen_declaration that "#pragma pack()" is needed to restore the
-       packing to the default state.  (If we issued it here, it would precede
-       any declarators and the terminating ";", which both looks odd and
-       actually causes the Sun compiler to give different packing to the
-       class and the typedef-names in a typedef declaration.) */
-    need_pragma_pack_restore = TRUE;
-  }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* gen_class_definition */
 
 
@@ -4768,6 +4771,15 @@ declaration following this one is such a continuation.
     *another_decl_in_comma_list = FALSE;
   } else {
     a_type_ptr class_type;
+#if USER_CONTROL_OF_STRUCT_PACKING
+    a_type_ptr specifier_type = type_specifier_of_type(under_type);
+    if (is_class_or_struct(specifier_type) &&
+        specifier_type->definition_delayed) {
+      /* The typedef contains a class definition: issue a #pragma pack before
+         the "typedef" keyword if one is required. */
+      gen_pragma_pack_if_needed(specifier_type);
+    }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (!suppress_specifiers) write_tok_str("typedef ");
 #if USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_dialect_is_generated_code_target &&
@@ -11729,6 +11741,9 @@ that case) and old-style parameter declarations.
 {
   an_il_entry_kind kind;
   a_boolean        suppress_specifiers = FALSE, another_decl_in_comma_list;
+#if USER_CONTROL_OF_STRUCT_PACKING
+  a_boolean        pragma_pack_was_already_set = need_pragma_pack_restore;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Output any Microsoft attributes. */
@@ -11810,7 +11825,7 @@ that case) and old-style parameter declarations.
     suppress_specifiers = TRUE;
   }  /* for */
 #if USER_CONTROL_OF_STRUCT_PACKING
-  if (need_pragma_pack_restore) {
+  if (need_pragma_pack_restore && !pragma_pack_was_already_set) {
     /* Restore the packing alignment to a default state. */
     begin_pp_directive("#pragma pack()");
     end_pp_directive();
