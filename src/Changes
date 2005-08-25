@@ -1,5 +1,21 @@
 Version 3.7
 
+8/25/05  Return value optimization in spite of cv-qualifier difference
+
+The return value optimization is now done even when the local variable
+and the function return type differ in cv-qualification, as permitted
+by the C++ standard.
+
+  struct A {
+    A();
+    A(const A& rhs);
+    ~A();
+  };
+  const A foo() {
+    A nrv;
+    return nrv;  // Return value optimization now done
+  }
+
 8/24/05  C++-generating back end: placement of #pragma pack() directives in
          typedef declarations
 

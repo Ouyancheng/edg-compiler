@@ -17176,17 +17176,18 @@ lowering or a back end to do the rewriting.
       } else {
         /* There have been no previous return statements, so this statement
            can establish the local variable involved in the optimization.
-           It must be a nonstatic variable of the right type in the top
-           scope of the function (the latter is what cfront does, and it
-           helps to avoid some nasty interactions with exception handling).
-           Also, 12.8p15 of the C++ standard says that it must be
-           non-volatile. */
+           It must be a nonstatic variable of the right type (ignoring
+           cv-qualifiers) in the top scope of the function (the latter is
+           what cfront does, and it helps to avoid some nasty interactions
+           with exception handling).  Also, 12.8p15 of the C++ standard
+           says that it must be non-volatile. */
         a_type_ptr func_type = func_scope->variant.routine.ptr->type;
         func_type = skip_typerefs(func_type);
         if (!return_var->is_parameter &&
             !has_static_storage_duration(return_var->storage_class) &&
             !is_volatile_qualified_type(return_var->type) &&
-            types_are_compatible(return_var->type,
+            types_are_compatible_ignoring_qualifiers(
+                                 return_var->type,
                                  func_type->variant.routine.return_type)
 #if DO_IL_LOWERING
             /* Rule out a case IL lowering can't handle: returning an
