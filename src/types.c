@@ -825,6 +825,34 @@ Return TRUE if the given type is a class type with virtual functions
 }  /* is_polymorphic_class_type */
 
 
+a_boolean is_or_has_volatile_qualified_type(a_type_ptr tp)
+/*
+Returns TRUE if the given type is volatile-qualified, is an array type with a
+volatile-qualified underlying element type, or is a class, struct, or union
+type with a non-static member whose type is or has a volatile-qualified type.
+*/
+{
+  a_boolean volatile_found = FALSE;
+  if (is_volatile_qualified_type(tp)) {
+    volatile_found = TRUE;
+  } else if (is_array_type(tp)) {
+    volatile_found =
+                 is_volatile_qualified_type(underlying_array_element_type(tp));
+  } else if (is_class_struct_union_type(tp)) {
+    a_field_ptr field;
+    tp = skip_typerefs(tp);
+    for (field = tp->variant.class_struct_union.field_list; field != NULL;
+         field = field->next) {
+      if (is_or_has_volatile_qualified_type(field->type)) {
+        volatile_found = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return volatile_found;
+}  /* is_or_has_volatile_qualified_type */
+
+
 a_type_ptr array_element_type(a_type_ptr array_type)
 /*
 Return the element type of the given array type.

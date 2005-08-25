@@ -1,5 +1,25 @@
 Version 3.7
 
+8/25/05  Volatile arrays, class members, and side effects
+
+The front end has been changed to treat expressions as having side effects
+if they involve variables with volatile-qualified type or having subobjects
+with volatile-qualified types.  Similarly, variables with these
+characteristics are treated as both referenced and set, preventing warnings
+about them.  For example:
+
+  struct S {
+    volatile int vi;
+  };
+  void f() {
+    static S s;
+    s;   /* no longer warns "expression has no effect" */
+  }
+  void g(int i, int v) {
+    static volatile int a[10];  /* no longer warns "set but never used" */
+    a[i] = v;
+  }    
+
 8/25/05  GNU statement expressions in unevaluated contexts
 
 The front end sometimes aborted while processing a GNU statement

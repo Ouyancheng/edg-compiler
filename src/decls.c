@@ -5363,7 +5363,7 @@ declaration.
       }  /* if */
     } /* if */
   }  /* if */
-  if (is_variable_def && is_volatile_qualified_type(type_ptr)) {
+  if (is_variable_def && is_or_has_volatile_qualified_type(type_ptr)) {
     /* A variable with a volatile type is considered to be used and modified
        from "elsewhere".  (We use "is_variable_def" to exclude cases like
        "extern volatile int x", for which the flags shouldn't be set unless
