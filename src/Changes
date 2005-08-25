@@ -109,7 +109,7 @@ declarations in C99 mode.  For example:
 The source position of stmk_init statements was previously set to the
 position of the variable being initialized.  However, stmk_init statements
 do not always correspond to source constructs, and having a position at all
-caused some confusion is some cases.  Now a null position is recorded for
+caused some confusion in some cases.  Now a null position is recorded for
 all stmk_init statements, and the position (including the position of the
 initializer) information associated with an initialized variable should be
 retrieved from the IL variable entry itself.
