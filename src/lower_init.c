@@ -9224,7 +9224,8 @@ have already had their designated initializers lowered.
         temp_con = temp_con->variant.init_repeat.constant;
         /* For constructor initializations of a multi-dimensional array,
            the array is flattened to an initialization in one dimension. */
-        if (is_array_type(member_type)) {
+        if (is_array_type(member_type) &&
+            !is_array_type(temp_con->type)) {
           member_type = underlying_array_element_type(member_type);
           member_type = skip_typerefs(member_type);   
         }  /* if */
