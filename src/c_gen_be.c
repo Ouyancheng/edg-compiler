@@ -4955,6 +4955,8 @@ done_with_operation:
     case enk_offsetof:
       check_assertion(expr->variant.offsetof.member->kind ==
                                                  (an_expr_node_kind)enk_field);
+#if GCC_IS_GENERATED_CODE_TARGET || \
+    (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
       if (gcc_is_generated_code_target && gnu_target_version_number >= 40000) {
         /* The target C compiler has a built-in offsetof operator. */
         write_tok_str("__builtin_offsetof(");
@@ -4962,7 +4964,10 @@ done_with_operation:
         write_tok_str(", ");
         dump_field_name(expr->variant.offsetof.member->variant.field);
         write_tok_ch(')');
-      } else {
+      } else
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
+      /* Do not insert code here. */
+      {
         /* The target C compiler does not have a built-in offsetof operator.
            Just output the value directly in that case. */
         write_unsigned_num(expr->variant.offsetof.member
