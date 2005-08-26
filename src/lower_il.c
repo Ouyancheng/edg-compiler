@@ -11821,6 +11821,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
+    case enk_offsetof:
     default:
       unexpected_condition_str("lower_expr: bad kind");
   }  /* switch */

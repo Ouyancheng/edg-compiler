@@ -1470,6 +1470,11 @@ ec_unaligned_qualifier_dropped;;"conversion drops \"__unaligned\" qualifier"
 ec_insufficient_enum_range;;"some enumerator values cannot be represented by the integral type underlying the enum type"
 ec_friend_class_template_default_arg_not_allowed;;"default argument is not allowed on a friend class template declaration"
 ec_multi_char_literal;;"multicharacter character literal (potential portability problem)"
+ec_exp_class_type;;"expected a class, struct, or union type"
+ec_offsetof_nonfield;;"second operand of offsetof must be a field"
+ec_offsetof_bit_field;;"second operand of offsetof may not be a bit field"
+ec_offsetof_virtual_base_member;;"cannot apply offsetof to a member of a virtual base"
+ec_offset_in_non_POD_nonstandard;;"offsetof applied to non-POD types is nonstandard"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

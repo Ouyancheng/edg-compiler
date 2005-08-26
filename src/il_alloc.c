@@ -2530,6 +2530,10 @@ fields to default values.
       node->variant.vla_variable = NULL;
       break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
+    case enk_offsetof:
+      node->variant.offsetof.type = NULL;
+      node->variant.offsetof.member = NULL;
+      break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");
   }  /* switch */

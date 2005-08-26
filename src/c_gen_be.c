@@ -4952,6 +4952,23 @@ done_with_operation:
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
+    case enk_offsetof:
+      check_assertion(expr->variant.offsetof.member->kind ==
+                                                 (an_expr_node_kind)enk_field);
+      if (gcc_is_generated_code_target && gnu_target_version_number >= 40000) {
+        /* The target C compiler has a built-in offsetof operator. */
+        write_tok_str("__builtin_offsetof(");
+        dump_type(expr->variant.offsetof.type, /*add_pointer_to=*/FALSE);
+        write_tok_str(", ");
+        dump_field_name(expr->variant.offsetof.member->variant.field);
+        write_tok_ch(')');
+      } else {
+        /* The target C compiler does not have a built-in offsetof operator.
+           Just output the value directly in that case. */
+        write_unsigned_num(expr->variant.offsetof.member
+                               ->variant.field->offset);
+      }  /* if */
+      break;
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
       unexpected_condition_str("dump_expr: enk_field");

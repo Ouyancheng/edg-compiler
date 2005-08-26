@@ -8060,6 +8060,7 @@ enum an_expr_node_kind_tag {
                            should be deallocated (in C++, this may require
                            running destructors). */
 #endif /* VLA_DEALLOCATIONS_IN_IL */
+  enk_offsetof,		/* Used to represent a built-in offsetof operator. */
   enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -8929,9 +8930,10 @@ typedef struct an_expr_node {
 #ifdef CIL
     /* When kind == enk_field: */
     a_field_ptr field;
-                        /* A pointer to the field.  Only used as an operand
-                           to an eok_field or eok_value_field operation
-                           (or the similar bit-field operators). */
+			/* A pointer to the field.  Used as an operand to an
+			   eok_field or eok_value_field operation (or the
+			   similar bit-field operators).  Also sometimes used
+			   as an operand for an enk_offsetof node. */
     /* When kind == enk_temp_init: */
     /* C++ only, but used in C for C99 compound literals. */
     struct {
@@ -9118,6 +9120,20 @@ typedef struct an_expr_node {
                            avoid forcing inclusion of the symbol table
                            definitions everywhere. */
 #endif /* ifdef FIL */
+    /* When kind == enk_offsetof: */
+    struct {
+      a_type_ptr
+		type;	/* The type in which the offset is sought.  Must be
+			   a class type (typerefs on top of a class type are
+			   okay). */
+      an_expr_node_ptr
+		member;
+			/* A representation of the member whose offset is
+			   sought.  Either an enk_field node (when the type
+			   field is not dependent on a template parameter),
+			   of an enk_constant node (representing a member
+			   of a template-dependent type). */
+    } offsetof;
   } variant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range

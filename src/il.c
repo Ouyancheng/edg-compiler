@@ -1714,6 +1714,12 @@ Dump the contents of the indicated expression node for debug purposes.
       }  /* if */
       break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
+    case enk_offsetof:
+      fprintf(f_debug, "offsetof: type = ");
+      db_type_name(node->variant.offsetof.type);
+      fputs("\n", f_debug);
+      db_expr_node(node->variant.offsetof.member, level + 2);
+      break;
     case enk_error:
       fputs("error node\n", f_debug);
       break;
@@ -5167,6 +5173,13 @@ are allowed under a sizeof (etc.) in a template argument expression.
         break;
       case enk_address_of_ellipsis:
         eq = TRUE;
+        break;
+      case enk_offsetof:
+        eq = identical_types(node1->variant.offsetof.type,
+                             node2->variant.offsetof.type) &&
+             compare_template_param_constant_expressions(
+                                            node1->variant.offsetof.member,
+                                            node2->variant.offsetof.member);
         break;
       case enk_error:
         /* Nonequivalence is assumed. */
@@ -12435,6 +12448,7 @@ be called to start a copy.
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
+    case enk_offsetof:
       /* Nothing more to copy. */
       break;
     case enk_constant:

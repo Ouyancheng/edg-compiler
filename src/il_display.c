@@ -3697,6 +3697,11 @@ cleanup_state_common:
                iek_label);
       break;
 #endif /* ifdef FFE */
+    case enk_offsetof:
+      (void)printf("enk_offsetof\n");
+      disp_ptr("type", (char *)ptr->variant.offsetof.type, iek_type);
+      disp_ptr("member", (char *)ptr->variant.offsetof.member, iek_expr_node);
+      break;
     default:
       (void)printf("**BAD EXPR NODE KIND**\n");
   }  /* switch */

@@ -2445,22 +2445,116 @@ end_of_routine:;
 }  /* process_overloaded_operator_arrow */
 
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* <- member_pos is not used in all configurations. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+static an_expr_node_ptr make_offsetof_expr(a_type_ptr         type,
+                                           a_symbol_ptr       sym,
+                                           a_source_position  *member_pos)
+/*
+Make an enk_offsetof node representing the offset of a member represented by
+sym in the given class type.  The member expression appeared at the given
+position.
+*/
+{
+  an_expr_node_ptr  result = alloc_expr_node((an_expr_node_kind)enk_offsetof);
+  an_expr_node_ptr  member;
+
+  result->type = integer_type(targ_size_t_int_kind);
+  result->variant.offsetof.type = type;
+  if (sym->kind == (a_symbol_kind)sk_field) {
+    a_field_ptr  field = sym->variant.field.ptr;
+    member = alloc_expr_node((an_expr_node_kind)enk_field);
+    member->type = field->type;
+    member->variant.field = field;
+  } else {
+    check_assertion(is_nontype_template_param_symbol(sym));
+    member = alloc_node_for_constant(sym->variant.constant);
+  }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  copy_source_position(*member_pos, member->expr_range.start);
+  copy_source_position(end_pos_curr_token, member->expr_range.end);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  result->variant.offsetof.member = member;
+  return result;
+}  /* make_offsetof_expr */
+
+
+static void make_offsetof_result(a_type_ptr         type,
+                                 a_symbol_ptr       member_sym,
+                                 a_source_position  *member_pos,
+                                 an_operand         *result)
+/*
+Create an operand representing a built-in offsetof construct (as opposed to
+the constant-expression resulting from the more traditional macro expansion).
+The resulting operand, stored in *result, holds either an integer constant or
+an enk_offsetof node.
+*/
+{
+  if (is_nontype_template_param_symbol(member_sym)) {
+    /* The member symbol is a "constant" representing a synthesized field. */
+    an_expr_node_ptr  node = make_offsetof_expr(type, member_sym, member_pos);
+    make_expression_operand(node, node->type, result);
+  } else if (member_sym->kind != (a_symbol_kind)sk_field) {
+    pos_error(ec_offsetof_nonfield, member_pos);
+    make_error_operand(result);
+  } else {
+    a_field_ptr    field = member_sym->variant.field.ptr;
+    a_targ_size_t  offset = field->offset;
+    a_constant     constant;
+    if (!C_mode()) {
+      /* ctype is the type in which the offset is sought and stype is the
+         type in which the field is defined.  In C++ those two can be
+         different because of inheritance.  Note that since member_sym
+         was not ambiguous, there won't be more than one base class of
+         type stype. */
+      a_type_ptr  ctype = skip_typerefs(type);
+      a_type_ptr  stype = field->source_corresp.parent.class_type;
+      if (!same_entities(ctype, stype)) {
+        /* Determine in which base class the field was defined. */
+        a_base_class_ptr  bcp = base_classes_of(ctype);
+        while (bcp != NULL && !same_entities(bcp->type, stype)) {
+          bcp = bcp->next;
+        }  /* while */
+        check_assertion(bcp != NULL);
+        offset += bcp->offset;
+        if (bcp->is_virtual) {
+          /* We don't currently allow the offset of a member of a virtual base
+             class to be taken (the GNU compiler produces a somewhat strange
+             value). */
+          pos_error(ec_offsetof_virtual_base_member, member_pos);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    set_unsigned_integer_constant(&constant, (a_host_large_unsigned)offset,
+                                  targ_size_t_int_kind);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+      constant.expr = make_offsetof_expr(type, member_sym, member_pos);
+    }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+    make_constant_operand(&constant, result);
+  }  /* if */
+}  /* make_offsetof_result */
+
+
 static void scan_field_selection_operator(
                             an_operand               *operand_1,
                             a_local_expr_options_set local_options,
                             an_operand               *result,
                             an_operand               *bound_function_selector)
 /*
-Scan the "." and "->" operators.  The left operand must be (a pointer to) a
-class, struct, or union.  The right operand must be a member of the class,
-struct, or union.  Return the result of the selection in *result.
-If the field selection produces a bound function in C++, return the object
-bound with the function in *bound_function_selector.  local_options
-is the current set of expression-scanning options.
+Scan the "." and "->" operators, or a built-in offsetof operator.  The left
+operand must be (a pointer to) a class, struct, or union.  The right operand
+must be a member of the class, struct, or union.  Return the result of the
+selection (or the offset representation in case f the built-in offsetof
+operator) in *result.  If the field selection produces a bound function in
+C++, return the object bound with the function in *bound_function_selector.
+local_options is the current set of expression-scanning options.
 */
 {
   a_symbol_ptr          member_sym, projection_member_sym;
-  a_boolean             is_arrow_operator, rvalue_result;
+  a_boolean             is_arrow_operator, is_offsetof, rvalue_result;
   a_type_ptr            class_struct_union_type = NULL;
   a_type_ptr            orig_class_struct_union_type;
   a_boolean             err = FALSE, found_id = FALSE;
@@ -2489,6 +2583,7 @@ is the current set of expression-scanning options.
 
   /* Remember if this was an arrow or a dot selector. */
   is_arrow_operator = (curr_token == tok_arrow);
+  is_offsetof = (curr_token == tok_comma);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operator_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -2978,6 +3073,10 @@ qualified_name_check:
          which means we do not know whether x is really used. */
       change_operand_refs_to_error(operand_1);
       change_refs_to_error(rep);
+    } else if (is_offsetof) {
+      /* The built-in offsetof operator requires that a field be selected. */
+      make_offsetof_result(operand_1->type, member_sym, &member_position,
+                           result);
     } else {
       /* See what kind of member we have. */
       switch (member_sym->kind) {
@@ -5405,6 +5504,77 @@ implement <stdarg.h>, a standard feature.
 
   db_exit();
 }  /* scan_alignof_operator */
+
+
+static void scan_offsetof(an_operand  *result)
+/*
+Recent versions of the GNU compilers implement the offsetof macro using the
+__builtin_offsetof construct, which takes the general form:
+
+	__builtin_offsetof ( <type name> , <member selector> )
+
+This routine assumes the current token is __builtin_offsetof, scans the
+construct, and either creates an integer constant operand or an enk_offsetof
+node to represent the operation.  Much of the difficult work is done by
+scan_field_selection_operator.
+*/
+{
+  a_type_ptr         type;
+  a_source_position  pos_type, start_pos;
+  a_boolean          valid_type;
+
+  copy_source_position(pos_curr_token, start_pos);
+  /* Pass over the built-in offsetof token. */
+  check_assertion(curr_token == tok_builtin_offsetof);
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  pos_type = pos_curr_token;
+  add_stop_token(tok_rparen);
+  type_name(&type);
+  if (is_class_struct_union_type(type)) {
+    if (!symbol_supplement_for_class(type)->is_POD) {
+      pos_warning(ec_offset_in_non_POD_nonstandard, &pos_type);
+    }  /* if */
+    valid_type = TRUE;
+  } else if (is_template_param_type(type)) {
+    valid_type = TRUE;
+  } else {
+    pos_error(ec_exp_class_type, &pos_type);
+    valid_type = FALSE;
+  }  /* if */
+  /* Check for the comma. */
+  if (curr_token != tok_comma) {
+    syntax_error(ec_exp_comma);
+  } else {
+    /* Synthesize an operand representing a variable of the scanned type and
+       call scan_field_selection_operator on that.  The latter function will
+       recognize that the current token is a comma, and produce the
+       appropriate kind of result as a consequence. */
+    an_operand  synth_op;
+    if (!valid_type) {
+      make_error_operand(&synth_op);
+    } else {
+      a_variable  synth_var;
+      clear_operand((an_operand_kind)ok_constant, &synth_op);
+      synth_var.next = NULL;
+      synth_var.type = type;
+      synth_var.storage_class = (a_storage_class)sc_static;
+      set_variable_address_constant(&synth_var, &synth_op.variant.constant,
+                                    /*set_address_taken_flag=*/FALSE);
+      synth_op.type = type;
+    }  /* if */
+    copy_source_position(start_pos, synth_op.position);
+    scan_field_selection_operator(&synth_op, EOPT_NO_OPTIONS, result,
+                                  (an_operand*)NULL);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    copy_source_position(end_pos_curr_token, result->end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+  remove_stop_token(tok_rparen);
+  /* Check for and pass over the right parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+}  /* scan_offsetof */
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -13946,6 +14116,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_va_copy:
 #if GNU_EXTENSIONS_ALLOWED
     case tok_va_start_single_operand:
+    case tok_builtin_offsetof:
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
@@ -16374,6 +16545,11 @@ see expr.h).
     case tok_alignof:
       /* __ALIGNOF__ operation. */
       scan_alignof_operator(&local_result);
+      break;
+
+    case tok_builtin_offsetof:
+      /* __builtin_offsetof construct. */
+      scan_offsetof(&local_result);
       break;
 
     case tok_generic:

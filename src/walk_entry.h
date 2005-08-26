@@ -1503,6 +1503,12 @@ end_sizeof:;
             remap_ptr(ptr->variant.stmt_label_value, a_label_ptr, iek_label);
             break;
 #endif /* ifdef FFE */
+          case enk_offsetof:
+            walk_ptr(ptr->variant.offsetof.type, a_type_ptr, iek_type);
+            definition_needed_if_class(ptr->variant.offsetof.type);
+            walk_ptr(ptr->variant.offsetof.member, an_expr_node_ptr,
+                     iek_expr_node);
+            break;
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad expr node kind");

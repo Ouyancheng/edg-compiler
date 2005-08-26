@@ -8195,11 +8195,25 @@ done_with_operation_after_parens:
       if (need_parens) write_tok_ch(')');
       break;
     case enk_field:
-      /* enk_field entries are supposed to be handled before this. */
-      unexpected_condition_str("gen_expr: enk_field");
+      /* In most cases, enk_field nodes are rendered elsewhere.  However,
+         we may end up here with field references under enk_offsetof nodes. */
+      gen_field_reference(expr);
+      break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
+    case enk_offsetof:
+      /* Note that even if the target compiler does not support
+         __builtin_offsetof we do not have a very good alternative
+         rendering for the operator applied to template-dependent types.
+         For now, we therefore always render the operator as
+         "__builtin_offsetof". */
+      write_tok_str("__builtin_offsetof(");
+      gen_type(expr->variant.offsetof.type);
+      write_tok_str(", ");
+      gen_expr(expr->variant.offsetof.member, /*need_parens=*/FALSE);
+      write_tok_ch(')');
+      break;
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");
   }  /* switch */

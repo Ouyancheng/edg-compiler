@@ -1,5 +1,13 @@
 Version 3.7
 
+8/25/05  GNU compatibility: __builtin_offsetof
+
+In GNU mode with gnu_version >= 40000, the front end now supports the GNU
+__builtin_offsetof operator.  For example:
+
+  struct S { int i, j, k; };
+  int a[__builtin_offsetof(S, k)];
+
 8/25/05  Volatile arrays, class members, and side effects
 
 The front end has been changed to treat expressions as having side effects

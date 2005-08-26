@@ -2659,6 +2659,7 @@ base class casts and virtual function calls.
       complete_object_type = type_pointed_to(node->type);
       break;
     case enk_runtime_sizeof:
+    case enk_offsetof:
       complete_object_type = node->type;
       break;
     case enk_reuse_value:

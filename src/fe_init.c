@@ -356,13 +356,18 @@ Install the keywords in the symbol table.
   enter_keyword((a_token_kind)tok_alignof, "__ALIGNOF__");
   enter_keyword((a_token_kind)tok_alignof, "__alignof__");
   enter_keyword((a_token_kind)tok_intaddr, "__INTADDR__");
+#if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode && gnu_version >= 30400) {
     /* g++ 3.4 and later support an __offsetof keyword that appears to be
        identical to our __INTADDR__.  Only g++ 3.4(.x) appears to use this
        for the implementation of the offsetof macro, however.  Later versions
        use another new construct: __builtin_offsetof. */
     enter_gnu_keyword((a_token_kind)tok_intaddr, "__offsetof");
+    if (gnu_version >= 40000) {
+      enter_keyword((a_token_kind)tok_builtin_offsetof, "__builtin_offsetof");
+    }  /* if */
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (restrict_keyword_enabled) {
     enter_keyword((a_token_kind)tok_restrict, "restrict");
   }  /* if */
