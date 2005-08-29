@@ -1601,6 +1601,9 @@ do_struct_union:
       if (ptr->variant.class_struct_union.any_const_member) {
         disp_boolean("any_const_member", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.any_volatile_member) {
+        disp_boolean("any_volatile_member", TRUE);
+      }  /* if */
       if (ptr->variant.class_struct_union.any_mutable_member) {
         disp_boolean("any_mutable_member", TRUE);
       }  /* if */

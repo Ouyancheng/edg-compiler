@@ -10044,6 +10044,12 @@ non-NULL, *p_ms_attributes is returned NULL.
       cssp->assignment_by_bitwise_copy_allowed = FALSE;
     }  /* if */
   }  /* if */
+  /* Note if any member (or member of a member, recursively) has a
+     volatile-qualified type, to handle side effects and warnings
+     correctly. */
+  if (is_or_has_volatile_qualified_type(member_type)) {
+    class_type->variant.class_struct_union.any_volatile_member = TRUE;
+  }  /* if */
   if (decl_info->is_anonymous_union) {
     /* Do checking, promote symbols to the current class. */
     check_anonymous_union_symbols(member_sym, class_type,
@@ -10062,6 +10068,10 @@ non-NULL, *p_ms_attributes is returned NULL.
          to the parent type. */
       if (tp->variant.class_struct_union.any_const_member) {
         class_type->variant.class_struct_union.any_const_member = TRUE;
+      }  /* if */
+      /* Do the same for volatile-qualified fields. */
+      if (tp->variant.class_struct_union.any_volatile_member) {
+        class_type->variant.class_struct_union.any_volatile_member = TRUE;
       }  /* if */
       /* Similarly with the flag indicating that zero-initialization may be
          needed as part of value-initialization. */

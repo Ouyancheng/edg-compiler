@@ -8,22 +8,14 @@ __builtin_offsetof operator.  For example:
   struct S { int i, j, k; };
   int a[__builtin_offsetof(S, k)];
 
-8/25/05  Volatile arrays, class members, and side effects
+8/25/05  Volatile arrays and class members
 
-The front end has been changed to treat expressions as having side effects
-if they involve variables with volatile-qualified type or having subobjects
-with volatile-qualified types.  Similarly, variables with these
-characteristics are treated as both referenced and set, preventing warnings
-about them.  For example:
+The front end has been changed to mark arrays whose element type is
+volatile-qualified and objects of a class type with a volatile-qualified
+member as both referenced and set, preventing warnings about them.  For
+example, the following code formerly resulted in a warning in C mode:
 
-  struct S {
-    volatile int vi;
-  };
-  void f() {
-    static S s;
-    s;   /* no longer warns "expression has no effect" */
-  }
-  void g(int i, int v) {
+  void f(int i, int v) {
     static volatile int a[10];  /* no longer warns "set but never used" */
     a[i] = v;
   }    

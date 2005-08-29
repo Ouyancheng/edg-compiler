@@ -5624,6 +5624,10 @@ typedef struct a_type {
                         /* TRUE if any member of the class, struct, or union
                            is const-qualified. */
       a_bit_field
+		any_volatile_member:1;
+			/* TRUE if the type of any member is or has a
+			   volatile-qualified type. */
+      a_bit_field
 		any_mutable_member:1;
 			/* TRUE if any member field of the class, struct, or
 			   union is declared "mutable" (C++ only). */

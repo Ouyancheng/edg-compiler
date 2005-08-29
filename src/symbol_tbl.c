@@ -730,6 +730,9 @@ and indentation is the indentation desired.
         if (temp_type->variant.class_struct_union.any_const_member) {
           put_string("has const member");
         }  /* if */
+        if (temp_type->variant.class_struct_union.any_volatile_member) {
+          put_string("has volatile member");
+        }  /* if */
         if (temp_type->variant.class_struct_union.any_mutable_member) {
           put_string("has mutable member");
         }  /* if */

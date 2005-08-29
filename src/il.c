@@ -13618,16 +13618,11 @@ doing nothing should be suppressed.
       has_side_effects = operation_has_side_effects(node, tblock);
       break;
     case enk_variable:
-    case enk_variable_address:
       /* Note that we test the variable's type, not the node type, because of
          an IL shorthand that allows omission of the cast to the unqualified
          version of the type. */
       has_side_effects =
-               is_or_has_volatile_qualified_type(node->variant.variable->type);
-      break;
-    case enk_field:
-      has_side_effects =
-                  is_or_has_volatile_qualified_type(node->variant.field->type);
+                      is_volatile_qualified_type(node->variant.variable->type);
       break;
     case enk_temp_init:
       /* At the very least, this has the side effect of initializing

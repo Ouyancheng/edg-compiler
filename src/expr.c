@@ -196,18 +196,15 @@ transformations are done in all cases.
   do_void_operand_transformations(operand,
                                   /*force_lvalue_to_rvalue=*/FALSE);
   if (!is_expression_operand(operand)) {
-    /* An operand that is not an expression cannot have side effects unless it
-       is volatile-qualified.  For error operands, assume that the original
-       form might have had an effect, and suppress the warning.  Likewise for
-       template-dependent constants. */
+    /* An operand that is not an expression cannot have side effects.
+       For error operands, assume that the original form might have had
+       an effect, and suppress the warning.  Likewise for template-dependent
+       constants. */
     if (is_error_operand(operand)) {
       suppress_warning = TRUE;
     } else if (is_constant_operand(operand) &&
                operand->variant.constant.kind ==
                                      (a_constant_repr_kind)ck_template_param) {
-      suppress_warning = TRUE;
-    } else if (is_constant_operand(operand) &&
-               is_or_has_volatile_qualified_type(operand->type)) {
       suppress_warning = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (operand->is_microsoft_noop) {

@@ -3162,6 +3162,7 @@ type is in fact valid.
     /* Check various properties of the type. */
     if ((both_defined &&
          (class_info.any_const_member != corresp_info.any_const_member ||
+          class_info.any_volatile_member != corresp_info.any_volatile_member ||
           class_info.any_mutable_member != corresp_info.any_mutable_member ||
           class_info.any_virtual_base_classes !=
                                        corresp_info.any_virtual_base_classes ||
