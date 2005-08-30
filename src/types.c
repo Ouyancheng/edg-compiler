@@ -839,7 +839,8 @@ type with a non-static member whose type is or has a volatile-qualified type.
     volatile_found =
                  is_volatile_qualified_type(underlying_array_element_type(tp));
   } else if (is_class_struct_union_type(tp)) {
-    volatile_found = tp->variant.class_struct_union.any_volatile_member;
+    volatile_found =
+             skip_typerefs(tp)->variant.class_struct_union.any_volatile_member;
   }  /* if */
   return volatile_found;
 }  /* is_or_has_volatile_qualified_type */
