@@ -5625,8 +5625,9 @@ typedef struct a_type {
                            is const-qualified. */
       a_bit_field
 		any_volatile_member:1;
-			/* TRUE if the type of any member is or has a
-			   volatile-qualified type. */
+			/* TRUE if the type of any non-static data member is
+			   a volatile-qualified type or, recursively, a class
+			   type with a volatile-qualified member. */
       a_bit_field
 		any_mutable_member:1;
 			/* TRUE if any member field of the class, struct, or
