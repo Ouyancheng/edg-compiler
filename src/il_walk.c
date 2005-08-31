@@ -2811,7 +2811,7 @@ as specified in the control block.
       break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_offsetof:
-      traverse_expr(expr->variant.offsetof.member, tblock);
+      traverse_expr(expr->variant.offsetof_info.member, tblock);
       break;
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");

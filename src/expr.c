@@ -2458,7 +2458,7 @@ position.
   an_expr_node_ptr  member;
 
   result->type = integer_type(targ_size_t_int_kind);
-  result->variant.offsetof.type = type;
+  result->variant.offsetof_info.type = type;
   if (sym->kind == (a_symbol_kind)sk_field) {
     a_field_ptr  field = sym->variant.field.ptr;
     member = alloc_expr_node((an_expr_node_kind)enk_field);
@@ -2472,7 +2472,7 @@ position.
   copy_source_position(*member_pos, member->expr_range.start);
   copy_source_position(end_pos_curr_token, member->expr_range.end);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  result->variant.offsetof.member = member;
+  result->variant.offsetof_info.member = member;
   return result;
 }  /* make_offsetof_expr */
 
@@ -2490,8 +2490,30 @@ an enk_offsetof node.
 {
   if (is_nontype_template_param_symbol(member_sym)) {
     /* The member symbol is a "constant" representing a synthesized field. */
-    an_expr_node_ptr  node = make_offsetof_expr(type, member_sym, member_pos);
-    make_expression_operand(node, node->type, result);
+    a_constant_ptr  cp = &result->variant.constant;
+    a_constant_ptr  member = member_sym->variant.constant;
+    check_assertion(member->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member);
+#if RECORD_FORM_OF_NAME_REFERENCE
+    member->source_corresp.name_references =
+                                  make_name_reference(&locator_for_curr_id,
+                                                      &member->source_corresp);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+    /* Place a tpck_offsetof entry on top of the tpck_member constant. */
+    clear_operand((an_operand_kind)ok_constant, result);
+    clear_constant(cp, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(
+                            cp, (a_template_param_constant_kind)tpck_offsetof);
+    cp->variant.template_param.variant.templ_offsetof.type = type;
+    cp->variant.template_param.variant.templ_offsetof.member =
+                                                 member_sym->variant.constant;
+    cp->type = result->type = integer_type(targ_size_t_int_kind);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+      cp->expr = make_offsetof_expr(type, member_sym, member_pos);
+    }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+    result->state = (an_operand_state)os_rvalue;
   } else if (member_sym->kind != (a_symbol_kind)sk_field) {
     pos_error(ec_offsetof_nonfield, member_pos);
     make_error_operand(result);

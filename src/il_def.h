@@ -2091,6 +2091,9 @@ enum a_template_param_constant_kind_tag {
 			   Microsoft __uuidof operator applied to a type
 			   that contains a template parameter type.  It
 			   represents the address of the implied structure. */
+  tpck_offsetof,	/* The template param constant represents the built-in
+			   offsetof operator applied to a template-dependent
+			   type. */
   tpck_template_ref	/* The template param constant provides a pointer
 			   to an unknown function template, and a set of
 			   explicit template arguments for that template. */
@@ -2498,6 +2501,13 @@ typedef struct a_constant {
 		expr;	/* If the sizeof etc. was applied to an expression,
 			   this points to the expression.  NULL otherwise. */
         } templ_sizeof;
+        /* When template param constant kind == tpck_offsetof: */
+        struct {
+          a_type_ptr
+		type;	/* The type in which the offset is sought. */
+          a_constant_ptr
+		member; /* The member whose offset is sought. */
+        } templ_offsetof;
         /* When template param constant kind == tpck_template_ref: */
         struct {
           a_constant_ptr
@@ -9138,7 +9148,7 @@ typedef struct an_expr_node {
 			   field is not dependent on a template parameter),
 			   of an enk_constant node (representing a member
 			   of a template-dependent type). */
-    } offsetof;
+    } offsetof_info;
   } variant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range

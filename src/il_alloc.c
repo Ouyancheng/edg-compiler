@@ -645,6 +645,10 @@ ck_template_param constant.
       cp->variant.template_param.variant.templ_sizeof.type = NULL;
       cp->variant.template_param.variant.templ_sizeof.expr = NULL;
       break;
+    case tpck_offsetof:
+      cp->variant.template_param.variant.templ_offsetof.type = NULL;
+      cp->variant.template_param.variant.templ_offsetof.member = NULL;
+      break;
     case tpck_template_ref:
       cp->variant.template_param.variant.template_ref.con = NULL;
       cp->variant.template_param.variant.template_ref.arg_list = NULL;
@@ -2532,8 +2536,8 @@ fields to default values.
       break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_offsetof:
-      node->variant.offsetof.type = NULL;
-      node->variant.offsetof.member = NULL;
+      node->variant.offsetof_info.type = NULL;
+      node->variant.offsetof_info.member = NULL;
       break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");

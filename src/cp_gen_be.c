@@ -3442,6 +3442,29 @@ Routine to be called by the il_to_str routines to output a name.
 }  /* gen_name_reference */
 
 
+static void gen_name_in_class_context(char              *entry,
+                                      an_il_entry_kind  kind,
+                                      a_type_ptr        type)
+/*
+Generate the given entity's name as if accessed from within the given class.
+*/
+{
+  type = skip_typerefs(type);
+  if (is_template_param_type(type)) {
+    /* For template parameters, use the associated proxy class (if any). */
+    type = type->variant.template_param.extra_info->class_type;
+  }  /* if */
+  if (type != NULL) {
+    push_class_name_context(skip_typerefs(type));
+  }  /* if */
+  gen_name((a_source_correspondence*)entry, kind, GN_NO_OPTIONS, 
+           (a_boolean *)NULL);
+  if (type != NULL) {
+    pop_name_context();
+  }  /* if */
+}  /* gen_name_in_class_context */
+
+
 static void gen_template_name(char             *entry,
                               an_il_entry_kind kind)
 /*
@@ -7282,6 +7305,35 @@ Generate code for the indicated expression, which is a non-virtual call.
 }  /* gen_call */
 
 
+static void gen_builtin_offsetof(an_expr_node_ptr  expr)
+/*
+Generate code for a built-in offsetof construct (currently accepted only in
+GNU modes with gnu_version >= 40000).  Note that even if the target compiler
+does not support __builtin_offsetof we do not have a very good alternative
+rendering for the operator applied to template-dependent types.  For now, we
+therefore always render the operator as "__builtin_offsetof".
+*/
+{
+  a_type_ptr  type = expr->variant.offsetof_info.type;
+
+  write_tok_str("__builtin_offsetof(");
+  gen_type(type);
+  write_tok_str(", ");
+  if (is_template_param_type(type)) {
+    /* For template parameters, use the associated proxy class (if any). */
+    type = type->variant.template_param.extra_info->class_type;
+  }  /* if */
+  if (type != NULL) {
+    push_class_name_context(skip_typerefs(type));
+  }  /* if */
+  gen_expr(expr->variant.offsetof_info.member, /*need_parens=*/FALSE);
+  if (type != NULL) {
+    pop_name_context();
+  }  /* if */
+  write_tok_ch(')');
+}  /* gen_builtin_offsetof */
+
+
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens)
 /*
@@ -8203,16 +8255,7 @@ done_with_operation_after_parens:
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_offsetof:
-      /* Note that even if the target compiler does not support
-         __builtin_offsetof we do not have a very good alternative
-         rendering for the operator applied to template-dependent types.
-         For now, we therefore always render the operator as
-         "__builtin_offsetof". */
-      write_tok_str("__builtin_offsetof(");
-      gen_type(expr->variant.offsetof.type);
-      write_tok_str(", ");
-      gen_expr(expr->variant.offsetof.member, /*need_parens=*/FALSE);
-      write_tok_ch(')');
+      gen_builtin_offsetof(expr);
       break;
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");
@@ -12008,6 +12051,7 @@ Initialize for the C++/C-generating back end.
   octl.output_partial_token_str = write_str;
   octl.output_name = gen_name_reference;
   octl.output_template_name = gen_template_name;
+  octl.output_name_in_class_context = gen_name_in_class_context;
   octl.output_class_qualifier = gen_class_qualifier_wrapper;
   octl.output_func_declarator = gen_function_declarator;
   octl.output_expression = f_gen_expression;

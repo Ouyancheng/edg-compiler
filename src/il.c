@@ -1716,9 +1716,9 @@ Dump the contents of the indicated expression node for debug purposes.
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_offsetof:
       fprintf(f_debug, "offsetof: type = ");
-      db_type_name(node->variant.offsetof.type);
+      db_type_name(node->variant.offsetof_info.type);
       fputs("\n", f_debug);
-      db_expr_node(node->variant.offsetof.member, level + 2);
+      db_expr_node(node->variant.offsetof_info.member, level + 2);
       break;
     case enk_error:
       fputs("error node\n", f_debug);
@@ -5175,11 +5175,11 @@ are allowed under a sizeof (etc.) in a template argument expression.
         eq = TRUE;
         break;
       case enk_offsetof:
-        eq = identical_types(node1->variant.offsetof.type,
-                             node2->variant.offsetof.type) &&
+        eq = identical_types(node1->variant.offsetof_info.type,
+                             node2->variant.offsetof_info.type) &&
              compare_template_param_constant_expressions(
-                                            node1->variant.offsetof.member,
-                                            node2->variant.offsetof.member);
+                                         node1->variant.offsetof_info.member,
+                                         node2->variant.offsetof_info.member);
         break;
       case enk_error:
         /* Nonequivalence is assumed. */
@@ -5467,6 +5467,12 @@ nonidentical.
                 } /* if */
               }  /* if */
               break;
+            case tpck_offsetof:
+              eq = compare_constants(
+                     cp1->variant.template_param.variant.templ_offsetof.member,
+                     cp2->variant.template_param.variant.templ_offsetof.member,
+                     strictly_identical);
+              break;
             case tpck_template_ref:
                eq = compare_constants(cp1->variant.template_param.variant.
                                                               template_ref.con,
@@ -5729,6 +5735,10 @@ region).
                           cp->variant.template_param.variant.templ_sizeof.expr;
             if (expr != NULL) has_nfs_ref = !in_file_scope(expr);
           }
+          break;
+        case tpck_offsetof:
+          has_nfs_ref = has_non_file_scope_ref(
+                     cp->variant.template_param.variant.templ_offsetof.member);
           break;
         default:
           unexpected_condition_str(
@@ -12104,6 +12114,9 @@ name lookup options.
             con_copy = NULL;
           }  /* if */
         }
+        break;
+      case tpck_offsetof:
+        /* FIXME */
         break;
       case tpck_template_ref:
         /* The template param constant represents a function template with

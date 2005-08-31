@@ -2389,6 +2389,7 @@ do_unknown_function:
                          con->variant.template_param.kind,
                          mctl);
           break;
+        case tpck_offsetof: /* FIXME */
         default:
           unexpected_condition_str(
                             "literal_representation: bad template param kind");

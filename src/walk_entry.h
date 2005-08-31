@@ -724,6 +724,14 @@ the file scope, do not process it (but record an orphan in the latter case).
                 walk_ptr(ptr->variant.template_param.variant.templ_sizeof.expr,
                          an_expr_node_ptr, iek_expr_node);
                 break;
+              case tpck_offsetof:
+                walk_ptr(
+                     ptr->variant.template_param.variant.templ_offsetof.type,
+                     a_type_ptr, iek_type);
+                walk_ptr(
+                     ptr->variant.template_param.variant.templ_offsetof.member,
+                     a_constant_ptr, iek_constant);
+                break;
               case tpck_template_ref:
                 walk_ptr(ptr->variant.template_param.variant.template_ref.con,
                          a_constant_ptr, iek_constant);
@@ -1504,9 +1512,9 @@ end_sizeof:;
             break;
 #endif /* ifdef FFE */
           case enk_offsetof:
-            walk_ptr(ptr->variant.offsetof.type, a_type_ptr, iek_type);
-            definition_needed_if_class(ptr->variant.offsetof.type);
-            walk_ptr(ptr->variant.offsetof.member, an_expr_node_ptr,
+            walk_ptr(ptr->variant.offsetof_info.type, a_type_ptr, iek_type);
+            definition_needed_if_class(ptr->variant.offsetof_info.type);
+            walk_ptr(ptr->variant.offsetof_info.member, an_expr_node_ptr,
                      iek_expr_node);
             break;
           default:

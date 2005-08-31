@@ -820,6 +820,16 @@ do_sizeof_cases:
                (char *)ptr->variant.template_param.variant.templ_sizeof.expr,
                iek_expr_node);
       break;
+    case tpck_offsetof:
+      (void)printf("tpck_offsetof\n");
+      disp_ptr("type",
+               (char *)ptr->variant.template_param.variant.templ_offsetof.type,
+               iek_type);
+      disp_ptr("member",
+               (char *)ptr->variant.template_param
+                           .variant.templ_offsetof.member,
+               iek_constant);
+      break;
     case tpck_template_ref:
       (void)printf("tpck_template_ref\n");
       disp_ptr("con",
@@ -3702,8 +3712,9 @@ cleanup_state_common:
 #endif /* ifdef FFE */
     case enk_offsetof:
       (void)printf("enk_offsetof\n");
-      disp_ptr("type", (char *)ptr->variant.offsetof.type, iek_type);
-      disp_ptr("member", (char *)ptr->variant.offsetof.member, iek_expr_node);
+      disp_ptr("type", (char *)ptr->variant.offsetof_info.type, iek_type);
+      disp_ptr("member", (char *)ptr->variant.offsetof_info.member,
+               iek_expr_node);
       break;
     default:
       (void)printf("**BAD EXPR NODE KIND**\n");

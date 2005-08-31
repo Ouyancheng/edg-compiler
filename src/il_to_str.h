@@ -30,6 +30,10 @@ typedef void an_output_str_function(char *str);
 typedef an_output_str_function *an_output_str_function_ptr;
 typedef void an_output_name_function(char *entry, an_il_entry_kind kind);
 typedef an_output_name_function *an_output_name_function_ptr;
+typedef void an_output_name_in_class_context_function(
+                               char *entry, an_il_entry_kind kind, a_type_ptr);
+typedef an_output_name_in_class_context_function
+                                 *an_output_name_in_class_context_function_ptr;
 typedef void an_output_class_qualifier_function(a_type_ptr type);
 typedef an_output_class_qualifier_function
                                        *an_output_class_qualifier_function_ptr;
@@ -75,6 +79,11 @@ typedef struct an_il_to_str_output_control_block {
 	output_template_name;
 			/* Function to output the name of a template.  NULL
 			   if a default routine should be used. */
+  an_output_name_in_class_context_function_ptr
+	output_name_in_class_context;
+			/* Function to output the name of an entity as accessed
+			   from within a class.  NULL if a default routine
+			   should be used. */
   an_output_class_qualifier_function_ptr
 	output_class_qualifier;
 			/* Function to output a class qualifier, e.g.,

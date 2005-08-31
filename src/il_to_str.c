@@ -49,6 +49,7 @@ Clear an output control block to default values.
   octl->output_partial_token_str  = NULL;
   octl->output_name               = NULL;
   octl->output_template_name      = NULL;
+  octl->output_name_in_class_context = NULL;
   octl->output_class_qualifier    = NULL;
   octl->output_temp_name          = NULL;
   octl->output_func_declarator    = NULL;
@@ -464,6 +465,28 @@ output in the way described by octl.
     form_unqualified_name(scp, kind, octl);
   }  /* if */
 }  /* form_name */
+
+
+static void form_name_in_class_context(
+                                   a_source_correspondence               *scp,
+                                   an_il_entry_kind                      kind,
+                                   a_type_ptr                            type,
+                                   an_il_to_str_output_control_block_ptr octl)
+/*
+Output the name of the IL entity whose source correspondence entry is pointed
+to by scp.  The IL entry is of the indicated kind.  The name should be output
+assuming the scope of the given class type is currently active.  To generate
+C++ code this requires a specialized output routine.
+*/
+{
+  if (octl->output_name_in_class_context != NULL) {
+    octl->output_name_in_class_context((char*)scp, kind, type);
+  } else {
+    check_assertion(octl->c_generating_back_end ||
+                    !octl->gen_compilable_code);
+    form_name(scp, kind, octl);
+  }  /* if */
+}  /* form_name_in_class_context */
 
 
 static void form_tag_kind(a_type_kind                           kind,
@@ -3954,6 +3977,19 @@ do_sizeof_cases:
                     constant->variant.template_param.variant.templ_sizeof.expr,
                     octl);
           if (need_parens) octl->output_str(")");
+          break;
+        case tpck_offsetof:
+          octl->output_str("__builtin_offsetof__(");
+          form_type(
+           constant->variant.template_param.variant.templ_offsetof.type, octl);
+          octl->output_str(", ");
+          form_name_in_class_context(
+                &constant->variant.template_param.variant.templ_offsetof.member
+                         ->source_corresp,
+                (an_il_entry_kind)iek_constant,
+                constant->variant.template_param.variant.templ_offsetof.type,
+                octl);
+          octl->output_str(")");
           break;
         default:
           octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");
