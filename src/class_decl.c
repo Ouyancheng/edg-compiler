@@ -5105,6 +5105,9 @@ or struct definition.  The syntax is
         type_ptr->variant.class_struct_union.
                        any_virtual_functions_including_in_base_classes = TRUE;
       }  /* if */
+      if (base_class_type->variant.class_struct_union.any_volatile_member) {
+        type_ptr->variant.class_struct_union.any_volatile_member = TRUE;
+      }  /* if */
       if (base_class_type->variant.class_struct_union.any_mutable_member) {
         type_ptr->variant.class_struct_union.any_mutable_member = TRUE;
       }  /* if */
