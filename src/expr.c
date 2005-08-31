@@ -2441,6 +2441,7 @@ is the "->".
 end_of_routine:;
 }  /* process_overloaded_operator_arrow */
 
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* <- member_pos is not used in all configurations. */
@@ -2476,6 +2477,7 @@ position.
   return result;
 }  /* make_offsetof_expr */
 
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 static void make_offsetof_result(a_type_ptr         type,
                                  a_symbol_ptr       member_sym,
