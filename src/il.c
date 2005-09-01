@@ -12116,7 +12116,37 @@ name lookup options.
         }
         break;
       case tpck_offsetof:
-        /* FIXME */
+        /* Apply substitutions on the underlying constant, which represents the
+           member whose offset is sought.  To maximize code reuse, we perform
+           this substitution as if it were for the tpck_address case: A valid
+           substitution should then produce a pointer-to-data-member. */
+        con_copy = copy_template_param_unknown_entity_con(
+                     con->variant.template_param.variant.templ_offsetof.member,
+                     template_arg_list, template_param_list, guide_type,
+                     /*is_address=*/TRUE, /*is_template_ref=*/FALSE,
+                     (a_template_arg_ptr)NULL, source_pos, options, copy_error,
+                     constant);
+        if (!*copy_error && con_copy == NULL &&
+            constant->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+            !constant->variant.ptr_to_member.is_function_ptr) {
+          /* The substitution produced a pointer-to-data-member representing
+             a valid field whose offset is sought.  Compute the offset of this
+             field and produce the appropriate constant to represent it. */
+          new_type = copy_type_with_substitution(con->variant.template_param.
+                                                   variant.templ_offsetof.type,
+                                                 template_arg_list,
+                                                 template_param_list,
+                                                 source_pos, options,
+                                                 copy_error);
+          if (!*copy_error) {
+            a_field_ptr  field = constant->variant.ptr_to_member.variant.field;
+            make_offsetof_constant(new_type, field, (a_source_position*)NULL,
+                                   constant, copy_error);
+          }  /* if */
+        } else {
+          con_copy = NULL;
+          *copy_error = TRUE;
+        }  /* if */
         break;
       case tpck_template_ref:
         /* The template param constant represents a function template with

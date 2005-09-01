@@ -1363,6 +1363,13 @@ extern void cast_node(an_expr_node_ptr  *p_node,
 
 extern a_type_ptr operand_type_after_integral_promotion(an_operand *operand);
 
+extern void make_offsetof_constant(a_type_ptr         type,
+                                   a_field_ptr        field,
+                                   a_source_position  *member_pos,
+                                   a_constant         *constant,
+                                   a_boolean          *err);
+
+
 #if UPC_EXTENSIONS_ALLOWED
 extern void make_upc_thread_operand(an_operand            *operand,
                                     a_constant_repr_kind  kind);

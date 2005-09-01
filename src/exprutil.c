@@ -10970,6 +10970,63 @@ types to get a boolean expression (see process_boolean_controlling_expression).
 }  /* check_boolean_controlling_expr */
 
 
+void make_offsetof_constant(a_type_ptr         type,
+                            a_field_ptr        field,
+                            a_source_position  *member_pos,
+                            a_constant         *constant,
+                            a_boolean          *err)
+/*
+Make an integer constant representing the offset of the given field in the
+given (class) type.  For error cases (bit fields or fields in virtual bases)
+return *err as TRUE and if member_pos is non-NULL issue a diagnostic at the
+give position.  The constant is stored in *constant.
+*/
+{
+  a_targ_size_t  offset = field->offset;
+
+  *err = FALSE;
+  if (field->is_bit_field) {
+    *err = TRUE;
+    if (member_pos != NULL) {
+      pos_error(ec_offsetof_bit_field, member_pos);
+    }  /* if */
+  } else if (!C_mode()) {
+    /* ctype is the type in which the offset is sought and stype is the type
+       in which the field is defined.  In C++ those two can be different
+       because of inheritance.  Note that since member_sym was not ambiguous,
+       there won't be more than one base class of type stype. */
+    a_type_ptr  ctype = skip_typerefs(type);
+    a_type_ptr  stype = field->source_corresp.parent.class_type;
+    if (!same_entities(ctype, stype)) {
+      /* Determine in which base class the field was defined. */
+      a_base_class_ptr  bcp = base_classes_of(ctype);
+      while (bcp != NULL && !same_entities(bcp->type, stype)) {
+        bcp = bcp->next;
+      }  /* while */
+      check_assertion(bcp != NULL);
+      offset += bcp->offset;
+      if (bcp->is_virtual) {
+        /* We don't currently allow the offset of a member of a virtual base
+           class to be taken (the GNU compiler produces a somewhat strange
+           value). */
+        *err = TRUE;
+        if (member_pos != NULL) {
+          pos_error(ec_offsetof_virtual_base_member, member_pos);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  set_unsigned_integer_constant(constant, (a_host_large_unsigned)offset,
+                                targ_size_t_int_kind);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+    a_symbol_ptr  member_sym = symbol_for(field);
+    constant->expr = make_offsetof_expr(type, member_sym, member_pos);
+  }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+}  /* make_offsetof_constant */
+
+
 #if DEBUG
 unsigned long show_expr_space_used(void)
 /*

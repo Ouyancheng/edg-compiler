@@ -2444,9 +2444,9 @@ end_of_routine:;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* <- member_pos is not used in all configurations. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-static an_expr_node_ptr make_offsetof_expr(a_type_ptr         type,
-                                           a_symbol_ptr       sym,
-                                           a_source_position  *member_pos)
+an_expr_node_ptr make_offsetof_expr(a_type_ptr         type,
+                                    a_symbol_ptr       sym,
+                                    a_source_position  *member_pos)
 /*
 Make an enk_offsetof node representing the offset of a member represented by
 sym in the given class type.  The member expression appeared at the given
@@ -2468,8 +2468,10 @@ position.
     member = alloc_node_for_constant(sym->variant.constant);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  copy_source_position(*member_pos, member->expr_range.start);
-  copy_source_position(end_pos_curr_token, member->expr_range.end);
+  if (member_pos != NULL) {
+    copy_source_position(*member_pos, member->expr_range.start);
+    copy_source_position(end_pos_curr_token, member->expr_range.end);
+  }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   result->variant.offsetof_info.member = member;
   return result;
@@ -2519,39 +2521,9 @@ an enk_offsetof node.
     make_error_operand(result);
   } else {
     a_field_ptr    field = member_sym->variant.field.ptr;
-    a_targ_size_t  offset = field->offset;
     a_constant     constant;
-    if (!C_mode()) {
-      /* ctype is the type in which the offset is sought and stype is the
-         type in which the field is defined.  In C++ those two can be
-         different because of inheritance.  Note that since member_sym
-         was not ambiguous, there won't be more than one base class of
-         type stype. */
-      a_type_ptr  ctype = skip_typerefs(type);
-      a_type_ptr  stype = field->source_corresp.parent.class_type;
-      if (!same_entities(ctype, stype)) {
-        /* Determine in which base class the field was defined. */
-        a_base_class_ptr  bcp = base_classes_of(ctype);
-        while (bcp != NULL && !same_entities(bcp->type, stype)) {
-          bcp = bcp->next;
-        }  /* while */
-        check_assertion(bcp != NULL);
-        offset += bcp->offset;
-        if (bcp->is_virtual) {
-          /* We don't currently allow the offset of a member of a virtual base
-             class to be taken (the GNU compiler produces a somewhat strange
-             value). */
-          pos_error(ec_offsetof_virtual_base_member, member_pos);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    set_unsigned_integer_constant(&constant, (a_host_large_unsigned)offset,
-                                  targ_size_t_int_kind);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-    if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-      constant.expr = make_offsetof_expr(type, member_sym, member_pos);
-    }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+    a_boolean      err;
+    make_offsetof_constant(type, field, member_pos, &constant, &err);
     make_constant_operand(&constant, result);
   }  /* if */
 }  /* make_offsetof_result */
