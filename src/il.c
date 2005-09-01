@@ -5174,6 +5174,13 @@ are allowed under a sizeof (etc.) in a template argument expression.
       case enk_address_of_ellipsis:
         eq = TRUE;
         break;
+#if GNU_EXTENSIONS_ALLOWED
+      case enk_statement:
+        /* GNU statement expression.  If the statement pointers are
+           not identical, the statements are not identical. */
+        eq = (node1->variant.statement == node2->variant.statement);
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       case enk_offsetof:
         eq = identical_types(node1->variant.offsetof_info.type,
                              node2->variant.offsetof_info.type) &&
