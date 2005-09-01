@@ -536,6 +536,10 @@ pointer decay).
                                /*suppress_redecl_error=*/FALSE);
     } else {
       set_symbol_kind(sym, (a_symbol_kind)sk_variable);
+      /* In some modes, the parameter symbols (in the prototype scopes) are
+         invisible.  Ensure that they will be visible when copied to the
+         function scope. */
+      sym->is_invisible = FALSE;
     }  /* if */
     sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);

@@ -10327,6 +10327,13 @@ parameter.
            when it is changed to sk_variable. */
         sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
                            depth_scope_stack, /*suppress_redecl_error=*/FALSE);
+        if (gpp_mode) {
+          /* In GNU mode, the parameters are invisible within the prototype
+             scope (e.g., they are invisible while scanning the default
+             arguments).  The is_invisible flag will be cleared when parsing
+             the function definition. */
+          sym->is_invisible = TRUE;
+        }  /* if */
       } else {
         /* Must be an old-style parameter declaration.  The type and storage
            class will be supplied later.  We won't actually enter this symbol
