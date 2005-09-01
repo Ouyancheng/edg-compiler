@@ -11666,7 +11666,6 @@ can be avoided.
       delim_does_not_follow = TRUE;
     }  /* if */
   }  /* if */
-done:
   return delim_does_not_follow;
 }  /* qualifier_delimiter_does_not_follow_token */
 

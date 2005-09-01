@@ -1102,7 +1102,6 @@ back into an identifier.
 */
 {
   char		ch;
-  a_boolean	result = FALSE;
 
   ch = token_names[(int)token][0];
   return is_id_char[ch-CHAR_MIN];
