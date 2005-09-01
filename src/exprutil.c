@@ -736,6 +736,11 @@ is pushed regardless of any of the other factors.
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
   new_entry->destructions_preceding_expr = NULL;
+  new_entry->last_subscope_preceding_expr = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  new_entry->last_source_seq_entry_preceding_expr = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  new_entry->unevaluated_expr_will_be_kept_in_il = FALSE;
   if (expr_stack != NULL) {
     /* There is a previous stack entry; set any of the flags that are affected
        by the enclosing stack entry. */
@@ -763,6 +768,22 @@ is pushed regardless of any of the other factors.
        the 1+1 must be evaluated. */
     expr_stack->evaluated = TRUE;
     expr_stack->potentially_evaluated = TRUE;
+  } else if (curr_expr_kind_is(ek_sizeof)) {
+    /* An expression inside sizeof is not evaluated.  (This is also used
+       for a number of other non-evaluated cases. */
+    expr_stack->evaluated = FALSE;
+    expr_stack->potentially_evaluated = FALSE;
+    /* Save information needed to discard any side effects of the expression
+       when it is discarded later.  The caller can set
+       unevaluated_expr_will_be_kept_in_il to TRUE after push_expr_stack to
+       preserve the expression. */
+    { a_scope_stack_entry_ptr ssep = &scope_stack[depth_scope_stack];
+      expr_stack->last_subscope_preceding_expr = ssep->last_scope;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      expr_stack->last_source_seq_entry_preceding_expr =
+                                             ssep->end_of_source_sequence_list;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }
   }  /* if */
   if (!C_mode() && !suppress_object_lifetime && full_expr) {
     /* Full expression in C++ mode.  We may want to start an object
@@ -785,6 +806,38 @@ is pushed regardless of any of the other factors.
 }  /* push_expr_stack */
 
 
+void undo_side_effects_for_discarded_unevaluated_expression(void)
+/*
+The expression associated with the current level of the expression stack
+is unevaluated and is being discarded.  Undo any global side effects like
+additions to the source sequence list (such things can happen because
+of GNU statement expressions in the expression).
+*/
+{
+  a_scope_stack_entry_ptr ssep = &scope_stack[depth_scope_stack];
+
+  check_assertion(expr_stack != NULL &&
+                  curr_expr_kind_is(ek_sizeof) &&
+                  !expr_stack->potentially_evaluated);
+  ssep->last_scope = expr_stack->last_subscope_preceding_expr;
+  if (ssep->last_scope == NULL) {
+    ssep->first_scope = NULL;
+  } else {
+    ssep->last_scope->next = NULL;
+  }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  ssep->end_of_source_sequence_list =
+                              expr_stack->last_source_seq_entry_preceding_expr;
+  if (ssep->end_of_source_sequence_list == NULL) {
+    ssep->source_sequence_list = NULL;
+  } else {
+    ssep->end_of_source_sequence_list->next = NULL;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  expr_stack->unevaluated_expr_will_be_kept_in_il = FALSE;
+}  /* undo_side_effects_for_discarded_unevaluated_expression */
+
+
 void pop_expr_stack(void)
 /*
 Pop the top entry off the expr_stack.  This is done at the end of a
@@ -800,6 +853,11 @@ major expression.
   flush_ref_entries_list();
   /* Restore the old reference entries list, if any. */
   curr_expr_ref_entries = expr_stack->old_ref_entries_list;
+  if (curr_expr_kind_is(ek_sizeof) &&
+      !expr_stack->potentially_evaluated &&  /* Needed for MS __assume. */
+      !expr_stack->unevaluated_expr_will_be_kept_in_il) {
+    undo_side_effects_for_discarded_unevaluated_expression();
+  }  /* if */
   /* Pop the stack. */
   expr_stack = expr_stack->prev;
 }  /* pop_expr_stack */

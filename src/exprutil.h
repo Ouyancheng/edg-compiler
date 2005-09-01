@@ -572,6 +572,29 @@ typedef struct an_expr_stack_entry {
 			   the sequence of destructions associated with the
 			   expression.  NULL if the "lifetime" field is
 			   non-NULL. */
+  a_scope_ptr	last_subscope_preceding_expr;
+			/* The last local subscope (i.e., the scope stack
+			   last_scope pointer) when this expression was begun.
+			   Used to discard any scopes created within the
+			   expression (e.g., in a GNU statement expression)
+			   if the overall expression is discarded. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		last_source_seq_entry_preceding_expr;
+			/* The end of the source sequence list (i.e., the
+			   scope stack end_of_source_sequence_list pointer)
+			   when this expression was begun.  Used to discard
+			   any source sequence entries created within the
+			   expression (e.g., in a GNU statement expression)
+			   if the overall expression is discarded. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_byte_boolean
+		unevaluated_expr_will_be_kept_in_il;
+			/* TRUE if the expression will be kept in the IL even
+			   though it is a not-evaluated expression
+			   (specifically, one with potentially_evaluated
+			   set to FALSE). Normally, such expressions are
+			   discarded. */
 } an_expr_stack_entry;
 
 EXTERN an_expr_stack_entry_ptr
@@ -817,6 +840,8 @@ extern void push_expr_stack(an_expression_kind      expression_kind,
                             an_expr_stack_entry_ptr new_entry,
                             a_boolean               force_object_lifetime,
                             a_boolean               suppress_object_lifetime);
+
+extern void undo_side_effects_for_discarded_unevaluated_expression(void);
 
 extern void pop_expr_stack(void);
 

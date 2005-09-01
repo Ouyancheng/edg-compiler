@@ -1418,8 +1418,6 @@ __builtin_constant_p and __builtin_classify_type are processed here.
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  expr_stack_entry.evaluated = FALSE;
-  expr_stack_entry.potentially_evaluated = FALSE;
   /* Parse the pseudo-call argument.  GNU compilers accept multiple arguments
      and no argument, but that does not seem a useful thing to emulate.  So
      we'll issue a syntax error in those cases. */
@@ -4955,8 +4953,9 @@ Syntax:
   a_host_large_unsigned special_upc_size;
   a_boolean             err = FALSE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  db_enter(4, "scan_sizeof_operator");
+  a_boolean             operand_was_used = FALSE;
 
+  db_enter(4, "scan_sizeof_operator");
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
     /* Sizeof not possible for preprocessing expressions. */
@@ -4966,8 +4965,7 @@ Syntax:
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  expr_stack_entry.evaluated = FALSE;
-  expr_stack_entry.potentially_evaluated = FALSE;
+  expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   /* Save the position of the sizeof keyword. */
   copy_source_position(pos_curr_token, start_position);
 
@@ -5208,6 +5206,7 @@ Syntax:
          to preserve typedefs. */
       an_expr_node_ptr node =
                  make_runtime_sizeof_expr(is_type, orig_sizeof_type, &operand);
+      operand_was_used = !is_type;
       make_expression_operand(node, node->type, result);
     }  /* if */
 #ifdef SIZEOF_TYPE_IS_UNKNOWN
@@ -5227,6 +5226,7 @@ Syntax:
       /* Make an expression node to represent the sizeof. */
       an_expr_node_ptr node =
                  make_runtime_sizeof_expr(is_type, orig_sizeof_type, &operand);
+      operand_was_used = !is_type;
       make_expression_operand(node, node->type, result);
     }  /* if */
 #endif /* defined(SIZEOF_TYPE_IS_UNKNOWN) */
@@ -5246,6 +5246,7 @@ Syntax:
           prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
           constant.variant.template_param.variant.templ_sizeof.expr =
                                               make_node_from_operand(&operand);
+          operand_was_used = TRUE;
         }  /* if */
         constant.type = integer_type(targ_size_t_int_kind);
       } else {
@@ -5272,6 +5273,7 @@ Syntax:
           }  /* if */
           constant.expr = make_runtime_sizeof_expr(is_type, orig_sizeof_type,
                                                    &operand);
+          operand_was_used = !is_type;
         }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       }  /* if */
@@ -5290,6 +5292,10 @@ Syntax:
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+  if (!is_type && !operand_was_used) {
+    /* The expression was discarded. */
+    undo_side_effects_for_discarded_unevaluated_expression();
+  }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   pop_expr_stack();
@@ -5334,8 +5340,6 @@ implement <stdarg.h>, a standard feature.
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  expr_stack_entry.evaluated = FALSE;
-  expr_stack_entry.potentially_evaluated = FALSE;
   /* Save the position of the __ALIGNOF__ keyword. */
   copy_source_position(pos_curr_token, start_position);
   (void)get_token();
@@ -5597,6 +5601,29 @@ scan_field_selection_operator.
   (void)required_token(tok_rparen, ec_exp_rparen);
 }  /* scan_offsetof */
 
+
+static void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack)
+/*
+Clear the expression stack, returning the old expression stack pointer
+to the caller in *saved_expr_stack, for later restoration by calling
+restore_expr_stack.  This is used at the start of processing of an
+expression that is not part of the surrounding context.
+*/
+{
+  *saved_expr_stack = expr_stack;
+  expr_stack = NULL;
+}  /* save_expr_stack */
+
+
+static void restore_expr_stack(an_expr_stack_entry_ptr saved_expr_stack)
+/*
+Restore the expression stack to the state it had when save_expr_stack
+was called.
+*/
+{
+  expr_stack = saved_expr_stack;
+}  /* restore_expr_stack */
+
 #if GNU_EXTENSIONS_ALLOWED
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -5641,12 +5668,12 @@ NULL, the end position in its specifiers_range is updated.
     remove_stop_token(tok_rparen);
   } else {
     /* Scan an expression. */
+    an_expr_stack_entry_ptr saved_expr_stack;
+    save_expr_stack(&saved_expr_stack);
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/
                                               (curr_object_lifetime != NULL));
-    expr_stack_entry.evaluated = FALSE;
-    expr_stack_entry.potentially_evaluated = FALSE;
     add_matching_stop_token(tok_rparen);
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     error_if_indefinite_function(&operand);
@@ -5664,6 +5691,7 @@ NULL, the end position in its specifiers_range is updated.
     is_type = FALSE;
     remove_matching_stop_token(tok_rparen);
     pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
   }  /* if */
   if (is_error_type(result)) {
     /* We'll just return the error type. */
@@ -5722,8 +5750,6 @@ type of the expression.
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  expr_stack_entry.evaluated = FALSE;
-  expr_stack_entry.potentially_evaluated = FALSE;
   /* Scan an expression. */
   scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* The expression is treated as an rvalue. */
@@ -5950,8 +5976,6 @@ arguments.
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  expr_stack_entry.evaluated = FALSE;
-  expr_stack_entry.potentially_evaluated = FALSE;
   arg_type = scan_type_generic_expression_and_return_type();
   if (is_error_type(arg_type)) err = TRUE;
   /* Bypass the comma, and move on to scan the optional second argument. */
@@ -6087,8 +6111,6 @@ Function names may be omitted.
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  expr_stack_entry.evaluated = FALSE;
-  expr_stack_entry.potentially_evaluated = FALSE;
   arg_type = scan_fixed_point_type_generic_expression_and_return_type();
   if (is_error_type(arg_type)) err = TRUE;
   pop_expr_stack();
@@ -6161,7 +6183,6 @@ the given expression is true.
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  expr_stack_entry.evaluated = FALSE;
   expr_stack_entry.potentially_evaluated = TRUE;
   /* Save the position of the __assume keyword. */
   copy_source_position(pos_curr_token, start_position);
@@ -6220,8 +6241,6 @@ This is allowed in both Microsoft C and C++ modes.
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  expr_stack_entry.evaluated = FALSE;
-  expr_stack_entry.potentially_evaluated = FALSE;
   /* Save the position of the __noop keyword. */
   start_position = pos_curr_token;
   (void)get_token();
@@ -6936,8 +6955,6 @@ which case it's the token after __uuidof.
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
-    expr_stack_entry.evaluated = FALSE;
-    expr_stack_entry.potentially_evaluated = FALSE;
     is_type = FALSE;
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     /* Rule out indefinite functions. */
@@ -10583,29 +10600,6 @@ in *bound_function_selector.
   }  /* if */
 }  /* scan_cast_expression */
 
-
-static void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack)
-/*
-Clear the expression stack, returning the old expression stack pointer
-to the caller in *saved_expr_stack, for later restoration by calling
-restore_expr_stack.  This is used at the start of processing of an
-expression that is not part of the surrounding context.
-*/
-{
-  *saved_expr_stack = expr_stack;
-  expr_stack = NULL;
-}  /* save_expr_stack */
-
-
-static void restore_expr_stack(an_expr_stack_entry_ptr saved_expr_stack)
-/*
-Restore the expression stack to the state it had when save_expr_stack
-was called.
-*/
-{
-  expr_stack = saved_expr_stack;
-}  /* restore_expr_stack */
-
 #if GNU_EXTENSIONS_ALLOWED
 
 static void scan_gnu_statement_expression(an_operand *result)
@@ -10650,33 +10644,25 @@ both C and C++ modes.
     /* Save, clear, and later restore the expression stack, since the
        statements are not part of any expression we may currently be
        inside of.  Likewise the object lifetime stack. */
-    a_boolean               statement_will_be_discarded = FALSE;
     an_expr_stack_entry_ptr saved_expr_stack;
     an_object_lifetime_ptr  saved_curr_object_lifetime;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     a_boolean               saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    a_scope_ptr             saved_first_scope, saved_last_scope;
     save_expr_stack(&saved_expr_stack);
     saved_curr_object_lifetime = curr_object_lifetime;
     check_assertion(innermost_function_scope != NULL);
     curr_object_lifetime = innermost_function_scope->lifetime;
-    if (!saved_expr_stack->potentially_evaluated) {
-      /* This statement expression is in a not-evaluated context like a
-         sizeof.  Set things up so we don't create any side effects that
-         link the statements into the IL. */
-      statement_will_be_discarded = TRUE;
-      /* Remember the subscopes of the current scope, so we can remove any
-         subscopes added by the statement expression. */
-      saved_first_scope = scope_stack[depth_scope_stack].first_scope;
-      saved_last_scope  = scope_stack[depth_scope_stack].last_scope;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      /* Prevent the generation of source sequence entries for the
+    saved_sses_disallowed = source_sequence_entries_disallowed;
+    if (!saved_expr_stack->potentially_evaluated &&
+        !saved_expr_stack->unevaluated_expr_will_be_kept_in_il) {
+      /* This statement expression is in a not-evaluated context like a
+         sizeof.  Prevent the generation of source sequence entries for the
          statements. */
-      saved_sses_disallowed = source_sequence_entries_disallowed;
       source_sequence_entries_disallowed = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Scan the compound statement. */
     sp = compound_statement(/*at_function_level=*/FALSE,
                             /*explicit_return_type=*/FALSE,
@@ -10684,14 +10670,9 @@ both C and C++ modes.
                             /*is_statement_expr=*/TRUE);
     restore_expr_stack(saved_expr_stack);
     curr_object_lifetime = saved_curr_object_lifetime;
-    if (statement_will_be_discarded) {
-      /* Remove any subscopes added by the statement expression. */
-      scope_stack[depth_scope_stack].first_scope = saved_first_scope;
-      scope_stack[depth_scope_stack].last_scope  = saved_last_scope;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      source_sequence_entries_disallowed = saved_sses_disallowed;
+    source_sequence_entries_disallowed = saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    }  /* if */
     if (!C_mode()) {
       /* Check that no destructible entities were declared in the
          statement. */
