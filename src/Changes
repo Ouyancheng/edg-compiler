@@ -1,5 +1,15 @@
 Version 3.7
 
+9/1/05   Microsoft C++ compatibility: Visibility of member function parameters
+
+In microsoft C++ mode, member function parameters are now not visible within
+default argument expressions.  For example:
+
+  int x();
+  struct S {
+    void f1(int x = x());  // Accepted in Microsoft mode (normally an error).
+  };
+
 9/1/05   GNU C++ compatibility: Visibility of parameters
 
 In GNU C++ mode, function parameters are now not visible until all the

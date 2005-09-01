@@ -1134,12 +1134,14 @@ Process the default argument expressions for the indicated class.
           /* The function prototype scope should be reactivated and its symbols
              reentered because parameter names hide names from enclosing scopes
              and, moreover, may not be used in default argument expressions
-             (ARM 8.2.6). */
+             (ARM 8.2.6).  In Microsoft mode, member function parameters are
+             not reactivated however (but friend function parameters are). */
           (void)push_scope((a_scope_kind)sck_func_prototype,
                            rfp->func_info.scope_number,
                            underlying_function_type(rfp->symbol),
                            (a_routine_ptr)NULL);
-          if (rfp->func_info.prototype_scope_symbols != NULL) {
+          if (rfp->func_info.prototype_scope_symbols != NULL &&
+              !(microsoft_mode && !is_friend)) {
             reactivate_prototype_scope_symbols(
                                       rfp->func_info.prototype_scope_symbols);
           }  /* if */
