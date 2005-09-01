@@ -11631,57 +11631,38 @@ can be avoided.
        from a cache. */
     /* delim_does_not_follow = FALSE;  -- already set. */
   } else {
-    register a_boolean	ch_is_punct;
     /* Skip over any initial white space blanks and horizontal tabs.
        These are very common, so they're handled inline here. */
     if ((ch = *curr_char_loc) == ' ' || ch == '\t') {
       do {} while ((ch = *(++curr_char_loc)) == ' ' || ch == '\t');
     }  /* if */
-    /* If the current character is a punctuation character but not a slash,
-       or if the current character is alphabetic then we know we don't have
-       to check for the more complex forms of white space; otherwise call
-       skip_white_space to handle the other cases. */
-    ch_is_punct = ispunct((unsigned char)ch);
-    if (ch_is_punct && ch != '/') {
-      /* Not the start of a comment but possibly a character that could
-         be a qualifier delimiter. */
-    } else if (isalpha((unsigned char)ch)) {
-      /* An alphabetic character.  This might be a macro call so we
-         can't tell whether or not this might be a qualifier delimiter.
-         No need to check further below. */
-      goto done;
-    } else {
-      /* Not one of the special cases.  Call the general skip white space
-         routine before further checking. */
+    /* We still might need to skip white space if it is a comment or
+       a control character other than a blank or tab. */
+    if (iscntrl((unsigned char)ch) || ch == '/') {
       skip_white_space();
       ch = *curr_char_loc;
-      ch_is_punct = ispunct((unsigned char)ch);
     }  /* if */
-    if (ch_is_punct) {
-      /* The next token begins with a punctuation character.  Check for the
-         special cases. */
-      if (ch == ':' && curr_char_loc[1] == ':') {
-        /* Definitely a "::". */
-        /* delim_does_not_follow = FALSE;  -- already set. */
-      } else if (ch == '<') {
-        /* A "<" that could be a template argument list delimiter. */
-        /* delim_does_not_follow = FALSE;  -- already set. */
-      } else if (ch == '.' && (cfront_2_1_mode || microsoft_bugs)) {
-        /* Definitely a "." in cfront and Microsoft bugs modes. */
-        /* delim_does_not_follow = FALSE;  -- already set. */
-      } else if (ch == '#') {
-        /* The beginning of a preprocessing directive.  We don't know what
-           token follows the directive, so assume it can be a qualifier. */
-        /* delim_does_not_follow = FALSE;  -- already set. */
-      } else {
-        /* Some other operator, e.g., ";" or "(", so delimiter does not
-           follow the token. */
-        delim_does_not_follow = TRUE;
-      }  /* if */
-    } else if (isalpha((unsigned char)ch)) {
+    if (isdigit((unsigned char)ch)) {
+      delim_does_not_follow = TRUE;
+    } else if (is_id_char[ch-CHAR_MIN]) {
       /* This might be a macro call, so we can't tell. */
+      /* delim_does_not_follow = FALSE;  -- already set. */
+    } else if (ch == ':' && curr_char_loc[1] == ':') {
+      /* Definitely a "::". */
+      /* delim_does_not_follow = FALSE;  -- already set. */
+    } else if (ch == '<') {
+      /* A "<" that could be a template argument list delimiter. */
+      /* delim_does_not_follow = FALSE;  -- already set. */
+    } else if (ch == '.' && (cfront_2_1_mode || microsoft_bugs)) {
+      /* Definitely a "." in cfront and Microsoft bugs modes. */
+      /* delim_does_not_follow = FALSE;  -- already set. */
+    } else if (ch == '#') {
+      /* The beginning of a preprocessing directive.  We don't know what
+         token follows the directive, so assume it can be a qualifier. */
+      /* delim_does_not_follow = FALSE;  -- already set. */
     } else {
-      /* Anything else (e.g., a constant), so the delimiter does not appear. */
+      /* Some other operator, e.g., ";" or "(", so delimiter does not
+         follow the token. */
       delim_does_not_follow = TRUE;
     }  /* if */
   }  /* if */

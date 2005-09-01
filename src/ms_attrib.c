@@ -1105,8 +1105,7 @@ back into an identifier.
   a_boolean	result = FALSE;
 
   ch = token_names[(int)token][0];
-  result = isalpha((unsigned char)ch) || ch == '_';
-  return result;
+  return is_id_char[ch-CHAR_MIN];
 }  /* is_keyword_token */
 
 
@@ -1178,7 +1177,7 @@ is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
       } else {
         ch = *src;
       }  /* if */
-      if (isalpha((unsigned char)ch)) ch = tolower(ch);
+      if (is_id_char[ch-CHAR_MIN]) ch = tolower(ch);
       add_char_to_text_buffer(ms_attr_buffer, ch);
     }  /* for */
     /* Add a null terminator. */

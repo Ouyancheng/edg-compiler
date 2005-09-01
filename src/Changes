@@ -1,5 +1,12 @@
 Version 3.7
 
+8/31/05  Use of isalpha and ispunct functions
+
+In some locales, isalpha and ispunct classify some characters differently
+from their meaning in C and C++.  The front end has been modified to
+eliminate the use of these functions in contexts where the locale-specific
+results could cause incorrect processing.
+
 8/25/05  GNU compatibility: __builtin_offsetof
 
 In GNU mode with gnu_version >= 40000, the front end now supports the GNU
