@@ -5306,12 +5306,14 @@ implement <stdarg.h>, a standard feature.
 #if GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
   a_boolean           use_field_alignment = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+  a_boolean             operand_was_used = FALSE;
 
   db_enter(4, "scan_alignof_operator");
 
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
+  expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   /* Save the position of the __ALIGNOF__ keyword. */
   copy_source_position(pos_curr_token, start_position);
   (void)get_token();
@@ -5441,6 +5443,7 @@ implement <stdarg.h>, a standard feature.
       prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
       constant.variant.template_param.variant.templ_sizeof.expr =
                                               make_node_from_operand(&operand);
+      operand_was_used = TRUE;
     }  /* if */
     constant.type = integer_type(targ_size_t_int_kind);
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -5492,6 +5495,10 @@ implement <stdarg.h>, a standard feature.
                      targ_size_t_int_kind);
   }  /* if */
   make_constant_operand(&constant, result);
+  if (!is_type && !operand_was_used) {
+    /* The expression was discarded. */
+    undo_side_effects_for_discarded_unevaluated_expression();
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -5615,10 +5622,12 @@ The parentheses are required, unlike for sizeof.  If  decl_pos_block is not
 NULL, the end position in its specifiers_range is updated.
 */
 {
-  a_type_ptr           result;
-  an_expr_stack_entry  expr_stack_entry;
-  an_operand           operand;
-  a_boolean            is_type;
+  a_type_ptr              result;
+  an_expr_stack_entry     expr_stack_entry;
+  an_operand              operand;
+  a_boolean               is_type;
+  a_boolean               operand_was_used = FALSE;
+  an_expr_stack_entry_ptr saved_expr_stack;
 
   /* Note that, unlike e.g. sizeof, typeof can appear directly in a declarative
      context (without any intervening expression context).  The expression
@@ -5640,12 +5649,12 @@ NULL, the end position in its specifiers_range is updated.
     remove_stop_token(tok_rparen);
   } else {
     /* Scan an expression. */
-    an_expr_stack_entry_ptr saved_expr_stack;
     save_expr_stack(&saved_expr_stack);
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/
                                               (curr_object_lifetime != NULL));
+    expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
     add_matching_stop_token(tok_rparen);
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     error_if_indefinite_function(&operand);
@@ -5662,8 +5671,6 @@ NULL, the end position in its specifiers_range is updated.
     }  /* if */
     is_type = FALSE;
     remove_matching_stop_token(tok_rparen);
-    pop_expr_stack();
-    restore_expr_stack(saved_expr_stack);
   }  /* if */
   if (is_error_type(result)) {
     /* We'll just return the error type. */
@@ -5681,6 +5688,7 @@ NULL, the end position in its specifiers_range is updated.
                                       (a_template_param_type_kind)tptk_typeof;
       prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
       tptsp->expr = make_node_from_operand(&operand);
+      operand_was_used = TRUE;
       result = typeof_type;
       add_to_types_list(typeof_type, DEPTH_OF_FILE_SCOPE);
     } else if (!dependent_arg || (prototype_instantiations_in_il && is_type)) {
@@ -5693,6 +5701,14 @@ NULL, the end position in its specifiers_range is updated.
       typeof_type->variant.typeref.is_typeof = TRUE;
       result = typeof_type;
     }  /* if */
+  }  /* if */
+  if (!is_type) {
+    if (!operand_was_used) {
+      /* The expression was discarded. */
+      undo_side_effects_for_discarded_unevaluated_expression();
+    }  /* if */
+    pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
@@ -6889,6 +6905,7 @@ which case it's the token after __uuidof.
   a_type_ptr        uuidof_type;
   a_boolean         err = FALSE, template_case = FALSE;
   a_boolean         is_type;
+  a_boolean         operand_was_used = FALSE;
 
   db_enter(4, "scan_uuidof_operator");
   /* Save the position of the __uuidof keyword. */
@@ -6927,6 +6944,7 @@ which case it's the token after __uuidof.
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
+    expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
     is_type = FALSE;
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     /* Rule out indefinite functions. */
@@ -6941,7 +6959,6 @@ which case it's the token after __uuidof.
         is_or_might_be_null_pointer_constant(&operand.variant.constant)) {
       uuidof_type = NULL;
     }  /* if */
-    pop_expr_stack();
   }  /* if */
   if (uuidof_type != NULL) {
     /* Get down to the underlying type, which must be a class for
@@ -6986,6 +7003,7 @@ which case it's the token after __uuidof.
         prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
         uuidof_con.variant.template_param.variant.templ_sizeof.expr =
                                               make_node_from_operand(&operand);
+        operand_was_used = TRUE;
       }  /* if */
       uuidof_con.type = make_pointer_type(const_guid_type);
     } else {
@@ -6997,6 +7015,13 @@ which case it's the token after __uuidof.
     make_constant_operand(&uuidof_con, result);
     result->state = (an_operand_state)os_lvalue;
     result->type = const_guid_type;
+  }  /* if */
+  if (!is_type) {
+    if (!operand_was_used) {
+      /* The expression was discarded. */
+      undo_side_effects_for_discarded_unevaluated_expression();
+    }  /* if */
+    pop_expr_stack();
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
