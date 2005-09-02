@@ -770,7 +770,7 @@ is pushed regardless of any of the other factors.
     expr_stack->potentially_evaluated = TRUE;
   } else if (curr_expr_kind_is(ek_sizeof)) {
     /* An expression inside sizeof is not evaluated.  (This is also used
-       for a number of other non-evaluated cases. */
+       for a number of other non-evaluated cases.) */
     expr_stack->evaluated = FALSE;
     expr_stack->potentially_evaluated = FALSE;
     /* Save information needed to discard any side effects of the expression
