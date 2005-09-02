@@ -9874,8 +9874,18 @@ C-style casts and C++ functional-notation type conversions.
           /* The cast can add or drop cv-qualifiers.  If it does, we
              have to add a cast. */
           microsoft_lvalue_cv_qual_adjustment(operand, type_cast_to);
+#if GNU_EXTENSIONS_ALLOWED
+        } else if (gcc_mode && gnu_version < 40000 &&
+                   f_identical_types(f_skip_typerefs(source_type),
+                                     f_skip_typerefs(type_cast_to),
+                                     ITF_NO_FLAGS)) {
+          /* GNU C ignores a do-nothing cast.   The result does not change
+             type (even if there is a cv-qualifier difference implied) and it
+             is not forced to an rvalue. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         } else if (is_an_lvalue(operand) &&
-                   (C_dialect == C_dialect_pcc || SVR4_C_mode || gcc_mode ||
+                   (C_dialect == C_dialect_pcc || SVR4_C_mode ||
+                    (gcc_mode && gnu_version < 40000) ||
                     (microsoft_mode && C_mode())) &&
                    still_an_lvalue(source_type, type_cast_to)) {
           /* In pcc, SVR4 C, GNU C or Microsoft C mode, some lvalues cast to
@@ -9891,16 +9901,6 @@ C-style casts and C++ functional-notation type conversions.
              the cast lvalue is then converted to an rvalue (the usual
              case). */
           lvalue_cast(type_cast_to, operand);
-#if GNU_EXTENSIONS_ALLOWED
-        } else if (gcc_mode &&
-                   is_class_struct_union_type(type_cast_to) &&
-                   f_identical_types(f_skip_typerefs(source_type),
-                                     f_skip_typerefs(type_cast_to),
-                                     ITF_NO_FLAGS)) {
-          /* GNU C allows a do-nothing cast to a struct or union type.
-             The result does not change type (even if there is a cv-qualifier
-             difference implied) and it is not forced to an rvalue. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
         } else {
           a_boolean      reinterpret_semantics = FALSE;
           a_boolean      operand_is_constant;

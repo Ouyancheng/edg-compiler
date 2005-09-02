@@ -4865,7 +4865,7 @@ for example, in something like "(short)i = 0").
 */
 {
   check_assertion(gnu_mode);
-  if (is_an_rvalue(operand)) {
+  if (gnu_version < 40000 && is_an_rvalue(operand)) {
     if (is_expression_operand(operand)) {
       a_boolean  do_recovery = FALSE;
       a_boolean  casts_removed = FALSE;
