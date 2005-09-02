@@ -8697,11 +8697,13 @@ promotion is for a nonstandard anonymous union.
     set_namespace_membership(sym, (a_source_correspondence *)NULL,
                              (a_namespace_ptr)NULL);
   }  /* if */
-  /* The members of an anonymous union within a class take on the
-     access specifier of the anonymous union itself; the members
-     of a variable anonymous union should be (i.e., should remain)
+  /* The members of an anonymous union within a class take on the access
+     specifier of the anonymous union itself (except in GNU C++ mode); the
+     members of a variable anonymous union should be (i.e., should remain)
      public. */
-  field->source_corresp.access = new_access;
+  if (!gpp_mode) {
+    field->source_corresp.access = new_access;
+  }  /* if */
   if (apo_sym == NULL) {
     sym->variant.field.anonymous_parent_object = assoc_object_sym;
   } else if (reuse_symbol) {
