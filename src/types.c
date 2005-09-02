@@ -827,17 +827,17 @@ Return TRUE if the given type is a class type with virtual functions
 
 a_boolean is_or_has_volatile_qualified_type(a_type_ptr tp)
 /*
-Returns TRUE if the given type is volatile-qualified, is an array type with a
-volatile-qualified underlying element type, or is a class, struct, or union
-type with a non-static member whose type is or has a volatile-qualified type.
+Returns TRUE if the given type is volatile-qualified, is a class/struct/union
+type with any volatile non-static members, or is an array whose underlying
+element type satisfies one of those criteria.
 */
 {
   a_boolean volatile_found = FALSE;
+  if (is_array_type(tp)) {
+    tp = underlying_array_element_type(tp);
+  }  /* if */
   if (is_volatile_qualified_type(tp)) {
     volatile_found = TRUE;
-  } else if (is_array_type(tp)) {
-    tp = underlying_array_element_type(tp);
-    volatile_found = is_volatile_qualified_type(tp);
   } else if (is_class_struct_union_type(tp)) {
     tp = skip_typerefs(tp);
     volatile_found = tp->variant.class_struct_union.any_volatile_member;

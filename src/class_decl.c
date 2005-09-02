@@ -10065,14 +10065,14 @@ non-NULL, *p_ms_attributes is returned NULL.
       tp = f_skip_typerefs(underlying_array_element_type(tp));
     }  /* if */
     if (is_class_struct_union_type(tp)) {
-      /* If the member type has const-qualified fields, propagate the flag
-         to the parent type. */
+      /* If the member type has const-qualified fields, propagate the flag to
+         the parent type.  (Note: the test above for setting any_const_member
+         in the parent type does not handle the case of an array of class
+         types, so this test is not redundant.  The test above for
+         any_volatile_member is comprehensive, however, so the member flag has
+         already been propagated to the parent, if needed.) */
       if (tp->variant.class_struct_union.any_const_member) {
         class_type->variant.class_struct_union.any_const_member = TRUE;
-      }  /* if */
-      /* Do the same for volatile-qualified fields. */
-      if (tp->variant.class_struct_union.any_volatile_member) {
-        class_type->variant.class_struct_union.any_volatile_member = TRUE;
       }  /* if */
       /* Similarly with the flag indicating that zero-initialization may be
          needed as part of value-initialization. */
