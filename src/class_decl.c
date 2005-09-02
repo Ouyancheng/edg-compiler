@@ -1166,10 +1166,6 @@ Process the default argument expressions for the indicated class.
             delayed_scan_of_default_arg_expr(ptp,
                                             /*check_for_errors=*/!is_friend);
           }  /* for */
-          /* Restore the prototype scope symbols pointer in the func info
-             block. It shouldn't have changed, but we do it to be safe. */
-          rfp->func_info.prototype_scope_symbols =
-             assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
           /* Pop the reactivated function prototype scope off the stack. */
           pop_scope();
         }  /* if */
