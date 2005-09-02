@@ -4925,7 +4925,7 @@ Syntax:
   a_host_large_unsigned special_upc_size;
   a_boolean             err = FALSE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  a_boolean             operand_was_used = FALSE;
+  a_boolean             operand_was_scanned = FALSE, operand_was_used = FALSE;
 
   db_enter(4, "scan_sizeof_operator");
 #if CHECKING
@@ -5022,6 +5022,7 @@ Syntax:
     local_options = EOPT_NO_OPTIONS;
     if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
     scan_expr(&operand, PREC_PREFIX, local_options);
+    operand_was_scanned = TRUE;
     /* Do not convert a type of "routine returning type" to "pointer to
        routine returning type".  See section 3.2.2.1 in the C standard.
        Likewise do not convert arrays to pointers, or lvalues to rvalues. */
@@ -5264,7 +5265,7 @@ Syntax:
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
-  if (!is_type && !operand_was_used) {
+  if (operand_was_scanned && !operand_was_used) {
     /* The expression was discarded. */
     undo_side_effects_for_discarded_unevaluated_expression();
   }  /* if */
@@ -5306,7 +5307,7 @@ implement <stdarg.h>, a standard feature.
 #if GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
   a_boolean           use_field_alignment = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
-  a_boolean             operand_was_used = FALSE;
+  a_boolean           operand_was_scanned = FALSE, operand_was_used = FALSE;
 
   db_enter(4, "scan_alignof_operator");
 
@@ -5373,6 +5374,7 @@ implement <stdarg.h>, a standard feature.
     a_local_expr_options_set  local_options = EOPT_NO_OPTIONS;
     if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
     scan_expr(&operand, PREC_PREFIX, local_options);
+    operand_was_scanned = TRUE;
 #if GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
     if (gnu_mode && gnu_version >= 30300 && is_expression_operand(&operand) &&
         operand.variant.expression->kind == (an_expr_node_kind)enk_operation) {
@@ -5495,7 +5497,7 @@ implement <stdarg.h>, a standard feature.
                      targ_size_t_int_kind);
   }  /* if */
   make_constant_operand(&constant, result);
-  if (!is_type && !operand_was_used) {
+  if (operand_was_scanned && !operand_was_used) {
     /* The expression was discarded. */
     undo_side_effects_for_discarded_unevaluated_expression();
   }  /* if */
@@ -5626,6 +5628,7 @@ NULL, the end position in its specifiers_range is updated.
   an_expr_stack_entry     expr_stack_entry;
   an_operand              operand;
   a_boolean               is_type;
+  a_boolean               operand_was_scanned = FALSE;
   a_boolean               operand_was_used = FALSE;
   an_expr_stack_entry_ptr saved_expr_stack;
 
@@ -5657,6 +5660,7 @@ NULL, the end position in its specifiers_range is updated.
     expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
     add_matching_stop_token(tok_rparen);
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    operand_was_scanned = TRUE;
     error_if_indefinite_function(&operand);
     force_complete_type_if_a_variable(&operand);
     result = operand.type;
@@ -5702,7 +5706,7 @@ NULL, the end position in its specifiers_range is updated.
       result = typeof_type;
     }  /* if */
   }  /* if */
-  if (!is_type) {
+  if (operand_was_scanned) {
     if (!operand_was_used) {
       /* The expression was discarded. */
       undo_side_effects_for_discarded_unevaluated_expression();
@@ -6897,15 +6901,17 @@ The current token is the __uuidof, unless after_keyword is TRUE, in
 which case it's the token after __uuidof.
 */
 {
-  a_source_position start_position;
+  a_source_position   start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position end_position;
+  a_source_position   end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  an_operand        operand;
-  a_type_ptr        uuidof_type;
-  a_boolean         err = FALSE, template_case = FALSE;
-  a_boolean         is_type;
-  a_boolean         operand_was_used = FALSE;
+  an_operand          operand;
+  a_type_ptr          uuidof_type;
+  a_boolean           err = FALSE, template_case = FALSE;
+  a_boolean           is_type;
+  a_boolean           operand_was_scanned = FALSE, operand_was_used = FALSE;
+  an_expr_stack_entry expr_stack_entry;
+
 
   db_enter(4, "scan_uuidof_operator");
   /* Save the position of the __uuidof keyword. */
@@ -6939,14 +6945,13 @@ which case it's the token after __uuidof.
   } else {
     /* Scan an expression. */
     /* The expression is not evaluated. */
-    an_expr_stack_entry expr_stack_entry;
-
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
     expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
     is_type = FALSE;
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    operand_was_scanned = TRUE;
     /* Rule out indefinite functions. */
     do_operand_transformations(&operand,
                                (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
@@ -6980,12 +6985,6 @@ which case it's the token after __uuidof.
       error(ec_uuidof_requires_uuid_class_type);
     }  /* if */
   }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Check for and pass over the right parenthesis. */
-  (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_matching_stop_token(tok_rparen);
   if (err) {
     make_error_operand(result);
   } else {
@@ -7016,13 +7015,19 @@ which case it's the token after __uuidof.
     result->state = (an_operand_state)os_lvalue;
     result->type = const_guid_type;
   }  /* if */
-  if (!is_type) {
+  if (operand_was_scanned) {
     if (!operand_was_used) {
       /* The expression was discarded. */
       undo_side_effects_for_discarded_unevaluated_expression();
     }  /* if */
     pop_expr_stack();
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Check for and pass over the right parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_matching_stop_token(tok_rparen);
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
