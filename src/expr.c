@@ -9700,8 +9700,8 @@ static void microsoft_lvalue_cv_qual_adjustment(an_operand *operand,
 operand is being subjected to an lvalue cast to new_type in Microsoft
 mode.  The cast can adjust only the cv-qualification of the lvalue;
 the underlying type is the same.  If necessary, adjust the cv-qualification.
-Note that this will get an error if the operand is a bit field reference.
-The caller should check for that and avoid it.
+Note that this will get an error if the operand is a bit field reference,
+so the caller should check for that and avoid it if appropriate.
 */
 {
   check_assertion(is_an_lvalue(operand) || is_error_operand(operand));
@@ -9874,15 +9874,6 @@ C-style casts and C++ functional-notation type conversions.
           /* The cast can add or drop cv-qualifiers.  If it does, we
              have to add a cast. */
           microsoft_lvalue_cv_qual_adjustment(operand, type_cast_to);
-#if GNU_EXTENSIONS_ALLOWED
-        } else if (gcc_mode && gnu_version < 40000 &&
-                   f_identical_types(f_skip_typerefs(source_type),
-                                     f_skip_typerefs(type_cast_to),
-                                     ITF_NO_FLAGS)) {
-          /* GNU C ignores a do-nothing cast.   The result does not change
-             type (even if there is a cv-qualifier difference implied) and it
-             is not forced to an rvalue. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
         } else if (is_an_lvalue(operand) &&
                    (C_dialect == C_dialect_pcc || SVR4_C_mode ||
                     (gcc_mode && gnu_version < 40000) ||
@@ -9901,6 +9892,16 @@ C-style casts and C++ functional-notation type conversions.
              the cast lvalue is then converted to an rvalue (the usual
              case). */
           lvalue_cast(type_cast_to, operand);
+#if GNU_EXTENSIONS_ALLOWED
+        } else if (gcc_mode && gnu_version < 40000 &&
+                   is_class_struct_union_type(type_cast_to) &&
+                   f_identical_types(f_skip_typerefs(source_type),
+                                     f_skip_typerefs(type_cast_to),
+                                     ITF_NO_FLAGS)) {
+          /* GNU C allows a do-nothing cast to a struct or union type.
+             The result does not change type (even if there is a cv-qualifier
+             difference implied) and it is not forced to an rvalue. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         } else {
           a_boolean      reinterpret_semantics = FALSE;
           a_boolean      operand_is_constant;
