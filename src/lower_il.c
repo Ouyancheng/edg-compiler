@@ -5858,7 +5858,7 @@ function (NULL if none is required).
         (adjustment_bcp == NULL ||
          !any_virtual_steps_in_derivation(adjustment_bcp)) &&
         (derived_bcp->offset == 0 ||
-         (subobject_bcp != NULL &&
+         ((!gpp_mode || gnu_version >= 30300) && subobject_bcp != NULL &&
           derived_bcp->offset == subobject_bcp->offset))) {
       /* The overridden function's sub-object is at the beginning of the
          complete object or of the sub-object whose virtual table we are
