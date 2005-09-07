@@ -36,9 +36,11 @@ Set the test version flags to FALSE for demo versions.
 #define DEBUG 0
 #endif /* ifndef DEBUG */
 #else /* !defined(DEMO_VERSION) */
+#ifndef __CYGWIN32__
 /* In development versions, allow values of gnu_version less than 30200 so
    some early gcc compatibility features can be tested. */
 #define MIN_GNU_VERSION 29500
+#endif /* ifndef __CYGWIN32__ */
 #endif /* ifdef DEMO_VERSION */
 
 #define ENABLE_TRANS_UNIT_TEST_MODE 1
@@ -526,6 +528,8 @@ Flags to be set when using the KAI inliner.
 #define INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES 1
 #define INCLUDE_EDG_TEST_NAMED_REGISTERS 1
 #endif /* ifdef DEMO_VERSION */
+#define TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION 1
+#define MIN_GNU_VERSION 30200
 
 #ifndef DEFAULT_EDG_BASE
 #define DEFAULT_EDG_BASE "/c/edg/cpfe/release"
