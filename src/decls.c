@@ -5796,7 +5796,7 @@ declaration.
   a_boolean                suppress_ext_sym_lookup = FALSE;
   a_boolean                is_function_def = FALSE;
   a_boolean                changed_to_inline = FALSE;
-  a_boolean                is_friend_decl = (srk_flags & SRK_FRIEND) != 0;
+  a_boolean                is_friend_decl;
   a_boolean                invalid_scope_for_new_or_delete = FALSE;
   a_boolean                set_invisible = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
@@ -6089,6 +6089,26 @@ declaration.
             func_info->any_default_args) {
           pos_error(ec_friend_cannot_add_default_arguments,
                     &locator->source_position);
+        }  /* if */
+        if (strict_ansi_mode && routine_ptr->befriending_classes != NULL &&
+            old_decl_has_body && linked_symbol->is_invisible) {
+          /* In strict mode, friend declarations can have default arguments
+             only if the friend declaration is also a definition (checked
+             elsewhere), and that definition must be the only declaration of
+             the function.  Since the routine already has a befriending class
+             and its symbol is invisible, it has only been declared as a
+             friend so far (though perhaps more than one friend declaration).
+             Check if a previous declaration had default arguments. */
+          a_param_type_ptr  ptp = skip_typerefs(routine_ptr->type)
+                                ->variant.routine.extra_info->param_type_list;
+          for (; ptp != NULL; ptp = ptp->next) {
+            if (ptp->has_default_arg) {
+              pos_sy_diagnostic(strict_ansi_error_severity,
+                                ec_redeclaration_of_friend_with_default_args,
+                                &locator->source_position, linked_symbol);
+              break;
+            }  /* if */
+          }  /* while */
         }  /* if */
         /* For routines that can be overloaded, id_linkage has already
            checked that the routine types are compatible.  "main" cannot

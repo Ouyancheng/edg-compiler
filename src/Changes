@@ -1,5 +1,21 @@
 Version 3.7
 
+9/7/05   Friend function declarations with default arguments
+
+In strict C++ mode, the front end now issues an error if a friend function
+declaration with default arguments is not a definition, or if it is not the
+only declaration of that function in the translation unit.  For example:
+
+  struct S {
+    friend void f1(int = 0);   // Error in strict mode: Must be a definition.
+    friend void f2(int = 0) {}
+  };
+  void f2(int);  // Error in strict mode: Friend function definition with
+                 // default arguments cannot be redeclared.
+
+These diagnostics are required by the resolution of the C++ standards
+committee's core issue 136.
+
 9/7/05   GNU C++ compatibility: Empty asm clobber lists
 
 In GNU C++ mode (but not in GNU C mode), the front end now accepts empty

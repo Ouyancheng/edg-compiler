@@ -6100,9 +6100,22 @@ declaration of the function, and again overloading is a possibility.
     }  /* if */
     /* Set the source correspondence. */
     set_source_corresp(&sym->variant.routine.ptr->source_corresp, sym);
-  } else if (!class_type->variant.class_struct_union.is_nonreal_class ||
-             prototype_instantiations_in_il) {
-    update_friend_function_info(sym->variant.routine.ptr, class_type);
+  } else {
+    if (!class_type->variant.class_struct_union.is_nonreal_class ||
+        prototype_instantiations_in_il) {
+      update_friend_function_info(sym->variant.routine.ptr, class_type);
+    }  /* if */
+    if (strict_ansi_mode && func_info->any_default_args) {
+      if (sym->is_class_member) {
+        pos_diagnostic(strict_ansi_error_severity,
+                       ec_default_arg_on_member_friend,
+                       &decl_info->decl_start_pos);
+      } else if (!func_info->is_definition) {
+        pos_diagnostic(strict_ansi_error_severity,
+                       ec_default_arg_requires_friend_to_be_definition,
+                       &decl_info->decl_start_pos);
+      }  /* if */
+    }  /* if */
   }  /* if */
 done:
   if (func_info->is_definition) {
