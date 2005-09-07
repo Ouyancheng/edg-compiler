@@ -1,5 +1,14 @@
 Version 3.7
 
+9/7/05   GNU C++ compatibility: Empty asm clobber lists
+
+In GNU C++ mode (but not in GNU C mode), the front end now accepts empty
+clobber lists in extended asm constructs.  For example:
+
+  void f() {
+    asm ("nop" : : :);  // Previously an error in all GNU modes; now accepted
+  }                     // in GNU C++ mode.
+
 9/1/05   Microsoft C++ compatibility: Visibility of member function parameters
 
 In microsoft C++ mode, member function parameters are now not visible within

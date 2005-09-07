@@ -905,7 +905,7 @@ skip_item:
        immediately followed by a right parenthesis. */
     if (curr_token != tok_rparen) {
       syntax_error(ec_exp_rparen);
-    } else if (nparsed == 0) {
+    } else if (nparsed == 0 && C_mode()) {
       error(ec_empty_clobbers_list);
     }  /* if */
   }  /* if */
