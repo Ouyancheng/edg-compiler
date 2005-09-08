@@ -2185,6 +2185,48 @@ to TRUE.
   }  /* if */
 }  /* check_friend_class_declaration */
 
+
+static void check_name_used_for_qualified_class_definition(
+                                                       a_symbol_locator  *loc,
+                                                       a_symbol_ptr      sym)
+/*
+sym represents a class being defined in strict mode using a qualified name
+represented by loc.  If sym represents a nested class and the class type used
+to qualify the nested class name does not directly contain the nested class
+(i.e., the nested class is inherited instead), issue an error.  For example:
+  struct B { struct N; };
+  struct D: B {}:
+  struct D::N {};  // Error in strict mode.
+Similarly, if sym represents a namespace scope class defined in a namespace
+that is different from the namespace indicated by the qualifier (due to a
+using-declaration), issue an error.  For example:
+  namespace N { struct S; }
+  namespace M { using N::S; }
+  struct M::S {};  // Error in strict mode.
+*/
+{
+  if (sym->is_class_member) {
+    /* A nested class definition. */
+    check_assertion(loc->is_class_member);
+    if (!same_entities(loc->parent.class_type, sym->parent.class_type)) {
+      pos_ty_diagnostic(strict_ansi_discretionary_severity,
+                        ec_bad_qualifier_for_delayed_nested_class_definition,
+                        &loc->source_position,
+                        type_symbol_type(sym));
+    }  /* if */
+  } else {
+    /* A namespace scope class definition. */
+    check_assertion(!loc->is_class_member);
+    if (!same_entities(loc->parent.namespace_ptr, sym->parent.namespace_ptr)) {
+      pos_ty_diagnostic(strict_ansi_discretionary_severity,
+                        ec_bad_qualifier_for_delayed_class_definition,
+                        &loc->source_position,
+                        type_symbol_type(sym));
+    }  /* if */
+  }  /* if */
+}  /* check_name_used_for_qualified_class_definition */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED || \
     !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
@@ -3047,6 +3089,11 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
       if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
           !is_template_specialization && !tag_sym->is_error) {
         update_nested_template_class_symbol_info(tag_sym, type_kind);
+      }  /* if */
+      if (strict_ansi_mode && locator.is_qualified_name) {
+        /* The C++ standard was revised to restrict the kind of qualifiers
+           used for class definitions. */
+        check_name_used_for_qualified_class_definition(&locator, tag_sym);
       }  /* if */
     }  /* if */
     /* Record cross-reference information. */

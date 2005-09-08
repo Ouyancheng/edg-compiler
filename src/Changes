@@ -1,5 +1,22 @@
 Version 3.7
 
+9/8/05   Classes defined with qualified names
+
+In strict C++ mode, the front end now issues a discretionary error when a
+class is defined with a qualifier that designates an entity in which the
+class was not originally defined (but in which the class is visible by virtue
+of inheritance or using-declarations).  For example:
+
+  struct B { struct N; };
+  struct D: B {};
+  struct D::N {};  // Now an error in strict C++ mode.
+
+  namespace N { struct S; }
+  namespace M { using N::S; }
+  struct M::S {};  // Now an error in strict C++ mode.
+
+This implements a requirement of the C++ standards committee's core issue 417.
+
 9/7/05   Buffer overflow in form_wide_char
 
 The buffer used for the hexadecimal form of wide characters could overflow
