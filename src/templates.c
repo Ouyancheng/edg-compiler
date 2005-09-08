@@ -428,142 +428,6 @@ static a_boolean
 			   later prescan. */
 #endif /* CHECKING */
 
-/*
-Structure used to pass information about the current template declaration
-between the routines used to implement the processing of template
-declarations.
-*/
-typedef struct a_tmpl_decl_state *a_tmpl_decl_state_ptr;
-typedef struct a_tmpl_decl_state {
-  a_boolean	is_template_friend;
-			/* TRUE if this is a friend declaration. */
-  a_boolean	is_member_decl;
-			/* TRUE if this declaration appeared in a class
-			   scope. */
-  a_boolean	is_specialization;
-			/* TRUE if the declaration is a specialization.
-			   A specialization contains one or more template
-			   parameter clauses with empty parameter lists. */
-  a_boolean	is_full_specialization;
-			/* TRUE if the declaration is a full specialization
-			   of a template entity.  A full specialization
-			   declares a real function or class (i.e., not a
-			   template).  In a full specialization all the
-			   template parameter clauses contain empty parameter
-			   lists (i.e., "template <>"). */
-  a_boolean	defines_something;
-			/* TRUE if the declaration is a definition. */
-  a_boolean	in_prototype_instantiation;
-			/* TRUE if the declaration is being processed as
-			   part of the prototype instantiation of an
-			   enclosing class template. */
-  a_boolean	decl_scope_err;
-			/* TRUE if the template declaration is invalid in the
-			   current scope. */
-  a_boolean	export_present;
-			/* TRUE if the "export" keyword was used on the
-			   declaration. */
-  a_boolean	partial_spec_outside_of_class_template;
-			/* TRUE if this is the declaration of a partial
-			   specialization of a class that is a member of
-			   a class template, and the declaration appears
-			   outside of the parent class. */
-  a_boolean	has_dependent_templ_param;
-			/* A template parameter has a type that depends
-			   on another template parameter. */
-  a_boolean	is_template_template_param;
-			/* TRUE when scanning the template parameter clauses
-			   of a template template declaration. */
-  a_source_position
-		export_position;
-			/* If export_present is TRUE, the position of the
-			   export keyword. */
-  an_access_specifier
-		access;
-			/* When the declaration appears in a class scope,
-			   contains the current access. */
-  a_template_nesting_depth
-		nesting_depth;
-			/* Nesting depth of this template declaration (i.e.,
-			   the number of enclosing template scopes.  The
-			   outermost template declaration has a nesting
-			   depth of 1. */
-  a_token_kind	*final_token_ptr;
-			/* Pointer to a token kind indicating whether the
-			   final token of the declaration is expected to be
-			   a semicolon or a right brace. */
-  a_template_decl_info_ptr
-		decl_info;
-			/* Points to the template declaration information
-			   associated with the innermost template declaration
-			   scope.  Contains NULL for full specializations. */
-  a_scope_depth	orig_decl_level;
-			/* The scope depth of the scope containing the
-			   template declaration. */
-  a_scope_depth	effective_decl_level;
-			/* The effective declaration scope of the
-			   template declaration.  This is normally the
-			   to the scope that contains the template
-			   declaration, but is the nearest namespace scope
-			   for friend declarations. */
-  unsigned long	number_of_template_decl_scopes;
-			/* The number of template declaration scopes pushed
-			   while processing this template declaration. */
-  unsigned long	number_of_template_param_clauses;
-			/* The number of template parameter clauses (including
-			   ones with empty parameter lists in specialization
-			   declarations) in the current template
-                           declaration. */
-  a_scope_ptr	enclosing_scope;
-			/* Points to the scope entry for the scope that
-			   contains the template declaration. */
-  a_type_ptr	class_declared_in;
-			/* When the template definition appears in a class
-			   scope, this points to the class type of the
-			   enclosing class, otherwise contains NULL. */
-  a_source_position
-		start_pos;
-			/* Source position of the first token of the
-			   template declaration. */
-  a_token_cache	param_list_cache;
-			/* Token cache containing the template parameter
-			   list(s). */
-  a_token_cache	decl_token_cache;
-			/* Token cache containing the template declaration
-			   (the portion that follows the template parameter
-			   list(s)). */
-  a_boolean	decl_token_cache_used;
-			/* TRUE if the declaration token cache was saved as
-			   part of the template that was declared. */
-  a_pending_pragma_ptr
-		pragmas_bound_to_template;
-			/* A list of next-construct pragmas that appeared
-			   before this template declaration. */
-  a_template_ptr
-		il_template_entry;
-			/* Pointer to the IL template entry created for this
-			   template declaration, or NULL if no entry has been
-			   created. */
-  a_decl_pos_block
-		decl_pos_block;
-			/* Source range information for the template
-			   declaration. */
-  a_symbol_ptr	prototype_scope_symbols;
-			/* For a function template declaration, points to the
-			   list of prototype scope symbols from the
-			   func_info_block. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_range
-		definition_range;
-			/* Source range information for the template
-			   definition (if any). */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_template_decl_ptr
-		template_decl;
-			/* IL representation of the template parameterization
-			   of the entity being declared. */
-} a_tmpl_decl_state;
-
 /* Forward declaration. */
 static void update_instantiation_required_flag(
 			a_template_instance_ptr			tip,
@@ -14742,20 +14606,27 @@ information returned from decl_specifiers and declarator.
   /* Set a flag in each param type entry whose associated type is or
      contains a template parameter. */
   set_type_involves_deduced_template_param(type);
-  if (curr_token == tok_lbrace && decl_state->is_member_decl &&
-      decl_state->is_template_friend) {
-    /* A function template defined inside a class or class template is
-       implicitly "inline".  Note that the only member declarations
-       processed by this routine are friend declarations. */
-    func_info->is_inline = TRUE;
+  if (decl_state->is_template_friend) {
+    if (curr_token != tok_lbrace) {
+      /* A friend declaration that is not a definition cannot specify default
+         arguments. */
+      if (strict_ansi_mode && func_info->any_default_args &&
+          decl_state->in_prototype_instantiation) {
+        pos_diagnostic(strict_ansi_error_severity,
+                       ec_default_arg_requires_friend_to_be_definition,
+                       &locator->source_position);
+      }  /* if */
+    } else if (decl_state->is_member_decl) {
+      /* A function template defined inside a class or class template is
+         implicitly "inline".  Note that the only member declarations
+         processed by this routine are friend declarations. */
+      func_info->is_inline = TRUE;
+    }  /* if */
   }  /* if */
   decl_state->prototype_scope_symbols = func_info->prototype_scope_symbols;
   /* Process a function template declaration. */
   decl_function_template(locator, type, func_info, &sym, storage_class,
-                         decl_modifiers, decl_state->decl_info, attributes,
-                         decl_state->orig_decl_level,
-                         decl_state->is_specialization,
-                         decl_state->il_template_entry);
+                         decl_modifiers, decl_state, attributes);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!func_info->is_definition && !source_sequence_entries_disallowed) {
     /* Turn the source sequence entry for the a_template entry into a

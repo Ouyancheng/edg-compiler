@@ -7058,26 +7058,21 @@ void decl_function_template(a_symbol_locator            *locator,
                             a_symbol_ptr                *symbol_ptr,
                             a_storage_class             storage_class,
                             a_decl_modifiers_block_ptr  decl_modifiers,
-                            a_template_decl_info_ptr    templ_decl_info,
-                            an_attribute_ptr            attributes,
-                            a_scope_depth               orig_decl_level,
-                            a_boolean                   is_specialization,
-			    a_template_ptr		il_template_entry)
+                            a_tmpl_decl_state_ptr       decl_state,
+                            an_attribute_ptr            attributes)
 /*
-Roughly speaking, this routine does for function templates what
-decl_routine does for ordinary functions.  Look up and reuse or else
-create a function template symbol; for new symbols also create a routine
-entry (though one that is not added to the IL).  *locator represents the
-current identifier, type_ptr is the function type, storage_class is the
-storage class, if any, specified in the declaration, and is_inline is TRUE
-if "inline" was specified in the declaration.  The function template may
-be part of an overload set, it may have been previously declared (but not
-defined), and it may be an out-of-line definition of a member function of a
-class template.  orig_decl_level is the nearest enclosing scope that
-is not a template declaration scope.  is_specialization is TRUE if this
-is a template specialization declaration.  il_template_entry points to the
-template entry associated with this particular template declaration, which
-is not necessarily the canonical entry for the template being declared.
+Roughly speaking, this routine does for function templates what decl_routine
+does for ordinary functions.  Look up and reuse or else create a function
+template symbol; for new symbols also create a routine entry (though one that
+is not added to the IL).  *locator represents the name specified in the
+declarator, type_ptr is the function type, func_info holds some function
+properties, storage_class is the storage class, if any, specified in the
+declaration.  decl_modifiers and attributes hold additional attributes
+available in some (mainly Microsoft and GNU) modes.  decl_state points to
+a block of information describing the current state of processing for the
+template.  The function template may be part of an overload set, it may have
+been previously declared (but not defined), and it may be an out-of-line
+definition of a member function of a class template.
 */
 {
   a_symbol_ptr                      sym = NULL;
@@ -7093,9 +7088,16 @@ is not necessarily the canonical entry for the template being declared.
 #if DECL_MODIFIERS_IN_USE
   a_boolean			    redeclaration = FALSE;
 #endif /* DECL_MODIFIERS_IN_USE */
-  an_id_linkage_block      idlb;
-  a_boolean  microsoft_out_of_class_redecl;
-  a_boolean  proxy_member_friend = FALSE;
+  an_id_linkage_block               idlb;
+  a_boolean                         microsoft_out_of_class_redecl;
+  a_boolean                         proxy_member_friend = FALSE;
+  a_template_decl_info_ptr          templ_decl_info = decl_state->decl_info;
+  a_scope_depth                     orig_decl_level =
+                                                   decl_state->orig_decl_level;
+  a_boolean                         is_specialization =
+                                                 decl_state->is_specialization;
+  a_template_ptr                    il_template_entry =
+                                                 decl_state->il_template_entry;
 
   db_enter(3, "decl_function_template");
   check_assertion(scope_stack[depth_scope_stack].kind ==

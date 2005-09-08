@@ -206,6 +206,12 @@ function parameter and return types.
 
 
 /*
+Forward declaration of a structure used to pass around information about a
+template being declared.
+*/
+typedef struct a_tmpl_decl_state *a_tmpl_decl_state_ptr;
+
+/*
 A structure to carry state information through the declaration parsing process.
 */
 typedef struct a_decl_parse_state {
@@ -461,11 +467,8 @@ void decl_function_template(a_symbol_locator            *locator,
                             a_symbol_ptr                *symbol_ptr,
                             a_storage_class             storage_class,
                             a_decl_modifiers_block_ptr  decl_modifiers,
-                            a_template_decl_info_ptr    templ_decl_info,
-                            an_attribute_ptr            attributes,
-                            a_scope_depth               orig_decl_level,
-                            a_boolean                   is_specialization,
-			    a_template_ptr		il_template_entry);
+                            a_tmpl_decl_state_ptr       decl_state,
+                            an_attribute_ptr            attributes);
 
 extern void handler_declaration(a_statement_ptr     sp,
                                 a_source_position*  catch_pos,
