@@ -242,8 +242,8 @@ TARG_HAS_IEEE_FLOATING_POINT is set to TRUE).  See also the Changes entry of
 8/18/05  Failure to lower some designated initializers
 
 Certain designated initializers were not lowered by IL lowering,
-specifically ones appearing in compound literals in C mode.  Now
-fixed.
+specifically ones appearing in compound literals in C mode and GNU
+C++ mode.  Now fixed.
 
   struct X { int a; char *b; };
   struct X *p = &(struct X){ .b = "hello", .a = 42 };  // Not lowered
