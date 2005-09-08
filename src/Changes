@@ -1,5 +1,10 @@
 Version 3.7
 
+9/7/05   Buffer overflow in form_wide_char
+
+The buffer used for the hexadecimal form of wide characters could overflow
+for some values.  Now fixed.
+
 9/7/05   Friend function declarations with default arguments
 
 In strict C++ mode, the front end now issues an error if a friend function

@@ -2167,7 +2167,7 @@ output in the way described by octl.  Return the number of characters
 output.
 */
 {
-  char buffer[10];
+  char buffer[2*sizeof(unsigned long)+3];
 
   /* Use hex escapes always to avoid having to convert the wide character
      back to a multibyte character string. */
