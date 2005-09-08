@@ -1,5 +1,17 @@
 Version 3.7
 
+9/8/05   Macro expansion to produce string literal in _Pragma operator
+
+Macro expansion is now done when scanning the tokens that make up a C99
+_Pragma operator.  Note that macro expansion may or may not be done
+(based on the pragma kind) for the tokens that tokens that make up the
+string literal when the pragma is evaluated.
+
+  #define PRAG  "diag_suppress 177"
+  #define X() _Pragma(PRAG)
+  X()  // now accepted, formerly "expected a string literal"
+  static int i;
+
 9/8/05   Classes defined with qualified names
 
 In strict C++ mode, the front end now issues a discretionary error when a

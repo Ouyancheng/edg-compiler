@@ -2210,7 +2210,6 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
 
   /* The inside of the _Pragma directive should be processed as pp-tokens. */
   fetch_pp_tokens = TRUE;
-  expand_macros = FALSE;
   /* Record the position of the start of the pragma. */
   start_of_dir_position = pos_curr_token;
   /* Bypass the _Pragma token. */
@@ -2220,11 +2219,13 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
   } else if (get_token() != tok_string_literal) {
     error(ec_exp_string_literal);
   } else {
+    a_macro_arg_ptr	map;
     /* We've scanned a string literal.  Make a copy of the string
        literal replacing \" with " and \\ with \. */
-    a_macro_arg_ptr	map;
     map = copy_pragma_string();
-    /* Scan the tokens from the pragma string. */
+    /* Scan the tokens from the pragma string.  Don't expand macros inside the
+       string. */
+    expand_macros = FALSE;
     scan_pragma_string(map, &start_of_dir_position);
     free_macro_arg(&map);
     /* Bypass the scanned string and check for the closing parenthesis. */
