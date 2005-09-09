@@ -7198,6 +7198,14 @@ is set to NULL by this function.
   set_source_corresp(&rtn->source_corresp, sym);
   set_class_membership(sym, &rtn->source_corresp, class_type);
   rtn->source_corresp.access = class_state->access;
+  if (func_info->is_inline) {
+    /* Inline member function (either because "inline" was specified or
+       a function definition is present). */
+    set_inline_flag(rtn, TRUE);
+  }  /* if */
+  if (compiler_generated) {
+    rtn->compiler_generated = TRUE;
+  }  /* if */
   /* The routine name linkage on the function type is also required to be
      C++ no matter what the name linkage of the routine turns out to be. */
   rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
@@ -7230,14 +7238,6 @@ is set to NULL by this function.
          used. */
       check_constituent_types_have_linkage(sym, &locator->source_position);
     }  /* if */
-  }  /* if */
-  if (func_info->is_inline) {
-    /* Inline member function (either because "inline" was specified or
-       a function definition is present). */
-    set_inline_flag(rtn, TRUE);
-  }  /* if */
-  if (compiler_generated) {
-    rtn->compiler_generated = TRUE;
   }  /* if */
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
