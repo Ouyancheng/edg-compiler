@@ -4111,7 +4111,6 @@ should be reported.
     /* Compiler-generated member functions can involve types with no name
        linkage in some error recovery modes (and in Microsoft mode).  A
        diagnostic is not helpful for such functions. */
-    check_assertion_or_expect_error(microsoft_mode);
   } else if (is_or_contains_local_type(type)) {
     /* A block extern declaration that involves a local type.  Issue an
        error (except in cfront or Microsoft compatibility mode). */
