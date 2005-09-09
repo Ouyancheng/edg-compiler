@@ -4503,7 +4503,8 @@ current token on entry.
 an_expr_node_ptr scan_asm_operand_expression(a_boolean output)
 /*
 Scan and return the expression associated with an asm operand.  This is similar
-to scan_integer_expression with slightly different checks.
+to scan_integer_expression with slightly different checks.  output is TRUE for
+output operands.
 */
 {
   an_expr_node_ptr    expression;
@@ -4541,12 +4542,34 @@ to scan_integer_expression with slightly different checks.
     do_operand_transformations(&result, options);
   }  /* if */
   if (output) {
-    /* Output operands must be modifiable lvalues.  Some versions of the GNU C
-       (but not GNU C++) compiler also accept void lvalues.  Since these
-       versions seem to be platform-dependent, we accept that variation for
-       all values of gnu_version.  */
-    if ((gcc_mode && is_an_lvalue(&result) && is_void_type(result.type)) ||
-        check_modifiable_lvalue_operand(&result)) {
+    /* Logically, output operands must be modifiable lvalues.  However, various
+       versions of the GNU C and C++ compilers accept different kinds of
+       lvalues (and the outcome is sometimes dependent on the platform).
+       In particular, version 4.0, appears to accept const lvalues and some
+       versions of the GNU C (but not GNU C++) compiler also accept void
+       lvalues.  Since some version-specific behavior appears to be platform
+       dependent, we issue a warning for all values of gnu_version in cases
+       that are known to be accepted on at least one version. */
+    a_type_ptr         type = result.type;
+    an_error_severity  sev = es_none;
+    revert_gcc_rvalue_to_lvalue_if_possible(&result, /*ignore_casts=*/TRUE);
+    complete_type_is_needed(type);
+    if (!is_an_lvalue(&result)) {
+      sev = es_error;
+    } else if (is_void_type(type)) {
+      sev = gcc_mode ? es_warning : es_error;
+    } else if (is_incomplete_type(type)) {
+      sev = es_error;
+    } else if (is_const_qualified_type(type) ||
+               (is_class_struct_union_type(type) &&
+                skip_typerefs(type)
+                             ->variant.class_struct_union.any_const_member)) {
+      sev = es_warning;
+    }  /* if */
+    if (sev != es_none) {
+      pos_diagnostic(sev, ec_expr_not_a_modifiable_lvalue, &result.position);
+    }  /* if */
+    if (sev != es_error) {
       modifying_lvalue(&result, /*value_used=*/FALSE);
     }  /* if */
   }  /* if */

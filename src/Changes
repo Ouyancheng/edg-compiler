@@ -1,5 +1,21 @@
 Version 3.7
 
+9/8/05   GNU compatibility: asm output operand constraints
+
+Output operands specified in extended GNU asm constructs must normally be
+modifiable lvalues.  However, various versions of the GNU compilers diagnose
+this constraint differently.  Specifically, when the operand is a const lvalue,
+some versions of the GNU compiler issue an error, others only warn, and the
+latest silently accept such operands.  The EDG front end now warns in such
+cases (for all values of gnu_version).  For example:
+
+  void f() {
+    int const x;
+    asm("mov %0, r0": "=r"(x));  // Previously an error because "x" is not
+  }                              // modifiable.  Now just a warning.
+
+See also the Changes entry of 7/15/05.
+
 9/8/05   Macro expansion to produce string literal in _Pragma operator
 
 Macro expansion is now done when scanning the tokens that make up a C99
