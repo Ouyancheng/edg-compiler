@@ -3279,7 +3279,10 @@ this is not allowed, an error will be issued by the caller.
         /* A previously created projection symbol can be hidden by a new
            declaration.  In strict mode this is an error because it
            violates the rule that a name must mean the same thing when
-           considered in the complete class definition. */
+           considered in the complete class definition.  Remove the old
+           symbol so that it does not need to be handled by the lookup
+           routines. */
+        remove_symbol(old_sym);
         err = FALSE;
       } else if (scope_stack[scope_depth].in_prototype_instantiation &&
                  scope_stack[scope_depth].kind ==
