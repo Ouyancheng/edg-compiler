@@ -9171,9 +9171,8 @@ expressions allow only certain limited casts).
     valid_in_const_expr = TRUE;
   } else if (gcc_mode &&
              is_class_struct_union_type(dest_type) &&
-             f_identical_types(f_skip_typerefs(source_type),
-                               f_skip_typerefs(dest_type),
-                               ITF_NO_FLAGS)) {
+             identical_types_ignoring_qualifiers(source_type,
+                                                 dest_type)) {
     /* GNU C allows a do-nothing cast to a struct or union type. */
     valid_in_const_expr = TRUE;
   } else if (gcc_mode &&
@@ -9886,9 +9885,8 @@ C-style casts and C++ functional-notation type conversions.
           /* Cast to (possibly cv-qualified) void. */
           cast_operand_to_void(operand, type_cast_to);
         } else if (microsoft_bugs && is_an_lvalue(operand) &&
-                   f_identical_types(f_skip_typerefs(source_type),
-                                     f_skip_typerefs(type_cast_to),
-                                     ITF_NO_FLAGS) &&
+                   identical_types_ignoring_qualifiers(source_type,
+                                                       type_cast_to) &&
                    value_of_constant_var_lvalue_operand(operand) == NULL &&
                    !is_bit_field_operand(operand)) {
           /* In Microsoft mode, a cast of an lvalue to the same type
@@ -9897,13 +9895,30 @@ C-style casts and C++ functional-notation type conversions.
           /* The cast can add or drop cv-qualifiers.  If it does, we
              have to add a cast. */
           microsoft_lvalue_cv_qual_adjustment(operand, type_cast_to);
+#if GNU_EXTENSIONS_ALLOWED
+        } else if (gcc_mode && gnu_version < 40000 &&
+                   is_class_struct_union_type(type_cast_to) &&
+                   identical_types_ignoring_qualifiers(source_type,
+                                                       type_cast_to)) {
+          /* GNU C allows a do-nothing cast to a struct or union type.
+             The result does not change type (even if there is a cv-qualifier
+             difference implied) and it is not forced to an rvalue. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         } else if (is_an_lvalue(operand) &&
                    (C_dialect == C_dialect_pcc || SVR4_C_mode ||
-                    (gcc_mode && gnu_version < 40000) ||
+                    (gcc_mode && gnu_version < 40000 &&
+                     !identical_types_ignoring_qualifiers(source_type,
+                                                          type_cast_to)) ||
                     (microsoft_mode && C_mode())) &&
                    still_an_lvalue(source_type, type_cast_to)) {
           /* In pcc, SVR4 C, GNU C or Microsoft C mode, some lvalues cast to
              other types remain lvalues (e.g., int to unsigned). */
+          /* In GNU C mode, a cast of an lvalue to the type it would have
+             anyway if converted to an rvalue (cv-qualifiers are dropped)
+             is retained at this level and effectively dropped later.
+             gcc apparently optimizes such casts out of its tree which
+             means it can recover an lvalue from the expression later --
+             it has forgotten there was a cast there. */
           /* Use a special "lvalue cast" operator.  Always do the cast on
              an expression node, even if the lvalue address is currently
              given by a constant.  This is because all lvalue casts should
@@ -9915,16 +9930,6 @@ C-style casts and C++ functional-notation type conversions.
              the cast lvalue is then converted to an rvalue (the usual
              case). */
           lvalue_cast(type_cast_to, operand);
-#if GNU_EXTENSIONS_ALLOWED
-        } else if (gcc_mode && gnu_version < 40000 &&
-                   is_class_struct_union_type(type_cast_to) &&
-                   f_identical_types(f_skip_typerefs(source_type),
-                                     f_skip_typerefs(type_cast_to),
-                                     ITF_NO_FLAGS)) {
-          /* GNU C allows a do-nothing cast to a struct or union type.
-             The result does not change type (even if there is a cv-qualifier
-             difference implied) and it is not forced to an rvalue. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
         } else {
           a_boolean      reinterpret_semantics = FALSE;
           a_boolean      operand_is_constant;
@@ -10083,9 +10088,8 @@ Syntax:
     err = TRUE;
   }  /* if */
   if (microsoft_bugs &&
-      f_identical_types(f_skip_typerefs(operand.type),
-                        f_skip_typerefs(cast_type),
-                        ITF_NO_FLAGS)) {
+      identical_types_ignoring_qualifiers(operand.type,
+                                          cast_type)) {
     a_boolean do_lvalue_check = FALSE;
     if (is_enum_type(cast_type)) {
       /* MSVC++ (6.0, 7.0, and 7.1 at least) allows a cast to an enum type
