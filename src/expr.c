@@ -9897,12 +9897,11 @@ C-style casts and C++ functional-notation type conversions.
           microsoft_lvalue_cv_qual_adjustment(operand, type_cast_to);
 #if GNU_EXTENSIONS_ALLOWED
         } else if (gcc_mode && gnu_version < 40000 &&
-                   is_class_struct_union_type(type_cast_to) &&
                    identical_types_ignoring_qualifiers(source_type,
                                                        type_cast_to)) {
-          /* GNU C allows a do-nothing cast to a struct or union type.
-             The result does not change type (even if there is a cv-qualifier
-             difference implied) and it is not forced to an rvalue. */
+          /* GNU C ignores a do-nothing cast.  The result does not change
+             type (even if there is a cv-qualifier difference implied) and
+             it is not forced to an rvalue. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         } else if (is_an_lvalue(operand) &&
                    (C_dialect == C_dialect_pcc || SVR4_C_mode ||
