@@ -4299,9 +4299,24 @@ access mode to the indicated access.  Do nothing if the current access
 is already set to that value.
 */
 {
-  if (access != curr_name_context->access) {
+  a_type_ptr                  class_type = curr_name_context_class();
+  a_class_type_supplement_ptr ctsp =
+                             class_type->variant.class_struct_union.extra_info;
+
+  if (access != curr_name_context->access &&
+      !(ctsp->anonymous_union_kind == auk_field
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+        || class_type->
+                      variant.class_struct_union.is_nonstd_anonymous_union_type
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+        )) {
     /* The desired access is not the current access, so put out an access
-       specifier, e.g., "public:". */
+       specifier, e.g., "public:".  (We avoid putting access labels into
+       anonymous unions: only public members are allowed in anonymous unions,
+       so if the access of the member is not the same as the current context
+       (which will be public in an anonymous union), it is because the
+       more-restrictive access was inherited from the larger context and not
+       because an access label appeared in the source.) */
     gen_access_specifier(access);
     write_tok_ch(':');
     write_space();
@@ -4705,21 +4720,23 @@ is the one associated with the definition of the class.
     push_name_context(ctsp->assoc_scope);
     /* Keep track of the current access category, in order to emit a change
        when necessary. */
-    if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field
+    curr_name_context->access = (an_access_specifier)as_public;
+    if (type->kind == (a_type_kind)tk_class) {
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-        || type->variant.class_struct_union.is_nonstd_anonymous_union_type
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-                                                                     ) {
-      /* An anonymous union starts with the same access as the enclosing
-         class.  (Also nonstandard anonymous unions.) */
-      curr_name_context->access = curr_name_context->next->access;
-    } else {
-      /* Normal case (not an anonymous union).  Start with the default
-         based on the class/struct/union keyword. */
-      curr_name_context->access = (an_access_specifier)as_public;
-      if (type->kind == (a_type_kind)tk_class) {
-        curr_name_context->access = (an_access_specifier)as_private;
-      }  /* if */
+      if (type->variant.class_struct_union.is_nonstd_anonymous_union_type) {
+        /* Private members are not allowed in a nonstandard anonymous union,
+           so we unconditionally emit "public:" here.  We cannot rely on the
+           normal access tracking to emit the correct access label because the
+           members might be marked as having private access, depending on the
+           context in which the nonstandard anonymous union appears, even
+           though they are public members of the union. */
+        gen_access_specifier((an_access_specifier)as_public);
+        write_tok_ch(':');
+        write_space();
+      } else
+#endif /* ALLOW_NONSTANDARD_ANONYOUS_UNIONS */
+      /* Do not insert code here. */
+      curr_name_context->access = (an_access_specifier)as_private;
     }  /* if */
   }  /* if */
   /* Go through the source sequence list and generate the members of the

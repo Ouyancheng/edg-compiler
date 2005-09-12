@@ -1,5 +1,24 @@
 Version 3.7
 
+9/12/05  C++-generating back end: access labels in anonymous unions
+
+When a union or a nonstandard anonymous union appeared as a non-public member
+of a class, the C++-generating back end formerly added access labels
+reflecting the effective access of the members of the anonymous union,
+resulting in invalid generated code.  For example:
+
+      Original source:          Previously generated:
+      ----------------          ---------------------
+      class C {                 class C {
+        union {                   union {
+          struct {                  public: struct {
+            int i;                    private: int i;
+          };                        };
+        };                        };
+      };                        };
+
+The extraneous access labels are now omitted from the generated code.
+
 9/8/05   GNU compatibility: asm output operand constraints
 
 Output operands specified in extended GNU asm constructs must normally be
