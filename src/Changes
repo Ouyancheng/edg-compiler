@@ -647,7 +647,7 @@ Now, it does.  The operand of the cast must be constant.
   } int64;
   int64 null = (int64)0LL;  /* Now accepted in gcc mode. */
 
-8/5/04   Implicit conversion of function types and template deduction
+8/5/05   Implicit conversion of function types and template deduction
 
 In some modes, an implicit conversion between pointers to functions with
 with C and C++ linkage is permitted.  This conversion was not considered
