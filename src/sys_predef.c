@@ -870,6 +870,16 @@ Enter the standard predeclared functions for GCC.
 			     (a_type_ptr)NULL,
 			     (a_type_ptr)NULL,
 			     /*is_varargs=*/TRUE);
+  if (gcc_mode) {
+    /* __builtin_choose_expr is only available in GNU C, not GNU C++. */
+    enter_gnu_builtin_function((a_builtin_function_kind)bfk_choose_expr,
+                               int_type,
+                               (a_type_ptr)NULL,
+                               (a_type_ptr)NULL,
+                               (a_type_ptr)NULL,
+                               (a_type_ptr)NULL,
+                               /*is_varargs=*/TRUE);
+  }  /* if */
   enter_gnu_builtin_function((a_builtin_function_kind)bfk_expect,
 			     long_type,
 			     long_type,

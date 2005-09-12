@@ -6960,6 +6960,7 @@ enum a_builtin_function_kind_tag {
   bfk_eh_return_data_regno,     /* "__builtin_eh_return_data_regno" */
   bfk_classify_type,            /* "__builtin_classify_type" */
   bfk_constant_p,               /* "__builtin_constant_p" */
+  bfk_choose_expr,              /* "__builtin_choose_expr" */
   bfk_expect,                   /* "__builtin_expect" */
   bfk_bzero,                    /* "__builtin_bzero" */
   bfk_bcmp,                     /* "__builtin_bcmp" */
@@ -7142,6 +7143,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_eh_return_data_regno */     "__builtin_eh_return_data_regno",
   /* bfk_classify_type */            "__builtin_classify_type",
   /* bfk_constant_p */               "__builtin_constant_p",
+  /* bfk_choose_expr */              "__builtin_choose_expr",
   /* bfk_expect */                   "__builtin_expect",
   /* bfk_bzero */                    "__builtin_bzero", 
   /* bfk_bcmp */                     "__builtin_bcmp",

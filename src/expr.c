@@ -1155,8 +1155,9 @@ sizeof arguments); otherwise, *pseudo_call is set to FALSE.
   *pseudo_call = FALSE;
   if (rp != NULL && is_gnu_builtin_function(rp)) {
     switch (rp->variant.builtin_function_kind) {
-      case bfk_constant_p:
       case bfk_classify_type:
+      case bfk_constant_p:
+      case bfk_choose_expr:
         *pseudo_call = TRUE;
         /*FALLTHROUGH*/
       case bfk_huge_valf:
@@ -1393,6 +1394,84 @@ given operand by a constant operand if appropriate.
 }  /* fold_call_if_possible */
 
 
+static void scan_expr_for_builtin_choose_expr(an_operand  *operand,
+                                              a_boolean   is_evaluated,
+                                              a_boolean   *err)
+/*
+Scan the second or third argument of a GNU C __builtin_choose_expr construct
+(including the leading comma).  If is_evaluated is TRUE, *operand is set to
+represent the argument; otherwise, the argument is discarded.  *err is set to
+TRUE if errors are detected; if *err is already set to TRUE, some diagnostics
+are inhibited.
+*/
+{
+  an_operand           *arg_ptr, unevaluated_operand;
+  an_expr_stack_entry  expr_stack_entry;
+
+  if (curr_token == tok_comma) {
+    (void)get_token();
+    if (is_evaluated) {
+      arg_ptr = operand;
+    } else {
+      push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                      /*force_object_lifetime=*/FALSE,
+                      /*suppress_object_lifetime=*/FALSE);
+      arg_ptr = &unevaluated_operand;
+    }  /* if */
+    scan_expr(arg_ptr, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    if (!is_evaluated) {
+      pop_expr_stack();
+    }  /* if */
+  } else {
+    if (!*err) {
+      error(ec_exp_comma);
+    }  /* if */
+    flush_tokens();
+    if (is_evaluated) {
+      make_error_operand(operand);
+    }  /* if */
+    *err = TRUE;
+  }  /* if */
+}  /* scan_expr_for_builtin_choose_expr */
+
+
+static void scan_and_process_builtin_choose_expr_args(an_operand  *result)
+/*
+Parse the three comma-separated arguments in a construct of the form
+    __builtin_choose_expr( <arg1>, <arg2>, <arg3>)
+The left parenthesis is already consumed.  <arg1> must be a constant-expression
+and determines whether <arg2> (if <arg1> is true) or <arg3> (if <arg1> is
+false) should be returned in *result.  The type of the operand is the type of
+the chosen expression.
+*/
+{
+  a_boolean            evaluate_2nd_arg, evaluate_3rd_arg, err = FALSE;
+  an_operand           selector_op;
+  a_constant           selector;
+  an_expr_stack_entry  expr_stack_entry;
+
+  /* Scan the selector expression, which must be a scalar constant. */
+  push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  scan_expr(&selector_op, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  do_operand_transformations(&selector_op, TOPT_NO_OPTIONS);
+  pop_expr_stack();
+  if (is_error_operand(&selector_op)) {
+    err = TRUE;
+  } else if (!is_scalar_type(selector_op.type)) {
+    error_in_operand(ec_expr_not_scalar, &selector_op);
+  }  /* if */
+  extract_constant_from_operand(&selector_op, &selector);
+  /* Now scan the second and third argument: One is discarded and the other
+     is returned through *result. */
+  evaluate_2nd_arg = !is_false_constant(&selector);
+  evaluate_3rd_arg = !evaluate_2nd_arg;
+  scan_expr_for_builtin_choose_expr(result, evaluate_2nd_arg, &err);
+  scan_expr_for_builtin_choose_expr(result, evaluate_3rd_arg, &err);
+}  /* scan_and_process_builtin_choose_expr_args */
+
+
 static void scan_gnu_builtin_pseudo_call(an_operand  *operand,
                                          an_operand  *result_op)
 /*
@@ -1403,66 +1482,73 @@ operand representing the entire pseudo-call.  Currently, only
 __builtin_constant_p and __builtin_classify_type are processed here.
 */
 {
-  an_operand           arg;
-  an_expr_stack_entry  expr_stack_entry;
-  a_routine_ptr        rp = routine_from_function_operand(operand);
-  a_type_ptr           result_type;
-  a_constant           result;
+  an_operand               arg;
+  an_expr_stack_entry      expr_stack_entry;
+  a_routine_ptr            rp = routine_from_function_operand(operand);
+  a_builtin_function_kind  bfk;
+  a_type_ptr               result_type;
+  a_constant               result;
 
+  check_assertion(rp != NULL && is_gnu_builtin_function(rp));
+  bfk = rp->variant.builtin_function_kind;
   /* Pick up the "(" and add ")" as a stop token. */
   check_assertion(curr_token == tok_lparen);
   (void)get_token();
   add_matching_stop_token(tok_rparen);
-  /* Prevent the arguments from being evaluated (i.e., treat them like sizeof
-     arguments). */
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  /* Parse the pseudo-call argument.  GNU compilers accept multiple arguments
-     and no argument, but that does not seem a useful thing to emulate.  So
-     we'll issue a syntax error in those cases. */
-  scan_expr(&arg, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  /* Now determine the constant result of the pseudo-call by examining the
-     (unevaluated) argument expression. */
-  check_assertion(rp != NULL && is_gnu_builtin_function(rp));
-  result_type = return_type_of(rp->type);
-  result_type = skip_typerefs(result_type);
-  check_assertion(is_integral_type(result_type));
-  switch (rp->variant.builtin_function_kind) {
-    case bfk_constant_p:
-      /* Lvalue-to-rvalue transformation is needed to ensure that a global
-         variable lvalue (which is represented as an address constant) is
-         not treated as a constant by is_constant_operand.  Except for string
-         literals, GNU compilers do not treat address constants as
-         constants.  (Note that operand_is_string_literal only works prior
-         to applying the lvalue-to-rvalue transformation.) */
-      {
-        a_boolean  result_value = operand_is_string_literal(&arg);
-        do_operand_transformations(&arg, TOPT_NO_OPTIONS);
-        if (!result_value) {
-          result_value = is_constant_operand(&arg) &&
-                         arg.variant.constant.kind !=
-                                             (a_constant_repr_kind)ck_address;
-        }  /* if */
-        set_integer_constant(&result, (a_host_large_integer)result_value,
-                             result_type->variant.integer.int_kind);
-      }
-      break;
-    case bfk_classify_type:
+  if  (bfk == (a_builtin_function_kind)bfk_choose_expr) {
+    scan_and_process_builtin_choose_expr_args(result_op);
+  } else {
+    /* Simple cases involving just one unevaluated argument (i.e., the
+       argument is parsed "as if" for a sizeof operator. */
+    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    /* Parse the pseudo-call argument.  GNU compilers accept multiple arguments
+       and no argument, but that does not seem a useful thing to emulate.  So
+       we'll issue a syntax error in those cases. */
+    scan_expr(&arg, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    /* Now determine the constant result of the pseudo-call by examining the
+       (unevaluated) argument expression. */
+    result_type = return_type_of(rp->type);
+    result_type = skip_typerefs(result_type);
+    check_assertion(is_integral_type(result_type));
+    switch (rp->variant.builtin_function_kind) {
+      case bfk_constant_p:
+        /* Lvalue-to-rvalue transformation is needed to ensure that a global
+           variable lvalue (which is represented as an address constant) is
+           not treated as a constant by is_constant_operand.  Except for string
+           literals, GNU compilers do not treat address constants as
+           constants.  (Note that operand_is_string_literal only works prior
+           to applying the lvalue-to-rvalue transformation.) */
+        {
+          a_boolean  result_value = operand_is_string_literal(&arg);
+          do_operand_transformations(&arg, TOPT_NO_OPTIONS);
+          if (!result_value) {
+            result_value = is_constant_operand(&arg) &&
+                           arg.variant.constant.kind !=
+                                              (a_constant_repr_kind)ck_address;
+          }  /* if */
+          set_integer_constant(&result, (a_host_large_integer)result_value,
+                               result_type->variant.integer.int_kind);
+        }
+        break;
+      case bfk_classify_type:
 #if FIXED_POINT_ALLOWED
-      if (fixed_point_enabled && is_fixed_point_type(arg.type)) {
-        pos_error(ec_no_classification_for_fixed_point_type, &arg.position);
-      }  /* if */
+        if (fixed_point_enabled && is_fixed_point_type(arg.type)) {
+          pos_error(ec_no_classification_for_fixed_point_type, &arg.position);
+        }  /* if */
 #endif /* FIXED_POINT_ALLOWED */
-      set_integer_constant(&result,
-                           (a_host_large_integer)
-                                            gnu_type_class_for_type(arg.type),
-                           result_type->variant.integer.int_kind);
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-  make_constant_operand(&result, result_op);
+        set_integer_constant(&result,
+                             (a_host_large_integer)
+                                             gnu_type_class_for_type(arg.type),
+                             result_type->variant.integer.int_kind);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    make_constant_operand(&result, result_op);
+    pop_expr_stack();
+  }  /* if */
   result_op->position = operand->position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   result_op->end_position = pos_curr_token;
@@ -1474,7 +1560,6 @@ __builtin_constant_p and __builtin_classify_type are processed here.
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
-  pop_expr_stack();
 }  /* scan_gnu_builtin_pseudo_call */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */

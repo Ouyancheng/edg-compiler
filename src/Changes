@@ -1,5 +1,15 @@
 Version 3.7
 
+9/12/05  GNU C compatibility: __builtin_choose_expr
+
+In GNU C mode, the __builtin_choose_expr is now accepted.  This pseudo-function
+takes three arguments.  The first must be a scalar constant-expression: It
+determines whether the result of the pseudo-call is the second of the third
+operand (the other operand is discarded).  For example:
+
+  int i;
+  int j = __builtin_choose_expr(1, 3, i);  // Okay.  Same as "int j = 3;"
+
 9/12/05  C++-generating back end: access labels in anonymous unions
 
 When an anonymous union or a nonstandard anonymous union appeared as a
