@@ -25,7 +25,7 @@ back end) for inclusion in the generated code.
 
 9/12/05  GNU C compatibility: __builtin_choose_expr
 
-In GNU C mode, the __builtin_choose_expr is now accepted.  This pseudo-function
+In GNU C mode, __builtin_choose_expr is now accepted.  This pseudo-function
 takes three arguments.  The first must be a scalar constant-expression: It
 determines whether the result of the pseudo-call is the second of the third
 operand (the other operand is discarded).  For example:
