@@ -149,6 +149,7 @@ typedef enum /*a_token_kind*/ {
 #if GNU_EXTENSIONS_ALLOWED
   tok_va_start_single_operand,
   tok_builtin_offsetof,
+  tok_builtin_types_compatible,
 #endif /* GNU_EXTENSIONS_ALLOWED */
   tok_restrict,
   /* C99 types: _Bool, _Complex and _Imaginary. */
@@ -310,6 +311,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 #if GNU_EXTENSIONS_ALLOWED
    "__builtin_varargs_start",
    "__builtin_offsetof",
+   "__builtin_types_compatible_p",
 #endif /* GNU_EXTENSIONS_ALLOWED */
    "restrict",
    "_Bool", "_Complex", "_Imaginary", "__I__", "__NAN__", "__INFINITY__",
@@ -669,6 +671,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #if GNU_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_va_start_single_operand */
    (an_opname_kind)onk_none,          /* tok_builtin_offsetof */
+   (an_opname_kind)onk_none,          /* tok_builtin_types_compatible */
 #endif /* GNU_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_restrict */
    (an_opname_kind)onk_none,          /* tok_c99_bool */

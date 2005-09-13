@@ -5690,6 +5690,52 @@ scan_field_selection_operator.
   (void)required_token(tok_rparen, ec_exp_rparen);
 }  /* scan_offsetof */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void scan_builtin_types_compatible(an_operand  *result)
+/*
+Scan a GNU C construct of the form
+      __builtin_types_compatible_p(<type1>, <type2>)
+the result of which is an int of value 1 if the two given types are
+compatible, or value 0 if they are not.  The resulting constant operand
+is returned through *result.
+*/
+{
+  a_type_ptr         type_1, type_2;
+  a_source_position  start_pos;
+  a_constant         result_constant;
+
+  copy_source_position(pos_curr_token, start_pos);
+  /* Pass over the built-in offsetof token. */
+  check_assertion(curr_token == tok_builtin_types_compatible);
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_stop_token(tok_rparen);
+  type_name(&type_1);
+  (void)required_token(tok_comma, ec_exp_comma);
+  type_name(&type_2);
+  /* Create the result operand. */
+  set_integer_constant(
+                   &result_constant,
+                   (a_host_large_integer)types_are_compatible(type_1, type_2),
+                   ik_int);
+  make_constant_operand(&result_constant, result);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  result->variant.constant.expr =
+                     alloc_expr_node((an_expr_node_kind)enk_types_compatible);
+  result->variant.constant.expr->type = result_constant.type;
+  result->variant.constant.expr->variant.types_compatible.type_1 = type_1;
+  result->variant.constant.expr->variant.types_compatible.type_2 = type_2;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  set_operand_position(result, &start_pos, &end_pos_curr_token,
+                       (a_source_position *)NULL);
+  /* Check for and pass over the right parenthesis. */
+  remove_stop_token(tok_rparen);
+  (void)required_token(tok_rparen, ec_exp_rparen);
+}  /* scan_builtin_types_compatible */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack)
 /*
@@ -14233,6 +14279,7 @@ Return TRUE if the indicated token is one that could start an expression.
 #if GNU_EXTENSIONS_ALLOWED
     case tok_va_start_single_operand:
     case tok_builtin_offsetof:
+    case tok_builtin_types_compatible:
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
@@ -16667,6 +16714,13 @@ see expr.h).
       /* __builtin_offsetof construct. */
       scan_offsetof(&local_result);
       break;
+
+#if GNU_EXTENSIONS_ALLOWED
+    case tok_builtin_types_compatible:
+      /* GNU C's __builtin_types_compatible_p construct. */
+      scan_builtin_types_compatible(&local_result);
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
     case tok_generic:
       /* __generic operation, implementing type-generic functions in C99. */

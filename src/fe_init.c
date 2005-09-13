@@ -356,18 +356,6 @@ Install the keywords in the symbol table.
   enter_keyword((a_token_kind)tok_alignof, "__ALIGNOF__");
   enter_keyword((a_token_kind)tok_alignof, "__alignof__");
   enter_keyword((a_token_kind)tok_intaddr, "__INTADDR__");
-#if GNU_EXTENSIONS_ALLOWED
-  /* g++ 3.4 and later support an __offsetof keyword that appears to be
-     identical to our __INTADDR__.  Only g++ 3.4(.x) appears to use this
-     for the implementation of the offsetof macro, however.  Later versions
-     of both gcc and g++ use another new construct: __builtin_offsetof. */
-  if (gpp_mode && gnu_version >= 30400) {
-    enter_gnu_keyword((a_token_kind)tok_intaddr, "__offsetof");
-  }  /* if */
-  if (gnu_mode && gnu_version >= 40000) {
-    enter_keyword((a_token_kind)tok_builtin_offsetof, "__builtin_offsetof");
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   if (restrict_keyword_enabled) {
     enter_keyword((a_token_kind)tok_restrict, "restrict");
   }  /* if */
@@ -445,6 +433,20 @@ Install the keywords in the symbol table.
     enter_gnu_keyword((a_token_kind)tok_typeof, "typeof");
 #if GNU_EXTENSIONS_ALLOWED
     enter_gnu_keyword((a_token_kind)tok_attribute, "__attribute");
+    /* g++ 3.4 and later support an __offsetof keyword that appears to be
+       identical to our __INTADDR__.  Only g++ 3.4(.x) appears to use this
+       for the implementation of the offsetof macro, however.  Later versions
+       of both gcc and g++ use another new construct: __builtin_offsetof. */
+    if (gpp_mode && gnu_version >= 30400) {
+      enter_gnu_keyword((a_token_kind)tok_intaddr, "__offsetof");
+    }  /* if */
+    if (gnu_version >= 40000) {
+      enter_keyword((a_token_kind)tok_builtin_offsetof, "__builtin_offsetof");
+    }  /* if */
+    if (gcc_mode) {
+      enter_gnu_keyword((a_token_kind)tok_builtin_types_compatible,
+                        "__builtin_types_compatible_p");
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GCC_BUILTIN_VARARGS
     /* Enable built-in support for <stdarg.h> and <varargs.h>.  Note that

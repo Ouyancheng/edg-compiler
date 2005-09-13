@@ -8078,6 +8078,12 @@ enum an_expr_node_kind_tag {
                            running destructors). */
 #endif /* VLA_DEALLOCATIONS_IN_IL */
   enk_offsetof,		/* Used to represent a built-in offsetof operator. */
+#if GNU_EXTENSIONS_ALLOWED
+  enk_types_compatible,	/* Used to represent a __builtin_types_compatible_p
+			   construct.  Currently only used for the "expr"
+			   representation of constants in some
+			   configurations. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -9151,6 +9157,17 @@ typedef struct an_expr_node {
 			   of an enk_constant node (representing a member
 			   of a template-dependent type). */
     } offsetof_info;
+#if GNU_EXTENSIONS_ALLOWED
+    /* When kind == enk_types_compatible: */
+    struct {
+      a_type_ptr
+		type_1;	/* The first of two types whose compatibility is
+			   being tested.  */
+      a_type_ptr
+		type_2;	/* The second of two types whose compatibility is
+			   being tested.  */
+    } types_compatible;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } variant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range

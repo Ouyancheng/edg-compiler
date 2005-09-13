@@ -1,5 +1,13 @@
 Version 3.7
 
+9/13/05  GNU C compatibility:  __builtin_types_compatible_p
+
+In GNU C mode, __builtin_types_compatible_p is now accepted.  It takes two
+types and produces a constant value 1 or 0, depending on whether those types
+are compatible or not.  For example:
+
+  int i = __builtin_types_compatible_p(int[], int[5]); // Same as "int i = 1;"
+
 9/13/05  Pragma processing: saving both text and token versions of pragmas
 
 Formerly, a pragma could be saved as either a text string or a token

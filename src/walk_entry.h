@@ -1517,6 +1517,16 @@ end_sizeof:;
             walk_ptr(ptr->variant.offsetof_info.member, an_expr_node_ptr,
                      iek_expr_node);
             break;
+#if GNU_EXTENSIONS_ALLOWED
+          case enk_types_compatible:
+            walk_ptr(ptr->variant.types_compatible.type_1, a_type_ptr,
+                     iek_type);
+            definition_needed_if_class(ptr->variant.types_compatible.type_1);
+            walk_ptr(ptr->variant.types_compatible.type_2, a_type_ptr,
+                     iek_type);
+            definition_needed_if_class(ptr->variant.types_compatible.type_2);
+          break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad expr node kind");

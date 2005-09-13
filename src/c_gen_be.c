@@ -4977,6 +4977,11 @@ done_with_operation:
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
       unexpected_condition_str("dump_expr: enk_field");
+#if GNU_EXTENSIONS_ALLOWED
+    case enk_types_compatible:
+      /* enk_types_compatible only appears in expressions recorded for
+         constants, which are not emitted by the C-generating back end. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_new_delete:  /* enk_new_delete is used in C++ only. */
     case enk_condition:   /* enk_condition is used in C++ only. */
     case enk_typeid:      /* enk_typeid is used in C++ only. */

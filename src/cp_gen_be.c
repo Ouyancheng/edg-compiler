@@ -8274,6 +8274,15 @@ done_with_operation_after_parens:
     case enk_offsetof:
       gen_builtin_offsetof(expr);
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case enk_types_compatible:
+      write_tok_str("__builtin_types_compatible_p(");
+      gen_type(expr->variant.types_compatible.type_1);
+      write_tok_str(", ");
+      gen_type(expr->variant.types_compatible.type_2);
+      write_tok_ch(')');
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");
   }  /* switch */
