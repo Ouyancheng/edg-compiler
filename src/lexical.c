@@ -14244,7 +14244,7 @@ encountered, whatever their other characteristics, are included.
       /* Add "#pragma " to the template string. */
       put_str_to_temp_text_buffer("#pragma ");
     }  /* if */
-    if (ppp->descr_ptr->make_text_not_tokens) {
+    if (ppp->descr_ptr->record_pragma_text) {
       /* Note: the pragma id is already part of pragma_text. */
       check_assertion(ppp->pragma_text != NULL);
       put_str_to_temp_text_buffer(ppp->pragma_text);

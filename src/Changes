@@ -1,5 +1,20 @@
 Version 3.7
 
+9/13/05  Pragma processing: saving both text and token versions of pragmas
+
+Formerly, a pragma could be saved as either a text string or a token
+cache based on the setting of the make_text_not_tokens field of the
+pragma.  The front end has been changed to always save the token cache
+version of the pragma (except for pragmas scanned in fetch_pp_tokens
+mode).  The make_text_not_tokens field has been renamed to record_pragma_text
+and controls whether or not the string version of the pragma should be
+saved in addition to the token cache.  It is still the case that the
+token cache is only available for use in the front end.  The IL representation
+of the pragma does not include the token cache information.  This change was
+made to allow a pragma to be scanned by the front end as tokens but to still
+permit the pragma text to be passed to a back end (e.g., the C++-generating
+back end) for inclusion in the generated code.
+
 9/12/05  GNU C compatibility: __builtin_choose_expr
 
 In GNU C mode, the __builtin_choose_expr is now accepted.  This pseudo-function

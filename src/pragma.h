@@ -143,9 +143,8 @@ typedef struct a_pragma_kind_description {
 			   the front end but can still be made part of
 			   the IL by user written code to explicitly
 			   link the pragma into the IL. */
-  a_bit_field	make_text_not_tokens:1;
-			/* TRUE if this pragma should not scanned into a
-			   token cache but rather should be preserved as
+  a_bit_field	record_pragma_text:1;
+			/* TRUE if the text of this pragma should be saved as
 			   a null terminated string.  The string created
 			   begins with the identifier following the #pragma
 		           keyword.  The character string representation
@@ -153,7 +152,10 @@ typedef struct a_pragma_kind_description {
 			   applications to pass pragmas to the generated
 			   output, and may also be used for pragmas which are
 			   more easily processed through the use of a
-			   character string instead of a token cache. */
+			   character string instead of a token cache.  The
+			   token representation of the pragma is also saved
+			   for use in the front end (except for pragmas
+			   scanned in fetch_pp_tokens mode). */
   a_bit_field	expand_macros:1;
                         /* Specifies whether macros should be expanded when
 			   recording the pragma.  Must be FALSE for tokens

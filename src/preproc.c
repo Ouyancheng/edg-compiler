@@ -1396,8 +1396,6 @@ there.
   add_token_cache_to_string(&ppp->token_cache);
   /* Copy the string to IL memory. */
   ppp->pragma_text = make_copy_of_token_string();
-  /* Free the cached tokens and reset the cache in the pragma entry. */
-  discard_token_cache(&ppp->token_cache);
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("pragma_string")) {
     fprintf(f_debug, "Saved pragma string: '%s'\n", ppp->pragma_text);
@@ -1519,21 +1517,20 @@ being scanned is a Microsoft __pragma operator.
   } else {
     /* Cache the tokens that make up the pragma directive. */
     cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
-    if (pkdp->make_text_not_tokens) {
+    if (pkdp->record_pragma_text) {
       /*  The character string representation is usually used for pragmas that
           are to be passed to the C or C++ generating back end, but may be
           used for other pragmas in which a character string is simpler to
           manipulate. */
       convert_pragma_to_string(ppp);
-    } else {
-      /* Remove the initial token from the token cache.  For historical
-         reasons, the cache does not include the pragma identifier, but
-         it must be cached initially so that it can be included in the
-         pragma string when making text, not tokens. */
-      remove_token_from_cache(ppp->token_cache.first_token,
-                              &ppp->token_cache.first_token,
-                              &ppp->token_cache);
     }  /* if */
+    /* Remove the initial token from the token cache.  For historical
+       reasons, the cache does not include the pragma identifier, but
+       it must be cached initially so that it can be included in the
+       pragma string when making text, not tokens. */
+    remove_token_from_cache(ppp->token_cache.first_token,
+                            &ppp->token_cache.first_token,
+                            &ppp->token_cache);
   }  /* if */
   if (pkdp->binding_kind == pbk_preproc_immediate) {
     /* Process a "preprocessing immediate" pragma.  Such pragmas are
