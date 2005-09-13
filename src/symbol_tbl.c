@@ -1712,10 +1712,10 @@ Allocate a new type list entry and return a pointer to it.
     /* Allocate a new entry. */
     ptr = (a_substituted_type_list_entry_ptr)
                                alloc_fe(sizeof(a_substituted_type_list_entry));
-  }  /* if */
 #if DEBUG
-  num_substituted_type_list_entries_allocated++;
+    num_substituted_type_list_entries_allocated++;
 #endif /* DEBUG */
+  }  /* if */
   ptr->next = NULL;
   ptr->templ_arg_list = NULL;
   ptr->type = NULL;
