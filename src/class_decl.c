@@ -8716,6 +8716,11 @@ promotion is for a nonstandard anonymous union.
      public. */
   if (!gpp_mode) {
     field->source_corresp.access = new_access;
+  } else {
+    /* The field should normally already have public access, but to avoid
+       repeated errors on private members of nested anonymous unions, we
+       force access to be public here. */
+    field->source_corresp.access = (an_access_specifier)as_public;
   }  /* if */
   if (apo_sym == NULL) {
     sym->variant.field.anonymous_parent_object = assoc_object_sym;
@@ -9143,7 +9148,8 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
         a_symbol_ptr                   sym;
 
         cssp = symbol_supplement_for_class(tp);
-        if (cssp->is_class_aggregate) {
+        if (cssp->is_class_aggregate ||
+            ((gpp_mode || microsoft_mode) && base_classes_of(tp) == NULL)) {
           if ((sym = cssp->symbols) != NULL) {
             /* Assume. */
             decl_info->is_anonymous_union = TRUE;
