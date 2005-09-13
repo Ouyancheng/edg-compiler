@@ -9835,6 +9835,7 @@ non-NULL, *p_ms_attributes is returned NULL.
 {
   a_field_ptr                    field;
   a_symbol_ptr                   member_sym = NULL;
+  a_type_ptr                     member_element_type;
   a_class_symbol_supplement_ptr  cssp;
   a_boolean                      unnamed_field = decl_info->is_unnamed_field;
 #if GNU_EXTENSIONS_ALLOWED
@@ -10054,18 +10055,26 @@ non-NULL, *p_ms_attributes is returned NULL.
   /* Remember if any member of the class, struct, or union is const-
      qualified, including recursively the members of any contained
      classes, structs, or unions.  This is useful for determination of
-     modifiable lvalues (see 3.2.2.1). */
-  if (is_const_qualified_type(member_type) ||
-      (is_class_struct_union_type(member_type) &&
-       skip_typerefs(member_type)->
-                            variant.class_struct_union.any_const_member)) {
-    class_type->variant.class_struct_union.any_const_member = TRUE;
-    if (C_dialect == C_dialect_cplusplus) {
-      /* Assignment by bitwise copy is not allowed when a class has const
-         qualified members. */
-      cssp->assignment_by_bitwise_copy_allowed = FALSE;
+     modifiable lvalues (see 3.2.2.1).  Note that C89 is subtly different
+     from C99 and C++ in this regard: C89 does not consider the qualification
+     of array element types (though it does consider the qualification of
+     members of those element types). */
+  member_element_type = is_array_type(member_type) ?
+                     underlying_array_element_type(member_type) : member_type;
+  { a_type_ptr  type_to_check = (!C_mode() || (c99_mode && strict_ansi_mode)) ?
+                                   member_element_type : member_type;
+    if (is_const_qualified_type(type_to_check) ||
+        (is_class_struct_union_type(member_element_type) &&
+         skip_typerefs(member_element_type)->
+                               variant.class_struct_union.any_const_member)) {
+      class_type->variant.class_struct_union.any_const_member = TRUE;
+      if (C_dialect == C_dialect_cplusplus) {
+        /* Assignment by bitwise copy is not allowed when a class has const
+           qualified members. */
+        cssp->assignment_by_bitwise_copy_allowed = FALSE;
+      }  /* if */
     }  /* if */
-  }  /* if */
+  }
   /* Note if any member (or member of a member, recursively) has a
      volatile-qualified type, to handle side effects and warnings
      correctly. */
@@ -10081,29 +10090,16 @@ non-NULL, *p_ms_attributes is returned NULL.
   if (is_aggregate_or_union_type(member_type)) {
     /* If the member's type is class, struct, or union -- or array of class,
        struct, or union -- there is additional checking to be done. */
-    a_type_ptr  tp = skip_typerefs(member_type);
-    if (is_array_type(tp)) {
-      tp = f_skip_typerefs(underlying_array_element_type(tp));
-    }  /* if */
+    a_type_ptr  tp = skip_typerefs(member_element_type);
     if (is_class_struct_union_type(tp)) {
-      /* If the member type has const-qualified fields, propagate the flag to
-         the parent type.  (Note: the test above for setting any_const_member
-         in the parent type does not handle the case of an array of class
-         types, so this test is not redundant.  The test above for
-         any_volatile_member is comprehensive, however, so the member flag has
-         already been propagated to the parent, if needed.) */
-      if (tp->variant.class_struct_union.any_const_member) {
-        class_type->variant.class_struct_union.any_const_member = TRUE;
-      }  /* if */
-      /* Similarly with the flag indicating that zero-initialization may be
-         needed as part of value-initialization. */
+      /* Propagate the flag indicating that zero-initialization may be needed
+         as part of value-initialization. */
       if (tp->variant.class_struct_union.has_zero_init_component) {
         class_type->variant.class_struct_union.has_zero_init_component = TRUE;
       }  /* if */
       if (C_dialect == C_dialect_cplusplus) {
-        a_class_symbol_supplement_ptr  member_cssp;
-
-        member_cssp = symbol_supplement_for_class(tp);
+        a_class_symbol_supplement_ptr  member_cssp =
+                                              symbol_supplement_for_class(tp);
         /* If the member type has any members of ref type, propagate the
            flag to the parent type. */
         if (member_cssp->any_ref_member) cssp->any_ref_member = TRUE;

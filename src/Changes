@@ -1,5 +1,17 @@
 Version 3.7
 
+9/13/05  Const-qualification and array fields in C99
+
+In C89, an lvalue of a struct type is considered modifiable even if one of
+its fields is an array of const-qualified elements.  In C99, this is no longer
+the case, and the front end now enforces this constraint in its strict C99
+mode.  For example:
+
+  struct S { int const i[2]; };
+  void f(struct S src, struct S *dst) {
+    *dst = src;  // Now an error in strict C99 mode.
+  }
+
 9/13/05  GNU C compatibility:  __builtin_types_compatible_p
 
 In GNU C mode, __builtin_types_compatible_p is now accepted.  It takes two
