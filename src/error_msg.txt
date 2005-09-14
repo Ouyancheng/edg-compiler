@@ -1478,7 +1478,7 @@ ec_offset_in_non_POD_nonstandard;;"offsetof applied to non-POD types is nonstand
 ec_default_arg_on_member_friend;;"default arguments are not allowed on a friend declaration of a member function"
 ec_default_arg_requires_friend_to_be_definition;;"default arguments are not allowed on friend declarations that are not definitions"
 ec_redeclaration_of_friend_with_default_args;;"redeclaration of %nd previously declared as a friend with default arguments is not allowed"
-ec_bad_qualifier_for_delayed_nested_class_definition;;"invalid qualifier for definition of nested class %t (a derived class is not allowed here)"
+ec_bad_qualifier_for_nested_class_decl;;"invalid qualifier for %t (a derived class is not allowed here)"
 ec_bad_qualifier_for_delayed_class_definition;;"invalid qualifier for definition of class %t"
 ###############################################################################
 #                                                             \  ___  /       #

@@ -2210,7 +2210,7 @@ using-declaration), issue an error.  For example:
     check_assertion(loc->is_class_member);
     if (!same_entities(loc->parent.class_type, sym->parent.class_type)) {
       pos_ty_diagnostic(strict_ansi_discretionary_severity,
-                        ec_bad_qualifier_for_delayed_nested_class_definition,
+                        ec_bad_qualifier_for_nested_class_decl,
                         &loc->source_position,
                         type_symbol_type(sym));
     }  /* if */
@@ -2465,7 +2465,9 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
           /* Specifying an inherited name in an explicit instantiation
              directive or in a template specialization declaration is
              disallowed. */
-          pos_error(ec_inherited_member_not_allowed, &locator.source_position);
+          pos_ty_error(ec_bad_qualifier_for_nested_class_decl,
+                       &locator.source_position,
+                       type_symbol_type(locator.specific_symbol));
         }  /* if */
       }  /* if */
     }  /* if */
@@ -3090,9 +3092,11 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
           !is_template_specialization && !tag_sym->is_error) {
         update_nested_template_class_symbol_info(tag_sym, type_kind);
       }  /* if */
-      if (strict_ansi_mode && locator.is_qualified_name) {
+      if (strict_ansi_mode && locator.is_qualified_name &&
+          !(is_explicit_instantiation || is_template_specialization)) {
         /* The C++ standard was revised to restrict the kind of qualifiers
-           used for class definitions. */
+           used for class definitions.  Explicit instantiations and
+           explicit specializations are diagnosed elsewhere. */
         check_name_used_for_qualified_class_definition(&locator, tag_sym);
       }  /* if */
     }  /* if */
