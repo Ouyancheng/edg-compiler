@@ -1,5 +1,23 @@
 Version 3.7
 
+9/15/05  GNU mode lvalue casts
+
+The handling of GNU mode lvalue casts has been reworked (again) to
+get closer to what gcc and g++ do.  The specific case that drove
+this work appears in a Linux <fstream> header and is illustrated
+by the following reduced test case:
+
+  template<class T> struct B { void operator>>(int&) {} };
+  enum { e } x;
+  int main() {
+     B<int> b;
+     b >> (int)x;  // (int)x is treated as an int lvalue
+  }
+
+IL CHANGE: as part of this work, the "lvalue cast" operator
+eok_lvalue_cast is now used in GNU C++ and Microsoft C++ modes.
+Formerly, it was generated only in some C modes.
+
 9/13/05  Const-qualification and array fields in C99
 
 In C89, an lvalue of a struct type is considered modifiable even if one of

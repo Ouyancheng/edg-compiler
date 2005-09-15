@@ -7532,9 +7532,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
           goto done_with_operation;
         case eok_lvalue_cast:
-          check_assertion(C_mode());
+          write_tok_ch('(');
+          gen_cast(expr->type);
           write_tok_ch('&');
-          gen_lvalue(expr);
+          gen_lvalue(operand_1);
+          write_tok_ch(')');
           goto done_with_operation;
         case eok_address:
           write_tok_ch('&');

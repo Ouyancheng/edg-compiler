@@ -8183,9 +8183,11 @@ enum an_expr_operator_kind_tag {
 			   a pointer to a member of a direct derived class.
 			   The type of the expression indicates the type to
 			   cast to. */
-  eok_lvalue_cast,	/* Like eok_cast, but used to cast an lvalue in
-			   pcc mode.  An lvalue cast to a like-sized type
-			   can remain an lvalue. */
+  eok_lvalue_cast,	/* Like eok_cast, but used to cast an lvalue.
+			   An lvalue cast to a like-sized type can remain an
+			   lvalue.  An extension: used in some C modes and
+			   in Microsoft and GNU C++ modes.  Has essentially
+			   the same meaning as a pointer cast. */
   eok_dynamic_cast,	/* C++ dynamic_cast operation [expr.dynamic.cast].
 			   The operand is an lvalue if the result type is
 			   a reference, and an rvalue otherwise. */

@@ -3631,7 +3631,19 @@ an expression.  In effect, add an indirection to the expression.
       node->variant.operation.kind == (an_expr_operator_kind)eok_lvalue_cast) {
     operand_1 = node->variant.operation.operands;
     write_tok_ch('(');
-    dump_cast(type_pointed_to(node->type));
+    /* Generate the lvalue cast as an indirection on a pointer cast.
+       This avoids depending too much on the underlying compiler's
+       implementation of lvalue casts.  Note that this will not work for
+       a bit-field, so generate an lvalue cast for those cases. */
+    if (is_operation_node(operand_1) &&
+        operand_1->variant.operation.kind ==
+                                        (an_expr_operator_kind)eok_bit_field) {
+      dump_cast(type_pointed_to(node->type));
+    } else {
+      write_tok_ch('*');
+      dump_cast(node->type);
+      write_tok_ch('&');
+    }  /* if */
     dump_lvalue(operand_1);
     write_tok_ch(')');
   } else {
@@ -4052,8 +4064,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
           goto done_with_unary_operation;
         case eok_lvalue_cast:
+          write_tok_ch('(');
+          dump_cast(expr_type);
           write_tok_ch('&');
-          dump_lvalue(expr);
+          dump_lvalue(operand_1);
+          write_tok_ch(')');
           goto done_with_unary_operation;
         case eok_complement:
           is_unary = TRUE;

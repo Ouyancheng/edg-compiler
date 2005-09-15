@@ -8904,12 +8904,12 @@ an_expr_node_ptr make_lvalue_cast_node(an_expr_node_ptr source_expr,
                                        a_type_ptr       type_cast_to)
 /*
 Make an lvalue cast expression node that casts source_expr to type_cast_to.
-This is used only in C mode, and it's an extension.
+This is an extension used only in C mode and Microsoft and GNU C++ modes.
 */
 {
   an_expr_node_ptr lvalue_cast_node;
 
-  check_assertion_str(C_mode(),
+  check_assertion_str(C_mode() || gpp_mode || microsoft_mode,
                       "make_lvalue_cast_node: lvalue cast in C++ mode");
   lvalue_cast_node = make_operator_node((an_expr_operator_kind)eok_lvalue_cast,
                                         make_pointer_type(type_cast_to),
@@ -8922,12 +8922,14 @@ static void lvalue_cast(a_type_ptr type_cast_to,
                         an_operand *result)
 /*
 Cast an operand for an lvalue (result) to a new type.  This "lvalue cast" is
-only done in C mode, and it's an extension.
+an extension only done in C mode and Microsoft and GNU C++ modes.
 */
 {
   an_expr_node_ptr temp_node;
+  a_ref_entry_ptr  ref_entry_list = result->ref_entries_list;
 
-  check_assertion_str(C_mode(), "lvalue_cast: lvalue cast in C++ mode");
+  check_assertion_str(C_mode() || gpp_mode || microsoft_mode,
+                      "lvalue_cast: lvalue cast in C++ mode");
   if (curr_expr_kind_is_const()) {
     /* In a constant expression, keep the operand constant. */
     take_address_of_lvalue(result);
@@ -8951,6 +8953,8 @@ only done in C mode, and it's an extension.
     result->variant.expression = temp_node;
     result->type = type_cast_to;
   }  /* if */
+  /* Preserve lvalue reference information. */
+  result->ref_entries_list = ref_entry_list;
 }  /* lvalue_cast */
 
 
@@ -9050,9 +9054,10 @@ be set to the source position of the type.
       if (!C_mode() && is_class_struct_union_type(type_cast_to)) {
         /* In C++ class rvalues can have qualifiers, so casting to a
            cv-qualified class type is okay. */
-      } else if (microsoft_bugs) {
+      } else if (microsoft_bugs ||
+                 (gpp_mode && gnu_version < 30400)) {
         /* Microsoft mode allows some lvalue casts where cv-qualifiers
-           matter, so give no warning. */
+           matter, so give no warning.  Ditto g++ mode. */
       } else {
         warning(ec_cast_to_qualified_type);
         *p_type_cast_to = type_cast_to = make_unqualified_type(type_cast_to);
@@ -9853,19 +9858,11 @@ static void microsoft_lvalue_cv_qual_adjustment(an_operand *operand,
 operand is being subjected to an lvalue cast to new_type in Microsoft
 mode.  The cast can adjust only the cv-qualification of the lvalue;
 the underlying type is the same.  If necessary, adjust the cv-qualification.
-Note that this will get an error if the operand is a bit field reference,
-so the caller should check for that and avoid it if appropriate.
 */
 {
   check_assertion(is_an_lvalue(operand) || is_error_operand(operand));
   if (!identical_types(operand->type, new_type)) {
-    take_address_of_lvalue(operand);
-    cast_operand(make_pointer_type(new_type),
-                 operand, /*check_cast_access=*/FALSE,
-                 /*is_implicit_cast=*/FALSE, 
-                 /*is_reinterpret_cast=*/FALSE,
-                 /*reinterpret_semantics=*/FALSE);
-    conv_object_pointer_to_lvalue(operand);
+    lvalue_cast(new_type, operand);
   }  /* if */
 }  /* microsoft_lvalue_cv_qual_adjustment */
 
@@ -10033,22 +10030,24 @@ C-style casts and C++ functional-notation type conversions.
           /* GNU C ignores a do-nothing cast.  The result does not change
              type (even if there is a cv-qualifier difference implied) and
              it is not forced to an rvalue. */
+        } else if (gpp_mode && gnu_version < 30400 && is_an_lvalue(operand) &&
+                   is_integral_or_enum_type(source_type) &&
+                   is_integral_or_enum_type(type_cast_to) &&
+                   f_skip_typerefs(source_type)->size ==
+                                         f_skip_typerefs(type_cast_to)->size &&
+                   !f_identical_types(source_type,
+                                      rvalue_type(type_cast_to),
+                                      ITF_NO_FLAGS) &&
+                   !is_bit_field_operand(operand)) {
+          /* GNU C++ allows a limited form of lvalue cast on integral types. */
+          lvalue_cast(type_cast_to, operand);
 #endif /* GNU_EXTENSIONS_ALLOWED */
         } else if (is_an_lvalue(operand) &&
                    (C_dialect == C_dialect_pcc || SVR4_C_mode ||
-                    (gcc_mode && gnu_version < 40000 &&
-                     !identical_types_ignoring_qualifiers(source_type,
-                                                          type_cast_to)) ||
                     (microsoft_mode && C_mode())) &&
                    still_an_lvalue(source_type, type_cast_to)) {
-          /* In pcc, SVR4 C, GNU C or Microsoft C mode, some lvalues cast to
+          /* In pcc, SVR4 C, or Microsoft C mode, some lvalues cast to
              other types remain lvalues (e.g., int to unsigned). */
-          /* In GNU C mode, a cast of an lvalue to the type it would have
-             anyway if converted to an rvalue (cv-qualifiers are dropped)
-             is retained at this level and effectively dropped later.
-             gcc apparently optimizes such casts out of its tree which
-             means it can recover an lvalue from the expression later --
-             it has forgotten there was a cast there. */
           /* Use a special "lvalue cast" operator.  Always do the cast on
              an expression node, even if the lvalue address is currently
              given by a constant.  This is because all lvalue casts should
@@ -10069,8 +10068,17 @@ C-style casts and C++ functional-notation type conversions.
              pointer; the conversion here wouldn't hurt, but it's not
              needed). */
           if (!cast_to_reference) {
+            a_ref_entry_ptr ref_entries_list = operand->ref_entries_list;
             /* Normal cast.  All standard C cases. */
             conv_lvalue_to_rvalue(operand);
+            if (gcc_mode && gnu_version < 40000 &&
+                still_an_lvalue(source_type, type_cast_to)) {
+              /* For a cast that might get removed if the operand is turned
+                 back into an lvalue, keep the references.  Note that the
+                 test here has to match the corresponding one in
+                 revert_gcc_rvalue_to_lvalue_if_possible. */
+              operand->ref_entries_list = ref_entries_list;
+            }  /* if */
           }  /* if */
           operand_is_constant = is_constant_operand(operand);
           if (operand_is_constant) operand_con = &operand->variant.constant;

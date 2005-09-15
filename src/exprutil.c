@@ -4864,13 +4864,15 @@ not interfere with turning it back into an lvalue (this is true,
 for example, in something like "(short)i = 0").
 */
 {
+  an_operand orig_operand;
+
   check_assertion(gnu_mode);
   if (gnu_version < 40000 && is_an_rvalue(operand)) {
     if (is_expression_operand(operand)) {
-      a_boolean  do_recovery = FALSE;
-      a_boolean  casts_removed = FALSE;
-      a_type_ptr type_cast_to = NULL, type_before_cast = NULL;
-      an_expr_node_ptr expr = operand->variant.expression;
+      a_boolean             do_recovery = FALSE;
+      a_boolean             casts_removed = FALSE;
+      a_type_ptr            type_cast_to = NULL, type_before_cast = NULL;
+      an_expr_node_ptr      expr = operand->variant.expression;
       an_expr_operator_kind op;
       if (gpp_mode &&
           is_operation_node(expr) &&
@@ -4890,15 +4892,23 @@ for example, in something like "(short)i = 0").
            (gcc_mode &&
             (op == (an_expr_operator_kind)eok_question ||
              op == (an_expr_operator_kind)eok_comma)))) {
-        casts_removed = 
-            (op == (an_expr_operator_kind)eok_cast &&
-             !expr->variant.operation.compiler_generated);
+        an_expr_node_ptr orig_expr = expr;
+        a_boolean        cast_on_top_originally =
+                                 (op == (an_expr_operator_kind)eok_cast &&
+                                  !expr->variant.operation.compiler_generated);
         /* See whether we can find an underlying lvalue. */
         conv_rvalue_expr_to_object_pointer(&expr, &do_recovery,
                                            /*see_if_possible=*/TRUE,
                                            /*gcc_lvalue=*/gcc_mode,
                                            ignore_casts,
                                            (a_type_ptr *)NULL);
+        if (ignore_casts && do_recovery && cast_on_top_originally &&
+            expr != orig_expr) {
+          /* One or more casts was removed. */
+          casts_removed = TRUE;
+          type_cast_to = orig_expr->type;
+          type_before_cast = expr->type;
+        }  /* if */
       } else if (!C_mode() &&
                  is_operation_node(expr) &&
                  op == (an_expr_operator_kind)eok_value_field) {
@@ -4913,7 +4923,6 @@ for example, in something like "(short)i = 0").
         make_expression_operand(texpr, texpr->type, &class_operand);
         revert_class_rvalue_to_lvalue_if_possible(&class_operand);
         if (is_an_lvalue(&class_operand)) {
-          an_operand orig_operand;
           orig_operand = *operand;
           check_assertion(is_expression_operand(&class_operand));
           texpr = class_operand.variant.expression;
@@ -4941,10 +4950,17 @@ for example, in something like "(short)i = 0").
       }  /* if */
       if (do_recovery) {
         /* Yes, an lvalue can be recovered. */
-        a_type_ptr lvalue_type;
-        an_operand orig_operand;
+        a_type_ptr cast_type = NULL;
         orig_operand = *operand;
         if (casts_removed) {
+          if (gcc_mode && gnu_version < 40000 &&
+              still_an_lvalue(type_before_cast, type_cast_to)) {
+            /* gcc treats certain "near-enough" casts as lvalue casts
+               if it needs an lvalue.  Note that do_cast preserves the
+               reference entries on such casts, and the condition there
+               should match the one tested here. */
+            cast_type = type_cast_to;
+          }  /* if */
           if (gpp_mode &&
               (gnu_version >= 30400 ||
                !((is_integral_type(type_cast_to) &&
@@ -4956,16 +4972,28 @@ for example, in something like "(short)i = 0").
             /* g++ 3.4 made this into an error.  g++ versions before that gave
                errors on mixed cases. */
             error_in_operand(ec_gcc_use_of_cast_as_lvalue, operand);
-          } else {
+          } else if (cast_type == NULL) {
+            /* Warn on an ignored cast. */
             pos_warning(ec_gcc_lvalue_cast_ignored, &operand->position);
+          } else if (gnu_version >= 30400) {
+            /* Warn on a use of an lvalue cast.  gcc started warning about this
+               in 3.4. */
+            pos_warning(ec_gcc_use_of_cast_as_lvalue, &operand->position);
           }  /* if */
         }  /* if */
         if (!is_error_operand(operand)) {
+          a_type_ptr lvalue_type;
           conv_rvalue_expr_to_object_pointer(&expr, &do_recovery,
                                              /*see_if_possible=*/FALSE,
                                              /*gcc_lvalue=*/gcc_mode,
                                              ignore_casts,
                                              &lvalue_type);
+          if (cast_type != NULL) {
+            /* Adjust the result lvalue type if necessary because of
+               a cast that's not being ignored. */
+            expr = add_cast_if_necessary(expr, make_pointer_type(cast_type));
+            lvalue_type = cast_type;
+          }  /* if */
           make_expression_operand(expr, expr->type, operand);
           if (is_function_type(lvalue_type)) {
             operand->state = (an_operand_state)os_function_designator;
@@ -4974,20 +5002,30 @@ for example, in something like "(short)i = 0").
           }  /* if */
           operand->type = lvalue_type;
         }  /* if */
-        restore_operand_details(operand, &orig_operand);
+        restore_operand_details_incl_ref(operand, &orig_operand);
       }  /* if */
     }  /* if */
   } else if (is_an_lvalue(operand)) {
     if (is_expression_operand(operand)) {
       an_expr_node_ptr expr = operand->variant.expression;
-      if (gcc_mode &&
-          gnu_version >= 30400 &&
+      if (gpp_mode &&
+          gnu_version < 30400 &&
           is_operation_node(expr) &&
           expr->variant.operation.kind ==
                                       (an_expr_operator_kind)eok_lvalue_cast) {
-        /* Warn on a use of an lvalue cast.  gcc started warning about this
-           in 3.4. */
-        pos_warning(ec_gcc_use_of_cast_as_lvalue, &operand->position);
+        /* g++ version of lvalue cast.  Drop it if casts are to be ignored,
+           warn otherwise. */
+        if (ignore_casts) {
+          orig_operand = *operand;
+          expr = expr->variant.operation.operands;
+          make_expression_operand(expr, expr->type, operand);
+          operand->type = type_pointed_to(expr->type);
+          operand->state = (an_operand_state)os_lvalue;
+          restore_operand_details(operand, &orig_operand);
+          pos_warning(ec_gcc_lvalue_cast_ignored, &operand->position);
+        } else {
+          pos_warning(ec_gcc_use_of_cast_as_lvalue, &operand->position);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -9000,7 +9038,7 @@ a case where gcc allows treating an rvalue as an lvalue.  If ignore_casts
 is TRUE, ignore any casts on top of the expression (throw them away,
 then turn the expression into an lvalue).  If lvalue_type is non-NULL,
 *lvalue_type is set to the type of the lvalue (without extra
-pointer-to level); it might differ from the original node node in
+pointer-to level); it might differ from the original node type in
 having extra cv-qualifiers that were dropped when the lvalue was
 converted to an rvalue.
 */
@@ -9212,7 +9250,8 @@ converted to an rvalue.
       if (!see_if_possible) {
         node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
       }  /* if */
-    } else if (!gcc_lvalue && op == (an_expr_operator_kind)eok_cast) {
+    } else if (!C_mode() && op == (an_expr_operator_kind)eok_cast &&
+               could_be_dependent_class_type(node->type)) {
       /* Generic cast, in a prototype instantiation.  Try to rewrite
          the operand, and change the cast to a pointer cast. */
       op1 = node->variant.operation.operands;
@@ -9231,6 +9270,7 @@ converted to an rvalue.
                                              ignore_casts,
                                              (a_type_ptr *)NULL);
           node->variant.operation.operands = op1;
+          /* node->type is updated below. */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -9668,37 +9708,6 @@ return without setting *optimized_case to TRUE.
 }  /* conv_lvalue_in_string_to_char_rvalue */
 
 
-static a_boolean is_cv_qualifier_dropping_microsoft_lvalue_cast(
-                                                         an_expr_node_ptr expr)
-/*
-Return TRUE if the indicated expression is a cast that serves as a kind
-of lvalue cast in Microsoft mode, to drop cv-qualifiers on an lvalue.
-The expression is an lvalue.  See microsoft_lvalue_cv_qual_adjustment.
-*/
-{
-  a_boolean is_lvalue_cast = FALSE;
-
-  check_assertion(microsoft_bugs);
-  if (is_operation_node(expr) &&
-      expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
-      !expr->variant.operation.is_reinterpret_cast) {
-    a_type_ptr dest_type = expr->type;
-    a_type_ptr source_type = expr->variant.operation.operands->type;
-    if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
-      dest_type = type_pointed_to(dest_type);
-      source_type = type_pointed_to(source_type);
-      if (!identical_types(dest_type, source_type)) {
-        source_type = rvalue_type(source_type);
-        if (identical_types(dest_type, source_type)) {
-          is_lvalue_cast = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return is_lvalue_cast;
-}  /* is_cv_qualifier_dropping_microsoft_lvalue_cast */
-
-
 void conv_lvalue_to_rvalue(an_operand *operand)
 /*
 Convert an lvalue operand to an rvalue operand.  See section 3.2.2.1 of the
@@ -9844,10 +9853,8 @@ cases so we don't do it here.
            node. */
         node = operand->variant.expression;
         if (is_operation_node(node) &&
-            (node->variant.operation.kind ==
-                                      (an_expr_operator_kind)eok_lvalue_cast ||
-             (microsoft_bugs &&
-              is_cv_qualifier_dropping_microsoft_lvalue_cast(node)))) {
+            node->variant.operation.kind ==
+                                      (an_expr_operator_kind)eok_lvalue_cast) {
           /* In certain modes, lvalues cast to another type can stay lvalues.
              This is indicated by casting the lvalue address to
              pointer-to-new-type using an eok_lvalue_cast.  Here, turn
