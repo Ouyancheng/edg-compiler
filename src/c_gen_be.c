@@ -3626,10 +3626,7 @@ an expression.  In effect, add an indirection to the expression.
 {
   an_expr_node_ptr operand_1;
 
-  /* Check for a pcc-only case: a bit-field lvalue can be cast to a type
-     of the same size and still be an lvalue.  In that case, we have to
-     recognize the construct and put it out in the original pcc form
-     to avoid taking the address of a bit-field. */
+  /* Put out an lvalue cast in original form. */
   if (node->kind == (an_expr_node_kind)enk_operation &&
       node->variant.operation.kind == (an_expr_operator_kind)eok_lvalue_cast) {
     operand_1 = node->variant.operation.operands;
