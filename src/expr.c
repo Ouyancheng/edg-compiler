@@ -5719,7 +5719,7 @@ is returned through *result.
   set_integer_constant(
                    &result_constant,
                    (a_host_large_integer)types_are_compatible(type_1, type_2),
-                   ik_int);
+                   (an_integer_kind)ik_int);
   make_constant_operand(&result_constant, result);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   result->variant.constant.expr =
