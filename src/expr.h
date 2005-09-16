@@ -278,6 +278,13 @@ Macro that is TRUE if the node is an error node.
 #define is_error_node(node)						\
 	((node)->kind == (an_expr_node_kind)enk_error)
 
+/*
+Return TRUE if the operator in node "node" (which must be an operation
+node) is "op".
+*/
+#define node_operator_is(node, op)                                      \
+  ((node)->variant.operation.kind == (an_expr_operator_kind)(op))
+
 #endif /* ifndef EXPR_H */
 
 
