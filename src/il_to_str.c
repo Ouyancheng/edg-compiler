@@ -2278,7 +2278,9 @@ Do the output in the way described by octl.
     /* ... then prefix the constant with an explicit cast. */
     /* Do not put out the cast if it's not needed and minimal_casts is
        TRUE. */
-    if (!minimal_casts || constant->variant.ptr_to_member.cast_to_base ||
+    if (!minimal_casts ||
+        constant->variant.ptr_to_member.cast_to_base ||
+        any_nonpublic_steps_in_derivation(bcp) ||
         scp == NULL) {
       output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
       form_cast(orig_type, octl);

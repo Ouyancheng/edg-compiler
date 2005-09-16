@@ -1946,6 +1946,29 @@ a base class of class_1.  Only called in C++ mode.
 }  /* is_same_class_or_base_class_thereof */
 
 
+a_boolean any_nonpublic_steps_in_derivation(a_base_class_ptr bcp)
+/*
+Return TRUE if any of the derivation steps between bcp->type and
+bcp->derived_class is as_protected or as_private.
+*/
+{
+  a_base_class_ptr            last_base_processed;
+  a_base_class_derivation_ptr derivation;
+  a_boolean                   nonpublic_step_found = FALSE;
+
+  do {
+    derivation = bcp->derivation;
+    if (derivation->access != (an_access_specifier)as_public) {
+      nonpublic_step_found = TRUE;
+    } else {
+      last_base_processed = bcp;
+      bcp = derivation->path->base_class;
+    }  /* if */
+  } while(!nonpublic_step_found && !last_base_processed->direct);
+  return nonpublic_step_found;
+}  /* any_nonpublic_steps_in_derivation */
+
+
 a_boolean f_related_class_pointers(a_type_ptr       type_1,
                                    a_type_ptr       type_2,
                                    a_boolean        *baseward_cast,
