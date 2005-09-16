@@ -8705,22 +8705,35 @@ promotion is for a nonstandard anonymous union.
   /* Set parent information in the symbol but not in the IL entry.  The
      symbol is promoted, but the type remains nested. */
   if (class_type != NULL) {
+    /* The members of an anonymous union within a class take on the access
+       specifier of the anonymous union itself (except in some GNU C++ mode
+       cases); the members of a variable anonymous union should be (i.e.,
+       should remain) public. */
+    if (gpp_mode &&
+        !same_entities(field->source_corresp.parent.class_type
+                            ->source_corresp.parent.class_type,
+                       class_type)) {
+      /* GNU compilers only adjust the accessibility of a promoted field the
+         first time it is promoted.  I.e., if the field appears within
+         multiple levels of anonymous unions, it may not eventually acquire
+         the accessibility of the outermost anonymous union.  For example:
+             class C { union { struct { int i; }; }; };
+         Here, field "i" is adjusted as it is promoted from the nonstandard
+         anonymous to the standard anonymous union (which leaves the
+         accessibility as public), but it is not adjusted during the second
+         promotion from the union to class C (the end result is that C::i is
+         publically accessible). */
+      /* The field should normally already have public access, but to avoid
+         repeated errors on private members of nested anonymous unions, we
+         force access to be public here. */
+      field->source_corresp.access = (an_access_specifier)as_public;
+    } else {
+      field->source_corresp.access = new_access;
+    }  /* if */
     set_class_membership(sym, (a_source_correspondence *)NULL, class_type);
   } else {
     set_namespace_membership(sym, (a_source_correspondence *)NULL,
                              (a_namespace_ptr)NULL);
-  }  /* if */
-  /* The members of an anonymous union within a class take on the access
-     specifier of the anonymous union itself (except in GNU C++ mode); the
-     members of a variable anonymous union should be (i.e., should remain)
-     public. */
-  if (!gpp_mode) {
-    field->source_corresp.access = new_access;
-  } else {
-    /* The field should normally already have public access, but to avoid
-       repeated errors on private members of nested anonymous unions, we
-       force access to be public here. */
-    field->source_corresp.access = (an_access_specifier)as_public;
   }  /* if */
   if (apo_sym == NULL) {
     sym->variant.field.anonymous_parent_object = assoc_object_sym;

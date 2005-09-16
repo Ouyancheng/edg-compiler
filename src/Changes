@@ -1,5 +1,22 @@
 Version 3.7
 
+9/16/05  GNU C++ compatibility: Accessibility of anonymous union members
+
+An anonymous union member acquires the accessibility of its enclosing union.
+When (possibly nonstandard) anonymous unions are nested -- by default not
+allowed in strict mode -- the accessibility adjustment is normally repeated
+for every anonymous union level, but in GNU C++ mode, the adjustment is now
+only done for the first enclosing union.  For example:
+
+  class C {
+    union {
+      struct {  // Nonstandard anonymous union.
+        int i;  // Normally first promoted from the struct to the union, then
+      };        // from the union to the class and the second promotion makes
+    };          // the field private.  In GNU C++ mode, the second promotion
+  };            // does not affect accessibility (i.e., the field remains
+                // public in this case).
+
 9/15/05  GNU mode lvalue casts
 
 The handling of GNU mode lvalue casts has been reworked (again) to
