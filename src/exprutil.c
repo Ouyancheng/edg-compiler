@@ -10095,6 +10095,12 @@ position to be used for any errors.
     node->type = ptr_type;
   } else {
     /* Normal case -- add a cast to do the decay. */
+    if (is_operation_node(node) &&
+        node_operator_is(node, eok_lvalue_cast)) {
+      /* Remove an lvalue cast on top of the operand, since the new cast
+         will supersede it. */
+      node = node->variant.operation.operands;
+    }  /* if */
     cast_node(&node, ptr_type,
               /*check_cast_access=*/TRUE,
               /*is_implicit_cast=*/TRUE,
