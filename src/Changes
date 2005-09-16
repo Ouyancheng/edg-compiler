@@ -3,9 +3,9 @@ Version 3.7
 9/16/05  C++-generating back end: pointer-to-member casts
 
 The C++-generating back end formerly omitted casts in the generated code
-when converting from a pointer-to-base-member type to a
-pointer-to-derived-member type, even if the base was inaccessible.  Now
-fixed. For example:
+when converting a pointer-to-base-member constant to a
+pointer-to-derived-member type, even if the base was inaccessible.  Casts
+required to override access restrictions are now generated. For example:
 
   struct B {
     int i;
