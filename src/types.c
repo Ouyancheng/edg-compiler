@@ -2412,6 +2412,13 @@ do_signed_char:;
           }  /* if */
           break;
         case ik_int:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (unqual_type->variant.integer.microsoft_sized_int_type) {
+            /* __int32 promotes to int. */
+            promoted_type = integer_type((an_integer_kind)ik_int);
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          break;
         case ik_unsigned_int:
         case ik_long:
         case ik_unsigned_long:
