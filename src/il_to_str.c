@@ -2280,7 +2280,7 @@ Do the output in the way described by octl.
        TRUE. */
     if (!minimal_casts ||
         constant->variant.ptr_to_member.cast_to_base ||
-        any_nonpublic_steps_in_derivation(bcp) ||
+        (bcp != NULL && any_nonpublic_steps_in_derivation(bcp)) ||
         scp == NULL) {
       output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
       form_cast(orig_type, octl);
