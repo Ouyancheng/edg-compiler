@@ -1196,8 +1196,8 @@ member declaration (allowed in some Microsoft modes only).
                  &locator->source_position, sym);
   }  /* if */
   if (!is_member_function_symbol(sym)) {
-    /* We must have nonfunction class member.  This is an error, so set sym
-       to NULL to force the creation of a fake member function symbol. */
+    /* A nonfunction class member.  This is an error, so set sym to NULL to
+       force the creation of a fake member function symbol. */
     if (sym->kind == (a_symbol_kind)sk_projection) {
       /* A member of a base class. */
       pos_error(ec_inherited_member_not_allowed, &locator->source_position);

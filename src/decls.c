@@ -6208,7 +6208,7 @@ declaration.
              distinguishable" for a reason given by the error code returned. */
           pos_error(error_code, &locator->source_position);
           redecl_error_already_issued = TRUE;
-          /* We can't add a symbol to the overload list, so change to locator
+          /* We can't add a symbol to the overload list, so change the locator
              to an error locator to prevent hiding the overload symbol when
              the new symbol is entered. */
           set_to_error_locator(*locator);
