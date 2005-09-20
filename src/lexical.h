@@ -2018,6 +2018,12 @@ extern unsigned long scan_universal_character(
 				        a_boolean	is_identifier_start,
 					a_boolean	issue_diagnostics);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean accum_quoted_string(unsigned long *num_chars,
+                                     a_boolean     is_header_name,
+                                     a_boolean     is_wide,
+                                     char          quoting_char);
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Macro that tests whether f_is_generalized_identifier_start needs
    to be called.  We don't need to call it if we have an identifier that

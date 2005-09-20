@@ -3089,6 +3089,10 @@ in the current IL memory region.
     case pk_db_name:
       break;
 #endif /* DEBUG */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case pk_push_macro:
+    case pk_pop_macro:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
     case pk_unrecognized:
       /* No special initialization is required. */

@@ -6835,10 +6835,13 @@ return the original identifier pointer.
 #if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 /*ARGSUSED*/  /* <-- is_wide is not used in that case.*/
 #endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-static a_boolean accum_quoted_string(unsigned long *num_chars,
-                                     a_boolean     is_header_name,
-                                     a_boolean     is_wide,
-                                     char          quoting_char)
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+static
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+a_boolean accum_quoted_string(unsigned long *num_chars,
+                              a_boolean     is_header_name,
+                              a_boolean     is_wide,
+                              char          quoting_char)
 /*
 Scan a quoted construct, of kind indicated by ctoken.  This routine is
 used for character constants and string literals, in both the "wide"

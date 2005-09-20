@@ -26,6 +26,9 @@ symbol_tbl.c - Symbol table management routines.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "literals.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef GUARD_MACRO_FOR_VA_LIST
 /* macro.h is needed for enter_predef_macro. */
 #include "macro.h"
@@ -124,6 +127,9 @@ static unsigned long
 		num_compares_for_symbols,
 		num_access_error_descrs_allocated,
 		num_progenitors_allocated,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+		num_saved_macro_states_allocated,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 		num_exception_spec_error_descrs_allocated;
 #endif /* DEBUG */
 
@@ -191,6 +197,15 @@ static a_vla_fixup_ptr
 		avail_vla_fixups;
 			/* List of vla fixup entries freed and available for
 			   reuse. */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_saved_macro_state_ptr
+		avail_saved_macro_states;
+			/* List of saved macro state entries freed and
+			   available for reuse. */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_symbol_ptr
 		error_class_template_symbol;
@@ -1667,6 +1682,7 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->any_decl_in_file_or_namespace_scope = FALSE;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  ptr->saved_macro_stack = NULL;
   ptr->microsoft_identifier_used = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
@@ -11212,7 +11228,7 @@ visibility as indicated.
 }  /* set_keyword_visibility */
 
 
-void ldscope_pragma(a_pragma_kind  kind)
+void ldscope_pragma(a_pending_pragma_ptr	ppp)
 /*
 This routine is called when a Sun CC pragma with one of the following forms
 	#pragma enable_ldscope
@@ -11223,7 +11239,8 @@ since these pragmas are automatically recorded in the IL, the tokens
 "enable_ldscope" or "disable_ldscope" will already have been consumed.
 */
 {
-  a_boolean  keywords_visible;
+  a_boolean	keywords_visible;
+  a_pragma_kind	kind = ppp->descr_ptr->kind;
 
   switch (kind) {
     case pk_enable_ldscope:  keywords_visible = TRUE;  break;
@@ -11236,6 +11253,233 @@ since these pragmas are automatically recorded in the IL, the tokens
 }  /* ldscope_pragma */
 
 #endif /* SUN_EXTENSIONS_ALLOWED */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_saved_macro_state_ptr alloc_saved_macro_state(void)
+/*
+Allocate a new saved macro state entry and return a pointer to it.
+*/
+{
+  a_saved_macro_state_ptr smsp;
+
+  if (avail_saved_macro_states != NULL) {
+    /* Reuse an existing entry. */
+    smsp = avail_saved_macro_states;
+    avail_saved_macro_states = avail_saved_macro_states->next;
+  } else {
+    /* Allocate a new entry. */
+    smsp = alloc_fe_of_type(a_saved_macro_state);
+#if DEBUG
+    num_saved_macro_states_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  smsp->next = NULL;
+  smsp->symbol = NULL;
+  return smsp;
+}  /* alloc_saved_macro_state */
+
+
+static void free_saved_macro_state(a_saved_macro_state_ptr smsp)
+/*
+Add "smsp" to the list of saved macro state entries available for reuse.
+*/
+{
+  smsp->next = avail_saved_macro_states;
+  avail_saved_macro_states = smsp;
+}  /* free_saved_macro_state_ptr */
+
+
+static a_symbol_header_ptr symbol_header_for_macro_push_or_pop(
+					a_pending_pragma_ptr	ppp,
+					a_source_position	*name_pos)
+/*
+This routine scans the tokens of a Microsoft push_macro or pop_macro
+pragma, looks up the symbol header for the identifier and returns
+it.  If an error occurs while scanning the pragma, NULL is returned.
+
+The form of such a pragma is:
+
+        #pragma {push,pop}_macro("identifier")
+
+If a symbol header is returned, the position of the identifier string
+is returned in name_pos.
+
+Note that "ppp" can be NULL when this routine is called when doing
+preprocessing only.  Also note that the tokens are scanned in fetch_pp_tokens
+mode.
+*/
+{
+  a_boolean		err = FALSE;
+  a_symbol_header_ptr	sym_hdr = NULL;
+
+  /* Record the balance of the current source line in the pragma text field
+     of the pragma. */
+  if (ppp != NULL) {
+    ppp->pragma_text = copy_string_to_region(file_scope_region_number,
+                                             start_of_curr_token);
+  }  /* if */
+  /* Bypass the pragma identifier. */
+  (void)get_token();
+  /* Scan the "(". */
+  if (curr_token == tok_lparen) {
+    (void)get_token();
+  } else {
+    warning(ec_exp_lparen);
+    err = TRUE;
+  }  /* if */
+  add_stop_token(tok_rparen);
+  /* Scan the string literal that specifies the identifier. */
+  if (curr_token != tok_string_literal) {
+    if (!err) {
+      warning(ec_exp_string_literal);
+      err = TRUE;
+    }  /* if */
+  } else if (*start_of_curr_token == 'L') {
+    /* A wide string is not allowed. */
+    warning(ec_wide_string_not_allowed);
+    err = TRUE;
+  } else {
+    unsigned long	num_chars = 0;
+    a_boolean		is_wide;
+    *name_pos = pos_curr_token;
+    /* Rescan the characters of the string literal. */
+    curr_char_loc = start_of_curr_token;
+    /* Check for a wide string literal. */
+    if (*curr_char_loc == 'L') {
+      is_wide = TRUE;
+      curr_char_loc++;
+    }  /* if */
+    /* Advance past the opening quote. */
+    curr_char_loc++;
+    /* Scan the characters that make up the string literal. */
+    if (!accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
+                            is_wide, '"')) {
+      char		*err_char_pos;
+      an_error_code	err_code;
+      /* Convert the string literal into a string constant. */
+      conv_string_literal(num_chars, &err_code, &err_char_pos);
+      /* Advance past the opening quote. */
+      curr_char_loc++;
+      if (err_code != ec_no_error) {
+        /* An error occurred while converting the string.  Issue a warning. */
+        a_source_position	err_source_pos;
+        conv_line_loc_to_source_pos(err_char_pos, &err_source_pos);
+        pos_warning(err_code, &err_source_pos);
+      } else {
+        /* Find the symbol header for the named identifier.  Note that
+           there is no check to determine if the identifier name is valid. */
+        a_symbol_locator	locator;
+        clear_locator(&locator, &null_source_position);
+        sym_hdr = find_symbol_header(
+                                const_for_curr_token.variant.string.value,
+                                const_for_curr_token.variant.string.length - 1,
+                                &locator);
+      }  /* if */
+    }  /* if */
+    (void)get_token();
+  }  /* if */
+  /* Scan the ")". */
+  if (curr_token == tok_rparen) {
+    (void)get_token();
+  } else if (!err) {
+    warning(ec_exp_rparen);
+    err = TRUE;
+  }  /* if */
+  remove_stop_token(tok_rparen);
+  /* If an error occurred, flush any tokens until we reach the end of line. */
+  if (curr_token != tok_newline && err) flush_to_newline();
+  return err ? (a_symbol_header_ptr)NULL : sym_hdr;
+}  /* symbol_header_for_macro_push_or_pop */
+
+
+void push_macro_pragma(a_pending_pragma_ptr	ppp)
+/*
+The pragma processing function called when a Microsoft push_macro pragma
+is encountered.
+
+The form of such a pragma is:
+
+        #pragma push_macro("identifier")
+
+When this pragma is used, the state of any macro named "identifier" is
+recorded on a stack so that the state can be restored when a pop_macro
+pragma is encountered.  Note that the macro is not actually undefined or
+changed in any way by the push_macro.
+
+Note that "ppp" can be NULL when this routine is called when doing
+preprocessing only.
+*/
+{
+  a_symbol_header_ptr	sym_hdr;
+  a_source_position	name_pos;
+
+  /* Scan the pragma and get the symbol header for the named identifier. */
+  sym_hdr = symbol_header_for_macro_push_or_pop(ppp, &name_pos);
+  if (sym_hdr != NULL) {
+    a_saved_macro_state_ptr	smsp;
+    smsp = alloc_saved_macro_state();
+    /* Find the symbol for a currently defined macro of the specified name.
+       If there is no such macro, NULL will be returned. */
+    smsp->symbol = find_macro_symbol(sym_hdr);
+    /* Put this entry on the front of the stack of saved macros. */
+    smsp->next = sym_hdr->saved_macro_stack;
+    sym_hdr->saved_macro_stack = smsp;
+  }  /* if */
+}  /* push_macro_pragma */
+
+
+void pop_macro_pragma(a_pending_pragma_ptr	ppp)
+/*
+The pragma processing function called when a Microsoft pop_macro pragma
+is encountered.
+
+The form of such a pragma is:
+
+        #pragma pop_macro("identifier")
+
+When this pragma is used, the state of any macro named "identifier" is
+restored from the stack entry created by a push_macro pragma.
+
+Note that "ppp" can be NULL when this routine is called when doing
+preprocessing only.
+*/
+{
+  a_symbol_header_ptr	sym_hdr;
+  a_source_position	name_pos;
+
+  /* Scan the pragma and get the symbol header for the named identifier. */
+  sym_hdr = symbol_header_for_macro_push_or_pop(ppp, &name_pos);
+  if (sym_hdr != NULL) {
+    a_saved_macro_state_ptr	smsp = sym_hdr->saved_macro_stack;
+    a_symbol_ptr		curr_macro_sym;
+    if (smsp == NULL) {
+      /* The was no prior push_macro for this name. */
+      pos_st_warning(ec_no_prior_push_macro, &name_pos, sym_hdr->identifier);
+    } else {
+      /* Unlink the entry on the top of the stack. */
+      sym_hdr->saved_macro_stack = smsp->next;
+      /* Find the symbol for a currently defined macro of the specified name.
+         If there is no such macro, NULL will be returned. */
+      curr_macro_sym = find_macro_symbol(sym_hdr);
+      if (curr_macro_sym == smsp->symbol) {
+        /* The correct macro symbol is present.  No action is needed. */
+      } else {
+        /* The macro symbol currently entered is not the desired one.
+           Remove it. */
+        remove_symbol(curr_macro_sym);
+        if (smsp->symbol != NULL) {
+          /* There was a previous symbol.  Re-enter it. */
+          reenter_symbol(smsp->symbol, (a_scope_depth)DEPTH_OF_FILE_SCOPE,
+                         /*suppress_error=*/TRUE);
+        }  /* if */
+      }  /* if */
+      free_saved_macro_state(smsp);
+    }  /* if */
+  }  /* if */
+}  /* pop_macro_pragma */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DEBUG
 unsigned long show_symbol_space_used(void)
@@ -11319,6 +11563,8 @@ for space tracking purposes.
                         num_generated_entity_blocks_allocated,
                         a_generated_entity_block);
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  db_space_used("saved macro state", num_saved_macro_states_allocated,
+                a_saved_macro_state);
   grand_total = db_show_ms_attrib_space_used(grand_total);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   grand_total = db_show_pch_space_used(grand_total);
@@ -11528,6 +11774,9 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_param_ids),
       pch_saved_var_array_elem(avail_vla_fixups),
       pch_saved_var_array_elem(avail_progenitors),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(avail_saved_macro_states),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(error_symbol_header),
       pch_saved_var_array_elem(unnamed_tag_symbol_header),
       pch_saved_var_array_elem(unnamed_namespace_symbol_header),
@@ -11589,6 +11838,9 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_exception_spec_error_descrs_allocated),
       pch_saved_var_array_elem(num_used_symbol_buckets),
       pch_saved_var_array_elem(symbol_name_string_space),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(num_saved_macro_states_allocated),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -11707,6 +11959,9 @@ of the front end.
   avail_template_cache_segments = NULL;
   avail_vla_fixups = NULL;
   avail_progenitors = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  avail_saved_macro_states = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   error_symbol_header = NULL;
   unnamed_tag_symbol_header = NULL;
   unnamed_namespace_symbol_header = NULL;
@@ -11750,6 +12005,9 @@ of the front end.
   num_generated_entity_blocks_allocated        = 0;
   num_progenitors_allocated                    = 0;
   num_exception_spec_error_descrs_allocated    = 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  num_saved_macro_states_allocated             = 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* DEBUG */
 }  /* symbol_tbl_init */
 

@@ -518,6 +518,32 @@ typedef struct a_macro_def {
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 } a_macro_def;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+/*
+Entry used to save and restore macro definition information for use
+by the Microsoft push_macro and pop_macro pragmas.  A stack of such
+entries is pointed to by the symbol header.
+*/
+typedef struct a_saved_macro_state *a_saved_macro_state_ptr;
+typedef struct a_saved_macro_state {
+  a_saved_macro_state_ptr
+		next;	/* Pointer to the next macro state entry for a given
+			   symbol header, or NULL if this is the last entry
+			   on the stack. */
+  a_symbol_ptr	symbol;
+			/* The macro symbol to which the macro name refers at
+			   the point at which the push_macro appeared.  This
+			   will be NULL if the symbol was undefined at that
+			   point. */
+} a_saved_macro_state;
+
+extern void push_macro_pragma(a_pending_pragma_ptr	ppp);
+
+extern void pop_macro_pragma(a_pending_pragma_ptr	ppp);
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 /*
 The repl_text string for a macro definition is a sequence of sections,
 each of which defines some part of the replacement text of the macro.
@@ -2835,6 +2861,17 @@ typedef struct a_symbol_header {
 			/* sk_extern_variable, sk_extern_routine and
                            synthesized namespace projection symbols
 			   associated with this name. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_saved_macro_state_ptr
+		saved_macro_stack;
+			/* A stack of entries used to save and restore macro
+			   state information.  Used by the Microsoft
+			   push_macro and pop_macro pragmas. */
+  a_bit_field	microsoft_identifier_used:1;
+			/* TRUE if the identifier was named using a Microsoft
+			   __identifier operator.  This flag is set if any
+			   reference to the identifier used __identifier. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	any_nested_types_on_inactive_list:1;
 			/* TRUE if a symbol for a nested type has been
                            transferred to the inactive list.  This field is
@@ -2858,12 +2895,6 @@ typedef struct a_symbol_header {
 			   non-class-member declaration that can be referred
 			   to with a qualified name). */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_bit_field	microsoft_identifier_used:1;
-			/* TRUE if the identifier was named using a Microsoft
-			   __identifier operator.  This flag is set if any
-			   reference to the identifier used __identifier. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_symbol_header;
 
 
@@ -4264,7 +4295,7 @@ extern a_boolean symbol_is_from_trans_unit(a_symbol_ptr			sym,
 extern a_translation_unit_ptr trans_unit_for_symbol(a_symbol_ptr	sym);
 
 #if SUN_EXTENSIONS_ALLOWED
-extern void ldscope_pragma(a_pragma_kind  kind);
+extern void ldscope_pragma(a_pending_pragma_ptr ppp);
 #endif /* SUN_EXTENSIONS_ALLOWED */
 
 extern void symbol_tbl_one_time_init(void);

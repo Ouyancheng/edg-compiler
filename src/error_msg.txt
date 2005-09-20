@@ -1480,6 +1480,8 @@ ec_default_arg_requires_friend_to_be_definition;;"default arguments are not allo
 ec_redeclaration_of_friend_with_default_args;;"redeclaration of %nd previously declared as a friend with default arguments is not allowed"
 ec_bad_qualifier_for_nested_class_decl;;"invalid qualifier for %t (a derived class is not allowed here)"
 ec_bad_qualifier_for_delayed_class_definition;;"invalid qualifier for definition of class %t"
+ec_no_prior_push_macro;;"no prior push_macro for %sq"
+ec_wide_string_not_allowed;;"wide string literal not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

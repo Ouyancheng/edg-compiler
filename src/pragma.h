@@ -65,7 +65,7 @@ typedef an_immediate_pragma_function *an_immediate_pragma_function_ptr;
 typedef void an_other_pragma_function(a_pending_pragma_ptr ppp);
 typedef an_other_pragma_function *an_other_pragma_function_ptr;
 
-typedef void a_preproc_immediate_pragma_function(a_pragma_kind pk);
+typedef void a_preproc_immediate_pragma_function(a_pending_pragma_ptr ppp);
 typedef a_preproc_immediate_pragma_function
                                     *a_preproc_immediate_pragma_function_ptr;
 

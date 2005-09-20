@@ -1498,7 +1498,7 @@ being scanned is a Microsoft __pragma operator.
     /* When fetching pp-tokens, convert the tokens to a string in
        such a way that no additional white space is added. */
     if (pkdp->binding_kind == pbk_preproc_immediate &&
-        !pkdp->automatically_include_in_il) {
+        (!pkdp->record_pragma_text || !pkdp->automatically_include_in_il)) {
       /* A pragma string is not created for preprocessing immediate pragmas
          that are not automatically included in the IL.  This is done for
          backward compatibility purposes so that the pragma processing
@@ -1540,7 +1540,7 @@ being scanned is a Microsoft __pragma operator.
        representation of these pragmas may not be entirely precise. */
     a_preproc_immediate_pragma_function_ptr pipfp;
     pipfp = pkdp->variant.preproc_immediate_processing_function;
-    if (pipfp != NULL) (*pipfp)(pkdp->kind);
+    if (pipfp != NULL) (*pipfp)(ppp);
     if (pkdp->automatically_include_in_il) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       ppp->source_sequence_entry = add_empty_source_sequence_entry();
@@ -1557,8 +1557,8 @@ being scanned is a Microsoft __pragma operator.
 }  /* enter_pending_pragma */
 
 
-/*ARGSUSED*/ /* <-- kind is not used. */
-void once_pragma(a_pragma_kind kind)
+/*ARGSUSED*/ /* <-- ppp is not used. */
+void once_pragma(a_pending_pragma_ptr	ppp)
 /*
 Process a "#pragma once" directive.  This directive indicate that
 this file should be included only once, and if it is #included
@@ -1576,8 +1576,8 @@ Record this information in the input stack entry.
 }  /* once_pragma */
 
 
-/*ARGSUSED*/ /* <-- kind is not used. */
-void hdrstop_or_no_pch_pragma(a_pragma_kind kind)
+/*ARGSUSED*/ /* <-- ppp is not used. */
+void hdrstop_or_no_pch_pragma(a_pending_pragma_ptr ppp)
 /*
 A PCH control pragma.  The actual processing of these
 pragmas is handled in the special prefix processing code for
@@ -1717,20 +1717,29 @@ Scan and process a #pragma directive.
   /* Look up the identifier that specifies the kind of pragma. */
   pkdp = look_up_pragma_id(&id_position);
   if (generate_pp_output && do_preprocessing_only) {
-    /* Generating preprocessing output for some other compiler.  Pass the
+    a_boolean	pass_to_output = TRUE;
+    /* Generating preprocessing output for some other compiler.  Usually The
        #pragma to the output.  The information in the pragma description is
        used to determine how the tokens of the pragma should be processed
        (e.g., should macros be expanded). */
-    /* Look for the special case of "#pragma once".  This is different
-       from other pragmas in that it must be handled in preprocessing
-       even when only generating a preprocessed output file. */
-    if (pkdp != NULL && pkdp->kind == (a_pragma_kind)pk_once) {
-      /* This file should be included only once, and if it is #included
-         again in the same compilation unit, the include should be skipped.
-         Record this information in the input stack entry. */
-      once_pragma((a_pragma_kind)pk_once);
+    /* Look for pragmas that must be handled during preprocessing. */
+    if (pkdp != NULL) {
+      if (pkdp->kind == (a_pragma_kind)pk_once) {
+        /* This file should be included only once, and if it is #included
+           again in the same compilation unit, the include should be skipped.
+           Record this information in the input stack entry. */
+        once_pragma((a_pending_pragma_ptr)NULL);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (pkdp->kind == (a_pragma_kind)pk_push_macro) {
+        push_macro_pragma((a_pending_pragma_ptr)NULL);
+        pass_to_output = FALSE;
+      } else if (pkdp->kind == (a_pragma_kind)pk_pop_macro) {
+        pop_macro_pragma((a_pending_pragma_ptr)NULL);
+        pass_to_output = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
     }  /* if */
-    pass_pragma_to_output(pkdp);
+    if (pass_to_output) pass_pragma_to_output(pkdp);
   } else {
     /* Compiling.  Record the pragma for later processing, or for
        processing now in the case of immediate pragmas. */

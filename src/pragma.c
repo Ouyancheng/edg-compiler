@@ -130,10 +130,9 @@ but cannot be referenced by name in a pragma directive.
 		       "pragma flags not valid when using C/C++ gen. BE");
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   /* When fetching pp-tokens, processing_C_code and expand_macros must be
-     FALSE and record_pragma_text must be TRUE. */
+     FALSE. */
   check_assertion_str2(!p_fetch_pp_tokens ||
-                       (!processing_C_code && !p_expand_macros &&
-                        record_pragma_text),
+                       (!processing_C_code && !p_expand_macros),
                        "add_pragma_kind_description:",
 		       "flags not valid when fetching pp-tokens");
   /* Preprocessing immediate pragmas must have the fetch_pp_tokens flag set. */
@@ -298,7 +297,10 @@ a_pragma_kind_description_ptr add_preproc_immediate_pragma_kind_description(
                        a_pragma_kind 	          kind,
                        a_preproc_immediate_pragma_function_ptr
                                                   processing_function,
-                       a_boolean                  automatically_include_in_il)
+		       a_boolean		  record_pragma_text,
+		       a_boolean		  il_info_is_complete,
+                       a_boolean                  automatically_include_in_il,
+		       a_boolean		  ignore_in_back_end)
 /*
 This is an interface to the general add_pragma_kind_description that is
 used for creating pbk_preproc_immediate pragmas.
@@ -309,10 +311,10 @@ used for creating pbk_preproc_immediate pragmas.
             (a_generic_pragma_function_ptr)processing_function,
             /*is_pseudo_pragma=*/FALSE, /*may_bind_to_decl=*/FALSE,
             /*may_bind_to_expr=*/FALSE, /*global=*/FALSE,
-            automatically_include_in_il, /*record_pragma_text=*/TRUE,
+            automatically_include_in_il, record_pragma_text,
             /*expand_macros=*/FALSE, /*processing_C_code=*/FALSE,
-            /*fetch_pp_tokens=*/TRUE, /*ignore_in_back_end=*/FALSE,
-            /*il_info_is_complete=*/FALSE, /*error_severity=*/es_none);
+            /*fetch_pp_tokens=*/TRUE, ignore_in_back_end,
+            il_info_is_complete, /*error_severity=*/es_none);
 }  /* add_preproc_immediate_pragma_kind_description */
 
 
@@ -419,6 +421,10 @@ possible.
     case pk_once:
     case pk_hdrstop:
     case pk_no_pch:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case pk_push_macro:
+    case pk_pop_macro:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     default:
       unexpected_condition_str2("alloc_pending_pragma:", "bad pragma kind");
@@ -1650,13 +1656,22 @@ Initialize the pragma description table.
 #endif /* PRAGMA_WEAK_ALLOWED */
   (void)add_preproc_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_once, once_pragma,
-                 /*automatically_include_in_il=*/FALSE);
+                 /*record_pragma_text=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE);
   (void)add_preproc_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_hdrstop, hdrstop_or_no_pch_pragma,
-                 /*automatically_include_in_il=*/FALSE);
+                 /*record_pragma_text=*/TRUE,
+		 /*ignore_in_back_end=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+		 /*il_info_is_complete=*/FALSE);
   (void)add_preproc_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_no_pch, hdrstop_or_no_pch_pragma,
-                 /*automatically_include_in_il=*/FALSE);
+                 /*record_pragma_text=*/TRUE,
+		 /*ignore_in_back_end=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+		 /*il_info_is_complete=*/FALSE);
   if (!C_mode()) {
     (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_define_type_info,
@@ -1725,11 +1740,17 @@ Initialize the pragma description table.
     (void)add_preproc_immediate_pragma_kind_description(
                                         (a_pragma_kind)pk_enable_ldscope,
                                         ldscope_pragma,
-                                        /*automatically_include_in_il=*/TRUE);
+		                        /*record_pragma_text=*/TRUE,
+                                        /*il_info_is_complete=*/TRUE,
+                                        /*automatically_include_in_il=*/TRUE,
+					/*ignore_in_back_end=*/FALSE);
     (void)add_preproc_immediate_pragma_kind_description(
                                         (a_pragma_kind)pk_disable_ldscope,
                                         ldscope_pragma,
-                                        /*automatically_include_in_il=*/TRUE);
+		                        /*record_pragma_text=*/TRUE,
+                                        /*il_info_is_complete=*/TRUE,
+                                        /*automatically_include_in_il=*/TRUE,
+					/*ignore_in_back_end=*/FALSE);
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
   (void)add_immediate_pragma_kind_description
@@ -1967,6 +1988,24 @@ Initialize the pragma description table.
                  es_error);
   }  /* if */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    (void)add_preproc_immediate_pragma_kind_description
+		((a_pragma_kind)pk_push_macro,
+                 push_macro_pragma,
+                 /*record_pragma_text=*/FALSE,
+		 /*il_info_is_complete=*/TRUE,
+                 /*automatically_include_in_il=*/TRUE,
+		 /*ignore_in_back_end=*/TRUE);
+    (void)add_preproc_immediate_pragma_kind_description
+		((a_pragma_kind)pk_pop_macro,
+                 pop_macro_pragma,
+                 /*record_pragma_text=*/FALSE,
+		 /*il_info_is_complete=*/TRUE,
+                 /*automatically_include_in_il=*/TRUE,
+		 /*ignore_in_back_end=*/TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   /* When unrecognized pragmas are being included in the IL, we need a
      pragma description that can be used for the unrecognized pragmas.
