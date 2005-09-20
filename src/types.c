@@ -1945,6 +1945,7 @@ a base class of class_1.  Only called in C++ mode.
   return is_same_or_base;
 }  /* is_same_class_or_base_class_thereof */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean any_nonpublic_steps_in_derivation(a_base_class_ptr bcp)
 /*
@@ -1968,6 +1969,7 @@ bcp->derived_class is as_protected or as_private.
   return nonpublic_step_found;
 }  /* any_nonpublic_steps_in_derivation */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean f_related_class_pointers(a_type_ptr       type_1,
                                    a_type_ptr       type_2,
