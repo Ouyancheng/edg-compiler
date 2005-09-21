@@ -6101,7 +6101,7 @@ declaration.
              elsewhere), and that definition must be the only declaration of
              the function.  Since the routine already has a befriending class
              and its symbol is invisible, it has only been declared as a
-             friend so far (though perhaps more than one friend declaration).
+             friend so far (through perhaps more than one friend declaration).
              Check if a previous declaration had default arguments. */
           a_param_type_ptr  ptp = skip_typerefs(routine_ptr->type)
                                 ->variant.routine.extra_info->param_type_list;
@@ -6112,7 +6112,7 @@ declaration.
                                 &locator->source_position, linked_symbol);
               break;
             }  /* if */
-          }  /* while */
+          }  /* for */
         }  /* if */
         /* For routines that can be overloaded, id_linkage has already
            checked that the routine types are compatible.  "main" cannot
