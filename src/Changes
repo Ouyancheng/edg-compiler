@@ -1,5 +1,20 @@
 Version 3.7
 
+9/21/05  Bad IL for sizeof local variable within local class
+
+When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, the front end
+produced IL with a memory region violation for a sizeof based
+on a local variable appearing in a function-local class.  This
+could cause aborts later in versions that don't keep all the IL
+in memory (i.e., versions that write the IL to a file).  Now
+fixed.
+
+  static void f(int *sp) {
+    union {
+      char buf[sizeof *sp];
+    } u;
+  }
+
 9/20/05  Microsoft compatibility: push_macro and pop_macro pragmas
 
 The Microsoft push_macro and pop_macro pragmas are now supported in

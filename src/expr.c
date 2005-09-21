@@ -5341,7 +5341,7 @@ Syntax:
         if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
           if (!is_type &&
               curr_il_region_number == file_scope_region_number &&
-              innermost_function_scope != NULL) {
+              (innermost_function_scope != NULL || inside_local_class)) {
             /* An expression in a function scope might point to a local
                variable, which is in the function scope memory region.
                Therefore it cannot be attached to a file-scope constant.
