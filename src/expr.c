@@ -1766,6 +1766,15 @@ Syntax:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         operand->end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_FORM_OF_NAME_REFERENCE
+        if (!operand->name_reference_set &&
+            locator_for_curr_id.is_qualified_name) {
+          /* Remember the form of the name reference (it was set in
+             scan_field_selection_operator for cases in which the object
+             expression is explicit). */
+          set_operand_name_reference_from_locator_for_curr_id(operand);
+        }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
         /* Note that the function designator will be converted to a pointer
            by the do_operand_transformations call just below. */
       } else {

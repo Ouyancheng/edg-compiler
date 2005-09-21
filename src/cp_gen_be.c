@@ -6983,26 +6983,38 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
     if (force_qualified_name) options |= GN_FORCE_QUALIFIED_NAME;
     gen_name(&rout->source_corresp, iek_routine, options, (a_boolean *)NULL);
   } else {
-    /* Use a qualifier on the name if one is forced or if the routine was
-       named in a class other than the selector class.  Don't use a qualifier
-       on a virtual function (that would suppress the virtual-ness of the
-       function call, and if we get here with force_qualified_name FALSE
-       we don't want to do that). */
-    if (force_qualified_name ||
-        ((suppress_this || selection_class != naming_class) &&
-         !rout->is_virtual)) {
-      /* Put out a qualifier for the name.  Push the name context associated
-         with the selector so that the qualifier is put out properly qualified
-         for the context.  Don't do this if there is no selector. */
-      if (!suppress_this) {
-        push_class_name_context(selection_class);
-        curr_name_context->field_selection_context = TRUE;
+#if RECORD_FORM_OF_NAME_REFERENCE
+    if (func_expr->name_reference != NULL) {
+      /* We have the form of the name reference in the original source: use
+         it. */
+      gen_name_from_name_reference(func_expr->name_reference,
+                                   &rout->source_corresp, iek_routine);
+    } else
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+    /* Do not insert code here. */
+    {
+      /* Use a qualifier on the name if one is forced or if the routine was
+         named in a class other than the selector class.  Don't use a qualifier
+         on a virtual function (that would suppress the virtual-ness of the
+         function call, and if we get here with force_qualified_name FALSE
+         we don't want to do that). */
+      if (force_qualified_name ||
+          ((suppress_this || selection_class != naming_class) &&
+           !rout->is_virtual)) {
+        /* Put out a qualifier for the name.  Push the name context associated
+           with the selector so that the qualifier is put out properly
+           qualified for the context.  Don't do this if there is no
+           selector. */
+        if (!suppress_this) {
+          push_class_name_context(selection_class);
+          curr_name_context->field_selection_context = TRUE;
+        }  /* if */
+        gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
+        if (!suppress_this) pop_name_context();
       }  /* if */
-      gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
-      if (!suppress_this) pop_name_context();
+      /* Put out the base routine name.*/
+      gen_unqualified_name(&rout->source_corresp, iek_routine);
     }  /* if */
-    /* Put out the base routine name.*/
-    gen_unqualified_name(&rout->source_corresp, iek_routine);
   }  /* if */
 }  /* gen_bound_function */
 

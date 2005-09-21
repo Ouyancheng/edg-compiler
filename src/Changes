@@ -1,5 +1,24 @@
 Version 3.7
 
+9/21/05  C++-generating back end: name references in bound function calls
+
+Regardless of the setting of RECORD_FORM_OF_NAME_REFERENCE, the form of the
+reference in the source code used for the function name in a bound function
+call was ignored when generating the call in the output.  The form of name
+references in this context is now preserved when RECORD_FORM_OF_NAME_REFERENCE
+is TRUE.  For example:
+
+  template <typename T> struct B {
+    virtual void f();
+  };
+  typedef B<int> Bi;
+  struct D: Bi {
+    void f() {
+      Bi::f();   // formerly generated as "this->B<int>::f()", now preserves
+                 // use of typedef as qualifier.
+    }
+  };
+
 9/21/05  Bad IL for sizeof local variable within local class
 
 When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, the front end
