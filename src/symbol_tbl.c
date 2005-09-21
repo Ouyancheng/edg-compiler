@@ -11467,7 +11467,7 @@ preprocessing only.
       } else {
         /* The macro symbol currently entered is not the desired one.
            Remove it. */
-        remove_symbol(curr_macro_sym);
+        if (curr_macro_sym != NULL) remove_symbol(curr_macro_sym);
         if (smsp->symbol != NULL) {
           /* There was a previous symbol.  Re-enter it. */
           reenter_symbol(smsp->symbol, (a_scope_depth)DEPTH_OF_FILE_SCOPE,
