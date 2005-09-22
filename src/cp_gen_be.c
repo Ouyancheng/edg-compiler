@@ -9574,7 +9574,6 @@ the __if_exist appears between top-level declarations of the class.
     if (msiep->name_reference != NULL) {
       /* We have information on the exact form of reference, so use that
          to generate the name. */
-write_tok_str("/*from name ref*/");
       gen_name_from_name_reference(msiep->name_reference,
                                    (a_source_correspondence*)entity,
                                    msiep->entity.kind);
