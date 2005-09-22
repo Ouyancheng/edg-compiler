@@ -2275,13 +2275,17 @@ Do the output in the way described by octl.
   }  /* if */
   /* If the constant is implicitly cast to another type, ... */
   if (constant->implicit_cast) {
-    /* ... then prefix the constant with an explicit cast. */
-    /* Do not put out the cast if it's not needed and minimal_casts is
-       TRUE. */
+    /* ... then optionally prefix the constant with an explicit cast. */
     if (!minimal_casts ||
         constant->variant.ptr_to_member.cast_to_base ||
         (bcp != NULL && any_nonpublic_steps_in_derivation(bcp)) ||
         scp == NULL) {
+      /* If minimal_casts is TRUE, we only output the explicit cast if:
+         1) the cast is from a pointer-to-derived-member to a
+            pointer-to-base-member, or
+         2) there's a chance the base class might be inaccessible, or
+         3) the operand of the cast is 0 rather than the address of a data
+            member or member function. */
       output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
       form_cast(orig_type, octl);
     }  /* if */

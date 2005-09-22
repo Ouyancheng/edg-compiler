@@ -1953,19 +1953,17 @@ Return TRUE if any of the derivation steps between bcp->type and
 bcp->derived_class is as_protected or as_private.
 */
 {
-  a_base_class_ptr            last_base_processed;
-  a_base_class_derivation_ptr derivation;
+  a_base_class_derivation_ptr derivation = preferred_derivation_of(bcp);
   a_boolean                   nonpublic_step_found = FALSE;
+  a_derivation_step_ptr       step;
 
-  do {
-    derivation = bcp->derivation;
-    if (derivation->access != (an_access_specifier)as_public) {
+  for (step = derivation->path; step != NULL; step = step->next) {
+    if (step->base_class->derivation->access !=
+                                              (an_access_specifier)as_public) {
       nonpublic_step_found = TRUE;
-    } else {
-      last_base_processed = bcp;
-      bcp = derivation->path->base_class;
+      break;
     }  /* if */
-  } while(!nonpublic_step_found && !last_base_processed->direct);
+  }  /* for */
   return nonpublic_step_found;
 }  /* any_nonpublic_steps_in_derivation */
 
