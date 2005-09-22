@@ -367,14 +367,21 @@ EXTERN a_boolean
 			/* TRUE if the writing of the IL file should be
 			   suppressed. */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-EXTERN enum {vfd_normal, vfd_suppress, vfd_force} /*lint !e659*/
-		/*lint -esym(769,vfd_normal)*/
+
+/*
+If the heuristic used to determine whether a virtual function table
+should be defined cannot conclusively make such a determination,
+vfd_suppress indicates that the definition should NOT be made, and
+vfd_force indicates that it should.
+*/
+typedef enum /* a_virtual_function_definition_mode */ {
+  vfd_normal,
+  vfd_suppress,
+  vfd_force
+} a_virtual_function_definition_mode;
+
+EXTERN a_virtual_function_definition_mode
 		virtual_function_table_definition;
-			/* If the heuristic used to determine whether a virtual
-			   function table should be defined cannot
-			   conclusively make such a determination, vfd_suppress
-			   indicates that the definition should NOT be
-			   made, and vfd_force indicates that it should. */
 EXTERN a_boolean
 		suppress_used_before_set_warnings;
 			/* TRUE if used-before-set warnings should not be
