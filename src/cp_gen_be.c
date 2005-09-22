@@ -6922,6 +6922,15 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
           suppress_this = TRUE;
         }  /* if */
       }  /* if */
+#if RECORD_FORM_OF_NAME_REFERENCE
+      if (func_expr->name_reference != NULL &&
+          func_expr->name_reference->is_super_qualified) {
+        /* The __super Microsoft extension does not work if "this->" is
+           explicitly coded. */
+        suppress_this = TRUE;
+      } else
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+      /* Do not insert code here. */
       if (!msvc_is_generated_code_target ||
           msvc_target_version_number != 1000) {
         /* Now that we've done all the work, suppress "this->" only in
