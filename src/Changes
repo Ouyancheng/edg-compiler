@@ -1,5 +1,15 @@
 Version 3.7
 
+9/22/05  Build problem with MAKE_FRONT_END_CALLABLE and C++-generating back end
+
+The fe_wrapup.c file did not build properly when MAKE_FRONT_END_CALLABLE and
+BACK_END_IS_CP_GEN_BE were both TRUE.  Now fixed.
+
+9/22/05  C++-generating back end: build problems when compiling as C++ 
+
+The C++-generating back end did not build properly when the front end
+was built with a C++ compiler.  Now fixed.
+
 9/21/05  C++-generating back end: name references in bound function calls
 
 Regardless of the setting of RECORD_FORM_OF_NAME_REFERENCE, the form of the

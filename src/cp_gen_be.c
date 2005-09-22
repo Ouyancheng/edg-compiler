@@ -6181,7 +6181,8 @@ temporary expressions).
              generated as "->", pass "" as the opstr instead of "->" to
              avoid generating "->->". */
           gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE,
-                         is_operator_syntax_arrow(operand_1) ? "" : "->",
+                         (char *)(is_operator_syntax_arrow(operand_1) ?
+                                                                    "" : "->"),
                          operand_2, /*is_lvalue_2=*/TRUE);
           if (need_parens) write_tok_ch(')');
           processed = TRUE;
@@ -7913,7 +7914,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
              generated as "->", pass "" as the opstr instead of "->" to
              avoid generating "->->". */
           gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE,
-                         is_operator_syntax_arrow(operand_1) ? "" : "->",
+                         (char *)(is_operator_syntax_arrow(operand_1) ?
+                                                                    "" : "->"),
                          operand_2, /*is_lvalue_2=*/FALSE);
           goto done_with_operation;
         case eok_lvalue_dot_static:
@@ -8424,8 +8426,8 @@ Generate code for the indicated "for" statement.
   /* Generate "for (init; test; incr) statement".
      "init" might be an expression or a declaration, or omitted;
      "test" and "incr" are expressions and may also be omitted. */
-  write_tok_str(statement->kind == (a_statement_kind)stmk_for ?
-                                                     "for (" : "upc_forall (");
+  write_tok_str((char *)(statement->kind == (a_statement_kind)stmk_for ?
+                                                    "for (" : "upc_forall ("));
   if (for_init_scope != NULL) push_name_context(for_init_scope);
   /* Generate the initialization statement or declaration. */
   init_stmt = statement->variant.for_loop.extra_info->initialization;
@@ -9585,12 +9587,13 @@ the __if_exist appears between top-level declarations of the class.
          to generate the name. */
       gen_name_from_name_reference(msiep->name_reference,
                                    (a_source_correspondence*)entity,
-                                   msiep->entity.kind);
+                                   (an_il_entry_kind)msiep->entity.kind);
     } else
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
     /* Do not insert code here. */
     {
-      gen_name((a_source_correspondence*)entity, msiep->entity.kind,
+      gen_name((a_source_correspondence*)entity,
+               (an_il_entry_kind)msiep->entity.kind,
                GN_NO_OPTIONS, (a_boolean*)NULL);
     }
     write_tok_str(") {");
@@ -11826,7 +11829,7 @@ one associated with the asm.
   /* Position the output file to the declaration position. */
   set_decl_position(&asm_entry->source_corresp,
                     (a_src_seq_secondary_decl_ptr)NULL);
-  write_tok_str(microsoft_mode ? "__asm(" : "asm(");
+  write_tok_str((char *)(microsoft_mode ? "__asm(" : "asm("));
   gen_constant(asm_entry->asm_string, /*need_parens=*/FALSE);
   write_tok_ch(')');
   write_tok_ch(';');

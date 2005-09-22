@@ -53,6 +53,9 @@ fe_wrapup.c - End of front end processing.
 #if MAINTAIN_NEEDED_FLAGS || DO_IL_LOWERING
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS || DO_IL_LOWERING */
+#if BACK_END_IS_CP_GEN_BE
+#include "cp_gen_be.h"
+#endif /* BACK_END_IS_CP_GEN_BE */
 
 
 #if DEBUG
