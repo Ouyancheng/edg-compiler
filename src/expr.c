@@ -15008,6 +15008,25 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
   sym_ptr = coalesce_and_lookup_generalized_identifier
                                             (GID_IS_EXPR_CONTEXT,
                                              ilm_expr, &err);
+  { a_token_sequence_number paren_tok_seq_number;
+    if (gpp_mode && gnu_version >= 30400 &&
+        do_dependent_name_processing &&
+        is_nonspecialized_instantiation_context() &&
+        !is_template_dependent_context() &&
+        arg_dependent_lookup_enabled &&
+        !locator_for_curr_id.is_qualified_name &&
+        next_token_with_seq_number(&paren_tok_seq_number) == tok_lparen &&
+        get_nondependent_call_info(paren_tok_seq_number) == NULL) {
+      /* This is a dependent call in a real (not prototype) instantiation.
+         g++ 3.4 has a bug with dependent name lookup -- it does not
+         ignore entities declared later in the compilation.  Redo the
+         lookup, suppressing that part of the processing. */
+      clear_specific_symbol(locator_for_curr_id);
+      sym_ptr = normal_id_lookup(&locator_for_curr_id,
+                                 IDL_IS_EXPR_CONTEXT |
+                                 IDL_SUPPRESS_DECL_SEQ_CHECK);
+    }  /* if */
+  }
   if (locator_for_curr_id.is_semivisible_nested_type) {
     /* The symbol in the locator is a nested class that is not visible
        according to the ARM lookup rules but is returned in support of the

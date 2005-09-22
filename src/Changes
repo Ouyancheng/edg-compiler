@@ -1,5 +1,24 @@
 Version 3.7
 
+9/22/05  Fix on g++ mode emulation of lookup of name in dependent call
+
+The change of 4/19/05 to emulate g++'s lookup of names in dependent calls
+was not quite right.  In particular, it caused aborts on cases where the
+identifier to the left of the function-call "(" is a class variable that
+is declared after the template definition (before that change, the
+identifier was simply not found).  Now fixed.  Note that the problem only
+appeared with gnu_version >= 30400.
+
+  template <class Iterator> void accumulate(Iterator first) {
+    plus(first);  // Call of class object declared later
+  }
+  struct Plus {
+    void operator()(int);
+  } plus;
+  int main() {
+    accumulate(0);
+  }
+
 9/22/05  Build problem with MAKE_FRONT_END_CALLABLE and C++-generating back end
 
 The fe_wrapup.c file did not build properly when MAKE_FRONT_END_CALLABLE and

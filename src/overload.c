@@ -5056,16 +5056,6 @@ in_instantiation:
       normal_lookup_function_symbol = sym_is_undefined ?
                                                     NULL :
                                                     overloaded_function_symbol;
-      if (gpp_mode && gnu_version >= 30400 && dependent_call) {
-        /* g++ 3.4 has a bug with dependent name lookup -- it does not
-           ignore entities declared later in the compilation.  Redo the
-           lookup, suppressing that part of the processing. */
-        clear_specific_symbol(locator);
-        normal_lookup_function_symbol = normal_id_lookup(
-                                                  &locator,
-                                                  IDL_IS_EXPR_CONTEXT |
-                                                  IDL_SUPPRESS_DECL_SEQ_CHECK);
-      }  /* if */
       symbol_list = argument_dependent_lookup(normal_lookup_function_symbol,
                                               &locator,
                                               &type_list);
