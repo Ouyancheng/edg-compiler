@@ -1442,7 +1442,7 @@ Parse the three comma-separated arguments in a construct of the form
 The left parenthesis is already consumed.  <arg1> must be a constant-expression
 and determines whether <arg2> (if <arg1> is true) or <arg3> (if <arg1> is
 false) should be returned in *result.  The type of the operand is the type of
-the chosen expression.
+the chosen expression.  Only available in C mode.
 */
 {
   a_boolean            evaluate_2nd_arg, evaluate_3rd_arg, err = FALSE;
@@ -1450,6 +1450,7 @@ the chosen expression.
   a_constant           selector;
   an_expr_stack_entry  expr_stack_entry;
 
+  check_assertion(C_mode());
   /* Scan the selector expression, which must be a scalar constant. */
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
