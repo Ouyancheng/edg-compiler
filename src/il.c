@@ -1720,6 +1720,23 @@ Dump the contents of the indicated expression node for debug purposes.
       fputs("\n", f_debug);
       db_expr_node(node->variant.offsetof_info.member, level + 2);
       break;
+    case enk_type_operand:
+      fprintf(f_debug, "type_operand: type = ");
+      db_type_name(node->variant.type_operand.type);
+      fputs("\n", f_debug);
+      break;
+    case enk_constant_operation:
+      fprintf(f_debug, "constant operation: %s",
+              constant_operation_names[node->variant.constant_operation.kind]);
+      fputs(", result type: ", f_debug);
+      db_abbreviated_type(node->type);
+      fputs("\n", f_debug);
+      operand = node->variant.constant_operation.operands;
+      while (operand != NULL) {
+        db_expr_node(operand, level + 2);
+        operand = operand->next;
+      }  /* while */
+      break;
     case enk_error:
       fputs("error node\n", f_debug);
       break;
@@ -5187,6 +5204,35 @@ are allowed under a sizeof (etc.) in a template argument expression.
              compare_template_param_constant_expressions(
                                          node1->variant.offsetof_info.member,
                                          node2->variant.offsetof_info.member);
+        break;
+      case enk_type_operand:
+        eq = identical_types(node1->variant.type_operand.type,
+                             node2->variant.type_operand.type);
+        break;
+      case enk_constant_operation:
+        if (node1->variant.constant_operation.kind ==
+                                     node2->variant.constant_operation.kind) {
+          an_expr_node_ptr   op1 = node1->variant.constant_operation.operands;
+          an_expr_node_ptr   op2 = node2->variant.constant_operation.operands;
+          for (;;) {
+            if (op1 == op2) {
+              /* This normally only catches the case of two NULL pointers. */
+              eq = TRUE;
+              break;
+            } else if (op1 == NULL || op2 == NULL) {
+              /* One operand list longer than the other. */
+              break;
+            } else if (!compare_template_param_constant_expressions(op1,
+                                                                    op2)) {
+              /* Operands are not equivalent. */
+              break;
+            } else {
+              /* Operands are equivalent -- check other operands, if any. */
+              op1 = op1->next;
+              op2 = op2->next;
+            }  /* if */
+          }  /* for */
+        }  /* if */
         break;
       case enk_error:
         /* Nonequivalence is assumed. */
@@ -11508,7 +11554,6 @@ options is a set of name lookup options.
                                            options,
                                            copy_error,
                                            constant);
-      expr_copy = NULL;
       break;
     case enk_operation:
       op = expr->variant.operation.kind;
@@ -11718,6 +11763,58 @@ options is a set of name lookup options.
       /* This might come up because of the GNU two-operand "?".  If it does,
          just make sure we don't abort. */
       *copy_error = TRUE;
+      break;
+    case enk_type_operand:
+      { a_type_ptr  new_type = copy_type_with_substitution(
+                                        expr->variant.type_operand.type,
+                                        template_arg_list, template_param_list,
+                                        source_pos, options, copy_error);
+        if (!*copy_error) {
+          expr_copy = copy_node(expr);
+          expr_copy->variant.type_operand.type = new_type;
+        }  /* if */
+      }
+      break;
+    case enk_constant_operation:
+      { an_expr_node_ptr  arg = expr->variant.constant_operation.operands;
+        an_expr_node_ptr  new_args = NULL, *new_arg = &new_args;
+        /* First copy the argument list with any necessary substitutions. */
+        while (arg != NULL) {
+          a_constant      const_result;
+          a_constant_ptr  alloc_const_result;
+          *new_arg =  copy_template_param_expr(
+                                  arg, template_arg_list, template_param_list,
+                                  (a_type_ptr)NULL, /*indef_lvalue=*/FALSE,
+                                  source_pos, options, copy_error,
+                                  &const_result, &alloc_const_result);
+          if (*copy_error) break;
+          *new_arg = alloc_copied_template_param_expr(*new_arg, &const_result,
+                                                      alloc_const_result);
+          arg = arg->next;
+          new_arg = &((*new_arg)->next);
+        }  /* while */
+        if (!*copy_error) {
+          /* Copy the expression node and attach the copied argument list to
+             it. */
+          expr_copy = copy_node(expr);
+          expr_copy->variant.constant_operation.operands = new_args;
+          /* Attempt to fold the operation. */
+          fold_constant_operation_if_possible(expr_copy, constant,
+                                              (a_source_position*)NULL);
+          if (is_error_constant(constant)) {
+            *copy_error = TRUE;
+            expr_copy = NULL;
+          } else if (constant->kind ==
+                                    (a_constant_repr_kind)ck_template_param) {
+            /* The result is still dependent.  Just return the expression
+               node. */
+          } else {
+            /* The operation was successfully folded into a constant.
+               Do not return an expression. */
+            expr_copy = NULL;
+          }  /* if */
+        }  /* if */
+      }
       break;
     default:
       /* Other kinds of expressions can come up when copying a non-constant
@@ -12499,6 +12596,7 @@ be called to start a copy.
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_offsetof:
+    case enk_type_operand:
       /* Nothing more to copy. */
       break;
     case enk_constant:
@@ -12698,6 +12796,12 @@ be called to start a copy.
         check_assertion(copy != NULL);
         expr_copy->variant.reused_value_init = (a_dynamic_init_ptr)copy;
       }
+      break;
+    case enk_constant_operation:
+      /* Copy the operands of the operation. */
+      expr_copy->variant.constant_operation.operands =
+           i_copy_list_of_expr_trees(expr->variant.constant_operation.operands,
+                                     options, cblock);
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:

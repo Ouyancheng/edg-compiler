@@ -2539,6 +2539,14 @@ fields to default values.
       node->variant.offsetof_info.type = NULL;
       node->variant.offsetof_info.member = NULL;
       break;
+    case enk_type_operand:
+      node->variant.type_operand.type = NULL;
+      break;
+    case enk_constant_operation:
+      node->variant.constant_operation.kind =
+                                          (a_constant_operation_kind)cok_last;
+      node->variant.constant_operation.operands = NULL;
+      break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_types_compatible:
       node->variant.types_compatible.type_1 = NULL;

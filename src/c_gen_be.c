@@ -4986,6 +4986,26 @@ done_with_operation:
                                ->variant.field->offset);
       }  /* if */
       break;
+    case enk_type_operand:
+      dump_type(expr->variant.type_operand.type, /*add_pointer_to=*/FALSE);
+      break;
+    case enk_constant_operation:
+      { an_expr_node_ptr  arg = expr->variant.constant_operation.operands;
+        write_tok_str(
+             constant_operation_names[expr->variant.constant_operation.kind]);
+        write_tok_ch('(');
+        while (arg != NULL) {
+          /* Output the arguments (if any) for the constant operation.
+             Do not emit parentheses around types. */
+          dump_expr(arg, arg->kind != (an_expr_node_kind)enk_type_operand);
+          arg = arg->next;
+          if (arg != NULL) {
+            write_tok_str(", ");
+          }  /* if */
+        }  /* while */
+        write_tok_ch(')');
+      }
+      break;
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
       unexpected_condition_str("dump_expr: enk_field");

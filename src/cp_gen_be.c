@@ -8299,6 +8299,15 @@ done_with_operation_after_parens:
     case enk_offsetof:
       gen_builtin_offsetof(expr);
       break;
+    case enk_type_operand:
+      gen_type(expr->variant.type_operand.type);
+      break;
+    case enk_constant_operation:
+      write_tok_str(
+             constant_operation_names[expr->variant.constant_operation.kind]);
+      gen_argument_list(expr->variant.constant_operation.operands,
+                        (a_type_ptr)NULL, /*skip_num=*/0);
+      break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_types_compatible:
       write_tok_str("__builtin_types_compatible_p(");

@@ -1517,6 +1517,16 @@ end_sizeof:;
             walk_ptr(ptr->variant.offsetof_info.member, an_expr_node_ptr,
                      iek_expr_node);
             break;
+          case enk_type_operand:
+            walk_ptr(ptr->variant.type_operand.type, a_type_ptr, iek_type);
+            if (ptr->variant.type_operand.definition_needed) {
+              definition_needed_if_class(ptr->variant.type_operand.type);
+            }  /* if */
+            break;
+          case enk_constant_operation:
+            walk_list(ptr->variant.constant_operation.operands,
+                      an_expr_node_ptr, iek_expr_node);
+            break;
 #if GNU_EXTENSIONS_ALLOWED
           case enk_types_compatible:
             walk_ptr(ptr->variant.types_compatible.type_1, a_type_ptr,

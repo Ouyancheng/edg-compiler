@@ -8086,6 +8086,11 @@ enum an_expr_node_kind_tag {
                            running destructors). */
 #endif /* VLA_DEALLOCATIONS_IN_IL */
   enk_offsetof,		/* Used to represent a built-in offsetof operator. */
+  enk_type_operand,	/* Used to represent types in certain expression
+			   constructs. */
+  enk_constant_operation,
+			/* Used to represent a variety of operations that
+			   result in constant expressions. */
 #if GNU_EXTENSIONS_ALLOWED
   enk_types_compatible,	/* Used to represent a __builtin_types_compatible_p
 			   construct.  Currently only used for the "expr"
@@ -8643,6 +8648,18 @@ enum an_expr_operator_kind_tag {
 typedef a_byte an_expr_operator_kind;
 
 
+typedef enum a_constant_operation_kind_tag {
+  /* When the expression node kind is "enk_constant_operation", these are the
+     possible operations. */
+  /* If you add an operation to this list, also update constant_operation_name
+     in this file. */
+  cok_is_base_of,
+  cok_last              /* Marks the end of the list. */
+} a_constant_operation_kind_tag;
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_constant_operation_kind;
+
+
 #if !ABI_CHANGES_FOR_RTTI
 /* This became unnecessary when the language definition was changed
    to allow more static checking of access on throws. */
@@ -9167,6 +9184,23 @@ typedef struct an_expr_node {
 			   of an enk_constant node (representing a member
 			   of a template-dependent type). */
     } offsetof_info;
+    /* When kind == enk_type_operand: */
+    struct {
+      a_type_ptr
+		type;	/* The type represented by the operand. */
+      a_bit_field
+		definition_needed:1;
+			/* A flag indicating that the type definition must be
+			   kept in the IL. */
+    } type_operand;
+    /* When kind == enk_constant_operation: */
+    struct {
+      a_constant_operation_kind
+		kind;	/* The specific operation being represented. */
+      an_expr_node_ptr
+		operands;
+			/* The list of operands. */
+    } constant_operation;
 #if GNU_EXTENSIONS_ALLOWED
     /* When kind == enk_types_compatible: */
     struct {
@@ -11688,6 +11722,18 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #endif /* VAR_INITIALIZERS */
 ;
 #endif /* DEBUG */
+
+/*
+Table of names of special operations that can appear in constant-expressions.
+*/
+EXTERN char     *constant_operation_names[(int)cok_last+1]
+#if VAR_INITIALIZERS
+= {
+  "__is_base_of",
+  "last"
+}
+#endif /* VAR_INITIALIZERS */
+;
 
 /* Array giving, for each IL entry kind, the size of the entry in bytes.
    For string type entries, 1.  This must match the order of the

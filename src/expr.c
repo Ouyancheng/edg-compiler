@@ -5700,6 +5700,122 @@ scan_field_selection_operator.
   (void)required_token(tok_rparen, ec_exp_rparen);
 }  /* scan_offsetof */
 
+
+static an_expr_node_ptr scan_constant_operation_arg(an_il_entry_kind  arg_kind)
+/*
+Scan a single argument of a constant-expression of the form
+	operation-name ( <comma-separated-list-of-arguments> )
+The argument kind should be iek_type if the argument is a type name,
+iek_constant if it is a constant-expression, or iek_expr_node if it is an
+arbitrary expression.  (Only the iek_type case is currently implemented.)
+*/
+{
+  an_expr_node_ptr  result;
+
+  add_stop_token(tok_comma);
+  switch (arg_kind) {
+    case iek_type:
+      { a_type_ptr  type;
+        type_name(&type);
+        if (is_error_type(type)) {
+          result = alloc_expr_node((an_expr_node_kind)enk_error);
+        } else {
+          result = alloc_expr_node((an_expr_node_kind)enk_type_operand);
+          result->type = void_type();
+          result->variant.type_operand.type = type;
+        }  /* if */
+      }
+      break;
+    case iek_expr_node:
+    case iek_constant:
+      unexpected_condition_str(
+                            "unimplemented constant operation argument kind");
+    default:
+      unexpected_condition();
+  }  /* switch */
+  remove_stop_token(tok_comma);
+  return result;
+}  /* scan_constant_operation_arg */
+
+
+static void scan_call_like_constant_operation(
+                                   a_constant_operation_kind_tag  kind,
+                                   a_type_ptr                     result_type,
+                                   an_il_entry_kind               arg1_kind,
+                                   an_il_entry_kind               arg2_kind,
+                                   an_il_entry_kind               arg3_kind,
+                                   an_operand                     *result)
+/*
+Scan a constant operation of the general form
+	operation-name ( <comma-separated-list-of-arguments> )
+with up to three arguments described by arg1_kind, arg2_kind, and arg3_kind.
+(argX_kind is iek_none if there is no corresponding parameter, iek_type if
+the argument should be a type name, iek_constant if it should be a constant-
+expression, and iek_expr_node if it can be any expression.  The latter two
+argument kinds are currently unimplemented.) Produce a constant operand in
+*result.
+*/
+{
+  a_boolean          err = FALSE;
+  a_source_position  start_pos;
+  an_expr_node_ptr   arg1 = NULL, arg2, arg3;
+
+  copy_source_position(pos_curr_token, start_pos);
+  /* Pass over the operation name. */
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_stop_token(tok_rparen);
+  if (arg1_kind != iek_none) {
+    arg1 = scan_constant_operation_arg(arg1_kind);
+    err |= (arg1->kind == (an_expr_node_kind)enk_error);
+    if (arg2_kind != iek_none) {
+      (void)required_token(tok_comma, ec_exp_comma);
+      arg2 = scan_constant_operation_arg(arg2_kind);
+      err |= (arg2->kind == (an_expr_node_kind)enk_error);
+      arg1->next = arg2;
+      if (arg3_kind != iek_none) {
+        (void)required_token(tok_comma, ec_exp_comma);
+        arg3 = scan_constant_operation_arg(arg3_kind);
+        err |= (arg3->kind == (an_expr_node_kind)enk_error);
+        arg2->next = arg3;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    /* Create the constant result operand by attempting to fold an
+       enk_constant_operation node that represents the operation. */
+    an_expr_node_ptr  expr;
+    expr = alloc_expr_node((an_expr_node_kind)enk_constant_operation);
+    expr->variant.constant_operation.kind = (a_constant_operation_kind)kind;
+    expr->variant.constant_operation.operands = arg1;
+    clear_operand((an_operand_kind)ok_constant, result);
+    fold_constant_operation_if_possible(expr, &result->variant.constant,
+                                        &start_pos);
+    result->type = result->variant.constant.type;
+  } else {
+    make_error_operand(result);
+  }  /* if */
+  set_operand_position(result, &start_pos, &end_pos_curr_token, &start_pos);
+  remove_stop_token(tok_rparen);
+  /* Check for and pass over the right parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+}  /* scan_call_like_constant_operation */
+
+
+static void scan_is_base_of(an_operand  *result)
+/*
+Scan a constant-expression of the form
+      __is_base_of( <typeB> , <typeD> )
+The result is a boolean of value true is typeD is derived from typeB (where
+a class type is always considered to be derived from itself).
+*/
+{
+  scan_call_like_constant_operation(cok_is_base_of, bool_type(),
+                                    iek_type, iek_type, iek_none,
+                                    result);
+}  /* scan_is_base_of */
+
 #if GNU_EXTENSIONS_ALLOWED
 
 static void scan_builtin_types_compatible(an_operand  *result)
@@ -14327,6 +14443,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_function_name:
     case tok_pretty_function_name:
     case tok_decorated_function_name:
+    case tok_is_base_of:
       is_expr_start = TRUE;
       break;
     default:
@@ -16750,6 +16867,11 @@ see expr.h).
     case tok_builtin_offsetof:
       /* __builtin_offsetof construct. */
       scan_offsetof(&local_result);
+      break;
+
+    case tok_is_base_of:
+      /* __is_base_of construct: */
+      scan_is_base_of(&local_result);
       break;
 
 #if GNU_EXTENSIONS_ALLOWED

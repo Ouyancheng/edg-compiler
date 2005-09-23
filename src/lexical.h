@@ -277,6 +277,7 @@ typedef enum /*a_token_kind*/ {
   tok_upc_localsizeof,
   tok_upc_elemsizeof,
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  tok_is_base_of,
   /* Token used to indicate keywords that are not yet implemented. */
   tok_unimplemented,
   /* Error token. */
@@ -355,6 +356,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "upc_wait", "upc_fence", "THREADS", "MYTHREAD", "upc_blocksizeof",
    "upc_localsizeof", "upc_elemsizeof",
 #endif /* UPC_EXTENSIONS_ALLOWED */
+   "__is_base_of",
    "unimplemented", "error", "removed default arg",
    "last" /* used to check that initialization is right. */
   }
@@ -786,6 +788,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_upc_localsizeof */
    (an_opname_kind)onk_none,          /* tok_upc_elemsizeof */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+   (an_opname_kind)onk_none,          /* tok_is_base_of */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_none,          /* tok_error */
    (an_opname_kind)onk_none,          /* tok_removed_default_arg */

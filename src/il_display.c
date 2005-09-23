@@ -3716,6 +3716,20 @@ cleanup_state_common:
       disp_ptr("member", (char *)ptr->variant.offsetof_info.member,
                iek_expr_node);
       break;
+    case enk_type_operand:
+      (void)printf("enk_type_operand\n");
+      disp_ptr("type", (char *)ptr->variant.type_operand.type, iek_type);
+      disp_boolean("definition_needed",
+                   (a_boolean)ptr->variant.type_operand.definition_needed);
+      break;
+    case enk_constant_operation:
+      (void)printf("constant_operation\n");
+      disp_name("constant_operation.kind");
+      (void)printf(constant_operation_names[
+                                        ptr->variant.constant_operation.kind]);
+      disp_ptr("operands", (char *)ptr->variant.constant_operation.operands,
+               iek_expr_node);
+      break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_types_compatible:
       (void)printf("enk_types_compatible\n");
