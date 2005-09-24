@@ -1,5 +1,22 @@
 Version 3.7
 
+9/24/05  long long bit field integral promotions
+
+The integral promotions for long long and unsigned long long bit fields
+have been corrected to more closely match the C99 and C++ standards
+(such bit fields don't get promoted and therefore the expression has
+the underlying type of the bit field).
+
+  #include <stdio.h>
+  struct S { unsigned long long x:33; } s = {0};
+  int main() {
+    if (s.x - 2 > 0) {   // Prints "unsigned" now
+      printf("unsigned\n");
+    } else {
+      printf("signed\n");
+    }
+  }
+
 9/22/05  Fix on g++ mode emulation of lookup of name in dependent call
 
 The change of 4/19/05 to emulate g++'s lookup of names in dependent calls

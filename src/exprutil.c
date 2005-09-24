@@ -3271,9 +3271,11 @@ up to the caller to do the cast if desired.
   a_type_ptr      promoted_type;
   a_field_ptr     field;
   an_integer_kind ikind, orig_ikind;
+  unsigned int    field_size;
 
   db_enter(4, "type_after_bit_field_integral_promotion");
   field = node->variant.operation.operands->next->variant.field;
+  field_size = field->bit_size;
   promoted_type = skip_typerefs(type);
 #if CHECKING
   /* The type of a bit-field should be integral. */
@@ -3281,72 +3283,62 @@ up to the caller to do the cast if desired.
     internal_error(
             "type_after_bit_field_integral_promotion: bit-field not integral");
   }  /* if */
-  if (field->bit_size >
-               (unsigned int)(TARG_SIZEOF_LARGEST_INTEGER*targ_char_bit)) {
+  if (field_size > (unsigned int)(TARG_SIZEOF_LARGEST_INTEGER*targ_char_bit)) {
     internal_error(
                  "type_after_bit_field_integral_promotion: bit-field too big");
   }  /* if */
 #endif /* CHECKING */
   orig_ikind = ikind = promoted_type->variant.integer.int_kind;
+  if (!C_mode()) {
+    /* In C++, the size of a bit field can be larger than the size of
+       the underlying type.  The value representation only includes
+       the number of bits in the underlying type, however.  Base the
+       promotion rules on that.  See [class.bit]p1 in the C++ standard. */
+    a_targ_size_t    int_size;
+    a_targ_alignment int_alignment;
+    get_integer_size_and_alignment(ikind, &int_size, &int_alignment);
+    int_size *= targ_char_bit;
+    if (field_size > int_size) field_size = int_size;
+  }  /* if */
 #if LONG_LONG_ALLOWED
   if ((microsoft_mode || gpp_mode ||
-      (gcc_mode && gnu_version < 40000 &&
-       field->bit_size >= (unsigned int)(targ_sizeof_long*targ_char_bit))) &&
+       (gcc_mode && gnu_version < 40000 &&
+        field->bit_size == (unsigned int)(targ_sizeof_long*targ_char_bit))) &&
       (ikind == (an_integer_kind)ik_long_long ||
        ikind == (an_integer_kind)ik_unsigned_long_long)) {
-    /* MSVC++ and gcc/g++ promote long long and unsigned long long bit
-       fields to those types.  gcc does the unusual promotion only
-       for fields at least as big as long. */
+    /* MSVC++ and g++ consider long long and unsigned long long bit
+       fields to retain those types even if the bit field size is less than
+       the size of int.  This is possibly justified in C99 (6.3.1.1p2)
+       but is probably wrong in C++.  gcc before 4.0 also does this for
+       bit fields that are exactly as long as "long". */
   } else
 #endif /* LONG_LONG_ALLOWED */
   /* Do not insert code here. */
   if (field->bit_field_is_signed) {
-    /* Bit-field is signed, so it is promoted to the first of int or
-       long into which all its values will fit. */
-#if LONG_LONG_ALLOWED
-    /* ... or long long. */
-#endif /* LONG_LONG_ALLOWED */
-    if (field->bit_size <= (unsigned int)(targ_sizeof_int*targ_char_bit)) {
+    /* Bit-field is signed, so it is promoted to int if all its values will
+       fit in int. */
+    if (field_size <= (unsigned int)(targ_sizeof_int*targ_char_bit)) {
       ikind = (an_integer_kind)ik_int;
     } else {
-#if LONG_LONG_ALLOWED
-      if (field->bit_size <= (unsigned int)(targ_sizeof_long*targ_char_bit)) {
-#endif /* LONG_LONG_ALLOWED */
-        ikind = (an_integer_kind)ik_long;
-#if LONG_LONG_ALLOWED
-      } else {
-        ikind = (an_integer_kind)ik_long_long;
-      }  /* if */
-#endif /* LONG_LONG_ALLOWED */
+      /* Bit-fields larger than int keep the original type. */
     }  /* if */
   } else {
-    /* Bit-field is unsigned, so it is promoted to the first of int,
-       unsigned int, long, and unsigned long into which all its values
-       will fit. */
-#if LONG_LONG_ALLOWED
-    /* ... or long long or unsigned long long. */
-#endif /* LONG_LONG_ALLOWED */
-    if (field->bit_size < (unsigned int)(targ_sizeof_int*targ_char_bit)) {
+    /* Bit-field is unsigned, so it is promoted to the first of int or
+       unsigned int into which all its values will fit. */
+    if (field_size < (unsigned int)(targ_sizeof_int*targ_char_bit)) {
       ikind = (an_integer_kind)ik_int;
-    } else if (field->bit_size ==
-                               (unsigned int)(targ_sizeof_int*targ_char_bit)) {
+    } else if (field_size == (unsigned int)(targ_sizeof_int*targ_char_bit)) {
       ikind = (an_integer_kind)ik_unsigned_int;
-    } else if (field->bit_size <
-                              (unsigned int)(targ_sizeof_long*targ_char_bit)) {
-      ikind = (an_integer_kind)ik_long;
-    } else {
-#if LONG_LONG_ALLOWED
-      if (field->bit_size == (unsigned int)(targ_sizeof_long*targ_char_bit)) {
-#endif /* LONG_LONG_ALLOWED */
-        ikind = (an_integer_kind)ik_unsigned_long;
-#if LONG_LONG_ALLOWED
-      } else if (field->bit_size <
+    } else if (gcc_mode && gnu_version == 40000 &&
+               ikind == (an_integer_kind)ik_unsigned_long_long &&
+               field_size <
                          (unsigned int)(targ_sizeof_long_long*targ_char_bit)) {
-        ikind = (an_integer_kind)ik_long_long;
-      } else {
-        ikind = (an_integer_kind)ik_unsigned_long_long;
-      }  /* if */
-#endif /* LONG_LONG_ALLOWED */
+      /* gcc 4.0 promotes unsigned long long bit fields of less than 64 bits
+         to signed long long.  This doesn't seem to conform to the C99
+         standard (6.3.1.1p2). */
+      ikind = (an_integer_kind)ik_long_long;
+    } else {
+      /* Bit-fields larger than unsigned int keep the original type. */
     }  /* if */
   }  /* if */
   if (ikind != orig_ikind) promoted_type = integer_type(ikind);
