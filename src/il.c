@@ -6351,6 +6351,7 @@ to it.  *decl_position is used for issuing diagnostics.
   return ptp;
 }  /* make_param_type */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_base_class_derivation_ptr preferred_virtual_derivation_of(
                                                      a_base_class_ptr  bcp)
@@ -6372,6 +6373,7 @@ There must be a derivation so marked.
   return bcdp;
 }  /* preferred_virtual_derivation_of */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 #if DEBUG
 static a_base_class_derivation_ptr direct_virtual_derivation_of(
