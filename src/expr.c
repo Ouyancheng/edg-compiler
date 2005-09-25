@@ -10141,7 +10141,8 @@ C-style casts and C++ functional-notation type conversions.
         } else if (microsoft_bugs && is_an_lvalue(operand) &&
                    identical_types_ignoring_qualifiers(source_type,
                                                        type_cast_to) &&
-                   value_of_constant_var_lvalue_operand(operand) == NULL &&
+                   (value_of_constant_var_lvalue_operand(operand) == NULL ||
+                    !is_integral_type(source_type)) &&
                    !is_bit_field_operand(operand)) {
           /* In Microsoft mode, a cast of an lvalue to the same type
              is just ignored, and the operand stays an lvalue.  Note that
