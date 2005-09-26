@@ -4899,7 +4899,7 @@ expression.
 }  /* fold_is_base_of */
 
 
-/*ARGSUSED*/ /* <- pos us currently unused. */
+/*ARGSUSED*/ /* <- pos is currently unused. */
 void fold_constant_operation_if_possible(an_expr_node_ptr   expr,
                                          a_constant_ptr     constant,
                                          a_source_position  *pos)
