@@ -8260,21 +8260,32 @@ done_with_operation_after_parens:
       /* Temporary creation/initialization. */
       if (expr->variant.init.result_is_addr) {
         /* Using the address of the temp. */
-        a_type_ptr temp_type = type_pointed_to(expr->type);
+        a_type_ptr         temp_type = type_pointed_to(expr->type);
+        a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
         write_tok_ch('(');
         gen_ampersand(temp_type);
         if (C_mode()) {
           /* Address of temp-init in C.  This comes up for the address
              of a C99 compound literal. */
-          a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
           gen_compound_literal((a_constant_ptr)NULL, dip, temp_type);
         } else {
-          /* Address of temp-init in C++.  This can come up if it is allowed
-             to cast an rvalue to a reference type. */
-          write_tok_ch('(');
-          gen_type(temp_type);
-          write_tok_str(" &)");
-          gen_temp_init(expr, /*obj_expr_of_mfunc_operator=*/FALSE);
+          /* Address of temp-init in C++. */
+          if ((microsoft_dialect_is_generated_code_target ||
+               gcc_is_generated_code_target) &&
+              is_class_struct_union_type(temp_type) &&
+              dip->kind == (a_dynamic_init_kind)dik_expression &&
+              is_operation_node(dip->variant.expression) &&
+              node_operator_is(dip->variant.expression, eok_call)) {
+            /* MSVC++ anf g++ can take the address of a function call. */
+            gen_temp_init(expr, /*obj_expr_of_mfunc_operator=*/FALSE);
+          } else {
+            /* Otherwise, assume this came from a cast of an rvalue to
+               a reference type. */
+            write_tok_ch('(');
+            gen_type(temp_type);
+            write_tok_str(" &)");
+            gen_temp_init(expr, /*obj_expr_of_mfunc_operator=*/FALSE);
+          }  /* if */
         }  /* if */
         write_tok_ch(')');
       } else {
