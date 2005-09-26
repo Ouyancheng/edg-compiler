@@ -5764,7 +5764,7 @@ argument kinds are currently unimplemented.) Produce a constant operand in
   (void)get_token();
   /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
-  add_stop_token(tok_rparen);
+  add_matching_stop_token(tok_rparen);
   if (arg1_kind != iek_none) {
     arg1 = scan_constant_operation_arg(arg1_kind);
     err |= (int)(arg1->kind == (an_expr_node_kind)enk_error);
@@ -5796,7 +5796,7 @@ argument kinds are currently unimplemented.) Produce a constant operand in
     make_error_operand(result);
   }  /* if */
   set_operand_position(result, &start_pos, &end_pos_curr_token, &start_pos);
-  remove_stop_token(tok_rparen);
+  remove_matching_stop_token(tok_rparen);
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
 }  /* scan_call_like_constant_operation */
@@ -5813,6 +5813,7 @@ a class type is always considered to be derived from itself).
   scan_call_like_constant_operation(cok_is_base_of,
                                     iek_type, iek_type, iek_none,
                                     result);
+  result->state = (an_operand_state)os_rvalue;
 }  /* scan_is_base_of */
 
 #if GNU_EXTENSIONS_ALLOWED
