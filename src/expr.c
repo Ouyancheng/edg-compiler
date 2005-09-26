@@ -5740,7 +5740,6 @@ arbitrary expression.  (Only the iek_type case is currently implemented.)
 
 static void scan_call_like_constant_operation(
                                    a_constant_operation_kind_tag  kind,
-                                   a_type_ptr                     result_type,
                                    an_il_entry_kind               arg1_kind,
                                    an_il_entry_kind               arg2_kind,
                                    an_il_entry_kind               arg3_kind,
@@ -5768,16 +5767,16 @@ argument kinds are currently unimplemented.) Produce a constant operand in
   add_stop_token(tok_rparen);
   if (arg1_kind != iek_none) {
     arg1 = scan_constant_operation_arg(arg1_kind);
-    err |= (arg1->kind == (an_expr_node_kind)enk_error);
+    err |= (int)(arg1->kind == (an_expr_node_kind)enk_error);
     if (arg2_kind != iek_none) {
       (void)required_token(tok_comma, ec_exp_comma);
       arg2 = scan_constant_operation_arg(arg2_kind);
-      err |= (arg2->kind == (an_expr_node_kind)enk_error);
+      err |= (int)(arg2->kind == (an_expr_node_kind)enk_error);
       arg1->next = arg2;
       if (arg3_kind != iek_none) {
         (void)required_token(tok_comma, ec_exp_comma);
         arg3 = scan_constant_operation_arg(arg3_kind);
-        err |= (arg3->kind == (an_expr_node_kind)enk_error);
+        err |= (int)(arg3->kind == (an_expr_node_kind)enk_error);
         arg2->next = arg3;
       }  /* if */
     }  /* if */
@@ -5811,7 +5810,7 @@ The result is a boolean of value true is typeD is derived from typeB (where
 a class type is always considered to be derived from itself).
 */
 {
-  scan_call_like_constant_operation(cok_is_base_of, bool_type(),
+  scan_call_like_constant_operation(cok_is_base_of,
                                     iek_type, iek_type, iek_none,
                                     result);
 }  /* scan_is_base_of */
