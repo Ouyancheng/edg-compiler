@@ -2220,7 +2220,11 @@ are preserved in the IL.  This may be desirable for certain source-analysis
 applications.
 */
 #ifndef PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL
+#if BACK_END_IS_CP_GEN_BE
+#define PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL TRUE
+#else /* !BACK_END_IS_CP_GEN_BE */
 #define PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL FALSE
+#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL */
 
 /*
