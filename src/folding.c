@@ -173,6 +173,7 @@ size in bits of the integral type.
 void trunc_and_set_integer(an_integer_value  *result_value,
                            a_constant        *result,
                            a_boolean         check_overflow,
+			   a_boolean	     saturate_on_overflow,
                            an_error_code     *err_code,
                            an_error_severity *err_severity)
 /*
@@ -182,7 +183,9 @@ indicates the desired result type.  If check_overflow is TRUE and
 the result type; if it does not, set *err_code and *err_severity to
 indicate the error.  Whether or not the check is done, and whether or
 not it succeeds, the value will be adjusted if necessary to ensure
-that it fits.
+that it fits.  saturate_on_overflow is TRUE if an overflow should
+produce the largest (or smallest) value that will fit in the destination
+type.
 */
 {
   an_integer_kind  ikind;
@@ -196,18 +199,29 @@ that it fits.
   get_integer_attributes(result, &ikind, &is_signed, &bit_size);
   /* Do the overflow check if necessary and if there's been no previous
      error. */
+  if (in_range_for_integer_kind(result, result, ikind)) {
+    /* The value is in the right range.  No truncation is needed. */
+    goto after_truncation;
+  }  /* if */
+  /* The value will not fit in the destination integer type. */
   if (check_overflow && *err_code == ec_no_error) {
-    if (in_range_for_integer_kind(result, result, ikind)) {
-      /* The value is in the right range.  No truncation is needed. */
-      goto after_truncation;
-    }  /* if */
-    /* The value will not fit in the destination integer type. */
+    /* Return an error code if the caller requested that we check for
+       overflow. */
     *err_code = ec_integer_overflow;
     *err_severity = ES_INT_OVERFLOW;
   }  /* if */
-  /* Truncate the value to the right size. */
-  make_integer_value_mask(&mask, bit_size);
-  and_integer_values(&result->variant.integer_value, &mask);
+  /* Truncate the value to the right size.  When saturate_on_overflow is
+     TRUE, return the largest or smallest value that can be represented. */
+  if (saturate_on_overflow) {
+    if (sign_of_integer_constant(result) < 0) {
+      result->variant.integer_value = min_integer_value_of_kind[ikind];
+    } else {
+      result->variant.integer_value = max_integer_value_of_kind[ikind];
+    }  /* if */
+  } else {
+    make_integer_value_mask(&mask, bit_size);
+    and_integer_values(&result->variant.integer_value, &mask);
+  }  /* if */
   /* Sign-extend a signed result. */
   if (is_signed) {
     sign_extend_integer_value(&result->variant.integer_value, bit_size);
@@ -404,14 +418,16 @@ static void conv_float_to_integer(a_constant        *old_constant,
 			          a_constant        *new_constant,
 			          an_error_code     *err_code,
 				  an_error_severity *err_severity,
-                                  a_boolean         *depends_on_fp_mode)
+                                  a_boolean         *depends_on_fp_mode,
+				  a_boolean	    constant_context)
 /*
 Convert a float of some kind (in *old_constant) to an integer constant
 in *new_constant, with type as indicated therein.  Return *err_code and
 *err_severity set to indicate any error/warning detected, or
 *err_code == ec_no_error if everything went fine.  *depends_on_fp_mode
 is returned TRUE if the result has been determined but might be different
-depending on the floating-point mode.
+depending on the floating-point mode.  If constant_context is FALSE, this
+operation is being evaluated as part of a nonconstant expression.
 */
 {
   a_host_large_integer    int_value;
@@ -421,6 +437,8 @@ depending on the floating-point mode.
   a_type_ptr              float_tp = skip_typerefs(old_constant->type);
   a_float_kind            float_kind = float_tp->variant.float_kind;
   an_internal_float_value *float_value;
+  a_boolean		  is_negative;
+
 #if C99_IL_EXTENSIONS_SUPPORTED
   an_internal_float_value zero;
 
@@ -445,17 +463,27 @@ depending on the floating-point mode.
   *err_severity = es_warning;
 
   is_signed = int_constant_is_signed(new_constant);
-  if (is_signed) {
-    /* Destination is a signed integer. */
+  is_negative = fp_is_negative(float_kind, float_value);
+  if (is_signed || is_negative) {
+    /* Destination is a signed integer or the source value is negative.
+       When the source value is negative, we convert to a signed value
+       because we may use the resulting bit pattern as an unsigned value. */
     fp_to_host_large_integer(float_kind, float_value,
                              &int_value, &err, depends_on_fp_mode);
-    if (!err) set_integer_value(&result_value, int_value);
+    /* We set the result value even if an error occurred.  This value
+       is used in some modes. */
+    set_integer_value(&result_value, int_value);
+    /* Set the error flag if we the source value is negative and the result
+       was intended to be unsigned. */
+    if (!is_signed) err = TRUE;
   } else {
     /* Destination is an unsigned integer. */
     fp_to_host_large_unsigned(float_kind, float_value,
                               &unsigned_int_value, &err,
                               depends_on_fp_mode);
-    if (!err) set_unsigned_integer_value(&result_value, unsigned_int_value);
+    /* We set the result value even if an error occurred.  This value
+       is used in some modes. */
+    set_unsigned_integer_value(&result_value, unsigned_int_value);
   }  /* if */
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
   if (err) {
@@ -467,18 +495,44 @@ depending on the floating-point mode.
     if (pos_infinity || neg_infinity || not_a_number) {
       err = TRUE;
     } else {
-      conv_float_string_to_integer_value(str, &result_value, is_signed, &err);
+      if (!is_signed && is_negative) {
+        /* The source value is negative but the result value is unsigned
+           do the conversion to a signed value because the resulting bit
+           pattern may be used later in some modes. */
+        conv_float_string_to_integer_value(str, &result_value,
+                                           /*is_signed=*/TRUE, &err);
+        /* Always set the error flag in this case. */
+        err = TRUE;
+      } else {
+        conv_float_string_to_integer_value(str, &result_value,
+                                           is_signed, &err);
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-  if (!err) {
-    trunc_and_set_integer(&result_value, new_constant, /*check_overflow=*/TRUE,
-                          err_code, err_severity);
+  if (err && gcc_mode && gnu_version >= 30400) {
+    /* The float value cannot be represented as an integer value (or an
+       unsigned integer value).  Use the largest or smallest (depending on
+       the sign of the float) value that can be represented. */
+    make_saturated_integer_for_float(float_kind, float_value, &result_value,
+                                     new_constant);
   }  /* if */
+  trunc_and_set_integer(&result_value, new_constant,
+                        /*check_overflow=*/!err,
+                        /*saturate_on_overflow=*/gcc_mode &&
+                                                 gnu_version >= 30400,
+                        err_code, err_severity);
   if (err || *err_code != ec_no_error) {
     /* Float value is too big to fit in the integer. */
     *err_code = ec_float_to_integer_conversion;
-    *err_severity = es_error;
+    /* In GNU C and Microsoft C mode, only give a warning on an out-of-range
+       value in a constant context.  An es_error severity is returned in
+       non-constant contexts.  This causes the folded value to be discarded
+       and the operation to be evaluated at run time.  In such cases the
+       severity is reduced to a warning by issue_folding_diagnostic. */
+    *err_severity = constant_context &&
+                    (gcc_mode || (microsoft_mode && C_mode())) ? es_warning
+                                                               : es_error;
   }  /* if */
 }  /* conv_float_to_integer */
 
@@ -1612,7 +1666,7 @@ to the constant is maintained, by adding a cast if necessary.
           /* Converting float to integer. */
           conv_float_to_integer(constant, &new_constant,
                                 &err_code, &err_severity,
-                                &depends_on_fp_mode);
+                                &depends_on_fp_mode, constant_context);
           break;
         case tk_float:
           /* Converting float to float. */
@@ -1645,7 +1699,7 @@ to the constant is maintained, by adding a cast if necessary.
           /* Converting imaginary to integer (produces zero). */
           conv_float_to_integer(constant, &new_constant,
                                 &err_code, &err_severity,
-                                &depends_on_fp_mode);
+                                &depends_on_fp_mode, constant_context);
           break;
         case tk_float:
           /* Converting imaginary to float (produces zero). */
@@ -1676,7 +1730,7 @@ to the constant is maintained, by adding a cast if necessary.
           /* Converting complex to integer. */
           conv_float_to_integer(constant, &new_constant,
                                 &err_code, &err_severity,
-                                &depends_on_fp_mode);
+                                &depends_on_fp_mode, constant_context);
           break;
         case tk_float:
           /* Converting complex to float. */
@@ -2008,6 +2062,7 @@ Do the negate operation on all types of integers.
     result->non_arithmetic = TRUE;
   }  /* if */
   trunc_and_set_integer(&result_value, result, /*check_overflow=*/is_signed,
+                        /*saturate_on_overflow=*/FALSE,
                         err_code, err_severity);
 
 #if DEBUG
@@ -2138,6 +2193,7 @@ Do the complement operation on all types of integers.
   result_value = constant->variant.integer_value;
   complement_integer_value(&result_value);
   trunc_and_set_integer(&result_value, result, /*check_overflow=*/FALSE,
+                        /*saturate_on_overflow=*/FALSE,
                         err_code, err_severity);
   result->non_arithmetic = TRUE;
 
@@ -2364,6 +2420,7 @@ Do the addition operation on all types of integers.
     *err_severity = ES_INT_OVERFLOW;
   }  /* if */
   trunc_and_set_integer(&result_value, result, /*check_overflow=*/is_signed,
+                        /*saturate_on_overflow=*/FALSE,
                         err_code, err_severity);
 
 #if DEBUG
@@ -2396,6 +2453,7 @@ Do the subtract operation on all types of integers.
     *err_severity = ES_INT_OVERFLOW;
   }  /* if */
   trunc_and_set_integer(&result_value, result, /*check_overflow=*/is_signed,
+                        /*saturate_on_overflow=*/FALSE,
                         err_code, err_severity);
 
 #if DEBUG
@@ -2428,6 +2486,7 @@ Do the multiply operation on all types of integers.
     *err_severity = ES_INT_OVERFLOW;
   }  /* if */
   trunc_and_set_integer(&result_value, result, /*check_overflow=*/is_signed,
+                        /*saturate_on_overflow=*/FALSE,
                         err_code, err_severity);
 
 #if DEBUG
@@ -2467,6 +2526,7 @@ Do the divide operation on all types of integers.
     }  /* if */
   }  /* if */
   trunc_and_set_integer(&result_value, result, /*check_overflow=*/is_signed,
+                        /*saturate_on_overflow=*/FALSE,
                         err_code, err_severity);
 
 #if DEBUG
@@ -2506,6 +2566,7 @@ Do the remainder operation ("%") on all types of integers.
     }  /* if */
   }  /* if */
   trunc_and_set_integer(&result_value, result, /*check_overflow=*/is_signed,
+                        /*saturate_on_overflow=*/FALSE,
                         err_code, err_severity);
 
 #if DEBUG
@@ -2661,6 +2722,7 @@ everything went fine.
       }  /* if */
     }  /* if */
     trunc_and_set_integer(&result_value, result, /*check_overflow=*/FALSE,
+                          /*saturate_on_overflow=*/FALSE,
                           err_code, err_severity);
   }  /* if */
 end_of_folding:;
@@ -4176,6 +4238,7 @@ if everything went fine.
     }  /* if */
     if (!err) {
       trunc_and_set_integer(&difference, result, /*check_overflow=*/TRUE,
+                            /*saturate_on_overflow=*/FALSE,
                             err_code, err_severity);
     } else {
       *err_code = ec_integer_overflow;

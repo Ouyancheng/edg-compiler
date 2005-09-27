@@ -731,6 +731,7 @@ to be issued; otherwise set err_code to ec_no_error.
   } else {
     /* Truncate the value to the size of the destination integer type. */
     trunc_and_set_integer(&int_value, new_constant, /*check_overflow=*/TRUE,
+                          /*saturate_on_overflow=*/FALSE,
                           err_code, err_severity);
     if (*err_code != ec_no_error) {
       /* If an error occurred while storing the value, remap the error code

@@ -23,14 +23,6 @@ const_ints.c -- Manipulation of target integer constants.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 
-/*
-Arrays containing the minimum and maximum values for each integer kind.
-*/
-static an_integer_value
-		min_integer_value_of_kind[(int)ik_last],
-		max_integer_value_of_kind[(int)ik_last];
-
-
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 #define INT_VALUE_PART_BASE ((a_host_large_unsigned)MAX_UINT_VALUE_PART + 1)
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */

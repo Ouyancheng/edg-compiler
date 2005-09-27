@@ -150,6 +150,12 @@ void fp_host_large_integer_to_float(a_float_kind            kind,
                                     a_boolean               *err);
 
 #ifdef CFE
+extern void make_saturated_integer_for_float(
+			a_float_kind            kind,
+			an_internal_float_value *float_value,
+			an_integer_value	*result,
+			a_constant_ptr		result_constant);
+
 extern void fp_host_large_unsigned_to_float(
                       a_float_kind            kind, 
                       a_host_large_unsigned   unsigned_value,
@@ -214,6 +220,9 @@ extern int fp_compare(a_float_kind            kind,
                       an_internal_float_value *float_value_1,
                       an_internal_float_value *float_value_2,
                       a_boolean               *unordered);
+
+extern int fp_is_negative(a_float_kind            kind,
+                          an_internal_float_value *value);
 
 a_boolean fp_same_representation(a_float_kind            kind,
                                  an_internal_float_value *value_1,

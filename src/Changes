@@ -1,5 +1,26 @@
 Version 3.7
 
+9/27/05  GNU and Microsoft C compatibility: folding of float to integral
+         conversion when result is out of range
+
+The GNU and Microsoft C compilers accept the compile-time conversion to an
+integral type of a floating-point value that is out of range.  Note that
+in C++ such code is accepted but when the value is out of range the
+conversion is deferred until run time.  We now accept such conversions
+in GNU and Microsoft C mode with a warning.
+
+In Microsoft mode, and in GNU mode when gnu_version is < 30400, the bits
+that specify the value are truncated to fit in the destination type
+and that value is used as the result.  For the cases below this yields
+a value of 65533 for s1, 2 for s2, and -2 for s3.  In GNU mode when
+gnu_version is >= 30400 the largest or smallest value that can
+be represented in the destination type is used.  This yields a value of
+0 for s1, 65535 for s2, and -32768 for s3.
+
+  unsigned short s1 = (unsigned short)(-(3.5));
+  unsigned short s2 = (unsigned short)(65538.0);
+  short s3 = (short)(-(65538.0));
+
 9/24/05  long long bit field integral promotions
 
 The integral promotions for long long and unsigned long long bit fields

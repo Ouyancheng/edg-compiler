@@ -26,6 +26,7 @@ for a production version.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#include "folding.h"
 #if __ANSIC__ || defined(__cplusplus)
 /* For FLT_MAX: */
 #include <float.h>
@@ -1928,12 +1929,39 @@ mode, *depends_on_fp_mode is returned TRUE (*int_value is set anyway).
       temp < (a_host_fp_value)MIN_HOST_LARGE_INTEGER) {
     /* Floating value is too big or too small. */
     *err = TRUE;
-  } else {
-    *int_value = (a_host_large_integer)temp;
   }  /* if */
+  /* Note that we produce a result even in the event of an error.  This
+     value may be used in some modes. */
+  *int_value = (a_host_large_integer)temp;
 }  /* fp_to_host_large_integer */
 
 #ifdef CFE
+
+void make_saturated_integer_for_float(
+			a_float_kind            kind,
+			an_internal_float_value *float_value,
+			an_integer_value	*result,
+			a_constant_ptr		result_constant)
+/*
+Set "result" to the largest or smallest possible value depending on whether
+float_value is positive or negative.  result_constant is the constant in
+which the value will ultimately be stored.
+*/
+{
+  an_integer_kind  ikind;
+  a_boolean        is_signed;
+  int              bit_size;
+  a_host_fp_value  temp;
+
+  get_integer_attributes(result_constant, &ikind, &is_signed, &bit_size);
+  temp = fetch_host_fp_value(kind, float_value);
+  if (temp < (a_host_fp_value)0) {
+    *result = min_integer_value_of_kind[ikind];
+  } else {
+    *result = max_integer_value_of_kind[ikind];
+  }  /* if */
+}  /* make_saturated_integer_for_float */
+
 
 void fp_to_host_large_unsigned(
 			a_float_kind            kind,
@@ -1957,9 +1985,10 @@ floating-point mode, *depends_on_fp_mode is returned TRUE
       temp < (a_host_fp_value)0) {
     /* Floating value is too big or too small. */
     *err = TRUE;
-  } else {
-    *unsigned_value = (a_host_large_unsigned)temp;
   }  /* if */
+  /* Note that we produce a result even in the event of an error.  This
+     value may be used in some modes. */
+  *unsigned_value = (a_host_large_unsigned)temp;
 }  /* fp_to_host_large_unsigned */
 
 #endif /* ifdef CFE */
@@ -2156,6 +2185,28 @@ values:
   }  /* if */
   return cmp;
 }  /* fp_compare */
+
+
+int fp_is_negative(a_float_kind            kind,
+                   an_internal_float_value *value)
+/*
+Return TRUE if "value" is negative.  If "value" is positive or a NaN,
+return FALSE;
+*/
+{
+  a_host_fp_value	temp;
+  a_boolean		result = FALSE;
+
+  temp = fetch_host_fp_value(kind, value);
+#if TARG_HAS_IEEE_FLOATING_POINT
+  if (is_NaN(temp)) {
+  } else
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+  if (temp < (a_host_fp_value)0) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* fp_is_negative */
 
 
 /*ARGSUSED*/  /* kind is not used. */

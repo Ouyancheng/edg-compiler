@@ -105,6 +105,7 @@ extern void get_integer_attributes(a_constant      *cp,
 extern void trunc_and_set_integer(an_integer_value  *result_value,
                                   a_constant        *result,
                                   a_boolean         check_overflow,
+				  a_boolean	    saturate_on_overflow,
                                   an_error_code     *err_code,
                                   an_error_severity *err_severity);
 

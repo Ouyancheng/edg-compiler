@@ -267,6 +267,13 @@ extern an_integer_kind int_kind_for_bit_size(unsigned int  number_of_bits,
 extern char* db_format_integer_value(an_integer_value  *value);
 #endif /* DEBUG */
 
+/*
+Arrays containing the minimum and maximum values for each integer kind.
+*/
+EXTERN an_integer_value
+		min_integer_value_of_kind[(int)ik_last],
+		max_integer_value_of_kind[(int)ik_last];
+
 #endif /* ifndef CONST_INTS_H */
 
 
