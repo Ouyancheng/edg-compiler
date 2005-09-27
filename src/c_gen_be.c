@@ -4989,10 +4989,10 @@ done_with_operation:
     case enk_type_operand:
       dump_type(expr->variant.type_operand.type, /*add_pointer_to=*/FALSE);
       break;
-    case enk_constant_operation:
-      { an_expr_node_ptr  arg = expr->variant.constant_operation.operands;
+    case enk_builtin_operation:
+      { an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
         write_tok_str(
-             constant_operation_names[expr->variant.constant_operation.kind]);
+               builtin_operation_names[expr->variant.builtin_operation.kind]);
         write_tok_ch('(');
         while (arg != NULL) {
           /* Output the arguments (if any) for the constant operation.

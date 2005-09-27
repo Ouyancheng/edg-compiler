@@ -2542,10 +2542,10 @@ fields to default values.
     case enk_type_operand:
       node->variant.type_operand.type = NULL;
       break;
-    case enk_constant_operation:
-      node->variant.constant_operation.kind =
-                                          (a_constant_operation_kind)cok_last;
-      node->variant.constant_operation.operands = NULL;
+    case enk_builtin_operation:
+      node->variant.builtin_operation.kind =
+                                           (a_builtin_operation_kind)bok_last;
+      node->variant.builtin_operation.operands = NULL;
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_types_compatible:

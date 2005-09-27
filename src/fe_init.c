@@ -412,7 +412,6 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_if_not_exists, "__if_not_exists");
       enter_keyword((a_token_kind)tok_super, "__super");
       enter_keyword((a_token_kind)tok_interface, "__interface");
-      enter_keyword((a_token_kind)tok_is_base_of, "__is_base_of");
     }  /* if */
     enter_underscore_keywords((a_token_kind)tok_microsoft_w64, "__w64");
     if (microsoft_version >= 1300) {
@@ -420,6 +419,11 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_microsoft_lprefix, "__LPREFIX");
       enter_keyword((a_token_kind)tok_noop, "__noop");
       enter_keyword((a_token_kind)tok_microsoft_identifier, "__identifier");
+    }  /* if */
+    if (microsoft_version >= 1400) {
+      /* The __is_base_of extension is only accepted in Microsoft C++ mode.
+         However, it is recognized (and rejected) in Microsoft C mode. */
+      enter_keyword((a_token_kind)tok_is_base_of, "__is_base_of");
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

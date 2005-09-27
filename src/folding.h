@@ -108,9 +108,9 @@ extern void trunc_and_set_integer(an_integer_value  *result_value,
                                   an_error_code     *err_code,
                                   an_error_severity *err_severity);
 
-extern void fold_constant_operation_if_possible(an_expr_node_ptr   expr,
-                                                a_constant_ptr     constant,
-                                                a_source_position  *pos);
+extern void fold_builtin_operation_if_possible(an_expr_node_ptr   expr,
+                                               a_constant_ptr     constant,
+                                               a_source_position  *pos);
 
 #endif /* ifndef FOLDING_H */
 

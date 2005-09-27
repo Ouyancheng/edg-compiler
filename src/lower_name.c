@@ -2669,7 +2669,7 @@ part of a template-dependent expression.
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_offsetof:  /* FIXME */
     case enk_type_operand:  /* FIXME */
-    case enk_constant_operation:  /* FIXME */
+    case enk_builtin_operation:  /* FIXME */
     default:;
       /* Unexpected expression kind.  These are allowed in some cases for
          expressions under sizeof in the IA-64 ABI. */

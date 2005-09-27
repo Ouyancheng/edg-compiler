@@ -2815,8 +2815,8 @@ as specified in the control block.
       break;
     case enk_type_operand:
       break;
-    case enk_constant_operation:
-      traverse_expr_list(expr->variant.constant_operation.operands, tblock);
+    case enk_builtin_operation:
+      traverse_expr_list(expr->variant.builtin_operation.operands, tblock);
       break;
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");

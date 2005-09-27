@@ -3722,12 +3722,12 @@ cleanup_state_common:
       disp_boolean("definition_needed",
                    (a_boolean)ptr->variant.type_operand.definition_needed);
       break;
-    case enk_constant_operation:
-      (void)printf("constant_operation\n");
-      disp_name("constant_operation.kind");
-      (void)printf(constant_operation_names[
-                                        ptr->variant.constant_operation.kind]);
-      disp_ptr("operands", (char *)ptr->variant.constant_operation.operands,
+    case enk_builtin_operation:
+      (void)printf("enk_builtin_operation\n");
+      disp_name("builtin_operation.kind");
+      (void)printf(builtin_operation_names[
+                                        ptr->variant.builtin_operation.kind]);
+      disp_ptr("operands", (char *)ptr->variant.builtin_operation.operands,
                iek_expr_node);
       break;
 #if GNU_EXTENSIONS_ALLOWED

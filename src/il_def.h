@@ -8088,9 +8088,9 @@ enum an_expr_node_kind_tag {
   enk_offsetof,		/* Used to represent a built-in offsetof operator. */
   enk_type_operand,	/* Used to represent types in certain expression
 			   constructs. */
-  enk_constant_operation,
-			/* Used to represent a variety of operations that
-			   result in constant expressions. */
+  enk_builtin_operation,
+			/* Used to represent a variety of builtin
+			   operations. */
 #if GNU_EXTENSIONS_ALLOWED
   enk_types_compatible,	/* Used to represent a __builtin_types_compatible_p
 			   construct.  Currently only used for the "expr"
@@ -8648,16 +8648,16 @@ enum an_expr_operator_kind_tag {
 typedef a_byte an_expr_operator_kind;
 
 
-typedef enum a_constant_operation_kind_tag {
-  /* When the expression node kind is "enk_constant_operation", these are the
+typedef enum a_builtin_operation_kind_tag {
+  /* When the expression node kind is "enk_builtin_operation", these are the
      possible operations. */
-  /* If you add an operation to this list, also update constant_operation_name
+  /* If you add an operation to this list, also update builtin_operation_names
      in this file. */
-  cok_is_base_of,
-  cok_last              /* Marks the end of the list. */
-} a_constant_operation_kind_tag;
+  bok_is_base_of,
+  bok_last              /* Marks the end of the list. */
+} a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_constant_operation_kind;
+typedef a_byte a_builtin_operation_kind;
 
 
 #if !ABI_CHANGES_FOR_RTTI
@@ -9193,14 +9193,14 @@ typedef struct an_expr_node {
 			/* A flag indicating that the type definition must be
 			   kept in the IL. */
     } type_operand;
-    /* When kind == enk_constant_operation: */
+    /* When kind == enk_builtin_operation: */
     struct {
-      a_constant_operation_kind
+      a_builtin_operation_kind
 		kind;	/* The specific operation being represented. */
       an_expr_node_ptr
 		operands;
 			/* The list of operands. */
-    } constant_operation;
+    } builtin_operation;
 #if GNU_EXTENSIONS_ALLOWED
     /* When kind == enk_types_compatible: */
     struct {
@@ -11724,9 +11724,9 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #endif /* DEBUG */
 
 /*
-Table of names of special operations that can appear in constant-expressions.
+Table of names of various builtin operations.
 */
-EXTERN char     *constant_operation_names[(int)cok_last+1]
+EXTERN char     *builtin_operation_names[(int)bok_last+1]
 #if VAR_INITIALIZERS
 = {
   "__is_base_of",

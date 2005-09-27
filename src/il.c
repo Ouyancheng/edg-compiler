@@ -1725,13 +1725,13 @@ Dump the contents of the indicated expression node for debug purposes.
       db_type_name(node->variant.type_operand.type);
       fputs("\n", f_debug);
       break;
-    case enk_constant_operation:
+    case enk_builtin_operation:
       fprintf(f_debug, "constant operation: %s",
-              constant_operation_names[node->variant.constant_operation.kind]);
+              builtin_operation_names[node->variant.builtin_operation.kind]);
       fputs(", result type: ", f_debug);
       db_abbreviated_type(node->type);
       fputs("\n", f_debug);
-      operand = node->variant.constant_operation.operands;
+      operand = node->variant.builtin_operation.operands;
       while (operand != NULL) {
         db_expr_node(operand, level + 2);
         operand = operand->next;
@@ -5209,11 +5209,11 @@ are allowed under a sizeof (etc.) in a template argument expression.
         eq = identical_types(node1->variant.type_operand.type,
                              node2->variant.type_operand.type);
         break;
-      case enk_constant_operation:
-        if (node1->variant.constant_operation.kind ==
-                                     node2->variant.constant_operation.kind) {
-          an_expr_node_ptr   op1 = node1->variant.constant_operation.operands;
-          an_expr_node_ptr   op2 = node2->variant.constant_operation.operands;
+      case enk_builtin_operation:
+        if (node1->variant.builtin_operation.kind ==
+                                      node2->variant.builtin_operation.kind) {
+          an_expr_node_ptr   op1 = node1->variant.builtin_operation.operands;
+          an_expr_node_ptr   op2 = node2->variant.builtin_operation.operands;
           for (;;) {
             if (op1 == op2) {
               /* This normally only catches the case of two NULL pointers. */
@@ -11777,8 +11777,8 @@ options is a set of name lookup options.
         }  /* if */
       }
       break;
-    case enk_constant_operation:
-      { an_expr_node_ptr  arg = expr->variant.constant_operation.operands;
+    case enk_builtin_operation:
+      { an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
         an_expr_node_ptr  new_args = NULL, *new_arg = &new_args;
         /* First copy the argument list with any necessary substitutions. */
         while (arg != NULL) {
@@ -11799,10 +11799,10 @@ options is a set of name lookup options.
           /* Copy the expression node and attach the copied argument list to
              it. */
           expr_copy = copy_node(expr);
-          expr_copy->variant.constant_operation.operands = new_args;
+          expr_copy->variant.builtin_operation.operands = new_args;
           /* Attempt to fold the operation. */
-          fold_constant_operation_if_possible(expr_copy, constant,
-                                              (a_source_position*)NULL);
+          fold_builtin_operation_if_possible(expr_copy, constant,
+                                             (a_source_position*)NULL);
           if (is_error_constant(constant)) {
             *copy_error = TRUE;
             expr_copy = NULL;
@@ -12799,10 +12799,10 @@ be called to start a copy.
         expr_copy->variant.reused_value_init = (a_dynamic_init_ptr)copy;
       }
       break;
-    case enk_constant_operation:
+    case enk_builtin_operation:
       /* Copy the operands of the operation. */
-      expr_copy->variant.constant_operation.operands =
-           i_copy_list_of_expr_trees(expr->variant.constant_operation.operands,
+      expr_copy->variant.builtin_operation.operands =
+           i_copy_list_of_expr_trees(expr->variant.builtin_operation.operands,
                                      options, cblock);
       break;
 #if GNU_EXTENSIONS_ALLOWED

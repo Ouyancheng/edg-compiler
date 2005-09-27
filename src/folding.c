@@ -4853,7 +4853,7 @@ through the usual interface because a field cannot be passed as a constant.
 static void fold_is_base_of(an_expr_node_ptr   expr,
                             a_constant_ptr     constant)
 /*
-expr is an enk_constant_operation node for an __is_base_of operation.  If the
+expr is an enk_builtin_operation node for an __is_base_of operation.  If the
 operand types are nondependent, store a boolean constant in *constant.  The
 boolean constant will have value "true" if the operand types are (possibly
 qualified) class types the first of which is a base class of the second one;
@@ -4863,7 +4863,7 @@ constant will be of the tpck_expression variant and will point to the given
 expression.
 */
 {
-  an_expr_node_ptr  arg1 = expr->variant.constant_operation.operands,
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
                     arg2 = arg1->next;
   a_type_ptr        type1, type2;
 
@@ -4900,11 +4900,11 @@ expression.
 
 
 /*ARGSUSED*/ /* <- pos is currently unused. */
-void fold_constant_operation_if_possible(an_expr_node_ptr   expr,
-                                         a_constant_ptr     constant,
-                                         a_source_position  *pos)
+void fold_builtin_operation_if_possible(an_expr_node_ptr   expr,
+                                        a_constant_ptr     constant,
+                                        a_source_position  *pos)
 /*
-The given expression is a node of kind enk_constant_operation.  If any of
+The given expression is a node of kind enk_builtin_operation.  If any of
 its operands are template-dependent, the result is not foldable and a
 ck_template_param constant (of the tpck_expression variant) is stored in
 *constant.  Otherwise, an attempt is made to fold the operation.  If the
@@ -4913,16 +4913,16 @@ folding fails, an error constant is returned through *constant and if pos is
 non-NULL diagnostics are issued at the indicated position.
 */
 {
-  check_assertion(expr->kind == (an_expr_node_kind)enk_constant_operation);
+  check_assertion(expr->kind == (an_expr_node_kind)enk_builtin_operation);
 
-  switch (expr->variant.constant_operation.kind) {
-    case cok_is_base_of:
+  switch (expr->variant.builtin_operation.kind) {
+    case bok_is_base_of:
       fold_is_base_of(expr, constant);
       break;
     default:
       unexpected_condition();
   }  /* switch */
-}  /* fold_constant_operation_if_possible */
+}  /* fold_builtin_operation_if_possible */
 
 
 /******************************************************************************

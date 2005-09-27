@@ -11823,7 +11823,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_offsetof:
     case enk_type_operand:
-    case enk_constant_operation:
+    case enk_builtin_operation:
       /* Constant operations should only appear in the representation of
          templates and constant-expressions, and should therefore never
          need lowering. */

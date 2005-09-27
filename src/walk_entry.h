@@ -1523,8 +1523,8 @@ end_sizeof:;
               definition_needed_if_class(ptr->variant.type_operand.type);
             }  /* if */
             break;
-          case enk_constant_operation:
-            walk_list(ptr->variant.constant_operation.operands,
+          case enk_builtin_operation:
+            walk_list(ptr->variant.builtin_operation.operands,
                       an_expr_node_ptr, iek_expr_node);
             break;
 #if GNU_EXTENSIONS_ALLOWED
