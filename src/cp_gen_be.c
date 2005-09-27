@@ -8276,11 +8276,11 @@ done_with_operation_after_parens:
               dip->kind == (a_dynamic_init_kind)dik_expression &&
               is_operation_node(dip->variant.expression) &&
               node_operator_is(dip->variant.expression, eok_call)) {
-            /* MSVC++ anf g++ can take the address of a function call. */
+            /* MSVC++ and g++ can take the address of a function call. */
             gen_temp_init(expr, /*obj_expr_of_mfunc_operator=*/FALSE);
           } else {
-            /* Otherwise, assume this came from a cast of an rvalue to
-               a reference type. */
+            /* Otherwise, assume that the target dialect allows an rvalue
+               to be cast to a reference type. */
             write_tok_ch('(');
             gen_type(temp_type);
             write_tok_str(" &)");
