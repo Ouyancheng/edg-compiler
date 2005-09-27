@@ -1,5 +1,20 @@
 Version 3.7
 
+9/27/05  Microsoft compatibility: __is_base_of
+
+In Microsoft C++ mode, with microsoft_version >= 1400, the front end now
+accepts the __is_base_of construct.  Specifically, __is_base_of(T1, T2) (where
+T1 and T2 are arbitrary types) results in the boolean constant "true" when T1
+and T2 are both class types and T1 is either a base class of or the same class
+as T2.  Otherwise, the construct results in the boolean constant "false".
+Cv-qualifiers on T1 and T2 are ignored.  For example:
+
+  struct B {};
+  struct D: B {};
+  int a1[__is_base_of(B const, D)];  // Okay.
+  int a2[!__is_base_of(B, D)];       // Okay.
+  int a3[!__is_base_of(int, int)];   // Okay.
+
 9/27/05  GNU and Microsoft C compatibility: folding of float to integral
          conversion when result is out of range
 
