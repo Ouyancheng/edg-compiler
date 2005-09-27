@@ -4304,7 +4304,7 @@ is already set to that value.
                              class_type->variant.class_struct_union.extra_info;
 
   if (access != curr_name_context->access &&
-      !(ctsp->anonymous_union_kind == auk_field
+      !(ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
         || class_type->
                       variant.class_struct_union.is_nonstd_anonymous_union_type
@@ -4735,8 +4735,8 @@ is the one associated with the definition of the class.
         write_space();
       } else
 #endif /* ALLOW_NONSTANDARD_ANONYOUS_UNIONS */
-      /* Do not insert code here. */
-      curr_name_context->access = (an_access_specifier)as_private;
+        /* Do not insert code here. */
+        curr_name_context->access = (an_access_specifier)as_private;
     }  /* if */
   }  /* if */
   /* Go through the source sequence list and generate the members of the
