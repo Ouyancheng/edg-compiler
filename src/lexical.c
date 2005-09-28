@@ -7567,7 +7567,7 @@ position of the __if_exists or __if_not_exists token.
       entity = il_entry_for_symbol(sym, &kind);
       msiep = alloc_ms_if_exists();
       msiep->entity.ptr = entity;
-      msiep->entity.kind = kind;
+      msiep->entity.kind = (a_byte_il_entry_kind)kind;
       msiep->position = *start_pos;
       msiep->is_if_exists = is_if_exists;
       msiep->pending = TRUE;
