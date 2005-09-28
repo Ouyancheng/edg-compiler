@@ -1937,6 +1937,8 @@ mode, *depends_on_fp_mode is returned TRUE (*int_value is set anyway).
 
 #ifdef CFE
 
+#if !STANDALONE_UTILITY_PROGRAM
+
 void make_saturated_integer_for_float(
 			a_float_kind            kind,
 			an_internal_float_value *float_value,
@@ -1962,6 +1964,7 @@ which the value will ultimately be stored.
   }  /* if */
 }  /* make_saturated_integer_for_float */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void fp_to_host_large_unsigned(
 			a_float_kind            kind,
