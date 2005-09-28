@@ -5707,7 +5707,7 @@ Scan a single argument of a constant-expression of the form
 	operation-name ( <comma-separated-list-of-arguments> )
 The argument kind should be iek_type if the argument is a type name,
 iek_constant if it is a constant-expression, or iek_expr_node if it is an
-arbitrary expression.  (Only the iek_type case is currently implemented.)
+arbitrary expression.
 */
 {
   an_expr_node_ptr  result;
@@ -5740,6 +5740,7 @@ arbitrary expression.  (Only the iek_type case is currently implemented.)
 
 static void scan_call_like_builtin_operation(
                                    a_builtin_operation_kind_tag   kind,
+                                   a_type_ptr                     type,
                                    an_il_entry_kind               arg1_kind,
                                    an_il_entry_kind               arg2_kind,
                                    an_il_entry_kind               arg3_kind,
@@ -5750,16 +5751,20 @@ Scan a constant operation of the general form
 with up to three arguments described by arg1_kind, arg2_kind, and arg3_kind.
 (argX_kind is iek_none if there is no corresponding parameter, iek_type if
 the argument should be a type name, iek_constant if it should be a constant-
-expression, and iek_expr_node if it can be any expression.  The latter two
-argument kinds are currently unimplemented.) Produce a constant operand in
-*result.  (Although an enk_builtin_operation can represent a non-constant
-operation, this routine is only meant to handle the constant cases.)
+expression, and iek_expr_node if it can be any expression.) Produce a constant
+operand of the given type in *result.  (Although an enk_builtin_operation node
+can represent a non-constant operation, this routine is only meant to handle
+the constant cases.)
 */
 {
   a_boolean          err = FALSE;
   a_source_position  start_pos;
   an_expr_node_ptr   arg1 = NULL, arg2, arg3;
 
+#if 0
+  /* Currently, only type arguments are implemented.  I.e., argX_kind must
+     be iek_none or iek_type. */
+#endif
   copy_source_position(pos_curr_token, start_pos);
   /* Pass over the operation name. */
   (void)get_token();
@@ -5787,6 +5792,7 @@ operation, this routine is only meant to handle the constant cases.)
        enk_builtin_operation node that represents the operation. */
     an_expr_node_ptr  expr;
     expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
+    expr->type = type;
     expr->variant.builtin_operation.kind = (a_builtin_operation_kind)kind;
     expr->variant.builtin_operation.operands = arg1;
     clear_operand((an_operand_kind)ok_constant, result);
@@ -5808,17 +5814,22 @@ static void scan_is_base_of(an_operand  *result)
 /*
 Scan a constant-expression of the form
       __is_base_of( <typeB> , <typeD> )
-The result is a boolean of value true is typeD is derived from typeB (where
+The result is a boolean of value true if typeD is derived from typeB (where
 a class type is always considered to be derived from itself).
 */
 {
+  a_type_ptr  result_type;
+
   check_assertion(microsoft_mode);
   if (C_mode()) {
     /* __is_base_of is not accepted in C mode. */
     pos_st_error(ec_feature_requires_cplusplus, &pos_curr_token,
                  builtin_operation_names[bok_is_base_of]);
+    result_type = integer_type((an_integer_kind)ik_int);
+  } else {
+    result_type = bool_type();
   }  /* if */
-  scan_call_like_builtin_operation(bok_is_base_of,
+  scan_call_like_builtin_operation(bok_is_base_of, result_type,
                                    iek_type, iek_type, iek_none,
                                    result);
 }  /* scan_is_base_of */

@@ -2570,7 +2570,7 @@ static void disp_builtin_function_kind_name(a_builtin_function_kind kind)
     case bfk_last:                  s = "bfk_last";                      break;
     default:                        s = "**BAD BUILTIN FUNCTION KIND**";
   }  /* switch */
-  (void)printf(s);
+  (void)printf("%s", s);
 }  /* disp_builtin_function_kind_name */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -3725,7 +3725,7 @@ cleanup_state_common:
     case enk_builtin_operation:
       (void)printf("enk_builtin_operation\n");
       disp_name("builtin_operation.kind");
-      (void)printf(builtin_operation_names[
+      (void)printf("%s", builtin_operation_names[
                                         ptr->variant.builtin_operation.kind]);
       disp_ptr("operands", (char *)ptr->variant.builtin_operation.operands,
                iek_expr_node);

@@ -4958,7 +4958,7 @@ expression.
     constant->expr = expr;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   }  /* if */
-  expr->type = constant->type = bool_type();
+  constant->type = expr->type;
 }  /* fold_is_base_of */
 
 
