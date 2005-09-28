@@ -9242,29 +9242,6 @@ converted to an rvalue.
       if (!see_if_possible) {
         node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
       }  /* if */
-    } else if (!C_mode() && op == (an_expr_operator_kind)eok_cast &&
-               could_be_dependent_class_type(node->type)) {
-      /* Generic cast, in a prototype instantiation.  Try to rewrite
-         the operand, and change the cast to a pointer cast. */
-      op1 = node->variant.operation.operands;
-      /* See if the operand can be rewritten. */
-      conv_rvalue_expr_to_object_pointer(&op1, &op1_possible,
-                                         /*see_if_possible=*/TRUE,
-                                         gcc_lvalue,
-                                         ignore_casts,
-                                         (a_type_ptr *)NULL);
-      if (op1_possible) {
-        possible = TRUE;
-        if (!see_if_possible) {
-          conv_rvalue_expr_to_object_pointer(&op1, &op1_possible,
-                                             /*see_if_possible=*/FALSE,
-                                             gcc_lvalue,
-                                             ignore_casts,
-                                             (a_type_ptr *)NULL);
-          node->variant.operation.operands = op1;
-          /* node->type is updated below. */
-        }  /* if */
-      }  /* if */
     }  /* if */
   } else if (is_error_node(node)) {
     /* An error node stays the same. */
