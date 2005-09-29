@@ -1947,7 +1947,8 @@ void make_saturated_integer_for_float(
 /*
 Set "result" to the largest or smallest possible value depending on whether
 float_value is positive or negative.  result_constant is the constant in
-which the value will ultimately be stored.
+which the value will ultimately be stored, which is used to determine
+the appropriate largest or smallest value for the destination type.
 */
 {
   an_integer_kind  ikind;
@@ -2194,7 +2195,7 @@ int fp_is_negative(a_float_kind            kind,
                    an_internal_float_value *value)
 /*
 Return TRUE if "value" is negative.  If "value" is positive or a NaN,
-return FALSE;
+return FALSE.
 */
 {
   a_host_fp_value	temp;
