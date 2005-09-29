@@ -3091,7 +3091,7 @@ qualified_name_check:
       cast_operand(rvalue_case ? dtor_type : make_pointer_type(dtor_type),
                    operand_1,
                    /*check_cast_access=*/FALSE,
-                   /*is_implicit_cast=*/FALSE,
+                   /*is_implicit_cast=*/TRUE,
                    /*is_reinterpret_cast=*/FALSE,
                    /*reinterpret_semantics=*/FALSE);
     } else {
