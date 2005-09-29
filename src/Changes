@@ -37,7 +37,8 @@ The GNU and Microsoft C compilers accept the compile-time conversion to an
 integral type of a floating-point value that is out of range.  Note that
 in C++ such code is accepted but when the value is out of range the
 conversion is deferred until run time.  We now accept such conversions
-in GNU and Microsoft C mode with a warning.
+in GNU and Microsoft C mode with a warning.  Note that the C standard
+specifies that such conversions result in undefined behavior.
 
 In Microsoft mode, and in GNU mode when gnu_version is < 30400, the bits
 that specify the value are truncated to fit in the destination type
