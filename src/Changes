@@ -1,5 +1,20 @@
 Version 3.7
 
+9/28/05  C++-generating back end: operator->() and pseudo-destructors
+
+The C++-generating back end formerly generated incorrect code for a call to
+operator->() when the function was used in a pseudo-destructor invocation
+and the return type of the operator function was not an exact match for the
+pseudo-destructor name.  Now fixed.  For example:
+
+  struct S {
+    const int* operator->();
+  };
+  void f() {
+    S s;
+    s->~int();    // previously resulted in incorrect generated code
+  }
+
 9/27/05  Microsoft compatibility: __is_base_of
 
 In Microsoft C++ mode, with microsoft_version >= 1400, the front end now

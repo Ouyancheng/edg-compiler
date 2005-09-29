@@ -8032,19 +8032,28 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_vacuous_destructor_call:
         case eok_value_vacuous_destructor_call:
-          { a_type_ptr type;
+          { a_type_ptr type = operand_1->type;
             /* Explicit call of a destructor for a type that doesn't have one,
                e.g., "p->int::~int()". */
+            if (is_operation_node(operand_1) &&
+                node_operator_is(operand_1, eok_cast) &&
+                operand_1->variant.operation.compiler_generated) {
+              /* Skip over a compiler-generated cast.  It wasn't there in the
+                 original source, and it's not needed here, either, as the
+                 pseudo-destructor name will reflect the result type of the
+                 cast.  Generating the cast can result in incorrect syntax if
+                 the operand is an operator-notation call to operator->(). */
+              operand_1 = operand_1->variant.operation.operands;
+            }  /* if */
             gen_expr_with_parens(operand_1);
             if (op == (an_expr_operator_kind)eok_vacuous_destructor_call) {
               if (!is_operator_syntax_arrow(operand_1)) {
-                /* Don't output "->" if handle_operand_call already did. */
+                /* Don't output "->" if handle_operator_call already did. */
                 write_tok_str("->");
               }  /* if */
-              type = type_pointed_to(operand_1->type);
+              type = type_pointed_to(type);
             } else {
               write_tok_ch('.');
-              type = operand_1->type;
             }  /* if */
             /* Use the type name to create a "destructor" name. */
             gen_type(type);
