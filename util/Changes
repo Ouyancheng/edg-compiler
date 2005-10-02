@@ -1,3 +1,12 @@
+Version 3.7
+
+10/2/05  Demangling for builtin operations
+
+The demangler now demangles the new encodings for "builtin operations",
+used to represent vendor-specific extensions.  Specifically, the
+Microsoft __is_base_of operation is the first builtin operation.
+
+-------------------------------------------------------------------------------
 Version 3.6, June 7, 2005
 
 5/11/05  eccp: path name of edg_decode program when using --nm option

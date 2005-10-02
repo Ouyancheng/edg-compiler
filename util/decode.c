@@ -840,7 +840,7 @@ position following what was demangled.
   char          *p = ptr, *operator_str, *close_str = "";
   int           op_length;
   unsigned long num_operands;
-  a_boolean     takes_type;
+  a_boolean     takes_type, is_builtin_operation = FALSE;
 
   /* An operation has the form
        Opl2Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template parameters.
@@ -878,34 +878,74 @@ position following what was demangled.
         p = demangle_type(p, dctl);
       }  /* if */
       write_id_ch(')', dctl);
+    } else if (strcmp(operator_str, "builtin-operation") == 0) {
+      unsigned long kind;
+      /* A builtin operation. */
+      is_builtin_operation = TRUE;
+      write_id_str("builtin-operation-", dctl);
+      /* Extract the operation number following the "bi". */
+      p = advance_past_underscore(p, dctl);
+      p = get_number(p, &kind, dctl);
+      if (kind > 99) {
+        bad_mangled_name(dctl);
+      } else {
+        char buffer[3];
+        (void)sprintf(buffer, "%d", kind);
+        write_id_str(buffer, dctl);
+      }  /* if */
+      p = advance_past_underscore(p, dctl);
+      write_id_ch('(', dctl);
+      close_str = ")";
     }  /* if */
     /* Get the count of operands. */
     p = get_single_digit_number(p, &num_operands, dctl);
     /* sizeof and __alignof__ take zero operands. */
     if (num_operands != 0) {
-      if (num_operands == 1) {
-        /* Unary operator -- operator comes first. */
-        write_id_str(operator_str, dctl);
-      }  /* if */
-      /* Process the first operand. */
-      p = demangle_constant(p, dctl);
-      if (num_operands > 1) {
-        /* Binary and ternary operators -- operator comes after first
-           operand. */
-        if (strcmp(operator_str, "[]") == 0) {
-          /* For subscripting, put one "[" between the operands and one
-             at the end. */
-          operator_str = "[";
-          close_str = "]";
+      if (is_builtin_operation) {
+        /* Builtin operation has a variable number of operations, and
+           they may be type operands. */
+        int i;
+        for (i = 1; i <= num_operands; i++) {
+          if (get_char(p, dctl) == 'T') {
+            /* Type operand. */
+            p++;
+            if (get_char(p, dctl) == 'Z') {
+              /* A template parameter name. */
+              p = demangle_template_parameter_name(p, /*nontype=*/FALSE, dctl);
+            } else {
+              p = demangle_type(p, dctl);
+            }  /* if */
+          } else {
+            p = demangle_constant(p, dctl);
+          }  /* if */
+          if (i != num_operands) write_id_str(", ", dctl);
+        }  /* for */
+      } else {
+        /* Normal case, not a builtin operation. */
+        if (num_operands == 1) {
+          /* Unary operator -- operator comes first. */
+          write_id_str(operator_str, dctl);
         }  /* if */
-        write_id_str(operator_str, dctl);
-        /* Process the second operand. */
+        /* Process the first operand. */
         p = demangle_constant(p, dctl);
-        if (num_operands > 2) {
-          /* Ternary operand -- "?". */
-          write_id_ch(':', dctl);
-          /* Process the third operand. */
+        if (num_operands > 1) {
+          /* Binary and ternary operators -- operator comes after first
+             operand. */
+          if (strcmp(operator_str, "[]") == 0) {
+            /* For subscripting, put one "[" between the operands and one
+               at the end. */
+            operator_str = "[";
+            close_str = "]";
+          }  /* if */
+          write_id_str(operator_str, dctl);
+          /* Process the second operand. */
           p = demangle_constant(p, dctl);
+          if (num_operands > 2) {
+            /* Ternary operand -- "?". */
+            write_id_ch(':', dctl);
+            /* Process the third operand. */
+            p = demangle_constant(p, dctl);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -1171,6 +1211,8 @@ encoding, return NULL.
   } else if (start_of_id_is("uu", ptr, dctl)) {
     s = "__uuidof(";
     *takes_type = TRUE;
+  } else if (start_of_id_is("bi", ptr, dctl)) {
+    s = "builtin-operation";
   } else {
     s = NULL;
   }  /* if */
@@ -3917,6 +3959,18 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
           str = ">?";
           *length = 6;
           *num_operands = 2;
+        } else if (start_of_id_is("9builtin", ptr+2)) {
+          /* Builtin operation.  Name is
+               vN9builtinXX
+                         ^^-- Operation number
+                ^------------ Number of operands (<= 9)
+          */
+          static char builtin_name[] = "builtin-operation-XX";
+          str = builtin_name;
+          str[18] = ptr[10];
+          str[19] = ptr[11];
+          *length = 12;
+          *num_operands = ptr[1]-'0';
         }  /* if */
         break;
       default:
@@ -4291,7 +4345,22 @@ The syntax is:
     } else {
       ptr += length;
       write_id_ch('(', dctl);
-      if (num_operands == 1) {
+      if (strncmp(op_str, "builtin-operation-", 18) == 0) {
+        /* Builtin operation.  Has a variable number of operands. */
+        int i;
+        write_id_str(op_str, dctl);
+        write_id_ch('(', dctl);
+        for (i = 1; i <= num_operands; i++) {
+          if (*ptr == 'T' && ptr[1] == 'O') {
+            /* "TO" indicates a type operand. */
+            ptr = demangle_type(ptr+2, dctl);
+          } else {
+            ptr = demangle_expression(ptr, dctl);
+          }  /* if */
+          if (i != num_operands) write_id_str(", ", dctl);
+        }  /* for */
+        write_id_ch(')', dctl);
+      } else if (num_operands == 1) {
         /* Unary operations. */
         if (strcmp(op_str, "cast") == 0) {
           /* Cast. */
