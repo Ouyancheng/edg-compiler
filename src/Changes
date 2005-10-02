@@ -30,6 +30,14 @@ Cv-qualifiers on T1 and T2 are ignored.  For example:
   int a2[!__is_base_of(B, D)];       // Okay.
   int a3[!__is_base_of(int, int)];   // Okay.
 
+This has been implemented by adding a new and general capability to
+represent "builtin operations" in the IL.  IL CHANGE: There are new
+expression node kinds enk_builtin_operation and enk_type_operand,
+but they will not show up in final IL except in prototype instantiations
+or when RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE.
+
+New mangling codes have been added for __is_base_of, and 
+
 9/27/05  GNU and Microsoft C compatibility: folding of float to integral
          conversion when result is out of range
 

@@ -1576,12 +1576,12 @@ ignored if expr != NULL.
     /* The expression form.  Put out "e" instead of the type. */
     add_to_mangled_name('e', mctl);
 #else /* IA64_ABI */
-    /* in_dependent_expr is TRUE because this routine is used only for
-       dependent sizeofs. */
 #if CHECKING
     a_boolean save_mangling_sizeof_expression=mctl->mangling_sizeof_expression;
     mctl->mangling_sizeof_expression = TRUE;
 #endif /* CHECKING */
+    /* in_dependent_expr is TRUE because this routine is used only for
+       dependent sizeofs. */
     mangled_encoding_for_expression(expr, /*in_dependent_expr=*/TRUE, mctl);
 #if CHECKING
     mctl->mangling_sizeof_expression = save_mangling_sizeof_expression;
@@ -1598,6 +1598,77 @@ ignored if expr != NULL.
   add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
 }  /* mangled_encoding_for_sizeof */
+
+
+static void mangled_encoding_for_builtin_operation(
+                                                an_expr_node_ptr         expr,
+                                                a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding of the indicated expression,
+which is an enk_builtin_operation (used for some vendor-specific
+extensions, e.g., Microsoft __is_base_of).
+*/
+{
+  a_builtin_operation_kind kind;
+  unsigned long            num_operands;
+  an_expr_node_ptr         operand;
+
+  check_assertion(expr->kind == (an_expr_node_kind)enk_builtin_operation);
+  kind = expr->variant.builtin_operation.kind;
+  /* Get the operand count. */
+  for (num_operands = 0, operand = expr->variant.operation.operands;
+       operand != NULL;
+       num_operands++, operand = operand->next) {}
+  check_assertion(num_operands <= 9);
+#if !IA64_ABI
+  /* Output has the form
+       Obi_0_1T1AO <-- "builtin-operation-0(A)", where A is a type
+                 ^---- "O" to end the operation encoding.
+              ^------- Type operand A
+             ^-------- Count of operands.
+          ^^^--------- Builtin operation kind number.
+        ^^------------ "bi" for builtin operation.
+       ^-------------- "O" for operation.
+     mangled_encoding_for_expression generates a compatible structure, so
+     if you change this be sure to change that as well.
+  */
+  /* Put out the initial "O". */
+  add_to_mangled_name('O', mctl);
+  add_str_to_mangled_name("bi", mctl);
+  store_digits_and_underscore((unsigned long)kind, /*old_form=*/FALSE, mctl);
+  /* Put out the count of operands. */
+  add_number_to_mangled_name(num_operands, mctl);
+#else /* IA64_ABI */
+  /* The IA-64 ABI form uses a "vendor extended operator" of builtinXX,
+     where XX is the builtin operation kind number. */
+  add_to_mangled_name('v', mctl);
+  add_number_to_mangled_name(num_operands, mctl);
+  add_str_to_mangled_name("9builtin", mctl);
+  check_assertion((int)kind <= 99);
+  add_number_to_mangled_name(((int)kind)/10, mctl);
+  add_number_to_mangled_name(((int)kind)%10, mctl);
+#endif /* IA64_ABI */
+  for (operand = expr->variant.operation.operands;
+       operand != NULL;
+       operand = operand->next) {
+    /* Put out the operands. */
+    if (operand->kind == (an_expr_node_kind)enk_type_operand) {
+#if !IA64_ABI
+      add_to_mangled_name('T', mctl);
+#else /* IA64_ABI */
+      add_str_to_mangled_name("TO", mctl);
+#endif /* IA64_ABI */
+      mangled_encoding_for_type(operand->variant.type_operand.type, mctl);
+    } else {
+      mangled_encoding_for_expression(operand, /*in_dependent_expr=*/TRUE,
+                                      mctl);
+    }  /* if */
+  }  /* for */
+#if !IA64_ABI
+  /* Put out the final "O". */
+  add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
+}  /* mangled_encoding_for_builtin_operation */
 
 
 #if IA64_ABI
@@ -2664,12 +2735,14 @@ part of a template-dependent expression.
                               in Microsoft property expansions. */
       add_mangling_for_placeholder_expression(mctl);
       break;
+    case enk_builtin_operation:
+      mangled_encoding_for_builtin_operation(expr, mctl);
+      break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_offsetof:  /* FIXME */
-    case enk_type_operand:  /* FIXME */
-    case enk_builtin_operation:  /* FIXME */
+    case enk_type_operand:  /* Only expected under enk_builtin_operation. */
     default:;
       /* Unexpected expression kind.  These are allowed in some cases for
          expressions under sizeof in the IA-64 ABI. */

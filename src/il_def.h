@@ -8653,7 +8653,8 @@ typedef enum a_builtin_operation_kind_tag {
      possible operations. */
   /* If you add an operation to this list, also update builtin_operation_names
      in this file. */
-  bok_is_base_of,
+  bok_is_base_of,	/* Microsoft __is_base_of.  Two operands, both
+			   types. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
