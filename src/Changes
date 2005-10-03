@@ -36,7 +36,8 @@ expression node kinds enk_builtin_operation and enk_type_operand,
 but they will not show up in final IL except in prototype instantiations
 or when RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE.
 
-New mangling codes have been added for __is_base_of, and 
+New mangling codes have been added for builtin operations, and
+the demangler has been updated to recognize them.
 
 9/27/05  GNU and Microsoft C compatibility: folding of float to integral
          conversion when result is out of range
