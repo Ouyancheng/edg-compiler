@@ -8653,6 +8653,10 @@ typedef enum a_builtin_operation_kind_tag {
      possible operations. */
   /* If you add an operation to this list, also update builtin_operation_names
      in this file. */
+  /* Note that the value of enumerators in this list is used as part of
+     the mangled name encoding for builtin operations, so the items on
+     this list should not be reordered; if they are, it will cause an
+     ABI incompatibility (in the names of templates). */
   bok_is_base_of,	/* Microsoft __is_base_of.  Two operands, both
 			   types. */
   bok_last              /* Marks the end of the list. */
