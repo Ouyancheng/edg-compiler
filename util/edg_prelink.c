@@ -472,6 +472,8 @@ typedef enum /* an_nm_format_kind */ {
 		/* Clipper (Intergraph). */
         nmfk_gnu,
 		/* GNU binutils format. */
+	nmfk_MacOSX,
+		/* Apple MacOS X. */
 	nmfk_lst
 } an_nm_format_kind;
 
@@ -1676,9 +1678,19 @@ processed further.
          Skip over any blanks that appear here. */
       while (*pos == ' ') pos++;
     }  /* if */
-    /* Skip over the first field which is expected to contain the
-       value field.  Skip to a blank. */
-    while((ch = *pos), ch != ' ' && ch != '\0') pos++;
+    if (nm_format == nmfk_MacOSX) {
+      /* On MacOS, the name is followed by a space and then an 8 character
+         value or 8 blanks.  Skip those 9 characters. */
+      int i;
+      for (i = 0; i < 9; ++i) {
+        if (*pos == '\0') pl_invalid_input();
+        pos++;
+      }  /* for */
+    } else {
+      /* Skip over the first field which is expected to contain the
+         value field.  Skip to a blank. */
+      while((ch = *pos), ch != ' ' && ch != '\0') pos++;
+    }  /* if */
     /* Look for blank after value. */
     if (*pos++ != ' ') pl_invalid_input();
     /* Now look for a nonblank. */
@@ -3804,6 +3816,8 @@ int main(int argc, char *argv[])
           nm_format = nmfk_CLIX;
         } else if (strcmp(optarg, "gnu") == 0) {
           nm_format = nmfk_gnu;
+        } else if (strcmp(optarg, "MacOSX") == 0) {
+          nm_format = nmfk_MacOSX;
         } else {
           pl_error(pl_ec_invalid_nm_format_option, (char *)NULL);
         }  /* if */

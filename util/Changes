@@ -1,5 +1,13 @@
 Version 3.7
 
+10/7/05  Prelinker: support for Mac OS X nm output
+
+The prelinker has been updated to handle the nm output of Mac OS X 10.4.
+The "-fMacOSX" option should be used on such systems.
+
+See the edg_eccp_config.macosx file in the sample_edg_eccp_config
+directory for more information about configuring eccp on Mac OS X.
+
 10/2/05  Demangling for builtin operations
 
 The demangler now demangles the new encodings for "builtin operations",
