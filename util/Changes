@@ -1,5 +1,11 @@
 Version 3.7
 
+10/10/05 mk_errinfo: incorrect test of STDLIB_H_INCLUDED
+
+There was an incorrect test of STDLIB_H_INCLUDED in mk_errinfo.c.  This
+could result in errors when compiling mk_errinfo.c in some environments.
+Now fixed.
+
 10/7/05  Prelinker: support for Mac OS X nm output
 
 The prelinker has been updated to handle the nm output of Mac OS X 10.4.

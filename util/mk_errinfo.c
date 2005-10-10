@@ -34,8 +34,7 @@ Usage:
 #include "basics.h"
 #include "host_envir.h"
 
-#if !STDLIB_H_INCLUDED
-#else /* !STDLIB_H_INCLUDED */
+#ifndef STDLIB_H_INCLUDED
 EXTERN_C void exit(int status);
 #if __BSD__
 EXTERN_C char *malloc(unsigned size);

@@ -14,10 +14,10 @@ Prelink utility for template instantiation.
 */
 
 #include "basics.h"
-#if !STDLIB_H_INCLUDED
+#ifndef STDLIB_H_INCLUDED
 #include <stdlib.h>
 /* So that host_envir.h knows that we have included stdlib.h. */
-#define STDLIB_H_INCLUDED
+#define STDLIB_H_INCLUDED 1
 #endif /* STDLIB_H_INCLUDED */
 #include <stdio.h>
 #include <ctype.h>
