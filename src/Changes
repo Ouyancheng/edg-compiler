@@ -1,5 +1,10 @@
 Version 3.7
 
+10/10/05 Missing NOTREACHED in cfe_exit
+
+The cfe_exit routine in host_envir.c did not provide a "/* NOTREACHED */"
+lint comment when MAKE_FRONT_END_CALLABLE is TRUE.  Now fixed.
+
 9/28/05  C++-generating back end: operator->() and pseudo-destructors
 
 The C++-generating back end formerly generated incorrect code for a call to

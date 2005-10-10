@@ -1594,6 +1594,7 @@ routine of the front end, so that it can return to the caller.
     exit_status = status;
     longjmp(edg_main_setjmp_buffer, 1);
   }  /* if */
+  /*NOTREACHED*/
 #endif /* !MAKE_FRONT_END_CALLABLE */
 }  /* cfe_exit */
 
