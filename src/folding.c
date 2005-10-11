@@ -4961,6 +4961,48 @@ expression.
   constant->type = expr->type;
 }  /* fold_is_base_of */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void fold_types_compatible(an_expr_node_ptr   expr,
+                                  a_constant_ptr     constant)
+/*
+expr is an enk_builtin_operation node for a GNU __builtin_types_compatible
+operation.  If the operand types are nondependent, store a boolean constant
+in *constant.  The boolean constant will have value "true" if the operand
+types are "compatible"; otherwise, the constant will have value "false".
+If either of the operand types is dependent, store a ck_template_param
+constant in *constant.  The constant will be of the tpck_expression variant
+and will point to the given expression.
+*/
+{
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    arg2 = arg1->next;
+  a_type_ptr        type1, type2;
+
+  check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
+                  arg1->kind == (an_expr_node_kind)enk_type_operand &&
+                  arg2->kind == (an_expr_node_kind)enk_type_operand);
+  type1 = arg1->variant.type_operand.type;
+  type2 = arg2->variant.type_operand.type;
+  if (is_template_dependent_type(type1) ||
+      is_template_dependent_type(type2)) {
+    clear_constant(constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(
+                   constant, (a_template_param_constant_kind)tpck_expression);
+    constant->variant.template_param.variant.expr = expr;
+  } else {
+    a_boolean  result = types_are_compatible(type1, type2);
+    clear_constant(constant, (a_constant_repr_kind)ck_integer);
+    set_integer_value(&constant->variant.integer_value,
+                      (a_host_large_integer)result);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    constant->expr = expr;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_is_base_of */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*ARGSUSED*/ /* <- pos is currently unused. */
 void fold_builtin_operation_if_possible(an_expr_node_ptr   expr,
@@ -4982,6 +5024,11 @@ non-NULL diagnostics are issued at the indicated position.
     case bok_is_base_of:
       fold_is_base_of(expr, constant);
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case bok_types_compatible:
+      fold_types_compatible(expr, constant);
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition();
   }  /* switch */

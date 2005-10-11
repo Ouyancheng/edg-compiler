@@ -2547,12 +2547,6 @@ fields to default values.
                                            (a_builtin_operation_kind)bok_last;
       node->variant.builtin_operation.operands = NULL;
       break;
-#if GNU_EXTENSIONS_ALLOWED
-    case enk_types_compatible:
-      node->variant.types_compatible.type_1 = NULL;
-      node->variant.types_compatible.type_2 = NULL;
-      break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");
   }  /* switch */

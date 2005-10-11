@@ -8091,12 +8091,6 @@ enum an_expr_node_kind_tag {
   enk_builtin_operation,
 			/* Used to represent a variety of builtin
 			   operations. */
-#if GNU_EXTENSIONS_ALLOWED
-  enk_types_compatible,	/* Used to represent a __builtin_types_compatible_p
-			   construct.  Currently only used for the "expr"
-			   representation of constants in some
-			   configurations. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -8659,6 +8653,10 @@ typedef enum a_builtin_operation_kind_tag {
      ABI incompatibility (in the names of templates). */
   bok_is_base_of,	/* Microsoft __is_base_of.  Two operands, both
 			   types. */
+#if GNU_EXTENSIONS_ALLOWED
+  bok_types_compatible,	/* GNU __builtin_types_compatible.  Two operands, both
+			   types. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -9206,17 +9204,6 @@ typedef struct an_expr_node {
 		operands;
 			/* The list of operands. */
     } builtin_operation;
-#if GNU_EXTENSIONS_ALLOWED
-    /* When kind == enk_types_compatible: */
-    struct {
-      a_type_ptr
-		type_1;	/* The first of two types whose compatibility is
-			   being tested.  */
-      a_type_ptr
-		type_2;	/* The second of two types whose compatibility is
-			   being tested.  */
-    } types_compatible;
-#endif /* GNU_EXTENSIONS_ALLOWED */
   } variant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
@@ -11735,6 +11722,9 @@ EXTERN char     *builtin_operation_names[(int)bok_last+1]
 #if VAR_INITIALIZERS
 = {
   "__is_base_of",
+#if GNU_EXTENSIONS_ALLOWED
+  "__builtin_types_compatible",
+#endif /* GNU_EXTENSIONS_ALLOWED */
   "last"
 }
 #endif /* VAR_INITIALIZERS */

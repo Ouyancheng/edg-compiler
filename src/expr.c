@@ -5764,7 +5764,7 @@ the constant cases.)
 #if 0
   /* Currently, only type arguments are implemented.  I.e., argX_kind must
      be iek_none or iek_type. */
-#endif
+#endif /* 0 */
   copy_source_position(pos_curr_token, start_pos);
   /* Pass over the operation name. */
   (void)get_token();
@@ -5845,38 +5845,17 @@ compatible, or value 0 if they are not.  The resulting constant operand
 is returned through *result.
 */
 {
-  a_type_ptr         type_1, type_2;
-  a_source_position  start_pos;
-  a_constant         result_constant;
+  a_type_ptr  result_type = integer_type((an_integer_kind)ik_int);
 
-  copy_source_position(pos_curr_token, start_pos);
-  /* Pass over the built-in offsetof token. */
-  check_assertion(curr_token == tok_builtin_types_compatible);
-  (void)get_token();
-  /* Check for and pass over the left parenthesis. */
-  (void)required_token(tok_lparen, ec_exp_lparen);
-  add_stop_token(tok_rparen);
-  type_name(&type_1);
-  (void)required_token(tok_comma, ec_exp_comma);
-  type_name(&type_2);
-  /* Create the result operand. */
-  set_integer_constant(
-                   &result_constant,
-                   (a_host_large_integer)types_are_compatible(type_1, type_2),
-                   (an_integer_kind)ik_int);
-  make_constant_operand(&result_constant, result);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  result->variant.constant.expr =
-                     alloc_expr_node((an_expr_node_kind)enk_types_compatible);
-  result->variant.constant.expr->type = result_constant.type;
-  result->variant.constant.expr->variant.types_compatible.type_1 = type_1;
-  result->variant.constant.expr->variant.types_compatible.type_2 = type_2;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-  set_operand_position(result, &start_pos, &end_pos_curr_token,
-                       (a_source_position *)NULL);
-  /* Check for and pass over the right parenthesis. */
-  remove_stop_token(tok_rparen);
-  (void)required_token(tok_rparen, ec_exp_rparen);
+  check_assertion(gnu_mode);
+  if (!C_mode()) {
+    /* __is_base_of is not accepted in C++ mode. */
+    pos_st_error(ec_feature_requires_c, &pos_curr_token,
+                 builtin_operation_names[bok_types_compatible]);
+  }  /* if */
+  scan_call_like_builtin_operation(bok_types_compatible, result_type,
+                                   iek_type, iek_type, iek_none,
+                                   result);
 }  /* scan_builtin_types_compatible */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */

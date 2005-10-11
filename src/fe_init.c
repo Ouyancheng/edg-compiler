@@ -448,10 +448,8 @@ Install the keywords in the symbol table.
     if (gnu_version >= 40000) {
       enter_keyword((a_token_kind)tok_builtin_offsetof, "__builtin_offsetof");
     }  /* if */
-    if (gcc_mode) {
-      enter_gnu_keyword((a_token_kind)tok_builtin_types_compatible,
-                        "__builtin_types_compatible_p");
-    }  /* if */
+    enter_gnu_keyword((a_token_kind)tok_builtin_types_compatible,
+                      "__builtin_types_compatible_p");
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GCC_BUILTIN_VARARGS
     /* Enable built-in support for <stdarg.h> and <varargs.h>.  Note that

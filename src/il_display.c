@@ -3730,15 +3730,6 @@ cleanup_state_common:
       disp_ptr("operands", (char *)ptr->variant.builtin_operation.operands,
                iek_expr_node);
       break;
-#if GNU_EXTENSIONS_ALLOWED
-    case enk_types_compatible:
-      (void)printf("enk_types_compatible\n");
-      disp_ptr("type_1", (char *)ptr->variant.types_compatible.type_1,
-               iek_type);
-      disp_ptr("type_2", (char *)ptr->variant.types_compatible.type_2,
-               iek_type);
-      break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       (void)printf("**BAD EXPR NODE KIND**\n");
   }  /* switch */
