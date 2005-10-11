@@ -1099,6 +1099,14 @@ Initialize the option information table.
                          "no_nonstd_default_arg_deduction",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_stdc_zero_in_system_headers,
+                         "stdc_zero_in_system_headers",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_stdc_zero_in_system_headers,
+                         "no_stdc_zero_in_system_headers",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2775,6 +2783,11 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
 #endif /* VLA_ALLOWED */
   /* The underlying type for an enum could be long long. */
   enum_types_can_be_larger_than_int = TRUE;
+  /* In some configurations, special processing is done for references
+     to __STDC__ in system header files. */
+  if (!(option_kind_used[(int)optk_stdc_zero_in_system_headers])) {
+    stdc_zero_in_system_headers = DEFAULT_GCC_STDC_ZERO_IN_SYSTEM_HEADERS;
+  }  /* if */
 }  /* check_and_set_gcc_mode_options */
 
 
@@ -4183,6 +4196,9 @@ enable_microsoft_mode:
       case optk_nonstandard_default_arg_deduction:
         nonstandard_default_arg_deduction = opt_value;
         break;
+      case optk_stdc_zero_in_system_headers:
+        stdc_zero_in_system_headers = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -4917,6 +4933,7 @@ variables declared in cmd_line.h.
   instantiation_dir_name = NULL;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   stdc_zero_in_nonstrict_mode = STDC_ZERO_IN_NONSTRICT_MODE;
+  stdc_zero_in_system_headers = FALSE;
   max_pending_instantiations = DEFAULT_MAX_PENDING_INSTANTIATIONS;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   import_dir_name = NULL;

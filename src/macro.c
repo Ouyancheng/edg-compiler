@@ -187,6 +187,12 @@ static unsigned long
 			/* The current value for the Microsoft __COUNTER__
 			   macro. */
 
+static a_symbol_ptr
+		stdc_macro_symbol;
+			/* Pointer to the symbol entry for the __STDC__
+			   macro.  Only used when stdc_zero_in_system_headers
+			   is TRUE. */
+
 /*
 Maximum nesting depth of calls of a single macro in pcc mode.  Used to
 catch recursion, but crudely, because a general recursion check is
@@ -3571,6 +3577,11 @@ end_scan_for_macro_modifs:;
         (void)strcpy(repl_text,
                      str_for_integer_constant(&const_for_curr_token));
         (void)strcat(repl_text, "L");
+      } else if (macro_symbol == stdc_macro_symbol) {
+        /* This macro symbol is only used in gcc mode when
+           stdc_zero_in_system_headers is TRUE.  Use a value of 0 if
+           we are in a system header, or 1 otherwise. */
+        (void)strcpy(repl_text, curr_ise->from_system_include_dir ? "0" : "1");
       } else if (macro_symbol == Pragma_macro_symbol) {
         /* The C99 _Pragma operator.  This is invoked as
                _Pragma("pragma-name pragma-operands(opt)")
@@ -7040,9 +7051,23 @@ command line -D options.
 #endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
     }  /* if */
     if (define_stdc) {
-      (void)enter_predef_macro((char *)(stdc_value ? "1" : "0"), "__STDC__",
-                               stdc_cannot_be_redefined,
-                               /*ref_suppresses_pch_file=*/FALSE);
+      char		*stdc_string;
+      a_symbol_ptr	sym;
+      /* In modes, the value of __STDC__ is determined by whether a system
+         header is being processed.  Treat __STDC__ specially in such modes.
+         This feature is provided for gcc compatibility, but can be enabled
+         in other modes. */
+      if (stdc_zero_in_system_headers) {
+        stdc_string = NULL;
+      } else {
+        stdc_string = stdc_value ? "1" : "0";
+      }  /* if */
+      sym =  enter_predef_macro(stdc_string, "__STDC__",
+                                stdc_cannot_be_redefined,
+                                /*ref_suppresses_pch_file=*/FALSE);
+      if (stdc_zero_in_system_headers) {
+        stdc_macro_symbol = sym;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (C_dialect == C_dialect_ANSI) {
@@ -7450,6 +7475,7 @@ Do one-time initialization of variables related to macro processing.
       pch_saved_var_array_elem(date_macro_symbol),
       pch_saved_var_array_elem(time_macro_symbol),
       pch_saved_var_array_elem(base_file_macro_symbol),
+      pch_saved_var_array_elem(stdc_macro_symbol),
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(assert_predicates),
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
@@ -7481,6 +7507,7 @@ Do one-time initialization of variables related to macro processing.
   register_trans_unit_variable(date_macro_symbol);
   register_trans_unit_variable(time_macro_symbol);
   register_trans_unit_variable(base_file_macro_symbol);
+  register_trans_unit_variable(stdc_macro_symbol);
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
   register_trans_unit_variable(assert_predicates);
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
@@ -7514,6 +7541,7 @@ after this function.
   base_file_macro_symbol = NULL;
   macro_arg_list = NULL;
   end_of_macro_arg_list = NULL;
+  stdc_macro_symbol = NULL;
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
   assert_predicates = NULL;
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */

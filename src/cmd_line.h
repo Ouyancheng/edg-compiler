@@ -243,6 +243,7 @@ typedef enum /*an_option_kind*/ {
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   optk_trigraphs,
   optk_nonstandard_default_arg_deduction,
+  optk_stdc_zero_in_system_headers,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1101,9 +1102,16 @@ EXTERN a_boolean stdc_zero_in_nonstrict_mode;
 			/* TRUE if __STDC__ should be defined to 0
 			   in nonstrict mode and 1 in strict mode.
 			   This flag affects both ANSI C and C++ mode
-			   and overrides other factors that affect the
+			   and overrides most other factors that affect the
 			   setting of __STDC__.  For example, __STDC__
-			   will be defined even in Microsoft mode. */
+			   will be defined even in Microsoft mode.  The
+			   special handling for stdc_zero_in_system_headers
+			   is still done, however. */
+
+EXTERN a_boolean
+		stdc_zero_in_system_headers;
+			/* TRUE if __STDC__ should be zero while
+			   processing system headers and 1 otherwise. */
 
 EXTERN unsigned long
 		max_pending_instantiations;

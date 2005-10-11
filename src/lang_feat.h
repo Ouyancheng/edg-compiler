@@ -132,13 +132,22 @@ preprocessor.  Also suppresses definition of __STDC__.
 
 /*
 TRUE if __STDC__ should be defined to 0 in nonstrict mode and 1 in
-strict mode.  This flag affects both ANSI C and C++ mode and overrides other
-factors that affect the setting of __STDC__.  For example, __STDC__ will
-be defined even in Microsoft mode.
+strict mode.  This flag affects both ANSI C and C++ mode and overrides
+most other factors that affect the setting of __STDC__.  For example,
+__STDC__ will be defined even in Microsoft mode.  The special processing
+in when stdc_zero_in_system_headers is TRUE is still done, however.
 */
 #ifndef STDC_ZERO_IN_NONSTRICT_MODE
 #define STDC_ZERO_IN_NONSTRICT_MODE FALSE
 #endif /* ifndef STDC_ZERO_IN_NONSTRICT_MODE */
+
+/*
+TRUE if, in gcc mode, __STDC__ should be defined to 0 while processing
+system header files and 1 in other source files.
+*/
+#ifndef DEFAULT_GCC_STDC_ZERO_IN_SYSTEM_HEADERS
+#define DEFAULT_GCC_STDC_ZERO_IN_SYSTEM_HEADERS FALSE
+#endif /* ifndef DEFAULT_GCC_STDC_ZERO_IN_SYSTEM_HEADERS */
 
 /*
 Flag that is TRUE if the address of a bit field may be taken as long
