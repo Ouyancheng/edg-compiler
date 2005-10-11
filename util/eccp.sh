@@ -660,6 +660,7 @@ check_abbreviation()
 --no_special_subscript_cost
 --no_standard_includes
 --no_stdarg_builtin
+--no_stdc_zero_in_system_headers
 --no_std_libs
 --no_sun
 --no_sun_linker_scope
@@ -718,6 +719,7 @@ check_abbreviation()
 --signed_chars
 --special_subscript_cost
 --stdarg_builtin
+--stdc_zero_in_system_headers
 --strict
 --strict_warnings
 --strip
@@ -1211,6 +1213,8 @@ process_option()
          --no_export | \
          --stdarg_builtin | \
          --no_stdarg_builtin | \
+         --stdc_zero_in_system_headers | \
+         --no_stdc_zero_in_system_headers | \
          --ignore_std | \
 	 --long_long | \
 	 --upc | \
