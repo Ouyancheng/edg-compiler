@@ -1,5 +1,19 @@
 Version 3.7
 
+10/10/05 Microsoft compatibility: injected template names implemented in VC 8.0
+
+Prior to version 8.0, the Microsoft compiler did not create an injected
+class name for class templates.  This is corrected in the 8.0 compiler.
+In Microsoft mode, we now create an injected class name for class templates
+when microsoft_version is >= 1400 (such injected class names are always
+created in non-Microsoft mode when class name injection is enabled).
+
+  template <class T> struct A {};
+  template <class T> struct B : public A<T> {
+    typename B::A a;  // accepted when microsoft_version is >= 1400
+  };
+  B<int> bi;
+
 10/10/05 Missing NOTREACHED in cfe_exit
 
 The cfe_exit routine in host_envir.c did not provide a "/* NOTREACHED */"

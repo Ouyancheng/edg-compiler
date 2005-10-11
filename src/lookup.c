@@ -2246,10 +2246,10 @@ that do normal id lookup processing.
          it is found is at the start of a qualified name.  The name is also
          found for certain lookups (which we approximate using the tentative
          type lookup flag) when the name is the name of the current class
-         (but not an injected name from a base class).  Compilers after
-         version 7.0 continue to ignore the injected class name of template
-         instances.  In Microsoft mode, injected class names are only created
-         for explicitly specialized instances. */
+         (but not an injected name from a base class).  Compilers for
+         versions >= 7.0 and < 8.0 continue to ignore the injected class name
+         of template instances so injected class names are only created for
+         explicitly specialized instances. */
       if (sym != NULL && microsoft_bugs &&
           !lookup_state->must_be_class_or_namespace) {
         a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
@@ -2257,7 +2257,8 @@ that do normal id lookup processing.
              fund_sym != sym) &&
             is_injected_class_symbol(fundamental_symbol_of(sym))) {
           if (microsoft_version < 1300 ||
-             (fund_sym != sym && is_injected_template_symbol(sym))) {
+             (fund_sym != sym && microsoft_version < 1400 &&
+              is_injected_template_symbol(sym))) {
             sym = NULL;
           }  /* if */
         }  /* if */
@@ -2321,14 +2322,15 @@ that do normal id lookup processing.
       } else if (microsoft_bugs) {
         /* The Microsoft compiler (versions prior to 7.0) ignores inherited
            injected class names in most cases.  The principal case in which
-           it is found is at the start of a qualified name.   Compilers after
-           version 7.0 continue to ignore the injected class name of template
-           instances.  In Microsoft mode, injected class names are only created
-           for explicitly specialized instances.*/
+           it is found is at the start of a qualified name.   Compilers for
+           versions >= 7.0 and < 8.0 continue to ignore the injected class name
+           of template instances, so injected class names are only created for
+           explicitly specialized instances.*/
         if (!lookup_state->must_be_class_or_namespace &&
             is_injected_class_symbol(fund_sym)) {
           if (microsoft_version < 1300 ||
-              is_injected_template_symbol(fund_sym)) {
+              (microsoft_version < 1400 &&
+               is_injected_template_symbol(fund_sym))) {
             sym = NULL;
           }  /* if */
         }  /* if */
