@@ -2485,7 +2485,9 @@ there's no overflow TRUE is returned.
     if (field->is_bit_field) {
       /* Do any necessary alignment for a bit-field. */
 #if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
-      if (field->is_packed && curr_max_member_alignment == 0) {
+      if (curr_max_member_alignment == 0 &&
+          (field->is_packed ||
+           class_type->variant.class_struct_union.is_packed)) {
         /* No alignment to perform. */
       } else
 #endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */

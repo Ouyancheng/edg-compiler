@@ -1,5 +1,20 @@
 Version 3.7
 
+10/11/05 GNU compatibility: Effect of __attribute__((packed)) on bit fields
+
+In GNU modes, the front end failed to allow some bit fields to straddle byte
+boundaries when the attribute "packed" was applied to a class type.   For
+example:
+
+  struct S {
+    unsigned x:3;
+    unsigned y:31;  // Previously forced to the next byte boundary.
+                    // Now correctly placed at the fourth bit in the first
+                    // byte of S.
+  }  __attribute__((packed));
+
+This is now fixed.
+
 10/11/05 GNU compatibility: special handing of __STDC__ in system headers
 
 Some configuration of gcc/g++ define __STDC__ to zero when processing code
