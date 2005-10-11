@@ -1,12 +1,12 @@
 Version 3.7
 
-10/11/05 GNU C compatibility: special handing of __STDC__ in system headers
+10/11/05 GNU compatibility: special handing of __STDC__ in system headers
 
-Some configuration of gcc define __STDC__ to zero when processing code
+Some configuration of gcc/g++ define __STDC__ to zero when processing code
 from system header files and to one when processing other code.  Emulation
 of this feature can now be enabled by the --[no_]stdc_zero_in_system_headers
-command-line options.  The gcc mode default is specified by the
-DEFAULT_GCC_STDC_ZERO_IN_SYSTEM_HEADERS macro.
+command-line options.  The GNU mode default is specified by the
+DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS macro.
 
 10/10/05 Microsoft compatibility: injected template names implemented in VC 8.0
 

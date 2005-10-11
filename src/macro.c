@@ -3578,7 +3578,7 @@ end_scan_for_macro_modifs:;
                      str_for_integer_constant(&const_for_curr_token));
         (void)strcat(repl_text, "L");
       } else if (macro_symbol == stdc_macro_symbol) {
-        /* This macro symbol is only used in gcc mode when
+        /* This macro symbol is only used in GNU mode when
            stdc_zero_in_system_headers is TRUE.  Use a value of 0 if
            we are in a system header, or 1 otherwise. */
         (void)strcpy(repl_text, curr_ise->from_system_include_dir ? "0" : "1");
@@ -7055,7 +7055,7 @@ command line -D options.
       a_symbol_ptr	sym;
       /* In modes, the value of __STDC__ is determined by whether a system
          header is being processed.  Treat __STDC__ specially in such modes.
-         This feature is provided for gcc compatibility, but can be enabled
+         This feature is provided for GNU compatibility, but can be enabled
          in other modes. */
       if (stdc_zero_in_system_headers) {
         stdc_string = NULL;

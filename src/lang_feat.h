@@ -142,12 +142,12 @@ in when stdc_zero_in_system_headers is TRUE is still done, however.
 #endif /* ifndef STDC_ZERO_IN_NONSTRICT_MODE */
 
 /*
-TRUE if, in gcc mode, __STDC__ should be defined to 0 while processing
+TRUE if, in GNU mode, __STDC__ should be defined to 0 while processing
 system header files and 1 in other source files.
 */
-#ifndef DEFAULT_GCC_STDC_ZERO_IN_SYSTEM_HEADERS
-#define DEFAULT_GCC_STDC_ZERO_IN_SYSTEM_HEADERS FALSE
-#endif /* ifndef DEFAULT_GCC_STDC_ZERO_IN_SYSTEM_HEADERS */
+#ifndef DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS
+#define DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS FALSE
+#endif /* ifndef DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS */
 
 /*
 Flag that is TRUE if the address of a bit field may be taken as long

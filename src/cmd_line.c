@@ -2764,6 +2764,11 @@ exclude the GNU modes already.  Hence those are not checked again here.)
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   /* Late template test for g++ 3.2, 3.3, and 3.4. */
   late_template_ovl_res_tiebreaker = FALSE;
+  /* In some configurations, special processing is done for references
+     to __STDC__ in system header files. */
+  if (!(option_kind_used[(int)optk_stdc_zero_in_system_headers])) {
+    stdc_zero_in_system_headers = DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS;
+  }  /* if */
 }  /* check_and_set_gnu_mode_options */
 
 
@@ -2783,11 +2788,6 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
 #endif /* VLA_ALLOWED */
   /* The underlying type for an enum could be long long. */
   enum_types_can_be_larger_than_int = TRUE;
-  /* In some configurations, special processing is done for references
-     to __STDC__ in system header files. */
-  if (!(option_kind_used[(int)optk_stdc_zero_in_system_headers])) {
-    stdc_zero_in_system_headers = DEFAULT_GCC_STDC_ZERO_IN_SYSTEM_HEADERS;
-  }  /* if */
 }  /* check_and_set_gcc_mode_options */
 
 
