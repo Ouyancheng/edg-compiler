@@ -1,5 +1,22 @@
 Version 3.7
 
+10/11/05 C++-generating back end: namespace-qualified base class names
+
+In Microsoft C++ versions prior to 7.0, injected class names can be used
+only in certain contexts (see the Changes entry of 11/17/99).  When
+generating code for such targets, the C++-generating back end sometimes
+failed to generate a necessary namespace qualifier for base class names.
+Now fixed.  For example:
+
+  namespace N {
+    struct B { };
+  }
+  struct D: N::B {
+    void f() {
+      (N::B*)this;    // previously generated as "(B*)this"
+    }
+  };
+
 10/11/05 GNU compatibility: Effect of __attribute__((packed)) on bit fields
 
 In GNU modes, the front end failed to allow some bit fields to straddle byte

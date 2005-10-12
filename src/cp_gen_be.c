@@ -2358,10 +2358,16 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           (!scp->qualification_needed || (options & GN_DECLARATION)) &&
           (scp->visible_as_unqualified_name ||
            scope_is_in_name_context_stack(nsp->variant.assoc_scope)) &&
-           /* MSVC++ 7.0 does not always correctly parse "class S<x>::N {}",
-              but the problem goes away with a leading namespace qualifier. */
-           !(msvc_is_generated_code_target &&
-             force_qualifier_for_msvc(scp, entry_kind, options))) {
+          /* MSVC++ 7.0 does not always correctly parse "class S<x>::N {}",
+             but the problem goes away with a leading namespace qualifier. */
+          !(msvc_is_generated_code_target &&
+            force_qualifier_for_msvc(scp, entry_kind, options)) &&
+          /* MSVC++ < 7.0 recognizes injected class names only in
+             qualifiers. */
+          !(msvc_is_generated_code_target &&
+            msvc_target_version_number < 1300 &&
+            scp->partially_hidden_by_microsoft_injected_class_name &&
+            !(options & GN_QUALIFIER))) {
         /* A qualified name is not needed, because we're inside a name context
            for the namespace and either the name is not hidden or we are
            generating the declaration of that name. */
