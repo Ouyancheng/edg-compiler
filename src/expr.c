@@ -2534,45 +2534,6 @@ is the "->".
 end_of_routine:;
 }  /* process_overloaded_operator_arrow */
 
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* <- member_pos is not used in all configurations. */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-an_expr_node_ptr make_offsetof_expr(a_type_ptr         type,
-                                    a_symbol_ptr       sym,
-                                    a_source_position  *member_pos)
-/*
-Make an enk_offsetof node representing the offset of a member represented by
-sym in the given class type.  The member expression appeared at the given
-position.
-*/
-{
-  an_expr_node_ptr  result = alloc_expr_node((an_expr_node_kind)enk_offsetof);
-  an_expr_node_ptr  member;
-
-  result->type = integer_type(targ_size_t_int_kind);
-  result->variant.offsetof_info.type = type;
-  if (sym->kind == (a_symbol_kind)sk_field) {
-    a_field_ptr  field = sym->variant.field.ptr;
-    member = alloc_expr_node((an_expr_node_kind)enk_field);
-    member->type = field->type;
-    member->variant.field = field;
-  } else {
-    check_assertion(is_nontype_template_param_symbol(sym));
-    member = alloc_node_for_constant(sym->variant.constant);
-  }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (member_pos != NULL) {
-    copy_source_position(*member_pos, member->expr_range.start);
-    copy_source_position(end_pos_curr_token, member->expr_range.end);
-  }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  result->variant.offsetof_info.member = member;
-  return result;
-}  /* make_offsetof_expr */
-
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 static void make_offsetof_result(a_type_ptr         type,
                                  a_symbol_ptr       member_sym,
@@ -2582,12 +2543,14 @@ static void make_offsetof_result(a_type_ptr         type,
 Create an operand representing a built-in offsetof construct (as opposed to
 the constant-expression resulting from the more traditional macro expansion).
 The resulting operand, stored in *result, holds either an integer constant or
-an enk_offsetof node.
+an enk_builtin_operation node.
 */
 {
+  an_expr_node_ptr  expr, arg1, arg2;
+
+  /* Build the node representing the member whose offset is sought. */
   if (is_nontype_template_param_symbol(member_sym)) {
     /* The member symbol is a "constant" representing a synthesized field. */
-    a_constant_ptr  cp = &result->variant.constant;
     a_constant_ptr  member = member_sym->variant.constant;
     check_assertion(member->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member);
@@ -2596,31 +2559,41 @@ an enk_offsetof node.
                                   make_name_reference(&locator_for_curr_id,
                                                       &member->source_corresp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-    /* Place a tpck_offsetof entry on top of the tpck_member constant. */
-    clear_operand((an_operand_kind)ok_constant, result);
-    clear_constant(cp, (a_constant_repr_kind)ck_template_param);
-    set_template_param_constant_kind(
-                            cp, (a_template_param_constant_kind)tpck_offsetof);
-    cp->variant.template_param.variant.templ_offsetof.type = type;
-    cp->variant.template_param.variant.templ_offsetof.member =
-                                                 member_sym->variant.constant;
-    cp->type = result->type = integer_type(targ_size_t_int_kind);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-    if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-      cp->expr = make_offsetof_expr(type, member_sym, member_pos);
-    }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-    result->state = (an_operand_state)os_rvalue;
+    arg2 = alloc_node_for_constant(member);
   } else if (member_sym->kind != (a_symbol_kind)sk_field) {
     pos_error(ec_offsetof_nonfield, member_pos);
     make_error_operand(result);
+    goto done;
   } else {
     a_field_ptr    field = member_sym->variant.field.ptr;
-    a_constant     constant;
-    a_boolean      err;
-    make_offsetof_constant(type, field, member_pos, &constant, &err);
-    make_constant_operand(&constant, result);
+    arg2 = alloc_expr_node((an_expr_node_kind)enk_field);
+    arg2->type = field->type;
+    arg2->variant.field = field;
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (member_pos != NULL) {
+    copy_source_position(*member_pos, arg2->expr_range.start);
+    copy_source_position(end_pos_curr_token, arg2->expr_range.end);
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Build the first operand as a type node. */
+  arg1 = alloc_expr_node((an_expr_node_kind)enk_type_operand);
+  arg1->type = void_type();
+  arg1->variant.type_operand.type = type;
+  /* Finally, create the node representing the offsetof operation, and fold
+     it into a constant. */
+  expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
+  expr->type = integer_type(targ_size_t_int_kind);
+  expr->variant.builtin_operation.kind =
+                                       (a_builtin_operation_kind)bok_offsetof;
+  expr->variant.builtin_operation.operands = arg1;
+  arg1->next = arg2;
+  clear_operand((an_operand_kind)ok_constant, result);
+  fold_builtin_operation_if_possible(expr, &result->variant.constant,
+                                     member_pos);
+  result->type = result->variant.constant.type;
+  result->state = (an_operand_state)os_rvalue;
+done:;
 }  /* make_offsetof_result */
 
 
@@ -5638,9 +5611,9 @@ __builtin_offsetof construct, which takes the general form:
 	__builtin_offsetof ( <type name> , <member selector> )
 
 This routine assumes the current token is __builtin_offsetof, scans the
-construct, and either creates an integer constant operand or an enk_offsetof
-node to represent the operation.  Much of the difficult work is done by
-scan_field_selection_operator.
+construct, and either creates an integer constant operand or an
+enk_builtin_operation node to represent the operation.  Much of the difficult
+work is done by scan_field_selection_operator.
 */
 {
   a_type_ptr         type;
@@ -5832,6 +5805,11 @@ a class type is always considered to be derived from itself).
   scan_call_like_builtin_operation(bok_is_base_of, result_type,
                                    iek_type, iek_type, iek_none,
                                    result);
+  if (C_mode()) {
+    /* Turn the operand into an error operand to avoid any surprises later
+       on. */
+    make_error_operand(result);
+  }  /* if */
 }  /* scan_is_base_of */
 
 #if GNU_EXTENSIONS_ALLOWED

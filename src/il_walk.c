@@ -2810,9 +2810,6 @@ as specified in the control block.
     case enk_vla_dealloc:
       break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
-    case enk_offsetof:
-      traverse_expr(expr->variant.offsetof_info.member, tblock);
-      break;
     case enk_type_operand:
       break;
     case enk_builtin_operation:

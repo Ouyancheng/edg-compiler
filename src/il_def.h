@@ -2091,9 +2091,6 @@ enum a_template_param_constant_kind_tag {
 			   Microsoft __uuidof operator applied to a type
 			   that contains a template parameter type.  It
 			   represents the address of the implied structure. */
-  tpck_offsetof,	/* The template param constant represents the built-in
-			   offsetof operator applied to a template-dependent
-			   type. */
   tpck_template_ref	/* The template param constant provides a pointer
 			   to an unknown function template, and a set of
 			   explicit template arguments for that template. */
@@ -2501,13 +2498,6 @@ typedef struct a_constant {
 		expr;	/* If the sizeof etc. was applied to an expression,
 			   this points to the expression.  NULL otherwise. */
         } templ_sizeof;
-        /* When template param constant kind == tpck_offsetof: */
-        struct {
-          a_type_ptr
-		type;	/* The type in which the offset is sought. */
-          a_constant_ptr
-		member; /* The member whose offset is sought. */
-        } templ_offsetof;
         /* When template param constant kind == tpck_template_ref: */
         struct {
           a_constant_ptr
@@ -8085,7 +8075,6 @@ enum an_expr_node_kind_tag {
                            should be deallocated (in C++, this may require
                            running destructors). */
 #endif /* VLA_DEALLOCATIONS_IN_IL */
-  enk_offsetof,		/* Used to represent a built-in offsetof operator. */
   enk_type_operand,	/* Used to represent types in certain expression
 			   constructs. */
   enk_builtin_operation,
@@ -8651,6 +8640,8 @@ typedef enum a_builtin_operation_kind_tag {
      the mangled name encoding for builtin operations, so the items on
      this list should not be reordered; if they are, it will cause an
      ABI incompatibility (in the names of templates). */
+  bok_offsetof,		/* Builtin offsetof (currently only available in some
+			   GNU modes).  Two operands: A type and a field. */
   bok_is_base_of,	/* Microsoft __is_base_of.  Two operands, both
 			   types. */
 #if GNU_EXTENSIONS_ALLOWED
@@ -8986,7 +8977,7 @@ typedef struct an_expr_node {
 			/* A pointer to the field.  Used as an operand to an
 			   eok_field or eok_value_field operation (or the
 			   similar bit-field operators).  Also sometimes used
-			   as an operand for an enk_offsetof node. */
+			   as an operand for an enk_builtin_operation node. */
     /* When kind == enk_temp_init: */
     /* C++ only, but used in C for C99 compound literals. */
     struct {
@@ -9173,20 +9164,6 @@ typedef struct an_expr_node {
                            avoid forcing inclusion of the symbol table
                            definitions everywhere. */
 #endif /* ifdef FIL */
-    /* When kind == enk_offsetof: */
-    struct {
-      a_type_ptr
-		type;	/* The type in which the offset is sought.  Must be
-			   a class type (typerefs on top of a class type are
-			   okay). */
-      an_expr_node_ptr
-		member;
-			/* A representation of the member whose offset is
-			   sought.  Either an enk_field node (when the type
-			   field is not dependent on a template parameter),
-			   of an enk_constant node (representing a member
-			   of a template-dependent type). */
-    } offsetof_info;
     /* When kind == enk_type_operand: */
     struct {
       a_type_ptr
@@ -11721,6 +11698,7 @@ Table of names of various builtin operations.
 EXTERN char     *builtin_operation_names[(int)bok_last+1]
 #if VAR_INITIALIZERS
 = {
+  "__builtin_offsetof",
   "__is_base_of",
 #if GNU_EXTENSIONS_ALLOWED
   "__builtin_types_compatible",

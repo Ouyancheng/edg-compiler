@@ -2460,7 +2460,6 @@ do_unknown_function:
                          con->variant.template_param.kind,
                          mctl);
           break;
-        case tpck_offsetof: /* FIXME */
         default:
           unexpected_condition_str(
                             "literal_representation: bad template param kind");
@@ -2741,7 +2740,6 @@ part of a template-dependent expression.
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
-    case enk_offsetof:  /* FIXME */
     case enk_type_operand:  /* Only expected under enk_builtin_operation. */
     default:;
       /* Unexpected expression kind.  These are allowed in some cases for

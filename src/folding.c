@@ -4913,6 +4913,83 @@ through the usual interface because a field cannot be passed as a constant.
 }  /* fold_field_selection */
 
 
+static void fold_offsetof(an_expr_node_ptr   expr,
+                          a_constant_ptr     constant,
+                          a_source_position  *pos)
+/*
+expr is an enk_builtin_operation node for a __builtin_offsetof operation
+(currently only accepted in some GNU modes).  If the operand types are
+nondependent, store the integer value of the offset being represented in
+*constant.  Otherwise, store a ck_template_param constant in *constant (the
+constant will be of the tpck_expression variant and will point to the given
+expression).  If pos is non-NULL, diagnostics are issued that the position
+it represents.
+*/
+{
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    arg2 = arg1->next;
+
+  check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
+                  arg1->kind == (an_expr_node_kind)enk_type_operand);
+  if (arg2->kind == (an_expr_node_kind)enk_constant) {
+    /* The template-dependent case (the second argument must be a
+       tpck_member constant). */
+    clear_constant(constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(
+                   constant, (a_template_param_constant_kind)tpck_expression);
+    constant->variant.template_param.variant.expr = expr;
+  } else {
+    a_field_ptr    field = arg2->variant.field;
+    a_boolean      err = FALSE;
+    a_targ_size_t  offset;
+    check_assertion(arg2->kind == (an_expr_node_kind)enk_field);
+    offset = field->offset;
+    if (field->is_bit_field) {
+      err = TRUE;
+      if (pos != NULL) {
+        pos_error(ec_offsetof_bit_field, pos);
+      }  /* if */
+    } else if (!C_mode()) {
+      /* ctype is the type in which the offset is sought and stype is the type
+         in which the field is defined.  In C++ those two can be different
+         because of inheritance.  Note that since the field was not ambiguous,
+         there won't be more than one base class of type stype. */
+      a_type_ptr  ctype = skip_typerefs(arg1->variant.type_operand.type);
+      a_type_ptr  stype = field->source_corresp.parent.class_type;
+      if (!same_entities(ctype, stype)) {
+        /* Determine in which base class the field was defined. */
+        a_base_class_ptr  bcp = base_classes_of(ctype);
+        while (bcp != NULL && !same_entities(bcp->type, stype)) {
+          bcp = bcp->next;
+        }  /* while */
+        check_assertion(bcp != NULL);
+        offset += bcp->offset;
+        if (bcp->is_virtual) {
+          /* We don't currently allow the offset of a member of a virtual base
+             class to be taken (the GNU compiler produces a somewhat strange
+             value). */
+          err = TRUE;
+          if (pos != NULL) {
+            pos_error(ec_offsetof_virtual_base_member, pos);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (err) {
+      clear_constant(constant, (a_constant_repr_kind)ck_error);
+    } else {
+      set_unsigned_integer_constant(constant, (a_host_large_unsigned)offset,
+                                    targ_size_t_int_kind);
+      arg1->variant.type_operand.definition_needed = TRUE;
+    }  /* if */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    constant->expr = expr;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_offsetof */
+
+
 static void fold_is_base_of(an_expr_node_ptr   expr,
                             a_constant_ptr     constant)
 /*
@@ -5004,7 +5081,6 @@ and will point to the given expression.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-/*ARGSUSED*/ /* <- pos is currently unused. */
 void fold_builtin_operation_if_possible(an_expr_node_ptr   expr,
                                         a_constant_ptr     constant,
                                         a_source_position  *pos)
@@ -5018,20 +5094,40 @@ folding fails, an error constant is returned through *constant and if pos is
 non-NULL diagnostics are issued at the indicated position.
 */
 {
-  check_assertion(expr->kind == (an_expr_node_kind)enk_builtin_operation);
+  a_boolean         has_error = FALSE;
+  an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
 
-  switch (expr->variant.builtin_operation.kind) {
-    case bok_is_base_of:
-      fold_is_base_of(expr, constant);
+  check_assertion(expr->kind == (an_expr_node_kind)enk_builtin_operation);
+  /* Check if an error was already encountered.  In that case, we silently
+     produce an error constant. */
+  for (; arg != NULL; arg =  arg->next) {
+    if (arg->kind == (an_expr_node_kind)enk_error) {
+      has_error = TRUE;
       break;
+    }  /* if */
+  }  /* for */
+  if (has_error) {
+    clear_constant(constant, (a_constant_repr_kind)ck_error);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    constant->expr = expr;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  } else {
+    switch (expr->variant.builtin_operation.kind) {
+      case bok_offsetof:
+        fold_offsetof(expr, constant, pos);
+        break;
+      case bok_is_base_of:
+        fold_is_base_of(expr, constant);
+        break;
 #if GNU_EXTENSIONS_ALLOWED
-    case bok_types_compatible:
-      fold_types_compatible(expr, constant);
-      break;
+      case bok_types_compatible:
+        fold_types_compatible(expr, constant);
+        break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    default:
-      unexpected_condition();
-  }  /* switch */
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
 }  /* fold_builtin_operation_if_possible */
 
 

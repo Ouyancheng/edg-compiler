@@ -3448,29 +3448,6 @@ Routine to be called by the il_to_str routines to output a name.
 }  /* gen_name_reference */
 
 
-static void gen_name_in_class_context(char              *entry,
-                                      an_il_entry_kind  kind,
-                                      a_type_ptr        type)
-/*
-Generate the given entity's name as if accessed from within the given class.
-*/
-{
-  type = skip_typerefs(type);
-  if (is_template_param_type(type)) {
-    /* For template parameters, use the associated proxy class (if any). */
-    type = type->variant.template_param.extra_info->class_type;
-  }  /* if */
-  if (type != NULL) {
-    push_class_name_context(skip_typerefs(type));
-  }  /* if */
-  gen_name((a_source_correspondence*)entry, kind, GN_NO_OPTIONS, 
-           (a_boolean *)NULL);
-  if (type != NULL) {
-    pop_name_context();
-  }  /* if */
-}  /* gen_name_in_class_context */
-
-
 static void gen_template_name(char             *entry,
                               an_il_entry_kind kind)
 /*
@@ -7352,14 +7329,16 @@ Generate code for the indicated expression, which is a non-virtual call.
 
 static void gen_builtin_offsetof(an_expr_node_ptr  expr)
 /*
-Generate code for a built-in offsetof construct (currently accepted only in
+Generate code for a builtin offsetof construct (currently accepted only in
 GNU modes with gnu_version >= 40000).  Note that even if the target compiler
 does not support __builtin_offsetof we do not have a very good alternative
 rendering for the operator applied to template-dependent types.  For now, we
 therefore always render the operator as "__builtin_offsetof".
 */
 {
-  a_type_ptr  type = expr->variant.offsetof_info.type;
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    arg2 = arg1->next;
+  a_type_ptr  type = arg1->variant.type_operand.type;
 
   write_tok_str("__builtin_offsetof(");
   gen_type(type);
@@ -7371,12 +7350,35 @@ therefore always render the operator as "__builtin_offsetof".
   if (type != NULL) {
     push_class_name_context(skip_typerefs(type));
   }  /* if */
-  gen_expr(expr->variant.offsetof_info.member, /*need_parens=*/FALSE);
+  gen_expr(arg2, /*need_parens=*/FALSE);
   if (type != NULL) {
     pop_name_context();
   }  /* if */
   write_tok_ch(')');
 }  /* gen_builtin_offsetof */
+
+
+static void gen_builtin_operation(an_expr_node_ptr  expr)
+/*
+Render code for the given expression node, which represent a builtin operation.
+Most cases fit a simple pattern, but some require special handling.
+*/
+{
+  if (expr->variant.builtin_operation.kind ==
+                                     (a_builtin_operation_kind)bok_offsetof) {
+    /* The builtin offsetof operator is a little tricky because its second
+       operand must be rendered in the context of its first operand. */
+    gen_builtin_offsetof(expr);
+  } else {
+    /* The normal case:
+          <operation-name> ( <operand1>, <operand2>, ... )
+    */
+    write_tok_str(
+               builtin_operation_names[expr->variant.builtin_operation.kind]);
+    gen_argument_list(expr->variant.builtin_operation.operands,
+                      (a_type_ptr)NULL, /*skip_num=*/0);
+  }  /* if */
+}  /* gen_builtin_operation */
 
 
 static void gen_expr(an_expr_node_ptr expr,
@@ -8315,24 +8317,19 @@ done_with_operation_after_parens:
       if (need_parens) write_tok_ch(')');
       break;
     case enk_field:
-      /* In most cases, enk_field nodes are rendered elsewhere.  However,
-         we may end up here with field references under enk_offsetof nodes. */
+      /* In most cases, enk_field nodes are rendered elsewhere.  However, we
+         may end up here with field references under enk_builtin_operation
+         nodes. */
       gen_field_reference(expr);
       break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
-    case enk_offsetof:
-      gen_builtin_offsetof(expr);
-      break;
     case enk_type_operand:
       gen_type(expr->variant.type_operand.type);
       break;
     case enk_builtin_operation:
-      write_tok_str(
-               builtin_operation_names[expr->variant.builtin_operation.kind]);
-      gen_argument_list(expr->variant.builtin_operation.operands,
-                        (a_type_ptr)NULL, /*skip_num=*/0);
+      gen_builtin_operation(expr);
       break;
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");
@@ -12128,7 +12125,6 @@ Initialize for the C++/C-generating back end.
   octl.output_partial_token_str = write_str;
   octl.output_name = gen_name_reference;
   octl.output_template_name = gen_template_name;
-  octl.output_name_in_class_context = gen_name_in_class_context;
   octl.output_class_qualifier = gen_class_qualifier_wrapper;
   octl.output_func_declarator = gen_function_declarator;
   octl.output_expression = f_gen_expression;
