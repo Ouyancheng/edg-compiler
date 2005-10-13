@@ -9412,6 +9412,7 @@ expressions allow only certain limited casts).
                                                  dest_type)) {
     /* GNU C allows a do-nothing cast to a struct or union type. */
     valid_in_const_expr = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
   } else if (gcc_mode &&
              is_constant_operand(operand) &&
              is_union_type(dest_type) &&
@@ -9421,6 +9422,7 @@ expressions allow only certain limited casts).
        operand is constant, so the result is a constant aggregate
        initializer. */
     valid_in_const_expr = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (is_template_param_type(dest_type)) {
     /* Casting to an unknown template parameter type is okay. */
     valid_in_const_expr = TRUE;
