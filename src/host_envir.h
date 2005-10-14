@@ -215,12 +215,29 @@ to use this flag to test that a pointer lies in a certain range.
 /*
 If the front end is to be called as a function, the EDG_MAIN macro provides
 a name for the function.
+
+The Kuck & Associates inliner/optimizer provides its own main program and
+calls the EDG main program using the name edg_main.
 */
-#if MAKE_FRONT_END_CALLABLE
+#if MAKE_FRONT_END_CALLABLE || USING_KAI_INLINER
 #ifndef EDG_MAIN
 #define EDG_MAIN edg_main
 #endif /* ifndef EDG_MAIN */
-#endif /* MAKE_FRONT_END_CALLABLE */
+
+/*
+When the front end is called as a function, provide a declaration for the
+main routine.
+*/
+extern int EDG_MAIN(int argc, char *argv[]);
+
+#endif /* MAKE_FRONT_END_CALLABLE || USING_KAI_INLINER */
+
+/*
+If a name of the main program was not selected above, use the default "main".
+*/
+#ifndef EDG_MAIN
+#define EDG_MAIN main
+#endif /* ifndef EDG_MAIN */
 
 /*
 Flag that is TRUE if multiple input files can be compiled in a single

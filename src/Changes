@@ -1,5 +1,12 @@
 Version 3.7
 
+10/14/05 Declaration provided for EDG_MAIN when front end is callable
+
+When MAKE_FRONT_END_CALLABLE is TRUE a declaration is now provided in
+host_envir.h for the EDG_MAIN routine.  Note that EDG_MAIN is a macro
+that specifies the name of the main program when the front end is called
+as a function; the default is edg_main.
+
 10/11/05 C++-generating back end: namespace-qualified base class names
 
 In Microsoft C++ versions prior to 7.0, injected class names can be used

@@ -43,18 +43,6 @@ Changed to C++ front end and enhanced by
 #include "cp_gen_be.h"
 #endif /* BACK_END_IS_CP_GEN_BE */
 
-/*
-The main routine name can be set by defining EDG_MAIN.  The Kuck & Associates
-inliner/optimizer provides its own main program and calls the EDG main
-program using the name edg_main.  If EDG_MAIN is not set, the default
-"main" is assumed.
-*/
-#if USING_KAI_INLINER
-#define EDG_MAIN edg_main
-#endif /* USING_KAI_INLINER */
-#ifndef EDG_MAIN
-#define EDG_MAIN main
-#endif /* ifndef(EDG_MAIN) */
 
 static void cfe_main(int argc, char *argv[])
 /*
