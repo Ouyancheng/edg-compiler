@@ -1134,8 +1134,17 @@ may have extra operand at end).
     temp_line += digit;
   }  /* for */
   /* Zero is not allowed as a line number (it's not allowed by ANSI,
-     and it looks like end of file to the error routines). */
-  if (temp_line == 0) bad_line_number = TRUE;
+     and it looks like end of file to the error routines).  gcc 4.1
+     introduced a bug that caused zero to be emitted as in line directives
+     for certain built-in declarations.  Accept zero in a cpp-form line
+     directive, but use the value one in its place. */
+  if (temp_line == 0) {
+    if (cpp_output_form) {
+      temp_line = 1;
+    } else {
+      bad_line_number = TRUE;
+    }  /* if */
+  }  /* if */
   if (bad_line_number) {
     /* The line number was incorrect or too large.  Note that scanning of the
        directive continues, because this isn't a syntax error; we haven't
