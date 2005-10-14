@@ -194,6 +194,8 @@ typedef enum /*a_token_kind*/ {
   tok_super,
   tok_noop,
   tok_interface,
+  tok_microsoft_ptr32,
+  tok_microsoft_ptr64,
   tok_microsoft_w64,
   tok_microsoft_lprefix,
   tok_microsoft_identifier,
@@ -326,7 +328,9 @@ EXTERN char	*token_names[(int)tok_last+1]
    "end of __if_exists",
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
    "__super",
-   "__noop", "__interface", "__w64", "__LPREFIX", "__identifier",
+   "__noop", "__interface",
+   "__ptr32", "__ptr64", "__w64",
+   "__LPREFIX", "__identifier",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__asm",
    "__func__",
@@ -713,6 +717,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_super */
    (an_opname_kind)onk_none,          /* tok_noop */
    (an_opname_kind)onk_none,          /* tok_interface */
+   (an_opname_kind)onk_none,          /* tok_microsoft_ptr32 */
+   (an_opname_kind)onk_none,          /* tok_microsoft_ptr64 */
    (an_opname_kind)onk_none,          /* tok_microsoft_w64 */
    (an_opname_kind)onk_none,          /* tok_microsoft_lprefix */
    (an_opname_kind)onk_none,          /* tok_microsoft_identifier */

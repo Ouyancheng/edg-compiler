@@ -1489,6 +1489,11 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
            end. */
         octl->output_str("__w64 ");
       }  /* if */
+      if (type->variant.pointer.is_ptr32) {
+        octl->output_str("__ptr32 ");
+      } else if (type->variant.pointer.is_ptr64) {
+        octl->output_str("__ptr64 ");
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef CFE
     }  /* if */
@@ -1511,6 +1516,13 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     /* form_class_qualifier put out "::".  Add the final "*" here.  That's
        okay; it's a separate token. */
     octl->output_str("*");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (type->variant.ptr_to_member.is_ptr32) {
+      octl->output_str("__ptr32 ");
+    } else if (type->variant.ptr_to_member.is_ptr64) {
+      octl->output_str("__ptr64 ");
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Output the type qualifiers on the pointer, if any. */
     if (qualifiers != TQ_NONE) {
       form_type_qualifier(qualifiers, upc_block_size, need_trailing_space,

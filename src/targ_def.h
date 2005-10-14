@@ -1312,9 +1312,11 @@ that is not completely determined by the type pointed to (e.g., you have
 both 32-bit and 64-bit pointers, for any underlying type, and you can choose
 between them with some language extension).
 
-Note that TARG_ALL_POINTERS_SAME_SIZE is not consulted in when near and far
-pointers exist (e.g., in 16-bit Microsoft mode).  So this really means,
-"ignoring near/far mode, are all pointers the same size?"
+Note that TARG_ALL_POINTERS_SAME_SIZE is not consulted when near and far
+pointers exist (e.g., in 16-bit Microsoft mode).  Similarly, it does not
+affect the size of pointers explicitly sized with the Microsoft __ptr32 and
+__ptr64 modifiers.  So this really means, "ignoring near/far mode and
+__ptr32/__ptr64 modifiers, are all pointers the same size?"
 */
 #ifndef TARG_ALL_POINTERS_SAME_SIZE
 #define TARG_ALL_POINTERS_SAME_SIZE TRUE

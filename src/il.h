@@ -616,8 +616,13 @@ extern a_type_ptr void_type(void);
 extern a_type_ptr check_ptr_to_member_function_type(a_type_ptr  member_type,
                                                     a_type_ptr  class_type);
 
-extern a_type_ptr ptr_to_member_type(a_type_ptr  member_type,
-                                     a_type_ptr  class_type);
+extern a_type_ptr ptr_to_member_type_full(a_type_ptr  member_type,
+                                          a_type_ptr  class_type,
+                                          a_boolean   is_ptr32,
+                                          a_boolean   is_ptr64);
+
+#define ptr_to_member_type(tp, cp)                                           \
+  (ptr_to_member_type_full((tp), (cp), /*is_ptr32=*/FALSE, /*is_ptr32=*/FALSE))
 
 extern a_type_ptr related_member_type(a_type_ptr member_type,
                                       a_type_ptr class_type);
@@ -625,7 +630,12 @@ extern a_type_ptr related_member_type(a_type_ptr member_type,
 extern a_type_ptr related_ptr_to_member_type(a_type_ptr member_type,
                                              a_type_ptr class_type);
 
-extern a_type_ptr make_pointer_type(a_type_ptr type_pointed_to);
+extern a_type_ptr make_pointer_type_full(a_type_ptr  type_pointed_to,
+                                         a_boolean   is_ptr32,
+                                         a_boolean   is_ptr64);
+
+#define make_pointer_type(tp)                                                \
+  (make_pointer_type_full((tp), /*is_ptr32=*/FALSE, /*is_ptr32=*/FALSE))
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_type_ptr make_based_pointer_type(a_type_ptr     type_pointed_to,

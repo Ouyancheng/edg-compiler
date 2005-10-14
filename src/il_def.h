@@ -5140,6 +5140,10 @@ enum a_based_type_kind_tag {
 			   version of the type. */
   btk_reference,	/* Reference to the type. */
   btk_ptr_to_member,	/* Pointer to member type (C++ only). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  btk_ptr32_to_member,	/* Pointer to member of specified 32-bit size. */
+  btk_ptr64_to_member,	/* Pointer to member of specified 64-bit size. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   btk_unqualified_array_type,
 			/* Means that the "based type" is an array type to
 			   which a qualifier was applied to produce the
@@ -5149,6 +5153,10 @@ enum a_based_type_kind_tag {
 			   const creates (const int)[3], and the original is
 			   recorded as a based type of the new type.) */
 #endif /* ifdef CIL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  btk_ptr32,		/* Pointer of specified 32-bit size. */
+  btk_ptr64,		/* Pointer of specified 64-bit size. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   btk_pointer		/* Pointer to the type. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -5511,6 +5519,24 @@ typedef struct a_type {
       a_byte_boolean
 		is_reference;
 			/* If TRUE, this type is a C++ reference type. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_bit_field
+		is_ptr32:1;
+			/* TRUE if the pointer was declared with "__ptr32",
+			   forcing the pointer to be 4 bytes wide even when
+			   a pointer has size 8 by default.  Note that even
+			   when pointers have size 4 by default, "int*" is
+			   not compatible with "int *__ptr32".  Only used in
+			   Microsoft mode.*/
+      a_bit_field
+		is_ptr64:1;
+			/* TRUE if the pointer was declared with "__ptr64",
+			   forcing the pointer to be 8 bytes wide even when
+			   a pointer has size 4 by default.  Note that even
+			   when pointers have size 8 by default, "int*" is
+			   not compatible with "int *__ptr64".  Only used in
+			   Microsoft mode.*/
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
     } pointer;
     /* When kind == tk_routine: */
@@ -5891,6 +5917,22 @@ typedef struct a_type {
       a_type_ptr
 		type;
 			/* Type of the member pointed to. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_bit_field
+		is_ptr32:1;
+			/* TRUE if the type was declared with "__ptr32".
+			   On Microsoft compilers, this only appears to affect
+			   the size of pointer-to-member-functions.  However,
+			   even when the size is not affected, the type is
+			   considered distinct. */
+      a_bit_field
+		is_ptr64:1;
+			/* TRUE if the type was declared with "__ptr64".
+			   On Microsoft compilers, this only appears to affect
+			   the size of pointer-to-member-functions.  However,
+			   even when the size is not affected, the type is
+			   considered distinct. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } ptr_to_member;
     /* When kind == tk_template_param (C++ front end only, except when
        prototype instantiations are passed to a back end): */

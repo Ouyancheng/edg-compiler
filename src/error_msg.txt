@@ -1484,6 +1484,8 @@ ec_no_prior_push_macro;;"no prior push_macro for %sq"
 ec_wide_string_not_allowed;;"wide string literal not allowed"
 ec_feature_requires_cplusplus;;"%sq is only allowed in C++"
 ec_feature_requires_c;;"%sq is only allowed in C"
+ec_microsoft_ptr_width_must_follow_star;;"__ptr32 and __ptr64 must follow a \"*\""
+ec_microsoft_ptr_width_conflict;;"__ptr32 and __ptr64 cannot both apply"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

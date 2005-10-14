@@ -2534,6 +2534,72 @@ constant.
   db_exit();
 }  /* array_declarator */
 
+
+/*
+A structure to track various modifications that might have been applied to a
+pointer declarator.  This includes not only the standard const/volatile
+qualifiers, but also a variety of Microsoft extensions (e.g., __ptr64/__ptr32
+and calling conventions).
+*/
+typedef struct a_pointer_modifier_state {
+  a_type_qualifier_set
+		qualifiers;
+			/* Standard and nonstandard qualifiers. */
+  a_source_position
+		qualifiers_pos;
+			/* The position of the first qualifier seen. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_call_conv_descr
+		cc_descr;
+			/* Microsoft calling convention. */
+  a_variable_ptr
+		based_var;
+			/* The variable specified by a __based modifier (if
+			   any). */
+  a_source_position
+		based_pos;
+			/* The source position of the __based modifier (if
+			   any). */
+  a_boolean
+		microsoft_w64;
+			/* TRUE if the __w64 token was seen. */
+  a_source_position
+		microsoft_w64_pos;
+			/* The source position of the __w64 token (if any). */
+  a_boolean
+		is_ptr32;
+			/* TRUE if the __ptr32 modifier was seen. */
+  a_source_position
+		ptr32_pos;
+			/* The source position of the __ptr32 token (if
+			   any). */
+  a_boolean
+		is_ptr64;
+			/* TRUE if the __ptr64 modifier was seen. */
+  a_source_position
+		ptr64_pos;
+			/* The source position of the __ptr64 token (if
+			   any). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+} a_pointer_modifier_state;
+
+
+static void clear_pointer_modifier_state(a_pointer_modifier_state  *ptr_mods)
+/*
+Clear the pointer modifiers structure (except for position information, since
+that isn't accessed unless the associated flag has been set).
+*/
+{
+  ptr_mods->qualifiers = TQ_NONE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  clear_call_conv_descr(&ptr_mods->cc_descr);
+  ptr_mods->based_var = NULL;
+  ptr_mods->microsoft_w64 = FALSE;
+  ptr_mods->is_ptr32 = FALSE;
+  ptr_mods->is_ptr64 = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* clear_pointer_modifier_state */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void scan_microsoft_calling_convention(a_calling_convention *call_conv)
@@ -2748,14 +2814,14 @@ static a_type_ptr make_possibly_based_pointer_type(a_type_ptr     tp,
                                                    a_variable_ptr *var)
 /*
 Given a type "tp", make a pointer to that type.  In Microsoft mode, if
-var is not NULL, create a based pointer using "var" as the base.
+var and *var are not NULL, create a based pointer using "var" as the base.
 Clear the pointer stored in "var" if it is used.
 */
 {
   a_type_ptr new_tp;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (*var != NULL) {
+  if (var != NULL && *var != NULL) {
     check_assertion(microsoft_mode);
     new_tp = make_based_pointer_type(tp, *var);
     *var = NULL;
@@ -2778,55 +2844,44 @@ Clear the pointer stored in "var" if it is used.
                     are not used. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void collect_pointer_declarator_extended_qualifiers(
-                                     a_type_qualifier_set  *qualifiers,
-                                     a_source_position     *qual_pos,
-                                     a_call_conv_descr     *call_conv,
-                                     a_variable_ptr        *based_var,
-                                     a_source_position     *based_pos,
-                                     a_boolean             *microsoft_w64_seen,
-                                     a_source_position     *microsoft_w64_pos,
-                                     a_decl_pos_block_ptr  decl_pos_block)
+                                  a_boolean                 plain_ptr_seen,
+                                  a_boolean                 ptr_to_member_seen,
+                                  a_pointer_modifier_state  *ptr_mods,
+                                  a_decl_pos_block_ptr      decl_pos_block)
 /*
 Collect a set of pointer declarator qualifiers provided as an extension
 (e.g., for Microsoft compatibility).  Aside from the standard const/volatile,
 support for near and far may be enabled (e.g., in Microsoft 16-bit mode),
 and Microsoft mode also allows other modifiers, notably __based and calling
 conventions like __cdecl.  Scan all of those, and return information about what
-was scanned in *qualifiers, *call_conv, *based_var, and *microsoft_w64_seen.
-If qualifiers are scanned, *qual_pos is set to their starting position.  If a
-__based qualifier is scanned, *based_pos is set to its source position.  It's
-permissible for the input to contain no qualifiers. If Microsoft extended
+was scanned in *ptr_mods (the caller need not initialize this structure).
+It's permissible for the input to contain no qualifiers. If Microsoft extended
 decl specifiers, introduced by __declspec, are encountered, they are
-scanned and thrown away with a warning.  If microsoft_w64_seen is NULL, the
-Microsoft keyword __w64 is rejected; otherwise, *microsoft_w64_seen is set
-to TRUE when __w64 is encountered and the position of the keyword is recorded
-in *microsoft_w64_pos.
+scanned and thrown away with a warning.  plain_ptr_seen is TRUE when scanning
+extended qualifiers following a asterisk ("*") indicating a plain pointer.
+Additional position information is recorded in *decl_pos_block.
 */
 {
   a_type_qualifier_set new_qualifiers, duplicates;
 
-  *qualifiers = TQ_NONE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  clear_call_conv_descr(call_conv);
-  *based_var = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  clear_pointer_modifier_state(ptr_mods);
   for (;;) {
     if (is_type_qualifier() or_is_near_or_far()) {
       /* Normal qualifiers like const, and declarator-only qualifiers like
          near. */
-      *qual_pos = pos_curr_token;
+      ptr_mods->qualifiers_pos = pos_curr_token;
       new_qualifiers = collect_type_qualifiers(decl_pos_block,
                                                (a_upc_block_size *)NULL);
-      duplicates = (new_qualifiers & *qualifiers);
+      duplicates = (new_qualifiers & ptr_mods->qualifiers);
 #if NEAR_AND_FAR_ALLOWED
       if (near_and_far_enabled()) {
-        if ((new_qualifiers & TQ_NEAR) && (*qualifiers & TQ_FAR )) {
+        if ((new_qualifiers & TQ_NEAR) && (ptr_mods->qualifiers & TQ_FAR )) {
           /* Incompatible near and far specifications. */
           error(ec_mem_attrib_incompatible);
           new_qualifiers &= ~TQ_NEAR;
           duplicates &= ~TQ_NEAR;
         }  /* if */
-        if ((new_qualifiers & TQ_FAR ) && (*qualifiers & TQ_NEAR)) {
+        if ((new_qualifiers & TQ_FAR ) && (ptr_mods->qualifiers & TQ_NEAR)) {
           /* Incompatible near and far specifications. */
           error(ec_mem_attrib_incompatible);
           new_qualifiers &= ~TQ_FAR;
@@ -2846,26 +2901,26 @@ in *microsoft_w64_pos.
            we do too. */
         warning(ec_dupl_type_qualifier);
       }  /* if */
-      *qualifiers |= new_qualifiers;
+      ptr_mods->qualifiers |= new_qualifiers;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode) {
       if (is_microsoft_calling_convention()) {
         /* Calling conventions like __cdecl. */
-        call_conv->position = pos_curr_token;
+        ptr_mods->cc_descr.position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         if (decl_pos_block != NULL) {
           decl_pos_block->declarator_range.end = end_pos_curr_token;
         }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        scan_microsoft_calling_convention(&call_conv->call_conv);
+        scan_microsoft_calling_convention(&ptr_mods->cc_descr.call_conv);
       } else if (curr_token == tok_based) {
         /* __based. */
-        if (*based_var != NULL) {
+        if (ptr_mods->based_var != NULL) {
           /* __based appears more than once. */
           error(ec_dupl_type_qualifier);
         }  /* if */
-        *based_pos = pos_curr_token;
-        *based_var = scan_based_modifier();
+        ptr_mods->based_pos = pos_curr_token;
+        ptr_mods->based_var = scan_based_modifier();
       } else if (curr_token == tok_declspec) {
         /* Scan the decl-modifiers.  The Microsoft compiler appears to accept
            and ignore __declspec declarations that appear during declarator
@@ -2885,12 +2940,36 @@ in *microsoft_w64_pos.
       } else if (curr_token == tok_microsoft_w64) {
         /* Microsoft compilers accept the __w64 keyword on pointer
            declarators. */
-        if (microsoft_w64_seen != NULL) {
-          *microsoft_w64_seen = TRUE;
-          *microsoft_w64_pos = pos_curr_token;
+        if (plain_ptr_seen) {
+          ptr_mods->microsoft_w64 = TRUE;
+          ptr_mods->microsoft_w64_pos = pos_curr_token;
         } else {
           /* The "__w64" token was not expected. */
           error(ec_invalid_type_for_w64);
+        }  /* if */
+        (void)get_token();
+      } else if (curr_token == tok_microsoft_ptr32) {
+        if (!plain_ptr_seen && !ptr_to_member_seen) {
+          error(ec_microsoft_ptr_width_must_follow_star);
+        } else if (ptr_mods->is_ptr64) {
+          error(ec_microsoft_ptr_width_conflict);
+        } else if (ptr_mods->is_ptr32) {
+          warning(ec_dupl_type_qualifier);
+        } else {
+          ptr_mods->is_ptr32 = TRUE;
+          ptr_mods->ptr32_pos = pos_curr_token;
+        }  /* if */
+        (void)get_token();
+      } else if (curr_token == tok_microsoft_ptr64) {
+        if (!plain_ptr_seen && !ptr_to_member_seen) {
+          error(ec_microsoft_ptr_width_must_follow_star);
+        } else if (ptr_mods->is_ptr32) {
+          error(ec_microsoft_ptr_width_conflict);
+        } else if (ptr_mods->is_ptr64) {
+          warning(ec_dupl_type_qualifier);
+        } else {
+          ptr_mods->is_ptr64 = TRUE;
+          ptr_mods->ptr64_pos = pos_curr_token;
         }  /* if */
         (void)get_token();
       } else {
@@ -2935,6 +3014,36 @@ and the existing ones (explicit and implied), issue an error (at position
 }  /* check_for_addition_of_incompatible_qualifiers */
 
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void apply_microsoft_ptr_width_specifier(
+                                          a_type_ptr                *type,
+                                          a_pointer_modifier_state  *ptr_mods)
+/*
+Replace *type by a similar type that has its is_ptr32 or is_ptr64 flag set
+according to the values of those flags in ptr_mods.  The given type must be
+a (possibly qualified) pointer or pointer-to-member type.
+*/
+{
+  a_type_qualifier_set  qualifiers = get_type_qualifiers(*type);
+  a_type_ptr  plain_type = skip_typerefs(*type), copy;
+
+  check_assertion(ptr_mods->is_ptr32 || ptr_mods->is_ptr64);
+  /* Create a modified copy of the unqualified type and then reapply the
+     qualifiers (if any). */
+  if (plain_type->kind == (a_type_kind)tk_pointer) {
+    copy = make_pointer_type_full(plain_type->variant.pointer.type,
+                                  ptr_mods->is_ptr32, ptr_mods->is_ptr64);
+  } else {
+    check_assertion(plain_type->kind == (a_type_kind)tk_ptr_to_member);
+    copy = ptr_to_member_type_full(pm_member_type(plain_type),
+                                   pm_class_type(plain_type),
+                                   ptr_mods->is_ptr32, ptr_mods->is_ptr64);
+  }  /* if */
+  *type = make_qualified_type(copy, qualifiers);
+}  /* apply_microsoft_ptr_width_specifier */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- left_calling_convention and unbound_calling_convention
@@ -3024,24 +3133,25 @@ by applying it to the pointer type; and the last (unbound) qualifier
 is returned in *unbound_qualifiers.  If unbound_qualifiers is NULL,
 unbound qualifiers are just thrown away.
 
+The pointer modifiers __ptr32 and __ptr64 (yet another Microsoft extension)
+are also accepted by this routine: They directly affect the type entry for the
+pointer they qualify (i.e., these are not modeled as "tk_typeref" entries).
+
 Microsoft extended decl modifiers are also scanned, but they are ignored
 (which is what the Microsoft compiler itself appears to do).
 */
 {
-  a_type_ptr            complete_type = specifiers_type;
-  a_boolean             err = FALSE;
-  a_type_qualifier_set  qualifiers;
-  a_type_ptr            class_type;
-  a_type_ptr            rout_type;
-  a_variable_ptr        based_var = NULL;
+  a_type_ptr                complete_type = specifiers_type;
+  a_boolean                 err = FALSE;
+  a_pointer_modifier_state  ptr_mods;
+  a_type_ptr                class_type;
+  a_type_ptr                rout_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-  a_type_qualifier_set  pending_qualifiers = TQ_NONE;
-  a_source_position     pending_qualifiers_pos;
-  a_call_conv_descr     ccd;
-  a_source_position     based_pos;
+  a_type_qualifier_set      pending_qualifiers = TQ_NONE;
+  a_source_position         pending_qualifiers_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
-  a_upc_block_size      upc_block_size = UPC_BLOCK_SIZE_NONE;
-  a_boolean             ref_to_ref_allowed = TRUE;
+  a_upc_block_size          upc_block_size = UPC_BLOCK_SIZE_NONE;
+  a_boolean                 ref_to_ref_allowed = TRUE;
 
   db_enter(3, "pointer_declarator");
   *ptr_to_member_scanned = FALSE;
@@ -3062,37 +3172,23 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
          int far *p;
     */
     collect_pointer_declarator_extended_qualifiers(
-                               &pending_qualifiers,
-                               &pending_qualifiers_pos,
-                               &ccd,
-                               &based_var,
-                               &based_pos,
-                               /*microsoft_w64_seen=*/(a_boolean*)NULL,
-                               /*microsoft_w64_pos=*/(a_source_position*)NULL,
-                               decl_pos_block);
-  }  /* if */
+                           /*ptr_op_seen=*/FALSE, /*ptr_to_member_seen=*/FALSE,
+                           &ptr_mods, decl_pos_block);
+  } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+  /* Do not insert code here. */
+  {
+    clear_pointer_modifier_state(&ptr_mods);
+  }  /* if */
   /* Loop while there are pointer declarators. */
   for (;;) {
     /* See if there is a pointer declarator. */
     a_boolean          another_pointer_declarator = FALSE;
     a_boolean          ptr_to_member_case = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-    a_boolean          *p_microsoft_w64_seen = NULL;
-    a_source_position  microsoft_w64_pos;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    a_boolean          microsoft_w64_seen = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if ((curr_token == tok_star ||
-         (reference_allowed && curr_token == tok_ampersand))) {
+    a_boolean          plain_ptr = (curr_token == tok_star);
+    if ((plain_ptr || (reference_allowed && curr_token == tok_ampersand))) {
       /* A pointer "*" or reference "&". */
       another_pointer_declarator = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (curr_token == tok_star) {
-        p_microsoft_w64_seen = &microsoft_w64_seen;
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (C_dialect == C_dialect_cplusplus &&
                is_ptr_to_member_declarator_start()) {
       /* A pointer-to-member "Name::*". */
@@ -3142,16 +3238,17 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
-      if (ccd.call_conv != (a_calling_convention)cc_default) {
+      if (ptr_mods.cc_descr.call_conv != (a_calling_convention)cc_default) {
         /* A calling convention was specified.  Apply it to the complete
            type or (at the beginning of a nested declaration) return it to
            the caller. */
         if (complete_type != NULL) {
-          update_calling_convention(&complete_type, &ccd, &ccd.position);
+          update_calling_convention(&complete_type, &ptr_mods.cc_descr,
+                                    &ptr_mods.cc_descr.position);
         } else {
           /* Return left-most calling convention to the caller. */
-          *left_calling_convention = ccd;
-          clear_call_conv_descr(&ccd);
+          *left_calling_convention = ptr_mods.cc_descr;
+          clear_call_conv_descr(&ptr_mods.cc_descr);
         }  /* if */
       }  /* if */
       /* __based is handled when building the pointer type. */
@@ -3198,27 +3295,31 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
             }  /* if */
           }  /* if */
         }  /* if */
-        if (curr_token == tok_star) {
+        if (plain_ptr) {
           /* "*" for pointer. */
           if (is_member_function_typedef) {
             /* This is a proper use of a cfront member function typedef type
                -- to form a pointer-to-member type.  Do the transformation. */
             complete_type = ptr_to_member_type(rout_type, class_type);
           } else {
+            a_variable_ptr  *p_based_var = NULL;
             if (is_reference_type(temp_type)) {
               /* Type "pointer to reference to anything" is illegal. */
               error(ec_pointer_to_reference);
               err = TRUE;
             }  /* if */
             /* Make the pointer type. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            p_based_var = &ptr_mods.based_var;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             complete_type = make_possibly_based_pointer_type
                                    (err ? error_type() : complete_type,
-                                    &based_var);
+                                    p_based_var);
           }  /* if */
         } else {
           /* "&" for reference. */
           /* Make sure this was not preceded by __based. */
-          based_not_allowed_here(based_var, based_pos);
+          based_not_allowed_here(ptr_mods.based_var, ptr_mods.based_pos);
           if (is_reference_type(temp_type)) {
             if (ref_to_ref_allowed) {
               complete_type = make_reference_to_reference(
@@ -3256,24 +3357,24 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
            types have different sizes. */
         a_type_ptr new_type_ptr = alloc_type((a_type_kind)tk_pointer);
         new_type_ptr->variant.pointer.type = complete_type;
-        if (curr_token == tok_ampersand) {
+        if (!plain_ptr) {
           new_type_ptr->variant.pointer.is_reference = TRUE;
         }  /* if */
         complete_type = new_type_ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (based_var != NULL) {
+        if (ptr_mods.based_var != NULL) {
           /* If the pointer operator was preceded by a __based
              modifier, update the pointer type with the variable
              used in the __based modifier. */
-          complete_type->variant.pointer.base_variable = based_var;
-          based_var = NULL;
+          complete_type->variant.pointer.base_variable = ptr_mods.based_var;
+          ptr_mods.based_var = NULL;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     } else {
       /* Pointer-to-member declarator. */
       /* Issue an error if this was preceded by __based. */
-      based_not_allowed_here(based_var, based_pos);
+      based_not_allowed_here(ptr_mods.based_var, ptr_mods.based_pos);
       /* Upon return from is_ptr_to_member_declarator_start the current
          token is tok_ptr_to_member. */
       class_type = qualifier_class_type(locator_for_curr_id);
@@ -3306,43 +3407,42 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
     if (microsoft_mode or_near_and_far_enabled()) {
       /* Microsoft mode allows several kinds of qualifiers. */
-      collect_pointer_declarator_extended_qualifiers(&qualifiers,
-                                                     &pending_qualifiers_pos,
-                                                     &ccd,
-                                                     &based_var,
-                                                     &based_pos,
-                                                     p_microsoft_w64_seen,
-                                                     &microsoft_w64_pos,
-                                                     decl_pos_block);
+      collect_pointer_declarator_extended_qualifiers(
+                     plain_ptr, ptr_to_member_case, &ptr_mods, decl_pos_block);
       /* Break the qualifiers into those like const that are handled
          immediately and those like near that stay pending into the next
          iteration of the loop. */
 #if NEAR_AND_FAR_ALLOWED
-      pending_qualifiers = (qualifiers & (TQ_NEAR | TQ_FAR));
-      qualifiers -= pending_qualifiers;
+      pending_qualifiers = (ptr_mods.qualifiers & (TQ_NEAR | TQ_FAR));
+      ptr_mods.qualifiers -= pending_qualifiers;
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_w64_seen) {
-        apply_microsoft_w64_specifier(&complete_type, &microsoft_w64_pos);
+      if (ptr_mods.microsoft_w64) {
+        apply_microsoft_w64_specifier(&complete_type,
+                                      &ptr_mods.microsoft_w64_pos);
+      }  /* if */
+      if (ptr_mods.is_ptr32 || ptr_mods.is_ptr64) {
+        apply_microsoft_ptr_width_specifier(&complete_type, &ptr_mods);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
     /* Do not add code here. */
     { /* Just look for type qualifiers. */
-      qualifiers = TQ_NONE;
+      ptr_mods.qualifiers = TQ_NONE;
       if (is_type_qualifier()) {
-        qualifiers = collect_type_qualifiers(decl_pos_block, &upc_block_size);
+        ptr_mods.qualifiers = collect_type_qualifiers(decl_pos_block,
+                                                      &upc_block_size);
       }  /* if */
     }
-    if (qualifiers != TQ_NONE) {
+    if (ptr_mods.qualifiers != TQ_NONE) {
       /* Some qualifiers were specified. */
       /* Check for invalid use of the restrict qualifier. */
-      a_type_qualifier_set restrict_bit = (qualifiers & TQ_RESTRICT);
+      a_type_qualifier_set restrict_bit = (ptr_mods.qualifiers & TQ_RESTRICT);
       if (restrict_bit) {
         /* Remove the restrict bit from the set to allow easier testing
            of qualifiers on references below (restrict is allowed). */
-        qualifiers &= ~TQ_RESTRICT;
+        ptr_mods.qualifiers &= ~TQ_RESTRICT;
         if (!restrict_qualifier_is_allowed(complete_type, &error_position)) {
           /* Restrict is not allowed here.  The diagnostic has been issued
              already.  Turn off the restrict bit. */
@@ -3352,15 +3452,15 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       /* Check for using qualifiers on a reference type.  The restrict
          bit has been removed if it was set, which is good because it is okay
          to put restrict on a reference. */
-      if (qualifiers != TQ_NONE && is_reference_type(complete_type)) {
+      if (ptr_mods.qualifiers != TQ_NONE && is_reference_type(complete_type)) {
         diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                    ec_qualified_reference_type);
-        qualifiers = TQ_NONE;
+        ptr_mods.qualifiers = TQ_NONE;
       }  /* if */
       /* Restore the restrict bit if it was on. */
-      qualifiers |= restrict_bit;
+      ptr_mods.qualifiers |= restrict_bit;
       /* Add the qualifiers to the complete type being built up. */
-      complete_type = f_make_qualified_type(complete_type, qualifiers,
+      complete_type = f_make_qualified_type(complete_type, ptr_mods.qualifiers,
                                             upc_block_size);
       consume_any_stray_microsoft_rparen();
     }  /* if */
@@ -3421,20 +3521,21 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
-    if (ccd.call_conv != (a_calling_convention)cc_default) {
+    if (ptr_mods.cc_descr.call_conv != (a_calling_convention)cc_default) {
       /* Calling convention like __cdecl. */
       if (unbound_calling_convention != NULL) {
-        *unbound_calling_convention = ccd;
+        *unbound_calling_convention = ptr_mods.cc_descr;
       } else {
         /* Discard an unbound calling convention. */
-        pos_warning(ec_calling_convention_ignored, &ccd.position);
+        pos_warning(ec_calling_convention_ignored,
+                    &ptr_mods.cc_descr.position);
       }  /* if */
     }  /* if */
-    if (based_var != NULL) {
+    if (ptr_mods.based_var != NULL) {
       /* A __based modifier was present that was not followed by a
          pointer operator.  Issue a warning that the modifier is
          being discarded. */
-      pos_warning(ec_based_not_followed_by_star, &based_pos);
+      pos_warning(ec_based_not_followed_by_star, &ptr_mods.based_pos);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

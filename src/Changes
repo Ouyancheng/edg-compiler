@@ -1,5 +1,18 @@
 Version 3.7
 
+10/14/05 Microsoft compatibility: __ptr32 and __ptr64
+
+In Microsoft modes, the front end now accepts the __ptr32 and __ptr64
+modifiers on pointer and pointer-to-member declarators.  For example:
+
+  int *__ptr64 p;  // sizeof(p) == 64
+
+For normal pointer type, the modifiers force the size of the pointer to be
+4 or 8 bytes resprectively.  The modifiers do not affect the actual size of
+pointer-to-member types (this is similar to the effect of these modifiers in
+Microsoft's latest 32-bit compilers, but different from their effect in
+Microsoft's latest 64-bit compilers).
+
 10/14/05 Zero in GNU #line directive
 
 Version 4.1 of the GNU compiler introduced a bug that results in the

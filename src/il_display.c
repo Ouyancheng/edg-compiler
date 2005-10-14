@@ -1329,9 +1329,19 @@ Display the indicated based type list.
         case btk_qualified:      kind_str = "  qualified";               break;
         case btk_reference:      kind_str = "  reference";               break;
         case btk_ptr_to_member:  kind_str = "  ptr_to_member";           break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case btk_ptr32_to_member:
+                                 kind_str = "  ptr_to_member __ptr32";   break;
+        case btk_ptr64_to_member:
+                                 kind_str = "  ptr_to_member __ptr64";   break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case btk_unqualified_array_type:
                                  kind_str = "  unqualified_array_type";  break;
 #endif /* ifdef CFE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case btk_ptr32:          kind_str = "  pointer __ptr32";         break;
+        case btk_ptr64:          kind_str = "  pointer __ptr64";         break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case btk_pointer:        kind_str = "  pointer";                 break;
         default:                 kind_str = "  **BAD BASED TYPE KIND**"; break;
       }  /* switch */
@@ -1528,6 +1538,10 @@ do_float_complex:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       disp_boolean("is_reference",
                    (a_boolean)ptr->variant.pointer.is_reference);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      disp_boolean("is_ptr32", (a_boolean)ptr->variant.pointer.is_ptr32);
+      disp_boolean("is_ptr64", (a_boolean)ptr->variant.pointer.is_ptr64);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
       break;
     case tk_routine:
@@ -1737,6 +1751,10 @@ do_struct_union:
                (char *)ptr->variant.ptr_to_member.class_of_which_a_member,
                iek_type);
       disp_ptr("type", (char *)ptr->variant.ptr_to_member.type, iek_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      disp_boolean("is_ptr32", (a_boolean)ptr->variant.ptr_to_member.is_ptr32);
+      disp_boolean("is_ptr64", (a_boolean)ptr->variant.ptr_to_member.is_ptr64);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case tk_template_param:
       (void)printf("tk_template_param\n");

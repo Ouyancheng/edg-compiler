@@ -809,10 +809,12 @@ part of a declarator is found, may_be_decl is set to FALSE.
     } else if (curr_token == tok_based) {
       /* Microsoft __based modifier. */
       prescan_based_modifier(state, flags);
-    } else if (curr_token == tok_microsoft_w64) {
-      /* Syntactically, __w64 is like a type qualifier, but semantically it
-         doesn't affect the type (which is why it is not included in
-         "is_type_qualifier"). */
+    } else if (curr_token == tok_microsoft_w64 ||
+               curr_token == tok_microsoft_ptr32 ||
+               curr_token == tok_microsoft_ptr64) {
+      /* Syntactically, __w64, __ptr32, and __ptr64 are similar to type
+         qualifiers, but semantically they don't affect the type (which
+         is why they are not included in "is_type_qualifier"). */
       cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

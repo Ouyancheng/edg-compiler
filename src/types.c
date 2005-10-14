@@ -2290,7 +2290,22 @@ set, leave it alone.  Also compute and set the alignment requirement.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         break;
       case tk_pointer:
-        size = size_of_pointer_to(type_pointed_to(type_ptr), &alignment);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* Explicitly sized pointer have a size independent from the type
+           pointed to.  Their size can vary even when
+           TARG_ALL_POINTERS_SAME_SIZE is TRUE. */
+        if (type_ptr->variant.pointer.is_ptr32) {
+          size = 4;
+          alignment = 4;
+        } else if (type_ptr->variant.pointer.is_ptr64) {
+          size = 8;
+          alignment = 8;
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          size = size_of_pointer_to(type_pointed_to(type_ptr), &alignment);
+        }  /* if */
         break;
       case tk_array:
         (void)set_array_type_size(type_ptr, /*suppress_error=*/FALSE);
@@ -3225,6 +3240,17 @@ for more information.
           /* For pointers and references, they must point to identical types.
              To be IL identical, they need not be both pointers or both
              references. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (microsoft_mode &&
+              (type_1->variant.pointer.is_ptr32 !=
+                                           type_2->variant.pointer.is_ptr32 ||
+               type_1->variant.pointer.is_ptr64 !=
+                                           type_2->variant.pointer.is_ptr64)) {
+            /* If __ptr32/__ptr64 modifiers were applied, they must be
+               identical. */
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
           if (il_identical ||
               type_1->variant.pointer.is_reference ==
                                         type_2->variant.pointer.is_reference) {
@@ -3338,12 +3364,25 @@ for more information.
         case tk_ptr_to_member:
           /* Pointer-to-member types are identical if they refer to the same
              class type and to the same member type. */
-          identical = (f_identical_types(pm_class_type(type_1),
-                                         pm_class_type(type_2),
-                                         flags) &&
-                       f_identical_types(pm_member_type(type_1),
-                                         pm_member_type(type_2),
-                                         flags));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (microsoft_mode &&
+              (type_1->variant.ptr_to_member.is_ptr32 !=
+                                     type_2->variant.ptr_to_member.is_ptr32 ||
+               type_1->variant.ptr_to_member.is_ptr64 !=
+                                     type_2->variant.ptr_to_member.is_ptr64)) {
+            /* If __ptr32/__ptr64 modifiers were applied, they must be
+               identical. */
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
+          {
+            identical = (f_identical_types(pm_class_type(type_1),
+                                           pm_class_type(type_2),
+                                           flags) &&
+                         f_identical_types(pm_member_type(type_1),
+                                           pm_member_type(type_2),
+                                           flags));
+          }  /* if */
           break;
         case tk_template_param:
           if (type_1->variant.template_param.kind ==
@@ -3725,6 +3764,17 @@ for exact pointer equality.
         case tk_pointer:
           /* For pointers and references, they must be both pointers or both
              references and must point to compatible types. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (microsoft_mode &&
+              (type_1->variant.pointer.is_ptr32 !=
+                                           type_2->variant.pointer.is_ptr32 ||
+               type_1->variant.pointer.is_ptr64 !=
+                                           type_2->variant.pointer.is_ptr64)) {
+            /* A difference in __ptr32 or ptr64 modifiers makes pointer types
+               incompatible. */
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
           if (type_1->variant.pointer.is_reference ==
                                         type_2->variant.pointer.is_reference) {
             compat = f_types_are_compatible(type_1->variant.pointer.type,
@@ -3824,6 +3874,17 @@ for exact pointer equality.
           if (flags & TCF_IGNORE_PTR_TO_MEMBER_CLASS_TYPE) {
             flags |= TCF_IGNORE_THIS_CLASS_TYPE;
           }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (microsoft_mode &&
+              (type_1->variant.ptr_to_member.is_ptr32 !=
+                                      type_2->variant.ptr_to_member.is_ptr32 ||
+               type_1->variant.ptr_to_member.is_ptr64 !=
+                                      type_2->variant.ptr_to_member.is_ptr64)) {
+            /* A difference in __ptr32 or ptr64 modifiers makes pointer types
+               incompatible. */
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
           if (f_types_are_compatible(pm_member_type(type_1),
                                      pm_member_type(type_2), flags)) {
             if ((flags & TCF_IGNORE_PTR_TO_MEMBER_CLASS_TYPE) ||
@@ -6785,24 +6846,36 @@ is allocated, it is allocated in the file scope.
             }
           break;
         case tk_pointer:
-          /* Pointer and reference types.  The composite type is a pointer
-	     or reference to the composite of the types pointed to. */
-          comp_elem = composite_type(base_type_1->variant.pointer.type,
-                                     base_type_2->variant.pointer.type);
-          /* Try to use one of the two types we already have.  If that's
-             not possible, build a new pointer type. */
-          if (same_entities(comp_elem, base_type_1->variant.pointer.type)) {
-            comp_type = base_type_1;
-          } else if (same_entities(comp_elem,
-                                   base_type_2->variant.pointer.type)) {
-            comp_type = base_type_2;
-          } else {
-	    if (base_type_1->variant.pointer.is_reference) {
-              comp_type = make_reference_type(comp_elem);
-	    } else {
-              comp_type = make_pointer_type(comp_elem);
-	    }  /* if */
-          }  /* if */
+          {
+            a_boolean  is_ptr32 = FALSE;
+            a_boolean  is_ptr64 = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            is_ptr32 = base_type_1->variant.pointer.is_ptr32;
+            is_ptr64 = base_type_1->variant.pointer.is_ptr64;
+            check_assertion(
+                          is_ptr32 == base_type_2->variant.pointer.is_ptr32 &&
+                          is_ptr64 == base_type_2->variant.pointer.is_ptr64);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            /* Pointer and reference types.  The composite type is a pointer
+	       or reference to the composite of the types pointed to. */
+            comp_elem = composite_type(base_type_1->variant.pointer.type,
+                                       base_type_2->variant.pointer.type);
+            /* Try to use one of the two types we already have.  If that's
+               not possible, build a new pointer type. */
+            if (same_entities(comp_elem, base_type_1->variant.pointer.type)) {
+              comp_type = base_type_1;
+            } else if (same_entities(comp_elem,
+                                     base_type_2->variant.pointer.type)) {
+              comp_type = base_type_2;
+            } else {
+	      if (base_type_1->variant.pointer.is_reference) {
+                comp_type = make_reference_type(comp_elem);
+	      } else {
+                comp_type = make_pointer_type_full(comp_elem, is_ptr32,
+                                                   is_ptr64);
+              }  /* if */
+            }  /* if */
+          }
           break;
         case tk_array:
           comp_type = composite_array_type(base_type_1, base_type_2);
@@ -6812,19 +6885,31 @@ is allocated, it is allocated in the file scope.
           comp_type = composite_routine_type(base_type_1, base_type_2);
           break;
         case tk_ptr_to_member:
-          /* The composite of two pointer-to-member types will point to the
-             same class type and to a member type that is a composite of the
-             two member types. */
-          member_type_1 = pm_member_type(base_type_1);
-          member_type_2 = pm_member_type(base_type_2);
-          comp_elem = composite_type(member_type_1, member_type_2);
-          if (same_entities(comp_elem, member_type_1)) {
-            comp_type = base_type_1;
-          } else if (same_entities(comp_elem, member_type_2)) {
-            comp_type = base_type_2;
-          } else {
-            comp_type = ptr_to_member_type(comp_elem,
-                                           pm_class_type(base_type_1));
+          {
+            a_boolean  is_ptr32 = FALSE;
+            a_boolean  is_ptr64 = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            is_ptr32 = base_type_1->variant.ptr_to_member.is_ptr32;
+            is_ptr64 = base_type_1->variant.ptr_to_member.is_ptr64;
+            check_assertion(
+                     is_ptr32 == base_type_2->variant.ptr_to_member.is_ptr32 &&
+                     is_ptr64 == base_type_2->variant.ptr_to_member.is_ptr64);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            /* The composite of two pointer-to-member types will point to the
+               same class type and to a member type that is a composite of the
+               two member types. */
+            member_type_1 = pm_member_type(base_type_1);
+            member_type_2 = pm_member_type(base_type_2);
+            comp_elem = composite_type(member_type_1, member_type_2);
+            if (same_entities(comp_elem, member_type_1)) {
+              comp_type = base_type_1;
+            } else if (same_entities(comp_elem, member_type_2)) {
+              comp_type = base_type_2;
+            } else {
+              comp_type = ptr_to_member_type_full(comp_elem,
+                                                  pm_class_type(base_type_1),
+                                                  is_ptr32, is_ptr64);
+            }  /* if */
           }  /* if */
           break;
 #if CHECKING
@@ -8688,15 +8773,22 @@ a new tree is built.
       /* Leaf nodes -- no further traversal required. */
       break;
     case tk_pointer:
-      /* If the type pointed to is modified, then a new pointer or
-         reference type must be created. */
-      if (func(type->variant.pointer.type, flags, &tp)) {
-        if (type->variant.pointer.is_reference) {
-          new_type = make_reference_type(tp);
-        } else {
-          new_type = make_pointer_type(tp);
+      { a_boolean  is_ptr32 = FALSE;
+        a_boolean  is_ptr64 = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        is_ptr32 = type->variant.pointer.is_ptr32;
+        is_ptr64 = type->variant.pointer.is_ptr64;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* If the type pointed to is modified, then a new pointer or
+           reference type must be created. */
+        if (func(type->variant.pointer.type, flags, &tp)) {
+          if (type->variant.pointer.is_reference) {
+            new_type = make_reference_type(tp);
+          } else {
+            new_type = make_pointer_type_full(tp, is_ptr32, is_ptr64);
+          }  /* if */
         }  /* if */
-      }  /* if */
+      }
       break;
     case tk_routine:
       /* We can reuse "type" as long as we can reuse the return type and all
@@ -8826,17 +8918,24 @@ make_new_type:
       /* No action required. */
       break;
     case tk_ptr_to_member:
-      (void)func(type->variant.ptr_to_member.type, flags, &tp);
-      (void)func(type->variant.ptr_to_member.class_of_which_a_member, flags,
-                 &tp2);
-      if (!same_entities(tp, type->variant.ptr_to_member.type) ||
-          !same_entities(
+      { a_boolean  is_ptr32 = FALSE;
+        a_boolean  is_ptr64 = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        is_ptr32 = type->variant.ptr_to_member.is_ptr32;
+        is_ptr64 = type->variant.ptr_to_member.is_ptr64;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        (void)func(type->variant.ptr_to_member.type, flags, &tp);
+        (void)func(type->variant.ptr_to_member.class_of_which_a_member, flags,
+                   &tp2);
+        if (!same_entities(tp, type->variant.ptr_to_member.type) ||
+            !same_entities(
                    tp2, type->variant.ptr_to_member.class_of_which_a_member)) {
-        /* Make a pointer-to-member type.  The current pointer-to-member type
-           points to two types, so the new type is based on modified versions
-           of one or both. */
-        new_type = ptr_to_member_type(tp, tp2);
-      }  /* if */
+          /* Make a pointer-to-member type.  The current pointer-to-member type
+             points to two types, so the new type is based on modified versions
+             of one or both. */
+          new_type = ptr_to_member_type_full(tp, tp2, is_ptr32, is_ptr64);
+        }  /* if */
+      }
       break;
 #if CHECKING
     default:
