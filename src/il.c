@@ -8028,8 +8028,8 @@ is not "C".
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_type_ptr ptr_to_member_type_full(a_type_ptr  member_type,
                                    a_type_ptr  class_type,
-                                    a_boolean  is_ptr32,
-                                    a_boolean  is_ptr64)
+                                   a_boolean  is_ptr32,
+                                   a_boolean  is_ptr64)
 /*
 Allocate and return a pointer-to-member type, initializing its fields based
 on the specified member and class types.  Attempt to find and reuse an
@@ -8038,7 +8038,7 @@ pointer (a Microsoft extension) is requested.
 */
 {
   a_type_ptr         tp;
-  a_based_type_kind  kind = (a_based_type_kind)btk_pointer;
+  a_based_type_kind  kind = (a_based_type_kind)btk_ptr_to_member;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_ptr32) {
