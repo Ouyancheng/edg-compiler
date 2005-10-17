@@ -3174,6 +3174,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     collect_pointer_declarator_extended_qualifiers(
                            /*ptr_op_seen=*/FALSE, /*ptr_to_member_seen=*/FALSE,
                            &ptr_mods, decl_pos_block);
+    pending_qualifiers = ptr_mods.qualifiers;
+    pending_qualifiers_pos = ptr_mods.qualifiers_pos;
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
   /* Do not insert code here. */
