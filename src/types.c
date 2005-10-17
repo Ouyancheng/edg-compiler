@@ -3877,9 +3877,9 @@ for exact pointer equality.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode &&
               (type_1->variant.ptr_to_member.is_ptr32 !=
-                                      type_2->variant.ptr_to_member.is_ptr32 ||
+                                     type_2->variant.ptr_to_member.is_ptr32 ||
                type_1->variant.ptr_to_member.is_ptr64 !=
-                                      type_2->variant.ptr_to_member.is_ptr64)) {
+                                     type_2->variant.ptr_to_member.is_ptr64)) {
             /* A difference in __ptr32 or ptr64 modifiers makes pointer types
                incompatible. */
           } else
