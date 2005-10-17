@@ -1,5 +1,21 @@
 Version 3.7
 
+10/17/05 GNU C++ compatibility: partial ordering and explicitly specified
+         template arguments
+
+Version 3.6 of the front end implements the resolution of core language issue
+214, which clarifies how template parameters that are not used in the signature
+of the function are handled for partial ordering (see 2/4/05 Changes entry).
+g++ versions prior to 4.1 do not implement the revised rules causing examples
+like the one below to be accepted by g++ but rejected by the front end.  We now
+suppress the new behavior in g++ mode when gnu_version is < 40100.
+
+  template <class S, class T> void f(T t);
+  template <class T> void f(T t);
+  int main() {
+    f<int>(3);  // ambiguous as a result of core issue 214
+  }
+
 10/17/05 GNU C++ compatibility: internal error on invalid partial
 	 specialization
 
