@@ -10564,9 +10564,11 @@ list and template argument list of a partial specialization are valid.
       an_error_severity severity = gpp_mode ? es_warning : es_error;
       pos_sy2_diagnostic(severity, ec_not_used_in_partial_spec_arg_list,
                          &param_sym->decl_position, param_sym, prototype_sym);
+      /* Always set decl_scope_err to indicate that the template cannot be
+         used. */
+      decl_state->decl_scope_err = TRUE;
       if (severity == (an_error_severity)es_error) {
         any_errors = TRUE;
-        decl_state->decl_scope_err = TRUE;
       }  /* if */
     } /* if */
   } /* for */
@@ -11117,6 +11119,7 @@ declaration of a partial specialization declared outside of its class.
   a_symbol_ptr			    partial_spec_nonreal_sym = sym;
   a_token_sequence_number	    tsn_for_class_template =
                                                     curr_token_sequence_number;
+  a_symbol_ptr			    invalid_partial_spec_parent_class_sym = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block       extended_decl_info;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -11388,6 +11391,12 @@ friend_template_checks_done:
                is required to evaluate this partial specialization for each
                generated instance. */
             decl_state->partial_spec_outside_of_class_template = TRUE;
+          } else if (!is_real_class_symbol(parent_class_sym)) {
+            /* The parent class is a nonreal class.  This occurs in an invalid
+               partial specialization declaration in which the parent class is
+               specified incorrectly.  The error is issued later so that other
+               partial specialization errors, if any, will be issued instead. */
+            invalid_partial_spec_parent_class_sym = parent_class_sym;
           } else {
             /* The parent is not a prototype specialization.  This means the
                parent is either a normal (non-template) class or is a
@@ -11733,6 +11742,16 @@ friend_template_checks_done:
     /* Make sure that the template parameters are used correctly in the
        partial specialization template argument list. */
     check_partial_spec_template_param_usage(decl_state, sym);
+    if (!decl_state->decl_scope_err &&
+        invalid_partial_spec_parent_class_sym != NULL) {
+      /* The parent class of the partial specialization is invalid.  Issue
+         that error now if no other errors have been diagnosed on this
+         declaration. */
+      pos_st_error(ec_name_must_be_prototype_instantiation, 
+                   &locator.source_position,
+                   invalid_partial_spec_parent_class_sym->header->identifier);
+      decl_state->decl_scope_err = TRUE;
+    }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (prototype_instantiations_in_il) {

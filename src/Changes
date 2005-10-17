@@ -1,5 +1,16 @@
 Version 3.7
 
+10/17/05 GNU C++ compatibility: internal error on invalid partial specialization
+
+A change made in version 3.6 causes an unusable partial specialization to
+be accepted in g++ mode with a warning.  This change could result in an
+internal error for certain cases.  Now fixed.
+
+  template <typename T1> struct A {
+    template <typename T2> struct Inner {};
+  };
+  template <> template <typename T> struct A<T>::B<int> {};
+
 10/14/05 Microsoft compatibility: __ptr32 and __ptr64
 
 In Microsoft modes, the front end now accepts the __ptr32 and __ptr64

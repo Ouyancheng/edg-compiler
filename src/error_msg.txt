@@ -1486,6 +1486,7 @@ ec_feature_requires_cplusplus;;"%sq is only allowed in C++"
 ec_feature_requires_c;;"%sq is only allowed in C"
 ec_microsoft_ptr_width_must_follow_star;;"__ptr32 and __ptr64 must follow a \"*\""
 ec_microsoft_ptr_width_conflict;;"__ptr32 and __ptr64 cannot both apply"
+ec_name_must_be_prototype_instantiation;;"template argument list of %sq must match the parameter list"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
