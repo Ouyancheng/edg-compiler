@@ -11398,7 +11398,8 @@ friend_template_checks_done:
             /* The parent class is a nonreal class.  This occurs in an invalid
                partial specialization declaration in which the parent class is
                specified incorrectly.  The error is issued later so that other
-               partial specialization errors, if any, will be issued instead. */
+               partial specialization errors, if any, will be issued
+	       instead. */
             bad_partial_spec_parent_class_sym = parent_class_sym;
           } else {
             /* The parent is not a prototype specialization.  This means the
