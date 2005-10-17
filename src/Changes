@@ -1,6 +1,7 @@
 Version 3.7
 
-10/17/05 GNU C++ compatibility: internal error on invalid partial specialization
+10/17/05 GNU C++ compatibility: internal error on invalid partial
+	 specialization
 
 A change made in version 3.6 causes an unusable partial specialization to
 be accepted in g++ mode with a warning.  This change could result in an

@@ -1503,6 +1503,9 @@ during wrapup processing by compare_function_templates.
   a_template_arg_ptr			tap;
   a_template_symbol_supplement_ptr	tssp;
 
+  /* g++, prior to version 4.1, does not allow parameters to have
+     nondeduced values in partial ordering. */
+  if (gpp_mode && gnu_version < 40100) is_partial_order_check = FALSE;
   check_assertion(template_sym != NULL);
   tssp = template_supplement_for_symbol(template_sym);
   if (templ_param_list == NULL) {
@@ -11119,7 +11122,7 @@ declaration of a partial specialization declared outside of its class.
   a_symbol_ptr			    partial_spec_nonreal_sym = sym;
   a_token_sequence_number	    tsn_for_class_template =
                                                     curr_token_sequence_number;
-  a_symbol_ptr			    invalid_partial_spec_parent_class_sym = NULL;
+  a_symbol_ptr			    bad_partial_spec_parent_class_sym = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block       extended_decl_info;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -11396,7 +11399,7 @@ friend_template_checks_done:
                partial specialization declaration in which the parent class is
                specified incorrectly.  The error is issued later so that other
                partial specialization errors, if any, will be issued instead. */
-            invalid_partial_spec_parent_class_sym = parent_class_sym;
+            bad_partial_spec_parent_class_sym = parent_class_sym;
           } else {
             /* The parent is not a prototype specialization.  This means the
                parent is either a normal (non-template) class or is a
@@ -11743,13 +11746,13 @@ friend_template_checks_done:
        partial specialization template argument list. */
     check_partial_spec_template_param_usage(decl_state, sym);
     if (!decl_state->decl_scope_err &&
-        invalid_partial_spec_parent_class_sym != NULL) {
+        bad_partial_spec_parent_class_sym != NULL) {
       /* The parent class of the partial specialization is invalid.  Issue
          that error now if no other errors have been diagnosed on this
          declaration. */
       pos_st_error(ec_name_must_be_prototype_instantiation, 
                    &locator.source_position,
-                   invalid_partial_spec_parent_class_sym->header->identifier);
+                   bad_partial_spec_parent_class_sym->header->identifier);
       decl_state->decl_scope_err = TRUE;
     }  /* if */
   }  /* if */
