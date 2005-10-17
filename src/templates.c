@@ -1503,9 +1503,6 @@ during wrapup processing by compare_function_templates.
   a_template_arg_ptr			tap;
   a_template_symbol_supplement_ptr	tssp;
 
-  /* g++, prior to version 4.1, does not allow parameters to have
-     nondeduced values in partial ordering. */
-  if (gpp_mode && gnu_version < 40100) is_partial_order_check = FALSE;
   check_assertion(template_sym != NULL);
   tssp = template_supplement_for_symbol(template_sym);
   if (templ_param_list == NULL) {
