@@ -2213,6 +2213,7 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
   a_boolean		save_expand_macros = expand_macros;
   a_source_position	start_of_dir_position;
   a_boolean		found_end_of_operator = FALSE;
+  a_boolean		err = FALSE;
 
   /* The inside of the _Pragma directive should be processed as pp-tokens. */
   fetch_pp_tokens = TRUE;
@@ -2222,8 +2223,10 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
   (void)get_token();
   if (curr_token != tok_lparen) {
     error(ec_exp_lparen);
+    err = TRUE;
   } else if (get_token() != tok_string_literal) {
     error(ec_exp_string_literal);
+    err = TRUE;
   } else {
     a_macro_arg_ptr	map;
     /* We've scanned a string literal.  Make a copy of the string
@@ -2234,6 +2237,11 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
     expand_macros = FALSE;
     scan_pragma_string(map, &start_of_dir_position);
     free_macro_arg(&map);
+  }  /* if */
+  /* Restore the previous state for expanding macros so that the closing
+     parenthesis can be supplied by a macro. */
+  expand_macros = save_expand_macros;
+  if (!err) {
     /* Bypass the scanned string and check for the closing parenthesis. */
     (void)get_token();
     if (curr_token == tok_rparen) {
@@ -2243,10 +2251,8 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
       curr_char_loc = start_of_curr_token;
     }  /* if */
   }  /* if */
-  /* Restore the previous state for fetching pp-tokens, and expanding
-     macros. */
+  /* Restore the previous state for fetching pp-tokens. */
   fetch_pp_tokens = save_fetch_pp_tokens;
-  expand_macros = save_expand_macros;
   /* If we didn't find the end of the operator, clear the flag passed
      by the caller. */
   if (!found_end_of_operator) {

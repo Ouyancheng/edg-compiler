@@ -436,12 +436,13 @@ cases (for all values of gnu_version).  For example:
 
 See also the Changes entry of 7/15/05.
 
-9/8/05   Macro expansion to produce string literal in _Pragma operator
+9/8/05   Macro expansion to produce tokens of _Pragma operator
 
 Macro expansion is now done when scanning the tokens that make up a C99
-_Pragma operator.  Note that macro expansion may or may not be done
-(based on the pragma kind) for the tokens that tokens that make up the
-string literal when the pragma is evaluated.
+_Pragma operator.  In particular, the string literal token and the closing
+right parenthesis may now be the result of macro expansion.  Note that macro
+expansion may or may not be done (based on the pragma kind) for the tokens
+that tokens that make up the string literal when the pragma is evaluated.
 
   #define PRAG  "diag_suppress 177"
   #define X() _Pragma(PRAG)
