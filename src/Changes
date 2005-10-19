@@ -1,5 +1,20 @@
 Version 3.7
 
+10/19/05 Incorrect handling of optimized class rvalue "?" initializer
+
+IL lowering did not correctly optimize a class rvalue "?" operation
+that is used as an initializer.  While the semantics of the resulting
+code were not strictly speaking incorrect, they were not optimized,
+and the flag is_optimized_class_rvalue_question_mark was still TRUE
+on the dynamic initialization, which is not supposed to be possible
+after IL lowering.  Now fixed.
+
+  class A {};
+  extern A a;
+  void foo(int x) {
+    A b = x ? a : A();
+  }
+
 10/17/05 GNU C++ compatibility: partial ordering and explicitly specified
          template arguments
 

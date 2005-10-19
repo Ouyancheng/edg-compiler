@@ -8288,6 +8288,9 @@ Generate code for a stmk_init (dynamic initialization) statement.
     /* Variable-length arrays (VLAs) require deallocation (treated as a
        kind of destruction). */
     non_C_case = TRUE;
+  } else if (dip->is_optimized_class_rvalue_question_mark) {
+    /* The initializer is an optimized class rvalue "?" operation. */
+    non_C_case = TRUE;
   }  /* if */
   switch (dip->kind) {
     case dik_none:
