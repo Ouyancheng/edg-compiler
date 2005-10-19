@@ -25,6 +25,7 @@ folding.c -- Folding routines.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 #include "folding.h"
+#include "layout.h"
 
 /*
 Determine the severity (error or warning) to be used for integer
@@ -5205,7 +5206,7 @@ tpck_expression variant and will point to the given expression.
         result = is_class_or_struct(type);
         break;
       case bok_is_empty:
-        unexpected_condition();
+        result = is_empty_class_type(type);
         break;
       case bok_is_enum:
         result = is_immediate_enum_type(type);

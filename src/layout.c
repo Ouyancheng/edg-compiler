@@ -1364,7 +1364,7 @@ done:
 }  /* align_offsets_for_bit_field */
                               
 
-static a_boolean is_empty_class_type(a_type_ptr type)
+a_boolean is_empty_class_type(a_type_ptr type)
 /*
 Returns TRUE if the type passed as argument is a class type with no nonstatic
 data members, no virtual functions or virtual bases, no nonempty bases and

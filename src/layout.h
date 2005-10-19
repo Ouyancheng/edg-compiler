@@ -66,6 +66,8 @@ extern a_targ_alignment current_pack_pragma_value(void);
 extern a_targ_alignment field_alignment_for(a_type_ptr  type);
 #endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 
+extern a_boolean is_empty_class_type(a_type_ptr type);
+
 extern void do_class_layout(a_type_ptr  class_type);
 
 extern void layout_one_time_init(void);
