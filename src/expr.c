@@ -5812,6 +5812,60 @@ a class type is always considered to be derived from itself).
   }  /* if */
 }  /* scan_is_base_of */
 
+
+static void scan_unary_microsoft_type_trait(an_operand  *result)
+/*
+Scan a constant-expression of the form
+      __trait_keyword( <type> )
+The result is a boolean of value true if <type> satisfies a predicate
+corresponding to the __trait_keyword (the latter is the current token).
+(Examples "trait keywords" include "__is_union" and "__has_user_destructor".)
+*/
+{
+  a_type_ptr                result_type;
+  a_builtin_operation_kind  bok;
+
+  check_assertion(microsoft_mode);
+  switch (curr_token) {
+    case tok_has_assign:              bok = bok_has_assign; break;
+    case tok_has_copy:                bok = bok_has_copy; break;
+    case tok_has_nothrow_assign:      bok = bok_has_nothrow_assign; break;
+    case tok_has_nothrow_constructor: bok = bok_has_nothrow_constructor; break;
+    case tok_has_nothrow_copy:        bok = bok_has_nothrow_copy; break;
+    case tok_has_trivial_assign:      bok = bok_has_trivial_assign; break;
+    case tok_has_trivial_constructor: bok = bok_has_trivial_constructor; break;
+    case tok_has_trivial_copy:        bok = bok_has_trivial_copy; break;
+    case tok_has_trivial_destructor:  bok = bok_has_trivial_destructor; break;
+    case tok_has_user_destructor:     bok = bok_has_user_destructor; break;
+    case tok_has_virtual_destructor:  bok = bok_has_virtual_destructor; break;
+    case tok_is_abstract:             bok = bok_is_abstract; break;
+    case tok_is_class:                bok = bok_is_class; break;
+    case tok_is_empty:                bok = bok_is_empty; break;
+    case tok_is_enum:                 bok = bok_is_enum; break;
+    case tok_is_pod:                  bok = bok_is_pod; break;
+    case tok_is_polymorphic:          bok = bok_is_polymorphic; break;
+    case tok_is_union:                bok = bok_is_union; break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  if (C_mode()) {
+    /* __is_base_of is not accepted in C mode. */
+    pos_st_error(ec_feature_requires_cplusplus, &pos_curr_token,
+                 builtin_operation_names[bok]);
+    result_type = integer_type((an_integer_kind)ik_int);
+  } else {
+    result_type = bool_type();
+  }  /* if */
+  scan_call_like_builtin_operation(bok, result_type,
+                                   iek_type, iek_none, iek_none,
+                                   result);
+  if (C_mode()) {
+    /* Turn the operand into an error operand to avoid any surprises later
+       on. */
+    make_error_operand(result);
+  }  /* if */
+}  /* scan_unary_microsoft_type_trait */
+
 #if GNU_EXTENSIONS_ALLOWED
 
 static void scan_builtin_types_compatible(an_operand  *result)
@@ -14422,6 +14476,25 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_pretty_function_name:
     case tok_decorated_function_name:
     case tok_is_base_of:
+    case tok_is_convertible_to:
+    case tok_has_assign:
+    case tok_has_copy:
+    case tok_has_nothrow_assign:
+    case tok_has_nothrow_constructor:
+    case tok_has_nothrow_copy:
+    case tok_has_trivial_assign:
+    case tok_has_trivial_constructor:
+    case tok_has_trivial_copy:
+    case tok_has_trivial_destructor:
+    case tok_has_user_destructor:
+    case tok_has_virtual_destructor:
+    case tok_is_abstract:
+    case tok_is_class:
+    case tok_is_empty:
+    case tok_is_enum:
+    case tok_is_pod:
+    case tok_is_polymorphic:
+    case tok_is_union:
       is_expr_start = TRUE;
       break;
     default:
@@ -16852,6 +16925,27 @@ see expr.h).
       scan_is_base_of(&local_result);
       break;
 
+    case tok_has_assign:
+    case tok_has_copy:
+    case tok_has_nothrow_assign:
+    case tok_has_nothrow_constructor:
+    case tok_has_nothrow_copy:
+    case tok_has_trivial_assign:
+    case tok_has_trivial_constructor:
+    case tok_has_trivial_copy:
+    case tok_has_trivial_destructor:
+    case tok_has_user_destructor:
+    case tok_has_virtual_destructor:
+    case tok_is_abstract:
+    case tok_is_class:
+    case tok_is_empty:
+    case tok_is_enum:
+    case tok_is_pod:
+    case tok_is_polymorphic:
+    case tok_is_union:
+      /* Various Microsoft single-type operators. */
+      scan_unary_microsoft_type_trait(&local_result);
+      break;
 #if GNU_EXTENSIONS_ALLOWED
     case tok_builtin_types_compatible:
       /* GNU C's __builtin_types_compatible_p construct. */

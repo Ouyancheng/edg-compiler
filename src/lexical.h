@@ -279,7 +279,26 @@ typedef enum /*a_token_kind*/ {
   tok_upc_localsizeof,
   tok_upc_elemsizeof,
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  tok_has_assign,
+  tok_has_copy,
+  tok_has_nothrow_assign,
+  tok_has_nothrow_constructor,
+  tok_has_nothrow_copy,
+  tok_has_trivial_assign,
+  tok_has_trivial_constructor,
+  tok_has_trivial_copy,
+  tok_has_trivial_destructor,
+  tok_has_user_destructor,
+  tok_has_virtual_destructor,
+  tok_is_abstract,
   tok_is_base_of,
+  tok_is_class,
+  tok_is_convertible_to,
+  tok_is_empty,
+  tok_is_enum,
+  tok_is_pod,
+  tok_is_polymorphic,
+  tok_is_union,
   /* Token used to indicate keywords that are not yet implemented. */
   tok_unimplemented,
   /* Error token. */
@@ -360,7 +379,26 @@ EXTERN char	*token_names[(int)tok_last+1]
    "upc_wait", "upc_fence", "THREADS", "MYTHREAD", "upc_blocksizeof",
    "upc_localsizeof", "upc_elemsizeof",
 #endif /* UPC_EXTENSIONS_ALLOWED */
+   "__has_assign",
+   "__has_copy",
+   "__has_nothrow_assign",
+   "__has_nothrow_constructor",
+   "__has_nothrow_copy",
+   "__has_trivial_assign",
+   "__has_trivial_constructor",
+   "__has_trivial_copy",
+   "__has_trivial_destructor",
+   "__has_user_destructor",
+   "__has_virtual_destructor",
+   "__is_abstract",
    "__is_base_of",
+   "__is_class",
+   "__is_convertible_to",
+   "__is_empty",
+   "__is_enum",
+   "__is_pod",
+   "__is_polymorphic",
+   "__is_union",
    "unimplemented", "error", "removed default arg",
    "last" /* used to check that initialization is right. */
   }
@@ -794,7 +832,26 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_upc_localsizeof */
    (an_opname_kind)onk_none,          /* tok_upc_elemsizeof */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+   (an_opname_kind)onk_none,          /* tok_has_assign */
+   (an_opname_kind)onk_none,          /* tok_has_copy */
+   (an_opname_kind)onk_none,          /* tok_has_nothrow_assign */
+   (an_opname_kind)onk_none,          /* tok_has_nothrow_constructor */
+   (an_opname_kind)onk_none,          /* tok_has_nothrow_copy */
+   (an_opname_kind)onk_none,          /* tok_has_trivial_assign */
+   (an_opname_kind)onk_none,          /* tok_has_trivial_constructor */
+   (an_opname_kind)onk_none,          /* tok_has_trivial_copy */
+   (an_opname_kind)onk_none,          /* tok_has_trivial_destructor */
+   (an_opname_kind)onk_none,          /* tok_has_user_destructor */
+   (an_opname_kind)onk_none,          /* tok_has_virtual_destructor */
+   (an_opname_kind)onk_none,          /* tok_is_abstract */
    (an_opname_kind)onk_none,          /* tok_is_base_of */
+   (an_opname_kind)onk_none,          /* tok_is_class */
+   (an_opname_kind)onk_none,          /* tok_is_convertible_to */
+   (an_opname_kind)onk_none,          /* tok_is_empty */
+   (an_opname_kind)onk_none,          /* tok_is_enum */
+   (an_opname_kind)onk_none,          /* tok_is_pod */
+   (an_opname_kind)onk_none,          /* tok_is_polymorphic */
+   (an_opname_kind)onk_none,          /* tok_is_union */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_none,          /* tok_error */
    (an_opname_kind)onk_none,          /* tok_removed_default_arg */

@@ -4278,6 +4278,19 @@ handler-parameter is of type "other_type".
 }  /* type_is_catchable_by_handler_for_other_type */
 
 
+a_boolean is_nothrow_type(a_type_ptr  type)
+/*
+The given type is a routine type.  Return TRUE if and only if it has an
+associated "throw()" specification.
+*/
+{
+  an_exception_specification_ptr  esp = type->variant.routine.extra_info
+                                            ->exception_specification;
+
+  return esp != NULL && esp->exception_specification_type_list == NULL;
+}  /* is_nothrow_type */
+
+
 a_boolean exception_spec_is_less_restrictive(a_type_ptr  type1,
                                              a_type_ptr  type2)
 /*

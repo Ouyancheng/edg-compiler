@@ -15,6 +15,8 @@ folding.c -- Folding routines.
 
 /* Header files common to all files. */
 #include "fe_common.h"
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
 
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -5038,6 +5040,204 @@ expression.
   constant->type = expr->type;
 }  /* fold_is_base_of */
 
+
+static void fold_unary_microsoft_type_trait(
+                                    an_expr_node_ptr   expr,
+                                    a_constant_ptr     constant,
+                                    a_source_position  *pos,
+                                    a_boolean          complete_class_property)
+/*
+expr is an enk_builtin_operation node representing a Microsoft-specific
+boolean type predicate with a single type operand (e.g., "__is_union").  If
+the operand types is nondependent, store a boolean constant in *constant.  The
+boolean constant will have value "true" if the associated type predicate is
+true for the type represented by its operand.  otherwise, the constant will
+have value "false".  If the operand types is dependent, store a
+ck_template_param constant in *constant.  The constant will be of the
+tpck_expression variant and will point to the given expression.
+*/
+{
+  an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
+  a_type_ptr        type;
+
+  check_assertion(arg != NULL && arg->next == NULL &&
+                  arg->kind == (an_expr_node_kind)enk_type_operand);
+  type = arg->variant.type_operand.type;
+  if (is_template_dependent_type(type)) {
+    clear_constant(constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(
+                   constant, (a_template_param_constant_kind)tpck_expression);
+    constant->variant.template_param.variant.expr = expr;
+  } else {
+    a_boolean                 result = FALSE, incomplete_class_error = FALSE;
+    a_boolean                 is_list = FALSE;
+    a_builtin_operation_kind  kind = expr->variant.builtin_operation.kind;
+    a_symbol_ptr              sym = NULL;
+    a_class_symbol_supplement_ptr
+                              cssp = NULL;
+    type = skip_typerefs(type);
+    if (complete_class_property) {
+      /* An incomplete class type is invalid, and nonclass types always
+         evaluate to FALSE. */
+      if (is_immediate_class_type(type)) {
+        if (is_incomplete_type(type)) {
+          incomplete_class_error = TRUE;
+          goto result_known;
+        } else {
+          arg->variant.type_operand.definition_needed = TRUE;
+          cssp = symbol_supplement_for_class(type);
+        }  /* if */
+      } else {
+        goto result_known;
+      }  /* if */
+    }  /* if */
+    switch (kind) {
+      case bok_has_assign:
+      case bok_has_nothrow_assign:
+        sym = cssp->assignment_operator;
+        /* If there is no copy assignment operator, then __has_assign returns
+           false, but __has_nothrow_copy returns true. */
+        result = (kind != (a_builtin_operation_kind)bok_has_assign);
+        if (sym == NULL || cssp->assignment_by_bitwise_copy_allowed) {
+          /* There is no copy assignment operator. */
+          goto result_known;
+        } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          is_list = TRUE;
+          sym = sym->variant.overloaded_function.symbols;
+        }  /* if */
+        for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+          if (sym->kind == (a_symbol_kind)sk_member_function) {
+            a_type_qualifier_set  qualifiers;
+            a_boolean             ref_param, is_base_class_match;
+            if (is_assignment_operator_for_copy(sym, &ref_param, &qualifiers,
+                                                &is_base_class_match)) {
+              a_routine_ptr  rp = sym->variant.routine.ptr;
+              result = (kind == (a_builtin_operation_kind)bok_has_assign ||
+                        rp->compiler_generated ||
+                        is_nothrow_type(skip_typerefs(rp->type)));
+              /* Microsoft compilers only consider the first declared copy
+                 assignment operator.  Since we store the constructors in
+                 reverse order of declaration, continue the loop in case
+                 another such operator appears on the list. */
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        break;
+      case bok_has_copy:
+      case bok_has_nothrow_copy:
+        sym = cssp->constructor;
+        /* If there is no copy constructor, then __has_copy returns false,
+           but __has_nothrow_copy returns true. */
+        result = (kind != (a_builtin_operation_kind)bok_has_copy);
+        if (sym == NULL || cssp->construction_by_bitwise_copy_allowed) {
+          /* There is no copy constructor. */
+          goto result_known;
+        } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          is_list = TRUE;
+          sym = sym->variant.overloaded_function.symbols;
+        }  /* if */
+        for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+          if (sym->kind == (a_symbol_kind)sk_member_function) {
+            a_routine_ptr  rp = sym->variant.routine.ptr;
+            a_type_ptr     rtp = skip_typerefs(rp->type);
+            if (is_copy_constructor_type(rtp, type,
+                                         (a_type_qualifier_set *)NULL,
+                                         /*is_declarative_context=*/TRUE)) {
+              result = (kind == (a_builtin_operation_kind)bok_has_copy ||
+                        rp->compiler_generated || is_nothrow_type(rtp));
+              /* Microsoft compilers only consider the first declared copy
+                 constructor.  Since we store the constructors in reverse order
+                 of declaration, continue the loop in case another copy
+                 constructor appears on the list. */
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        break;
+      case bok_has_nothrow_constructor:
+        sym = cssp->constructor;
+        if (sym == NULL) {
+          /* __has_nothrow_constructor returns true if there is no default
+             constructor. */
+          result = TRUE;
+          goto result_known;
+        } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          is_list = TRUE;
+          sym = sym->variant.overloaded_function.symbols;
+        }  /* if */
+        for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+          if (sym->kind == (a_symbol_kind)sk_member_function) {
+            a_routine_ptr  rp = sym->variant.routine.ptr;
+            if (is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {
+              result = (rp->compiler_generated ||
+                        is_nothrow_type(skip_typerefs(rp->type)));
+              /* Microsoft compilers only consider the first declared default
+                 constructor.  Since we store the constructors in reverse order
+                 of declaration, continue the loop in case another default
+                 constructor appears on the list. */
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        break;
+      case bok_has_trivial_assign:
+        result = cssp->assignment_by_bitwise_copy_allowed;
+        break;
+      case bok_has_trivial_constructor:
+        result = cssp->is_POD || cssp->trivial_default_constructor != NULL;
+        break;
+      case bok_has_trivial_copy:
+        result = cssp->construction_by_bitwise_copy_allowed;
+        break;
+      case bok_has_trivial_destructor:
+        result = cssp->destructor == NULL;
+        break;
+      case bok_has_user_destructor:
+        result = cssp->destructor != NULL &&
+                 !cssp->destructor->variant.routine.ptr->compiler_generated;
+        break;
+      case bok_has_virtual_destructor:
+        result = cssp->destructor != NULL &&
+                 cssp->destructor->variant.routine.ptr->is_virtual;
+        break;
+      case bok_is_abstract:
+        result = type->variant.class_struct_union.abstract;
+        break;
+      case bok_is_class:
+        result = is_class_or_struct(type);
+        break;
+      case bok_is_empty:
+        unexpected_condition();
+        break;
+      case bok_is_enum:
+        result = is_immediate_enum_type(type);
+        break;
+      case bok_is_pod:
+        result = cssp->is_POD;
+        break;
+      case bok_is_polymorphic:
+        result = is_polymorphic_class_type(type);
+        break;
+      case bok_is_union:
+        result = (type->kind == (a_type_kind)tk_union);
+        break;
+    }  /* if */
+result_known:
+    if (incomplete_class_error) {
+      clear_constant(constant, (a_constant_repr_kind)ck_error);
+      if (pos != NULL) {
+        pos_error(ec_incomplete_class_type, pos);
+      }  /* if */
+    } else {
+      clear_constant(constant, (a_constant_repr_kind)ck_integer);
+      set_integer_value(&constant->variant.integer_value,
+                        (a_host_large_integer)result);
+    }  /* if */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    constant->expr = expr;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_unary_microsoft_type_trait */
+
 #if GNU_EXTENSIONS_ALLOWED
 
 static void fold_types_compatible(an_expr_node_ptr   expr,
@@ -5077,7 +5277,7 @@ and will point to the given expression.
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   }  /* if */
   constant->type = expr->type;
-}  /* fold_is_base_of */
+}  /* fold_types_compatible */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -5124,6 +5324,33 @@ non-NULL diagnostics are issued at the indicated position.
         fold_types_compatible(expr, constant);
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      case bok_has_assign:
+      case bok_has_copy:
+      case bok_has_nothrow_assign:
+      case bok_has_nothrow_constructor:
+      case bok_has_nothrow_copy:
+      case bok_has_trivial_assign:
+      case bok_has_trivial_constructor:
+      case bok_has_trivial_copy:
+      case bok_has_trivial_destructor:
+      case bok_has_user_destructor:
+      case bok_has_virtual_destructor:
+      case bok_is_abstract:
+      case bok_is_empty:
+      case bok_is_pod:
+      case bok_is_polymorphic:
+        /* Various Microsoft single-type operators that cannot be applied
+           to incomplete class types. */
+        fold_unary_microsoft_type_trait(expr, constant, pos,
+                                        /*complete_class_property=*/TRUE);
+        break;
+      case bok_is_class:
+      case bok_is_enum:
+      case bok_is_union:
+        /* Various Microsoft single-type operators. */
+        fold_unary_microsoft_type_trait(expr, constant, pos,
+                                        /*complete_class_property=*/FALSE);
+        break;
       default:
         unexpected_condition();
     }  /* switch */

@@ -426,6 +426,34 @@ Install the keywords in the symbol table.
       /* The __is_base_of extension is only accepted in Microsoft C++ mode.
          However, it is recognized (and rejected) in Microsoft C mode. */
       enter_keyword((a_token_kind)tok_is_base_of, "__is_base_of");
+      enter_keyword((a_token_kind)tok_has_assign, "__has_assign");
+      enter_keyword((a_token_kind)tok_has_copy, "__has_copy");
+      enter_keyword((a_token_kind)tok_has_nothrow_assign,
+                    "__has_nothrow_assign");
+      enter_keyword((a_token_kind)tok_has_nothrow_constructor,
+                    "__has_nothrow_constructor");
+      enter_keyword((a_token_kind)tok_has_nothrow_copy, "__has_nothrow_copy");
+      enter_keyword((a_token_kind)tok_has_trivial_assign,
+                    "__has_trivial_assign");
+      enter_keyword((a_token_kind)tok_has_trivial_constructor,
+                    "__has_trivial_constructor");
+      enter_keyword((a_token_kind)tok_has_trivial_copy,
+                    "__has_trivial_copy");
+      enter_keyword((a_token_kind)tok_has_trivial_destructor,
+                    "__has_trivial_destructor");
+      enter_keyword((a_token_kind)tok_has_user_destructor,
+                    "__has_user_destructor");
+      enter_keyword((a_token_kind)tok_has_virtual_destructor,
+                    "__has_virtual_destructor");
+      enter_keyword((a_token_kind)tok_is_abstract, "__is_abstract");
+      enter_keyword((a_token_kind)tok_is_class, "__is_class");
+      enter_keyword((a_token_kind)tok_is_convertible_to,
+                    "__is_convertible_to");
+      enter_keyword((a_token_kind)tok_is_empty, "__is_empty");
+      enter_keyword((a_token_kind)tok_is_enum, "__is_enum");
+      enter_keyword((a_token_kind)tok_is_pod, "__is_pod");
+      enter_keyword((a_token_kind)tok_is_polymorphic, "__is_polymorphic");
+      enter_keyword((a_token_kind)tok_is_union, "__is_union");
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
