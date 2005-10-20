@@ -5712,12 +5712,12 @@ arbitrary expression.
 
 
 static void scan_call_like_builtin_operation(
-                                          a_builtin_operation_kind  kind,
-                                          a_type_ptr                type,
-                                          an_il_entry_kind          arg1_kind,
-                                          an_il_entry_kind          arg2_kind,
-                                          an_il_entry_kind          arg3_kind,
-                                          an_operand                *result)
+                                   a_builtin_operation_kind_tag   kind,
+                                   a_type_ptr                     type,
+                                   an_il_entry_kind               arg1_kind,
+                                   an_il_entry_kind               arg2_kind,
+                                   an_il_entry_kind               arg3_kind,
+                                   an_operand                     *result)
 /*
 Scan a constant operation of the general form
 	operation-name ( <comma-separated-list-of-arguments> )
@@ -5802,8 +5802,8 @@ a class type is always considered to be derived from itself).
   } else {
     result_type = bool_type();
   }  /* if */
-  scan_call_like_builtin_operation((a_builtin_operation_kind)bok_is_base_of,
-                                   result_type, iek_type, iek_type, iek_none,
+  scan_call_like_builtin_operation(bok_is_base_of, result_type,
+                                   iek_type, iek_type, iek_none,
                                    result);
   if (C_mode()) {
     /* Turn the operand into an error operand to avoid any surprises later
@@ -5811,6 +5811,36 @@ a class type is always considered to be derived from itself).
     make_error_operand(result);
   }  /* if */
 }  /* scan_is_base_of */
+
+
+static void scan_is_convertible_to(an_operand  *result)
+/*
+Scan a constant-expression of the form
+      __is_onvertible_to( <typeA> , <typeB> )
+The result is a boolean of value true if typeA is "implicitly convertible to"
+typeB.
+*/
+{
+  a_type_ptr  result_type;
+
+  check_assertion(microsoft_mode);
+  if (C_mode()) {
+    /* __is_convertible_to is not accepted in C mode. */
+    pos_st_error(ec_feature_requires_cplusplus, &pos_curr_token,
+                 builtin_operation_names[bok_is_convertible_to]);
+    result_type = integer_type((an_integer_kind)ik_int);
+  } else {
+    result_type = bool_type();
+  }  /* if */
+  scan_call_like_builtin_operation(
+                           (a_builtin_operation_kind)bok_is_convertible_to,
+                           result_type, iek_type, iek_type, iek_none, result);
+  if (C_mode()) {
+    /* Turn the operand into an error operand to avoid any surprises later
+       on. */
+    make_error_operand(result);
+  }  /* if */
+}  /* scan_is_convertible_to */
 
 
 static void scan_unary_microsoft_type_trait(an_operand  *result)
@@ -5822,8 +5852,8 @@ corresponding to the __trait_keyword (the latter is the current token).
 (Examples "trait keywords" include "__is_union" and "__has_user_destructor".)
 */
 {
-  a_type_ptr                result_type;
-  a_builtin_operation_kind  bok;
+  a_type_ptr                    result_type;
+  a_builtin_operation_kind_tag  bok;
 
   check_assertion(microsoft_mode);
   switch (curr_token) {
@@ -5849,14 +5879,14 @@ corresponding to the __trait_keyword (the latter is the current token).
       unexpected_condition();
   }  /* switch */
   if (C_mode()) {
-    /* __is_base_of is not accepted in C mode. */
+    /* These pseudo-functions are not accepted in C mode. */
     pos_st_error(ec_feature_requires_cplusplus, &pos_curr_token,
-                 builtin_operation_names[bok]);
+                 builtin_operation_names[(int)bok]);
     result_type = integer_type((an_integer_kind)ik_int);
   } else {
     result_type = bool_type();
   }  /* if */
-  scan_call_like_builtin_operation(bok, result_type,
+  scan_call_like_builtin_operation((a_builtin_operation_kind)bok, result_type,
                                    iek_type, iek_none, iek_none,
                                    result);
   if (C_mode()) {
@@ -5885,9 +5915,9 @@ is returned through *result.
     pos_st_error(ec_feature_requires_c, &pos_curr_token,
                  builtin_operation_names[bok_types_compatible]);
   }  /* if */
-  scan_call_like_builtin_operation(
-                           (a_builtin_operation_kind)bok_types_compatible,
-                           result_type, iek_type, iek_type, iek_none, result);
+  scan_call_like_builtin_operation(bok_types_compatible, result_type,
+                                   iek_type, iek_type, iek_none,
+                                   result);
 }  /* scan_builtin_types_compatible */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -16921,8 +16951,13 @@ see expr.h).
       break;
 
     case tok_is_base_of:
-      /* __is_base_of construct: */
+      /* Microsoft __is_base_of construct: */
       scan_is_base_of(&local_result);
+      break;
+
+    case tok_is_convertible_to:
+      /* Microsoft __is_convertible_to construct: */
+      scan_is_convertible_to(&local_result);
       break;
 
     case tok_has_assign:
