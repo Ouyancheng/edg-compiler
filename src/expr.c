@@ -5712,12 +5712,12 @@ arbitrary expression.
 
 
 static void scan_call_like_builtin_operation(
-                                   a_builtin_operation_kind_tag   kind,
-                                   a_type_ptr                     type,
-                                   an_il_entry_kind               arg1_kind,
-                                   an_il_entry_kind               arg2_kind,
-                                   an_il_entry_kind               arg3_kind,
-                                   an_operand                     *result)
+                                          a_builtin_operation_kind  kind,
+                                          a_type_ptr                type,
+                                          an_il_entry_kind          arg1_kind,
+                                          an_il_entry_kind          arg2_kind,
+                                          an_il_entry_kind          arg3_kind,
+                                          an_operand                *result)
 /*
 Scan a constant operation of the general form
 	operation-name ( <comma-separated-list-of-arguments> )
@@ -5802,8 +5802,8 @@ a class type is always considered to be derived from itself).
   } else {
     result_type = bool_type();
   }  /* if */
-  scan_call_like_builtin_operation(bok_is_base_of, result_type,
-                                   iek_type, iek_type, iek_none,
+  scan_call_like_builtin_operation((a_builtin_operation_kind)bok_is_base_of,
+                                   result_type, iek_type, iek_type, iek_none,
                                    result);
   if (C_mode()) {
     /* Turn the operand into an error operand to avoid any surprises later
@@ -5885,9 +5885,9 @@ is returned through *result.
     pos_st_error(ec_feature_requires_c, &pos_curr_token,
                  builtin_operation_names[bok_types_compatible]);
   }  /* if */
-  scan_call_like_builtin_operation(bok_types_compatible, result_type,
-                                   iek_type, iek_type, iek_none,
-                                   result);
+  scan_call_like_builtin_operation(
+                           (a_builtin_operation_kind)bok_types_compatible,
+                           result_type, iek_type, iek_type, iek_none, result);
 }  /* scan_builtin_types_compatible */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
