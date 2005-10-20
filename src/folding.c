@@ -5313,6 +5313,8 @@ tpck_expression variant and will point to the given expression.
       case bok_is_union:
         result = (type->kind == (a_type_kind)tk_union);
         break;
+      default:
+        unexpected_condition();
     }  /* if */
 result_known:
     if (incomplete_class_error) {

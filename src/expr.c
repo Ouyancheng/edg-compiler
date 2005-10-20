@@ -5832,9 +5832,8 @@ typeB.
   } else {
     result_type = bool_type();
   }  /* if */
-  scan_call_like_builtin_operation(
-                           (a_builtin_operation_kind)bok_is_convertible_to,
-                           result_type, iek_type, iek_type, iek_none, result);
+  scan_call_like_builtin_operation(bok_is_convertible_to, result_type,
+                                   iek_type, iek_type, iek_none, result);
   if (C_mode()) {
     /* Turn the operand into an error operand to avoid any surprises later
        on. */
@@ -5886,7 +5885,7 @@ corresponding to the __trait_keyword (the latter is the current token).
   } else {
     result_type = bool_type();
   }  /* if */
-  scan_call_like_builtin_operation((a_builtin_operation_kind)bok, result_type,
+  scan_call_like_builtin_operation(bok, result_type,
                                    iek_type, iek_none, iek_none,
                                    result);
   if (C_mode()) {
