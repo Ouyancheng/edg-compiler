@@ -11777,11 +11777,30 @@ Table of names of various builtin operations.
 EXTERN char     *builtin_operation_names[(int)bok_last+1]
 #if VAR_INITIALIZERS
 = {
-  "__builtin_offsetof",
   "__is_base_of",
 #if GNU_EXTENSIONS_ALLOWED
   "__builtin_types_compatible",
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  "__has_assign",
+  "__has_copy",
+  "__has_nothrow_assign",
+  "__has_nothrow_constructor",
+  "__has_nothrow_copy",
+  "__has_trivial_assign",
+  "__has_trivial_constructor",
+  "__has_trivial_copy",
+  "__has_trivial_destructor",
+  "__has_user_destructor",
+  "__has_virtual_destructor",
+  "__is_abstract",
+  "__is_class",
+  "__is_convertible_to",
+  "__is_empty",
+  "__is_enum",
+  "__is_pod",
+  "__is_polymorphic",
+  "__is_union",
+  "__builtin_offsetof",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
