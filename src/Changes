@@ -122,8 +122,8 @@ This is now fixed.
 
 10/11/05 GNU compatibility: special handing of __STDC__ in system headers
 
-Some configuration of gcc/g++ define __STDC__ to zero when processing code
-from system header files and to one when processing other code.  Emulation
+Some configurations of gcc/g++ define __STDC__ to 0 when processing code
+from system header files and to 1 when processing other code.  Emulation
 of this feature can now be enabled by the --[no_]stdc_zero_in_system_headers
 command-line options.  The GNU mode default is specified by the
 DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS macro.

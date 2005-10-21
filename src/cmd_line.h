@@ -1110,7 +1110,7 @@ EXTERN a_boolean stdc_zero_in_nonstrict_mode;
 
 EXTERN a_boolean
 		stdc_zero_in_system_headers;
-			/* TRUE if __STDC__ should be zero while
+			/* TRUE if __STDC__ should be 0 while
 			   processing system headers and 1 otherwise. */
 
 EXTERN unsigned long

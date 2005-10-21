@@ -7043,7 +7043,7 @@ command line -D options.
     a_boolean	stdc_cannot_be_redefined = (C_dialect == C_dialect_ANSI &&
                                             strict_ansi_mode);
     if (stdc_zero_in_nonstrict_mode) {
-      /* In this mode, __STDC__ is 1 in strict mode and zero otherwise. */
+      /* In this mode, __STDC__ is 1 in strict mode and 0 otherwise. */
       stdc_value = strict_ansi_mode;
     } else if (microsoft_mode) {
       /* The Microsoft compiler does not define __STDC__ in either C or
@@ -7059,7 +7059,7 @@ command line -D options.
     if (define_stdc) {
       char		*stdc_string;
       a_symbol_ptr	sym;
-      /* In modes, the value of __STDC__ is determined by whether a system
+      /* In some modes, the value of __STDC__ is determined by whether a system
          header is being processed.  Treat __STDC__ specially in such modes.
          This feature is provided for GNU compatibility, but can be enabled
          in other modes. */
