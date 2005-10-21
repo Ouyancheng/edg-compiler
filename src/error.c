@@ -3402,25 +3402,25 @@ Return TRUE if the diagnostic should be suppressed.
 }  /* diagnostic_already_issued_for_prototype */
 
 
-static a_boolean should_diag_be_issued_only_once(
+static a_boolean diagnostic_already_issued_for_diag_once(
 					an_error_code		error_code,
 					an_error_severity	severity)
 /*
 This routine records the fact that a given diagnostic has been issued and
 also checks whether this occurrence of the diagnostic should be suppressed
 because of the use of the "once" diagnostic control.  Return TRUE if the
-diagnostic should be issued.
+diagnostic should be suppressed.
 */
 {
-  a_boolean		result = TRUE;
+  a_boolean		result = FALSE;
 
   if ((int)severity <= (int)es_warning &&
       once_flag_for_error_code[(int)error_code]) {
-    result = !diagnostic_issued_for_error_code[(int)error_code];
+    result = diagnostic_issued_for_error_code[(int)error_code];
   }  /* if */
   diagnostic_issued_for_error_code[(int)error_code] = TRUE;
   return result;
-}  /* should_diag_be_issued_only_once */
+}  /* diagnostic_already_issued_for_diag_once */
 
 
 static void display_trans_unit_context(
@@ -3518,8 +3518,8 @@ and doing any required expansions, the diagnostic is written.
   if (diag_should_be_issued) {
     /* Determine whether this diagnostic should not be issued because
        of the use of the "once" diagnostic control. */
-    diag_should_be_issued = should_diag_be_issued_only_once(error_code,
-                                                            severity);
+    diag_should_be_issued = !diagnostic_already_issued_for_diag_once(
+                                                         error_code, severity);
   }  /* if */
   if (diag_should_be_issued) {
     /* Suppress the diagnostic if it has already been issued during the
