@@ -455,7 +455,7 @@ Macro expansion is now done when scanning the tokens that make up a C99
 _Pragma operator.  In particular, the string literal token and the closing
 right parenthesis may now be the result of macro expansion.  Note that macro
 expansion may or may not be done (based on the pragma kind) for the tokens
-that tokens that make up the string literal when the pragma is evaluated.
+that make up the string literal when the pragma is evaluated.
 
   #define PRAG  "diag_suppress 177"
   #define X() _Pragma(PRAG)
