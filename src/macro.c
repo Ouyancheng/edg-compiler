@@ -190,8 +190,8 @@ static unsigned long
 static a_symbol_ptr
 		stdc_macro_symbol;
 			/* Pointer to the symbol entry for the __STDC__
-			   macro.  Only used when stdc_zero_in_system_headers
-			   is TRUE. */
+			   macro.  Only non-NULL when
+			   stdc_zero_in_system_headers is TRUE. */
 
 /*
 Maximum nesting depth of calls of a single macro in pcc mode.  Used to
@@ -3584,9 +3584,9 @@ end_scan_for_macro_modifs:;
                      str_for_integer_constant(&const_for_curr_token));
         (void)strcat(repl_text, "L");
       } else if (macro_symbol == stdc_macro_symbol) {
-        /* This macro symbol is only used in GNU mode when
-           stdc_zero_in_system_headers is TRUE.  Use a value of 0 if
-           we are in a system header, or 1 otherwise. */
+        /* This macro symbol is only non-NULL when stdc_zero_in_system_headers
+           is TRUE.  Use a value of 0 if we are in a system header, or 1
+           otherwise. */
         (void)strcpy(repl_text, curr_ise->from_system_include_dir ? "0" : "1");
       } else if (macro_symbol == Pragma_macro_symbol) {
         /* The C99 _Pragma operator.  This is invoked as
