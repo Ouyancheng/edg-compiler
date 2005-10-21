@@ -1135,7 +1135,7 @@ may have extra operand at end).
   }  /* for */
   /* Zero is not allowed as a line number (it's not allowed by ANSI,
      and it looks like end of file to the error routines).  gcc 4.1
-     introduced a bug that caused zero to be emitted as in line directives
+     introduced a bug that caused zero to be emitted in line directives
      for certain built-in declarations.  Accept zero in a cpp-form line
      directive, but use the value one in its place. */
   if (temp_line == 0) {
