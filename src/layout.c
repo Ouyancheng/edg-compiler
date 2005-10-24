@@ -1285,13 +1285,13 @@ targ_microsoft_bit_field_allocation is FALSE.)
      directive wrt. the origin of the containing object, but in absolute
      terms the field may end up being unaligned.)  For such environments, the
      adjustment is made later on. */
-#if IA64_ABI
+#if GNU_EXTENSIONS_ALLOWED && IA64_ABI
   if (gnu_mode && field->is_bit_field &&
       (field->bit_size == 0 || field->alignment != 0)) {
     /* The GNU IA-64 ABI does not apply packing directives to zero-length
        bit fields or bit fields with an explicit alignment directive. */
   } else
-#endif /* IA64_ABI */
+#endif /* GNU_EXTENSIONS_ALLOWED && IA64_ABI */
   /* Do not insert code here. */
   if (targ_user_control_of_struct_packing_affects_bit_fields) {
     adjust_alignment_for_packing(&container_alignment, lob->class_type);
