@@ -4992,6 +4992,7 @@ it represents.
   constant->type = expr->type;
 }  /* fold_offsetof */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void fold_is_base_of(an_expr_node_ptr   expr,
                             a_constant_ptr     constant)
@@ -5334,6 +5335,7 @@ result_known:
   constant->type = expr->type;
 }  /* fold_unary_microsoft_type_trait */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
 static void fold_types_compatible(an_expr_node_ptr   expr,
@@ -5412,17 +5414,12 @@ non-NULL diagnostics are issued at the indicated position.
       case bok_offsetof:
         fold_offsetof(expr, constant, pos);
         break;
-      case bok_is_base_of:
-        fold_is_base_of(expr, constant);
-        break;
-      case bok_is_convertible_to:
-        fold_is_convertible_to(expr, constant);
-        break;
 #if GNU_EXTENSIONS_ALLOWED
       case bok_types_compatible:
         fold_types_compatible(expr, constant);
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
       case bok_has_assign:
       case bok_has_copy:
       case bok_has_nothrow_assign:
@@ -5450,6 +5447,13 @@ non-NULL diagnostics are issued at the indicated position.
         fold_unary_microsoft_type_trait(expr, constant, pos,
                                         /*complete_class_property=*/FALSE);
         break;
+      case bok_is_base_of:
+        fold_is_base_of(expr, constant);
+        break;
+      case bok_is_convertible_to:
+        fold_is_convertible_to(expr, constant);
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition();
     }  /* switch */

@@ -5673,6 +5673,7 @@ work is done by scan_field_selection_operator.
   (void)required_token(tok_rparen, ec_exp_rparen);
 }  /* scan_offsetof */
 
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 static an_expr_node_ptr scan_builtin_operation_arg(an_il_entry_kind  arg_kind)
 /*
@@ -5782,6 +5783,8 @@ the constant cases.)
   (void)required_token(tok_rparen, ec_exp_rparen);
 }  /* scan_call_like_builtin_operation */
 
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void scan_is_base_of(an_operand  *result)
 /*
@@ -5895,6 +5898,7 @@ corresponding to the __trait_keyword (the latter is the current token).
   }  /* if */
 }  /* scan_unary_microsoft_type_trait */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
 static void scan_builtin_types_compatible(an_operand  *result)
@@ -14479,6 +14483,26 @@ Return TRUE if the indicated token is one that could start an expression.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
     case tok_microsoft_lprefix:
+    case tok_has_assign:
+    case tok_has_copy:
+    case tok_has_nothrow_assign:
+    case tok_has_nothrow_constructor:
+    case tok_has_nothrow_copy:
+    case tok_has_trivial_assign:
+    case tok_has_trivial_constructor:
+    case tok_has_trivial_copy:
+    case tok_has_trivial_destructor:
+    case tok_has_user_destructor:
+    case tok_has_virtual_destructor:
+    case tok_is_abstract:
+    case tok_is_base_of:
+    case tok_is_class:
+    case tok_is_convertible_to:
+    case tok_is_empty:
+    case tok_is_enum:
+    case tok_is_pod:
+    case tok_is_polymorphic:
+    case tok_is_union:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
     case tok_upc_localsizeof:
@@ -14504,26 +14528,6 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_function_name:
     case tok_pretty_function_name:
     case tok_decorated_function_name:
-    case tok_is_base_of:
-    case tok_is_convertible_to:
-    case tok_has_assign:
-    case tok_has_copy:
-    case tok_has_nothrow_assign:
-    case tok_has_nothrow_constructor:
-    case tok_has_nothrow_copy:
-    case tok_has_trivial_assign:
-    case tok_has_trivial_constructor:
-    case tok_has_trivial_copy:
-    case tok_has_trivial_destructor:
-    case tok_has_user_destructor:
-    case tok_has_virtual_destructor:
-    case tok_is_abstract:
-    case tok_is_class:
-    case tok_is_empty:
-    case tok_is_enum:
-    case tok_is_pod:
-    case tok_is_polymorphic:
-    case tok_is_union:
       is_expr_start = TRUE;
       break;
     default:
@@ -16949,16 +16953,7 @@ see expr.h).
       scan_offsetof(&local_result);
       break;
 
-    case tok_is_base_of:
-      /* Microsoft __is_base_of construct: */
-      scan_is_base_of(&local_result);
-      break;
-
-    case tok_is_convertible_to:
-      /* Microsoft __is_convertible_to construct: */
-      scan_is_convertible_to(&local_result);
-      break;
-
+#if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_has_assign:
     case tok_has_copy:
     case tok_has_nothrow_assign:
@@ -16980,6 +16975,16 @@ see expr.h).
       /* Various Microsoft single-type operators. */
       scan_unary_microsoft_type_trait(&local_result);
       break;
+    case tok_is_base_of:
+      /* Microsoft __is_base_of construct: */
+      scan_is_base_of(&local_result);
+      break;
+    case tok_is_convertible_to:
+      /* Microsoft __is_convertible_to construct: */
+      scan_is_convertible_to(&local_result);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if GNU_EXTENSIONS_ALLOWED
     case tok_builtin_types_compatible:
       /* GNU C's __builtin_types_compatible_p construct. */

@@ -8678,16 +8678,16 @@ typedef enum a_builtin_operation_kind_tag {
      possible operations. */
   /* If you add an operation to this list, also update builtin_operation_names
      in this file. */
-  /* Note that the value of enumerators in this list is used as part of
-     the mangled name encoding for builtin operations, so the items on
-     this list should not be reordered; if they are, it will cause an
-     ABI incompatibility (in the names of templates). */
-  bok_is_base_of,	/* Microsoft __is_base_of.  Two operands, both
-			   types. */
-#if GNU_EXTENSIONS_ALLOWED
-  bok_types_compatible,	/* GNU __builtin_types_compatible.  Two operands, both
-			   types. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Note that the value of enumerators in this list is used as part of the
+     mangled name encoding for builtin operations, so the items on this list
+     should not be reordered; if they are, it will cause an ABI
+     incompatibility (in the names of templates).  For this same reason, we
+     avoid making any of these enumerators configuration-dependent (e.g.,
+     the GNU-specific bok_types_compatible is part of the list even when
+     GNU_EXTENSIONS_ALLOWED is FALSE).
+     */
+  bok_offsetof,		/* Builtin offsetof (currently only available in some
+			   GNU modes).  Two operands: A type and a field. */
   bok_has_assign,	/* Microsoft __has_assign.  One operand: A type. */
   bok_has_copy,		/* Microsoft __has_copy.  One operand: A type. */
   bok_has_nothrow_assign,
@@ -8716,6 +8716,8 @@ typedef enum a_builtin_operation_kind_tag {
 			/* Microsoft __has_virtual_destructor.  One operand: A
 			   type. */
   bok_is_abstract,	/* Microsoft __is_abstract.  One operand: A type. */
+  bok_is_base_of,	/* Microsoft __is_base_of.  Two operands, both
+			   types. */
   bok_is_class,		/* Microsoft __is_class.  One operand: A type. */
   bok_is_convertible_to,
 			/* Microsoft __is_convertible_to.  Two operands, both
@@ -8725,8 +8727,8 @@ typedef enum a_builtin_operation_kind_tag {
   bok_is_pod,		/* Microsoft __is_pod.  One operand: A type. */
   bok_is_polymorphic,	/* Microsoft __is_polymorphic.  One operand: A type. */
   bok_is_union,		/* Microsoft __is_union.  One operand: A type. */
-  bok_offsetof,		/* Builtin offsetof (currently only available in some
-			   GNU modes).  Two operands: A type and a field. */
+  bok_types_compatible,	/* GNU __builtin_types_compatible.  Two operands, both
+			   types. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -11777,10 +11779,7 @@ Table of names of various builtin operations.
 EXTERN char     *builtin_operation_names[(int)bok_last+1]
 #if VAR_INITIALIZERS
 = {
-  "__is_base_of",
-#if GNU_EXTENSIONS_ALLOWED
-  "__builtin_types_compatible",
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  "__builtin_offsetof",
   "__has_assign",
   "__has_copy",
   "__has_nothrow_assign",
@@ -11793,6 +11792,7 @@ EXTERN char     *builtin_operation_names[(int)bok_last+1]
   "__has_user_destructor",
   "__has_virtual_destructor",
   "__is_abstract",
+  "__is_base_of",
   "__is_class",
   "__is_convertible_to",
   "__is_empty",
@@ -11800,7 +11800,7 @@ EXTERN char     *builtin_operation_names[(int)bok_last+1]
   "__is_pod",
   "__is_polymorphic",
   "__is_union",
-  "__builtin_offsetof",
+  "__builtin_types_compatible",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
