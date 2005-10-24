@@ -129,7 +129,7 @@ example:
                     // byte of S.
   }  __attribute__((packed));
 
-This is now fixed.
+This is now fixed when ABI_COMPATIBILITY_VERSION >= 307.
 
 10/11/05 GNU compatibility: special handing of __STDC__ in system headers
 
