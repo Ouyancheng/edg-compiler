@@ -4280,14 +4280,21 @@ handler-parameter is of type "other_type".
 
 a_boolean is_nothrow_type(a_type_ptr  type)
 /*
-The given type is a routine type.  Return TRUE if and only if it has an
-associated "throw()" specification.
+The given type is a routine type.  Return TRUE if it has an associated
+"throw()" specification or if exceptions are disabled (in which case
+the function is not expected to throw an exception either).
 */
 {
-  an_exception_specification_ptr  esp = type->variant.routine.extra_info
-                                            ->exception_specification;
+  a_boolean  result;
 
-  return esp != NULL && esp->exception_specification_type_list == NULL;
+  if (exceptions_enabled) {
+    an_exception_specification_ptr  esp = type->variant.routine.extra_info
+                                              ->exception_specification;
+    result = esp != NULL && esp->exception_specification_type_list == NULL;
+  } else {
+    result = TRUE;
+  }  /* if */
+  return result;
 }  /* is_nothrow_type */
 
 
