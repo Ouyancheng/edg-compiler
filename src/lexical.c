@@ -11908,10 +11908,10 @@ TRUE, the class member is preferred over the normal lookup symbol.
      either complete or in the process of being defined.  Also do the
      lookup if the class is nonreal. */
   do_class_lookup = class_type != NULL &&
-                    is_class_struct_union_type(class_type) &&
-                    (class_type->variant.class_struct_union.
-                                         extra_info->assoc_scope != NULL ||
-                     class_type->variant.class_struct_union.is_nonreal_class);
+     is_class_struct_union_type(class_type) &&
+     (class_type->variant.class_struct_union.extra_info->assoc_scope != NULL ||
+      (class_type->variant.class_struct_union.is_nonreal_class &&
+       !class_type->variant.class_struct_union.is_prototype_instantiation));
   /* Only get normal_sym from the locator if a fundamental symbol was
      returned by the lookup.  The specific symbol in the locator could
      be non-NULL in error cases. */ 

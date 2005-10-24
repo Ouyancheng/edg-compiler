@@ -1,5 +1,16 @@
 Version 3.7
 
+10/24/05 Internal error on dependent destructor call with incomplete type
+
+An internal error in create_proxy_or_nonreal_class_member_of_kind could
+occur as a result of a dependent destructor call using a qualified name
+in which the class named is an incomplete type.  Now fixed.
+
+  template<class T> class Y {
+    class X;
+    void fun(X *x) { x->X::~X(); }  // now gets "incomplete type not allowed"
+  }; 
+
 10/19/05 Microsoft compatibility: __is_union, __has_copy, etc.
 
 In Microsoft C++ mode, with microsoft_version >= 1400, the front end now
