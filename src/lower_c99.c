@@ -2740,13 +2740,11 @@ replace them by a representation compatible with C89.
 #endif /* LOWER_FIXED_POINT */
       break;
 #endif /* FIXED_POINT_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
 #if LOWER_COMPLEX
       lower_c99_complex_constant(constant);
 #endif /* LOWER_COMPLEX */
-      break;
-    case ck_aggregate:
-      lower_c99_constant_list(constant->variant.aggregate.first_constant);
       break;
     case ck_imaginary:
 #if LOWER_COMPLEX
@@ -2754,6 +2752,10 @@ replace them by a representation compatible with C89.
          Its type will similarly be adjusted. */
       constant->kind = (a_constant_repr_kind)ck_float;
 #endif /* LOWER_COMPLEX */
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case ck_aggregate:
+      lower_c99_constant_list(constant->variant.aggregate.first_constant);
       break;
     case ck_address:
       switch (constant->variant.address.kind) {
@@ -3653,6 +3655,7 @@ Replace the imaginary and complex C99 types by their lowered representations.
 }  /* lower_c99_nonreal_float_types */
 
 #endif /* LOWER_COMPLEX */
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 static void lower_c99_bool_type(void)
 /*
@@ -3666,6 +3669,7 @@ Replace the C99 _Bool type by its lowered representation.
   }  /* if */
 }  /* lower_c99_bool_type */
 
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if LOWER_FIXED_POINT
 
 a_type_ptr lowered_integer_type_for_fixed_point_type(a_type_ptr fx_type)
@@ -3794,7 +3798,9 @@ Do C99 lowering for a memory region (for the file scope or a function scope).
 #if LOWER_COMPLEX
     lower_c99_nonreal_float_types();
 #endif /* LOWER_COMPLEX */
+#if C99_IL_EXTENSIONS_SUPPORTED
     lower_c99_bool_type();
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if LOWER_FIXED_POINT
     if (fixed_point_enabled) {
       lower_c99_fixed_point_types();

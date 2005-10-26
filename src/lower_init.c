@@ -3969,15 +3969,23 @@ will be changed to an aggregate constant for the constant parts and
     desired_type = ipdp->modifiers->type;
 #if DO_C99_IL_LOWERING
     if (C_mode()) {
+#if LOWER_COMPLEX
       if (is_imaginary_type(desired_type)) {
         /* In C99, create a float constant for an imaginary type. */
         desired_type = skip_typerefs(desired_type);
         desired_type = float_type(desired_type->variant.float_kind);
+      } else
+#endif /* LOWER_COMPLEX */
+      /* Do not insert code here. */
 #if LOWER_FIXED_POINT
-      } else if (is_fixed_point_type(desired_type)) {
+      if (is_fixed_point_type(desired_type)) {
         /* A fixed-point type becomes an integer. */
         desired_type=lowered_integer_type_for_fixed_point_type(desired_type);
+      } else
 #endif /* LOWER_FIXED_POINT */
+      /* Do not insert code here. */
+      {
+        /* Nothing to be done. */
       }  /* if */
     } else
 #endif /* DO_C99_IL_LOWERING */
@@ -3992,9 +4000,9 @@ will be changed to an aggregate constant for the constant parts and
       }  /* if */
     }  /* if */
     if (is_aggregate_or_union_type(desired_type)
-#if DO_C99_IL_LOWERING
+#if DO_C99_IL_LOWERING && LOWER_COMPLEX
         || is_complex_type(desired_type)
-#endif /* DO_C99_IL_LOWERING */
+#endif /* DO_C99_IL_LOWERING && LOWER_COMPLEX */
                                                 ) {
       /* An aggregate is initialized with a ck_dynamic_init.  This can
          come up in something like

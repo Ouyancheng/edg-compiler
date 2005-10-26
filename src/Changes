@@ -1,5 +1,11 @@
 Version 3.7
 
+10/26/05 Compilation errors in some configurations
+
+Various compilation error occurred when GNU_EXTENSIONS_ALLOWED and
+DO_IL_LOWERING are TRUE and C99_IL_EXTENSIONS_SUPPORTED is FALSE.  This is
+now fixed.
+
 10/26/05 GNU C++ compatibility: Typedef names in elaborated type names
 
 In GNU C++ mode with gnu_version < 30400, the front end now accepts elaborated

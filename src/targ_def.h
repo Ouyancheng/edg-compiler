@@ -294,9 +294,11 @@ support library.
 #if DO_C99_IL_LOWERING && !DO_IL_LOWERING
  #error -- C99 IL lowering cannot be done if DO_IL_LOWERING is FALSE
 #endif /* DO_C99_IL_LOWERING && !DO_IL_LOWERING */
-#if DO_C99_IL_LOWERING && !C99_IL_EXTENSIONS_SUPPORTED
- #error -- C99 IL lowering cannot be done if C99 IL extensions not supported
-#endif /* DO_C99_IL_LOWERING && !C99_IL_EXTENSIONS_SUPPORTED */
+#if DO_C99_IL_LOWERING && \
+    !(C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED)
+ #error -- C99 IL lowering cannot be done if C99 or GNU IL extensions not \
+           supported
+#endif /* DO_C99_IL_LOWERING && !(C99_IL_EXTENSIONS_SUPPORTED || GNU_...) */
 
 /*
 Flag that is TRUE if the "long long" data type and the associated language
@@ -3650,15 +3652,17 @@ whole process.
 
 /*
 This switch controls whether complex and imaginary types and operations
-(a C99 feature) are lowered to C89 form.  The lowered form uses
-calls to runtime routines to implement complex operations and conversions.
+(a C99 feature) are lowered to C89 form.  The lowered form uses calls to
+runtime routines to implement complex operations and conversions.
 */
 #ifndef LOWER_COMPLEX
-#if DO_C99_IL_LOWERING
+#if C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING
+/* Note that DO_C99_IL_LOWERING == TRUE can be meaningful even when
+   C99_IL_EXTENSIONS_SUPPORTED is FALSE (e.g., to lower GNU C constructs). */
 #define LOWER_COMPLEX TRUE
-#else /* !DO_C99_IL_LOWERING */
+#else /* !(C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING) */
 #define LOWER_COMPLEX FALSE
-#endif /* DO_C99_IL_LOWERING */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING */
 #endif /* ifndef LOWER_COMPLEX */
 #if LOWER_COMPLEX && !DO_C99_IL_LOWERING
  #error -- Complex cannot be lowered without doing C99 IL lowering
