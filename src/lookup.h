@@ -236,6 +236,7 @@ extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
 
 extern a_symbol_ptr curr_tag_symbol(a_symbol_locator  *locator,
                                     a_symbol_kind     tag_kind,
+                                    a_boolean         allow_typedef,
                                     a_boolean         is_friend_decl);
 
 extern a_symbol_ptr class_qualified_id_lookup(

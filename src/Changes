@@ -1,5 +1,15 @@
 Version 3.7
 
+10/26/05 GNU C++ compatibility: Typedef names in elaborated type names
+
+In GNU C++ mode with gnu_version < 30400, the front end now accepts elaborated
+type names with a qualified typedef name that is a synonym for a class type.
+Previously, typedef names were only accepted in such modes if the typedef was
+itself a class member.  For example:
+
+  typedef struct S T;
+  struct ::T *p;  // Now accepted in some GNU C++ modes.
+
 10/26/05 Compilation errors in some configurations
 
 The layout.c file could not be compiled when USER_CONTROL_OF_STRUCT_PACKING and

@@ -1254,6 +1254,7 @@ caution when modifying this routine.
   a_boolean	             is_tag_definition = FALSE;
   an_identifier_options_set  options;
   a_scope_depth              computed_decl_level;
+  a_boolean                  allow_typedef = FALSE;
 
   db_enter(3, "scan_tag_name");
   *tag_resolution = FALSE;
@@ -1276,34 +1277,42 @@ caution when modifying this routine.
          declaration context (namely, it may belong to a ?: operator). */
       is_tag_definition = TRUE;
     }  /* if */
+    if (gpp_mode && gnu_version < 30400 &&
+        tag_kind != (a_symbol_kind)sk_enum_tag &&
+        !locator_for_curr_id.is_error &&
+        locator_for_curr_id.is_qualified_name) {
+      /* Early GNU C++ compilers allow elaborated class names whose identifier
+         is a qualified typedef name. */
+      allow_typedef = TRUE;
+      if (!locator_for_curr_id.is_class_member) {
+        /* GNU C++ compilers treat elaborated class names qualified with the
+           current namespace scope as unqualified names. */
+        a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+        if (((ssep->kind == (a_scope_kind)sck_namespace ||
+              ssep->kind == (a_scope_kind)sck_namespace_extension) &&
+             ssep->il_scope->variant.assoc_namespace ==
+                              qualifier_namespace_ptr(locator_for_curr_id)) ||
+            (ssep->kind == (a_scope_kind)sck_file &&
+             qualifier_namespace_ptr(locator_for_curr_id) == NULL)) {
+          if (is_tag_definition || next_tok == tok_semicolon) {
+            /* Issue a warning if the tag introduces a class definition or a
+               stand-alone declaration. */
+            an_error_code  err_code;
+            if (ssep->kind == (a_scope_kind)sck_file) {
+              err_code = ec_nonstd_qualifier_in_global_scope_decl;
+            } else {
+              err_code = ec_nonstd_qualifier_in_namespace_member_decl;
+            }  /* if */
+            pos_warning(err_code, &pos_curr_token);
+          }  /* if */
+          clear_qualifier_from_locator(&locator_for_curr_id);
+        }  /*  if */
+      }  /*  if */
+    }  /* if */
   } else {
     /* Identifier is missing. */
     error(ec_exp_identifier);
     tag_err = TRUE;
-  }  /* if */
-  if (gpp_mode && gnu_version < 30400 &&
-      tag_kind != (a_symbol_kind)sk_enum_tag &&
-      !locator_for_curr_id.is_error &&
-      !locator_for_curr_id.is_class_member &&
-      locator_for_curr_id.is_qualified_name) {
-    /* GNU C++ compilers treat elaborated class names qualified with the
-       current namespace scope as unqualified names. */
-    a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
-    if (((ssep->kind == (a_scope_kind)sck_namespace ||
-          ssep->kind == (a_scope_kind)sck_namespace_extension) &&
-         ssep->il_scope->variant.assoc_namespace ==
-                            qualifier_namespace_ptr(locator_for_curr_id)) ||
-        (ssep->kind == (a_scope_kind)sck_file &&
-         qualifier_namespace_ptr(locator_for_curr_id) == NULL)) {
-      an_error_code  err_code;
-      if (ssep->kind == (a_scope_kind)sck_file) {
-        err_code = ec_nonstd_qualifier_in_global_scope_decl;
-      } else {
-        err_code = ec_nonstd_qualifier_in_namespace_member_decl;
-      }  /* if */
-      pos_warning(err_code, &pos_curr_token);
-      clear_qualifier_from_locator(&locator_for_curr_id);
-    }  /*  if */
   }  /* if */
   if (!C_mode() || microsoft_mode) {
     /* The effective scope depth for the current declaration may need to be
@@ -1668,7 +1677,17 @@ caution when modifying this routine.
            class A { };               // Okay -- defines ::A
          curr_scope_id_lookup will return ::A only, whereas normal_id_lookup
          will return a projection symbol that informs of the ambiguity. */
-      tag_sym = curr_scope_id_lookup(locator, IDL_MUST_BE_TAG);
+      /* In some GNU modes, the class' tag name may be replaced by a
+         typedef name. */
+      an_id_lookup_options_set  options = allow_typedef ? IDL_MUST_BE_CLASS
+                                                        : IDL_MUST_BE_TAG;
+      tag_sym = curr_scope_id_lookup(locator, options);
+      if (allow_typedef && tag_sym->kind == (a_symbol_kind)sk_type) {
+        /* A typedef name was scanned.  Work with the underlying class symbol
+           in what follows. */
+        a_type_ptr  typedef_type = skip_typerefs(tag_sym->variant.type.ptr);
+        tag_sym = (a_symbol_ptr)typedef_type->source_corresp.assoc_info;
+      }  /* if */
       if (tag_sym != NULL && is_injected_class_symbol(tag_sym)) {
         /* Ignore an injected class symbol, which would be found for this sort
            of case:
@@ -1740,7 +1759,8 @@ caution when modifying this routine.
       } else {
         /* This may be a reference to an existing tag, either from the
            current scope or from a containing scope or a base class. */
-        tag_sym = curr_tag_symbol(locator, tag_kind, *is_friend_decl);
+        tag_sym = curr_tag_symbol(locator, tag_kind, allow_typedef,
+                                  *is_friend_decl);
         if (tag_sym == NULL) {
           /* We will need to enter an incomplete tag that may be resolved
              later.  Just leave tag_sym NULL.  In C it will be entered at
@@ -2473,7 +2493,8 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
     }  /* if */
     if (tag_sym != NULL) {
       /* Check for tag mismatch.  This can only happen when an instance of a
-         class template is being referenced in an elaborated type specifier. */
+         class template is being referenced in an elaborated type specifier
+         or in some GNU C++ and Cfront cases. */
       if (tag_sym->kind == (a_symbol_kind)sk_type) {
         if (tag_sym->variant.type.ptr->kind ==
                                              (a_type_kind)tk_template_param) {
@@ -2497,13 +2518,14 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
             tag_sym->kind = tag_kind;
           }  /* if */
 #if CHECKING
-        } else if (any_cfront_mode()) {
+        } else if (any_cfront_mode() || gpp_mode) {
           /* Cfront bug that allows this:
                typedef class A B;
                class B;
                class B *pa;
              The current declaration must not be a definition and the
-             typedef name must refer to a class type. */
+             typedef name must refer to a class type.  GNU C++ allows a
+             similar construct even in definitions. */
           check_assertion(is_class_struct_union_type(tag_sym->
                                                        variant.type.ptr));
         } else {

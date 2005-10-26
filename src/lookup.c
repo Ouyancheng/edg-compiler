@@ -270,6 +270,7 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
     (projection_allowed || sym->kind != (a_symbol_kind)sk_projection))
 
   check_assertion_str2((options & ~(IDL_MUST_BE_TAG |
+                                    IDL_MUST_BE_CLASS |
                                     IDL_PROJ_SYMBOL_ALLOWED |
                                     IDL_HIDDEN_NAME_LOOKUP)) == 0,
                        "curr_scope_id_lookup:", "invalid_option");
@@ -3337,11 +3338,13 @@ C and C++.
 
 a_symbol_ptr curr_tag_symbol(a_symbol_locator  *locator,
                              a_symbol_kind     tag_kind,
+                             a_boolean         allow_typedef,
                              a_boolean         is_friend_decl)
 /*
 The current token is an identifier.  If it is a tag of the indicated kind
 do ambiguity and access control checking and return a pointer to the tag
-symbol.  Otherwise, return NULL.  is_friend_decl is TRUE when the tag appears
+symbol.  Otherwise, return NULL.  allow_typedef is TRUE if the identifier
+may refer to a typedef.  is_friend_decl is TRUE when the tag appears
 in a friend declaration.
 */
 {
@@ -3436,11 +3439,11 @@ in a friend declaration.
       }  /* if */
     } else if (assoc_symbol->kind == (a_symbol_kind)sk_type &&
                !is_injected_class_name) {
-      if (is_friend_decl && gpp_mode  && gnu_version < 30400 &&
-          assoc_symbol->is_class_member && is_class_symbol(assoc_symbol)) {
+      if (gpp_mode  && gnu_version < 30400 && allow_typedef &&
+          is_class_symbol(assoc_symbol)) {
         /* Some versions of g++ allows "class <typedef-name>" when the typedef
-           is a class member.  Only allow this if the type referred to is a
-           class type. */
+           name is a qualified name.  Only allow this if the type referred to
+           is a class type. */
       } else {
         /* The lookup found a typedef name.  Issue a diagnostic. */
         pos_st_error(ec_typedef_in_elab_type, 
