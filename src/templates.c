@@ -10189,8 +10189,10 @@ generated.
       a_template_instance_ptr	tip;
       for (tip = tssp->variant.function.instantiations; tip != NULL;
            tip = tip->next) {
-        pos_sy2_error(ec_specialization_of_referenced_template,
-                      error_pos, template_sym, tip->instance_sym);
+        if (tip->instance_sym->referenced) {
+          pos_sy2_error(ec_specialization_of_referenced_template,
+                        error_pos, template_sym, tip->instance_sym);
+        }  /* if */
       }  /* for */
     } else {
      a_symbol_ptr	sym;

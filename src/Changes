@@ -1,5 +1,19 @@
 Version 3.7
 
+10/26/05 Spurious error on specialization of template specialized later
+
+A spurious error was issued if a full explicit specialization of a member
+function template of a class template was followed by an explicit
+specialization of the template itself for a given instance of the enclosing
+class.  In the example below, an error was issued that the template
+specialization #2 must precede the first use of the template at #1.
+
+  template <class T> struct A {
+    template <class U> A(const A<U>&);
+  };
+  template <> template <> A<int>::A(const A<double>&);  // #1
+  template <> template <class U> A<int>::A(const A<U>& ) {}  // #2
+
 10/24/05 Internal error on dependent destructor call with incomplete type
 
 An internal error in create_proxy_or_nonreal_class_member_of_kind could
