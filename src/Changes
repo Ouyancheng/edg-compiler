@@ -1,5 +1,11 @@
 Version 3.7
 
+10/26/05 Compilation errors in some configurations
+
+The layout.c file could not be compiled when USER_CONTROL_OF_STRUCT_PACKING and
+IA64_ABI are TRUE, and GNU_EXTENSIONS_ALLOWED and MICROSOFT_EXTENSIONS_ALLOWED
+are FALSE.  This is now fixed.
+
 10/26/05 Spurious error on specialization of template specialized later
 
 A spurious error was issued if a full explicit specialization of a member
