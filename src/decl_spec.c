@@ -1378,6 +1378,12 @@ caution when modifying this routine.
           if (is_injected_class_symbol(tag_sym)) {
             tag_sym = (a_symbol_ptr)(type_symbol_type(tag_sym)->
                                                     source_corresp.assoc_info);
+          } else if (allow_typedef &&
+                     tag_sym->kind == (a_symbol_kind)sk_type) {
+            /* A typedef name was scanned.  Work with the underlying class
+               symbol in what follows. */
+            a_type_ptr  typedef_tp = skip_typerefs(tag_sym->variant.type.ptr);
+            tag_sym = (a_symbol_ptr)typedef_tp->source_corresp.assoc_info;
           }  /* if */
           if (tag_sym->kind != tag_kind) {
             /* A qualified name is being used with a different tag kind than
@@ -1684,8 +1690,8 @@ caution when modifying this routine.
       if (allow_typedef && tag_sym->kind == (a_symbol_kind)sk_type) {
         /* A typedef name was scanned.  Work with the underlying class symbol
            in what follows. */
-        a_type_ptr  typedef_type = skip_typerefs(tag_sym->variant.type.ptr);
-        tag_sym = (a_symbol_ptr)typedef_type->source_corresp.assoc_info;
+        a_type_ptr  typedef_tp = skip_typerefs(tag_sym->variant.type.ptr);
+        tag_sym = (a_symbol_ptr)typedef_tp->source_corresp.assoc_info;
       }  /* if */
       if (tag_sym != NULL && is_injected_class_symbol(tag_sym)) {
         /* Ignore an injected class symbol, which would be found for this sort
