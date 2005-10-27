@@ -1679,9 +1679,8 @@ caution when modifying this routine.
          will return a projection symbol that informs of the ambiguity. */
       /* In some GNU modes, the class' tag name may be replaced by a
          typedef name. */
-      an_id_lookup_options_set  options = allow_typedef ? IDL_MUST_BE_CLASS
-                                                        : IDL_MUST_BE_TAG;
-      tag_sym = curr_scope_id_lookup(locator, options);
+      tag_sym = curr_scope_id_lookup(locator, allow_typedef ? IDL_MUST_BE_CLASS
+                                                            : IDL_MUST_BE_TAG);
       if (allow_typedef && tag_sym->kind == (a_symbol_kind)sk_type) {
         /* A typedef name was scanned.  Work with the underlying class symbol
            in what follows. */

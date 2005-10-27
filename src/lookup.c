@@ -3439,11 +3439,13 @@ in a friend declaration.
       }  /* if */
     } else if (assoc_symbol->kind == (a_symbol_kind)sk_type &&
                !is_injected_class_name) {
-      if (gpp_mode  && gnu_version < 30400 && allow_typedef &&
+      if (gpp_mode  && gnu_version < 30400 && 
+          (allow_typedef || assoc_symbol->is_class_member) &&
           is_class_symbol(assoc_symbol)) {
         /* Some versions of g++ allows "class <typedef-name>" when the typedef
-           name is a qualified name.  Only allow this if the type referred to
-           is a class type. */
+           name is a qualified name (determined by the called) or when the
+           typedef name is a class member (determined here).  Only allow this
+           if the type referred to is a class type. */
       } else {
         /* The lookup found a typedef name.  Issue a diagnostic. */
         pos_st_error(ec_typedef_in_elab_type, 
