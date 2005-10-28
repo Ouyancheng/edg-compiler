@@ -1107,6 +1107,14 @@ Initialize the option information table.
                          "no_stdc_zero_in_system_headers",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_template_typedefs_in_diagnostics,
+                         "template_typedefs_in_diagnostics",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_template_typedefs_in_diagnostics,
+                         "no_template_typedefs_in_diagnostics",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -4198,6 +4206,9 @@ enable_microsoft_mode:
         break;
       case optk_stdc_zero_in_system_headers:
         stdc_zero_in_system_headers = opt_value;
+        break;
+      case optk_template_typedefs_in_diagnostics:
+        display_template_typedefs_in_diagnostics = opt_value;
         break;
       default:
         /* It should not be possible to get here. */

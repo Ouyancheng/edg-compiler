@@ -5008,6 +5008,8 @@ line processing is done.
   do_not_wrap_diagnostics = FALSE;
   display_error_context_on_catastrophe =
                                   DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE;
+  display_template_typedefs_in_diagnostics =
+                              DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS;
 #if FULLY_RESOLVED_MACRO_POSITIONS
   macro_positions_in_diagnostics = DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */

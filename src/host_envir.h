@@ -297,6 +297,16 @@ initial value of the variable context_limit, which can be overridden by the
 #define DEFAULT_CONTEXT_LIMIT 10
 #endif /* ifndef DEFAULT_CONTEXT_LIMIT */
 
+/*
+Flag that is TRUE if typedefs declared in template classes should not be
+replaced with the underlying type in diagnostic output.  Removing such
+typedefs generally produces better diagnostics.  This macro is provided
+to preserve the diagnostic behavior of earlier versions of the front end.
+*/
+#ifndef DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS
+#define DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS FALSE
+#endif /* ifndef DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS */
+
 #if FULLY_RESOLVED_MACRO_POSITIONS
 /*
 Flag that is TRUE if diagnostics referring to text in macro expansions should

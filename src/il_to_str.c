@@ -1366,6 +1366,34 @@ block, needed because it indicates whether local typedefs are invisible.
 
 #endif /* ifdef CFE */
 
+static a_boolean is_member_typedef_that_should_be_ignored(
+				a_type_ptr				type,
+				an_il_to_str_output_control_block_ptr	octl)
+/*
+"type" is a typedef.  Return TRUE if the typedef is one that should be
+stripped when producing diagnostic output (and we are not generating
+compilable code).  Typedefs that are members of template classes are replaced
+with the underlying type when display_template_typedefs_in_diagnostics
+is FALSE.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (!octl->gen_compilable_code &&
+      !display_template_typedefs_in_diagnostics) {
+    if (type->source_corresp.is_class_member) {
+      /* Drop the typedef if it was defined in a template class.  This is
+         done even if the class was specialized. */
+      a_type_ptr	parent_type = type->source_corresp.parent.class_type;
+      if (parent_type->variant.class_struct_union.is_template_class) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_member_typedef_that_should_be_ignored */
+
+
 void form_type_first_part(
                     a_type_ptr                            type,
                     a_boolean                             under_lhs_declarator,
@@ -1420,8 +1448,12 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
      that aren't visible here.  Accumulate the type qualifier set. */
   while (type->kind == (a_type_kind)tk_typeref) {
     if (typeref_is_typedef(type)) {
-      /* Typedef.  Stop unless it's invisible. */
-      if (!typedef_is_invisible(type, suppress_const, octl)) break;
+      /* Typedef.  Stop unless it's invisible, or if it is a typedef that
+         should be dropped in diagnostic output. */
+      if (!typedef_is_invisible(type, suppress_const, octl) &&
+          !is_member_typedef_that_should_be_ignored(type, octl)) {
+        break;
+      }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     } else if (type->variant.typeref.is_typeof) {
       /* GNU C typeof operator: behaves much like a typedef. */
@@ -1807,8 +1839,12 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
      typedefs.  Accumulate the type qualifier set. */
   while (type->kind == (a_type_kind)tk_typeref) {
     if (typeref_is_typedef(type)) {
-      /* Typedef.  Stop unless it's invisible. */
-      if (!typedef_is_invisible(type, suppress_const, octl)) break;
+      /* Typedef.  Stop unless it's invisible, or if it is a typedef that
+         should be dropped in diagnostic output. */
+      if (!typedef_is_invisible(type, suppress_const, octl) &&
+          !is_member_typedef_that_should_be_ignored(type, octl)) {
+        break;
+      }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     } else if (type->variant.typeref.is_typeof) {
       break;
