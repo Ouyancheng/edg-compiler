@@ -7008,7 +7008,6 @@ enum a_builtin_function_kind_tag {
   bfk_llabs,                    /* "__builtin_llabs" */
 #endif /* LONG_LONG_ALLOWED */
   bfk_imaxabs,                  /* "__builtin_imaxabs" */
-#if C99_IL_EXTENSIONS_SUPPORTED
   bfk_conj,                     /* "__builtin_conj" */
   bfk_conjf,                    /* "__builtin_conjf" */
   bfk_conjl,                    /* "__builtin_conjl" */
@@ -7018,7 +7017,6 @@ enum a_builtin_function_kind_tag {
   bfk_cimag,                    /* "__builtin_cimag" */
   bfk_cimagf,                   /* "__builtin_cimagf" */
   bfk_cimagl,                   /* "__builtin_cimagl" */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   bfk_isgreater,                /* "__builtin_isgreater" */
   bfk_isgreaterequal,           /* "__builtin_isgreaterequal" */
   bfk_isless,                   /* "__builtin_isless" */
@@ -7191,7 +7189,6 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_llabs */                    "__builtin_llabs",
 #endif /* LONG_LONG_ALLOWED */
   /* bfk_imaxabs */                  "__builtin_imaxabs",
-#if C99_IL_EXTENSIONS_SUPPORTED
   /* bfk_conj */                     "__builtin_conj",
   /* bfk_conjf */                    "__builtin_conjf",
   /* bfk_conjl */                    "__builtin_conjl",
@@ -7201,7 +7198,6 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_cimag */                    "__builtin_cimag",
   /* bfk_cimagf */                   "__builtin_cimagf",
   /* bfk_cimagl */                   "__builtin_cimagl",
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   /* bfk_isgreater */                "__builtin_isgreater",
   /* bfk_isgreaterequal */           "__builtin_isgreaterequal",
   /* bfk_isless */                   "__builtin_isless",
