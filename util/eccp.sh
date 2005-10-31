@@ -665,6 +665,7 @@ check_abbreviation()
 --no_sun
 --no_sun_linker_scope
 --no_svr4
+--no_template_typedefs_in_diagnostics
 --no_thread_local_storage
 --no_trigraphs
 --no_typename
@@ -732,6 +733,7 @@ check_abbreviation()
 --svr4
 --sys_include
 --template_directory
+--template_typedefs_in_diagnostics
 --thread_local_storage
 --time_limit
 --timing
@@ -1234,6 +1236,8 @@ process_option()
          --no_thread_local_storage | \
          --trigraphs | \
          --no_trigraphs | \
+         --template_typedefs_in_diagnostics | \
+         --no_template_typedefs_in_diagnostics | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
