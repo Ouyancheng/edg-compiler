@@ -1163,14 +1163,16 @@ by octl.
       }
       break;
 #endif /* FIXED_POINT_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
     case tk_complex:
+#if C99_IL_EXTENSIONS_SUPPORTED
     case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       form_float_kind_name(type->variant.float_kind, octl);
       octl->output_str((char *)(type->kind == (a_type_kind)tk_complex ?
                        " _Complex" : " _Imaginary"));
       break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
     case tk_float:
       form_float_kind_name(type->variant.float_kind, octl);
       break;
@@ -1267,12 +1269,12 @@ by octl.
         octl->output_str(")");
       }
       break;
-#if !C99_IL_EXTENSIONS_SUPPORTED
+#if !(C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED)
     case tk_complex:
       form_float_kind_name(type->variant.float_kind, octl);
       octl->output_str(" complex");
       break;
-#endif /* !C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* !(C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED) */
     case tk_stmt_label:
       octl->output_str("<stmt-label>");
       break;
@@ -3876,23 +3878,59 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       octl->output_str(")");
       break;
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
     case ck_complex:
       /* Complex constant. */
       /* Put parentheses around the constant and use the form
-         ( A + B*__I__ ). */
-      octl->output_str("(");
-      form_float_constant(&constant->variant.complex_value->real,
-                          con_type->variant.float_kind,
-                          octl);
-      octl->output_str(" + ");
-      form_float_constant(&constant->variant.complex_value->imag,
-                          con_type->variant.float_kind,
-                          octl);
-      octl->output_str("*__I__");
-      octl->output_str(")");
+         ( A + B*__I__ ).  If the real or imaginary parts are zero,
+         simplify the form of output. */
+      { a_boolean  zero_real_part = fp_is_zero_constant(
+                                       con_type->variant.float_kind,
+                                       &constant->variant.complex_value->real);
+        a_boolean  zero_imag_part = fp_is_zero_constant(
+                                       con_type->variant.float_kind,
+                                       &constant->variant.complex_value->imag);
+        /* Parentheses are needed only if either a "+" or "*" operator is
+           used to render this complex value. */
+        a_boolean  parens_needed = !(zero_real_part || zero_imag_part);
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+        if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+          /* No "*" operator will be used to indicate the imaginary part. */
+        } else
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+        /* Do not insert code here. */
+        if (!zero_imag_part) {
+          /* A "*" will be rendered: Ensure the resulting constant is
+             parenthesized. */
+          parens_needed = TRUE;
+        }  /* if */
+        if (parens_needed) octl->output_str("(");
+        if (!zero_real_part || zero_imag_part) {
+          form_float_constant(&constant->variant.complex_value->real,
+                              con_type->variant.float_kind,
+                              octl);
+        }  /* if */
+        if (!(zero_real_part || zero_imag_part)) octl->output_str(" + ");
+        if (!zero_imag_part) {
+          form_float_constant(&constant->variant.complex_value->imag,
+                              con_type->variant.float_kind,
+                              octl);
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+          if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+            /* GNU compilers can parse complex constants like 1.0+2.0i.  That
+               form is also used in context that aren't actual code. */
+            octl->output_str("i");
+          } else
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+          /* Do not insert code here. */
+          {
+            octl->output_str("*__I__");
+          }  /* if */
+        }  /* if */
+        if (parens_needed) octl->output_str(")");
+      }
       break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
 #ifdef CFE
     case ck_address:
       /* Address constant. */

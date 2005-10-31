@@ -1237,11 +1237,14 @@ of gcc and g++ return slightly different values for some expression types.
     case tk_float:
       tck = (a_type_class_kind)tck_float;
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
 #if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_complex:
       tck = (a_type_class_kind)tck_complex;
       break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
     case tk_routine:
       if (gpp_mode && gnu_version >= 30400) {
         tck = (a_type_class_kind)tck_routine;
@@ -3932,11 +3935,11 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
           } else {
             error_in_operand(ec_bool_type_not_allowed, operand);
           }  /* if */
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
         } else if (is_nonreal_floating_type(operand->type)) {
-          /* Complex and imaginary operands are not allowed (in C99).*/
+          /* Complex and imaginary operands are not allowed. */
           error_in_operand(ec_complex_type_not_allowed, operand);
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
         }  /* if */
       }  /* if */
       if (err) {
@@ -4188,11 +4191,11 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
           } else {
             error_in_operand(ec_bool_type_not_allowed, &operand);
           }  /* if */
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
         } else if (is_nonreal_floating_type(operand.type)) {
-          /* Complex and imaginary operands are not allowed (in C99).*/
+          /* Complex and imaginary operands are not allowed. */
           error_in_operand(ec_complex_type_not_allowed, &operand);
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
         }  /* if */
       }  /* if */
       if (err) {
@@ -4893,13 +4896,13 @@ arithmetic type.  The operand of "~" must have integral type.  See section
         result_type = boolean_result_type();
         break;
       case tok_minus:
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
         /* Note that imaginary types fall through to use the normal
            floating-point operator. */
         if (is_complex_type(operand.type)) {
           op = (an_expr_operator_kind)eok_xnegate;
         } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
 #if FIXED_POINT_ALLOWED
         if (is_fixed_point_type(operand.type)) {
           op = (an_expr_operator_kind)eok_fxnegate;
@@ -6169,11 +6172,11 @@ accordingly.  Set *err to TRUE if there is an error.
       } else {
         fkind = (a_float_kind)fk_float;
       }  /* if */
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
       if (is_complex_type(*arg_type) || is_complex_type(new_type)) {
         *arg_type = complex_type(fkind);
       } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
       {
         *arg_type = float_type(fkind);
       }  /* if */
@@ -6335,12 +6338,12 @@ arguments.
         unexpected_condition_str2("scan_type_generic_operator:",
                                   "bad float kind");
     }  /* switch */
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
     /* Positions 7, 8, and 9 are occupied, respectively, by complex
        double, complex float, and complex long double versions of the
        function. */
     if (arg_type->kind == (a_type_kind)tk_complex) func_arg_number += 3;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Scan the remaining arguments, putting the one numbered func_arg_number
      into result, and ignoring the others. */
@@ -12317,7 +12320,7 @@ standard.
     if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
       /* One or both of the operands has an error. */
       operation_type = error_type();
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
     } else if (is_nonreal_floating_type(operand_1->type)) {
       /* Complex and imaginary operands are unordered. */
       pos_error(ec_complex_type_not_allowed, &operand_1->position);
@@ -12325,7 +12328,7 @@ standard.
     } else if (is_nonreal_floating_type(operand_2.type)) {
       pos_error(ec_complex_type_not_allowed, &operand_2.position);
       operation_type = error_type();
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
     } else {
       if (operand_1_is_pointer || is_pointer_type(operand_2.type)) {
         /* At least one of the operands is a pointer.  See if the operands are
@@ -12625,7 +12628,7 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
       result_type = error_type();
     } else if (result_is_lvalue) {
       /* We already determined the operands are compatible. */
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
     } else if (is_nonreal_floating_type(operand_1->type)) {
       /* Complex and imaginary operands are unordered. */
       pos_error(ec_complex_type_not_allowed, &operand_1->position);
@@ -12633,7 +12636,7 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
     } else if (is_nonreal_floating_type(operand_2.type)) {
       pos_error(ec_complex_type_not_allowed, &operand_2.position);
       result_type = error_type();
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
     } else {
       if (operand_1_is_pointer || is_pointer_type(operand_2.type)) {
         /* At least one of the operands is a pointer.  See if the operands are
@@ -16765,11 +16768,11 @@ see expr.h).
       /* The EDG-specific token "__INFINITY__" representing an Infinity
          constant. */
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
     case tok_imaginary_unit:
       /* The EDG-specific token "__I__" representing an imaginary value such
          that __I__*__I__ == -1. */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
     case tok_fixed_point_constant:
     case tok_float_constant:
       { a_boolean float_con_allowed = TRUE;
@@ -16808,12 +16811,12 @@ see expr.h).
             make_infinity_operand(&local_result);
           } else
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
           if (curr_token == tok_imaginary_unit) {
             /* __I__ */
             make_imaginary_unit_operand(&local_result);
           } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
           {
             make_constant_operand(&const_for_curr_token, &local_result);

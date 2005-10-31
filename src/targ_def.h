@@ -3652,21 +3652,19 @@ whole process.
 
 /*
 This switch controls whether complex and imaginary types and operations
-(a C99 feature) are lowered to C89 form.  The lowered form uses calls to
-runtime routines to implement complex operations and conversions.
+(a C99 and GNU C/C++ feature) are lowered to C89 form.  The lowered form uses
+calls to runtime routines to implement complex operations and conversions.
 */
 #ifndef LOWER_COMPLEX
-#if C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING
-/* Note that DO_C99_IL_LOWERING == TRUE can be meaningful even when
-   C99_IL_EXTENSIONS_SUPPORTED is FALSE (e.g., to lower GNU C constructs). */
+#if DO_C99_IL_LOWERING || DO_IL_LOWERING
 #define LOWER_COMPLEX TRUE
-#else /* !(C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING) */
+#else /* !(DO_C99_IL_LOWERING || DO_IL_LOWERING) */
 #define LOWER_COMPLEX FALSE
-#endif /* C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING */
+#endif /* DO_C99_IL_LOWERING || DO_IL_LOWERING */
 #endif /* ifndef LOWER_COMPLEX */
-#if LOWER_COMPLEX && !DO_C99_IL_LOWERING
- #error -- Complex cannot be lowered without doing C99 IL lowering
-#endif /* LOWER_COMPLEX && !DO_C99_IL_LOWERING */
+#if LOWER_COMPLEX && !(DO_C99_IL_LOWERING || DO_IL_LOWERING)
+ #error -- Complex cannot be lowered without doing C99 or C++ IL lowering
+#endif /* LOWER_COMPLEX && !(DO_C99_IL_LOWERING || DO_IL_LOWERING) */
 
 /*
 This switch controls whether fixed-point arithmetic types and operations

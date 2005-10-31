@@ -58,6 +58,11 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_FLOAT "f"
 #define MANGLING_STRING_FOR_DOUBLE "d"
 #define MANGLING_STRING_FOR_LONG_DOUBLE "e"
+#if GNU_EXTENSIONS_ALLOWED
+#define MANGLING_STRING_FOR_COMPLEX_FLOAT "Cf"
+#define MANGLING_STRING_FOR_COMPLEX_DOUBLE "Cd"
+#define MANGLING_STRING_FOR_COMPLEX_LONG_DOUBLE "Ce"
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #define MANGLING_STRING_FOR_REFERENCE "R"
 #define MANGLING_STRING_FOR_POINTER "P"
 #define MANGLING_STRING_FOR_POINTER_TO_MEMBER "M"
@@ -140,6 +145,11 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_FLOAT "f"
 #define MANGLING_STRING_FOR_DOUBLE "d"
 #define MANGLING_STRING_FOR_LONG_DOUBLE "r"
+#if GNU_EXTENSIONS_ALLOWED
+#define MANGLING_STRING_FOR_COMPLEX_FLOAT "Xf"
+#define MANGLING_STRING_FOR_COMPLEX_DOUBLE "Xd"
+#define MANGLING_STRING_FOR_COMPLEX_LONG_DOUBLE "Xr"
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #define MANGLING_STRING_FOR_REFERENCE "R"
 #define MANGLING_STRING_FOR_POINTER "P"
 #define MANGLING_STRING_FOR_POINTER_TO_MEMBER "M"
@@ -4249,6 +4259,25 @@ Add to the mangled name the encoding for the type "type".
 #endif /* CHECKING */
         }  /* switch */
         break;
+#if GNU_EXTENSIONS_ALLOWED
+      case tk_complex:
+        switch (type->variant.float_kind) {
+          case fk_float:          
+            s = MANGLING_STRING_FOR_COMPLEX_FLOAT;
+            break;
+          case fk_double:         
+            s = MANGLING_STRING_FOR_COMPLEX_DOUBLE;
+            break;
+          case fk_long_double:    
+            s = MANGLING_STRING_FOR_COMPLEX_LONG_DOUBLE;
+            break;
+#if CHECKING
+          default:
+            internal_error("mangled_encoding_for_type: bad float kind");
+#endif /* CHECKING */
+        }  /* switch */
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       case tk_pointer:
         if (type->variant.pointer.is_reference) {
           s = MANGLING_STRING_FOR_REFERENCE;
@@ -4631,6 +4660,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_fxnegate:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_fnegate:
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_xnegate:
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_negate:
       opkind = (an_opname_kind)onk_minus;
       num_operands = 1;
@@ -4666,6 +4698,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_fxadd:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_fadd:
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_xadd:
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_add:
       opkind = (an_opname_kind)onk_plus;
       break;
@@ -4674,6 +4709,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_fxsubtract:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_fsubtract:
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_xsubtract:
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_subtract:
       opkind = (an_opname_kind)onk_minus;
       break;
@@ -4682,6 +4720,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_fxmultiply:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_fmultiply:
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_xmultiply:
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_multiply:
       opkind = (an_opname_kind)onk_star;
       break;
@@ -4690,6 +4731,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_fxdivide:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_fdivide:
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_xdivide:
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_divide:
       opkind = (an_opname_kind)onk_divide;
       break;
@@ -4698,6 +4742,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_fxeq:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_feq:
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_xeq:
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_eq:
       opkind = (an_opname_kind)onk_eq;
       break;
@@ -4706,6 +4753,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_fxne:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_fne:
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_xne:
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_ne:
       opkind = (an_opname_kind)onk_ne;
       break;

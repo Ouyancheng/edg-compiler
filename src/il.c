@@ -60,8 +60,10 @@ static a_type_ptr fixed_point_types[(int)fpp_last][/*is_unsigned*/2]
                                    [/*is_fract*/2][/*saturating*/2];
 #endif /* FIXED_POINT_ALLOWED */
 static a_type_ptr float_types[(int)fk_last];
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
 static a_type_ptr complex_types[(int)fk_last];
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
 static a_type_ptr imaginary_types[(int)fk_last];
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #define MAX_TRACKED_STRING_TYPE_LENGTH 80
@@ -1092,14 +1094,16 @@ Dump the contents of the indicated type entry, for debug purposes.
         }
         break;
 #endif /* FIXED_POINT_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
       case tk_complex:
+#if C99_IL_EXTENSIONS_SUPPORTED
       case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         fprintf(f_debug, "%s", float_kind_name(tp->variant.float_kind));
         fprintf(f_debug, tp->kind == (a_type_kind)tk_complex ? " _Complex"
                                                              : " _Imaginary");
         break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
       case tk_float:
         fprintf(f_debug, "%s", float_kind_name(tp->variant.float_kind));
         break;
@@ -3621,11 +3625,11 @@ members), and does not enter those.
         /* Things that should always be on lists. */
         could_be_orphan = FALSE;
         break;
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
       case iek_internal_complex_value:
         could_be_orphan = TRUE;
         break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
       case iek_base_class:
         /* Dependent base classes in prototype instantiations can be
            orphans. */
@@ -4078,14 +4082,14 @@ Return TRUE if the constant is an integer, fixed-point, or floating zero.
     float_kind = skip_typerefs(constant->type)->variant.float_kind;
     is_zero = fp_is_zero_constant(float_kind,
                                   &constant->variant.float_value);
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
   } else if (constant->kind == (a_constant_repr_kind)ck_complex) {
     float_kind = skip_typerefs(constant->type)->variant.float_kind;
     is_zero = fp_is_zero_constant(float_kind,
                                   &constant->variant.complex_value->real) &&
               fp_is_zero_constant(float_kind,
                                   &constant->variant.complex_value->imag);
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
    }  /* if */
   return is_zero;
 }  /* is_zero_constant */
@@ -4806,9 +4810,11 @@ to refine the hash value developed in hash_constant.
                    131;
       break;
 #endif /* FIXED_POINT_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+    case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_imaginary:
-    case tk_complex:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_float:
       hash_value = type->variant.float_kind + 87;
@@ -4918,12 +4924,12 @@ Return the hash value for the indicated constant.
       /* Use a host-dependent routine for floating-point constants. */
       hash_value = 500 + fp_hash(&cp->variant.float_value);
       break;
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
     case ck_complex:
       hash_value = 250 + fp_hash(&cp->variant.complex_value->real)
                        + fp_hash(&cp->variant.complex_value->imag);
       break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
     case ck_address:
       /* Address constant.  If the thing pointed to is named, hash the name;
          otherwise (for the address of a constant), hash the constant pointed
@@ -5364,7 +5370,7 @@ nonidentical.
                                       &cp2->variant.float_value);
         }  /* if */
         break;
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
       case ck_complex:
         cp1_type = skip_typerefs(cp1_type);
         if (is_floating_type(cp1_type)) {
@@ -5376,7 +5382,7 @@ nonidentical.
                                        &cp2->variant.complex_value->imag));
         }  /* if */
         break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
       case ck_address:
         if (cp1->variant.address.kind   == cp2->variant.address.kind &&
             cp1->variant.address.offset == cp2->variant.address.offset) {
@@ -5700,8 +5706,10 @@ region).
     case ck_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
     case ck_imaginary:
-    case ck_complex:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+    case ck_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
     case ck_upc_threads:
     case ck_upc_mythread:
@@ -7161,8 +7169,10 @@ primary translation unit.
 #endif /* FIXED_POINT_ALLOWED */
   for (k = 0; k < (int)fk_last; ++k) {
     float_types[k] = primary_float_type((a_float_kind)k);
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
     complex_types[k] = primary_complex_type((a_float_kind)k);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
     imaginary_types[k] = primary_imaginary_type((a_float_kind)k);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   }  /* for */
@@ -7534,7 +7544,7 @@ return a pointer to it.
   return pft;
 }  /* float_type */
 
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
 
 a_boolean complex_type_used_in_primary_IL(a_float_kind kind)
 /*
@@ -7574,6 +7584,7 @@ return a pointer to it.
   return pft;
 }  /* complex_type */
 
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 a_boolean imaginary_type_used_in_primary_IL(a_float_kind kind)
 /*
@@ -7614,6 +7625,7 @@ return a pointer to it.
 }  /* imaginary_type */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
 
 a_type_ptr string_type(a_targ_size_t num_chars)
 /*
@@ -11085,6 +11097,12 @@ to TRUE.  *source_pos gives the source position for errors.
       case eok_fgnu_max:
       case eok_pgnu_min:
       case eok_pgnu_max:
+      case eok_xadd:
+      case eok_xsubtract:
+      case eok_xmultiply:
+      case eok_xdivide:
+      case eok_xeq:
+      case eok_xne:
 #endif /* GNU_EXTENSIONS_ALLOWED */
         do_usual_arith_conversions = TRUE;
         break;
@@ -11102,6 +11120,12 @@ to TRUE.  *source_pos gives the source position for errors.
       case eok_remainder_assign:
       case eok_and_assign:
       case eok_or_assign:
+#if GNU_EXTENSIONS_ALLOWED
+      case eok_xadd_assign:
+      case eok_xsubtract_assign:
+      case eok_xmultiply_assign:
+      case eok_xdivide_assign:
+#endif /* GNU_EXTENSIONS_ALLOWED */
         do_usual_arith_conversions = TRUE;
         assignment_case = TRUE;
         break;
@@ -11148,19 +11172,9 @@ to TRUE.  *source_pos gives the source position for errors.
          mode, bear in mind that determine_arithmetic_conversions does
          not do the whole job for imaginary types; see also
          determine_imaginary_operation_type. */
-      case eok_xadd:
-      case eok_xsubtract:
-      case eok_xmultiply:
       case eok_jmultiply:
-      case eok_xdivide:
       case eok_jdivide:
-      case eok_xeq:
-      case eok_xne:
-      case eok_xadd_assign:
-      case eok_xsubtract_assign:
-      case eok_xmultiply_assign:
-      case eok_xdivide_assign:
-        unexpected_condition_str("complex operators not implemented");
+        unexpected_condition_str("imaginary operators not implemented");
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       default:
@@ -17922,8 +17936,10 @@ in il_init.)
 #if FIXED_POINT_ALLOWED
       pch_array_saved_var_array_elem(fixed_point_types),
 #endif /* FIXED_POINT_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
       pch_array_saved_var_array_elem(complex_types),
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
       pch_array_saved_var_array_elem(imaginary_types),
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       pch_array_saved_var_array_elem(string_types),
@@ -17980,8 +17996,10 @@ in il_init.)
   register_trans_unit_array(fixed_point_types);
 #endif /* FIXED_POINT_ALLOWED */
   register_trans_unit_array(float_types);
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
   register_trans_unit_array(complex_types);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
   register_trans_unit_array(imaginary_types);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   register_trans_unit_array(string_types);
@@ -18085,8 +18103,10 @@ need initialization for every (primary and secondary) translation unit.
   memzero((char *)fixed_point_types, sizeof(fixed_point_types));
 #endif /* FIXED_POINT_ALLOWED */
   memzero((char *)float_types, sizeof(float_types));
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
   memzero((char *)complex_types, sizeof(complex_types));
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
   memzero((char *)imaginary_types, sizeof(imaginary_types));
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   memzero((char *)string_types, sizeof(string_types));

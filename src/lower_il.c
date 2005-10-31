@@ -3845,6 +3845,13 @@ Do IL lowering of the indicated constant and everything under it.
       case ck_init_repeat:
         /* No handling required. */
         break;
+#if GNU_EXTENSIONS_ALLOWED
+      case ck_complex:
+#if LOWER_COMPLEX
+        lower_c99_complex_constant(constant);
+#endif /* LOWER_COMPLEX */
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       case ck_address:
         switch (constant->variant.address.kind) {
           case abk_routine:
@@ -7504,6 +7511,11 @@ Do IL lowering of the indicated type and everything under it.
           lower_type(type->variant.integer.enum_info.affiliated_type);
         }  /* if */
         break;
+#if GNU_EXTENSIONS_ALLOWED
+      case tk_complex:
+        /* Complex types are lowered separately. */
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if FIXED_POINT_ALLOWED
       case tk_fixed_point:
         unexpected_condition();
@@ -11469,6 +11481,39 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         /* Do any special lowering required for this operator after the
            operands have been lowered. */
         switch (op) {
+#if LOWER_COMPLEX
+          case eok_xnegate:
+            lower_c99_xnegate(expr);
+            break;
+          case eok_xadd:
+            lower_c99_xadd(expr);
+            break;
+          case eok_xsubtract:
+            lower_c99_xsubtract(expr);
+            break;
+          case eok_xmultiply:
+            lower_c99_xmultiply(expr);
+            break;
+          case eok_xdivide:
+            lower_c99_xdivide(expr);
+            break;
+          case eok_xeq:
+            lower_c99_xeq(expr);
+            break;
+          case eok_xne:
+            lower_c99_xne(expr);
+            break;
+          case eok_xassign:
+            /* Complex assignment becomes structure assignment. */
+            expr->variant.operation.kind = (an_expr_operator_kind)eok_sassign;
+            break;
+          case eok_xadd_assign:
+          case eok_xsubtract_assign:
+          case eok_xmultiply_assign:
+          case eok_xdivide_assign:
+            rewrite_compound_assignment(expr, /*is_lvalue=*/FALSE);
+            break;
+#endif /* LOWER_COMPLEX */
           case eok_virtual_function_ptr:
             /* Determine virtual function address. */
             lower_virtual_function_ptr(expr);
@@ -11495,6 +11540,12 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
               overwrite_node(expr, operand_node);
               expr->type = type;
             }  /* if */
+#if LOWER_COMPLEX
+            if (is_nonreal_floating_type(expr->type) ||
+                is_nonreal_floating_type(operand_node->type)) {
+              lower_c99_complex_cast(expr);
+            }  /* if */
+#endif /* LOWER_COMPLEX */
             if (vla_enabled &&
 #if LOWER_VARIABLE_LENGTH_ARRAYS
                 !type->visited_for_vla_lowering &&
@@ -16742,6 +16793,9 @@ C++ to C, so that a C back end can handle it without change.
         lower_vla_types();
       }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#if LOWER_COMPLEX
+      lower_c99_nonreal_float_types();
+#endif /* LOWER_COMPLEX */
     }  /* if */
     /* Do any processing on classes that has to wait until the very end. */
     do_class_lowering_wrapup(scope);

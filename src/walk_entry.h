@@ -595,12 +595,12 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_string_ptr(ptr->variant.string.value, iek_string_text,
                             ptr->variant.string.length);
             break;
-#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
+#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
           case ck_complex:
             walk_ptr(ptr->variant.complex_value, an_internal_complex_value_ptr,
                      iek_internal_complex_value);
             break;
-#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED || GNU_... */
 #ifdef CFE
           case ck_address:
             switch (ptr->variant.address.kind) {
@@ -851,9 +851,9 @@ the file scope, do not process it (but record an orphan in the latter case).
           case tk_fixed_point:
 #endif /* FIXED_POINT_ALLOWED */
           case tk_float:
-#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
+#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
           case tk_complex:
-#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED || GNU_... */
 #if C99_IL_EXTENSIONS_SUPPORTED
           case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -2246,11 +2246,11 @@ end_sizeof:;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
       break;
-#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
+#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
     case iek_internal_complex_value:
       /* No pointers. */
       break;
-#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED || GNU_... */
 #ifdef FFE
     case iek_bound_info_entry:
       {
@@ -3163,10 +3163,10 @@ of each kind.
      are not maintained on an orphan list.  String types at the file
      scope that are referenced from a function scope are written in that
      function scope region. */
-#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
+#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
   walk_orphan_entry_list_for_entry_kind(an_internal_complex_value_ptr,
                                         iek_internal_complex_value);
-#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED || GNU_... */
 #ifdef FFE
   walk_orphan_entry_list_for_entry_kind(a_bound_info_entry_ptr,
                                         iek_bound_info_entry);

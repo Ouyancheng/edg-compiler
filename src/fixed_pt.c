@@ -767,7 +767,7 @@ to be issued; otherwise set err_code to ec_no_error.
   an_internal_float_value
 		*float_value;
 
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
   an_internal_float_value zero;
 
   if (float_tp->kind == (a_type_kind)tk_complex) {
@@ -775,13 +775,15 @@ to be issued; otherwise set err_code to ec_no_error.
        constant is converted to fixed-point, and the imaginary part is
        discarded. */
     float_value = &old_constant->variant.complex_value->real;
+#if C99_IL_EXTENSIONS_SUPPORTED
   } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
     /* Converting from imaginary to fixed-point.  The result is zero. */
     fp_host_large_integer_to_float(float_kind, (a_host_large_integer)0,
                                    &zero, &err);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     float_value = &zero;
   } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
   {
     check_assertion(old_constant->kind == (a_constant_repr_kind)ck_float);
@@ -853,18 +855,20 @@ to be issued; otherwise set err_code to ec_no_error.
   a_constant_repr_kind	constant_kind = (a_constant_repr_kind)ck_float;
 
   check_assertion(old_constant->kind == (a_constant_repr_kind)ck_fixed_point);
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
   /* We may be converting to a nonreal floating type. */
   if (float_tp->kind == (a_type_kind)tk_complex) {
     constant_kind = (a_constant_repr_kind)ck_complex;
+#if C99_IL_EXTENSIONS_SUPPORTED
   } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
     constant_kind = (a_constant_repr_kind)ck_imaginary;
-  }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
   set_constant_kind(new_constant, constant_kind);
   *err_code = ec_no_error;
   fxp_descr = fxp_descr_for_constant(old_constant);
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
   if (float_tp->kind == (a_type_kind)tk_complex) {
     /* Converting to complex.  The value is converted into the real
        part, and the imaginary part is set to zero. */
@@ -873,14 +877,16 @@ to be issued; otherwise set err_code to ec_no_error.
                                    &new_constant->variant.complex_value->imag,
                                    &err);
     check_assertion(!err);
+#if C99_IL_EXTENSIONS_SUPPORTED
   } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
     /* Converting to imaginary.  The result is zero. */
     fp_host_large_integer_to_float(float_kind, (a_host_large_integer)0,
                                    &new_constant->variant.float_value, &err);
     check_assertion(!err);
     skip_conversion = TRUE;
-  } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  } else
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
   {
     float_value = &new_constant->variant.float_value;

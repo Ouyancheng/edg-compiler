@@ -320,16 +320,24 @@ Install the keywords in the symbol table.
     /* Enable keywords available in both C99 and GNU C mode. */
     enter_keyword((a_token_kind)tok_c99_bool, "_Bool");
   }  /* if */
+  if (c99_mode || gnu_mode) {
+    /* Enable support for complex types in both C99 and GNU C/C++ modes. */
+    enter_keyword((a_token_kind)tok_c99_complex, "_Complex");
+    if (gnu_mode) {
+      /* GNU compilers also accept __complex and __complex__ to denote
+         complex types. */
+      enter_gnu_keyword((a_token_kind)tok_c99_complex, "__complex");
+    } else {
+      enter_keyword((a_token_kind)tok_c99_imaginary, "_Imaginary");
+    }  /* if */
+    /* EDG-specific token representing the imaginary number "i" (i*i == -1). */
+    enter_keyword((a_token_kind)tok_imaginary_unit, "__I__");
+  }  /* if */
   if (c99_mode) {
     /* Enable keywords required in C99 mode. */
     enter_keyword((a_token_kind)tok_inline, "inline");
     /* "__generic" is used in the implementation of type-generic functions. */
     enter_keyword((a_token_kind)tok_generic, "__generic");
-    /* Enable new type names. */
-    enter_keyword((a_token_kind)tok_c99_complex, "_Complex");
-    enter_keyword((a_token_kind)tok_c99_imaginary, "_Imaginary");
-    /* EDG-specific token representing the imaginary number "i" (i*i == -1). */
-    enter_keyword((a_token_kind)tok_imaginary_unit, "__I__");
   }  /* if */
 #if TARG_HAS_IEEE_FLOATING_POINT
   /* EDG-specific token for Not-a-Number constant. */

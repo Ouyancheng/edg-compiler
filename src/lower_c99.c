@@ -1092,26 +1092,6 @@ lowered IL.
 }  /* lowered_complex_type */
 
 
-static a_field_ptr complex_vals_field(a_type_ptr ctype)
-/*
-ctype is a complex type, possibly lowered.  Return a pointer to the
-single field in the struct for the lowered version of the type.
-*/
-{
-  a_field_ptr field;
-
-  ctype = skip_typerefs(ctype);
-  if (ctype->kind == (a_type_kind)tk_complex) {
-    /* Not lowered yet.  Substitute the proper lowered type. */
-    ctype = lowered_complex_type(ctype->variant.float_kind);
-  }  /* if */
-  check_assertion(ctype->kind == (a_type_kind)tk_struct);
-  field = ctype->variant.class_struct_union.field_list;
-  check_assertion(field != NULL && field->next == NULL);
-  return field;
-}  /* complex_vals_field */
-
-
 /* Complex arithmetic and comparison routines. */
 static a_routine_ptr  xnegate_routine[(int)fk_last];
 static a_routine_ptr  xadd_routine[(int)fk_last];
@@ -1152,7 +1132,7 @@ static char *xnegate_routine_name[3] = {"__c99_complex_float_negate",
                                         "__c99_complex_long_double_negate"};
 
 
-static void lower_c99_xnegate(an_expr_node_ptr  expr)
+void lower_c99_xnegate(an_expr_node_ptr  expr)
 /*
 Transform the given complex expression ("-z") into a function call (compatible
 with C89).
@@ -1180,7 +1160,7 @@ static char *xadd_routine_name[3] = {"__c99_complex_float_add",
                                      "__c99_complex_long_double_add"};
 
 
-static void lower_c99_xadd(an_expr_node_ptr  expr)
+void lower_c99_xadd(an_expr_node_ptr  expr)
 /*
 Transform the given complex expression ("z1+z2") into a function call
 (compatible with C89).
@@ -1209,7 +1189,7 @@ static char *xsubtract_routine_name[3] = {
                                          "__c99_complex_long_double_subtract"};
 
 
-static void lower_c99_xsubtract(an_expr_node_ptr  expr)
+void lower_c99_xsubtract(an_expr_node_ptr  expr)
 /*
 Transform the given complex expression ("z1-z2") into a function call
 (compatible with C89).
@@ -1238,7 +1218,7 @@ static char *xmultiply_routine_name[3] = {
                                          "__c99_complex_long_double_multiply"};
 
 
-static void lower_c99_xmultiply(an_expr_node_ptr  expr)
+void lower_c99_xmultiply(an_expr_node_ptr  expr)
 /*
 Transform the given complex expression ("z1*z2") into a function call
 (compatible with C89).
@@ -1267,7 +1247,7 @@ static char *xdivide_routine_name[3] = {
                                         "__c99_complex_long_double_divide"};
 
 
-static void lower_c99_xdivide(an_expr_node_ptr  expr)
+void lower_c99_xdivide(an_expr_node_ptr  expr)
 /*
 Transform the given complex expression ("z1/z2") into a function call
 (compatible with C89).
@@ -1295,7 +1275,7 @@ static char *xeq_routine_name[3] = {"__c99_complex_float_eq",
                                     "__c99_complex_long_double_eq"};
 
 
-static void lower_c99_xeq(an_expr_node_ptr  expr)
+void lower_c99_xeq(an_expr_node_ptr  expr)
 /*
 Transform the given complex expression ("z1==z2") into a function call
 (compatible with C89).
@@ -1324,7 +1304,7 @@ static char *xne_routine_name[3] = {"__c99_complex_float_ne",
                                     "__c99_complex_long_double_ne"};
 
 
-static void lower_c99_xne(an_expr_node_ptr  expr)
+void lower_c99_xne(an_expr_node_ptr  expr)
 /*
 Transform the given complex expression ("z1!=z2") into a function call
 (compatible with C89).
@@ -1346,6 +1326,7 @@ Transform the given complex expression ("z1!=z2") into a function call
   overwrite_node(expr, xne_call);
 }  /* lower_c99_xne */
 
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 static void lower_c99_jmultiply(an_expr_node_ptr  expr)
 /*
@@ -1373,6 +1354,26 @@ division followed by a sign inversion ( a/(b*__I__) = -(a/b)*__I__ ).
                                      expr->variant.operation.operands);
   expr->variant.operation.kind = (an_expr_operator_kind)eok_fnegate;
 }  /* lower_c99_jdivide */
+
+
+static a_field_ptr complex_vals_field(a_type_ptr ctype)
+/*
+ctype is a complex type, possibly lowered.  Return a pointer to the
+single field in the struct for the lowered version of the type.
+*/
+{
+  a_field_ptr field;
+
+  ctype = skip_typerefs(ctype);
+  if (ctype->kind == (a_type_kind)tk_complex) {
+    /* Not lowered yet.  Substitute the proper lowered type. */
+    ctype = lowered_complex_type(ctype->variant.float_kind);
+  }  /* if */
+  check_assertion(ctype->kind == (a_type_kind)tk_struct);
+  field = ctype->variant.class_struct_union.field_list;
+  check_assertion(field != NULL && field->next == NULL);
+  return field;
+}  /* complex_vals_field */
 
 
 static void lower_real_imag_add_subtract(an_expr_node_ptr expr)
@@ -1474,8 +1475,9 @@ negating one part in the "-" case.
                     expr->type, comma_node);
 }  /* lower_real_imag_add_subtract */
 
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-static void lower_c99_complex_cast(an_expr_node_ptr  expr)
+void lower_c99_complex_cast(an_expr_node_ptr  expr)
 /*
 Transform the given complex cast expression into a function call
 (compatible with C89).
@@ -1491,11 +1493,14 @@ Transform the given complex cast expression into a function call
     /* A cast to void.  Nothing needs to be done. */
   } else if (il_identical_types(src_type, dst_type)) {
     /* A do-nothing cast. */
+#if C99_IL_EXTENSIONS_SUPPORTED
     if (is_imaginary_type(src_type)) {
       /* Imaginary types become floating-point types, so the cast can be
          left as it is.  This may actually be useful/necessary, because
          such a cast will drop extra precision on intermediate results. */
-    } else {
+    } else
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    {
       /* A cast to a complex type is eliminated because it would become
          a cast to struct type. */
       overwrite_node(expr, src);
@@ -1553,6 +1558,7 @@ Transform the given complex cast expression into a function call
                                          routine_name, routine,
                                          dst_type, src->type, (a_type_ptr)NULL,
                                          src);
+#if C99_IL_EXTENSIONS_SUPPORTED
     } else if (is_imaginary_type(src_type)) {
       /* Convert imaginary to complex. */
       /* Create a new complex value 0.0 + x*__I__. */
@@ -1580,6 +1586,7 @@ Transform the given complex cast expression into a function call
                                          routine_name, routine,
                                          dst_type, src->type, (a_type_ptr)NULL,
                                          src);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     } else {
       /* Convert floating-point, fixed-point, or integral to complex. */
       check_assertion(is_arithmetic_or_enum_type(src_type));
@@ -1610,6 +1617,7 @@ Transform the given complex cast expression into a function call
                                          src);
     }  /* if */
     overwrite_node(expr, cast_call);
+#if C99_IL_EXTENSIONS_SUPPORTED
   } else if (is_imaginary_type(dst_type)) {
     if (is_complex_type(src_type)) {
       /* Converting a complex value to an imaginary type.  This amounts to
@@ -1654,6 +1662,7 @@ Transform the given complex cast expression into a function call
       /* Nothing to be done (imaginary->imaginary). */
       check_assertion(is_imaginary_type(src_type));
     }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   } else {
     check_assertion(is_arithmetic_or_enum_type(dst_type));
     if (is_complex_type(src_type)) {
@@ -1677,10 +1686,11 @@ Transform the given complex cast expression into a function call
       }  /* switch */
       cast_call = make_prototyped_runtime_call(
                            routine_name, routine,
-                           imaginary_type(src_type->variant.float_kind),
+                           float_type(src_type->variant.float_kind),
                            src->type, (a_type_ptr)NULL, src);
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
+#if C99_IL_EXTENSIONS_SUPPORTED
     } else if (is_imaginary_type(src_type)) {
       /* An imaginary value converted to a real or integral type is always
          zero.  Use a comma operator to preserve side-effects of the source
@@ -1690,6 +1700,7 @@ Transform the given complex cast expression into a function call
       make_zero_of_proper_type(dst_type, &zero_constant);
       new_expr = make_comma_node(src, alloc_node_for_constant(&zero_constant));
       overwrite_node(expr, new_expr);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     } else {
       unexpected_condition();
     }  /* if */
@@ -2098,12 +2109,14 @@ lowering on the "!= 0" comparison generated, e.g., for complex values.
     lower_c99_expr(expr->variant.operation.operands->next,
                    /*used_as_lvalue=*/FALSE);
     lower_c99_xne(expr);
+#if C99_IL_EXTENSIONS_SUPPORTED
   } else if (expr->variant.operation.kind == (an_expr_operator_kind)eok_fne&&
              is_imaginary_type(expr->variant.operation.operands->next->type)) {
     /* Do further lowering for imaginary != 0. */
     /* Lower the imaginary zero constant. */
     lower_c99_expr(expr->variant.operation.operands->next,
                    /*used_as_lvalue=*/FALSE);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   } else
 #endif /* LOWER_COMPLEX */
   {
@@ -2537,6 +2550,7 @@ _Bool type, and VLA types.
     case eok_xdivide_assign:
       rewrite_compound_assignment(expr, /*is_lvalue=*/FALSE);
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
     case eok_jmultiply:
       lower_c99_jmultiply(expr);
       break;
@@ -2550,6 +2564,7 @@ _Bool type, and VLA types.
       /* Mixed real/imaginary add/subtract. */
       lower_real_imag_add_subtract(expr);
       break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #endif /* LOWER_COMPLEX */
     case eok_cast:
     case eok_bool_cast:
@@ -2689,7 +2704,7 @@ integral constant.
 #endif /* LOWER_FIXED_POINT */
 #if LOWER_COMPLEX
 
-static void lower_c99_complex_constant(a_constant_ptr  constant)
+void lower_c99_complex_constant(a_constant_ptr  constant)
 /*
 Replace the given ck_complex constant by a ck_aggregate constant structure
 that can initialize a lowered complex variable.  (Since complex constants are
@@ -2740,12 +2755,12 @@ replace them by a representation compatible with C89.
 #endif /* LOWER_FIXED_POINT */
       break;
 #endif /* FIXED_POINT_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
 #if LOWER_COMPLEX
       lower_c99_complex_constant(constant);
 #endif /* LOWER_COMPLEX */
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
     case ck_imaginary:
 #if LOWER_COMPLEX
       /* Represent the constant as a regular floating-point constant.
@@ -2807,10 +2822,14 @@ constructs.
 */
 {
 #if LOWER_COMPLEX
+#if C99_IL_EXTENSIONS_SUPPORTED
   if (is_imaginary_type(expr->type)) {
     /* Turn the imaginary constant into a real floating point constant. */
     lower_c99_constant(expr->variant.constant);
-  } else if (is_complex_type(expr->type)) {
+  } else
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  /* Do not insert code here. */
+  if (is_complex_type(expr->type)) {
     /* Replace this node by a reference to a static variable initialized
        with an aggregate representing the constant complex value. */
     a_variable_ptr  tmp;
@@ -3587,6 +3606,7 @@ Do C99 lowering for all entities in and under the given scope.
 }  /* lower_c99_scope */
 
 #if LOWER_COMPLEX
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 static void lower_c99_imaginary_type(a_float_kind  kind,
                                      char          *name)
@@ -3607,6 +3627,7 @@ The lowered type is given the name indicated by "name".
   }  /* if */
 }  /* lower_c99_imaginary_type */
 
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 static void lower_c99_complex_type(a_float_kind  kind,
                                    char          *name)
@@ -3640,15 +3661,17 @@ The lowered type is given the name indicated by "name".
 }  /* lower_c99_complex_type */
 
 
-static void lower_c99_nonreal_float_types(void)
+void lower_c99_nonreal_float_types(void)
 /*
 Replace the imaginary and complex C99 types by their lowered representations.
 */
 {
+#if C99_IL_EXTENSIONS_SUPPORTED
   lower_c99_imaginary_type((a_float_kind)fk_float, "_Imaginary_float");
   lower_c99_imaginary_type((a_float_kind)fk_double, "_Imaginary_double");
   lower_c99_imaginary_type((a_float_kind)fk_long_double,
                            "_Imaginary_long_double");
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   lower_c99_complex_type((a_float_kind)fk_float, "_Complex_float");
   lower_c99_complex_type((a_float_kind)fk_double, "_Complex_double");
   lower_c99_complex_type((a_float_kind)fk_long_double, "_Complex_long_double");

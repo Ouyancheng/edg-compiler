@@ -109,17 +109,22 @@ Microsoft extensions.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Macro to be used in conjunction with is_type_keyword to check for complex
+type extensions.
+*/
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#define or_is_complex_type_keyword(tok)                                       \
+  || ((tok) == tok_c99_complex || (tok) == tok_c99_imaginary)
+#else /* !(C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED) */
+#define or_is_complex_type_keyword(tok)  /* Nothing */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+
+/*
 Macro to be used in conjunction with is_type_keyword to check for C99
 extensions.
 */
-#if C99_IL_EXTENSIONS_SUPPORTED
 #define or_is_c99_type_keyword(tok)                                       \
-  || ((tok) == tok_c99_bool ||                                            \
-      (tok) == tok_c99_complex || (tok) == tok_c99_imaginary)
-#else /* !C99_IL_EXTENSIONS_SUPPORTED */
-#define or_is_c99_type_keyword(tok)                                       \
-  || ((tok) == tok_c99_bool)
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  || ((tok) == tok_c99_bool or_is_complex_type_keyword(tok))
 
 /*
 Macro to be used in conjunction with is_type_keyword to check for fixed-point

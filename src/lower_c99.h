@@ -55,7 +55,29 @@ extern void create_dimension_variable(a_statement_ptr  stmt);
 extern void create_element_count_variable_for_vla(a_statement_ptr  stmt);
 
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#if LOWER_COMPLEX
 
+extern void lower_c99_nonreal_float_types(void);
+
+extern void lower_c99_complex_constant(a_constant_ptr  constant);
+
+extern void lower_c99_complex_cast(an_expr_node_ptr  expr);
+
+void lower_c99_xnegate(an_expr_node_ptr  expr);
+
+void lower_c99_xadd(an_expr_node_ptr  expr);
+
+void lower_c99_xsubtract(an_expr_node_ptr  expr);
+
+void lower_c99_xmultiply(an_expr_node_ptr  expr);
+
+void lower_c99_xdivide(an_expr_node_ptr  expr);
+
+void lower_c99_xeq(an_expr_node_ptr  expr);
+
+void lower_c99_xne(an_expr_node_ptr  expr);
+
+#endif /* LOWER_COMPLEX */
 #if DO_C99_IL_LOWERING
 
 #if FIXED_POINT_ALLOWED

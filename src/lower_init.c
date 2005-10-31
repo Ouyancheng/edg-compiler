@@ -3969,13 +3969,13 @@ will be changed to an aggregate constant for the constant parts and
     desired_type = ipdp->modifiers->type;
 #if DO_C99_IL_LOWERING
     if (C_mode()) {
-#if LOWER_COMPLEX
+#if LOWER_COMPLEX && C99_IL_EXTENSIONS_SUPPORTED
       if (is_imaginary_type(desired_type)) {
         /* In C99, create a float constant for an imaginary type. */
         desired_type = skip_typerefs(desired_type);
         desired_type = float_type(desired_type->variant.float_kind);
       } else
-#endif /* LOWER_COMPLEX */
+#endif /* LOWER_COMPLEX && C99_IL_EXTENSIONS_SUPPORTED */
       /* Do not insert code here. */
 #if LOWER_FIXED_POINT
       if (is_fixed_point_type(desired_type)) {

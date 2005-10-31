@@ -900,9 +900,11 @@ extern void make_nan_operand(an_operand  *result);
 extern void make_infinity_operand(an_operand  *result);
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
 extern void make_imaginary_unit_operand(an_operand  *result);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
 
+#if C99_IL_EXTENSIONS_SUPPORTED
 extern a_boolean determine_imaginary_operation_type
                                         (a_token_kind          op_token,
                                          an_operand            *operand_1,
