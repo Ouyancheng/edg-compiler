@@ -1458,6 +1458,24 @@ entry into the primary IL.
   return result;
 }  /* primary_imaginary_type */
 
+
+a_type_ptr primary_bool_type(void)
+/*
+Return the bool type entry used in the primary translation unit IL, or NULL
+if the type hasn't been used in the primary IL.  This routine takes into
+account the possibility that the trans_copy process (which must have completed)
+created such an entry as a result of copying an entry into the primary IL.
+*/
+{
+  a_type_ptr  result = canonical_il_bool_type;
+
+  if (result != NULL) {
+    result = (a_type_ptr)canonical_il_entry_of(result);
+    check_assertion(!in_secondary_trans_unit(result));
+  }  /* if */
+  return result;
+}  /* primary_bool_type */
+
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if FIXED_POINT_ALLOWED
 
@@ -1480,24 +1498,6 @@ entry into the primary IL.
   }  /* if */
   return result;
 }  /* primary_fixed_point_type */
-
-
-a_type_ptr primary_bool_type(void)
-/*
-Return the bool type entry used in the primary translation unit IL, or NULL
-if the type hasn't been used in the primary IL.  This routine takes into
-account the possibility that the trans_copy process (which must have completed)
-created such an entry as a result of copying an entry into the primary IL.
-*/
-{
-  a_type_ptr  result = canonical_il_bool_type;
-
-  if (result != NULL) {
-    result = (a_type_ptr)canonical_il_entry_of(result);
-    check_assertion(!in_secondary_trans_unit(result));
-  }  /* if */
-  return result;
-}  /* primary_bool_type */
 
 #endif /* FIXED_POINT_ALLOWED */
 
