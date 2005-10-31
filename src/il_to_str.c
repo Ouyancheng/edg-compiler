@@ -69,6 +69,7 @@ Clear an output control block to default values.
   octl->force_qualified_name      = FALSE;
   octl->gen_vla_array_as_asterisk_bound_array = FALSE;
   octl->gen_raw_tab_in_literals   = FALSE;
+  octl->diagnostic_output         = FALSE;
   octl->suppress_line_breaking    = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
@@ -1371,15 +1372,15 @@ static a_boolean is_member_typedef_that_should_be_ignored(
 				an_il_to_str_output_control_block_ptr	octl)
 /*
 "type" is a typedef.  Return TRUE if the typedef is one that should be
-stripped when producing diagnostic output (and we are not generating
-compilable code).  Typedefs that are members of template classes are replaced
+stripped when producing diagnostic output (and we are generating diagnostic
+output).  Typedefs that are members of template classes are replaced
 with the underlying type when display_template_typedefs_in_diagnostics
 is FALSE.
 */
 {
   a_boolean	result = FALSE;
 
-  if (!octl->gen_compilable_code &&
+  if (octl->diagnostic_output &&
       !display_template_typedefs_in_diagnostics) {
     if (type->source_corresp.is_class_member) {
       /* Drop the typedef if it was defined in a template class.  This is

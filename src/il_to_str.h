@@ -165,7 +165,11 @@ typedef struct an_il_to_str_output_control_block {
 	gen_raw_tab_in_literals;
 			/* TRUE if a tab character should be emitted as an
 			   actual tab character rather than as '\t'. */
-  a_boolean
+  a_byte_boolean
+	diagnostic_output;
+			/* TRUE if the generated string is being used for
+			   diagnostic output. */
+  a_byte_boolean
 	suppress_line_breaking;
 			/* Suppress any processing that breaks long output
 			   lines into smaller pieces.  Turned on, for example,
