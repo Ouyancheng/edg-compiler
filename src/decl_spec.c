@@ -1687,7 +1687,8 @@ caution when modifying this routine.
          typedef name. */
       tag_sym = curr_scope_id_lookup(locator, allow_typedef ? IDL_MUST_BE_CLASS
                                                             : IDL_MUST_BE_TAG);
-      if (allow_typedef && tag_sym->kind == (a_symbol_kind)sk_type) {
+      if (allow_typedef && tag_sym != NULL &&
+          tag_sym->kind == (a_symbol_kind)sk_type) {
         /* A typedef name was scanned.  Work with the underlying class symbol
            in what follows. */
         a_type_ptr  typedef_tp = skip_typerefs(tag_sym->variant.type.ptr);
