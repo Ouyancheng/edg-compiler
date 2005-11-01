@@ -3673,13 +3673,14 @@ not known that the base class is an immediate base class.
    a base class accessible if we have member access to the base class.
    This is probably based on the wording in 11.2 that says "A base class
    is said to be accessible if an invented public member of the class
-   is accessible." */
+   is accessible."  This is fixed in the 7.1 compiler. */
 #define is_accessible_direct_base_class_derivation(bcp, bcdp, viewpoint_class)\
   ((bcdp)->access == (an_access_specifier)as_public ||                \
    have_member_access_privilege(viewpoint_class) ||                   \
    ((bcdp)->access == (an_access_specifier)as_protected &&            \
     have_protected_member_access_privilege(viewpoint_class)) ||       \
-   (microsoft_mode && have_member_access_privilege(bcp->type)))
+   (microsoft_mode && microsoft_version <= 1300 &&		      \
+    have_member_access_privilege(bcp->type)))
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_accessible_direct_base_class_derivation(bcp, bcdp, viewpoint_class)\
   ((bcdp)->access == (an_access_specifier)as_public ||                \
