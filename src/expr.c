@@ -1465,12 +1465,17 @@ the chosen expression.  Only available in C mode.
     err = TRUE;
   } else if (!is_scalar_type(selector_op.type)) {
     error_in_operand(ec_expr_not_scalar, &selector_op);
+    err = TRUE;
   }  /* if */
   extract_constant_from_operand(&selector_op, &selector);
   /* Now scan the second and third argument: One is discarded and the other
-     is returned through *result. */
-  evaluate_2nd_arg = !is_false_constant(&selector);
-  evaluate_3rd_arg = !evaluate_2nd_arg;
+     is returned through *result (except in error cases, where both operands
+     are discarded). */
+  evaluate_2nd_arg = !err && !is_false_constant(&selector);
+  evaluate_3rd_arg = !err && !evaluate_2nd_arg;
+  if (err) {
+    make_error_operand(result);
+  }  /* if */
   scan_expr_for_builtin_choose_expr(result, evaluate_2nd_arg, &err);
   scan_expr_for_builtin_choose_expr(result, evaluate_3rd_arg, &err);
 }  /* scan_and_process_builtin_choose_expr_args */
@@ -1482,8 +1487,7 @@ static void scan_gnu_builtin_pseudo_call(an_operand  *operand,
 Operand represents a GNU built-in function that needs special treatment when
 called (e.g., the arguments cannot be evaluated).  This function parses and
 evaluates a pseudo-call to the built-in function.  *result_op is set to an
-operand representing the entire pseudo-call.  Currently, only
-__builtin_constant_p and __builtin_classify_type are processed here.
+operand representing the entire pseudo-call.
 */
 {
   an_operand               arg;
