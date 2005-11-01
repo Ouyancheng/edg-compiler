@@ -5794,7 +5794,8 @@ static void scan_is_base_of(an_operand  *result)
 Scan a constant-expression of the form
       __is_base_of( <typeB> , <typeD> )
 The result is a boolean of value true if typeD is derived from typeB (where
-a class type is always considered to be derived from itself).
+a class type is always considered to be derived from itself).  This construct
+is a Microsoft extension.
 */
 {
   a_type_ptr  result_type;
@@ -5814,7 +5815,7 @@ a class type is always considered to be derived from itself).
   if (C_mode()) {
     /* Turn the operand into an error operand to avoid any surprises later
        on. */
-    make_error_operand(result);
+    conv_to_error_operand(result);
   }  /* if */
 }  /* scan_is_base_of */
 
@@ -5822,9 +5823,9 @@ a class type is always considered to be derived from itself).
 static void scan_is_convertible_to(an_operand  *result)
 /*
 Scan a constant-expression of the form
-      __is_onvertible_to( <typeA> , <typeB> )
+      __is_convertible_to( <typeA> , <typeB> )
 The result is a boolean of value true if typeA is "implicitly convertible to"
-typeB.
+typeB.  This construct is a Microsoft extension.
 */
 {
   a_type_ptr  result_type;
@@ -5843,7 +5844,7 @@ typeB.
   if (C_mode()) {
     /* Turn the operand into an error operand to avoid any surprises later
        on. */
-    make_error_operand(result);
+    conv_to_error_operand(result);
   }  /* if */
 }  /* scan_is_convertible_to */
 
@@ -5897,7 +5898,7 @@ corresponding to the __trait_keyword (the latter is the current token).
   if (C_mode()) {
     /* Turn the operand into an error operand to avoid any surprises later
        on. */
-    make_error_operand(result);
+    conv_to_error_operand(result);
   }  /* if */
 }  /* scan_unary_microsoft_type_trait */
 

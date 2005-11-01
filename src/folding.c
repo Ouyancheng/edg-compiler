@@ -5121,7 +5121,7 @@ expression.
       if (is_reference_type(type2) &&
           is_class_struct_union_type(type_pointed_to(type2))) {
         /* A reference on the destination type appears to be ignored only if
-           it is are reference to a class type. */
+           it is a reference to a class type. */
         type2 = type_pointed_to(type2);
       }  /* if */
       /* Simulate array-to-pointer and function-to-pointer decay. */

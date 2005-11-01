@@ -126,8 +126,8 @@ __has_nothrow_assign, __has_nothrow_constructor, __has_nothrow_copy,
 __has_trivial_assign, __has_trivial_constructor, __has_trivial_copy,
 __has_trivial_destructor, __has_user_destructor, __is_abstract, __is_class,
 __is_convertible_to, __is_empty, __is_enum, __is_pod, __is_polymorphic, and
-__is_union.  Each of these pseudo-functions take one or two types, and
-produce a boolean constant-expression.  For example:
+__is_union.  Each of these pseudo-functions takes one or two types, and
+produces a boolean constant-expression.  For example:
 
   int a[__is_union(union U)];  // Okay.  Same as "int a[1];".
 

@@ -431,9 +431,9 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_microsoft_identifier, "__identifier");
     }  /* if */
     if (microsoft_version >= 1400) {
-      /* The __is_base_of extension is only accepted in Microsoft C++ mode.
-         However, it is recognized (and rejected) in Microsoft C mode. */
-      enter_keyword((a_token_kind)tok_is_base_of, "__is_base_of");
+      /* The following "type trait pseudo-functions" are only accepted in
+         Microsoft C++ mode.  However, they are recognized (and rejected) in
+         Microsoft C mode. */
       enter_keyword((a_token_kind)tok_has_assign, "__has_assign");
       enter_keyword((a_token_kind)tok_has_copy, "__has_copy");
       enter_keyword((a_token_kind)tok_has_nothrow_assign,
@@ -454,6 +454,7 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_has_virtual_destructor,
                     "__has_virtual_destructor");
       enter_keyword((a_token_kind)tok_is_abstract, "__is_abstract");
+      enter_keyword((a_token_kind)tok_is_base_of, "__is_base_of");
       enter_keyword((a_token_kind)tok_is_class, "__is_class");
       enter_keyword((a_token_kind)tok_is_convertible_to,
                     "__is_convertible_to");
