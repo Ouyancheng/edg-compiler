@@ -1692,7 +1692,8 @@ by a command line option.
     }  /* if */
     allow_nonconst_call_anachronism = (microsoft_version < 1000);
     flexible_array_members_allowed = TRUE;
-    allow_default_arg_on_template_member_definition = TRUE;
+    allow_default_arg_on_template_member_definition =
+                                                     microsoft_version < 1200;
     /* Make template parameters visible in specialization scopes. */
     use_microsoft_specialization_scope = microsoft_version < 1310;
     /* A friend class declaration finds names made visible by
