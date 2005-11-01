@@ -20790,8 +20790,10 @@ instantiation.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       /* Something else -- issue an error. */
-      if (microsoft_bugs && is_template_class_symbol(sym)) {
-        /* Microsoft allows explicit instantiation of a specialized class. */
+      if (microsoft_bugs && microsoft_version == 1300 &&
+          is_template_class_symbol(sym)) {
+        /* Microsoft (in version 7.0) allows explicit instantiation of a
+           specialized class. */
       } else {
         sym_error(ec_not_instantiatable_entity, sym);
       }  /* if */

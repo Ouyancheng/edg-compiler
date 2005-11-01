@@ -1,5 +1,14 @@
 Version 3.7
 
+11/1/05  Microsoft compatibility: explicit instantiation of specialized class
+
+In Microsoft bugs mode, an explicit instantiation of a specialized class is
+accepted.  This is now accepted only when microsoft_version is 1300.
+
+  template <class T> struct A {};
+  template <> struct A<int> {};
+  template struct A<int>;
+
 11/1/05  Microsoft compatibility: redeclaration of template default argument
 
 In Microsoft bugs mode, a template default argument may be redeclared or
