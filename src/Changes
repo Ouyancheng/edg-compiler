@@ -1,5 +1,17 @@
 Version 3.7
 
+11/1/05  Microsoft compatibility: default arguments on class template
+         member declarations
+
+In Microsoft mode, template default arguments are accepted (with a warning)
+and ignored in the declaration of a member of a class template.  This is now
+done only when microsoft_version is <= 1200.
+
+  template <class T> struct A {
+    void f();
+  };
+  template <class T = int> void A<T>::f(){}
+
 11/1/05  Microsoft compatibility: default template args. on functions templates
 
 In Microsoft mode, default template arguments on function template declarations

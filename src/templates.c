@@ -9696,7 +9696,8 @@ FALSE for the redeclaration of a class template.
       } else if (new_has_default && !default_allowed) {
         /* A default argument was specified on a member of a class template.
            This is not permitted. */
-        pos_diagnostic(microsoft_mode ? es_warning : es_error,
+        pos_diagnostic(microsoft_mode && microsoft_version <= 1200 ? es_warning
+                                                                   : es_error,
                        ec_default_arg_on_member_decl,
                        &new_tpp->param_symbol->decl_position);
       } else if (old_has_default || new_has_default) {
