@@ -1,5 +1,13 @@
 Version 3.7
 
+11/1/05  Microsoft compatibility: default template args. on functions templates
+
+In Microsoft mode, default template arguments on function template declarations
+are accepted (with a warning) and ignored.  This is now done only when
+microsoft_version is <= 1200.
+
+  template <class T = short> void f(T) { }
+
 11/1/05  Microsoft compatibility: accessibility of base classes
 
 In Microsoft mode, a base class is considered accessible if one has member

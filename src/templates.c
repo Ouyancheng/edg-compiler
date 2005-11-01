@@ -14062,7 +14062,8 @@ done here.
     a_symbol_ptr param_sym = tpp->param_symbol;
     a_boolean	 param_used;
     if (tpp->has_default_arg) {
-      pos_diagnostic(microsoft_mode ? es_warning : es_error,
+      pos_diagnostic(microsoft_mode && microsoft_version <= 1200 ? es_warning
+                                                                 : es_error,
                      ec_default_template_arg_not_allowed,
                      &param_sym->decl_position);
     }  /* if */
