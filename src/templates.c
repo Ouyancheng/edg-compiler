@@ -9688,9 +9688,10 @@ FALSE for the redeclaration of a class template.
       a_boolean new_has_default;
       old_has_default = old_tpp->has_default_arg;
       new_has_default = new_tpp->has_default_arg;
-      if (old_has_default && new_has_default && !microsoft_bugs) {
-        /* This parameter already has a default argument.  The
-           Microsoft compiler permits this, and uses the new value. */
+      if (old_has_default && new_has_default &&
+          !(microsoft_bugs && microsoft_version <= 1300)) {
+        /* This parameter already has a default argument.  The Microsoft
+           compiler (prior to 7.1) permits this, and uses the new value. */
         pos_error(ec_default_arg_already_defined,
                   &new_tpp->param_symbol->decl_position);
       } else if (new_has_default && !default_allowed) {
