@@ -10827,7 +10827,8 @@ of which it is a member.
        out-of-class declaration of a partial specialization.  It is also
        allowed in Microsoft mode and in some g++ modes, as those compilers
        accept such redeclarations. */
-    if (!decl_state->is_template_friend && !microsoft_mode &&
+    if (!decl_state->is_template_friend &&
+        !(microsoft_mode && microsoft_version <= 1300) &&
         !(gpp_mode && gnu_version < 30400)) {
       pos_sy_error(ec_bad_scope_for_redeclaration,
                    &locator->source_position, sym);
