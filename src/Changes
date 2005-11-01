@@ -1,6 +1,6 @@
 Version 3.7
 
-11/01/05 Microsoft compatibility: use of inaccessible type from base class
+11/1/05  Microsoft compatibility: use of inaccessible type from base class
 
 In Microsoft mode, a base class member type may be used in a derived class
 when the base type is not accessible.  This is now accepted only when
