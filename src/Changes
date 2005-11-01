@@ -15,7 +15,7 @@ This is now accepted only when microsoft_version is <= 1300.
   }
   template <> void A<int>::f() { }
 
-11/1/05   Microsoft compatibility: redeclaration of template
+11/1/05  Microsoft compatibility: redeclaration of template
 
 In Microsoft mode, a template may be redeclared outside of its class or
 namespace.  This is now accepted only when microsoft_version is <= 1300.
