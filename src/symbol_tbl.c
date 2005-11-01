@@ -8453,10 +8453,11 @@ accepted even though the injected class symbol is ambiguous.
     /* The access of the template is checked when the template name
        is looked up.  For functions, access is checked after overload
        resolution has been done. */
-  } else if (microsoft_mode && !locator->is_qualified_name &&
+  } else if (microsoft_mode && microsoft_version <= 1200 &&
+             !locator->is_qualified_name &&
              is_type_symbol(fund_sym)) {
-    /* The Microsoft compiler allows access to private types in base
-       classes as long as they are named by the inherited name. */
+    /* The Microsoft compiler (up to version 6) allows access to private types
+       in base classes as long as they are named by the inherited name. */
   } else if (!have_access_to_symbol(sym)) {
     /* The symbol is not accessible.  Issue the error or record it
        for later checking if access checking is deferred. */

@@ -1,5 +1,18 @@
 Version 3.7
 
+11/01/05 Microsoft compatibility: use of inaccessible type from base class
+
+In Microsoft mode, a base class member type may be used in a derived class
+when the base type is not accessible.  This is now accepted only when
+microsoft_version is <= 1200.
+
+  class A {
+    typedef int T;
+  };
+  class B : public A {
+    T x;
+  };
+
 10/28/05 Removing template class member typedefs in diagnostics
 
 In order to improve the usefulness of diagnostics issued during template
