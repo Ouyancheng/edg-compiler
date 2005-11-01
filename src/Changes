@@ -1,5 +1,20 @@
 Version 3.7
 
+11/1/05  Microsoft compatibility: specialization allowed after use
+
+In Microsoft bugs mode, a member function template or a member function of
+a template class may be explicitly specialized after it has been used.
+This is now accepted only when microsoft_version is <= 1300.
+
+  template <class T> struct A {
+    void f() { }
+  };
+  int main() {
+    A<int> a;
+    a.f();
+  }
+  template <> void A<int>::f() { }
+
 11/1/05   Microsoft compatibility: redeclaration of template
 
 In Microsoft mode, a template may be redeclared outside of its class or

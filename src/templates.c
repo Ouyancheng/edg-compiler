@@ -15943,8 +15943,8 @@ that follows.
         /* The entity has already been referenced and cannot be specialized.
            This is accepted for class members in Microsoft bugs mode. */
         an_error_severity	severity;
-        severity = microsoft_bugs && sym->is_class_member ? es_warning
-                                                          : es_error;
+        severity = microsoft_bugs && microsoft_version <= 1300 &&
+                                  sym->is_class_member ? es_warning : es_error;
         pos_sy_diagnostic(severity, ec_specialization_of_referenced_entity,
                           &locator.source_position, sym);
         if (severity == es_error) sym = NULL;
