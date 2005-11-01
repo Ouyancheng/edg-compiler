@@ -2859,6 +2859,8 @@ It's permissible for the input to contain no qualifiers. If Microsoft extended
 decl specifiers, introduced by __declspec, are encountered, they are
 scanned and thrown away with a warning.  plain_ptr_seen is TRUE when scanning
 extended qualifiers following a asterisk ("*") indicating a plain pointer.
+ptr_to_member_seen is TRUE when scanning extended qualifiers following a
+pointer-to-member operator (of the form X::* for some class type X).
 Additional position information is recorded in *decl_pos_block.
 */
 {

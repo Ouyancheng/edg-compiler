@@ -1539,8 +1539,12 @@ do_float_complex:
       disp_boolean("is_reference",
                    (a_boolean)ptr->variant.pointer.is_reference);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      disp_boolean("is_ptr32", (a_boolean)ptr->variant.pointer.is_ptr32);
-      disp_boolean("is_ptr64", (a_boolean)ptr->variant.pointer.is_ptr64);
+      if (ptr->variant.pointer.is_ptr32) {
+        disp_boolean("is_ptr32", (a_boolean)ptr->variant.pointer.is_ptr32);
+      }  /* if */
+      if (ptr->variant.pointer.is_ptr64) {
+        disp_boolean("is_ptr64", (a_boolean)ptr->variant.pointer.is_ptr64);
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
       break;
@@ -1752,8 +1756,14 @@ do_struct_union:
                iek_type);
       disp_ptr("type", (char *)ptr->variant.ptr_to_member.type, iek_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      disp_boolean("is_ptr32", (a_boolean)ptr->variant.ptr_to_member.is_ptr32);
-      disp_boolean("is_ptr64", (a_boolean)ptr->variant.ptr_to_member.is_ptr64);
+      if (ptr->variant.ptr_to_member.is_ptr32) {
+        disp_boolean("is_ptr32",
+                     (a_boolean)ptr->variant.ptr_to_member.is_ptr32);
+      }  /* if */
+      if (ptr->variant.ptr_to_member.is_ptr64) {
+        disp_boolean("is_ptr64",
+                     (a_boolean)ptr->variant.ptr_to_member.is_ptr64);
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case tk_template_param:

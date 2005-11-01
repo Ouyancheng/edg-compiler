@@ -2292,7 +2292,7 @@ set, leave it alone.  Also compute and set the alignment requirement.
         break;
       case tk_pointer:
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        /* Explicitly sized pointer have a size independent from the type
+        /* Explicitly sized pointers have a size independent from the type
            pointed to.  Their size can vary even when
            TARG_ALL_POINTERS_SAME_SIZE is TRUE. */
         if (type_ptr->variant.pointer.is_ptr32) {

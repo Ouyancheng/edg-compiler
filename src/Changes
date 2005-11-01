@@ -181,7 +181,7 @@ modifiers on pointer and pointer-to-member declarators.  For example:
 
   int *__ptr64 p;  // sizeof(p) == 64
 
-For normal pointer type, the modifiers force the size of the pointer to be
+For normal pointer types, the modifiers force the size of the pointer to be
 4 or 8 bytes respectively.  The modifiers do not affect the actual size of
 pointer-to-member types (this is similar to the effect of these modifiers in
 Microsoft's latest 32-bit compilers, but different from their effect in
