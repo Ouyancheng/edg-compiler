@@ -108,7 +108,7 @@ microsoft_version is <= 1200.
 In order to improve the usefulness of diagnostics issued during template
 instantiations certain typedefs are now replaced with their underlying
 type in diagnostic output.  Specifically, typedefs declared in template
-classes are may now be replaced with their underlying type.  The default
+classes may now be replaced with their underlying type.  The default
 is specified by the DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS
 macro and may be overridden with the --[no_]template_typedefs_in_diagnostics
 command-line option.  Note that the TRUE value selects the old behavior and
