@@ -92,6 +92,8 @@ Flags to be set for any version that uses the C++ generating back end.
 #define DEFAULT_TYPE_INFO_IN_NAMESPACE_STD 0
 #endif /* ifdef CP_GEN_BE_VERSION */
 
+/* Suppress Microsoft 8.0 warnings about deprecated C library functions. */
+#define _CRT_SECURE_NO_DEPRECATE
 
 /******************************************************************************
 *                                                             \  ___  /       *
