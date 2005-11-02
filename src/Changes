@@ -48,7 +48,7 @@ is <= 1300.
 
 In Microsoft mode, default function arguments are accepted in the
 definition of a member function of a class template outside of its class.
-This is now done only when microsoft_version is < 1200.
+This is now done only when microsoft_version is <= 1300.
 
   template <class T> struct A {
     void f(int);

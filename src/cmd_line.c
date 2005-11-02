@@ -1692,8 +1692,14 @@ by a command line option.
     }  /* if */
     allow_nonconst_call_anachronism = (microsoft_version < 1000);
     flexible_array_members_allowed = TRUE;
+    /* The Microsoft compiler doesn't actually complain about default
+       arguments on template member definitions (at least through version 8.0),
+       but they aren't actually usable.  We accept them through
+       microsoft_version 1300 so that we can emulate a Microsoft bug that
+       allows a default argument specified in the class to be redefined on
+       the out-of-class definition. */
     allow_default_arg_on_template_member_definition =
-                                                     microsoft_version < 1200;
+                                                     microsoft_version <= 1300;
     /* Make template parameters visible in specialization scopes. */
     use_microsoft_specialization_scope = microsoft_version < 1310;
     /* A friend class declaration finds names made visible by
