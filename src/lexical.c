@@ -6230,7 +6230,7 @@ the kind of token.
   } else if (*curr_char_loc == '.') {
     /* Number starting with ".".  The character following the "." must be
        a digit (already checked by get_token). */
-    if (microsoft_bugs &&
+    if (microsoft_bugs && microsoft_version <= 1200 &&
         isdigit((unsigned char)curr_char_loc[1]) &&
         curr_char_loc[2] == '.') {
       /* The Microsoft compiler accepts constants like ".1.234". */

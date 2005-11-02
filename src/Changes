@@ -1,5 +1,10 @@
 Version 3.7
 
+11/2/05  Microsoft compatibility: malformed float constants
+
+In Microsoft bugs mode, floating-point constants like .1.234 are accepted.
+This is now accepted only when microsoft_version is <= 1200.
+
 11/1/05  Microsoft compatibility: specialization allowed after use
 
 In Microsoft bugs mode, a member function template or a member function of
