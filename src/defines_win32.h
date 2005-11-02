@@ -94,6 +94,7 @@ Flags to be set for any version that uses the C++ generating back end.
 
 /* Suppress Microsoft 8.0 warnings about deprecated C library functions. */
 #define _CRT_SECURE_NO_DEPRECATE
+#define _CRT_NONSTDC_NO_DEPRECATE
 
 /******************************************************************************
 *                                                             \  ___  /       *
