@@ -2996,34 +2996,25 @@ are non-NULL when they should be used for the outermost instantiation scope.
   }  /* if */
   /* Reactivate the enclosing class scope. */
   push_single_class_reactivation_scope(class_type);
-  if ((options & PS_IGNORE_CLASS_REACTIVATIONS) != 0) {
-    /* During normal lookups, ignore the scope just pushed.  This is used
-       during the instantiation of static data members.  They are unusual in
-       that the declaration that is rescanned is the one that appeared outside
-       of the class, so class members should not be visible until the
-       declarator is reached. */
-    scope_stack[depth_scope_stack].ignore_during_normal_lookup = TRUE;
-  }  /* if */
 }  /* reactivate_class_and_instantiation_scopes */
 
 
-void make_class_reactivations_visible(void)
+void make_class_definition_context_visible(void)
 /*
 When a static data member is instantiated, most of the declaration is
-scanned without class members being visible.  Once we reach the point at
+scanned without certain scopes being visible.  Once we reach the point at
 which the class scope should be reactivated, we need to update the scope
-stack so that the class reactivation scopes will be considered.
+stack so that the class reactivation and other enclosing scopes will be
+considered.
 */
 {
   a_scope_stack_entry_ptr	ssep;
 
   for (ssep = &scope_stack[depth_of_initial_lookup_scope]; ssep != NULL;
        ssep = previous_scope_of(ssep)) {
-    if (ssep->kind == (a_scope_kind)sck_class_reactivation) {
-      ssep->ignore_during_normal_lookup = FALSE;
-    }  /* if */
+    ssep->ignore_during_normal_lookup = FALSE;
   }  /* for */
-}  /* make_class_reactivations_visible */
+}  /* make_class_definition_context_visible */
 
 
 static void push_instantiation_context(
@@ -3177,11 +3168,14 @@ the set of option flags passed into the push scope routines.
 }  /* push_instantiation_context */
 
 
-static void fixup_instantiation_scopes(a_scope_depth	orig_depth,
-				       a_scope_depth	common_depth,
-				       a_scope_depth	definition_depth,
-				       a_scope_depth	context_depth,
-                                       a_scope_depth	after_definition_depth)
+static void fixup_instantiation_scopes(
+			a_template_decl_info_ptr	decl_info,
+			a_scope_depth			orig_depth,
+			a_scope_depth			common_depth,
+			a_scope_depth			definition_depth,
+			a_scope_depth			context_depth,
+			a_scope_depth			after_definition_depth,
+			a_push_scope_options_set	options)
 /*
 Fix up the entries on the scope stack.  At this point the scope stack
 looks like:
@@ -3211,6 +3205,7 @@ The following fixups need to be performed:
   a_scope_depth			depth;
   a_scope_stack_entry_ptr	primary_ssep;
   a_boolean			exclude_from_context_output = FALSE;
+  a_boolean			decl_scope_reached = FALSE;
 
   /* Mark all instantiation scopes that have been pushed as nested
      instantiations.  Save the depth of the outermost instantiation
@@ -3236,6 +3231,21 @@ The following fixups need to be performed:
          of this instantiation. */
       if (ssep->next_scope_that_affects_access_control <= orig_depth) {
         ssep->next_scope_that_affects_access_control = NO_SCOPE_DEPTH;
+      }  /* if */
+    }  /* if */
+    if ((options & PS_IGNORE_CLASS_CONTEXT) != 0 &&
+         !decl_scope_reached) {
+      /* During normal lookups, ignore certain scopes.  This is used
+         during the instantiation of static data members.  They are unusual in
+         that the declaration that is rescanned is the one that appeared
+         outside of the class, so declarations from the class context should
+         not be visible until the declarator is reached. */
+      if (decl_info->enclosing_scope->number == ssep->number) {
+        decl_scope_reached = TRUE;
+      } else {
+        if (ssep->kind != (a_scope_kind)sck_template_instantiation) {
+          ssep->ignore_during_normal_lookup = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
@@ -3504,8 +3514,9 @@ is pushed here, and popped when the instantiation scope is popped.
     a_scope_stack_entry_ptr	ssep;
     /* Update the scope stack entries that have been pushed so that the
        special instantiation context lookups can be done correctly. */
-    fixup_instantiation_scopes(orig_depth, common_depth, definition_depth,
-                               context_depth, after_definition_depth);
+    fixup_instantiation_scopes(decl_info, orig_depth, common_depth,
+                               definition_depth, context_depth,
+                               after_definition_depth, options);
     /* Update the depth of the innermost instantiation scope so that it points
        to the namespace that is the parent of the template being
        instantiated. */

@@ -1,5 +1,28 @@
 Version 3.7
 
+11/3/05  Incorrect lookup in instantiation of template static data members
+
+Version 3.4 introduced a change in the way template static data members are
+handled to allow the array size to be specified in the out-of-class
+definition (see 11/20/03 Changes entry).  This change introduced a problem
+that could result in incorrect lookups during the instantiation of a
+template static data member.  In particular, the incorrect lookups would
+occur when scanning the type specifiers and the initial portion of the
+declarator.  This has been fixed.
+
+  namespace A {
+    template <class T> struct A {
+      static int i;
+    };
+    int Z;
+  }
+  typedef int Z;
+  // During instantiation the incorrect Z and A were found.
+  template <class T> Z A::A<T>::i = 1;
+  int main() {
+    return A::A<int>::i;
+  }
+
 11/2/05  Microsoft compatibility: malformed float constants
 
 In Microsoft bugs mode, floating-point constants like .1.234 are accepted.

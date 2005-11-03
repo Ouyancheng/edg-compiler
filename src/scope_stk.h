@@ -47,10 +47,10 @@ typedef int a_push_scope_options_set;
 #define PS_IS_REACTIVATION		0x08
 			/* TRUE to indicate that a file scope is being
 			   reactivated. */
-#define PS_IGNORE_CLASS_REACTIVATIONS	0x100
-			/* TRUE when pushing a template instantiation scope,
-			   if class reactivations that are pushed should be
-			   ignored during normal lookups. */
+#define PS_IGNORE_CLASS_CONTEXT		0x100
+			/* TRUE if when pushing a template instantiation scope,
+			   the class definition context should be ignored
+			   during normal lookups. */
 
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
@@ -1141,7 +1141,7 @@ extern a_scope_ptr push_for_init_scope(void);
 extern a_scope_ptr push_namespace_scope(a_scope_kind    kind,
                                         a_namespace_ptr assoc_namespace);
 
-extern void make_class_reactivations_visible(void);
+extern void make_class_definition_context_visible(void);
 
 extern void pop_namespace_scope(void);
 

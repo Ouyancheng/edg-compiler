@@ -4055,7 +4055,7 @@ and the class instantiation will detect the runaway case.
                                     tip->template_sym,
                                     (a_template_arg_ptr)NULL,
                                     /*push_stop_tokens=*/TRUE,
-                                    PS_IGNORE_CLASS_REACTIVATIONS);
+                                    PS_IGNORE_CLASS_CONTEXT);
   /* Rescan the declaration of the static data member.  This should result
      in the same type as the declaration in the class, except in the case
      where the class declared an incomplete array type. */

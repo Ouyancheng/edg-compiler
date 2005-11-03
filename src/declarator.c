@@ -3849,9 +3849,9 @@ be a function.
             if (is_nonspecialized_instantiation_context()) {
               /* When instantiating a template static data member, we need
                  to update scopes pushed for instantiation purposes so that
-                 class reactivations will be visible from this point on in
-                 the declaration. */
-              make_class_reactivations_visible();
+                 the class definition context will be visible from this point
+                 on in the declaration. */
+              make_class_definition_context_visible();
 	    }  /* if */
           }  /* if */
           if (reactivate_scope) {
