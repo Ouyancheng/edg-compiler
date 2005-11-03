@@ -3055,8 +3055,13 @@ in the current IL memory region.
       break;
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
     case pk_none:
+      break;
 #if USER_CONTROL_OF_STRUCT_PACKING
     case pk_pack:
+#if BACK_END_IS_CP_GEN_BE
+      pp->variant.alignment = 0;
+#endif /* BACK_END_IS_CP_GEN_BE */
+      break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if PRAGMA_WEAK_ALLOWED
     case pk_weak:

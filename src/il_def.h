@@ -3671,6 +3671,12 @@ typedef struct a_pragma {
 		ident_string;
 			/* The string for the ident. */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+#if USER_CONTROL_OF_STRUCT_PACKING && BACK_END_IS_CP_GEN_BE
+    /* When kind == pk_pack: */
+    a_targ_alignment
+		alignment;
+			/* The alignment specified by the pack pragma. */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING && BACK_END_IS_CP_GEN_BE */
   } variant;
 } a_pragma;
 

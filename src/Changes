@@ -1,5 +1,24 @@
 Version 3.7
 
+11/3/05  C++-generating back end: #pragma pack directives and class template
+definitions
+
+The C++-generating back end formerly failed to preserve #pragma pack
+directives that applied to class template definitions; this is now fixed.  As
+part of this change, each #pragma pack directive in the source will be copied
+into the generated code, and #pragma pack directives will be synthesized only
+when a class definition appears in the generated code in a region with a
+different packing alignment from that of the source region where it
+originally occurred.  (This can happen, for instance, with generated explicit
+specializations in configurations in which
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE.)  For example:
+
+  #pragma pack(1)    // Previously omitted from generated code
+  template<typename T> struct S {
+    char a;
+    int i;
+  };
+
 11/3/05  Incorrect lookup in instantiation of template static data members
 
 Version 3.4 introduced a change in the way template static data members are

@@ -753,6 +753,12 @@ curr_max_member_alignment.
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
+#if BACK_END_IS_CP_GEN_BE
+  /* The C++-generating back end needs to track the current alignment
+     in order to generate and revert #pragma pack directives. */
+  check_assertion(ppp->il_pragma_entry != NULL);
+  ppp->il_pragma_entry->variant.alignment = curr_max_member_alignment;
+#endif /* BACK_END_IS_CP_GEN_BE */
   db_exit();
 } /* pack_pragma */
 

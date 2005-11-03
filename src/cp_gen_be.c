@@ -162,6 +162,13 @@ static a_source_sequence_entry_ptr
 			   scope memory region is being visited, and this
 			   points to the entry in the function scope memory
 			   region that sent us off to the sublist. */
+#if USER_CONTROL_OF_STRUCT_PACKING
+static a_source_sequence_entry_ptr
+		pending_pragma_pack;
+			/* If non-NULL, a source sequence entry for a
+			   #pragma pack directive that was skipped and must
+			   be generated before the next declaration. */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
 Return TRUE if the indicated source sequence entry points to a source sequence
@@ -336,9 +343,15 @@ typedef int a_gen_name_options_set;
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 /*
-The following variable is TRUE if a #pragma pack directive was issued for a
-particular class definition to indicate that "#pragma pack()" must be issued
-at the end of the complete declaration to restore the default setting.
+The alignment specified by the most recent #pragma pack directive (0
+indicates the default value).
+*/
+static a_targ_alignment
+		curr_max_member_alignment;
+/*
+The following variable is TRUE if a #pragma pack directive was constructed for
+a particular class definition and indicates that the previous alignment must
+be restored.
 */
 static a_boolean
 		need_pragma_pack_restore;
@@ -357,6 +370,8 @@ static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
 static a_boolean process_preprocessing_directives(void);
 static void gen_pragma(void);
+static void gen_pragma_start(a_pragma_ptr pp);
+static void gen_pragma_end(a_pragma_ptr pp);
 static void gen_template_header(a_template_decl_ptr tdp);
 static void gen_template(void);
 static void gen_lvalue_full(an_expr_node_ptr node,
@@ -4040,6 +4055,45 @@ scp is NULL).
 }  /* gen_declaration_using_type */
 
 
+#if USER_CONTROL_OF_STRUCT_PACKING
+static void gen_pending_pragma_pack()
+/*
+Generate any #pragma pack directives that were skipped by
+process_preprocessing_directives.  Because pack is an immediate pragma, it
+appears in the source sequence list before the end-of-construct entry for
+the entity that precedes it.  The processing of #pragma pack in gen_pragma
+is simply to record its source sequence entry in pending_pragma_pack, and
+any such directives are then generated before the next declaration or at
+the end of the translation unit.
+*/
+{
+  a_source_sequence_entry_ptr ssep;
+  a_boolean                   saved_suppress_line_breaking =
+                                                   octl.suppress_line_breaking;
+
+  octl.suppress_line_breaking = TRUE;
+  for (ssep = pending_pragma_pack;
+       ssep != NULL && ssep != curr_source_sequence_entry;
+       ssep = ssep->next) {
+    if (ss_entry_kind(ssep) == iek_pragma) {
+      a_pragma_ptr pp = ss_entry_ptr(ssep, a_pragma_ptr);
+      if (pp->kind == (a_pragma_kind)pk_pack) {
+        check_assertion_str(pp->pragma_text != NULL,
+                            "gen_pending_pragma_pack: NULL pragma_text");
+        set_output_position(&pp->position);
+        gen_pragma_start(pp);
+        write_str(pp->pragma_text);
+        gen_pragma_end(pp);
+        curr_max_member_alignment = pp->variant.alignment;
+      }  /* if */
+    }  /* if */        
+  }  /* while */
+  octl.suppress_line_breaking = saved_suppress_line_breaking;
+  pending_pragma_pack = NULL;
+}  /* gen_pending_pragma_pack */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+
+
 static a_boolean process_preprocessing_directives(void)
 /*
 Process any preprocessing directives in the source sequence list, specifically
@@ -4065,6 +4119,12 @@ pragmas and macros.  Return TRUE if anything was processed.
       break;
     }  /* if */
   }  /* while */
+#if USER_CONTROL_OF_STRUCT_PACKING
+  if (curr_source_sequence_entry == NULL && pending_pragma_pack != NULL) {
+    /* The translation unit ended with a #pragma pack. */
+    gen_pending_pragma_pack();
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   return anything_processed;
 }  /* process_preprocessing_directives */
 
@@ -4588,39 +4648,40 @@ Put out the list of direct base classes of the class associated with ctsp
 
 
 #if USER_CONTROL_OF_STRUCT_PACKING
-static void gen_pragma_pack_if_needed(a_type_ptr type)
+static void construct_pragma_pack_if_needed(a_type_ptr type)
 /*
-Check the alignment of the specified class type; if it is not the default and
-we are not already under the influence of a #pragma pack directive, issue a
-#pragma pack with the requisite alignment.
+Check the alignment of the specified class type; if it is not the same as
+curr_max_member_alignment (which was set by the most recent #pragma pack from
+the source sequence list) and we have not already issued the requisite
+pragma, construct a #pragma pack with the type's alignment.
 */
 {
   if (!need_pragma_pack_restore) {
-    /* No #pragma pack in force currently. */
+    /* No #pragma pack constructed for this declaration yet. */
     a_targ_alignment  pack_alignment = type->variant.class_struct_union.
                                                           max_member_alignment;
     /* If required, put out a #pragma pack directive to set the pack alignment
        for the current class.  (Some GNU compilers ignore the pragma;
        attributes are issued instead.  If we know attribute packed will be
        emitted, we don't issue the pragma.) */
-    if (pack_alignment > 0
+    if (pack_alignment != curr_max_member_alignment
 #if GNU_EXTENSIONS_ALLOWED
         && !(gcc_is_generated_code_target && pack_alignment == 1 &&
              type->variant.class_struct_union.is_packed)
 #endif /* GNU_EXTENSIONS_ALLOWED */
                                                         ) {
-      if (pack_alignment != il_header.default_max_member_alignment) {
-        /* Put out a #pragma pack directive to indicate the special alignment
-           requirements for this struct. */
-        begin_pp_directive("#pragma pack(");
+      /* Put out a #pragma pack directive to indicate the special alignment
+         requirements for this struct. */
+      begin_pp_directive("#pragma pack(");
+      if (pack_alignment != 0) {
         write_unsigned_num((unsigned long)pack_alignment);
-        write_str(")");
-        end_pp_directive();
-        need_pragma_pack_restore = TRUE;
       }  /* if */
+      write_str(")");
+      end_pp_directive();
+      need_pragma_pack_restore = TRUE;
     }  /* if */
   }  /* if */
-}  /* gen_pragma_pack_if_needed */
+}  /* construct_pragma_pack_if_needed */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 
@@ -4634,7 +4695,7 @@ is the one associated with the definition of the class.
   a_class_type_supplement_ptr
                     ctsp = type->variant.class_struct_union.extra_info;
 #if USER_CONTROL_OF_STRUCT_PACKING
-  gen_pragma_pack_if_needed(type);
+  construct_pragma_pack_if_needed(type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* Advance past the source sequence entry for the class itself. */
   check_and_take_source_seq_entry_for_type(type);
@@ -4800,7 +4861,7 @@ declaration following this one is such a continuation.
         specifier_type->definition_delayed) {
       /* The typedef contains a class definition: issue a #pragma pack before
          the "typedef" keyword if one is required. */
-      gen_pragma_pack_if_needed(specifier_type);
+      construct_pragma_pack_if_needed(specifier_type);
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (!suppress_specifiers) write_tok_str("typedef ");
@@ -5193,6 +5254,7 @@ this one is such a continuation.
           need_to_unset_typedefs = TRUE;
         }  /* if */
       }  /* if */
+      construct_pragma_pack_if_needed(type);
       /* Put out "template<>" at the beginning. */
       gen_template_specialization_header(&type->source_corresp,
                                          template_arg_list);
@@ -8882,47 +8944,64 @@ is the one associated with the pragma.
   a_pragma_ptr pp = ss_entry_ptr(curr_source_sequence_entry, a_pragma_ptr);
   a_boolean    saved_suppress_line_breaking = octl.suppress_line_breaking;
 
-  /* Advance past the source sequence entry for the pragma. */
-  adv_curr_source_sequence_entry();
-  /* Ignore this entry if told to do so. */
-  if (!pp->ignore_in_back_end) {
-    octl.suppress_line_breaking = TRUE;
-    set_output_position(&pp->position);
-    if (pp->kind == (a_pragma_kind)pk_stdc) {
-      gen_stdc_pragma(pp);
+#if USER_CONTROL_OF_STRUCT_PACKING
+  if (pp->kind == (a_pragma_kind)pk_pack) {
+    /* Because pack is an immediate pragma, it appears in the source
+       sequence list before the end-of-construct entry of the declaration
+       that precedes it.  We therefore defer generating #pragma pack directives
+       until the next call to gen_declaration(). */
+    if (pending_pragma_pack == NULL) {
+      /* This is the first (there might be several, so don't overwrite the
+         first). */
+      pending_pragma_pack = curr_source_sequence_entry;
+    }  /* if */
+    adv_curr_source_sequence_entry();
+  } else
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  /* Do not insert code here. */
+  {
+    /* Advance past the source sequence entry for the pragma. */
+    adv_curr_source_sequence_entry();
+    /* Ignore this entry if told to do so. */
+    if (!pp->ignore_in_back_end) {
+      octl.suppress_line_breaking = TRUE;
+      set_output_position(&pp->position);
+      if (pp->kind == (a_pragma_kind)pk_stdc) {
+        gen_stdc_pragma(pp);
 #if UPC_EXTENSIONS_ALLOWED
-    /* Check for #pragma upc. */
-    } else if (pp->kind == (a_pragma_kind)pk_upc) {
-      gen_upc_pragma(pp);
+      /* Check for #pragma upc. */
+      } else if (pp->kind == (a_pragma_kind)pk_upc) {
+        gen_upc_pragma(pp);
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if IDENT_DIRECTIVE_AND_PRAGMA
-    /* Check for #pragma ident (= #ident). */
-    } else if (pp->kind == (a_pragma_kind)pk_ident) {
+      /* Check for #pragma ident (= #ident). */
+      } else if (pp->kind == (a_pragma_kind)pk_ident) {
 #if USE_PRAGMA_IDENT_IN_GENERATED_CODE
-      gen_pragma_start(pp);
-      write_str("ident ");
+        gen_pragma_start(pp);
+        write_str("ident ");
 #else /* !USE_PRAGMA_IDENT_IN_GENERATED_CODE */
-      begin_pp_directive("");
-      write_str("#ident ");
+        begin_pp_directive("");
+        write_str("#ident ");
 #endif /* USE_PRAGMA_IDENT_IN_GENERATED_CODE */
-      /* Don't escape tab characters. */
-      octl.gen_raw_tab_in_literals = TRUE;
-      gen_constant(pp->variant.ident_string, /*need_parens=*/FALSE);
-      octl.gen_raw_tab_in_literals = FALSE;
+        /* Don't escape tab characters. */
+        octl.gen_raw_tab_in_literals = TRUE;
+        gen_constant(pp->variant.ident_string, /*need_parens=*/FALSE);
+        octl.gen_raw_tab_in_literals = FALSE;
 #if USE_PRAGMA_IDENT_IN_GENERATED_CODE
-      gen_pragma_end(pp);
+        gen_pragma_end(pp);
 #else /* !USE_PRAGMA_IDENT_IN_GENERATED_CODE */
-      end_pp_directive();
+        end_pp_directive();
 #endif /* USE_PRAGMA_IDENT_IN_GENERATED_CODE */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
-    } else {
-      check_assertion_str(pp->pragma_text != NULL,
-                          "gen_pragma: NULL pragma_text");
-      gen_pragma_start(pp);
-      write_str(pp->pragma_text);
-      gen_pragma_end(pp);
+      } else {
+        check_assertion_str(pp->pragma_text != NULL,
+                            "gen_pragma: NULL pragma_text");
+        gen_pragma_start(pp);
+        write_str(pp->pragma_text);
+        gen_pragma_end(pp);
+      }  /* if */
+      octl.suppress_line_breaking = saved_suppress_line_breaking;
     }  /* if */
-    octl.suppress_line_breaking = saved_suppress_line_breaking;
   }  /* if */
 }  /* gen_pragma */
 
@@ -11876,6 +11955,11 @@ that case) and old-style parameter declarations.
   a_boolean        pragma_pack_was_already_set = need_pragma_pack_restore;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
+#if USER_CONTROL_OF_STRUCT_PACKING
+  if (pending_pragma_pack != NULL) {
+    gen_pending_pragma_pack();
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Output any Microsoft attributes. */
   if (gen_ms_attribute_block()) {
@@ -11957,8 +12041,12 @@ that case) and old-style parameter declarations.
   }  /* for */
 #if USER_CONTROL_OF_STRUCT_PACKING
   if (need_pragma_pack_restore && !pragma_pack_was_already_set) {
-    /* Restore the packing alignment to a default state. */
-    begin_pp_directive("#pragma pack()");
+    /* Restore the packing alignment to the previous state. */
+    begin_pp_directive("#pragma pack(");
+    if (curr_max_member_alignment != 0) {
+      write_unsigned_num((unsigned long)curr_max_member_alignment);
+    }  /* if */
+    write_str(")");
     end_pp_directive();
     need_pragma_pack_restore = FALSE;
   }  /* if */
@@ -12139,6 +12227,8 @@ Initialize for the C++/C-generating back end.
   octl.render_c99_bool = c99_mode || gcc_mode;
   in_template_argument_list = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
+  pending_pragma_pack = NULL;
+  curr_max_member_alignment = 0;
   need_pragma_pack_restore = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* init_cp_gen_be */

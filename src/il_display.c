@@ -4206,6 +4206,11 @@ Display the indicated pragma entry.
     disp_constant(ptr->variant.ident_string);
   }  /* if */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+#if USER_CONTROL_OF_STRUCT_PACKING && BACK_END_IS_CP_GEN_BE
+  if (ptr->kind == (a_pragma_kind)pk_pack) {
+    disp_unsigned_long("alignment", (unsigned long)ptr->variant.alignment);
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING && BACK_END_IS_CP_GEN_BE */
 }  /* disp_pragma */
 
 #if RECORD_HIDDEN_NAMES_IN_IL
