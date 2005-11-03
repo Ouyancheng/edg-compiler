@@ -72,6 +72,37 @@ Compute -z in lowered representation (extended precision).
 }  /* __c99_complex_long_double_negate */
 
 
+EXTERN_C _Complex_float __c99_complex_float_conj(_Complex_float z)
+/*
+Compute ~z in lowered representation (single precision).
+*/
+{
+  z._Vals[1] = -z._Vals[1];
+  return z;
+}  /* __c99_complex_float_conj */
+
+
+EXTERN_C _Complex_double __c99_complex_double_conj(_Complex_double z)
+/*
+Compute ~z in lowered representation (double precision).
+*/
+{
+  z._Vals[1] = -z._Vals[1];
+  return z;
+}  /* __c99_complex_double_conj */
+
+
+EXTERN_C _Complex_long_double __c99_complex_long_double_conj(
+                                                        _Complex_long_double z)
+/*
+Compute ~z in lowered representation (extended precision).
+*/
+{
+  z._Vals[1] = -z._Vals[1];
+  return z;
+}  /* __c99_complex_long_double_conj */
+
+
 EXTERN_C _Complex_float __c99_complex_float_add(_Complex_float z1,
                                                 _Complex_float z2)
 /*
