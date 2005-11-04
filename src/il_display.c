@@ -4375,6 +4375,9 @@ Display the indicated template.
 #if RECORD_TEMPLATE_STRINGS
   disp_string_ptr("text", ptr->text, iek_other_text, (sizeof_t)0);
 #endif /* RECORD_TEMPLATE_STRINGS */
+#if BACK_END_IS_CP_GEN_BE && USER_CONTROL_OF_STRUCT_PACKING
+  disp_unsigned_long("final_alignment", (unsigned long)ptr->final_alignment);
+#endif /* BACK_END_IS_CP_GEN_BE && USER_CONTROL_OF_STRUCT_PACKING */
 }  /* disp_template */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

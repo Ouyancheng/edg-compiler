@@ -372,6 +372,9 @@ static a_boolean process_preprocessing_directives(void);
 static void gen_pragma(void);
 static void gen_pragma_start(a_pragma_ptr pp);
 static void gen_pragma_end(a_pragma_ptr pp);
+#if USER_CONTROL_OF_STRUCT_PACKING
+static void gen_pending_pragma_pack();
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 static void gen_template_header(a_template_decl_ptr tdp);
 static void gen_template(void);
 static void gen_lvalue_full(an_expr_node_ptr node,
@@ -3673,6 +3676,11 @@ Return TRUE if any were processed.
   for (;;) {
     /* Skip macros and pragmas. */
     (void)process_preprocessing_directives();
+#if USER_CONTROL_OF_STRUCT_PACKING
+    if (pending_pragma_pack != NULL && !any_found) {
+      gen_pending_pragma_pack();
+    }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (curr_source_sequence_entry == NULL ||
         ss_entry_kind(curr_source_sequence_entry) != iek_ms_attribute) break;
     any_found = TRUE;
@@ -9306,6 +9314,11 @@ is the one associated with the template.
       } else {
         adv_curr_source_sequence_entry();
       }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
+      /* Update the current packing alignment to reflect any #pragma pack
+         directives that were embedded in the template definition string. */
+      curr_max_member_alignment = tp->final_alignment;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */      
     }  /* if */
   }  /* if */
 }  /* gen_template */

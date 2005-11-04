@@ -367,13 +367,6 @@ typedef struct a_pack_alignment_stack_entry {
 } a_pack_alignment_stack_entry;
 
 
-static a_targ_alignment
-		curr_max_member_alignment;
-			/* Current pack alignment, as specified by the most
-			   recent #pragma pack directive.  If it is zero, use
-			   the default pack alignment, as specified on the
-			   command line. */
-
 static a_pack_alignment_stack_entry_ptr
 		pack_alignment_stack;
 			/* Pointer to the top of the stack of pack alignment
@@ -754,10 +747,13 @@ curr_max_member_alignment.
   }  /* if */
 #endif /* DEBUG */
 #if BACK_END_IS_CP_GEN_BE
-  /* The C++-generating back end needs to track the current alignment
-     in order to generate and revert #pragma pack directives. */
-  check_assertion(ppp->il_pragma_entry != NULL);
-  ppp->il_pragma_entry->variant.alignment = curr_max_member_alignment;
+  if (ppp->il_pragma_entry != NULL) {
+    /* The C++-generating back end needs to track the current alignment
+       in order to generate and revert #pragma pack directives.  (There
+       will be no il_pragma_entry when the directive is encountered during
+       the prototype instantiation of a template.) */
+    ppp->il_pragma_entry->variant.alignment = curr_max_member_alignment;
+  }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
   db_exit();
 } /* pack_pragma */

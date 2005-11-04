@@ -15372,6 +15372,15 @@ any non-empty template parameter lists that were scanned.
     if (sym != NULL) db_symbol(sym, "template symbol: ", 2);
   }  /* if */
 #endif /* DEBUG */
+#if BACK_END_IS_CP_GEN_BE && USER_CONTROL_OF_STRUCT_PACKING
+  if (tssp != NULL && tssp->il_template_entry != NULL) {
+    /* Record the effect of any embedded #pragma pack directives: they will
+       be copied into the generated code, but cp_gen_be will be unable to
+       track them because they will not have a_pragma entries in the
+       source sequence list. */
+    tssp->il_template_entry->final_alignment = curr_max_member_alignment;
+  }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE && USER_CONTROL_OF_STRUCT_PACKING */
   db_exit();
 }  /* template_declaration */
 

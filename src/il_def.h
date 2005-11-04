@@ -10620,6 +10620,18 @@ typedef struct a_template {
   unsigned long	cache_checksum;
 			/* A checksum of the definition cache used to compare
 			   definitions from different translation units. */
+#if BACK_END_IS_CP_GEN_BE && USER_CONTROL_OF_STRUCT_PACKING
+  a_targ_alignment
+		final_alignment;
+			/* The packing alignment at the end of the template
+			   definition.  #pragma pack directives inside the
+			   template definition appear in the generated code
+			   but do not have associated a_pragma IL entries, so
+			   the C++-generating back end cannot track their
+			   effect directly.  This field, set during prototype
+			   instantiation, allows it to re-sync after
+			   inserting the definition into the output. */
+#endif /* BACK_END_IS_CP_GEN_BE && USER_CONTROL_OF_STRUCT_PACKING */
 } a_template;
 
 #if RECORD_MACROS_IN_IL

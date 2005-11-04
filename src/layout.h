@@ -28,6 +28,13 @@ layout.h -- Declarations related to layout.c (having to do with laying out
 typedef a_host_large_unsigned an_unnormalized_bit_offset;
 
 #if USER_CONTROL_OF_STRUCT_PACKING
+EXTERN a_targ_alignment
+		curr_max_member_alignment;
+			/* Current pack alignment, as specified by the most
+			   recent #pragma pack directive.  If it is zero, use
+			   the default pack alignment, as specified on the
+			   command line. */
+
 typedef struct a_pack_alignment_stack_entry *a_pack_alignment_stack_entry_ptr;
 
 /* An entry in which to save current pack-alignment state during the
