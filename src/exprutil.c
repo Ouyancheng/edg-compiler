@@ -2991,7 +2991,7 @@ user-defined conversions.
            in the expression. */
         node = make_node_from_operand(operand);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode && 0 &&
+        if (microsoft_mode &&
             (is_pointer_type(new_type) || is_ptr_to_member_type(new_type))) {
           a_boolean        is_special_case;
           a_constant_ptr   con;
