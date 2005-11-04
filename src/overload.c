@@ -1646,7 +1646,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       adjust_constant_operand_info_for_microsoft_null_pointer_test(
                                                       arg_operand,
                                                       &arg_operand_is_constant,
-                                                      &arg_operand_constant);
+                                                      &arg_operand_constant,
+                                                      (an_expr_node **)NULL);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
@@ -8781,9 +8782,10 @@ the target type to be used).
           /* Microsoft mode allows some expressions as null pointer
              constants. */
           adjust_constant_operand_info_for_microsoft_null_pointer_test(
-                                                         &arg_operand->operand,
-                                                         &source_is_constant,
-                                                         &source_constant);
+                                                      &arg_operand->operand,
+                                                      &source_is_constant,
+                                                      &source_constant,
+                                                      (an_expr_node **)NULL);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* See if we can convert the type we have to the type we want. */
@@ -11021,9 +11023,10 @@ is not a parameter.
     if (microsoft_mode && !source_is_constant) {
       /* Microsoft mode allows some expressions as null pointer constants. */
       adjust_constant_operand_info_for_microsoft_null_pointer_test(
-                                                           source_operand,
-                                                           &source_is_constant,
-                                                           &source_constant);
+                                                      source_operand,
+                                                      &source_is_constant,
+                                                      &source_constant,
+                                                      (an_expr_node **)NULL);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_indefinite_function_operand(source_operand)) {

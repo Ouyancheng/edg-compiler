@@ -1,5 +1,18 @@
 Version 3.7
 
+11/4/05  Microsoft mode: incorrect IL for comma expression as null pointer
+         constant
+
+Incorrect IL was generated for the Microsoft feature that allows use
+of a comma expression like (x, 0) as a null pointer constant (see
+Changes entry of 7/28/97).  The type of the comma expression did not
+match the type of its second operand.  Now fixed.
+
+  struct A {};
+  typedef void (A::*pmf)(int);
+  int a;
+  pmf b = (a, 0);
+
 11/3/05  C++-generating back end: #pragma pack directives and class template
 definitions
 

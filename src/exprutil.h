@@ -915,9 +915,10 @@ extern a_boolean determine_imaginary_operation_type
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void adjust_constant_operand_info_for_microsoft_null_pointer_test(
-                                               an_operand *operand,
-                                               a_boolean  *operand_is_constant,
-                                               a_constant **operand_constant);
+                                         an_operand       *operand,
+                                         a_boolean        *operand_is_constant,
+                                         a_constant       **operand_constant,
+                                         an_expr_node_ptr *con_expr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean check_compatibility_of_pointer_operands(

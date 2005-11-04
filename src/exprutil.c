@@ -2990,9 +2990,38 @@ user-defined conversions.
         /* Use the function here to get form-of-name-reference information
            in the expression. */
         node = make_node_from_operand(operand);
-        cast_node(&node, new_type, check_cast_access, is_implicit_cast,
-                  is_reinterpret_cast, reinterpret_semantics,
-                  &operand->position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_mode && 0 &&
+            (is_pointer_type(new_type) || is_ptr_to_member_type(new_type))) {
+          a_boolean        is_special_case;
+          a_constant_ptr   con;
+          an_expr_node_ptr con_expr;
+          /* Microsoft mode allows some comma expressions as null pointer
+             constants.  If this is such a case, cast the underlying operand
+             to the right pointer type. */
+          adjust_constant_operand_info_for_microsoft_null_pointer_test(
+                                                              operand,
+                                                              &is_special_case,
+                                                              &con,
+                                                              &con_expr);
+          if (is_special_case) {
+            an_expr_node_ptr orig_con_expr = con_expr;
+            cast_node(&con_expr, new_type, check_cast_access, is_implicit_cast,
+                      is_reinterpret_cast, reinterpret_semantics,
+                      &operand->position);
+            if (con_expr != orig_con_expr) {
+              overwrite_node(orig_con_expr, con_expr);
+            }  /* if */
+            node->type = new_type;
+          }  /* if */
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          cast_node(&node, new_type, check_cast_access, is_implicit_cast,
+                    is_reinterpret_cast, reinterpret_semantics,
+                    &operand->position);
+        }  /* if */
         make_expression_operand(node, new_type, operand);
         break;
       case ok_constant:
@@ -4221,9 +4250,10 @@ to the IL operator to be used, and return TRUE.  Otherwise, return FALSE.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void adjust_constant_operand_info_for_microsoft_null_pointer_test(
-                                               an_operand *operand,
-                                               a_boolean  *operand_is_constant,
-                                               a_constant **operand_constant)
+                                         an_operand       *operand,
+                                         a_boolean        *operand_is_constant,
+                                         a_constant       **operand_constant,
+                                         an_expr_node_ptr *con_expr)
 /*
 In Microsoft mode, expressions like (x, 0) are allowed as null pointer
 constants.  This routine examines *operand to see if it is such a thing,
@@ -4231,9 +4261,12 @@ and sets *operand_is_constant and *operand_constant to the underlying
 null pointer constant.  Those are then presumably passed to a function
 like impl_conversion_possible, which would then conclude that it is
 possible to implicitly convert the *operand expression to a pointer type.
-This routine is called only in Microsoft mode.
+This routine is called only in Microsoft mode.  If con_expr is non-NULL,
+*con_expr is set to point to the expression node that points to
+the null pointer constant returned in *operand_constant.
 */
 {
+  *operand_is_constant = FALSE;
   if (is_expression_operand(operand)) {
     an_expr_node_ptr expr = operand->variant.expression;
     if (is_operation_node(expr) &&
@@ -4246,6 +4279,7 @@ This routine is called only in Microsoft mode.
            null pointer constant, e.g., (x, 0). */
         *operand_is_constant = TRUE;
         *operand_constant = expr->variant.constant;
+        if (con_expr != NULL) *con_expr = expr;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4299,7 +4333,8 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
         adjust_constant_operand_info_for_microsoft_null_pointer_test(
                                                         operand_2,
                                                         &operand_2_is_constant,
-                                                        &operand_2_constant);
+                                                        &operand_2_constant,
+                                                        (an_expr_node **)NULL);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* See if the second operand can be converted to the type of the
@@ -4341,7 +4376,8 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
         adjust_constant_operand_info_for_microsoft_null_pointer_test(
                                                         operand_1,
                                                         &operand_1_is_constant,
-                                                        &operand_1_constant);
+                                                        &operand_1_constant,
+                                                        (an_expr_node **)NULL);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (impl_pointer_conversion(operand_1_type,
@@ -4497,7 +4533,8 @@ operator position (for errors).  Return FALSE if there is an error.
       adjust_constant_operand_info_for_microsoft_null_pointer_test(
                                                         operand_2,
                                                         &operand_2_is_constant,
-                                                        &operand_2_constant);
+                                                        &operand_2_constant,
+                                                        (an_expr_node **)NULL);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* See if the second operand can be converted to the type of the
@@ -4521,7 +4558,8 @@ operator position (for errors).  Return FALSE if there is an error.
       adjust_constant_operand_info_for_microsoft_null_pointer_test(
                                                         operand_1,
                                                         &operand_1_is_constant,
-                                                        &operand_1_constant);
+                                                        &operand_1_constant,
+                                                        (an_expr_node **)NULL);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* See if the first operand can be converted to the type of the
