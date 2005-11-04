@@ -1,5 +1,12 @@
 Version 3.7
 
+11/4/05  Typedef names no longer in typeinfo names, Cfront-like ABI
+
+In the Cfront-like ABI, the names in typeinfo variables sometimes
+included typedef names (this did not happen in the IA-64 ABI).
+The names of the types underlying the typedefs are now output
+instead.
+
 11/4/05  Microsoft mode: incorrect IL for comma expression as null pointer
          constant
 
