@@ -2990,21 +2990,22 @@ user-defined conversions.
         /* Use the function here to get form-of-name-reference information
            in the expression. */
         node = make_node_from_operand(operand);
+        {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode &&
-            (is_pointer_type(new_type) || is_ptr_to_member_type(new_type))) {
           a_boolean        is_special_case;
           a_constant_ptr   con;
           an_expr_node_ptr con_expr;
           /* Microsoft mode allows some comma expressions as null pointer
              constants.  If this is such a case, cast the underlying operand
              to the right pointer type. */
-          adjust_constant_operand_info_for_microsoft_null_pointer_test(
+          if (microsoft_mode &&
+              (is_pointer_type(new_type) || is_ptr_to_member_type(new_type)) &&
+              (adjust_constant_operand_info_for_microsoft_null_pointer_test(
                                                               operand,
                                                               &is_special_case,
                                                               &con,
-                                                              &con_expr);
-          if (is_special_case) {
+                                                              &con_expr),
+               is_special_case)) {
             an_expr_node_ptr orig_con_expr = con_expr;
             cast_node(&con_expr, new_type, check_cast_access, is_implicit_cast,
                       is_reinterpret_cast, reinterpret_semantics,
@@ -3013,15 +3014,15 @@ user-defined conversions.
               overwrite_node(orig_con_expr, con_expr);
             }  /* if */
             node->type = new_type;
-          }  /* if */
-        } else
+          } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
-        {
-          cast_node(&node, new_type, check_cast_access, is_implicit_cast,
-                    is_reinterpret_cast, reinterpret_semantics,
-                    &operand->position);
-        }  /* if */
+          /* Do not insert code here. */
+          {
+            cast_node(&node, new_type, check_cast_access, is_implicit_cast,
+                      is_reinterpret_cast, reinterpret_semantics,
+                      &operand->position);
+          }  /* if */
+        }
         make_expression_operand(node, new_type, operand);
         break;
       case ok_constant:
