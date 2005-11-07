@@ -10992,13 +10992,18 @@ operators cannot be overloaded.
 */
 {
   a_boolean              real_part = (curr_token == tok_gnu_real);
-  a_source_position      start_pos, end_pos;
+  a_source_position      start_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position      end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand             operand;
 
   copy_source_position(pos_curr_token, start_pos);
   get_token();
   scan_expr(&operand, PREC_CAST, EOPT_NO_OPTIONS);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   copy_source_position(operand.end_position, end_pos);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (is_error_operand(&operand)) {
     /* A diagnostic will already have been issued. */
     make_error_operand(result);
