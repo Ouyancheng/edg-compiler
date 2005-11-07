@@ -4070,10 +4070,33 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           dump_lvalue(operand_1);
           write_tok_ch(')');
           goto done_with_unary_operation;
+#if GNU_EXTENSIONS_ALLOWED
+        case eok_xconj:
+#endif /* GNU_EXTENSIONS_ALLOWED */
         case eok_complement:
           is_unary = TRUE;
           opstr = "~";
           break;
+#if GNU_EXTENSIONS_ALLOWED
+        case eok_real_part:
+          is_unary = TRUE;
+          opstr = "__real";
+          break;
+        case eok_imag_part:
+          is_unary = TRUE;
+          opstr = "__imag";
+          break;
+        case eok_lvalue_real_part:
+          write_tok_str("__real(");
+          dump_lvalue(operand_1);
+          write_tok_ch(')');
+          goto done_with_unary_operation;
+        case eok_lvalue_imag_part:
+          write_tok_str("__imag(");
+          dump_lvalue(operand_1);
+          write_tok_ch(')');
+          goto done_with_unary_operation;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
         case eok_fxpost_incr:
 #endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */

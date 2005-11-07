@@ -6903,6 +6903,7 @@ enum an_opname_kind_tag {
   onk_function_call,     /* "()" */     onk_subscript,         /* "[]" */
   onk_question,          /* "?" -- only used in front end. */
   onk_gnu_min,           /* "<?" */     onk_gnu_max,           /* ">?" */
+  onk_real_part,         /* "__real" */ onk_imag_part,         /* "__imag" */
   onk_last
 };
 #endif /* ifdef CIL */
@@ -8366,6 +8367,13 @@ enum an_expr_operator_kind_tag {
   eok_fjsubtract,       /* Real - imaginary, produces complex. */
   eok_jfsubtract,       /* Imaginary - real, produces complex. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_EXTENSIONS_ALLOWED
+  eok_xconj,            /* Complex conjugation operator. */
+  eok_real_part,        /* Produce the real part of a complex rvalue. */
+  eok_imag_part,        /* Produce the imaginary part of a complex rvalue. */
+  eok_lvalue_real_part, /* Produce the real part of a complex lvalue. */
+  eok_lvalue_imag_part, /* Produce the imaginary part of a complex lvalue. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef FIL
   eok_complex,          /* Join two real operands, produce a complex as the
                            result.  The first operand is the real part, the
@@ -11733,6 +11741,9 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #if C99_IL_EXTENSIONS_SUPPORTED
    "j*", "j/", "fj+", "jf+", "fj-", "jf-",
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_EXTENSIONS_ALLOWED
+   "x~", "rvalue __real", "rvalue __imag", "lvalue __real", "lvalue __imag",
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef FIL
    "complex",
    "c==", "c!=", "c>", "c<", "c>=", "c<=", "c=", "//",

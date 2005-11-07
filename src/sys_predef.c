@@ -252,11 +252,9 @@ Enter the standard predeclared functions for GCC.
   a_type_ptr  floating_type;
   a_type_ptr  double_type;
   a_type_ptr  long_double_type;
-#if C99_IL_EXTENSIONS_SUPPORTED
   a_type_ptr  complex_float_type;
   a_type_ptr  complex_double_type;
   a_type_ptr  complex_long_double_type;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   a_type_ptr  char_star_type;
   a_type_ptr  const_char_star_type;
   a_type_ptr  generic_function_type;
@@ -295,13 +293,11 @@ Enter the standard predeclared functions for GCC.
   floating_type = float_type((a_float_kind)fk_float);
   double_type = float_type((a_float_kind)fk_double);
   long_double_type = float_type((a_float_kind)fk_long_double);
-#if C99_IL_EXTENSIONS_SUPPORTED
   if (C_mode()) {
     complex_float_type = complex_type((a_float_kind)fk_float);
     complex_double_type = complex_type((a_float_kind)fk_double);
     complex_long_double_type = complex_type((a_float_kind)fk_long_double);
   }  /* if */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   char_star_type = make_pointer_type(char_type);
   const_char_star_type = 
     make_pointer_type(make_qualified_type(char_type, 

@@ -77,6 +77,13 @@ void lower_c99_xeq(an_expr_node_ptr  expr);
 
 void lower_c99_xne(an_expr_node_ptr  expr);
 
+#if GNU_EXTENSIONS_ALLOWED
+
+void lower_xconj(an_expr_node_ptr  expr);
+
+void lower_complex_projection(an_expr_node_ptr  expr);
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* LOWER_COMPLEX */
 #if DO_C99_IL_LOWERING
 

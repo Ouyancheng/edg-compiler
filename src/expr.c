@@ -337,7 +337,12 @@ current expression (used to decide how a comma should be treated).
         new_prec = PREC_COMMA;
       }  /* if */
       break;
-
+#if GNU_EXTENSIONS_ALLOWED
+    case tok_gnu_real:
+    case tok_gnu_imag:
+      new_prec = PREC_CAST;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       /* Not an operator; the expression ends. */
       done = TRUE;
@@ -4924,8 +4929,16 @@ arithmetic type.  The operand of "~" must have integral type.  See section
         (void)check_arithmetic_or_enum_operand(&operand);
         break;
       case tok_compl:
-        op = (an_expr_operator_kind)eok_complement;
-        (void)check_integral_or_enum_operand(&operand);
+#if GNU_EXTENSIONS_ALLOWED
+        if (is_complex_type(operand.type)) {
+          op = (an_expr_operator_kind)eok_xconj;
+        } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          op = (an_expr_operator_kind)eok_complement;
+          (void)check_integral_or_enum_operand(&operand);
+        }  /* if */
         break;
       default:
         unexpected_condition_str("scan_arith_prefix_operator: bad operator");
@@ -10969,6 +10982,85 @@ in *bound_function_selector.
 
 #if GNU_EXTENSIONS_ALLOWED
 
+static void scan_complex_projection(an_operand  *result)
+/*
+Scan an expression of one of the following two forms:
+  __real <expr>
+  __imag <expr>
+The result is an lvalue if the argument expression is a lvalue.  These
+operators cannot be overloaded.
+*/
+{
+  a_boolean              real_part = (curr_token == tok_gnu_real);
+  a_source_position      start_pos, end_pos;
+  an_operand             operand;
+
+  copy_source_position(pos_curr_token, start_pos);
+  get_token();
+  scan_expr(&operand, PREC_CAST, EOPT_NO_OPTIONS);
+  copy_source_position(operand.end_position, end_pos);
+  if (is_error_operand(&operand)) {
+    /* A diagnostic will already have been issued. */
+    make_error_operand(result);
+  } else if (is_real_floating_type(operand.type)) {
+    /* The __real and __imag unary operators normally only apply to complex
+       values.  However, the GNU compiler allows them to be applied to any
+       arithmetic type: The __real operator has no effect and the __imag
+       operator produces a zero rvalue.  We apply the same rules for floating-
+       point types (with a warning), but since we do not support complex
+       integral types, we do not accept the operators applied to such types.
+       All versions of the GNU C++ compilers abort when applying these
+       operators to class types with user-defined conversions to arithmetic
+       types.  We therefore do not attempt to accept such cases. */
+    if (real_part) {
+      copy_operand(&operand, result);
+    } else {
+      a_constant  zero;
+      make_zero_of_proper_type(operand.type, &zero);
+      make_constant_operand(&zero, result);
+      result->state = (an_operand_state)os_rvalue;
+      result->type = operand.type;
+    }  /* if */
+    pos_warning(ec_real_and_imag_applied_to_real_value, &start_pos);
+  } else if (is_complex_type(operand.type) ||
+             (is_template_dependent_context() &&
+              is_template_dependent_type(operand.type))) {
+    a_type_ptr  result_type;
+    if (is_complex_type(operand.type)) {
+      /* A complex argument: The result type is the corresponding real
+         floating-point type. */
+      result_type = float_type(skip_typerefs(operand.type)
+                                                       ->variant.float_kind);
+    } else {
+      /* A template-dependent type.  Use the argument type as the result
+         type. */
+      result_type = operand.type;
+    }  /* if */
+    an_expr_operator_kind  op;
+    if (is_an_lvalue(&operand)) {
+      /* If the argument is an lvalue, the result is also an lvalue. */
+      op = (an_expr_operator_kind)(real_part ? eok_lvalue_real_part
+                                             : eok_lvalue_imag_part);
+      using_lvalue(&operand);
+      build_unary_result_operand(&operand, op, result_type, result);
+      result->state = (an_operand_state)os_lvalue;
+      result->variant.expression->type = make_pointer_type(result_type);
+      result->variant.expression
+            ->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+    } else {
+      /* The argument is an rvalue: The result too. */
+      do_unary_operation(
+           (an_expr_operator_kind)(real_part ? eok_real_part : eok_imag_part),
+           &operand, result_type, result, &start_pos);
+    }  /* if */
+  } else {
+    error_in_operand(ec_real_and_imag_require_complex_argument, &operand);
+    make_error_operand(result);
+  }  /* if */
+  set_operand_position(result, &start_pos, &end_pos, &start_pos);
+}  /* scan_complex_projection */
+
+
 static void scan_gnu_statement_expression(an_operand *result)
 /*
 Scan the GNU statement expression:
@@ -14487,6 +14579,8 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_va_start_single_operand:
     case tok_builtin_offsetof:
     case tok_builtin_types_compatible:
+    case tok_gnu_real:
+    case tok_gnu_imag:
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
@@ -16997,6 +17091,12 @@ see expr.h).
     case tok_builtin_types_compatible:
       /* GNU C's __builtin_types_compatible_p construct. */
       scan_builtin_types_compatible(&local_result);
+      break;
+
+    case tok_gnu_real:
+    case tok_gnu_imag:
+      /* GNU complex projection operators: __real and __imag. */
+      scan_complex_projection(&local_result);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 

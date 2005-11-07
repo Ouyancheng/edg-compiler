@@ -556,26 +556,42 @@ the character position of the error.
   a_float_kind kind;
   an_internal_float_value
                number;
-  char         *actual_end;
+  char         *actual_end = end_of_curr_token;
   char         old_next_char, old_next2_char;
   a_boolean    err;
   a_boolean    inexact = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean    is_imaginary_literal = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   *err_code = ec_no_error;
-  /* See if there is a suffix. */
-  if (*end_of_curr_token == 'f' || *end_of_curr_token == 'F') {
+  /* See if there is a suffix (or two). */
+#if GNU_EXTENSIONS_ALLOWED
+  if (*actual_end == 'i' || *actual_end == 'I' ||
+      *actual_end == 'j' || *actual_end == 'J') {
+    is_imaginary_literal = TRUE;
+    --actual_end;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  if (*actual_end == 'f' || *actual_end == 'F') {
     /* "F" suffix, indicates float type. */
     kind = (a_float_kind)fk_float;
-    actual_end = end_of_curr_token-1;
-  } else if (*end_of_curr_token == 'l' || *end_of_curr_token == 'L') {
+    --actual_end;
+  } else if (*actual_end == 'l' || *actual_end == 'L') {
     /* "L" suffix, indicates long double. */
     kind = (a_float_kind)fk_long_double;
-    actual_end = end_of_curr_token-1;
+    --actual_end;
   } else {
     /* No suffix.  Default is double. */
     kind = (a_float_kind)fk_double;
-    actual_end = end_of_curr_token;
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (*actual_end == 'i' || *actual_end == 'I' ||
+      *actual_end == 'j' || *actual_end == 'J') {
+    is_imaginary_literal = TRUE;
+    --actual_end;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (microsoft_bugs &&
       start_of_curr_token[0] == '.' &&
       isdigit((unsigned char)start_of_curr_token[1]) &&
@@ -615,9 +631,22 @@ the character position of the error.
     *err_pos = start_of_curr_token;
   } else {
     /* Build a constant with the right type and value. */
-    clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_float);
-    const_for_curr_token.type = float_type(kind);
-    const_for_curr_token.variant.float_value = number;
+#if GNU_EXTENSIONS_ALLOWED
+    if (is_imaginary_literal) {
+      clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_complex);
+      const_for_curr_token.type = complex_type(kind);
+      fp_host_large_integer_to_float(
+                     kind, (a_host_large_integer)0,
+                     &const_for_curr_token.variant.complex_value->real, &err);
+      const_for_curr_token.variant.complex_value->imag = number;
+    } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_float);
+      const_for_curr_token.type = float_type(kind);
+      const_for_curr_token.variant.float_value = number;
+    }  /* if */
     if (inexact) {
       /* The hex value could not be exactly represented in the specified
          floating point format. */

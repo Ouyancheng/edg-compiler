@@ -325,8 +325,11 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_c99_complex, "_Complex");
     if (gnu_mode) {
       /* GNU compilers also accept __complex and __complex__ to denote
-         complex types. */
+         complex types.  In addition, they provide operators to extract
+         the real and imaginary part of a complex value. */
       enter_gnu_keyword((a_token_kind)tok_c99_complex, "__complex");
+      enter_gnu_keyword((a_token_kind)tok_gnu_real, "__real");
+      enter_gnu_keyword((a_token_kind)tok_gnu_imag, "__imag");
     } else {
       enter_keyword((a_token_kind)tok_c99_imaginary, "_Imaginary");
     }  /* if */

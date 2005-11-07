@@ -11513,6 +11513,17 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           case eok_xdivide_assign:
             rewrite_compound_assignment(expr, /*is_lvalue=*/FALSE);
             break;
+#if GNU_EXTENSIONS_ALLOWED
+          case eok_xconj:
+            lower_xconj(expr);
+            break;
+          case eok_real_part:
+          case eok_imag_part:
+          case eok_lvalue_real_part:
+          case eok_lvalue_imag_part:
+            lower_complex_projection(expr);
+            break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* LOWER_COMPLEX */
           case eok_virtual_function_ptr:
             /* Determine virtual function address. */

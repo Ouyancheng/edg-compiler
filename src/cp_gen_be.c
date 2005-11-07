@@ -7562,6 +7562,24 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             gen_lvalue_no_parens(operand_1);
           }  /* if */
           goto done_with_operation;
+#if GNU_EXTENSIONS_ALLOWED
+        case eok_real_part:
+          opstr = "__real";
+          break;
+        case eok_imag_part:
+          opstr = "__imag";
+          break;
+        case eok_lvalue_real_part:
+          write_tok_str("__real(");
+          gen_lvalue_no_parens(operand_1);
+          write_tok_ch(')');
+          goto done_with_operation;
+        case eok_lvalue_imag_part:
+          write_tok_str("__imag(");
+          gen_lvalue_no_parens(operand_1);
+          write_tok_ch(')');
+          goto done_with_operation;
+#endif /* GNU_EXTENSIONS_ALLOWED */
         case eok_negate:
         case eok_inegate:
 #if FIXED_POINT_ALLOWED
@@ -7660,6 +7678,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_dynamic_cast:
           gen_new_style_cast(expr);
           goto done_with_operation;
+#if GNU_EXTENSIONS_ALLOWED
+        case eok_xconj:
+#endif /* GNU_EXTENSIONS_ALLOWED */
         case eok_complement:
           opstr = "~";
           break;

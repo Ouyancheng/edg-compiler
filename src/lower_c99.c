@@ -1326,6 +1326,106 @@ Transform the given complex expression ("z1!=z2") into a function call
   overwrite_node(expr, xne_call);
 }  /* lower_c99_xne */
 
+
+static a_field_ptr complex_vals_field(a_type_ptr ctype)
+/*
+ctype is a complex type, possibly lowered.  Return a pointer to the
+single field in the struct for the lowered version of the type.
+*/
+{
+  a_field_ptr field;
+
+  ctype = skip_typerefs(ctype);
+  if (ctype->kind == (a_type_kind)tk_complex) {
+    /* Not lowered yet.  Substitute the proper lowered type. */
+    ctype = lowered_complex_type(ctype->variant.float_kind);
+  }  /* if */
+  check_assertion(ctype->kind == (a_type_kind)tk_struct);
+  field = ctype->variant.class_struct_union.field_list;
+  check_assertion(field != NULL && field->next == NULL);
+  return field;
+}  /* complex_vals_field */
+
+
+static an_expr_node_ptr select_complex_vals(an_expr_node_ptr  expr)
+/*
+The given expression node represents a complex lvalue or rvalue.  Return a node
+(constructed on top of the given one) for "<expr>.Vals" where "Vals" is the
+single field of the lowered complex type. 
+*/
+{
+  an_expr_node_ptr  result;
+  a_field_ptr       vals_field;
+  a_type_ptr        complex_type = skip_typerefs(expr->type), ptr_to_elem_type;
+  a_boolean         is_lvalue;
+
+  if (is_pointer_type(expr->type)) {
+    /* A node representing a complex lvalue.  Recover the actual complex
+       type. */
+    is_lvalue = TRUE;
+    complex_type = type_pointed_to(complex_type);
+  } else {
+    is_lvalue = FALSE;
+  }  /* if */
+  vals_field = complex_vals_field(complex_type);
+  ptr_to_elem_type = type_after_array_to_pointer_transformation(
+                                                             vals_field->type);
+  /* Make "<expr>._Vals[1]" as the lvalue for the imaginary part. */
+  /* First construct "<expr>._Vals". */
+  if (is_lvalue) {
+    /* To select a field from an lvalue, we can use field_lvalue_selection_expr
+       or field_rvalue_selection_expr.  In this case, we want to construct an
+       lvalue result, so we use the former. */
+    result = field_lvalue_selection_expr(expr, vals_field);
+    result = add_cast_if_necessary(result, ptr_to_elem_type);
+  } else {
+    /* Selecting a field from an rvalue requires a different operator
+       (eok_value_field). */
+    an_expr_node_ptr  field_node =
+                                alloc_expr_node((an_expr_node_kind)enk_field);
+    field_node->type = vals_field->type;
+    field_node->variant.field = vals_field;
+    expr->next = field_node;
+    result = make_operator_node((an_expr_operator_kind)eok_value_field,
+                                ptr_to_elem_type, expr);
+  }  /* if */
+  return result;
+}  /* select_complex_vals */
+
+
+static an_expr_node_ptr make_real_part(an_expr_node_ptr  expr)
+/*
+The given expression represents a complex lvalue or rvalue.  Return a node
+representing just the real part of that complex value.
+*/
+{
+  an_expr_node_ptr  real_part = select_complex_vals(expr);
+
+  /* Select the first element from the "Vals" field. */
+  real_part->next = node_for_integer_constant(
+                                           (long)0, targ_ptrdiff_t_int_kind);
+  real_part = make_operator_node((an_expr_operator_kind)eok_padd_subsc,
+                                 real_part->type, real_part);
+  return real_part;
+}  /* make_real_part */
+
+
+static an_expr_node_ptr make_imag_part(an_expr_node_ptr  expr)
+/*
+The given expression represents a complex lvalue or rvalue.  Return a node
+representing just the imaginary part of that complex value.
+*/
+{
+  an_expr_node_ptr  imag_part = select_complex_vals(expr);
+
+  /* Select the second element from the "Vals" field. */
+  imag_part->next = node_for_integer_constant(
+                                           (long)1, targ_ptrdiff_t_int_kind);
+  imag_part = make_operator_node((an_expr_operator_kind)eok_padd_subsc,
+                                 imag_part->type, imag_part);
+  return imag_part;
+}  /* make_imag_part */
+
 #if C99_IL_EXTENSIONS_SUPPORTED
 
 static void lower_c99_jmultiply(an_expr_node_ptr  expr)
@@ -1356,26 +1456,6 @@ division followed by a sign inversion ( a/(b*__I__) = -(a/b)*__I__ ).
 }  /* lower_c99_jdivide */
 
 
-static a_field_ptr complex_vals_field(a_type_ptr ctype)
-/*
-ctype is a complex type, possibly lowered.  Return a pointer to the
-single field in the struct for the lowered version of the type.
-*/
-{
-  a_field_ptr field;
-
-  ctype = skip_typerefs(ctype);
-  if (ctype->kind == (a_type_kind)tk_complex) {
-    /* Not lowered yet.  Substitute the proper lowered type. */
-    ctype = lowered_complex_type(ctype->variant.float_kind);
-  }  /* if */
-  check_assertion(ctype->kind == (a_type_kind)tk_struct);
-  field = ctype->variant.class_struct_union.field_list;
-  check_assertion(field != NULL && field->next == NULL);
-  return field;
-}  /* complex_vals_field */
-
-
 static void lower_real_imag_add_subtract(an_expr_node_ptr expr)
 /*
 Lower a mixed real/imaginary add/subtract operation, i.e.,
@@ -1392,25 +1472,11 @@ negating one part in the "-" case.
   a_variable_ptr   temp_var = make_lowered_temporary(expr->type);
   an_expr_node_ptr real_part_lvalue, imag_part_lvalue;
   an_expr_node_ptr operand_1, operand_2, assign_1, assign_2, comma_node;
-  a_field_ptr      vals_field = complex_vals_field(expr->type);
-  a_type_ptr       ptr_to_elem_type;
 
   /* We will assign the proper values to the components in the temporary,
      then use the temporary as the result. */
-  /* Make "*(temp._Vals)" as the lvalue for the real part. */
-  real_part_lvalue = field_lvalue_selection_expr(var_lvalue_expr(temp_var),
-                                                 vals_field);
-  ptr_to_elem_type = type_after_array_to_pointer_transformation(
-                                                             vals_field->type);
-  real_part_lvalue = add_cast(real_part_lvalue, ptr_to_elem_type);
-  /* Make "temp._Vals[1]" as the lvalue for the imaginary part. */
-  imag_part_lvalue = field_lvalue_selection_expr(var_lvalue_expr(temp_var),
-                                                 vals_field);
-  imag_part_lvalue = add_cast(imag_part_lvalue, ptr_to_elem_type);
-  imag_part_lvalue->next = node_for_integer_constant((long)1,
-                                                     targ_ptrdiff_t_int_kind);
-  imag_part_lvalue = make_operator_node((an_expr_operator_kind)eok_padd_subsc,
-                                        ptr_to_elem_type, imag_part_lvalue);
+  real_part_lvalue = make_real_part(var_lvalue_expr(temp_var));
+  imag_part_lvalue = make_imag_part(var_lvalue_expr(temp_var));
   operand_1 = expr->variant.operation.operands;
   operand_2 = operand_1->next;
   operand_1->next = NULL;
@@ -1476,6 +1542,67 @@ negating one part in the "-" case.
 }  /* lower_real_imag_add_subtract */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_EXTENSIONS_ALLOWED
+
+/* Complex conjugation routines. */
+static a_routine_ptr  xconj_routine[(int)fk_last];
+
+/* Names of the complex conjugation runtime routines. */
+static char *xconj_routine_name[3] = {"__c99_complex_float_conj",
+                                      "__c99_complex_double_conj",
+                                      "__c99_complex_long_double_conj"};
+
+void lower_xconj(an_expr_node_ptr  expr)
+/*
+Transform the given complex expression ("~z") into a function call (compatible
+with C89).
+*/
+{
+  a_type_ptr        return_type = skip_typerefs(expr->type);
+  a_float_kind      fkind;
+  char              *rout_name;
+  an_expr_node_ptr  xconj_call;
+
+  check_assertion(is_complex_type(return_type));
+  fkind = return_type->variant.float_kind;
+  rout_name = select_name_from_float_kind(fkind, xconj_routine_name);
+  xconj_call = make_prototyped_runtime_call(
+                                rout_name, &xconj_routine[(int)fkind],
+                                return_type, return_type, (a_type_ptr)NULL,
+                                expr->variant.operation.operands);
+  overwrite_node(expr, xconj_call);
+}  /* lower_c99_xconj */
+
+
+void lower_complex_projection(an_expr_node_ptr  expr)
+/*
+Lower the given complex expression ("__real z" or "__imag z").
+*/
+{
+  an_expr_node_ptr  arg = expr->variant.operation.operands, result;
+  a_boolean         is_rvalue;
+
+  is_rvalue = !expr->variant.operation.returns_lvalue_instead_of_usual_rvalue;
+
+  switch (expr->variant.operation.kind) {
+    case eok_real_part:
+      result = make_real_part(arg);
+      break;
+    case eok_imag_part:
+      result = make_imag_part(arg);
+      break;
+    case eok_lvalue_real_part:
+      result = make_real_part(arg);
+      break;
+    case eok_lvalue_imag_part:
+      result = make_imag_part(arg);
+      break;
+  }  /* switch */
+  if (is_rvalue) add_indirection_to_node(result);
+  overwrite_node(expr, result);
+}  /* lower_complex_projection */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void lower_c99_complex_cast(an_expr_node_ptr  expr)
 /*
@@ -2565,6 +2692,17 @@ _Bool type, and VLA types.
       lower_real_imag_add_subtract(expr);
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_xconj:
+      lower_xconj(expr);
+      break;
+    case eok_real_part:
+    case eok_imag_part:
+    case eok_lvalue_real_part:
+    case eok_lvalue_imag_part:
+      lower_complex_projection(expr);
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* LOWER_COMPLEX */
     case eok_cast:
     case eok_bool_cast:

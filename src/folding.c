@@ -2260,6 +2260,57 @@ Do the "!" (not) operation on all types of scalars.
 #endif /* DEBUG */
 }  /* do_not */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void do_xconj(a_constant        *constant,
+                     a_constant        *result,
+                     an_error_code     *err_code,
+                     an_error_severity *err_severity,
+                     a_boolean         *depends_on_fp_mode)
+/*
+Do the complex conjugation operation on all types of complex values.
+*/
+{
+  a_type_ptr   constant_type = skip_typerefs(constant->type);
+  a_float_kind float_kind = constant_type->variant.float_kind;
+  a_boolean    err;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  set_constant_kind(result, (a_constant_repr_kind)ck_complex);
+
+  fp_negate(float_kind, &constant->variant.complex_value->imag,
+            &result->variant.complex_value->imag, &err, depends_on_fp_mode);
+  if (err) {
+    *err_code = ec_bad_float_operation_result;
+    *err_severity = es_error;
+  }  /* if */
+
+#if DEBUG
+  db_unary_operation("x~", constant, result, *err_code);
+#endif /* DEBUG */
+}  /* do_xconj */
+
+
+static void do_complex_projection(an_expr_operator_kind  op,
+                                  a_constant             *constant,
+                                  a_constant             *result)
+/*
+Extract the real or imaginary part of a complex constant.
+*/
+{
+  check_assertion(is_complex_type(constant->type) &&
+                  is_real_floating_type(result->type));
+  set_constant_kind(result, (a_constant_repr_kind)ck_float);
+  if (op == (an_expr_operator_kind)eok_real_part) {
+    result->variant.float_value = constant->variant.complex_value->real;
+  } else {
+    result->variant.float_value = constant->variant.complex_value->imag;
+  }  /* if */
+}  /* do_complex_projection */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
 Return TRUE if the indicated constant is an address constant cast to
@@ -2361,6 +2412,16 @@ the reason is that the constant is a template parameter constant).
         case eok_not:
           do_not(constant, result, did_not_fold);
           break;
+#if GNU_EXTENSIONS_ALLOWED
+        case eok_xconj:
+          do_xconj(constant, result, &err_code, &err_severity,
+                   &depends_on_fp_mode);
+          break;
+        case eok_real_part:
+        case eok_imag_part:
+          do_complex_projection(op, constant, result);
+          break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING
         default:
           internal_error("unary_operation: bad unary operator");

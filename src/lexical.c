@@ -6179,6 +6179,9 @@ the kind of token.
   a_boolean     l_before_u_suffix = FALSE;
   a_boolean     fixed_point_ruled_out = FALSE;
 #endif /* FIXED_POINT_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean     imaginary_literal = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   /* Collect the characters of the constant, and figure out where it
      ends.  In the process, figure out what kind of token it is.
@@ -6215,6 +6218,18 @@ the kind of token.
           warning_at_line_pos(ec_bad_hex_digit, start_of_curr_token);
         }  /* if */
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (gnu_mode &&
+               (ch == 'i' || ch == 'I' || ch == 'j' || ch == 'J')) {
+      /* A GNU imaginary literal 0 (e.g., "0i").  We do not generally support
+         imaginary integer literals, but for "0" and for decimal integers
+         without any other suffix we recognize the case, issue a discretionary
+         error, and proceed as if it were a "_Complex double" literal. */
+      ++curr_char_loc;
+      diagnostic_at_line_pos(es_discretionary_error, ec_complex_integral_type,
+                             curr_char_loc);
+      goto end_float_accum;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       /* Octal or floating point.  Accumulate digits.  Digits 8 and 9
          are valid in floating point, but in octal they are only valid in
@@ -6245,6 +6260,19 @@ the kind of token.
     /* A ".", "e", or "E" now indicates a floating-point constant. */
     if ((ch = *curr_char_loc) == '.') goto float_accum_1;
     if (ch == 'e' || ch == 'E')       goto float_accum_2;
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_mode && (ch == 'i' || ch == 'I' || ch == 'j' || ch == 'J') &&
+        !is_id_char[*(curr_char_loc+1)-CHAR_MIN]) {
+      /* A GNU imaginary literal of integral type (e.g., "12").  We do not
+         generally support imaginary integer literals, but for "0" and for
+         decimal integers without any other suffix we recognize the case,
+         issue a discretionary error, and proceed as if it were a "_Complex
+         double" literal. */
+      diagnostic_at_line_pos(es_discretionary_error, ec_complex_integral_type,
+                             curr_char_loc);
+      goto end_float_accum;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Definitely a decimal integer. */
     kind = k_decimal;
   }  /* if */
@@ -6354,7 +6382,18 @@ float_accum_2:
 end_float_accum:
   is_hex_fp_value = kind == k_hex;
   kind = k_float;
-  /* Check for a final suffix of "f" or "l", in upper or lower case. */
+  /* Check for a final suffix of "f" or "l", in upper or lower case.  In GNU
+     configurations, also accept the "i" or "j" suffix that denotes an
+     imaginary value (it can appear before or after the "f" or "l" suffix). */
+#if GNU_EXTENSIONS_ALLOWED
+  if ((ch = *curr_char_loc) == 'i' || ch == 'I' || ch == 'j' || ch == 'J') {
+    imaginary_literal = TRUE;
+    ++curr_char_loc;
+#if FIXED_POINT_ALLOWED
+    fixed_point_ruled_out = TRUE;
+#endif /* FIXED_POINT_ALLOWED */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if ((ch = *curr_char_loc) == 'f' || ch == 'F' || ch == 'l' || ch == 'L') {
     curr_char_loc++;
 #if FIXED_POINT_ALLOWED
@@ -6365,6 +6404,16 @@ end_float_accum:
     }  /* if */
 #endif /* FIXED_POINT_ALLOWED */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (!imaginary_literal &&
+      ((ch = *curr_char_loc) == 'i' || ch == 'I' || ch == 'j' || ch == 'J')) {
+    imaginary_literal = TRUE;
+    ++curr_char_loc;
+#if FIXED_POINT_ALLOWED
+    fixed_point_ruled_out = TRUE;
+#endif /* FIXED_POINT_ALLOWED */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 fixed_point_suffix:
 #if FIXED_POINT_ALLOWED
