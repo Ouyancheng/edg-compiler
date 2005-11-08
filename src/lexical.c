@@ -6386,7 +6386,8 @@ end_float_accum:
      configurations, also accept the "i" or "j" suffix that denotes an
      imaginary value (it can appear before or after the "f" or "l" suffix). */
 #if GNU_EXTENSIONS_ALLOWED
-  if ((ch = *curr_char_loc) == 'i' || ch == 'I' || ch == 'j' || ch == 'J') {
+  if (gnu_mode &&
+      ((ch = *curr_char_loc) == 'i' || ch == 'I' || ch == 'j' || ch == 'J')) {
     imaginary_literal = TRUE;
     ++curr_char_loc;
 #if FIXED_POINT_ALLOWED
@@ -6405,7 +6406,7 @@ end_float_accum:
 #endif /* FIXED_POINT_ALLOWED */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (!imaginary_literal &&
+  if (gnu_mode && !imaginary_literal &&
       ((ch = *curr_char_loc) == 'i' || ch == 'I' || ch == 'j' || ch == 'J')) {
     imaginary_literal = TRUE;
     ++curr_char_loc;
