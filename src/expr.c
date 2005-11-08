@@ -11041,9 +11041,9 @@ operators cannot be overloaded.
          type. */
       result_type = operand.type;
     }  /* if */
-    an_expr_operator_kind  op;
     if (is_an_lvalue(&operand)) {
       /* If the argument is an lvalue, the result is also an lvalue. */
+      an_expr_operator_kind  op;
       op = (an_expr_operator_kind)(real_part ? eok_lvalue_real_part
                                              : eok_lvalue_imag_part);
       using_lvalue(&operand);
