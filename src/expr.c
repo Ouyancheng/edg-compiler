@@ -4930,7 +4930,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
         break;
       case tok_compl:
 #if GNU_EXTENSIONS_ALLOWED
-        if (is_complex_type(operand.type)) {
+        if (gnu_mode && is_complex_type(operand.type)) {
           op = (an_expr_operator_kind)eok_xconj;
         } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
