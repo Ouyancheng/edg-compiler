@@ -6852,12 +6852,13 @@ as the error position.
         /* Check for a conflict between the type of the previously declared
            function (sym) and the type for which a projection symbol is about
            to be created (using_sym). */
-        if (microsoft_mode && using_sym->kind == (a_symbol_kind)sk_routine &&
+        if ((microsoft_mode || gpp_mode) &&
+            using_sym->kind == (a_symbol_kind)sk_routine &&
             compatible_functions_with_c_linkage(using_sym, sym)) {
-          /* In Microsoft mode, extern "C" functions from different namespaces
-             create different entities even if they have the same name and
-             type.  However, two such entities do not conflict if they are
-             brought in the same scope with a using-declaration. */
+          /* In Microsoft and GNU modes, extern "C" functions from different
+             namespaces create different entities even if they have the same
+             name and type.  However, two such entities do not conflict if
+             they are brought in the same scope with a using-declaration. */
         } else if (types_of_decl_and_using_decl_conflict(
                                                       sym, using_sym, &err)) {
           /* Unless using_sym is a member function being hidden and/or

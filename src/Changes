@@ -1,5 +1,17 @@
 Version 3.7
 
+11/7/05  GNU C++ compatibility: Spurious error on using-declaration
+
+In GNU C++ mode, the front end issued a spurious error for a using-declaration
+for an extern "C" function that is also declared in the current namespace.
+For example:
+
+  extern "C" void f();
+  namespace N { extern "C" void f(); }
+  using N::f;
+
+This is now fixed.
+
 11/7/05  GNU compatibility: Complex floating-point types
 
 In GNU C and C++ modes, the front end now accepts the GNU extensions for
