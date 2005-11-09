@@ -9043,6 +9043,29 @@ unchanged.
   return tp;
 }  /* routine_type_without_default_args */
 
+
+a_type_ptr routine_type_without_this_class(a_type_ptr	orig_type)
+/*
+"type" is a routine type.  If the type has a this_class, make a copy of the
+type and clear the this_class information.  Return either the new type or
+the original type.
+*/
+{
+  a_type_ptr	type = orig_type;
+
+  check_assertion(orig_type->kind == (a_type_kind)tk_routine);
+  if (orig_type->variant.routine.extra_info->this_class != NULL) {
+    a_routine_type_supplement_ptr	rtsp;
+    type = alloc_type((a_type_kind)tk_routine);
+    copy_type(orig_type, type);
+    rtsp = type->variant.routine.extra_info;
+    rtsp->this_class = NULL;
+    rtsp->qualifiers = TQ_NONE;
+  }  /* if */
+  return type;
+}  /* routine_type_without_this_class */
+
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS

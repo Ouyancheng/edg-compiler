@@ -6085,6 +6085,13 @@ points to the template parameter list.
                                     new_flags)) {
             tp = type->variant.ptr_to_member.type;
             ttp = templ_type->variant.ptr_to_member.type;
+            if (tp->kind == (a_type_kind)tk_routine &&
+                ttp->kind != (a_type_kind)tk_routine) {
+              /* If the member type is itself a function type but the template
+                 type is not a function type, the this_class information
+                 should be ignored for deduction purposes. */
+              tp = routine_type_without_this_class(tp);
+            }  /* if */
             match = matches_template_type(tp, ttp, templ_arg_list,
                                           templ_param_list,
                                           new_flags);

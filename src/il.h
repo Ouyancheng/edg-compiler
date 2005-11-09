@@ -749,6 +749,8 @@ extern void copy_routine_type_default_args(a_type_ptr  from_type,
 
 extern a_type_ptr routine_type_without_default_args(a_type_ptr orig_type);
 
+extern a_type_ptr routine_type_without_this_class(a_type_ptr	orig_type);
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS

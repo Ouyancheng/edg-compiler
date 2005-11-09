@@ -1,5 +1,25 @@
 Version 3.7
 
+11/9/05  Template argument deduction of pointer-to-member of function type
+
+When the member type of a pointer-to-member is deduced as a function type,
+the deduced function type was incorrectly considered to be a member
+function.  In the example below, this caused the reference to A<F> to
+refer to the primary template instead of the partial specialization.  This
+has been fixed.
+
+  template<class T> struct A;
+  template<class Return_type> struct A< Return_type() > { };
+  template<class F, class T> inline void g(F T::* pmf) {
+    A<F> a;
+  }
+  struct B {
+    void f() { }
+  };
+  int main() {
+     g(&B::f);
+  }
+
 11/7/05  GNU C++ compatibility: Spurious error on using-declaration
 
 In GNU C++ mode, the front end issued a spurious error for a using-declaration
