@@ -65,6 +65,10 @@ extern void update_dll_info_for_class(a_type_ptr         class_type,
                                       a_boolean          explicit_inst,
                                       a_boolean          adjust_template_base,
                                       a_source_position  *err_pos);
+
+extern void update_deprecation_info(a_source_correspondence_ptr  scp,
+                                    a_decl_modifiers_block_ptr   modifiers,
+                                    a_source_position           *err_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DECL_MODIFIERS_IN_USE || NEAR_AND_FAR_ALLOWED

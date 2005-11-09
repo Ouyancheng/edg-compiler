@@ -9972,7 +9972,8 @@ non-NULL, *p_ms_attributes is returned NULL.
     cannot_bind_to_curr_construct();
   }  /* if */
   if (decl_info->decl_modifiers.is_deprecated) {
-    field->source_corresp.is_deprecated = TRUE;
+    update_deprecation_info(&field->source_corresp, &decl_info->decl_modifiers,
+                            &locator->source_position);
   }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
   if (decl_info->decl_modifiers.alignment != 0) {

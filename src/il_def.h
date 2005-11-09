@@ -1488,6 +1488,16 @@ typedef struct a_source_correspondence {
 			   needed in the instantiation assigned number N.
 			   Bits are numbered from 1.  NULL if not needed. */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL
+  char		*deprecation_string;
+			/* The string argument that was provided with a
+			   __declspec(deprecated(...)) construct.  Can be
+			   recorded either in the IL or in the symbol entry.
+			   (It's typically only useful in the IL when combined
+			   with a C++-generating back end.)  In the front end,
+			   use the "deprecation_string_for" macro to access
+			   this field. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL */
 } a_source_correspondence;
 
 /*

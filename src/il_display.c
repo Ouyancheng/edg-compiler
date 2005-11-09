@@ -693,6 +693,10 @@ Display the indicated source correspondence entry.
     }  /* for */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL
+  disp_string_ptr("deprecation_string", scp->deprecation_string,
+                  iek_other_text, (sizeof_t)0);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL */
 }  /* disp_source_corresp */
 
 

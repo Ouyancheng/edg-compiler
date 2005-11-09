@@ -1,5 +1,19 @@
 Version 3.7
 
+11/9/05  Microsoft compatibility: __declspec(deprecated("..."))
+
+In Microsoft mode with microsoft_version >= 1400, the front end now accepts
+an optional parenthesized string literal for the "deprecated" __declspec
+attribute.  This string is reported when warning about the use of an entity
+marked with such an attribute.  For example:
+
+  int __declspec(deprecated("unsafe")) count;
+  int g = count;  // Triggers a warning that includes the text "unsafe".
+
+A new configuration macro DEPRECATION_STRING_IN_IL controls whether a string
+specified in the "deprecated" attribute is recorded in the IL (and therefore
+available to back ends).
+
 11/9/05  Template argument deduction of pointer-to-member of function type
 
 When the member type of a pointer-to-member is deduced as a function type,

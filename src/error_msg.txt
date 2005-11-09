@@ -1491,6 +1491,7 @@ ec_incomplete_class_type;;"an incomplete class type is not allowed"
 ec_complex_integral_type;;"complex integral types are not supported"
 ec_real_and_imag_require_complex_argument;;"__real and __imag can only be applied to complex values"
 ec_real_and_imag_applied_to_real_value;;"__real/__imag applied to real value"
+ec_deprecated_entity_with_custom_message;;"%nd was marked deprecated (%sq)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -1357,8 +1357,7 @@ typedef struct a_decl_modifiers_block {
 			   __declspec(intrin_type). */
   char		*uuid_string;
 			/* Pointer to a string representing the argument of
-			   a uuid decl-modifier (in Microsoft-compatibility
-			   mode). */
+			   a "uuid" decl-modifier (in Microsoft mode). */
   char		*get_property_name,
 		*put_property_name;
 			/* When __declspec(property(get=gname,put=pname))
@@ -1367,8 +1366,10 @@ typedef struct a_decl_modifiers_block {
 			   routine names, null-terminated.  NULL otherwise. */
   char		*allocate_segname;
 			/* Pointer to a string representing the argument of an
-			   allocate decl-modifier (in Microsoft-compatibility
-			   mode). */
+			   "allocate" decl-modifier (in Microsoft mode). */
+  char		*deprecation_string;
+			/* Pointer to a string representing the argument of a
+			   "deprecated" decl-modifier (in Microsoft mode). */
   a_targ_alignment
 		alignment;
 			/* Alignment specified using __declspec(align(x)).
@@ -2393,6 +2394,16 @@ typedef struct a_symbol {
 			   was declared to be a namespace member (C++ only),
 			   parent.namespace_ptr points to the namespace;
 			   otherwise it is NULL. */
+#if MICROSOFT_EXTENSIONS_ALLOWED && !DEPRECATION_STRING_IN_IL
+  char		*deprecation_string;
+			/* The string argument that was provided with a
+			   __declspec(deprecated(...)) construct.  Can be
+			   recorded either in the IL or in the symbol entry.
+			   (It's typically only useful in the IL when combined
+			   with a C++-generating back end.)  In the front end,
+			   use the "deprecation_string_for" macro to access
+			   this field. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DEPRECATION_STRING_IN_IL */
   a_symbol_kind kind;
 			/* The kind of symbol. */
   a_bit_field	referenced:1;
@@ -2511,7 +2522,7 @@ typedef struct a_symbol {
 			   scope to which it belongs.  This is also used for
 			   projection symbols to names found in base classes
 			   that are ignored during normal lookup (when doing
-			   dependent name processing.  It is also used to
+			   dependent name processing).  It is also used to
 			   disable keywords using pragma directives. */
   a_bit_field	is_unknown_function:1;
 			/* TRUE if this symbol was created to represent an
@@ -3812,7 +3823,25 @@ extern a_symbol_header_ptr find_symbol_header(char             *identifier,
 /*
 Return the symbol associated with an IL entry.
 */
-#define symbol_for(entry)  ((a_symbol_ptr)(entry)->source_corresp.assoc_info)
+#define symbol_for(entry)                                                   \
+  ((a_symbol_ptr)((a_source_correspondence_ptr)entry)->assoc_info)
+
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Return the deprecation string associated with the given IL entry.  The string
+may be stored in the entry itself, of it may be associated with the symbol for
+the entry.  (Many back ends have no use for the deprecation string, and storing
+it in the IL increases the size of all entries with a source correspondence.)
+*/
+#if DEPRECATION_STRING_IN_IL
+#define deprecation_string_for(entry)                                       \
+  (((a_source_correspondence_ptr)entry)->deprecation_string)
+#else /* !DEPRECATION_STRING_IN_IL */
+#define deprecation_string_for(entry)                                       \
+  (symbol_for(entry)->deprecation_string)
+#endif /* DEPRECATION_STRING_IN_IL */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Return the master instance pointer of a template instance.

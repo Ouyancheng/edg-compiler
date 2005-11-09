@@ -3243,7 +3243,16 @@ put out a "__declspec(deprecated)" specifier.
 */
 {
   if (microsoft_dialect_is_generated_code_target && scp->is_deprecated) {
-    write_tok_str("__declspec(deprecated) ");
+#if DEPRECATION_STRING_IN_IL
+    if (deprecation_string_for(scp)) {
+      write_tok_str("__declspec(deprecated(\"");
+      write_tok_str(deprecation_string_for(scp));
+      write_tok_str("\")) ");
+    } else
+#endif /* DEPRECATION_STRING_IN_IL */
+    {
+      write_tok_str("__declspec(deprecated) ");
+    }  /* if */
   }  /* if */
 }  /* gen_microsoft_deprecated_spec */
 

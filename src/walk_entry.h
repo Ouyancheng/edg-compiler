@@ -432,6 +432,14 @@ necessary.
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 #define walk_decl_position_supplement(ptr) /* Nothing */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#undef walk_deprecation_string
+#if MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL
+#define walk_deprecation_string(ptr)                                        \
+  walk_string_ptr((ptr).deprecation_string, iek_other_text, 0)
+#else /* !(MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL) */
+#define walk_deprecation_string(ptr) /* Nothing */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL */
+
 #define walk_source_corresp(ptr) \
 { walk_string_ptr((ptr).name, iek_id_name, 0); \
   walk_unmangled_name(ptr); \
@@ -442,6 +450,7 @@ necessary.
   walk_per_instantiation_needed_flags(ptr); \
   walk_decl_position_supplement(ptr); \
   walk_name_reference_list(ptr); \
+  walk_deprecation_string(ptr); \
 }  /* walk_source_corresp */
 #endif /* NEEDED_FLAG_WALK */
 

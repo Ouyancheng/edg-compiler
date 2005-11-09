@@ -1644,8 +1644,8 @@ created for this entity; otherwise, it is NULL.
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
-static void check_use_of_deprecated_entities(a_source_correspondence_ptr  scp,
-                                             a_source_position            *pos)
+void check_use_of_deprecated_entity(a_source_correspondence_ptr  scp,
+                                    a_source_position            *pos)
 /*
 The entity represented by the given source correspondence is referenced
 at the given position.  Issue a warning if the entity was declared with
@@ -1653,11 +1653,20 @@ the GNU attribute "deprecated" or the Microsoft "__declspec(deprecated)"
 specifier.
 */
 {
-  if (scp->is_deprecated) {
-    check_assertion(scp->assoc_info != NULL);
-    pos_sy_warning(ec_deprecated_entity, pos, (a_symbol_ptr)scp->assoc_info);
+  if (scp->is_deprecated && !in_deprecated_definition()) {
+    check_assertion(symbol_for(scp) != NULL);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && deprecation_string_for(scp) != NULL) {
+      pos_stsy_warning(ec_deprecated_entity_with_custom_message, pos,
+                       deprecation_string_for(scp), symbol_for(scp));
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      pos_sy_warning(ec_deprecated_entity, pos, (a_symbol_ptr)scp->assoc_info);
+    }  /*if */
   }  /* if */
-}  /* check_use_of_deprecated_entities */
+}  /* check_use_of_deprecated_entity */
 
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -1933,7 +1942,7 @@ check_label_decl_seq:
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if ((gnu_mode || microsoft_mode) && scptr != NULL &&
       !(sym_ptr->kind == (a_symbol_kind)sk_type || is_tag_symbol(sym_ptr))) {
-    check_use_of_deprecated_entities(scptr, source_position);
+    check_use_of_deprecated_entity(scptr, source_position);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* record_symbol_reference */

@@ -3389,7 +3389,7 @@ diagnostics.
     pos_error(ec_declspec_allocate_not_allowed, position);
   }  /* if */
   if (new_modifiers->is_deprecated) {
-    routine->source_corresp.is_deprecated = TRUE;
+    update_deprecation_info(&routine->source_corresp, new_modifiers, position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* update_routine_decl_modifiers */
@@ -3648,7 +3648,8 @@ is a definition, is_definition is set to TRUE.
     }  /* if */
   }  /* if */
   if (new_modifiers->is_deprecated) {
-    variable->source_corresp.is_deprecated = TRUE;
+    update_deprecation_info(&variable->source_corresp, new_modifiers,
+                            position);
   }  /* if */
   if (new_modifiers->alignment != 0) {
     variable->alignment = new_modifiers->alignment;
@@ -8540,7 +8541,8 @@ NULL.
       if (is_redecl) {
         /* __declspec(deprecated) is ignored on redeclarations. */
       } else if (decl_modifiers->is_deprecated) {
-        tp->source_corresp.is_deprecated = TRUE;
+        update_deprecation_info(&type_ptr->source_corresp, decl_modifiers,
+                                &locator->source_position);
       } else {
         /* Check if a deprecated type was involved in this declaration. */
         warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);

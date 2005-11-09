@@ -996,6 +996,18 @@ is TRUE.
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
 /*
+Flag that is TRUE if a string literal passed to a Microsoft construct of the
+form __declspec(deprecated(...)) should be recorded in the IL.
+*/
+#ifndef DEPRECATION_STRING_IN_IL
+#if MICROSOFT_EXTENSIONS_ALLOWED && BACK_END_IS_CP_GEN_BE
+#define DEPRECATION_STRING_IN_IL TRUE
+#else /* !(MICROSOFT_EXTENSIONS_ALLOWED && BACK_END_IS_CP_GEN_BE) */
+#define DEPRECATION_STRING_IN_IL FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && BACK_END_IS_CP_GEN_BE */
+#endif /* ifndef DEPRECATION_STRING_IN_IL */
+
+/*
 Flag that is TRUE to cause IL lowering to be done, to lower C++ intermediate
 language to C intermediate language, allowing the C++ front end to be used
 with a C back end.

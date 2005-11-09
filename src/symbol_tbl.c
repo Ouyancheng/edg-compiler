@@ -10513,6 +10513,7 @@ declaration modifiers.
   decl_modifiers->get_property_name = NULL;
   decl_modifiers->put_property_name = NULL;
   decl_modifiers->allocate_segname = NULL;
+  decl_modifiers->deprecation_string = NULL;
   decl_modifiers->alignment = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* clear_decl_modifiers_block */
@@ -11714,6 +11715,9 @@ are handled in symbol_tbl_init.)
   cleared_symbol.decl_seq                          = 0;
   cleared_symbol.decl_position                     = null_source_position;
   cleared_symbol.parent.class_type                 = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED && !DEPRECATION_STRING_IN_IL
+  cleared_symbol.deprecation_string                = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DEPRECATION_STRING_IN_IL */
   cleared_symbol.referenced                        = FALSE;
   cleared_symbol.defined                           = FALSE;
   cleared_symbol.explicit_linkage_specifier        = FALSE;

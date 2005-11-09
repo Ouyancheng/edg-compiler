@@ -7789,10 +7789,7 @@ attribute or using a Microsoft declspec specifier).  Also set
 
   if (type_ptr->source_corresp.is_deprecated) {
     *force_end_of_traversal = found = TRUE;
-    if (!in_deprecated_definition()) {
-      sym_warning(ec_deprecated_entity,
-                  (a_symbol_ptr)type_ptr->source_corresp.assoc_info);
-    }  /* if */
+    check_use_of_deprecated_entity(&type_ptr->source_corresp, &error_position);
   } else if (type_ptr->kind == (a_type_kind)tk_typeref &&
              typeref_is_typedef(type_ptr)) {
     *force_end_of_traversal = TRUE;

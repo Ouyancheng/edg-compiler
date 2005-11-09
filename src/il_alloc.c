@@ -4258,6 +4258,9 @@ in il_alloc_init.)
 #if ONE_INSTANTIATION_PER_OBJECT
   def_source_corresp.per_instantiation_needed_flags = NULL;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL
+  def_source_corresp.deprecation_string = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL */
 
 #if CHECKING && defined(offsetof)
   /* Make sure the host alignment macros are set properly. */

@@ -364,6 +364,40 @@ inheritance kind is returned in *pos.  Return TRUE if the scan is successful.
 }  /* scan_inheritance_kind */
 
 
+static char* scan_declspec_string_argument(an_error_code  err_code)
+/*
+The current token is the name of a Microsoft declspec attribute (e.g.,
+"allocate") and a parenthesized string literal is expected next.  Scan
+the parenthesized literal and return a pointer to a copy of it allocated
+in IL memory.
+*/
+{
+  char  *result = NULL;
+
+  /* Advance past the attribute name (e.g., "allocate"). */
+  (void)get_token();
+  if (required_token(tok_lparen, ec_exp_lparen)) {
+    if (curr_token != tok_string_literal) {
+      /* Error. */
+      syntax_error(err_code);
+    } else {
+      char           *str = const_for_curr_token.variant.string.value;
+      a_targ_size_t  len = const_for_curr_token.variant.string.length;
+      /* Copy the token string into IL memory and save the address.  (Note:
+         len includes the terminal null character). */
+      result = alloc_il((sizeof_t)len);
+      (void)memcpy(result, str, size_t_arg(len));
+      check_assertion(result[len-1] == '\0');
+      /* Advance past the string literal. */
+      (void)get_token();
+    }  /* if */
+    /* Advance past the right paren. */
+    (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+  }  /* if */
+  return result;
+}  /* scan_declspec_string_argument */
+
+
 static void scan_declspec_attributes(
                                 a_decl_modifiers_block_ptr  decl_modifiers,
                                 a_boolean                   is_class_decl,
@@ -415,6 +449,10 @@ declaration of a class member.
       modifier = locator_for_curr_id.symbol_header->identifier;
       if (strcmp(modifier, "deprecated") == 0) {
         decl_modifiers->is_deprecated = TRUE;
+        if (microsoft_version >= 1400 && next_token() == tok_lparen) {
+          decl_modifiers->deprecation_string =
+                         scan_declspec_string_argument(ec_exp_string_literal);
+        }  /* if */
       } else if (strcmp(modifier, "dllexport") == 0) {
         if (is_class_decl && C_mode()) {
           /* "dllexport" is not allowed on a struct declaration in C. */
@@ -558,38 +596,12 @@ declaration of a class member.
                allocate ( string-literal )
              where string-literal specifies the name of a data segment
              in which a data item will be allocated. */
-          /* Advance past "allocate". */
-          (void)get_token();
-          if (required_token(tok_lparen, ec_exp_lparen)) {
-            if (curr_token != tok_string_literal) {
-              /* Error. */
-              syntax_error(ec_bad_allocate_segname);
-              *err = TRUE;
-            } else {
-              /* The current token is a string literal.  No checking
-                 is done to assure that it is a valid data segment name
-                 (though such a check could be added if the appropriate
-                 #pragma support were also added). */
-              char           *str;
-              a_targ_size_t  len;  /* Length includes terminal null. */
-
-              str = const_for_curr_token.variant.string.value;
-              len = const_for_curr_token.variant.string.length;
-              /* Copy the token string into IL memory and save the
-                 address. */
-              decl_modifiers->allocate_segname = alloc_il((sizeof_t)len);
-              (void)memcpy(decl_modifiers->allocate_segname, str,
-                           size_t_arg(len));
-              check_assertion(decl_modifiers->
-                                       allocate_segname[len-1] == '\0');
-              /* Advance past the string literal. */
-              (void)get_token();
-            }  /* if */
-            /* Advance past the right paren. */
-            (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
-          } else {
-            break;
-          }  /* if */
+          decl_modifiers->allocate_segname =
+                       scan_declspec_string_argument(ec_bad_allocate_segname);
+          if (decl_modifiers->allocate_segname == NULL) *err = TRUE;
+          /* No further checking is done to assure that we have a valid data
+             segment name (though such a check could be added if the
+             appropriate #pragma support were also added). */
         }  /* if */
       } else if (strcmp(modifier, "intrin_type") == 0) {
         if (!is_class_decl) {
@@ -898,6 +910,30 @@ template class, its DLL interface may need to be adjusted implicitly.
   }  /* if */
 }  /* update_dll_info_for_class */
 
+
+void update_deprecation_info(a_source_correspondence_ptr  scp,
+                             a_decl_modifiers_block_ptr   modifiers,
+                             a_source_position_ptr        err_pos)
+/*
+Update the IL entry (and possibly the symbol) associated with scp with
+any "deprecated" attributes recorded in *modifiers.  Redeclaration
+incompatibilities are diagnosed at the given position.
+*/
+{
+  if (modifiers->is_deprecated) {
+    char  *str = modifiers->deprecation_string;
+    scp->is_deprecated = TRUE;
+    if (str != NULL) {
+      if (deprecation_string_for(scp) != NULL &&
+          strcmp(deprecation_string_for(scp), str) != 0) {
+        pos_remark(ec_decl_modifiers_incompatible_with_previous_decl, err_pos);
+      } else {
+        deprecation_string_for(scp) = str;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* update_deprecation_info */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   
 #if !MICROSOFT_EXTENSIONS_ALLOWED
@@ -1023,7 +1059,8 @@ to a source position used for diagnostics.
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (extended_decl_info->decl_modifiers.is_deprecated) {
-    class_type->source_corresp.is_deprecated = TRUE;
+    update_deprecation_info(&class_type->source_corresp,
+                            &extended_decl_info->decl_modifiers, err_pos);
   }  /* if */
   if (class_definition) {
     if (extended_decl_info->decl_modifiers.is_microsoft_intrinsic) {
@@ -5800,6 +5837,9 @@ of an error.
     decl_modifiers->flags |= new_modifiers->flags;
     if (new_modifiers->is_deprecated) {
       decl_modifiers->is_deprecated = TRUE;
+      if (new_modifiers->deprecation_string != NULL) {
+        decl_modifiers->deprecation_string = new_modifiers->deprecation_string;
+      }  /* if */
     }  /* if */
     if (new_modifiers->is_microsoft_intrinsic) {
       decl_modifiers->is_microsoft_intrinsic = TRUE;

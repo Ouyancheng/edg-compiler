@@ -168,6 +168,11 @@ extern a_boolean reference_to_trivial_default_constructor(
                                                 a_type_ptr         class_type,
                                                 a_source_position  *pos);
 
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+void check_use_of_deprecated_entity(a_source_correspondence_ptr  scp,
+                                    a_source_position            *pos);
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if RECORD_HIDDEN_NAMES_IN_IL
 
 extern void check_name_hiding_for_scope(a_scope_ptr  sp);
