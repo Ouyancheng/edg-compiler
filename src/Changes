@@ -1,5 +1,11 @@
 Version 3.7
 
+11/9/05  Microsoft C compatibility: Abort on struct with only a zero-length
+         bit field
+
+In Microsoft C mode, the front end could abort when computing the layout of a
+struct containing only a zero-length bit field.  This is now fixed.
+
 11/9/05  C++-generating back end: "static friend" declarations in Sun mode
 
 Sun C++ versions prior to 5.4 accepted the "static" storage specifier in
