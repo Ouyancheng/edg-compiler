@@ -2418,6 +2418,32 @@ variable sun_is_generated_code_target.
 #endif /* SUN_IS_GENERATED_CODE_TARGET */
 
 /*
+Macro representing the version of Sun C or C++ for which the C- and C++-
+generating back ends should produce code.  For version x.y of the Sun
+compiler, the macro should equal x*0x100+y*0x10 (e.g., version 5.3 would be
+0x530).  If this file is compiled using a Sun compiler, then the macro
+defaults to the version of that compiler; otherwise, no default is provided.
+This macro is the default value of the global variable
+sun_target_version_number.
+*/
+#ifndef SUN_TARGET_VERSION_NUMBER
+#if SUN_IS_GENERATED_CODE_TARGET ||             \
+    (BACK_END_IS_CP_GEN_BE &&                   \
+     CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT && \
+     SUN_EXTENSIONS_ALLOWED)
+#if defined(__SUNPRO_CC)
+#define SUN_TARGET_VERSION_NUMBER  (__SUNPRO_CC)
+#else /* !defined(__SUNPRO_CC) */
+/* A target version number is needed, but none could be determined from the
+   host compiler: Force a preprocessing error. */
+ #error -- SUN_IS_GENERATED_CODE_TARGET, or SUN_EXTENSIONS_ALLOWED with  \
+           CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT, require              \
+           SUN_TARGET_VERSION_NUMBER to be defined
+#endif /* defined(__SUNPRO_CC) */
+#endif /* SUN_IS_GENERATED_CODE_TARGET || ... */
+#endif /* SUN_TARGET_VERSION_NUMBER */
+
+/*
 Switch that is TRUE if bugs in some versions of MSVC++ regarding
 value-initialization should be emulated.  This is desirable in products
 that are trying to detect uninitialized values, but not in general.

@@ -11689,10 +11689,7 @@ TRUE if the declaration following this one is such a continuation.
     /* Check the kind of declaration within a class. */
     if (friend_decl) {
       /* This is a friend declaration. */
-      /* "friend" is used instead of a storage class. */
-      write_tok_str("friend ");
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode) {
+      if (microsoft_dialect_is_generated_code_target) {
         /* In Microsoft mode a storage class can be specified on a friend
            declaration. */
         if ((rout->storage_class == (a_storage_class)sc_extern &&
@@ -11704,8 +11701,16 @@ TRUE if the declaration following this one is such a continuation.
           /* Specify the storage class explicitly. */
           storage_class = rout->storage_class;
         }  /* if */
+      } else if (sun_is_generated_code_target &&
+                 sun_target_version_number <= 0x530 &&
+                 rout->storage_class == (a_storage_class)sc_static) {
+        /* In older Sun dialects, "static" can be specified on a friend
+           declaration, but the order of specifiers is important: "static
+           friend" is accepted, but "friend static" is not, so we explicitly
+           output "static" here and leave the storage class unspecified. */
+        write_tok_str("static ");
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      write_tok_str("friend ");
     } else {
       /* This is a declaration or definition of a member function inside
          its own class. */

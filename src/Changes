@@ -1,5 +1,22 @@
 Version 3.7
 
+11/9/05  C++-generating back end: "static friend" declarations in Sun mode
+
+Sun C++ versions prior to 5.4 accepted the "static" storage specifier in
+friend function declarations.  The C++-generating back end now preserves
+these specifiers when generating code for those Sun versions.  For example:
+
+  struct S {
+    static friend void f();  // Generated code now contains "static"
+  };
+
+Because versions of Sun C++ after 5.3 reject this code, this change introduced
+a new global variable, sun_target_version_number, which takes its value from
+the new configuration macro SUN_TARGET_VERSION_NUMBER.  This macro must be
+defined for any configuration in which SUN_IS_GENERATED_CODE_TARGET is TRUE
+and in C++-generating back end configurations in which both
+CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT and SUN_EXTENSIONS_ALLOWED are TRUE.
+
 11/9/05  Microsoft compatibility: __declspec(deprecated("..."))
 
 In Microsoft mode with microsoft_version >= 1400, the front end now accepts
