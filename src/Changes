@@ -1,5 +1,10 @@
 Version 3.7
 
+11/10/05 Loop on carriage return when not ignoring carriage returns
+
+A change made in version 3.6 resulted in a loop when the source contained
+a carriage return and IGNORE_CARRIAGE_RETURN_IN_SOURCE is FALSE.  Now fixed.
+
 11/9/05  Microsoft C compatibility: Abort on struct with only a zero-length
          bit field
 

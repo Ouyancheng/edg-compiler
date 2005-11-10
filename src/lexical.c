@@ -8381,7 +8381,9 @@ return_end_of_source_token:
       break;
     case '\f':
     case VERTICAL_TAB_CHARACTER:
+#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
     case '\r':
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
       /* Form feed, vertical tab.  Usually white space, but implementation-
          defined when inside a preprocessing directive.  Let the white space
          routine decide.  Likewise for carriage return, which is often
