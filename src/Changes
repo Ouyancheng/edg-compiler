@@ -1,5 +1,24 @@
 Version 3.7
 
+11/10/05 C++-generating back end: hidden name inherited from a base class in
+a containing namespace
+
+The C++-generating back end sometimes omitted a necessary qualifier for a
+hidden member of a base class when the base class is defined in a namespace
+that contains that of the derived class.  Now fixed.  For example:
+
+  struct A {
+    static int i;
+  };
+  struct B : public A {
+    static int i;
+  };
+  namespace N {
+    struct C : public B {
+      int* f() { return &A::i; }  // Formerly generated as "&i"
+    };
+  }
+
 11/10/05 Loop on carriage return when not ignoring carriage returns
 
 A change made in version 3.6 resulted in a loop when the source contained
