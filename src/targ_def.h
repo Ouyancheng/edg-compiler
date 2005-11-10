@@ -2410,12 +2410,13 @@ generate code for a Sun compiler.  This is the default value of the global
 variable sun_is_generated_code_target.
 */
 #ifndef SUN_IS_GENERATED_CODE_TARGET
-#if defined(sun) && BACK_END_IS_C_GEN_BE && !GCC_IS_GENERATED_CODE_TARGET
+#if (defined(__SUNPRO_C) || defined(__SUNPRO_CC)) && BACK_END_IS_C_GEN_BE \
+    && !GCC_IS_GENERATED_CODE_TARGET
 #define SUN_IS_GENERATED_CODE_TARGET TRUE
-#else /* !(defined(sun) && BACK_END_IS_C_GEN_BE && !GCC_IS_GENERATED_...) */
+#else /* !((defined(__SUNPRO_C) || defined(__SUNPRO_CC)) && ...) */
 #define SUN_IS_GENERATED_CODE_TARGET FALSE
-#endif /* defined(sun) && BACK_END_IS_C_GEN_BE && !GCC_IS_GENERATED_CODE_... */
-#endif /* SUN_IS_GENERATED_CODE_TARGET */
+#endif /* (defined(__SUNPRO_C) || defined(__SUNPRO_CC)) && ... */
+#endif /* ifndef SUN_IS_GENERATED_CODE_TARGET */
 
 /*
 Macro representing the version of Sun C or C++ for which the C- and C++-
