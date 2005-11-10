@@ -177,6 +177,7 @@ Flags to be set when using the KAI inliner.
 #define _XOPEN_SOURCE_EXTENDED 1
 #define __EXTENSIONS__ 1
 #endif /* SOLARIS */
+#define GCC_IS_GENERATED_CODE_TARGET 1
 #endif /* SELFCOMP_VERSION */
 #ifndef MAINTAIN_NEEDED_FLAGS
 #define MAINTAIN_NEEDED_FLAGS 1
@@ -783,9 +784,14 @@ switches before this point.
 
 #endif /* ABI_COMPATIBILITY_VERSION */
 
-#ifndef SUN_TARGET_VERSION_NUMBER
+#if !defined(SUN_TARGET_VERSION_NUMBER) &&          \
+    (SUN_IS_GENERATED_CODE_TARGET ||                \
+     (BACK_END_IS_CP_GEN_BE &&                      \
+      CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT &&    \
+      SUN_EXTENSIONS_ALLOWED)) &&                   \
+    !(defined(__SUNPRO_CC) || defined(__SUNPRO_C))
 #define SUN_TARGET_VERSION_NUMBER 0x530
-#endif /* ifndef SUN_TARGET_VERSION_NUMBER */
+#endif /* !defined(SUN_TARGET_VERSION_NUMBER) && ... */
 
 /******************************************************************************
 *                                                             \  ___  /       *
