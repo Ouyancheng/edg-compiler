@@ -1,5 +1,17 @@
 Version 3.7
 
+11/10/05 Redefinition of enum types
+
+The front end previously failed to diagnose certain attempts to redefine an
+enumeration type.  Certain uses of the associated enumeration constants
+could also lead to internal errors in some configurations.  For example:
+
+  enum E { x };
+  enum ::E { y };  // Now an error.  Previously accepted.
+  void f() { x; }  // Could lead to an abort in some configurations.
+
+This is now fixed: The redefinition is diagnosed as an error.
+
 11/10/05 Spurious warning on friend declaration in class template
 
 The front end normally issue a warning when a class befriends itself.

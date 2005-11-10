@@ -3576,8 +3576,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
   (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (!C_mode() && microsoft_mode) {
-    a_boolean                    local_err;
-
+    a_boolean  local_err;
     /* Scan any __declspec decl-modifiers "as if" this were a class.  Only
        uuid(...) specifiers will be recorded however. */
     clear_extended_decl_info_block(extended_decl_info);
@@ -3808,6 +3807,10 @@ describes Microsoft attributes preceding the enum specifier (if any).
     is_redeclaration = TRUE;
     /* Record cross-reference information. */
     if (curr_token == tok_lbrace) {
+      if (tag_sym->defined) {
+        /* Catch errors like "enum A { e }; enum ::A { f };". */
+        pos_sy_error(ec_redefinition, &locator.source_position, tag_sym);
+      }  /* if */
       mark_defined(tag_sym, &locator.source_position);
       if (!C_mode() && inside_class_definition) {
         /* enum_type is a class member and is being defined having been
