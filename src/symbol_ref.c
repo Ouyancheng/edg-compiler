@@ -663,8 +663,11 @@ class, too, and thus must be flagged as requiring qualification.
   a_scope_ptr       base_scope =
                 base_class->variant.class_struct_union.extra_info->assoc_scope;
 
-  if (base_scope != NULL && !base_scope->hidden_names_processed) {
-    /* Get the base class scope's hidden names before trying to clone them. */
+  if (base_scope != NULL && !base_scope->hidden_names_processed &&
+      !in_secondary_trans_unit(base_scope)) {
+    /* Get the base class scope's hidden names before trying to clone them
+       (unless the scope belongs to a secondary translation unit; it's an
+       error to try to put hidden names into such scopes). */
     push_class_reactivation_scope(base_class, /*extend_namespace=*/FALSE);
     check_name_hiding_for_scope(base_scope);
     pop_class_reactivation_scope();
@@ -1223,6 +1226,11 @@ scopes and for the file scope.
 
   db_enter(3, "check_name_hiding_for_scope");
   if (sp != NULL && !sp->hidden_names_processed) {
+    /* Immediately mark the scope as processed, even though we haven't done
+       anything yet, to avoid infinite recursion.  (This can occur when an
+       explicit specialization of a nested class template has the containing
+       class as a base, for instance.) */
+    sp->hidden_names_processed = TRUE;
     /* Check certain nested scopes first. */
     if (!C_mode()) {
       /* If this is the file scope or a namespace scope, there may be nested
@@ -1340,7 +1348,6 @@ scopes and for the file scope.
                                          /*for_using_directive=*/FALSE);
       }  /* if */
     }  /* for */
-    sp->hidden_names_processed = TRUE;
   }  /* if */
   db_exit();
 }  /* check_name_hiding_for_scope */
