@@ -1997,10 +1997,16 @@ this function points to a tree that includes a dynamic-init entry.
     } else {
       brace_flag = FALSE;
     }  /* if */
-    if (process_string_constant_initializer(type, &init_con,
+    if (!(brace_flag && is_template_dependent_type(*type)) &&
+        process_string_constant_initializer(type, &init_con,
                                             init_info, &context)) {
       /* The object being initialized has type array of char or wchar_t, and
-         is being initialized with a string. */
+         is being initialized with a string.  In prototype instantiations,
+         we must beware of something like
+           T s[] = { "a", "b" };  // "T" is a template parameter.
+         which is valid, but cannot be handled here.  We therefore also do
+         not handle "T s[] = { "a" };" here, even though it would be
+         appropriate to do so if we could distinguish the two cases. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       init_info->init_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
