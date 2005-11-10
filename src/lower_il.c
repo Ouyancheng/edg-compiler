@@ -5594,6 +5594,12 @@ yet.
   }  /* if */  
   entry_routine->source_corresp.name_linkage = 
                               overriding_function->source_corresp.name_linkage;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* If the overriding routine has the dllexport or dllimport attribute, then
+     the thunk must also have that attribute. */
+  entry_routine->decl_modifiers =
+                           (overriding_function->decl_modifiers & DM_DLLFLAGS);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   set_inline_flag(entry_routine, (a_boolean)overriding_function->is_inline);
 #if ONE_INSTANTIATION_PER_OBJECT
   /* Use the needed bit number from the overriding function.  This is needed

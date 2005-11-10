@@ -1,5 +1,10 @@
 Version 3.7
 
+11/10/05 Microsoft C++ compatibility: Thunks and dllimport/dllexport
+
+The dllimport and dllexport attributes (accepted in Microsoft modes) on
+routines are now also applied to any thunks created for such routines.
+
 11/10/05 C++-generating back end: hidden name inherited from a base class in
 a containing namespace
 
