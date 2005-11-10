@@ -58,9 +58,6 @@ Flags to be set for any version that uses the C++ generating back end.
 */
 #ifndef CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
 #define CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT 1
-#ifndef SUN_TARGET_VERSION_NUMBER
-#define SUN_TARGET_VERSION_NUMBER 0x530
-#endif /* ifndef SUN_TARGET_VERSION_NUMBER */
 #endif /* ifndef CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT */
 #define BACK_END_IS_C_GEN_BE 0
 #define BACK_END_IS_CP_GEN_BE 1
@@ -786,6 +783,9 @@ switches before this point.
 
 #endif /* ABI_COMPATIBILITY_VERSION */
 
+#ifndef SUN_TARGET_VERSION_NUMBER
+#define SUN_TARGET_VERSION_NUMBER 0x530
+#endif /* ifndef SUN_TARGET_VERSION_NUMBER */
 
 /******************************************************************************
 *                                                             \  ___  /       *
