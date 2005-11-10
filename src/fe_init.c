@@ -1291,11 +1291,12 @@ when it is a secondary file.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     if (C_mode()) {
-      /* Add a symbol for predeclared _alloca. */
+      /* Add a symbol for predeclared _alloca (C mode only). */
       make_predeclared_alloca_symbol();
+    } else {
+      /* Add a symbol for predeclared size_t (C++ mode only). */
+      make_predeclared_size_t_symbol();
     }  /* if */
-    /* Add a symbol for predeclared size_t. */
-    make_predeclared_size_t_symbol();
     if (bool_is_keyword && microsoft_version < 1310) {
       /* MSVC++ 6.0 and 7.0 treat "bool" as a predeclared typedef name, not
          a keyword.  This means it can be redeclared to something else in

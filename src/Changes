@@ -1,5 +1,11 @@
 Version 3.7
 
+11/10/05 Microsoft C compatibility: size_t not predeclared
+
+In Microsoft C mode, the front end no longer predeclares the size_t type.
+(This matches the Microsoft behavior, which only predeclares the size_t type
+when compiling C++ code.  See also Changes entry of 4/20/98.)
+
 11/10/05 Microsoft C++ compatibility: Branching into try blocks
 
 In Microsoft bugs mode, the front end previously only issued a warning about
