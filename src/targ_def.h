@@ -2431,15 +2431,20 @@ sun_target_version_number.
     (BACK_END_IS_CP_GEN_BE &&                   \
      CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT && \
      SUN_EXTENSIONS_ALLOWED)
+#if defined(__SUNPRO_C)
+#define SUN_TARGET_VERSION_NUMBER  (__SUNPRO_C)
+#else /* !defined(__SUNPRO_C) */
 #if defined(__SUNPRO_CC)
 #define SUN_TARGET_VERSION_NUMBER  (__SUNPRO_CC)
-#else /* !defined(__SUNPRO_CC) */
+#endif /* defined(__SUNPRO_CC) */
+#endif /* defined(_SUNPRO_C) */
+#ifndef SUN_TARGET_VERSION_NUMBER
 /* A target version number is needed, but none could be determined from the
    host compiler: Force a preprocessing error. */
  #error -- SUN_IS_GENERATED_CODE_TARGET, or SUN_EXTENSIONS_ALLOWED with  \
            CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT, require              \
            SUN_TARGET_VERSION_NUMBER to be defined
-#endif /* defined(__SUNPRO_CC) */
+#endif /* ifndef SUN_TARGET_VERSION_NUMBER */
 #endif /* SUN_IS_GENERATED_CODE_TARGET || ... */
 #endif /* SUN_TARGET_VERSION_NUMBER */
 
