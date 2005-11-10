@@ -11442,6 +11442,13 @@ typedef struct a_scope {
 			   only if an elaborated type specifier and/or global
 			   qualification (a preceding "::") is used.  Only
 			   used in C++. */
+  a_boolean	hidden_names_processed;
+			/* Used only in the front end: TRUE if the names in
+			   this scope have been examined for hiding and should
+			   not be processed again.  This is needed because
+			   classes are traversed both in inheritance order
+			   and while processing the namespaces in which they
+			   are defined. */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   a_template_ptr
 		templates;

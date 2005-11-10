@@ -3361,6 +3361,7 @@ points to the associated routine if the kind is sck_function.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_HIDDEN_NAMES_IN_IL
   sp->hidden_names                = NULL;
+  sp->hidden_names_processed      = FALSE;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   sp->templates                   = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
