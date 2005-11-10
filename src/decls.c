@@ -4108,6 +4108,8 @@ should be reported.
                            sym->kind == (a_symbol_kind)sk_member_function;
   a_type_ptr type = is_function ? sym->variant.routine.ptr->type :
                                   sym->variant.variable.ptr->type;
+  an_error_severity  severity;
+
   if (is_function && sym->variant.routine.ptr->compiler_generated) {
     /* Compiler-generated member functions can involve types with no name
        linkage in some error recovery modes (and in Microsoft mode).  A
@@ -4115,10 +4117,14 @@ should be reported.
   } else if (is_or_contains_local_type(type)) {
     /* A block extern declaration that involves a local type.  Issue an
        error (except in cfront or Microsoft compatibility mode). */
-    pos_diagnostic((any_cfront_mode() || microsoft_mode) ? es_warning :
-                                                           es_error,
-                   is_function ? ec_local_type_in_function :
-                                 ec_local_type_in_nonlocal_var,
+    if (any_cfront_mode() ||
+        (microsoft_mode && (is_function || microsoft_version < 1200))) {
+      severity = es_warning;
+    } else {
+      severity = es_error;
+    }  /* if */
+    pos_diagnostic(severity, is_function ? ec_local_type_in_function :
+                                           ec_local_type_in_nonlocal_var,
                    error_pos);
   } else if (is_or_contains_type_with_no_name_linkage(type)) {
     /* Catch the use of types that do not have linkage.
@@ -4127,7 +4133,6 @@ should be reported.
        issue a warning for functions and a remark for variables (the variable
        case is not all that uncommon and few other compilers diagnose it at
        all). */
-    an_error_severity  severity;
     if (strict_ansi_mode) {
       severity = strict_ansi_discretionary_severity;
     } else if (is_function) {

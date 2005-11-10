@@ -1,5 +1,20 @@
 Version 3.7
 
+11/10/05 Microsoft C++ compatibility: Local types and extern variables
+
+In Microsoft C++ mode, the front end previously accepted (with a warning)
+block-extern variable declarations with types containing a local class or
+enumeration type.  This is now only accepted when microsoft_version < 1200.
+For example:
+
+  void f() {
+    struct L {};
+    extern L *p;  // Only accepted (with a warning) in Microsoft mode if
+  }               // microsoft_version < 1200.
+
+Block-extern declarations of functions involving local class or enumeration
+types are still accepted in all Microsoft modes.
+
 11/10/05 Microsoft C compatibility: size_t not predeclared
 
 In Microsoft C mode, the front end no longer predeclares the size_t type.
