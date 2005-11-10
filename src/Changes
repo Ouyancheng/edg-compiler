@@ -1,5 +1,24 @@
 Version 3.7
 
+11/10/05 Spurious warning on friend declaration in class template
+
+The front end normally issue a warning when a class befriends itself.
+Previously, it also did so when this occurred as the result of a specific
+template instantiation.  However, such situations may be required in some
+circumstances and the front end therefore no longer issues a warning in
+such cases.  For example:
+
+  template<typename> class C {
+    template<typename T> void f(C<T>*);
+    int x;
+    friend class C<int>;
+  };
+  template<> template<typename T> void C<int>::f(C<T> *p) {
+    p->x = 2;  // Requires C to befriend C<int>.
+  }
+  // Previously triggered a warning during the instantiation of C<int>;
+  // now no warning is issued.
+
 11/10/05 Microsoft C++ compatibility: Local types and extern variables
 
 In Microsoft C++ mode, the front end previously accepted (with a warning)

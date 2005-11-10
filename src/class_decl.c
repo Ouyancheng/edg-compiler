@@ -5434,8 +5434,15 @@ the current class (class_type).
       friend_class_type = proxy_class_for_template_param(friend_class_type);
     }  /* if */
     check_assertion(is_immediate_class_type(friend_class_type));
-    if (class_type == friend_class_type) {
-      /* Diagnostic on excessive narcissism. */
+    if (class_type == friend_class_type &&
+        (scope_stack[depth_scope_stack].in_prototype_instantiation ||
+         !is_template_class_type(friend_class_type))) {
+      /* Diagnostic on excessive narcissism.  The diagnostic is not justified
+         on certain template cases, however.  For example:
+           template<class T> class C { friend class C<long>; ... };
+           template class C<long>;
+         The friend declaration might be needed if a member template of C
+         is specialized. */
       warning(ec_self_friendship);
     } else {
       ctsp = friend_class_type->variant.class_struct_union.extra_info;
