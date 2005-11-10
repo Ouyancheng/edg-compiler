@@ -811,9 +811,10 @@ return TRUE.
          block where the goto occurs.  A local branch within a single
          catch clause or try block is allowed. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_bugs && cfdp->variant.block.is_try_block) {
-      /* Just a warning for branching into a try-block in Microsoft bugs
-         mode. */
+    } else if (microsoft_bugs && microsoft_version <= 1200 &&
+               cfdp->variant.block.is_try_block) {
+      /* Just a warning for branching into a try-block in some Microsoft bugs
+         modes. */
       pos_warning(ec_branch_into_try_block, &goto_cfdp->source_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
