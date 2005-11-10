@@ -11689,9 +11689,10 @@ TRUE if the declaration following this one is such a continuation.
     /* Check the kind of declaration within a class. */
     if (friend_decl) {
       /* This is a friend declaration. */
-      if (microsoft_dialect_is_generated_code_target) {
+      if (microsoft_dialect_is_generated_code_target &&
+          !curr_name_context_class()->source_corresp.is_local_to_function) {
         /* In Microsoft mode a storage class can be specified on a friend
-           declaration. */
+           declaration (but only in a non-local class). */
         if ((rout->storage_class == (a_storage_class)sc_extern &&
              !rout->is_inline) ||
             (rout->storage_class == (a_storage_class)sc_static &&
