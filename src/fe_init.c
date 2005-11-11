@@ -324,12 +324,14 @@ Install the keywords in the symbol table.
     /* Enable support for complex types in both C99 and GNU C/C++ modes. */
     enter_keyword((a_token_kind)tok_c99_complex, "_Complex");
     if (gnu_mode) {
+#if GNU_EXTENSIONS_ALLOWED
       /* GNU compilers also accept __complex and __complex__ to denote
          complex types.  In addition, they provide operators to extract
          the real and imaginary part of a complex value. */
       enter_gnu_keyword((a_token_kind)tok_c99_complex, "__complex");
       enter_gnu_keyword((a_token_kind)tok_gnu_real, "__real");
       enter_gnu_keyword((a_token_kind)tok_gnu_imag, "__imag");
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       enter_keyword((a_token_kind)tok_c99_imaginary, "_Imaginary");
     }  /* if */
