@@ -177,27 +177,6 @@ otherwise return NULL.
 }  /* an_ms_attribute_kind_descr_ptr */
 
 
-static an_ms_attribute_param_ptr alloc_ms_attribute_param(void)
-/*
-Allocate an attribute parameter entry, initialize its fields, and
-return a pointer to the entry.
-*/
-{
-  an_ms_attribute_param_ptr msapp;
-
-  msapp = alloc_fe_of_type(an_ms_attribute_param);
-#if DEBUG
-  num_ms_attribute_params_allocated++;
-#endif /* DEBUG */
-  msapp->next = NULL;
-  msapp->name = NULL;
-  msapp->values = NULL;
-  msapp->kind = (an_ms_attribute_kind)msaak_none;
-  msapp->is_unnamed = FALSE;
-  return msapp;
-}  /* alloc_ms_attribute_param */
-
-
 static an_ms_attribute_kind_descr_ptr alloc_ms_attribute_kind_descr(void)
 /*
 Allocate an attribute kind description entry, initialize its fields, and
@@ -251,6 +230,28 @@ when specifying the parameters associated with an attribute.
   }  /* if */
   curr_attribute_descr = msakdp;
 }  /* make_attribute_description */
+
+#if RECOGNIZE_MICROSOFT_ATTRIBUTES
+
+static an_ms_attribute_param_ptr alloc_ms_attribute_param(void)
+/*
+Allocate an attribute parameter entry, initialize its fields, and
+return a pointer to the entry.
+*/
+{
+  an_ms_attribute_param_ptr msapp;
+
+  msapp = alloc_fe_of_type(an_ms_attribute_param);
+#if DEBUG
+  num_ms_attribute_params_allocated++;
+#endif /* DEBUG */
+  msapp->next = NULL;
+  msapp->name = NULL;
+  msapp->values = NULL;
+  msapp->kind = (an_ms_attribute_kind)msaak_none;
+  msapp->is_unnamed = FALSE;
+  return msapp;
+}  /* alloc_ms_attribute_param */
 
 
 static void set_initialization_style_arg_allowed(void)
@@ -328,6 +329,7 @@ case.
   }  /* if */
 }  /* add_attribute_parameter */
 
+#endif /* RECOGNIZE_MICROSOFT_ATTRIBUTES */
 
 static void init_attribute_kinds(void)
 /*
