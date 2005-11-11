@@ -4782,6 +4782,29 @@ curr_source_line is resized.
 
 #endif /* MBC_CHECKING_NEEDED_IN_LINE_READING */
 
+static void process_gnu_carriage_return(void)
+/*
+In GNU mode, a line can be terminated by a carriage return, or a carriage
+return followed by a newline.  The current character is a carriage return.
+Check for a following newline character.
+*/
+{
+  int ch;
+  ch = getc(curr_input_stream);
+  if (is_eof_char(ch)) {
+    /* The look-ahead encountered the end of file.  Record this for
+       processing when this routine is called for the next line. */
+    eof_read_on_curr_input_stream = TRUE;
+  } else if (ch != '\n') {
+    /* The following character is not a newline.  Unget it so that it will
+       be fetched as part of the next line. */
+    int	ungetc_result;
+    ungetc_result = ungetc(ch, curr_input_stream);
+    check_assertion(ungetc_result != EOF);
+  }  /* if */
+}  /* process_gnu_carriage_return */
+
+
 a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file,
                                    a_boolean extend_current_line)
 /*
@@ -4961,6 +4984,8 @@ for the GNU C multiline string extension.
       register char *local_loc_in_line = loc_in_line;
       register int local_ch = ch;
       do {
+        /* In GNU mode, carriage return is a line terminator. */
+        if (local_ch == '\r' && gnu_mode) break;
         /* Check for question marks.  Presence of 2 in a row suggests there
            may be a trigraph in the line. */
         if (local_ch == '?') {
@@ -5005,43 +5030,51 @@ for the GNU C multiline string extension.
       } while (local_ch != '\n');
       ch = local_ch;
       loc_in_line = local_loc_in_line;
+      if (ch == '\r' && gnu_mode) {
+        /* In GNU mode a line can be terminated by a carriage return, or
+           a carriage return followed by a newline.  Look for a newline
+           following this carriage return. */
+        process_gnu_carriage_return();
+      }  /* if */
+      if (loc_in_line != curr_source_line) {
 #if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-      /* Ignore carriage return right before newline.  Ignore several if
-         they are present (there are Microsoft header files that have
-         backslash, carriage return, carriage return at the end of lines,
-         and that backslash has to be taken as a line splice). */
-      while (*(loc_in_line-1) == '\r') {
-        loc_in_line--;
-        /* Avoid the line splice test if the line is empty except for the
-           carriage return. */
-        if (loc_in_line == curr_source_line) {
-          goto add_newline_and_line_end_and_return;
-        }  /* if */
-      }  /* while */
-#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
-      if (gnu_mode) {
-        /* The GNU preprocessor allows white-space characters between the
-           "\" and the newline in a line splice.  Count the number of
-           trailing white-space characters to be ignored if there is a
-           line splice. */
-        char *cp;
-        for (cp = loc_in_line - 1;
-             *cp == ' ' || *cp == '\t' || *cp == '\f' ||
-                                                 *cp == VERTICAL_TAB_CHARACTER;
-             cp--) {
-          if (cp == curr_source_line) {
-            /* We fell off the beginning of the line without seeing a "\".
-               Just keep the white-space characters. */
+        /* Ignore carriage return right before newline.  Ignore several if
+           they are present (there are Microsoft header files that have
+           backslash, carriage return, carriage return at the end of lines,
+           and that backslash has to be taken as a line splice). */
+        while (*(loc_in_line-1) == '\r') {
+          loc_in_line--;
+          /* Avoid the line splice test if the line is empty except for the
+             carriage return. */
+          if (loc_in_line == curr_source_line) {
             goto add_newline_and_line_end_and_return;
           }  /* if */
-        }  /* for */
-        ignored_trailing_white_space_chars = loc_in_line - cp - 1;
-      }  /* if */
-      /* End of a line containing at least one character.  Check to see
-         if the last unignored character is a backslash.  If so, the current
-         line should be spliced with the line following. */
-      if (*(loc_in_line-ignored_trailing_white_space_chars-1) == '\\') {
-        goto line_splice;
+        }  /* while */
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
+        if (gnu_mode) {
+          /* The GNU preprocessor allows white-space characters between the
+             "\" and the newline in a line splice.  Count the number of
+             trailing white-space characters to be ignored if there is a
+             line splice. */
+          char *cp;
+          for (cp = loc_in_line - 1;
+               *cp == ' ' || *cp == '\t' || *cp == '\f' ||
+                                                 *cp == VERTICAL_TAB_CHARACTER;
+               cp--) {
+            if (cp == curr_source_line) {
+              /* We fell off the beginning of the line without seeing a "\".
+                 Just keep the white-space characters. */
+              goto add_newline_and_line_end_and_return;
+            }  /* if */
+          }  /* for */
+          ignored_trailing_white_space_chars = loc_in_line - cp - 1;
+        }  /* if */
+        /* End of a line containing at least one character.  Check to see
+           if the last unignored character is a backslash.  If so, the current
+           line should be spliced with the line following. */
+        if (*(loc_in_line-ignored_trailing_white_space_chars-1) == '\\') {
+          goto line_splice;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5209,6 +5242,8 @@ line_loop:
     /* Process characters until a newline is read. */
     do {
       /* Process one character (ch). */
+      /* In GNU mode, carriage return is a line terminator. */
+      if (ch == '\r' && gnu_mode) break;
       curr_column++;
       /* Check for trigraphs.  A trigraph is two "?"s followed by another
          character. */
@@ -5330,79 +5365,89 @@ entry_for_expand_buffer:
       }  /* if */
       if (is_eof_char(ch)) goto partial_final_line;
     } while (ch != '\n');
+    if (ch == '\r' && gnu_mode) {
+      /* In GNU mode a line can be terminated by a carriage return, or
+         a carriage return followed by a newline.  Look for a newline
+         following this carriage return. */
+      process_gnu_carriage_return();
+    }  /* if */
+    if (loc_in_line != curr_source_line) {
 #if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-    /* Ignore carriage return right before newline.  Ignore several if
-       they are present (there are Microsoft header files that have this). */
-    while (*(loc_in_line-1) == '\r') {
-      loc_in_line--;
-      curr_column--;
-      /* Avoid the line splice test if the line is empty except for the
-         carriage return. */
-      if (curr_column == 0) {
-        goto add_newline_and_line_end_and_return;
-      }  /* if */
-    }  /* while */
-#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
-    if (gnu_mode) {
-      /* The GNU preprocessor allows white-space characters between the
-         "\" and the newline in a line splice.  Count the number of
-         trailing white-space characters to be ignored if there is a
-         line splice. */
-      char *cp;
-      for (cp = loc_in_line - 1;
-           *cp == ' ' || *cp == '\t' || *cp == '\f' ||
-                                                 *cp == VERTICAL_TAB_CHARACTER;
-           cp--) {
-        if (loc_in_line - cp == curr_column) {
-          /* We fell off the beginning of the line without seeing a "\".
-             Just keep the white-space characters. */
+      /* Ignore carriage return right before newline.  Ignore several if
+         they are present (there are Microsoft header files that have this). */
+      while (*(loc_in_line-1) == '\r') {
+        loc_in_line--;
+        curr_column--;
+        /* Avoid the line splice test if the line is empty except for the
+           carriage return. */
+        if (curr_column == 0) {
           goto add_newline_and_line_end_and_return;
         }  /* if */
-      }  /* for */
-      ignored_trailing_white_space_chars = loc_in_line - cp - 1;
-    }  /* if */
-    /* Check for backslash indicating line-splice.  Go add trailing newline
-       and end-of-line, and then exit, if no backslash is present. */
-    if (*(loc_in_line-ignored_trailing_white_space_chars-1) == '\\') {
+      }  /* while */
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
+      if (gnu_mode) {
+        /* The GNU preprocessor allows white-space characters between the
+           "\" and the newline in a line splice.  Count the number of
+           trailing white-space characters to be ignored if there is a
+           line splice. */
+        char *cp;
+        for (cp = loc_in_line - 1;
+             *cp == ' ' || *cp == '\t' || *cp == '\f' ||
+                                                 *cp == VERTICAL_TAB_CHARACTER;
+             cp--) {
+          if (loc_in_line - cp == curr_column) {
+            /* We fell off the beginning of the line without seeing a "\".
+               Just keep the white-space characters. */
+            goto add_newline_and_line_end_and_return;
+          }  /* if */
+        }  /* for */
+        ignored_trailing_white_space_chars = loc_in_line - cp - 1;
+      }  /* if */
+      /* Check for backslash indicating line-splice.  Go add trailing newline
+         and end-of-line, and then exit, if no backslash is present. */
+      if (*(loc_in_line-ignored_trailing_white_space_chars-1) == '\\') {
 entry_for_line_splice:
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 #if BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
-      if (multibyte_chars_in_source_enabled) {
-        /* See whether the backslash is actually a backslash, or a character
-           after the first in a multibyte sequence. */
-        find_offset_for_source_line_mbc_including(loc_in_line-1, &mbc_offset);
-        if (mbc_offset != loc_in_line-1-curr_source_line) {
-          /* The backslash is not really a backslash.  But it is followed by a
-             newline. */
-          goto add_newline_and_line_end_and_return;
+        if (multibyte_chars_in_source_enabled) {
+          /* See whether the backslash is actually a backslash, or a character
+             after the first in a multibyte sequence. */
+          find_offset_for_source_line_mbc_including(loc_in_line-1,
+                                                    &mbc_offset);
+          if (mbc_offset != loc_in_line-1-curr_source_line) {
+            /* The backslash is not really a backslash.  But it is followed
+               by a newline. */
+            goto add_newline_and_line_end_and_return;
+          }  /* if */
         }  /* if */
-      }  /* if */
 #endif /* BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-      if (ignored_trailing_white_space_chars != 0) {
-        /* Some white-space characters occurred between "\" and the newline.
-           Fix the line so it will display properly, adjust loc_in_line and
-           curr_column appropriately, and issue a warning. */
+        if (ignored_trailing_white_space_chars != 0) {
+          /* Some white-space characters occurred between "\" and the newline.
+             Fix the line so it will display properly, adjust loc_in_line and
+             curr_column appropriately, and issue a warning. */
+          finish_off_source_line_so_it_can_be_displayed_in_error();
+          loc_in_line -= ignored_trailing_white_space_chars;
+          curr_column -= ignored_trailing_white_space_chars;
+          warning_at_line_pos(ec_white_space_inside_splice, loc_in_line);
+        }  /* if */
+        /* Remove the backslash in the buffer. */
+        loc_in_line--;
+        /* Add a modification entry recording the position of the line
+           splice. */
+        olmp = add_orig_line_modif(olm_line_splice, loc_in_line);
+        olmp->variant.line_splice_seq_number = seq_number_last_read+1;
+        /* Begin reading the next line.  It is an error if end of file is
+           encountered. */
+        if (ch = getc(curr_input_stream), !is_eof_char(ch)) goto line_loop;
+        eof_read_on_curr_input_stream = TRUE;
+        /* Backslash at end of last line in a file -- error. */
         finish_off_source_line_so_it_can_be_displayed_in_error();
-        loc_in_line -= ignored_trailing_white_space_chars;
-        curr_column -= ignored_trailing_white_space_chars;
-        warning_at_line_pos(ec_white_space_inside_splice, loc_in_line);
-      }  /* if */
-      /* Remove the backslash in the buffer. */
-      loc_in_line--;
-      /* Add a modification entry recording the position of the line splice. */
-      olmp = add_orig_line_modif(olm_line_splice, loc_in_line);
-      olmp->variant.line_splice_seq_number = seq_number_last_read+1;
-      /* Begin reading the next line.  It is an error if end of file is
-         encountered. */
-      if (ch = getc(curr_input_stream), !is_eof_char(ch)) goto line_loop;
-      eof_read_on_curr_input_stream = TRUE;
-      /* Backslash at end of last line in a file -- error. */
-      finish_off_source_line_so_it_can_be_displayed_in_error();
-      diagnostic_at_line_pos((microsoft_mode || gnu_mode) ?
+        diagnostic_at_line_pos((microsoft_mode || gnu_mode) ?
                                                          es_warning : es_error,
                              ec_last_line_backslash, loc_in_line);
-      /* Ignore the backslash, end the logical line at this point. */
+        /* Ignore the backslash, end the logical line at this point. */
+      }  /* if */
     }  /* if */
   }  /* if */
   goto add_newline_and_line_end_and_return;
