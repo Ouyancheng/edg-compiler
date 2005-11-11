@@ -1356,18 +1356,18 @@ single field of the lowered complex type.
 {
   an_expr_node_ptr  result;
   a_field_ptr       vals_field;
-  a_type_ptr        complex_type = skip_typerefs(expr->type), ptr_to_elem_type;
+  a_type_ptr        ctype = skip_typerefs(expr->type), ptr_to_elem_type;
   a_boolean         is_lvalue;
 
   if (is_pointer_type(expr->type)) {
     /* A node representing a complex lvalue.  Recover the actual complex
        type. */
     is_lvalue = TRUE;
-    complex_type = type_pointed_to(complex_type);
+    ctype = type_pointed_to(ctype);
   } else {
     is_lvalue = FALSE;
   }  /* if */
-  vals_field = complex_vals_field(complex_type);
+  vals_field = complex_vals_field(ctype);
   ptr_to_elem_type = type_after_array_to_pointer_transformation(
                                                              vals_field->type);
   /* Make "<expr>._Vals[1]" as the lvalue for the imaginary part. */
@@ -1597,8 +1597,10 @@ Lower the given complex expression ("__real z" or "__imag z").
     case eok_lvalue_imag_part:
       result = make_imag_part(arg);
       break;
+    default:
+      unexpected_condition();
   }  /* switch */
-  if (is_rvalue) add_indirection_to_node(result);
+  if (is_rvalue) result = add_indirection_to_node(result);
   overwrite_node(expr, result);
 }  /* lower_complex_projection */
 
