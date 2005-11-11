@@ -347,7 +347,7 @@ The alignment specified by the most recent #pragma pack directive (0
 indicates the default value).
 */
 static a_targ_alignment
-		curr_max_member_alignment;
+		curr_pack_alignment;
 /*
 The following variable is TRUE if a #pragma pack directive was constructed for
 a particular class definition and indicates that the previous alignment must
@@ -373,7 +373,7 @@ static void gen_pragma(void);
 static void gen_pragma_start(a_pragma_ptr pp);
 static void gen_pragma_end(a_pragma_ptr pp);
 #if USER_CONTROL_OF_STRUCT_PACKING
-static void gen_pending_pragma_pack();
+static void gen_pending_pragma_pack(void);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 static void gen_template_header(a_template_decl_ptr tdp);
 static void gen_template(void);
@@ -4073,7 +4073,7 @@ scp is NULL).
 
 
 #if USER_CONTROL_OF_STRUCT_PACKING
-static void gen_pending_pragma_pack()
+static void gen_pending_pragma_pack(void)
 /*
 Generate any #pragma pack directives that were skipped by
 process_preprocessing_directives.  Because pack is an immediate pragma, it
@@ -4101,7 +4101,7 @@ the end of the translation unit.
         gen_pragma_start(pp);
         write_str(pp->pragma_text);
         gen_pragma_end(pp);
-        curr_max_member_alignment = pp->variant.alignment;
+        curr_pack_alignment = pp->variant.alignment;
       }  /* if */
     }  /* if */        
   }  /* while */
@@ -4668,7 +4668,7 @@ Put out the list of direct base classes of the class associated with ctsp
 static void construct_pragma_pack_if_needed(a_type_ptr type)
 /*
 Check the alignment of the specified class type; if it is not the same as
-curr_max_member_alignment (which was set by the most recent #pragma pack from
+curr_pack_alignment (which was set by the most recent #pragma pack from
 the source sequence list) and we have not already issued the requisite
 pragma, construct a #pragma pack with the type's alignment.
 */
@@ -4681,7 +4681,7 @@ pragma, construct a #pragma pack with the type's alignment.
        for the current class.  (Some GNU compilers ignore the pragma;
        attributes are issued instead.  If we know attribute packed will be
        emitted, we don't issue the pragma.) */
-    if (pack_alignment != curr_max_member_alignment
+    if (pack_alignment != curr_pack_alignment
 #if GNU_EXTENSIONS_ALLOWED
         && !(gcc_is_generated_code_target && pack_alignment == 1 &&
              type->variant.class_struct_union.is_packed)
@@ -9347,7 +9347,7 @@ is the one associated with the template.
 #if USER_CONTROL_OF_STRUCT_PACKING
       /* Update the current packing alignment to reflect any #pragma pack
          directives that were embedded in the template definition string. */
-      curr_max_member_alignment = tp->final_alignment;
+      curr_pack_alignment = tp->final_alignment;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */      
     }  /* if */
   }  /* if */
@@ -12094,8 +12094,8 @@ that case) and old-style parameter declarations.
   if (need_pragma_pack_restore && !pragma_pack_was_already_set) {
     /* Restore the packing alignment to the previous state. */
     begin_pp_directive("#pragma pack(");
-    if (curr_max_member_alignment != 0) {
-      write_unsigned_num((unsigned long)curr_max_member_alignment);
+    if (curr_pack_alignment != 0) {
+      write_unsigned_num((unsigned long)curr_pack_alignment);
     }  /* if */
     write_str(")");
     end_pp_directive();
@@ -12279,7 +12279,7 @@ Initialize for the C++/C-generating back end.
   in_template_argument_list = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   pending_pragma_pack = NULL;
-  curr_max_member_alignment = 0;
+  curr_pack_alignment = 0;
   need_pragma_pack_restore = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* init_cp_gen_be */
