@@ -10999,7 +10999,8 @@ operators cannot be overloaded.
   an_operand             operand;
 
   copy_source_position(pos_curr_token, start_pos);
-  get_token();
+  /* Skip over the "__real" or "__imag" operator token. */
+  (void)get_token();
   scan_expr(&operand, PREC_CAST, EOPT_NO_OPTIONS);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   copy_source_position(operand.end_position, end_pos);
