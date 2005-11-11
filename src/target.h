@@ -738,10 +738,12 @@ EXTERN a_boolean
 			/* TRUE if code is being generated for a Sun
 			   compiler. */
 
+#ifdef SUN_TARGET_VERSION_NUMBER
 EXTERN unsigned long
 		sun_target_version_number;
 			/* The version number of the Sun compiler being
 			   targeted (e.g., 0x530 for version 5.3). */
+#endif /* ifdef SUN_TARGET_VERSION_NUMBER */
 
 EXTERN a_boolean
 		gcc_is_generated_code_target;

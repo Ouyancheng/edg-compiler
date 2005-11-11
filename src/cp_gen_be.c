@@ -11702,6 +11702,7 @@ TRUE if the declaration following this one is such a continuation.
           /* Specify the storage class explicitly. */
           storage_class = rout->storage_class;
         }  /* if */
+#ifdef SUN_TARGET_VERSION_NUMBER
       } else if (sun_is_generated_code_target &&
                  sun_target_version_number <= 0x530 &&
                  rout->storage_class == (a_storage_class)sc_static) {
@@ -11710,6 +11711,7 @@ TRUE if the declaration following this one is such a continuation.
            friend" is accepted, but "friend static" is not, so we explicitly
            output "static" here and leave the storage class unspecified. */
         write_tok_str("static ");
+#endif /* SUN_TARGET_VERSION_NUMBER */
       }  /* if */
       write_tok_str("friend ");
     } else {
