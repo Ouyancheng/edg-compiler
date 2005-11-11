@@ -543,7 +543,7 @@ called.
   /* For diagnostics in C99 mode we want to see "_Bool" rather "bool" or the
      type underlying _Bool. */
   octl.render_c99_bool = c99_mode;
-  octl.diagnostic_output = TRUE;
+  octl.remove_template_typedefs = !display_template_typedefs_in_diagnostics;
 }  /* set_up_output_control_block */
 
 

@@ -919,7 +919,7 @@ temp_text_buffer.
 {
   clear_il_to_str_output_control_block(&octl);
   octl.output_str = put_str_to_temp_text_buffer;
-  octl.diagnostic_output = TRUE;
+  octl.remove_template_typedefs = !display_template_typedefs_in_diagnostics;
   pos_in_temp_text_buffer = 0;
 }  /* set_up_for_argument_type_formatting */
 

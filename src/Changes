@@ -1,5 +1,15 @@
 Version 3.7
 
+11/11/05 Removing template class member typedefs in cross-reference output
+
+In order to improve the usefulness of the cross-reference information, and
+to dramatically reduce the size of the cross-reference file in some cases,
+certain typedefs are now replaced with their underlying type in the
+cross-reference output.  Just as is now done with typedefs in diagnostic
+output (see 10/28/05 entry), typedefs declared in template classes are now
+replaced with their underlying type.  In extreme cases this can reduce the
+size of the cross-reference file by a factor of a thousand.
+
 11/11/05 GNU compatibility: carriage return as line terminator
 
 In GNU mode, carriage return and carriage return followed by a newline are

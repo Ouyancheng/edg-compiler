@@ -166,9 +166,9 @@ typedef struct an_il_to_str_output_control_block {
 			/* TRUE if a tab character should be emitted as an
 			   actual tab character rather than as '\t'. */
   a_byte_boolean
-	diagnostic_output;
-			/* TRUE if the generated string is being used for
-			   diagnostic output. */
+	remove_template_typedefs;
+			/* TRUE if typedefs from class templates should be
+			   replaced with the underlying type. */
   a_byte_boolean
 	suppress_line_breaking;
 			/* Suppress any processing that breaks long output
