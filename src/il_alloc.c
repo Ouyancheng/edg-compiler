@@ -1267,6 +1267,9 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 #if NEAR_AND_FAR_ALLOWED
   ctsp->qualifiers                        = TQ_NONE;
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  ctsp->hidden_names_processed = FALSE;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
   ctsp->befriending_classes               = NULL;
@@ -3361,7 +3364,6 @@ points to the associated routine if the kind is sck_function.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_HIDDEN_NAMES_IN_IL
   sp->hidden_names                = NULL;
-  sp->hidden_names_processed      = FALSE;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   sp->templates                   = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED

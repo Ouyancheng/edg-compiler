@@ -664,7 +664,9 @@ class, too, and thus must be flagged as requiring qualification.
   a_scope_ptr       base_scope =
                 base_class->variant.class_struct_union.extra_info->assoc_scope;
 
-  if (base_scope != NULL && !base_scope->hidden_names_processed &&
+  if (base_scope != NULL &&
+      !base_class->variant.class_struct_union.extra_info->
+                                                      hidden_names_processed &&
       !in_secondary_trans_unit(base_scope)) {
     /* Get the base class scope's hidden names before trying to clone them
        (unless the scope belongs to a secondary translation unit; it's an
@@ -1226,12 +1228,20 @@ scopes and for the file scope.
   a_scope_depth                 saved_depth_of_initial_lookup_scope;
 
   db_enter(3, "check_name_hiding_for_scope");
-  if (sp != NULL && !sp->hidden_names_processed) {
-    /* Immediately mark the scope as processed, even though we haven't done
-       anything yet, to avoid infinite recursion.  (This can occur when an
-       explicit specialization of a nested class template has the containing
-       class as a base, for instance.) */
-    sp->hidden_names_processed = TRUE;
+  if (sp == NULL ||
+      (sp->kind == sck_class_struct_union &&
+       sp->variant.assoc_type->variant.class_struct_union.extra_info->
+                                                     hidden_names_processed)) {
+    /* Nothing to do. */
+  } else {
+    if (sp->kind == sck_class_struct_union) {
+      /* Immediately mark the class as processed, even though we haven't done
+         anything yet, to avoid infinite recursion.  (This can occur when an
+         explicit specialization of a nested class template has the containing
+         class as a base, for instance.) */
+      sp->variant.assoc_type->variant.class_struct_union.extra_info->
+                                                 hidden_names_processed = TRUE;
+    }  /* if */
     /* Check certain nested scopes first. */
     if (!C_mode()) {
       /* If this is the file scope or a namespace scope, there may be nested

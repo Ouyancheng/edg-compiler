@@ -4893,6 +4893,15 @@ typedef struct a_class_type_supplement {
 			   Specifically, this is TRUE for the "types
 			   as subobjects" generated during IL lowering. */
 #endif /* DO_IL_LOWERING */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  a_bit_field	hidden_names_processed:1;
+			/* Used only in the front end: TRUE if the names in
+			   this class have been examined for hiding and should
+			   not be processed again.  This is needed because
+			   classes are traversed during hidden name processing
+			   both in inheritance order and while processing the
+			   namespaces in which they are defined. */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous
@@ -11444,13 +11453,6 @@ typedef struct a_scope {
 			   only if an elaborated type specifier and/or global
 			   qualification (a preceding "::") is used.  Only
 			   used in C++. */
-  a_boolean	hidden_names_processed;
-			/* Used only in the front end: TRUE if the names in
-			   this scope have been examined for hiding and should
-			   not be processed again.  This is needed because
-			   classes are traversed both in inheritance order
-			   and while processing the namespaces in which they
-			   are defined. */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   a_template_ptr
 		templates;
