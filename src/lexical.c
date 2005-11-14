@@ -4984,8 +4984,10 @@ for the GNU C multiline string extension.
       register char *local_loc_in_line = loc_in_line;
       register int local_ch = ch;
       do {
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
         /* In GNU mode, carriage return is a line terminator. */
         if (local_ch == '\r' && gnu_mode) break;
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
         /* Check for question marks.  Presence of 2 in a row suggests there
            may be a trigraph in the line. */
         if (local_ch == '?') {
@@ -5030,12 +5032,14 @@ for the GNU C multiline string extension.
       } while (local_ch != '\n');
       ch = local_ch;
       loc_in_line = local_loc_in_line;
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
       if (ch == '\r' && gnu_mode) {
         /* In GNU mode a line can be terminated by a carriage return, or
            a carriage return followed by a newline.  Look for a newline
            following this carriage return. */
         process_gnu_carriage_return();
       }  /* if */
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
       if (loc_in_line != curr_source_line) {
 #if IGNORE_CARRIAGE_RETURN_IN_SOURCE
         /* Ignore carriage return right before newline.  Ignore several if
@@ -5242,8 +5246,10 @@ line_loop:
     /* Process characters until a newline is read. */
     do {
       /* Process one character (ch). */
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
       /* In GNU mode, carriage return is a line terminator. */
       if (ch == '\r' && gnu_mode) break;
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
       curr_column++;
       /* Check for trigraphs.  A trigraph is two "?"s followed by another
          character. */
@@ -5365,12 +5371,14 @@ entry_for_expand_buffer:
       }  /* if */
       if (is_eof_char(ch)) goto partial_final_line;
     } while (ch != '\n');
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
     if (ch == '\r' && gnu_mode) {
       /* In GNU mode a line can be terminated by a carriage return, or
          a carriage return followed by a newline.  Look for a newline
          following this carriage return. */
       process_gnu_carriage_return();
     }  /* if */
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
     if (loc_in_line != curr_source_line) {
 #if IGNORE_CARRIAGE_RETURN_IN_SOURCE
       /* Ignore carriage return right before newline.  Ignore several if

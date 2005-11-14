@@ -27,8 +27,9 @@ size of the cross-reference file by a factor of a thousand.
 
 11/11/05 GNU compatibility: carriage return as line terminator
 
-In GNU mode, carriage return and carriage return followed by a newline are
-accepted as line terminators.  Carriage return was used as the line terminator
+When ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR is TRUE and when using GNU
+mode, carriage return and carriage return followed by a newline are accepted
+as line terminators.  Carriage return was used as the line terminator
 in older versions of MacOS.  In the example below "<cr>" must be replaced with
 an actual carriage return character.
 
