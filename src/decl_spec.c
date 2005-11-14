@@ -6435,7 +6435,8 @@ Returns TRUE if there is an error in the specifiers.
   an_error_severity          es;
   a_basic_type               basic_type = bt_none;
 #if GNU_EXTENSIONS_ALLOWED
-  a_basic_type               prev_basic_type;
+  an_error_code              delayed_error = ec_no_error;
+  a_source_position          pos_delayed_error;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_type_sign                sign = sign_none;
   a_type_size                size = size_none;
@@ -6975,16 +6976,25 @@ Returns TRUE if there is an error in the specifiers.
       case tok_accum:
 #endif /* FIXED_POINT_ALLOWED */
         /* A type specifier (3.5.2) that indicates a basic type. */
-#if GNU_EXTENSIONS_ALLOWED
-        prev_basic_type = basic_type;
-#endif /* GNU_EXTENSIONS_ALLOWED */
         if (!type_specifier_allowed) {
           error(ec_type_specifier_not_allowed);
           err = TRUE;
-        } else if (basic_type != bt_none && !gnu_mode) {
+        } else if (basic_type != bt_none) {
           /* Basic type has already been specified in some way. */
-          bad_combination_of_type_specifiers = TRUE;
-          error(ec_bad_combination_of_type_specifiers);
+#if GNU_EXTENSIONS_ALLOWED
+          if (gcc_mode && gnu_version < 40000) {
+            /* GNU C allows multiple basic type specifiers, but they must be
+               part of a typedef declaration that doesn't include a declarator
+               (and therefore it doesn't really declare anything). */
+            delayed_error = ec_bad_combination_of_type_specifiers;
+            copy_source_position(pos_curr_token, pos_delayed_error);
+          } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
+          {
+            bad_combination_of_type_specifiers = TRUE;
+            error(ec_bad_combination_of_type_specifiers);
+          }  /* if */
         } else {
           switch (curr_token) {
             case tok_void:     basic_type = bt_void;    break;
@@ -7004,20 +7014,6 @@ Returns TRUE if there is an error in the specifiers.
               internal_error("decl_specifiers: bad type specifier");
 #endif /* CHECKING */
           }  /* switch */
-#if GNU_EXTENSIONS_ALLOWED
-          if (gnu_mode && prev_basic_type != bt_none) {
-            /* GNU C allows duplicate basic type specifiers, but they must be
-               identical. */
-            if (basic_type == prev_basic_type) {
-              warning(ec_dupl_decl_specifier);
-            } else {
-              bad_combination_of_type_specifiers = TRUE;
-              error(ec_bad_combination_of_type_specifiers);
-              basic_type = prev_basic_type;
-            }  /* if */
-          } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-          /* Do not insert code here. */
           if (curr_token == tok_void && !any_decl_specifiers_seen) {
             decl_specifiers_seen = DS_VOID;
           } else {
@@ -7084,21 +7080,20 @@ Returns TRUE if there is an error in the specifiers.
               error(ec_nonstd_long_long);
             }  /* if */
 #endif /* LONG_LONG_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+          } else if (gcc_mode && gnu_version < 40000) {
+            /* GNU C allows multiple type size specifiers, but they must be
+               part of a typedef declaration that doesn't include a declarator
+               (and therefore it doesn't really declare anything). */
+            delayed_error = ec_bad_combination_of_type_specifiers;
+            copy_source_position(pos_curr_token, pos_delayed_error);
+#endif /* GNU_EXTENSIONS_ALLOWED */
           } else if (size == size_short && curr_token == tok_short) {
-            /* "short short".  Issue an error, except in cfront mode,
-               which is silent about "short short".  GNU C issues a
-               warning, but in GNU C++ it is an error. */
-            diagnostic((any_cfront_mode() || gcc_mode) ? es_warning : es_error,
+            /* "short short".  Issue an error, except in cfront mode, which is
+               silent about "short short".  (GNU C issues a warning, but that
+               is handled earlier.) */
+            diagnostic(any_cfront_mode() ? es_warning : es_error,
                        ec_dupl_decl_specifier);
-#if LONG_LONG_ALLOWED && GNU_EXTENSIONS_ALLOWED
-          } else if (gcc_mode &&
-                     *storage_class == (a_storage_class)sc_typedef &&
-                     size == size_long_long && curr_token == tok_long) {
-            /* GNU C (but not GNU C++) accepts extraneous "long" specifiers
-               in some contexts.  This appears in some sources that create
-               typedef declarations using macros. */
-            warning(ec_dupl_decl_specifier);
-#endif /* LONG_LONG_ALLOWED && GNU_EXTENSIONS_ALLOWED */
           } else {
             /* Some other bad combination. */
             bad_combination_of_type_specifiers = TRUE;
@@ -7747,6 +7742,7 @@ no_get_token:
         goto exit_loop;
       }  /* if */
     } else if (defines_something &&
+               !(gcc_mode && *storage_class == (a_storage_class)sc_typedef) &&
                input_flags & DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER) {
       /* The basic type is a class, struct, union, or enum that actually
          defines a type.  We are especially interested in cases like this:
@@ -7754,10 +7750,12 @@ no_get_token:
            class B {...};
          where we'd rather report a missing semicolon than a conflict of
          types.  This is referred to as a "dangling type specifier".  Look
-         for a type-specifier keyword or (if this is not a typedef declaration)
-         a type name.  E.g.,
+         for a type-specifier keyword or a type name.  E.g.,
            class A {...} int...                 <== Dangling type specifier
-         Note that this logic works for both C++ and standard C. */
+         Note that this logic works for both C++ and standard C.  We do not
+         perform this diagnostic improvement for typedef declarations in GNU C
+         mode, because it interferes with the emulation of a GNU bug in that
+         case. */
       if (is_type_specifier()) {
         /* The current token is a type keyword; treat it as the start
            of a new declaration.  The error on missing punctuation will be
@@ -7768,6 +7766,23 @@ no_get_token:
     }  /* if */
   }  /* for */
 exit_loop:
+#if GNU_EXTENSIONS_ALLOWED
+  if (delayed_error != ec_no_error) {
+    /* Some GNU C compilers do not diagnose certain invalid specifier
+       combinations in typedef declarations that do not include a
+       declarator. */
+    an_error_severity  sev = (an_error_severity)es_warning;
+    if (*storage_class != (a_storage_class)sc_typedef ||
+        curr_token != tok_semicolon) {
+      /* Either this not a typedef declaration or it's a typedef declaration
+         that does include a declarator: Issue an error rather than a
+         warning. */
+      sev = (an_error_severity)es_error;
+      bad_combination_of_type_specifiers = TRUE;
+    }  /* if */
+    pos_diagnostic(sev, delayed_error, &pos_delayed_error);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   state->qualifiers = qualifiers;
   if ((microsoft_mode || sun_mode) &&
       (decl_specifiers_seen & DS_STORAGE_CLASS)) {

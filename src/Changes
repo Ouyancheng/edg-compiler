@@ -1,5 +1,20 @@
 Version 3.7
 
+11/14/05 GNU C compatibility: Excess specifiers in useless typedef declarations
+
+In GNU C modes with gnu_version < 40000, a warning (instead of an error) is now
+issued for certain excess specifiers appearing in typedef declarations without
+a declarator (i.e., cases in which no actual typedef name is introduced).
+For example:
+
+  typedef short long;   // A warning in some GNU C modes (previously an error).
+  typedef enum { e } E; // A warning in some GNU C modes (previously an error).
+
+This is a revision of the change documented in the entry of 9/11/02.
+Furthermore, the observation that the duplication of certain type specifiers
+(like "int int"; see entry of 8/6/02) was accepted by some GNU C++ compilers
+appears to be incorrect, and this allowance has therefore been undone.
+
 11/11/05 Removing template class member typedefs in cross-reference output
 
 In order to improve the usefulness of the cross-reference information, and
