@@ -1,5 +1,14 @@
 Version 3.7
 
+11/14/05 GNU C++ compatibility: Exception specifications and specializations
+
+In GNU C++ mode, the front end now no longer requires the exception
+specification of an explicit template specialization (for a function or
+member function) to match that of the primary template.  For example:
+
+  template<typename T> void f(T) throw(int);
+  template<> void f(double) throw(float, double);  // Okay in GNU C++ mode.
+
 11/14/05 GNU C compatibility: Excess specifiers in useless typedef declarations
 
 In GNU C modes with gnu_version < 40000, a warning (instead of an error) is now

@@ -16122,10 +16122,13 @@ that follows.
 #endif /* DECL_MODIFIERS_IN_USE */
       } else {
         /* A specialization of a routine. */
-        /* Issue an error if the exception specification on the instance does
-           not match that of the template. */
-        check_exception_specification(type, sym, &func_info.throw_position,
-                                      /*is_redecl=*/FALSE);
+        if (!gpp_mode) {
+          /* Issue an error if the exception specification on the instance does
+             not match that of the template.  (GNU C++ compilers do not perform
+             this check. */
+          check_exception_specification(type, sym, &func_info.throw_position,
+                                        /*is_redecl=*/FALSE);
+        }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Do fixup on the source sequence entry that was just created to
            represent the current declaration. */
