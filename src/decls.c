@@ -8546,7 +8546,7 @@ NULL.
       if (is_redecl) {
         /* __declspec(deprecated) is ignored on redeclarations. */
       } else if (decl_modifiers->is_deprecated) {
-        update_deprecation_info(&type_ptr->source_corresp, decl_modifiers,
+        update_deprecation_info(&tp->source_corresp, decl_modifiers,
                                 &locator->source_position);
       } else {
         /* Check if a deprecated type was involved in this declaration. */
