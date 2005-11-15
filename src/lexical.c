@@ -4782,6 +4782,8 @@ curr_source_line is resized.
 
 #endif /* MBC_CHECKING_NEEDED_IN_LINE_READING */
 
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+
 static void process_gnu_carriage_return(void)
 /*
 In GNU mode, a line can be terminated by a carriage return, or a carriage
@@ -4804,6 +4806,7 @@ Check for a following newline character.
   }  /* if */
 }  /* process_gnu_carriage_return */
 
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
 
 a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file,
                                    a_boolean extend_current_line)
