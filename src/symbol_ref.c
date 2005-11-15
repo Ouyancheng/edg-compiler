@@ -1229,7 +1229,7 @@ scopes and for the file scope.
 
   db_enter(3, "check_name_hiding_for_scope");
   if (sp == NULL ||
-      (sp->kind == sck_class_struct_union &&
+      (sp->kind == (a_scope_kind)sck_class_struct_union &&
        sp->variant.assoc_type->variant.class_struct_union.extra_info->
                                                      hidden_names_processed)) {
     /* Nothing to do. */
