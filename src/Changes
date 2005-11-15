@@ -111,7 +111,7 @@ when compiling C++ code.  See also Changes entry of 4/20/98.)
 
 11/10/05 Microsoft C++ compatibility: Branching into try blocks
 
-In Microsoft bugs mode, the front end previously only issued a warning about
+In Microsoft bugs mode, the front end previously issued only a warning about
 branching into try blocks.  Now an error is issued if microsoft_version > 1200
 (to match the behavior of various releases of the Microsoft compiler).
 
