@@ -71,7 +71,7 @@ This is now fixed: The redefinition is diagnosed as an error.
 
 11/10/05 Spurious warning on friend declaration in class template
 
-The front end normally issue a warning when a class befriends itself.
+The front end normally issues a warning when a class befriends itself.
 Previously, it also did so when this occurred as the result of a specific
 template instantiation.  However, such situations may be required in some
 circumstances and the front end therefore no longer issues a warning in
