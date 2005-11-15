@@ -1679,16 +1679,17 @@ specifier.
 */
 {
   if (scp->is_deprecated && !in_deprecated_definition()) {
-    check_assertion(symbol_for(scp) != NULL);
+    a_symbol_ptr  sym = (a_symbol_ptr)scp->assoc_info;
+    check_assertion(sym != NULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode && deprecation_string_for(scp) != NULL) {
       pos_stsy_warning(ec_deprecated_entity_with_custom_message, pos,
-                       deprecation_string_for(scp), symbol_for(scp));
+                       deprecation_string_for(scp), sym);
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     {
-      pos_sy_warning(ec_deprecated_entity, pos, (a_symbol_ptr)scp->assoc_info);
+      pos_sy_warning(ec_deprecated_entity, pos, sym);
     }  /*if */
   }  /* if */
 }  /* check_use_of_deprecated_entity */

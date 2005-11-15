@@ -2397,12 +2397,12 @@ typedef struct a_symbol {
 #if MICROSOFT_EXTENSIONS_ALLOWED && !DEPRECATION_STRING_IN_IL
   char		*deprecation_string;
 			/* The string argument that was provided with a
-			   __declspec(deprecated(...)) construct.  Can be
-			   recorded either in the IL or in the symbol entry.
-			   (It's typically only useful in the IL when combined
-			   with a C++-generating back end.)  In the front end,
-			   use the "deprecation_string_for" macro to access
-			   this field. */
+			   __declspec(deprecated(...)) construct or NULL if no
+			   such argument appeared.  Can be recorded either in
+			   the IL or in the symbol entry.  (It's typically only
+			   useful in the IL when combined with a C++-generating
+			   back end.)  In the front end, use the macro
+			   "deprecation_string_for" to access this field. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DEPRECATION_STRING_IN_IL */
   a_symbol_kind kind;
 			/* The kind of symbol. */
@@ -3823,23 +3823,23 @@ extern a_symbol_header_ptr find_symbol_header(char             *identifier,
 /*
 Return the symbol associated with an IL entry.
 */
-#define symbol_for(entry)                                                   \
-  ((a_symbol_ptr)((a_source_correspondence_ptr)entry)->assoc_info)
+#define symbol_for(entry)  ((a_symbol_ptr)(entry)->source_corresp.assoc_info)
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
-Return the deprecation string associated with the given IL entry.  The string
-may be stored in the entry itself, of it may be associated with the symbol for
-the entry.  (Many back ends have no use for the deprecation string, and storing
-it in the IL increases the size of all entries with a source correspondence.)
+Return the deprecation string associated with the given source correspondence
+entry.  The string may be stored in the entry itself, of it may be associated
+with the symbol for the entry.  (Many back ends have no use for the deprecation
+string, and storing it in the IL increases the size of all entries with a
+source correspondence.)
 */
 #if DEPRECATION_STRING_IN_IL
-#define deprecation_string_for(entry)                                       \
-  (((a_source_correspondence_ptr)entry)->deprecation_string)
+#define deprecation_string_for(scp)                                         \
+  ((scp)->deprecation_string)
 #else /* !DEPRECATION_STRING_IN_IL */
-#define deprecation_string_for(entry)                                       \
-  (symbol_for(entry)->deprecation_string)
+#define deprecation_string_for(scp)                                         \
+  (((a_symbol_ptr)((scp)->assoc_info))->deprecation_string)
 #endif /* DEPRECATION_STRING_IN_IL */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

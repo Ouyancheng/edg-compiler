@@ -369,7 +369,7 @@ static char* scan_declspec_string_argument(an_error_code  err_code)
 The current token is the name of a Microsoft declspec attribute (e.g.,
 "allocate") and a parenthesized string literal is expected next.  Scan
 the parenthesized literal and return a pointer to a copy of it allocated
-in IL memory.
+in IL memory.  NULL may be returned for certain syntax errors.
 */
 {
   char  *result = NULL;

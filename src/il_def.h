@@ -1491,12 +1491,12 @@ typedef struct a_source_correspondence {
 #if MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL
   char		*deprecation_string;
 			/* The string argument that was provided with a
-			   __declspec(deprecated(...)) construct.  Can be
-			   recorded either in the IL or in the symbol entry.
-			   (It's typically only useful in the IL when combined
-			   with a C++-generating back end.)  In the front end,
-			   use the "deprecation_string_for" macro to access
-			   this field. */
+			   __declspec(deprecated(...)) construct or NULL if no
+			   such argument appeared.  Can be recorded either in
+			   the IL or in the symbol entry.  (It's typically only
+			   useful in the IL when combined with a C++-generating
+			   back end.)  In the front end, use the macro
+			   "deprecation_string_for" to access this field. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL */
 } a_source_correspondence;
 
