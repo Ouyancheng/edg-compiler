@@ -347,18 +347,6 @@ is <= 1300.
   template <class T = char> struct A;
   template <class T = int> struct A { };
 
-11/1/05  Microsoft compatibility: default function arguments on class template
-         member definitions
-
-In Microsoft mode, default function arguments are accepted in the
-definition of a member function of a class template outside of its class.
-This is now done only when microsoft_version is <= 1300.
-
-  template <class T> struct A {
-    void f(int);
-  };
-  template <class T> void A<T>::f(int = 0) { }
-
 11/1/05  Microsoft compatibility: default arguments on class template
          member declarations
 

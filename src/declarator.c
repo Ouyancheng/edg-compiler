@@ -1878,7 +1878,9 @@ if this is the function declarator in a friend function declaration.
                   cache_default_arg = TRUE;
                   def_arg_scope_depth = scope_depth_of(ssep);
                 } else {
-                  pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
+                  pos_diagnostic(microsoft_mode ? es_warning : es_error,
+                                 ec_default_arg_expr_not_allowed,
+                                 &pos_curr_token);
                   default_arg_allowed_on_curr_param = FALSE;
                   ignore_default_arg_expr = TRUE;
                 }  /* if */
