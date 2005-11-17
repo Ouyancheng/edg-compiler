@@ -3325,7 +3325,7 @@ up to the caller to do the cast if desired.
     a_targ_alignment int_alignment;
     get_integer_size_and_alignment(ikind, &int_size, &int_alignment);
     int_size *= targ_char_bit;
-    if (field_size > int_size) field_size = int_size;
+    if (field_size > int_size) field_size = (unsigned int)int_size;
   }  /* if */
 #if LONG_LONG_ALLOWED
   if ((microsoft_mode || gpp_mode ||
