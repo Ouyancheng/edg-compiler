@@ -8263,6 +8263,9 @@ an existing entry if possible.
 }  /* make_reference_type */
 
 
+#if !NEAR_AND_FAR_ALLOWED
+/* ARGSUSED */  /* <- is_error is not used in some configurations. */
+#endif /* !NEAR_AND_FAR_ALLOWED */
 a_type_ptr make_reference_to_reference(a_type_ptr            base_ref_type,
                                        a_type_qualifier_set  qualifiers,
                                        a_boolean             *is_error)
