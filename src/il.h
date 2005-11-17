@@ -593,13 +593,11 @@ extern a_fixed_point_type_descr make_fixed_point_type_descr(
 
 extern a_type_ptr float_type(a_float_kind kind);
 
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
 extern a_boolean complex_type_used_in_primary_IL(a_float_kind kind);
 
 extern a_type_ptr complex_type(a_float_kind kind);
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
 
-#if C99_IL_EXTENSIONS_SUPPORTED
 extern a_boolean imaginary_type_used_in_primary_IL(a_float_kind kind);
 
 extern a_type_ptr imaginary_type(a_float_kind kind);

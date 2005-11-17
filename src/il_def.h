@@ -430,10 +430,10 @@ typedef enum /*an_il_entry_kind*/ {
   iek_id_name,          /* String giving the name of an identifier. */
   iek_string_text,	/* Text of a string literal. */
   iek_other_text,	/* Text of a file name or similar information. */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
   iek_internal_complex_value,
 			/* an_internal_complex_value */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_... */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FIL
   iek_bound_info_entry,	/* a_bound_info_entry */
   iek_do_loop,		/* a_do_loop */
@@ -599,9 +599,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_id_name */			"id-name",
 /* iek_string_text */			"string-text",
 /* iek_other_text */			"other-text",
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
 /* iek_internal_complex_value */	"internal-complex-value",
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_... */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FIL
 /* iek_bound_info_entry */		"bound-info-entry",
 /* iek_do_loop */			"do-loop",
@@ -1525,10 +1525,10 @@ enum a_constant_repr_kind_tag {
                            strings, as well as for CHARACTER constants. */
 #endif /* ifdef FIL */
   ck_float,             /* All sizes of float. */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
   ck_complex,           /* All sizes of C99's _Complex types.
                            Also: Fortran Complex. */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_... */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
   ck_imaginary,         /* All sizes of C99's _Imaginary types. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -1588,7 +1588,7 @@ enum an_address_base_kind_tag {
 typedef a_byte an_address_base_kind;
 
 #endif /* ifdef CIL */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
 typedef struct an_internal_complex_value *an_internal_complex_value_ptr;
 typedef struct an_internal_complex_value {
   /* Internal representation for a complex value. */
@@ -1597,7 +1597,7 @@ typedef struct an_internal_complex_value {
                 imag;   /* Real and imaginary parts of the value. */ 
 } an_internal_complex_value;
 
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_... */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 
 #ifdef CIL
 /*
@@ -2310,13 +2310,13 @@ typedef struct a_constant {
     an_internal_float_value
                 float_value;
                         /* A floating-point value in internal form. */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
     /* When kind == ck_complex: */
     an_internal_complex_value_ptr
                 complex_value;
                         /* A complex value, represented internally as two
                            floating-point values. */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_... */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CIL
     /* When kind == ck_address: */
     struct {
@@ -2582,11 +2582,11 @@ enum a_type_kind_tag {
 #if C99_IL_EXTENSIONS_SUPPORTED
   tk_imaginary,         /* C99 imaginary types. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
   tk_complex,           /* Complex (C99 and Fortran).  Must have the same
                            layout as an array of two reals of the appropriate
                            size. */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_... */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
   tk_pointer,           /* Pointer type. */
 #ifdef CIL
 			/* Also used for reference in C++. */
@@ -5521,9 +5521,9 @@ typedef struct a_type {
 #if C99_IL_EXTENSIONS_SUPPORTED
     /* Also, when kind == tk_imaginary: */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
     /* Also, when kind == tk_complex: */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_... */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
     a_float_kind
                 float_kind;
                         /* Which size of float. */
@@ -8363,7 +8363,7 @@ enum an_expr_operator_kind_tag {
                            integer can be of any integral type; the integral
                            promotions are not done. */
   eok_passign,          /* Pointer assignment. */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
   eok_xadd,             /* Complex addition. */
   eok_xsubtract,        /* Complex subtraction. */
   eok_xmultiply,        /* Complex multiplication. */
@@ -8371,14 +8371,12 @@ enum an_expr_operator_kind_tag {
   eok_xeq,              /* Complex equality. */
   eok_xne,              /* Complex inequality. */
   eok_xassign,          /* Complex assignment. */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTE || GNU_... */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTE */
+#if C99_IL_EXTENSIONS_SUPPORTED
   eok_xadd_assign,      /* Complex add assign operator. */
   eok_xsubtract_assign, /* Complex subtract assign operator. */
   eok_xmultiply_assign, /* Complex multiply assign operator. */
   eok_xdivide_assign,   /* Complex divide assign operator. */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
   eok_jmultiply,        /* Imaginary multiplication.  Imaginary times
                            imaginary gives a real result. */
   eok_jdivide,          /* Division of real by imaginary gives an
@@ -8388,13 +8386,13 @@ enum an_expr_operator_kind_tag {
   eok_fjsubtract,       /* Real - imaginary, produces complex. */
   eok_jfsubtract,       /* Imaginary - real, produces complex. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
   eok_xconj,            /* Complex conjugation operator. */
   eok_real_part,        /* Produce the real part of a complex rvalue. */
   eok_imag_part,        /* Produce the imaginary part of a complex rvalue. */
   eok_lvalue_real_part, /* Produce the real part of a complex lvalue. */
   eok_lvalue_imag_part, /* Produce the imaginary part of a complex lvalue. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #ifdef FIL
   eok_complex,          /* Join two real operands, produce a complex as the
                            result.  The first operand is the real part, the
@@ -11753,18 +11751,16 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "f+", "f-", "f*", "f/", "f==", "f!=", "f>", "f<", "f>=", "f<=",
    "f<?", "f>?", "f=",
    "p+", "p-", "p=",
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
    "x+", "x-", "x*", "x/", "x==", "x!=", "x=",
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_... */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
-   "x+=", "x-=", "x*=", "x/=",
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
+   "x+=", "x-=", "x*=", "x/=",
    "j*", "j/", "fj+", "jf+", "fj-", "jf-",
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
    "x~", "rvalue __real", "rvalue __imag", "lvalue __real", "lvalue __imag",
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #ifdef FIL
    "complex",
    "c==", "c!=", "c>", "c<", "c>=", "c<=", "c=", "//",
@@ -11897,9 +11893,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   1 /* iek_id_name */,
   1 /* iek_string_text */,
   1 /* iek_other_text */,
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
   sizeof(an_internal_complex_value),
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED || GNU_... */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FIL
   sizeof(a_bound_info_entry),
   sizeof(a_do_loop),

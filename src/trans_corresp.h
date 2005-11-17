@@ -65,11 +65,9 @@ extern a_type_ptr primary_float_type(a_float_kind  kind);
 extern a_type_ptr primary_bool_type(void);
 
 extern a_type_ptr primary_imaginary_type(a_float_kind  kind);
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
 extern a_type_ptr primary_complex_type(a_float_kind  kind);
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 #if FIXED_POINT_ALLOWED
 extern a_type_ptr primary_fixed_point_type(a_fixed_point_type_descr descr);

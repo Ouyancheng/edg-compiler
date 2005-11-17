@@ -701,7 +701,7 @@ fields to default values.
       memzero((char *)&cp->variant.float_value,
               sizeof(cp->variant.float_value));
       break;
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
       /* The entire float_value must be zeroed to allow use of memcmp
          and the like on the field. */
@@ -710,7 +710,7 @@ fields to default values.
       memzero((char *)cp->variant.complex_value,
               sizeof(*cp->variant.complex_value));
       break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_address:
       cp->variant.address.kind = (an_address_base_kind)abk_variable;
       cp->variant.address.variant.variable = NULL;
@@ -1354,10 +1354,8 @@ to default values.
       break;
 #endif /* FIXED_POINT_ALLOWED */
     case tk_float:
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
-    case tk_complex:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_complex:
     case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       pte->variant.float_kind = (a_float_kind)fk_float;

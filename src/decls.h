@@ -112,12 +112,12 @@ Microsoft extensions.
 Macro to be used in conjunction with is_type_keyword to check for complex
 type extensions.
 */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
 #define or_is_complex_type_keyword(tok)                                       \
   || ((tok) == tok_c99_complex || (tok) == tok_c99_imaginary)
-#else /* !(C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED) */
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
 #define or_is_complex_type_keyword(tok)  /* Nothing */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 /*
 Macro to be used in conjunction with is_type_keyword to check for C99

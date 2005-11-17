@@ -247,6 +247,8 @@ As with complex type facilities in C99 mode, setting the configuration macro
 LOWER_COMPLEX to TRUE causes the front end to rewrite complex type constructs
 in terms of "plain C IL".  The run-time support library has been updated to
 support GNU-specific features (i.e., the complex conjugation operation).
+Support for complex types in GNU modes can be disabled by setting the
+configuration macro GNU_COMPLEX_EXTENSIONS_ALLOWED to FALSE.
 
 11/4/05  Typedef names no longer in typeinfo names, Cfront-like ABI
 

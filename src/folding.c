@@ -367,20 +367,18 @@ in *new_constant, with type as indicated therein.  Return *err_code and
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
   /* We may be converting to a nonreal floating type. */
   if (float_tp->kind == (a_type_kind)tk_complex) {
     constant_kind = (a_constant_repr_kind)ck_complex;
-#if C99_IL_EXTENSIONS_SUPPORTED
   } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
     constant_kind = (a_constant_repr_kind)ck_imaginary;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   }  /* if */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
   set_constant_kind(new_constant, constant_kind);
 
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
   if (float_tp->kind == (a_type_kind)tk_complex) {
     /* Converting to complex.  The integer value is converted into the real
        part, and the imaginary part is set to zero. */
@@ -390,7 +388,6 @@ in *new_constant, with type as indicated therein.  Return *err_code and
                                    &err);
     check_assertion_str2(!err, "conv_integer_to_float: cannot create zero",
                                "floating-point representation");
-#if C99_IL_EXTENSIONS_SUPPORTED
   } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
     /* Converting to imaginary.  The result is zero. */
     fp_host_large_integer_to_float(float_kind, (a_host_large_integer)0,
@@ -398,9 +395,8 @@ in *new_constant, with type as indicated therein.  Return *err_code and
     check_assertion_str2(!err, "conv_integer_to_float: cannot create zero",
                                "floating-point representation");
     goto conversion_done;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   /* Do not insert code here. */
   {
     float_value = &new_constant->variant.float_value;
@@ -449,21 +445,19 @@ operation is being evaluated as part of a nonconstant expression.
   an_internal_float_value zero;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
   if (float_tp->kind == (a_type_kind)tk_complex) {
     /* Converting from complex to integer.  The real part of the
        constant is converted to integer, and the imaginary part is
        discarded. */
     float_value = &old_constant->variant.complex_value->real;
-#if C99_IL_EXTENSIONS_SUPPORTED
   } else if (float_tp->kind == (a_type_kind)tk_imaginary) {
     /* Converting from imaginary to integer.  The result is zero. */
     fp_host_large_integer_to_float(float_kind, (a_host_large_integer)0,
                                    &zero, &err);
     float_value = &zero;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   /* Do not insert code here. */
   {
     float_value = &old_constant->variant.float_value;
@@ -571,40 +565,34 @@ depending on the floating-point mode.
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
   /* We may be converting to a nonreal floating type. */
   if (new_type->kind == (a_type_kind)tk_complex) {
     new_constant_kind = (a_constant_repr_kind)ck_complex;
-#if C99_IL_EXTENSIONS_SUPPORTED
   } else if (new_type->kind == (a_type_kind)tk_imaginary) {
     new_constant_kind = (a_constant_repr_kind)ck_imaginary;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   }  /* if */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
   set_constant_kind(new_constant, new_constant_kind);
 
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
   if ((old_type->kind != (a_type_kind)tk_float ||
        new_type->kind != (a_type_kind)tk_float)
-#if C99_IL_EXTENSIONS_SUPPORTED
       && (old_type->kind != (a_type_kind)tk_imaginary ||
           new_type->kind != (a_type_kind)tk_imaginary)
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
                                                       ) {
     /* Conversion involving complex or imaginary types, but not the
        simple imaginary --> imaginary case. */
     switch (old_type->kind) {
       case tk_float:
         switch (new_type->kind) {
-#if C99_IL_EXTENSIONS_SUPPORTED
           case tk_imaginary:
             /* Float to imaginary.  The result is zero. */
             fp_host_large_integer_to_float(new_kind, (a_host_large_integer)0,
                                            &new_constant->variant.float_value,
                                            &err);
             break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           case tk_complex:
             /* Float to complex. */
             fp_change_kind(&old_constant->variant.float_value, old_kind,
@@ -620,7 +608,6 @@ depending on the floating-point mode.
                                 "conv_float_to_float: from float to bad type");
         }  /* switch */
         break;
-#if C99_IL_EXTENSIONS_SUPPORTED
       case tk_imaginary:
         switch (new_type->kind) {
           case tk_float:
@@ -644,7 +631,6 @@ depending on the floating-point mode.
                             "conv_float_to_float: from imaginary to bad type");
         }  /* switch */
         break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case tk_complex:
         switch (new_type->kind) {
           case tk_float:
@@ -653,14 +639,12 @@ depending on the floating-point mode.
                            old_kind, &new_constant->variant.float_value,
                            new_kind, &err, depends_on_fp_mode);
             break;
-#if C99_IL_EXTENSIONS_SUPPORTED
           case tk_imaginary:
             /* Complex to imaginary.  Retain the imaginary part only. */
             fp_change_kind(&old_constant->variant.complex_value->imag,
                            old_kind, &new_constant->variant.float_value,
                            new_kind, &err, depends_on_fp_mode);
             break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           case tk_complex:
             /* Complex to complex. */
             /* This is similar to the float-float or imaginary-imaginary cases,
@@ -684,7 +668,7 @@ depending on the floating-point mode.
                                "conv_float_to_float: bad floating-point type");
     }  /* switch */
   } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   {
     /* Singular floating-point types in the same domain (i.e., two real or
        imaginary constants). */
@@ -1649,12 +1633,10 @@ to the constant is maintained, by adding a cast if necessary.
                                   &err_code, &err_severity);
           break;
         case tk_float:
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
 #if C99_IL_EXTENSIONS_SUPPORTED
         case tk_imaginary:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case tk_complex:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           /* Converting integer to float. */
           conv_integer_to_float(constant, &new_constant,
                                 &err_code, &err_severity);
@@ -1693,14 +1675,12 @@ to the constant is maintained, by adding a cast if necessary.
           break;
         case tk_float:
           /* Converting float to float. */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
 #if C99_IL_EXTENSIONS_SUPPORTED
         case tk_imaginary:
           /* Converting float to imaginary (produces zero). */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case tk_complex:
           /* Converting float to complex. */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           conv_float_to_float(constant, &new_constant,
                               &err_code, &err_severity,
                               &depends_on_fp_mode);
@@ -1748,9 +1728,7 @@ to the constant is maintained, by adding a cast if necessary.
                                 "type_change_constant: imaginary to bad type");
       }  /* switch */
       break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
     case tk_complex:
       switch (new_type->kind) {
         case tk_integer:
@@ -1761,10 +1739,8 @@ to the constant is maintained, by adding a cast if necessary.
           break;
         case tk_float:
           /* Converting complex to float. */
-#if C99_IL_EXTENSIONS_SUPPORTED
         case tk_imaginary:
           /* Converting complex to imaginary. */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case tk_complex:
           /* Converting complex to complex. */
           conv_float_to_float(constant, &new_constant,
@@ -1783,7 +1759,7 @@ to the constant is maintained, by adding a cast if necessary.
                                   "type_change_constant: complex to bad type");
       }  /* switch */
       break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:
@@ -1795,14 +1771,12 @@ to the constant is maintained, by adding a cast if necessary.
           break;
         case tk_float:
           /* Converting fixed-point to floating-point. */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
 #if C99_IL_EXTENSIONS_SUPPORTED
         case tk_imaginary:
           /* Fixed-point to imaginary. */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case tk_complex:
           /* Fixed-point to complex. */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           conv_fixed_point_to_float(constant, &new_constant,
                                     &err_code, &err_severity);
           break;
@@ -2166,7 +2140,7 @@ Do the negate operation on all types of fixed-point values.
 }  /* do_fxnegate */
 
 #endif /* FIXED_POINT_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 static void do_xnegate(a_constant        *constant,
                        a_constant        *result,
@@ -2206,7 +2180,7 @@ Do the negate operation on all types of complex.
 #endif /* DEBUG */
 }  /* do_xnegate */
 
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 static void do_complement(a_constant        *constant,
 		          a_constant        *result,
@@ -2397,12 +2371,12 @@ the reason is that the constant is a template parameter constant).
           do_fxnegate(constant, result, &err_code, &err_severity);
           break;
 #endif /* FIXED_POINT_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xnegate:
           do_xnegate(constant, result, &err_code, &err_severity,
                      &depends_on_fp_mode);
           break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_unary_plus:
           copy_constant(constant, result);
           break;
@@ -3583,7 +3557,7 @@ GNU C++ minimum and maximum operators ("<?" and ">?").
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 static void do_xadd(a_constant        *constant_1,
 		    a_constant        *constant_2,
@@ -3904,8 +3878,6 @@ thereof).
 #endif /* DEBUG */
 }  /* do_xcompare */
 
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
 
 static void do_jmultiply(a_constant        *constant_1,
                          a_constant        *constant_2,
@@ -4831,7 +4803,7 @@ as the position for any diagnostics issued.
                       &err_severity);
           break;
 #endif /* FIXED_POINT_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xadd:
           do_xadd(constant_1, constant_2, result, &err_code, &err_severity,
                   &depends_on_fp_mode);
@@ -4852,8 +4824,6 @@ as the position for any diagnostics issued.
         case eok_xne:
           do_xcompare(constant_1, op, constant_2, result);
           break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
         case eok_jmultiply:
           do_jmultiply(constant_1, constant_2, result,
                        &err_code, &err_severity, &depends_on_fp_mode);

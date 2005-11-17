@@ -1163,16 +1163,14 @@ by octl.
       }
       break;
 #endif /* FIXED_POINT_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
-    case tk_complex:
 #if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_complex:
     case tk_imaginary:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       form_float_kind_name(type->variant.float_kind, octl);
       octl->output_str((char *)(type->kind == (a_type_kind)tk_complex ?
                        " _Complex" : " _Imaginary"));
       break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_float:
       form_float_kind_name(type->variant.float_kind, octl);
       break;
@@ -1269,12 +1267,12 @@ by octl.
         octl->output_str(")");
       }
       break;
-#if !(C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED)
+#if !C99_IL_EXTENSIONS_SUPPORTED
     case tk_complex:
       form_float_kind_name(type->variant.float_kind, octl);
       octl->output_str(" complex");
       break;
-#endif /* !(C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED) */
+#endif /* !C99_IL_EXTENSIONS_SUPPORTED */
     case tk_stmt_label:
       octl->output_str("<stmt-label>");
       break;
@@ -3875,7 +3873,7 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       octl->output_str(")");
       break;
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
       /* Complex constant. */
       /* Put parentheses around the constant and use the form
@@ -3927,7 +3925,7 @@ precedence confusion.  Do the output in the way described by octl.
         if (parens_needed) octl->output_str(")");
       }
       break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CFE
     case ck_address:
       /* Address constant. */

@@ -320,23 +320,30 @@ Install the keywords in the symbol table.
     /* Enable keywords available in both C99 and GNU C mode. */
     enter_keyword((a_token_kind)tok_c99_bool, "_Bool");
   }  /* if */
-  if (c99_mode || gnu_mode) {
-    /* Enable support for complex types in both C99 and GNU C/C++ modes. */
+  if (gnu_mode) {
+    /* In GNU C/C99/C++ modes, the availability of complex type operations is
+       controlled by the configuration macro GNU_COMPLEX_EXTENSIONS_ALLOWED.
+       The _Imaginary types are not allowed in those modes. */
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
     enter_keyword((a_token_kind)tok_c99_complex, "_Complex");
-    if (gnu_mode) {
-#if GNU_EXTENSIONS_ALLOWED
-      /* GNU compilers also accept __complex and __complex__ to denote
-         complex types.  In addition, they provide operators to extract
-         the real and imaginary part of a complex value. */
-      enter_gnu_keyword((a_token_kind)tok_c99_complex, "__complex");
-      enter_gnu_keyword((a_token_kind)tok_gnu_real, "__real");
-      enter_gnu_keyword((a_token_kind)tok_gnu_imag, "__imag");
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    } else {
-      enter_keyword((a_token_kind)tok_c99_imaginary, "_Imaginary");
-    }  /* if */
+    /* GNU compilers also accept __complex and __complex__ to denote
+       complex types.  In addition, they provide operators to extract
+       the real and imaginary part of a complex value. */
+    enter_gnu_keyword((a_token_kind)tok_c99_complex, "__complex");
+    enter_gnu_keyword((a_token_kind)tok_gnu_real, "__real");
+    enter_gnu_keyword((a_token_kind)tok_gnu_imag, "__imag");
     /* EDG-specific token representing the imaginary number "i" (i*i == -1). */
     enter_keyword((a_token_kind)tok_imaginary_unit, "__I__");
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#if C99_IL_EXTENSIONS_ALLOWED
+  } else if (c99_mode) {
+    /* Non-GNU C99 modes support both _Complex and _Imaginary types, provided
+       C99_IL_EXTENSIONS_ALLOWED is set to TRUE. */
+    enter_keyword((a_token_kind)tok_c99_complex, "_Complex");
+      enter_keyword((a_token_kind)tok_c99_imaginary, "_Imaginary");
+    /* EDG-specific token representing the imaginary number "i" (i*i == -1). */
+    enter_keyword((a_token_kind)tok_imaginary_unit, "__I__");
+#endif /* C99_IL_EXTENSIONS_ALLOWED */
   }  /* if */
   if (c99_mode) {
     /* Enable keywords required in C99 mode. */

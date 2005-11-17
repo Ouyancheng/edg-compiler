@@ -46,10 +46,8 @@ static a_type_ptr canonical_fixed_point_types[(int)fpp_last][/*is_unsigned*/2]
                                              [/*is_fract*/2][/*saturating*/2];
 #endif /* FIXED_POINT_ALLOWED */
 static a_type_ptr canonical_float_types[(int)fk_last];
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
-static a_type_ptr canonical_complex_types[(int)fk_last];
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
+static a_type_ptr canonical_complex_types[(int)fk_last];
 static a_type_ptr canonical_imaginary_types[(int)fk_last];
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 static a_type_ptr canonical_il_void_type;
@@ -1291,12 +1289,12 @@ is set to point to the first created type.
                   &canonical_imaginary_types[type->variant.float_kind], type);
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case tk_complex:
       set_builtin_type_corresp(
                     &canonical_complex_types[type->variant.float_kind], type);
       break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     default:
       unexpected_condition_str("record_builtin_type: bad type kind");
   }  /* switch */
@@ -1417,7 +1415,7 @@ primary IL.
   return result;
 }  /* primary_float_type */
 
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 a_type_ptr primary_complex_type(a_float_kind  kind)
 /*
@@ -1437,7 +1435,7 @@ primary IL.
   return result;
 }  /* primary_complex_type */
 
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
 
 a_type_ptr primary_imaginary_type(a_float_kind  kind)
@@ -6557,10 +6555,8 @@ for each compilation.
           sizeof(canonical_fixed_point_types));
 #endif /* FIXED_POINT_ALLOWED */
   memzero((char *)canonical_float_types, sizeof(canonical_float_types));
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
-  memzero((char *)canonical_complex_types, sizeof(canonical_complex_types));
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
+  memzero((char *)canonical_complex_types, sizeof(canonical_complex_types));
   memzero((char *)canonical_imaginary_types,
           sizeof(canonical_imaginary_types));
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */

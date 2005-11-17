@@ -3734,24 +3734,20 @@ routine is called and returns TRUE, this routine should not be called.
     result_fkind = promoted_float_kind(fkind_1, fkind_2);
     if (result_fkind != (a_float_kind)fk_last) {
       /* One of the operands had a (possibly complex) floating-point type. */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
       if (is_nonreal_floating_type(type_1) ||
           is_nonreal_floating_type(type_2)) {
         /* If the operands have the same "type domain" (real, complex, or
            imaginary), the result has that same type domain.  Otherwise,
            the result is complex.  Note that we don't get here if
            both types are in the real domain; that's handled below. */
-#if C99_IL_EXTENSIONS_SUPPORTED
         if (is_imaginary_type(type_1) && is_imaginary_type(type_2)) {
           result_type = imaginary_type(result_fkind);
-        } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-        /* Do not insert code here. */
-        {
+        } else {
           result_type = complex_type(result_fkind);
         }  /* if */
       } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       /* Do not insert code here. */
       {
         result_type = float_type(result_fkind);
@@ -3983,7 +3979,7 @@ macro INFINITY that expands to this value.
 }  /* make_infinity_operand */
 
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 static a_constant_ptr  imaginary_unit = (a_constant_ptr)NULL;
 
@@ -3998,7 +3994,6 @@ but in GNU C/C99/C++ modes it is _Complex.
 {
   if (imaginary_unit == (a_constant_ptr)NULL) {
     a_boolean  err = FALSE;
-#if C99_IL_EXTENSIONS_SUPPORTED
     if (c99_mode && !gcc_mode) {
       imaginary_unit = fs_constant((a_constant_repr_kind)ck_imaginary);
       imaginary_unit->type = imaginary_type((a_float_kind)fk_float);
@@ -4006,10 +4001,7 @@ but in GNU C/C99/C++ modes it is _Complex.
                                    (a_host_large_integer)1,
                                    &imaginary_unit->variant.float_value,
                                    &err);
-    } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-    /* Do not insert code here. */
-    {
+    } else {
       imaginary_unit = fs_constant((a_constant_repr_kind)ck_complex);
       imaginary_unit->type = complex_type((a_float_kind)fk_float);
       fp_host_large_integer_to_float(
@@ -4024,8 +4016,6 @@ but in GNU C/C99/C++ modes it is _Complex.
   make_constant_operand(imaginary_unit, result);
 }  /* make_imaginary_unit_operand */
 
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
 
 static void promote_operand_for_imaginary_operation(an_operand   *operand,
                                                     a_float_kind new_fkind)
@@ -5905,9 +5895,7 @@ type is an error type, return eok_error.
 #endif /* CHECKING */
       }  /* switch */
       break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
     case tk_complex:
       switch (token) {
         case tok_plus:
@@ -5949,7 +5937,7 @@ type is an error type, return eok_error.
 #endif /* CHECKING */
       }  /* switch */
       break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
     case tk_pointer:
       switch (token) {

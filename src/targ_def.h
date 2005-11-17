@@ -300,6 +300,10 @@ support library.
            supported
 #endif /* DO_C99_IL_LOWERING && !(C99_IL_EXTENSIONS_SUPPORTED || GNU_...) */
 
+#if !C99_IL_EXTENSIONS_SUPPORTED && GNU_COMPLEX_EXTENSIONS_ALLOWED
+ #error -- GNU_COMPLEX_EXTENSIONS_ALLOWED requires C99_IL_EXTENSIONS_SUPPORTED
+#endif /* !C99_IL_EXTENSIONS_SUPPORTED && GNU_COMPLEX_EXTENSIONS_ALLOWED */
+
 /*
 Flag that is TRUE if the "long long" data type and the associated language
 features (e.g., suffixes for constants) are allowed.  "long long" is

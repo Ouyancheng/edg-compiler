@@ -4775,10 +4775,8 @@ typedef enum {
   cxa_complex,
   cxa_imaginary
 } a_complex_attribute;
-#if !(C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED)
-/*lint -esym(749,cxa_complex)*/
-#endif /* !(C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED) */
 #if !C99_IL_EXTENSIONS_SUPPORTED
+/*lint -esym(749,cxa_complex)*/
 /*lint -esym(749,cxa_imaginary)*/
 #endif /* !C99_IL_EXTENSIONS_SUPPORTED */
 
@@ -4902,10 +4900,9 @@ such a typedef, return the associated basic type specifier and set *sign and
   return basic_type;
 }  /* basic_type_from_typedef */
 
-#if !(C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED) || \
-    !FIXED_POINT_ALLOWED
+#if !C99_IL_EXTENSIONS_SUPPORTED || !FIXED_POINT_ALLOWED
 /*ARGSUSED*/  /* <-- complex_attr or saturating_fp not used in that case. */
-#endif /* !(C99_IL_EXTENSIONS_SUPPORTED || GNU_...) || !FIXED_POINT_ALLOWED */
+#endif /* !C99_IL_EXTENSIONS_SUPPORTED || !FIXED_POINT_ALLOWED */
 static a_boolean combine_type_specifiers(a_type_ptr           *type_ptr,
                                          a_basic_type         basic_type,
                                          a_type_sign          sign,
@@ -5170,15 +5167,13 @@ modifier _Sat was specified.
             fkind = (a_float_kind)fk_long_double;
           }  /* if */
         }  /* if */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
         if (complex_attr == cxa_complex) {
           *type_ptr = complex_type((a_float_kind)fkind);
-#if C99_IL_EXTENSIONS_SUPPORTED
         } else if (complex_attr == cxa_imaginary) {
           *type_ptr = imaginary_type((a_float_kind)fkind);
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         /* Do not insert code here. */
         {
           *type_ptr = float_type((a_float_kind)fkind);
@@ -7109,24 +7104,20 @@ Returns TRUE if there is an error in the specifiers.
           decl_specifiers_seen |= DS_TYPE;
         }  /* if */
         break;
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
       case tok_c99_complex:
         check_assertion(c99_mode || gnu_mode);
         if (complex_attr == cxa_complex) {
           /* E.g. "_Complex float _Complex". */
           error(ec_dupl_decl_specifier);
-#if C99_IL_EXTENSIONS_SUPPORTED
         } else if (complex_attr == cxa_imaginary) {
           /* E.g. "_Imaginary float _Complex". */
           error(ec_bad_combination_of_type_specifiers);
           bad_combination_of_type_specifiers = TRUE;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         } else {
           complex_attr = cxa_complex;
         }  /* if */
         break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
       case tok_c99_imaginary:
         check_assertion(c99_mode);
         if (complex_attr == cxa_imaginary) {
@@ -7850,7 +7841,7 @@ exit_loop:
          user about a missing type specifier.  This is handled by the
          caller. */
     }  /* if */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     if (complex_attr != cxa_none &&
         basic_type != bt_float && basic_type != bt_double) {
       if (basic_type == bt_none) {
@@ -7866,7 +7857,7 @@ exit_loop:
       bad_combination_of_type_specifiers = TRUE;
       *output_flags |= DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
     }  /* if */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     if (dangling_type_specifier) {
       /* Set the bit to mark a malformed type specification, typically
          caused by a missing semicolon following an class, struct, union,

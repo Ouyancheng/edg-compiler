@@ -87,18 +87,14 @@ predicates.
 /* The floating types comprise all sizes of float. */
 #define is_real_floating(tp) ((tp)->kind == (a_type_kind)tk_float)
 
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
-#define is_complex(tp) ((tp)->kind == (a_type_kind)tk_complex)
 #if C99_IL_EXTENSIONS_SUPPORTED
+#define is_complex(tp) ((tp)->kind == (a_type_kind)tk_complex)
 #define is_imaginary(tp) ((tp)->kind == (a_type_kind)tk_imaginary)
 #define is_nonreal_floating(tp) (is_complex(tp) || is_imaginary(tp))
-#else /* !C99_IL_EXTENSIONS_SUPPORTED */
-#define is_nonreal_floating(tp) is_complex(tp)
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #define is_floating(tp) (is_real_floating(tp) || is_nonreal_floating(tp))
-#else /* !(C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED) */
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
 #define is_floating(tp) (is_real_floating(tp))
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 #if FIXED_POINT_ALLOWED
 #define or_is_fixed_point_type(tp)                                    \
@@ -472,7 +468,7 @@ includes complex and imaginary types.
   return(is_floating(tp));
 }  /* is_floating_type */
 
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 a_boolean is_real_floating_type(a_type_ptr tp)
 /*
@@ -495,7 +491,6 @@ type.
   return is_nonreal_floating(tp);
 }  /* is_nonreal_floating_type */
 
-#if C99_IL_EXTENSIONS_SUPPORTED
 
 a_boolean is_imaginary_type(a_type_ptr tp)
 /*
@@ -506,7 +501,6 @@ Return TRUE if the given type is an imaginary floating type.
   return is_imaginary(tp);
 }  /* is_imaginary_type */
 
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 a_boolean is_complex_type(a_type_ptr tp)
 /*
@@ -517,7 +511,7 @@ Return TRUE if the given type is a complex floating type.
   return is_complex(tp);
 }  /* is_complex_type */
 
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 a_boolean is_arithmetic_or_enum_type(a_type_ptr tp)
 /*
@@ -2262,12 +2256,10 @@ set, leave it alone.  Also compute and set the alignment requirement.
         break;
 #endif /* FIXED_POINT_ALLOWED */
       case tk_float:
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
-      case tk_complex:
 #if C99_IL_EXTENSIONS_SUPPORTED
+      case tk_complex:
       case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
         switch (type_ptr->variant.float_kind) {
           case fk_float:
             size = targ_sizeof_float;
@@ -2286,9 +2278,9 @@ set, leave it alone.  Also compute and set the alignment requirement.
             internal_error("set_type_size: bad float kind");
 #endif /* CHECKING */
         }  /* switch */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
         if (type_ptr->kind == (a_type_kind)tk_complex) size *= 2;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         break;
       case tk_pointer:
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3230,12 +3222,10 @@ for more information.
           break;
 #endif /* FIXED_POINT_ALLOWED */
         case tk_float:
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
-        case tk_complex:
 #if C99_IL_EXTENSIONS_SUPPORTED
+        case tk_complex:
         case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
           identical = (type_1->variant.float_kind ==
                        type_2->variant.float_kind);
           break;
@@ -3758,12 +3748,10 @@ for exact pointer equality.
           break;
 #endif /* FIXED_POINT_ALLOWED */
         case tk_float:
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
-        case tk_complex:
 #if C99_IL_EXTENSIONS_SUPPORTED
+        case tk_complex:
         case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
           compat = (type_1->variant.float_kind == type_2->variant.float_kind);
           break;
         case tk_pointer:
@@ -6840,12 +6828,10 @@ is allocated, it is allocated in the file scope.
 #if FIXED_POINT_ALLOWED
         case tk_fixed_point:
 #endif /* FIXED_POINT_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
-        case tk_complex:
 #if C99_IL_EXTENSIONS_SUPPORTED
+        case tk_complex:
         case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
         case tk_float:
         case tk_class:
         case tk_struct:
@@ -7886,12 +7872,10 @@ its parameters?).
       case tk_fixed_point:
 #endif /* FIXED_POINT_ALLOWED */
       case tk_float:
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
-      case tk_complex:
 #if C99_IL_EXTENSIONS_SUPPORTED
+      case tk_complex:
       case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
       case tk_unknown:
         /* Leaf nodes -- no further traversal required. */
         break;
@@ -8791,12 +8775,10 @@ a new tree is built.
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:
 #endif /* FIXED_POINT_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
-    case tk_complex:
 #if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_complex:
     case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
     case tk_unknown:
       /* Leaf nodes -- no further traversal required. */
       break;
