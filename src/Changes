@@ -1,5 +1,16 @@
 Version 3.7
 
+11/17/06 Sun compatibility: template argument list following constructor name
+
+The Sun compiler permits a template argument list to appear following a
+constructor name in a constructor definition that appears outside of the
+class.  This is now accepted in Sun mode.
+
+  template <class T> struct A {
+    A();
+  };
+  template <class T> A<T>::A<T>(){}
+
 11/14/05 GNU C++ compatibility: Exception specifications and specializations
 
 In GNU C++ mode, the front end now no longer requires the exception

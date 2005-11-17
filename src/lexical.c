@@ -10780,7 +10780,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   start_position = pos_curr_token;
   /* Save the current locator. */
   orig_locator = locator_for_curr_id;
-  if ((microsoft_mode || gpp_mode) &&
+  if ((microsoft_mode || gpp_mode || sun_mode) &&
       template_sym != NULL && next_tok == tok_lt &&
       is_constructor_symbol(template_sym)) {
     /* The symbol passed in is a constructor symbol followed by a template
@@ -10788,7 +10788,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
        the symbol associated with the original template so that the template
        argument list can be processed.  Later, the constructor symbol will be
        substituted for the class instance that is created.  This is only
-       permitted in Microsoft mode and g++ mode. */
+       permitted in Microsoft, g++, and Sun mode. */
     a_type_ptr	parent_class;
     a_class_symbol_supplement_ptr	parent_cssp;
     parent_class = template_sym->parent.class_type;
