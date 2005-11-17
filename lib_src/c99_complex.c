@@ -74,7 +74,9 @@ Compute -z in lowered representation (extended precision).
 
 EXTERN_C _Complex_float __c99_complex_float_conj(_Complex_float z)
 /*
-Compute ~z in lowered representation (single precision).
+Compute the complex conjugate of z in lowered representation (single
+precision).  (This is currently only needed to support the GNU complex
+"~" operator.)
 */
 {
   z._Vals[1] = -z._Vals[1];
@@ -84,7 +86,10 @@ Compute ~z in lowered representation (single precision).
 
 EXTERN_C _Complex_double __c99_complex_double_conj(_Complex_double z)
 /*
-Compute ~z in lowered representation (double precision).
+Compute the complex conjugate of z in lowered representation (double
+precision).  (This is currently only needed to support the GNU complex
+"~" operator.)
+
 */
 {
   z._Vals[1] = -z._Vals[1];
@@ -95,7 +100,10 @@ Compute ~z in lowered representation (double precision).
 EXTERN_C _Complex_long_double __c99_complex_long_double_conj(
                                                         _Complex_long_double z)
 /*
-Compute ~z in lowered representation (extended precision).
+Compute the complex conjugate of z in lowered representation (extended
+precision).  (This is currently only needed to support the GNU complex
+"~" operator.)
+
 */
 {
   z._Vals[1] = -z._Vals[1];
