@@ -2547,9 +2547,11 @@ typedef struct a_pointer_modifier_state {
   a_type_qualifier_set
 		qualifiers;
 			/* Standard and nonstandard qualifiers. */
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   a_source_position
 		qualifiers_pos;
 			/* The position of the first qualifier seen. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_call_conv_descr
 		cc_descr;
