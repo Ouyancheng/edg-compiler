@@ -25,7 +25,9 @@ folding.c -- Folding routines.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 #include "folding.h"
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #include "layout.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Determine the severity (error or warning) to be used for integer
