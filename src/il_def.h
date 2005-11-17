@@ -6944,176 +6944,449 @@ An enumeration of the different builtin functions.
 */
 enum a_builtin_function_kind_tag {
   bfk_none,
-  bfk_alloca,                   /* "__builtin_alloca" */
+  bfk_abort,                    /* "__builtin_abort" */
   bfk_abs,                      /* "__builtin_abs" */
-  bfk_labs,                     /* "__builtin_labs" */
+  bfk_acos,                     /* "__builtin_acos" */
+  bfk_acosf,                    /* "__builtin_acosf" */
+  bfk_acosh,                    /* "__builtin_acosh" */
+  bfk_acoshf,                   /* "__builtin_acoshf" */
+  bfk_acoshl,                   /* "__builtin_acoshl" */
+  bfk_acosl,                    /* "__builtin_acosl" */
+  bfk_aggregate_incoming_address,
+                                /* "__builtin_aggregate_incoming_address" */
+  bfk_alloca,                   /* "__builtin_alloca" */
+  bfk_apply,                    /* "__builtin_apply" */
+  bfk_apply_args,               /* "__builtin_apply_args" */
+  bfk_args_info,                /* "__builtin_args_info" */
+  bfk_asin,                     /* "__builtin_asin" */
+  bfk_asinf,                    /* "__builtin_asinf" */
+  bfk_asinh,                    /* "__builtin_asinh" */
+  bfk_asinhf,                   /* "__builtin_asinhf" */
+  bfk_asinhl,                   /* "__builtin_asinhl" */
+  bfk_asinl,                    /* "__builtin_asinl" */
+  bfk_atan,                     /* "__builtin_atan" */
+  bfk_atan2,                    /* "__builtin_atan2" */
+  bfk_atan2f,                   /* "__builtin_atan2f" */
+  bfk_atan2l,                   /* "__builtin_atan2l" */
+  bfk_atanf,                    /* "__builtin_atanf" */
+  bfk_atanh,                    /* "__builtin_atanh" */
+  bfk_atanhf,                   /* "__builtin_atanhf" */
+  bfk_atanhl,                   /* "__builtin_atanhl" */
+  bfk_atanl,                    /* "__builtin_atanl" */
+  bfk_bcmp,                     /* "__builtin_bcmp" */
+  bfk_bzero,                    /* "__builtin_bzero" */
+  bfk_cabs,                     /* "__builtin_cabs" */
+  bfk_cabsf,                    /* "__builtin_cabsf" */
+  bfk_cabsl,                    /* "__builtin_cabsl" */
+  bfk_cacos,                    /* "__builtin_cacos" */
+  bfk_cacosf,                   /* "__builtin_cacosf" */
+  bfk_cacosh,                   /* "__builtin_cacosh" */
+  bfk_cacoshf,                  /* "__builtin_cacoshf" */
+  bfk_cacoshl,                  /* "__builtin_cacoshl" */
+  bfk_cacosl,                   /* "__builtin_cacosl" */
+  bfk_calloc,                   /* "__builtin_calloc" */
+  bfk_carg,                     /* "__builtin_carg" */
+  bfk_cargf,                    /* "__builtin_cargf" */
+  bfk_cargl,                    /* "__builtin_cargl" */
+  bfk_casin,                    /* "__builtin_casin" */
+  bfk_casinf,                   /* "__builtin_casinf" */
+  bfk_casinh,                   /* "__builtin_casinh" */
+  bfk_casinhf,                  /* "__builtin_casinhf" */
+  bfk_casinhl,                  /* "__builtin_casinhl" */
+  bfk_casinl,                   /* "__builtin_casinl" */
+  bfk_catan,                    /* "__builtin_catan" */
+  bfk_catanf,                   /* "__builtin_catanf" */
+  bfk_catanh,                   /* "__builtin_catanh" */
+  bfk_catanhf,                  /* "__builtin_catanhf" */
+  bfk_catanhl,                  /* "__builtin_catanhl" */
+  bfk_catanl,                   /* "__builtin_catanl" */
+  bfk_cbrt,                     /* "__builtin_cbrt" */
+  bfk_cbrtf,                    /* "__builtin_cbrtf" */
+  bfk_cbrtl,                    /* "__builtin_cbrtl" */
+  bfk_ccos,                     /* "__builtin_ccos" */
+  bfk_ccosf,                    /* "__builtin_ccosf" */
+  bfk_ccosh,                    /* "__builtin_ccosh" */
+  bfk_ccoshf,                   /* "__builtin_ccoshf" */
+  bfk_ccoshl,                   /* "__builtin_ccoshl" */
+  bfk_ccosl,                    /* "__builtin_ccosl" */
+  bfk_ceil,                     /* "__builtin_ceil" */
+  bfk_ceilf,                    /* "__builtin_ceilf" */
+  bfk_ceill,                    /* "__builtin_ceill" */
+  bfk_cexp,                     /* "__builtin_cexp" */
+  bfk_cexpf,                    /* "__builtin_cexpf" */
+  bfk_cexpl,                    /* "__builtin_cexpl" */
+  bfk_choose_expr,              /* "__builtin_choose_expr" */
+  bfk_cimag,                    /* "__builtin_cimag" */
+  bfk_cimagf,                   /* "__builtin_cimagf" */
+  bfk_cimagl,                   /* "__builtin_cimagl" */
+  bfk_classify_type,            /* "__builtin_classify_type" */
+  bfk_clz,                      /* "__builtin_clz" */
+  bfk_clzl,                     /* "__builtin_clzl" */
+#if LONG_LONG_ALLOWED
+  bfk_clzll,                    /* "__builtin_clzll" */
+#endif /* LONG_LONG_ALLOWED */
+  bfk_conj,                     /* "__builtin_conj" */
+  bfk_conjf,                    /* "__builtin_conjf" */
+  bfk_conjl,                    /* "__builtin_conjl" */
+  bfk_constant_p,               /* "__builtin_constant_p" */
+  bfk_copysign,                 /* "__builtin_copysign" */
+  bfk_copysignf,                /* "__builtin_copysignf" */
+  bfk_copysignl,                /* "__builtin_copysignl" */
+  bfk_cos,                      /* "__builtin_cos" */
+  bfk_cosf,                     /* "__builtin_cosf" */
+  bfk_cosh,                     /* "__builtin_cosh" */
+  bfk_coshf,                    /* "__builtin_coshf" */
+  bfk_coshl,                    /* "__builtin_coshl" */
+  bfk_cosl,                     /* "__builtin_cosl" */
+  bfk_cpow,                     /* "__builtin_cpow" */
+  bfk_cpowf,                    /* "__builtin_cpowf" */
+  bfk_cpowl,                    /* "__builtin_cpowl" */
+  bfk_cproj,                    /* "__builtin_cproj" */
+  bfk_cprojf,                   /* "__builtin_cprojf" */
+  bfk_cprojl,                   /* "__builtin_cprojl" */
+  bfk_creal,                    /* "__builtin_creal" */
+  bfk_crealf,                   /* "__builtin_crealf" */
+  bfk_creall,                   /* "__builtin_creall" */
+  bfk_csin,                     /* "__builtin_csin" */
+  bfk_csinf,                    /* "__builtin_csinf" */
+  bfk_csinh,                    /* "__builtin_csinh" */
+  bfk_csinhf,                   /* "__builtin_csinhf" */
+  bfk_csinhl,                   /* "__builtin_csinhl" */
+  bfk_csinl,                    /* "__builtin_csinl" */
+  bfk_csqrt,                    /* "__builtin_csqrt" */
+  bfk_csqrtf,                   /* "__builtin_csqrtf" */
+  bfk_csqrtl,                   /* "__builtin_csqrtl" */
+  bfk_ctan,                     /* "__builtin_ctan" */
+  bfk_ctanf,                    /* "__builtin_ctanf" */
+  bfk_ctanh,                    /* "__builtin_ctanh" */
+  bfk_ctanhf,                   /* "__builtin_ctanhf" */
+  bfk_ctanhl,                   /* "__builtin_ctanhl" */
+  bfk_ctanl,                    /* "__builtin_ctanl" */
+  bfk_ctz,                      /* "__builtin_ctz" */
+  bfk_ctzl,                     /* "__builtin_ctzl" */
+#if LONG_LONG_ALLOWED
+  bfk_ctzll,                    /* "__builtin_ctzll" */
+#endif /* LONG_LONG_ALLOWED */
+  bfk_dcgettext,                /* "__builtin_dcgettext" */
+  bfk_dgettext,                 /* "__builtin_dgettext" */
+  bfk_drem,                     /* "__builtin_drem" */
+  bfk_dremf,                    /* "__builtin_dremf" */
+  bfk_dreml,                    /* "__builtin_dreml" */
+  bfk_dwarf_cfa,                /* "__builtin_dwarf_cfa" */
+  bfk_dwarf_fp_regnum,          /* "__builtin_dwarf_fp_regnum" */
+  bfk_eh_return,                /* "__builtin_eh_return" */
+  bfk_eh_return_data_regno,     /* "__builtin_eh_return_data_regno" */
+  bfk_erf,                      /* "__builtin_erf" */
+  bfk_erfc,                     /* "__builtin_erfc" */
+  bfk_erfcf,                    /* "__builtin_erfcf" */
+  bfk_erfcl,                    /* "__builtin_erfcl" */
+  bfk_erff,                     /* "__builtin_erff" */
+  bfk_erfl,                     /* "__builtin_erfl" */
+  bfk_exit,                     /* "__builtin_exit" */
+  bfk__exit,                    /* "__builtin__exit" */
+  bfk__Exit,                    /* "__builtin__Exit" */
+  bfk_exp,                      /* "__builtin_exp" */
+  bfk_exp10,                    /* "__builtin_exp10" */
+  bfk_exp10f,                   /* "__builtin_exp10f" */
+  bfk_exp10l,                   /* "__builtin_exp10l" */
+  bfk_exp2,                     /* "__builtin_exp2" */
+  bfk_exp2f,                    /* "__builtin_exp2f" */
+  bfk_exp2l,                    /* "__builtin_exp2l" */
+  bfk_expect,                   /* "__builtin_expect" */
+  bfk_expf,                     /* "__builtin_expf" */
+  bfk_expl,                     /* "__builtin_expl" */
+  bfk_expm1,                    /* "__builtin_expm1" */
+  bfk_expm1f,                   /* "__builtin_expm1f" */
+  bfk_expm1l,                   /* "__builtin_expm1l" */
+  bfk_extract_return_addr,      /* "__builtin_extract_return_addr" */
   bfk_fabs,                     /* "__builtin_fabs" */
   bfk_fabsf,                    /* "__builtin_fabsf" */
   bfk_fabsl,                    /* "__builtin_fabsl" */
+  bfk_fdim,                     /* "__builtin_fdim" */
+  bfk_fdimf,                    /* "__builtin_fdimf" */
+  bfk_fdiml,                    /* "__builtin_fdiml" */
   bfk_ffs,                      /* "__builtin_ffs" */
-  bfk_index,                    /* "__builtin_index" */
-  bfk_rindex,                   /* "__builtin_rindex" */
-  bfk_memcpy,                   /* "__builtin_memcpy" */
-  bfk_memcmp,                   /* "__builtin_memcmp" */
-  bfk_memset,                   /* "__builtin_memset" */
-  bfk_strcat,                   /* "__builtin_strcat" */
-  bfk_strncat,                  /* "__builtin_strncat" */
-  bfk_strcpy,                   /* "__builtin_strcpy" */
-  bfk_strncpy,                  /* "__builtin_strncpy" */
-  bfk_strcmp,                   /* "__builtin_strcmp" */
-  bfk_strncmp,                  /* "__builtin_strncmp" */
-  bfk_strlen,                   /* "__builtin_strlen" */
-  bfk_strstr,                   /* "__builtin_strstr" */
-  bfk_strpbrk,                  /* "__builtin_strpbrk" */
-  bfk_strspn,                   /* "__builtin_strspn" */
-  bfk_strcspn,                  /* "__builtin_strcspn" */
-  bfk_strchr,                   /* "__builtin_strchr" */
-  bfk_strrchr,                  /* "__builtin_strrchr" */
-  bfk_sqrt,                     /* "__builtin_sqrt" */
-  bfk_fsqrt = bfk_sqrt,         /* For compatibility with earlier versions. */
-  bfk_sin,                      /* "__builtin_sin" */
-  bfk_cos,                      /* "__builtin_cos" */
-  bfk_sqrtf,                    /* "__builtin_sqrtf" */
-  bfk_sinf,                     /* "__builtin_sinf" */
-  bfk_cosf,                     /* "__builtin_cosf" */
-  bfk_sqrtl,                    /* "__builtin_sqrtl" */
-  bfk_sinl,                     /* "__builtin_sinl" */
-  bfk_cosl,                     /* "__builtin_cosl" */
-  bfk_saveregs,                 /* "__builtin_saveregs" */
-  bfk_next_arg,                 /* "__builtin_next_arg" */
-  bfk_args_info,                /* "__builtin_args_info" */
-  bfk_frame_address,            /* "__builtin_frame_address" */
-  bfk_return_address,           /* "__builtin_return_address" */
-  bfk_aggregate_incoming_address,
-                                /* "__builtin_aggregate_incoming_address" */
-  bfk_apply_args,               /* "__builtin_apply_args" */
-  bfk_apply,                    /* "__builtin_apply" */
-  bfk_return,                   /* "__builtin_return" */
-  bfk_setjmp,                   /* "__builtin_setjmp" */
-  bfk_longjmp,                  /* "__builtin_longjmp" */
-  bfk_trap,                     /* "__builtin_trap" */
-  bfk_putchar,                  /* "__builtin_putchar" */
-  bfk_putchar_unlocked,         /* "__builtin_putchar_unlocked" */
-  bfk_puts,                     /* "__builtin_puts" */
-  bfk_puts_unlocked,            /* "__builtin_puts_unlocked" */
-  bfk_printf,                   /* "__builtin_printf" */
-  bfk_printf_unlocked,          /* "__builtin_printf_unlocked" */
+  bfk_ffsl,                     /* "__builtin_ffsl" */
+#if LONG_LONG_ALLOWED
+  bfk_ffsll,                    /* "__builtin_ffsll" */
+#endif /* LONG_LONG_ALLOWED */
+  bfk_floor,                    /* "__builtin_floor" */
+  bfk_floorf,                   /* "__builtin_floorf" */
+  bfk_floorl,                   /* "__builtin_floorl" */
+  bfk_fma,                      /* "__builtin_fma" */
+  bfk_fmaf,                     /* "__builtin_fmaf" */
+  bfk_fmal,                     /* "__builtin_fmal" */
+  bfk_fmax,                     /* "__builtin_fmax" */
+  bfk_fmaxf,                    /* "__builtin_fmaxf" */
+  bfk_fmaxl,                    /* "__builtin_fmaxl" */
+  bfk_fmin,                     /* "__builtin_fmin" */
+  bfk_fminf,                    /* "__builtin_fminf" */
+  bfk_fminl,                    /* "__builtin_fminl" */
+  bfk_fmod,                     /* "__builtin_fmod" */
+  bfk_fmodf,                    /* "__builtin_fmodf" */
+  bfk_fmodl,                    /* "__builtin_fmodl" */
+  bfk_fprintf,                  /* "__builtin_fprintf" */
+  bfk_fprintf_unlocked,         /* "__builtin_fprintf_unlocked" */
   bfk_fputc,                    /* "__builtin_fputc" */
   bfk_fputc_unlocked,           /* "__builtin_fputc_unlocked" */
   bfk_fputs,                    /* "__builtin_fputs" */
   bfk_fputs_unlocked,           /* "__builtin_fputs_unlocked" */
+  bfk_frame_address,            /* "__builtin_frame_address" */
+  bfk_frexp,                    /* "__builtin_frexp" */
+  bfk_frexpf,                   /* "__builtin_frexpf" */
+  bfk_frexpl,                   /* "__builtin_frexpl" */
+  bfk_frob_return_addr,         /* "__builtin_frob_return_addr" */
+  bfk_fscanf,                   /* "__builtin_fscanf" */
   bfk_fwrite,                   /* "__builtin_fwrite" */
   bfk_fwrite_unlocked,          /* "__builtin_fwrite_unlocked" */
-  bfk_fprintf,                  /* "__builtin_fprintf" */
-  bfk_fprintf_unlocked,         /* "__builtin_fprintf_unlocked" */
-  bfk_sprintf,                  /* "__builtin_sprintf" */
-  bfk_snprintf,                 /* "__builtin_snprintf" */
-  bfk_vprintf,                  /* "__builtin_vprintf" */
-  bfk_vsprintf,                 /* "__builtin_vsprintf" */
-  bfk_vsnprintf,                /* "__builtin_vsnprintf" */
-  bfk_scanf,                    /* "__builtin_scanf" */
-  bfk_sscanf,                   /* "__builtin_sscanf" */
-  bfk_vscanf,                   /* "__builtin_vscanf" */
-  bfk_vsscanf,                  /* "__builtin_vsscanf" */
-  bfk_unwind_init,              /* "__builtin_unwind_init" */
-  bfk_dwarf_cfa,                /* "__builtin_dwarf_cfa" */
-  bfk_dwarf_fp_regnum,          /* "__builtin_dwarf_fp_regnum" */
+  bfk_gamma,                    /* "__builtin_gamma" */
+  bfk_gammaf,                   /* "__builtin_gammaf" */
+  bfk_gammal,                   /* "__builtin_gammal" */
+  bfk_gettext,                  /* "__builtin_gettext" */
+  bfk_huge_val,                 /* "__builtin_huge_val" */
+  bfk_huge_valf,                /* "__builtin_huge_valf" */
+  bfk_huge_vall,                /* "__builtin_huge_vall" */
+  bfk_hypot,                    /* "__builtin_hypot" */
+  bfk_hypotf,                   /* "__builtin_hypotf" */
+  bfk_hypotl,                   /* "__builtin_hypotl" */
+  bfk_ilogb,                    /* "__builtin_ilogb" */
+  bfk_ilogbf,                   /* "__builtin_ilogbf" */
+  bfk_ilogbl,                   /* "__builtin_ilogbl" */
+  bfk_imaxabs,                  /* "__builtin_imaxabs" */
+  bfk_index,                    /* "__builtin_index" */
+  bfk_inf,                      /* "__builtin_inf" */
+  bfk_inff,                     /* "__builtin_inff" */
+  bfk_infl,                     /* "__builtin_infl" */
   bfk_init_dwarf_reg_size_table,
                                 /* "__builtin_init_dwarf_reg_size_table" */
-  bfk_frob_return_addr,         /* "__builtin_frob_return_addr" */
-  bfk_extract_return_addr,      /* "__builtin_extract_return_addr" */
-#if TARG_ALL_POINTERS_SAME_SIZE
-  bfk_eh_return,                /* "__builtin_eh_return" */
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
-  bfk_eh_return_data_regno,     /* "__builtin_eh_return_data_regno" */
-  bfk_classify_type,            /* "__builtin_classify_type" */
-  bfk_constant_p,               /* "__builtin_constant_p" */
-  bfk_choose_expr,              /* "__builtin_choose_expr" */
-  bfk_expect,                   /* "__builtin_expect" */
-  bfk_bzero,                    /* "__builtin_bzero" */
-  bfk_bcmp,                     /* "__builtin_bcmp" */
-#if LONG_LONG_ALLOWED
-  bfk_llabs,                    /* "__builtin_llabs" */
-#endif /* LONG_LONG_ALLOWED */
-  bfk_imaxabs,                  /* "__builtin_imaxabs" */
-  bfk_conj,                     /* "__builtin_conj" */
-  bfk_conjf,                    /* "__builtin_conjf" */
-  bfk_conjl,                    /* "__builtin_conjl" */
-  bfk_creal,                    /* "__builtin_creal" */
-  bfk_crealf,                   /* "__builtin_crealf" */
-  bfk_creall,                   /* "__builtin_creall" */
-  bfk_cimag,                    /* "__builtin_cimag" */
-  bfk_cimagf,                   /* "__builtin_cimagf" */
-  bfk_cimagl,                   /* "__builtin_cimagl" */
+  bfk_isalnum,                  /* "__builtin_isalnum" */
+  bfk_isalpha,                  /* "__builtin_isalpha" */
+  bfk_isascii,                  /* "__builtin_isascii" */
+  bfk_isblank,                  /* "__builtin_isblank" */
+  bfk_iscntrl,                  /* "__builtin_iscntrl" */
+  bfk_isdigit,                  /* "__builtin_isdigit" */
+  bfk_isgraph,                  /* "__builtin_isgraph" */
   bfk_isgreater,                /* "__builtin_isgreater" */
   bfk_isgreaterequal,           /* "__builtin_isgreaterequal" */
   bfk_isless,                   /* "__builtin_isless" */
   bfk_islessequal,              /* "__builtin_islessequal" */
   bfk_islessgreater,            /* "__builtin_islessgreater" */
+  bfk_islower,                  /* "__builtin_islower" */
+  bfk_isprint,                  /* "__builtin_isprint" */
+  bfk_ispunct,                  /* "__builtin_ispunct" */
+  bfk_isspace,                  /* "__builtin_isspace" */
   bfk_isunordered,              /* "__builtin_isunordered" */
-  bfk_exp,                      /* "__builtin_exp" */
-  bfk_expf,                     /* "__builtin_expf" */
-  bfk_expl,                     /* "__builtin_expl" */
+  bfk_isupper,                  /* "__builtin_isupper" */
+  bfk_iswalnum,                 /* "__builtin_iswalnum" */
+  bfk_iswalpha,                 /* "__builtin_iswalpha" */
+  bfk_iswblank,                 /* "__builtin_iswblank" */
+  bfk_iswcntrl,                 /* "__builtin_iswcntrl" */
+  bfk_iswdigit,                 /* "__builtin_iswdigit" */
+  bfk_iswgraph,                 /* "__builtin_iswgraph" */
+  bfk_iswlower,                 /* "__builtin_iswlower" */
+  bfk_iswprint,                 /* "__builtin_iswprint" */
+  bfk_iswpunct,                 /* "__builtin_iswpunct" */
+  bfk_iswspace,                 /* "__builtin_iswspace" */
+  bfk_iswupper,                 /* "__builtin_iswupper" */
+  bfk_iswxdigit,                /* "__builtin_iswxdigit" */
+  bfk_isxdigit,                 /* "__builtin_isxdigit" */
+  bfk_j0,                       /* "__builtin_j0" */
+  bfk_j0f,                      /* "__builtin_j0f" */
+  bfk_j0l,                      /* "__builtin_j0l" */
+  bfk_j1,                       /* "__builtin_j1" */
+  bfk_j1f,                      /* "__builtin_j1f" */
+  bfk_j1l,                      /* "__builtin_j1l" */
+  bfk_jn,                       /* "__builtin_jn" */
+  bfk_jnf,                      /* "__builtin_jnf" */
+  bfk_jnl,                      /* "__builtin_jnl" */
+  bfk_labs,                     /* "__builtin_labs" */
+  bfk_ldexp,                    /* "__builtin_ldexp" */
+  bfk_ldexpf,                   /* "__builtin_ldexpf" */
+  bfk_ldexpl,                   /* "__builtin_ldexpl" */
+  bfk_lgamma,                   /* "__builtin_lgamma" */
+  bfk_lgammaf,                  /* "__builtin_lgammaf" */
+  bfk_lgammal,                  /* "__builtin_lgammal" */
+#if LONG_LONG_ALLOWED
+  bfk_llabs,                    /* "__builtin_llabs" */
+#endif /* LONG_LONG_ALLOWED */
+  bfk_llrint,                   /* "__builtin_llrint" */
+  bfk_llrintf,                  /* "__builtin_llrintf" */
+  bfk_llrintl,                  /* "__builtin_llrintl" */
+  bfk_llround,                  /* "__builtin_llround" */
+  bfk_llroundf,                 /* "__builtin_llroundf" */
+  bfk_llroundl,                 /* "__builtin_llroundl" */
   bfk_log,                      /* "__builtin_log" */
+  bfk_log10,                    /* "__builtin_log10" */
+  bfk_log10f,                   /* "__builtin_log10f" */
+  bfk_log10l,                   /* "__builtin_log10l" */
+  bfk_log1p,                    /* "__builtin_log1p" */
+  bfk_log1pf,                   /* "__builtin_log1pf" */
+  bfk_log1pl,                   /* "__builtin_log1pl" */
+  bfk_log2,                     /* "__builtin_log2" */
+  bfk_log2f,                    /* "__builtin_log2f" */
+  bfk_log2l,                    /* "__builtin_log2l" */
+  bfk_logb,                     /* "__builtin_logb" */
+  bfk_logbf,                    /* "__builtin_logbf" */
+  bfk_logbl,                    /* "__builtin_logbl" */
   bfk_logf,                     /* "__builtin_logf" */
   bfk_logl,                     /* "__builtin_logl" */
-  bfk_huge_val,                 /* "__builtin_huge_val" */
-  bfk_huge_valf,                /* "__builtin_huge_valf" */
-  bfk_huge_vall,                /* "__builtin_huge_vall" */
-  bfk_inf,                      /* "__builtin_inf" */
-  bfk_inff,                     /* "__builtin_inff" */
-  bfk_infl,                     /* "__builtin_infl" */
+  bfk_longjmp,                  /* "__builtin_longjmp" */
+  bfk_lrint,                    /* "__builtin_lrint" */
+  bfk_lrintf,                   /* "__builtin_lrintf" */
+  bfk_lrintl,                   /* "__builtin_lrintl" */
+  bfk_lround,                   /* "__builtin_lround" */
+  bfk_lroundf,                  /* "__builtin_lroundf" */
+  bfk_lroundl,                  /* "__builtin_lroundl" */
+  bfk_malloc,                   /* "__builtin_malloc" */
+  bfk_memcmp,                   /* "__builtin_memcmp" */
+  bfk_memcpy,                   /* "__builtin_memcpy" */
+  bfk_mempcpy,                  /* "__builtin_mempcpy" */
+  bfk_memset,                   /* "__builtin_memset" */
+  bfk_modf,                     /* "__builtin_modf" */
+  bfk_modff,                    /* "__builtin_modff" */
+  bfk_modfl,                    /* "__builtin_modfl" */
   bfk_nan,                      /* "__builtin_nan" */
   bfk_nanf,                     /* "__builtin_nanf" */
   bfk_nanl,                     /* "__builtin_nanl" */
   bfk_nans,                     /* "__builtin_nans" */
   bfk_nansf,                    /* "__builtin_nansf" */
   bfk_nansl,                    /* "__builtin_nansl" */
-  bfk_prefetch,                 /* "__builtin_prefetch" */
-  bfk_abort,                    /* "__builtin_abort" */
-  bfk_exit,                     /* "__builtin_exit" */
-  bfk__exit,                    /* "__builtin__exit" */
-  bfk__Exit,                    /* "__builtin__Exit" */
-  bfk_acosf,                    /* "__builtin_acosf" */
-  bfk_acosl,                    /* "__builtin_acosl" */
-  bfk_asinf,                    /* "__builtin_asinf" */
-  bfk_asinl,                    /* "__builtin_asinl" */
-  bfk_atan2f,                   /* "__builtin_atan2f" */
-  bfk_atan2l,                   /* "__builtin_atan2l" */
-  bfk_atanf,                    /* "__builtin_atanf" */
-  bfk_atanl,                    /* "__builtin_atanl" */
-  bfk_ceilf,                    /* "__builtin_ceilf" */
-  bfk_ceill,                    /* "__builtin_ceill" */
-  bfk_coshf,                    /* "__builtin_coshf" */
-  bfk_coshl,                    /* "__builtin_coshl" */
-  bfk_floorf,                   /* "__builtin_floorf" */
-  bfk_floorl,                   /* "__builtin_floorl" */
-  bfk_fmodf,                    /* "__builtin_fmodf" */
-  bfk_fmodl,                    /* "__builtin_fmodl" */
-  bfk_frexpf,                   /* "__builtin_frexpf" */
-  bfk_frexpl,                   /* "__builtin_frexpl" */
-  bfk_ldexpf,                   /* "__builtin_ldexpf" */
-  bfk_ldexpl,                   /* "__builtin_ldexpl" */
-  bfk_log10f,                   /* "__builtin_log10f" */
-  bfk_log10l,                   /* "__builtin_log10l" */
-  bfk_modff,                    /* "__builtin_modff" */
-  bfk_modfl,                    /* "__builtin_modfl" */
-  bfk_powf,                     /* "__builtin_powf" */
-  bfk_powl,                     /* "__builtin_powl" */
-  bfk_sinhf,                    /* "__builtin_sinhf" */
-  bfk_sinhl,                    /* "__builtin_sinhl" */
-  bfk_tanf,                     /* "__builtin_tanf" */
-  bfk_tanhf,                    /* "__builtin_tanhf" */
-  bfk_tanhl,                    /* "__builtin_tanhl" */
-  bfk_tanl,                     /* "__builtin_tanl" */
-  bfk_ctzl,                     /* "__builtin_ctzl" */
+  bfk_nearbyint,                /* "__builtin_nearbyint" */
+  bfk_nearbyintf,               /* "__builtin_nearbyintf" */
+  bfk_nearbyintl,               /* "__builtin_nearbyintl" */
+  bfk_nextafter,                /* "__builtin_nextafter" */
+  bfk_nextafterf,               /* "__builtin_nextafterf" */
+  bfk_nextafterl,               /* "__builtin_nextafterl" */
+  bfk_next_arg,                 /* "__builtin_next_arg" */
+  bfk_nexttoward,               /* "__builtin_nexttoward" */
+  bfk_nexttowardf,              /* "__builtin_nexttowardf" */
+  bfk_nexttowardl,              /* "__builtin_nexttowardl" */
+  bfk_parity,                   /* "__builtin_parity" */
+  bfk_parityl,                  /* "__builtin_parityl" */
 #if LONG_LONG_ALLOWED
-  bfk_ctzll,                    /* "__builtin_ctzll" */
+  bfk_parityll,                 /* "__builtin_parityll" */
 #endif /* LONG_LONG_ALLOWED */
+  bfk_popcount,                 /* "__builtin_popcount" */
   bfk_popcountl,                /* "__builtin_popcountl" */
 #if LONG_LONG_ALLOWED
   bfk_popcountll,               /* "__builtin_popcountll" */
 #endif /* LONG_LONG_ALLOWED */
+  bfk_pow,                      /* "__builtin_pow" */
+  bfk_pow10,                    /* "__builtin_pow10" */
+  bfk_pow10f,                   /* "__builtin_pow10f" */
+  bfk_pow10l,                   /* "__builtin_pow10l" */
+  bfk_powf,                     /* "__builtin_powf" */
+  bfk_powi,                     /* "__builtin_powi" */
+  bfk_powif,                    /* "__builtin_powif" */
+  bfk_powil,                    /* "__builtin_powil" */
+  bfk_powl,                     /* "__builtin_powl" */
+  bfk_prefetch,                 /* "__builtin_prefetch" */
+  bfk_printf,                   /* "__builtin_printf" */
+  bfk_printf_unlocked,          /* "__builtin_printf_unlocked" */
+  bfk_putchar,                  /* "__builtin_putchar" */
+  bfk_putchar_unlocked,         /* "__builtin_putchar_unlocked" */
+  bfk_puts,                     /* "__builtin_puts" */
+  bfk_puts_unlocked,            /* "__builtin_puts_unlocked" */
+  bfk_remainder,                /* "__builtin_remainder" */
+  bfk_remainderf,               /* "__builtin_remainderf" */
+  bfk_remainderl,               /* "__builtin_remainderl" */
+  bfk_remquo,                   /* "__builtin_remquo" */
+  bfk_remquof,                  /* "__builtin_remquof" */
+  bfk_remquol,                  /* "__builtin_remquol" */
+  bfk_return,                   /* "__builtin_return" */
+  bfk_return_address,           /* "__builtin_return_address" */
+  bfk_rindex,                   /* "__builtin_rindex" */
+  bfk_rint,                     /* "__builtin_rint" */
+  bfk_rintf,                    /* "__builtin_rintf" */
+  bfk_rintl,                    /* "__builtin_rintl" */
+  bfk_round,                    /* "__builtin_round" */
+  bfk_roundf,                   /* "__builtin_roundf" */
+  bfk_roundl,                   /* "__builtin_roundl" */
+  bfk_saveregs,                 /* "__builtin_saveregs" */
+  bfk_scalb,                    /* "__builtin_scalb" */
+  bfk_scalbf,                   /* "__builtin_scalbf" */
+  bfk_scalbl,                   /* "__builtin_scalbl" */
+  bfk_scalbln,                  /* "__builtin_scalbln" */
+  bfk_scalblnf,                 /* "__builtin_scalblnf" */
+  bfk_scalblnl,                 /* "__builtin_scalblnl" */
+  bfk_scalbn,                   /* "__builtin_scalbn" */
+  bfk_scalbnf,                  /* "__builtin_scalbnf" */
+  bfk_scalbnl,                  /* "__builtin_scalbnl" */
+  bfk_scanf,                    /* "__builtin_scanf" */
+  bfk_setjmp,                   /* "__builtin_setjmp" */
+  bfk_signbit,                  /* "__builtin_signbit" */
+  bfk_signbitf,                 /* "__builtin_signbitf" */
+  bfk_signbitl,                 /* "__builtin_signbitl" */
+  bfk_significand,              /* "__builtin_significand" */
+  bfk_significandf,             /* "__builtin_significandf" */
+  bfk_significandl,             /* "__builtin_significandl" */
+  bfk_sin,                      /* "__builtin_sin" */
+  bfk_sincos,                   /* "__builtin_sincos" */
+  bfk_sincosf,                  /* "__builtin_sincosf" */
+  bfk_sincosl,                  /* "__builtin_sincosl" */
+  bfk_sinf,                     /* "__builtin_sinf" */
+  bfk_sinh,                     /* "__builtin_sinh" */
+  bfk_sinhf,                    /* "__builtin_sinhf" */
+  bfk_sinhl,                    /* "__builtin_sinhl" */
+  bfk_sinl,                     /* "__builtin_sinl" */
+  bfk_snprintf,                 /* "__builtin_snprintf" */
+  bfk_sprintf,                  /* "__builtin_sprintf" */
+  bfk_sqrt,                     /* "__builtin_sqrt" */
+  bfk_fsqrt = bfk_sqrt,         /* For compatibility with earlier versions. */
+  bfk_sqrtf,                    /* "__builtin_sqrtf" */
+  bfk_sqrtl,                    /* "__builtin_sqrtl" */
+  bfk_sscanf,                   /* "__builtin_sscanf" */
+  bfk_stpcpy,                   /* "__builtin_stpcpy" */
+  bfk_strcat,                   /* "__builtin_strcat" */
+  bfk_strchr,                   /* "__builtin_strchr" */
+  bfk_strcmp,                   /* "__builtin_strcmp" */
+  bfk_strcpy,                   /* "__builtin_strcpy" */
+  bfk_strcspn,                  /* "__builtin_strcspn" */
+  bfk_strdup,                   /* "__builtin_strdup" */
+  bfk_strfmon,                  /* "__builtin_strfmon" */
+  bfk_strlen,                   /* "__builtin_strlen" */
+  bfk_strncat,                  /* "__builtin_strncat" */
+  bfk_strncmp,                  /* "__builtin_strncmp" */
+  bfk_strncpy,                  /* "__builtin_strncpy" */
+  bfk_strpbrk,                  /* "__builtin_strpbrk" */
+  bfk_strrchr,                  /* "__builtin_strrchr" */
+  bfk_strspn,                   /* "__builtin_strspn" */
+  bfk_strstr,                   /* "__builtin_strstr" */
+  bfk_tan,                      /* "__builtin_tan" */
+  bfk_tanf,                     /* "__builtin_tanf" */
+  bfk_tanh,                     /* "__builtin_tanh" */
+  bfk_tanhf,                    /* "__builtin_tanhf" */
+  bfk_tanhl,                    /* "__builtin_tanhl" */
+  bfk_tanl,                     /* "__builtin_tanl" */
+  bfk_tgamma,                   /* "__builtin_tgamma" */
+  bfk_tgammaf,                  /* "__builtin_tgammaf" */
+  bfk_tgammal,                  /* "__builtin_tgammal" */
+  bfk_toascii,                  /* "__builtin_toascii" */
+  bfk_tolower,                  /* "__builtin_tolower" */
+  bfk_toupper,                  /* "__builtin_toupper" */
+  bfk_towlower,                 /* "__builtin_towlower" */
+  bfk_towupper,                 /* "__builtin_towupper" */
+  bfk_trap,                     /* "__builtin_trap" */
+  bfk_trunc,                    /* "__builtin_trunc" */
+  bfk_truncf,                   /* "__builtin_truncf" */
+  bfk_truncl,                   /* "__builtin_truncl" */
+  bfk_unwind_init,              /* "__builtin_unwind_init" */
+  bfk_vfprintf,                 /* "__builtin_vfprintf" */
+  bfk_vfscanf,                  /* "__builtin_vfscanf" */
+  bfk_vprintf,                  /* "__builtin_vprintf" */
+  bfk_vscanf,                   /* "__builtin_vscanf" */
+  bfk_vsnprintf,                /* "__builtin_vsnprintf" */
+  bfk_vsprintf,                 /* "__builtin_vsprintf" */
+  bfk_vsscanf,                  /* "__builtin_vsscanf" */
+  bfk_y0,                       /* "__builtin_y0" */
+  bfk_y0f,                      /* "__builtin_y0f" */
+  bfk_y0l,                      /* "__builtin_y0l" */
+  bfk_y1,                       /* "__builtin_y1" */
+  bfk_y1f,                      /* "__builtin_y1f" */
+  bfk_y1l,                      /* "__builtin_y1l" */
+  bfk_yn,                       /* "__builtin_yn" */
+  bfk_ynf,                      /* "__builtin_ynf" */
+  bfk_ynl,                      /* "__builtin_ynl" */
   bfk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -7126,175 +7399,448 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
 #if VAR_INITIALIZERS
 = {
   /* bfk_none */                     NULL,
-  /* bfk_alloca */                   "__builtin_alloca",
+  /* bfk_abort */                    "__builtin_abort",
   /* bfk_abs */                      "__builtin_abs",
-  /* bfk_labs */                     "__builtin_labs",
+  /* bfk_acos */                     "__builtin_acos",
+  /* bfk_acosf */                    "__builtin_acosf",
+  /* bfk_acosh */                    "__builtin_acosh",
+  /* bfk_acoshf */                   "__builtin_acoshf",
+  /* bfk_acoshl */                   "__builtin_acoshl",
+  /* bfk_acosl */                    "__builtin_acosl",
+  /* bfk_aggregate_incoming_address */
+                                    "__builtin_aggregate_incoming_address",
+  /* bfk_alloca */                   "__builtin_alloca",
+  /* bfk_apply */                    "__builtin_apply",
+  /* bfk_apply_args */               "__builtin_apply_args",
+  /* bfk_args_info */                "__builtin_args_info",
+  /* bfk_asin */                     "__builtin_asin",
+  /* bfk_asinf */                    "__builtin_asinf",
+  /* bfk_asinh */                    "__builtin_asinh",
+  /* bfk_asinhf */                   "__builtin_asinhf",
+  /* bfk_asinhl */                   "__builtin_asinhl",
+  /* bfk_asinl */                    "__builtin_asinl",
+  /* bfk_atan */                     "__builtin_atan",
+  /* bfk_atan2 */                    "__builtin_atan2",
+  /* bfk_atan2f */                   "__builtin_atan2f",
+  /* bfk_atan2l */                   "__builtin_atan2l",
+  /* bfk_atanf */                    "__builtin_atanf",
+  /* bfk_atanh */                    "__builtin_atanh",
+  /* bfk_atanhf */                   "__builtin_atanhf",
+  /* bfk_atanhl */                   "__builtin_atanhl",
+  /* bfk_atanl */                    "__builtin_atanl",
+  /* bfk_bcmp */                     "__builtin_bcmp",
+  /* bfk_bzero */                    "__builtin_bzero",
+  /* bfk_cabs */                     "__builtin_cabs",
+  /* bfk_cabsf */                    "__builtin_cabsf",
+  /* bfk_cabsl */                    "__builtin_cabsl",
+  /* bfk_cacos */                    "__builtin_cacos",
+  /* bfk_cacosf */                   "__builtin_cacosf",
+  /* bfk_cacosh */                   "__builtin_cacosh",
+  /* bfk_cacoshf */                  "__builtin_cacoshf",
+  /* bfk_cacoshl */                  "__builtin_cacoshl",
+  /* bfk_cacosl */                   "__builtin_cacosl",
+  /* bfk_calloc */                   "__builtin_calloc",
+  /* bfk_carg */                     "__builtin_carg",
+  /* bfk_cargf */                    "__builtin_cargf",
+  /* bfk_cargl */                    "__builtin_cargl",
+  /* bfk_casin */                    "__builtin_casin",
+  /* bfk_casinf */                   "__builtin_casinf",
+  /* bfk_casinh */                   "__builtin_casinh",
+  /* bfk_casinhf */                  "__builtin_casinhf",
+  /* bfk_casinhl */                  "__builtin_casinhl",
+  /* bfk_casinl */                   "__builtin_casinl",
+  /* bfk_catan */                    "__builtin_catan",
+  /* bfk_catanf */                   "__builtin_catanf",
+  /* bfk_catanh */                   "__builtin_catanh",
+  /* bfk_catanhf */                  "__builtin_catanhf",
+  /* bfk_catanhl */                  "__builtin_catanhl",
+  /* bfk_catanl */                   "__builtin_catanl",
+  /* bfk_cbrt */                     "__builtin_cbrt",
+  /* bfk_cbrtf */                    "__builtin_cbrtf",
+  /* bfk_cbrtl */                    "__builtin_cbrtl",
+  /* bfk_ccos */                     "__builtin_ccos",
+  /* bfk_ccosf */                    "__builtin_ccosf",
+  /* bfk_ccosh */                    "__builtin_ccosh",
+  /* bfk_ccoshf */                   "__builtin_ccoshf",
+  /* bfk_ccoshl */                   "__builtin_ccoshl",
+  /* bfk_ccosl */                    "__builtin_ccosl",
+  /* bfk_ceil */                     "__builtin_ceil",
+  /* bfk_ceilf */                    "__builtin_ceilf",
+  /* bfk_ceill */                    "__builtin_ceill",
+  /* bfk_cexp */                     "__builtin_cexp",
+  /* bfk_cexpf */                    "__builtin_cexpf",
+  /* bfk_cexpl */                    "__builtin_cexpl",
+  /* bfk_choose_expr */              "__builtin_choose_expr",
+  /* bfk_cimag */                    "__builtin_cimag",
+  /* bfk_cimagf */                   "__builtin_cimagf",
+  /* bfk_cimagl */                   "__builtin_cimagl",
+  /* bfk_classify_type */            "__builtin_classify_type",
+  /* bfk_clz */                      "__builtin_clz",
+  /* bfk_clzl */                     "__builtin_clzl",
+#if LONG_LONG_ALLOWED
+  /* bfk_clzll */                    "__builtin_clzll",
+#endif /* LONG_LONG_ALLOWED */
+  /* bfk_conj */                     "__builtin_conj",
+  /* bfk_conjf */                    "__builtin_conjf",
+  /* bfk_conjl */                    "__builtin_conjl",
+  /* bfk_constant_p */               "__builtin_constant_p",
+  /* bfk_copysign */                 "__builtin_copysign",
+  /* bfk_copysignf */                "__builtin_copysignf",
+  /* bfk_copysignl */                "__builtin_copysignl",
+  /* bfk_cos */                      "__builtin_cos",
+  /* bfk_cosf */                     "__builtin_cosf",
+  /* bfk_cosh */                     "__builtin_cosh",
+  /* bfk_coshf */                    "__builtin_coshf",
+  /* bfk_coshl */                    "__builtin_coshl",
+  /* bfk_cosl */                     "__builtin_cosl",
+  /* bfk_cpow */                     "__builtin_cpow",
+  /* bfk_cpowf */                    "__builtin_cpowf",
+  /* bfk_cpowl */                    "__builtin_cpowl",
+  /* bfk_cproj */                    "__builtin_cproj",
+  /* bfk_cprojf */                   "__builtin_cprojf",
+  /* bfk_cprojl */                   "__builtin_cprojl",
+  /* bfk_creal */                    "__builtin_creal",
+  /* bfk_crealf */                   "__builtin_crealf",
+  /* bfk_creall */                   "__builtin_creall",
+  /* bfk_csin */                     "__builtin_csin",
+  /* bfk_csinf */                    "__builtin_csinf",
+  /* bfk_csinh */                    "__builtin_csinh",
+  /* bfk_csinhf */                   "__builtin_csinhf",
+  /* bfk_csinhl */                   "__builtin_csinhl",
+  /* bfk_csinl */                    "__builtin_csinl",
+  /* bfk_csqrt */                    "__builtin_csqrt",
+  /* bfk_csqrtf */                   "__builtin_csqrtf",
+  /* bfk_csqrtl */                   "__builtin_csqrtl",
+  /* bfk_ctan */                     "__builtin_ctan",
+  /* bfk_ctanf */                    "__builtin_ctanf",
+  /* bfk_ctanh */                    "__builtin_ctanh",
+  /* bfk_ctanhf */                   "__builtin_ctanhf",
+  /* bfk_ctanhl */                   "__builtin_ctanhl",
+  /* bfk_ctanl */                    "__builtin_ctanl",
+  /* bfk_ctz */                      "__builtin_ctz",
+  /* bfk_ctzl */                     "__builtin_ctzl",
+#if LONG_LONG_ALLOWED
+  /* bfk_ctzll */                    "__builtin_ctzll",
+#endif /* LONG_LONG_ALLOWED */
+  /* bfk_dcgettext */                "__builtin_dcgettext",
+  /* bfk_dgettext */                 "__builtin_dgettext",
+  /* bfk_drem */                     "__builtin_drem",
+  /* bfk_dremf */                    "__builtin_dremf",
+  /* bfk_dreml */                    "__builtin_dreml",
+  /* bfk_dwarf_cfa */                "__builtin_dwarf_cfa",
+  /* bfk_dwarf_fp_regnum */          "__builtin_dwarf_fp_regnum",
+  /* bfk_eh_return */                "__builtin_eh_return",
+  /* bfk_eh_return_data_regno */     "__builtin_eh_return_data_regno",
+  /* bfk_erf */                      "__builtin_erf",
+  /* bfk_erfc */                     "__builtin_erfc",
+  /* bfk_erfcf */                    "__builtin_erfcf",
+  /* bfk_erfcl */                    "__builtin_erfcl",
+  /* bfk_erff */                     "__builtin_erff",
+  /* bfk_erfl */                     "__builtin_erfl",
+  /* bfk_exit */                     "__builtin_exit",
+  /* bfk__exit */                    "__builtin__exit",
+  /* bfk__Exit */                    "__builtin__Exit",
+  /* bfk_exp */                      "__builtin_exp",
+  /* bfk_exp10 */                    "__builtin_exp10",
+  /* bfk_exp10f */                   "__builtin_exp10f",
+  /* bfk_exp10l */                   "__builtin_exp10l",
+  /* bfk_exp2 */                     "__builtin_exp2",
+  /* bfk_exp2f */                    "__builtin_exp2f",
+  /* bfk_exp2l */                    "__builtin_exp2l",
+  /* bfk_expect */                   "__builtin_expect",
+  /* bfk_expf */                     "__builtin_expf",
+  /* bfk_expl */                     "__builtin_expl",
+  /* bfk_expm1 */                    "__builtin_expm1",
+  /* bfk_expm1f */                   "__builtin_expm1f",
+  /* bfk_expm1l */                   "__builtin_expm1l",
+  /* bfk_extract_return_addr */      "__builtin_extract_return_addr",
   /* bfk_fabs */                     "__builtin_fabs",
   /* bfk_fabsf */                    "__builtin_fabsf",
   /* bfk_fabsl */                    "__builtin_fabsl",
+  /* bfk_fdim */                     "__builtin_fdim",
+  /* bfk_fdimf */                    "__builtin_fdimf",
+  /* bfk_fdiml */                    "__builtin_fdiml",
   /* bfk_ffs */                      "__builtin_ffs",
-  /* bfk_index */                    "__builtin_index",
-  /* bfk_rindex */                   "__builtin_rindex",
-  /* bfk_memcpy */                   "__builtin_memcpy",
-  /* bfk_memcmp */                   "__builtin_memcmp",
-  /* bfk_memset */                   "__builtin_memset",
-  /* bfk_strcat */                   "__builtin_strcat",
-  /* bfk_strncat */                  "__builtin_strncat",
-  /* bfk_strcpy */                   "__builtin_strcpy",
-  /* bfk_strncpy */                  "__builtin_strncpy",
-  /* bfk_strcmp */                   "__builtin_strcmp",
-  /* bfk_strncmp */                  "__builtin_strncmp",
-  /* bfk_strlen */                   "__builtin_strlen",
-  /* bfk_strstr */                   "__builtin_strstr",
-  /* bfk_strpbrk */                  "__builtin_strpbrk",
-  /* bfk_strspn */                   "__builtin_strspn",
-  /* bfk_strcspn */                  "__builtin_strcspn",
-  /* bfk_strchr */                   "__builtin_strchr",
-  /* bfk_strrchr */                  "__builtin_strrchr",
-  /* bfk_sqrt */                     "__builtin_sqrt",
-  /* bfk_sin */                      "__builtin_sin",
-  /* bfk_cos */                      "__builtin_cos",
-  /* bfk_sqrtf */                    "__builtin_sqrtf",
-  /* bfk_sinf */                     "__builtin_sinf",
-  /* bfk_cosf */                     "__builtin_cosf",
-  /* bfk_sqrtl */                    "__builtin_sqrtl",
-  /* bfk_sinl */                     "__builtin_sinl",
-  /* bfk_cosl */                     "__builtin_cosl",
-  /* bfk_saveregs */                 "__builtin_saveregs",
-  /* bfk_next_arg */                 "__builtin_next_arg",
-  /* bfk_args_info */                "__builtin_args_info",
-  /* bfk_frame_address */            "__builtin_frame_address",
-  /* bfk_return_address */           "__builtin_return_address",
-  /* bfk_aggregate_incoming_address */
-                                     "__builtin_aggregate_incoming_address",
-  /* bfk_apply_args */               "__builtin_apply_args",
-  /* bfk_apply */                    "__builtin_apply",
-  /* bfk_return */                   "__builtin_return",
-  /* bfk_setjmp */                   "__builtin_setjmp",
-  /* bfk_longjmp */                  "__builtin_longjmp",
-  /* bfk_trap */                     "__builtin_trap",
-  /* bfk_putchar */                  "__builtin_putchar",
-  /* bfk_putchar_unlocked */         "__builtin_putchar_unlocked",
-  /* bfk_puts */                     "__builtin_puts",
-  /* bfk_puts_unlocked */            "__builtin_puts_unlocked",
-  /* bfk_printf */                   "__builtin_printf",
-  /* bfk_printf_unlocked */          "__builtin_printf_unlocked",
+  /* bfk_ffsl */                     "__builtin_ffsl",
+#if LONG_LONG_ALLOWED
+  /* bfk_ffsll */                    "__builtin_ffsll",
+#endif /* LONG_LONG_ALLOWED */
+  /* bfk_floor */                    "__builtin_floor",
+  /* bfk_floorf */                   "__builtin_floorf",
+  /* bfk_floorl */                   "__builtin_floorl",
+  /* bfk_fma */                      "__builtin_fma",
+  /* bfk_fmaf */                     "__builtin_fmaf",
+  /* bfk_fmal */                     "__builtin_fmal",
+  /* bfk_fmax */                     "__builtin_fmax",
+  /* bfk_fmaxf */                    "__builtin_fmaxf",
+  /* bfk_fmaxl */                    "__builtin_fmaxl",
+  /* bfk_fmin */                     "__builtin_fmin",
+  /* bfk_fminf */                    "__builtin_fminf",
+  /* bfk_fminl */                    "__builtin_fminl",
+  /* bfk_fmod */                     "__builtin_fmod",
+  /* bfk_fmodf */                    "__builtin_fmodf",
+  /* bfk_fmodl */                    "__builtin_fmodl",
+  /* bfk_fprintf */                  "__builtin_fprintf",
+  /* bfk_fprintf_unlocked */         "__builtin_fprintf_unlocked",
   /* bfk_fputc */                    "__builtin_fputc",
   /* bfk_fputc_unlocked */           "__builtin_fputc_unlocked",
   /* bfk_fputs */                    "__builtin_fputs",
   /* bfk_fputs_unlocked */           "__builtin_fputs_unlocked",
+  /* bfk_frame_address */            "__builtin_frame_address",
+  /* bfk_frexp */                    "__builtin_frexp",
+  /* bfk_frexpf */                   "__builtin_frexpf",
+  /* bfk_frexpl */                   "__builtin_frexpl",
+  /* bfk_frob_return_addr */         "__builtin_frob_return_addr",
+  /* bfk_fscanf */                   "__builtin_fscanf",
   /* bfk_fwrite */                   "__builtin_fwrite",
   /* bfk_fwrite_unlocked */          "__builtin_fwrite_unlocked",
-  /* bfk_fprintf */                  "__builtin_fprintf",
-  /* bfk_fprintf_unlocked */         "__builtin_fprintf_unlocked",
-  /* bfk_sprintf */                  "__builtin_sprintf",
-  /* bfk_snprintf */                 "__builtin_snprintf",
-  /* bfk_vprintf */                  "__builtin_vprintf",
-  /* bfk_vsprintf */                 "__builtin_vsprintf",
-  /* bfk_vsnprintf */                "__builtin_vsnprintf",
-  /* bfk_scanf */                    "__builtin_scanf",
-  /* bfk_sscanf */                   "__builtin_sscanf",
-  /* bfk_vscanf */                   "__builtin_vscanf",
-  /* bfk_vsscanf */                  "__builtin_vsscanf",
-  /* bfk_unwind_init */              "__builtin_unwind_init",
-  /* bfk_dwarf_cfa */                "__builtin_dwarf_cfa",
-  /* bfk_dwarf_fp_regnum */          "__builtin_dwarf_fp_regnum",
-  /* bfk_init_dwarf_reg_size_table */
-                                     "__builtin_init_dwarf_reg_size_table",
-  /* bfk_frob_return_addr */         "__builtin_frob_return_addr",
-  /* bfk_extract_return_addr */      "__builtin_extract_return_addr",
-#if TARG_ALL_POINTERS_SAME_SIZE
-  /* bfk_eh_return */                "__builtin_eh_return",
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
-  /* bfk_eh_return_data_regno */     "__builtin_eh_return_data_regno",
-  /* bfk_classify_type */            "__builtin_classify_type",
-  /* bfk_constant_p */               "__builtin_constant_p",
-  /* bfk_choose_expr */              "__builtin_choose_expr",
-  /* bfk_expect */                   "__builtin_expect",
-  /* bfk_bzero */                    "__builtin_bzero", 
-  /* bfk_bcmp */                     "__builtin_bcmp",
-#if LONG_LONG_ALLOWED
-  /* bfk_llabs */                    "__builtin_llabs",
-#endif /* LONG_LONG_ALLOWED */
+  /* bfk_gamma */                    "__builtin_gamma",
+  /* bfk_gammaf */                   "__builtin_gammaf",
+  /* bfk_gammal */                   "__builtin_gammal",
+  /* bfk_gettext */                  "__builtin_gettext",
+  /* bfk_huge_val */                 "__builtin_huge_val",
+  /* bfk_huge_valf */                "__builtin_huge_valf",
+  /* bfk_huge_vall */                "__builtin_huge_vall",
+  /* bfk_hypot */                    "__builtin_hypot",
+  /* bfk_hypotf */                   "__builtin_hypotf",
+  /* bfk_hypotl */                   "__builtin_hypotl",
+  /* bfk_ilogb */                    "__builtin_ilogb",
+  /* bfk_ilogbf */                   "__builtin_ilogbf",
+  /* bfk_ilogbl */                   "__builtin_ilogbl",
   /* bfk_imaxabs */                  "__builtin_imaxabs",
-  /* bfk_conj */                     "__builtin_conj",
-  /* bfk_conjf */                    "__builtin_conjf",
-  /* bfk_conjl */                    "__builtin_conjl",
-  /* bfk_creal */                    "__builtin_creal",
-  /* bfk_crealf */                   "__builtin_crealf",
-  /* bfk_creall */                   "__builtin_creall",
-  /* bfk_cimag */                    "__builtin_cimag",
-  /* bfk_cimagf */                   "__builtin_cimagf",
-  /* bfk_cimagl */                   "__builtin_cimagl",
+  /* bfk_index */                    "__builtin_index",
+  /* bfk_inf */                      "__builtin_inf",
+  /* bfk_inff */                     "__builtin_inff",
+  /* bfk_infl */                     "__builtin_infl",
+  /* bfk_init_dwarf_reg_size_table */
+                                    "__builtin_init_dwarf_reg_size_table",
+  /* bfk_isalnum */                  "__builtin_isalnum",
+  /* bfk_isalpha */                  "__builtin_isalpha",
+  /* bfk_isascii */                  "__builtin_isascii",
+  /* bfk_isblank */                  "__builtin_isblank",
+  /* bfk_iscntrl */                  "__builtin_iscntrl",
+  /* bfk_isdigit */                  "__builtin_isdigit",
+  /* bfk_isgraph */                  "__builtin_isgraph",
   /* bfk_isgreater */                "__builtin_isgreater",
   /* bfk_isgreaterequal */           "__builtin_isgreaterequal",
   /* bfk_isless */                   "__builtin_isless",
   /* bfk_islessequal */              "__builtin_islessequal",
   /* bfk_islessgreater */            "__builtin_islessgreater",
+  /* bfk_islower */                  "__builtin_islower",
+  /* bfk_isprint */                  "__builtin_isprint",
+  /* bfk_ispunct */                  "__builtin_ispunct",
+  /* bfk_isspace */                  "__builtin_isspace",
   /* bfk_isunordered */              "__builtin_isunordered",
-  /* bfk_exp */                      "__builtin_exp",
-  /* bfk_expf */                     "__builtin_expf",
-  /* bfk_expl */                     "__builtin_expl",
+  /* bfk_isupper */                  "__builtin_isupper",
+  /* bfk_iswalnum */                 "__builtin_iswalnum",
+  /* bfk_iswalpha */                 "__builtin_iswalpha",
+  /* bfk_iswblank */                 "__builtin_iswblank",
+  /* bfk_iswcntrl */                 "__builtin_iswcntrl",
+  /* bfk_iswdigit */                 "__builtin_iswdigit",
+  /* bfk_iswgraph */                 "__builtin_iswgraph",
+  /* bfk_iswlower */                 "__builtin_iswlower",
+  /* bfk_iswprint */                 "__builtin_iswprint",
+  /* bfk_iswpunct */                 "__builtin_iswpunct",
+  /* bfk_iswspace */                 "__builtin_iswspace",
+  /* bfk_iswupper */                 "__builtin_iswupper",
+  /* bfk_iswxdigit */                "__builtin_iswxdigit",
+  /* bfk_isxdigit */                 "__builtin_isxdigit",
+  /* bfk_j0 */                       "__builtin_j0",
+  /* bfk_j0f */                      "__builtin_j0f",
+  /* bfk_j0l */                      "__builtin_j0l",
+  /* bfk_j1 */                       "__builtin_j1",
+  /* bfk_j1f */                      "__builtin_j1f",
+  /* bfk_j1l */                      "__builtin_j1l",
+  /* bfk_jn */                       "__builtin_jn",
+  /* bfk_jnf */                      "__builtin_jnf",
+  /* bfk_jnl */                      "__builtin_jnl",
+  /* bfk_labs */                     "__builtin_labs",
+  /* bfk_ldexp */                    "__builtin_ldexp",
+  /* bfk_ldexpf */                   "__builtin_ldexpf",
+  /* bfk_ldexpl */                   "__builtin_ldexpl",
+  /* bfk_lgamma */                   "__builtin_lgamma",
+  /* bfk_lgammaf */                  "__builtin_lgammaf",
+  /* bfk_lgammal */                  "__builtin_lgammal",
+#if LONG_LONG_ALLOWED
+  /* bfk_llabs */                    "__builtin_llabs",
+#endif /* LONG_LONG_ALLOWED */
+  /* bfk_llrint */                   "__builtin_llrint",
+  /* bfk_llrintf */                  "__builtin_llrintf",
+  /* bfk_llrintl */                  "__builtin_llrintl",
+  /* bfk_llround */                  "__builtin_llround",
+  /* bfk_llroundf */                 "__builtin_llroundf",
+  /* bfk_llroundl */                 "__builtin_llroundl",
   /* bfk_log */                      "__builtin_log",
+  /* bfk_log10 */                    "__builtin_log10",
+  /* bfk_log10f */                   "__builtin_log10f",
+  /* bfk_log10l */                   "__builtin_log10l",
+  /* bfk_log1p */                    "__builtin_log1p",
+  /* bfk_log1pf */                   "__builtin_log1pf",
+  /* bfk_log1pl */                   "__builtin_log1pl",
+  /* bfk_log2 */                     "__builtin_log2",
+  /* bfk_log2f */                    "__builtin_log2f",
+  /* bfk_log2l */                    "__builtin_log2l",
+  /* bfk_logb */                     "__builtin_logb",
+  /* bfk_logbf */                    "__builtin_logbf",
+  /* bfk_logbl */                    "__builtin_logbl",
   /* bfk_logf */                     "__builtin_logf",
   /* bfk_logl */                     "__builtin_logl",
-  /* bfk_huge_val */                 "__builtin_huge_val",
-  /* bfk_huge_valf */                "__builtin_huge_valf",
-  /* bfk_huge_vall */                "__builtin_huge_vall",
-  /* bfk_inf */                      "__builtin_inf",
-  /* bfk_inff */                     "__builtin_inff",
-  /* bfk_infl */                     "__builtin_infl",
+  /* bfk_longjmp */                  "__builtin_longjmp",
+  /* bfk_lrint */                    "__builtin_lrint",
+  /* bfk_lrintf */                   "__builtin_lrintf",
+  /* bfk_lrintl */                   "__builtin_lrintl",
+  /* bfk_lround */                   "__builtin_lround",
+  /* bfk_lroundf */                  "__builtin_lroundf",
+  /* bfk_lroundl */                  "__builtin_lroundl",
+  /* bfk_malloc */                   "__builtin_malloc",
+  /* bfk_memcmp */                   "__builtin_memcmp",
+  /* bfk_memcpy */                   "__builtin_memcpy",
+  /* bfk_mempcpy */                  "__builtin_mempcpy",
+  /* bfk_memset */                   "__builtin_memset",
+  /* bfk_modf */                     "__builtin_modf",
+  /* bfk_modff */                    "__builtin_modff",
+  /* bfk_modfl */                    "__builtin_modfl",
   /* bfk_nan */                      "__builtin_nan",
   /* bfk_nanf */                     "__builtin_nanf",
   /* bfk_nanl */                     "__builtin_nanl",
   /* bfk_nans */                     "__builtin_nans",
   /* bfk_nansf */                    "__builtin_nansf",
   /* bfk_nansl */                    "__builtin_nansl",
-  /* bfk_prefetch */                 "__builtin_prefetch",
-  /* bfk_abort */                    "__builtin_abort",
-  /* bfk_exit */                     "__builtin_exit",
-  /* bfk__exit */                    "__builtin__exit",
-  /* bfk__Exit */                    "__builtin__Exit",
-  /* bfk_acosf */                    "__builtin_acosf",
-  /* bfk_acosl */                    "__builtin_acosl",
-  /* bfk_asinf */                    "__builtin_asinf",
-  /* bfk_asinl */                    "__builtin_asinl",
-  /* bfk_atan2f */                   "__builtin_atan2f",
-  /* bfk_atan2l */                   "__builtin_atan2l",
-  /* bfk_atanf */                    "__builtin_atanf",
-  /* bfk_atanl */                    "__builtin_atanl",
-  /* bfk_ceilf */                    "__builtin_ceilf",
-  /* bfk_ceill */                    "__builtin_ceill",
-  /* bfk_coshf */                    "__builtin_coshf",
-  /* bfk_coshl */                    "__builtin_coshl",
-  /* bfk_floorf */                   "__builtin_floorf",
-  /* bfk_floorl */                   "__builtin_floorl",
-  /* bfk_fmodf */                    "__builtin_fmodf",
-  /* bfk_fmodl */                    "__builtin_fmodl",
-  /* bfk_frexpf */                   "__builtin_frexpf",
-  /* bfk_frexpl */                   "__builtin_frexpl",
-  /* bfk_ldexpf */                   "__builtin_ldexpf",
-  /* bfk_ldexpl */                   "__builtin_ldexpl",
-  /* bfk_log10f */                   "__builtin_log10f",
-  /* bfk_log10l */                   "__builtin_log10l",
-  /* bfk_modff */                    "__builtin_modff",
-  /* bfk_modfl */                    "__builtin_modfl",
-  /* bfk_powf */                     "__builtin_powf",
-  /* bfk_powl */                     "__builtin_powl",
-  /* bfk_sinhf */                    "__builtin_sinhf",
-  /* bfk_sinhl */                    "__builtin_sinhl",
-  /* bfk_tanf */                     "__builtin_tanf",
-  /* bfk_tanhf */                    "__builtin_tanhf",
-  /* bfk_tanhl */                    "__builtin_tanhl",
-  /* bfk_tanl */                     "__builtin_tanl",
-  /* bfk_ctzl */                     "__builtin_ctzl",
+  /* bfk_nearbyint */                "__builtin_nearbyint",
+  /* bfk_nearbyintf */               "__builtin_nearbyintf",
+  /* bfk_nearbyintl */               "__builtin_nearbyintl",
+  /* bfk_nextafter */                "__builtin_nextafter",
+  /* bfk_nextafterf */               "__builtin_nextafterf",
+  /* bfk_nextafterl */               "__builtin_nextafterl",
+  /* bfk_next_arg */                 "__builtin_next_arg",
+  /* bfk_nexttoward */               "__builtin_nexttoward",
+  /* bfk_nexttowardf */              "__builtin_nexttowardf",
+  /* bfk_nexttowardl */              "__builtin_nexttowardl",
+  /* bfk_parity */                   "__builtin_parity",
+  /* bfk_parityl */                  "__builtin_parityl",
 #if LONG_LONG_ALLOWED
-  /* bfk_ctzll */                    "__builtin_ctzll",
+  /* bfk_parityll */                 "__builtin_parityll",
 #endif /* LONG_LONG_ALLOWED */
+  /* bfk_popcount */                 "__builtin_popcount",
   /* bfk_popcountl */                "__builtin_popcountl",
 #if LONG_LONG_ALLOWED
   /* bfk_popcountll */               "__builtin_popcountll",
 #endif /* LONG_LONG_ALLOWED */
+  /* bfk_pow */                      "__builtin_pow",
+  /* bfk_pow10 */                    "__builtin_pow10",
+  /* bfk_pow10f */                   "__builtin_pow10f",
+  /* bfk_pow10l */                   "__builtin_pow10l",
+  /* bfk_powf */                     "__builtin_powf",
+  /* bfk_powi */                     "__builtin_powi",
+  /* bfk_powif */                    "__builtin_powif",
+  /* bfk_powil */                    "__builtin_powil",
+  /* bfk_powl */                     "__builtin_powl",
+  /* bfk_prefetch */                 "__builtin_prefetch",
+  /* bfk_printf */                   "__builtin_printf",
+  /* bfk_printf_unlocked */          "__builtin_printf_unlocked",
+  /* bfk_putchar */                  "__builtin_putchar",
+  /* bfk_putchar_unlocked */         "__builtin_putchar_unlocked",
+  /* bfk_puts */                     "__builtin_puts",
+  /* bfk_puts_unlocked */            "__builtin_puts_unlocked",
+  /* bfk_remainder */                "__builtin_remainder",
+  /* bfk_remainderf */               "__builtin_remainderf",
+  /* bfk_remainderl */               "__builtin_remainderl",
+  /* bfk_remquo */                   "__builtin_remquo",
+  /* bfk_remquof */                  "__builtin_remquof",
+  /* bfk_remquol */                  "__builtin_remquol",
+  /* bfk_return */                   "__builtin_return",
+  /* bfk_return_address */           "__builtin_return_address",
+  /* bfk_rindex */                   "__builtin_rindex",
+  /* bfk_rint */                     "__builtin_rint",
+  /* bfk_rintf */                    "__builtin_rintf",
+  /* bfk_rintl */                    "__builtin_rintl",
+  /* bfk_round */                    "__builtin_round",
+  /* bfk_roundf */                   "__builtin_roundf",
+  /* bfk_roundl */                   "__builtin_roundl",
+  /* bfk_saveregs */                 "__builtin_saveregs",
+  /* bfk_scalb */                    "__builtin_scalb",
+  /* bfk_scalbf */                   "__builtin_scalbf",
+  /* bfk_scalbl */                   "__builtin_scalbl",
+  /* bfk_scalbln */                  "__builtin_scalbln",
+  /* bfk_scalblnf */                 "__builtin_scalblnf",
+  /* bfk_scalblnl */                 "__builtin_scalblnl",
+  /* bfk_scalbn */                   "__builtin_scalbn",
+  /* bfk_scalbnf */                  "__builtin_scalbnf",
+  /* bfk_scalbnl */                  "__builtin_scalbnl",
+  /* bfk_scanf */                    "__builtin_scanf",
+  /* bfk_setjmp */                   "__builtin_setjmp",
+  /* bfk_signbit */                  "__builtin_signbit",
+  /* bfk_signbitf */                 "__builtin_signbitf",
+  /* bfk_signbitl */                 "__builtin_signbitl",
+  /* bfk_significand */              "__builtin_significand",
+  /* bfk_significandf */             "__builtin_significandf",
+  /* bfk_significandl */             "__builtin_significandl",
+  /* bfk_sin */                      "__builtin_sin",
+  /* bfk_sincos */                   "__builtin_sincos",
+  /* bfk_sincosf */                  "__builtin_sincosf",
+  /* bfk_sincosl */                  "__builtin_sincosl",
+  /* bfk_sinf */                     "__builtin_sinf",
+  /* bfk_sinh */                     "__builtin_sinh",
+  /* bfk_sinhf */                    "__builtin_sinhf",
+  /* bfk_sinhl */                    "__builtin_sinhl",
+  /* bfk_sinl */                     "__builtin_sinl",
+  /* bfk_snprintf */                 "__builtin_snprintf",
+  /* bfk_sprintf */                  "__builtin_sprintf",
+  /* bfk_sqrt */                     "__builtin_sqrt",
+  /* bfk_sqrtf */                    "__builtin_sqrtf",
+  /* bfk_sqrtl */                    "__builtin_sqrtl",
+  /* bfk_sscanf */                   "__builtin_sscanf",
+  /* bfk_stpcpy */                   "__builtin_stpcpy",
+  /* bfk_strcat */                   "__builtin_strcat",
+  /* bfk_strchr */                   "__builtin_strchr",
+  /* bfk_strcmp */                   "__builtin_strcmp",
+  /* bfk_strcpy */                   "__builtin_strcpy",
+  /* bfk_strcspn */                  "__builtin_strcspn",
+  /* bfk_strdup */                   "__builtin_strdup",
+  /* bfk_strfmon */                  "__builtin_strfmon",
+  /* bfk_strlen */                   "__builtin_strlen",
+  /* bfk_strncat */                  "__builtin_strncat",
+  /* bfk_strncmp */                  "__builtin_strncmp",
+  /* bfk_strncpy */                  "__builtin_strncpy",
+  /* bfk_strpbrk */                  "__builtin_strpbrk",
+  /* bfk_strrchr */                  "__builtin_strrchr",
+  /* bfk_strspn */                   "__builtin_strspn",
+  /* bfk_strstr */                   "__builtin_strstr",
+  /* bfk_tan */                      "__builtin_tan",
+  /* bfk_tanf */                     "__builtin_tanf",
+  /* bfk_tanh */                     "__builtin_tanh",
+  /* bfk_tanhf */                    "__builtin_tanhf",
+  /* bfk_tanhl */                    "__builtin_tanhl",
+  /* bfk_tanl */                     "__builtin_tanl",
+  /* bfk_tgamma */                   "__builtin_tgamma",
+  /* bfk_tgammaf */                  "__builtin_tgammaf",
+  /* bfk_tgammal */                  "__builtin_tgammal",
+  /* bfk_toascii */                  "__builtin_toascii",
+  /* bfk_tolower */                  "__builtin_tolower",
+  /* bfk_toupper */                  "__builtin_toupper",
+  /* bfk_towlower */                 "__builtin_towlower",
+  /* bfk_towupper */                 "__builtin_towupper",
+  /* bfk_trap */                     "__builtin_trap",
+  /* bfk_trunc */                    "__builtin_trunc",
+  /* bfk_truncf */                   "__builtin_truncf",
+  /* bfk_truncl */                   "__builtin_truncl",
+  /* bfk_unwind_init */              "__builtin_unwind_init",
+  /* bfk_vfprintf */                 "__builtin_vfprintf",
+  /* bfk_vfscanf */                  "__builtin_vfscanf",
+  /* bfk_vprintf */                  "__builtin_vprintf",
+  /* bfk_vscanf */                   "__builtin_vscanf",
+  /* bfk_vsnprintf */                "__builtin_vsnprintf",
+  /* bfk_vsprintf */                 "__builtin_vsprintf",
+  /* bfk_vsscanf */                  "__builtin_vsscanf",
+  /* bfk_y0 */                       "__builtin_y0",
+  /* bfk_y0f */                      "__builtin_y0f",
+  /* bfk_y0l */                      "__builtin_y0l",
+  /* bfk_y1 */                       "__builtin_y1",
+  /* bfk_y1f */                      "__builtin_y1f",
+  /* bfk_y1l */                      "__builtin_y1l",
+  /* bfk_yn */                       "__builtin_yn",
+  /* bfk_ynf */                      "__builtin_ynf",
+  /* bfk_ynl */                      "__builtin_ynl",
   /* bfk_last */                     "last" /* used to check that 
                                                initialization is right. */
 }

@@ -1,5 +1,12 @@
 Version 3.7
 
+11/17/06 GNU compatibility: More predeclared functions
+
+Many more (hundreds) GNU builtin functions (like __builtin_powil) are now
+predeclared by the front end in GNU modes.  We believe this now includes all
+the builtin functions listed in the GNU documentation for version 4.0 of the
+GNU compiler, as well as a few undocumented functions.
+
 11/17/06 Sun compatibility: template argument list following constructor name
 
 The Sun compiler permits a template argument list to appear following a
