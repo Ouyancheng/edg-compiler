@@ -243,6 +243,7 @@ with the following differences:
     "I", or "J" denote complex floating-point literals with a pure imaginary
     value.
 
+A number of new IL operators have been introduced in support of these features.
 As with complex type facilities in C99 mode, setting the configuration macro
 LOWER_COMPLEX to TRUE causes the front end to rewrite complex type constructs
 in terms of "plain C IL".  The run-time support library has been updated to
