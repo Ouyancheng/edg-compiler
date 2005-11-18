@@ -1,5 +1,16 @@
 Version 3.7
 
+11/18/06 GNU C++ compatibility: Using-declarations for invisible members
+
+In GNU C++ mode, the front end now accepts class-scope using-declarations for
+invisible members.  For example:
+
+  struct B { void f(int); };
+  struct C: B { void f(float); };
+  struct D: C {
+    using B::f;  // B::f invisible (hidden by C::f).  Nonstandard, but now
+  };             // accepted in g++ mode.
+
 11/18/06 Enum type compatibility in strict C modes
 
 In strict C modes (C89 and C99), the front end now correctly treats different

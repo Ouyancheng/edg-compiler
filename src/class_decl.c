@@ -11310,7 +11310,7 @@ or implicit) controlling the declaration.
           }  /* if */
         }  /* if */
         if (err) sym_error(ec_ambiguous_name, declared_sym);
-      } else if (!(bcp->direct || any_cfront_mode() ||
+      } else if (!(bcp->direct || any_cfront_mode() || gpp_mode ||
                    (microsoft_mode && microsoft_version > 1200))) {
         /* Base class members designated in a using-declaration must be
            visible in the scope of at least one direct base class. */
