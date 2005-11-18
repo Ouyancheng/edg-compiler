@@ -751,6 +751,14 @@ template class, its DLL interface may need to be adjusted implicitly.
   if (new_dll_flags != 0) {
     a_class_type_supplement_ptr  
                ctsp = class_type->variant.class_struct_union.extra_info;
+    if (!adjust_template_base &&
+        class_type->source_corresp.name_linkage !=
+                                          (a_name_linkage_kind)nlk_external &&
+        is_member_of_unnamed_namespace(&class_type->source_corresp)) {
+      /* dllimport/dllexport on an unnamed namespace member is unlikely to
+         be useful. */
+      pos_warning(ec_dll_interface_in_unnamed_namespace, err_pos);
+    }  /* if */
     if (!class_type_has_body(class_type)) {
       /* Apply the new flag values to the class type only. */
       ctsp->decl_modifiers &= ~DM_DLLFLAGS;

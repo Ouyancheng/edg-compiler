@@ -3164,6 +3164,12 @@ be issued at the given position.
            a DLL interface. */
         pos_error(ec_dll_interface_requires_external_linkage, diag_pos);
         goto done;
+      } else if (routine->source_corresp.name_linkage !=
+                                          (a_name_linkage_kind)nlk_external &&
+                 is_member_of_unnamed_namespace(&routine->source_corresp)) {
+        /* dllimport/dllexport on an unnamed namespace member is unlikely to
+           be useful. */
+        pos_warning(ec_dll_interface_in_unnamed_namespace, diag_pos);
       }  /* if */
     } else {
       /* The current declaration has no DLL interface, but a previous
@@ -3464,6 +3470,14 @@ position. */
         /* Preserve the dllexport attribute of the previous declaration. */
         new_dll_flags = DM_DLLEXPORT;
       }  /* if */
+    }  /* if */
+    if (new_dll_flags != 0 &&
+        var->source_corresp.name_linkage !=
+                                          (a_name_linkage_kind)nlk_external &&
+        is_member_of_unnamed_namespace(&var->source_corresp)) {
+      /* dllimport/dllexport on an unnamed namespace member is unlikely to
+         be useful. */
+      pos_warning(ec_dll_interface_in_unnamed_namespace, diag_pos);
     }  /* if */
     if (old_dll_flags == new_dll_flags) {
       /* This is a redeclaration and it is compatible with the previous

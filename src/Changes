@@ -1,5 +1,16 @@
 Version 3.7
 
+11/18/06 Microsoft compatibility: DLL attributes and unnamed namespaces
+
+In Microsoft mode, the front end now issues a warning when applying a dllexport
+or dllimport attribute to a member of an unnamed namespace (unless that member
+has C name linkage).  For example:
+
+  namespace {
+    __declspec(dllimport) void f();  // Warning.
+    extern "C" __declspec(dllimport) int x;  // No warning.
+  }
+
 11/17/06 GNU compatibility: More predeclared functions
 
 Many more (hundreds) GNU builtin functions (like __builtin_powil) are now
