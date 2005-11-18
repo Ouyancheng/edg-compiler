@@ -1234,7 +1234,7 @@ scopes and for the file scope.
                                                      hidden_names_processed)) {
     /* Nothing to do. */
   } else {
-    if (sp->kind == sck_class_struct_union) {
+    if (sp->kind == (a_scope_kind)sck_class_struct_union) {
       /* Immediately mark the class as processed, even though we haven't done
          anything yet, to avoid infinite recursion.  (This can occur when an
          explicit specialization of a nested class template has the containing
