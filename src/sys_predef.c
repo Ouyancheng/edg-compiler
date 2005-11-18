@@ -605,8 +605,12 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func2(modf, double, double, double_star);
   enter_gnu_builtin_func2(modff, floating, floating, float_star);
   enter_gnu_builtin_func2(modfl, long_double, long_double, long_double_star);
-  enter_gnu_builtin_real_math_funcs1(nan);
-  enter_gnu_builtin_real_math_funcs1(nans);
+  enter_gnu_builtin_func1(nan, double, const_char_star);
+  enter_gnu_builtin_func1(nanf, floating, const_char_star);
+  enter_gnu_builtin_func1(nanl, long_double, const_char_star);
+  enter_gnu_builtin_func1(nans, double, const_char_star);
+  enter_gnu_builtin_func1(nansf, floating, const_char_star);
+  enter_gnu_builtin_func1(nansl, long_double, const_char_star);
   enter_gnu_builtin_real_math_funcs1(nearbyint);
   enter_gnu_builtin_real_math_funcs2(nextafter);
   enter_gnu_builtin_vararg_func0(next_arg, void_star);
@@ -654,8 +658,9 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_real_math_funcs1(significand);
   enter_gnu_builtin_real_math_funcs1(sin);
   enter_gnu_builtin_func3(sincos, no_return, double, double_star, double_star);
-  enter_gnu_builtin_func3(sincos, no_return, floating, float_star, float_star);
-  enter_gnu_builtin_func3(sincos, no_return,
+  enter_gnu_builtin_func3(sincosf, no_return,
+                          floating, float_star, float_star);
+  enter_gnu_builtin_func3(sincosl, no_return,
                           long_double, long_double_star, long_double_star);
   enter_gnu_builtin_real_math_funcs1(sinh);
   enter_gnu_builtin_vararg_func3(snprintf, int,
