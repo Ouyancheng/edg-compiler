@@ -419,7 +419,7 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func1(alloca, void_star, size_t);
   enter_gnu_builtin_func3(apply, void_star,
                           void_star, void_star, unsigned);
-  enter_gnu_builtin_func0(apply_args, int);
+  enter_gnu_builtin_func0(apply_args, void_star);
   enter_gnu_builtin_func1(args_info, int, int);
   enter_gnu_builtin_real_math_funcs1(asin);
   enter_gnu_builtin_real_math_funcs1(asinh);
@@ -477,9 +477,9 @@ Enter the standard predeclared functions for GCC.
                           const_char_star, const_char_star, int);
   enter_gnu_builtin_func2(dgettext, char_star,
                           const_char_star, const_char_star);
-  enter_gnu_builtin_real_math_funcs1(drem);
-  enter_gnu_builtin_func0(dwarf_cfa, no_return);
-  enter_gnu_builtin_func0(dwarf_fp_regnum, no_return);
+  enter_gnu_builtin_real_math_funcs2(drem);
+  enter_gnu_builtin_func0(dwarf_cfa, void_star);
+  enter_gnu_builtin_func0(dwarf_fp_regnum, unsigned);
 #if TARG_ALL_POINTERS_SAME_SIZE
   enter_gnu_builtin_func2(eh_return, no_return, pmode, void_star);
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
@@ -634,7 +634,6 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func1(puts, int, const_char_star);
   enter_gnu_builtin_func1(puts_unlocked, int, const_char_star);
   enter_gnu_builtin_real_math_funcs2(remainder);
-  enter_gnu_builtin_real_math_funcs1(remquo);
   enter_gnu_builtin_func3(remquo, double, double, double, int_star);
   enter_gnu_builtin_func3(remquof, floating, floating, floating, int_star);
   enter_gnu_builtin_func3(remquol, long_double,
