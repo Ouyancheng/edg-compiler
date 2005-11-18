@@ -1,5 +1,19 @@
 Version 3.7
 
+11/18/06 Enum type compatibility in strict C modes
+
+In strict C modes (C89 and C99), the front end now correctly treats different
+enum types as being incompatible (previously they were considered compatible).
+For example:
+
+  typedef enum { e } E;
+  typedef enum { f } F;
+  E g();
+  F g();  // Now a compatibility error in strict C modes.
+
+In nonstrict modes, the enum types are still treated as compatible to mimic
+common practice in other C compilers.
+
 11/18/06 Microsoft compatibility: DLL attributes and unnamed namespaces
 
 In Microsoft mode, the front end now issues a warning when applying a dllexport
