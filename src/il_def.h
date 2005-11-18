@@ -7390,7 +7390,7 @@ enum a_builtin_function_kind_tag {
   bfk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_builtin_function_kind;
+typedef unsigned short a_builtin_function_kind;
 
 /*
 Names of builtin functions.

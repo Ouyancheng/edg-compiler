@@ -316,6 +316,9 @@ Enter the standard predeclared functions for GCC.
     make_pointer_type(make_qualified_type(char_type, 
 					  (a_type_qualifier_set)TQ_CONST));
   int_star_type = make_pointer_type(int_type);
+  float_star_type = make_pointer_type(floating_type);
+  double_star_type = make_pointer_type(double_type);
+  long_double_star_type = make_pointer_type(long_double_type);
   generic_function_type = alloc_type((a_type_kind)tk_routine);
   generic_function_type->variant.routine.return_type = void_star_type;
   generic_function_type->variant.routine.extra_info->param_type_list =
@@ -370,26 +373,27 @@ Enter the standard predeclared functions for GCC.
                              /*is_varargs=*/FALSE);
 #define enter_gnu_builtin_real_math_funcs0(name)                             \
   enter_gnu_builtin_func0(name, double);                                     \
-  enter_gnu_builtin_func0(name, floating);                                   \
-  enter_gnu_builtin_func0(name, long_double)
+  enter_gnu_builtin_func0(name##f, floating);                                \
+  enter_gnu_builtin_func0(name##l, long_double)
 #define enter_gnu_builtin_real_math_funcs1(name)                             \
   enter_gnu_builtin_func1(name, double, double);                             \
-  enter_gnu_builtin_func1(name, floating, floating);                         \
-  enter_gnu_builtin_func1(name, long_double, long_double)
+  enter_gnu_builtin_func1(name##f, floating, floating);                      \
+  enter_gnu_builtin_func1(name##l, long_double, long_double)
 #define enter_gnu_builtin_real_math_funcs2(name)                             \
   enter_gnu_builtin_func2(name, double, double, double);                     \
-  enter_gnu_builtin_func2(name, floating, floating, floating);               \
-  enter_gnu_builtin_func2(name, long_double, long_double, long_double)
+  enter_gnu_builtin_func2(name##f, floating, floating, floating);            \
+  enter_gnu_builtin_func2(name##l, long_double, long_double, long_double)
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
 #define enter_gnu_builtin_complex_math_funcs1(name)                          \
   enter_gnu_builtin_func1(name, complex_double, complex_double);             \
-  enter_gnu_builtin_func1(name, complex_float, complex_float);               \
-  enter_gnu_builtin_func1(name, complex_long_double, complex_long_double)
+  enter_gnu_builtin_func1(name##f, complex_float, complex_float);            \
+  enter_gnu_builtin_func1(name##l, complex_long_double, complex_long_double)
 #define enter_gnu_builtin_complex_math_funcs2(name)                          \
   enter_gnu_builtin_func2(name, complex_double,                              \
                           complex_double, complex_double);                   \
-  enter_gnu_builtin_func2(name, complex_float, complex_float, complex_float);\
-  enter_gnu_builtin_func2(name, complex_long_double,                         \
+  enter_gnu_builtin_func2(name##f,                                           \
+                          complex_float, complex_float, complex_float);      \
+  enter_gnu_builtin_func2(name##l, complex_long_double,                      \
                           complex_long_double, complex_long_double)
 #else /* !GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #define enter_gnu_builtin_complex_math_funcs1(name) /* Nothing */
@@ -398,12 +402,12 @@ Enter the standard predeclared functions for GCC.
 #if LONG_LONG_ALLOWED
 #define enter_gnu_builtin_bit_count_funcs(name)                              \
   enter_gnu_builtin_func1(name, int, unsigned);                              \
-  enter_gnu_builtin_func1(name, int, unsigned_long);                         \
-  enter_gnu_builtin_func1(name, int, unsigned_long_long)
+  enter_gnu_builtin_func1(name##l, int, unsigned_long);                      \
+  enter_gnu_builtin_func1(name##ll, int, unsigned_long_long)
 #else /* !LONG_LONG_ALLOWED */
 #define enter_gnu_builtin_bit_count_funcs(name)                              \
   enter_gnu_builtin_func1(name, int, unsigned);                              \
-  enter_gnu_builtin_func1(name, int, unsigned_long);
+  enter_gnu_builtin_func1(name##l, int, unsigned_long);
 #endif /* LONG_LONG_ALLOWED */
 
   /* Create the functions.  */
