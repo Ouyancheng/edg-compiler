@@ -601,6 +601,8 @@ Enter the standard predeclared functions for GCC.
                           const_void_star, const_void_star, size_t);
   enter_gnu_builtin_func3(memcpy, void_star,
                           void_star, const_void_star, size_t);
+  enter_gnu_builtin_func3(mempcpy, void_star,
+                          void_star, const_void_star, size_t);
   enter_gnu_builtin_func3(memset, void_star, void_star, int, size_t);
   enter_gnu_builtin_func2(modf, double, double, double_star);
   enter_gnu_builtin_func2(modff, floating, floating, float_star);
