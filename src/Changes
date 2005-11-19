@@ -1,5 +1,15 @@
 Version 3.7
 
+11/19/05 IL write/read error on default argument
+
+The fix of 3/11/05 for a bug introduced by the change of 5/17/04
+for default arguments introduced a different problem.  If a version
+configured with DO_IL_LOWERING set to true was run in a mode that
+does not do lowering (e.g., with the -N command-line option) the
+IL traversal routines did not handle certain obscure default argument
+expressions correctly.  As a consequence, the IL file produced
+failed a consistency check when read back in.  Now fixed.
+
 11/18/06 GNU C++ compatibility: Using-declarations for invisible members
 
 In GNU C++ mode, the front end now accepts class-scope using-declarations for

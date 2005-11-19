@@ -766,7 +766,7 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
         walk_string_ptr(ptr->name, iek_id_name, 0);
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
-#if DO_IL_LOWERING
+#if !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING
         /* When IL lowering gets done default_arg_expr is set to NULL, so
            do not follow it unless we're in a secondary translation unit
            (where lowering is not done).  This suppression is important
@@ -779,10 +779,11 @@ the file scope, do not process it (but record an orphan in the latter case).
            pointers that are not cleared to NULL.  A back end shouldn't be
            looking at them, but clear the pointer on an IL read to make
            sure nothing bad happens (e.g., in the IL display program). */
-        if (!walking_secondary_trans_unit) {
+        if (!C_mode() && il_lowering_needed() &&
+            !walking_secondary_trans_unit) {
           conditionally_clear_fe_pointer(ptr->default_arg_expr);
         } else
-#endif /* DO_IL_LOWERING */
+#endif /* !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING */
         /* Do not add code here. */
         {
           walk_ptr(ptr->default_arg_expr, an_expr_node_ptr, iek_expr_node);
