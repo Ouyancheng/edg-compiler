@@ -11,6 +11,13 @@ type involve an array type with unspecified bound.  For example:
   void f(int (**)[]);   // Still allowed in Microsoft mode.
 
 (In Cfront mode, both the reference and pointer cases are still allowed.)
+This behavior was previously entirely controlled through the configuration
+macro DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE and its
+associated variable ptr_to_unknown_bound_array_allowed_in_param_type.  Now,
+these two only control the non-reference case, and a separate macro
+DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE and associated
+variable ref_to_unknown_bound_array_allowed_in_param_type have been introduced
+to determine whether the reference case is allowed.
 
 11/21/05 Improved diagnostic for nondeduced parameter in partial specialization
 
