@@ -489,6 +489,40 @@ type.  Check to see if any type qualifiers that are specified are meaningful.
 }  /* check_type_qualifiers */
 
 
+static void check_ptr_or_ref_to_unspecified_bound_array(
+                                                a_type_ptr         tp,
+                                                a_source_position  *error_pos)
+/*
+Check that the given parameter type is not a reference, a pointer, or a multi-
+level pointer to an array of unspecified bound (e.g., "(&)[]", "(*)[]", or
+"(**&)[]") and issue an at the given position if needed.  In some modes the
+constraints are relaxed: see the configuration macros
+DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE and
+DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE.
+*/
+{
+  a_boolean   is_ref = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (tp->kind == (a_type_kind)tk_pointer) {
+    is_ref = tp->variant.pointer.is_reference;
+    do {
+      tp = type_pointed_to(tp);
+      tp = skip_typerefs(tp);
+    } while (tp->kind == (a_type_kind)tk_pointer);
+    if (tp->kind == (a_type_kind)tk_array && is_incomplete_array_type(tp)) {
+      if (ref_to_unknown_bound_array_allowed_in_param_type && is_ref) {
+        check_assertion(ptr_to_unknown_bound_array_allowed_in_param_type);
+      } else if (!ptr_to_unknown_bound_array_allowed_in_param_type || is_ref) {
+        pos_error(is_ref ? ec_param_type_ref_array_of_unknown_bound :
+                           ec_param_type_ptr_to_array_of_unknown_bound,
+                  error_pos);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_ptr_or_ref_to_unknown_bound_array */
+
+
 void check_and_adjust_parameter_type(a_type_ptr           *type_ptr,
                                      a_source_position    *error_pos,
                                      an_attribute_ptr     attributes)
@@ -533,21 +567,15 @@ list of GNU C attributes, if applicable.
       /* See if any type qualifiers were specified, and if they are
          okay. */
       check_type_qualifiers(type_ptr, error_pos);
-      if (!C_mode()) {
+      if (!C_mode() && !(ptr_to_unknown_bound_array_allowed_in_param_type &&
+                         ref_to_unknown_bound_array_allowed_in_param_type)) {
         /* In C++ disallow a parameter type that includes a pointer or
            reference to an array of unspecified size (WP 8.3.5 para 3).
            (This restriction is relaxed in cfront and Microsoft compatibility
            modes; it can also be relaxed in default mode -- see
-           DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE.) */
-        if (!ptr_to_unknown_bound_array_allowed_in_param_type) {
-          a_boolean  is_ref = FALSE;
-          if (is_or_contains_ptr_or_ref_to_unknown_bound_array(*type_ptr,
-                                                               &is_ref)) {
-            pos_error(is_ref ? ec_param_type_ref_array_of_unknown_bound :
-                               ec_param_type_ptr_to_array_of_unknown_bound,
-                      error_pos);
-          }  /* if */
-        }  /* if */
+           DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE and
+           DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE.) */
+        check_ptr_or_ref_to_unspecified_bound_array(*type_ptr, error_pos);
       }  /* if */
     }  /* if */
   }  /* if */

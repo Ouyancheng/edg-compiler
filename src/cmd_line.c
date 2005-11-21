@@ -1821,6 +1821,7 @@ by a command line option.
   }  /* if */
   /* Set flags that cannot be overridden by command line options. */
   ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
+  ref_to_unknown_bound_array_allowed_in_param_type = TRUE;
   /* Cfront does not check accessibility of friend function declarations. */
   no_access_check_on_friend_declarator_ids = TRUE;
 }  /* set_cfront_mode_flags */
@@ -2465,6 +2466,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
   } else {
     /* Set optional features to standard settings for strict C++ mode. */
     ptr_to_unknown_bound_array_allowed_in_param_type = FALSE;
+    ref_to_unknown_bound_array_allowed_in_param_type = FALSE;
     single_ref_qual_ovl_res_tiebreaker = FALSE;
     floating_point_template_parameters_allowed = FALSE;
     no_access_check_on_friend_declarator_ids = FALSE;
@@ -4642,6 +4644,10 @@ enable_microsoft_mode:
      generating back end is tied to the source language selection. */
   select_cp_gen_be_target_dialect();
 #endif /* BACK_END_IS_CP_GEN_BE */
+  /* Sanity-check the values of some global variables that cannot be set
+     individually from the command line. */
+  check_assertion(!(ref_to_unknown_bound_array_allowed_in_param_type &&
+                    !ptr_to_unknown_bound_array_allowed_in_param_type));
 }  /* proc_command_line */
 
 #if COMPILE_MULTIPLE_TRANSLATION_UNITS
@@ -4935,6 +4941,8 @@ variables declared in cmd_line.h.
   report_embedded_cplusplus_noncompliance = FALSE;
   ptr_to_unknown_bound_array_allowed_in_param_type =
                       DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE;
+  ref_to_unknown_bound_array_allowed_in_param_type =
+                      DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE;
   nonstandard_qualifier_deduction = DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION;
   nonstandard_default_arg_deduction =
                                      DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION;
