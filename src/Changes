@@ -50,8 +50,8 @@ invisible members.  For example:
 
 11/18/06 Enum type compatibility in strict C modes
 
-In strict C modes (C89 and C99), the front end now correctly treats different
-enum types as being incompatible (previously they were considered compatible).
+In C modes (C89 and C99), the front end now correctly treats different enum
+types as being incompatible (previously they were considered compatible).
 For example:
 
   typedef enum { e } E;
@@ -59,8 +59,8 @@ For example:
   E g();
   F g();  // Now a compatibility error in strict C modes.
 
-In nonstrict modes, the enum types are still treated as compatible to mimic
-common practice in other C compilers.
+The enum types are still treated as compatible in Microsoft C mode and in
+GNU C mode when gnu_version < 30400.
 
 11/18/06 Microsoft compatibility: DLL attributes and unnamed namespaces
 

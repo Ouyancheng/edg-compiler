@@ -3717,9 +3717,10 @@ for exact pointer equality.
             /* In C++, each enum type is a distinct type and is not compatible
                with any other type.  In C and C99, when looking for cross-
                translation compatibility, similar rules apply. */
-          } else if (strict_ansi_mode &&
-                     type_1->variant.integer.enum_type &&
-                     type_2->variant.integer.enum_type) {
+          } else if (type_1->variant.integer.enum_type &&
+                     type_2->variant.integer.enum_type &&
+                     !(microsoft_mode || (gcc_mode && gnu_version < 30400)) &&
+                     C_mode()) {
             /* In C modes, an enum type may be compatible with an integer type,
                but two different enum types are not compatible.  We apply the
                latter rule only in strict mode. */
