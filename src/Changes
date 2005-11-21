@@ -1,5 +1,13 @@
 Version 3.7
 
+11/21/05 Improved diagnostic for nondeduced parameter in partial specialization
+
+The diagnostic issued when a template parameter is used only in a nondeduced
+context in a partial specialization has been made clearer.
+
+  template <class T> struct C { };
+  template <class T> struct C<typename T::U> { };
+
 11/19/05 IL write/read error on default argument
 
 The fix of 3/11/05 for a bug introduced by the change of 5/17/04

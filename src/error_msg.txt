@@ -889,7 +889,7 @@ ec_ambiguous_partial_spec;;"more than one partial specialization matches the tem
 ec_ambiguous_partial_spec_add_on;INTERNAL;"%no"
 ec_partial_spec_is_primary_template;;"a template argument list is not allowed in a declaration of a primary template"
 ec_default_not_allowed_on_partial_spec;;"partial specializations may not have default template arguments"
-ec_not_used_in_partial_spec_arg_list;;"%n1 is not used in template argument list of %n2"
+ec_not_used_in_partial_spec_arg_list;;"%n1 is not used in or cannot be deduced from the template argument list of %n2"
 REMOVED;ec_partial_spec_param_depends_on_templ_param;;"the type of partial specialization template parameter %n depends on another template parameter"
 ec_partial_spec_arg_depends_on_templ_param;;"the template argument list of the partial specialization includes a nontype argument whose type depends on a template parameter"
 ec_partial_spec_after_instantiation;;"this partial specialization would have been used to instantiate %n"
