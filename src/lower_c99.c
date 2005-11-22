@@ -992,7 +992,6 @@ done:;
 }  /* lower_runtime_sizeof */
 
 #endif /* DO_IL_LOWERING */
-#if DO_C99_IL_LOWERING
 #if LOWER_COMPLEX || LOWER_FIXED_POINT
 
 static char* select_name_from_float_kind(a_float_kind  fkind,
@@ -2217,6 +2216,7 @@ destination) to a runtime call).
 }  /* lower_c99_fixed_point_cast */
 
 #endif /* LOWER_FIXED_POINT */
+#if DO_C99_IL_LOWERING
 
 void post_lower_c99_bool_cast(an_expr_node_ptr expr)
 /*
