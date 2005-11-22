@@ -8917,7 +8917,7 @@ enum an_expr_operator_kind_tag {
   eok_xeq,              /* Complex equality. */
   eok_xne,              /* Complex inequality. */
   eok_xassign,          /* Complex assignment. */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTE */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
   eok_xadd_assign,      /* Complex add assign operator. */
   eok_xsubtract_assign, /* Complex subtract assign operator. */
@@ -8936,8 +8936,10 @@ enum an_expr_operator_kind_tag {
   eok_xconj,            /* Complex conjugation operator. */
   eok_real_part,        /* Produce the real part of a complex rvalue. */
   eok_imag_part,        /* Produce the imaginary part of a complex rvalue. */
-  eok_lvalue_real_part, /* Produce the real part of a complex lvalue. */
-  eok_lvalue_imag_part, /* Produce the imaginary part of a complex lvalue. */
+  eok_lvalue_real_part, /* Produce the real part of a complex lvalue.  The
+                           result is also an lvalue. */
+  eok_lvalue_imag_part, /* Produce the imaginary part of a complex lvalue.  The
+                           result is also an lvalue. */
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #ifdef FIL
   eok_complex,          /* Join two real operands, produce a complex as the
