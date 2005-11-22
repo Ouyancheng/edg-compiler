@@ -580,10 +580,9 @@ depending on the floating-point mode.
 
 #if C99_IL_EXTENSIONS_SUPPORTED
   if ((old_type->kind != (a_type_kind)tk_float ||
-       new_type->kind != (a_type_kind)tk_float)
-      && (old_type->kind != (a_type_kind)tk_imaginary ||
-          new_type->kind != (a_type_kind)tk_imaginary)
-                                                      ) {
+       new_type->kind != (a_type_kind)tk_float) &&
+      (old_type->kind != (a_type_kind)tk_imaginary ||
+       new_type->kind != (a_type_kind)tk_imaginary)) {
     /* Conversion involving complex or imaginary types, but not the
        simple imaginary --> imaginary case. */
     switch (old_type->kind) {
