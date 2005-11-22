@@ -1092,6 +1092,26 @@ lowered IL.
 }  /* lowered_complex_type */
 
 
+static a_field_ptr complex_vals_field(a_type_ptr ctype)
+/*
+ctype is a complex type, possibly lowered.  Return a pointer to the
+single field in the struct for the lowered version of the type.
+*/
+{
+  a_field_ptr field;
+
+  ctype = skip_typerefs(ctype);
+  if (ctype->kind == (a_type_kind)tk_complex) {
+    /* Not lowered yet.  Substitute the proper lowered type. */
+    ctype = lowered_complex_type(ctype->variant.float_kind);
+  }  /* if */
+  check_assertion(ctype->kind == (a_type_kind)tk_struct);
+  field = ctype->variant.class_struct_union.field_list;
+  check_assertion(field != NULL && field->next == NULL);
+  return field;
+}  /* complex_vals_field */
+
+
 /* Complex arithmetic and comparison routines. */
 static a_routine_ptr  xnegate_routine[(int)fk_last];
 static a_routine_ptr  xadd_routine[(int)fk_last];
@@ -1325,26 +1345,6 @@ Transform the given complex expression ("z1!=z2") into a function call
                                           expr->variant.operation.operands);
   overwrite_node(expr, xne_call);
 }  /* lower_c99_xne */
-
-
-static a_field_ptr complex_vals_field(a_type_ptr ctype)
-/*
-ctype is a complex type, possibly lowered.  Return a pointer to the
-single field in the struct for the lowered version of the type.
-*/
-{
-  a_field_ptr field;
-
-  ctype = skip_typerefs(ctype);
-  if (ctype->kind == (a_type_kind)tk_complex) {
-    /* Not lowered yet.  Substitute the proper lowered type. */
-    ctype = lowered_complex_type(ctype->variant.float_kind);
-  }  /* if */
-  check_assertion(ctype->kind == (a_type_kind)tk_struct);
-  field = ctype->variant.class_struct_union.field_list;
-  check_assertion(field != NULL && field->next == NULL);
-  return field;
-}  /* complex_vals_field */
 
 
 static an_expr_node_ptr select_complex_vals(an_expr_node_ptr  expr)
