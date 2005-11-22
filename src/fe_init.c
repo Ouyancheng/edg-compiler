@@ -340,7 +340,7 @@ Install the keywords in the symbol table.
     /* Non-GNU C99 modes support both _Complex and _Imaginary types, provided
        C99_IL_EXTENSIONS_ALLOWED is set to TRUE. */
     enter_keyword((a_token_kind)tok_c99_complex, "_Complex");
-      enter_keyword((a_token_kind)tok_c99_imaginary, "_Imaginary");
+    enter_keyword((a_token_kind)tok_c99_imaginary, "_Imaginary");
     /* EDG-specific token representing the imaginary number "i" (i*i == -1). */
     enter_keyword((a_token_kind)tok_imaginary_unit, "__I__");
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
