@@ -2243,7 +2243,8 @@ static void do_xconj(a_constant        *constant,
                      an_error_severity *err_severity,
                      a_boolean         *depends_on_fp_mode)
 /*
-Do the complex conjugation operation on all types of complex values.
+Do the complex conjugation operation (i.e., negate the imaginary part) on all
+types of complex values.
 */
 {
   a_type_ptr   constant_type = skip_typerefs(constant->type);
@@ -2258,7 +2259,7 @@ Do the complex conjugation operation on all types of complex values.
   fp_negate(float_kind, &constant->variant.complex_value->imag,
             &result->variant.complex_value->imag, &err, depends_on_fp_mode);
   if (err) {
-    *err_code = ec_bad_float_operation_result;
+    *err_code = ec_bad_complex_operation_result;
     *err_severity = es_error;
   }  /* if */
 
