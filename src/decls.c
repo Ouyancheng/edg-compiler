@@ -493,10 +493,19 @@ static void check_ptr_or_ref_to_unspecified_bound_array(
                                                 a_type_ptr         tp,
                                                 a_source_position  *error_pos)
 /*
-Check that the given parameter type is not a reference, a pointer, or a multi-
-level pointer to an array of unspecified bound (e.g., "(&)[]", "(*)[]", or
-"(**&)[]") and issue an at the given position if needed.  In some modes the
-constraints are relaxed: see the configuration macros
+Check that the given parameter type does not include a reference or a pointer
+to an array of unspecified bound and issue an at the given position if needed.
+This restriction was introduced in the standard to avoid having certain
+constructs valid in both C and C++ mean different things in those two
+languages.  For example:
+    void f(int (*)[]);
+    void f(int (*)[3]);  // Redeclaration in C, but could be an overloaded
+                         // declaration in C++.
+
+Nested function declarator parameters are not examined, since they will have
+been checked earlier.  Template arguments and pointer-to-members are not
+examined either (they pose no problem).  In some modes the constraints are
+relaxed: see the configurations macros
 DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE and
 DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE.
 */
@@ -504,22 +513,31 @@ DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE.
   a_boolean   is_ref = FALSE;
 
   tp = skip_typerefs(tp);
-  if (tp->kind == (a_type_kind)tk_pointer) {
-    is_ref = tp->variant.pointer.is_reference;
-    do {
+  for (;;) {
+    if (tp->kind == (a_type_kind)tk_pointer) {
+      is_ref = tp->variant.pointer.is_reference;
       tp = type_pointed_to(tp);
       tp = skip_typerefs(tp);
-    } while (tp->kind == (a_type_kind)tk_pointer);
-    if (tp->kind == (a_type_kind)tk_array && is_incomplete_array_type(tp)) {
-      if (ref_to_unknown_bound_array_allowed_in_param_type && is_ref) {
-        check_assertion(ptr_to_unknown_bound_array_allowed_in_param_type);
-      } else if (!ptr_to_unknown_bound_array_allowed_in_param_type || is_ref) {
-        pos_error(is_ref ? ec_param_type_ref_array_of_unknown_bound :
-                           ec_param_type_ptr_to_array_of_unknown_bound,
-                  error_pos);
+    } else if (tp->kind == (a_type_kind)tk_routine) {
+      tp = skip_typerefs(tp->variant.routine.return_type);
+    } else if (tp->kind == (a_type_kind)tk_array) {
+      if (is_incomplete_array_type(tp)) {
+        if (ref_to_unknown_bound_array_allowed_in_param_type && is_ref) {
+          check_assertion(ptr_to_unknown_bound_array_allowed_in_param_type);
+        } else if (!ptr_to_unknown_bound_array_allowed_in_param_type ||
+                   is_ref) {
+          pos_error(is_ref ? ec_param_type_ref_array_of_unknown_bound :
+                             ec_param_type_ptr_to_array_of_unknown_bound,
+                    error_pos);
+          break;
+        }  /* if */
       }  /* if */
+      tp = skip_typerefs(tp->variant.array.element_type);
+    } else {
+      /* No need to look further. */
+      break;
     }  /* if */
-  }  /* if */
+  }  /* for */
 }  /* check_ptr_or_ref_to_unknown_bound_array */
 
 
