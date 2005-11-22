@@ -3356,6 +3356,7 @@ up to the caller to do the cast if desired.
       ikind = (an_integer_kind)ik_int;
     } else if (field_size == (unsigned int)(targ_sizeof_int*targ_char_bit)) {
       ikind = (an_integer_kind)ik_unsigned_int;
+#if LONG_LONG_ALLOWED
     } else if (gcc_mode && gnu_version == 40000 &&
                ikind == (an_integer_kind)ik_unsigned_long_long &&
                field_size <
@@ -3364,6 +3365,7 @@ up to the caller to do the cast if desired.
          to signed long long.  This doesn't seem to conform to the C99
          standard (6.3.1.1p2). */
       ikind = (an_integer_kind)ik_long_long;
+#endif /* LONG_LONG_ALLOWED */
     } else {
       /* Bit-fields larger than unsigned int keep the original type. */
     }  /* if */
