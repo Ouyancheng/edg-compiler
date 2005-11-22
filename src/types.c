@@ -88,8 +88,8 @@ predicates.
 #define is_real_floating(tp) ((tp)->kind == (a_type_kind)tk_float)
 
 #if C99_IL_EXTENSIONS_SUPPORTED
-#define is_complex(tp) ((tp)->kind == (a_type_kind)tk_complex)
 #define is_imaginary(tp) ((tp)->kind == (a_type_kind)tk_imaginary)
+#define is_complex(tp) ((tp)->kind == (a_type_kind)tk_complex)
 #define is_nonreal_floating(tp) (is_complex(tp) || is_imaginary(tp))
 #define is_floating(tp) (is_real_floating(tp) || is_nonreal_floating(tp))
 #else /* !C99_IL_EXTENSIONS_SUPPORTED */
