@@ -1351,7 +1351,7 @@ static an_expr_node_ptr select_complex_vals(an_expr_node_ptr  expr)
 /*
 The given expression node represents a complex lvalue or rvalue.  Return a node
 (constructed on top of the given one) for "<expr>.Vals" where "Vals" is the
-single field of the lowered complex type. 
+single field of the lowered complex type.
 */
 {
   an_expr_node_ptr  result;
@@ -1396,7 +1396,9 @@ single field of the lowered complex type.
 static an_expr_node_ptr make_real_part(an_expr_node_ptr  expr)
 /*
 The given expression represents a complex lvalue or rvalue.  Return a node
-representing just the real part of that complex value.
+representing just the real part of that complex value.  The result is always
+an lvalue: The caller is responsible for adding the indirection required when
+the argument is an rvalue.
 */
 {
   an_expr_node_ptr  real_part = select_complex_vals(expr);
@@ -1413,7 +1415,9 @@ representing just the real part of that complex value.
 static an_expr_node_ptr make_imag_part(an_expr_node_ptr  expr)
 /*
 The given expression represents a complex lvalue or rvalue.  Return a node
-representing just the imaginary part of that complex value.
+representing just the imaginary part of that complex value.  The result is
+always an lvalue: The caller is responsible for adding the indirection
+required when the argument is an rvalue.
 */
 {
   an_expr_node_ptr  imag_part = select_complex_vals(expr);
@@ -1426,7 +1430,6 @@ representing just the imaginary part of that complex value.
   return imag_part;
 }  /* make_imag_part */
 
-#if C99_IL_EXTENSIONS_SUPPORTED
 
 static void lower_c99_jmultiply(an_expr_node_ptr  expr)
 /*
@@ -1541,7 +1544,6 @@ negating one part in the "-" case.
                     expr->type, comma_node);
 }  /* lower_real_imag_add_subtract */
 
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if GNU_EXTENSIONS_ALLOWED
 
 /* Complex conjugation routines. */
@@ -1554,8 +1556,9 @@ static char *xconj_routine_name[3] = {"__c99_complex_float_conj",
 
 void lower_xconj(an_expr_node_ptr  expr)
 /*
-Transform the given complex expression ("~z") into a function call (compatible
-with C89).
+Transform the given complex conjugation expression (GNU notation "~z", which
+produces a value equal to "z" except for the imaginary part being negated)
+into a function call.
 */
 {
   a_type_ptr        return_type = skip_typerefs(expr->type);
@@ -1571,12 +1574,12 @@ with C89).
                                 return_type, return_type, (a_type_ptr)NULL,
                                 expr->variant.operation.operands);
   overwrite_node(expr, xconj_call);
-}  /* lower_c99_xconj */
+}  /* lower_xconj */
 
 
 void lower_complex_projection(an_expr_node_ptr  expr)
 /*
-Lower the given complex expression ("__real z" or "__imag z").
+Lower the given complex projection expression ("__real z" or "__imag z").
 */
 {
   an_expr_node_ptr  arg = expr->variant.operation.operands, result;
@@ -1622,14 +1625,11 @@ Transform the given complex cast expression into a function call
     /* A cast to void.  Nothing needs to be done. */
   } else if (il_identical_types(src_type, dst_type)) {
     /* A do-nothing cast. */
-#if C99_IL_EXTENSIONS_SUPPORTED
     if (is_imaginary_type(src_type)) {
       /* Imaginary types become floating-point types, so the cast can be
          left as it is.  This may actually be useful/necessary, because
          such a cast will drop extra precision on intermediate results. */
-    } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-    {
+    } else {
       /* A cast to a complex type is eliminated because it would become
          a cast to struct type. */
       overwrite_node(expr, src);
@@ -1687,7 +1687,6 @@ Transform the given complex cast expression into a function call
                                          routine_name, routine,
                                          dst_type, src->type, (a_type_ptr)NULL,
                                          src);
-#if C99_IL_EXTENSIONS_SUPPORTED
     } else if (is_imaginary_type(src_type)) {
       /* Convert imaginary to complex. */
       /* Create a new complex value 0.0 + x*__I__. */
@@ -1715,7 +1714,6 @@ Transform the given complex cast expression into a function call
                                          routine_name, routine,
                                          dst_type, src->type, (a_type_ptr)NULL,
                                          src);
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     } else {
       /* Convert floating-point, fixed-point, or integral to complex. */
       check_assertion(is_arithmetic_or_enum_type(src_type));
@@ -1746,7 +1744,6 @@ Transform the given complex cast expression into a function call
                                          src);
     }  /* if */
     overwrite_node(expr, cast_call);
-#if C99_IL_EXTENSIONS_SUPPORTED
   } else if (is_imaginary_type(dst_type)) {
     if (is_complex_type(src_type)) {
       /* Converting a complex value to an imaginary type.  This amounts to
@@ -1791,7 +1788,6 @@ Transform the given complex cast expression into a function call
       /* Nothing to be done (imaginary->imaginary). */
       check_assertion(is_imaginary_type(src_type));
     }  /* if */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   } else {
     check_assertion(is_arithmetic_or_enum_type(dst_type));
     if (is_complex_type(src_type)) {
@@ -1819,7 +1815,6 @@ Transform the given complex cast expression into a function call
                            src->type, (a_type_ptr)NULL, src);
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
-#if C99_IL_EXTENSIONS_SUPPORTED
     } else if (is_imaginary_type(src_type)) {
       /* An imaginary value converted to a real or integral type is always
          zero.  Use a comma operator to preserve side-effects of the source
@@ -1829,7 +1824,6 @@ Transform the given complex cast expression into a function call
       make_zero_of_proper_type(dst_type, &zero_constant);
       new_expr = make_comma_node(src, alloc_node_for_constant(&zero_constant));
       overwrite_node(expr, new_expr);
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     } else {
       unexpected_condition();
     }  /* if */
@@ -2238,14 +2232,12 @@ lowering on the "!= 0" comparison generated, e.g., for complex values.
     lower_c99_expr(expr->variant.operation.operands->next,
                    /*used_as_lvalue=*/FALSE);
     lower_c99_xne(expr);
-#if C99_IL_EXTENSIONS_SUPPORTED
   } else if (expr->variant.operation.kind == (an_expr_operator_kind)eok_fne&&
              is_imaginary_type(expr->variant.operation.operands->next->type)) {
     /* Do further lowering for imaginary != 0. */
     /* Lower the imaginary zero constant. */
     lower_c99_expr(expr->variant.operation.operands->next,
                    /*used_as_lvalue=*/FALSE);
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   } else
 #endif /* LOWER_COMPLEX */
   {
@@ -2679,7 +2671,6 @@ _Bool type, and VLA types.
     case eok_xdivide_assign:
       rewrite_compound_assignment(expr, /*is_lvalue=*/FALSE);
       break;
-#if C99_IL_EXTENSIONS_SUPPORTED
     case eok_jmultiply:
       lower_c99_jmultiply(expr);
       break;
@@ -2693,7 +2684,6 @@ _Bool type, and VLA types.
       /* Mixed real/imaginary add/subtract. */
       lower_real_imag_add_subtract(expr);
       break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if GNU_EXTENSIONS_ALLOWED
     case eok_xconj:
       lower_xconj(expr);
@@ -2895,12 +2885,12 @@ replace them by a representation compatible with C89.
 #endif /* LOWER_FIXED_POINT */
       break;
 #endif /* FIXED_POINT_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
 #if LOWER_COMPLEX
       lower_c99_complex_constant(constant);
 #endif /* LOWER_COMPLEX */
       break;
-#if C99_IL_EXTENSIONS_SUPPORTED
     case ck_imaginary:
 #if LOWER_COMPLEX
       /* Represent the constant as a regular floating-point constant.
@@ -2962,14 +2952,10 @@ constructs.
 */
 {
 #if LOWER_COMPLEX
-#if C99_IL_EXTENSIONS_SUPPORTED
   if (is_imaginary_type(expr->type)) {
     /* Turn the imaginary constant into a real floating point constant. */
     lower_c99_constant(expr->variant.constant);
-  } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  /* Do not insert code here. */
-  if (is_complex_type(expr->type)) {
+  } else if (is_complex_type(expr->type)) {
     /* Replace this node by a reference to a static variable initialized
        with an aggregate representing the constant complex value. */
     a_variable_ptr  tmp;
@@ -3746,7 +3732,6 @@ Do C99 lowering for all entities in and under the given scope.
 }  /* lower_c99_scope */
 
 #if LOWER_COMPLEX
-#if C99_IL_EXTENSIONS_SUPPORTED
 
 static void lower_c99_imaginary_type(a_float_kind  kind,
                                      char          *name)
@@ -3767,7 +3752,6 @@ The lowered type is given the name indicated by "name".
   }  /* if */
 }  /* lower_c99_imaginary_type */
 
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 static void lower_c99_complex_type(a_float_kind  kind,
                                    char          *name)
@@ -3806,12 +3790,10 @@ void lower_c99_nonreal_float_types(void)
 Replace the imaginary and complex C99 types by their lowered representations.
 */
 {
-#if C99_IL_EXTENSIONS_SUPPORTED
   lower_c99_imaginary_type((a_float_kind)fk_float, "_Imaginary_float");
   lower_c99_imaginary_type((a_float_kind)fk_double, "_Imaginary_double");
   lower_c99_imaginary_type((a_float_kind)fk_long_double,
                            "_Imaginary_long_double");
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   lower_c99_complex_type((a_float_kind)fk_float, "_Complex_float");
   lower_c99_complex_type((a_float_kind)fk_double, "_Complex_double");
   lower_c99_complex_type((a_float_kind)fk_long_double, "_Complex_long_double");
@@ -3997,6 +3979,11 @@ Do one-time initialization of variables related to C99 IL lowering.
       pch_array_saved_var_array_elem(xsubtract_routine),
       pch_array_saved_var_array_elem(xmultiply_routine),
       pch_array_saved_var_array_elem(xdivide_routine),
+      pch_array_saved_var_array_elem(xeq_routine),
+      pch_array_saved_var_array_elem(xne_routine),
+#if GNU_EXTENSIONS_ALLOWED
+      pch_array_saved_var_array_elem(xconj_routine),
+#endif /* GNU_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(cast_cfloat_to_cdouble_routine),
       pch_saved_var_array_elem(cast_cfloat_to_clong_double_routine),
       pch_saved_var_array_elem(cast_cdouble_to_cfloat_routine),
@@ -4068,6 +4055,9 @@ for each translation unit.
       xdivide_routine[k] = NULL;
       xeq_routine[k] = NULL;
       xne_routine[k] = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+      xconj_routine[k] = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* for */
   }
   cast_cfloat_to_cdouble_routine = NULL;
