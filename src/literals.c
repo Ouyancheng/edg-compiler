@@ -569,6 +569,9 @@ the character position of the error.
 #if GNU_EXTENSIONS_ALLOWED
   if (*actual_end == 'i' || *actual_end == 'I' ||
       *actual_end == 'j' || *actual_end == 'J') {
+    /* GNU accepts imaginary literals like "1.0i", "2.0fj", and "3.0jL".
+       So we have to check for a 'i', 'I', 'j', or 'J' both here and
+       after a potential "precision suffix" like 'f' or 'L'. */
     is_imaginary_literal = TRUE;
     --actual_end;
   }  /* if */
@@ -588,6 +591,10 @@ the character position of the error.
 #if GNU_EXTENSIONS_ALLOWED
   if (*actual_end == 'i' || *actual_end == 'I' ||
       *actual_end == 'j' || *actual_end == 'J') {
+    /* Check for a suffix indicating an imaginary literal appearing after a
+       suffix denoting the floating-point precision.  Note that scan_number
+       will have diagnosed cases where two "imaginary literal" suffixes
+       appeared. */
     is_imaginary_literal = TRUE;
     --actual_end;
   }  /* if */
