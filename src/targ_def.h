@@ -3692,12 +3692,15 @@ This switch controls whether complex and imaginary types and operations
 calls to runtime routines to implement complex operations and conversions.
 */
 #ifndef LOWER_COMPLEX
-#if DO_C99_IL_LOWERING || DO_IL_LOWERING
+#if (DO_C99_IL_LOWERING || DO_IL_LOWERING) && C99_IL_EXTENSIONS_SUPPORTED
 #define LOWER_COMPLEX TRUE
-#else /* !(DO_C99_IL_LOWERING || DO_IL_LOWERING) */
+#else /* !((DO_C99_IL_LOWERING || DO_IL_LOWERING) && C99_IL_EXTENSIONS...) */
 #define LOWER_COMPLEX FALSE
-#endif /* DO_C99_IL_LOWERING || DO_IL_LOWERING */
+#endif /* (DO_C99_IL_LOWERING || DO_IL_LOWERING) && C99_IL_EXTENSIONS... */
 #endif /* ifndef LOWER_COMPLEX */
+#if LOWER_COMPLEX && !C99_IL_EXTENSIONS_SUPPORTED
+ #error -- LOWER_COMPLEX requires C99_IL_EXTENSIONS_SUPPORTED
+#endif /* LOWER_COMPLEX && !C99_IL_EXTENSIONS_SUPPORTED */
 #if LOWER_COMPLEX && !(DO_C99_IL_LOWERING || DO_IL_LOWERING)
  #error -- Complex cannot be lowered without doing C99 or C++ IL lowering
 #endif /* LOWER_COMPLEX && !(DO_C99_IL_LOWERING || DO_IL_LOWERING) */
