@@ -6276,6 +6276,10 @@ operand.
     case eok_multiply_assign:
     case eok_divide_assign:
     case eok_address:
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_lvalue_real_part:
+    case eok_lvalue_imag_part:
+#endif /* GNU_EXTENSIONS_ALLOWED */
       takes_lvalue = TRUE;
       break;
     default:
