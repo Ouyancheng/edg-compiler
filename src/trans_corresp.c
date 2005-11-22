@@ -1288,8 +1288,6 @@ is set to point to the first created type.
       set_builtin_type_corresp(
                   &canonical_imaginary_types[type->variant.float_kind], type);
       break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if C99_IL_EXTENSIONS_SUPPORTED
     case tk_complex:
       set_builtin_type_corresp(
                     &canonical_complex_types[type->variant.float_kind], type);
@@ -1417,6 +1415,24 @@ primary IL.
 
 #if C99_IL_EXTENSIONS_SUPPORTED
 
+a_type_ptr primary_bool_type(void)
+/*
+Return the bool type entry used in the primary translation unit IL, or NULL
+if the type hasn't been used in the primary IL.  This routine takes into
+account the possibility that the trans_copy process (which must have completed)
+created such an entry as a result of copying an entry into the primary IL.
+*/
+{
+  a_type_ptr  result = canonical_il_bool_type;
+
+  if (result != NULL) {
+    result = (a_type_ptr)canonical_il_entry_of(result);
+    check_assertion(!in_secondary_trans_unit(result));
+  }  /* if */
+  return result;
+}  /* primary_bool_type */
+
+
 a_type_ptr primary_complex_type(a_float_kind  kind)
 /*
 Return the complex type entry of the given kind used in the primary translation
@@ -1435,8 +1451,6 @@ primary IL.
   return result;
 }  /* primary_complex_type */
 
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if C99_IL_EXTENSIONS_SUPPORTED
 
 a_type_ptr primary_imaginary_type(a_float_kind  kind)
 /*
@@ -1455,24 +1469,6 @@ entry into the primary IL.
   }  /* if */
   return result;
 }  /* primary_imaginary_type */
-
-
-a_type_ptr primary_bool_type(void)
-/*
-Return the bool type entry used in the primary translation unit IL, or NULL
-if the type hasn't been used in the primary IL.  This routine takes into
-account the possibility that the trans_copy process (which must have completed)
-created such an entry as a result of copying an entry into the primary IL.
-*/
-{
-  a_type_ptr  result = canonical_il_bool_type;
-
-  if (result != NULL) {
-    result = (a_type_ptr)canonical_il_entry_of(result);
-    check_assertion(!in_secondary_trans_unit(result));
-  }  /* if */
-  return result;
-}  /* primary_bool_type */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if FIXED_POINT_ALLOWED
