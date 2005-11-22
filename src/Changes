@@ -1,5 +1,23 @@
 Version 3.7
 
+11/22/05 Microsoft compatibility: static data member explicit specializations
+
+The Microsoft compiler treats what should be just a declaration of a
+specialization of a static data member as a definition with a default
+initializer (note that explicit specializations differ from normal
+static data member definitions in this regard).  We now emulate this
+behavior in Microsoft bugs mode.  This example should fail to link because
+A<int>::i is not defined, but it links successfully in Microsoft bugs mode.
+
+  template <class T> struct A {
+    static int i;
+  };
+  template <> int A<int>::i;
+  int main() {
+    int *p;
+    p = &A<int>::i;
+  }
+
 11/21/05 Microsoft compatibility: Reference to incomplete array parameters
 
 In Microsoft mode, the front end no longer accepts reference parameters whose

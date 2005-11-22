@@ -15933,7 +15933,9 @@ that follows.
            more detailed type information than the in-class declaration (e.g.,
            an array bound). */
         vp->type = composite_type(vp->type, type);
-        is_definition = (curr_token == tok_assign ||
+        /* The Microsoft compiler treats a static data member specialization
+           declaration as a definition. */
+        is_definition = (microsoft_bugs || curr_token == tok_assign ||
                          has_parenthesized_initializer);
       } else {
         check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
@@ -16082,8 +16084,6 @@ that follows.
 
           sym->variant.static_data_member.variable->
                            storage_class = (a_storage_class)sc_unspecified;
-          /* Advance past "=". */
-          if (curr_token == tok_assign) (void)get_token();
           /* Make sure that the type of the static data member is complete.
              If the type cannot be completed, an error will be issued by
              initializer.  Note that a static data member specialization
@@ -16091,12 +16091,34 @@ that follows.
              declaration without an initializer is just a declaration, not
              a definition). */
           complete_type_is_needed(vp->type);
-          initializer(sym, &locator.source_position,
-                      (an_id_linkage_kind)idl_external,
-                      has_parenthesized_initializer,
-                      /*is_old_style_param_decl=*/FALSE,
-                      &incomplete_type_error_reported,
-                      &decl_pos_block);
+          if (curr_token != tok_semicolon) {
+            /* Advance past "=". */
+            if (curr_token == tok_assign) (void)get_token();
+            initializer(sym, &locator.source_position,
+                        (an_id_linkage_kind)idl_external,
+                        has_parenthesized_initializer,
+                        /*is_old_style_param_decl=*/FALSE,
+                        &incomplete_type_error_reported,
+                        &decl_pos_block);
+          } else {
+            /* This case should only occur in Microsoft bugs mode, in which
+               a specialization without an initializer is treated as a
+               definition. */
+            if (vp->init_kind != (an_init_kind)initk_none) {
+              /* The static data is already initialized (presumably by an
+                 in-class initializer). */
+            } else {
+              a_boolean	def_init_okay;
+              /* There's no explicit initializer.  See if the static data
+                 member can be default-initialized. */
+              def_init_okay = def_initializer(sym, &sym->decl_position);
+              if (!def_init_okay) {
+                /* It could not be default initialized.  See if an initializer
+                   is required. */
+                check_for_missing_initializer(sym, vp->type);
+              }  /* if */
+            }  /* if */
+          }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
           if (gpp_mode && has_parenthesized_initializer &&
               curr_token == tok_attribute) {
