@@ -11182,10 +11182,10 @@ to TRUE.  *source_pos gives the source position for errors.
         break;
 #endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
-      /* These are used only in C mode.  If they are added for GNU C++
-         mode, bear in mind that determine_arithmetic_conversions does
-         not do the whole job for imaginary types; see also
-         determine_imaginary_operation_type. */
+      /* The following imaginary type operators are used only in C mode.
+         If they are added for C++ mode, bear in mind that
+         determine_arithmetic_conversions does not do the whole job for
+         imaginary types; see also determine_imaginary_operation_type. */
       case eok_jmultiply:
       case eok_jdivide:
         unexpected_condition_str("imaginary operators not implemented");
