@@ -9353,7 +9353,10 @@ Lower an eok_bool_cast node, which converts an operand to bool.
   an_expr_node_ptr      zero_node;
   a_constant            zero_constant;
   an_expr_operator_kind op;
-  a_type_ptr            operand_type, orig_type, result_type;
+  a_type_ptr            operand_type, result_type;
+#if DO_C99_IL_LOWERING
+  a_type_ptr            orig_type = expr->type;
+#endif /* DO_C99_IL_LOWERING */
 
   /* A cast to bool in C++ or C99 is rewritten as a "!= 0" test in C89. */
   operand = integral_promote_node(operand);
@@ -9363,7 +9366,7 @@ Lower an eok_bool_cast node, which converts an operand to bool.
   make_zero_of_proper_type(operand_type, &zero_constant);
   zero_node = alloc_node_for_constant(&zero_constant);
   operand->next = zero_node;
-  result_type = orig_type = expr->type;
+  result_type = expr->type;
   if (C_mode()) {
     /* In C99, the result type of the comparison is "int".  A cast will
        have to be added later, because we really want a "bool" result. */

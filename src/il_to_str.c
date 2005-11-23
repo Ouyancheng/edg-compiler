@@ -33,6 +33,7 @@ il_to_str.c -- Produce an external string-form representation for various
 #else /* !(BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) */
 #define use_microsoft_form() microsoft_mode
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+/*lint -esym(750,use_microsoft_form)*/
 
 
 static void form_expression(an_expr_node_ptr                      expr,
