@@ -4811,14 +4811,6 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_gnu_max:
       opkind = (an_opname_kind)onk_gnu_max;
       break;
-    case eok_real_part:
-    case eok_lvalue_real_part:
-      opkind = (an_opname_kind)onk_real_part;
-      break;
-    case eok_imag_part:
-    case eok_lvalue_imag_part:
-      opkind = (an_opname_kind)onk_imag_part;
-      break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_remainder:
       opkind = (an_opname_kind)onk_remainder;

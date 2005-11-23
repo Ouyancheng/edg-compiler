@@ -6922,9 +6922,6 @@ enum an_opname_kind_tag {
   onk_function_call,     /* "()" */     onk_subscript,         /* "[]" */
   onk_question,          /* "?" -- only used in front end. */
   onk_gnu_min,           /* "<?" */     onk_gnu_max,           /* ">?" */
-#if GNU_EXTENSIONS_ALLOWED
-  onk_real_part,         /* "__real" */ onk_imag_part,         /* "__imag" */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   onk_last
 };
 #endif /* ifdef CIL */

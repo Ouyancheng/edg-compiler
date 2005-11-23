@@ -771,8 +771,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_attribute */
    (an_opname_kind)onk_none,          /* tok_va_start_single_operand */
    (an_opname_kind)onk_none,          /* tok_builtin_types_compatible */
-   (an_opname_kind)onk_real_part,     /* tok_gnu_real */
-   (an_opname_kind)onk_imag_part,     /* tok_gnu_imag */
+   (an_opname_kind)onk_none,          /* tok_gnu_real */
+   (an_opname_kind)onk_none,          /* tok_gnu_imag */
 #endif /* GNU_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_colon_colon */
    (an_opname_kind)onk_none,          /* tok_period_star */
