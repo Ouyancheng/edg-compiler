@@ -11026,37 +11026,33 @@ operators cannot be overloaded.
       result->type = operand.type;
     }  /* if */
     pos_warning(ec_real_and_imag_applied_to_real_value, &start_pos);
-  } else if (is_complex_type(operand.type) ||
-             (is_template_dependent_context() &&
-              is_template_dependent_type(operand.type))) {
-    a_type_ptr  result_type;
-    if (is_complex_type(operand.type)) {
-      /* A complex argument: The result type is the corresponding real
-         floating-point type. */
-      result_type = float_type(skip_typerefs(operand.type)
+  } else if (is_complex_type(operand.type)) {
+    /* A complex argument: The result type is the corresponding real
+       floating-point type. */
+    a_type_ptr  result_type = float_type(skip_typerefs(operand.type)
                                                        ->variant.float_kind);
-    } else {
-      /* A template-dependent type.  Use the argument type as the result
-         type. */
-      result_type = operand.type;
-    }  /* if */
     if (is_an_lvalue(&operand)) {
       /* If the argument is an lvalue, the result is also an lvalue. */
       an_expr_operator_kind  op;
+      an_expr_node_ptr       expr;
       op = (an_expr_operator_kind)(real_part ? eok_lvalue_real_part
                                              : eok_lvalue_imag_part);
       using_lvalue(&operand);
-      build_unary_result_operand(&operand, op, result_type, result);
+      expr = make_node_from_operand(&operand);
+      expr = make_operator_node(op, make_pointer_type(result_type), expr);
+      expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+      make_expression_operand(expr, result_type, result);
       result->state = (an_operand_state)os_lvalue;
-      result->variant.expression->type = make_pointer_type(result_type);
-      result->variant.expression
-            ->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
     } else {
       /* The argument is an rvalue: The result too. */
       do_unary_operation(
            (an_expr_operator_kind)(real_part ? eok_real_part : eok_imag_part),
            &operand, result_type, result, &start_pos);
     }  /* if */
+  } else if (is_template_param_type(operand.type)) {
+    template_unary_operation(
+           (an_expr_operator_kind)(real_part ? eok_real_part : eok_imag_part),
+           &operand, result, &start_pos);
   } else {
     error_in_operand(ec_real_and_imag_require_complex_argument, &operand);
     make_error_operand(result);
