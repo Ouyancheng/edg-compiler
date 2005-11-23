@@ -1836,12 +1836,15 @@ to the character position following what was demangled.
     p = demangle_type_name(p, dctl);
   } else {
     /* Builtin type. */
-    /* Handle signed and unsigned. */
+    /* Handle signed and unsigned, and _Complex. */
     if (ch == 'S') {
       write_id_str("signed ", dctl);
       p++;
     } else if (ch == 'U') {
       write_id_str("unsigned ", dctl);
+      p++;
+    } else if (ch == 'x') {
+      write_id_str("_Complex ", dctl);
       p++;
     }  /* if */
     switch (get_char(p++, dctl)) {
@@ -3365,6 +3368,11 @@ at that level.  cv-qualifiers have been handled by the caller.
     }  /* if */
   } else {
     /* Builtin type. */
+    if (*p == 'C') {
+      /* GNU _Complex type. */
+      write_id_str("_Complex ", dctl);
+      ++p;
+    }  /* if */
     switch (*p++) {
       case 'v':
         s = "void";
