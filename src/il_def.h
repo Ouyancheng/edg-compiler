@@ -8819,15 +8819,16 @@ enum an_expr_operator_kind_tag {
   eok_ppre_incr,        /* Pointer pre increment. */
   eok_ppre_decr,        /* Pointer pre decrement. */
   eok_lvalue_from_struct_rvalue,
-			/* C mode only: placed above an expression that
-			   is a struct rvalue, produces the address of the
-			   struct (this can be implemented by storing the
-			   value in a temporary and returning the address of
-			   the temporary).  This is used in implementing
-			   subscripting of rvalue arrays in C mode, an
-			   extension to ANSI/ISO C.  The underlying expression
-			   can be a call that returns a struct, a struct
-			   assignment, or a comma operation. */
+			/* C mode: placed above an expression that is a struct
+			   rvalue, produces the address of the struct (this can
+			   be implemented by storing the value in a temporary
+			   and returning the address of the temporary).  This
+			   is used in implementing subscripting of rvalue
+			   arrays in C mode, an extension to ANSI/ISO C.  It's
+			   may also be generated during IL lowering.  The
+			   underlying expression can be a call that returns a
+			   struct, a struct assignment, or a comma
+			   operation. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   eok_assume,		/* Microsoft __assume(expr).  Note that the
 			   operand is not evaluated in the traditional

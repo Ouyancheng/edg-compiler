@@ -1350,7 +1350,8 @@ static an_expr_node_ptr select_complex_vals(an_expr_node_ptr  expr)
 /*
 The given expression node represents a complex lvalue or rvalue.  Return a node
 (constructed on top of the given one) for "<expr>.Vals" where "Vals" is the
-single field of the lowered complex type.
+single field of the lowered complex type.  The returned node is an lvalue
+(if an rvalue is needed, the caller should perform the needed transformation).
 */
 {
   an_expr_node_ptr  result;
@@ -1365,29 +1366,17 @@ single field of the lowered complex type.
     ctype = type_pointed_to(ctype);
   } else {
     is_lvalue = FALSE;
+    /* Turn the rvalue struct (the lowered complex type) into an lvalue. */
+    expr = make_operator_node(
+                         (an_expr_operator_kind)eok_lvalue_from_struct_rvalue,
+                         make_pointer_type(expr->type), expr);
   }  /* if */
   vals_field = complex_vals_field(ctype);
   ptr_to_elem_type = type_after_array_to_pointer_transformation(
                                                              vals_field->type);
-  /* Make "<expr>._Vals[1]" as the lvalue for the imaginary part. */
-  /* First construct "<expr>._Vals". */
-  if (is_lvalue) {
-    /* To select a field from an lvalue, we can use field_lvalue_selection_expr
-       or field_rvalue_selection_expr.  In this case, we want to construct an
-       lvalue result, so we use the former. */
-    result = field_lvalue_selection_expr(expr, vals_field);
-    result = add_cast_if_necessary(result, ptr_to_elem_type);
-  } else {
-    /* Selecting a field from an rvalue requires a different operator
-       (eok_value_field). */
-    an_expr_node_ptr  field_node =
-                                alloc_expr_node((an_expr_node_kind)enk_field);
-    field_node->type = vals_field->type;
-    field_node->variant.field = vals_field;
-    expr->next = field_node;
-    result = make_operator_node((an_expr_operator_kind)eok_value_field,
-                                ptr_to_elem_type, expr);
-  }  /* if */
+  /* Construct "<expr>._Vals". */
+  result = field_lvalue_selection_expr(expr, vals_field);
+  result = add_cast_if_necessary(result, ptr_to_elem_type);
   return result;
 }  /* select_complex_vals */
 
