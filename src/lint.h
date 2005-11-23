@@ -447,12 +447,12 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_cl_vla_option_only_in_C)*/
 #endif /* ABI_COMPATIBILITY_VERSION >= 306 */
 #if DO_IL_LOWERING
-#if LOWER_COMPLEX || LOWER_VARIABLE_LENGTH_ARRAY || LOWER_FIXED_POINT
+#if LOWER_COMPLEX || LOWER_VARIABLE_LENGTH_ARRAYS || LOWER_FIXED_POINT
 /*lint -esym(759,make_prototyped_runtime_call)*/
 /*lint -esym(765,make_prototyped_runtime_call)*/
-#else /* !(LOWER_COMPLEX || LOWER_VARIABLE_LENGTH_ARRAY || ...) */
+#else /* !(LOWER_COMPLEX || LOWER_VARIABLE_LENGTH_ARRAYS || ...) */
 /*lint -esym(769,make_prototyped_runtime_call)*/
-#endif /* LOWER_COMPLEX || LOWER_VARIABLE_LENGTH_ARRAY || ... */
+#endif /* LOWER_COMPLEX || LOWER_VARIABLE_LENGTH_ARRAYS || ... */
 #endif /* DO_IL_LOWERING */
 #if !FULLY_RESOLVED_MACRO_POSITIONS
 /*lint -esym(769,ec_in_macro_expansion_at)*/
