@@ -1357,15 +1357,12 @@ single field of the lowered complex type.  The returned node is an lvalue
   an_expr_node_ptr  result;
   a_field_ptr       vals_field;
   a_type_ptr        ctype = skip_typerefs(expr->type), ptr_to_elem_type;
-  a_boolean         is_lvalue;
 
   if (is_pointer_type(expr->type)) {
     /* A node representing a complex lvalue.  Recover the actual complex
        type. */
-    is_lvalue = TRUE;
     ctype = type_pointed_to(ctype);
   } else {
-    is_lvalue = FALSE;
     /* Turn the rvalue struct (the lowered complex type) into an lvalue. */
     expr = make_operator_node(
                          (an_expr_operator_kind)eok_lvalue_from_struct_rvalue,
