@@ -1330,12 +1330,22 @@ member declaration (allowed in some Microsoft modes only).
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode &&
         rout_type->variant.routine.extra_info->calling_convention != 
-                                            (a_calling_convention)cc_default &&
-        !calling_conventions_are_compatible(*old_type, rout_type)) {
-      /* An out-of-class definition should not change the calling convention
-         declared in the class definition (not specifying a calling convention
-         never amounts to a change). */
-      pos_error(ec_conflicting_calling_conventions, &locator->source_position);
+                                            (a_calling_convention)cc_default) {
+      /* A calling convention was specified on the out-of-class definition. */
+      if (rout_type->variant.routine.extra_info->calling_convention ==
+                                           (a_calling_convention)cc_thiscall &&
+                 !routine_type_is_nonstatic_member_function(*old_type)) {
+        /* The "__thiscall" calling convention can only be applied to
+           nonstatic member functions. */
+        pos_error(ec_thiscall_requires_nonstatic_member,
+                  &locator->source_position);
+      } else if (!calling_conventions_are_compatible(*old_type, rout_type)) {
+        /* An out-of-class definition should not change the calling convention
+           declared in the class definition (not specifying a calling
+	   convention never amounts to a change). */
+        pos_error(ec_conflicting_calling_conventions,
+                  &locator->source_position);
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* The types may be compatible but not identical.  Create (in type_ptr)

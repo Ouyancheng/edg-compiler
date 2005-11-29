@@ -31,7 +31,8 @@ calling convention.
   (microsoft_mode &&                                                  \
    (curr_token == tok_cdecl ||                                        \
     curr_token == tok_fastcall ||                                     \
-    curr_token == tok_stdcall))
+    curr_token == tok_stdcall ||                                      \
+    curr_token == tok_thiscall))
 #else /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* When Microsoft keywords are not allowed simply return FALSE. */
 #define is_microsoft_calling_convention() FALSE

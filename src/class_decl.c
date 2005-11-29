@@ -7145,21 +7145,31 @@ is set to NULL by this function.
 
   db_enter(3, "decl_member_function");
   rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
-  /* Check if we are attempting to declare a static member function through a
-     qualified function type typedef. E.g.,
-       typedef void f() const; struct S { static F f(); }           */
   if (decl_info->storage_class == (a_storage_class)sc_static) {
+    /* A static member function. */
+    /* Check if we are attempting to declare a static member function through a
+       qualified function type typedef. E.g.,
+         typedef void f() const; struct S { static F f(); }           */
     if (member_type->kind == (a_type_kind)tk_typeref &&
         typeref_is_typedef(member_type) &&
         rtsp->qualifiers != TQ_NONE) {
       pos_error(ec_bad_qualified_function_type, &locator->source_position);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Static member functions cannot appear in interface types. */
-    if (microsoft_mode &&
-        class_type->variant.class_struct_union.is_interface) {
-      pos_error(ec_interface_cannot_have_static_members,
-                &decl_info->decl_start_pos);
+    if (microsoft_mode) {
+      if (class_type->variant.class_struct_union.is_interface) {
+        /* Static member functions cannot appear in interface types. */
+        pos_error(ec_interface_cannot_have_static_members,
+                  &decl_info->decl_start_pos);
+      }  /* if */
+      if (skip_typerefs(member_type)->variant.routine.extra_info
+                                    ->calling_convention ==
+                                           (a_calling_convention)cc_thiscall) {
+        /* Static member functions cannot have the __thiscall calling
+           convention. */
+        pos_error(ec_thiscall_requires_nonstatic_member,
+                  &decl_info->decl_start_pos);
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */

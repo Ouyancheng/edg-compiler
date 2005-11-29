@@ -1,5 +1,14 @@
 Version 3.7
 
+11/29/05 Microsoft compatibility: __thiscall
+
+In Microsoft mode, the front end now accepts the __thiscall calling convention
+on nonstatic member function declarations.  For example:
+
+  struct S {
+    void __thiscall f();  // Accepted in Microsoft mode.
+  };
+
 11/22/05 Microsoft compatibility: static data member explicit specializations
 
 The Microsoft compiler treats what should be just a declaration of a

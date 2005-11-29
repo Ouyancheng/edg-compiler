@@ -3768,6 +3768,7 @@ enum a_calling_convention_tag {
   cc_cdecl,		/* __cdecl calling convention. */
   cc_fastcall,		/* __fastcall calling convention. */
   cc_stdcall,		/* __stdcall calling convention. */
+  cc_thiscall,		/* __thiscall calling convention. */
   cc_last		/* Must be last. */
 };
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
@@ -3781,7 +3782,7 @@ typedef a_byte a_calling_convention;
 /* Display names for calling conventions. */
 EXTERN char *calling_convention_names[(int)cc_last]
 #if VAR_INITIALIZERS
-= {"<default>", "__cdecl", "__fastcall", "__stdcall"}
+= {"<default>", "__cdecl", "__fastcall", "__stdcall", "__thiscall"}
 #endif /* VAR_INITIALIZERS */
 ;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */

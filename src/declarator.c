@@ -2608,8 +2608,8 @@ that isn't accessed unless the associated flag has been set).
 
 static void scan_microsoft_calling_convention(a_calling_convention *call_conv)
 /*
-Scan a list of Microsoft calling conventions (__cdecl, __fastcall, __stdcall).
-Actually, only one calling convention may be specified, but the
+Scan a list of Microsoft calling conventions (__cdecl, __fastcall, __stdcall,
+__thiscall).  Actually, only one calling convention may be specified, but the
 same specifier may appear more than once.  It can be assumed that
 is_microsoft_calling_convention is TRUE on entry.  *call_conv on entry
 has any calling convention previously scanned, or is cc_default if there
@@ -2629,6 +2629,9 @@ convention scanned on this call.
         break;
       case tok_stdcall:
         new_call_conv = (a_calling_convention)cc_stdcall;
+        break;
+      case tok_thiscall:
+        new_call_conv = (a_calling_convention)cc_thiscall;
         break;
       default: unexpected_condition();
     }  /* switch */

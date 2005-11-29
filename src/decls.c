@@ -4684,6 +4684,26 @@ fact be a Microsoft Windows entry point).
   }  /* if */
 }  /* adjust_calling_convention_if_entry_point */
 
+
+static void check_and_adjust_calling_convention(
+                                           a_symbol_locator       *locator,
+                                           a_func_info_block_ptr  func_info,
+                                           a_type_ptr             type)
+/*
+Check that the function declaration being processed (which is not a class
+member) has an acceptable calling convention, and if it is an entry point
+function (like "main()") adjust its default calling convention.
+*/
+{
+  adjust_calling_convention_if_entry_point(locator, func_info, type);
+  if (skip_typerefs(type)->variant.routine.extra_info->calling_convention ==
+                                           (a_calling_convention)cc_thiscall) {
+    /* Nonmember functions cannot have the __thiscall calling convention. */
+    pos_error(ec_thiscall_requires_nonstatic_member,
+              &locator->source_position);
+  }  /* if */
+}  /* check_and_adjust_calling_convention */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if UPC_EXTENSIONS_ALLOWED
@@ -5968,7 +5988,7 @@ declaration.
          found, look it up now. */
       (void)normal_id_lookup(locator, IDL_NO_OPTIONS);
     }  /* if */
-    adjust_calling_convention_if_entry_point(locator, func_info, type_ptr);
+    check_and_adjust_calling_convention(locator, func_info, type_ptr);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (func_info->is_implicit_declaration) {
