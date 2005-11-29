@@ -1568,9 +1568,7 @@ Lower the given complex projection expression ("__real z" or "__imag z").
 */
 {
   an_expr_node_ptr  arg = expr->variant.operation.operands, result;
-  a_boolean         is_rvalue;
-
-  is_rvalue = !expr->variant.operation.returns_lvalue_instead_of_usual_rvalue;
+  a_boolean         is_rvalue = !is_pointer_type(expr->type);
 
   switch (expr->variant.operation.kind) {
     case eok_real_part:

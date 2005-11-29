@@ -9606,6 +9606,25 @@ non-NULL return *con_value == NULL.
         }  /* if */
         optimized_case = TRUE;
         node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+      } else if (op == (an_expr_operator_kind)eok_lvalue_real_part ||
+                 op == (an_expr_operator_kind)eok_lvalue_imag_part) {
+        /* Lvalue complex projection operators (a GNU-only feature).  Convert
+           the underlying operand to an rvalue, and change the lvalue operator
+           to the corresponding rvalue operator. */
+        check_assertion(op1 != NULL && op1->next == NULL);
+        op1 = conv_lvalue_expr_to_rvalue(op1, &constant_case2,
+                                         (a_constant_ptr *)NULL);
+        /* constant_case2 is unexamined: No attempt is made to fold the
+           result. */
+        node->variant.operation.operands = op1;
+        if (op == (an_expr_operator_kind)eok_lvalue_real_part) {
+          node->variant.operation.kind = (an_expr_operator_kind)eok_real_part;
+        } else {
+          node->variant.operation.kind = (an_expr_operator_kind)eok_imag_part;
+        }  /* if */
+        optimized_case = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
   }  /* if */

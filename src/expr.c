@@ -11040,7 +11040,6 @@ operators cannot be overloaded.
       using_lvalue(&operand);
       expr = make_node_from_operand(&operand);
       expr = make_operator_node(op, make_pointer_type(result_type), expr);
-      expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
       make_expression_operand(expr, result_type, result);
       result->state = (an_operand_state)os_lvalue;
     } else {
