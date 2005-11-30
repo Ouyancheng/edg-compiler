@@ -72,6 +72,7 @@ This version is for the Apple MacOS X operating system.
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 1
 #define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
 #define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C 1
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
 
 /******************************************************************************
 *                                                             \  ___  /       *
