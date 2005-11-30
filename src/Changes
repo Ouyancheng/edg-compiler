@@ -1,5 +1,20 @@
 Version 3.7
 
+11/30/05 Abort on using-declaration overload in class template
+
+In a class template, overloading a using-declaration for a member of a
+dependent base class, a member function template, and a normal member
+function could lead to an assertion failure in class_decl.c.  For example:
+
+  template<typename> struct B {};
+  template<typename T> struct D: B<T> {
+    using B<T>::f;
+    template<typename> void f();
+    void f();
+  };  // Previously triggered an assertion failure.
+
+This is now fixed.
+
 11/29/05 Microsoft compatibility: __thiscall
 
 In Microsoft mode, the front end now accepts the __thiscall calling convention
