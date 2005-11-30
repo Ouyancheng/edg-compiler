@@ -722,7 +722,6 @@ Enter the standard predeclared functions for GCC.
 
 #undef enter_gnu_builtin_func0
 #undef enter_gnu_builtin_vararg_func0
-#undef enter_simple_builtin_gnu_math_functions
 #undef enter_gnu_builtin_func1
 #undef enter_gnu_builtin_vararg_func1
 #undef enter_gnu_builtin_func2
@@ -734,6 +733,7 @@ Enter the standard predeclared functions for GCC.
 #undef enter_gnu_builtin_real_math_funcs1
 #undef enter_gnu_builtin_real_math_funcs2
 #undef enter_gnu_builtin_complex_math_funcs1
+#undef enter_gnu_builtin_complex_math_funcs2
 #undef enter_gnu_builtin_bit_count_funcs
 }  /* enter_gnu_predeclared_functions */
 
