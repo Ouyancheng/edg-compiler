@@ -7387,7 +7387,8 @@ enum a_builtin_function_kind_tag {
   bfk_ynl,                      /* "__builtin_ynl" */
   bfk_last
 };
-/* Define as "a_byte" to explicitly control storage size. */
+/* Define as "unsigned short" to explicitly control storage size (a_byte
+   has insufficient range). */
 typedef unsigned short a_builtin_function_kind;
 
 /*
