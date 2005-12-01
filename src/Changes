@@ -1,5 +1,28 @@
 Version 3.7
 
+12/1/05  Spurious diagnostic on use of undefined preprocessing identifier
+
+The fix of 5/4/04 that eliminated the diagnostic "zero used for
+undefined preprocessing identifier" on uses in unevaluated parts
+of #if statements was incomplete.  A previous use in the program
+of "&&" or "||" on an overloadable type (e.g., an enum) caused the
+use in an unevaluated expression to still be diagnosed.  The
+problem was actually a pre-existing issue that prevented folding
+of "&&" and "||" operations in constant expressions when there is
+a previous use of the operator on an overloadable type, which aside
+from this diagnostic issue meant suboptimal code sometimes.  Now fixed.
+
+  class basic_istream
+  {
+    enum fmtflags{};
+    fmtflags flags();
+    void _Ipfx() {
+      if (!0 && flags()) ;  // Required for failure
+    }
+  };
+  #if defined(KALLE) && (KALLE>3)  // Got spurious diagnostic
+  #endif
+
 12/1/05  End position incorrect on cast in prototype instantiation
 
 The end source position was not set on a cast to a dependent
