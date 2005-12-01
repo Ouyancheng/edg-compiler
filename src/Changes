@@ -1,5 +1,21 @@
 Version 3.7
 
+12/1/05  Incorrect variant used, lowering of destructor call, IA-64 version
+
+Code in add_destructor_call used an incorrect variant in the
+IA-64 ABI configuration when processing a destructor call for
+a variable whose type is a typedef to a class.  The entity
+tested is a bit field, so the front end would not crash, but
+incorrect code could potentially have been generated.  Now fixed.
+
+  struct A {
+    ~A() {}
+  };
+  typedef A T;
+  int main() {
+    T x;
+  }
+
 11/30/05 Abort on using-declaration overload in class template
 
 In a class template, overloading a using-declaration for a member of a

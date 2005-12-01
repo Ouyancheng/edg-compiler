@@ -3761,7 +3761,7 @@ dynamic init pointer because of the make_destruction_routine case.
     entity_node = add_cast_if_necessary(entity_node,
                                         f_skip_typerefs(this_param_type));
 #if IA64_ABI
-    if (type_from_init_pos_descr(ipdp)->variant.
+    if (f_skip_typerefs(type_from_init_pos_descr(ipdp))->variant.
                                  class_struct_union.any_virtual_base_classes &&
         !have_complete_object) {
       check_assertion(vtt_addr_node != NULL);
