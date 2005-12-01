@@ -1,5 +1,20 @@
 Version 3.7
 
+12/1/05  GNU compatibility: Signedness of enum bit fields
+
+Normally, in a configuration with TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
+and TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED set to FALSE (configuration settings
+needed to closely emulate the behavior of GNU compilers), an enum bit field is
+signed if an enumerator of the enum type is negative, or if all the enumerator
+values of the enum type fit in the signed underlying type.  However, it
+appears that GNU compilers make the bit field unsigned in the latter case.
+We now emulate that behavior in GNU modes.  For example:
+
+  enum E { e };
+  struct S {
+    enum E b:2;  /* Now an unsigned bit field in GNU mode. */
+  };
+
 12/1/05  GNU C compatibility: Old-style function definitions and prototypes
 
 When introducing the gnu_version variable (see Changes entry of 10/4/04),

@@ -9318,7 +9318,13 @@ must be unsigned.
            target preference. */
         /* Note that because bits_needed_largest is at least 1, we can
            never get here for a bit field of length one. */
-        use_signed = !targ_plain_int_bit_field_is_unsigned;
+        if (gnu_mode) {
+          /* GNU compilers use an unsigned type in this case, even though
+             a signed type is used for the "plain int bit field" case. */
+          use_signed = FALSE;
+        } else {
+          use_signed = !targ_plain_int_bit_field_is_unsigned;
+        }  /* if */
       }  /* if */
       if (use_signed && sign_of_integer_constant(&largest) > 0) {
         /* Using a signed bit field and the largest is positive, so the
