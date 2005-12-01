@@ -162,7 +162,7 @@ invisible members.  For example:
     using B::f;  // B::f invisible (hidden by C::f).  Nonstandard, but now
   };             // accepted in g++ mode.
 
-11/18/06 Enum type compatibility in strict C modes
+11/18/06 Enum type compatibility in C modes
 
 In C modes (C89 and C99), the front end now correctly treats different enum
 types as being incompatible (previously they were considered compatible).
@@ -171,7 +171,7 @@ For example:
   typedef enum { e } E;
   typedef enum { f } F;
   E g();
-  F g();  // Now a compatibility error in strict C modes.
+  F g();  // Now a compatibility error in many C modes.
 
 The enum types are still treated as compatible in Microsoft C mode and in
 GNU C mode when gnu_version < 30400.
