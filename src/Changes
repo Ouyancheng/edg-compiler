@@ -1,5 +1,18 @@
 Version 3.7
 
+12/1/05  GNU C compatibility: Old-style function definitions and prototypes
+
+When introducing the gnu_version variable (see Changes entry of 10/4/04),
+the ability to follow a prototyped function declaration by an unprototyped
+function definition in GNU C mode was mistakenly limited to GNU C modes
+with gnu_version < 30400.  This has been changed to allow such code for
+any value of gnu_version.  For example:
+
+  void f(short);
+  void f(a) short a {}  // Previously an error in GNU C modes with
+                        // gnu_version >= 30400.  Now accepted in any
+                        // GNU C mode.
+
 12/1/05  Invalid type variant access during processing of enumerator constant
 
 Code in enum_specifier could access an incorrect variant of a type entry

@@ -5695,7 +5695,7 @@ is_function_def is TRUE if the redeclaration is a definition.
   a_type_ptr     old_return_type = return_type_of(rp->type);
   a_type_ptr     new_return_type = return_type_of(new_type);
 
-  if (gcc_mode && gnu_version < 30400 &&
+  if (gcc_mode &&
       !skip_typerefs(new_type)->variant.routine.extra_info->prototyped &&
       skip_typerefs(rp->type)->variant.routine.extra_info->prototyped &&
       f_types_are_compatible(rp->type, new_type,
