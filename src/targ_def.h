@@ -305,6 +305,41 @@ support library.
 #endif /* !C99_IL_EXTENSIONS_SUPPORTED && GNU_COMPLEX_EXTENSIONS_ALLOWED */
 
 /*
+This switch controls whether complex and imaginary types and operations
+(a C99 and GNU C/C++ feature) are lowered to C89 form.  The lowered form uses
+calls to runtime routines to implement complex operations and conversions.
+*/
+#ifndef LOWER_COMPLEX
+#if (DO_C99_IL_LOWERING || DO_IL_LOWERING) && C99_IL_EXTENSIONS_SUPPORTED
+#define LOWER_COMPLEX TRUE
+#else /* !((DO_C99_IL_LOWERING || DO_IL_LOWERING) && C99_IL_EXTENSIONS...) */
+#define LOWER_COMPLEX FALSE
+#endif /* (DO_C99_IL_LOWERING || DO_IL_LOWERING) && C99_IL_EXTENSIONS... */
+#endif /* ifndef LOWER_COMPLEX */
+#if LOWER_COMPLEX && !C99_IL_EXTENSIONS_SUPPORTED
+ #error -- LOWER_COMPLEX requires C99_IL_EXTENSIONS_SUPPORTED
+#endif /* LOWER_COMPLEX && !C99_IL_EXTENSIONS_SUPPORTED */
+#if LOWER_COMPLEX && !(DO_C99_IL_LOWERING || DO_IL_LOWERING)
+ #error -- Complex cannot be lowered without doing C99 or C++ IL lowering
+#endif /* LOWER_COMPLEX && !(DO_C99_IL_LOWERING || DO_IL_LOWERING) */
+
+/*
+This switch controls whether fixed-point arithmetic types and operations
+are lowered to standard C.  The lowered form uses calls to runtime routines
+provided by Dinkumware Ltd. (EDG does not provide them), so the feature
+is off by default.
+*/
+#ifndef LOWER_FIXED_POINT
+#define LOWER_FIXED_POINT FALSE
+#endif /* ifndef LOWER_FIXED_POINT */
+#if LOWER_FIXED_POINT && !DO_C99_IL_LOWERING
+ #error -- Fixed point cannot be lowered without doing C99 IL lowering
+#endif /* LOWER_FIXED_POINT && !DO_C99_IL_LOWERING */
+#if LOWER_FIXED_POINT && !FIXED_POINT_ALLOWED
+ #error -- Fixed point cannot be lowered unless fixed point is enabled
+#endif /* LOWER_FIXED_POINT && !FIXED_POINT_ALLOWED */
+
+/*
 Flag that is TRUE if the "long long" data type and the associated language
 features (e.g., suffixes for constants) are allowed.  "long long" is
 standard in C99, and Microsoft mode needs the IL support for __int64.
@@ -3685,41 +3720,6 @@ whole process.
 #define LOWER_MICROSOFT_NONCONSTANT_AGGREGATE TRUE
 #endif /* ifndef LOWER_MICROSOFT_NONCONSTANT_AGGREGATE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-/*
-This switch controls whether complex and imaginary types and operations
-(a C99 and GNU C/C++ feature) are lowered to C89 form.  The lowered form uses
-calls to runtime routines to implement complex operations and conversions.
-*/
-#ifndef LOWER_COMPLEX
-#if (DO_C99_IL_LOWERING || DO_IL_LOWERING) && C99_IL_EXTENSIONS_SUPPORTED
-#define LOWER_COMPLEX TRUE
-#else /* !((DO_C99_IL_LOWERING || DO_IL_LOWERING) && C99_IL_EXTENSIONS...) */
-#define LOWER_COMPLEX FALSE
-#endif /* (DO_C99_IL_LOWERING || DO_IL_LOWERING) && C99_IL_EXTENSIONS... */
-#endif /* ifndef LOWER_COMPLEX */
-#if LOWER_COMPLEX && !C99_IL_EXTENSIONS_SUPPORTED
- #error -- LOWER_COMPLEX requires C99_IL_EXTENSIONS_SUPPORTED
-#endif /* LOWER_COMPLEX && !C99_IL_EXTENSIONS_SUPPORTED */
-#if LOWER_COMPLEX && !(DO_C99_IL_LOWERING || DO_IL_LOWERING)
- #error -- Complex cannot be lowered without doing C99 or C++ IL lowering
-#endif /* LOWER_COMPLEX && !(DO_C99_IL_LOWERING || DO_IL_LOWERING) */
-
-/*
-This switch controls whether fixed-point arithmetic types and operations
-are lowered to standard C.  The lowered form uses calls to runtime routines
-provided by Dinkumware Ltd. (EDG does not provide them), so the feature
-is off by default.
-*/
-#ifndef LOWER_FIXED_POINT
-#define LOWER_FIXED_POINT FALSE
-#endif /* ifndef LOWER_FIXED_POINT */
-#if LOWER_FIXED_POINT && !DO_C99_IL_LOWERING
- #error -- Fixed point cannot be lowered without doing C99 IL lowering
-#endif /* LOWER_FIXED_POINT && !DO_C99_IL_LOWERING */
-#if LOWER_FIXED_POINT && !FIXED_POINT_ALLOWED
- #error -- Fixed point cannot be lowered unless fixed point is enabled
-#endif /* LOWER_FIXED_POINT && !FIXED_POINT_ALLOWED */
 
 /*
 This switch controls whether designated initializers (a C99 feature)
