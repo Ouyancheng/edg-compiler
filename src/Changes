@@ -1,5 +1,13 @@
 Version 3.7
 
+12/1/05  Default configuration of REDEFINE_EXTNAME_PRAGMA_ENABLED
+
+The configuration macro REDEFINE_EXTNAME_PRAGMA_ENABLED (see Changes entry of
+9/9/02) was previously set to TRUE by default if the (undocumented) macro
+SOLARIS is defined.  Now, the macro is set to TRUE by default when the Sun-
+specific macro __PRAGMA_REDEFINE_EXTNAME is defined (which indicates that
+the build compiler supports the "#pragma redefined_extname" construct).
+
 12/1/05  GNU compatibility: Signedness of enum bit fields
 
 Normally, in a configuration with TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED

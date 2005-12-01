@@ -996,11 +996,11 @@ Flag that is TRUE if "#pragma redefine_extname" is recognized.  Compilers that
 recognize this pragma should also define a macro __PRAGMA_REDEFINE_EXTNAME.
 */
 #ifndef REDEFINE_EXTNAME_PRAGMA_ENABLED
-#ifdef SOLARIS
+#ifdef __PRAGMA_REDEFINE_EXTNAME
 #define REDEFINE_EXTNAME_PRAGMA_ENABLED TRUE
-#else /* !SOLARIS */
+#else /* !(defined __PRAGMA_REDEFINE_EXTNAME) */
 #define REDEFINE_EXTNAME_PRAGMA_ENABLED FALSE
-#endif /* SOLARIS */
+#endif /* ifdef __PRAGMA_REDEFINE_EXTNAME */
 #endif /* ifndef REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
 /*
