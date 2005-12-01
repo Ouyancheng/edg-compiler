@@ -73,12 +73,6 @@ extern an_expr_node_ptr make_lvalue_cast_node(an_expr_node_ptr source_expr,
 
 extern void check_closing_paren_after_expr_list(void);
 
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-extern an_expr_node_ptr make_offsetof_expr(a_type_ptr         type,
-                                           a_symbol_ptr       sym,
-                                           a_source_position  *member_pos);
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-
 extern a_boolean new_or_delete_type_requires_array_handling(
                                                  a_type_ptr type,
                                                  a_boolean  check_constructor);
