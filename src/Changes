@@ -1,5 +1,11 @@
 Version 3.7
 
+12/1/05  Invalid type variant access during processing of enumerator constant
+
+Code in enum_specifier could access an incorrect variant of a type entry
+(the variant.integer part of an entry that was a typeref).  This could
+potentially lead to invalid enumerator values.  This is now fixed.
+
 12/1/05  Spurious diagnostic on use of undefined preprocessing identifier
 
 The fix of 5/4/04 that eliminated the diagnostic "zero used for

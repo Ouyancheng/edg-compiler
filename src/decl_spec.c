@@ -4045,9 +4045,11 @@ describes Microsoft attributes preceding the enum specifier (if any).
                  largest_enum_int_kind.  It's not specified by the standard
                  what larger integer to use, and it doesn't seem to make
                  much difference. */
+              a_type_ptr  constant_type = skip_typerefs(constant.type);
+              check_assertion(constant_type->kind == (a_type_kind)tk_integer);
               if (is_max_value_for_integer_kind(
                                   &constant,
-                                  constant.type->variant.integer.int_kind)) {
+                                  constant_type->variant.integer.int_kind)) {
                 constant.type = integer_type(largest_enum_int_kind);
               }  /* if */
               incr_integer_value(&constant.variant.integer_value);
