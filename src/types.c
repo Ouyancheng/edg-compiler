@@ -3722,8 +3722,9 @@ for exact pointer equality.
                      !(microsoft_mode || (gcc_mode && gnu_version < 30400)) &&
                      C_mode()) {
             /* In C modes, an enum type may be compatible with an integer type,
-               but two different enum types are not compatible.  We apply the
-               latter rule only in strict mode. */
+               but two different enum types are not compatible.  We do not
+               apply the latter rule when emulating Microsoft C or early GNU C
+               versions. */
           } else {
             if (type_1->variant.integer.int_kind ==
                                            type_2->variant.integer.int_kind &&
