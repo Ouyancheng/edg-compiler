@@ -1,5 +1,19 @@
 Version 3.7
 
+12/1/05  End position incorrect on cast in prototype instantiation
+
+The end source position was not set on a cast to a dependent
+class type in a prototype instantiation.  This comes up
+only when EXTRA_SOURCE_POSITIONS_IN_IL and PROTOTYPE_INSTANTIATIONS_IN_IL
+are TRUE.
+
+  template<typename _T> struct S {
+    typedef typename _T::t t;
+  };
+  template<typename _T> typename S<_T>::t func() {
+    return typename S<_T>::t();  // End position not set on enk_temp_init
+  }
+
 12/1/05  Incorrect variant used, lowering of destructor call, IA-64 version
 
 Code in add_destructor_call used an incorrect variant in the

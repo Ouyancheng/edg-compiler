@@ -11604,6 +11604,9 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
                                           /*result_is_addr=*/FALSE,
                                           /*is_explicit_cast=*/TRUE);
     make_expression_operand(temp_init_node, temp_init_node->type, result);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* Not a constructor case; obeys the same rules as a C-style cast. */
     add_matching_stop_token(tok_rparen);
