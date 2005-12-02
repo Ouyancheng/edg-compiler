@@ -364,6 +364,8 @@ This is done before command line processing.
                                    TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED;
   targ_enum_bit_fields_are_always_unsigned =
                                       TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED;
+  targ_nonnegative_enum_bit_field_is_unsigned =
+                                   TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED;
   targ_zero_width_bit_field_alignment = TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT;
   targ_zero_width_bit_field_affects_struct_alignment =
                             TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT;

@@ -35,19 +35,24 @@ SOLARIS is defined.  Now, the macro is set to TRUE by default when the Sun-
 specific macro __PRAGMA_REDEFINE_EXTNAME is defined (which indicates that
 the build compiler supports the "#pragma redefined_extname" construct).
 
-12/1/05  GNU compatibility: Signedness of enum bit fields
+12/1/05  Signedness of enum bit fields
 
-Normally, in a configuration with TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
-and TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED set to FALSE (configuration settings
-needed to closely emulate the behavior of GNU compilers), an enum bit field is
-signed if an enumerator of the enum type is negative, or if all the enumerator
-values of the enum type fit in the signed underlying type.  However, it
-appears that GNU compilers make the bit field unsigned in the latter case.
-We now emulate that behavior in GNU modes.  For example:
+Previously, in a configuration with TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
+set to FALSE, the signedness of a bit field with an enum type whose enumerators
+can all be represented independently of whether the bit field is signed or
+not was determined by the flag targ_plain_int_bit_field_is_unsigned.  Now
+the signedness of such cases is determined by the new configuration variable
+targ_nonnegative_enum_bit_field_is_unsigned (which is initialized by the
+macro TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED, the default value of which
+is TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED).  To emulate the GNU IA-64 ABI,
+TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED should be set to TRUE, while
+TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED should be FALSE.  For example:
 
   enum E { e };
   struct S {
-    enum E b:2;  /* Now an unsigned bit field in GNU mode. */
+    int x:2;
+    enum E y:2;  /* Can now be configured to be an unsigned bit field even
+                    when x is signed. */
   };
 
 12/1/05  GNU C compatibility: Old-style function definitions and prototypes

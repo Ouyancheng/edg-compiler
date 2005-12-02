@@ -234,8 +234,17 @@ EXTERN a_boolean
 			   FALSE, the rules are as described in target.h: it
 			   depends on the signedness and size of the values of
 			   the enum and defaults to the signedness indicated
-			   by targ_plain_int_bit_field_is_unsigned.  This
-			   needs to be FALSE to allow fully-standard C++. */
+			   by targ_nonnegative_enum_bit_field_is_unsigned.
+			   This needs to be FALSE to allow fully-standard
+			   C++. */
+
+EXTERN a_boolean
+		targ_nonnegative_enum_bit_field_is_unsigned;
+			/* Signedness for enum bit fields whose enum types have
+			   enumerators that could all fit in the nonnegative
+			   range of the bit field if it were signed.  (Ignored
+			   if targ_enum_bit_fields_are_always_unsigned is
+			   TRUE.) */
 
 EXTERN int	targ_zero_width_bit_field_alignment;
 			/* Alignment adjustment to be made when a zero-width
@@ -838,6 +847,7 @@ EXTERN a_boolean
 #undef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
 #undef TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED
 #undef TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
+#undef TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED
 #undef TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT
 #undef TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS
 #undef TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE
@@ -942,6 +952,8 @@ EXTERN a_boolean
                         targ_force_one_bit_bit_field_to_be_unsigned
 #define TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED                        \
                         targ_enum_bit_fields_are_always_unsigned
+#define TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED                     \
+                        targ_nonnegative_enum_bit_field_is_unsigned
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT                             \
                         targ_zero_width_bit_field_alignment
 #define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS          \

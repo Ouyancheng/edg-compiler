@@ -1169,19 +1169,20 @@ setting is irrelevant in that case.
 #endif /* IA64_ABI */
 #endif /* TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED */
 
-/* Signedness for enum bit fields (an extension in C): if TRUE, enum bit fields
+/* Flags controlling the signedness for enum bit fields (an extension in C).
+   If TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED is TRUE, enum bit fields
    are always unsigned.  If FALSE, the rules are: (a) if the enum contains
    any negative values, the field is signed; otherwise (b) if the enum
    contains values large enough that they won't fit if one bit is allocated
    for a sign, the field is unsigned; otherwise (c) the signedness is as
-   indicated by TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED. */
-/* When the flag is TRUE, declaring a bit field with an enumeration type
-   that includes negative enum constants will elicit a warning; moreover,
-   the value extracted from the bit field will always be treated as an
-   unsigned quantity (i.e., sign extension will not be done when extracting
-   the value).  On the other hand, when the flag is FALSE, the value
-   extracted from the bit field may be treated as a signed quantity (and
-   sign extension may be done unexpectedly). */
+   indicated by TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED. */
+/* When TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED is TRUE, declaring a bit
+   field with an enumeration type that includes negative enum constants will
+   elicit a warning; moreover, the value extracted from the bit field will
+   always be treated as an unsigned quantity (i.e., sign extension will not
+   be done when extracting the value).  On the other hand, when the flag is
+   FALSE, the value extracted from the bit field may be treated as a signed
+   quantity (and sign extension may be done unexpectedly). */
 #ifndef TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
 /* The Microsoft compiler treats enum bit fields as signed or unsigned. */
 #if TARG_MICROSOFT_BIT_FIELD_ALLOCATION
@@ -1197,6 +1198,20 @@ setting is irrelevant in that case.
 			/* Default value, used to initialize global variable
 			   targ_enum_bit_fields_are_always_unsigned. */
 #endif /* ifndef TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED */
+
+/*
+TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED is by default equal to
+TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED to keep compatibility with earlier
+versions of the front end that did not support this flag.  To emulate the
+GNU IA-64 ABI, however, TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED should
+be set to TRUE while TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED should be FALSE.
+This is the default value of the global variable
+targ_nonnegative_enum_bit_field_is_unsigned.
+*/
+#ifndef TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED
+#define TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED  \
+                                         TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
+#endif /* TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED */
 
 /* Alignment adjustment to be made when a zero-width (unnamed) bit field is
    declared.  If > 0 it is the alignment to be used (typically the alignment
