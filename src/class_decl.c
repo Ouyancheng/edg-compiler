@@ -6550,7 +6550,7 @@ using *pos as the error position.
           /* Ignore function template symbols in the overload set. */
         } else if (is_nontype_template_param_symbol(using_sym)) {
           /* Ignore symbols created to represent potential entities in
-             in dependent base classes. */
+             dependent base classes. */
         } else if (types_of_decl_and_using_decl_conflict(decl_sym,
                                                          using_sym, &err)) {
           /* An error is issued, unless using_sym is a member function being
