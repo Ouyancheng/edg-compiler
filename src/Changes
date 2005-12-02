@@ -1,5 +1,20 @@
 Version 3.7
 
+12/2/05  GNU C compatibility: Spurious error on initialization with const
+         compound literal
+
+In GNU C mode, a variable with static storage duration can be initialized
+with a compoun literal.  However, the front end incorrectly diagnosed a type
+mismatch if the compound literal type was more cv-qualified than the
+destination type.  For example:
+
+  struct S {
+    int i;
+  } s = (struct S const){ 1 };  // Now accepted in GNU C mode.
+                                // (Previously a spurious error.)
+
+This is now fixed.
+
 12/1/05  Default configuration of REDEFINE_EXTNAME_PRAGMA_ENABLED
 
 The configuration macro REDEFINE_EXTNAME_PRAGMA_ENABLED (see Changes entry of

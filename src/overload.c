@@ -10983,7 +10983,6 @@ is not a parameter.
 {
   a_boolean          okay = FALSE, failed = FALSE, ambiguous;
   a_type_ptr         source_type;
-  a_type_ptr         unqual_dest_type = skip_typerefs(dest_type);
   a_std_conv_descr   std_conv;
   an_arg_match_level match_level;
 
@@ -11071,10 +11070,12 @@ is not a parameter.
       }  /* if */
     } else if (C_dialect != C_dialect_cplusplus &&
                is_class_struct_union_type(dest_type) &&
-               types_are_compatible(source_type, unqual_dest_type)) {
+               same_type_with_added_qualifiers(dest_type, source_type,
+                                               /*ignore_qualifiers=*/FALSE,
+                                               (a_boolean*)NULL)) {
       /* In C, a struct or union is compatible with the same struct or union.
-         Type qualifiers on the destination are ignored because they
-         can be added on the conversion. */
+         Missing qualifiers on the destination type are okay: They can be
+         added on the conversion. */
       conversion->class_identity_or_bitwise_copy = TRUE;
       okay = TRUE;
     } else if (impl_conversion_possible(source_type,
