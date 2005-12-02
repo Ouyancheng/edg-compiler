@@ -1386,14 +1386,9 @@ an lvalue: The caller is responsible for adding the indirection required when
 the argument is an rvalue.
 */
 {
-  an_expr_node_ptr  real_part = select_complex_vals(expr);
-
-  /* Select the first element from the "Vals" field. */
-  real_part->next = node_for_integer_constant(
-                                           (long)0, targ_ptrdiff_t_int_kind);
-  real_part = make_operator_node((an_expr_operator_kind)eok_padd_subsc,
-                                 real_part->type, real_part);
-  return real_part;
+  /* A pointer to (the first element of) the "Vals" field is also a pointer
+     to the real part of the associated complex value. */
+  return select_complex_vals(expr);
 }  /* make_real_part */
 
 
