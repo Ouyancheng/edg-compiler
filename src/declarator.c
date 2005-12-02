@@ -2719,10 +2719,12 @@ information should be ignored or if an error should be issued.
                specified is being ignored. */
             discard = TRUE;
           }  /* if */
-        } else if (rtsp->assoc_routine_is_ctor ||
-                   rtsp->assoc_routine_is_dtor) {
-          /* Calling convention specifiers are always ignored on constructors
-             and destructors.  Issue a warning. */
+        } else if ((rtsp->assoc_routine_is_ctor ||
+                    rtsp->assoc_routine_is_dtor) &&
+                   (calling_convention == (a_calling_convention)cc_fastcall ||
+                    calling_convention == (a_calling_convention)cc_cdecl)) {
+          /* __cdecl and __fastcall specifiers are ignored with a warning on
+             constructors and destructors. */
           discard = TRUE;
           discard_sev = (an_error_severity)es_warning;
         } else if (rtsp->calling_convention != calling_convention) {

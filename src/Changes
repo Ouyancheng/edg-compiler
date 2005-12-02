@@ -1,5 +1,17 @@
 Version 3.7
 
+12/2/05  Microsoft C++ compatibility: Calling conventions on constructors and
+         destructors
+
+In Microsoft C++ mode the front end previously ignored (with a warning) all
+calling convention specifiers on constructor and destructor declarations.
+Now, only the __cdecl and __fastcall conventions are ignored.  For example:
+
+  struct S {
+    __stdcall S();   // Now accepted and recorded.
+    __cdecl S(int);  // __cdecl still ignored with a warning.
+  };
+
 12/2/05  GNU C compatibility: Spurious error on initialization with const
          compound literal
 
