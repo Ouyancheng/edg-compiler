@@ -139,8 +139,8 @@ A<int>::i is not defined, but it links successfully in Microsoft bugs mode.
 
 11/21/05 Microsoft compatibility: Reference to incomplete array parameters
 
-In Microsoft mode, the front end no longer accepts reference parameters whose
-type involve an array type with unspecified bound.  For example:
+In Microsoft mode, the front end no longer accepts a reference parameter whose
+type involves an array type with unspecified bound.  For example:
 
   void f(int (&)[]);    // No longer allowed in Microsoft mode.
   void f(int (*&)[]);   // No longer allowed in Microsoft mode.

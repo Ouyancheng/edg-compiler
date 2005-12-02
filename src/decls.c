@@ -494,9 +494,9 @@ static void check_ptr_or_ref_to_unspecified_bound_array(
                                                 a_source_position  *error_pos)
 /*
 Check that the given parameter type does not include a reference or a pointer
-to an array of unspecified bound and issue an at the given position if needed.
-This restriction was introduced in the standard to avoid having certain
-constructs valid in both C and C++ mean different things in those two
+to an array of unspecified bound and issue an error at the given position if
+needed.  This restriction was introduced in the standard to avoid having
+certain constructs valid in both C and C++ mean different things in those two
 languages.  For example:
     void f(int (*)[]);
     void f(int (*)[3]);  // Redeclaration in C, but could be an overloaded
