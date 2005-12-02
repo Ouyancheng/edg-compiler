@@ -6420,12 +6420,16 @@ temporary expressions).
 #if GNU_EXTENSIONS_ALLOWED
         case eok_lvalue_real_part:
           /* __real applied to an lvalue -- no explicit indirection needed. */
-          gen_expr(node, need_parens);
+          write_tok_str("__real(");
+          gen_lvalue_no_parens(operand_1);
+          write_tok_ch(')');
           processed = TRUE;
           break;
         case eok_lvalue_imag_part:
           /* __imag applied to an lvalue -- no explicit indirection needed. */
-          gen_expr(node, need_parens);
+          write_tok_str("__imag(");
+          gen_lvalue_no_parens(operand_1);
+          write_tok_ch(')');
           processed = TRUE;
           break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -7595,11 +7599,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_ch(')');
           goto done_with_operation;
         case eok_lvalue_real_part:
+          gen_ampersand(type_pointed_to(expr->type));
           write_tok_str("__real(");
           gen_lvalue_no_parens(operand_1);
           write_tok_ch(')');
           goto done_with_operation;
         case eok_lvalue_imag_part:
+          gen_ampersand(type_pointed_to(expr->type));
           write_tok_str("__imag(");
           gen_lvalue_no_parens(operand_1);
           write_tok_ch(')');
