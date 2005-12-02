@@ -269,6 +269,8 @@ extern a_symbol_ptr opname_member_function_symbol(an_opname_kind kind,
 
 extern a_symbol_ptr opname_function_symbol(an_opname_kind kind);
 
+extern a_boolean any_opname_function_symbol(an_opname_kind kind);
+
 extern
 void add_to_arg_dependent_lookup_list(a_type_ptr		arg_type,
 				      a_type_list_entry_ptr	*type_list);

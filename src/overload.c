@@ -9704,7 +9704,7 @@ such cases (where operator overloading might apply, but we can't tell).
     if (is_error_operand(operand_1) || 
         (!unary_operator && is_error_operand(operand_2))) {
       /* One or both of the operands is an error operand. */
-      if ((opname_symbol_table[kind] != NULL &&
+      if ((any_opname_function_symbol(kind) &&
            (!must_be_member_function ||
             is_error_operand(operand_1) ||
             is_class_struct_union_type(operand_1->type))) ||

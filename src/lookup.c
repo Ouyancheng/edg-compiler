@@ -60,7 +60,7 @@ locator.  In the case of an ambiguity, return NULL.
              class to get the nonclass scope number. */
           while (tp->source_corresp.is_class_member) {
             tp = tp->source_corresp.parent.class_type;
-          }  /* if */
+          }  /* while */
           /* Ignore classes that are namespace members. */
           if (tp->source_corresp.parent.namespace_ptr != NULL) continue;
           /* The effective scope is the innermost file, function, or block
@@ -4811,6 +4811,23 @@ be found.
   }  /* if */
   return sym;
 }  /* opname_function_symbol */
+
+
+a_boolean any_opname_function_symbol(an_opname_kind kind)
+/*
+Return TRUE if there is at least one declared operator function that
+overloads the operator identified by kind, or FALSE if there is no such
+function.
+*/
+{
+  a_boolean           result;
+  a_symbol_header_ptr symhdr = opname_symbol_table[kind];
+
+  result = (symhdr != NULL &&
+            (symhdr->inactive_symbols != NULL ||
+             symhdr->symbol != NULL));
+  return result;
+}  /* any_opname_function_symbol */
 
 
 void add_to_arg_dependent_lookup_list(a_type_ptr		arg_type,

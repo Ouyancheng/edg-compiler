@@ -12969,7 +12969,7 @@ standard.
 
   if (C_dialect == C_dialect_cplusplus &&
       !curr_expr_kind_is_const() &&
-      opname_symbol_table[opname_kind_for_token[(int)save_token]] != NULL) {
+      any_opname_function_symbol(opname_kind_for_token[(int)save_token])) {
     /* We are in C++ mode, and there is an operator function that overloads
        this operator. */
     might_be_overloaded = TRUE;
