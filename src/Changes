@@ -25,7 +25,7 @@ We now emulate that behavior in GNU modes.  For example:
 
 12/1/05  GNU C compatibility: Old-style function definitions and prototypes
 
-When introducing the gnu_version variable (see Changes entry of 10/4/04),
+When the gnu_version variable was introduced (see Changes entry of 10/4/04),
 the ability to follow a prototyped function declaration by an unprototyped
 function definition in GNU C mode was mistakenly limited to GNU C modes
 with gnu_version < 30400.  This has been changed to allow such code for
