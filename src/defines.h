@@ -202,7 +202,7 @@ Flags to be set when using the KAI inliner.
 #define GUARD_MACRO2_FOR_VA_LIST "_SYS_VA_LIST_H"
 #endif /* 0 */
 #endif /* ifdef __SUNPRO_C */
-
+#define REDEFINE_EXTNAME_PRAGMA_ENABLED 1
 #else /* !defined(SOLARIS) */
 /* SunOS version. */
 #ifndef C_GEN_BE_GENERATES_ANSI_C
