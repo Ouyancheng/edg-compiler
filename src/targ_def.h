@@ -1140,10 +1140,11 @@ match the target machine behavior on integer operations in C.
            TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE
 #endif /* TARG_MICROSOFT_BIT_FIELD_ALLOCATION && ... */
 
-/* How plain "int" bit fields are to be treated (signed or unsigned).  Note
-   that 1-bit fields are made unsigned regardless of this switch. This flag
-   also controls how plain "short", "long", and "long long" are treated as
-   bit field types. */
+/* How plain "int" bit fields are to be treated (signed or unsigned).
+   This flag also controls how plain "short", "long", and "long long"
+   are treated as bit field types.  Initial value of
+   targ_plain_int_bit_field_is_unsigned.  Note that the signedness of 1-bit
+   fields is controlled by TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED. */
 #ifndef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
 #define TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED (!TARG_HAS_SIGNED_CHARS)
 			/* Default value, used to initialize global variable
