@@ -1210,8 +1210,11 @@ This is the default value of the global variable
 targ_nonnegative_enum_bit_field_is_unsigned.
 */
 #ifndef TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED
-#define TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED  \
-                                         TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
+#if TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
+#define TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED  TRUE
+#else /* !TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED */
+#define TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED  FALSE
+#endif /* TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED */
 #endif /* TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED */
 
 /* Alignment adjustment to be made when a zero-width (unnamed) bit field is
