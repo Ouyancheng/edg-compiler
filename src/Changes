@@ -16,7 +16,7 @@ Now, only the __cdecl and __fastcall conventions are ignored.  For example:
          compound literal
 
 In GNU C mode, a variable with static storage duration can be initialized
-with a compoun literal.  However, the front end incorrectly diagnosed a type
+with a compound literal.  However, the front end incorrectly diagnosed a type
 mismatch if the compound literal type was more cv-qualified than the
 destination type.  For example:
 
