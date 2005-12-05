@@ -11068,14 +11068,12 @@ is not a parameter.
         }  /* if */
         conv_to_error_operand(source_operand);
       }  /* if */
-    } else if (C_dialect != C_dialect_cplusplus &&
-               is_class_struct_union_type(dest_type) &&
-               same_type_with_added_qualifiers(dest_type, source_type,
-                                               /*ignore_qualifiers=*/FALSE,
-                                               (a_boolean*)NULL)) {
+    } else if (C_mode() && is_class_struct_union_type(dest_type) &&
+               types_are_compatible_ignoring_qualifiers(dest_type,
+                                                        source_type)) {
       /* In C, a struct or union is compatible with the same struct or union.
-         Missing qualifiers on the destination type are okay: They can be
-         added on the conversion. */
+         Qualifiers can be added or dropped since this is a value
+         conversion. */
       conversion->class_identity_or_bitwise_copy = TRUE;
       okay = TRUE;
     } else if (impl_conversion_possible(source_type,
