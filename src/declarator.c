@@ -2721,10 +2721,12 @@ information should be ignored or if an error should be issued.
           }  /* if */
         } else if ((rtsp->assoc_routine_is_ctor ||
                     rtsp->assoc_routine_is_dtor) &&
-                   (calling_convention == (a_calling_convention)cc_fastcall ||
-                    calling_convention == (a_calling_convention)cc_cdecl)) {
-          /* __cdecl and __fastcall specifiers are ignored with a warning on
-             constructors and destructors. */
+                   calling_convention != (a_calling_convention)cc_thiscall) {
+          /* Microsoft compilers ignore __cdecl and __fastcall specifiers on
+             constructors with a warning.  They silently also ignore __stdcall.
+             All these cases are treated as __thiscall instead.  We discard all
+             calling conventions on constructors and destructors with a
+             warning, except __thiscall. */
           discard = TRUE;
           discard_sev = (an_error_severity)es_warning;
         } else if (rtsp->calling_convention != calling_convention) {
