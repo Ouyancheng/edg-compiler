@@ -4164,12 +4164,20 @@ symbol whose type is to be verified.  error_pos determines where any error
 should be reported.
 */
 {
-  a_boolean  is_function = sym->kind == (a_symbol_kind)sk_routine ||
-                           sym->kind == (a_symbol_kind)sk_member_function;
-  a_type_ptr type = is_function ? sym->variant.routine.ptr->type :
-                                  sym->variant.variable.ptr->type;
-  an_error_severity  severity;
+  a_boolean   is_function = sym->kind == (a_symbol_kind)sk_routine ||
+                            sym->kind == (a_symbol_kind)sk_member_function;
+  a_type_ptr  type;
+  an_error_severity
+              severity;
 
+  if (is_function) {
+    type = sym->variant.routine.ptr->type;
+  } else if (sym->kind == (a_symbol_kind)sk_variable) {
+    type = sym->variant.variable.ptr->type;
+  } else {
+    check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
+    type = sym->variant.static_data_member.variable->type;
+  }  /* if */
   if (is_function && sym->variant.routine.ptr->compiler_generated) {
     /* Compiler-generated member functions can involve types with no name
        linkage in some error recovery modes (and in Microsoft mode).  A
