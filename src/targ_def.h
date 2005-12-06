@@ -1201,21 +1201,24 @@ setting is irrelevant in that case.
 #endif /* ifndef TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED */
 
 /*
-TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED is by default equal to
-TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED to keep compatibility with earlier
-versions of the front end that did not support this flag.  To emulate the
-GNU IA-64 ABI, however, TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED should
-be set to TRUE while TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED should be FALSE.
+To emulate the GNU IA-64 ABI, TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED
+should be set to TRUE while TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED should be
+FALSE.  This is our default configuration when the IA-64 ABI is selected
+(except when ABI_COMPATIBILITY_VERSION < 307, to maintain backward
+compatibility).  Otherwise, TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED is
+equal to TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED by default to keep compatibility
+with earlier versions of the front end that did not support this flag.
 This is the default value of the global variable
 targ_nonnegative_enum_bit_field_is_unsigned.
 */
 #ifndef TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED
-#if TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
+#if TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED ||                              \
+    (IA64_ABI && ABI_COMPATIBILITY_VERSION >= 307)
 #define TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED  TRUE
-#else /* !TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED */
+#else /* !(TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED || (IA64_ABI  && ... )) */
 #define TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED  FALSE
 #endif /* TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED */
-#endif /* TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED */
+#endif /* TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED || (IA64_ABI  && ... ) */
 
 /* Alignment adjustment to be made when a zero-width (unnamed) bit field is
    declared.  If > 0 it is the alignment to be used (typically the alignment

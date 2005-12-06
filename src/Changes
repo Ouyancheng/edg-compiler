@@ -30,11 +30,13 @@ set to FALSE, the signedness of a bit field with an enum type whose enumerators
 can all be represented independently of whether the bit field is signed or
 not was determined by the flag targ_plain_int_bit_field_is_unsigned.  Now
 the signedness of such cases is determined by the new configuration variable
-targ_nonnegative_enum_bit_field_is_unsigned (which is initialized by the
-macro TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED, the default value of which
-is TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED).  To emulate the GNU IA-64 ABI,
-TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED should be set to TRUE, while
-TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED should be FALSE.  For example:
+targ_nonnegative_enum_bit_field_is_unsigned, which is initialized by the
+macro TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED.  By default, the macro
+TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED is TRUE when IA64_ABI is TRUE
+and ABI_COMPATIBILITY_VERSION >= 307, which matches the GNU IA-64 ABI
+implementation.  Otherwise, TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED equals
+TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED by default (to maintain backward
+compatibility).  For example:
 
   enum E { e };
   struct S {
