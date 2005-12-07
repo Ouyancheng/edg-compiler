@@ -1243,24 +1243,8 @@ when it is a secondary file.
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   il_header.nontag_types_used_in_exception_or_rtti = NULL;
   if (!C_mode()) {
-    int i;
-    /* This is done even when RTTI is not enabled because the type_info
-       struct may still be defined when RTTI is disabled. */
-    for (i = 0; i < (int)tik_last; ++i) {
-      if (type_info_names[i] != NULL) {
-        types_of_type_info[i] = init_predeclared_class((a_type_kind)tk_class,
-                                                       type_info_names[i]);
-      }  /* if */
-    }  /* for */
-    type_of_type_info = types_of_type_info[(int)tik_user];
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
-      type_of_guid = init_predeclared_class((a_type_kind)tk_struct, "_GUID");
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  }  /* if */
-  if (C_dialect == C_dialect_cplusplus) {
     a_boolean need_std = namespaces_enabled || type_info_in_namespace_std;
+    int       i;
 #if RUNTIME_USES_NAMESPACES
     need_std = TRUE;
 #endif /* RUNTIME_USES_NAMESPACES */
@@ -1284,6 +1268,29 @@ when it is a secondary file.
        the derived classes of type_info, among other things. */
     make_symbol_for_namespace_abi();
 #endif /* IA64_ABI */
+    /* This is done even when RTTI is not enabled because the type_info
+       struct may still be defined when RTTI is disabled. */
+    for (i = 0; i < (int)tik_last; ++i) {
+      if (type_info_names[i] != NULL) {
+        types_of_type_info[i] = init_predeclared_class((a_type_kind)tk_class,
+                                                       type_info_names[i]);
+      }  /* if */
+    }  /* for */
+    type_of_type_info = types_of_type_info[(int)tik_user];
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode) {
+      /* Microsoft compilers make visible the (incomplete) type_info type
+         visible in the global namespace.  We emulate this only if the
+         type_info type resides in the global namespace. */
+      if (!type_info_in_namespace_std || ignore_std_namespace) {
+        enter_predeclared_class(type_of_type_info, DEPTH_OF_FILE_SCOPE,
+                                &null_source_position);
+      }  /* if */
+      type_of_guid = init_predeclared_class((a_type_kind)tk_struct, "_GUID");
+      enter_predeclared_class(type_of_guid, DEPTH_OF_FILE_SCOPE,
+                              &null_source_position);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Add symbols for ::operator new and ::operator delete to the symbol
        table.  This is delayed till now (rather than done with other symbol
        table initialization) because routine entries are also created. */

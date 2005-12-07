@@ -1593,6 +1593,10 @@ skipping any namespace aliases that might be present.
 extern a_type_ptr init_predeclared_class(a_type_kind  kind,
                                          char         *name);
 
+extern void enter_predeclared_class(a_type_ptr         predeclared_type,
+                                    a_scope_depth      scope_depth,
+                                    a_source_position  *pos);
+
 /*
 Type used as a hash value of a constant entry.
 */

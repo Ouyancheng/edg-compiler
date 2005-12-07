@@ -17808,6 +17808,29 @@ entered into the symbol table.
   return predeclared_type;
 }  /* init_predeclared_class */
 
+
+void enter_predeclared_class(a_type_ptr         predeclared_type,
+                             a_scope_depth      scope_depth,
+                             a_source_position  *pos)
+/*
+Enter the given predeclared type (e.g., type_info) at the given scope depth
+with the given source position.
+*/
+{
+  a_symbol_ptr  sym = symbol_for(predeclared_type);
+  a_namespace_ptr  nsp = scope_stack[scope_depth].il_scope
+                                                    ->variant.assoc_namespace;
+
+  sym->decl_position = *pos;
+  reenter_symbol(sym, scope_depth, /*suppress_error=*/FALSE);
+  /* Call set_source_corresp again to get everything in sync. */
+  set_source_corresp(&(predeclared_type->source_corresp), sym);
+  set_namespace_membership(sym, &(predeclared_type->source_corresp), nsp);
+  /* The referenced flag may have been reset by set_source_corresp. */
+  predeclared_type->source_corresp.referenced = sym->referenced;
+  add_to_types_list(predeclared_type, scope_depth);
+}  /* enter_predeclared_class */
+
 #if DEBUG
 
 unsigned long db_show_il_c_fe_space_used(unsigned long grand_total)

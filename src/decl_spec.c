@@ -1628,9 +1628,18 @@ caution when modifying this routine.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (tag_sym == type_info_sym &&
-            tag_sym->decl_scope == NO_SCOPE_NUMBER) {
-          predeclared_type = types_of_type_info[i];
+        if (tag_sym == type_info_sym) {
+          if (tag_sym->decl_scope == NO_SCOPE_NUMBER) {
+            predeclared_type = types_of_type_info[i];
+          } else if (microsoft_mode && tag_sym->decl_position.seq == 0) {
+            /* In Microsoft mode the type_info symbol is usually entered
+               at the start of compilation with a NULL source position.
+               Update that position now that we have an explicit source
+               construct. */
+            tag_sym->decl_position = locator_for_curr_id.source_position;
+            tag_sym->variant.class_struct_union.type
+                   ->source_corresp.decl_position = tag_sym->decl_position;
+          }  /* if */
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (microsoft_mode && !C_mode() &&
@@ -1643,6 +1652,14 @@ caution when modifying this routine.
           tag_sym = guid_sym;
           if (tag_sym->decl_scope == NO_SCOPE_NUMBER) {
             predeclared_type = type_of_guid;
+          } else if (microsoft_mode && tag_sym->decl_position.seq == 0) {
+            /* In Microsoft mode the _GUID symbol is usually entered
+               at the start of compilation with a NULL source position.
+               Update that position now that we have an explicit source
+               construct. */
+            tag_sym->decl_position = locator_for_curr_id.source_position;
+            tag_sym->variant.class_struct_union.type
+                   ->source_corresp.decl_position = tag_sym->decl_position;
           }  /* if */
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1651,15 +1668,8 @@ caution when modifying this routine.
         /* If the type_info or _GUID symbol has no scope number, it hasn't
            been added to the symbol table yet.  Use the current source
            position. */
-        tag_sym->decl_position = locator_for_curr_id.source_position;
-        reenter_symbol(tag_sym, computed_decl_level, /*suppress_error=*/FALSE);
-        /* Call set_source_corresp again to get everything in sync. */
-        set_source_corresp(&(predeclared_type->source_corresp), tag_sym);
-        set_namespace_membership(tag_sym,
-                                 &(predeclared_type->source_corresp), nsp);
-        /* The referenced flag may have been reset by set_source_corresp. */
-        predeclared_type->source_corresp.referenced = tag_sym->referenced;
-        add_to_types_list(predeclared_type, computed_decl_level);
+        enter_predeclared_class(predeclared_type, computed_decl_level,
+                                &locator_for_curr_id.source_position);
         *is_predeclared_type_decl = TRUE;
       }  /* if */
     }  /* if */

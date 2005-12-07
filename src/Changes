@@ -1,5 +1,18 @@
 Version 3.7
 
+12/7/05  Microsoft compatibility: type_info and _GUID predeclared
+
+In Microsoft mode, the built-in type _GUID is now predeclared.  Previously,
+it had to be declared in the source code before it could be referred to.
+Similarly, the type_info type is also predeclared, but only if that type is
+defined in the global namespace (because DEFAULT_TYPE_INFO_IN_NAMESPACE_STD
+is FALSE, or in modes where namespace std is an alias for the global
+namespace).  The types are incomplete until their definitions appear in the
+source (typically by including the appropriate header file).  For example:
+
+  _GUID *p1;      // Now accepted without a preceding declaration.
+  type_info *p2;  // Now accepted in various modes and configurations.
+
 12/2/05  GNU C compatibility: Spurious error on initialization with const
          compound literal
 
