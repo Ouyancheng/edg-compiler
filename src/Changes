@@ -1,6 +1,6 @@
 Version 3.7
 
-8/19/05  Source position of stmk_init statements
+12/7/05  Source position of stmk_init statements
 
 The source position of stmk_init statements was previously always set to the
 position of the variable being initialized and the end position (available
