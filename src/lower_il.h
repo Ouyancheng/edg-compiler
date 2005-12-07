@@ -174,6 +174,12 @@ typedef struct an_init_pos_descr {
 			/* If array_element_sequence is TRUE, the count of
 			   elements in the array, or -1 for an unknown-length
 			   array (new/delete only).  Zero otherwise. */
+  a_type_ptr	array_element_type;
+			/* If array_element_sequence is TRUE, the type of
+			   the elements in the array.  NULL otherwise.
+			   Useful in distinguishing cases where the
+			   element sequence is a flattened multi-dimensional
+			   array. */
 } an_init_pos_descr;
 
 typedef struct a_destructible_entity_descr *a_destructible_entity_descr_ptr;

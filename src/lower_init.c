@@ -857,6 +857,7 @@ Clear an initialization position description entry to default values.
   ipdp->base_type                 = NULL;
   ipdp->modifiers                 = NULL;
   ipdp->array_element_count       = 0;
+  ipdp->array_element_type        = NULL;
 }  /* clear_init_pos_descr */
 
 
@@ -1241,6 +1242,13 @@ TRUE, the entity is the destination of an initialization operation.
     entity_node = modify_init_entity_node(entity_node, ipdp->modifiers,
                                           using_as_dest,
                                           (var != NULL && var->is_vla));
+  }  /* if */
+  if (ipdp->array_element_sequence) {
+    /* For an array element sequence that covers more than one dimension
+       of an array, get the type right for the underlying element. */
+    entity_node = add_cast_if_necessary(entity_node,
+                                        make_pointer_type(
+                                                    ipdp->array_element_type));
   }  /* if */
   return entity_node;
 }  /* make_init_entity_node */
@@ -4174,6 +4182,7 @@ aggregate, set *keep_constant to TRUE.
         ipd.array_element_sequence = TRUE;
         ipd.array_element_count =
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
+        ipd.array_element_type = repeated_con->type;
         lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, ctor_init,
                               others_follow, insert_location, keep_constant);
         /* Remove the ck_init_repeat constant, in case the overall aggregate
@@ -6309,6 +6318,7 @@ C99 mode for the same reason.
           a_targ_size_t array_element_count = 0;
           if (ipdp->array_element_sequence) {
             array_element_count = ipdp->array_element_count;
+            entity_type = ipdp->array_element_type;
           }  /* if */
           entity_node = make_init_entity_node(ipdp, 
                                               /*using_as_address=*/TRUE,
