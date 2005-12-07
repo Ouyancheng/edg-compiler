@@ -1495,6 +1495,7 @@ ec_deprecated_entity_with_custom_message;;"%nd was declared \"deprecated (%sq)\"
 ec_redefinition;;"invalid redefinition of %nd"
 ec_dll_interface_in_unnamed_namespace;;"dllimport/dllexport applied to a member of an unnamed namespace"
 ec_thiscall_requires_nonstatic_member;;"__thiscall can only appear on nonstatic member function declarations"
+ec_vararg_thiscall;;"__thiscall not allowed on function with ellipsis parameter"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

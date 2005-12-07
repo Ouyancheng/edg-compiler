@@ -2715,9 +2715,13 @@ information should be ignored or if an error should be issued.
              specified, add it to the type. */
           rtsp->calling_convention = (a_calling_convention)cc_cdecl;
           if (calling_convention != (a_calling_convention)cc_cdecl) {
-            /* Issue a diagnostic to indicate that whatever was explicitly
-               specified is being ignored. */
-            discard = TRUE;
+            /* For __thiscall, an error should be issued.  The other cases
+               only elicit a remark (issued below). */
+            if (calling_convention == (a_calling_convention)cc_thiscall) {
+              error(ec_vararg_thiscall);
+            } else {
+              discard = TRUE;
+            }  /* if */
           }  /* if */
         } else if ((rtsp->assoc_routine_is_ctor ||
                     rtsp->assoc_routine_is_dtor) &&
@@ -3103,13 +3107,12 @@ was scanned, and to FALSE otherwise.
 
 *state describes some state information about the current declaration.
 
-In Microsoft mode, the Microsoft __cdecl, __stdcall, and __fastcall are
-recognized as calling conventions.  The handling of calling conventions
-is intended to match the behavior of the Microsoft 32-bit C/C++ compiler.
-Calling conventions are allowed on function types and pointer to
-function types.  They are permitted on object declarations, but have
-no meaning.  They are not allowed on pointers to objects or on
-references.
+In Microsoft mode, the Microsoft __cdecl, __stdcall, __fastcall, and
+__thiscall are recognized as calling conventions.  The handling of calling
+conventions is intended to match the behavior of the Microsoft 32-bit C/C++
+compiler.  Calling conventions are allowed on function types and pointer to
+function types.  They are permitted on object declarations, but have no
+meaning.  They are not allowed on pointers to objects or on references.
 
 left_calling_convention and unbound_calling_convention are pointers
 to calling conventions.  The values of these calling conventions
