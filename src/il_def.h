@@ -711,7 +711,6 @@ typedef struct a_source_range {
 } a_source_range;
 
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
 EXTERN a_source_range
 		null_source_range
 #if VAR_INITIALIZERS
@@ -735,6 +734,7 @@ EXTERN a_source_range
 			/* NULL source range, for initialization. */
 
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
 /* Additional source position information relating to the declaration of the
    associated IL entry. */
 typedef struct a_decl_position_supplement *a_decl_position_supplement_ptr;

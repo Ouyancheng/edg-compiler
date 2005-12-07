@@ -8221,9 +8221,7 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
          allow floating-point in-class initializers, and some versions even
          allow pointers to be initialized in this way. */
       a_constant constant;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
       decl_info->decl_pos_block.var_init_range.start = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Advance past the "=". */
       (void)get_token();
       /* Scan the constant expression. */

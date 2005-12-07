@@ -10487,9 +10487,7 @@ Return a pointer to the variable that is declared.
        "= expr" syntax for initialization (that is, parenthesized initializers
        are disallowed, as is implicit initialization of objects with default
        constructors). */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_pos_block.var_init_range.start = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)required_token(tok_assign, ec_exp_assign);
     if (curr_token == tok_lbrace) {
       /* The syntax does not permit initialization with a brace enclosed
@@ -12961,9 +12959,7 @@ continue_with_declaration:
         has_initializer = TRUE;
       } else if (curr_token == tok_assign) {
         has_initializer = TRUE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
         decl_pos_block.var_init_range.start = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if C_ANACHRONISMS_ALLOWED
       } else if (C_dialect == C_dialect_pcc && is_initializer_start()) {
         /* In pcc mode, the "=" may be omitted (K&R first edition, Appendix A,

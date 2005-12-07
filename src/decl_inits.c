@@ -2653,12 +2653,13 @@ detection of uninitialized fields).
 
 
 static void gen_dynamic_initialization(
-                                     a_variable_ptr     vp,
-                                     a_dynamic_init_ptr dip,
-                                     a_local_static_variable_init_ptr
+                                  a_variable_ptr        vp,
+                                  a_dynamic_init_ptr    dip,
+                                  a_local_static_variable_init_ptr
                                                         *local_static_var_init,
-                                     a_source_position  *source_pos,
-                                     a_statement_ptr    *p_init_stmt)
+                                  a_source_position     *source_pos,
+                                  a_decl_pos_block_ptr  decl_pos_block,
+                                  a_statement_ptr       *p_init_stmt)
 /*
 Generate a dynamic initialization of the variable vp based on the
 dynamic init entry pointed to by dip.  Except for a dynamic
@@ -2669,7 +2670,10 @@ will be used to initialize it, and a pointer to the entry is returned
 in *local_static_var_init.  *source_pos is the source position for an
 error (dynamic initialization is in unreachable code).  If p_init_stmt
 is non-NULL, *p_init_stmt is set to point to the stmk_init statement
-created, or NULL it there is none.
+created, or NULL it there is none.  decl_pos_block is non-NULL, if the
+dynamic initialization corresponds to an actual initializer in the
+source; in that case, it points to position information that should be
+recorded in the stmk_init statement.
 */
 {
   a_statement_ptr          init_stmt;
@@ -2758,10 +2762,33 @@ created, or NULL it there is none.
                                      /*block_lifetime=*/TRUE);
   if (!at_file_scope && ssep->kind != (a_scope_kind)sck_condition) {
     /* Build the initialization statement and add it to the statement block.
-       This must be done after record_end_of_lifetime_destruction is called. */
+       This must be done after record_end_of_lifetime_destruction is called.
+       If the statement is associated with an initializer appearing in the
+       source code, record the position of that initializer as the statement
+       position.  Otherwise, use the position of the variable declaration. */
+    a_source_position  *stmt_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    a_source_position  *stmt_end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (decl_pos_block != NULL) {
+      stmt_pos = &decl_pos_block->var_init_range.start;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      stmt_end_pos = &decl_pos_block->var_init_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    } else {
+      stmt_pos = &vp->source_corresp.decl_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      stmt_end_pos = &vp->source_corresp.decl_pos_info->identifier_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    }  /* if */
     init_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_init,
-                                          &null_source_position);
-    if (p_init_stmt != NULL) *p_init_stmt = init_stmt;
+                                          stmt_pos);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    set_stmt_source_position(init_stmt->end_position, *stmt_end_pos);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (p_init_stmt != NULL) {
+      *p_init_stmt = init_stmt;
+    }  /* if */
     init_stmt->variant.dynamic_init = dip;
     update_init_statement_control_flow(init_stmt);
   }  /* if */
@@ -2863,9 +2890,9 @@ is not needed.
 }  /* pop_object_lifetime_for_local_static_init */
 
 
-static a_constant_ptr simple_initializer(a_boolean          static_lifetime,
-                                         a_type_ptr         vp_type,
-                                         a_dynamic_init_ptr *init_dip,
+static a_constant_ptr simple_initializer(a_boolean             static_lifetime,
+                                         a_type_ptr            vp_type,
+                                         a_dynamic_init_ptr    *init_dip,
                                          a_decl_pos_block_ptr  decl_pos_block)
 /*
 Scan a simple nonaggregate, nonparenthesized initializer.  static_lifetime is
@@ -3355,7 +3382,7 @@ returned set to TRUE.
          and generate an stmk_init statement. */
       a_statement_ptr init_stmt;
       gen_dynamic_initialization(vp, init_dip, &local_static_var_init,
-                                 source_pos, &init_stmt);
+                                 source_pos, decl_pos_block, &init_stmt);
 #if MICROSOFT_EXTENSIONS_ALLOWED && DO_IL_LOWERING
 #if LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
       /* Note that if microsoft_mode and C_mode() are TRUE, *vp may be an
@@ -3673,7 +3700,8 @@ the default constructor (if one exists) is called.
         /* Allocate a dynamic init entry (a copy of local_di) and attach it
            to the variable. */
         gen_dynamic_initialization(var, init_dip, &local_static_var_init,
-                                   err_pos, (a_statement_ptr *)NULL);
+                                   err_pos, (a_decl_pos_block_ptr)NULL,
+                                   (a_statement_ptr *)NULL);
 #if DEBUG
         if (debug_level >= 3 || db_flag_is_set("dump_init")) {
           db_variable(var);
@@ -3702,7 +3730,8 @@ the default constructor (if one exists) is called.
          class type. */
       init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
       gen_dynamic_initialization(var, init_dip, &local_static_var_init,
-                                 err_pos, (a_statement_ptr *)NULL);
+                                 err_pos, (a_decl_pos_block_ptr)NULL,
+                                 (a_statement_ptr *)NULL);
 #if DEBUG
       if (debug_level >= 3 || db_flag_is_set("dump_init")) {
         fputs("Default-initialized VLA: ", f_debug);

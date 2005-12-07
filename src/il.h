@@ -435,10 +435,12 @@ typedef struct a_decl_pos_block {
   a_source_range
 		declarator_range;
 			/* Start and end positions of declarator. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_source_range
 		var_init_range;
-			/* Start and end positions of initializer. */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+			/* Start and end positions of initializer.  The end
+			   position is only recorded when
+			   EXTRA_SOURCE_POSITIONS_IN_IL is TRUE. */
 } a_decl_pos_block;
 
 extern void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block);

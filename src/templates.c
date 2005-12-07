@@ -13927,9 +13927,7 @@ returned to the caller.
     a_token_set_array		stop_tokens;
     p_token_cache = &local_token_cache;
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_state->decl_pos_block.var_init_range.start = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     clear_token_cache(p_token_cache, /*reusable=*/TRUE);
     /* The declaration token cache contains the declaration and the
        initializer.  Split the cache so that the initialization is

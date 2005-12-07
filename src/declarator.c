@@ -4503,10 +4503,8 @@ The syntax is:
     if (curr_token == tok_lparen) {
       /* Appears to be a function declarator.  But be sure it's not the
          start of a parenthesized initializer (C++ only). */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
       a_source_position  lparen_pos;
       lparen_pos = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Advance past the left parenthesis. */
       (void)get_token();
       if (parenthesized_initializer_allowed &&
@@ -4566,11 +4564,9 @@ The syntax is:
           }  /* if */
           if (!is_function_decl) {
             *output_flags |= DO_PARENTHESIZED_INITIALIZER;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
             if (decl_pos_block != NULL) {
               decl_pos_block->var_init_range.start = lparen_pos;
             }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             /* Function_declarator should not be called, so exit the loop. */
             break;
           }  /* if */

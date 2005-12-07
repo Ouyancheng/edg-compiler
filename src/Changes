@@ -1,5 +1,24 @@
 Version 3.7
 
+8/19/05  Source position of stmk_init statements
+
+The source position of stmk_init statements was previously always set to the
+position of the variable being initialized and the end position (available
+when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE) was always NULL.  Now, if such a
+statement corresponds to an initializer that appears in the source code,
+the statement's start and end positions are those of the initializer.
+Otherwise (e.g., for default initialization), the start and end positions
+are those of the variable declaration (i.e., the start position is unchanged
+in such cases).  For example:
+
+  struct S { S(); S(int); };
+  void f() {
+    S s1(2);  // stmk_init with "position" set to the position of "(" and
+              // "end_position" set to the position of ")".
+    S s2;     // stmk_init with "position" set to the position of "s" and
+              // "end_position" set to the position of "2".
+  }
+
 12/7/05  Microsoft compatibility: type_info and _GUID predeclared
 
 In Microsoft mode, the built-in type _GUID is now predeclared.  Previously,
@@ -1407,16 +1426,6 @@ declarations in C99 mode.  For example:
   void g() {
     inline void f();  // Now accepted in C99 mode.
   }
-
-8/19/05  Source position of stmk_init statements
-
-The source position of stmk_init statements was previously set to the
-position of the variable being initialized.  However, stmk_init statements
-do not always correspond to source constructs, and having a position at all
-caused some confusion in some cases.  Now a null position is recorded for
-all stmk_init statements, and the position (including the position of the
-initializer) information associated with an initialized variable should be
-retrieved from the IL variable entry itself.
 
 8/19/05  End position of typeof construct used in a declaration
 
