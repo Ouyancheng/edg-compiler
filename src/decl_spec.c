@@ -1555,10 +1555,9 @@ caution when modifying this routine.
       /* See if this is an explicit declaration of one of the type_info
          types, which was already "predeclared".  If it is, reuse the
          original symbol. */
-      a_type_ptr       predeclared_type = NULL;
-      a_symbol_ptr     type_info_sym = NULL;
-      a_namespace_ptr  nsp = NULL;
-      int              i;
+      a_type_ptr    predeclared_type = NULL;
+      a_symbol_ptr  type_info_sym = NULL;
+      int           i;
 
       /* Look for a type_info type with the same name. */
       for (i = 0; i < (int)tik_last; ++i) {
@@ -1574,11 +1573,6 @@ caution when modifying this routine.
          is expected to be in namespace "std" or in the global namespace. */
       if (i != (int)tik_last) {
         a_pending_pragma_ptr  ppp;
-
-        if (computed_decl_level == (DEPTH_OF_FILE_SCOPE + 1)) {
-          nsp = scope_stack[computed_decl_level].il_scope->
-                                                  variant.assoc_namespace;
-        }  /* if */
         if (is_namespace_for_type_info_definition((a_type_info_kind)i)) {
           /* The identifier does indeed  name a type info type.  Check
              for  the pragma  that specifically  identifies it  as the
