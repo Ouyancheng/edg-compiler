@@ -4011,6 +4011,9 @@ Do one-time initialization of variables related to C99 IL lowering.
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+  register_trans_unit_variable(vla_types);
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #if MINIMAL_INLINING
   /* Do inline.c initialization. */
   if (inlining_enabled) inline_one_time_init();
