@@ -911,9 +911,8 @@ EXTERN a_boolean
 
 EXTERN a_boolean
                 SVR4_C_mode;
-                        /* TRUE if the C++ operator keywords (such as
-			   "and", "or", "not", etc.) and digraphs should
-			   be allowed. */
+                        /* TRUE if SVR4 C compatibility features should be
+			   recognized. */
 
 EXTERN a_boolean
 		address_of_ellipsis_allowed;
