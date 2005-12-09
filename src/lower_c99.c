@@ -4011,9 +4011,65 @@ Do one-time initialization of variables related to C99 IL lowering.
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+#if LOWER_COMPLEX
+  register_trans_unit_array(xnegate_routine);
+  register_trans_unit_array(xadd_routine);
+  register_trans_unit_array(xsubtract_routine);
+  register_trans_unit_array(xmultiply_routine);
+  register_trans_unit_array(xdivide_routine);
+  register_trans_unit_array(xeq_routine);
+  register_trans_unit_array(xne_routine);
+#if GNU_EXTENSIONS_ALLOWED
+  register_trans_unit_array(xconj_routine);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  register_trans_unit_variable(cast_cfloat_to_cdouble_routine);
+  register_trans_unit_variable(cast_cfloat_to_clong_double_routine);
+  register_trans_unit_variable(cast_cdouble_to_cfloat_routine);
+  register_trans_unit_variable(cast_cdouble_to_clong_double_routine);
+  register_trans_unit_variable(cast_clong_double_to_cfloat_routine);
+  register_trans_unit_variable(cast_clong_double_to_cdouble_routine);
+  register_trans_unit_variable(cast_float_to_cfloat);
+  register_trans_unit_variable(cast_double_to_cdouble);
+  register_trans_unit_variable(cast_long_double_to_clong_double);
+  register_trans_unit_variable(cast_ifloat_to_cfloat);
+  register_trans_unit_variable(cast_idouble_to_cdouble);
+  register_trans_unit_variable(cast_ilong_double_to_clong_double);
+  register_trans_unit_variable(cast_cfloat_to_float);
+  register_trans_unit_variable(cast_cdouble_to_double);
+  register_trans_unit_variable(cast_clong_double_to_long_double);
+  register_trans_unit_variable(cast_cfloat_to_ifloat);
+  register_trans_unit_variable(cast_cdouble_to_idouble);
+  register_trans_unit_variable(cast_clong_double_to_ilong_double);
+  register_trans_unit_variable(lowered_complex_float);
+  register_trans_unit_variable(lowered_complex_double);
+  register_trans_unit_variable(lowered_complex_long_double);
+#endif /* LOWER_COMPLEX */
+#if LOWER_FIXED_POINT
+  register_trans_unit_variable(fixed_conv_routine);
+  register_trans_unit_variable(fixed_negate_routine);
+  register_trans_unit_variable(fixed_eq_routine);
+  register_trans_unit_variable(fixed_ne_routine);
+  register_trans_unit_variable(fixed_gt_routine);
+  register_trans_unit_variable(fixed_lt_routine);
+  register_trans_unit_variable(fixed_ge_routine);
+  register_trans_unit_variable(fixed_le_routine);
+  register_trans_unit_variable(fixed_add_routine);
+  register_trans_unit_variable(fixed_subtract_routine);
+  register_trans_unit_variable(fixed_multiply_routine);
+  register_trans_unit_variable(fixed_divide_routine);
+  register_trans_unit_variable(fixed_shiftl_routine);
+  register_trans_unit_variable(fixed_shiftr_routine);
+  register_trans_unit_variable(fixed_incr_routine);
+  register_trans_unit_variable(fixed_decr_routine);
+  register_trans_unit_array(float_fixed_conv_routine);
+  register_trans_unit_array(fixed_float_conv_routine);
+#endif /* LOWER_FIXED_POINT */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
   register_trans_unit_variable(vla_types);
+  register_trans_unit_variable(vla_dealloc_routine);
+  register_trans_unit_variable(vla_alloc_routine);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+  register_trans_unit_variable(temp_init_statements);
 #if MINIMAL_INLINING
   /* Do inline.c initialization. */
   if (inlining_enabled) inline_one_time_init();
