@@ -10321,7 +10321,12 @@ the expression have already been lowered.
        Cast it to a pointer to a pointer and indirect to get the value of 
        the pointer to the virtual function table. */
     ptr_to_vtbl_entry_type = pointer_to_vtbl_type();
+#if !IA64_ABI
+    cast_node = add_cast(padd_node, make_pointer_type(ptr_to_vtbl_entry_type));
+#else /* IA64_ABI */
+    /* Use a char * pointer to avoid scaling issues. */
     cast_node = add_cast(padd_node, make_pointer_type(char_star_type()));
+#endif /* IA64_ABI */
     vtbl_addr_node = add_indirection_to_node(cast_node);
     pmf_node = make_reusable_copy(pmf_node, /*vars_can_change=*/FALSE);
     /* Make the index into the virtual function table. */
@@ -10345,7 +10350,9 @@ the expression have already been lowered.
     vtbl_addr_node->next = offset_node;
     padd_node = make_operator_node((an_expr_operator_kind)eok_padd,
                                    vtbl_addr_node->type, vtbl_addr_node);
+#if IA64_ABI
     padd_node = add_cast_if_necessary(padd_node, ptr_to_vtbl_entry_type);
+#endif /* IA64_ABI */
     /* Make the temporary variable for the "vtbl_temp". */
     vtbl_temp_var = make_local_temporary(ptr_to_vtbl_entry_type);
     vtbl_temp_assign_node = make_var_assignment_expr(vtbl_temp_var,
