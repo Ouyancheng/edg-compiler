@@ -17818,9 +17818,19 @@ with the given source position.
 */
 {
   a_symbol_ptr  sym = symbol_for(predeclared_type);
-  a_namespace_ptr  nsp = scope_stack[scope_depth].il_scope
-                                                    ->variant.assoc_namespace;
+  a_namespace_ptr  nsp;
 
+  switch (scope_stack[scope_depth].kind) {
+    case sck_file:
+      nsp = NULL;
+      break;
+    case sck_namespace:
+    case sck_namespace_extension:
+      nsp = scope_stack[scope_depth].il_scope->variant.assoc_namespace;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
   sym->decl_position = *pos;
   reenter_symbol(sym, scope_depth, /*suppress_error=*/FALSE);
   /* Call set_source_corresp again to get everything in sync. */
