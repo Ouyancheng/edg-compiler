@@ -1,5 +1,18 @@
 Version 3.7
 
+12/9/05  Lowering of GNU assigned goto in C++ mode
+
+IL lowering aborted on encountering a GNU assigned goto in C++ mode.
+Now fixed.
+
+  int f() {
+    void *ptr;
+    ptr = &&foo;
+    goto *ptr;  // Formerly caused abort in lowering in g++ mode
+  foo:
+    return 0;
+  }
+
 12/9/05  On IL lowering rewrite of while with condition, pragma kept on while
 
 IL lowering's rewrite of a "while" statement that includes a condition
