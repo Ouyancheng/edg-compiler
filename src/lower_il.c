@@ -14019,8 +14019,11 @@ handled).
              cleanup state will be inserted following the label.  That's
              done later in this routine. */
           created_break_label = TRUE;
-          turn_statement_into_block(statement, &break_label_insert_location,
-                                    &statement);
+          turn_statement_into_block_transferring_pragma(
+                                                  statement,
+                                                  &break_label_insert_location,
+                                                  &statement,
+                                                  curr_context->scope);
           set_insert_location(statement, &break_label_insert_location);
           break_label = insert_temp_label(&break_label_insert_location);
           break_label->break_label = TRUE;

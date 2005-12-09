@@ -1,5 +1,20 @@
 Version 3.7
 
+12/9/05  On IL lowering rewrite of while with condition, pragma kept on while
+
+IL lowering's rewrite of a "while" statement that includes a condition
+declaration has been changed so that if there is a pragma associated
+with the "while" it is kept on the "while" itself rather than moved to
+the block statement added to surround the "while".
+
+  void func2(int);
+  void func1(int i) {
+  #pragma test_next_statement
+    while (int a = i) {
+      func2(--a);
+    }
+  }
+
 12/7/05  Abort when lowering VLAs in a multi-translation unit compilation
 
 When simultaneously processing multiple translation units in a mode that
