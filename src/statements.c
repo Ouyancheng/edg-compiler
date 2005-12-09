@@ -4176,30 +4176,6 @@ well.
 }  /* empty_statement */
 
 
-static void check_for_leaving_statement_expr(
-                                      a_struct_stmt_stack_entry_ptr dest_sssep)
-/*
-A transfer of control is being made from the current position to the
-structured statement indicated by dest_sssep.  If the transfer exits a
-GNU statement expression, issue an error at pos_curr_token.  dest_sssep
-is NULL to indicate a return; it's non-null for the other cases
-(break, continue, __leave).
-*/
-{
-  /* The error check applies only in C++ mode. */
-  if (gpp_mode && struct_stmt_stack[depth_stmt_stack].inside_statement_expr) {
-    a_scope_depth depth, dest_depth = 0;
-    if (dest_sssep != NULL) dest_depth = dest_sssep - struct_stmt_stack;
-    for (depth = depth_scope_stack; depth > dest_depth; depth--) {
-      if (struct_stmt_stack[depth].is_statement_expr) {
-        pos_error(ec_branch_out_of_statement_expr, &pos_curr_token);
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-}  /* check_for_leaving_statement_expr */
-
-
 static void add_goto_to_continue_label(
                                       a_struct_stmt_stack_entry_ptr sssep,
                                       a_boolean                     is_leave,
@@ -4222,7 +4198,6 @@ in *goto_stmt.
     empty_statement();
     sp = NULL;
   } else {
-    check_for_leaving_statement_expr(sssep);
     dest_label = sssep->continue_label;
     if (dest_label == NULL) {
       /* The continue label has not previously been used, so generate it. */
@@ -5327,7 +5302,6 @@ See also 3.6.6.3.
     /* No appropriate structured statement was found. */
     error(ec_break_must_be_in_loop_or_switch);
   } else {
-    check_for_leaving_statement_expr(sssep);
     check_for_leaving_upc_forall(sssep);
   }  /* if */
   /* Advance over the "break". */
@@ -5553,7 +5527,6 @@ See also 3.6.6.4.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  check_for_leaving_statement_expr((a_struct_stmt_stack_entry_ptr)NULL);
 #if VLA_DEALLOCATIONS_IN_IL
   if (vla_enabled && vla_deallocations_in_il &&
       curr_reachability.reachable) {

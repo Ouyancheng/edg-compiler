@@ -1,5 +1,20 @@
 Version 3.7
 
+12/9/05  Transferring out of a statement expression in C++ mode now allowed
+
+The restriction on transferring out of a GNU statement expression
+(i.e., ({ ...}) ) in C++ mode (by way of a break, continue, goto,
+or return statement) has been eliminated.  This was important
+because the expansion of the QT4 foreach macro includes a break
+in a statement expression.
+
+  void foo() {
+    int i = 1;
+    while (i) {
+        __extension__ ({--i; break;});
+    }
+  }
+
 12/9/05  SVR4 C and C99 modes
 
 The front end previously failed to diagnose an attempt at enabling both
