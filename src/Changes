@@ -1,5 +1,14 @@
 Version 3.7
 
+12/9/05  SVR4 C and C99 modes
+
+The front end previously failed to diagnose an attempt at enabling both
+SVR4 C and C99 modes at the same time.  For example, if SVR4 C mode was
+enabled by default (DEFAULT_SVR4_C_MODE set to TRUE), the command-line
+option --c99 did not enable most of the C99 extensions.  This is now fixed:
+DEFAULT_SVR4_C_MODE and DEFAULT_C99_MODE cannot both be TRUE, and providing
+both --c99 and --svr4 on the command line elicits a command-line error.
+
 12/9/05  Lowering of GNU assigned goto in C++ mode
 
 IL lowering aborted on encountering a GNU assigned goto in C++ mode.

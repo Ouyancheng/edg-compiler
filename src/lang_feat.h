@@ -1244,6 +1244,10 @@ value of which may be modified using command line options.
 #define DEFAULT_C99_MODE FALSE
 #endif /* ifndef DEFAULT_C99_MODE */
 
+#if DEFAULT_C99_MODE && DEFAULT_SVR4_C_MODE
+ #error -- C99 and SVR4 C modes are mutually exclusive
+#endif /* DEFAULT_C99_MODE && DEFAULT_SVR4_C_MODE */
+
 EXTERN a_boolean
 		c99_mode;
 			/* When TRUE accept language features defined by the

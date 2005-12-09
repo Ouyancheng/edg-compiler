@@ -3031,6 +3031,9 @@ order of development of this front end, and is inconsistent and strange.
     exclude_c99_mode(ec_cl_incompatible_language_modes);
     exclude_gcc_mode(ec_cl_incompatible_language_modes);
   } else {
+    /* C99 and SVR4 C modes are mutually exclusive. */
+    if (c99_mode) exclude_SVR4_C_mode(ec_cl_incompatible_language_modes);
+    if (SVR4_C_mode) exclude_c99_mode(ec_cl_incompatible_language_modes);
     check_embedded_c_options();
   }  /* if */
   if (C_dialect != C_dialect_cplusplus) {
