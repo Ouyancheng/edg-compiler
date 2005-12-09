@@ -4510,6 +4510,9 @@ The affinity can be an expression or the keyword "continue".
   /* Scan the incrementing expression if it is present. */
   if (curr_token != tok_rparen &&
       !(processing_upc_forall && curr_token == tok_semicolon)) {
+    a_reachability_summary saved_reachability;
+    saved_reachability = curr_reachability;
+    set_reachable(curr_reachability);
     /* Be sure that no used-before-set warnings are issued in scanning
        the increment expression -- after all, a variable it references could
        be set within the body of the loop. */
@@ -4521,6 +4524,7 @@ The affinity can be an expression or the keyword "continue".
                                            /*is_statement_expr=*/FALSE);
     /* Restore the global variable. */
     suppress_used_before_set_warnings = saved_flag;
+    curr_reachability = saved_reachability;
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   /* Process the affinity expression. */

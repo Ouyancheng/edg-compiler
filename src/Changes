@@ -21,6 +21,17 @@ in a statement expression.
     }
   }
 
+In a related change, a spurious "not reachable" warning is no
+longer issued when a break is used in a statement expression
+inside the increment expression of a "for" (in either C or C++
+mode).
+
+  int main() {
+    int i, j;
+    for (i = 0; i < 5; ({ i++; break; }))
+      j = i;
+  }
+
 12/9/05  SVR4 C and C99 modes
 
 The front end previously failed to diagnose an attempt at enabling both
