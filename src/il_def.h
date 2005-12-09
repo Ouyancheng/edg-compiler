@@ -9852,7 +9852,7 @@ typedef struct an_expr_node {
 			   if it were explicit.  May be null_source_range. */
   a_source_position
 		operator_position;
-			/* When kind == enk_operator, the source position
+			/* When kind == enk_operation, the source position
 			   at which the operator appears in the source.
 			   Otherwise, null_source_position. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
