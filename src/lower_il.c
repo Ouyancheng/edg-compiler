@@ -10321,7 +10321,7 @@ the expression have already been lowered.
        Cast it to a pointer to a pointer and indirect to get the value of 
        the pointer to the virtual function table. */
     ptr_to_vtbl_entry_type = pointer_to_vtbl_type();
-    cast_node = add_cast(padd_node, make_pointer_type(ptr_to_vtbl_entry_type));
+    cast_node = add_cast(padd_node, make_pointer_type(char_star_type()));
     vtbl_addr_node = add_indirection_to_node(cast_node);
     pmf_node = make_reusable_copy(pmf_node, /*vars_can_change=*/FALSE);
     /* Make the index into the virtual function table. */
@@ -10331,12 +10331,11 @@ the expression have already been lowered.
     offset_node = node_to_select_field_from_rvalue(pmf_node, mptr_f_field);
     /* We're using the "f" field of __mptr as a ptrdiff_t. */
     offset_node = add_cast(offset_node, integer_type(targ_ptrdiff_t_int_kind));
-    /* Scale the offset by the size of a vtable entry.  Note that this
-       drops off the low-order bit that indicates that the function is
-       virtual. */
-    offset_node->next = node_for_integer_constant((long)vtbl_entry_size(),
+    /* Subtract 1 to drop the low-order bit that indicates that the
+       function is virtual. */
+    offset_node->next = node_for_integer_constant(1L,
                                                   targ_ptrdiff_t_int_kind);
-    offset_node = make_operator_node((an_expr_operator_kind)eok_idivide,
+    offset_node = make_operator_node((an_expr_operator_kind)eok_isubtract,
                                      offset_node->type,
                                      offset_node);
 #endif /* IA64_ABI */
@@ -10345,7 +10344,8 @@ the expression have already been lowered.
        "vtbl_temp". */
     vtbl_addr_node->next = offset_node;
     padd_node = make_operator_node((an_expr_operator_kind)eok_padd,
-                                   ptr_to_vtbl_entry_type, vtbl_addr_node);
+                                   vtbl_addr_node->type, vtbl_addr_node);
+    padd_node = add_cast_if_necessary(padd_node, ptr_to_vtbl_entry_type);
     /* Make the temporary variable for the "vtbl_temp". */
     vtbl_temp_var = make_local_temporary(ptr_to_vtbl_entry_type);
     vtbl_temp_assign_node = make_var_assignment_expr(vtbl_temp_var,
