@@ -3865,7 +3865,7 @@ Scan a "do" statement and add it to the current statement sequence.
 The syntax is:
 
 3.6.5  iteration-statement:
-		do ( expression ) statement
+		do statement while ( expression )
 
 See also 3.6.5.2.
 */
