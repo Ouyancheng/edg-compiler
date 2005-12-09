@@ -9909,7 +9909,7 @@ FALSE if the bound function case is not one that undergoes the conversion.
   /* Do not convert cases that result from the operators .* and ->*.
      It's not that there would be anything wrong with that; we just don't
      have a way of representing that in the IL. */
-  if (is_constant_operand(operand)) {
+  if (microsoft_version < 1300 && is_constant_operand(operand)) {
     a_constant_ptr con;
     a_symbol_ptr   sym;
     an_operand     orig_operand;
@@ -10000,7 +10000,7 @@ merely transformed to something to which the cast may apply.
       operand->bound_function = FALSE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_bugs && microsoft_version < 1300 &&
+  } else if (microsoft_bugs &&
              is_ptr_to_member_type(type_cast_to) &&
              is_function_type(pm_member_type(type_cast_to)) &&
              is_pointer_type(operand->type) &&
@@ -17344,8 +17344,8 @@ bad_start_of_primary:
     } else if (is_property_ref_operand(&local_result)) {
       /* If the operand is a field selection for a field declared with
          __declspec(property(...)), change it to a call of the appropriate 
-        "get" function.  But preserve it for [], ++, --, and assignment
-        operators, where the "put" interpretation may apply. */
+         "get" function.  But preserve it for [], ++, --, and assignment
+         operators, where the "put" interpretation may apply. */
       switch (curr_token) {
         case tok_plus_plus:
         case tok_minus_minus:
