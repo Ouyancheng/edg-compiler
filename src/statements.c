@@ -839,47 +839,6 @@ return TRUE.
 }  /* check_for_branch_into_goto_protected_block */
 
 
-static a_boolean check_for_branch_out_of_goto_protected_block(
-                                      a_control_flow_descr_ptr  label_cfdp,
-                                      a_control_flow_descr_ptr  goto_cfdp)
-/*
-Check for an attempt to branch out of a block when that is not allowed.
-This comes up for GNU statement expressions.  label_cfdp points to a
-label entry and goto_cfdp to a goto entry.  If an error is found, issue
-the diagnostic and return TRUE.
-*/
-{
-  a_boolean                 err = FALSE;
-  a_control_flow_descr_ptr  cfdp;
-
-  db_enter(4, "check_for_branch_out_of_goto_protected_block");
-  cfdp = goto_cfdp->parent;
-  /* The only case right now is branching out of a statement expression
-     in C++ mode, so do no check in C mode. */
-  if (!C_mode() && cfdp->variant.block.is_within_goto_protected_block) {
-    /* The goto is inside a statement that cannot be branched into.
-       That's a superset of the cases we want to look at, so look to
-       see if we're inside a statement expression. */
-    while (!cfdp->variant.block.is_statement_expr) {
-      cfdp = cfdp->parent;
-      if (cfdp == NULL) break;
-    }  /* while */
-    if (cfdp != NULL) {
-      if (is_on_cfd_parent_list(cfdp, label_cfdp)) {
-        /* This is a goto within a single statement expression, which is
-           allowed. */
-      } else {
-        /* It's a branch out of a statement expression. */
-        pos_error(ec_branch_out_of_statement_expr, &goto_cfdp->source_pos);
-        err = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  db_exit();
-  return err;
-}  /* check_for_branch_out_of_goto_protected_block */
-
-
 static void report_switch_past_init(a_control_flow_descr_ptr  block,
                                     an_error_severity         *prev_severity)
 /*
@@ -4785,10 +4744,6 @@ diagnose the condition.
     /* Ignore the jump-over-initialization errors -- this is an illegal
        branch into a catch clause or try block.  (The diagnostic has
        already been issued.) */
-  } else if (check_for_branch_out_of_goto_protected_block(label_cfdp,
-                                                          goto_cfdp)) {
-    /* An illegal branch out of a protected block, e.g., a GNU
-       statement expression.  (The diagnostic has already been issued.) */
   } else if (label_cfdp->parent == goto_cfdp->parent) {
     /* Label and goto are in the same block:
 
