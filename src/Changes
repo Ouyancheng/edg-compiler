@@ -1,5 +1,11 @@
 Version 3.7
 
+12/13/05 Extra position information for namespace definitions
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the front end now records more
+detailed position information for namespace definitions and namespace alias
+definitions.
+
 12/9/05  End position of function-style cast
 
 In some situations involving class templates, the end position recorded for

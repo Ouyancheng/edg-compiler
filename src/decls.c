@@ -10593,6 +10593,11 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
 */
 {
   a_source_position           namespace_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position           identifier_end_pos, def_start_pos;
+  a_decl_position_supplement_ptr
+                              decl_pos_info = NULL;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_namespace_ptr             nsp;
   a_symbol_ptr                ns_sym = NULL, sym;
   a_symbol_locator            locator;
@@ -10633,9 +10638,15 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   if (curr_token == tok_lbrace) {
     /* This must be an unnamed namespace definition. */
     is_unnamed_namespace = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    identifier_end_pos = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else if (is_generalized_identifier_start(GID_NO_OPTIONS)) {
     /* Save the identifier's locator before bypassing it. */
     locator = locator_for_curr_id;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    identifier_end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Issue an error if this is not a simple identifier name. */
     if (locator.is_qualified_name) {
       error(ec_qualified_name_not_allowed);
@@ -10658,6 +10669,9 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     remove_stop_token(tok_semicolon);
     remove_stop_token(tok_lbrace);
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  def_start_pos = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (depth_scope_stack != depth_innermost_namespace_scope) {
     /* The current scope is not the file scope or a namespace scope. */
     if (!is_namespace_alias) {
@@ -10873,8 +10887,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       /* Do processing required for any pragmas bound to the current
          declaration. */
       process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
-      if (!ignore_std_namespace ||
-          ns_sym != symbol_for_namespace_std) {
+      if (!ignore_std_namespace || ns_sym != symbol_for_namespace_std) {
         /* Push a scope for the scanning the namespace body.  This is not done
            when using the g++ compatibility feature that makes "std" a
            synonym for the global namespace. */
@@ -10976,6 +10989,29 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     remove_from_src_seq_list(namespace_ssep);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Record extended position information for the namespace or namespace
+     alias definition.  If this is a namespace extension definition or a
+     repeated namespace alias, the extended position information is recorded
+     in the associated secondary source sequence entry. */
+  if (ss_entry_kind(namespace_ssep) == iek_src_seq_secondary_decl) {
+    decl_pos_info = alloc_decl_position_supplement(/*at_file_scope=*/TRUE);
+    ss_entry_ptr(namespace_ssep, a_src_seq_secondary_decl_ptr)->decl_pos_info =
+                                                                 decl_pos_info;
+  } else if (ss_entry_kind(namespace_ssep) == iek_namespace) {
+    decl_pos_info = nsp->source_corresp.decl_pos_info;
+  } else {
+    check_assertion(total_errors != 0);
+  }  /* if */
+  if (decl_pos_info != NULL) {
+    decl_pos_info->specifiers_range.start = namespace_pos;
+    decl_pos_info->specifiers_range.end = identifier_end_pos;
+    decl_pos_info->identifier_range.start = locator.source_position;
+    decl_pos_info->identifier_range.end = identifier_end_pos;
+    decl_pos_info->variant.namespace_definition_range.start = def_start_pos;
+    decl_pos_info->variant.namespace_definition_range.end = end_pos_curr_token;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
 }  /* namespace_declaration */
 
