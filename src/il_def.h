@@ -773,6 +773,13 @@ typedef struct a_decl_position_supplement {
 			   end positions of the value expression.  May be
 			   null_source_range (when there is no explicitly
 			   specified value). */
+    a_source_range
+		namespace_definition_range;
+			/* When the associated IL entry is a namespace, the
+			   source positions of the opening and closing
+			   braces (or the "=" token and the terminating
+			   semicolon if the entry represents a namespace
+			   alias). */
   } variant;
 } a_decl_position_supplement;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
