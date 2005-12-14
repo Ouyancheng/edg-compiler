@@ -2434,6 +2434,18 @@ might not be able to if the template itself has not yet been defined.
   } else {
     a_template_cache_ptr	body_cache;
     a_boolean			trans_unit_pushed;
+    /* The instantiation process may rescan various things and invalidate the
+       current token positions as a result.  Save these positions so that they
+       may be restored when we are done. */
+    a_source_position           saved_pos_curr_token, saved_error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    a_source_position           saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    saved_pos_curr_token = pos_curr_token;
+    saved_error_position = error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    saved_curr_construct_end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Switch to the translation unit containing the template, if needed. */
     trans_unit_pushed = push_translation_unit_if_needed(template_sym);
     tssp = template_supplement_for_symbol(template_sym);
@@ -2654,6 +2666,11 @@ might not be able to if the template itself has not yet been defined.
       /* If the translation unit stack was pushed above, pop it now. */
       if (trans_unit_pushed) pop_translation_unit_stack();
     }  /* if */
+    error_position = saved_error_position;
+    pos_curr_token = saved_pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   db_exit();
 }  /* f_instantiate_template_class */

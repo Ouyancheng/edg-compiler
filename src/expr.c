@@ -863,9 +863,6 @@ source position is after the closing parenthesis of the argument list.
   a_routine_ptr       routine;
   a_type_ptr          routine_type, class_type;
   a_source_position   start_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position   end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_arg_operand_ptr  arg_operand_list;
   an_arg_match_summary_ptr
                       arg_match_list;
@@ -916,12 +913,6 @@ source position is after the closing parenthesis of the argument list.
                       /*unknown_dependent_function=*/FALSE,
                       &arg_operand_list, (a_source_position *)NULL);
   error_position = start_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  /* Save curr_construct_end_position to restore it later because we may
-     trigger instantiations that will modify it to a value that is not
-     relevant for the caller. */
-  end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   if (overloaded_function_case) {
     /* The constructors are overloaded.  Select the proper one. */
@@ -1135,9 +1126,6 @@ source position is after the closing parenthesis of the argument list.
     }  /* if */
     *p_temp_init_node = temp_init_node;
   }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  curr_construct_end_position = end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
 }  /* scan_ctor_arguments */
 
