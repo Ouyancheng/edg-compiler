@@ -11000,13 +11000,21 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     check_assertion(total_errors != 0);
   } else if (namespace_ssep == NULL) {
     /* No source sequence entry was recorded.  Only record position information
-       if none was recorded before. */
-    if (nsp != NULL &&
-        nsp->source_corresp.decl_pos_info->specifiers_range.start.seq == 0) {
+       if none was recorded before.  Predeclared namespaces may not yet have a
+       position supplement block. */
+    if (nsp->source_corresp.decl_pos_info == NULL) {
+      nsp->source_corresp.decl_pos_info =
+                       alloc_decl_position_supplement(/*at_file_scope=*/TRUE);
+    }  /* if */
+    if (nsp->source_corresp.decl_pos_info->specifiers_range.start.seq == 0) {
       decl_pos_info = nsp->source_corresp.decl_pos_info;
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   } else if (ss_entry_kind(namespace_ssep) == iek_namespace) {
+    if (nsp->source_corresp.decl_pos_info == NULL) {
+      nsp->source_corresp.decl_pos_info =
+                       alloc_decl_position_supplement(/*at_file_scope=*/TRUE);
+    }  /* if */
     decl_pos_info = nsp->source_corresp.decl_pos_info;
   } else if (ss_entry_kind(namespace_ssep) == iek_src_seq_secondary_decl) {
     decl_pos_info = alloc_decl_position_supplement(/*at_file_scope=*/TRUE);
