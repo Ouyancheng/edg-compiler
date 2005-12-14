@@ -1201,14 +1201,18 @@ setting is irrelevant in that case.
 #endif /* ifndef TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED */
 
 /*
-To emulate the GNU IA-64 ABI, TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED
-should be set to TRUE while TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED should be
-FALSE.  This is our default configuration when the IA-64 ABI is selected
-(except when ABI_COMPATIBILITY_VERSION < 307, to maintain backward
-compatibility).  Otherwise, TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED is
-equal to TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED by default to keep compatibility
-with earlier versions of the front end that did not support this flag.
-This is the default value of the global variable
+Flag that determines the signedness of an enum bit field when both the "signed"
+and "unsigned" variants can represent all the associated enumerator constants.
+(See above for a detailed description of how the signedness of enum bit fields
+is determined.) To emulate the GNU IA-64 ABI,
+TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED should be set to TRUE while
+TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED should be FALSE.  This is our default
+configuration when the IA-64 ABI is selected (except when
+ABI_COMPATIBILITY_VERSION < 307, to maintain backward compatibility).
+Otherwise, TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED is equal to
+TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED by default to keep compatibility with
+earlier versions of the front end that did not support this flag.  This is
+the default value of the global variable
 targ_nonnegative_enum_bit_field_is_unsigned.
 */
 #ifndef TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED
