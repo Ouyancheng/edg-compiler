@@ -2583,6 +2583,7 @@ and return a pointer to it.
       tssp->variant.function.pending_partial_instantiations = 0;
       tssp->variant.function.prototype_friend_symbol = NULL;
       tssp->variant.function.template_param_not_in_function_type = FALSE;
+      tssp->variant.function.has_prototype_instantiation = FALSE;
 #if CENTERLINE_CHECKING 
       tssp->variant.function.avoid_codecenter_warnings = FALSE;
 #endif /* CENTERLINE_CHECKING */

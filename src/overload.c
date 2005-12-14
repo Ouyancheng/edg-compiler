@@ -2421,7 +2421,10 @@ FALSE otherwise.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   function_template_case = (function_symbol->kind ==
                                           (a_symbol_kind)sk_function_template);
-  if (do_dependent_name_processing && !from_arg_dep_lookup &&
+  if (do_dependent_name_processing &&
+      (!from_arg_dep_lookup ||
+       (defer_function_prototype_instantiations &&
+        is_prototype_instantiation_context())) &&
       is_nonspecialized_instantiation_context() &&
       !function_symbol->is_class_member &&
       !is_local_symbol(function_symbol) &&
@@ -2430,8 +2433,11 @@ FALSE otherwise.
        effective_decl_seq != NO_DECL_SEQUENCE_NUMBER)) {
  
     /* This symbol is not visible in this template instantiation (it
-       was declared after the template definition). */
-    if (gpp_mode && gnu_version >= 30400) {
+       was declared after the template definition).  The test done when
+       deferring prototype instantiations is used to apply the decl_seq
+       check to functions found by argument dependent lookup during the
+       prototype instantiation. */
+    if (dependent_call && gpp_mode && gnu_version >= 30400) {
       /* g++ 3.4 has a bug and considers such symbols visible. */
     } else {
       visible = FALSE;

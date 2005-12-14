@@ -1524,7 +1524,8 @@ nested class.
              The friend from the prototype instantiation will be used. */
         } else if (rfp->is_template) {
           /* A function template declared in a class scope. */
-          if (nonclass_prototype_instantiations) {
+          if (nonclass_prototype_instantiations &&
+              !defer_function_prototype_instantiations) {
             if (rfp->is_definition) {
               /* Do the prototype instantiation of the function body. */
               function_prototype_instantiation(sym);
@@ -1554,7 +1555,8 @@ nested class.
              free_routine_fixup is called. */
           tssp->variant.function.func_info = rfp->func_info;
           rfp->func_info.param_id_list = NULL;
-          if (nonclass_prototype_instantiations) {
+          if (nonclass_prototype_instantiations &&
+              !defer_function_prototype_instantiations) {
             /* Do the prototype instantiation of the member function body. */
             function_prototype_instantiation(sym);
           }  /* if */

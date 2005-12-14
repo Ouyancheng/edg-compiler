@@ -245,6 +245,7 @@ typedef enum /*an_option_kind*/ {
   optk_nonstandard_default_arg_deduction,
   optk_stdc_zero_in_system_headers,
   optk_template_typedefs_in_diagnostics,
+  optk_defer_parse_function_templates,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -547,6 +548,20 @@ EXTERN a_boolean
 			   This is initialized to the same value as
 			   do_dependent_name_processing because it is a
 			   prerequisite. */
+
+EXTERN a_boolean
+		defer_function_prototype_instantiations;
+			/* TRUE if the prototype instantiation of a function
+			   should be deferred until the first use of the
+			   function.  This is useful to avoid reporting errors
+			   on unused templates (because those templates are
+			   accepted by other compilers).  This is only
+			   tested if nonclass_prototype_instantiations
+                           is TRUE.  Note that this can change the meaning of
+			   certain programs because the state will be different
+			   when the instantiation is done (additional default
+			   arguments may be present, classes may be complete,
+			   etc.). */
 
 EXTERN a_boolean
 		defer_friend_instantiation;

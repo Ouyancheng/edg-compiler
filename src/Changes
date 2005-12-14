@@ -1,5 +1,28 @@
 Version 3.7
 
+12/13/05 GNU C++ compatibility: deferred parsing of function templates
+
+Even though recent versions of g++ (3.4 and newer) parse template definitions,
+they do very little semantic checking of such definitions.  Most of the
+semantic checking is delayed until an actual instantiation is done.  As a
+result, g++ accepts certain unusable templates provided they are not
+actually used in the program.  To allow such programs to be compiled, we
+have added the ability to defer the prototype instantiation of function
+templates and function members of class templates until the first actual
+instantiation is needed.  The --[no_]defer_parse_function_templates
+options have been added to enable or disable this feature.  The feature
+is enabled by default in g++ mode when gnu_version is >= 30400.  Note that
+this feature can affect the meaning and/or validity of some programs.  For
+example, additional default arguments may be available when the prototype
+instantiation is done.  In most cases, however, the change in behavior
+actually has the effect of making the front end more compatible with g++.
+
+  class A {};
+  template <class T> struct B {
+    B () {};  // error: no initializer for reference member "B<T>::a"
+    A& a;
+  };
+
 12/13/05 Extra position information for namespace definitions
 
 When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the front end now records more

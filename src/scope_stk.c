@@ -3554,6 +3554,7 @@ is pushed here, and popped when the instantiation scope is popped.
     /* Save the original scope depth in the last scope pushed by this
        routine.  This will be used later when popping the stack. */
     ssep->orig_depth = orig_depth;
+    check_assertion(orig_depth != depth_scope_stack);
     /* Save the original value of the depth of the innermost scope that affects
        access control.  This is necessary because the scope fixup routine
        may adjust some of the next scope that affects access control links

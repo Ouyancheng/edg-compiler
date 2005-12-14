@@ -1115,6 +1115,14 @@ Initialize the option information table.
                          "no_template_typedefs_in_diagnostics",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_defer_parse_function_templates,
+                         "defer_parse_function_templates",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_defer_parse_function_templates,
+                         "no_defer_parse_function_templates",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2835,6 +2843,13 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
          command line option, set it now. */
       nonclass_prototype_instantiations = TRUE;
     }  /* if */
+    if (!(option_kind_used[(int)optk_defer_parse_function_templates])) {
+      /* Only do function prototype instantiations for functions that actually
+         need to be instantiated.  This is done to avoid diagnostics on unused
+         functions. */
+      defer_function_prototype_instantiations =
+                                             nonclass_prototype_instantiations;
+    }  /* if */
   }  /* if */
   if (!option_kind_used[(int)optk_nonstandard_default_arg_deduction]) {
     /* Default arguments are part of the deduced function type in g++ mode. */
@@ -4218,6 +4233,10 @@ enable_microsoft_mode:
       case optk_template_typedefs_in_diagnostics:
         display_template_typedefs_in_diagnostics = opt_value;
         break;
+      case optk_defer_parse_function_templates:
+        /* Defer prototype instantiation of function templates. */
+        defer_function_prototype_instantiations = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -4815,6 +4834,7 @@ variables declared in cmd_line.h.
   gpp_using_directive_lookup = FALSE;
   friend_class_decl_can_find_using_dir = FALSE;
   nonclass_prototype_instantiations = DEFAULT_DEPENDENT_NAME_PROCESSING;
+  defer_function_prototype_instantiations = FALSE;
   defer_friend_instantiation = TRUE;
   nonstandard_using_decl_allowed = DEFAULT_NONSTANDARD_USING_DECL_ALLOWED;
   designators_allowed =

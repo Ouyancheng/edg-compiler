@@ -2157,6 +2157,12 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if the function template has template
 			   parameters that are not used in the function
 			   type. */
+      a_bit_field
+		has_prototype_instantiation:1;
+			/* TRUE if a prototype instantiation has been
+			   performed on this function.  This flag is set
+			   at the beginning of the prototype instantiation
+			   processing. */
       bitfield_to_avoid_codecenter_warnings()
     } function;
     /* When symbol kind = sk_static_data_member: */

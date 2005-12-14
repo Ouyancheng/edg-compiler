@@ -3199,22 +3199,29 @@ user later during real instantiations.
   a_func_info_block		    *func_info_ptr;
   a_template_instance_ptr	    tip;
   a_boolean			    instantiation_scope_needed;
+  a_scope_stack_entry_ptr	    ssep;
 
   db_enter(3, "function_prototype_instantiation");
   tssp = template_supplement_for_symbol(template_sym);
   rout_ptr = tssp->variant.function.routine;
   rout_sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
   check_assertion(rout_sym != NULL);
+  /* Indicate that the prototype instantiation of this function has started. */
+  tssp->variant.function.has_prototype_instantiation = TRUE;
   /* Set the referencing namespace for the prototype instantiation. */
   tip = rout_sym->variant.routine.instance_ptr;
   check_assertion(tip != NULL);
   tip->referencing_namespace = parent_namespace_for_symbol(rout_sym);
+  ssep = &scope_stack[depth_scope_stack];
   /* We don't need to push an instantiation scope if we are in the prototype
      instantiation of the enclosing class, and the thing being instantiated
-     is a nontemplate member. */
+     is a nontemplate member.  Note that this test intentionally does not use
+     same_entities to compare the types. */
   instantiation_scope_needed =
                     template_sym->kind != (a_symbol_kind)sk_member_function ||
-                    !scope_stack[depth_scope_stack].in_prototype_instantiation;
+                    ((ssep->kind != (a_scope_kind)sck_class_struct_union &&
+                      ssep->kind != (a_scope_kind)sck_class_reactivation) ||
+                     ssep->assoc_type != template_sym->parent.class_type);
   if (routine_has_been_defined(rout_ptr)) {
     /* The routine is already defined (a duplicate definition error should
        have already been issued). */
@@ -3752,6 +3759,13 @@ Instantiate the body of the template function associated with tip.
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
   func_info_ptr = func_info_for_template(tssp);
+  if (nonclass_prototype_instantiations &&
+      defer_function_prototype_instantiations &&
+      !tssp->variant.function.has_prototype_instantiation) {
+    /* We are deferring the prototype instantiation of functions and this
+       function has not had a prototype instantiation done yet.  Do it now. */
+    function_prototype_instantiation(template_sym);
+  }  /* if */
   if (tssp->pending_instantiations >= max_pending_instantiations) {
     /* This function instantiation occurs within the context of other
        instantiations of the same function template.  When the number of
@@ -4455,7 +4469,6 @@ a template parameter.
        unlike other template parameters, always points to the prototype
        argument symbol). */
     templ_sym = symbol_for(templ_ptr);
-    templ_sym = template_argument_if_template_template_param(templ_sym);
     tssp = templ_sym->variant.template_info;
     template_param_found = tssp->is_nonreal_member ||
                          tssp->variant.class_template.template_template_param;
@@ -4651,6 +4664,8 @@ prototype instantiation is considered as a potential match.
     class_type = alloc_type(tssp->variant.class_template.type_kind);
     class_type->variant.class_struct_union.is_template_class = TRUE;
     sym->variant.class_struct_union.type = class_type;
+    set_source_corresp(&(class_type->source_corresp), sym);
+    set_membership_in_source_corresp(&(class_type->source_corresp), sym);
     if (tssp->is_nonreal_member ||
         tssp->variant.class_template.template_template_param) {
       /* Instantiations of a nonreal member template (for example,
@@ -4702,8 +4717,6 @@ prototype instantiation is considered as a potential match.
       ctsp->assoc_template =
                       proto_template->variant.template_info->il_template_entry;
     }  /* if */
-    set_source_corresp(&(class_type->source_corresp), sym);
-    set_membership_in_source_corresp(&(class_type->source_corresp), sym);
     if (sym->is_class_member) {
       /* If this is an instance of a member template, set the access of
          the type based on the access stored in the template. */
@@ -15305,7 +15318,8 @@ any non-empty template parameter lists that were scanned.
   } else if (nonclass_prototype_instantiations && sym != NULL) {
     if (is_function_or_template_symbol(sym)) {
       /* Do the prototype instantiation of the function. */
-      if (!decl_state->decl_scope_err && decl_state->defines_something) {
+      if (!decl_state->decl_scope_err && decl_state->defines_something &&
+          !defer_function_prototype_instantiations) {
         if (decl_state->class_declared_in == NULL) {
           /* Prototype instantiations for templates declared within classes
              are handled elsewhere. */

@@ -5834,14 +5834,22 @@ put it on a list of constants).
     /* Constant (enumeration). */
     check_assertion(assoc_symbol->kind == (a_symbol_kind)sk_constant);
     scp = assoc_symbol->variant.constant;
+    /* For template parameter symbols, only attempt to use the constant
+       from the symbol if it points to an identical constant. */
+    if (!assoc_symbol->is_template_param ||
+        identical_constants(cp, scp)) {
+      /* Use the constant from the symbol. */
 #if CHECKING
-    if (cp->implicit_cast != scp->implicit_cast) {
-      /* Someone did an implicit cast on the constant without clearing the
-         source association. */
-      internal_error(
+      if (cp->implicit_cast != scp->implicit_cast) {
+        /* Someone did an implicit cast on the constant without clearing the
+           source association. */
+        internal_error(
            "alloc_shareable_constant: implicitly-cast const has assoc_info");
-    }  /* if */
+      }  /* if */
 #endif /* CHECKING */
+    } else {
+      scp = alloc_unshared_constant(cp);
+    }  /* if */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   } else if (cp->expr != NULL) {
     /* Constants that track the expression that generated them should
