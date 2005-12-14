@@ -15699,9 +15699,9 @@ that follows.
   a_boolean			keep_func_info = FALSE;
   a_symbol_reference_kind       srk_flags = SRK_DECLARATION;
   a_source_position             decl_start_pos, id_pos;
-#if SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if DECL_MODIFIERS_IN_USE
   a_source_position             prev_sym_pos;
-#endif /* SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* DECL_MODIFIERS_IN_USE */
   a_boolean                     has_parenthesized_initializer;
   a_source_correspondence       *scp;
   a_routine_ptr                 rp;
@@ -16010,9 +16010,9 @@ that follows.
       discard_curr_construct_pragmas();
     } else {
       /* The symbol is not NULL. */
-#if SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if DECL_MODIFIERS_IN_USE
       prev_sym_pos = sym->decl_position;
-#endif /* SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* DECL_MODIFIERS_IN_USE */
       sym->decl_position = id_pos;
       if (is_definition) {
         srk_flags |= SRK_DEFINITION;
