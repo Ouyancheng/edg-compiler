@@ -10598,7 +10598,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   a_decl_position_supplement_ptr
                               decl_pos_info = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_namespace_ptr             nsp;
+  a_namespace_ptr             nsp = NULL;
   a_symbol_ptr                ns_sym = NULL, sym;
   a_symbol_locator            locator;
   a_boolean                   is_unnamed_namespace = FALSE;
