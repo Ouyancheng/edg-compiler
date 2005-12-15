@@ -561,7 +561,8 @@ EXTERN a_boolean
 			   certain programs because the state will be different
 			   when the instantiation is done (additional default
 			   arguments may be present, classes may be complete,
-			   etc.). */
+			   etc.).  Prototype instantiations cannot be deferred
+			   when using the C++-generating back end. */
 
 EXTERN a_boolean
 		defer_friend_instantiation;
