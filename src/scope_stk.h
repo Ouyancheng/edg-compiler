@@ -1145,7 +1145,7 @@ extern void make_class_definition_context_visible(void);
 
 extern void pop_namespace_scope(void);
 
-extern void push_template_instantiation_scope(
+extern a_boolean push_template_instantiation_scope(
                             a_template_decl_info_ptr	decl_info,
                             a_type_ptr			assoc_type,
                             a_routine_ptr		assoc_routine,

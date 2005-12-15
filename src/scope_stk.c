@@ -3389,19 +3389,19 @@ template declaration scope or a template instantiation scope.
 				    ps_options);
     scope_stack[depth_scope_stack].previous_scope = depth;
   } else {
-    push_template_instantiation_scope(decl_info,
-				      assoc_type,
-				      assoc_routine,
-				      instance_sym,
-				      template_sym,
-				      template_arg_list,
-				      /*push_stop_tokens=*/TRUE,
-				      ps_options);
+    (void)push_template_instantiation_scope(decl_info,
+				            assoc_type,
+				            assoc_routine,
+				            instance_sym,
+				            template_sym,
+				            template_arg_list,
+				            /*push_stop_tokens=*/TRUE,
+				            ps_options);
   }  /* if */
 }  /* push_instantiation_scope_for_templ_param_rescan */
 
 
-void push_template_instantiation_scope(
+a_boolean push_template_instantiation_scope(
                             a_template_decl_info_ptr	decl_info,
                             a_type_ptr			assoc_type,
                             a_routine_ptr		assoc_routine,
@@ -3414,6 +3414,8 @@ void push_template_instantiation_scope(
 Interface to push_scope_full that is used for template instantiation
 scopes.  If push_stop_tokens is TRUE, a new stop token stack entry
 is pushed here, and popped when the instantiation scope is popped.
+In some cases involving prototype instantiations, no scope is actually
+pushed.  Return TRUE if a scope is pushed, FALSE otherwise.
 */
 {
   a_namespace_ptr		parent_nsp;
@@ -3554,7 +3556,10 @@ is pushed here, and popped when the instantiation scope is popped.
     /* Save the original scope depth in the last scope pushed by this
        routine.  This will be used later when popping the stack. */
     ssep->orig_depth = orig_depth;
-    check_assertion(orig_depth != depth_scope_stack);
+    /* Except in certain prototype instantiation cases, one or more scopes
+       should always have been pushed by this process. */
+    check_assertion(orig_depth != depth_scope_stack ||
+                    (options & PS_PROTOTYPE_INSTANTIATION) != 0);
     /* Save the original value of the depth of the innermost scope that affects
        access control.  This is necessary because the scope fixup routine
        may adjust some of the next scope that affects access control links
@@ -3580,6 +3585,8 @@ is pushed here, and popped when the instantiation scope is popped.
     db_scope_stack();
   }  /* if */
 #endif /* DEBUG */
+  /* Return TRUE if a scope was pushed. */
+  return depth_scope_stack != orig_depth;
 }  /* push_template_instantiation_scope */
 
 
@@ -6640,11 +6647,11 @@ the class symbol supplement points to the partial specialization).
       if (is_prototype_instantiation_symbol(class_sym)) {
         options |= PS_PROTOTYPE_INSTANTIATION;
       }  /* if */
-      push_template_instantiation_scope(decl_info, class_type,
-                                        (a_routine_ptr)NULL, class_sym,
-                                        template_sym, template_arg_list,
-  				      /*push_stop_tokens=*/FALSE,
-  				      options);
+      (void)push_template_instantiation_scope(decl_info, class_type,
+                                              (a_routine_ptr)NULL, class_sym,
+                                              template_sym, template_arg_list,
+  				              /*push_stop_tokens=*/FALSE,
+  				              options);
     }  /* if */
   }  /* if */
 }  /* push_instantiation_scope_for_class */
