@@ -992,11 +992,14 @@ TRUE if we are in the instantiation of a template in a translation unit
 loaded for the purpose of instantiating exported templates.  Note that
 this will be FALSE for an instantiation performed during the initial scan
 of a translation unit (which should only occur for prototype instantiations).
+The check of is_prototype_instantiation_context() is done to make sure that
+this returns FALSE for deferred prototype instantiations.
 */
 #define in_exported_template_instantiation()				\
   (secondary_trans_units_on_stack > 0 &&				\
    depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&		\
-   scope_stack[DEPTH_OF_FILE_SCOPE].is_reactivation)
+   scope_stack[DEPTH_OF_FILE_SCOPE].is_reactivation &&			\
+   !is_prototype_instantiation_context())
 
 
 EXTERN a_scope_stack_entry_ptr
