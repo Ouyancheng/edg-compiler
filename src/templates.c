@@ -3868,11 +3868,12 @@ Instantiate the body of the template function associated with tip.
      list comes from the enclosing class that is reactivated by
      push_template_instantiation_scope and the value from the routine
      entry (which should be NULL) is not used. */
-  push_template_instantiation_scope(tcp->decl_info,
-				    (a_type_ptr)NULL, rout_ptr,
-				    rout_sym, template_sym,
-				    rout_ptr->template_arg_list,
-                                    /*push_stop_tokens=*/TRUE, PS_NO_OPTIONS);
+  (void)push_template_instantiation_scope(tcp->decl_info,
+				          (a_type_ptr)NULL, rout_ptr,
+				          rout_sym, template_sym,
+				          rout_ptr->template_arg_list,
+                                          /*push_stop_tokens=*/TRUE,
+					  PS_NO_OPTIONS);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if DEBUG
@@ -4087,14 +4088,14 @@ and the class instantiation will detect the runaway case.
      Class reactivations are ignored for the initial portion of the
      static data member rescan.  They are considered once the declarator
      portion of the declaration is reached. */
-  push_template_instantiation_scope(tssp->cache.decl_info,
-                                    (a_type_ptr)NULL,
-                                    (a_routine_ptr)NULL,
-                                    static_data_member_sym,
-                                    tip->template_sym,
-                                    (a_template_arg_ptr)NULL,
-                                    /*push_stop_tokens=*/TRUE,
-                                    PS_IGNORE_CLASS_CONTEXT);
+  (void)push_template_instantiation_scope(tssp->cache.decl_info,
+                                          (a_type_ptr)NULL,
+                                          (a_routine_ptr)NULL,
+                                          static_data_member_sym,
+                                          tip->template_sym,
+                                          (a_template_arg_ptr)NULL,
+                                          /*push_stop_tokens=*/TRUE,
+                                          PS_IGNORE_CLASS_CONTEXT);
   /* Rescan the declaration of the static data member.  This should result
      in the same type as the declaration in the class, except in the case
      where the class declared an incomplete array type. */
@@ -7650,13 +7651,13 @@ instantiated.
     trans_unit_pushed = push_translation_unit_if_needed(template_sym);
     /* Push the template instantiation scope for the context in which the
        default argument is to be evaluated. */
-    push_template_instantiation_scope(daefp->cache.decl_info,
-                                      (a_type_ptr)NULL, rout_ptr,
-                                      tip->instance_sym,
-                                      tip->template_sym,
-                                      rout_ptr->template_arg_list,
-                                      /*push_stop_tokens=*/TRUE,
-				      PS_NO_OPTIONS);
+    (void)push_template_instantiation_scope(daefp->cache.decl_info,
+                                            (a_type_ptr)NULL, rout_ptr,
+                                            tip->instance_sym,
+                                            tip->template_sym,
+                                            rout_ptr->template_arg_list,
+                                           /*push_stop_tokens=*/TRUE,
+				           PS_NO_OPTIONS);
     /* The function prototype scope should be reactivated and its symbols
        reentered because parameter names hide names from enclosing scopes
        and, moreover, may not be used in default argument expressions
@@ -8342,13 +8343,13 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    push_template_instantiation_scope(tcp->decl_info,
-				      (a_type_ptr)NULL,
-				      (a_routine_ptr)NULL,
-				      (a_symbol_ptr)NULL, templ_sym,
-				      templ_arg_list,
-                                      /*push_stop_tokens=*/TRUE,
-				      ps_options);
+    (void)push_template_instantiation_scope(tcp->decl_info,
+				            (a_type_ptr)NULL,
+				            (a_routine_ptr)NULL,
+				            (a_symbol_ptr)NULL, templ_sym,
+				            templ_arg_list,
+                                            /*push_stop_tokens=*/TRUE,
+				            ps_options);
     /* Reactivate any pragmas that should be bound to the generated
        instance. */
     reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
