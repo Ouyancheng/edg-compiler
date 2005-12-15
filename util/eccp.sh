@@ -535,6 +535,7 @@ check_abbreviation()
 --db_alloc_seq
 --db_name
 --debug
+--defer_parse_function_templates
 --define_macro
 --definition_list_file
 --dep_name
@@ -615,6 +616,7 @@ check_abbreviation()
 --no_code_gen
 --no_compound_literals
 --no_const_string_literals
+--no_defer_parse_function_templates
 --no_definition_list_file
 --no_dep_name
 --no_designators
@@ -1238,6 +1240,8 @@ process_option()
          --no_trigraphs | \
          --template_typedefs_in_diagnostics | \
          --no_template_typedefs_in_diagnostics | \
+         --defer_parse_function_templates | \
+         --no_defer_parse_function_templates | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
