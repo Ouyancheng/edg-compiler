@@ -1,5 +1,10 @@
 Version 3.7
 
+12/15/05 Front end reinitialization and CHECKING
+
+The seq_number_lookup_table in il.c was not properly reinitialized when the
+front end was built with CHECKING == 0.  Now fixed.
+
 12/13/05 GNU C++ compatibility: deferred parsing of function templates
 
 Even though recent versions of g++ (3.4 and newer) parse template definitions,

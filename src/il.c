@@ -17948,9 +17948,6 @@ in il_init.)
     internal_error(
                    "il_one_time_init: incorrect initialization of pragma_ids");
   }  /* if */
-  /* Static variables in il.c: */
-  seq_number_lookup_table_size = 0;
-  seq_number_lookup_table = NULL;
   /* Variable in il_def.h: */
   /* Check that unsigned_int_kind_of is correctly initialized.  This
      guards against someone changing the enumeration and forgetting to update
@@ -17960,6 +17957,10 @@ in il_init.)
          "il_one_time_init: incorrect initialization of unsigned_int_kind_of");
   }  /* if */
 #endif /* CHECKING */
+
+  /* Static variables in il.c: */
+  seq_number_lookup_table_size = 0;
+  seq_number_lookup_table = NULL;
 
   /* Initialize certain global variables declared in il.h. */
 #if DEBUG
