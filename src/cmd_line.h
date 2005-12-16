@@ -557,7 +557,7 @@ EXTERN a_boolean
 			   on unused templates (because those templates are
 			   accepted by other compilers).  This is only
 			   tested if nonclass_prototype_instantiations
-                           is TRUE.  Note that this can change the meaning of
+			   is TRUE.  Note that this can change the meaning of
 			   certain programs because the state will be different
 			   when the instantiation is done (additional default
 			   arguments may be present, classes may be complete,
