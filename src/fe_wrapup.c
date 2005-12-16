@@ -120,10 +120,8 @@ are instantiated.
   push_file_scope(/*is_reactivation=*/TRUE);
 
   /* If this is a secondary translation unit, establish any IL
-     correspondences.  (If there were errors, the IL may be too
-     damaged for reasonable results.) */
-  if (!is_primary_translation_unit && !do_preprocessing_only &&
-      total_errors == 0) {
+     correspondences. */
+  if (!is_primary_translation_unit && !do_preprocessing_only) {
     set_trans_unit_correspondences();
   }  /* if */
 

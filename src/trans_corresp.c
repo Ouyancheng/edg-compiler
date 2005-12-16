@@ -450,10 +450,10 @@ The given entity should have a source correspondence.
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         }  /* if */
+        if (routine->is_specialized) {
+          rank += 8;
+        }  /* if */
       }
-      if (((a_routine_ptr)entity)->is_specialized) {
-        rank += 8;
-      }  /* if */
       break;
     case iek_template:
       if (assoc_sym_defined(entity)) {
@@ -4016,9 +4016,8 @@ given type.
 {
   if (trans_unit_corresp_of(type) == NULL) {
     /* Nothing to be done: correspondences are not being processed yet. */
-  } else if (!type_has_definition(type)) {
-    /* This only happens in strange error situations. */
-    check_assertion(total_errors != 0);
+  } else if (total_errors != 0) {
+    /* Correspondence checking is inhibited after errors are encountered. */
   } else {
     a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(type);
     a_boolean   new_canon = FALSE, match;
@@ -4083,7 +4082,11 @@ routine; in particular, friend functions defined in class templates are
 considered "instantiated" when their bodies have been scanned.
 */
 {
-  if (trans_unit_corresp_of(routine) != NULL) {
+  if (trans_unit_corresp_of(routine) == NULL) {
+    /* Nothing to be done: correspondences are not being processed yet. */
+  } else if (total_errors != 0) {
+    /* Correspondence checking is inhibited after errors are encountered. */
+  } else {
     a_routine_ptr  canon = (a_routine_ptr)canonical_il_entry_of(routine);
     if (canon->is_specialized && !routine->is_specialized) {
       /* The canonical entry is specialized, but we're instantiating a matching
@@ -4105,7 +4108,11 @@ data member) has been instantiated.  Such an event may cause var to become
 the canonical entry.
 */
 {
-  if (trans_unit_corresp_of(var) != NULL) {
+  if (trans_unit_corresp_of(var) == NULL) {
+    /* Nothing to be done: correspondences are not being processed yet. */
+  } else if (total_errors != 0) {
+    /* Correspondence checking is inhibited after errors are encountered. */
+  } else {
     a_variable_ptr  canon = (a_variable_ptr)canonical_il_entry_of(var);
     if (canon->is_specialized) {
       /* The canonical entry is specialized, but we're instantiating a
@@ -5787,7 +5794,9 @@ entry.
 {
   a_routine_ptr  result = routine;
 
-  if (routine != NULL && secondary_translation_unit_seen()) {
+  if (total_errors != 0) {
+    /* Correspondence checking is inhibited once errors occur. */
+  } else if (routine != NULL && secondary_translation_unit_seen()) {
     determine_correspondence(&routine->source_corresp, iek_routine);
     result = (a_routine_ptr)canonical_il_entry_of(routine);
   }  /* if */
@@ -5804,7 +5813,9 @@ entry.
 {
   a_variable_ptr  result = var;
 
-  if (var != NULL && secondary_translation_unit_seen()) {
+  if (total_errors != 0) {
+    /* Correspondence checking is inhibited once errors occur. */
+  } else if (var != NULL && secondary_translation_unit_seen()) {
     determine_correspondence(&var->source_corresp, iek_variable);
     result = (a_variable_ptr)canonical_il_entry_of(var);
   }  /* if */
@@ -5821,7 +5832,9 @@ canonical entry.
 {
   a_type_ptr  result = type;
 
-  if (type != NULL && secondary_translation_unit_seen() &&
+  if (total_errors != 0) {
+    /* Correspondence checking is inhibited once errors occur. */
+  } else if (type != NULL && secondary_translation_unit_seen() &&
       /* Do not attempt to find a match for a type instantiated from a
          template template parameter. */
       !(is_immediate_class_type(type) &&
@@ -5845,7 +5858,9 @@ canonical entry.
 {
   a_template_ptr  result = templ;
 
-  if (templ != NULL && secondary_translation_unit_seen()) {
+  if (total_errors != 0) {
+    /* Correspondence checking is inhibited once errors occur. */
+  } else if (templ != NULL && secondary_translation_unit_seen()) {
     determine_correspondence(&templ->source_corresp, iek_template);
     result = (a_template_ptr)canonical_il_entry_of(templ);
   }  /* if */
@@ -5904,6 +5919,11 @@ determine the correspondences.
   a_boolean  result;
   char       *canon1, *canon2;
 
+  if (total_errors != 0) {
+    /* Correspondence checking is inhibited once errors occur. */
+    result = FALSE;
+    goto done;
+  }  /*  if */
   /* Be sure to determine the correspondence of an entity in the secondary
      translation unit first.  Correspondence pointers in the primary
      translation unit are only set as a consequence of an entity in a
@@ -5925,6 +5945,7 @@ determine the correspondences.
                                  /*error_matches_anything=*/FALSE);
     }  /* if */
   }  /* if */
+done:
   return result;
 }  /* corresponding_entries */
 
@@ -5937,7 +5958,10 @@ in which case this might be the only opportunity to establish its
 correspondences in other translation units.
 */
 {
-  if (correspondence_checking_done && trans_unit_corresp_of(routine) == NULL) {
+  if (total_errors != 0) {
+    /* Correspondence checking is inhibited once errors occur. */
+  } else if (correspondence_checking_done &&
+             trans_unit_corresp_of(routine) == NULL) {
     find_routine_correspondence(routine);
   }  /* if */
 }  /* establish_block_extern_function_correspondence */
@@ -5951,7 +5975,10 @@ in which case this might be the only opportunity to establish its
 correspondences in other translation units.
 */
 {
-  if (correspondence_checking_done && trans_unit_corresp_of(var) == NULL) {
+  if (total_errors != 0) {
+    /* Correspondence checking is inhibited once errors occur. */
+  } else if (correspondence_checking_done &&
+             trans_unit_corresp_of(var) == NULL) {
     find_variable_correspondence(var);
   }  /* if */
 }  /* establish_block_extern_variable_correspondence */
@@ -5965,7 +5992,10 @@ this might be the only opportunity to establish its correspondences in other
 translation units.
 */
 {
-  if (correspondence_checking_done && trans_unit_corresp_of(type) == NULL) {
+  if (total_errors != 0) {
+    /* Correspondence checking is inhibited once errors occur. */
+  } else if (correspondence_checking_done &&
+             trans_unit_corresp_of(type) == NULL) {
     find_type_correspondence(type, /*parent_found=*/FALSE);
   }  /* if */
 }  /* establish_friend_type_correspondence */
@@ -6119,14 +6149,16 @@ current (secondary) translation unit and ones in other translation
 units.
 */
 {
-  a_scope_ptr  file_scope = curr_translation_unit->primary_scope;
-
-  correspondence_checking_underway = TRUE;
-  establish_trans_unit_correspondences_for_scope(file_scope);
-  verify_trans_unit_correspondences_for_scope(file_scope);
-  process_verification_list();
-  correspondence_checking_underway = FALSE;
-  correspondence_checking_done = TRUE;
+  /* Correspondences are not established if errors occurred. */
+  if (total_errors == 0) {
+    a_scope_ptr  file_scope = curr_translation_unit->primary_scope;
+    correspondence_checking_underway = TRUE;
+    establish_trans_unit_correspondences_for_scope(file_scope);
+    verify_trans_unit_correspondences_for_scope(file_scope);
+    process_verification_list();
+    correspondence_checking_underway = FALSE;
+    correspondence_checking_done = TRUE;
+  }  /* if */
 }  /* set_trans_unit_correspondences */
 
 

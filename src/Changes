@@ -1,5 +1,14 @@
 Version 3.7
 
+12/15/05 Potential aborts after errors with multiple translation units loaded
+
+When errors occur and multiple translation units are compiled simultaneously,
+the front end normally does not attempt to match IL across translation units.
+However, there were a number of ways in which such matching was attempted in
+error cases (all involving template instantiations), and the incomplete state
+of the data structures supporting the matching process could then lead to
+aborts.
+
 12/15/05 Front end reinitialization and CHECKING
 
 The seq_number_lookup_table in il.c was not properly reinitialized when the
