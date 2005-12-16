@@ -30,7 +30,8 @@ this feature can affect the meaning and/or validity of some programs.  For
 example, additional default arguments may be available when the prototype
 instantiation is done.  In most cases, however, the change in behavior
 actually has the effect of making the front end more compatible with g++.
-This feature cannot be used when using the C++-generating back end.
+This feature cannot be used when including prototype instantiations in
+the IL, and is disabled by default when using the C++-generating back end.
 
   class A {};
   template <class T> struct B {

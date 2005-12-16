@@ -484,6 +484,36 @@ be generated when doing IL lowering.
 #endif /* ifndef PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 /*
+In some modes, the prototype instantiation of functions is deferred until
+the first actual instantiation of the template.  This feature cannot be
+used when including prototype instantiations in the IL.  In versions that
+do not include prototype instantiations in IL, the default for this macro
+is based on whether or not the C++-generating back end is being used.  This
+is done so that (by default) all C++-generating back end versions will
+have the same behavior with respect to deferral of prototype instantiations.
+This is desirable because deferral of prototype instantiations changes the
+set of programs that can be compiled without errors.
+*/
+#ifndef FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+#define FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED \
+					FALSE /* Do not change this. */
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
+#if BACK_END_IS_CP_GEN_BE
+#define FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED FALSE
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED TRUE
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+#endif /* ifndef FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
+
+#if PROTOTYPE_INSTANTIATIONS_IN_IL && \
+    FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED
+ #error -- cannot defer prototype instantiations with \
+           PROTOTYPE_INSTANTIATIONS_IN_IL
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL && \
+          FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
+/*
 Flag that is TRUE if object code compatibility with USL's cfront is
 required.  Some features of cfront changed from release 2.1 to release 3.0,
 and there are flags for compatibility with a specific version.  For

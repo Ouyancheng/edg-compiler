@@ -562,7 +562,9 @@ EXTERN a_boolean
 			   when the instantiation is done (additional default
 			   arguments may be present, classes may be complete,
 			   etc.).  Prototype instantiations cannot be deferred
-			   when using the C++-generating back end. */
+			   in some modes.  See FUNCTION_PROTOTYPE_-
+			   INSTANTIATION_DEFERRAL_ALLOWED for more
+			   information. */
 
 EXTERN a_boolean
 		defer_friend_instantiation;
