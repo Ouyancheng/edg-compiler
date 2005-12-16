@@ -55,6 +55,17 @@ static a_type_ptr canonical_il_wchar_t_type;
 static a_type_ptr canonical_il_bool_type;
 
 /*
+Correspondence checking is inhibited when errors other than correspondence
+errors occur (because such errors may have changed the IL in ways that can
+trigger spurious correspondence errors).  To keep track of such errors we
+count correspondence errors in corresp_errors: total_errors - corresp_errors
+then produces the number of noncorrespondence errors.
+*/
+static unsigned long corresp_errors;
+
+#define any_noncorresp_errors() ((total_errors - corresp_errors) != 0)
+
+/*
 Whenever the canonical entry of a correspondence set changes from an entry
 in a translation unit that is already processed to an entry in the current
 translation unit, the previous canonical entry must be verified against the
@@ -869,6 +880,7 @@ header file was included in two translation units), use the message associated
 with same_src_error; otherwise, use distinct_src_error.
 */
 {
+  unsigned long  saved_total_errors = total_errors;
   a_symbol_ptr   sym = (a_symbol_ptr)((a_source_correspondence_ptr)entity1)
                                                                   ->assoc_info;
   a_source_position_ptr
@@ -913,6 +925,7 @@ with same_src_error; otherwise, use distinct_src_error.
                                   &sym->decl_position);
     }  /* if */
   }  /* if */
+  corresp_errors += (total_errors - saved_total_errors);
 }  /* report_corresp_error */
 
 
@@ -4016,7 +4029,7 @@ given type.
 {
   if (trans_unit_corresp_of(type) == NULL) {
     /* Nothing to be done: correspondences are not being processed yet. */
-  } else if (total_errors != 0) {
+  } else if (any_noncorresp_errors()) {
     /* Correspondence checking is inhibited after errors are encountered. */
   } else {
     a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(type);
@@ -4084,7 +4097,7 @@ considered "instantiated" when their bodies have been scanned.
 {
   if (trans_unit_corresp_of(routine) == NULL) {
     /* Nothing to be done: correspondences are not being processed yet. */
-  } else if (total_errors != 0) {
+  } else if (any_noncorresp_errors()) {
     /* Correspondence checking is inhibited after errors are encountered. */
   } else {
     a_routine_ptr  canon = (a_routine_ptr)canonical_il_entry_of(routine);
@@ -4110,7 +4123,7 @@ the canonical entry.
 {
   if (trans_unit_corresp_of(var) == NULL) {
     /* Nothing to be done: correspondences are not being processed yet. */
-  } else if (total_errors != 0) {
+  } else if (any_noncorresp_errors()) {
     /* Correspondence checking is inhibited after errors are encountered. */
   } else {
     a_variable_ptr  canon = (a_variable_ptr)canonical_il_entry_of(var);
@@ -4806,7 +4819,7 @@ instantiation to the list of all instantiations of the corresponding
 template.
 */
 {
-  if (total_errors != 0) {
+  if (any_noncorresp_errors()) {
     /* Once errors have been detected correspondence checking is no
        longer done so there's no need to maintain the list of all
        instantiations of an entity. */
@@ -5794,7 +5807,7 @@ entry.
 {
   a_routine_ptr  result = routine;
 
-  if (total_errors != 0) {
+  if (any_noncorresp_errors()) {
     /* Correspondence checking is inhibited once errors occur. */
   } else if (routine != NULL && secondary_translation_unit_seen()) {
     determine_correspondence(&routine->source_corresp, iek_routine);
@@ -5813,7 +5826,7 @@ entry.
 {
   a_variable_ptr  result = var;
 
-  if (total_errors != 0) {
+  if (any_noncorresp_errors()) {
     /* Correspondence checking is inhibited once errors occur. */
   } else if (var != NULL && secondary_translation_unit_seen()) {
     determine_correspondence(&var->source_corresp, iek_variable);
@@ -5832,7 +5845,7 @@ canonical entry.
 {
   a_type_ptr  result = type;
 
-  if (total_errors != 0) {
+  if (any_noncorresp_errors()) {
     /* Correspondence checking is inhibited once errors occur. */
   } else if (type != NULL && secondary_translation_unit_seen() &&
       /* Do not attempt to find a match for a type instantiated from a
@@ -5858,7 +5871,7 @@ canonical entry.
 {
   a_template_ptr  result = templ;
 
-  if (total_errors != 0) {
+  if (any_noncorresp_errors()) {
     /* Correspondence checking is inhibited once errors occur. */
   } else if (templ != NULL && secondary_translation_unit_seen()) {
     determine_correspondence(&templ->source_corresp, iek_template);
@@ -5919,11 +5932,6 @@ determine the correspondences.
   a_boolean  result;
   char       *canon1, *canon2;
 
-  if (total_errors != 0) {
-    /* Correspondence checking is inhibited once errors occur. */
-    result = FALSE;
-    goto done;
-  }  /*  if */
   /* Be sure to determine the correspondence of an entity in the secondary
      translation unit first.  Correspondence pointers in the primary
      translation unit are only set as a consequence of an entity in a
@@ -5945,7 +5953,6 @@ determine the correspondences.
                                  /*error_matches_anything=*/FALSE);
     }  /* if */
   }  /* if */
-done:
   return result;
 }  /* corresponding_entries */
 
@@ -5958,7 +5965,7 @@ in which case this might be the only opportunity to establish its
 correspondences in other translation units.
 */
 {
-  if (total_errors != 0) {
+  if (any_noncorresp_errors()) {
     /* Correspondence checking is inhibited once errors occur. */
   } else if (correspondence_checking_done &&
              trans_unit_corresp_of(routine) == NULL) {
@@ -5975,7 +5982,7 @@ in which case this might be the only opportunity to establish its
 correspondences in other translation units.
 */
 {
-  if (total_errors != 0) {
+  if (any_noncorresp_errors()) {
     /* Correspondence checking is inhibited once errors occur. */
   } else if (correspondence_checking_done &&
              trans_unit_corresp_of(var) == NULL) {
@@ -5992,7 +5999,7 @@ this might be the only opportunity to establish its correspondences in other
 translation units.
 */
 {
-  if (total_errors != 0) {
+  if (any_noncorresp_errors()) {
     /* Correspondence checking is inhibited once errors occur. */
   } else if (correspondence_checking_done &&
              trans_unit_corresp_of(type) == NULL) {
@@ -6150,7 +6157,7 @@ units.
 */
 {
   /* Correspondences are not established if errors occurred. */
-  if (total_errors == 0) {
+  if (!any_noncorresp_errors()) {
     a_scope_ptr  file_scope = curr_translation_unit->primary_scope;
     correspondence_checking_underway = TRUE;
     establish_trans_unit_correspondences_for_scope(file_scope);
@@ -6591,6 +6598,7 @@ for each compilation.
   canonical_il_void_type = NULL;
   canonical_il_wchar_t_type = NULL;
   canonical_il_bool_type = NULL;
+  corresp_errors = 0;
   verification_list = NULL;
   avail_verification_entries = NULL;
   instantiations_to_process = NULL;
