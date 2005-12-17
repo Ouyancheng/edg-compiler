@@ -1,5 +1,22 @@
 Version 3.7
 
+12/17/05 C++-generating back end: qualifiers for protected base class members
+
+When built with RECORD_FORM_OF_NAME_REFERENCE set to FALSE, the C++-generating
+back end formerly generated qualified references to protected base class
+members using the base class name as the qualifier.  This is an access error
+in Standard C++, which requires such references to be qualified using the
+name of the derived class.  This is now fixed.  For example:
+
+  struct B {
+  protected:
+    void f();
+  };
+
+  struct D: B {
+    void g(void (B::*mfp)() = &D::f);  // previously generated as &B::f
+  }
+
 12/15/05 Conflicting dialect options
 
 The front end previously failed to diagnose command-line options that implied
