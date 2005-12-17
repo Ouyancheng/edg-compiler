@@ -267,6 +267,10 @@ typedef struct a_name_context {
 		field_selection_context;
 			/* TRUE if this context was pushed for the right
 			   operand of a field selection. */
+  a_byte_boolean
+		is_class_member_context;
+			/* TRUE if the context was pushed for the initializer
+			   or declarator of class member. */
 } a_name_context;
 static a_name_context_ptr
 		curr_name_context;
@@ -648,6 +652,7 @@ This routine is called for both C and C++.
   ncp->fixups = NULL;
   ncp->invisible_to_cfront = FALSE;
   ncp->field_selection_context = FALSE;
+  ncp->is_class_member_context = FALSE;
   /* Put the entry on the stack. */
   ncp->next = curr_name_context;
   curr_name_context = ncp;
@@ -748,6 +753,7 @@ For a nested class/namespace, also push the containing classes/namespaces.
       /* Push the class. */
       push_name_context(class_type->variant.class_struct_union.extra_info->
                                                                   assoc_scope);
+      curr_name_context->is_class_member_context = TRUE;
     } else if (scp->parent.namespace_ptr != NULL) {
       /* The entity is a namespace member. */
       a_namespace_ptr nsp = scp->parent.namespace_ptr;
@@ -2289,7 +2295,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
     if (scp->is_class_member) {
       a_type_ptr class_type = scp->parent.class_type;
       a_boolean  used_qualified_name = FALSE;
-      a_boolean include_base_classes = TRUE;
+      a_boolean  include_base_classes = TRUE;
       /* Use a qualified name in some cases to avoid a cfront bug.  See
          gen_initializer. */
       if (curr_name_context->invisible_to_cfront) force_qualified_name = TRUE;
@@ -2329,6 +2335,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            (only in versions prior to 7.0). */
       } else {
         /* Use a qualified name. */
+        a_type_ptr qualifier;
         if (entry_kind == iek_type &&
             !(options & GN_QUALIFIER) && (options & GN_DEPENDENT)) {
           /* Emit a "class", "struct", "union" or "typename" preceding a
@@ -2350,7 +2357,24 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           write_tok_str("::");
         } else {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          gen_class_qualifier(class_type,
+          if (scp->access == (an_access_specifier)as_protected &&
+              (options & GN_FORCE_QUALIFIED_NAME) != 0 &&
+              !scp->qualification_needed &&
+              curr_name_context->is_class_member_context &&
+              find_base_class_of(curr_name_context_class(),
+                                 scp->parent.class_type) != 0) {
+            /* This is a case where the name is not hidden but is required to
+               be qualified by the context (e.g., when forming a pointer to
+               member), the name is a protected member of a base of the
+               current class context, and the context was established for
+               the declarator of a class member.  In this case, using the
+               base class name as the qualifier is an access error and we
+               must use the derived class name instead. */
+            qualifier = curr_name_context_class();
+          } else {
+            qualifier = class_type;
+          }  /* if */
+          gen_class_qualifier(qualifier,
                               options & GN_PARENS_IF_GLOBAL_QUALIFIER,
                               need_closing_paren);
 #if MICROSOFT_EXTENSIONS_ALLOWED
