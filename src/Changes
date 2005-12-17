@@ -3,7 +3,7 @@ Version 3.7
 12/15/05 Conflicting dialect options
 
 The front end previously failed to diagnose command-line options that implied
-conflicting command-line options.  For example, "--c --g++", "--gcc -m", and
+conflicting command-line options.  For example, "--c --g++", "--gcc -K", and
 "--c --sun" all went undiagnosed.  Now a command-line error is issued in all
 these cases.
 
