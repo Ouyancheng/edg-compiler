@@ -1,5 +1,12 @@
 Version 3.7
 
+12/15/05 Conflicting dialect options
+
+The front end previously failed to diagnose command-line options that implied
+conflicting command-line options.  For example, "--c --g++", "--gcc -m", and
+"--c --sun" all went undiagnosed.  Now a command-line error is issued in all
+these cases.
+
 12/15/05 Potential aborts after errors with multiple translation units loaded
 
 When errors occur and multiple translation units are compiled simultaneously,
