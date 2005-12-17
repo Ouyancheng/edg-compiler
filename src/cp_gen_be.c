@@ -267,10 +267,6 @@ typedef struct a_name_context {
 		field_selection_context;
 			/* TRUE if this context was pushed for the right
 			   operand of a field selection. */
-  a_byte_boolean
-		is_class_member_context;
-			/* TRUE if the context was pushed for the initializer
-			   or declarator of class member. */
 } a_name_context;
 static a_name_context_ptr
 		curr_name_context;
@@ -652,7 +648,6 @@ This routine is called for both C and C++.
   ncp->fixups = NULL;
   ncp->invisible_to_cfront = FALSE;
   ncp->field_selection_context = FALSE;
-  ncp->is_class_member_context = FALSE;
   /* Put the entry on the stack. */
   ncp->next = curr_name_context;
   curr_name_context = ncp;
@@ -753,7 +748,6 @@ For a nested class/namespace, also push the containing classes/namespaces.
       /* Push the class. */
       push_name_context(class_type->variant.class_struct_union.extra_info->
                                                                   assoc_scope);
-      curr_name_context->is_class_member_context = TRUE;
     } else if (scp->parent.namespace_ptr != NULL) {
       /* The entity is a namespace member. */
       a_namespace_ptr nsp = scp->parent.namespace_ptr;
@@ -2360,16 +2354,15 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           if (scp->access == (an_access_specifier)as_protected &&
               (options & GN_FORCE_QUALIFIED_NAME) != 0 &&
               !scp->qualification_needed &&
-              curr_name_context->is_class_member_context &&
+              curr_name_context_is_a_class() &&
               find_base_class_of(curr_name_context_class(),
                                  scp->parent.class_type) != 0) {
             /* This is a case where the name is not hidden but is required to
                be qualified by the context (e.g., when forming a pointer to
-               member), the name is a protected member of a base of the
-               current class context, and the context was established for
-               the declarator of a class member.  In this case, using the
-               base class name as the qualifier is an access error and we
-               must use the derived class name instead. */
+               member) and the name is a protected member of a base of the
+               current class context.  In this case, using the base class name
+               as the qualifier is an access error and we must use the derived
+               class name instead. */
             qualifier = curr_name_context_class();
           } else {
             qualifier = class_type;
