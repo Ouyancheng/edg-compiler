@@ -4301,7 +4301,7 @@ enable_microsoft_mode:
   if (C_mode_option_set) {
     if (C_dialect == C_dialect_cplusplus) {
       command_line_error(ec_cl_c_and_cplusplus);
-    } else {
+    } else if (C_dialect == C_dialect_unspecified) {
       set_C_dialect(C_dialect_ANSI);
     }  /* if */
   } else if (C_dialect == C_dialect_unspecified) {
