@@ -1,5 +1,14 @@
 Version 3.7
 
+12/19/05 Lowered extern inline functions and one-instantiation-per-object
+
+In one-instantiation-per-object mode (see ONE_INSTANTIATION_PER_OBJECT),
+with LOWER_EXTERN_INLINE set to TRUE, instantiated extern inline
+functions were changed to static but still had an associated
+slice number.  As a consequence, an object file containing
+nothing was put out for them.  Now fixed (the lowered routines
+no longer have an associated slice number).
+
 12/19/05 Implicitly declared functions in C99
 
 Unlike C89, C99 does not allow calls to implicitly declared functions.  For

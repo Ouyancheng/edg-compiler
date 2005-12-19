@@ -8121,13 +8121,14 @@ not include the function scope memory region, if any.
       }
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if ONE_INSTANTIATION_PER_OBJECT
-#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
       if (one_instantiation_per_object) {
+        routine->instantiation_needed_bit_number = 0;
+#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
         /* In one-instantiation-per-object mode, such lowered extern inline
            routines can be duplicated in each slice. */
         routine->source_corresp.duplicate_static_in_instantiation_slices= TRUE;
-      }  /* if */
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
+      }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #else /* IA64_ABI */
       /* Place the routine in a COMDAT group so that the linker will eliminate
