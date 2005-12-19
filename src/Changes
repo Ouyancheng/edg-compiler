@@ -36,7 +36,13 @@ name of the derived class.  This is now fixed.  For example:
 The front end previously failed to diagnose command-line options that implied
 conflicting command-line options.  For example, "--c --g++", "--gcc -K", and
 "--c --sun" all went undiagnosed.  Now a command-line error is issued in all
-these cases.
+these cases.  Furthermore, "-K --c" was previously allowed, but caused the
+front end to process its input in the default ANSI C mode (usually C89).
+Now, "--c" can still be combined with any other C-mode dialect flag, but the
+other flag determines the specific C dialect.  A new option "--c89" can be
+used to explicitly request a C89 mode.  This new option can be combined with
+the "--microsoft" or "--gcc" options, but not with "--svr4", "--c99", or
+"--old_c"/"-K".
 
 12/15/05 Potential aborts after errors with multiple translation units loaded
 

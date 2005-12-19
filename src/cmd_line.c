@@ -332,7 +332,7 @@ Initialize the option information table.
   add_option_description(optk_enable_remarks, "remarks", 'r',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
-  add_option_description(optk_C_dialect_ANSI, "c", 'm',
+  add_option_description(optk_C_mode, "c", 'm',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
   add_option_description(optk_C_dialect_cplusplus, "c++", 'p',
@@ -946,6 +946,14 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  /* Usually, C89 is the default C mode.  However, in configurations that
+     enable another ANSI-based dialect by default (e.g., C99 or SVR4 C), the
+     option --c89 is a convenient way to ensure that only C89 constructs are
+     allowed. */
+  add_option_description(optk_c89_mode,
+                         "c89",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #if EXPORT_ENABLING_POSSIBLE
   add_option_description(optk_export_template,
                          "export",
@@ -3233,6 +3241,8 @@ Process the arguments on the command line that invoked the compiler.
   a_boolean			non_pch_option_used = FALSE;
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
   a_boolean                     suppress_do_preprocessing_only = FALSE;
+  a_boolean                     C_mode_option_set = FALSE;
+  a_boolean                     c89_mode_option_set = FALSE;
   a_C_dialect                   saved_C_dialect = C_dialect;
 
   /* Set a current position indicating we are looking at the command line. */
@@ -3516,8 +3526,8 @@ Process the arguments on the command line that invoked the compiler.
         check_assertion(opt_value == TRUE);
         error_threshold = es_remark;
         break;
-      case optk_C_dialect_ANSI:
-        /* Compile ANSI C. */
+      case optk_C_mode:
+        /* Compile C code (ANSI C by default). */
         check_assertion(opt_value == TRUE);
         set_C_dialect(C_dialect_ANSI);
         break;
@@ -4101,6 +4111,14 @@ enable_microsoft_mode:
         c99_mode = opt_value;
         set_C_dialect(C_dialect_ANSI);
         break;
+      case optk_c89_mode:
+        /* C89 mode.  This option differs from "--c" in that it cannot be
+           combined with other C-mode flags (e.g., "--c -K" and "--c --c99"
+           are allowed, but "--c89 -K" and "--c89 -c99" are not). */
+        check_assertion(opt_value == TRUE);
+        c89_mode_option_set = TRUE;
+        set_C_dialect(C_dialect_ANSI);
+        break;
       case optk_export_template:
         /* Enable use of exported templates. */
         export_template_allowed = opt_value;
@@ -4280,9 +4298,21 @@ enable_microsoft_mode:
     }  /* if */
   }  /* if */
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  if (C_dialect == C_dialect_unspecified) {
-    C_dialect = saved_C_dialect;
+  if (C_mode_option_set) {
+    if (C_dialect == C_dialect_cplusplus) {
+      command_line_error(ec_cl_c_and_cplusplus);
+    } else {
+      set_C_dialect(C_dialect_ANSI);
+    }  /* if */
+  } else if (C_dialect == C_dialect_unspecified) {
+    set_C_dialect(saved_C_dialect);
     check_assertion(C_dialect != C_dialect_unspecified);
+  }  /* if */
+  if (c89_mode_option_set) {
+    /* If C89 was explicitly requested, disable C99 and SVR4 modes (or issue
+       an error if they were explicitly requested. */
+    exclude_SVR4_C_mode(ec_cl_SVR4_C_option_only_in_ansi_C);
+    exclude_c99_mode(ec_cl_incompatible_language_modes);
   }  /* if */
 #if IA64_ABI
   if (emulate_unsafe_gnu_abi_bugs) {
