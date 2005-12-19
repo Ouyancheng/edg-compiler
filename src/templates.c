@@ -15656,10 +15656,10 @@ issued, and TRUE is returned.
   }  /* if */
   if (depth != decl_state->number_of_template_param_clauses &&
       !decl_state->decl_scope_err) {
-    /* The depths do not match, issue a diagnostic. */
+    /* The depths do not match, issue a diagnostic.  Don't set decl_scope_err
+       in case this discretionary error is reduced in severity. */
     pos_sy_diagnostic(es_discretionary_error,
                       ec_template_depth_mismatch, pos, sym);
-    decl_state->decl_scope_err = TRUE;
     result = TRUE;
   }  /* if */
   return result;

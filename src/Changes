@@ -1,5 +1,19 @@
 Version 3.7
 
+12/19/05 Internal error when nesting depth message severity is reduced
+
+An internal error (in create_prototype_type) could occur in versions with
+PROTOTYPE_INSTANTIATIONS_IN_IL == TRUE when the error severity for
+the "template nesting depth does not match" diagnostic has been reduced.
+Now fixed.
+
+  #pragma diag_warning 776
+  template <class T> class A {
+    template <class T2> struct B {};  
+    template <class T2> friend struct B;
+  };
+  A<int> a;
+
 12/17/05 C++-generating back end: qualifiers for protected base class members
 
 When built with RECORD_FORM_OF_NAME_REFERENCE set to FALSE, the C++-generating
