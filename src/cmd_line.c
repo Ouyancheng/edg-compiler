@@ -3529,7 +3529,7 @@ Process the arguments on the command line that invoked the compiler.
       case optk_C_mode:
         /* Compile C code (ANSI C by default). */
         check_assertion(opt_value == TRUE);
-        set_C_dialect(C_dialect_ANSI);
+        C_mode_option_set = TRUE;
         break;
       case optk_C_dialect_cplusplus:
         /* Compile C++. */
