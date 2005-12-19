@@ -1,5 +1,18 @@
 Version 3.7
 
+12/19/05 Implicitly declared functions in C99
+
+Unlike C89, C99 does not allow calls to implicitly declared functions.  For
+example:
+
+  void f(int x) {
+    g(x);  // Valid C89, but not valid C99 (g not previously declared).
+  }
+
+The front end previously issued an error on the example above in all C99
+modes.  Now an error is issued in strict C99 mode, and a warning is issued in
+all other C99 modes.  This matches the behavior of other C99 implementations.
+
 12/19/05 C++-generating back end: pointer values as condition expressions
 
 The processing described in the 4/22/05 Changes entry, which caused

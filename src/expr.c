@@ -1823,15 +1823,18 @@ Syntax:
         /* Implicitly declare the symbol as a function. */
         enter_undefined_symbol(func_sym);
         decl_default_function(func_sym);
-        /* Issue a low-severity diagnostic, not usually displayed.  In C++
-           and C99, issue an error (implicit declaration of functions is not
-           allowed). */
-        if (C_dialect == C_dialect_cplusplus || c99_mode) {
+        /* In C++ mode and in strict C99 mode, issue an error (C++ and C99
+           do not allow implicitly declared functions, but most implementations
+           of C99 appear to only issue a warning).  In nonstrict C99 mode, a
+           warning is issued.  In all other C modes, a remark is issued. */
+        if (C_dialect == C_dialect_cplusplus ||
+            (c99_mode && strict_ansi_mode)) {
           pos_st_error(ec_undefined_identifier, &operand->position,
                        func_sym->header->identifier);
         } else {
-          pos_st_remark(ec_implicit_func_decl, &operand->position,
-                        func_sym->header->identifier);
+          pos_st_diagnostic(c99_mode ? es_warning : es_remark,
+                            ec_implicit_func_decl, &operand->position,
+                            func_sym->header->identifier);
         }  /* if */
         make_function_designator_operand(func_sym,
                                          /*is_qualified_name=*/FALSE,
