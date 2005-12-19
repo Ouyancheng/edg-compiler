@@ -59,7 +59,11 @@ Correspondence checking is inhibited when errors other than correspondence
 errors occur (because such errors may have changed the IL in ways that can
 trigger spurious correspondence errors).  To keep track of such errors we
 count correspondence errors in corresp_errors: total_errors - corresp_errors
-then produces the number of noncorrespondence errors.
+then produces the number of noncorrespondence errors.  corresp_errors is a
+"per translation unit" variable, which means that correspondence errors in
+issued for another translation unit are treated as non-correspondence errors
+in the current translation unit.  This approach avoids a cascade of
+correspondence errors due to errors in one translation unit.
 */
 static unsigned long corresp_errors;
 
@@ -6554,6 +6558,7 @@ checking.
      between translation units. */
   register_trans_unit_variable(correspondence_checking_underway);
   register_trans_unit_variable(correspondence_checking_done);
+  register_trans_unit_variable(corresp_errors);
 }  /* corresp_one_time_init */
 
 
@@ -6565,6 +6570,7 @@ re-initialized for each translation unit.
 {
   correspondence_checking_underway = FALSE;
   correspondence_checking_done = FALSE;
+  corresp_errors = 0;
 }  /* corresp_trans_unit_init */
 
 
@@ -6598,7 +6604,6 @@ for each compilation.
   canonical_il_void_type = NULL;
   canonical_il_wchar_t_type = NULL;
   canonical_il_bool_type = NULL;
-  corresp_errors = 0;
   verification_list = NULL;
   avail_verification_entries = NULL;
   instantiations_to_process = NULL;
