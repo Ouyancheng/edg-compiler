@@ -1,5 +1,20 @@
 Version 3.7
 
+12/19/05 C++-generating back end: pointer values as condition expressions
+
+The processing described in the 4/22/05 Changes entry, which caused
+compiler-generated comparisons against 0 to be removed from the generated
+code, was inadvertently not applied to pointer values.  This oversight has
+now been fixed, so that the source form is correctly maintained for C code
+like the following:
+
+  typedef struct A_tag { int i; } A;
+  void foo() {
+    A *A = 0;   /* Hides typedef A */
+    if (A) {    /* Formerly generated as (A != ((A *)0)) */
+    }
+  }
+
 12/19/05 Internal error when nesting depth message severity is reduced
 
 An internal error (in create_prototype_type) could occur in versions with

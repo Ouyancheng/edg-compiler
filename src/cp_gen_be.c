@@ -5814,9 +5814,16 @@ Return TRUE if expr is a comparison of the form x != 0 of any type.
         op == (an_expr_operator_kind)eok_pmne) {
       an_expr_node_ptr op2 = expr->variant.operation.operands->next;
       if (is_constant_node(op2)) {
-        if (is_zero_constant(op2->variant.constant)) {
+        a_constant_ptr constant = op2->variant.constant;
+        a_boolean      save_implicit_cast = constant->implicit_cast;
+        /* is_zero_constant treats implicitly-cast integer 0 constants as
+           nonzero.  However, a null pointer appears as implicitly cast to
+           the pointer type, so we must temporarily disable the cast. */
+        constant->implicit_cast = FALSE;
+        if (is_zero_constant(constant)) {
           is_ne_0 = TRUE;
         }  /* if */
+        constant->implicit_cast = save_implicit_cast;
       }  /* if */
     }  /* if */
   }  /* if */
