@@ -3226,7 +3226,7 @@ static void end_of_c99_full_expr(void)
 Do end-of-full-expression processing for C99 lowering.
 */
 {
-  /* Release any reable temporaries that were allocated. */
+  /* Release any reusable temporaries that were allocated. */
   release_reusable_temporaries();
 }  /* end_of_c99_full_expr */
 
@@ -3378,9 +3378,7 @@ Do C99 lowering on the indicated statement.
         statement->kind != (a_statement_kind)stmk_expr) {
       /* Lower the expression.  For an expression statement, that's done
          in a special way below. */
-      lower_c99_expr_full(statement->expr, (a_statement_ptr)NULL,
-                          /*used_as_lvalue=*/FALSE);
-      end_of_c99_full_expr();
+      lower_c99_full_expr(statement->expr);
     }  /* if */
     switch (statement->kind) {
       case stmk_goto:
@@ -3473,6 +3471,15 @@ Do C99 lowering on the indicated statement.
         lower_vla_decl(statement);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case stmk_microsoft_try:
+        { a_microsoft_try_supplement_ptr tsp =statement->variant.microsoft_try;
+          lower_c99_statement(tsp->guarded_statement);
+          if (tsp->except_expr != NULL) lower_c99_full_expr(tsp->except_expr);
+          lower_c99_statement(tsp->cleanup_statement);
+        }
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition_str("lower_c99_statement: bad statement kind");
     }  /* switch */
