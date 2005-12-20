@@ -515,6 +515,7 @@ check_abbreviation()
 --brief_diagnostics
 --building_runtime
 --c
+--c89
 --c99
 --c++
 --c_to_obj_lib
@@ -1095,6 +1096,7 @@ process_option()
          --no_anachronisms | \
     -# | --timing | \
          --c++ | \
+         --c89 | \
          --c99 | \
          --no_c99 | \
          --display_error_number | \
@@ -1247,7 +1249,7 @@ process_option()
 #     Options that require additional processing
       case $arg in
         -m | --c | --c99 | --no_c99 | -K | --old_c | --svr4 | --no_svr4 | \
-	--gcc | --no_gcc | --upc | --no_upc)
+	--c89 | --gcc | --no_gcc | --upc | --no_upc)
           c_mode=1
           if [ $arg = "--c99" -a \
                "$EDG_C_TO_OBJ_C99_OPTIONS" != "" ] ; then
