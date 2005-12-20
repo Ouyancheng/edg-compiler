@@ -2297,6 +2297,20 @@ applications.
 #endif /* ifndef PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL */
 
 /*
+Switch that controls whether top-level casts to void, for example
+  (void)f(x);
+are retained in the IL.  This may be desirable for certain source-analysis
+applications.
+*/
+#ifndef PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
+#if BACK_END_IS_CP_GEN_BE
+#define PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL TRUE
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL FALSE
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* ifndef PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
+
+/*
 This switch controls whether or not type qualifiers are removed from
 parameter types (e.g., a "const int" parameter is seen simply as "int").
 This may seem like a language feature, but it's an ABI issue, because the

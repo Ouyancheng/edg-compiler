@@ -103,7 +103,10 @@ be issued.
 */
 {
   an_expr_node_ptr node = *node_ptr, check_node;
-  a_boolean        suppress = FALSE, any_commas = FALSE;
+  a_boolean        suppress = FALSE;
+#if !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
+  a_boolean        any_commas = FALSE;
+#endif /* !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
 
   /* This routine could do various kinds of pruning -- in fact, it used to;
      however, in accord with the philosophy that the front end does no
@@ -122,10 +125,12 @@ be issued.
          is_void_type(check_node->type)) {
       /* This is a cast to void; suppress the warning. */
       suppress = TRUE;
+#if !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
       check_node = check_node->variant.operation.operands;
       /* If this cast is at the top (not under a comma expression), remove
          it. */
       if (!any_commas) node = check_node;
+#endif /* !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
       break;
     } else if (is_operation_node(check_node) &&
                check_node->variant.operation.kind ==
@@ -144,7 +149,9 @@ be issued.
         break;
       }  /* if */
       check_node = check_node->variant.operation.operands->next;
+#if !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
       any_commas = TRUE;
+#endif /* !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
     } else {
       /* Not a cast to void or a comma operator, so exit the loop. */
       break;

@@ -1,5 +1,17 @@
 Version 3.7
 
+12/20/05 Preserving top-level explicit casts to void
+
+A new configuration switch PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
+controls whether top-level casts to void are retained in the IL.
+Formerly, they were removed, but this switch can be set to retain
+them.  It is set by default for C++-generating back end versions.
+
+  int f();
+  int main() {
+    (void)f();  // Cast to void retained in IL with this switch set to TRUE
+  }
+
 12/19/05 Lowered extern inline functions and one-instantiation-per-object
 
 In one-instantiation-per-object mode (see ONE_INSTANTIATION_PER_OBJECT),
