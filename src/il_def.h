@@ -2238,9 +2238,7 @@ typedef struct a_constant {
 			/* For a ck_aggregate constant in an initializer,
 			   TRUE if the values were surrounded by explicit
 			   braces { ... }.  This affects the meaning of
-			   some designated initializers.  Also used on
-			   ck_string constants that were surrounded by
-			   braces. */
+			   some designated initializers. */
   a_bit_field	from_undefined_preproc_id:1;
 			/* This constant was generated from a reference to
 			   an undefined preprocessing identifier (i.e.,

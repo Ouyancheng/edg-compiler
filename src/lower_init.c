@@ -9012,11 +9012,13 @@ have already had their designated initializers lowered.
       }  /* if */
       /* Exit the loop if we've reached a designator. */
       if (con.ptr->kind == (a_constant_repr_kind)ck_designator) break;
-      if (earlier_con.ptr != NULL && !con.ptr->explicit_braces_on_aggregate) {
+      if (earlier_con.ptr != NULL &&
+          con.ptr->kind != (a_constant_repr_kind)ck_string) {
         /* If merging old and new values, rewrite string constants as
            aggregate initializers to allow operation at the character
-           level. */
-        explode_string_initializer(con.ptr);
+           level.  According to DR 253, if the new constant is a
+           string it initializes the entire aggregate and therefore
+           overwrites the entire previous initialization. */
         explode_string_initializer(earlier_con.ptr);
       }  /* if */
       if (con.ptr->kind == (a_constant_repr_kind)ck_aggregate) {

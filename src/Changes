@@ -5,8 +5,8 @@ Version 3.7
 The lowering of designated initializers has been adjusted to deal
 correctly with a case where an array of characters is initialized
 with a string and then later, by use of a designated initializer,
-initialized again with another string that is brace-enclosed.  All
-trace of the first initialization is supposed to be removed (WG14
+initialized again with another string.  All trace of the first
+initialization is supposed to be removed (according to WG14
 defect report number 253), but it wasn't when the first string is
 longer than the second (characters after the null of the second
 string remained set according to the first string).  Now fixed.
@@ -16,7 +16,7 @@ string remained set according to the first string).  Now fixed.
     int J;
   } n[] = {
       { { "foo" }, 1 },
-      [0].I = { "a" },  // "foo" was not completely eliminated
+      [0].I = "a",  // "foo" was not completely eliminated
       [0].J = 2
   };
 
