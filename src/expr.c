@@ -10825,6 +10825,7 @@ Syntax:
   a_boolean         cast_to_reference = FALSE, err = FALSE;
   an_error_code     warning_suggested;
   a_boolean         processed = FALSE;
+  a_boolean         microsoft_ignored_case = FALSE;
   a_ruled_out_expr_kind_set
                     ruled_out_expr_kinds = ROEK_NONE;
 
@@ -10850,10 +10851,16 @@ Syntax:
     err = TRUE;
   } else {
     orig_type_cast_to = type_cast_to;
+    if (microsoft_bugs &&
+        is_pointer_type(type_cast_to) &&
+        identical_types(result->type, type_cast_to)) {
+      /* MSVC++ seems to ignore a do-nothing reinterpret_cast to a
+         pointer type.  MSVC++ 8.0 still did this. */
+      microsoft_ignored_case = TRUE;
+    }  /* if */
     /* Check for casts to reference type. */
     cast_to_reference = is_reference_type(type_cast_to);
-    if (!cast_to_reference) {
-      /* Normal case (not a cast to reference). */
+    if (!cast_to_reference && !microsoft_ignored_case) {
       /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
          conversions.  They must be done now because they affect the type
          of the operand.  Also give errors on overloaded functions. */
@@ -10910,6 +10917,8 @@ Syntax:
                                (an_expr_operator_kind)eok_reinterpret_cast,
                                /*is_implicit_cast=*/FALSE,
                                /*is_reference_cast=*/FALSE);
+        } else if (microsoft_ignored_case) {
+          /* This cast is ignored. */
         } else {
           /* Do the actual cast. */
           cast_operand(type_cast_to, result, /*check_cast_access=*/TRUE,

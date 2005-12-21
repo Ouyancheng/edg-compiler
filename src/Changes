@@ -1,5 +1,17 @@
 Version 3.7
 
+12/21/05 Microsoft mode: do-nothing pointer reinterpret_cast ignored
+
+In Microsoft bugs mode, a reinterpret_cast to a pointer type is
+now ignored if it casts the expression to the same type it already
+has.  In particular, the expression stays an lvalue if it is one.
+This "feature" is still present in MSVC++ 8.0.
+
+  char* cp;
+  void foo() {
+    reinterpret_cast<char*>(cp) += 0;  // Accepted in Microsoft bugs mode
+  }
+
 12/21/05 No subscript-out-of-range warnings in unevaluated code
 
 Subscript-out-of-range warnings are now suppressed in unevaluated
