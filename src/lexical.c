@@ -3299,8 +3299,8 @@ a character string.
 }  /* hash_include_file_history */
 
 
-static a_boolean compare_include_file_history(void	*entry,
-					      void	*key)
+static a_boolean compare_include_file_history(a_void_ptr	entry,
+					      a_void_ptr	key)
 /*
 Compare an entry in the include file history hash table with an entry to be
 found.  "entry" is of type an_include_file_history_ptr.  "key" is char *.

@@ -4348,7 +4348,7 @@ typedef struct a_hash_table_entry {
   a_hash_table_entry_ptr
 		next;	/* The next entry in the bucket, or NULL for the last
 			   entry in the bucket. */
-  void		*data;	/* Opaque pointer to the entity represented by this
+  a_void_ptr	data;	/* Opaque pointer to the entity represented by this
 			   entry. */
 } a_hash_table_entry;
 
@@ -4372,8 +4372,15 @@ typedef a_hash_value (*a_hash_function_ptr)(a_void_ptr	key);
 The type of a function used to compare a key with a value from the hash
 table.  Return TRUE if they match.
 */
-typedef a_boolean (*a_hash_compare_function_ptr)(void	*entry,
-						 void	*key);
+typedef a_boolean (*a_hash_compare_function_ptr)(a_void_ptr	entry,
+						 a_void_ptr	key);
+
+/*
+The type returned by hash_find.  This points to the data field of
+a_hash_table_entry.
+*/
+typedef a_void_ptr
+		a_hash_data_ptr;
 
 
 /*
@@ -4396,12 +4403,12 @@ typedef struct a_hash_table {
 			   NO_MEMORY_REGION_NUMBER, the entries are to be
 			   allocated in general memory. */
   a_hash_table_size
-		buckets;
+		num_buckets;
 			/* The number of buckets in the hash table. */
   a_hash_table_entry_ptr
 		*table;
 			/* Pointer to the hash table array.  The size is
-			   specified by size. */
+			   specified by num_buckets. */
 } a_hash_table;
 
 extern a_hash_table_ptr alloc_hash_table(
@@ -4410,7 +4417,7 @@ extern a_hash_table_ptr alloc_hash_table(
 			a_hash_function_ptr		hash_function,
 			a_hash_compare_function_ptr	compare_function);
 
-extern a_void_ptr hash_find(a_hash_table_ptr	table,
+extern a_hash_data_ptr *hash_find(a_hash_table_ptr	table,
 			    a_void_ptr		key,
 			    a_boolean		create);
 

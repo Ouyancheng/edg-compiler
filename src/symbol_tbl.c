@@ -11543,7 +11543,8 @@ a_hash_table_ptr alloc_hash_table(
 Allocate a hash table, initialize its fields, and return a pointer to
 the table.  "memory_region" is the memory region in which the table and its
 entries should be allocated or NO_MEMORY_REGION_NUMBER if general memory
-should be used.  "num_elements" is the number of elements expected; this value
+should be used.  "num_elements" is the number of elements expected (i.e., the
+number of elements on which the hash table size should be based).  This value
 is rounded up to one of a set of prime values.  "hash_function" is the function
 to be used to produce a hash value from a key.  "compare_function" is
 the function to be used to compare a key value with an element of the
@@ -11560,7 +11561,7 @@ table.
   htp->memory_region = memory_region;
   /* Select a table size based on the number of elements. */
   buckets = select_hash_table_size(num_elements);
-  htp->buckets = buckets;
+  htp->num_buckets = buckets;
   table_size_in_bytes = sizeof(a_hash_table_entry_ptr) * buckets;
   htp->table = (a_hash_table_entry_ptr*)
                 alloc_general_or_in_region(memory_region, table_size_in_bytes);
@@ -11573,13 +11574,13 @@ table.
 }  /* alloc_hash_table */
 
 
-a_void_ptr hash_find(a_hash_table_ptr	table,
-		     a_void_ptr		key,
-		     a_boolean		create)
+a_hash_data_ptr *hash_find(a_hash_table_ptr	table,
+			   a_void_ptr		key,
+			   a_boolean		create)
 /*
 Look for an entry that matches "key" in "table".  If the entry does not exist,
 and "create" is TRUE, create an entry.  Return the address of the "data"
-field of the hash table entry, or NULL if no entry was found.  When a new entry
+field of a_hash_table_entry, or NULL if no entry was found.  When a new entry
 has been created by this routine (i.e., *return_value == NULL) the caller
 must use the pointer returned to set the new hash table entry to refer to the
 appropriate user-defined entry.
@@ -11589,7 +11590,7 @@ appropriate user-defined entry.
   a_hash_table_entry_ptr	htep;
   a_void_ptr			result;
 
-  bucket = table->hash_function(key) % (a_hash_value)table->buckets;
+  bucket = table->hash_function(key) % (a_hash_value)table->num_buckets;
   /* Look for a matching entry in this bucket. */
   for (htep = table->table[bucket]; htep != NULL; htep = htep->next) {
     check_assertion(htep->data != NULL);
