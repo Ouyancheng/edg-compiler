@@ -1,5 +1,25 @@
 Version 3.7
 
+12/20/05 Lowering of designated initializers, re-initialization with string
+
+The lowering of designated initializers has been adjusted to deal
+correctly with a case where an array of characters is initialized
+with a string and then later, by use of a designated initializer,
+initialized again with another string that is brace-enclosed.  All
+trace of the first initialization is supposed to be removed (WG14
+defect report number 253), but it wasn't when the first string is
+longer than the second (characters after the null of the second
+string remained set according to the first string).  Now fixed.
+
+  struct {
+    char I[6];
+    int J;
+  } n[] = {
+      { { "foo" }, 1 },
+      [0].I = { "a" },  // "foo" was not completely eliminated
+      [0].J = 2
+  };
+
 12/20/05 Preserving top-level explicit casts to void
 
 A new configuration switch PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL

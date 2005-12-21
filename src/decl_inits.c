@@ -2010,9 +2010,12 @@ this function points to a tree that includes a dynamic-init entry.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       init_info->init_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      /* Allow an extra comma after the string-constant initializer and before
-         the expected right brace. */
-      if (brace_flag && curr_token == tok_comma) (void)get_token();
+      if (brace_flag) {
+        init_con->explicit_braces_on_aggregate = TRUE;
+        /* Allow an extra comma after the string-constant initializer and
+           before the expected right brace. */
+        if (curr_token == tok_comma) (void)get_token();
+      }  /* if */
     } else {
       /* Normal case, not array of char.  Could be an array, a struct,
          or a union, or an error type. */

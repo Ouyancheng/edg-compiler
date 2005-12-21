@@ -9012,7 +9012,7 @@ have already had their designated initializers lowered.
       }  /* if */
       /* Exit the loop if we've reached a designator. */
       if (con.ptr->kind == (a_constant_repr_kind)ck_designator) break;
-      if (earlier_con.ptr != NULL) {
+      if (earlier_con.ptr != NULL && !con.ptr->explicit_braces_on_aggregate) {
         /* If merging old and new values, rewrite string constants as
            aggregate initializers to allow operation at the character
            level. */
