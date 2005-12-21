@@ -43,7 +43,7 @@ msvc_target_version_number is less than 1300.  For example:
 12/21/05 Include-once performance improvement
 
 The routines that determine whether the inclusion of a previously included
-can be suppressed used a simple list to record previously included files.
+file can be suppressed used a simple list to record previously included files.
 Checking this list could be expensive in programs that include a very
 large number of files.  A hash table is now used instead, resulting in
 much better performance for such cases.
