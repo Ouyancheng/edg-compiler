@@ -5492,7 +5492,8 @@ value is used).
          node->variant.operation.compiler_generated) {
     node = node->variant.operation.operands;
   }  /* while */
-  if (is_operation_node(node) &&
+  if (curr_expr_is_evaluated() &&
+      is_operation_node(node) &&
       (node->variant.operation.kind == (an_expr_operator_kind)eok_padd ||
        node->variant.operation.kind == (an_expr_operator_kind)eok_padd_subsc)){
     /* The node is a pointer addition or subscript operation. */
