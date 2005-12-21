@@ -5793,14 +5793,15 @@ in determining how to generate dynamic initializations).
 }  /* gen_temp_init */
 
 
-static a_boolean is_ne_0_operation(an_expr_node_ptr expr)
+static a_boolean is_compiler_generated_ne_0_operation(an_expr_node_ptr expr)
 /*
-Return TRUE if expr is a comparison of the form x != 0 of any type.
+Return TRUE if expr is a compiler-generated comparison of the form x != 0 of
+any type.
 */
 {
   a_boolean is_ne_0 = FALSE;
 
-  if (is_operation_node(expr)) {
+  if (is_operation_node(expr) && expr->variant.operation.compiler_generated) {
     an_expr_operator_kind op = expr->variant.operation.kind;
     if (op == (an_expr_operator_kind)eok_ine ||
         op == (an_expr_operator_kind)eok_fne ||
@@ -5828,7 +5829,7 @@ Return TRUE if expr is a comparison of the form x != 0 of any type.
     }  /* if */
   }  /* if */
   return is_ne_0;
-}  /* is_ne_0_operation */
+}  /* is_compiler_generated_ne_0_operation */
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -5840,10 +5841,10 @@ it as necessary.
 */
 {
   if (C_mode()) {
-    if (is_ne_0_operation(*operand)) {
-      /* Remove a "!= 0" on top in case it was implicitly generated.
-         It changes the type of the first operand, which is not good for
-         its use as the implied second operand. */
+    if (is_compiler_generated_ne_0_operation(*operand)) {
+      /* Remove a "!= 0" on top if it was implicitly generated.  It changes
+         the type of the first operand, which is not good for its use as the
+         implied second operand. */
       *operand = (*operand)->variant.operation.operands;
       (*operand)->next = NULL;
     }  /* if */
@@ -8519,7 +8520,7 @@ of a statement or short-circuit operator, and also a full expression
 {
   /* Process any tags declared within the expression (e.g., in casts). */
   skip_embedded_declarations();
-  if (is_ne_0_operation(expr) && expr->variant.operation.compiler_generated) {
+  if (is_compiler_generated_ne_0_operation(expr)) {
     /* The comparison against 0 did not appear in the source but was added
        by the front end.  Generate just the left operand instead of the
        comparison, which should be closer to what the original source looked
@@ -8536,7 +8537,7 @@ Generate code for the indicated expression, which could be the controlling
 expression in a ?: or a term of a logical expression.
 */
 {
-  if (is_ne_0_operation(expr) && expr->variant.operation.compiler_generated) {
+  if (is_compiler_generated_ne_0_operation(expr)) {
     /* The comparison against 0 did not appear in the source but was added
        by the front end.  Generate just the left operand instead of the
        comparison, which should be closer to what the original source looked
