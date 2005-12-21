@@ -1,5 +1,22 @@
 Version 3.7
 
+12/21/05 C++-generating back end, Microsoft compatibility: nested classes and
+         base specifiers
+
+Versions of MSVC++ prior to 7.0 had a bug that required a qualified name as a
+base class specifier for a nested class when the base specifier named a nested
+class of a base of the class containing the declaration.  The C++-generating
+back end now adds the (otherwise unnecessary) qualification in such cases when
+msvc_target_version_number is less than 1300.  For example:
+
+  struct Base {
+    struct N { };
+  };
+  struct Derived : Base {
+    struct N2: Base::N {     // Formerly generated as N2: N
+    };
+  };
+
 12/21/05 Include-once performance improvement
 
 The routines that determine whether the inclusion of a previously included

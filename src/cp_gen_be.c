@@ -340,6 +340,8 @@ typedef int a_gen_name_options_set;
 			   outside its class.  This is used in Microsoft mode
 			   to support the extension in which pure virtual
 			   functions can be defined in derived classes. */
+#define GN_BASE_SPECIFIER 0x200
+			/* The name is used in a base specifier list. */
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 /*
@@ -2309,6 +2311,14 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
              declaration. */
           force_qualified_name = TRUE;
         }  /* if */
+      }  /* if */
+      if ((options & GN_BASE_SPECIFIER) != 0 &&
+          msvc_is_generated_code_target &&
+          msvc_target_version_number < 1300) {
+        /* In MSVC 6.0, a base specifier that names a nested class of a base
+           of the current class context must be qualified, i.e., the base
+           class must not be treated as being in the name context stack. */
+        include_base_classes = FALSE;
       }  /* if */
       if (!force_qualified_name &&
           if_microsoft_extensions(!scp->member_of_unknown_super &&)
@@ -4675,7 +4685,8 @@ Put out the list of direct base classes of the class associated with ctsp
       /* Display the derivation access. */
       gen_access_specifier(bcdp->access);
       write_space();
-      gen_type_name(bcp->type);
+      gen_name(&bcp->type->source_corresp, iek_type, GN_BASE_SPECIFIER,
+               (a_boolean *)NULL);
     }  /* if */
   }  /* for */
 }  /* gen_base_class_list */
