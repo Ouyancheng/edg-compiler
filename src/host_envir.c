@@ -676,7 +676,7 @@ used to represent stdin; it must return  NULL.
 }  /* end_of_directory_name */
 
 
-static char *start_of_file_name(char *file_name)
+char *start_of_file_name(char *file_name)
 /*
 Return the first character of the file name portion of "file_name"
 (i.e., the part after an optional directory name).

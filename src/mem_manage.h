@@ -115,6 +115,10 @@ extern char *realloc_buffer(char     *old_ptr,
 extern char *alloc_in_region(a_memory_region_number number,
                              sizeof_t               size);
 
+extern
+a_void_ptr alloc_general_or_in_region(a_memory_region_number	region,
+				      sizeof_t			size);
+
 /* Make sure that mem_region_table is large enough. */
 extern
 void ensure_mem_region_table_space(a_memory_region_number region_number);
@@ -134,6 +138,13 @@ Macro that allocates an entry for the specified type in front end memory.
 Macro that allocates an entry for the specified type in general memory.
 */
 #define alloc_general_of_type(type) (type*)alloc_general(sizeof(type))
+
+/*
+Macro that allocates an entry for the specified type in general memory or
+in a memory region.
+*/
+#define alloc_general_or_in_region_of_type(region, type)		\
+  (type*)alloc_general_or_in_region(region, sizeof(type))
 
 /* Allocate a block of memory to be used for memory region storage. */
 extern a_void_ptr alloc_new_mem_block(sizeof_t size);

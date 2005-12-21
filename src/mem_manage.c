@@ -1006,6 +1006,25 @@ is used for allocation of general front end memory (i.e., not IL).
 }  /* alloc_in_region */
 
 
+a_void_ptr alloc_general_or_in_region(a_memory_region_number	region,
+				      sizeof_t			size)
+/*
+Allocate either general memory or memory from a memory region.  If
+"region" is NO_MEMORY_REGION_NUMBER, general memory is used.  Otherwise,
+memory is allocated in the memory region specified by "region".
+*/
+{
+  a_void_ptr	ptr;
+
+  if (region == NO_MEMORY_REGION_NUMBER)  {
+    ptr = alloc_general(size);
+  } else {
+    ptr = alloc_in_region(region, size);
+  }  /* if */
+  return ptr;
+}  /* alloc_general_or_region */
+
+
 #ifdef FFE
 
 char *alloc_pufe(sizeof_t size)

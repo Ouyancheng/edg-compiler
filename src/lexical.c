@@ -560,12 +560,12 @@ static a_boolean
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
-Head of a list of history information about include files that have
-been processed.  Used to suppress subsequence inclusions of the same
+Hash table of history information about include files that have
+been processed.  Used to suppress subsequent inclusions of the same
 file.
 */
-static an_include_file_history_ptr
-		include_file_history_list;
+static a_hash_table_ptr
+		include_file_history_hash_table;
 
 /*
 Array of identifier lookup options indexed by identifier lookup mode.  Used
@@ -3267,7 +3267,6 @@ a pointer.
   num_include_file_histories_allocated++;
 #endif /* DEBUG */
   ifhp->full_name = NULL;
-  ifhp->next = NULL;
   ifhp->suppress_subsequent_include = FALSE;
   ifhp->pragma_once = FALSE;
   ifhp->ifdef_guard = FALSE;
@@ -3275,6 +3274,48 @@ a pointer.
   ifhp->controlling_macro_name = NULL;
   return ifhp;
 }  /* alloc_include_file_history */
+
+
+static a_hash_value hash_include_file_history(a_void_ptr	key)
+/*
+Produce a hash value for an include file history entry.  The key is
+a character string.
+*/
+{
+  char		*str = (char*)key;
+  a_hash_value	value = 0;
+  /* Only hash the characters of the actual file name so that differences
+     in the directory portion won't affect the result (e.g., x.h and ./x.h
+     need to be considered the same). */
+  str = start_of_file_name(str);
+  for (; *str != '\0'; str++) {
+    /* Convert any uppercase characters to lower for hashing purposes.  The
+       actual file name comparison may or may not be case sensitive. */
+    int	ch = *str;
+    if (isupper(ch)) ch = tolower(ch);
+    value = (value * 31) + value + ch;
+  }  /* for */
+  return value;
+}  /* hash_include_file_history */
+
+
+static a_boolean compare_include_file_history(void	*entry,
+					      void	*key)
+/*
+Compare an entry in the include file history hash table with an entry to be
+found.  "entry" is of type an_include_file_history_ptr.  "key" is char *.
+Return TRUE if the key matches the entry.
+*/
+{
+  an_include_file_history_ptr	ifhp;
+  char				*full_name;
+  a_boolean			result;
+
+  ifhp = (an_include_file_history_ptr)entry;
+  full_name = (char*)key;
+  result = compare_file_names(full_name, ifhp->full_name) == 0;
+  return result;
+}  /* compare_include_file_history */
 
 
 a_boolean find_include_history(char                        *full_name,
@@ -3289,37 +3330,25 @@ first_time if the latter case.  Return TRUE if the file was
 found in the list.
 */
 {
+  an_include_file_history_ptr	*ifhp_in_table;
   an_include_file_history_ptr	ifhp;
-  an_include_file_history_ptr	prev_ifhp;
   a_boolean			found = FALSE;
-  sizeof_t			name_length = strlen(full_name);
 
-  /* Loop through the file history list and try to find a entry that
-     matches the file passed by the caller. */
-  for (ifhp = include_file_history_list, prev_ifhp = NULL;
-       ifhp != NULL;
-       prev_ifhp = ifhp, ifhp = ifhp->next) {
-    if (compare_file_names(full_name, ifhp->full_name) == 0) {
-      /* We've found a match. */
-      found = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  if (ifhp != NULL || !create) {
+  /* Look for an existing entry for this file name in the hash table. */
+  ifhp_in_table = (an_include_file_history_ptr*)hash_find(
+					include_file_history_hash_table,
+					(void*)full_name, create);
+  ifhp = ifhp_in_table == NULL ? NULL : *ifhp_in_table;
+  if (ifhp != NULL) {
     /* An entry was found -- this file has been included before. */
-  } else {
+    found = TRUE;
+  } else if (create) {
     /* This file has not been included before.  Create a new file history
        entry. */
-    /* Append to the tail of the list */
     ifhp = alloc_include_file_history();
     ifhp->full_name = full_name;
-    ifhp->name_length = name_length;
-    ifhp->next = NULL;
-    if (prev_ifhp) {
-      prev_ifhp->next = ifhp;
-    } else {
-      include_file_history_list = ifhp;
-    }  /* if */
+    /* Update the data pointer in the hash table. */
+    *ifhp_in_table = ifhp;
   }  /* if */
   *ifhp_ptr = ifhp;
   return found;
@@ -3418,6 +3447,12 @@ no effect.
      one if none exists. */
   (void)find_include_history(full_name, ifhp_ptr, /*create=*/TRUE);
   result = suppress_subsequent_include(*ifhp_ptr);
+#if DEBUG
+  if (db_flag_is_set("ssiof")) {
+    fprintf(f_debug, "suppress_subsequent_include_of_file: %s: %s\n",
+            full_name, result ? "yes" : "no");
+  }  /* if */
+#endif /* DEBUG */
   return result;
 } /* suppress_subsequent_include_of_file */
 
@@ -14875,7 +14910,7 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(avail_reusable_cache_entries),
       pch_saved_var_array_elem(avail_pending_pragmas),
       pch_saved_var_array_elem(avail_stop_token_stack_entries),
-      pch_saved_var_array_elem(include_file_history_list),
+      pch_saved_var_array_elem(include_file_history_hash_table),
       pch_saved_var_array_elem(name_linkage_constants),
       pch_saved_var_array_elem(curr_stop_token_stack_entry),
 #if DEBUG
@@ -14978,7 +15013,10 @@ Initialize variables that are specific to a given translation unit.
   /* The following variable is declared in decls.h, but initialized here
      since it is related to tokenization. */
   next_token_is_top_level_decl_start = FALSE;
-  include_file_history_list = NULL;
+  include_file_history_hash_table = alloc_hash_table(
+                                             FRONT_END_REGION_NUMBER,
+                                             256, hash_include_file_history,
+                                             compare_include_file_history);
   trigraph_diagnostic_issued = FALSE;
   trigraph_column = 0;
   /* Clear the set of tokens on which to stop a flush following a

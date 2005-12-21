@@ -127,6 +127,9 @@ static unsigned long
 		num_compares_for_symbols,
 		num_access_error_descrs_allocated,
 		num_progenitors_allocated,
+		num_hash_tables_allocated,
+		num_hash_table_entries_allocated,
+		total_hash_table_size,
 #if MICROSOFT_EXTENSIONS_ALLOWED
 		num_saved_macro_states_allocated,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -11484,6 +11487,128 @@ preprocessing only.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+
+static
+a_hash_table_size select_hash_table_size(a_hash_table_size	num_of_entries)
+/*
+Select the hash table size to be used to hold "num_of_entries" hash
+table entries.  Return the value to be used.
+*/
+{
+  static a_hash_table_size	sizes[] = {
+	1,	5,
+	11,	17,	29,	41,	59,	83,	127,	179,
+	251,	353,	499,	701,	983,	1381,	1949,	2729,
+	3821,	5351,	7499,	10499,	14699,	20593,	28837,	40387,
+	56543,	79181,	110863,	155209,	217307,	304253,	425959,	596363,
+	834913,	1168879
+  };
+  unsigned int	i;
+
+  /* Select a size that is greater than the number of elements.  In the
+     unlikely event that the number of elements exceeds the largest entry
+     in the table, the largest value is used. */
+  for (i = 0; i < ((sizeof(sizes) / sizeof(unsigned long)) - 1); i++) {
+    if (num_of_entries < sizes[i]) break;
+  }  /* for */
+  return sizes[i];
+}  /* select_hash_table_size */
+
+
+static a_hash_table_entry_ptr alloc_hash_table_entry(
+					a_memory_region_number	memory_region)
+/*
+Allocate a new hash table entry, initialize its fields, and return a pointer
+to it.
+*/
+{
+  a_hash_table_entry_ptr	htep;
+
+  htep = alloc_general_or_in_region_of_type(memory_region, a_hash_table_entry);
+  htep->next = NULL;
+  htep->data = NULL;
+#if DEBUG
+  num_hash_table_entries_allocated++;
+#endif /* DEBUG */
+  return htep;
+}  /* alloc_hash_table_entry */
+
+
+a_hash_table_ptr alloc_hash_table(
+			a_memory_region_number		memory_region,
+			a_hash_table_size		num_elements,
+			a_hash_function_ptr		hash_function,
+			a_hash_compare_function_ptr	compare_function)
+/*
+Allocate a hash table, initialize its fields, and return a pointer to
+the table.  "memory_region" is the memory region in which the table and its
+entries should be allocated or NO_MEMORY_REGION_NUMBER if general memory
+should be used.  "num_elements" is the number of elements expected; this value
+is rounded up to one of a set of prime values.  "hash_function" is the function
+to be used to produce a hash value from a key.  "compare_function" is
+the function to be used to compare a key value with an element of the
+table.
+*/
+{
+  a_hash_table_ptr	htp;
+  sizeof_t		table_size_in_bytes;
+  a_hash_table_size	buckets;
+
+  htp = alloc_general_or_in_region_of_type(memory_region, a_hash_table);
+  htp->hash_function = hash_function;
+  htp->compare_function = compare_function;
+  htp->memory_region = memory_region;
+  /* Select a table size based on the number of elements. */
+  buckets = select_hash_table_size(num_elements);
+  htp->buckets = buckets;
+  table_size_in_bytes = sizeof(a_hash_table_entry_ptr) * buckets;
+  htp->table = (a_hash_table_entry_ptr*)
+                alloc_general_or_in_region(memory_region, table_size_in_bytes);
+  memzero(htp->table, size_t_arg(table_size_in_bytes));
+#if DEBUG
+  num_hash_tables_allocated++;
+  total_hash_table_size += table_size_in_bytes;
+#endif /* DEBUG */
+  return htp;
+}  /* alloc_hash_table */
+
+
+a_void_ptr hash_find(a_hash_table_ptr	table,
+		     a_void_ptr		key,
+		     a_boolean		create)
+/*
+Look for an entry that matches "key" in "table".  If the entry does not exist,
+and "create" is TRUE, create an entry.  Return the address of the "data"
+field of the hash table entry, or NULL if no entry was found.  When a new entry
+has been created by this routine (i.e., *return_value == NULL) the caller
+must use the pointer returned to set the new hash table entry to refer to the
+appropriate user-defined entry.
+*/
+{
+  a_hash_table_size		bucket;
+  a_hash_table_entry_ptr	htep;
+  a_void_ptr			result;
+
+  bucket = table->hash_function(key) % (a_hash_value)table->buckets;
+  /* Look for a matching entry in this bucket. */
+  for (htep = table->table[bucket]; htep != NULL; htep = htep->next) {
+    check_assertion(htep->data != NULL);
+    if (table->compare_function(htep->data, key)) break;
+  }  /* for */
+  if (htep == NULL && create) {
+    /* No entry was found.  Create one now. */
+    htep = alloc_hash_table_entry(table->memory_region);
+    /* Link it at the start of the bucket. */
+    htep->next = table->table[bucket];
+    table->table[bucket] = htep;
+  }  /* if */
+  /* If an entry was found or created, return the address of the pointer.
+     This allows the caller to fill in the data pointer for a new entry. */
+  result = htep == NULL ? (a_void_ptr)NULL : (a_void_ptr)&htep->data;
+  return result;
+}  /* hash_find */
+
+
 #if DEBUG
 unsigned long show_symbol_space_used(void)
 /*
@@ -11565,6 +11690,11 @@ for space tracking purposes.
   db_space_used_general("generated entity blocks",
                         num_generated_entity_blocks_allocated,
                         a_generated_entity_block);
+  db_space_used("hash table", num_hash_tables_allocated, a_hash_table);
+  db_space_used("hash table entries", num_hash_table_entries_allocated,
+                a_hash_table_entry);
+  db_space_used_other("hash table size", total_hash_table_size, "");
+  grand_total += total_hash_table_size;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   db_space_used("saved macro state", num_saved_macro_states_allocated,
                 a_saved_macro_state);
@@ -11841,6 +11971,9 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_template_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_namespace_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_progenitors_allocated),
+      pch_saved_var_array_elem(num_hash_tables_allocated),
+      pch_saved_var_array_elem(num_hash_table_entries_allocated),
+      pch_saved_var_array_elem(total_hash_table_size),
       pch_saved_var_array_elem(num_exception_spec_error_descrs_allocated),
       pch_saved_var_array_elem(num_used_symbol_buckets),
       pch_saved_var_array_elem(symbol_name_string_space),
@@ -12010,6 +12143,9 @@ of the front end.
   num_active_using_directives_allocated        = 0;
   num_generated_entity_blocks_allocated        = 0;
   num_progenitors_allocated                    = 0;
+  num_hash_tables_allocated                    = 0;
+  num_hash_table_entries_allocated             = 0;
+  total_hash_table_size                        = 0;
   num_exception_spec_error_descrs_allocated    = 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   num_saved_macro_states_allocated             = 0;

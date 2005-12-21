@@ -28,11 +28,15 @@ structure and in the back end to understand it.
 typedef int a_memory_region_number;
 #define MAX_MEMORY_REGION_NUMBER ((a_memory_region_number)INT_MAX)
 
+#define NO_MEMORY_REGION_NUMBER ((a_memory_region_number)-1)
 #define NULL_region_number  ((a_memory_region_number)0)
 #define FRONT_END_REGION_NUMBER ((a_memory_region_number)0)
-/* NULL_region_number is also used for the region of information used in
-the front end and not written out or otherwise passed to the back end. */
 /*
+NO_MEMORY_REGION_NUMBER is used to indicate the absence of a memory region.
+
+NULL_region_number is also used for the region of information used in
+the front end and not written out or otherwise passed to the back end
+
 FILE_SCOPE_REGION_NUMBER is the memory region number for the
 file scope.  Note that in the front end one should use the global
 variable file_scope_region_number if a secondary translation unit

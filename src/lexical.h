@@ -889,15 +889,9 @@ See the comment preceding find_include_history in lexical.c.
 */
 typedef struct an_include_file_history *an_include_file_history_ptr;
 typedef struct an_include_file_history {
-  an_include_file_history_ptr
-                next;
-			/* Pointer to the next entry in a linked list of
-			   history entries. */
   char          *full_name;
 			/* Pointer to the full path name of the include
 			   file. */
-  sizeof_t	name_length;
-			/* Length of full_name. */
   a_bit_field	suppress_subsequent_include:1;
 			/* TRUE if this file is potentially one that can
 			   have subsequent includes suppressed. */

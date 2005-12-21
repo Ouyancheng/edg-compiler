@@ -4340,6 +4340,80 @@ extern void symbol_tbl_trans_unit_init(void);
 
 extern void symbol_tbl_init(void);
 
+/*
+Entry used to represent an entry in a hash table.
+*/
+typedef struct a_hash_table_entry *a_hash_table_entry_ptr;
+typedef struct a_hash_table_entry {
+  a_hash_table_entry_ptr
+		next;	/* The next entry in the bucket, or NULL for the last
+			   entry in the bucket. */
+  void		*data;	/* Opaque pointer to the entity represented by this
+			   entry. */
+} a_hash_table_entry;
+
+/*
+Type of the hash value returned by the hash function.  This must be the
+same size or larger than a_hash_table_size.
+*/
+typedef unsigned long a_hash_value;
+
+/*
+Type used to represent the size of a hash table.
+*/
+typedef unsigned long a_hash_table_size;
+
+/*
+The type of a function used to produce a hash value for a given key.
+*/
+typedef a_hash_value (*a_hash_function_ptr)(a_void_ptr	key);
+
+/*
+The type of a function used to compare a key with a value from the hash
+table.  Return TRUE if they match.
+*/
+typedef a_boolean (*a_hash_compare_function_ptr)(void	*entry,
+						 void	*key);
+
+
+/*
+A general-purpose hash table.
+*/
+typedef struct a_hash_table *a_hash_table_ptr;
+typedef struct a_hash_table {
+  a_hash_function_ptr
+		hash_function;
+			/* Pointer to the function used to produce a hash
+			   value for a key. */
+  a_hash_compare_function_ptr
+		compare_function;
+			/* Pointer to the function used to compare a key with
+		           an entry in the hash table. */
+  a_memory_region_number
+		memory_region;
+			/* The memory region in which hash table entries are
+			   to be allocated.  If the value is
+			   NO_MEMORY_REGION_NUMBER, the entries are to be
+			   allocated in general memory. */
+  a_hash_table_size
+		buckets;
+			/* The number of buckets in the hash table. */
+  a_hash_table_entry_ptr
+		*table;
+			/* Pointer to the hash table array.  The size is
+			   specified by size. */
+} a_hash_table;
+
+extern a_hash_table_ptr alloc_hash_table(
+			a_memory_region_number		memory_region,
+			a_hash_table_size		num_elements,
+			a_hash_function_ptr		hash_function,
+			a_hash_compare_function_ptr	compare_function);
+
+extern a_void_ptr hash_find(a_hash_table_ptr	table,
+			    a_void_ptr		key,
+			    a_boolean		create);
+
 #endif /* ifndef SYMBOL_TBL_H */
 
 /******************************************************************************
