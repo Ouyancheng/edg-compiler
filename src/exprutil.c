@@ -1846,6 +1846,11 @@ expression node.
       node->name_reference = find_allocated_name_reference(
                                        &node->variant.variable->source_corresp,
                                        &operand->name_reference);
+    } else if (is_constant_node(node) &&
+               is_enum_constant(node->variant.constant)) {
+      node->name_reference = find_allocated_name_reference(
+                                       &node->variant.constant->source_corresp,
+                                       &operand->name_reference);
     }  /* if */
   }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */

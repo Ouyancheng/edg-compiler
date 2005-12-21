@@ -1,5 +1,26 @@
 Version 3.7
 
+12/21/05 C++-generating back end: name references to enumeration constants
+
+Regardless of the setting of RECORD_FORM_OF_NAME_REFERENCE, the form of the
+reference in the source code used for an enumeration constant was ignored when
+generating the reference in the output.  The form of name references in this
+context is now preserved when RECORD_FORM_OF_NAME_REFERENCE is TRUE.  For
+example:
+
+  class Base {
+  protected:
+    enum { zero };
+  };
+
+  class Derived : public Base {
+    friend int f();
+  };
+
+  int f() {
+    return Derived::zero;    // previously generated as Base::zero
+  }
+
 12/20/05 Lowering of designated initializers, re-initialization with string
 
 The lowering of designated initializers has been adjusted to deal

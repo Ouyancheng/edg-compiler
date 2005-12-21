@@ -8329,7 +8329,19 @@ done_with_operation:
 done_with_operation_after_parens:
       break;
     case enk_constant:
-      gen_constant(expr->variant.constant, need_parens);
+      { a_constant_ptr constant = expr->variant.constant;
+#if RECORD_FORM_OF_NAME_REFERENCE
+        if (is_enum_constant(constant) && expr->name_reference != NULL) {
+          gen_name_from_name_reference(expr->name_reference,
+                                       &constant->source_corresp,
+                                       iek_constant);
+        } else
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+        /* Do not insert code here. */
+        {
+          gen_constant(constant, need_parens);
+        }
+      }
       break;
     case enk_variable_address:
       if (need_parens) m_write_tok_ch('(');

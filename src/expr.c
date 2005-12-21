@@ -15456,6 +15456,7 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
         case sk_constant:
           /* Constant (e.g., an enum constant).  Make a constant operand. */
           make_sym_constant_operand(sym_ptr, result);
+          set_operand_name_reference_from_locator_for_curr_id(result);
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* In an integral constant expression, check that the constant
                is integral or enum.  This is needed for nontype template
