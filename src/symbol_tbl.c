@@ -11508,7 +11508,7 @@ table entries.  Return the value to be used.
   /* Select a size that is greater than the number of elements.  In the
      unlikely event that the number of elements exceeds the largest entry
      in the table, the largest value is used. */
-  for (i = 0; i < ((sizeof(sizes) / sizeof(unsigned long)) - 1); i++) {
+  for (i = 0; i < ((sizeof(sizes) / sizeof(a_hash_table_size)) - 1); i++) {
     if (num_of_entries < sizes[i]) break;
   }  /* for */
   return sizes[i];
@@ -11519,7 +11519,8 @@ static a_hash_table_entry_ptr alloc_hash_table_entry(
 					a_memory_region_number	memory_region)
 /*
 Allocate a new hash table entry, initialize its fields, and return a pointer
-to it.
+to it.  "memory_region" is the memory region in which the entry should be
+allocated or NO_MEMORY_REGION_NUMBER if general memory should be used.
 */
 {
   a_hash_table_entry_ptr	htep;
