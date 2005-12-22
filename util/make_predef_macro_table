@@ -1,4 +1,14 @@
 :
+###############################################################################
+#                                                             \  ___  /       #
+# Edison Design Group C++ Front End                             /   \         #
+#                                                            - | \^/ | -      #
+# Copyright 1992-2005 Edison Design Group, Inc.                 \   /         #
+# All rights reserved.  Consult your license                  /  | |  \       #
+# regarding permissions and restrictions.                        [_]          #
+#                                                                             #
+###############################################################################
+#
 # Usage: make_predef_macro_table [--gcc gcc_command] [--g++ g++_command]
 #
 # If no arguments are specified, the default "gcc" and "g++" are used

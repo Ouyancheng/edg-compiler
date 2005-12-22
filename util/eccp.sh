@@ -1,4 +1,14 @@
 #!/bin/sh
+###############################################################################
+#                                                             \  ___  /       #
+# Edison Design Group C++ Front End                             /   \         #
+#                                                            - | \^/ | -      #
+# Copyright 1992-2005 Edison Design Group, Inc.                 \   /         #
+# All rights reserved.  Consult your license                  /  | |  \       #
+# regarding permissions and restrictions.                        [_]          #
+#                                                                             #
+###############################################################################
+
 # Run the EDG C++ front end into the system cc to compile C++.
 # Interface and command-line options are similar to CC.
 
