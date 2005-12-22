@@ -3322,12 +3322,10 @@ a_boolean find_include_history(char                        *full_name,
 	    		       an_include_file_history_ptr *ifhp_ptr,
 			       a_boolean		   create)
 /*
-Examine the file history to see if "full_name" has been seen before. If
-it has, return a pointer to its history record in ret_hist, otherwise
-if create is TRUE, create a new history record, attach it to the file
-history chain, and return a pointer to the new entry in ifhp. Also, set
-first_time if the latter case.  Return TRUE if the file was
-found in the list.
+Look for "full_name" in the include file history hash table.  If no entry
+exists and "create" is TRUE, create a new entry.  If an entry is found or
+created, return a pointer to the entry in ifhp_ptr.  Return TRUE if an
+existing entry was returned.
 */
 {
   an_include_file_history_ptr	*ifhp_in_table;
