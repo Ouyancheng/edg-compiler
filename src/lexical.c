@@ -3291,7 +3291,7 @@ a character string.
   for (; *str != '\0'; str++) {
     /* Convert any uppercase characters to lower for hashing purposes.  The
        actual file name comparison may or may not be case sensitive. */
-    int	ch = *str;
+    char	ch = *str;
     if (isupper((unsigned char)ch)) ch = tolower((unsigned char)ch);
     value = (value * 31) + value + ch;
   }  /* for */
