@@ -8342,7 +8342,8 @@ done_with_operation_after_parens:
     case enk_constant:
       { a_constant_ptr constant = expr->variant.constant;
 #if RECORD_FORM_OF_NAME_REFERENCE
-        if (is_enum_constant(constant) && expr->name_reference != NULL) {
+        if (is_enum_constant(constant) && has_name(constant) &&
+            expr->name_reference != NULL) {
           gen_name_from_name_reference(expr->name_reference,
                                        &constant->source_corresp,
                                        iek_constant);
