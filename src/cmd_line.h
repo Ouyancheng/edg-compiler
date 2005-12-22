@@ -70,7 +70,7 @@ typedef enum /*an_option_kind*/ {
   optk_display_compiler_version,
   optk_suppress_warnings,
   optk_enable_remarks,
-  optk_C_mode,
+  optk_C_dialect_ANSI,
   optk_C_dialect_cplusplus,
   optk_exception_handling,
   optk_suppress_used_before_set_warnings,
@@ -199,7 +199,6 @@ typedef enum /*an_option_kind*/ {
   optk_ignore_namespace_std,
   optk_parse_nonclass_templates,
   optk_c99_mode,
-  optk_c89_mode,
   optk_export_template,
   optk_stdarg_builtin,
 #if ENABLE_TRANS_UNIT_TEST_MODE

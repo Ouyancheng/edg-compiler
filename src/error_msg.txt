@@ -1496,8 +1496,6 @@ ec_redefinition;;"invalid redefinition of %nd"
 ec_dll_interface_in_unnamed_namespace;;"dllimport/dllexport applied to a member of an unnamed namespace"
 ec_thiscall_requires_nonstatic_member;;"__thiscall can only appear on nonstatic member function declarations"
 ec_vararg_thiscall;;"__thiscall not allowed on function with ellipsis parameter"
-ec_cl_c_and_cplusplus;;"a C mode cannot be combined with a C++ mode"
-ec_cl_ansi_c_and_pcc;;"an ANSI C mode cannot be combined with a K&R C mode"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

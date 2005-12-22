@@ -761,10 +761,9 @@ typedef struct a_simple_source_position {
 
 typedef enum /*a_C_dialect*/ {
   /* Possible C/C++ dialects to compile. */
-  C_dialect_unspecified,   /* Used during command-line processing only. */
-  C_dialect_ANSI,          /* ANSI C. */
-  C_dialect_pcc,           /* UNIX pcc C. */
-  C_dialect_cplusplus      /* C++. */
+  C_dialect_ANSI,	/* ANSI C. */
+  C_dialect_pcc,	/* UNIX pcc C. */
+  C_dialect_cplusplus	/* C++. */
 } a_C_dialect;
 
 

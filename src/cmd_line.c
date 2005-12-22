@@ -332,7 +332,7 @@ Initialize the option information table.
   add_option_description(optk_enable_remarks, "remarks", 'r',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
-  add_option_description(optk_C_mode, "c", 'm',
+  add_option_description(optk_C_dialect_ANSI, "c", 'm',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
   add_option_description(optk_C_dialect_cplusplus, "c++", 'p',
@@ -946,14 +946,6 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  /* Usually, C89 is the default C mode.  However, in configurations that
-     enable another ANSI-based dialect by default (e.g., C99 or SVR4 C), the
-     option --c89 is a convenient way to ensure that only C89 constructs are
-     allowed. */
-  add_option_description(optk_c89_mode,
-                         "c89",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
 #if EXPORT_ENABLING_POSSIBLE
   add_option_description(optk_export_template,
                          "export",
@@ -3206,26 +3198,6 @@ assigns those severities.
                                       /*make_default=*/TRUE);
 }  /* set_default_message_severities */
 
-
-static void set_C_dialect(a_C_dialect  dialect)
-/*
-Set the C/C++ dialect as implied by a command-line option.  Conflicting
-requests result in a command-line error.
-*/
-{
-  if (C_dialect != C_dialect_unspecified && C_dialect != dialect) {
-    /* Some sort of conflict. */
-    if (C_dialect == C_dialect_cplusplus || dialect == C_dialect_cplusplus) {
-      command_line_error(ec_cl_c_and_cplusplus);
-    } else {
-      /* Both an ANSI C and a K&R C dialect have been requested on the
-         command line. */
-      command_line_error(ec_cl_ansi_c_and_pcc);
-    }  /* if */
-  }  /* if */
-  C_dialect = dialect;
-}  /* set_C_dialect */
-
 void proc_command_line(int argc, char *argv[])
 /*
 Process the arguments on the command line that invoked the compiler.
@@ -3241,9 +3213,6 @@ Process the arguments on the command line that invoked the compiler.
   a_boolean			non_pch_option_used = FALSE;
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
   a_boolean                     suppress_do_preprocessing_only = FALSE;
-  a_boolean                     C_mode_option_set = FALSE;
-  a_boolean                     c89_mode_option_set = FALSE;
-  a_C_dialect                   saved_C_dialect = C_dialect;
 
   /* Set a current position indicating we are looking at the command line. */
   pos_curr_token.seq = 0;
@@ -3275,9 +3244,6 @@ Process the arguments on the command line that invoked the compiler.
   set_default_message_severities();
   /* Put the current directory on the template search path. */
   add_to_template_search_path(current_directory_name);
-  /* Temporarily set the dialect to something unique to simplify the detection
-     of conflicting dialects. */
-  C_dialect = C_dialect_unspecified;
   /* Scan the command-line options. */
   while ((odp = get_option(argc, argv)) != NULL) {
     an_option_kind	kind = odp->kind;
@@ -3369,7 +3335,7 @@ Process the arguments on the command line that invoked the compiler.
       case optk_C_dialect_pcc:
         /* Compile K&R/pcc dialect of C. */
         check_assertion(opt_value == TRUE);
-        set_C_dialect(C_dialect_pcc);
+        C_dialect = C_dialect_pcc;
         break;
       case optk_list_makefile_dependencies:
         /* Generate makefile dependency lines for #include files encountered,
@@ -3407,7 +3373,7 @@ Process the arguments on the command line that invoked the compiler.
         cfront_2_1_mode = TRUE;
         cfront_3_0_mode = FALSE;
         /* This option implies C++ dialect. */
-        set_C_dialect(C_dialect_cplusplus);
+        C_dialect = C_dialect_cplusplus;
         break;
       case optk_cfront_3_0_mode:
         check_assertion(opt_value == TRUE);
@@ -3416,7 +3382,7 @@ Process the arguments on the command line that invoked the compiler.
         cfront_3_0_mode = TRUE;
         cfront_2_1_mode = FALSE;
         /* This option implies C++ dialect. */
-        set_C_dialect(C_dialect_cplusplus);
+        C_dialect = C_dialect_cplusplus;
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
@@ -3526,15 +3492,15 @@ Process the arguments on the command line that invoked the compiler.
         check_assertion(opt_value == TRUE);
         error_threshold = es_remark;
         break;
-      case optk_C_mode:
-        /* Compile C code (ANSI C by default). */
+      case optk_C_dialect_ANSI:
+        /* Compile ANSI C. */
         check_assertion(opt_value == TRUE);
-        C_mode_option_set = TRUE;
+        C_dialect = C_dialect_ANSI;
         break;
       case optk_C_dialect_cplusplus:
         /* Compile C++. */
         check_assertion(opt_value == TRUE);
-        set_C_dialect(C_dialect_cplusplus);
+        C_dialect = C_dialect_cplusplus;
         break;
       case optk_exception_handling:
         /* Enables or disables support for exceptions. */
@@ -3856,7 +3822,7 @@ enable_microsoft_mode:
            In other words, --[no_]svr4 is short for --c --[no_]svr4.
            See --c99 and --sun for similar behavior. */
         SVR4_C_mode = opt_value;
-        set_C_dialect(C_dialect_ANSI);
+        C_dialect = C_dialect_ANSI;
         break;
       case optk_brief_diagnostics:
         /* Diagnostics should or should not be emitted in a form that
@@ -4078,7 +4044,7 @@ enable_microsoft_mode:
            the "--no_sun" form.  In other words, --[no_]sun is short for
            --c++ --[no_]_sun. See --c99 and --svr4 for similar behavior. */
         sun_mode = opt_value;
-        set_C_dialect(C_dialect_cplusplus);
+        C_dialect = C_dialect_cplusplus;
         break;
       case optk_sun_linker_scope:
         /* Sun CC 5.5 introduced the linker scope specifiers __global,
@@ -4109,15 +4075,7 @@ enable_microsoft_mode:
            --[no_]c99 is short for --c --[no_]c99.  See --svr4 and --sun
            for similar behavior. */
         c99_mode = opt_value;
-        set_C_dialect(C_dialect_ANSI);
-        break;
-      case optk_c89_mode:
-        /* C89 mode.  This option differs from "--c" in that it cannot be
-           combined with other C-mode flags (e.g., "--c -K" and "--c --c99"
-           are allowed, but "--c89 -K" and "--c89 -c99" are not). */
-        check_assertion(opt_value == TRUE);
-        c89_mode_option_set = TRUE;
-        set_C_dialect(C_dialect_ANSI);
+        C_dialect = C_dialect_ANSI;
         break;
       case optk_export_template:
         /* Enable use of exported templates. */
@@ -4145,7 +4103,7 @@ enable_microsoft_mode:
            --[no_]gcc is short for --c --[no_]gcc.  See --svr4, --c99 and
            --sun for similar behavior. */
         gcc_mode = opt_value;
-        set_C_dialect(C_dialect_ANSI);
+        C_dialect = C_dialect_ANSI;
         break;
       case optk_gpp_mode:
         /* GNU C++ mode should or should not be used.  This option implies
@@ -4153,7 +4111,7 @@ enable_microsoft_mode:
            --[no_]g++ is short for --c++ --[no_]g++.  See --sun, --c99 and
            --svr4 for similar behavior. */
         gpp_mode = opt_value;
-        set_C_dialect(C_dialect_cplusplus);
+        C_dialect = C_dialect_cplusplus;
         break;
      case optk_gnu_version:
         /* The version of the GNU compiler being emulated.  If specified
@@ -4200,7 +4158,7 @@ enable_microsoft_mode:
         /* Enable (or disable) support for Unified Parallel C.  Specifying
            these options also implies C mode. */
         upc_mode = opt_value;
-        set_C_dialect(C_dialect_ANSI);
+        C_dialect = C_dialect_ANSI;
         break;
       case optk_upc_strict_access:
         /* Set the default UPC access mode. */
@@ -4250,7 +4208,7 @@ enable_microsoft_mode:
 #if NAMED_REGISTERS_ALLOWED
         named_registers_enabled = opt_value;
 #endif /* NAMED_REGISTERS_ALLOWED */
-        set_C_dialect(C_dialect_ANSI);
+        C_dialect = C_dialect_ANSI;
         break;
 #endif /* EMBEDDED_C_ALLOWED */
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
@@ -4298,22 +4256,6 @@ enable_microsoft_mode:
     }  /* if */
   }  /* if */
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  if (C_mode_option_set) {
-    if (C_dialect == C_dialect_cplusplus) {
-      command_line_error(ec_cl_c_and_cplusplus);
-    } else if (C_dialect == C_dialect_unspecified) {
-      set_C_dialect(C_dialect_ANSI);
-    }  /* if */
-  } else if (C_dialect == C_dialect_unspecified) {
-    set_C_dialect(saved_C_dialect);
-    check_assertion(C_dialect != C_dialect_unspecified);
-  }  /* if */
-  if (c89_mode_option_set) {
-    /* If C89 was explicitly requested, disable C99 and SVR4 modes (or issue
-       an error if they were explicitly requested. */
-    exclude_SVR4_C_mode(ec_cl_SVR4_C_option_only_in_ansi_C);
-    exclude_c99_mode(ec_cl_incompatible_language_modes);
-  }  /* if */
 #if IA64_ABI
   if (emulate_unsafe_gnu_abi_bugs) {
     /* A request to emulate the unsafe GNU ABI bugs is also a request to
