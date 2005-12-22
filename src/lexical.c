@@ -3292,7 +3292,7 @@ a character string.
     /* Convert any uppercase characters to lower for hashing purposes.  The
        actual file name comparison may or may not be case sensitive. */
     int	ch = *str;
-    if (isupper(ch)) ch = tolower(ch);
+    if (isupper((unsigned char)ch)) ch = tolower((unsigned char)ch);
     value = (value * 31) + value + ch;
   }  /* for */
   return value;
