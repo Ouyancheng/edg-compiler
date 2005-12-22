@@ -14461,7 +14461,7 @@ with the class or namespace.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_pragma_ptr find_assoc_pragma(char          *il_entity,
-                               a_scope_ptr   curr_func_or_block_scope,
+                               a_scope_ptr   scope,
                                a_type_ptr    class_type,
                                a_pragma_ptr  prev_assoc_pragma)
 /*
@@ -14471,10 +14471,13 @@ The pragma will be on a list pointed to from a scope that is to be
 determined.  prev_assoc_pragma is a (possibly NULL) pointer to another
 pragma that is bound the same IL entity and has already been located.  When
 prev_assoc_pragma is non-NULL, search the remainder of the list it belongs
-to; otherwise, determine the scope whose pragma list is to be searched --
-curr_func_or_block_scope identifies the current IL scope when it is a
-function or block; class_type is non-NULL when the IL entity is a member of
-a class.  A pragma must be found if prev_assoc_pragma is NULL (i.e., if a
+to; otherwise, determine the scope whose pragma list is to be searched.
+If class_type is non-NULL, the scope of the class is searched; otherwise,
+if scope is non-NULL, the specified scope is searched (except when the
+specified scope is a function/block scope and the il_entity is in the
+file scope, in which case the file scope is used).  If neither a class_type
+nor a scope is specified, the pragma must be on the file scope's pragma
+list.  A pragma must be found if prev_assoc_pragma is NULL (i.e., if a
 pragma has not yet been found for the given IL entity).
 */
 {
@@ -14493,10 +14496,19 @@ pragma has not yet been found for the given IL entity).
       /* The entity is a member of a class, so look on the pragma list for the
          scope associated with the class. */
       sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
-    } else if (curr_func_or_block_scope != NULL && !in_file_scope(il_entity)) {
-      /* The entity belongs to a function or block scope and was allocated
-         in the local memory region.  Check the list of the local scope. */
-      sp = curr_func_or_block_scope;
+    } else if (scope != NULL) {
+      if ((scope->kind == (a_scope_kind)sck_block ||
+           scope->kind == (a_scope_kind)sck_function) &&
+          in_file_scope(il_entity)) {
+        /* The specified scope was a block or function scope, but the entity
+           is from the file scope.  Use the file scope instead of the
+           specified scope. */
+        sp = il_header.primary_scope;
+      } else {
+        /* A function/block scope and a non-file scope entity, or some other
+           kind of scope.  Use the specified scope.  */
+        sp = scope;
+      }  /* if */
     } else {
       /* The pragma must be on the file scope's pragma list. */
       sp = il_header.primary_scope;

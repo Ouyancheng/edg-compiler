@@ -1,5 +1,14 @@
 Version 3.7
 
+12/22/05 find_assoc_pragma and namespace scopes
+
+Formerly, find_assoc_pragma could not be used to find a pragma bound to
+a namespace scope entity.  This is not an issue for our standard product
+because find_assoc_pragma is only used on lowered IL (in which case all
+such pragmas have been moved to the file scope).  find_assoc_pragma now
+permits a namespace scope to be used so that it can be called for namespace
+members in unlowered IL.
+
 12/21/05 Microsoft mode: do-nothing pointer reinterpret_cast ignored
 
 In Microsoft bugs mode, a reinterpret_cast to a pointer type is

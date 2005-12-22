@@ -1162,7 +1162,7 @@ extern void add_to_pragma_list(a_pragma_ptr             pragma,
                                a_source_correspondence  *scp);
 
 extern a_pragma_ptr find_assoc_pragma(char          *il_entity,
-                                      a_scope_ptr   curr_func_or_block_scope,
+                                      a_scope_ptr   scope,
                                       a_type_ptr    class_type,
                                       a_pragma_ptr  prev_assoc_pragma);
 
