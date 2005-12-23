@@ -3058,31 +3058,6 @@ order of development of this front end, and is inconsistent and strange.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if SUN_EXTENSIONS_ALLOWED
-  if (sun_mode && C_dialect != C_dialect_cplusplus) {
-    /* Sun mode and C mode.  At least one of the two must be due to a command-
-       line option.  (The front end may not validly be configured with this
-       combination by default -- checked elsewhere with an assertion.)  If
-       both are the result of a command-line option, issue an error.
-       Otherwise, the command-line option takes precedence over the default. */
-    if (!option_kind_used[(int)optk_sun_mode]) {
-      sun_mode = FALSE;
-    } else if (option_kind_used[(int)optk_c99_mode] ||
-               option_kind_used[(int)optk_c99_mode] ||
-               option_kind_used[(int)optk_SVR4_C_mode] ||
-#if UPC_EXTENSIONS_ALLOWED
-               option_kind_used[(int)optk_upc_mode] ||
-#endif /* UPC_EXTENSIONS_ALLOWED */
-#if EMBEDDED_C_ALLOWED
-               option_kind_used[(int)optk_embedded_c] ||
-#endif /* EMBEDDED_C_ALLOWED */
-               option_kind_used[(int)optk_C_dialect_pcc]) {
-      command_line_error(ec_cl_sun_mode_is_cplusplus);
-    } else {
-      C_dialect = C_dialect_cplusplus;
-    }  /* if */
-  }  /* if */
-#endif /* SUN_EXTENSIONS_ALLOWED */
   if (C_dialect != C_dialect_ANSI) {
     /* Issue an error for specifying a language mode that is valid only
        when the dialect is ANSI C. */
