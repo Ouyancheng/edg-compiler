@@ -16,7 +16,7 @@ C99 or SVR4 C dialect that might have been in effect before that).
 
 Previously the front end silently accepted the command-line combination
 "--c --sun" with the result being Sun C++ mode.  An error is now issued in
-such cases to avoid confusion with a hypothetic "Sun C mode".  Other similar
+such cases to avoid confusion with a hypothetical "Sun C mode".  Other similar
 combination of a C mode option followed by "--sun" are similarly diagnosed
 (e.g., "--svr4 --sun" or "--old_c --sun").
 
