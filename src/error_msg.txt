@@ -1496,6 +1496,7 @@ ec_redefinition;;"invalid redefinition of %nd"
 ec_dll_interface_in_unnamed_namespace;;"dllimport/dllexport applied to a member of an unnamed namespace"
 ec_thiscall_requires_nonstatic_member;;"__thiscall can only appear on nonstatic member function declarations"
 ec_vararg_thiscall;;"__thiscall not allowed on function with ellipsis parameter"
+ec_cl_sun_mode_is_cplusplus;;"Sun mode can be used only when compiling C++"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

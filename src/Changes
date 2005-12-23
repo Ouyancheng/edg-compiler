@@ -1,5 +1,25 @@
 Version 3.7
 
+12/22/05 Meaning of --c and --c89
+
+Previously, the command-line option "--c" always implied an ANSI C language
+dialect.  Specifically, the combination "--old_c --c" caused the front end to
+expect ANSI C input, even though the K&R/pcc dialect corresponding to the
+"--old_c" is also a "C dialect".  Now, "--c" only has an effect if the dialect
+selected up to then was a C++ dialect (and in that case, an ANSI C dialect is
+selected).  So "--old_c --c" is equivalent to "--old_c", but "--c++ --c" is
+equivalent to the default ANSI C mode.  Furthermore, a new option "--c89"
+selects the standard ANSI C89/ISO C90 language features (and disables any
+C99 or SVR4 C dialect that might have been in effect before that).
+
+12/22/05 Sun mode and C mode options
+
+Previously the front end silently accepted the command-line combination
+"--c --sun" with the result being Sun C++ mode.  An error is now issued in
+such cases to avoid confusion with a hypothetic "Sun C mode".  Other similar
+combination of a C mode option followed by "--sun" are similarly diagnosed
+(e.g., "--svr4 --sun" or "--old_c --sun").
+
 12/22/05 find_assoc_pragma and namespace scopes
 
 Formerly, find_assoc_pragma could not be used to find a pragma bound to

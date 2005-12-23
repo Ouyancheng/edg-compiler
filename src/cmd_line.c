@@ -332,7 +332,7 @@ Initialize the option information table.
   add_option_description(optk_enable_remarks, "remarks", 'r',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
-  add_option_description(optk_C_dialect_ANSI, "c", 'm',
+  add_option_description(optk_C_mode, "c", 'm',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
   add_option_description(optk_C_dialect_cplusplus, "c++", 'p',
@@ -946,6 +946,14 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  /* Usually, C89 is the default C mode.  However, in configurations that
+     enable another ANSI-based dialect by default (e.g., C99 or SVR4 C), the
+     option --c89 is a convenient way to ensure that only C89 constructs are
+     allowed. */
+  add_option_description(optk_c89_mode,
+                         "c89",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #if EXPORT_ENABLING_POSSIBLE
   add_option_description(optk_export_template,
                          "export",
@@ -3010,7 +3018,10 @@ The major C dialect (K&R, ANSI, or C++) is determined by the last command line
 option that selects a major dialect, either implicitly or explicitly. (For
 example, --old_c, --c, and --c++ select a major dialect explicitly, and --svr4,
 --cfront_3.0, and --c99 select a major dialect implicitly.)  No major dialect
-is implicitly specified with --microsoft et al. or --strict et al.
+is implicitly specified with --microsoft et al. or --strict et al.  --sun
+cannot be combined with command-line options to select a C mode, but otherwise
+it implies C++ mode (even in the somewhat unusual event that the front end
+were modified to compile C code by default).
 
 C99 mode is in some ways considered both a dialect and a mode.  C_dialect
 is still C_dialect_ANSI, but C99 is permitted to be used in conjunction with
@@ -3020,7 +3031,10 @@ Whatever major dialect is selected, all language modes specified have to be
 consistent with it.  For example, --old_c --c99 is permitted, since the
 major dialect implied by --c99 overrides the major dialect specified by -K.
 On the other hand, --c99 --old_c produces an error, since the final major
-dialect is inconsistent with C99 mode.
+dialect is inconsistent with C99 mode.  Similarly, "--svr4 --c++ --c" ends
+up being SVR4 C mode: The (nonmajor) SVR4 C dialect selected by the first
+option is not discarded when switching to the major dialects in the second
+(C++ mode) and third (C mode) option.
 
 Note that the fact that K&R C is its own major dialect, rather than
 being a minor dialect under C mode, is a historical accident of the
@@ -3044,6 +3058,31 @@ order of development of this front end, and is inconsistent and strange.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+  if (sun_mode && C_dialect != C_dialect_cplusplus) {
+    /* Sun mode and C mode.  At least one of the two must be due to a command-
+       line option.  (The front end may not validly be configured with this
+       combination by default -- checked elsewhere with an assertion.)  If
+       both are the result of a command-line option, issue an error.
+       Otherwise, the command-line option takes precedence over the default. */
+    if (!option_kind_used[(int)optk_sun_mode]) {
+      sun_mode = FALSE;
+    } else if (option_kind_used[(int)optk_c99_mode] ||
+               option_kind_used[(int)optk_c99_mode] ||
+               option_kind_used[(int)optk_SVR4_C_mode] ||
+#if UPC_EXTENSIONS_ALLOWED
+               option_kind_used[(int)optk_upc_mode] ||
+#endif /* UPC_EXTENSIONS_ALLOWED */
+#if EMBEDDED_C_ALLOWED
+               option_kind_used[(int)optk_embedded_c] ||
+#endif /* EMBEDDED_C_ALLOWED */
+               option_kind_used[(int)optk_C_dialect_pcc]) {
+      command_line_error(ec_cl_sun_mode_is_cplusplus);
+    } else {
+      C_dialect = C_dialect_cplusplus;
+    }  /* if */
+  }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
   if (C_dialect != C_dialect_ANSI) {
     /* Issue an error for specifying a language mode that is valid only
        when the dialect is ANSI C. */
@@ -3492,10 +3531,14 @@ Process the arguments on the command line that invoked the compiler.
         check_assertion(opt_value == TRUE);
         error_threshold = es_remark;
         break;
-      case optk_C_dialect_ANSI:
-        /* Compile ANSI C. */
+      case optk_C_mode:
+        /* Compile C code.  Only has an effect if the current (perhaps default)
+           major dialect is C_dialect_cplusplus: In that case, it makes the
+           selected dialect C_dialect_ANSI. */
         check_assertion(opt_value == TRUE);
-        C_dialect = C_dialect_ANSI;
+        if (C_dialect == C_dialect_cplusplus) {
+          C_dialect = C_dialect_ANSI;
+        }  /* if */
         break;
       case optk_C_dialect_cplusplus:
         /* Compile C++. */
@@ -4040,11 +4083,8 @@ enable_microsoft_mode:
 #if SUN_EXTENSIONS_ALLOWED
       case optk_sun_mode:
         /* Compatibility with Sun CC 5.x (various extensions/bugs) should or
-           should not be provided.  This option implies C++ mode, even in
-           the "--no_sun" form.  In other words, --[no_]sun is short for
-           --c++ --[no_]_sun. See --c99 and --svr4 for similar behavior. */
+           should not be provided.  This is a C++-mode option. */
         sun_mode = opt_value;
-        C_dialect = C_dialect_cplusplus;
         break;
       case optk_sun_linker_scope:
         /* Sun CC 5.5 introduced the linker scope specifiers __global,
@@ -4075,6 +4115,14 @@ enable_microsoft_mode:
            --[no_]c99 is short for --c --[no_]c99.  See --svr4 and --sun
            for similar behavior. */
         c99_mode = opt_value;
+        C_dialect = C_dialect_ANSI;
+        break;
+      case optk_c89_mode:
+        /* Compile ANSI C89/ISO C90 code.  This option is convenient if
+           another ANSI C dialect (SVR4 C or C99) is selected by default. */
+        check_assertion(opt_value == TRUE);
+        c99_mode = FALSE;
+        SVR4_C_mode = FALSE;
         C_dialect = C_dialect_ANSI;
         break;
       case optk_export_template:
@@ -5073,6 +5121,9 @@ variables declared in cmd_line.h.
 #else /* SUN_EXTENSIONS_ALLOWED */
            = DEFAULT_SUN_COMPATIBILITY;
 #endif /* !SUN_EXTENSIONS_ALLOWED */
+  /* Ensure that we are not configured to have a "Sun C" mode by default
+     (since we only have a "Sun C++" mode). */
+  check_assertion(!(sun_mode && C_dialect != C_dialect_cplusplus));
 #endif /* SUN_EXTENSIONS_ALLOWED || defined(_lint) */
 #if SUN_EXTENSIONS_ALLOWED
   sun_linker_scope_allowed = FALSE;
