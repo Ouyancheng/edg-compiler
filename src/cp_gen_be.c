@@ -9777,7 +9777,7 @@ Generate code for an instantiation directive.
 
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 
-static void gen_ms_if_exists()
+static void gen_ms_if_exists(void)
 /*
 Generate code for a Microsoft __if_exists directive.  IL entries for
 __if_exists entries are only generated for uses that appear in class
