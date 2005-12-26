@@ -8223,6 +8223,17 @@ typedef struct a_routine {
 			   defined.  Used by the C++-generating back end to
 			   reconstruct name linkage blocks when appropriate
 			   (e.g., extern "C" { static int f() { ... } }). */
+  a_bit_field	definition_name_linkage_is_explicit:1;
+			/* TRUE if the name linkage for the definition was
+			   specified explicitly (i.e., in a direct linkage
+			   specifier or via a containing linkage block), as
+			   opposed to being inherited from a preceding
+			   declaration. */
+  a_bit_field	definition_has_direct_linkage_specifier:1;
+			/* TRUE if the definition itself has a linkage
+			   specifier (extern "C" void f() { }) rather than
+			   simply inheriting it from a preceding declaration
+			   or from the surrounding linkage block. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if INSTANTIATE_EXTERN_INLINE
   a_bit_field	inline_instance_required:1;

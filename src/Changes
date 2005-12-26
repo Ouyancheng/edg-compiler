@@ -1,5 +1,26 @@
 Version 3.7
 
+12/26/05 C++-generating back end: implicit linkage specifiers
+
+The C++-generating back end previously generated definitions of extern "C"
+functions with a direct linkage specifier, even when the language linkage had
+been implicitly specified by a preceding declaration.  However, an explicit
+linkage specifier affects declarations and type names inside the function
+definition, while implicit specification leaves such types with the language
+linkage of the surrounding context.  The C++-generating back end has now been
+modified to preserve the form of linkage specification used for function
+definitions in the source.  For example:
+
+  extern "C" void f();
+
+  void g(void (*)());
+  void x();
+
+  void f() {             // Formerly generated as 'extern "C" void f() {'
+    g((void (*)())x);    // Argument should (and now does) have type
+                         // "pointer to function with C++ linkage"
+  }
+
 12/22/05 Meaning of --c and --c89
 
 Previously, the command-line option "--c" always implied an ANSI C language

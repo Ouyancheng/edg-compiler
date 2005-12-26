@@ -11869,7 +11869,10 @@ TRUE if the declaration following this one is such a continuation.
         !friend_decl &&
         /* Inside a function, this is not allowed, and can only have come from
            an extern "C" { ... } wrapped around the function. */
-        !decl_within_function) {
+        !decl_within_function &&
+        /* If it's a definition, only put it out if the linkage was explicitly
+           specified. */
+        (!is_definition || rout->definition_name_linkage_is_explicit)) {
       write_tok_str("extern \"C\" ");
       /* For declarations with an explicit "inline" keyword, use the form
            extern "C" { inline void foo() {} }
@@ -11877,9 +11880,12 @@ TRUE if the declaration following this one is such a continuation.
            extern "C" inline void foo() {}
          is not allowed by some compilers (the combination of a linkage
          specification and "inline" is not accepted).  The brace form is
-         also needed for static functions. */
+         also needed for static functions, as well as for function
+         definitions where the original source did not have a direct linkage
+         specifier. */
       if ((rout->is_inline && !decl_within_function) ||
-          storage_class == (a_storage_class)sc_static) {
+          storage_class == (a_storage_class)sc_static ||
+          (is_definition && !rout->definition_has_direct_linkage_specifier)) {
         write_tok_str("{ ");
         /* Force matching "}" to be output later */
         need_extern_C_closing_brace = TRUE;

@@ -2854,6 +2854,12 @@ Display the indicated routine.
                       (a_name_linkage_kind)ptr->
                                               surrounding_name_linkage_state);
   }  /* if */
+  if (ptr->definition_name_linkage_is_explicit) {
+    disp_boolean("definition_name_linkage_is_explicit", TRUE);
+  }  /* if */
+  if (ptr->definition_has_direct_linkage_specifier) {
+    disp_boolean("definition_has_direct_linkage_specifier", TRUE);
+  }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
   if (ptr->suppress_inline_body) {
     disp_boolean("suppress_inline_body", TRUE);
