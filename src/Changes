@@ -1,5 +1,26 @@
 Version 3.7
 
+12/26/05 C++-generating back end, Microsoft compatibility: using-directives
+         and nested namespaces
+
+MSVC++ version 6.0 incorrectly made members of a nested namespace visible in
+the global scope if a using-directive did not qualify its name.  The
+C++-generating back end has been changed to use a qualified name in
+using-directives for nested namespaces when msvc_is_generated_code_target is
+TRUE and msvc_target_version_number is less than 1300.  For example:
+
+  int i;
+  namespace A {
+    namespace B {
+      int i;
+    }
+    using namespace A::B;  // Formerly generated as "using namespace B;"
+
+    int f() {
+      return i;     // Ambiguous in MSVC++ 6.0 with "using namespace B;"
+    }
+  }
+
 12/26/05 C++-generating back end: implicit linkage specifiers
 
 The C++-generating back end previously generated definitions of extern "C"

@@ -342,6 +342,9 @@ typedef int a_gen_name_options_set;
 			   functions can be defined in derived classes. */
 #define GN_BASE_SPECIFIER 0x200
 			/* The name is used in a base specifier list. */
+#define GN_USING_DIRECTIVE 0x400
+			/* The name is the namespace nominated by a
+			   using-directive. */
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 /*
@@ -2412,7 +2415,13 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           !(msvc_is_generated_code_target &&
             msvc_target_version_number < 1300 &&
             scp->partially_hidden_by_microsoft_injected_class_name &&
-            !(options & GN_QUALIFIER))) {
+            !(options & GN_QUALIFIER)) &&
+          /* MSVC++ < 7.0 makes the members of a nested namespace visible at
+             the wrong level if the using-directive names it with an
+             unqualified name. */
+          !(msvc_is_generated_code_target &&
+            msvc_target_version_number < 1300 &&
+            (options & GN_USING_DIRECTIVE) != 0)) {
         /* A qualified name is not needed, because we're inside a name context
            for the namespace and either the name is not hidden or we are
            generating the declaration of that name. */
@@ -9497,7 +9506,7 @@ Generate code for a namespace "using" directive.
   /* Position the output file to the "using" position. */
   set_output_position(&udp->position);
   write_tok_str("using namespace ");
-  gen_name(&nsp->source_corresp, iek_namespace, GN_NO_OPTIONS,
+  gen_name(&nsp->source_corresp, iek_namespace, GN_USING_DIRECTIVE,
            (a_boolean *)NULL);
   write_tok_ch(';');
 }  /* gen_using_directive */
