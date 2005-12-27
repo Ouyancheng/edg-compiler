@@ -1,5 +1,20 @@
 Version 3.7
 
+12/27/05 C++-generating back end: in-class template specializations
+
+When configured with CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+set to FALSE and PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE and run with
+--parse_templates, the C++-generating back end did not handle the explicit
+specialization prefix and template argument list correctly for in-class member
+template specializations (a Microsoft extension).  This is now fixed.  For
+example:
+
+  template<typename T1> struct outer {
+    template<typename T2> struct inner { };
+    template<> struct inner<T1> { }; // Formerly generated as
+                                     // template<> template<> struct inner { };
+  };
+
 12/27/05 C++-generating back end: function types with non-C++ linkage as
          template arguments
 

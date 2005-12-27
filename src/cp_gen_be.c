@@ -1910,7 +1910,9 @@ a class template.
     if (type->variant.class_struct_union.is_prototype_instantiation &&
         /* Exclude prototype instantiations of partial specializations. */
         type->variant.class_struct_union.extra_info->
-                                      partial_spec_template_arg_list == NULL) {
+                                      partial_spec_template_arg_list == NULL &&
+        /* Also exclude in-class specializations. */
+        !type->variant.class_struct_union.is_in_class_specialization) {
       is_proto = TRUE;
     }  /* if */
   }  /* if */
@@ -5124,30 +5126,34 @@ declarator.
 /* ARGSUSED */ /* <-- scp is not used in that case. */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 static void gen_template_specialization_header(
-                                     a_source_correspondence *scp,
-                                     a_template_arg_ptr      template_arg_list)
+                            a_source_correspondence *scp,
+                            a_boolean               is_in_class_specialization,
+                            a_template_arg_ptr      template_arg_list)
 /*
 scp points to the source correspondence entry of a routine, class, or
 variable that is a specialization, and template_arg_list is the
 template argument list for the entry (NULL for the variable/static data
 member case).  Put out "template<>" as the beginning of a specialization
 declaration.  More precisely, put out one "template<>" for each parent
-class that is a template, and one for the entity itself if it is a template.
+class that is a template (unless this is an in-class specialization), and
+one for the entity itself if it is a template.
 */
 {
   /* If template classes are put out as specializations, the "template<>"
      is not put out for them. */
+  if (!is_in_class_specialization) {
 #if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  while (scp->is_class_member) {
-    a_type_ptr parent_class = scp->parent.class_type;
-    if (parent_class->variant.class_struct_union.extra_info->
+    while (scp->is_class_member) {
+      a_type_ptr parent_class = scp->parent.class_type;
+      if (parent_class->variant.class_struct_union.extra_info->
                                                    template_arg_list != NULL) {
-      /* A parent class that is a template. */
-      write_tok_str("template<> ");
-    }  /* if */
-    scp = &parent_class->source_corresp;
-  }  /* while */
+        /* A parent class that is a template. */
+        write_tok_str("template<> ");
+      }  /* if */
+      scp = &parent_class->source_corresp;
+    }  /* while */
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
   /* And one for the entity itself if it is a template. */
   if (template_arg_list != NULL) write_tok_str("template<> ");
 }  /* gen_template_specialization_header */
@@ -5341,8 +5347,10 @@ this one is such a continuation.
       }  /* if */
       construct_pragma_pack_if_needed(type);
       /* Put out "template<>" at the beginning. */
-      gen_template_specialization_header(&type->source_corresp,
-                                         template_arg_list);
+      gen_template_specialization_header(
+                   &type->source_corresp,
+                   type->variant.class_struct_union.is_in_class_specialization,
+                   template_arg_list);
     }  /* if */
     if (kind == (a_type_kind)tk_typeref) {
       /* Handle the nonstandard "friend typedef-name". */
@@ -11052,6 +11060,7 @@ declaration following this one is such a continuation.
                                               name_ref);
     /* For a specialization, put out "template<>" at the beginning. */
     gen_template_specialization_header(&var->source_corresp,
+                                       /*is_in_class_specialization=*/FALSE,
                                        (a_template_arg_ptr)NULL);
   }  /* if */
   /* Determine the proper storage class to display. */
@@ -11783,6 +11792,7 @@ TRUE if the declaration following this one is such a continuation.
                                               name_ref);
     /* For a specialization, put out "template<>" at the beginning. */
     gen_template_specialization_header(&rout->source_corresp,
+                                       rout->is_in_class_specialization,
                                        rout->template_arg_list);
   }  /* if */
   /* Determine the proper storage class to display. */
