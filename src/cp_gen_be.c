@@ -2130,6 +2130,32 @@ member, return FALSE.
 }  /* type_is_publicly_accessible */
 
 
+static a_boolean type_involves_non_cplusplus_function(a_type_ptr type)
+/*
+Returns TRUE if the type is a function type with non-C++ linkage or is a
+reference, pointer, or array of pointers to such a type.
+*/
+{
+  a_boolean non_cplusplus_function = FALSE;
+
+  for (;;) {
+    if (is_ptr_or_ref_type(type)) {
+      type = type_pointed_to(type);
+    } else if (is_array_type(type)) {
+      type = underlying_array_element_type(type);
+    } else {
+      break;
+    }  /* if */
+  }  /* for */
+  if (type->kind == (a_type_kind)tk_routine &&
+      type->variant.routine.extra_info->routine_name_linkage !=
+                                 (a_name_linkage_kind)nlk_cplusplus_external) {
+    non_cplusplus_function = TRUE;
+  }  /* if */
+  return non_cplusplus_function;
+}  /* type_involves_non_cplusplus_function */
+
+
 static a_boolean is_typedef_invisible_in_cp_gen_be(a_type_ptr type)
 /*
 Called from the il_to_str routines.  Returns TRUE if the indicated typedef
@@ -2195,13 +2221,18 @@ is called.
        so that we generate "X<int>" instead of "X<Y<...>::_Type>" -- it's
        shorter and it's less confusing for cases where the source actually
        has something like X<int> but X<int> was previously instantiated using
-       the long typedef member name.  However, we have to be careful that
-       we don't replace an accessible typedef name with an inaccessible
-       underlying type. */
+       the long typedef member name.  However, we must be careful to keep a
+       typedef that is needed for accessibility or where it supplies a
+       linkage specification. */
     a_type_ptr underlying_type = skip_typerefs(type);
 
     invisible = TRUE;
-    if (!type_is_publicly_accessible(underlying_type)) {
+    if (type_involves_non_cplusplus_function(underlying_type)) {
+      /* The type is or points to a function with non-C++ linkage, so we need
+         to keep the typedef (linkage specifications in types can only be
+         represented via typedefs). */
+      invisible = FALSE;
+    } else if (!type_is_publicly_accessible(underlying_type)) {
       /* The underlying type is not generally accessible, but if we're inside
          the scope of the underlying type's containing class, we will still
          have access. */

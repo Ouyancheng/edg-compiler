@@ -1,5 +1,21 @@
 Version 3.7
 
+12/27/05 C++-generating back end: function types with non-C++ linkage as
+         template arguments
+
+The change described in the 11/10/04 entry, which caused template arguments to
+be generated using the underlying type of a typedef rather than the typedef
+name, did not take into account typedefs involving function types with non-C++
+linkage.  As a result, the generated code incorrectly used a type with C++
+linkage for such template arguments.  The generated code will now use the
+typedef name in these cases.  For example:
+
+  extern "C" {
+    typedef void (*PFN)();  // pointer to extern "C" function
+  }
+  template <typename T> struct S { };
+  S<PFN> s;                 // Formerly generated as "S< void (*)(void)>"
+
 12/26/05 C++-generating back end, Microsoft compatibility: using-directives
          and nested namespaces
 
