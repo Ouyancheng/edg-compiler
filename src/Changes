@@ -1,5 +1,25 @@
 Version 3.7
 
+12/27/05 C++-generating back end: member selection and operator&()
+
+In some cases, a member selection expression of the form a.b was generated as
+(&a)->b, even if the class type of "a" declared an operator&() member
+function.  The C++-generating back end has now been changed to use the "."
+form in cases where the class type has an operator&() member function.  For
+example:
+
+  struct S {
+    int* operator&();
+    int p;
+  };
+  struct X {
+    S s;
+  };
+  void f() {
+    static int* a = &(((X*)0)->s.p);  // Formerly generated as
+                                      // (&((&(((X *)0)->s))->p))
+  }
+
 12/27/05 C++-generating back end: in-class template specializations
 
 When configured with CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

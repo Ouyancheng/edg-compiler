@@ -5646,11 +5646,14 @@ this selection.
 {
   a_type_ptr naming_class, selection_class;
   a_boolean  need_context_pop = FALSE;
+  a_boolean  class_has_operator_ampersand = FALSE;
 
   if (il_header.source_language == sl_Cplusplus) {
     /* Remove unnecessary base class casts. */
     object_expr = optimized_expr_for_selection(object_expr, &naming_class);
     selection_class = type_pointed_to(object_expr->type);
+    class_has_operator_ampersand =
+            selection_class->variant.class_struct_union.has_operator_ampersand;
   }  /* if */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   object_expr=remove_nonstandard_anonymous_union_field_selections(object_expr);
@@ -5662,11 +5665,13 @@ this selection.
        that may mean the wrong thing if operator& is overloaded. */
     gen_expression(object_expr);
     write_tok_str("->");
-  } else if (is_constant_node(object_expr)) {
+  } else if (is_constant_node(object_expr) && !class_has_operator_ampersand) {
     /* An expression like "((X*)0)->i" should not be rendered as "(*((X*)0)).i"
        because some Microsoft C compilers treat the two differently (they allow
        the former in address constant-expressions, but not the latter; the
-       Microsoft C++ compilers do not make that distinction). */
+       Microsoft C++ compilers do not make that distinction).  If the class
+       type has an operator& member function, we have to use the "." notation
+       to avoid accidentally invoking operator&(). */
     gen_expr_with_parens(object_expr);
     write_tok_str("->");
   } else if (object_expr->kind == (an_expr_node_kind)enk_variable_address &&

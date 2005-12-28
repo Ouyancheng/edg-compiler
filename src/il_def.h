@@ -5854,6 +5854,10 @@ typedef struct a_type {
 			/* TRUE if this class type was declared with the GNU C
 			   "packed" attribute. */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      a_bit_field
+		has_operator_ampersand:1;
+			/* TRUE if this class type has an operator&() member
+			   function. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       bitfield_to_avoid_codecenter_warnings()
 #if USER_CONTROL_OF_STRUCT_PACKING

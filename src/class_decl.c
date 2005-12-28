@@ -7266,6 +7266,9 @@ is set to NULL by this function.
     /* Overloaded operator function. */
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_operator);
     rtn->variant.opname_kind = locator->variant.opname;
+    if (locator->variant.opname == (an_opname_kind)onk_ampersand) {
+      class_type->variant.class_struct_union.has_operator_ampersand = TRUE;
+    }  /* if */
   } else if (locator->is_conversion_name) {
     /* User-defined conversion function. */
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_conversion);

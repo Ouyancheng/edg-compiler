@@ -754,6 +754,9 @@ and indentation is the indentation desired.
         if (temp_type->variant.class_struct_union.any_mutable_member) {
           put_string("has mutable member");
         }  /* if */
+        if (temp_type->variant.class_struct_union.has_operator_ampersand) {
+          put_string("has operator&");
+        }  /* if */
         if (temp_type->declared_in_function_prototype) {
           put_string("in func prototype");
         }  /* if */
