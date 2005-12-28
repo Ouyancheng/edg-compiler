@@ -11927,7 +11927,7 @@ TRUE if the declaration following this one is such a continuation.
         !decl_within_function &&
         /* If it's a definition, only put it out if the linkage was explicitly
            specified. */
-        (!is_definition || rout->definition_name_linkage_is_explicit)) {
+        (!is_definition || rout->definition_C_name_linkage_specified)) {
       write_tok_str("extern \"C\" ");
       /* For declarations with an explicit "inline" keyword, use the form
            extern "C" { inline void foo() {} }

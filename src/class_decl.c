@@ -7262,6 +7262,15 @@ is set to NULL by this function.
       check_constituent_types_have_linkage(sym, &locator->source_position);
     }  /* if */
   }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+  if (func_info->is_definition &&
+      scope_stack[decl_scope_level].default_name_linkage ==
+                                           (a_name_linkage_kind)nlk_external) {
+    /* If this member function is moved outside its class, it must be
+       enclosed in an extern "C" block. */
+    rtn->definition_C_name_linkage_specified = TRUE;
+  }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_operator);

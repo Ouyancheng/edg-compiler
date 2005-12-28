@@ -2857,8 +2857,8 @@ Display the indicated routine.
                       (a_name_linkage_kind)ptr->
                                               surrounding_name_linkage_state);
   }  /* if */
-  if (ptr->definition_name_linkage_is_explicit) {
-    disp_boolean("definition_name_linkage_is_explicit", TRUE);
+  if (ptr->definition_C_name_linkage_specified) {
+    disp_boolean("definition_C_name_linkage_specified", TRUE);
   }  /* if */
   if (ptr->definition_has_direct_linkage_specifier) {
     disp_boolean("definition_has_direct_linkage_specifier", TRUE);

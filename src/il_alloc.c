@@ -2173,7 +2173,7 @@ to it.  The entry is allocated in the file scope memory region.
 #if BACK_END_IS_CP_GEN_BE
   rp->surrounding_name_linkage_state
                                   = (a_name_linkage_kind)nlk_none;
-  rp->definition_name_linkage_is_explicit
+  rp->definition_C_name_linkage_specified
                                   = FALSE;
   rp->definition_has_direct_linkage_specifier
                                   = FALSE;

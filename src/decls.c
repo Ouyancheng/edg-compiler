@@ -6977,8 +6977,8 @@ skip_overloading:;
     routine_ptr->surrounding_name_linkage_state =
                           scope_stack[depth_scope_stack].default_name_linkage;
     if (is_function_def) {
-      routine_ptr->definition_name_linkage_is_explicit =
-                                                 idlb.name_linkage_is_explicit;
+      routine_ptr->definition_C_name_linkage_specified =
+                                          idlb.extern_C_name_linkage_specified;
       routine_ptr->definition_has_direct_linkage_specifier =
                                       decl_modifiers->direct_linkage_specifier;
     }  /* if */
