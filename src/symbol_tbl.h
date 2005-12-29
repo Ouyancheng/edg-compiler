@@ -4366,14 +4366,19 @@ typedef unsigned long a_hash_table_size;
 /*
 The type of a function used to produce a hash value for a given key.
 */
-typedef a_hash_value (*a_hash_function_ptr)(a_void_ptr	key);
+typedef a_hash_value a_hash_function(a_void_ptr	key);
+typedef a_hash_function
+		*a_hash_function_ptr;
+
 
 /*
 The type of a function used to compare a key with a value from the hash
 table.  Return TRUE if they match.
 */
-typedef a_boolean (*a_hash_compare_function_ptr)(a_void_ptr	entry,
-						 a_void_ptr	key);
+typedef a_boolean a_hash_compare_function(a_void_ptr	entry,
+					  a_void_ptr	key);
+typedef a_hash_compare_function
+		*a_hash_compare_function_ptr;
 
 /*
 The type returned by hash_find.  This points to the data field of
