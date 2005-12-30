@@ -11179,6 +11179,14 @@ declaration following this one is such a continuation.
       a_decl_modifier decl_modifiers = var->decl_modifiers;
       /* __declspec(selectany) applies only to definitions. */
       if (!is_definition) decl_modifiers &= ~DM_SELECTANY;
+      if (var->source_corresp.is_class_member &&
+          is_const_qualified_type(var->type) &&
+          !curr_name_context_is_a_class()) {
+        /* MSVC++ does not accept __declspec(dllexport) on the (out-of-class)
+           definition of a const-qualified static data member -- the modifier
+           on the declaration inside the class will suffice. */
+        decl_modifiers &= ~DM_DLLEXPORT;
+      }  /* if */
       suppress_microsoft_decl_modifiers_put_out_on_class(&decl_modifiers,
                                                          &var->source_corresp);
       gen_microsoft_decl_modifiers(decl_modifiers);
