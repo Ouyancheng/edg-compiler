@@ -10706,6 +10706,16 @@ when possible.
            in parentheses in that context. */
         suppress_outermost_parentheses = TRUE;
         gen_type_name(init_entity_type);
+      } else if (gcc_is_generated_code_target &&
+                 gnu_target_version_number < 30400 &&
+                 is_immediate_class_type(init_entity_type) &&
+                 init_entity_type->variant.class_struct_union.extra_info->
+                                                   template_arg_list != NULL) {
+        /* Versions of g++ before 3.4 report a syntax error on a parenthesized
+           old-style cast where the target type is a template-id, so we need
+           to generate a functional-notation cast in this case. */
+        suppress_outermost_parentheses = TRUE;
+        gen_type_name(init_entity_type);
       } else if (obj_expr_of_mfunc_operator &&
                  sun_is_generated_code_target &&
                  has_name_before_mangling(init_entity_type)) {

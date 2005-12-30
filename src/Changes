@@ -1,5 +1,22 @@
 Version 3.7
 
+12/30/05 C++-generating back end, g++ compatibility: parenthesized casts to
+         a template-id
+
+Versions of g++ before 3.4 reported a syntax error in some cases where an
+old-style cast to a template-id was itself parenthesized.  The C++-generating
+back end has been changed to generate a functional-notation cast in such cases
+when gcc_is_generated_code_target is TRUE and gnu_target_version_number is
+less than 30400.  For example:
+
+  struct X { };
+  template <typename T> struct S {
+    S(X);
+  };
+  S<X> f() {
+    return S<X>(X());    // Formerly generated as ((S< X> )(X()))
+  }
+
 12/30/05 C++-generating back end, Microsoft compatibility: dllexport modifier
          on const static data members
 
