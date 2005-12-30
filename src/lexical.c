@@ -7774,13 +7774,14 @@ the cache.
   a_boolean		keep_tokens;
   a_token_cache		cache;
   a_boolean		is_dependent;
-  a_source_position	start_pos = pos_curr_token;
+  a_source_position	start_pos;
   a_pending_pragma_ptr	saved_curr_token_pragmas;
 
   /* Clear the curr_token_pragmas list so that it can be restored after the
      tokens of the __if_exists directive have been scanned. */
   saved_curr_token_pragmas = curr_token_pragmas;
   curr_token_pragmas = NULL;
+  start_pos = pos_curr_token;
   /* Bypass the directive token. */
   (void)get_token();
   /* Scan the "(". */
