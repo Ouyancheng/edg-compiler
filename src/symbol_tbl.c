@@ -11610,7 +11610,7 @@ appropriate user-defined entry.
   /* If an entry was found or created, return the address of the pointer.
      This allows the caller to fill in the data pointer for a new entry. */
   result = htep == NULL ? (a_void_ptr)NULL : (a_void_ptr)&htep->data;
-  return result;
+  return (a_hash_data_ptr*)result;
 }  /* hash_find */
 
 
