@@ -5829,7 +5829,7 @@ is a Microsoft extension.
   if (C_mode()) {
     /* __is_base_of is not accepted in C mode. */
     pos_st_error(ec_feature_requires_cplusplus, &pos_curr_token,
-                 builtin_operation_names[bok_is_base_of]);
+                 builtin_operation_names[(int)bok_is_base_of]);
     result_type = integer_type((an_integer_kind)ik_int);
   } else {
     result_type = bool_type();
@@ -5859,7 +5859,7 @@ typeB.  This construct is a Microsoft extension.
   if (C_mode()) {
     /* __is_convertible_to is not accepted in C mode. */
     pos_st_error(ec_feature_requires_cplusplus, &pos_curr_token,
-                 builtin_operation_names[bok_is_convertible_to]);
+                 builtin_operation_names[(int)bok_is_convertible_to]);
     result_type = integer_type((an_integer_kind)ik_int);
   } else {
     result_type = bool_type();
@@ -5945,7 +5945,7 @@ is returned through *result.
   if (!C_mode()) {
     /* __is_base_of is not accepted in C++ mode. */
     pos_st_error(ec_feature_requires_c, &pos_curr_token,
-                 builtin_operation_names[bok_types_compatible]);
+                 builtin_operation_names[(int)bok_types_compatible]);
   }  /* if */
   scan_call_like_builtin_operation(bok_types_compatible, result_type,
                                    iek_type, iek_type, iek_none,
