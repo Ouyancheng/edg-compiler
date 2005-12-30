@@ -3335,7 +3335,7 @@ existing entry was returned.
   /* Look for an existing entry for this file name in the hash table. */
   ifhp_in_table = (an_include_file_history_ptr*)hash_find(
 					include_file_history_hash_table,
-					(void*)full_name, create);
+					(a_void_ptr)full_name, create);
   ifhp = ifhp_in_table == NULL ? NULL : *ifhp_in_table;
   if (ifhp != NULL) {
     /* An entry was found -- this file has been included before. */
@@ -3821,7 +3821,7 @@ used.
        is currently in the temporary buffer, make a copy and return a
        pointer to the copy. */
     if (buffer != NULL && name_to_try == buffer->buffer) {
-      name_to_try = alloc_primary_file_scope_il(buffer->size);
+      name_to_try = alloc_primary_file_scope_il((sizeof_t)buffer->size);
       (void)strcpy(name_to_try, buffer->buffer);
     }  /* if */
     *name_found = name_to_try;
@@ -15014,7 +15014,8 @@ Initialize variables that are specific to a given translation unit.
   next_token_is_top_level_decl_start = FALSE;
   include_file_history_hash_table = alloc_hash_table(
                                              FRONT_END_REGION_NUMBER,
-                                             256, hash_include_file_history,
+                                             (a_hash_table_size)256,
+                                             hash_include_file_history,
                                              compare_include_file_history);
   trigraph_diagnostic_issued = FALSE;
   trigraph_column = 0;

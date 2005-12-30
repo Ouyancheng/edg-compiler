@@ -11381,9 +11381,9 @@ mode.
         a_symbol_locator	locator;
         clear_locator(&locator, &null_source_position);
         sym_hdr = find_symbol_header(
-                                const_for_curr_token.variant.string.value,
-                                const_for_curr_token.variant.string.length - 1,
-                                &locator);
+                      const_for_curr_token.variant.string.value,
+                      (sizeof_t)const_for_curr_token.variant.string.length - 1,
+                      &locator);
       }  /* if */
     }  /* if */
     (void)get_token();
@@ -11569,7 +11569,7 @@ table.
   table_size_in_bytes = sizeof(a_hash_table_entry_ptr) * buckets;
   htp->table = (a_hash_table_entry_ptr*)
                 alloc_general_or_in_region(memory_region, table_size_in_bytes);
-  memzero(htp->table, size_t_arg(table_size_in_bytes));
+  memzero((a_void_ptr)htp->table, size_t_arg(table_size_in_bytes));
 #if DEBUG
   num_hash_tables_allocated++;
   total_hash_table_size += table_size_in_bytes;
