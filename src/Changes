@@ -1,5 +1,13 @@
 Version 3.7
 
+12/31/05 C++-generating back end: redundant parentheses
+
+The C++-generating back end often adds redundant parentheses in expressions to
+guard against problems with operator precedence in the generated code.  Some
+compilers have difficulty parsing certain constructs with extra parentheses,
+so the C++-generating back end now recognizes many contexts in which
+parentheses are not needed and avoids generating them.
+
 12/30/05 C++-generating back end, g++ compatibility: parenthesized casts to
          a template-id
 
