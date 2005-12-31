@@ -11029,8 +11029,10 @@ when possible.
                                                    template_arg_list != NULL) {
         /* Versions of g++ before 3.4 report a syntax error on a parenthesized
            old-style cast where the target type is a template-id, so we need
-           to generate a functional-notation cast in this case. */
-        suppress_outermost_parentheses = TRUE;
+           to generate a functional-notation cast in this case.  We use a
+           comma-expression to prevent the cast from being interpreted as a
+           declaration. */
+        write_tok_str("(0,");
         gen_type_name(init_entity_type);
       } else if (obj_expr_of_mfunc_operator &&
                  sun_is_generated_code_target &&
