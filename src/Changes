@@ -24,7 +24,12 @@ MSVC++ does not accept the __declspec(dllexport) declaration modifier on the
 definition of a static data member with const-qualified type.  The
 C++-generating back end has been changed to generate this declaration
 modifier only on the in-class declaration of such static data members and not
-on their definition.
+on their definition.  For example:
+
+  struct S {
+    static const __declspec(dllexport) int i;
+  };
+  const int S::i = 0; // Formerly generated with __declspec(dllexport) modifier
 
 12/27/05 C++-generating back end: member selection and operator&()
 
