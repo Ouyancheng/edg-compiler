@@ -11022,6 +11022,7 @@ when possible.
            in parentheses in that context. */
         suppress_outermost_parentheses = TRUE;
         gen_type_name(init_entity_type);
+#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
       } else if (gcc_is_generated_code_target &&
                  gnu_target_version_number < 30400 &&
                  is_immediate_class_type(init_entity_type) &&
@@ -11034,6 +11035,7 @@ when possible.
            declaration. */
         write_tok_str("(0,");
         gen_type_name(init_entity_type);
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
       } else if (obj_expr_of_mfunc_operator &&
                  sun_is_generated_code_target &&
                  has_name_before_mangling(init_entity_type)) {
