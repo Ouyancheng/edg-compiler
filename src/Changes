@@ -1,5 +1,24 @@
 Version 3.7
 
+12/31/05 C++-generating back end: missing qualifier in pointer-to-member
+         constant
+
+In configurations where RECORD_FORM_OF_NAME_REFERENCE is TRUE, a
+pointer-to-member constant referring to a member of an instance of a class
+template was generated with a missing or incorrect qualifier if the
+pointer-to-member expression triggered a template instantiation.  Now fixed.
+For example:
+
+  template <class T> struct S {
+    bool b() const { return m; }
+    bool m;
+  };
+  typedef S<int> si;
+
+  void f() {
+    &si::b;    // Formerly generated as &b in some modes
+  }
+
 12/31/05 C++-generating back end: redundant parentheses
 
 The C++-generating back end often adds redundant parentheses in expressions to

@@ -4343,6 +4343,9 @@ operation is a pointer-to-member (see ARM 5.3).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean         err = FALSE, processed = FALSE;
   an_expr_node_ptr  expr;
+#if RECORD_FORM_OF_NAME_REFERENCE
+  a_symbol_locator  locator;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
   db_enter(4, "scan_ampersand_operator");
 
@@ -4393,6 +4396,12 @@ operation is a pointer-to-member (see ARM 5.3).
     /* Scan the operand. */
     scan_expr(&operand, PREC_PREFIX,
               EOPT_OPERAND_OF_ADDRESS_OF | EOPT_PTR_TO_MEMBER_CONTEXT);
+#if RECORD_FORM_OF_NAME_REFERENCE
+    /* If this turns out to be a pointer-to-member, it might cause template
+       instantiation, so we need to save the current name reference
+       information before it is overwritten. */
+    locator = locator_for_curr_id;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
     if (err) {
       /* Operator is not allowed in this kind of expression. */
@@ -4503,7 +4512,7 @@ operation is a pointer-to-member (see ARM 5.3).
                                       (a_constant_repr_kind)ck_ptr_to_member) {
           a_constant_ptr  constant = &result->variant.constant;
           constant->variant.ptr_to_member.name_reference =
-                                make_name_reference(&locator_for_curr_id,
+                                make_name_reference(&locator,
                                                     &constant->source_corresp);
         }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
