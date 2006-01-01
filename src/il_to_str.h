@@ -174,6 +174,11 @@ typedef struct an_il_to_str_output_control_block {
 			/* Suppress any processing that breaks long output
 			   lines into smaller pieces.  Turned on, for example,
 			   while outputting a pragma. */
+  a_byte_boolean
+	suppress_cast_on_short_integral_const;
+			/* Suppress the cast to a shorter-than-int integral
+			   type that is normally output for integer
+			   constants. */
 } an_il_to_str_output_control_block;
 
 /*

@@ -72,6 +72,7 @@ Clear an output control block to default values.
   octl->gen_raw_tab_in_literals   = FALSE;
   octl->remove_template_typedefs  = FALSE;
   octl->suppress_line_breaking    = FALSE;
+  octl->suppress_cast_on_short_integral_const = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -2042,7 +2043,8 @@ precedence confusion.  Do the output in the way described by octl.
          because enum types don't appear. */
         !(octl->c_generating_back_end && octl->gen_pcc_code)) ||
       /* ... or, it's a constant that's shorter than int, ... */
-       (integer_type_constant && (int)ikind < (int)ik_int) ||
+       (integer_type_constant && (int)ikind < (int)ik_int &&
+        !octl->suppress_cast_on_short_integral_const) ||
       /* ... or, we're generating K&R C and it's an unsigned constant
          (pcc doesn't support unsigned integral constants), ... */
         (!signed_constant && octl->gen_pcc_code))) {

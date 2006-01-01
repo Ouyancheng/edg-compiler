@@ -1,5 +1,19 @@
 Version 3.7
 
+1/1/06   C++-generating back end, Microsoft compatibility: casts in null
+         pointer constants
+
+Versions of MSVC++ prior to 7.1 fail to recognize zero-valued integral
+constant expressions as null pointer constants if they contain casts.  The
+C++-generating back end adds casts to integral constants whose types are
+shorter than int.  It has now been modified to recognize when such constants
+are used in null pointer constants and suppress the cast if
+msvc_is_generated_code_target is TRUE and msvc_target_version_number is less
+than 1310.  For example:
+
+  unsigned int *a = L'\0';  // Formerly generated as ((unsigned short)0U) in
+                            // Microsoft mode, now as (0U).
+
 12/31/05 C++-generating back end: missing qualifier in pointer-to-member
          constant
 

@@ -8057,7 +8057,23 @@ there's some possibility of precedence confusion and need_parens is TRUE.
               gen_lvalue_no_parens(operand_1);
             } else {
               /* Normal implicit cast.  Just omit the cast. */
+              a_boolean saved_suppress_cast_on_short_integral_const =
+                                    octl.suppress_cast_on_short_integral_const;
+              if (msvc_is_generated_code_target &&
+                  msvc_target_version_number < 1310 &&
+                  is_pointer_type(expr->type) &&
+                  is_constant_node(operand_1) &&
+                  is_zero_constant(operand_1->variant.constant)) {
+                /* Versions of MSVC++ before 7.1 do not recognize zero-valued
+                   integral constant expressions as null pointer constants if
+                   they contain a cast to a short type, which il_to_str will
+                   normally add to integral constants that are shorter than
+                   int, so we must suppress generation of such casts. */
+                octl.suppress_cast_on_short_integral_const = TRUE;
+              }  /* if */
               gen_expression(operand_1);
+              octl.suppress_cast_on_short_integral_const =
+                                   saved_suppress_cast_on_short_integral_const;
             }  /* if */
           } else {
             gen_full_cast(expr->type, operand_1, /*is_lvalue=*/FALSE,
