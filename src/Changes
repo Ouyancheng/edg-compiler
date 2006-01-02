@@ -1,5 +1,38 @@
 Version 3.7
 
+1/1/06   C++-generating back end, Microsoft compatibility: pointer-to-member
+         constants using unqualified names
+
+Although MSVC++ allows formation of pointer-to-member constants using an
+unqualified name, versions before 7.1 are confused by this usage in the
+generated code, where the context may be slightly different from that of the
+source.  To avoid these problems, the C++-generating back end has been changed
+always to use a qualified name in a pointer-to-member constant when
+msvc_is_generated_code_target is TRUE and msvc_target_version_number is less
+than 1310.  For example:
+
+  namespace Ns1 {
+    namespace Ns2 {
+      struct Cls {
+        typedef void (Cls::*Type)();
+        void foo();
+        static Type _tbl[];
+      };
+    }
+  }
+  using Ns1::Ns2::Cls;
+
+  Cls::Type Cls::_tbl[] = { ((Cls::Type)&foo) };
+
+The last line was formerly generated as
+
+  Ns1::Ns2::Cls::Type Ns1::Ns2::Cls::_tbl[] = {((Type)(&foo))};
+
+MSVC++ 6.0 and 7.0 issued errors for the initializer.  The line is now
+generated in the following form, which is accepted by MSVC++ 6.0 and 7.0:
+
+  Ns1::Ns2::Cls::Type Ns1::Ns2::Cls::_tbl[] = {((Type)(&Cls::foo))};
+
 1/1/06   C++-generating back end, Microsoft compatibility: casts in null
          pointer constants
 
