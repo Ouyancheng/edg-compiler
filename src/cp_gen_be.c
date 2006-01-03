@@ -3485,6 +3485,13 @@ A reference is not the definition.
     a_boolean use_elab_type_spec;
     /* In C++, don't use "class X" instead of "X" unless that is required,
        e.g., because there's something else called "X" in the same scope. */
+    if (!C_mode() && is_immediate_class_type(type) &&
+        type->variant.class_struct_union.extra_info->template_arg_list !=
+                                                                        NULL) {
+      /* A template instance is not declared, per se, but it should never be
+         referred to by an elaborated-type-specifier. */
+      type->has_been_declared = TRUE;
+    }  /* if */
     if (il_header.source_language != sl_Cplusplus) {
       /* The elaborated type specifier is always required in C mode. */
       use_elab_type_spec = TRUE;
