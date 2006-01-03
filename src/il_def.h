@@ -5302,10 +5302,13 @@ typedef struct a_type {
 			   in those scopes promoted out to the file scope. */
 #endif /* BACK_END_IS_C_GEN_BE */
 #if BACK_END_IS_CP_GEN_BE
-  a_bit_field	first_declaration_pending:1;
-			/* Used to indicate that the next declaration of this
-			   (tag) type to be put out by the C++-generating back
-			   end is the initial declaration. */
+  a_bit_field	has_been_declared:1;
+			/* Initially FALSE and set to TRUE when the type has
+			   been declared or defined.  This is used to ensure
+			   that the first reference to a tagged type is
+			   generated as an elaborated-type-specifier, even
+			   when the skip_embedded_declarations mechanism for
+			   non-autonomous types does not apply. */
   a_bit_field	definition_delayed:1;
 			/* Used to indicate the definition of this (tag) type
 			   is required and should be put out at the first

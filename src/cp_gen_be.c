@@ -1339,11 +1339,6 @@ This is used to skip over a non-autonomous declaration or definition.
   } else {
     /* This is a secondary declaration, so just ignore one source sequence
        entry. */
-    if (sec_decl->first_declaration) {
-      /* This is the first declaration of a tag; do special processing when
-         the tag is next put out. */
-      type->first_declaration_pending = TRUE;
-    }  /* if */
     adv_curr_source_sequence_entry();
   }  /* if */
 }  /* skip_type_and_delay_definition */
@@ -3420,7 +3415,7 @@ or enum.
            preserve __interface. */
         type->kind != type->variant.class_struct_union.extra_info->
                                                               orig_type_kind &&
-        type->first_declaration_pending) {
+        !type->has_been_declared) {
       tag_kind_str =
          tag_kind(type->variant.class_struct_union.extra_info->orig_type_kind);
     }  /* if */
@@ -3429,7 +3424,7 @@ or enum.
     write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_dialect_is_generated_code_target &&
-        (type->first_declaration_pending ||
+        (!type->has_been_declared ||
          type->emit_microsoft_class_decl_modifiers)) {
       if (il_header.source_language == sl_Cplusplus) {
         if (type->kind != (a_type_kind)tk_enum) {
@@ -3443,7 +3438,7 @@ or enum.
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (type->first_declaration_pending) {
+    if (!type->has_been_declared) {
       /* The initial declaration of a tag cannot use a qualified name. */
       if (type_is_prototype_instantiation(type)) {
         /* No template arguments on a prototype instantiation. */
@@ -3452,7 +3447,7 @@ or enum.
       {
         gen_unqualified_name(&type->source_corresp, iek_type);
       }  /* if */
-      type->first_declaration_pending = FALSE;
+      type->has_been_declared = TRUE;
     } else {
       /* References after the initial declaration can use a qualified name. */
       a_gen_name_options_set options = GN_NO_OPTIONS;
@@ -3490,10 +3485,23 @@ A reference is not the definition.
     a_boolean use_elab_type_spec;
     /* In C++, don't use "class X" instead of "X" unless that is required,
        e.g., because there's something else called "X" in the same scope. */
+    if (!C_mode() && is_immediate_class_type(type) &&
+        type->variant.class_struct_union.extra_info->template_arg_list !=
+                                                                        NULL) {
+      /* A template instance is not declared, per se, but it should never be
+         referred to by an elaborated-type-specifier. */
+      type->has_been_declared = TRUE;
+    } else if (type->source_corresp.is_class_member ||
+               type->source_corresp.parent.namespace_ptr != NULL) {
+      /* You can't use an elaborated-type-specifier for the first use of a
+         member type, either (this can happen with a member of a template
+         instance). */
+      type->has_been_declared = TRUE;
+    }  /* if */
     if (il_header.source_language != sl_Cplusplus) {
       /* The elaborated type specifier is always required in C mode. */
       use_elab_type_spec = TRUE;
-    } else if (type->first_declaration_pending || type->definition_delayed) {
+    } else if (!type->has_been_declared || type->definition_delayed) {
       /* You can't omit the "class" etc. on a first use that's a declaration,
          or on the definition (when delayed and put out through
          gen_tag_reference). */
@@ -4314,6 +4322,7 @@ is the one associated with the definition of the enum.
   /* Emit any attributes associated with the type. */
   (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  type->has_been_declared = TRUE;
 }  /* gen_enum_definition */
 
 
@@ -4782,6 +4791,7 @@ is the one associated with the definition of the class.
 {
   a_class_type_supplement_ptr
                     ctsp = type->variant.class_struct_union.extra_info;
+  type->has_been_declared = TRUE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   construct_pragma_pack_if_needed(type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -5420,14 +5430,13 @@ this one is such a continuation.
       /* For a secondary declaration, or a primary declaration of a type
          that is never defined, generate a reference to the type instead
          of a definition. */
-      if (sec_decl->first_declaration) {
-        /* This is the first declaration of a tag; do special processing when
-           the tag is next put out. */
-        type->first_declaration_pending = TRUE;
-      }  /* if */
       adv_curr_source_sequence_entry();
       /* For a friend, put out the "friend" prefix. */
       if (friend_decl) write_tok_str("friend ");
+      if (is_specialization) {
+        /* Don't suppress qualifiers on explicit specializations. */
+        type->has_been_declared = TRUE;
+      }  /* if */
       gen_tag_reference(type);
     } else if (kind == (a_type_kind)tk_enum) {
       /* An enum type definition. */
@@ -10146,10 +10155,12 @@ Generate code for an instantiation directive.
       case iek_type:
         { a_type_ptr class_type = (a_type_ptr)idp->entity.ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        /* Force output of class modifiers on a template instantiation
-           directive, in case it is the first or only declaration. */
-        class_type->emit_microsoft_class_decl_modifiers = TRUE;
+          /* Force output of class modifiers on a template instantiation
+             directive, in case it is the first or only declaration. */
+          class_type->emit_microsoft_class_decl_modifiers = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Allow qualified names in instantiation directives. */
+          class_type->has_been_declared = TRUE;
           gen_tag_reference(class_type);
           write_tok_ch(';');
         }

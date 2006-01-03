@@ -1,5 +1,14 @@
 Version 3.7
 
+1/2/06   C++-generating back end: first reference to undeclared class
+
+In some circumstances, the C++-generating back end generated code that
+referred to an undeclared class using just its name rather than an
+elaborated-type-specifier.  Now fixed.  For example:
+
+  template <typename T> struct A { };
+  struct C: public A<struct B> { };  // Formerly generated as A< B>
+
 1/1/06   C++-generating back end, Microsoft compatibility: pointer-to-member
          constants using unqualified names
 
