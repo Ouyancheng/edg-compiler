@@ -4791,6 +4791,7 @@ is the one associated with the definition of the class.
 {
   a_class_type_supplement_ptr
                     ctsp = type->variant.class_struct_union.extra_info;
+  type->has_been_declared = TRUE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   construct_pragma_pack_if_needed(type);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -4900,7 +4901,6 @@ is the one associated with the definition of the class.
   }
   if (il_header.source_language == sl_Cplusplus) pop_name_context();
   write_tok_ch('}');
-  type->has_been_declared = TRUE;
 }  /* gen_class_definition */
 
 
