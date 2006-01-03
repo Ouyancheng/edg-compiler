@@ -1,5 +1,19 @@
 Version 3.7
 
+1/3/06   C++-generating back end: explicit specialization of a member template
+         of an explicit specialization
+
+When generating the definition of an explicitly-specialized template that is
+itself a member of an explicitly-specialized class template, the C++generating
+back end previously added an extraneous template<> prefix for the containing
+class.  Now fixed.  For example:
+
+  template <typename T> struct S { };
+  template<> struct S<int> {
+    template <typename T> struct N { };
+  };
+  template<> struct S<int>::N<int> { };  // Formerly template<> template<>
+
 1/3/06   C++-generating back end: explicit & in address of function
 
 The C++-generating back end previously generated function address constants

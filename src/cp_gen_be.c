@@ -5164,8 +5164,9 @@ one for the entity itself if it is a template.
     while (scp->is_class_member) {
       a_type_ptr parent_class = scp->parent.class_type;
       if (parent_class->variant.class_struct_union.extra_info->
-                                                   template_arg_list != NULL) {
-        /* A parent class that is a template. */
+                                                   template_arg_list != NULL &&
+          !parent_class->variant.class_struct_union.is_specialized) {
+        /* A parent class that is a generated instance of a template. */
         write_tok_str("template<> ");
       }  /* if */
       scp = &parent_class->source_corresp;
