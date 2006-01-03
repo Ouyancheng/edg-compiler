@@ -3491,6 +3491,12 @@ A reference is not the definition.
       /* A template instance is not declared, per se, but it should never be
          referred to by an elaborated-type-specifier. */
       type->has_been_declared = TRUE;
+    } else if (type->source_corresp.is_class_member ||
+               type->source_corresp.parent.namespace_ptr != NULL) {
+      /* You can't use an elaborated-type-specifier for the first use of a
+         member type, either (this can happen with a member of a template
+         instance). */
+      type->has_been_declared = TRUE;
     }  /* if */
     if (il_header.source_language != sl_Cplusplus) {
       /* The elaborated type specifier is always required in C mode. */
