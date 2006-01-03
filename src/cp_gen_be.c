@@ -6194,7 +6194,7 @@ Output a new-style cast.
       unexpected_condition_str("gen_new_style_cast: bad kind");
   }  /* switch */
   write_tok_str(opstr);
-  write_tok_ch('<');
+  write_tok_str("< ");
   /* For casts that were reference casts originally, the type in the
      expression is the corresponding  pointer type, and the
      is_reference_cast flag is set. */
@@ -6776,7 +6776,7 @@ but a reinterpret_cast is put out when is_reinterpret_cast is TRUE.
     dest_type = &type_copy;
   }  /* if */
   if (is_reinterpret_cast) {
-    write_tok_str("reinterpret_cast<");
+    write_tok_str("reinterpret_cast< ");
     gen_type(dest_type);
     write_tok_str(">(");
   } else {

@@ -1,5 +1,19 @@
 Version 3.7
 
+1/3/06   C++-generating back end: new-style casts with globally-qualified
+         types
+
+When generating a new-style cast to a type in the global namespace that
+requires qualification, the C++-generating back end inadvertently created the
+<: digraph (the alternate token spelling for "[").  Now fixed.  For example:
+
+  struct S { virtual ~S(); };
+  struct D: S { };
+  void f(S* p) {
+    int D;
+    dynamic_cast< ::D*>(p);   // Formerly generated as dynamic_cast<::D*>
+  }
+
 1/3/06   C++-generating back end: explicit specialization of a member template
          of an explicit specialization
 
