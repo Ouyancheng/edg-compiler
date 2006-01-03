@@ -2622,17 +2622,24 @@ scp and kind entry_kind using the name-reference information in *nrp.
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
-static void gen_name_from_routine_address_node(an_expr_node_ptr node,
-                                               a_boolean        unqualified)
+static void gen_name_from_routine_address_node(
+                                           an_expr_node_ptr node,
+                                           a_boolean        unqualified,
+                                           a_boolean        suppress_ampersand)
 /*
 Generate the name of a routine from an enk_routine_address node.  If
-unqualified is TRUE, force the generation of an unqualified name.
+unqualified is TRUE, force the generation of an unqualified name.  If
+suppress_ampersand is TRUE, do not output "&", even if
+node->is_operand_of_address_of is TRUE.
 */
 {
   a_routine_ptr rout;
 
   check_assertion(node->kind == (an_expr_node_kind)enk_routine_address);
   rout = node->variant.routine;
+  if (node->is_operand_of_address_of && !suppress_ampersand) {
+    write_tok_ch('&');
+  }  /* if */
 #if RECORD_FORM_OF_NAME_REFERENCE
   if (node->name_reference != NULL) {
     /* We have information on the exact form of reference, so use that
@@ -6254,7 +6261,8 @@ temporary expressions).
     processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_routine_address) {
     /* Address of routine: just write the routine name. */
-    gen_name_from_routine_address_node(node, /*unqualified=*/FALSE);
+    gen_name_from_routine_address_node(node, /*unqualified=*/FALSE,
+                                       /*suppress_ampersand=*/FALSE);
     processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_operation) {
     an_expr_operator_kind op = node->variant.operation.kind;
@@ -7472,8 +7480,9 @@ Generate code for the indicated expression, which is a non-virtual call.
       } else {
         /* Nonmember function or static member function. */
         gen_name_from_routine_address_node(
-             func_expr,
-             expr->variant.operation.only_found_through_arg_dependent_lookup);
+               func_expr,
+               expr->variant.operation.only_found_through_arg_dependent_lookup,
+               /*suppress_ampersand=*/TRUE);
       }  /* if */
     } else if (is_dot_static) {
       /* Call of a static member function identified by a static
@@ -8759,7 +8768,8 @@ done_with_operation_after_parens:
       gen_name_from_variable_node(expr);
       break;
     case enk_routine_address:
-      gen_name_from_routine_address_node(expr, /*unqualified=*/FALSE);
+      gen_name_from_routine_address_node(expr, /*unqualified=*/FALSE,
+                                         /*suppress_ampersand=*/FALSE);
       break;
     case enk_throw:
       /* Throw. */
@@ -8804,7 +8814,8 @@ done_with_operation_after_parens:
         } else {
           an_expr_node_ptr sizeof_expr =
                                      expr->variant.runtime_sizeof.variant.expr;
-          if (is_routine_address_node(sizeof_expr)) {
+          if (is_routine_address_node(sizeof_expr) &&
+              !sizeof_expr->is_operand_of_address_of) {
             /* For the address of a function, we need an extra "&".  The
                normal output suppresses it as unnecessary, but in a sizeof
                there is no function-to-pointer decay. */

@@ -2581,6 +2581,7 @@ its kind to the indicated kind.
 #if GNU_EXTENSIONS_ALLOWED
   node->marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  node->is_operand_of_address_of = FALSE;
 #if CENTERLINE_CHECKING
   node->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

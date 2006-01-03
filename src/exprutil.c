@@ -1826,6 +1826,7 @@ expression node.
         /* Create a constant node and copy the constant in the operand to the
            node. */
         node = alloc_node_for_constant(con);
+        node->is_operand_of_address_of = operand->is_operand_of_address_of;
         copy_operand_position_to_expr(operand, node);
       }  /* if */
       break;

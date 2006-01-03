@@ -9544,6 +9544,13 @@ typedef struct an_expr_node {
 			/* TRUE if the expression was preceded by the GNU
 			   keyword __extension__. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_bit_field	is_operand_of_address_of:1;
+			/* TRUE if this is the direct operand of an ampersand
+			   operator in the source.  This can be used to
+			   distinguish between enk_routine_address nodes that
+			   are the result of function-to-pointer decay and
+			   those that are the result of an explicit address-of
+			   operation. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */

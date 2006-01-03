@@ -1,5 +1,16 @@
 Version 3.7
 
+1/3/06   C++-generating back end: explicit & in address of function
+
+The C++-generating back end previously generated function address constants
+simply as the name of the function, regardless of whether & was used in the
+source.  Dropping an explicit & in this way can cause overload resolution and
+template argument deduction to behave differently in the generated code than
+in the source (because a reference-to-function type can bind to the bare name,
+which it could not do with the & form).  Consequently, the C++-generating back
+end has been modified to preserve explicit & operators applied to function
+names in the generated code.
+
 1/2/06   C++-generating back end: first reference to undeclared class
 
 In some circumstances, the C++-generating back end generated code that

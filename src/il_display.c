@@ -3494,6 +3494,9 @@ Display the indicated expression node.
     disp_boolean("marked_as_gnu_extension", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (ptr->is_operand_of_address_of) {
+    disp_boolean("is_operand_of_address_of", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:
