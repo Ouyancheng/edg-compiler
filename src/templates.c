@@ -16661,6 +16661,8 @@ file we simply return.
        a #line directive, in which case the implicit inclusion will not
        be attempted. */
     if (!sfp->related_file_implicit_include_done) {
+      a_boolean	file_found;
+      a_boolean	suppress_include;
       /* If we haven't already included the corresponding source file then
          do so now. */
       check_assertion(!after_instantiation_wrapup);
@@ -16673,7 +16675,7 @@ file we simply return.
       sfp->related_file_implicit_include_done = TRUE;
       is_system_include = sfp->included_by_system_include;
       /* Call a routine to search for a file with an appropriate suffix. */
-      f_source = open_file_for_input(sfp->name_as_written, 
+      file_found = open_file_for_input(sfp->name_as_written, 
                                      /*use_search_path=*/TRUE,
 				     /*is_include_file=*/TRUE,
                                      is_system_include,
@@ -16681,8 +16683,9 @@ file we simply return.
 				     /*replace_suffix=*/TRUE,
 				     /*continue_on_open_failure=*/FALSE,
 				     &full_file_name, &display_name,
+				     &f_source, &suppress_include,
 				     &dir_entry);
-      if (f_source != NULL) {
+      if (file_found) {
         an_include_file_history_ptr	ifhp;
         /* A related source file was found.  Make sure that the name of the
            file found is not the same as the file we started with.  This
@@ -16701,8 +16704,16 @@ file we simply return.
 #endif /* DEBUG */
           /* Push the new file onto the input stack and scan it.  There is
              no "name as written" so a NULL pointer is passed in. */
-	  if (suppress_subsequent_include_of_file(full_file_name, &ifhp)) {
-	    (void)fclose(f_source);
+	  if (suppress_include ||
+              suppress_subsequent_include_of_file(full_file_name, &ifhp,
+                                                  /*create=*/TRUE)) {
+            /* This file contains include guard code.  An inclusion here would
+               have no effect, so it should be suppressed.  When
+               suppress_include is TRUE, the file was not actually opened.
+               In most cases the redundant inclusion is detected during the
+               search process, but in some cases it needs to be checked here
+               too. */
+	    if (!suppress_include) (void)fclose(f_source);
 #if DEBUG
 	    if (print_debug_info) {
 	      fprintf(f_debug, "%s %s %s\n", "do_implicit_include_if_needed:",

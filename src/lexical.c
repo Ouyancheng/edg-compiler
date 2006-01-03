@@ -568,6 +568,13 @@ static a_hash_table_ptr
 		include_file_history_hash_table;
 
 /*
+Hash table of information about include file searches files that have
+been performed.  Used to optimize subsequent searches for the same file.
+*/
+static a_hash_table_ptr
+		include_search_hash_table;
+
+/*
 Array of identifier lookup options indexed by identifier lookup mode.  Used
 to translate the lookup mode into a set of identifier lookup options.
 */
@@ -630,6 +637,7 @@ static unsigned long
                 num_file_suffixes_allocated,
 		num_include_file_histories_allocated,
 		num_preinclude_files_allocated,
+		num_include_search_results_allocated,
 		cached_pp_token_string_space,
                 num_stop_token_stack_entries_allocated,
 		num_reusable_cache_entries_allocated,
@@ -3394,8 +3402,8 @@ any_tokens_fetched_from_curr_input_file when appropriate.
 }  /* set_ifg_state */
 
 
-static a_boolean suppress_subsequent_include
-				(an_include_file_history_ptr ifhp)
+static a_boolean suppress_subsequent_include(
+				an_include_file_history_ptr ifhp)
 /*
 Return TRUE if the specified include file contained include guard
 code that makes it possible to suppress subsequent re-inclusions.
@@ -3431,20 +3439,24 @@ code that makes it possible to suppress subsequent re-inclusions.
 }  /* suppress_subsequent_include */
 
 
-a_boolean suppress_subsequent_include_of_file
-				(char                        *full_name,
-				 an_include_file_history_ptr *ifhp_ptr)
+a_boolean suppress_subsequent_include_of_file(
+				 char                        *full_name,
+				 an_include_file_history_ptr *ifhp_ptr,
+				 a_boolean		     create)
 /*
 Determine whether the specified file has already been included, and if so,
 whether a subsequent include should be suppressed because it will have
-no effect.
+no effect.  If no entry is found, create one if "create" is TRUE.  If an
+entry is found or created, return the pointer in ifhp_ptr.
 */
 {
-  a_boolean	result;
+  a_boolean	result = FALSE;
   /* Find an existing include file history record for this file, or create
      one if none exists. */
-  (void)find_include_history(full_name, ifhp_ptr, /*create=*/TRUE);
-  result = suppress_subsequent_include(*ifhp_ptr);
+  (void)find_include_history(full_name, ifhp_ptr, create);
+  if (*ifhp_ptr != NULL) {
+    result = suppress_subsequent_include(*ifhp_ptr);
+  }  /* if */
 #if DEBUG
   if (db_flag_is_set("ssiof")) {
     fprintf(f_debug, "suppress_subsequent_include_of_file: %s: %s\n",
@@ -3645,21 +3657,29 @@ inclusion.  is_include_next is TRUE if the file is being pushed for an
   FILE 				*input_file;
   an_include_file_history_ptr	ifhp = NULL;
   a_directory_name_entry_ptr    dir_entry;
+  a_boolean			file_found;
+  a_boolean			suppress_include = FALSE;
 
   db_enter(2, "open_file_and_push_input_stack");
-  input_file = open_file_for_input(file_name, use_search_path, is_include_file,
+  file_found = open_file_for_input(file_name, use_search_path, is_include_file,
                                    is_system_include, is_include_next,
-                                   /*replace_suffix=*/FALSE,
+                                   /*is_implicit_include=*/FALSE,
 				   continue_on_open_failure,
                                    &full_file_name,
-                                   &display_name, &dir_entry);
-  check_assertion(input_file != NULL || continue_on_open_failure);
-  if (input_file == NULL) goto done;
-  if (is_include_file &&
-      suppress_subsequent_include_of_file(full_file_name, &ifhp)) {
+                                   &display_name, &input_file,
+                                   &suppress_include, &dir_entry);
+  check_assertion(file_found || continue_on_open_failure);
+  if (!file_found) goto done;
+  if (suppress_include ||
+      (is_include_file &&
+       suppress_subsequent_include_of_file(full_file_name, &ifhp,
+                                           /*create=*/TRUE))) {
     /* This file contains include guard code.  An inclusion here would
-       have no effect, so it should be suppressed. */
-    (void)fclose(input_file);
+       have no effect, so it should be suppressed.  When suppress_include
+       is TRUE, the file was not actually opened.  In most cases the
+       redundant inclusion is detected during the search process, but in
+       some cases it needs to be checked here too. */
+    if (!suppress_include) (void)fclose(input_file);
 #if DEBUG
     if (debug_level >= 4) {
       fprintf(f_debug,
@@ -3716,46 +3736,239 @@ the name to be used in an error message.
 }  /* try_to_open_source_file */
 
 
-static FILE *search_for_input_file(
+static a_boolean try_to_open_source_file_if_not_already_included(
+					char		*name_to_try,
+					char		*file_name,
+					FILE		**new_input_file,
+					a_boolean	*suppress_include)
+/*
+Try to open the source file specified by name_to_try.  file_name is
+the name to be used in an error message.  Before attempting to open the
+file, check whether an inclusion of the file should be suppressed because
+the file has already been included.  Return TRUE if the file was found (the
+file was either opened or a previously include file was found).  If the
+file was opened, the file pointer is returned in new_input_file.  If the
+include is to be suppressed because the file was already included, TRUE is
+returned in suppress_include.
+*/
+{
+  an_include_file_history_ptr	ifhp = NULL;
+  a_boolean			found = FALSE;
+
+  *suppress_include = FALSE;
+  if (suppress_subsequent_include_of_file(name_to_try, &ifhp,
+                                          /*create=*/FALSE)) {
+    /* This include should be suppressed.  No further action is needed. */
+    *suppress_include = TRUE;
+    found = TRUE;
+  } else {
+    /* It was not previously included. Attempt to open the file. */
+    *new_input_file = try_to_open_source_file(name_to_try, file_name);
+    found = *new_input_file != NULL;
+  }  /* if */
+  return found;
+}  /* try_to_open_source_file_if_not_already_included */
+
+
+/*
+Entry used by the include_search_hash_table to record information about
+attempted include searches.
+*/
+typedef struct an_include_search_result *an_include_search_result_ptr;
+typedef struct an_include_search_result {
+  char		*current_directory;
+			/* The current directory when the search was done. */
+  char		*dir_name;
+			/* The name of the directory in which the search was
+			   done. */
+  char		*file_name;
+			/* The name of the file sought in the directory. */
+  char		*result_file;
+			/* The result of the search.  If a file was found, this
+			   is the file name (including the directory as
+			   specified in the "directory" field and any file
+			   suffix that may have been added).  NULL if no file
+			   was found. */
+} an_include_search_result;
+
+
+static void clear_include_search_result(an_include_search_result_ptr isrp)
+/*
+Initialize the fields of an include search result entry.
+*/
+{
+  isrp->current_directory = NULL;
+  isrp->dir_name = NULL;
+  isrp->file_name = NULL;
+  isrp->result_file = NULL;
+}  /* clear_include_search_result */
+
+
+static an_include_search_result_ptr alloc_include_search_result(void)
+/*
+Allocate a new include search result entry, initialize its fields, and
+return a pointer to it.
+*/
+{
+  an_include_search_result_ptr	isrp;
+
+  isrp = alloc_general_of_type(an_include_search_result);
+#if DEBUG
+  num_include_search_results_allocated++;
+#endif /* DEBUG */
+  clear_include_search_result(isrp);
+  return isrp;
+}  /* alloc_include_search_result */
+
+
+static a_hash_value hash_file_name(char *name)
+/*
+Compute a hash value for the file name "name".
+*/
+{
+  a_hash_value value = 0;
+  for (; *name != '\0'; name++) {
+    value = (value << 5) + value + *name;
+  }  /* for */
+  return value;
+}  /* hash_file_name */
+
+
+static a_hash_value hash_include_search_result(a_void_ptr	key)
+/*
+Produce a hash value for an include search result entry.  The key is
+an_include_search_result_ptr.
+*/
+{
+  a_hash_value			value = 0;
+  an_include_search_result_ptr	isrp;
+
+  isrp = (an_include_search_result_ptr)key;
+  value = hash_file_name(isrp->dir_name) + hash_file_name(isrp->file_name);
+  return value;
+}  /* hash_include_search_result */
+
+
+static a_boolean compare_include_search_result(a_void_ptr	entry,
+					       a_void_ptr	key)
+/*
+Compare an entry in the include search result hash table with an entry to be
+found.  "entry" and "key" are of type an_include_search_result_ptr.
+Return TRUE if the key matches the entry.
+*/
+{
+  an_include_search_result_ptr	entry_isrp;
+  an_include_search_result_ptr	key_isrp;
+  a_boolean			result;
+
+  entry_isrp = (an_include_search_result_ptr)entry;
+  key_isrp = (an_include_search_result_ptr)key;
+  result = (entry_isrp->current_directory == key_isrp->current_directory ||
+            strcmp(entry_isrp->current_directory,
+                  key_isrp->current_directory) == 0) &&
+           (entry_isrp->dir_name == key_isrp->dir_name ||
+            strcmp(entry_isrp->dir_name, key_isrp->dir_name) == 0) &&
+           (entry_isrp->file_name == key_isrp->file_name ||
+            strcmp(entry_isrp->file_name, key_isrp->file_name) == 0);
+  return result;
+}  /* compare_include_search_result */
+
+
+static an_include_search_result_ptr find_or_create_include_search_result(
+						char		*dir_name,
+						char		*file_name,
+						a_boolean	*is_new_entry)
+/*
+Look for a record of a previous search for this directory name / file name
+combination.  This returns a pointer to the include search result entry
+found, or a newly created one if no previous one exists.  is_new_entry
+is set to indicate whether or not the returned entry is a newly created one.
+*/
+{
+  an_include_search_result	isr;
+  an_include_search_result_ptr	*isrp_in_table;
+  an_include_search_result_ptr	isrp;
+
+  *is_new_entry = FALSE;
+  /* Create an include search entry that describes the entry to be found.
+     This is the key used for the hash table lookup. */
+  clear_include_search_result(&isr);
+  isr.current_directory = current_directory_name;
+  isr.dir_name = dir_name;
+  isr.file_name = file_name;
+  isrp_in_table = (an_include_search_result_ptr*)hash_find(
+						include_search_hash_table,
+						(void*)&isr, /*create=*/TRUE);
+  isrp = *isrp_in_table;
+#if DEBUG
+  if (db_flag_is_set("ssiof")) {
+    fprintf(f_debug, "find_or_create...: dir=%s file=%s: %s\n",
+            dir_name, file_name, isrp == NULL ? "not found" : "found");
+  }  /* if */
+#endif /* DEBUG */
+  if (isrp == NULL) {
+    /* No previous result was found.  Create the entry to be referenced by
+       the hash table. */
+    isrp = alloc_include_search_result();
+    *isrp_in_table = isrp;
+    /* Copy the key entry created above into the new entry. */
+    *isrp = isr;
+    *is_new_entry = TRUE;
+  }  /* if */
+  return isrp;
+}  /* find_or_create_include_search_result */
+
+
+static a_boolean search_for_input_file(
 			char				*file_name,
 			a_boolean			use_search_path,
 			a_directory_name_entry_ptr	search_path,
 			a_file_suffix_ptr		suffix_list,
-			a_boolean			replace_suffix,
+			a_boolean			is_implicit_include,
 			char				**name_found,
+			FILE				**new_input_file,
+			a_boolean			*suppress_include,
 			a_directory_name_entry_ptr	*dir_entry)
 /*
 Look for file_name in the list of directories specified by search path.
-
-If replace_suffix is TRUE, the file suffix of file_name is replaced with
-each entry in suffix_list for each directory in search_path.  This is
-used when searching for a source file for implicit inclusion.  When
-replace_suffix is FALSE a suffix_list may still be specified, in which
+is_implicit_include is TRUE when searching for a source file for implicit
+inclusion.  When it is TRUE, the file suffix of file_name is replaced with
+each entry in suffix_list for each directory in search_path.  When
+is_implicit_include is FALSE a suffix_list may still be specified, in which
 case the suffix list is only used if file_name has no suffix.  This
 is used to supply a default suffix for headers specified without a
 suffix.  The path name of the file found is returned in name_found.
 *dir_entry is set to point to the directory name entry on the search
 path in which the file was found, or NULL if the search path was not
-used.
+used.  Return TRUE if the file was found (the file was either opened
+or a previously include file was found).  If the file was opened, the
+file pointer is returned in new_input_file.  If the include is to be
+suppressed because the file was already included, TRUE is returned in
+suppress_include.
 */
 {
   a_file_suffix_ptr		fsp;
   a_boolean			done = FALSE;
   a_directory_name_entry_ptr	curr_directory_name_entry;
   char				*name_to_try;
-  FILE				*new_input_file = NULL;
+  a_boolean			file_found = FALSE;
   char				*prev_dir_name = NULL;
   a_text_buffer_ptr		buffer = NULL;
+  a_boolean			replace_suffix;
+  an_include_search_result_ptr	isrp = NULL;
 
   *dir_entry = NULL;
+  *new_input_file = NULL;
+  *suppress_include = FALSE;
   /* Determine whether we need to do the suffix replacement processing.
-     This is done when replace_suffix is TRUE or when when file name
+     This is done when is_implicit_include is TRUE or when when file name
      supplied has no suffix. */
-  replace_suffix = replace_suffix || *suffix_of(file_name) == '\0';
+  replace_suffix = is_implicit_include || *suffix_of(file_name) == '\0';
   if (!use_search_path || is_absolute_file_name(file_name)) {
     /* File name is absolute, so search path is not used. */
     name_to_try = file_name;
-    new_input_file = try_to_open_source_file(name_to_try, file_name);
+    *new_input_file = try_to_open_source_file(name_to_try, file_name);
+    file_found = *new_input_file != NULL;
   } else if (search_path == NULL) {
     /* No search path, so file can't be found.  Issue a catastrophic error.
        Use special message to make it clearer, since problem may be that
@@ -3774,49 +3987,79 @@ used.
           No need to try to open the same file a second time. */
         continue;
       }  /* if */
-      prev_dir_name = curr_directory_name_entry->dir_name;
-      /* We need to traverse the search path.  Merge the current entry in
-         the path with the file name and use that name as the base for
-         replacing the suffixes. */
       dir_name = curr_directory_name_entry->dir_name;
-      if (microsoft_mode && microsoft_version >= 1300 && *dir_name == '\0') {
-        /* The Microsoft compiler uses a full path name when looking in the
-           current directory for a file. */
-        dir_name = current_directory_name;
+      prev_dir_name = dir_name;
+      isrp = NULL;
+      if (!is_implicit_include) {
+        /* See if we have previously searched for this file before.  This
+           is not done when looking for implicit include files because the
+           suffix list used is different in that case. */
+        a_boolean	is_new_entry;
+        isrp = find_or_create_include_search_result(dir_name, file_name,
+                                                    &is_new_entry);
+        /* If no result file was found, move to the next entry in the
+           search path.  The result_file will be NULL in the case where no
+           previous result was found.  Don't move to the next search path
+           entry if we are creating a new entry. */
+        if (isrp->result_file == NULL) {
+          if (!is_new_entry) continue;
+        } else {
+          /* Attempt to open the file from the previous search. */
+          name_to_try = isrp->result_file;
+          file_found = try_to_open_source_file_if_not_already_included(
+                             name_to_try, file_name, new_input_file,
+                             suppress_include);
+        }  /* if */
       }  /* if */
-      buffer = combine_dir_and_file_name(
+      if (!file_found) {
+        /* No file was found in the previous search results, do a search
+           now. */
+        /* We need to traverse the search path.  Merge the current entry in
+           the path with the file name and use that name as the base for
+           replacing the suffixes. */
+        if (microsoft_mode && microsoft_version >= 1300 && *dir_name == '\0') {
+          /* The Microsoft compiler uses a full path name when looking in the
+             current directory for a file. */
+          dir_name = current_directory_name;
+        }  /* if */
+        buffer = combine_dir_and_file_name(
                                       dir_name,
                                       file_name, (a_text_buffer_ptr)NULL);
-      name_to_try = buffer->buffer;
-      /* Now try to open the modified file. */
-      if (!replace_suffix) {
-        /* We don't need to replace the suffix.  Just try the
-           file/directory combination just constructed. */
-        new_input_file = try_to_open_source_file(name_to_try, file_name);
-      } else {
-        /* We need to replace the suffix.  Go through the list of
-           suffixes. */
-        /* Loop through the linked list of suffixes. */
-        for (fsp = suffix_list;
-             fsp != NULL;
-             fsp = fsp->next) {
-          /* Replace the existing suffix with a new one. */
-          replace_file_name_suffix(fsp->suffix, buffer);
-          /* Get the current buffer pointer in case it was reallocated. */
-          name_to_try = buffer->buffer;
-          /* Now try to open the modified file. */
-          new_input_file = try_to_open_source_file(name_to_try, file_name);
-          if (new_input_file != NULL) break;
-        }  /* for */
+        name_to_try = buffer->buffer;
+        /* Now try to open the modified file. */
+        if (!replace_suffix) {
+          /* We don't need to replace the suffix.  Just try the
+             file/directory combination just constructed. */
+          file_found = try_to_open_source_file_if_not_already_included(
+                             name_to_try, file_name, new_input_file,
+                             suppress_include);
+        } else {
+          /* We need to replace the suffix.  Go through the list of
+             suffixes. */
+          /* Loop through the linked list of suffixes. */
+          for (fsp = suffix_list;
+               fsp != NULL;
+               fsp = fsp->next) {
+            /* Replace the existing suffix with a new one. */
+            replace_file_name_suffix(fsp->suffix, buffer);
+            /* Get the current buffer pointer in case it was reallocated. */
+            name_to_try = buffer->buffer;
+            /* Now try to open the modified file. */
+            file_found = try_to_open_source_file_if_not_already_included(
+                             name_to_try, file_name, new_input_file,
+                             suppress_include);
+            if (file_found) break;
+          }  /* for */
+        }  /* if */
       }  /* if */
-      if (new_input_file != NULL) {
+      if (file_found) {
         done = TRUE;
         *dir_entry = curr_directory_name_entry;
         break;
       }  /* if */
     }  /* for */
   }  /* if */
-  if (new_input_file != NULL) {
+  if (file_found) {
     /* If a file was found, return the name in name_found.  If the name
        is currently in the temporary buffer, make a copy and return a
        pointer to the copy. */
@@ -3825,52 +4068,66 @@ used.
       (void)strcpy(name_to_try, buffer->buffer);
     }  /* if */
     *name_found = name_to_try;
+    if (isrp != NULL && isrp->result_file == NULL) {
+      /* Record the name found in the include search result entry. */
+      isrp->result_file = name_to_try;
+    }  /* if */
+  } else {
+    /* A file was not found.  Reset the name_found to make sure it is not
+       used by the caller. */
+    *name_found = NULL;
   }  /* if */
-  return new_input_file;
-#undef FILE_NAME_BUFFER_SIZE
+  return file_found;
 }  /* search_for_input_file */
 
 
 #if !INSTANTIATION_BY_IMPLICIT_INCLUSION
-/*ARGSUSED*/ /* <-- replace_suffix is used only if instantiation may use
+/*ARGSUSED*/ /* <-- is_implicit_include is used only if instantiation may use
                     implicit inclusion. */
 #endif /* !INSTANTIATION_BY_IMPLICIT_INCLUSION */
-FILE *open_file_for_input(char                       *file_name,
-                          a_boolean                  use_search_path,
-                          a_boolean                  is_include_file,
-                          a_boolean                  is_system_include,
-                          a_boolean                  is_include_next,
-                          a_boolean                  replace_suffix,
-			  a_boolean		     continue_on_open_failure,
-                          char                       **full_file_name,
-                          char                       **display_name,
-                          a_directory_name_entry_ptr *dir_entry)
+a_boolean open_file_for_input(
+		char				*file_name,
+		a_boolean			use_search_path,
+		a_boolean			is_include_file,
+		a_boolean			is_system_include,
+		a_boolean			is_include_next,
+		a_boolean			is_implicit_include,
+		a_boolean			continue_on_open_failure,
+		char				**full_file_name,
+		char				**display_name,
+		FILE				**new_input_file,
+		a_boolean			*suppress_include,
+		a_directory_name_entry_ptr	*dir_entry)
 /*
-Try to open file_name, and return a pointer to the file if the open is
-successful.  file_name must be allocated in IL storage.  use_search_path is
-TRUE if the search path of include directories should be used when trying
-the open.  is_system_include is TRUE if the included file name was
-specified in <...>.  If the open is successful, the full name of the file
-that is opened is returned in *full_file_name, the name intended for use in
-diagnostics and other output is returned in *display_name.  *dir_entry
-is set to point to the entry on the search path in which the file was
+Try to open file_name, and return TRUE if the file was found (the file
+was either opened or a previously include file was found).  If the
+file was opened, the file pointer is returned in new_input_file.  If
+the include is to be suppressed because the file was already included,
+TRUE is returned in suppress_include.  file_name must be allocated in
+IL storage.  use_search_path is TRUE if the search path of include
+directories should be used when trying the open.  is_system_include
+is TRUE if the included file name was specified in <...>.  If the open
+is successful, the full name of the file that is opened is returned
+in *full_file_name, the name intended for use in diagnostics and
+other output is returned in *display_name.  *dir_entry is set to
+point to the entry on the search path in which the file was
 found, or NULL if the search path was not used.  is_include_next is
 TRUE if the file is being opened for an #include_next directive.
-replace_suffix is TRUE when this routine is used to search for an
-implicitly included template definition file.  When replace_suffix is
+is_implicit_include is TRUE when this routine is used to search for an
+implicitly included template definition file.  When is_implicit_include is
 used, each suffix in the implicit_instantiation_file_suffix_list is
 used to search for a template definition file.
 
-When replace_suffix is FALSE, a catastrophic error is normally issued if a file
-cannot be opened.  But if continue_on_open_failure is TRUE, a discretionary
-error is issued instead.  continue_on_open_failure can only be TRUE when
-doing preprocessing only.  If a file cannot be opened, and a catastrophic
-error is not issued, a NULL file pointer is returned.
+When is_implicit_include is FALSE, a catastrophic error is normally issued
+if a file cannot be opened.  But if continue_on_open_failure is TRUE, a
+discretionary error is issued instead.  continue_on_open_failure can only
+be TRUE when doing preprocessing only.  If a file cannot be opened, and
+a catastrophic error is not issued, FALSE is returned.
 */
 {
   char                        *temp_file_name;
-  FILE                        *new_input_file;
   a_directory_name_entry_ptr  search_path;
+  a_boolean		      file_found = FALSE;
   a_boolean		      input_from_stdin = FALSE;
 
   db_enter(2, "open_file_for_input");
@@ -3890,30 +4147,33 @@ error is not issued, a NULL file pointer is returned.
       search_path = incl_search_path;
     } /* if */
   }  /* if */
-  new_input_file = NULL;
+  *new_input_file = NULL;
+  *suppress_include = FALSE;
   *full_file_name = NULL;
   check_assertion((curr_ise == NULL) == (depth_input_stack == -1));
   /* Open the new file. */
   if (curr_ise == NULL && strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
     /* Special code for stdin; no open needed. */
     temp_file_name = file_name;
-    new_input_file = stdin;
+    *new_input_file = stdin;
     input_from_stdin = TRUE;
+    file_found = TRUE;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-  } else if (replace_suffix) {
-    new_input_file = search_for_input_file(
-                                       file_name, use_search_path, search_path,
+  } else if (is_implicit_include) {
+    file_found = search_for_input_file(file_name, use_search_path, search_path,
                                        implicit_instantiation_file_suffix_list,
-                                       replace_suffix, &temp_file_name,
+                                       is_implicit_include, &temp_file_name,
+                                       new_input_file, suppress_include,
                                        dir_entry);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   } else {
-    new_input_file = search_for_input_file(
-                                       file_name, use_search_path, search_path,
+    file_found = search_for_input_file(file_name, use_search_path, search_path,
                                        include_file_suffix_list,
-                                       /*replace_suffix=*/FALSE,
-                                       &temp_file_name, dir_entry);
-    if (new_input_file == NULL) {
+                                       /*is_implicit_include=*/FALSE,
+                                       &temp_file_name,
+                                       new_input_file, suppress_include,
+                                       dir_entry);
+    if (!file_found) {
       /* The file could not be opened.  This is normally a catastrophic error
          unless continue_on_open_failure is TRUE. */
       if (continue_on_open_failure) {
@@ -3926,7 +4186,7 @@ error is not issued, a NULL file pointer is returned.
     }  /* if */
   }  /* if */
   /* If a file was found, update the full file name and display names. */
-  if (new_input_file != NULL) {
+  if (file_found) {
     /* The display_name is either the file passed in (for a primary source
        file) or the name returned by search_for_input_file. */
     *display_name = temp_file_name;
@@ -3954,7 +4214,7 @@ error is not issued, a NULL file pointer is returned.
     }  /* if */
   }  /* if */
   db_exit();
-  return new_input_file;
+  return file_found;
 }  /* open_file_for_input */
 
 
@@ -4394,61 +4654,75 @@ at the next level down.
          way that requires the related source file to be read. */
       char		*full_file_name;
       char		*display_name;
-      FILE		*f_source;
+      FILE		*f_source = NULL;
       a_directory_name_entry_ptr
                         dir_entry;
       a_source_file_ptr	sfp = prev_ise->assoc_actual_il_file;
-      f_source = open_file_for_input(
+      a_boolean		file_found;
+      a_boolean		suppress_include;
+      file_found = open_file_for_input(
                               sfp->name_as_written, /*use_search_path=*/TRUE,
                               /*is_include_file=*/TRUE,
                               (a_boolean)sfp->included_by_system_include,
                               /*is_include_next=*/FALSE,
- 			      /*replace_suffix=*/TRUE,
+ 			      /*is_implicit_include=*/TRUE,
 			      /*continue_on_open_failure=*/FALSE,
 			      &full_file_name, &display_name,
+                              &f_source, &suppress_include,
                               &dir_entry);
-      if (f_source != NULL) {
-        /* A related source file was found.  Make sure that the name of the
-           file found is not the same as the file we started with.  This
-           could occur if the user included a .c file that contains a
-           template declaration. */
-        if (compare_file_names(full_file_name, sfp->full_name) == 0) {
-          (void)fclose(f_source);
-        } else {
-	  an_include_file_history_ptr	ifhp;
+      if (file_found) {
+        if (suppress_include) {
+          /* The search process detected that the file has already been
+             included, so the file was not opened. */
 #if DEBUG
           if (debug_level >= 3) {
-            fprintf(f_debug, "  Including text from '%s'\n", full_file_name);
+	    fprintf(f_debug, "pop_input_stack: skipping include file %s\n",
+                    full_file_name);
           }  /* if */
 #endif /* DEBUG */
-          /* Push the new file onto the input stack and scan it.  There is
-             no "name as written" so a NULL pointer is passed in. */
-	  if (suppress_subsequent_include_of_file(full_file_name, &ifhp) ||
-              (implicit_template_inclusion_mode &&
-               look_for_file_on_input_stack(full_file_name) > 0)) {
-            /* This file contains include guard code or is already on the input
-               stack more than once.  An inclusion of a guarded file would
-	       have no effect and so, is suppressed.  A file that is already on
-               the stack more than once is probably an include loop caused
-	       by looking for a file that can be implicitly included in a
-	       context in which no implicit include would actually be done
-	       in a real compilation. */
-	    (void)fclose(f_source);
+        } else {
+          /* A related source file was found.  Make sure that the name of the
+             file found is not the same as the file we started with.  This
+             could occur if the user included a .c file that contains a
+             template declaration. */
+          if (compare_file_names(full_file_name, sfp->full_name) == 0) {
+            (void)fclose(f_source);
+          } else {
+            an_include_file_history_ptr	ifhp;
 #if DEBUG
-	    if (debug_level >= 3) {
-	      fprintf(f_debug,
-		      "pop_input_stack: skipping include file %s\n",
-		      full_file_name);
+            if (debug_level >= 3) {
+              fprintf(f_debug, "  Including text from '%s'\n", full_file_name);
             }  /* if */
 #endif /* DEBUG */
-	  } else {
-            push_input_stack(f_source, (char *)NULL, display_name,
-                             full_file_name, /*is_include_file=*/FALSE,
-                             (a_boolean)sfp->included_by_system_include,
-			     /*is_preinclude=*/FALSE,
-		             /*preinclude_macros=*/FALSE,
-                             /*is_implicit_include=*/TRUE,
-                             dir_entry, ifhp);
+            /* Push the new file onto the input stack and scan it.  There is
+               no "name as written" so a NULL pointer is passed in. */
+            if (suppress_subsequent_include_of_file(full_file_name, &ifhp,
+                                                    /*create=*/TRUE) ||
+                (implicit_template_inclusion_mode &&
+                 look_for_file_on_input_stack(full_file_name) > 0)) {
+              /* This file contains include guard code or is already on the
+                 input stack more than once.  An inclusion of a guarded file
+                 would have no effect and so, is suppressed.  A file that is
+                 already on the stack more than once is probably an include
+                 loop caused by looking for a file that can be implicitly
+                 included in a context in which no implicit include would
+                 actually be done in a real compilation. */
+              (void)fclose(f_source);
+#if DEBUG
+              if (debug_level >= 3) {
+	        fprintf(f_debug, "pop_input_stack: skipping include file %s\n",
+                        full_file_name);
+              }  /* if */
+#endif /* DEBUG */
+            } else {
+              push_input_stack(f_source, (char *)NULL, display_name,
+                               full_file_name, /*is_include_file=*/FALSE,
+                               (a_boolean)sfp->included_by_system_include,
+                               /*is_preinclude=*/FALSE,
+                               /*preinclude_macros=*/FALSE,
+                               /*is_implicit_include=*/TRUE,
+                               dir_entry, ifhp);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -14652,6 +14926,9 @@ Display and return the amount of space used for various lexical tables.
                 an_include_file_history);
   db_space_used_general("preinclude files", num_preinclude_files_allocated,
                         a_preinclude_file);
+  db_space_used_general("include search results",
+                        num_include_search_results_allocated,
+                        an_include_search_result);
   db_space_used_other("cached pp token strings", cached_pp_token_string_space,
                       "");
   grand_total += cached_pp_token_string_space;
@@ -14949,6 +15226,13 @@ are handled in lexical_init.)
   register_trans_unit_variable(treat_newline_as_token);
   register_trans_unit_variable(curr_token_asm_string);
   register_trans_unit_variable(curr_token_sequence_number);
+  include_search_hash_table = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
+					       1024,
+					       hash_include_search_result,
+					       compare_include_search_result);
+#if DEBUG
+  num_include_search_results_allocated = 0;
+#endif /* DEBUG */
 }  /* lexical_one_time_init */
 
 
@@ -15014,7 +15298,7 @@ Initialize variables that are specific to a given translation unit.
   next_token_is_top_level_decl_start = FALSE;
   include_file_history_hash_table = alloc_hash_table(
                                              FRONT_END_REGION_NUMBER,
-                                             (a_hash_table_size)256,
+                                             (a_hash_table_size)1024,
                                              hash_include_file_history,
                                              compare_include_file_history);
   trigraph_diagnostic_issued = FALSE;

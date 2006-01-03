@@ -928,9 +928,10 @@ The order of these states is important - see near return of get_token().
 			/* A #pragma once has been encountered in the file. */
 
 
-extern a_boolean suppress_subsequent_include_of_file
-				(char                         *full_name,
-				 an_include_file_history_ptr *ifhp_ptr);
+extern a_boolean suppress_subsequent_include_of_file(
+				 char                         *full_name,
+				 an_include_file_history_ptr *ifhp_ptr,
+				 a_boolean		     create);
 
 extern a_boolean find_include_history(char                        *full_name,
 	    		              an_include_file_history_ptr *ifhp_ptr,
@@ -2171,17 +2172,19 @@ extern void open_file_and_push_input_stack(char      *file_name,
                                            a_boolean is_include_next,
 					   a_boolean continue_on_open_failure);
 
-extern FILE *open_file_for_input(
-                           char                       *file_name,
-                           a_boolean                  use_search_path,
-			   a_boolean		      is_include_file,
-                           a_boolean                  is_system_include,
-                           a_boolean                  is_include_next,
-                           a_boolean                  replace_suffix,
-			   a_boolean		      continue_on_open_failure,
-                           char                       **full_file_name,
-                           char                       **display_name,
-                           a_directory_name_entry_ptr *dir_entry);
+extern a_boolean open_file_for_input(
+		char				*file_name,
+		a_boolean			use_search_path,
+		a_boolean			is_include_file,
+		a_boolean			is_system_include,
+		a_boolean			is_include_next,
+		a_boolean			is_implicit_include,
+		a_boolean			continue_on_open_failure,
+		char				**full_file_name,
+		char				**display_name,
+		FILE				**new_input_file,
+		a_boolean			*suppress_include,
+		a_directory_name_entry_ptr	*dir_entry);
 extern void push_input_stack(
 			FILE			    *new_input_file,
                         char			    *name_as_written,

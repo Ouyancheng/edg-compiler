@@ -1,5 +1,18 @@
 Version 3.7
 
+1/3/06   Optimization of the include search process
+
+The routines that search for include files have been restructured to
+reduce the number of files that are opened when repeating the search
+for a file that has already been included.  The front end already had
+a mechanism to suppress the inclusion of header files that use include
+guard code, but this mechanism only came into play after the include
+search process completed.  The include-once mechanism has now been
+integrated into the search process to reduce the number of unneeded file
+open operations that are performed.  This can result in a significant
+performance improvement in environments in which file open operations
+are particularly expensive.
+
 1/3/06   C++-generating back end: new-style casts with globally-qualified
          types
 
