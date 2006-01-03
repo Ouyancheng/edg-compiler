@@ -9918,7 +9918,8 @@ created if a projected symbol cannot be found in any of the real bases.
   cssp = class_sym->variant.class_struct_union.extra_info;
   if (locator->symbol_header == class_sym->header &&
       class_sym->
-        variant.class_struct_union.extra_info->class_template == NULL) {
+               variant.class_struct_union.extra_info->class_template == NULL &&
+      (options & IDL_HIDDEN_NAME_LOOKUP) == 0) {
     /* A name X cannot be inherited into class X, since the "name slot" for
        is already taken (sort of) by the constructor. */
     progenitor_sym = NULL;

@@ -1,5 +1,21 @@
 Version 3.7
 
+1/3/06   C++-generating back end: missing qualifier on enumerator from base
+         class
+
+If an enumeration constant from a base class was used in a derived class with
+the same name as the constant, the C++-generating back end failed to use a
+qualified name for the constant, as required.  Now fixed.  For example:
+
+  struct B {
+    enum E { D };
+    B(E);
+  };
+
+  struct D : public B {
+    D() : B(B::D) { }   // Formerly generated as B(D)
+  };
+
 1/3/06   Optimization of the include search process
 
 The routines that search for include files have been restructured to
