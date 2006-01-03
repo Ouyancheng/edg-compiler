@@ -3097,6 +3097,7 @@ user-defined conversions.
           }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
           make_constant_operand(&local_constant, operand);
+          restore_operand_form_of_name_reference(operand, &orig_operand);
         }  /* if */
         break;
       case ok_indefinite_function:
