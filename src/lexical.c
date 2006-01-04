@@ -3352,7 +3352,8 @@ existing entry was returned.
     /* This file has not been included before.  Create a new file history
        entry. */
     ifhp = alloc_include_file_history();
-    ifhp->full_name = full_name;
+    ifhp->full_name = copy_string_to_region(FRONT_END_REGION_NUMBER,
+                                            full_name);
     /* Update the data pointer in the hash table. */
     *ifhp_in_table = ifhp;
   }  /* if */
@@ -3913,6 +3914,8 @@ is set to indicate whether or not the returned entry is a newly created one.
     *isrp_in_table = isrp;
     /* Copy the key entry created above into the new entry. */
     *isrp = isr;
+    isrp->file_name = (char*)alloc_general(strlen(file_name) + 1);
+    (void)strcpy(isrp->file_name, file_name);
     *is_new_entry = TRUE;
   }  /* if */
   return isrp;
@@ -4061,16 +4064,27 @@ suppress_include.
   }  /* if */
   if (file_found) {
     /* If a file was found, return the name in name_found.  If the name
-       is currently in the temporary buffer, make a copy and return a
-       pointer to the copy. */
-    if (buffer != NULL && name_to_try == buffer->buffer) {
-      name_to_try = alloc_primary_file_scope_il((sizeof_t)buffer->size);
-      (void)strcpy(name_to_try, buffer->buffer);
+       is currently in the temporary buffer, or if the name is from a
+       stored search result, make a copy and return a pointer to the copy. */
+    if ((buffer != NULL && name_to_try == buffer->buffer) ||
+        (isrp != NULL && name_to_try == isrp->result_file)) {
+      char	*src_name;
+      sizeof_t	src_len;
+      if (buffer != NULL && name_to_try == buffer->buffer) {
+        src_name = buffer->buffer;
+        src_len = buffer->size;
+      } else {
+        src_name = isrp->result_file;
+        src_len = strlen(src_name) + 1;
+      }  /* if */
+      name_to_try = alloc_primary_file_scope_il((sizeof_t)src_len);
+      (void)strcpy(name_to_try, src_name);
     }  /* if */
     *name_found = name_to_try;
     if (isrp != NULL && isrp->result_file == NULL) {
       /* Record the name found in the include search result entry. */
-      isrp->result_file = name_to_try;
+      isrp->result_file = (char*)alloc_general(strlen(name_to_try) + 1);
+      (void)strcpy(isrp->result_file, name_to_try);
     }  /* if */
   } else {
     /* A file was not found.  Reset the name_found to make sure it is not
