@@ -3526,6 +3526,10 @@ A reference is not the definition.
          member type, either (this can happen with a member of a template
          instance). */
       type->has_been_declared = TRUE;
+    } else if (type->kind == (a_type_kind)tk_template_param) {
+      /* Don't use elaborated-type-specifiers for template parameters,
+         either. */
+      type->has_been_declared = TRUE;
     }  /* if */
     if (il_header.source_language != sl_Cplusplus) {
       /* The elaborated type specifier is always required in C mode. */
@@ -5469,12 +5473,14 @@ this one is such a continuation.
         /* Don't suppress qualifiers on explicit specializations. */
         type->has_been_declared = TRUE;
       }  /* if */
-      /* Don't set type->has_been_declared for a friend declaration: it will
-         not be visible until it is really declared and so will require an
-         elaborated-type-specifier for the next reference. */
       saved_has_been_declared = type->has_been_declared;
       gen_tag_reference(type);
-      type->has_been_declared = saved_has_been_declared;
+      if (friend_decl) {
+        /* Don't set type->has_been_declared for a friend declaration: it will
+           not be visible until it is really declared and so will require an
+           elaborated-type-specifier for the next reference. */
+        type->has_been_declared = saved_has_been_declared;
+      }  /* if */
     } else if (kind == (a_type_kind)tk_enum) {
       /* An enum type definition. */
       gen_enum_definition(type);
