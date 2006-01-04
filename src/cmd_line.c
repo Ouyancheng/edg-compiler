@@ -1608,7 +1608,12 @@ by a command line option.
     /* Trigraphs should be allowed if not disabled by a command-line option. */
     trigraphs_allowed = TRUE;
   }  /* if */
-  if (!C_mode()) {
+  if (C_mode()) {
+    /* Microsoft C mode. */
+    /* Allow nonconstant expressions in aggregate initializers for automatic
+       variables. */
+    allow_nonconstant_auto_aggr_init_in_c_mode = TRUE;
+  } else {
     /* Microsoft C++ mode. */
     if (!option_kind_used[(int)optk_bool_is_keyword]) {
       /* The bool keyword is supported by Microsoft Visual C++ 5.0. */
@@ -1917,6 +1922,9 @@ Set the various flags appropriate to C99 mode.
   long_long_promotion_allowed = TRUE;
   /* Hexadecimal floating point constants are permitted. */
   hex_floating_point_constants_allowed = TRUE;
+  /* Allow nonconstant expressions in aggregate initializers for automatic
+     variables. */
+  allow_nonconstant_auto_aggr_init_in_c_mode = TRUE;
 }  /* set_c99_mode_flags */
 
 
@@ -2819,6 +2827,9 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
 #endif /* VLA_ALLOWED */
   /* The underlying type for an enum could be long long. */
   enum_types_can_be_larger_than_int = TRUE;
+  /* Allow nonconstant expressions in aggregate initializers for automatic
+     variables. */
+  allow_nonconstant_auto_aggr_init_in_c_mode = TRUE;
 }  /* check_and_set_gcc_mode_options */
 
 
@@ -5088,6 +5099,7 @@ variables declared in cmd_line.h.
                                  DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS;
   thread_local_storage_specifier_enabled =
                                 DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED;
+  allow_nonconstant_auto_aggr_init_in_c_mode = FALSE;
   /* Global variables from lang_feat.h. */
 #if SUN_EXTENSIONS_ALLOWED || defined(_lint)
   sun_mode

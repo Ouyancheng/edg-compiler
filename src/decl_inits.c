@@ -1827,10 +1827,10 @@ accepted.  The function returns a pointer to an IL a_constant entity.
     a_type_ptr  required_type = context->type;
     if (!C_mode()) {
       nonconst_allowed = TRUE;
-    } else if (c99_mode || microsoft_mode || gcc_mode) {
-      /* A C99 permits a nonconstant initializer in the aggregate
-         initialization of an automatic variable.  This is also accepted
-         by GNU and Microsoft compilers. */
+    } else if (allow_nonconstant_auto_aggr_init_in_c_mode) {
+      /* C99 permits a nonconstant initializer in the aggregate initialization
+         of an automatic variable.  This is also accepted by GNU and Microsoft
+         compilers. */
       nonconst_allowed = !init_info->static_lifetime;
     } else {
       nonconst_allowed = FALSE;

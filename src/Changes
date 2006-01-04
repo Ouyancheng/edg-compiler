@@ -1,5 +1,15 @@
 Version 3.7
 
+1/4/06   Nonconstant aggregate initializers in C mode
+
+The original ANSI/ISO C standard (C89) did not allow nonconstant expressions
+in any aggregate initializers.  C99 and many C89 dialects (including the
+default C dialects of GNU and Microsoft compilers) do however allow non-
+constant expressions in aggregate initializers for automatic variables.
+A new global variable "allow_nonconstant_auto_aggr_init_in_c_mode" now
+controls this behavior.  This is intended to facilitate customer-specific
+front end modifications to emulate C dialects not directly supported by EDG.
+
 1/4/06   Compilation condition for alloc_asm_function_body
 
 The conditional compilation directives for the header declaration of

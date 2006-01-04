@@ -1413,6 +1413,13 @@ EXTERN a_boolean
 			   to indicate that a variable should reside in thread-
 			   local storage. */
 
+EXTERN a_boolean
+		allow_nonconstant_auto_aggr_init_in_c_mode;
+			/* TRUE if aggregate initializers for C mode automatic
+			   variables can contain nonconstant expressions.
+			   This is set to TRUE in C99, GNU C, and Microsoft C
+			   modes. */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
