@@ -117,9 +117,9 @@ extern a_routine_ptr alloc_routine(void);
 
 extern an_asm_entry_ptr alloc_asm_entry(void);
 
-#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if ASM_SUPPORT_NEEDED
 extern char *alloc_asm_function_body(sizeof_t  len);
-#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ASM_SUPPORT_NEEDED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern an_ms_attribute_ptr alloc_ms_attribute(void);

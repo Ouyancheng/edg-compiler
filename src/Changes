@@ -1,5 +1,11 @@
 Version 3.7
 
+1/4/06   Compilation condition for alloc_asm_function_body
+
+The conditional compilation directives for the header declaration of
+alloc_asm_function_body (in il_alloc.h) and its definition (in il_alloc.c)
+were inconsistent (but equivalent).  They are now identical.
+
 1/3/06   C++-generating back end: friend functions and
          TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
