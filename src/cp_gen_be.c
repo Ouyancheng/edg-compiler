@@ -3521,8 +3521,7 @@ A reference is not the definition.
       /* A template instance is not declared, per se, but it should never be
          referred to by an elaborated-type-specifier. */
       type->has_been_declared = TRUE;
-    } else if (type->source_corresp.is_class_member ||
-               type->source_corresp.parent.namespace_ptr != NULL) {
+    } else if (type->source_corresp.is_class_member) {
       /* You can't use an elaborated-type-specifier for the first use of a
          member type, either (this can happen with a member of a template
          instance). */
@@ -5462,6 +5461,7 @@ this one is such a continuation.
       /* For a secondary declaration, or a primary declaration of a type
          that is never defined, generate a reference to the type instead
          of a definition. */
+      a_boolean saved_has_been_declared;
       adv_curr_source_sequence_entry();
       /* For a friend, put out the "friend" prefix. */
       if (friend_decl) write_tok_str("friend ");
@@ -5469,7 +5469,12 @@ this one is such a continuation.
         /* Don't suppress qualifiers on explicit specializations. */
         type->has_been_declared = TRUE;
       }  /* if */
+      /* Don't set type->has_been_declared for a friend declaration: it will
+         not be visible until it is really declared and so will require an
+         elaborated-type-specifier for the next reference. */
+      saved_has_been_declared = type->has_been_declared;
       gen_tag_reference(type);
+      type->has_been_declared = saved_has_been_declared;
     } else if (kind == (a_type_kind)tk_enum) {
       /* An enum type definition. */
       gen_enum_definition(type);
