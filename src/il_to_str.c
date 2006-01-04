@@ -2389,14 +2389,15 @@ Do the output in the way described by octl.
     if (constant->variant.ptr_to_member.name_reference != NULL &&
         !(constant->variant.ptr_to_member.name_reference->qualifier == NULL &&
           use_microsoft_form() && msvc_target_version_number < 1310) &&
-        octl->output_name_reference != NULL) {
-      /* Use the recorded qualifiers to reproduce a source expression for the
-         constant.  MSVC++ versions before 7.1 sometimes get confused with
-         an unqualified name in a pointer-to-member constant, so for those
-         versions we always use a qualified name, even if the source did
-         not. */
-      octl->output_name_reference(
-            constant->variant.ptr_to_member.name_reference, scp, iek_constant);
+        octl->output_name_reference != NULL &&
+        octl->output_name_reference(
+             constant->variant.ptr_to_member.name_reference, scp, iek_constant,
+             /*is_declaration=*/FALSE)) {
+      /* The name was output using the recorded qualifiers to reproduce a
+         source expression for the constant.  MSVC++ versions before 7.1
+         sometimes get confused with an unqualified name in a
+         pointer-to-member constant, so for those versions we always use a
+         qualified name, even if the source did not. */
     } else
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
     /* Do not insert code here. */

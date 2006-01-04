@@ -2590,34 +2590,59 @@ put out nothing.
 }  /* gen_name_qualifier_list */
 
 
-static void gen_name_from_name_reference(a_name_reference_ptr    nrp,
-                                         a_source_correspondence *scp,
-                                         an_il_entry_kind        entry_kind)
+static a_boolean gen_name_from_name_reference(
+                                        a_name_reference_ptr    nrp,
+                                        a_source_correspondence *scp,
+                                        an_il_entry_kind        entry_kind,
+                                        a_boolean               is_declaration)
 /*
 Generate a name reference for the entity with source correspondence
-scp and kind entry_kind using the name-reference information in *nrp.
+scp and kind entry_kind using the name-reference information in *nrp.  If
+nrp is NULL, or if the reference represents an unqualified reference to a
+class member in a non-class context, return FALSE; otherwise, return TRUE
+to indicate that the name reference was successfully emitted.
 */
 {
-  if (nrp->is_global_qualified_name) {
-    /* The name starts with a leading "::". */
-    write_tok_str("::");
-  } else if (nrp->is_super_qualified) {
-    /* The name starts with "__super::". */
-    write_tok_str("__super::");
-  }  /* if */
-  /* Output the list of qualifiers, if any. */
-  gen_name_qualifier_list(nrp->qualifier);
-  if (entry_kind == iek_routine) {
-    /* Do routine names specially because we have an indication of
-       whether to include template arguments. */
-    gen_bare_name(scp, entry_kind);
-    if (nrp->is_template_id) {
-      gen_template_arguments(scp, entry_kind);
+  a_boolean name_generated = FALSE;
+
+  if (nrp != NULL) {
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    if (nrp->qualifier == NULL && scp->is_class_member && !is_declaration &&
+        !class_is_in_name_context_stack(scp->parent.class_type,
+                                        /*include_base_classes=*/TRUE)) {
+      /* In TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS mode, friend
+         functions defined inside classes are moved outside, where names
+         from the class are no longer in scope.  For unqualified references
+         from such functions, we need to ignore the name reference
+         information and generate the reference as a qualified name. */
+    } else
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    /* Do not insert code here. */
+    {
+      name_generated = TRUE;
+      if (nrp->is_global_qualified_name) {
+        /* The name starts with a leading "::". */
+        write_tok_str("::");
+      } else if (nrp->is_super_qualified) {
+        /* The name starts with "__super::". */
+        write_tok_str("__super::");
+      }  /* if */
+      /* Output the list of qualifiers, if any. */
+      gen_name_qualifier_list(nrp->qualifier);
+      if (entry_kind == iek_routine) {
+        /* Do routine names specially because we have an indication of
+           whether to include template arguments. */
+        gen_bare_name(scp, entry_kind);
+        if (nrp->is_template_id) {
+          gen_template_arguments(scp, entry_kind);
+        }  /* if */
+      } else {
+        /* Not a routine name. */
+        gen_unqualified_name(scp, entry_kind);
+      }  /* if */
     }  /* if */
-  } else {
-    /* Not a routine name. */
-    gen_unqualified_name(scp, entry_kind);
   }  /* if */
+  return name_generated;
 }  /* gen_name_from_name_reference */
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -2641,11 +2666,10 @@ node->is_operand_of_address_of is TRUE.
     write_tok_ch('&');
   }  /* if */
 #if RECORD_FORM_OF_NAME_REFERENCE
-  if (node->name_reference != NULL) {
-    /* We have information on the exact form of reference, so use that
+  if (gen_name_from_name_reference(node->name_reference, &rout->source_corresp,
+                                   iek_routine, /*is_declaration=*/FALSE)) {
+    /* We have information on the exact form of reference and used that
        to generate the name. */
-    gen_name_from_name_reference(node->name_reference, &rout->source_corresp,
-                                 iek_routine);
   } else
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   /* Do not insert code here. */
@@ -2792,11 +2816,10 @@ enk_variable node.
   check_assertion(is_variable_node(node) || is_variable_address_node(node));
   var = node->variant.variable;
 #if RECORD_FORM_OF_NAME_REFERENCE
-  if (node->name_reference != NULL) {
-    /* We have information on the exact form of reference, so use that
+  if (gen_name_from_name_reference(node->name_reference, &var->source_corresp,
+                                   iek_variable, /*is_declaration=*/FALSE)) {
+    /* We have information on the exact form of reference and used that
        to generate the name. */
-    gen_name_from_name_reference(node->name_reference, &var->source_corresp,
-                                 iek_variable);
   } else
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   /* Do not insert code here. */
@@ -4109,8 +4132,9 @@ recorded).
     }  /* if */
     /* Write the name. */
 #if RECORD_FORM_OF_NAME_REFERENCE
-    if (name_ref != NULL) {
-      gen_name_from_name_reference(name_ref, scp, entry_kind);
+    if (gen_name_from_name_reference(name_ref, scp, entry_kind,
+                                     /*is_declaration=*/TRUE)) {
+      /* We generated the name reference in its source form. */
     } else
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
     /* Do not insert code here. */
@@ -7180,11 +7204,11 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
     gen_name(&rout->source_corresp, iek_routine, options, (a_boolean *)NULL);
   } else {
 #if RECORD_FORM_OF_NAME_REFERENCE
-    if (func_expr->name_reference != NULL) {
-      /* We have the form of the name reference in the original source: use
-         it. */
-      gen_name_from_name_reference(func_expr->name_reference,
-                                   &rout->source_corresp, iek_routine);
+    if (gen_name_from_name_reference(func_expr->name_reference,
+                                     &rout->source_corresp, iek_routine,
+                                     /*is_declaration=*/FALSE)) {
+      /* We have the form of the name reference in the original source and
+         used it to generate the name. */
     } else
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
     /* Do not insert code here. */
@@ -8747,10 +8771,11 @@ done_with_operation_after_parens:
       { a_constant_ptr constant = expr->variant.constant;
 #if RECORD_FORM_OF_NAME_REFERENCE
         if (is_enum_constant(constant) && has_name(constant) &&
-            expr->name_reference != NULL) {
-          gen_name_from_name_reference(expr->name_reference,
-                                       &constant->source_corresp,
-                                       iek_constant);
+            gen_name_from_name_reference(expr->name_reference,
+                                         &constant->source_corresp,
+                                         iek_constant,
+                                         /*is_declaration=*/FALSE)) {
+          /* We generated the name in its source form. */
         } else
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
         /* Do not insert code here. */
@@ -10206,12 +10231,12 @@ the __if_exist appears between top-level declarations of the class.
     write_tok_str((char *)(msiep->is_if_exists ? "__if_exists("
                                                : "__if_not_exists("));
 #if RECORD_FORM_OF_NAME_REFERENCE
-    if (msiep->name_reference != NULL) {
-      /* We have information on the exact form of reference, so use that
+    if (gen_name_from_name_reference(msiep->name_reference,
+                                     (a_source_correspondence*)entity,
+                                     (an_il_entry_kind)msiep->entity.kind,
+                                     /*is_declaration=*/FALSE)) {
+      /* We have information on the exact form of reference and used that
          to generate the name. */
-      gen_name_from_name_reference(msiep->name_reference,
-                                   (a_source_correspondence*)entity,
-                                   (an_il_entry_kind)msiep->entity.kind);
     } else
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
     /* Do not insert code here. */
@@ -11935,8 +11960,9 @@ declarator (or NULL if it wasn't recorded).
     }  /* if */
     /* Write the routine name. */
 #if RECORD_FORM_OF_NAME_REFERENCE
-    if (name_ref != NULL) {
-      gen_name_from_name_reference(name_ref, scp, iek_routine);
+    if (gen_name_from_name_reference(name_ref, scp, iek_routine,
+                                     /*is_declaration=*/TRUE)) {
+      /* We generated the name in source form. */
     } else
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
     /* Do not insert code here. */

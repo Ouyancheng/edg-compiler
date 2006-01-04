@@ -39,10 +39,11 @@ typedef an_output_func_declarator_function
 typedef void an_output_expression_function(an_expr_node_ptr expr);
 typedef an_output_expression_function *an_output_expression_function_ptr;
 #if RECORD_FORM_OF_NAME_REFERENCE
-typedef void an_output_name_reference_function(
-                                            a_name_reference_ptr      name_ref,
-                                            a_source_correspondence*  scp,
-                                            an_il_entry_kind          kind);
+typedef a_boolean an_output_name_reference_function(
+                                     a_name_reference_ptr      name_ref,
+                                     a_source_correspondence*  scp,
+                                     an_il_entry_kind          kind,
+                                     a_boolean                 is_declaration);
 typedef an_output_name_reference_function
                                         *an_output_name_reference_function_ptr;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -101,7 +102,10 @@ typedef struct an_il_to_str_output_control_block {
 			/* Function to output a name as described by a given
 			   name reference (which describes the qualification
 			   of the name).  NULL if name reference information
-			   should be ignored. */
+			   should be ignored.  Returns TRUE if the name was
+			   output using the supplied name_reference pointer
+			   and FALSE otherwise (if the name_reference pointer
+			   is NULL, for instance). */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   a_typedef_visibility_test_function_ptr
 	is_typedef_invisible;
