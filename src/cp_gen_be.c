@@ -12211,7 +12211,11 @@ TRUE if the declaration following this one is such a continuation.
                                               name_ref);
     /* For a specialization, put out "template<>" at the beginning. */
     gen_template_specialization_header(&rout->source_corresp,
+#if MICROSOFT_EXTENSIONS_ALLOWED
                                        rout->is_in_class_specialization,
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+                                       /*is_in_class_specialization=*/FALSE,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                        rout->template_arg_list);
   }  /* if */
   /* Determine the proper storage class to display. */
