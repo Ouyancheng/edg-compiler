@@ -1,5 +1,20 @@
 Version 3.7
 
+1/4/06   Base class with no virtual destructor
+
+In some cases, the front end issues a remark when a base class lacks a virtual
+destructor.  The criteria that determine when such a remark is issued have been
+revised.  Specifically, a remark is now issued if and only if a nondependent
+direct base class does not have a virtual destructor and one of the following
+is true:
+  - the derived class has a used-defined destructor, or
+  - a proper member of the derived class requires destruction, or
+  - another direct nondependent base class requires destruction.
+For example:
+  struct B { virtual void f(); };
+  struct D: public B { int x; };  // Previously a remark was issued for
+                                  // base class B; now this is no longer true.
+
 1/4/06   Nonconstant aggregate initializers in C mode
 
 The original ANSI/ISO C standard (C89) did not allow nonconstant expressions
