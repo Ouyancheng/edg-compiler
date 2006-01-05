@@ -2587,6 +2587,9 @@ put out nothing.
 }  /* gen_name_qualifier_list */
 
 
+#if !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+/*ARGSUSED*/ /* <-- is_declaration is not used in that case. */
+#endif /* !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 static a_boolean gen_name_from_name_reference(
                                         a_name_reference_ptr    nrp,
                                         a_source_correspondence *scp,
