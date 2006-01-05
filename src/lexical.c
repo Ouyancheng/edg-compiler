@@ -3747,7 +3747,7 @@ Try to open the source file specified by name_to_try.  file_name is
 the name to be used in an error message.  Before attempting to open the
 file, check whether an inclusion of the file should be suppressed because
 the file has already been included.  Return TRUE if the file was found (the
-file was either opened or a previously include file was found).  If the
+file was either opened or a previously included file was found).  If the
 file was opened, the file pointer is returned in new_input_file.  If the
 include is to be suppressed because the file was already included, TRUE is
 returned in suppress_include.
@@ -3757,6 +3757,7 @@ returned in suppress_include.
   a_boolean			found = FALSE;
 
   *suppress_include = FALSE;
+  *new_input_file = NULL;
   if (suppress_subsequent_include_of_file(name_to_try, &ifhp,
                                           /*create=*/FALSE)) {
     /* This include should be suppressed.  No further action is needed. */
@@ -3899,7 +3900,8 @@ is set to indicate whether or not the returned entry is a newly created one.
   isr.file_name = file_name;
   isrp_in_table = (an_include_search_result_ptr*)hash_find(
 						include_search_hash_table,
-						(void*)&isr, /*create=*/TRUE);
+						(a_void_ptr)&isr,
+                                                /*create=*/TRUE);
   isrp = *isrp_in_table;
 #if DEBUG
   if (db_flag_is_set("ssiof")) {
@@ -4114,7 +4116,7 @@ a_boolean open_file_for_input(
 		a_directory_name_entry_ptr	*dir_entry)
 /*
 Try to open file_name, and return TRUE if the file was found (the file
-was either opened or a previously include file was found).  If the
+was either opened or a previously included file was found).  If the
 file was opened, the file pointer is returned in new_input_file.  If
 the include is to be suppressed because the file was already included,
 TRUE is returned in suppress_include.  file_name must be allocated in
