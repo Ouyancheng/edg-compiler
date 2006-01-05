@@ -4271,6 +4271,7 @@ is the one associated with the definition of the enum.
   check_assertion_str(type->kind == (a_type_kind)tk_enum &&
                       type->variant.integer.enum_type,
                       "gen_enum_definition: not an enum type");
+  type->has_been_declared = TRUE;
   /* Advance past the source sequence entry for the enum itself. */
   check_for_and_take_source_seq_entry(
                                    type->source_corresp.source_sequence_entry);
@@ -4356,7 +4357,6 @@ is the one associated with the definition of the enum.
   /* Emit any attributes associated with the type. */
   (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  type->has_been_declared = TRUE;
 }  /* gen_enum_definition */
 
 
@@ -5473,7 +5473,9 @@ this one is such a continuation.
           type->variant.class_struct_union.extra_info != NULL &&
           type->variant.class_struct_union.extra_info->template_arg_list !=
                                                                         NULL) {
-        /* Don't suppress qualifiers on template instances. */
+        /* "First" declarations of template instances aren't really first
+           declarations -- mark this as already-declared so the name can be
+           generated as a qualified-id if necessary. */
         type->has_been_declared = TRUE;
       }  /* if */
       saved_has_been_declared = type->has_been_declared;
