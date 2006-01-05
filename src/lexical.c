@@ -3946,7 +3946,7 @@ suffix.  The path name of the file found is returned in name_found.
 *dir_entry is set to point to the directory name entry on the search
 path in which the file was found, or NULL if the search path was not
 used.  Return TRUE if the file was found (the file was either opened
-or a previously include file was found).  If the file was opened, the
+or a previously included file was found).  If the file was opened, the
 file pointer is returned in new_input_file.  If the include is to be
 suppressed because the file was already included, TRUE is returned in
 suppress_include.
@@ -3996,9 +3996,9 @@ suppress_include.
       prev_dir_name = dir_name;
       isrp = NULL;
       if (!is_implicit_include) {
-        /* See if we have previously searched for this file before.  This
-           is not done when looking for implicit include files because the
-           suffix list used is different in that case. */
+        /* See if we have searched for this file before.  This is not done
+           when looking for implicit include files because the suffix list
+           used is different in that case. */
         a_boolean	is_new_entry;
         isrp = find_or_create_include_search_result(dir_name, file_name,
                                                     &is_new_entry);
