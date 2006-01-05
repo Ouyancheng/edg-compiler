@@ -5469,8 +5469,10 @@ this one is such a continuation.
       adv_curr_source_sequence_entry();
       /* For a friend, put out the "friend" prefix. */
       if (friend_decl) write_tok_str("friend ");
-      if (is_specialization) {
-        /* Don't suppress qualifiers on explicit specializations. */
+      if (is_immediate_class_type(type) &&
+          type->variant.class_struct_union.extra_info->template_arg_list !=
+                                                                        NULL) {
+        /* Don't suppress qualifiers on template instances. */
         type->has_been_declared = TRUE;
       }  /* if */
       saved_has_been_declared = type->has_been_declared;
