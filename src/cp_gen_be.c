@@ -5470,6 +5470,7 @@ this one is such a continuation.
       /* For a friend, put out the "friend" prefix. */
       if (friend_decl) write_tok_str("friend ");
       if (is_immediate_class_type(type) &&
+          type->variant.class_struct_union.extra_info != NULL &&
           type->variant.class_struct_union.extra_info->template_arg_list !=
                                                                         NULL) {
         /* Don't suppress qualifiers on template instances. */
