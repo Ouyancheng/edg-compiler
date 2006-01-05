@@ -1318,16 +1318,13 @@ end of the type definition.
 
 static void skip_type_and_delay_definition(
                                     a_type_ptr                   type,
-                                    a_src_seq_secondary_decl_ptr sec_decl,
                                     a_boolean                    is_definition)
 /*
-The current source sequence entry is one for the indicated type;
-sec_decl points to the secondary declaration source sequence entry for
-the type if there is one, or is NULL if there isn't one; this is a
-definition if is_definition is TRUE.  Advance past the source
-sequence entries for the type, and, if this is a definition, set the
-definition_delayed flag in the type so it will be processed later.
-This is used to skip over a non-autonomous declaration or definition.
+The current source sequence entry is one for the indicated type; this is a
+definition if is_definition is TRUE.  Advance past the source sequence entries
+for the type, and, if this is a definition, set the definition_delayed flag in
+the type so it will be processed later.  This is used to skip over a
+non-autonomous declaration or definition.
 */
 {
   if (is_definition) {
@@ -1388,7 +1385,7 @@ but skip non-autonomous type declarations.
       /* A non-autonomous type declaration (e.g., a type declared in
          a cast in an expression).  Skip it and mark it for later
          processing. */
-      skip_type_and_delay_definition(type, sec_decl, is_definition);
+      skip_type_and_delay_definition(type, is_definition);
     } else {
       /* An implicit declaration of a function.  Ignore the source
          sequence entry. */
@@ -3637,7 +3634,7 @@ will be put out when they are encountered when generating the parameter types.
     (void)process_preprocessing_directives();
     /* A type in the function declarator.  Skip over it and mark it for later
        processing. */
-    skip_type_and_delay_definition(type, sec_decl, is_definition);
+    skip_type_and_delay_definition(type, is_definition);
   }  /* for */
 }  /* bypass_prototype_scope_type_src_seq_entries */
 
@@ -3690,7 +3687,7 @@ will be put out when they are encountered when generating the parameter types.
     } else {
       /* Skip past the source sequence entries for a type and mark the
          definition as delayed. */
-      skip_type_and_delay_definition(type, sec_decl, is_definition);
+      skip_type_and_delay_definition(type, is_definition);
     }  /* if */
   }  /* for */
 }  /* bypass_prototyped_param_src_seq_entries */
@@ -5355,7 +5352,7 @@ this one is such a continuation.
        Do not put it out at this time.  Mark it for processing when
        it is encountered while traversing the IL tree.  Note that
        anonymous unions associated with variables get this processing too. */
-    skip_type_and_delay_definition(type, sec_decl, is_definition);
+    skip_type_and_delay_definition(type, is_definition);
   } else {
     /* Set the output position. */
     set_decl_position(&type->source_corresp, sec_decl);
