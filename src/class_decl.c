@@ -10731,8 +10731,8 @@ nontrivial destructor).
           dtor_sym = symbol_supplement_for_class(bcp->type)->destructor;
           if (dtor_sym == NULL ||
               !dtor_sym->variant.routine.ptr->is_virtual) {
-            pos_ty_remark(ec_base_class_with_nonvirtual_dtor,
-                          &bcp->decl_position, bcp->type);
+            pos_sy_remark(ec_base_class_with_nonvirtual_dtor,
+                          &bcp->decl_position, symbol_for(bcp->type));
           }  /* if */
         }  /* if */
       }  /* for */
