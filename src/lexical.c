@@ -3300,7 +3300,7 @@ a character string.
     /* Convert any uppercase characters to lower for hashing purposes.  The
        actual file name comparison may or may not be case sensitive. */
     char	ch = *str;
-    if (isupper((unsigned char)ch)) ch = tolower((unsigned char)ch);
+    if (isupper((unsigned char)ch)) ch = tolower(ch);
     value = (value * 31) + value + ch;
   }  /* for */
   return value;
@@ -3916,7 +3916,7 @@ is set to indicate whether or not the returned entry is a newly created one.
     *isrp_in_table = isrp;
     /* Copy the key entry created above into the new entry. */
     *isrp = isr;
-    isrp->file_name = (char*)alloc_general(strlen(file_name) + 1);
+    isrp->file_name = (char*)alloc_general((sizeof_t)strlen(file_name) + 1);
     (void)strcpy(isrp->file_name, file_name);
     *is_new_entry = TRUE;
   }  /* if */
@@ -4085,7 +4085,8 @@ suppress_include.
     *name_found = name_to_try;
     if (isrp != NULL && isrp->result_file == NULL) {
       /* Record the name found in the include search result entry. */
-      isrp->result_file = (char*)alloc_general(strlen(name_to_try) + 1);
+      isrp->result_file =
+                       (char*)alloc_general((sizeof_t)strlen(name_to_try) + 1);
       (void)strcpy(isrp->result_file, name_to_try);
     }  /* if */
   } else {
@@ -4223,7 +4224,8 @@ a catastrophic error is not issued, FALSE is returned.
       /* Eliminate any relative components of the path name. */
       temp = normalize_file_name(buffer->buffer);
       /*  Copy the path name to IL memory. */
-      *full_file_name = alloc_primary_file_scope_il(strlen(temp) + 1);
+      *full_file_name =
+                     alloc_primary_file_scope_il((sizeof_t)(strlen(temp) + 1));
       (void)strcpy(*full_file_name, temp);
     } else {
       *full_file_name = temp_file_name;
@@ -15243,7 +15245,7 @@ are handled in lexical_init.)
   register_trans_unit_variable(curr_token_asm_string);
   register_trans_unit_variable(curr_token_sequence_number);
   include_search_hash_table = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
-					       1024,
+					       (a_hash_table_size)1024,
 					       hash_include_search_result,
 					       compare_include_search_result);
 #if DEBUG
