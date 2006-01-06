@@ -326,11 +326,12 @@ Enter the standard predeclared functions for GCC.
 
   /* We are about to create hundreds of predeclared functions.  The code is
      kept considerably more compact by using a number of macros. */
-#if defined(__STDC__) || defined(__cplusplus)
+#if defined(__STDC__) || defined(__cplusplus) || defined(__CENTERLINE) ||    \
+    (defined(_lint) && !defined(SUNOS))
 #define bfk_prefix(N) (a_builtin_function_kind)bfk_##N
 #define edg_concat(X, Y)  X##Y
 #define bfk_edg_concat(X, Y)  /* unused */
-#else /* !(defined(__STDC__) || defined(__cplusplus)) */
+#else /* !(defined(__STDC__) || defined(__cplusplus) || ...) */
   /* We cannot count on the "##" preprocessor operator being implemented.
      Use the old (and nonstandard) comment-trick to paste tokens. */
 #define bfk_prefix(N) (a_builtin_function_kind)bfk_/**/N
@@ -339,7 +340,7 @@ Enter the standard predeclared functions for GCC.
      preprocessors can lead to the form "bfk_edg_concat(...)".  Define a
      corresponding macro to perform the double concatenation in such cases. */
 #define bfk_edg_concat(X, Y)  bfk_/**/X/**/Y
-#endif /* defined(__STDC__) || defined(__cplusplus) */
+#endif /* defined(__STDC__) || defined(__cplusplus) || ... */
 #define enter_gnu_builtin_func0(name, rtp)                                   \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
                              edg_concat(rtp,_type), (a_type_ptr)NULL,        \
