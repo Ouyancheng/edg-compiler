@@ -328,12 +328,12 @@ Enter the standard predeclared functions for GCC.
      kept considerably more compact by using a number of macros. */
 #if defined(__STDC__) || defined(__cplusplus) || defined(__CENTERLINE__) ||   \
     (defined(_lint) && !defined(SUNOS))
-#define bfk_prefix(N) (a_builtin_function_kind)bfk_##N
+#define bfk_prefix(N) (a_builtin_function_kind)bfk##N
 #define edg_concat_impl(X, Y)  X##Y
 #else /* !(defined(__STDC__) || defined(__cplusplus) || ...) */
   /* We cannot count on the "##" preprocessor operator being implemented.
      Use the old (and nonstandard) comment-trick to paste tokens. */
-#define bfk_prefix(N) (a_builtin_function_kind)bfk_/**/N
+#define bfk_prefix(N) (a_builtin_function_kind)bfk/**/N
 #define edg_concat_impl(X, Y)  X/**/Y
   /* Nested invocations of the macros bfk_prefix and edg_concat with old-style
      preprocessors can lead to the form "bfk_edg_concat(...)".  Define a
@@ -427,315 +427,318 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func1(edg_concat(name,l), int, unsigned_long);
 #endif /* LONG_LONG_ALLOWED */
 
-  /* Create the functions.  */
-  enter_gnu_builtin_func0(abort, no_return);
-  enter_gnu_builtin_func1(abs, int, int);
-  enter_gnu_builtin_real_math_funcs1(acos);
-  enter_gnu_builtin_real_math_funcs1(acosh);
-  enter_gnu_builtin_func0(aggregate_incoming_address, void_star);
-  enter_gnu_builtin_func1(alloca, void_star, size_t);
-  enter_gnu_builtin_func3(apply, void_star,
+  /* Create the functions.  We arrange for the "name" argument to avoid
+     spurious warning for names that are standard macros (e.g., "isalpha";
+     the macros shouldn't get expanded because the standard macro should
+     be a function-like macro, but some tools issue warnings nonetheless). */
+  enter_gnu_builtin_func0(_abort, no_return);
+  enter_gnu_builtin_func1(_abs, int, int);
+  enter_gnu_builtin_real_math_funcs1(_acos);
+  enter_gnu_builtin_real_math_funcs1(_acosh);
+  enter_gnu_builtin_func0(_aggregate_incoming_address, void_star);
+  enter_gnu_builtin_func1(_alloca, void_star, size_t);
+  enter_gnu_builtin_func3(_apply, void_star,
                           void_star, void_star, unsigned);
-  enter_gnu_builtin_func0(apply_args, void_star);
-  enter_gnu_builtin_func1(args_info, int, int);
-  enter_gnu_builtin_real_math_funcs1(asin);
-  enter_gnu_builtin_real_math_funcs1(asinh);
-  enter_gnu_builtin_real_math_funcs1(atan);
-  enter_gnu_builtin_real_math_funcs2(atan2);
-  enter_gnu_builtin_real_math_funcs1(atanh);
-  enter_gnu_builtin_func3(bcmp, int,
+  enter_gnu_builtin_func0(_apply_args, void_star);
+  enter_gnu_builtin_func1(_args_info, int, int);
+  enter_gnu_builtin_real_math_funcs1(_asin);
+  enter_gnu_builtin_real_math_funcs1(_asinh);
+  enter_gnu_builtin_real_math_funcs1(_atan);
+  enter_gnu_builtin_real_math_funcs2(_atan2);
+  enter_gnu_builtin_real_math_funcs1(_atanh);
+  enter_gnu_builtin_func3(_bcmp, int,
                           const_void_star, const_void_star, size_t);
-  enter_gnu_builtin_func2(bzero, no_return, void_star, size_t);
-  enter_gnu_builtin_complex_math_funcs1(cabs);
-  enter_gnu_builtin_complex_math_funcs1(cacos);
-  enter_gnu_builtin_complex_math_funcs1(cacosh);
-  enter_gnu_builtin_func2(calloc, void_star, size_t, size_t);
-  enter_gnu_builtin_complex_math_funcs1(carg);
-  enter_gnu_builtin_complex_math_funcs1(casin);
-  enter_gnu_builtin_complex_math_funcs1(casinh);
-  enter_gnu_builtin_complex_math_funcs1(catan);
-  enter_gnu_builtin_complex_math_funcs1(catanh);
-  enter_gnu_builtin_real_math_funcs1(cbrt);
-  enter_gnu_builtin_complex_math_funcs1(ccos);
-  enter_gnu_builtin_complex_math_funcs1(ccosh);
-  enter_gnu_builtin_real_math_funcs1(ceil);
-  enter_gnu_builtin_complex_math_funcs1(cexp);
+  enter_gnu_builtin_func2(_bzero, no_return, void_star, size_t);
+  enter_gnu_builtin_complex_math_funcs1(_cabs);
+  enter_gnu_builtin_complex_math_funcs1(_cacos);
+  enter_gnu_builtin_complex_math_funcs1(_cacosh);
+  enter_gnu_builtin_func2(_calloc, void_star, size_t, size_t);
+  enter_gnu_builtin_complex_math_funcs1(_carg);
+  enter_gnu_builtin_complex_math_funcs1(_casin);
+  enter_gnu_builtin_complex_math_funcs1(_casinh);
+  enter_gnu_builtin_complex_math_funcs1(_catan);
+  enter_gnu_builtin_complex_math_funcs1(_catanh);
+  enter_gnu_builtin_real_math_funcs1(_cbrt);
+  enter_gnu_builtin_complex_math_funcs1(_ccos);
+  enter_gnu_builtin_complex_math_funcs1(_ccosh);
+  enter_gnu_builtin_real_math_funcs1(_ceil);
+  enter_gnu_builtin_complex_math_funcs1(_cexp);
   if (gcc_mode) {
     /* __builtin_choose_expr is a pseudo-function only available in GNU C,
        not GNU C++. */
-    enter_gnu_builtin_vararg_func0(choose_expr, int);
+    enter_gnu_builtin_vararg_func0(_choose_expr, int);
   }  /* if */
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
-  enter_gnu_builtin_func1(cimag, double, complex_double);
-  enter_gnu_builtin_func1(cimagf, floating, complex_float);
-  enter_gnu_builtin_func1(cimagl, long_double, complex_long_double);
+  enter_gnu_builtin_func1(_cimag, double, complex_double);
+  enter_gnu_builtin_func1(_cimagf, floating, complex_float);
+  enter_gnu_builtin_func1(_cimagl, long_double, complex_long_double);
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-  enter_gnu_builtin_vararg_func0(classify_type, int);  /* Pseudo-function. */
-  enter_gnu_builtin_bit_count_funcs(clz);
-  enter_gnu_builtin_complex_math_funcs1(conj);
-  enter_gnu_builtin_vararg_func0(constant_p, int);  /* Pseudo-function. */
-  enter_gnu_builtin_complex_math_funcs2(copysign);
-  enter_gnu_builtin_real_math_funcs1(cos);
-  enter_gnu_builtin_real_math_funcs1(cosh);
-  enter_gnu_builtin_complex_math_funcs2(cpow);
-  enter_gnu_builtin_complex_math_funcs1(cproj);
+  enter_gnu_builtin_vararg_func0(_classify_type, int);  /* Pseudo-function. */
+  enter_gnu_builtin_bit_count_funcs(_clz);
+  enter_gnu_builtin_complex_math_funcs1(_conj);
+  enter_gnu_builtin_vararg_func0(_constant_p, int);  /* Pseudo-function. */
+  enter_gnu_builtin_complex_math_funcs2(_copysign);
+  enter_gnu_builtin_real_math_funcs1(_cos);
+  enter_gnu_builtin_real_math_funcs1(_cosh);
+  enter_gnu_builtin_complex_math_funcs2(_cpow);
+  enter_gnu_builtin_complex_math_funcs1(_cproj);
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
-  enter_gnu_builtin_func1(creal, double, complex_double);
-  enter_gnu_builtin_func1(crealf, floating, complex_float);
-  enter_gnu_builtin_func1(creall, long_double, complex_long_double);
+  enter_gnu_builtin_func1(_creal, double, complex_double);
+  enter_gnu_builtin_func1(_crealf, floating, complex_float);
+  enter_gnu_builtin_func1(_creall, long_double, complex_long_double);
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-  enter_gnu_builtin_complex_math_funcs1(csin);
-  enter_gnu_builtin_complex_math_funcs1(csinh);
-  enter_gnu_builtin_complex_math_funcs1(csqrt);
-  enter_gnu_builtin_complex_math_funcs1(ctan);
-  enter_gnu_builtin_complex_math_funcs1(ctanh);
-  enter_gnu_builtin_bit_count_funcs(ctz);
-  enter_gnu_builtin_func3(dcgettext, char_star,
+  enter_gnu_builtin_complex_math_funcs1(_csin);
+  enter_gnu_builtin_complex_math_funcs1(_csinh);
+  enter_gnu_builtin_complex_math_funcs1(_csqrt);
+  enter_gnu_builtin_complex_math_funcs1(_ctan);
+  enter_gnu_builtin_complex_math_funcs1(_ctanh);
+  enter_gnu_builtin_bit_count_funcs(_ctz);
+  enter_gnu_builtin_func3(_dcgettext, char_star,
                           const_char_star, const_char_star, int);
-  enter_gnu_builtin_func2(dgettext, char_star,
+  enter_gnu_builtin_func2(_dgettext, char_star,
                           const_char_star, const_char_star);
-  enter_gnu_builtin_real_math_funcs2(drem);
-  enter_gnu_builtin_func0(dwarf_cfa, void_star);
-  enter_gnu_builtin_func0(dwarf_fp_regnum, unsigned);
+  enter_gnu_builtin_real_math_funcs2(_drem);
+  enter_gnu_builtin_func0(_dwarf_cfa, void_star);
+  enter_gnu_builtin_func0(_dwarf_fp_regnum, unsigned);
 #if TARG_ALL_POINTERS_SAME_SIZE
-  enter_gnu_builtin_func2(eh_return, no_return, pmode, void_star);
+  enter_gnu_builtin_func2(_eh_return, no_return, pmode, void_star);
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
-  enter_gnu_builtin_func1(eh_return_data_regno, int, int);
-  enter_gnu_builtin_real_math_funcs1(erf);
-  enter_gnu_builtin_real_math_funcs1(erfc);
-  enter_gnu_builtin_func1(exit, no_return, int);
+  enter_gnu_builtin_func1(_eh_return_data_regno, int, int);
+  enter_gnu_builtin_real_math_funcs1(_erf);
+  enter_gnu_builtin_real_math_funcs1(_erfc);
   enter_gnu_builtin_func1(_exit, no_return, int);
-  enter_gnu_builtin_func1(_Exit, no_return, int);
-  enter_gnu_builtin_real_math_funcs1(exp);
-  enter_gnu_builtin_real_math_funcs1(exp10);
-  enter_gnu_builtin_real_math_funcs1(exp2);
-  enter_gnu_builtin_func2(expect, long, long, long);
-  enter_gnu_builtin_real_math_funcs1(expm1);
-  enter_gnu_builtin_func1(extract_return_addr, void_star, void_star);
-  enter_gnu_builtin_real_math_funcs1(fabs);
-  enter_gnu_builtin_real_math_funcs2(fdim);
-  enter_gnu_builtin_bit_count_funcs(ffs);
-  enter_gnu_builtin_real_math_funcs1(floor);
-  enter_gnu_builtin_func3(fma, double, double, double, double);
-  enter_gnu_builtin_func3(fmaf, floating, floating, floating, floating);
-  enter_gnu_builtin_func3(fmal, long_double,
+  enter_gnu_builtin_func1(__exit, no_return, int);
+  enter_gnu_builtin_func1(__Exit, no_return, int);
+  enter_gnu_builtin_real_math_funcs1(_exp);
+  enter_gnu_builtin_real_math_funcs1(_exp10);
+  enter_gnu_builtin_real_math_funcs1(_exp2);
+  enter_gnu_builtin_func2(_expect, long, long, long);
+  enter_gnu_builtin_real_math_funcs1(_expm1);
+  enter_gnu_builtin_func1(_extract_return_addr, void_star, void_star);
+  enter_gnu_builtin_real_math_funcs1(_fabs);
+  enter_gnu_builtin_real_math_funcs2(_fdim);
+  enter_gnu_builtin_bit_count_funcs(_ffs);
+  enter_gnu_builtin_real_math_funcs1(_floor);
+  enter_gnu_builtin_func3(_fma, double, double, double, double);
+  enter_gnu_builtin_func3(_fmaf, floating, floating, floating, floating);
+  enter_gnu_builtin_func3(_fmal, long_double,
                           long_double, long_double, long_double);
-  enter_gnu_builtin_real_math_funcs2(fmax);
-  enter_gnu_builtin_real_math_funcs2(fmin);
-  enter_gnu_builtin_real_math_funcs2(fmod);
-  enter_gnu_builtin_vararg_func2(fprintf, int, void_star, const_char_star);
-  enter_gnu_builtin_vararg_func2(fprintf_unlocked, int,
+  enter_gnu_builtin_real_math_funcs2(_fmax);
+  enter_gnu_builtin_real_math_funcs2(_fmin);
+  enter_gnu_builtin_real_math_funcs2(_fmod);
+  enter_gnu_builtin_vararg_func2(_fprintf, int, void_star, const_char_star);
+  enter_gnu_builtin_vararg_func2(_fprintf_unlocked, int,
                                  void_star, const_char_star);
-  enter_gnu_builtin_func2(fputc, int, int, void_star);
-  enter_gnu_builtin_func2(fputc_unlocked, int, int, void_star);
-  enter_gnu_builtin_func2(fputs, int, const_char_star, void_star);
-  enter_gnu_builtin_func2(fputs_unlocked, int, const_char_star, void_star);
-  enter_gnu_builtin_func1(frame_address, void_star, unsigned);
-  enter_gnu_builtin_func2(frexp, double, double, int_star);
-  enter_gnu_builtin_func2(frexpf, floating, floating, int_star);
-  enter_gnu_builtin_func2(frexpl, long_double, long_double, int_star);
-  enter_gnu_builtin_func1(frob_return_addr, void_star, void_star);
-  enter_gnu_builtin_vararg_func2(fscanf, int, void_star, const_char_star);
-  enter_gnu_builtin_func4(fwrite, size_t,
+  enter_gnu_builtin_func2(_fputc, int, int, void_star);
+  enter_gnu_builtin_func2(_fputc_unlocked, int, int, void_star);
+  enter_gnu_builtin_func2(_fputs, int, const_char_star, void_star);
+  enter_gnu_builtin_func2(_fputs_unlocked, int, const_char_star, void_star);
+  enter_gnu_builtin_func1(_frame_address, void_star, unsigned);
+  enter_gnu_builtin_func2(_frexp, double, double, int_star);
+  enter_gnu_builtin_func2(_frexpf, floating, floating, int_star);
+  enter_gnu_builtin_func2(_frexpl, long_double, long_double, int_star);
+  enter_gnu_builtin_func1(_frob_return_addr, void_star, void_star);
+  enter_gnu_builtin_vararg_func2(_fscanf, int, void_star, const_char_star);
+  enter_gnu_builtin_func4(_fwrite, size_t,
                           const_void_star, size_t, size_t, void_star);
-  enter_gnu_builtin_func4(fwrite_unlocked, size_t,
+  enter_gnu_builtin_func4(_fwrite_unlocked, size_t,
                           const_void_star, size_t, size_t, void_star);
-  enter_gnu_builtin_real_math_funcs1(gamma);
-  enter_gnu_builtin_func1(gettext, char_star, const_char_star);
-  enter_gnu_builtin_real_math_funcs0(huge_val);
-  enter_gnu_builtin_real_math_funcs2(hypot);
-  enter_gnu_builtin_func1(ilogb, int, double);
-  enter_gnu_builtin_func1(ilogbf, int, floating);
-  enter_gnu_builtin_func1(ilogbl, int, long_double);
-  enter_gnu_builtin_func1(imaxabs, intmax, intmax);
-  enter_gnu_builtin_func2(index, char_star, const_char_star, int);
-  enter_gnu_builtin_real_math_funcs0(inf);
-  enter_gnu_builtin_func1(init_dwarf_reg_size_table, no_return, void_star);
-  enter_gnu_builtin_func1(isalnum, int, int);
-  enter_gnu_builtin_func1(isalpha, int, int);
-  enter_gnu_builtin_func1(isascii, int, int);
-  enter_gnu_builtin_func1(isblank, int, int);
-  enter_gnu_builtin_func1(iscntrl, int, int);
-  enter_gnu_builtin_func1(isdigit, int, int);
-  enter_gnu_builtin_func1(isgraph, int, int);
-  enter_gnu_builtin_vararg_func0(isgreater, int);
-  enter_gnu_builtin_vararg_func0(isgreaterequal, int);
-  enter_gnu_builtin_vararg_func0(isless, int);
-  enter_gnu_builtin_vararg_func0(islessequal, int);
-  enter_gnu_builtin_vararg_func0(islessgreater, int);
-  enter_gnu_builtin_func1(islower, int, int);
-  enter_gnu_builtin_func1(isprint, int, int);
-  enter_gnu_builtin_func1(ispunct, int, int);
-  enter_gnu_builtin_func1(isspace, int, int);
-  enter_gnu_builtin_vararg_func0(isunordered, int);
-  enter_gnu_builtin_func1(isupper, int, int);
-  enter_gnu_builtin_func1(iswalnum, int, wint_t);
-  enter_gnu_builtin_func1(iswalpha, int, wint_t);
-  enter_gnu_builtin_func1(iswblank, int, wint_t);
-  enter_gnu_builtin_func1(iswcntrl, int, wint_t);
-  enter_gnu_builtin_func1(iswdigit, int, wint_t);
-  enter_gnu_builtin_func1(iswgraph, int, wint_t);
-  enter_gnu_builtin_func1(iswlower, int, wint_t);
-  enter_gnu_builtin_func1(iswprint, int, wint_t);
-  enter_gnu_builtin_func1(iswpunct, int, wint_t);
-  enter_gnu_builtin_func1(iswspace, int, wint_t);
-  enter_gnu_builtin_func1(iswupper, int, wint_t);
-  enter_gnu_builtin_func1(iswxdigit, int, wint_t);
-  enter_gnu_builtin_func1(isxdigit, int, int);
-  enter_gnu_builtin_real_math_funcs1(j0);
-  enter_gnu_builtin_real_math_funcs1(j1);
-  enter_gnu_builtin_func2(jn, double, int, double);
-  enter_gnu_builtin_func2(jnf, floating, int, floating);
-  enter_gnu_builtin_func2(jnl, long_double, int, long_double);
-  enter_gnu_builtin_func1(labs, long, long);
-  enter_gnu_builtin_func2(ldexp, double, double, int);
-  enter_gnu_builtin_func2(ldexpf, floating, floating, int);
-  enter_gnu_builtin_func2(ldexpl, long_double, long_double, int);
-  enter_gnu_builtin_real_math_funcs1(lgamma);
+  enter_gnu_builtin_real_math_funcs1(_gamma);
+  enter_gnu_builtin_func1(_gettext, char_star, const_char_star);
+  enter_gnu_builtin_real_math_funcs0(_huge_val);
+  enter_gnu_builtin_real_math_funcs2(_hypot);
+  enter_gnu_builtin_func1(_ilogb, int, double);
+  enter_gnu_builtin_func1(_ilogbf, int, floating);
+  enter_gnu_builtin_func1(_ilogbl, int, long_double);
+  enter_gnu_builtin_func1(_imaxabs, intmax, intmax);
+  enter_gnu_builtin_func2(_index, char_star, const_char_star, int);
+  enter_gnu_builtin_real_math_funcs0(_inf);
+  enter_gnu_builtin_func1(_init_dwarf_reg_size_table, no_return, void_star);
+  enter_gnu_builtin_func1(_isalnum, int, int);
+  enter_gnu_builtin_func1(_isalpha, int, int);
+  enter_gnu_builtin_func1(_isascii, int, int);
+  enter_gnu_builtin_func1(_isblank, int, int);
+  enter_gnu_builtin_func1(_iscntrl, int, int);
+  enter_gnu_builtin_func1(_isdigit, int, int);
+  enter_gnu_builtin_func1(_isgraph, int, int);
+  enter_gnu_builtin_vararg_func0(_isgreater, int);
+  enter_gnu_builtin_vararg_func0(_isgreaterequal, int);
+  enter_gnu_builtin_vararg_func0(_isless, int);
+  enter_gnu_builtin_vararg_func0(_islessequal, int);
+  enter_gnu_builtin_vararg_func0(_islessgreater, int);
+  enter_gnu_builtin_func1(_islower, int, int);
+  enter_gnu_builtin_func1(_isprint, int, int);
+  enter_gnu_builtin_func1(_ispunct, int, int);
+  enter_gnu_builtin_func1(_isspace, int, int);
+  enter_gnu_builtin_vararg_func0(_isunordered, int);
+  enter_gnu_builtin_func1(_isupper, int, int);
+  enter_gnu_builtin_func1(_iswalnum, int, wint_t);
+  enter_gnu_builtin_func1(_iswalpha, int, wint_t);
+  enter_gnu_builtin_func1(_iswblank, int, wint_t);
+  enter_gnu_builtin_func1(_iswcntrl, int, wint_t);
+  enter_gnu_builtin_func1(_iswdigit, int, wint_t);
+  enter_gnu_builtin_func1(_iswgraph, int, wint_t);
+  enter_gnu_builtin_func1(_iswlower, int, wint_t);
+  enter_gnu_builtin_func1(_iswprint, int, wint_t);
+  enter_gnu_builtin_func1(_iswpunct, int, wint_t);
+  enter_gnu_builtin_func1(_iswspace, int, wint_t);
+  enter_gnu_builtin_func1(_iswupper, int, wint_t);
+  enter_gnu_builtin_func1(_iswxdigit, int, wint_t);
+  enter_gnu_builtin_func1(_isxdigit, int, int);
+  enter_gnu_builtin_real_math_funcs1(_j0);
+  enter_gnu_builtin_real_math_funcs1(_j1);
+  enter_gnu_builtin_func2(_jn, double, int, double);
+  enter_gnu_builtin_func2(_jnf, floating, int, floating);
+  enter_gnu_builtin_func2(_jnl, long_double, int, long_double);
+  enter_gnu_builtin_func1(_labs, long, long);
+  enter_gnu_builtin_func2(_ldexp, double, double, int);
+  enter_gnu_builtin_func2(_ldexpf, floating, floating, int);
+  enter_gnu_builtin_func2(_ldexpl, long_double, long_double, int);
+  enter_gnu_builtin_real_math_funcs1(_lgamma);
 #if LONG_LONG_ALLOWED
-  enter_gnu_builtin_func1(llabs, long_long, long_long);
-  enter_gnu_builtin_func1(llrint, long_long, double);
-  enter_gnu_builtin_func1(llrintf, long_long, floating);
-  enter_gnu_builtin_func1(llrintl, long_long, long_double);
-  enter_gnu_builtin_func1(llround, long_long, double);
-  enter_gnu_builtin_func1(llroundf, long_long, floating);
-  enter_gnu_builtin_func1(llroundl, long_long, long_double);
+  enter_gnu_builtin_func1(_llabs, long_long, long_long);
+  enter_gnu_builtin_func1(_llrint, long_long, double);
+  enter_gnu_builtin_func1(_llrintf, long_long, floating);
+  enter_gnu_builtin_func1(_llrintl, long_long, long_double);
+  enter_gnu_builtin_func1(_llround, long_long, double);
+  enter_gnu_builtin_func1(_llroundf, long_long, floating);
+  enter_gnu_builtin_func1(_llroundl, long_long, long_double);
 #endif /*  LONG_LONG_ALLOWED */
-  enter_gnu_builtin_real_math_funcs1(log);
-  enter_gnu_builtin_real_math_funcs1(log10);
-  enter_gnu_builtin_real_math_funcs1(log1p);
-  enter_gnu_builtin_real_math_funcs1(log2);
-  enter_gnu_builtin_real_math_funcs1(logb);
-  enter_gnu_builtin_func2(longjmp, no_return, void_star, int);
-  enter_gnu_builtin_func1(lrint, long, double);
-  enter_gnu_builtin_func1(lrintf, long, floating);
-  enter_gnu_builtin_func1(lrintl, long, long_double);
-  enter_gnu_builtin_func1(lround, long, double);
-  enter_gnu_builtin_func1(lroundf, long, floating);
-  enter_gnu_builtin_func1(lroundl, long, long_double);
-  enter_gnu_builtin_func1(malloc, void_star, size_t);
-  enter_gnu_builtin_func3(memcmp, int,
+  enter_gnu_builtin_real_math_funcs1(_log);
+  enter_gnu_builtin_real_math_funcs1(_log10);
+  enter_gnu_builtin_real_math_funcs1(_log1p);
+  enter_gnu_builtin_real_math_funcs1(_log2);
+  enter_gnu_builtin_real_math_funcs1(_logb);
+  enter_gnu_builtin_func2(_longjmp, no_return, void_star, int);
+  enter_gnu_builtin_func1(_lrint, long, double);
+  enter_gnu_builtin_func1(_lrintf, long, floating);
+  enter_gnu_builtin_func1(_lrintl, long, long_double);
+  enter_gnu_builtin_func1(_lround, long, double);
+  enter_gnu_builtin_func1(_lroundf, long, floating);
+  enter_gnu_builtin_func1(_lroundl, long, long_double);
+  enter_gnu_builtin_func1(_malloc, void_star, size_t);
+  enter_gnu_builtin_func3(_memcmp, int,
                           const_void_star, const_void_star, size_t);
-  enter_gnu_builtin_func3(memcpy, void_star,
+  enter_gnu_builtin_func3(_memcpy, void_star,
                           void_star, const_void_star, size_t);
-  enter_gnu_builtin_func3(mempcpy, void_star,
+  enter_gnu_builtin_func3(_mempcpy, void_star,
                           void_star, const_void_star, size_t);
-  enter_gnu_builtin_func3(memset, void_star, void_star, int, size_t);
-  enter_gnu_builtin_func2(modf, double, double, double_star);
-  enter_gnu_builtin_func2(modff, floating, floating, float_star);
-  enter_gnu_builtin_func2(modfl, long_double, long_double, long_double_star);
-  enter_gnu_builtin_func1(nan, double, const_char_star);
-  enter_gnu_builtin_func1(nanf, floating, const_char_star);
-  enter_gnu_builtin_func1(nanl, long_double, const_char_star);
-  enter_gnu_builtin_func1(nans, double, const_char_star);
-  enter_gnu_builtin_func1(nansf, floating, const_char_star);
-  enter_gnu_builtin_func1(nansl, long_double, const_char_star);
-  enter_gnu_builtin_real_math_funcs1(nearbyint);
-  enter_gnu_builtin_real_math_funcs2(nextafter);
-  enter_gnu_builtin_vararg_func0(next_arg, void_star);
-  enter_gnu_builtin_func2(nexttoward, double, double, long_double);
-  enter_gnu_builtin_func2(nexttowardf, floating, floating, long_double);
-  enter_gnu_builtin_func2(nexttowardl, long_double, long_double, long_double);
-  enter_gnu_builtin_bit_count_funcs(parity);
-  enter_gnu_builtin_bit_count_funcs(popcount);
-  enter_gnu_builtin_real_math_funcs2(pow);
-  enter_gnu_builtin_real_math_funcs1(pow10);
-  enter_gnu_builtin_func2(powi, double, double, int);
-  enter_gnu_builtin_func2(powif, floating, floating, int);
-  enter_gnu_builtin_func2(powil, long_double, long_double, int);
-  enter_gnu_builtin_vararg_func1(prefetch, no_return, const_void_star);
-  enter_gnu_builtin_vararg_func1(printf, int, const_char_star);
-  enter_gnu_builtin_vararg_func1(printf_unlocked, int, const_char_star);
-  enter_gnu_builtin_func1(putchar, int, int);
-  enter_gnu_builtin_func1(putchar_unlocked, int, int);
-  enter_gnu_builtin_func1(puts, int, const_char_star);
-  enter_gnu_builtin_func1(puts_unlocked, int, const_char_star);
-  enter_gnu_builtin_real_math_funcs2(remainder);
-  enter_gnu_builtin_func3(remquo, double, double, double, int_star);
-  enter_gnu_builtin_func3(remquof, floating, floating, floating, int_star);
-  enter_gnu_builtin_func3(remquol, long_double,
+  enter_gnu_builtin_func3(_memset, void_star, void_star, int, size_t);
+  enter_gnu_builtin_func2(_modf, double, double, double_star);
+  enter_gnu_builtin_func2(_modff, floating, floating, float_star);
+  enter_gnu_builtin_func2(_modfl, long_double, long_double, long_double_star);
+  enter_gnu_builtin_func1(_nan, double, const_char_star);
+  enter_gnu_builtin_func1(_nanf, floating, const_char_star);
+  enter_gnu_builtin_func1(_nanl, long_double, const_char_star);
+  enter_gnu_builtin_func1(_nans, double, const_char_star);
+  enter_gnu_builtin_func1(_nansf, floating, const_char_star);
+  enter_gnu_builtin_func1(_nansl, long_double, const_char_star);
+  enter_gnu_builtin_real_math_funcs1(_nearbyint);
+  enter_gnu_builtin_real_math_funcs2(_nextafter);
+  enter_gnu_builtin_vararg_func0(_next_arg, void_star);
+  enter_gnu_builtin_func2(_nexttoward, double, double, long_double);
+  enter_gnu_builtin_func2(_nexttowardf, floating, floating, long_double);
+  enter_gnu_builtin_func2(_nexttowardl, long_double, long_double, long_double);
+  enter_gnu_builtin_bit_count_funcs(_parity);
+  enter_gnu_builtin_bit_count_funcs(_popcount);
+  enter_gnu_builtin_real_math_funcs2(_pow);
+  enter_gnu_builtin_real_math_funcs1(_pow10);
+  enter_gnu_builtin_func2(_powi, double, double, int);
+  enter_gnu_builtin_func2(_powif, floating, floating, int);
+  enter_gnu_builtin_func2(_powil, long_double, long_double, int);
+  enter_gnu_builtin_vararg_func1(_prefetch, no_return, const_void_star);
+  enter_gnu_builtin_vararg_func1(_printf, int, const_char_star);
+  enter_gnu_builtin_vararg_func1(_printf_unlocked, int, const_char_star);
+  enter_gnu_builtin_func1(_putchar, int, int);
+  enter_gnu_builtin_func1(_putchar_unlocked, int, int);
+  enter_gnu_builtin_func1(_puts, int, const_char_star);
+  enter_gnu_builtin_func1(_puts_unlocked, int, const_char_star);
+  enter_gnu_builtin_real_math_funcs2(_remainder);
+  enter_gnu_builtin_func3(_remquo, double, double, double, int_star);
+  enter_gnu_builtin_func3(_remquof, floating, floating, floating, int_star);
+  enter_gnu_builtin_func3(_remquol, long_double,
                           long_double, long_double, int_star);
-  enter_gnu_builtin_func1(return, no_return, void_star);
-  enter_gnu_builtin_func1(return_address, void_star, unsigned);
-  enter_gnu_builtin_func2(rindex, char_star, const_char_star, int);
-  enter_gnu_builtin_real_math_funcs1(rint);
-  enter_gnu_builtin_real_math_funcs1(round);
-  enter_gnu_builtin_func0(saveregs, void_star);
-  enter_gnu_builtin_real_math_funcs2(scalb);
-  enter_gnu_builtin_func2(scalbln, double, double, long);
-  enter_gnu_builtin_func2(scalblnf, floating, floating, long);
-  enter_gnu_builtin_func2(scalblnl, long_double, long_double, long);
-  enter_gnu_builtin_func2(scalbn, double, double, int);
-  enter_gnu_builtin_func2(scalbnf, floating, floating, int);
-  enter_gnu_builtin_func2(scalbnl, long_double, long_double, int);
-  enter_gnu_builtin_vararg_func1(scanf, int, const_char_star);
-  enter_gnu_builtin_func1(setjmp, int, void_star);
-  enter_gnu_builtin_func1(signbit, int, double);
-  enter_gnu_builtin_func1(signbitf, int, floating);
-  enter_gnu_builtin_func1(signbitl, int, long_double);
-  enter_gnu_builtin_real_math_funcs1(significand);
-  enter_gnu_builtin_real_math_funcs1(sin);
-  enter_gnu_builtin_func3(sincos, no_return, double, double_star, double_star);
-  enter_gnu_builtin_func3(sincosf, no_return,
+  enter_gnu_builtin_func1(_return, no_return, void_star);
+  enter_gnu_builtin_func1(_return_address, void_star, unsigned);
+  enter_gnu_builtin_func2(_rindex, char_star, const_char_star, int);
+  enter_gnu_builtin_real_math_funcs1(_rint);
+  enter_gnu_builtin_real_math_funcs1(_round);
+  enter_gnu_builtin_func0(_saveregs, void_star);
+  enter_gnu_builtin_real_math_funcs2(_scalb);
+  enter_gnu_builtin_func2(_scalbln, double, double, long);
+  enter_gnu_builtin_func2(_scalblnf, floating, floating, long);
+  enter_gnu_builtin_func2(_scalblnl, long_double, long_double, long);
+  enter_gnu_builtin_func2(_scalbn, double, double, int);
+  enter_gnu_builtin_func2(_scalbnf, floating, floating, int);
+  enter_gnu_builtin_func2(_scalbnl, long_double, long_double, int);
+  enter_gnu_builtin_vararg_func1(_scanf, int, const_char_star);
+  enter_gnu_builtin_func1(_setjmp, int, void_star);
+  enter_gnu_builtin_func1(_signbit, int, double);
+  enter_gnu_builtin_func1(_signbitf, int, floating);
+  enter_gnu_builtin_func1(_signbitl, int, long_double);
+  enter_gnu_builtin_real_math_funcs1(_significand);
+  enter_gnu_builtin_real_math_funcs1(_sin);
+  enter_gnu_builtin_func3(_sincos, no_return, double, double_star, double_star);
+  enter_gnu_builtin_func3(_sincosf, no_return,
                           floating, float_star, float_star);
-  enter_gnu_builtin_func3(sincosl, no_return,
+  enter_gnu_builtin_func3(_sincosl, no_return,
                           long_double, long_double_star, long_double_star);
-  enter_gnu_builtin_real_math_funcs1(sinh);
-  enter_gnu_builtin_vararg_func3(snprintf, int,
+  enter_gnu_builtin_real_math_funcs1(_sinh);
+  enter_gnu_builtin_vararg_func3(_snprintf, int,
                                  char_star, size_t, const_char_star);
-  enter_gnu_builtin_vararg_func2(sprintf, int, char_star, const_char_star);
-  enter_gnu_builtin_real_math_funcs1(sqrt);
-  enter_gnu_builtin_vararg_func2(sscanf, int,
+  enter_gnu_builtin_vararg_func2(_sprintf, int, char_star, const_char_star);
+  enter_gnu_builtin_real_math_funcs1(_sqrt);
+  enter_gnu_builtin_vararg_func2(_sscanf, int,
                                  const_char_star, const_char_star);
-  enter_gnu_builtin_func2(stpcpy, char_star, char_star, const_char_star);
-  enter_gnu_builtin_func2(strcat, char_star, char_star, const_char_star);
-  enter_gnu_builtin_func2(strchr, char_star, const_char_star, int);
-  enter_gnu_builtin_func2(strcmp, int, const_char_star, const_char_star);
-  enter_gnu_builtin_func2(strcpy, char_star, char_star, const_char_star);
-  enter_gnu_builtin_func2(strcspn, size_t, const_char_star, const_char_star);
-  enter_gnu_builtin_func1(strdup, char_star, const_char_star);
-  enter_gnu_builtin_vararg_func3(strfmon, int,
+  enter_gnu_builtin_func2(_stpcpy, char_star, char_star, const_char_star);
+  enter_gnu_builtin_func2(_strcat, char_star, char_star, const_char_star);
+  enter_gnu_builtin_func2(_strchr, char_star, const_char_star, int);
+  enter_gnu_builtin_func2(_strcmp, int, const_char_star, const_char_star);
+  enter_gnu_builtin_func2(_strcpy, char_star, char_star, const_char_star);
+  enter_gnu_builtin_func2(_strcspn, size_t, const_char_star, const_char_star);
+  enter_gnu_builtin_func1(_strdup, char_star, const_char_star);
+  enter_gnu_builtin_vararg_func3(_strfmon, int,
                                  char_star, unsigned, const_char_star);
-  enter_gnu_builtin_func1(strlen, unsigned, const_char_star);
-  enter_gnu_builtin_func3(strncat, char_star,
+  enter_gnu_builtin_func1(_strlen, unsigned, const_char_star);
+  enter_gnu_builtin_func3(_strncat, char_star,
                           char_star, const_char_star, unsigned);
-  enter_gnu_builtin_func3(strncmp, int,
+  enter_gnu_builtin_func3(_strncmp, int,
                           const_char_star, const_char_star, unsigned);
-  enter_gnu_builtin_func3(strncpy, char_star,
+  enter_gnu_builtin_func3(_strncpy, char_star,
                           char_star, const_char_star, unsigned);
-  enter_gnu_builtin_func2(strpbrk, char_star,
+  enter_gnu_builtin_func2(_strpbrk, char_star,
                           const_char_star, const_char_star);
-  enter_gnu_builtin_func2(strrchr, char_star, const_char_star, int);
-  enter_gnu_builtin_func2(strspn, unsigned, const_char_star, const_char_star);
-  enter_gnu_builtin_func2(strstr, char_star, const_char_star, const_char_star);
-  enter_gnu_builtin_real_math_funcs1(tan);
-  enter_gnu_builtin_real_math_funcs1(tanh);
-  enter_gnu_builtin_real_math_funcs1(tgamma);
-  enter_gnu_builtin_func1(toascii, int, int);
-  enter_gnu_builtin_func1(tolower, int, int);
-  enter_gnu_builtin_func1(toupper, int, int);
-  enter_gnu_builtin_func1(towlower, wint_t, wint_t);
-  enter_gnu_builtin_func1(towupper, wint_t, wint_t);
-  enter_gnu_builtin_func0(trap, no_return);
-  enter_gnu_builtin_real_math_funcs1(trunc);
-  enter_gnu_builtin_func0(unwind_init, no_return);
-  enter_gnu_builtin_func3(vfprintf, int,
+  enter_gnu_builtin_func2(_strrchr, char_star, const_char_star, int);
+  enter_gnu_builtin_func2(_strspn, unsigned, const_char_star, const_char_star);
+  enter_gnu_builtin_func2(_strstr, char_star, const_char_star, const_char_star);
+  enter_gnu_builtin_real_math_funcs1(_tan);
+  enter_gnu_builtin_real_math_funcs1(_tanh);
+  enter_gnu_builtin_real_math_funcs1(_tgamma);
+  enter_gnu_builtin_func1(_toascii, int, int);
+  enter_gnu_builtin_func1(_tolower, int, int);
+  enter_gnu_builtin_func1(_toupper, int, int);
+  enter_gnu_builtin_func1(_towlower, wint_t, wint_t);
+  enter_gnu_builtin_func1(_towupper, wint_t, wint_t);
+  enter_gnu_builtin_func0(_trap, no_return);
+  enter_gnu_builtin_real_math_funcs1(_trunc);
+  enter_gnu_builtin_func0(_unwind_init, no_return);
+  enter_gnu_builtin_func3(_vfprintf, int,
                           void_star, const_char_star, char_star);
-  enter_gnu_builtin_func3(vfscanf, int,
+  enter_gnu_builtin_func3(_vfscanf, int,
                           void_star, const_char_star, char_star);
-  enter_gnu_builtin_func2(vprintf, int, const_char_star, char_star);
-  enter_gnu_builtin_func2(vscanf, int, const_char_star, char_star);
-  enter_gnu_builtin_func4(vsnprintf, int,
+  enter_gnu_builtin_func2(_vprintf, int, const_char_star, char_star);
+  enter_gnu_builtin_func2(_vscanf, int, const_char_star, char_star);
+  enter_gnu_builtin_func4(_vsnprintf, int,
                           char_star, unsigned, const_char_star, char_star);
-  enter_gnu_builtin_func3(vsprintf, int,
+  enter_gnu_builtin_func3(_vsprintf, int,
                           char_star, const_char_star, char_star);
-  enter_gnu_builtin_func3(vsscanf, int,
+  enter_gnu_builtin_func3(_vsscanf, int,
                           const_char_star, const_char_star, char_star);
-  enter_gnu_builtin_real_math_funcs1(y0);
-  enter_gnu_builtin_real_math_funcs1(y1);
-  enter_gnu_builtin_func2(yn, double, int, double);
-  enter_gnu_builtin_func2(ynf, floating, int, floating);
-  enter_gnu_builtin_func2(ynl, long_double, int, long_double);
+  enter_gnu_builtin_real_math_funcs1(_y0);
+  enter_gnu_builtin_real_math_funcs1(_y1);
+  enter_gnu_builtin_func2(_yn, double, int, double);
+  enter_gnu_builtin_func2(_ynf, floating, int, floating);
+  enter_gnu_builtin_func2(_ynl, long_double, int, long_double);
 
 #undef edg_concat_impl
 #undef edg_concat
