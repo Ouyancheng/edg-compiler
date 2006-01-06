@@ -39,7 +39,7 @@ definitions of friend functions are moved out of the class into namespace
 scope.  If RECORD_FORM_OF_NAME_REFERENCE is TRUE, an unqualified reference to
 a class member from an in-class definition of a friend function was maintained
 as an unqualified reference, even though the friend function is no longer in
-the lexical scope of the class.  Now fixed.  For example:
+the lexical scope of the class.  This has now been fixed.  For example:
 
   struct S {
     static int i;
@@ -47,6 +47,13 @@ the lexical scope of the class.  Now fixed.  For example:
       return i;    // Now generated as S::i when f() is moved out of S
     }
   };
+
+As part of this change, the interface of the function pointed to by the
+output_name_reference field of an_il_to_str_output_control_block has changed:
+the name_reference_ptr argument may now be NULL, an extra boolean argument
+specifies whether the name is being declared or referenced, and the routine
+now returns a boolean result indicating whether the name was actually output
+or if a default routine should be used instead.
 
 1/3/06   C++-generating back end: missing qualifier on enumerator from base
          class
