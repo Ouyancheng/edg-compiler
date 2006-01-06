@@ -2133,15 +2133,9 @@ reference, pointer, or array of pointers to such a type.
 {
   a_boolean non_cplusplus_function = FALSE;
 
-  for (;;) {
-    if (is_ptr_or_ref_type(type)) {
-      type = type_pointed_to(type);
-    } else if (is_array_type(type)) {
-      type = underlying_array_element_type(type);
-    } else {
-      break;
-    }  /* if */
-  }  /* for */
+  while (is_ptr_or_ref_type(type) || is_array_type(type)) {
+    type = underlying_type_of_derived_type(type);
+  }  /* while */
   if (type->kind == (a_type_kind)tk_routine &&
       type->variant.routine.extra_info->routine_name_linkage !=
                                  (a_name_linkage_kind)nlk_cplusplus_external) {
