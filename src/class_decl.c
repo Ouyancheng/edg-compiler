@@ -5113,6 +5113,9 @@ or struct definition.  The syntax is
       if (base_class_type->variant.class_struct_union.any_mutable_member) {
         type_ptr->variant.class_struct_union.any_mutable_member = TRUE;
       }  /* if */
+      if (base_class_type->variant.class_struct_union.has_operator_ampersand) {
+        type_ptr->variant.class_struct_union.has_operator_ampersand = TRUE;
+      }
       /* Now create the new base class entry and add it to the end of the
          base classes list. */
       new_direct_bcp = alloc_base_class();
