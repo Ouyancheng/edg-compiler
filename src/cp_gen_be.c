@@ -7633,7 +7633,7 @@ Most cases fit a simple pattern, but some require special handling.
 Precedence of the generated form of expression operators, used to determine
 whether parentheses are needed around a given expression operand.
 */
-static a_byte generated_precedence[(int)eok_last+1] = {
+static a_byte generated_precedence[] = {
   PREC_PREFIX,		/* eok_indirect */
   PREC_PREFIX,		/* eok_inegate */
 #if FIXED_POINT_ALLOWED
@@ -12788,6 +12788,13 @@ static void init_cp_gen_be(void)
 Initialize for the C++/C-generating back end.
 */
 {
+#if CHECKING
+  if (sizeof(generated_precedence) / sizeof(generated_precedence[0]) !=
+      (sizeof_t)(eok_last + 1)) {
+    internal_error(
+          "init_cp_gen_be: size of generated_precedence table is not correct");
+  }  /* if */
+#endif /* CHECKING */
   line_wrapping_disabled = 0;
   disable_line_wrapping_until_column = 0;
   f_C_output = NULL;

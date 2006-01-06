@@ -8770,7 +8770,8 @@ enum an_expr_operator_kind_tag {
   /* When the expression node kind is "enk_operation", these are the possible
      operators. */
   /* If you add operators to this list, be sure to update db_operator_names
-     in this file and disp_expr_operator_name in il_display.c. */
+     in this file, disp_expr_operator_name in il_display.c, and
+     generated_precedence in cp_gen_be.c. */
   /* Note that the left operand of assignment operators and ".",
      the function designator of a call, and the operands of
      pre/post-increment/decrement operators are addresses, since they
