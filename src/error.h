@@ -315,11 +315,11 @@ extern void pos_st_remark(an_error_code     error_code,
 extern void pos_remark(an_error_code     error_code,
                        a_source_position *error_pos);
 extern void remark(an_error_code error_code);
+#if 0
+/* These routines are not currently used by the compiler. */
 extern void pos_ty_remark(an_error_code     error_code,
                           a_source_position *error_pos,
                           struct a_type     *type);
-#if 0
-/* These routines are not currently used by the compiler. */
 extern void pos_ty2_remark(an_error_code     error_code,
                            a_source_position *error_pos,
                            struct a_type     *type1,
