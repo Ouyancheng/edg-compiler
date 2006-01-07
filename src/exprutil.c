@@ -3162,6 +3162,12 @@ user-defined conversions.
            C linkage on the function type), adjust the operand. */
         /* This also takes care of recording the cast when
            RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE. */
+        if (is_implicit_cast) {
+          /* Preserve the original value of is_operand_of_address_of so it
+             will be propagated into the expr_node created by the cast. */
+          operand->is_operand_of_address_of =
+                                         orig_operand.is_operand_of_address_of;
+        }  /* if */
         cast_operand(new_type, operand, check_cast_access,
                      is_implicit_cast,
                      is_reinterpret_cast, reinterpret_semantics);
