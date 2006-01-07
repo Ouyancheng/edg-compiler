@@ -336,9 +336,9 @@ Enter the standard predeclared functions for GCC.
 #define bfk_prefix(N) (a_builtin_function_kind)bfk/**/N
 #define edg_concat_impl(X, Y)  X/**/Y
   /* Nested invocations of the macros bfk_prefix and edg_concat with old-style
-     preprocessors can lead to the form "bfk_edg_concat(...)".  Define a
+     preprocessors can lead to the form "bfkedg_concat(...)".  Define a
      corresponding macro to perform the double concatenation in such cases. */
-#define bfk_edg_concat(X, Y)  bfk_/**/X/**/Y
+#define bfkedg_concat(X, Y)  bfk/**/X/**/Y
 #endif /* defined(__STDC__) || defined(__cplusplus) || ... */
 #define edg_concat(X, Y)  edg_concat_impl(X,Y)
 #define enter_gnu_builtin_func0(name, rtp)                                   \
@@ -743,9 +743,9 @@ Enter the standard predeclared functions for GCC.
 #undef edg_concat_impl
 #undef edg_concat
 #undef bfk_prefix
-#ifdef bfk_edg_concat
-#undef bfk_edg_concat
-#endif /* bfk_edg_concat */
+#ifdef bfkedg_concat
+#undef bfkedg_concat
+#endif /* bfkedg_concat */
 #undef enter_gnu_builtin_func0
 #undef enter_gnu_builtin_vararg_func0
 #undef enter_gnu_builtin_func1
