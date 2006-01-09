@@ -10693,7 +10693,7 @@ nontrivial destructor).
     /* Only a remark would have been issued.  Don't bother checking for a
        diagnosable condition. */
   } else if ((bcp = base_classes_of(class_type)) != NULL) {
-    /* The derived class has base classes  We issue a remark only if a base
+    /* The derived class has base classes.  We issue a remark only if a base
        does not have a virtual destructor and at least one of the following
        is true:
            - the derived class has a user-defined destructor
