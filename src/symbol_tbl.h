@@ -2203,25 +2203,6 @@ typedef struct a_namespace_symbol_supplement {
 			   symbols declared in the namespace and pointers to
 			   the last entries in linked lists of IL entries
 			   entered in the associated IL scope. */
-  a_scope_depth
-		scope_depth_at_which_using_directive_applies;
-			/* Contains the scope depth of the scope at which
-                           symbols from this namespace should be visible.
-                           This flag is set when a using directive is
-			   added to the active using list of a scope stack
-                           entry.  Contains NO_SCOPE_DEPTH if symbols from
-                           this namespace are not visible.  If a namespace
-                           is visible at more than one point, this contains
-                           the depth of the innermost scope at which it
-                           is visible. */
-  a_scope_depth
-		depth_innermost_active_using_directive;
-			/* The scope depth at which the innermost using
-			   directive for this namespace appeared.  Contains
-			   NO_SCOPE_DEPTH if there are no active using
-			   directives for this scope.  Used to optimize
-			   certain tests of whether or not a namespace is on a
-			   scopes active using list. */
   a_namespace_list_entry_ptr
 		namespace_list_entry;
 			/* A namespace list entry that points to the associated
@@ -2230,6 +2211,10 @@ typedef struct a_namespace_symbol_supplement {
 			   class symbol supplement can point to a common
 			   entry for all of the leaf classes (i.e., most
 			   base classes) in a given namespace. */
+  a_symbol_ptr	symbol;
+			/* Pointer back to the namespace symbol.  This lets
+			   you get a namespace pointer when you just have
+			   a pointer to the namespace supplement. */
   a_decl_sequence_number
 		using_dir_decl_seq;
 			/* The lowest declaration sequence number of any active
@@ -2272,6 +2257,10 @@ typedef struct an_active_using_directive {
 		next;
 			/* Next in the linked list of active using-directives
 			   associated with the current scope or namespace. */
+  an_active_using_directive_ptr
+		next_that_applies_at_depth;
+			/* Next in the linked list of entries that apply at
+			   a given scope depth. */
   a_using_decl_ptr
 		entry;
 			/* The IL entry to which this front-end only entry
@@ -2289,10 +2278,7 @@ typedef struct an_active_using_directive {
   a_scope_depth
 		scope_depth_at_which_using_directive_applies;
 			/* Contains the scope depth of the scope at which
-                           symbols from this namespace should be visible.
-                           This value is copied to the namespace symbol
-                           supplement when the active using list is
-			   processed. */
+                           symbols from this namespace should be visible. */
   a_decl_sequence_number
 		effective_decl_seq;
 			/* The declaration sequence number of the point at

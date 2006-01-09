@@ -264,8 +264,6 @@ cleared.
     /* Ignore namespace alias entries. */
     if (nsp->is_namespace_alias) continue;
     nssp = symbol_supplement_for_namespace(nsp);
-    check_assertion(nssp->scope_depth_at_which_using_directive_applies ==
-                                                               NO_SCOPE_DEPTH);
     check_using_directive_scope_info(nsp->variant.assoc_scope);
   }  /* for */
 }  /* check_using_directive_scope_info */

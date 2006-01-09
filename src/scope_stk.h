@@ -362,12 +362,6 @@ typedef struct a_scope_stack_entry {
 			   clause in a function try block.  Some special error
 			   tests are required for variables declared in such
 			   blocks. */
-  a_bit_field	using_directives_apply:1;
-			/* One or more using directives are present in this
-			   scope or a scope nested within this scope for which
-			   the symbols made visible by the using directive
-			   are to be visible when the lookup reaches this
-			   scope. */
   a_bit_field	within_unnamed_namespace:1;
 			/* TRUE if the current entry on the scope stack is
 			   itself an unnamed namespace or is a named
@@ -772,6 +766,12 @@ typedef struct a_scope_stack_entry {
 			/* Linked list of entries representing the
 			   using-directives currently active in the current
 			   scope; NULL if none. */
+  an_active_using_directive_ptr
+		using_directives_that_apply_here;
+			/* Linked list of entries representing using-directives
+			   that were declared in other scopes but apply at
+			   this scope.  This list is linked using the
+			   next_that_applies_at_depth field. */
   a_scope_depth	previous_scope;
 			/* Scope depth of the scope that logically precedes
 			   the current one.  This allows scopes on the stack

@@ -1025,6 +1025,7 @@ return a pointer to the new entry. Reuse a freed entry if possible.
   }  /* if */
   audp->entry = NULL;
   audp->next  = NULL;
+  audp->next_that_applies_at_depth = NULL;
   audp->scope_depth_at_which_using_directive_applies = NO_SCOPE_DEPTH;
   audp->namespace_supplement = NULL;
   audp->effective_decl_seq = 0;
@@ -1116,8 +1117,6 @@ using-directives specified after the point of definition of the template.
   a_symbol_ptr			 	ns_sym;
   a_scope_depth			 	new_depth;
   a_namespace_symbol_supplement_ptr	nssp;
-  a_scope_depth				curr_depth = scope_depth_of(ssep);
-  a_boolean				add_to_list = FALSE;
 
   check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_namespace);
   /* Get a pointer to the namespace to be used. */
@@ -1128,37 +1127,13 @@ using-directives specified after the point of definition of the template.
   new_depth = determine_scope_at_which_using_directive_applies(ns_sym, ssep);
   /* Determine whether this namespace is already on the active using list
      for this scope. */
-  if (curr_depth == nssp->depth_innermost_active_using_directive) {
-    /* The namespace is already on the active using list for this scope. */
-  } else if (nssp->depth_innermost_active_using_directive == NO_SCOPE_DEPTH) {
-    /* The namespace is not on any list, so we know we have to add it to this
-       one. */
-    add_to_list = TRUE;
-  } else {
-    /* We can't quickly tell whether or not the namespace is on the list
-       for this scope.  Look through the list to find out. */
-    audp = ssep->active_using_directives;
-    for (; audp != NULL; audp = audp->next) {
-      a_namespace_ptr  nsp2 = (a_namespace_ptr)audp->entry->entity.ptr;
-      if (skip_namespace_aliases(nsp2) == nsp) break;
-    }  /* for */
-    add_to_list = (audp == NULL);
-  }  /* if */
-  if (add_to_list) {
+  audp = ssep->active_using_directives;
+  for (; audp != NULL; audp = audp->next) {
+    a_namespace_ptr  nsp2 = (a_namespace_ptr)audp->entry->entity.ptr;
+    if (skip_namespace_aliases(nsp2) == nsp) break;
+  }  /* for */
+  if (audp == NULL) {
     /* Add the using directive to the active list for this scope. */
-    if (new_depth > nssp->scope_depth_at_which_using_directive_applies) {
-      /* Only set the scope depth if it is greated than the existing value.
-         When entries are added to previous scopes, we don't want to
-         reset this value. */
-      nssp->scope_depth_at_which_using_directive_applies = new_depth;
-    }  /* if */
-    /* Record the depth of the innermost scope for which this namespace
-       is on the scopes active using list.  This is done so that it
-       is possible to quickly determine whether a namespace is on the
-       active using list of the innermost scope. */
-    if (curr_depth > nssp->depth_innermost_active_using_directive) {
-      nssp->depth_innermost_active_using_directive = curr_depth;
-    }  /* if */
     audp = alloc_active_using_directive();
     audp->entry = udp;
     audp->namespace_supplement = nssp;
@@ -1166,10 +1141,22 @@ using-directives specified after the point of definition of the template.
     audp->scope_depth_at_which_using_directive_applies = new_depth;
     audp->effective_decl_seq = effective_decl_seq;
     ssep->active_using_directives = audp;
-    /* Set a flag in the scope at which this using directive applies that
-       indicates that the using directive processing must be done for
-       that scope. */
-    scope_stack[new_depth].using_directives_apply = TRUE;
+#if DEBUG
+    if (db_flag_is_set("using_dir")) {
+      fprintf(f_debug,
+              "adding using-dir at depth %d for namespace %s applies at %d",
+              (int)scope_depth_of(ssep),
+              nssp->symbol->variant.namespace_info.ptr->source_corresp.name,
+              (int)new_depth);
+      fprintf(f_debug, ", decl_seq %lu\n",
+              (unsigned long)effective_decl_seq);
+    }  /* if */
+#endif /* DEBUG */
+    /* Add the using directive to the list for scope at which this using
+       directive applies. */
+    audp->next_that_applies_at_depth =
+                       scope_stack[new_depth].using_directives_that_apply_here;
+    scope_stack[new_depth].using_directives_that_apply_here = audp;
     /* Add active using directives for the namespaces that should be
        visible because of the transitivity of using directives. */
     add_active_using_directives_for_scope(nsp->variant.assoc_scope, ssep,
@@ -1177,6 +1164,17 @@ using-directives specified after the point of definition of the template.
     /* Now that a using directive is active, inactive symbols may be
        visible. */
     scope_stack[depth_scope_stack].inactive_symbols_may_be_visible = TRUE;
+  } else {
+    /* An active using-directive entry already exists for this namespace.
+       If the effective declaration sequence number of this entry is less
+       than the existing entry, update the existing entry. */
+    if (audp->effective_decl_seq > effective_decl_seq) {
+      audp->effective_decl_seq = effective_decl_seq;
+      /* Once again go through the using-directives that should be visible
+         transitively and update their effective declaration sequence. */
+      add_active_using_directives_for_scope(nsp->variant.assoc_scope, ssep,
+                                            effective_decl_seq);
+    }  /* if */
   }  /* if */
 }  /* add_active_using_directive_to_scope */
 
@@ -1512,14 +1510,22 @@ This is used during template instantiations to ignore using-directives
 specified after the point of definition of the template.
 */
 {
-  a_scope_stack_entry_ptr	ssep = &scope_stack[starting_depth];
+  a_scope_stack_entry_ptr	ssep;
+
+  if (set_value) {
+    /* Clear the list of using-directives that apply for each scope.  This
+       is done to permit this routine to be called more than once. */
+    for (ssep = &scope_stack[starting_depth]; ssep != NULL;
+         ssep = previous_scope_of(ssep)) {
+      ssep->using_directives_that_apply_here = NULL;
+    }  /* for */
+  }  /* if */
   /* Go through the list of scopes.  When setting the flags, use the
      list of scopes linked by the previous scope pointer.  When clearing
      the flags, consider all scopes. */
-  for (; ssep != NULL;
+  for (ssep = &scope_stack[starting_depth]; ssep != NULL;
        ssep = set_value ? previous_scope_of(ssep) :
                           (ssep == &scope_stack[0] ? NULL : ssep - 1)) {
-    a_scope_depth			curr_depth = scope_depth_of(ssep);
     an_active_using_directive_ptr	audp = ssep->active_using_directives;
     /* Set the flag for any active using directives for this scope. */
     for (; audp != NULL; audp = audp->next) {
@@ -1546,16 +1552,8 @@ specified after the point of definition of the template.
       nssp = audp->namespace_supplement;
       if (set_value) {
         new_depth = audp->scope_depth_at_which_using_directive_applies;
-        if (new_depth > nssp->scope_depth_at_which_using_directive_applies) {
-          /* If there are using-directives for this namespace at several
-             scope levels, leave this at the innermost (the previous
-             value will be NO_SCOPE_DEPTH when processing the innermost
-             level). */
-          nssp->scope_depth_at_which_using_directive_applies = new_depth;
-        }  /* if */
       } else {
         new_depth = NO_SCOPE_DEPTH;
-        nssp->scope_depth_at_which_using_directive_applies = NO_SCOPE_DEPTH;
       }  /* if */
 #if DEBUG
       if (db_flag_is_set("using_dir")) {
@@ -1563,7 +1561,7 @@ specified after the point of definition of the template.
                 "%s using-dir at depth %d for namespace %s applies at %d",
                 set_value ? "setting" : "clearing",
                 (int)scope_depth_of(ssep),
-                nssp->namespace_list_entry->ptr->source_corresp.name,
+                nssp->symbol->variant.namespace_info.ptr->source_corresp.name,
                 (int)new_depth);
         fprintf(f_debug, ", decl_seq %lu\n",
                 (unsigned long)effective_decl_seq);
@@ -1573,9 +1571,6 @@ specified after the point of definition of the template.
          this namespace.  If we are clearing the flags, reset this depth
          to NO_SCOPE_DEPTH. */
       if (set_value) {
-        if (curr_depth > nssp->depth_innermost_active_using_directive) {
-          nssp->depth_innermost_active_using_directive = curr_depth;
-        }  /* if */
         /* Record the lowest declaration sequence number associated with
            this using-directive.  This is used to emulate the instantiation
            lookup used by g++. */
@@ -1583,17 +1578,19 @@ specified after the point of definition of the template.
             audp->effective_decl_seq < nssp->using_dir_decl_seq) {
           nssp->using_dir_decl_seq = audp->effective_decl_seq;
         }  /* if */
-        /* Set the flag in the scope entry for which this using directive
-           applies. */
-        scope_stack[new_depth].using_directives_apply = TRUE;
+        /* Add the using directive to the list for scope at which this using
+           directive applies. */
+        audp->next_that_applies_at_depth =
+                       scope_stack[new_depth].using_directives_that_apply_here;
+        scope_stack[new_depth].using_directives_that_apply_here = audp;
       } else {
-        nssp->depth_innermost_active_using_directive = NO_SCOPE_DEPTH;
+        nssp->using_dir_decl_seq = NO_DECL_SEQUENCE_NUMBER;
       }  /* if */
     }  /* for */
-    /* If we are clearing the flags, clear the flag for this scope that
-       indicates that there are using directives that must be processed
-       when this scope is reached. */
-    if (!set_value) ssep->using_directives_apply = FALSE;
+    /* If we are clearing the flags, clear the list for this scope that
+       indicates the using directives that must be processed when this
+       scope is reached. */
+    if (!set_value) ssep->using_directives_that_apply_here = NULL;
   }  /* for */
 }  /* set_active_using_list_scope_depths */
 
@@ -1872,7 +1869,6 @@ the scope being pushed.
   ssep->is_try_block             = FALSE;
   ssep->within_try_block         = FALSE;
   ssep->is_catch_in_function_try = FALSE;
-  ssep->using_directives_apply   = FALSE;
   ssep->within_unnamed_namespace = FALSE;
   ssep->reactivated_class_being_defined = FALSE;
   ssep->is_for_init_block        = FALSE;
@@ -1966,6 +1962,7 @@ the scope being pushed.
   ssep->num_of_extra_times_pushed = 0;;
   ssep->number_of_local_classes   = 0;
   ssep->active_using_directives   = NULL;
+  ssep->using_directives_that_apply_here = NULL;
   ssep->previous_scope            = NO_SCOPE_DEPTH;
   ssep->instantiation_context_depth = NO_SCOPE_DEPTH;
   ssep->instantiation_common_depth = NO_SCOPE_DEPTH;

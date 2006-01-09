@@ -1942,10 +1942,12 @@ of the lookup is returned to the caller.
     a_namespace_ptr		nsp;
     a_symbol_ptr		ns_sym;
     a_symbol_ptr		fund_sym;
-    a_scope_depth		ns_depth;
     a_boolean			any_errors = FALSE;
     a_namespace_symbol_supplement_ptr
 				nssp;
+    an_active_using_directive_ptr
+				audp;
+    a_boolean			visible = FALSE;
     /* Ignore symbols that are not namespace members. */
     if (new_sym->is_class_member) continue;
     nsp = new_sym->parent.namespace_ptr;
@@ -1956,23 +1958,33 @@ of the lookup is returned to the caller.
                               /*invisible_okay=*/FALSE)) {
       continue;
     }  /* if */
-    /* The namespace symbol supplement contains the scope depth at which
-       symbols from a given namespace should be visible.  See if the scope
-       depth for this namespace matches the scope pointed to by ssep. */
     nsp = skip_namespace_aliases(nsp);
     ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
     nssp = ns_sym->variant.namespace_info.extra_info;
-    ns_depth = nssp->scope_depth_at_which_using_directive_applies;
-    /* In normal mode, only the scope stack test is needed.  When doing g++
-       dependent name lookup, all function symbols are visible (regardless of
-       declaration sequence number) but non-function symbols are visible only
-       if the using-directive was visible at the point of definition of the
-       template. */
-    if (&scope_stack[ns_depth] == ssep &&
-        (!gpp_using_directive_lookup ||
-         (is_function_or_template_symbol(new_sym) ||
-          (nssp->using_dir_decl_seq <= lookup_state->using_dir_decl_seq ||
-           lookup_state->using_dir_decl_seq == NO_DECL_SEQUENCE_NUMBER)))) {
+    if (gpp_using_directive_lookup) {
+      /* In normal mode, only a namespace test is needed.  When doing g++
+         dependent name lookup, all function symbols are visible (regardless of
+         declaration sequence number) but non-function symbols are visible only
+         if a using-directive was visible at the point of definition of the
+         template.  The using_dir_decl_seq field of the namespace is used
+         to determine the visibility of using-directives in g++ mode. */
+      if (!(is_function_or_template_symbol(new_sym) ||
+           (nssp->using_dir_decl_seq <= lookup_state->using_dir_decl_seq ||
+            lookup_state->using_dir_decl_seq == NO_DECL_SEQUENCE_NUMBER))) {
+        /* This is a symbol that should be ignored in g++ mode. */
+        continue;
+      }  /* if */
+    }  /* if */
+    /* Loop through the using-directives that apply at this scope to see if
+       any of them nominate the namespace of this symbol. */
+    for (audp = ssep->using_directives_that_apply_here;
+         audp != NULL; audp = audp->next_that_applies_at_depth) {
+      if (nssp == audp->namespace_supplement) {
+        visible = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+    if (visible) {
       if (synth_sym == NULL) {
         /* Look for a previous synthesized namespace projection symbol
            for this scope. */
@@ -2089,7 +2101,7 @@ lookup processing.
        any symbols that are visible because of using directives. */
     if ((kind == (a_scope_kind)sck_file ||
         kind == (a_scope_kind)sck_namespace) &&
-        ssep->using_directives_apply &&
+        ssep->using_directives_that_apply_here != NULL &&
         !lookup_state->is_linkage_lookup &&
         (!lookup_state->is_friend_lookup ||
          friend_class_decl_can_find_using_dir)) {
@@ -2223,7 +2235,7 @@ that do normal id lookup processing.
         if ((kind == (a_scope_kind)sck_namespace_extension ||
              kind == (a_scope_kind)sck_namespace_reactivation ||
              kind == (a_scope_kind)sck_file) &&
-            ssep->using_directives_apply &&
+            ssep->using_directives_that_apply_here != NULL &&
             !lookup_state->is_linkage_lookup &&
             (!lookup_state->is_friend_lookup ||
              friend_class_decl_can_find_using_dir)) {

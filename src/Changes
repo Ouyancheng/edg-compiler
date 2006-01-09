@@ -1,5 +1,34 @@
 Version 3.7
 
+1/9/06   using-directive not considered in certain instantiations
+
+A change made in version 3.6 could cause a namespace made visible by a
+using-directive to be ignored during certain lookups involving template
+instantiations.  This problem would only occur under a rare combination
+of circumstances involving the instantiation of a template in a namespace
+containing a using-directive that nominates a namespace also made visible
+by a using-directive in another namespace, and when those using-directives
+are applied for lookup purposes in different scopes.  Now fixed.
+
+  namespace N {
+    namespace NI {
+      template <class T> struct B { typedef int I; };
+    }
+  }
+
+  namespace M {
+    using namespace N::NI;
+  }
+  using namespace M;
+
+  namespace M {
+    template <class T> struct C {
+        typedef typename B<T>::I  I;  // spurious "B" is not a template
+    };
+    template <class T> struct D : C<T> { };
+  }
+  namespace N {  D<int> rh; }
+
 1/4/06   Base class with no virtual destructor
 
 In some cases, the front end issues a remark when a base class lacks a virtual
