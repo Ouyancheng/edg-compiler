@@ -154,6 +154,19 @@ static a_class_fixup_ptr
 		inline_function_class_fixup_list_tail;
 			/* End of the inline_function_class_fixup_list. */
 
+static a_routine_fixup_ptr
+		deferred_friend_fixup_list;
+			/* A list of routine fixups for deferred friend
+			   function fixups that should be performed at the
+			   end of the translation unit.  Usually such fixups
+			   are done when the routine is first referenced,
+			   but in some modes they are done at the end of
+			   the translation unit. */
+
+static a_routine_fixup_ptr
+		deferred_friend_fixup_list_tail;
+			/* The end of the deferred_friend_fixup_list. */
+
 /* The routine fixup entry for the current class member declaration. */
 static a_routine_fixup_ptr curr_routine_fixup;
 
@@ -1214,16 +1227,19 @@ routine fixup entry for the definition to be deferred.
 */
 {
   rfp->symbol->variant.routine.ptr->routine_fixup = rfp;
+  rfp->next = NULL;
 }  /* defer_routine_fixup_until_use */
 
 
-void deferred_friend_function_fixup(a_routine_fixup_ptr	rfp)
+static void deferred_friend_function_fixup(a_routine_fixup_ptr	rfp)
 /*
-When deferring the fixup of friend functions, called when a friend
-function defined in a class template is first used.  Does the fixup on
-the friend function that is otherwise done when the enclosing class is
-instantiated.  This routine is also used for Microsoft in-class member
-function template specializations.
+Does the fixup on the friend function that is otherwise done when the
+enclosing class is instantiated.  This routine is also used for Microsoft
+in-class member function template specializations.  Normally, the fixup
+of such routines is deferred until the first use of the routine.  But in
+some modes the fixup is further postponed until the end of the translation
+unit.  This routine is called by add_to_defered_friend_fixup_list in
+the former case and by process_deferred_friend_fixup list in the latter.
 */
 {
   a_routine_ptr                rp = rfp->symbol->variant.routine.ptr;
@@ -1331,6 +1347,52 @@ function template specializations.
   }  /* if */
   db_exit();
 }  /* deferred_friend_function_fixup */
+
+
+void add_to_deferred_friend_function_fixup_list(a_routine_fixup_ptr	rfp)
+/*
+When deferring the fixup of friend functions, this routine is called when
+a friend function defined in a class template is first used.  This either
+does the fixup of the routine or adds it to a list of fixups to be done at
+the end of the translation unit.  This routine is also used for Microsoft
+in-class member function template specializations.
+*/
+{
+  /* use_deferred_friend_fixup_list is TRUE in some modes when the deferred
+     fixup of friend functions should be postponed until the end of the
+     translation unit.  In such modes, the flag is cleared once the fixups
+     have begun so that any additional fixups that are needed will be done
+     when this routine is called. */
+  if (use_deferred_friend_fixup_list) {
+    if (deferred_friend_fixup_list == NULL) deferred_friend_fixup_list = rfp;
+    if (deferred_friend_fixup_list_tail != NULL) {
+      deferred_friend_fixup_list_tail->next = rfp;
+    }  /* if */
+    deferred_friend_fixup_list_tail = rfp;
+  } else {
+    deferred_friend_function_fixup(rfp);
+  }  /* if */
+}  /* add_to_deferred_friend_function_fixup_list */
+
+
+void process_deferred_friend_fixup_list(void)
+/*
+Do the fixup for any entries on the deferred friend function fixup list.
+*/
+{
+  a_routine_fixup_ptr	rfp;
+
+  for (rfp = deferred_friend_fixup_list; rfp != NULL; rfp = rfp->next) {
+    deferred_friend_function_fixup(rfp);
+  }  /* for */
+  /* Don't use the list for any additional friend fixups that may be
+     needed. */
+  use_deferred_friend_fixup_list = FALSE;
+  /* Clear the list pointers so that this routine can harmlessly be called
+     again. */
+  deferred_friend_fixup_list = NULL;
+  deferred_friend_fixup_list_tail = NULL;
+}  /* process_deferred_friend_fixup_list */
 
 
 static void inline_function_fixup_for_class(a_type_ptr  class_type,
@@ -14904,6 +14966,9 @@ One-time initialization for class_decl.c static variables.
       pch_saved_var_array_elem(avail_class_fixup),
       pch_saved_var_array_elem(avail_derivation_steps),
       pch_saved_var_array_elem(avail_override_registry_entries),
+      pch_saved_var_array_elem(deferred_friend_fixup_list),
+      pch_saved_var_array_elem(deferred_friend_fixup_list_tail),
+      pch_saved_var_array_elem(use_deferred_friend_fixup_list),
 #if DEBUG
       pch_saved_var_array_elem(num_routine_fixups_allocated),
       pch_saved_var_array_elem(num_class_fixups_allocated),
@@ -14914,8 +14979,11 @@ One-time initialization for class_decl.c static variables.
   }  /* if */
   /* Global variables in class_decl.h. */
   register_trans_unit_variable(pending_class_definitions);
+  register_trans_unit_variable(deferred_friend_fixup_list);
+  register_trans_unit_variable(deferred_friend_fixup_list_tail);
   /* Static variables in class_decl.c. */
   register_trans_unit_variable(avail_derivation_steps);
+  register_trans_unit_variable(use_deferred_friend_fixup_list);
 }  /* class_decl_one_time_init */
 
 
@@ -14934,6 +15002,13 @@ translation unit.
   def_arg_class_fixup_list_tail = NULL;
   inline_function_class_fixup_list = NULL;
   inline_function_class_fixup_list_tail = NULL;
+  /* g++ (prior to 3.4) and the Microsoft compiler do not evaluate friend
+     functions of template classes until the end of the translation unit, and
+     then only if they are referenced. */
+  use_deferred_friend_fixup_list = (gpp_mode && gnu_version < 30400) ||
+                                    microsoft_mode;
+  deferred_friend_fixup_list = NULL;
+  deferred_friend_fixup_list_tail = NULL;
 }  /* class_decl_trans_unit_init */
 
 

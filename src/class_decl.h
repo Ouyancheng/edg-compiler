@@ -169,7 +169,10 @@ extern void define_type_info_pragma(a_pending_pragma_ptr    ppp,
 				    a_symbol_ptr            sym,
 				    a_statement_ptr         stmt);
 
-extern void deferred_friend_function_fixup(a_routine_fixup_ptr	rfp);
+extern void add_to_deferred_friend_function_fixup_list(
+						a_routine_fixup_ptr	rfp);
+
+extern void process_deferred_friend_fixup_list(void);
 
 typedef unsigned long a_pending_class_definition_count;
 
@@ -178,6 +181,13 @@ EXTERN a_pending_class_definition_count
 			/* The number of class definitions currently in
 			   process.  This includes normal class definitions
 			   and template class instantiations. */
+
+EXTERN a_boolean
+		use_deferred_friend_fixup_list;
+			/* TRUE if deferred friend fixups should be done at
+			   the end of the translation unit instead of at the
+			   point at which the friend function is first
+			   referenced. */
 
 /*
 Macro to consume and ignore certain right parentheses in declarations.  This

@@ -14240,7 +14240,7 @@ forced only if instantiate is TRUE.
      treatment is also extended to Microsoft mode specializations that are
      defined within a class. */
   if (routine->routine_fixup != NULL) {
-    deferred_friend_function_fixup(routine->routine_fixup);
+    add_to_deferred_friend_function_fixup_list(routine->routine_fixup);
   }  /* if */
   if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Do not instantiate things referenced from prototype instantiations. */

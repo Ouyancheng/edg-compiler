@@ -1,5 +1,25 @@
 Version 3.7
 
+1/9/06   Microsoft and GNU C++ compatibility: analysis of friends of class
+         templates
+
+A friend function of a class template is treated much like a template
+function.  The body of the function does not undergo semantic analysis
+unless the function is used.  In Microsoft mode, and in g++ mode (when
+gnu_version is < 30400) the analysis is now deferred until the end of
+the translation unit instead of occurring at the point of first use.
+This causes examples like the one below to be accepted because g() is
+now visible when the semantic analysis is done.
+
+  template <class T> struct A {
+    friend void f(A const &) { g(); }
+  };
+  int main() {
+    A<int> a;
+    f(a);
+  }
+  void g(){}
+
 1/9/06   using-directive not considered in certain instantiations
 
 A change made in version 3.6 could cause a namespace made visible by a

@@ -19834,6 +19834,9 @@ translation unit.
       /* Go through the classes in the file scope and each namespace scope
          and generate bodies for virtual destructors, as required. */
       generate_required_virtual_destructor_bodies(il_header.primary_scope);
+      /* Process any deferred friend fixups that may have been postponed
+         until the end of the translation unit. */
+      process_deferred_friend_fixup_list();
       /* Determine which extern inline functions should have bodies emitted
          as part of this translation unit. */
       inline_function_wrapup();
