@@ -260,10 +260,8 @@ cleared.
   a_namespace_ptr	nsp;
 
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
-    a_namespace_symbol_supplement_ptr	nssp;
     /* Ignore namespace alias entries. */
     if (nsp->is_namespace_alias) continue;
-    nssp = symbol_supplement_for_namespace(nsp);
     check_using_directive_scope_info(nsp->variant.assoc_scope);
   }  /* for */
 }  /* check_using_directive_scope_info */
