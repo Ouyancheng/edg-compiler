@@ -7066,7 +7066,7 @@ command line -D options.
       if (stdc_zero_in_system_headers) {
         stdc_string = NULL;
       } else {
-        stdc_string = stdc_value ? "1" : "0";
+        stdc_string = (char*)(stdc_value ? "1" : "0");
       }  /* if */
       sym =  enter_predef_macro(stdc_string, "__STDC__",
                                 stdc_cannot_be_redefined,
