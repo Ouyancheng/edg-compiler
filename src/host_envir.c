@@ -757,8 +757,8 @@ memory region.
     /* No directory name, use "" meaning the current directory. */
     dir_name_length = 0;
   } else {
-    /* There is a directory name.  Save its length. */
-    dir_name_length = last_slash - file_name;
+    /* There is a directory name.  Save its length including punctuation. */
+    dir_name_length = last_slash - file_name + 1;
   }  /* if */
   /* Look for an existing name on the list that can be reused. */
   /* We assume that a compilation is not going to use a large number of
