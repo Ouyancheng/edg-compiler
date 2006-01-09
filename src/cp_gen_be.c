@@ -7779,7 +7779,7 @@ static a_byte generated_precedence[] = {
   PREC_MULT_DIV,	/* eok_remainder */
   PREC_PLUS_MINUS,	/* eok_padd_subsc (NOTE: this operator is sometimes
                            generated as a[b], sometimes as a+b, hence the
-                           PREC_PLUS_MINUS */
+                           PREC_PLUS_MINUS) */
   PREC_PLUS_MINUS,	/* eok_pdiff */
   PREC_EQ_NE,		/* eok_peq */
   PREC_EQ_NE,		/* eok_pne */
@@ -12794,13 +12794,10 @@ static void init_cp_gen_be(void)
 Initialize for the C++/C-generating back end.
 */
 {
-#if CHECKING
-  if (sizeof(generated_precedence) / sizeof(generated_precedence[0]) !=
-      (sizeof_t)(eok_last + 1)) {
-    internal_error(
+  check_assertion_str(
+          sizeof(generated_precedence) / sizeof(generated_precedence[0]) ==
+                                                      ((sizeof_t)eok_last + 1),
           "init_cp_gen_be: size of generated_precedence table is not correct");
-  }  /* if */
-#endif /* CHECKING */
   line_wrapping_disabled = 0;
   disable_line_wrapping_until_column = 0;
   f_C_output = NULL;
