@@ -7619,13 +7619,14 @@ Most cases fit a simple pattern, but some require special handling.
 }  /* gen_builtin_operation */
 
 
-#define PREC_ID PREC_POSTFIX+1
-			/* Precedence of an id-expression (not used in the
-			   front end). */
-
 /*
 Precedence of the generated form of expression operators, used to determine
-whether parentheses are needed around a given expression operand.
+whether parentheses are needed around a given expression operand.  If you add
+operators to this list and are uncertain about the precedence to use, it is
+always safe to use PREC_LOWEST, which effectively results in use of
+gen_expr_with_parens to generate the expression containing the operator.  If
+a given operator may be generated in different forms, this table should
+reflect the one with the lowest precedence.
 */
 static a_byte generated_precedence[] = {
   PREC_PREFIX,		/* eok_indirect */
@@ -7636,7 +7637,9 @@ static a_byte generated_precedence[] = {
   PREC_PREFIX,		/* eok_fnegate */
   PREC_PREFIX,		/* eok_unary_plus */
   PREC_PREFIX,		/* eok_not */
-  PREC_CAST,		/* eok_cast */
+  PREC_CAST,		/* eok_cast (NOTE: cases where the cast is not
+                           generated are filtered out by
+                           parens_may_be_needed) */
 #ifdef CIL
   PREC_CAST,		/* eok_base_class_cast */
   PREC_CAST,		/* eok_derived_class_cast */
@@ -7664,7 +7667,11 @@ static a_byte generated_precedence[] = {
   PREC_POSTFIX,		/* eok_ppost_decr */
   PREC_PREFIX,		/* eok_ppre_incr */
   PREC_PREFIX,		/* eok_ppre_decr */
-  PREC_LOWEST,		/* eok_lvalue_from_struct_rvalue */
+  PREC_LOWEST,		/* eok_lvalue_from_struct_rvalue (NOTE: the
+                           generated code for this operator just copies the
+                           operand up, so we don't know anything about how
+                           it might actually be generated, hence the
+                           PREC_LOWEST) */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   PREC_POSTFIX,		/* eok_assume */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7747,8 +7754,10 @@ static a_byte generated_precedence[] = {
   PREC_PREFIX,		/* eok_xconj */
   PREC_POSTFIX,		/* eok_real_part */
   PREC_POSTFIX,		/* eok_imag_part */
-  PREC_POSTFIX,		/* eok_lvalue_real_part */
-  PREC_POSTFIX,		/* eok_lvalue_imag_part */
+  PREC_PREFIX,		/* eok_lvalue_real_part (NOTE: this operator and the
+                           next are sometimes generated with an &, hence the
+                           PREC_PREFIX) */
+  PREC_PREFIX,		/* eok_lvalue_imag_part */
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #ifdef FIL
   PREC_LOWEST,		/* eok_complex */
@@ -7768,7 +7777,9 @@ static a_byte generated_precedence[] = {
 #endif /* FIL */
 #ifdef CIL
   PREC_MULT_DIV,	/* eok_remainder */
-  PREC_POSTFIX,		/* eok_padd_subsc */
+  PREC_PLUS_MINUS,	/* eok_padd_subsc (NOTE: this operator is sometimes
+                           generated as a[b], sometimes as a+b, hence the
+                           PREC_PLUS_MINUS */
   PREC_PLUS_MINUS,	/* eok_pdiff */
   PREC_EQ_NE,		/* eok_peq */
   PREC_EQ_NE,		/* eok_pne */
@@ -7808,22 +7819,23 @@ static a_byte generated_precedence[] = {
   PREC_ASSIGNMENT,	/* eok_or_assign */
   PREC_ASSIGNMENT,	/* eok_xor_assign */
   PREC_POSTFIX,		/* eok_subscript */
-  PREC_PREFIX,		/* eok_field */
-  PREC_ID,		/* eok_value_field */
-  PREC_ID,		/* eok_bit_field */
-  PREC_ID,		/* eok_value_bit_field */
-  PREC_ID,		/* eok_extract_bit_field */
+  PREC_PREFIX,		/* eok_field (NOTE: eok_field is sometimes generated
+                           using &, hence the PREC_PREFIX) */
+  PREC_POSTFIX,		/* eok_value_field */
+  PREC_POSTFIX,		/* eok_bit_field */
+  PREC_POSTFIX,		/* eok_value_bit_field */
+  PREC_POSTFIX,		/* eok_extract_bit_field */
   PREC_PTR_TO_MEMBER,	/* eok_pm_field */
-  PREC_ID,		/* eok_points_to_static */
-  PREC_ID,		/* eok_lvalue_dot_static */
-  PREC_ID,		/* eok_rvalue_dot_static */
+  PREC_POSTFIX,		/* eok_points_to_static */
+  PREC_POSTFIX,		/* eok_lvalue_dot_static */
+  PREC_POSTFIX,		/* eok_rvalue_dot_static */
   PREC_SHIFT,		/* eok_shiftl */
   PREC_SHIFT,		/* eok_shiftr */
   PREC_AND,		/* eok_and */
   PREC_OR,		/* eok_or */
   PREC_EXCL_OR,		/* eok_xor */
   PREC_COMMA,		/* eok_comma */
-  PREC_ID,		/* eok_virtual_function_ptr */
+  PREC_POSTFIX,		/* eok_virtual_function_ptr */
   PREC_POSTFIX,		/* eok_vacuous_destructor_call */
   PREC_POSTFIX,		/* eok_value_vacuous_destructor_call */
 #endif /* CIL */
