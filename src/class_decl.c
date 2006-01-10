@@ -154,6 +154,13 @@ static a_class_fixup_ptr
 		inline_function_class_fixup_list_tail;
 			/* End of the inline_function_class_fixup_list. */
 
+static a_boolean
+		use_deferred_friend_fixup_list;
+			/* TRUE if deferred friend fixups should be done at
+			   the end of the translation unit instead of at the
+			   point at which the friend function is first
+			   referenced. */
+
 static a_routine_fixup_ptr
 		deferred_friend_fixup_list;
 			/* A list of routine fixups for deferred friend
@@ -1234,12 +1241,12 @@ routine fixup entry for the definition to be deferred.
 static void deferred_friend_function_fixup(a_routine_fixup_ptr	rfp)
 /*
 Does the fixup on the friend function that is otherwise done when the
-enclosing class is instantiated.  This routine is also used for Microsoft
-in-class member function template specializations.  Normally, the fixup
-of such routines is deferred until the first use of the routine.  But in
-some modes the fixup is further postponed until the end of the translation
-unit.  This routine is called by add_to_defered_friend_fixup_list in
-the former case and by process_deferred_friend_fixup list in the latter.
+enclosing class is instantiated.  Normally, the fixup of such routines
+is deferred until the first use of the routine.  But in some modes the
+fixup is further postponed until the end of the translation unit.  This
+routine is called by add_to_defered_friend_fixup_list in the former case
+and by process_deferred_friend_fixup list in the latter.  This routine is
+also used for Microsoft in-class member function template specializations.
 */
 {
   a_routine_ptr                rp = rfp->symbol->variant.routine.ptr;
@@ -1361,7 +1368,7 @@ in-class member function template specializations.
   /* use_deferred_friend_fixup_list is TRUE in some modes when the deferred
      fixup of friend functions should be postponed until the end of the
      translation unit.  In such modes, the flag is cleared once the fixups
-     have begun so that any additional fixups that are needed will be done
+     have completed so that any additional fixups that are needed will be done
      when this routine is called. */
   if (use_deferred_friend_fixup_list) {
     if (deferred_friend_fixup_list == NULL) deferred_friend_fixup_list = rfp;
@@ -14979,10 +14986,10 @@ One-time initialization for class_decl.c static variables.
   }  /* if */
   /* Global variables in class_decl.h. */
   register_trans_unit_variable(pending_class_definitions);
-  register_trans_unit_variable(deferred_friend_fixup_list);
-  register_trans_unit_variable(deferred_friend_fixup_list_tail);
   /* Static variables in class_decl.c. */
   register_trans_unit_variable(avail_derivation_steps);
+  register_trans_unit_variable(deferred_friend_fixup_list);
+  register_trans_unit_variable(deferred_friend_fixup_list_tail);
   register_trans_unit_variable(use_deferred_friend_fixup_list);
 }  /* class_decl_one_time_init */
 

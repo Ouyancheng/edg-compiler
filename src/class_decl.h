@@ -182,13 +182,6 @@ EXTERN a_pending_class_definition_count
 			   process.  This includes normal class definitions
 			   and template class instantiations. */
 
-EXTERN a_boolean
-		use_deferred_friend_fixup_list;
-			/* TRUE if deferred friend fixups should be done at
-			   the end of the translation unit instead of at the
-			   point at which the friend function is first
-			   referenced. */
-
 /*
 Macro to consume and ignore certain right parentheses in declarations.  This
 is used to emulate a strange bug in some versions of the Microsoft compiler.
