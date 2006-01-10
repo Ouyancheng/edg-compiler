@@ -1550,6 +1550,8 @@ static a_flag_name
   { "warn_about_tail_padding_use", &warn_about_tail_padding_use },
   { "reuse_tail_padding", &targ_reuse_tail_padding },
 #endif /* IA64_ABI */
+  { "stack_referenced_include_directories",
+    &stack_referenced_include_directories },
 #if DEBUG
   { "space_used", &display_space_used },
 #endif /* DEBUG */

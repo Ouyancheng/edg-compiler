@@ -1,5 +1,11 @@
 Version 3.7
 
+1/10/06  Internal error with STACK_REFERENCED_INCLUDE_DIRECTORIES and
+         preinclude files
+
+An internal error could occur when using STACK_REFERENCED_INCLUDE_DIRECTORIES
+and preinclude files in non-Microsoft mode.  Now fixed.
+
 1/9/06   Microsoft and GNU C++ compatibility: analysis of friends of class
          templates
 

@@ -4640,7 +4640,10 @@ at the next level down.
     { char	*prev_dir_name = curr_ise->dir_name;
       if (put_dir_of_each_opened_source_file_on_incl_search_path &&
           stack_referenced_include_directories) {
-        if (is_end_of_preinclude && !microsoft_mode) {
+        if (is_end_of_preinclude && !microsoft_mode &&
+            compare_dir_names(dir_name_of_primary_source_file,
+                              current_directory_name,
+                              /*is_partial_file_name=*/FALSE) != 0) {
           prev_dir_name = current_directory_name;
         } else if (microsoft_mode && microsoft_version >= 1300 &&
                    curr_ise->assoc_actual_il_file->top_level_file) {
