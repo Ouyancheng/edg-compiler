@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2006 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -5532,6 +5532,6 @@ non-NULL diagnostics are issued at the indicated position.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2006 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2006 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -341,6 +341,6 @@ extern void add_to_derived_type_list(a_type_ptr new_type_ptr,
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2006 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

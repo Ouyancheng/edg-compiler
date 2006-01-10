@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2000-2005 Edison Design Group Inc.                   [_]          *
+* Copyright 2000-2006 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -4188,6 +4188,6 @@ initialized for each compilation.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2000-2005 Edison Design Group Inc.                   [_]          *
+* Copyright 2000-2006 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

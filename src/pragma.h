@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1994-2005 Edison Design Group Inc.                   [_]          *
+* Copyright 1994-2006 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -391,6 +391,6 @@ extern void pragma_init(void);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1994-2005 Edison Design Group Inc.                   [_]          *
+* Copyright 1994-2006 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
