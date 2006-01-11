@@ -5763,10 +5763,8 @@ the constant cases.)
   a_source_position  start_pos;
   an_expr_node_ptr   arg1 = NULL, arg2, arg3;
 
-#if 0
   /* Currently, only type arguments are implemented.  I.e., argX_kind must
      be iek_none or iek_type. */
-#endif /* 0 */
   copy_source_position(pos_curr_token, start_pos);
   /* Pass over the operation name. */
   (void)get_token();
