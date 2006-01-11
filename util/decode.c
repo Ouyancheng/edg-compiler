@@ -8,8 +8,6 @@
 *                                                                             *
 ******************************************************************************/
 /*
-Copyright (c) 1996-2004, Edison Design Group, Inc.
-
 Redistribution and use in source and binary forms are permitted
 provided that the above copyright notice and this paragraph are
 duplicated in all source code forms.  The name of Edison Design
