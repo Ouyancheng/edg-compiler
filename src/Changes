@@ -4,6 +4,22 @@ Version 3.7
 
 1/11/06  IL version number changed to 3.7
 
+1/11/06  Spurious warning on printf/scanf checking with _Accum arguments
+
+When the front end performed checking of printf/scanf arguments against a
+string literal format string, the use of _Accum arguments could frequently
+trigger a spurious warning about the argument being incompatible with the
+corresponding specifier in the format string.  For example, assuming GNU C
+and Embedded C modes:
+
+  extern int scanf(char const*, ...) __attribute__((format(scanf, 1, 2)));
+  void f() {
+    __Accum x;
+    scanf("%k", &x);  // Should be okay, but previously frequently triggered
+  }                   // a spurious warning.
+
+This is now fixed.
+
 1/10/06  Internal error with STACK_REFERENCED_INCLUDE_DIRECTORIES and
          preinclude files
 

@@ -6293,7 +6293,7 @@ to format (whose type will be returned by a subsequent call to this routine).
 #endif /* LONG_LONG_ALLOWED */
 #if FIXED_POINT_ALLOWED
   char                type_char;
-  a_boolean           is_fract_type;
+  a_boolean           is_fract_type = FALSE;
 #endif /* FIXED_POINT_ALLOWED */
   a_boolean           suppress_assignment = FALSE;
 
