@@ -907,7 +907,7 @@ new macro invocation record block if necessary.
 
 static a_macro_invocation_record_index register_macro_invocation(
                                 a_macro_invocation_record_index parent_index,
-                                int                             stack_depth,
+                                unsigned long                   stack_depth,
                                 a_macro_def_ptr                 mdp,
                                 a_source_position_ptr           macro_name_pos,
                                 a_macro_invocation_record_ptr   *mirpp)

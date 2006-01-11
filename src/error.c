@@ -2604,10 +2604,10 @@ additional messages in a multiple message diagnostic.
 #if FULLY_RESOLVED_MACRO_POSITIONS
   char                          *full_name;
   a_boolean                     at_end_of_source;
-  a_source_position             full_pos;
   int                           save_diagnostic_indent;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if MACRO_INVOCATION_TREE_IN_IL
+  static a_source_position      full_pos;
   a_macro_invocation_record_ptr mirp = NULL;
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
 
@@ -2745,7 +2745,7 @@ additional messages in a multiple message diagnostic.
               diag_message(ec_in_expansion_of_macro, &null_source_position,
                            severity, dck_macro_context);
             } else if (!frames_omitted_msg_printed) {
-              char buffer[20];
+              static char buffer[20];
               init_error_params();
               (void)sprintf(buffer, "%d", stack_depth - 9);
               error_msg_strings[1] = buffer;
