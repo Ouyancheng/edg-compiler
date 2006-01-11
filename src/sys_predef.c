@@ -678,7 +678,8 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func1(_signbitl, int, long_double);
   enter_gnu_builtin_real_math_funcs1(_significand);
   enter_gnu_builtin_real_math_funcs1(_sin);
-  enter_gnu_builtin_func3(_sincos, no_return, double, double_star, double_star);
+  enter_gnu_builtin_func3(_sincos, no_return,
+                          double, double_star, double_star);
   enter_gnu_builtin_func3(_sincosf, no_return,
                           floating, float_star, float_star);
   enter_gnu_builtin_func3(_sincosl, no_return,
@@ -710,7 +711,8 @@ Enter the standard predeclared functions for GCC.
                           const_char_star, const_char_star);
   enter_gnu_builtin_func2(_strrchr, char_star, const_char_star, int);
   enter_gnu_builtin_func2(_strspn, unsigned, const_char_star, const_char_star);
-  enter_gnu_builtin_func2(_strstr, char_star, const_char_star, const_char_star);
+  enter_gnu_builtin_func2(_strstr, char_star,
+                          const_char_star, const_char_star);
   enter_gnu_builtin_real_math_funcs1(_tan);
   enter_gnu_builtin_real_math_funcs1(_tanh);
   enter_gnu_builtin_real_math_funcs1(_tgamma);
