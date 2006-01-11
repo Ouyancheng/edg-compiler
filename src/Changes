@@ -1,5 +1,9 @@
 Version 3.7
 
+1/11/06  Version number changed to 3.7
+
+1/11/06  IL version number changed to 3.7
+
 1/10/06  Internal error with STACK_REFERENCED_INCLUDE_DIRECTORIES and
          preinclude files
 
