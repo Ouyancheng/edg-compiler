@@ -12794,12 +12794,11 @@ static void init_cp_gen_be(void)
 Initialize for the C++/C-generating back end.
 */
 {
-  char* table_size_msg =
-           "init_cp_gen_be: size of generated_precedence table is not correct";
+  sizeof_t num_prec_table_elems = 
+                sizeof(generated_precedence) / sizeof(generated_precedence[0]);
 
-  check_assertion_str(
-              sizeof(generated_precedence) / sizeof(generated_precedence[0]) ==
-              ((sizeof_t)eok_last + 1), table_size_msg)/*lint !e506*/;
+  check_assertion_str(num_prec_table_elems == ((sizeof_t)eok_last + 1),
+          "init_cp_gen_be: size of generated_precedence table is not correct");
   line_wrapping_disabled = 0;
   disable_line_wrapping_until_column = 0;
   f_C_output = NULL;
