@@ -97,6 +97,7 @@ argument).
 }  /* make_prototyped_runtime_call_full */
 
 
+static
 an_expr_node_ptr make_prototyped_runtime_call(char             *name,
                                               a_routine_ptr    *routine,
                                               a_type_ptr       return_type,
