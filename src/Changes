@@ -1672,8 +1672,8 @@ be represented in the destination type is used.  This yields a value of
 
 The integral promotions for long long and unsigned long long bit fields
 have been corrected to more closely match the C99 and C++ standards
-(such bit fields don't get promoted and therefore the expression has
-the underlying type of the bit field).
+(such bit fields don't get promoted if they're bigger than int, and
+therefore the expression has the underlying type of the bit field).
 
   #include <stdio.h>
   struct S { unsigned long long x:33; } s = {0};
