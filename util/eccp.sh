@@ -599,6 +599,7 @@ check_abbreviation()
 --long_lifetime_temps
 --long_long
 --long_preserving_rules
+--macro_positions_in_diagnostics
 --microsoft
 --microsoft_16
 --microsoft_bugs
@@ -652,6 +653,7 @@ check_abbreviation()
 --no_inlining
 --no_line_commands
 --no_long_preserving_rules
+--no_macro_positions_in_diagnostics
 --no_microsoft
 --no_microsoft_bugs
 --no_multibyte_chars
@@ -1254,6 +1256,8 @@ process_option()
          --no_template_typedefs_in_diagnostics | \
          --defer_parse_function_templates | \
          --no_defer_parse_function_templates | \
+         --macro_positions_in_diagnostics | \
+         --no_macro_positions_in_diagnostics | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
