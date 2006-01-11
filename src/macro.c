@@ -5126,9 +5126,9 @@ Scan and process a #define directive.
   a_boolean       need_end_of_token_marker;
   static char     str_end_of_token_marker[LE_ESCAPE_LEN] =
                                                 { LE_ESCAPE, LE_END_OF_TOKEN };
-#if RECORD_MACROS_IN_IL
+#if RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL
   a_macro_ptr     mp;
-#endif /* RECORD_MACROS_IN_IL */
+#endif /* RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIIONS_IN_IL */
 #if FULLY_RESOLVED_MACRO_POSITIONS
   a_text_map_position_tracker
                   tracker;
@@ -5661,11 +5661,15 @@ redef_error:
 def_done:;
     if (assoc_symbol != NULL) {
 #if RECORD_MACROS_IN_IL
-      /* Make an IL entry for the macro. */
-      mp = make_il_macro_entry(assoc_symbol, &start_pos);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+      /* Make an IL entry for the macro and record the start and end
+         positions. */
+      mp = make_il_macro_entry(assoc_symbol, &start_pos);
       mp->replacement_text_range.start = start_of_replacement;
       mp->replacement_text_range.end = end_of_replacement;
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+      /* Make an IL entry for the macro. */
+      (void)make_il_macro_entry(assoc_symbol, &start_pos);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* RECORD_MACROS_IN_IL */
       /* Mark the symbol as defined. */
