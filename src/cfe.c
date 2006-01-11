@@ -17,6 +17,7 @@ Changed to C++ front end and enhanced by
   R. Michael Anderson 1991-1999
   John H. Spicer      1992-
   Daveed Vandevoorde  1999-
+  William M. Miller   2004-
 
 */
 
