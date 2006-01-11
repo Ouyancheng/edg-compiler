@@ -2720,6 +2720,7 @@ state.
         cssp->any_nonreal_base_classes = FALSE;
         cssp->any_dependent_base_classes = FALSE;
         cssp->instantiation_in_progress = FALSE;
+        cssp->default_arg_fixup_started = FALSE;
 #if IA64_ABI
         cssp->has_empty_class_subobject = FALSE;
 #endif /* IA64_ABI */

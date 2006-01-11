@@ -949,7 +949,9 @@ Process the default argument expressions for the indicated class.
   /* First go though the routine fixup entries and scan the default
      argument expressions. */
   cssp = symbol_supplement_for_class(class_type);
-  if ((rfp = cssp->routine_fixup_list) != NULL) {
+  if ((rfp = cssp->routine_fixup_list) != NULL &&
+      !cssp->default_arg_fixup_started) {
+    cssp->default_arg_fixup_started = TRUE;
 #if DEBUG
     if (debug_level >= 3) {
       fputs("default-arg fixup for class \"", f_debug);
@@ -1030,7 +1032,6 @@ Process the default argument expressions for the indicated class.
         fixup_class_is_nonreal_template_instantiation = FALSE;
       }  /* if */
       daefp = rfp->def_arg_expr_fixup_list;
-      rfp->def_arg_expr_fixup_list = NULL;
       if (rfp->is_template) {
         /* A routine fixup for a template function declaration.  The default
            arguments have already been attached to the template.  Do the
@@ -1108,6 +1109,7 @@ Process the default argument expressions for the indicated class.
             }  /* if */
             /* Make sure no further processing will be done here and
                make sure that the list isn't freed. */
+            rfp->def_arg_expr_fixup_list = NULL;
             daefp = NULL;
           } else {
             /* The default arg token cache is discarded for declarations
