@@ -5978,9 +5978,9 @@ was called.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
 /* ARGSUSED */  /* <-- decl_pos_block is not used in some configurations. */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 a_type_ptr scan_typeof_operator(a_decl_pos_block  *decl_pos_block)
 /*
 Scan the typeof operator.  This is a GNU C/C++ extension that is similar
