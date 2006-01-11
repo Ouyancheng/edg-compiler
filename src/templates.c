@@ -8387,9 +8387,9 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       (void)get_token();
     } else if (parent_class != NULL) {
       rout_type = scan_member_declaration(parent_class, templ_rout, tip);
-#if 0
-      /* We should get the locator position returned. */
-#endif /* 0 */
+#if DECL_MODIFIERS_IN_USE
+      /* Note that locator_position is not updated in this case. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       a_decl_flag_set	      do_flags;
       a_func_info_block	      func_info;
