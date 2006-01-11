@@ -51,6 +51,7 @@ This version is for the Apple MacOS X operating system.
 #define TARG_MINIMUM_STRUCT_ALIGNMENT 1
 #define TARG_JMP_BUF_NUM_ELEMENTS 192
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
+#define ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS 1
 
 
 /* Language extensions. */
