@@ -1,6 +1,6 @@
 Version 3.7, January 12, 2006
 
-1/12/05  GNU compatibility: Support for lowered complex conjugate operation
+11/7/05  GNU compatibility: Support for lowered complex conjugate operation
 
 Routines have been added to support the lowered version of the GNU complex
 conjugation operator (i.e., the "~" operator).  For example (assuming a GNU
