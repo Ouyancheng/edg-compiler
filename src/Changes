@@ -718,9 +718,8 @@ the block statement added to surround the "while".
 12/7/05  Abort when lowering VLAs in a multi-translation unit compilation
 
 When simultaneously processing multiple translation units in a mode that
-accepts and lower variable-length arrays (VLAs), the front end could abort
+accepts and lowers variable-length arrays (VLAs), the front end could abort
 in various ways (e.g., in find_vla_dimension).  This is now fixed.
-
 
 12/7/05  Incorrect count on code to zero multi-dimensional array
 
