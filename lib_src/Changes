@@ -1,5 +1,18 @@
 Version 3.7, January 12, 2006
 
+1/12/05  GNU compatibility: Support for lowered complex conjugate operation
+
+Routines have been added to support the lowered version of the GNU complex
+conjugation operator (i.e., the "~" operator).  For example (assuming a GNU
+mode):
+
+  void f(_Complex double z) {
+    z = ~z;  // "~z" is lowered to a call to a new run-time support routine.
+  }
+
+The routines are __c99_complex_float_conj, __c99_complex_double_conj, and
+__c99_complex_long_double_conj (all defined in c99_complex.c).
+
 6/17/05  IA-64 ABI: Incorrect result of throw of null pointer to derived
          class with ambiguous base
 
