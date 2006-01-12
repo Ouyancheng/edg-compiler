@@ -2490,10 +2490,18 @@ there's no overflow TRUE is returned.
       if (curr_max_member_alignment == 0 &&
           (field->is_packed
 #if ABI_COMPATIBILITY_VERSION >= 307
-           || class_type->variant.class_struct_union.is_packed
+           || (class_type->variant.class_struct_union.is_packed &&
+#if IA64_ABI
+               !(emulate_gnu_abi_bugs && gnu_abi_version < 30300) &&
+#endif /*IA64_ABI */
+               field->alignment == 0)
 #endif /* ABI_COMPATIBILITY_VERSION >= 307 */
-                                                              )) {
-        /* No alignment to perform. */
+                                     )) {
+        /* No alignment to perform: Either the field is marked as "packed",
+           or the whole class is marked as "packed", and no explicit alignment
+           attribute was specified.  Earlier GNU versions appear to ignore
+           the "packed" attribute applied to a class type for the purpose of
+           laying out bit fields. */
       } else
 #endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
       {
