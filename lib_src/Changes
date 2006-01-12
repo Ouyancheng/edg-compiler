@@ -1,10 +1,5 @@
 Version 3.7, January 12, 2006
 
-No Changes
-
--------------------------------------------------------------------------------
-Version 3.6, June 7, 2005
-
 6/17/05  IA-64 ABI: Incorrect result of throw of null pointer to derived
          class with ambiguous base
 
@@ -24,6 +19,9 @@ of the ambiguous base class succeeded when it should have failed.  Now fixed.
     catch (D*) { printf("right_place\n"); }
     return 0;
   };
+
+-------------------------------------------------------------------------------
+Version 3.6, June 7, 2005
 
 6/2/05   Missing destruction on recursively abandoned throw operation
 
