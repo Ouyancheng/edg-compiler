@@ -9613,9 +9613,14 @@ Check that the stop_token_array elements all made it back to zero.
 #endif /* CHECKING */
 
 
-void pop_stop_token_stack(void)
+#if !CHECKING
+/*ARGSUSED*/ /* <-- because "final_pop" is only used in checking code. */
+#endif /* !CHECKING */
+static void pop_stop_token_stack_full(a_boolean	final_pop)
 /*
-Pop the current entry off of the stop token stack.
+Pop the current entry off of the stop token stack.  If final_pop is
+TRUE, this call pops the last entry off of the stack.  This is used
+to alter the constancy check at the end of the routine.
 */
 {
   a_stop_token_stack_entry_ptr	stsep;
@@ -9644,8 +9649,18 @@ Pop the current entry off of the stop token stack.
   /* Add the old entry to the list of available stack entries. */
   stsep->next = avail_stop_token_stack_entries;
   avail_stop_token_stack_entries = stsep;
-  check_assertion_str(curr_stop_token_stack_entry != NULL,
-                      "pop_stop_token_stack: too many pops");
+  /* The current entry should only be NULL if this is the final pop. */
+  check_assertion_str((curr_stop_token_stack_entry == NULL) == final_pop,
+                      "pop_stop_token_stack: wrong number of pops");
+}  /* pop_stop_token_stack_full */
+
+
+void pop_stop_token_stack(void)
+/*
+Interface to pop_stop_token_stack_full that passes in final_pop == FALSE.
+*/
+{
+  pop_stop_token_stack_full(/*final_pop=*/FALSE);
 }  /* pop_stop_token_stack */
 
 
@@ -15341,6 +15356,17 @@ Initialize variables that are specific to a given translation unit.
   push_stop_token_stack();
   clear_stop_tokens();
 }  /* lexical_trans_unit_init */
+
+
+void lexical_trans_unit_wrapup(void)
+/*
+Perform any wrapup operations needed for the translation unit.  This is
+called after all processing for the translation unit (including template
+instantiations, etc.) has been done.
+*/
+{
+  pop_stop_token_stack_full(/*final_pop=*/TRUE);
+}  /* lexical_trans_unit_wrapup */
 
 
 void lexical_init(void)

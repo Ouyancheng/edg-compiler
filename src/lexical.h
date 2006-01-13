@@ -2275,6 +2275,7 @@ extern void lexical_reset(void);
 extern void lexical_one_time_init(void);
 extern void lexical_trans_unit_init(void);
 extern void lexical_init(void);
+extern void lexical_trans_unit_wrapup(void);
 #if MAKE_FRONT_END_CALLABLE
 extern void lexical_cleanup(void);
 #endif /* MAKE_FRONT_END_CALLABLE */
