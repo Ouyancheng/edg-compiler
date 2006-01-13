@@ -4284,6 +4284,9 @@ used to find this file.
 {
   int                times_name_appears;
   a_source_file_ptr  parent_file;
+  an_input_stack_entry_ptr
+		     prev_ise;
+  a_boolean	     from_system_include_dir = FALSE;
 
   db_enter(2, "push_input_stack");
 #if DEBUG
@@ -4334,6 +4337,16 @@ used to find this file.
     (void)fclose(curr_ise->file);
     curr_ise->file = NULL;
   }  /* if */
+  prev_ise = curr_ise;
+  if (is_include_file) {
+    /* This file is from a system include directory if it was found in a
+       directory flagged as a system include directory.  If there is no
+       directory entry (e.g., for an absolute path name) use the system
+       include directory flag from the previous input stack entry. */
+    from_system_include_dir =
+                        dir_entry == NULL ? prev_ise->from_system_include_dir
+                                          : dir_entry->system_include_dir;
+  }  /* if */
   /* Push the new input stack entry. */
   curr_ise = &input_stack[++depth_input_stack];
   curr_ise->file        = new_input_file;
@@ -4349,8 +4362,7 @@ used to find this file.
   curr_ise->dir_name = directory_of(full_file_name);
   curr_ise->dir_entry = dir_entry;
   curr_ise->is_include_file = is_include_file;
-  curr_ise->from_system_include_dir =
-                     dir_entry == NULL ? FALSE : dir_entry->system_include_dir;
+  curr_ise->from_system_include_dir = from_system_include_dir;
   curr_ise->nested_inclusion = (times_name_appears != 0);
   curr_ise->include_history   = ifhp;
   curr_ise->ifg_state = IFG_STATE_START;
@@ -4393,8 +4405,7 @@ used to find this file.
                               is_system_include, is_preinclude,
                               preinclude_macros,
 			      is_implicit_include,
-			      (dir_entry != NULL &&
-                                               dir_entry->system_include_dir));
+                              from_system_include_dir);
   /* The two il file pointers start out the same.  They will be made to
      point to distinct entries if a #line directive is processed:
      assoc_il_file will point to the entry for the #line, and

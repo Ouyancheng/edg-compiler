@@ -1,3 +1,13 @@
+Version 3.8
+
+1/11/06  System include flag for file included using an absolute path name
+
+If a system include file included another file using an absolute path name,
+the included file would not have its from_system_include_dir flag set.  This
+flag is now set for any file included using an absolute path name by a
+file that has its from_system_include_dir flag set.
+
+-------------------------------------------------------------------------------
 Version 3.7, January 12, 2006
 
 1/11/06  IL version number changed to 3.7

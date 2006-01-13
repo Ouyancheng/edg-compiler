@@ -183,7 +183,9 @@ typedef struct a_source_file {
 			/* TRUE if this source file was found in an include
 			   directory marked as a "system" include directory.
 			   Warnings are suppressed when processing system
-			   include directories. */
+			   include directories.  This is also set for a file
+			   included using an absolute path name by a file
+			   that has its from_system_include_dir flag set. */
   a_bit_field	top_level_file:1;
 			/* TRUE if this file is a top-level file, i.e., it
 			   wasn't included by another file.  TRUE for the
