@@ -1,5 +1,14 @@
 Version 3.8
 
+1/16/06  Exception specifications when support for exceptions is disabled
+
+The front end no longer issues an error on function definitions with exception
+specifications when support for exception handling is disabled.  Previously,
+such definitions were only accepted for inline functions.  For example:
+
+  void f() throw() {}  // Now accepted when support for exception handling is
+                       // disabled.
+
 1/16/06  Microsoft/GNU compatibility: Abort on nonstandard anonymous unions
 
 In modes allowing nonstandard anonymous unions (GNU and Microsoft modes in

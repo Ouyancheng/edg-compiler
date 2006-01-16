@@ -1470,14 +1470,6 @@ member declaration (allowed in some Microsoft modes only).
 #endif /* DEBUG */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
-  if (!exceptions_enabled && !func_info->is_inline &&
-      func_info->throw_position.seq != 0) {
-    /* Issue a diagnostic on attempting to define a noninline function with
-       an exception specification when exception support is not enabled.
-       (No diagnostic is issued on nondefinition -- the exception
-       specification is just ignored.) */
-    pos_error(ec_no_exception_support, &func_info->throw_position);
-  }  /* if */
   if (func_info->is_inline) {
     if (!rp->is_inline) {
       set_inline_flag(rp, TRUE);
