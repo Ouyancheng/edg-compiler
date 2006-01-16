@@ -1,5 +1,19 @@
 Version 3.8
 
+1/16/06  Microsoft/GNU compatibility: Abort on nonstandard anonymous unions
+
+In modes allowing nonstandard anonymous unions (GNU and Microsoft modes in
+particular), the front end previously aborted if a class type was used
+multiple times to form a nonstandard anonymous union.  For example:
+
+  typedef struct { int m; } S;
+  void f() {
+    struct { S; } x;  // S used to form a nonstandard anonymous union.
+    struct { S; } y;  // S used a second time to form a nonstandard
+  }                   // anonymous union; this previously aborted.
+
+This is now fixed.
+
 1/16/06  Microsoft compatibility: problem with in-class specializations
 
 Version 3.7 introduced a problem in the processing of in-class specializations

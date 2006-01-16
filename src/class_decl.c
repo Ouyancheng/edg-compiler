@@ -9049,8 +9049,12 @@ nonstandard anonymous unions is_nonstd is TRUE.
       case sk_member_function:
       case sk_overloaded_function:
       case sk_function_template:
-        /* Remove the symbol and don't reenter it. */
-        remove_anonymous_union_member_from_inactive_symbols_list(sym);
+        if (!is_nonstd) {
+          /* Remove the symbol and don't reenter it.  (Don't attempt to remove
+             the symbol of a nonstandard anonymous union since that would
+             invalidate a type that may need to be used for other purposes.) */
+          remove_anonymous_union_member_from_inactive_symbols_list(sym);
+        }  /* if */
         /* This may be a compiler generated default assignment operator, which
            is okay.  Any user-defined member function is illegal. */
         if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
