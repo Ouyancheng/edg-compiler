@@ -1,5 +1,23 @@
 Version 3.8
 
+1/16/06  Microsoft compatibility: problem with in-class specializations
+
+Version 3.7 introduced a problem in the processing of in-class specializations
+of function templates that could result in spurious errors (or an internal
+error if using INSTANTIATE_EXTERN_INLINE).  The problem would occur
+if a specialized constructor was called more than once.  Now fixed.
+
+  template <class T> struct A {
+    A() { }
+    template <class U> A(const U&) { }
+    template <> A(const A&) { }
+  };
+  int main() {
+    A<int> a;
+    A<int> a2(a);
+    A<int> a3(a);
+  }
+	
 1/11/06  System include flag for file included using an absolute path name
 
 If a system include file included another file using an absolute path name,

@@ -1246,7 +1246,7 @@ Does the fixup on the friend function that is otherwise done when the
 enclosing class is instantiated.  Normally, the fixup of such routines
 is deferred until the first use of the routine.  But in some modes the
 fixup is further postponed until the end of the translation unit.  This
-routine is called by add_to_defered_friend_fixup_list in the former case
+routine is called by add_to_deferred_friend_fixup_list in the former case
 and by process_deferred_friend_fixup list in the latter.  This routine is
 also used for Microsoft in-class member function template specializations.
 */
@@ -1307,9 +1307,6 @@ also used for Microsoft in-class member function template specializations.
   }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* Reset the routine fixup pointer in the routine to prevent this
-     process from being attempted again. */
-  rp->routine_fixup = NULL;
   /* Let get_token know about the cache. */
   rescan_cached_tokens(&rfp->function_body_token_cache);
   /* Scan the function body. */
@@ -1367,6 +1364,11 @@ the end of the translation unit.  This routine is also used for Microsoft
 in-class member function template specializations.
 */
 {
+  a_routine_ptr                rp = rfp->symbol->variant.routine.ptr;
+
+  /* Reset the routine fixup pointer in the routine to prevent this
+     process from being attempted again. */
+  rp->routine_fixup = NULL;
   /* use_deferred_friend_fixup_list is TRUE in some modes when the deferred
      fixup of friend functions should be postponed until the end of the
      translation unit.  In such modes, the flag is cleared once the fixups
