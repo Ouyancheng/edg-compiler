@@ -3079,8 +3079,8 @@ them up one level.
     for (prev_sym = hdr_ptr->inactive_symbols;
          prev_sym->next != sym_ptr;
          prev_sym = prev_sym->next) {
-         check_assertion_str(prev_sym->next != NULL,
-                             "remove_anonymous_union...: symbol_not_found");
+      check_assertion_str(prev_sym->next != NULL,
+                          "remove_anonymous_union...: symbol_not_found");
     }  /* for */
     prev_sym->next = sym_ptr->next;
   }  /* if */
