@@ -448,7 +448,8 @@ of recording this information is used depending on the setting of the
 configuration flag USE_PREFIX_FOR_ARRAY_ALLOC_INFO.  If this flag is TRUE,
 a prefix structure is allocated as part of the array allocation, and this
 prefix is used to store the size.  The pointer returned to the caller points
-to the memory after the prefix block.
+to the memory after the prefix block.  The prefix_size parameter specifies
+the size of the prefix to be allocated.
 
 When USE_PREFIX_FOR_ARRAY_ALLOC_INFO is FALSE, a linked list is used
 to record the number of elements in the array.  Consequently, the
@@ -472,7 +473,7 @@ use.
      dynamically allocated. */
   create_eh_stack_entry = dtor != NULL || array_ptr == NULL;
 #endif /* EXCEPTION_HANDLING */
-  if (array_ptr == NULL || prefix_size) {
+  if (array_ptr == NULL || prefix_size != 0) {
     a_boolean	err;
     array_size = number_of_elements * element_size;
     if (array_ptr == NULL) {
