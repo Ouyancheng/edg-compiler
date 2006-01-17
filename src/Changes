@@ -1,5 +1,20 @@
 Version 3.8
 
+1/17/06  Optimization on IA-64 array delete
+
+In the IA-64 ABI, an array delete of a class that has a constructor
+but no destructor now does the deallocation directly rather than by
+calling __cxa_vec_delete or the like.
+
+  struct A {
+    A();
+  };
+  A::A() {}
+  int main() {
+    A *p = new A[5];
+    delete[] p;  // Calls ::operator delete[] directly now
+  }
+
 1/16/06  Exception specifications when support for exceptions is disabled
 
 The front end no longer issues an error on function definitions with exception

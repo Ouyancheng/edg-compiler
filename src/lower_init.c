@@ -7854,11 +7854,17 @@ The subtree of the node has not yet been lowered.
   a_type_ptr                  base_type;
   an_expr_node_ptr            ptr_node = ndsp->arg, call_node, dtor_call_node;
   a_routine_ptr               delete_routine = ndsp->routine;
+  a_boolean                   check_constructor = TRUE;
 
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
+#if IA64_ABI
+  /* The IA-64 ABI requires no cookie for a class array new where the
+     class has a constructor but no destructor. */
+  check_constructor = FALSE;
+#endif /* IA64_ABI */
   if (ndsp->array_delete &&
       new_or_delete_type_requires_array_handling(base_type,
-                                                 /*check_constructor=*/TRUE)) {
+                                                 check_constructor)) {
     /* An array "delete". */
     lower_array_delete(expr);
 #if !DELETE_CAN_BE_FOLDED_INTO_DTOR

@@ -9049,9 +9049,14 @@ As an anachronism, allow an expression inside the [ ].
       /* If a deleting an array and a runtime routine will be used, the
          delete routine can be implicit if it is the default global
          delete. */
-      if (new_or_delete_type_requires_array_handling(
-                                                 base_delete_type,
-                                                 /*check_constructor=*/TRUE)) {
+      a_boolean check_constructor = TRUE;
+#if IA64_ABI
+      /* The IA-64 ABI requires no cookie for a class array new where the
+         class has a constructor but no destructor. */
+      check_constructor = FALSE;
+#endif /* IA64_ABI */
+      if (new_or_delete_type_requires_array_handling(base_delete_type,
+                                                     check_constructor)) {
         an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
                                              (an_opname_kind)onk_array_delete :
                                              (an_opname_kind)onk_delete;
