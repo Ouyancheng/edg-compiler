@@ -7511,7 +7511,7 @@ The subtree of the node has not yet been lowered.
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
   if (is_array_type(ndsp->type) &&
       new_or_delete_type_requires_array_handling(base_type,
-                                                 /*check_construtor=*/TRUE)) {
+                                                 /*check_constructor=*/TRUE)) {
     /* An array "new". */
     lower_array_new(expr);
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
