@@ -1732,7 +1732,11 @@ projection symbol.
           /* We are in the midst of a template instantiation. */
           for(;;) {
             if (tp->kind == (a_type_kind)tk_typeref) {
-              if (typeref_is_qualified(tp)) {
+              if (typeref_is_qualified(tp)
+#if GNU_EXTENSIONS_ALLOWED
+                  || tp->variant.typeref.is_typeof
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                  ) {
                 tp = tp->variant.typeref.type;
               } else {
                 sym_for_xref = (a_symbol_ptr)tp->source_corresp.assoc_info;
