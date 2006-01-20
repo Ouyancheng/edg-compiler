@@ -1,5 +1,37 @@
 Version 3.8
 
+1/20/06  Abort on certain template cases with multiple translation units
+
+In some (relatively rare) cases involving multiple translation units that
+instantiate templates over nested types, the front end could abort with an
+internal error in f_set_trans_unit_corresp (trans_corresp.c).  For example,
+the following pair of translation units triggered the problem:
+
+  // Primary translation unit:
+  namespace N {
+    template<class T> struct S {};
+    template<> struct S<int> {};
+  }
+  using namespace N;
+  struct M {
+    enum E { e };
+    S<E> m;
+  };
+
+  // Secondary translation unit:
+  namespace N {
+    template<class T> struct S {};
+    template<> struct S<int> {};
+  }
+  using namespace N;
+  struct M {
+    enum E { e };
+    S<E> m;
+  };
+  int main() { M m; };
+
+This is now fixed.
+
 1/17/06  GNU compatibility: Abort on use of typeof with cross-reference output
 
 In GNU C++ mode, the production of cross-reference output for a template
