@@ -100,12 +100,13 @@ multiple times to form a nonstandard anonymous union.  For example:
 
 This is now fixed.
 
-1/16/06  Microsoft compatibility: problem with in-class specializations
+1/16/06  Microsoft and GNU C++ compatibility: problem with in-class
+         specializations and friends of class templates
 
 Version 3.7 introduced a problem in the processing of in-class specializations
+(in Microsoft mode) and friend declarations (Microsoft and GNU modes)
 of function templates that could result in spurious errors (or an internal
-error if using INSTANTIATE_EXTERN_INLINE).  The problem would occur
-if a specialized constructor was called more than once.  Now fixed.
+error if using INSTANTIATE_EXTERN_INLINE).  Now fixed.
 
   template <class T> struct A {
     A() { }
