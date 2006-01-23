@@ -48,8 +48,10 @@ Linux using the gcc/g++ header files.
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
   /* Define __x86_64 if the compiler being used to build the front end
-     has it defined. */
+     has it defined.  Also define __x86_64__. */
   (void)enter_predef_macro("1", "__x86_64", /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro("1", "__x86_64__", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #else /* !__x86_64 */
   (void)enter_predef_macro("int", "__PTRDIFF_TYPE__",
