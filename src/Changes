@@ -1,5 +1,20 @@
 Version 3.8
 
+1/20/06  GNU compatibility: Abort when using function declared through typedef
+
+In GNU C or C++ modes, calling a function with the GNU attribute "format" with
+a format string argument that is a call to a function declared through a
+typedef could result in an abort in overload.c.  For example:
+
+  void p(char const*, ...) __attribute__((format(printf, 1, 2)));
+  typedef char const* F();
+  F f;
+  void g() {
+    p(f());  // Previously resulted in an abort.
+  }
+
+This is now fixed.
+
 1/20/06  Abort on certain template cases with multiple translation units
 
 In some (relatively rare) cases involving multiple translation units that

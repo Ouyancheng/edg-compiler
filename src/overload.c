@@ -6825,7 +6825,7 @@ format string can be deduced, set appropriate fields in arg_block.
     a_routine_type_supplement_ptr rtsp;
     int                           arg_ctr;
     rout = node->variant.operation.operands->variant.routine;
-    rtsp = rout->type->variant.routine.extra_info;
+    rtsp = skip_typerefs(rout->type)->variant.routine.extra_info;
     if (rtsp->arg_pragma != (a_pragma_kind)pk_printf_args &&
         rtsp->arg_pragma != (a_pragma_kind)pk_scanf_args &&
         rtsp->fmt_arg != 0) {
