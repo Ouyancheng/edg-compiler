@@ -2273,7 +2273,8 @@ Initialize static variables related to float_pt.c.
      bit layout of the floating point values.  Make sure the configuration
      is for one of the supported layouts. */
   check_assertion_str2((targ_ldbl_mant_dig == 64 &&
-                        targ_sizeof_long_double == 12) ||
+                        (targ_sizeof_long_double == 12 ||
+                         targ_sizeof_long_double == 16)) ||
                        (targ_ldbl_mant_dig == 113 &&
                         targ_sizeof_long_double == 16) ||
                        (targ_ldbl_mant_dig == 53 &&
