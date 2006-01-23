@@ -41,10 +41,10 @@ Linux using the gcc/g++ header files.
   (void)enter_predef_macro("1", "__unix__", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #ifdef __x86_64
-  (void)enter_predef_macro("long", "__PTRDIFF_TYPE__",
+  (void)enter_predef_macro("long int", "__PTRDIFF_TYPE__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro("unsigned long", "__SIZE_TYPE__",
+  (void)enter_predef_macro("long unsigned int", "__SIZE_TYPE__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
   /* Define __x86_64 if the compiler being used to build the front end
@@ -53,6 +53,9 @@ Linux using the gcc/g++ header files.
                            /*ref_suppresses_pch_file=*/FALSE);
   (void)enter_predef_macro("1", "__x86_64__", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro("int", "__WCHAR_TYPE__",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
 #else /* !__x86_64 */
   (void)enter_predef_macro("int", "__PTRDIFF_TYPE__",
                            /*cannot_be_redefined=*/TRUE,
@@ -60,10 +63,10 @@ Linux using the gcc/g++ header files.
   (void)enter_predef_macro("unsigned int", "__SIZE_TYPE__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-#endif /* __x86_64 */
   (void)enter_predef_macro("long int", "__WCHAR_TYPE__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+#endif /* __x86_64 */
   (void)enter_predef_macro("1", "__linux__", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #if defined(__i386) || defined(__i386__)
