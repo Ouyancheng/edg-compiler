@@ -3945,12 +3945,12 @@ is correct for most systems.  When checking code is enabled, the value of
 this macro is checked when the front end is executed.
 */
 #ifndef HOST_POINTER_ALIGNMENT
-#ifdef __alpha
+#if defined(__x86_64) || defined(__alpha)
 /* Alpha always needs 8 byte alignment. */
 #define HOST_POINTER_ALIGNMENT 8
-#else /* ifndef __alpha */
+#else /* !(defined(__x86_64) || defined(__alpha)) */
 #define HOST_POINTER_ALIGNMENT 4
-#endif /* ifdef __alpha */
+#endif /* defined(__x86_64) || defined(__alpha) */
 #endif /* ifndef HOST_POINTER_ALIGNMENT */
 
 /*

@@ -29,6 +29,23 @@ This is the version for Linux.
 #ifndef COMPILE_MULTIPLE_SOURCE_FILES
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #endif /* ifndef COMPILE_MULTIPLE_SOURCE_FILES */
+
+#ifdef __x86_64
+#define TARG_SIZEOF_LONG 8
+#define TARG_ALIGNOF_LONG 8
+#define TARG_SIZEOF_POINTER 8
+#define TARG_ALIGNOF_POINTER 8
+#define TARG_SIZEOF_DOUBLE 8
+#define TARG_ALIGNOF_DOUBLE 8
+#define TARG_SIZEOF_LONG_DOUBLE 16
+#define TARG_ALIGNOF_LONG_DOUBLE 16
+#define TARG_SIZEOF_WCHAR_T 4
+#define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_int)
+#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
+#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long)
+#define HOST_ALIGNMENT_REQUIRED 8
+#define TYPE_FOR_AN_FP_VALUE_PART unsigned int
+#else /* _x86_64 */
 /* double and long long have two different alignments on Linux. */
 #define TARG_ALIGNOF_DOUBLE 8
 #define TARG_DOUBLE_FIELD_ALIGNMENT 4
@@ -41,6 +58,8 @@ This is the version for Linux.
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
+#endif /* _x86_64 */
+
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
 #define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE 1
 #ifndef RUNTIME_USES_NAMESPACES
