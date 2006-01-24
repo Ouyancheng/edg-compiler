@@ -87,6 +87,10 @@ static a_variable_ptr make_construction_vtbls_array(
                                            a_type_ptr              class_type,
                                            a_construction_vtbl_ptr elements);
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+static an_expr_node_ptr make_delete_call(a_routine_ptr      delete_routine,
+                                         a_type_ptr         delete_type,
+                                         an_expr_node_ptr   arg_node,
+                                         an_insert_location *insert_location);
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -413,7 +417,10 @@ it would appear as the type on a call of the function in the lowered IL.
 #if DTORS_RETURN_THIS
   if (!visited_yet(routine_type) &&
       routine_type->variant.routine.extra_info->assoc_routine_is_dtor) {
-    /* Destructors return "void *" in a variant of the IA-64 ABI. */
+    /* Destructors return "void *" in a variant of the IA-64 ABI.
+       Note that deleting destructors return void even in that
+       variant, but those are always created in lowered form so
+       there's no problem here. */
     return_type = void_star_type();
   } else
 #endif /* DTORS_RETURN_THIS */
@@ -1547,19 +1554,15 @@ There is an implied argument for the VTT.
   an_expr_node_ptr implied_arg_node;
   a_type_ptr       class_type;
   a_constant       null_constant;
-  a_boolean        needs_implied_arg_list;
-#if !IA64_ABI
-  a_type_ptr       subobject_type;
-  a_base_class_ptr bcp;
-#endif /* !IA64_ABI */
 
   *implied_arg_list = *end_implied_arg_list = NULL;
   /* Get the class type. */
   class_type = ctor_routine->source_corresp.parent.class_type;
   prelower_class_type(class_type);
-  needs_implied_arg_list = ctor_needs_implied_arg_list(ctor_routine);
-  if (needs_implied_arg_list) {
+  if (ctor_needs_implied_arg_list(ctor_routine)) {
 #if !IA64_ABI
+    a_type_ptr       subobject_type;
+    a_base_class_ptr bcp;
     /* The class has at least one virtual base class. */
     for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
          bcp != NULL;
@@ -1592,6 +1595,7 @@ There is an implied argument for the VTT.
   }  /* if */
 }  /* make_ctor_implied_arg_list */
 
+#if !IA64_ABI
 
 static an_expr_node_ptr dtor_control_argument(a_boolean have_complete_object,
                                               a_boolean free_storage)
@@ -1611,6 +1615,7 @@ free the object's storage.
   return node;
 }  /* dtor_control_argument */
 
+#endif /* !IA64_ABI */
 
 void make_dtor_implied_arg_list(a_routine_ptr    dtor_routine,
                                 a_boolean        have_complete_object,
@@ -1621,34 +1626,31 @@ Build and return the implied argument to be added to a call of the destructor
 dtor_routine.  The beginning and end of the list are returned in
 *implied_arg_list and *end_implied_arg_list.  For an empty list, both will be
 set to NULL.  If have_complete_object is TRUE, we know we are calling the
-destructor for a complete object.
+destructor for a complete object (that must be TRUE for the IA-64 ABI).
 */
 {
+  a_type_ptr       class_type;
   an_expr_node_ptr implied_arg_node;
 
   *implied_arg_list = *end_implied_arg_list = NULL;
-#if IA64_ABI
-  if (dtor_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none)
-#endif /* IA64_ABI */
-  /* Do not insert code here. */
-  {
-    /* Get the class type. */
-    a_type_ptr class_type = dtor_routine->source_corresp.parent.class_type;
-    prelower_class_type(class_type);
-    /* The first argument indicates whether we have a complete object. */
-    implied_arg_node = dtor_control_argument(have_complete_object,
-                                             /*free_storage=*/FALSE);
-    *implied_arg_list = implied_arg_node;
-    *end_implied_arg_list = implied_arg_node;
-  }  /* if */
-#if IA64_ABI
+  /* Get the class type. */
+  class_type = dtor_routine->source_corresp.parent.class_type;
+  prelower_class_type(class_type);
+#if !IA64_ABI
+  /* The first argument indicates whether we have a complete object. */
+  implied_arg_node = dtor_control_argument(have_complete_object,
+                                           /*free_storage=*/FALSE);
+  *implied_arg_list = implied_arg_node;
+  *end_implied_arg_list = implied_arg_node;
+#else /* IA64_ABI */
+  check_assertion(have_complete_object);
   if (dtor_needs_vtt_argument(dtor_routine)) {
     /* Add a NULL VTT argument. */
     a_constant null_constant;
     make_zero_of_proper_type(make_virtual_table_table_pointer_type(),
                              &null_constant);
     implied_arg_node = alloc_node_for_constant(&null_constant);
-    (*implied_arg_list)->next = implied_arg_node;
+    *implied_arg_list = implied_arg_node;
     *end_implied_arg_list = implied_arg_node;
   }  /* if */
 #endif /* IA64_ABI */
@@ -1721,6 +1723,9 @@ dip->variant.constructor.args has already been lowered.
   an_expr_node_ptr last_node;
   an_expr_node_ptr implied_arg_node;
   an_expr_node_ptr implied_arg_list = NULL, end_implied_arg_list = NULL;
+#if IA64_ABI
+  a_boolean        is_subobject = FALSE;
+#endif /* IA64_ABI */
 
 #if CHECKING
   if (dip->kind != (a_dynamic_init_kind)dik_constructor) {
@@ -1784,10 +1789,7 @@ dip->variant.constructor.args has already been lowered.
       }  /* for */
 #else /* IA64_ABI */
       /* Use the subobject entry point. */
-      ctor_routine = dip->variant.constructor.ptr = 
-                     alternate_entry_point(ctor_routine,
-                                           (a_ctor_or_dtor_kind)cdk_subobject,
-                                           /*define_now=*/FALSE);
+      is_subobject = TRUE;
 #endif /* IA64_ABI */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
       /* Set up for passing an array of virtual function table pointers
@@ -1808,14 +1810,13 @@ dip->variant.constructor.args has already been lowered.
     }  /* if */
   }  /* if */
 #if IA64_ABI
-  /* If no entry point has been specified yet, use the complete object 
-     entry point. */
-  if (ctor_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
-    ctor_routine = dip->variant.constructor.ptr = 
+  /* Use the proper entry point (complete or subobject). */
+  ctor_routine = dip->variant.constructor.ptr = 
                    alternate_entry_point(ctor_routine,
-                                         (a_ctor_or_dtor_kind)cdk_complete,
+                                         is_subobject ?
+                                           (a_ctor_or_dtor_kind)cdk_subobject :
+                                           (a_ctor_or_dtor_kind)cdk_complete,
                                          /*define_now=*/FALSE);
-  }  /* if */
 #else /* !IA64_ABI */
   /* If no implied_arg_list is supplied and the constructor needs one
      (because it initializes a class that has virtual base classes), make
@@ -3034,9 +3035,9 @@ Pop function corresponding to push_generated_routine_context.
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if IA64_ABI
       /* Don't add EH code to alternate entry points. */
-      && rout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none
+      && rout->primary_ctor_or_dtor == NULL
 #endif /* IA64_ABI */
-                                                              ) {
+                                           ) {
     /* Add prologue/epilogue code for exceptions if needed.  This is done
        after the object lifetime is popped so we can tell whether any
        EH processing is really needed. */
@@ -3071,6 +3072,30 @@ Pop function corresponding to push_generated_routine_context.
   check_for_done_with_memory_region(region_number);
   switch_il_region(grcontext->region_to_switch_back_to);
 }  /* pop_generated_routine_context */
+
+
+static void add_null_test_around_routine(a_scope_ptr scope)
+/*
+Add "if (this != NULL)" around the whole routine whose top scope is
+given by "scope".
+*/
+{
+  a_variable_ptr   this_param_var = scope->variant.routine.parameters;
+  an_expr_node_ptr this_param_node, null_constant_node, if_node;
+  a_constant       null_constant;
+
+  /* Make "if (this != NULL)". */
+  this_param_node = var_rvalue_expr(this_param_var);
+  make_zero_of_proper_type(f_skip_typerefs(this_param_var->type),
+                           &null_constant);
+  null_constant_node = alloc_node_for_constant(&null_constant);
+  this_param_node->next = null_constant_node;
+  if_node = make_operator_node((an_expr_operator_kind)eok_pne,
+                               integer_type((an_integer_kind)ik_int),
+                               this_param_node);
+  /* Add the "if" statement. */
+  enclose_routine_in_if(scope, if_node, (a_variable_ptr)NULL);
+}  /* add_null_test_around_routine */
 
 
 static void define_default_version_of_routine(
@@ -3132,8 +3157,8 @@ default_arg_list.
 #if IA64_ABI
     if (new_routine->special_kind == (a_special_function_kind)sfk_constructor&&
         ctor_needs_implied_arg_list(new_routine)) {
-      /* We're calling a constructor from a constructor, and the
-         outer routine has parameters for the implied arguments.  They
+      /* We're calling a constructor from a constructor entry point, and the
+         entry point routine has parameters for the implied arguments.  They
          will be copied below so we don't need implied arguments. */
     } else
 #endif /* IA64_ABI */
@@ -3148,43 +3173,15 @@ default_arg_list.
 #if IA64_ABI
     if (new_routine->special_kind == (a_special_function_kind)sfk_destructor &&
         dtor_needs_vtt_argument(new_routine)) {
-      /* Calling the IA-64 internal destructor from a subobject
-         destructor that has a VTT parameter, which will be copied
-         below.  We do need to construct the argument that
-         indicates whether we have a complete object and whether
-         the storage should be freed (no, for both). */
-      check_assertion(new_routine->ctor_dtor_kind ==
-                                           (a_ctor_or_dtor_kind)cdk_subobject);
-      implied_arg_list = dtor_control_argument(/*have_complete_object=*/FALSE,
-                                               /*free_storage=*/FALSE);
-      end_implied_arg_list = implied_arg_list;
-    } else if (new_routine->ctor_dtor_kind ==
-                                           (a_ctor_or_dtor_kind)cdk_deleting) {
-      /* Calling the IA-64 internal destructor from the deleting
-         destructor.  We need the argument that indicates freeing storage
-         and a complete object. */
-      a_constant null_constant;
-      implied_arg_list = dtor_control_argument(/*have_complete_object=*/TRUE,
-                                               /*free_storage=*/TRUE);
-      end_implied_arg_list = implied_arg_list;
-      if (dtor_needs_vtt_argument(routine)) {
-        /* Add a NULL VTT argument. */
-        make_zero_of_proper_type(make_virtual_table_table_pointer_type(),
-                                 &null_constant);
-        implied_arg_list->next = alloc_node_for_constant(&null_constant);
-        end_implied_arg_list = implied_arg_list->next;
-      }  /* if */
+      /* We're calling a destructor from a destructor entry point, and the
+         entry point routine has parameters for the implied arguments.  They
+         will be copied below so we don't need implied arguments. */
     } else
 #endif /* IA64_ABI */
     /* Do not add code here. */
     {
       /* We're calling a destructor from something that doesn't have
          parameters for the implied arguments, so make them if necessary. */
-#if IA64_ABI
-      check_assertion(new_routine->special_kind !=
-                                     (a_special_function_kind)sfk_destructor ||
-                      !dtor_needs_implied_arg_list(new_routine));
-#endif /* IA64_ABI */
       make_dtor_implied_arg_list(routine, /*have_complete_object=*/TRUE,
                                  &implied_arg_list, &end_implied_arg_list);
     }  /* if */
@@ -3301,6 +3298,20 @@ default_arg_list.
     } else {
       call_node = var_rvalue_expr(temp_var);
     }  /* if */
+#if IA64_ABI
+    if (new_routine->special_kind == (a_special_function_kind)sfk_destructor &&
+        new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting) {
+      /* Add the deletion code for the IA-64 ABI deleting destructor. */
+      a_type_ptr    class_type = new_routine->source_corresp.parent.class_type;
+      a_routine_ptr delete_routine =
+                            class_type->variant.class_struct_union.extra_info->
+                                                 assoc_operator_delete_routine;
+      check_assertion(delete_routine != NULL);
+      this_arg = var_rvalue_expr(this_param_var);
+      (void)make_delete_call(delete_routine, class_type, this_arg,
+                             &insert_location);
+    }  /* if */
+#endif /* IA64_ABI */
   }  /* if */
   if (init_expr_lifetime != NULL) {
     /* Generate the destructions. */
@@ -3312,6 +3323,14 @@ default_arg_list.
   return_stmt->expr = call_node;
   insert_statement(return_stmt, &insert_location);
   add_to_return_memo_list(return_stmt);
+#if IA64_ABI
+  if (new_routine->special_kind == (a_special_function_kind)sfk_destructor &&
+      new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting) {
+    /* Add "if (this != NULL)" around the whole routine for a deleting
+       destructor (it can be called with a null "this" pointer). */
+    add_null_test_around_routine(new_routine_scope);
+  }  /* if */
+#endif /* IA64_ABI */
   pop_generated_routine_context(new_routine_scope, new_routine_il_region,
                                 &grcontext);
 #if MINIMAL_INLINING
@@ -3452,6 +3471,31 @@ wrapper routine is created; the original routine is returned.
 
 #if IA64_ABI
 
+void set_primary_ctor_or_dtor_kind(a_routine_ptr routine)
+/*
+If the indicated primary constructor or destructor routine has not
+yet been assigned as one of the required IA-64 entry points, do
+that now by setting its ctor_dtor_kind field.
+*/
+{
+  check_assertion(routine->primary_ctor_or_dtor == NULL);
+  if (routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
+    a_type_ptr class_type = routine->source_corresp.parent.class_type;
+    if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+      /* The class has virtual bases.  The primary routine is the subobject
+         constructor, and the complete object constructor calls that. */
+      routine->ctor_dtor_kind = (a_ctor_or_dtor_kind)cdk_subobject;
+    } else {
+      /* The class has no virtual bases.  The primary routine is the
+         complete object constructor, and the subobject constructor
+         is an entry point (that does nothing additional, i.e., it's
+         an alias). */
+      routine->ctor_dtor_kind = (a_ctor_or_dtor_kind)cdk_complete;
+    }  /* if */
+  }  /* if */
+}  /* set_primary_ctor_or_dtor_kind */
+
+
 a_routine_ptr alternate_entry_point(a_routine_ptr       routine,
                                     a_ctor_or_dtor_kind kind,
                                     a_boolean           define_now)
@@ -3460,7 +3504,10 @@ Return a pointer to the alternate entry point for "routine" indicated by
 "kind".  If the alternate entry point does not already exist, it is created.
 If define_now is TRUE, the routine is defined if appropriate.  This
 is used to create alternate entry points for constructors and
-destructors in the IA-64 ABI.
+destructors in the IA-64 ABI.  Note that the primary routine will
+be assigned to be one of the entry points (by setting ctor_dtor_kind to
+the right value); in that case, the routine pointer returned by this
+routine will be the same as the one passed in.
 */
 {
   a_routine_ptr    new_routine = NULL;
@@ -3474,130 +3521,142 @@ destructors in the IA-64 ABI.
   check_assertion(kind == (a_ctor_or_dtor_kind)cdk_complete ||
                   kind == (a_ctor_or_dtor_kind)cdk_subobject ||
                   kind == (a_ctor_or_dtor_kind)cdk_deleting);
-  /* routine should not already correspond to a secondary entry point. */
+  /* routine should not be a secondary entry point. */
   check_assertion(routine->primary_ctor_or_dtor == NULL);
-  /* Check to see if the routine already exists on the alternate_entry_points
-     list. */
-  for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
-       rlep != NULL; 
-       rlep = rlep->next) {
-    if (rlep->routine->ctor_dtor_kind == kind) {
-      /* The routine already exists. */
-      new_routine = rlep->routine;
-      break;
-    }  /* if */
-  }  /* for */
-  if (new_routine == NULL) {
-    a_type_ptr                    routine_type = skip_typerefs(routine->type);
-    a_type_ptr                    this_param_type, return_type;
-    a_param_type_ptr              param_type, last_param_type;
-    a_routine_type_supplement_ptr rtsp, new_rtsp;
-    a_storage_class               new_storage_class;
-    rtsp = routine->type->variant.routine.extra_info;
-    /* Make a type and routine entry for the routine. */
-    /* The "this" parameter is generated in its lowered form (i.e., as a
-       normal parameter). */
-    this_param_type = implicit_this_param_type_of(routine_type);
-    return_type = lowered_return_type_of(routine_type);
+  if (routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
+    /* The primary routine has not been assigned to be one of the entry
+       points yet, so do that now. */
+    set_primary_ctor_or_dtor_kind(routine);
+  }  /* if */
+  if (routine->ctor_dtor_kind == kind) {
+    /* The primary routine is the entry point we want. */
+    new_routine = routine;
+  } else {
+    /* Check to see if the routine already exists on the alternate_entry_points
+       list. */
+    for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
+         rlep != NULL; 
+         rlep = rlep->next) {
+      if (rlep->routine->ctor_dtor_kind == kind) {
+        /* The routine already exists. */
+        new_routine = rlep->routine;
+        break;
+      }  /* if */
+    }  /* for */
+    if (new_routine == NULL) {
+      a_type_ptr                    routine_type =skip_typerefs(routine->type);
+      a_type_ptr                    this_param_type, return_type;
+      a_param_type_ptr              param_type, last_param_type;
+      a_routine_type_supplement_ptr rtsp, new_rtsp;
+      a_storage_class               new_storage_class;
+      rtsp = routine->type->variant.routine.extra_info;
+      /* Make a type and routine entry for the routine. */
+      /* The "this" parameter is generated in its lowered form (i.e., as a
+         normal parameter). */
+      this_param_type = implicit_this_param_type_of(routine_type);
+      return_type = lowered_return_type_of(routine_type);
 #if IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
-    /* Deleting destructors return void even in the variant. */
-    if (kind == (a_ctor_or_dtor_kind)cdk_deleting &&
-        routine->special_kind == (a_special_function_kind)sfk_destructor) {
-      return_type = void_type();
-    }  /* if */
+      /* Deleting destructors return void even in the variant. */
+      if (kind == (a_ctor_or_dtor_kind)cdk_deleting &&
+          routine->special_kind == (a_special_function_kind)sfk_destructor) {
+        return_type = void_type();
+      }  /* if */
 #endif /* IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
-    /* Additional parameter types, if any, are added below. */
-    new_storage_class = routine->storage_class;
-    if (new_storage_class == (a_storage_class)sc_unspecified) {
-      new_storage_class = (a_storage_class)sc_extern;
-    }  /* if */
-    /* The routine is not added to the routines list now; see
-       promote_routines.  Check that the routine has not already
-       been promoted out of its class, to make sure we will get
-       to promote_routines later. */
-    check_assertion(routine->source_corresp.is_class_member);
-    new_routine = make_rout_entry_no_add((char *)NULL, new_storage_class,
-                                         return_type,
-                                         this_param_type);
-    set_inline_flag(new_routine, routine->is_inline);
+      /* Additional parameter types, if any, are added below. */
+      new_storage_class = routine->storage_class;
+      if (new_storage_class == (a_storage_class)sc_unspecified) {
+        new_storage_class = (a_storage_class)sc_extern;
+      }  /* if */
+      /* The routine is not added to the routines list now; see
+         promote_routines.  Check that the routine has not already
+         been promoted out of its class, to make sure we will get
+         to promote_routines later. */
+      check_assertion(routine->source_corresp.is_class_member);
+      new_routine = make_rout_entry_no_add((char *)NULL, new_storage_class,
+                                           return_type,
+                                           this_param_type);
+      set_inline_flag(new_routine, routine->is_inline);
 #if DECL_MODIFIERS_IN_USE
-    new_routine->decl_modifiers = routine->decl_modifiers;
+      new_routine->decl_modifiers = routine->decl_modifiers;
 #endif /* DECL_MODIFIERS_IN_USE */
 #if INSTANTIATE_EXTERN_INLINE
-    new_routine->inline_instance_required = routine->inline_instance_required;
+      new_routine->inline_instance_required =routine->inline_instance_required;
 #endif /* INSTANTIATE_EXTERN_INLINE */
-    new_routine->source_corresp.is_class_member = TRUE;
-    new_routine->source_corresp.parent.class_type =
+      new_routine->source_corresp.is_class_member = TRUE;
+      new_routine->source_corresp.parent.class_type =
                                      routine->source_corresp.parent.class_type;
-    set_routine_special_kind(new_routine, routine->special_kind);
-    new_routine->ctor_dtor_kind = kind;
-    new_routine->primary_ctor_or_dtor = routine;
-    new_routine->compiler_generated = TRUE;
-    new_routine->pure_virtual = routine->pure_virtual;
+      set_routine_special_kind(new_routine, routine->special_kind);
+      new_routine->ctor_dtor_kind = kind;
+      new_routine->primary_ctor_or_dtor = routine;
+      new_routine->compiler_generated = TRUE;
+      new_routine->pure_virtual = routine->pure_virtual;
 #if ONE_INSTANTIATION_PER_OBJECT
-    new_routine->instantiation_needed_bit_number =
+      new_routine->instantiation_needed_bit_number =
                                       routine->instantiation_needed_bit_number;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-    new_rtsp = new_routine->type->variant.routine.extra_info;
-    new_rtsp->this_class = rtsp->this_class;
-    mangle_alternate_entry_point_name(new_routine, routine);
-    /* Make the new routine virtual if the old one is so that virtual
-       destructors work correctly.  The virtual function number for the
-       deleting destructor is one greater than for the complete object
-       destructor. */
-    if (routine->is_virtual && kind != (a_ctor_or_dtor_kind)cdk_subobject) {
-      check_assertion(routine->special_kind ==
+      new_rtsp = new_routine->type->variant.routine.extra_info;
+      new_rtsp->this_class = rtsp->this_class;
+      mangle_alternate_entry_point_name(new_routine, routine);
+      /* Make the new routine virtual if the old one is so that virtual
+         destructors work correctly.  The virtual function number for the
+         deleting destructor is one greater than for the complete object
+         destructor. */
+      if (routine->is_virtual && kind != (a_ctor_or_dtor_kind)cdk_subobject) {
+        check_assertion(routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor);
-      new_routine->is_virtual = TRUE;
-      if (kind == (a_ctor_or_dtor_kind)cdk_complete) {
-        new_routine->virtual_function_number = 
+        new_routine->is_virtual = TRUE;
+        if (kind == (a_ctor_or_dtor_kind)cdk_complete) {
+          new_routine->virtual_function_number = 
                                              routine->virtual_function_number;
-      } else {
-        check_assertion(kind == (a_ctor_or_dtor_kind)cdk_deleting);
-        new_routine->virtual_function_number = 
-                                         routine->virtual_function_number + 1;
+        } else {
+          check_assertion(kind == (a_ctor_or_dtor_kind)cdk_deleting);
+          new_routine->virtual_function_number = 
+                                          routine->virtual_function_number + 1;
+        }  /* if */
       }  /* if */
+      /* The new routine has an ellipsis if the old one does.  */
+      new_rtsp->has_ellipsis = rtsp->has_ellipsis;
+      /* Add new_routine to the list of alternate entry points for 
+         routine. */
+      rlep = alloc_list_entry_for_routine();
+      rlep->routine = new_routine;
+      rlep->next = routine->variant.ctor_dtor.alternate_entry_points;
+      routine->variant.ctor_dtor.alternate_entry_points = rlep;
+      last_param_type = new_rtsp->param_type_list;
+      if ((new_routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor &&
+           ctor_needs_vtt_argument(new_routine)) ||
+          (new_routine->special_kind ==
+                                     (a_special_function_kind)sfk_destructor &&
+           dtor_needs_vtt_argument(new_routine))) {
+        /* Add a VTT parameter if necessary. */
+        param_type = alloc_param_type(make_virtual_table_table_pointer_type());
+        last_param_type->next = param_type;
+        last_param_type = param_type;
+      }  /* if */
+      /* Copy the remainder of the parameters. */
+      copy_and_lower_param_type_list(routine, last_param_type, 
+                                     /*do_default_args=*/TRUE,
+                                     /*do_lowering=*/FALSE);
     }  /* if */
-    /* The new routine has an ellipsis if the old one does.  */
-    new_rtsp->has_ellipsis = rtsp->has_ellipsis;
-    /* Add new_routine to the list of alternate entry points for 
-       routine. */
-    rlep = alloc_list_entry_for_routine();
-    rlep->routine = new_routine;
-    rlep->next = routine->variant.ctor_dtor.alternate_entry_points;
-    routine->variant.ctor_dtor.alternate_entry_points = rlep;
-    last_param_type = new_rtsp->param_type_list;
-    if ((new_routine->special_kind==(a_special_function_kind)sfk_constructor &&
-         ctor_needs_vtt_argument(new_routine)) ||
-        (new_routine->special_kind==(a_special_function_kind)sfk_destructor &&
-         dtor_needs_vtt_argument(new_routine))) {
-      /* Add a VTT parameter if necessary. */
-      param_type = alloc_param_type(make_virtual_table_table_pointer_type());
-      last_param_type->next = param_type;
-      last_param_type = param_type;
-    }  /* if */
-    /* Copy the remainder of the parameters. */
-    copy_and_lower_param_type_list(routine, last_param_type, 
-                                   /*do_default_args=*/TRUE,
-                                   /*do_lowering=*/FALSE);
-  }  /* if */
-  /* Define the routine if appropriate. */
-  if (routine->assoc_scope != NULL_region_number &&
-      define_now) {
-    if (new_routine->storage_class == (a_storage_class)sc_extern) {
-      new_routine->storage_class = routine->storage_class;
-    }  /* if */
-    /* Set is_inline again because templates don't have a reliable value
-       before they are defined. */
-    set_inline_flag(new_routine, routine->is_inline);
-    new_routine->suppress_inline_body = routine->suppress_inline_body;
-    define_default_version_of_routine(routine, new_routine, 
-                                      (an_expr_node_ptr)NULL);
+    /* Define the routine if appropriate. */
+    if (routine->assoc_scope != NULL_region_number &&
+        define_now) {
+      if (new_routine->storage_class == (a_storage_class)sc_extern) {
+        new_routine->storage_class = routine->storage_class;
+      }  /* if */
+      /* Set is_inline again because templates don't have a reliable value
+         before they are defined. */
+      set_inline_flag(new_routine, routine->is_inline);
+      new_routine->suppress_inline_body = routine->suppress_inline_body;
+      define_default_version_of_routine(routine, new_routine, 
+                                        (an_expr_node_ptr)NULL);
 #if LOWER_EXTERN_INLINE
-    if (routine->use_comdat) {
-      put_routine_into_comdat_group(new_routine);
-    }  /* if */
+      if (routine->use_comdat) {
+        put_routine_into_comdat_group(new_routine);
+      }  /* if */
 #endif /* LOWER_EXTERN_INLINE */
+    }  /* if */
   }  /* if */
   return new_routine;
 }  /* alternate_entry_point */
@@ -3769,9 +3828,7 @@ dynamic init pointer because of the make_destruction_routine case.
     entity_node = add_cast_if_necessary(entity_node,
                                         f_skip_typerefs(this_param_type));
 #if IA64_ABI
-    if (f_skip_typerefs(type_from_init_pos_descr(ipdp))->variant.
-                                 class_struct_union.any_virtual_base_classes &&
-        !have_complete_object) {
+    if (dtor_needs_vtt_argument(dtor_routine)) {
       check_assertion(vtt_addr_node != NULL);
       implied_arg_list = vtt_addr_node;
     } else {
@@ -7515,6 +7572,9 @@ The subtree of the node has not yet been lowered.
     /* An array "new". */
     lower_array_new(expr);
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
+#if IA64_ABI
+ #error -- IA64_ABI requires NEW_CAN_BE_FOLDED_INTO_CTOR set to FALSE
+#endif /* IA64_ABI */
   } else if (ndsp->routine == NULL) {
     /* The "new" call has been folded into the constructor call. */
     a_routine_ptr    ctor_routine = dip->variant.constructor.ptr;
@@ -7673,13 +7733,15 @@ The subtree of the node has not yet been lowered.
 }  /* lower_new */
 
 
-static an_expr_node_ptr make_delete_call(a_routine_ptr    delete_routine,
-                                         a_type_ptr       delete_type,
-                                         an_expr_node_ptr arg_node)
+static an_expr_node_ptr make_delete_call(a_routine_ptr      delete_routine,
+                                         a_type_ptr         delete_type,
+                                         an_expr_node_ptr   arg_node,
+                                         an_insert_location *insert_location)
 /*
 Create an expression for a call of the delete routine indicated by
 delete_routine, with arg_node as the argument.  Return a pointer to
-the call expression.
+the call expression.  If insert_location is not NULL, an expression
+statement containing the created call node is inserted at *insert_location.
 */
 {
   an_expr_node_ptr call_node, second_arg_node;
@@ -7701,7 +7763,7 @@ the call expression.
   /* Make the call. */
   call_node = make_call_node(delete_routine, arg_node,
                              /*honor_virtual=*/FALSE,
-                             (an_insert_location *)NULL);
+                             insert_location);
   return call_node;
 }  /* make_delete_call */
 
@@ -7814,13 +7876,19 @@ tricks.
          (dtor(...), delete(...))
     */
     an_expr_node_ptr delete_call_node =
-                 make_delete_call(delete_routine, class_type, ptr_node_delete);
+                 make_delete_call(delete_routine, class_type, ptr_node_delete,
+                                  (an_insert_location *)NULL);
     call_node = make_comma_node(call_node, delete_call_node);
 #else /* DTORS_RETURN_THIS */
     /* In the variant of the IA-64 ABI where destructors return "this",
        build delete(dtor(...)). */
-    call_node = make_delete_call(delete_routine, class_type, call_node);
+    call_node = make_delete_call(delete_routine, class_type, call_node,
+                                 (an_insert_location *)NULL);
 #endif /* DTORS_RETURN_THIS */
+  } else {
+    /* Just for safety, make sure that a destructor that returns a
+       non-void value is cast to void. */
+    call_node = add_cast_if_necessary(call_node, void_type());
   }  /* if */
   if (need_null_ptr_test) {
     /* Add a null pointer test, producing
@@ -7893,7 +7961,8 @@ The subtree of the node has not yet been lowered.
     lower_expr(ptr_node, /*is_lvalue=*/FALSE);
     /* Make the "delete" call.  It is not necessary to test for non-NULL;
        the delete routine does that. */
-    call_node = make_delete_call(delete_routine, ndsp->type, ptr_node);
+    call_node = make_delete_call(delete_routine, ndsp->type, ptr_node,
+                                 (an_insert_location *)NULL);
     /* Overwrite the enk_new_delete node with the final expression. */
     overwrite_node(expr, call_node);
   }  /* if */
@@ -9374,8 +9443,8 @@ the implicit parameters follow it.
 }  /* implicit_virtual_base_parameter */
 
 #endif /* !IA64_ABI */
-
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+#if !IA64_ABI
 
 static a_variable_ptr make_construction_vtbl_temporary(void)
 /*
@@ -9392,6 +9461,7 @@ the temporary variable.
   return var;
 }  /* make_construction_vtbl_temporary */
 
+#endif /* !IA64_ABI */
 
 /* Determine whether or not make define_construction_vtbls_array needs to be
    external. */
@@ -9573,21 +9643,20 @@ array itself; if FALSE, it is a pointer to the first element of the array.
 
 static void insert_default_construction_vtbls_assignment(
                                 a_type_ptr              class_type,
-                                a_construction_vtbl_ptr construction_vtbls,
                                 a_variable_ptr          construction_vtbls_var,
                                 an_insert_location      *insert_location)
 /*
-Insert an assignment statement to set the construction_vtbls temporary to
+Insert an assignment statement to set the construction_vtbls_var temporary to
 point to the default array of virtual function table pointers to be used
-when constructing or destroying a complete object.  construction_vtbls
-points to a list describing the array contents.  *insert_location indicates
-the insert location.  class_type is the type of the class whose constructor or
-destructor is being generated.
+when constructing or destroying a complete object of type class_type.
+*insert_location indicates the insert location.
 */
 {
+  a_class_type_supplement_ptr
+                   ctsp = class_type->variant.class_struct_union.extra_info;
   a_variable_ptr   array_var =
-                            make_construction_vtbls_array(class_type, 
-                                                          construction_vtbls);
+                       make_construction_vtbls_array(class_type, 
+                                                     ctsp->construction_vtbls);
   an_expr_node_ptr array_addr = array_var_lvalue_expr(array_var);
 
 #if IA64_ABI
@@ -9666,30 +9735,20 @@ have_pointer:
   return expr;
 }  /* make_construction_vtbl_transfer_pointer_lvalue */
 
-#endif /* !IA64_ABI */
 
-#if IA64_ABI
-/*ARGSUSED*/ /* <-- class_type is not used in that case. */
-#else /* !IA64_ABI */
-/*ARGSUSED*/ /* <-- is_destructor is not used in that case. */
-#endif /* !IA64_ABI */
 static void receive_construction_vtbls_in_subobject_constructor(
                                      a_variable_ptr     construction_vtbls_var,
                                      a_type_ptr         class_type,
                                      a_variable_ptr     this_param_var,
-                                     a_boolean          is_destructor,
                                      an_insert_location *insert_location)
 /*
 Insert an assignment statement to set the construction_vtbls_var temporary to
 the pointer to an array of special virtual function tables passed into
 a subobject constructor or destructor via the so-called transfer pointer
 in the object.  class_type is the subobject class type.  this_param_var
-is the "this" parameter variable for the constructor or destructor.  If
-is_destructor is TRUE then we are processing a destructor; otherwise,
-we are processing a constructor.
+is the "this" parameter variable for the constructor or destructor.
 */
 {
-#if !IA64_ABI
   an_expr_node_ptr trans_ptr_node;
 
   trans_ptr_node = var_rvalue_expr(this_param_var);
@@ -9704,19 +9763,8 @@ we are processing a constructor.
                                         (an_expr_operator_kind)eok_passign,
                                         trans_ptr_node,
                                         insert_location);
-#else /* IA64_ABI */
-  if (is_destructor) {
-    /* Skip the complete object variable. */
-    this_param_var = this_param_var->next;
-  }  /* if */
-  (void)insert_var_assignment_statement(construction_vtbls_var,
-                                        (an_expr_operator_kind)eok_passign,
-                                        var_rvalue_expr(this_param_var->next),
-                                        insert_location);
-#endif /* IA64_ABI */
 }  /* receive_construction_vtbls_in_subobject_constructor */
 
-#if !IA64_ABI
 
 static void set_transfer_pointer(an_init_pos_descr_ptr ipdp,
                                  a_type_ptr            subobject_class_type,
@@ -9875,18 +9923,11 @@ code is needed).
   *implied_arg_node = NULL;
   if (dedp->needs_subobject_construction_vtbl) {
     /* Pass the construction vtable address via an added argument. */
-    if (dedp->construction_vtbls_var != NULL) {
-      *implied_arg_node = vtbl_addr_from_construction_vtbls_array(
+    check_assertion(dedp->construction_vtbls_var != NULL);
+    *implied_arg_node = vtbl_addr_from_construction_vtbls_array(
                    dedp->construction_vtbls_var,
                    (a_boolean)dedp->construction_vtbls_var_is_array,
                    base_class->base_subarray_index_in_construction_vtbl_array);
-    } else {
-      /* Pass a null VTT pointer. */
-      a_constant null_constant;
-      make_zero_of_proper_type(make_virtual_table_table_pointer_type(),
-                               &null_constant);
-      *implied_arg_node = alloc_node_for_constant(&null_constant);
-    }  /* if */
   }  /* if */
 #endif /* !IA64_ABI */
 }  /* build_construction_vtbls_pointer */
@@ -9986,19 +10027,14 @@ under dip or generate code.
     /* The constructor or destructor takes a VTT pointer. */
     if (just_test != NULL) {
       *just_test = TRUE;
-    } else if (base_class->base_subarray_index_in_construction_vtbl_array!=0) {
+    } else {
       /* Pass an element from the parent VTT. */
-      check_assertion(construction_vtbls_var != NULL);
+      check_assertion(base_class->
+                         base_subarray_index_in_construction_vtbl_array != 0 &&
+                      construction_vtbls_var != NULL);
       dedp->needs_subobject_construction_vtbl = TRUE;
       dedp->construction_vtbls_var_is_array = FALSE;
       dedp->construction_vtbls_var = construction_vtbls_var;
-      dedp->subobject_construction_base_class = base_class;
-    } else {
-      /* The default VTT will work for this base class.  Pass a
-         NULL pointer, and the subobject constructor or destructor will
-         use the VTT for its class as a complete object. */
-      dedp->needs_subobject_construction_vtbl = TRUE;
-      dedp->construction_vtbls_var = NULL;
       dedp->subobject_construction_base_class = base_class;
     }  /* if */
   }  /* if */
@@ -10113,10 +10149,11 @@ constructor, but may instead be after an assignment to "this".
                          ctsp;
   a_constructor_init_ptr ctor_init;
   a_constant             null_constant;
-  an_insert_location     insert_location2, else_insert_location;
+  an_insert_location     insert_location2;
   an_expr_node_ptr       null_constant_node, vbase_param_node, compare_node;
 #if !IA64_ABI
   an_expr_node_ptr       vaddr_node, vbptr_node, assign_node;
+  an_insert_location     else_insert_location;
 #endif /* !IA64_ABI */
   an_expr_node_ptr       vtbl_addr_node, vptr_node, complete_var_node;
   a_variable_ptr         vtbl_var;
@@ -10152,19 +10189,15 @@ constructor, but may instead be after an assignment to "this".
 #endif // !IA64_ABI
          [For each virtual base class on the ctor-initializer list:]
            Call the constructor for the base class (arguments as indicated by
-               the ctor-initializer list, plus any virtual base class pointer
-               arguments, using the added parameters for those).  If the
-               constructor needs an array of construction vtbl pointers,
-               store the address of an array specific to this base class
-               in the transfer pointer in the subobject, as a way of
-               passing that information to the subobject constructor.
+               the ctor-initializer list, plus extra information needed
+               to get proper subobject behavior).
          [endfor]
+#if !IA64_ABI
        else (not initializing a complete object)
          Set the construction_vtbls temp to the value in the transfer pointer
            in the class (the caller uses that to pass in the address of
            the array of vtbl pointers to be used during the subobject
            construction).
-#if !IA64_ABI
          [For each virtual base class of the current class:]
            [If the virtual base class pointer for the base class is allocated
                in the current class:]
@@ -10178,13 +10211,8 @@ constructor, but may instead be after an assignment to "this".
      [For each initialized direct nonvirtual base class (entries for these
          appear as the middle of the ctor-initializer list):]
        Call the constructor for the base class (arguments as indicated by
-         the ctor-initializer list, plus any virtual base class pointer
-         arguments, using the added parameters for those).  If the
-         constructor needs an array of construction vtbl pointers, store
-         the address of the proper subarray of the array pointed to by
-         the construction_vtbls temp into the transfer pointer of the
-         subobject, as a way of passing that information to the subobject
-         constructor.
+         the ctor-initializer list, plus extra information needed to
+         get proper subobject behavior).
      [endfor]
      [If the current class has any virtual functions:]
        Set the virtual function table pointer in the current class.
@@ -10229,6 +10257,11 @@ constructor, but may instead be after an assignment to "this".
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (class_type->variant.class_struct_union.any_virtual_base_classes) {
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+#if IA64_ABI
+    check_assertion(ctsp->construction_vtbls != NULL);
+     /* Use the VTT parameter. */
+     construction_vtbls_var = this_param_var->next;
+#else /* !IA64_ABI */
     if (ctsp->construction_vtbls != NULL) {
       /* This class is one that has overridden virtual functions in virtual
          base classes, and needs special versions of the virtual function
@@ -10237,12 +10270,15 @@ constructor, but may instead be after an assignment to "this".
          table addresses. */
       construction_vtbls_var = make_construction_vtbl_temporary();
     }  /* if */
+#endif /* IA64_ABI */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
     /* Put out code that tests whether or not the virtual base classes need
        to be initialized.  This is done by testing whether or not the
-       first added parameter is NULL.  A local variable (called "complete"
-       in the pseudocode above) is initialized to TRUE if a complete
-       object is being initialized. */
+       first added parameter is NULL (in the IA-64 ABI, this is the VTT
+       parameter).  A local variable (called "complete" in the pseudocode
+       above) is initialized to TRUE if a complete object is being
+       initialized.  A local variable is used so that it can serve as
+       a conditional flag for EH cleanup. */
     vbase_param_var = this_param_var->next;
     /* Make a NULL pointer constant of the right type. */
     make_zero_of_proper_type(vbase_param_var->type, &null_constant);
@@ -10287,7 +10323,13 @@ constructor, but may instead be after an assignment to "this".
     insert_if_statement(compare_node,
                         /*is_initialization_guard=*/FALSE,
                         insert_location, (a_statement_ptr *)NULL,
-                        &insert_location2, &else_insert_location);
+                        &insert_location2,
+#if IA64_ABI
+                        (an_insert_location *)NULL  /* No "else" needed. */
+#else /* !IA64_ABI */
+                        &else_insert_location
+#endif /* IA64_ABI */
+                                                  );
     /* Inserting under insert_location2, in the "then" part of the "if"
        (a complete object is being initialized): */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
@@ -10296,7 +10338,6 @@ constructor, but may instead be after an assignment to "this".
          of virtual function table pointers to be used when constructing a
          complete object. */
       insert_default_construction_vtbls_assignment(class_type,
-                                                   ctsp->construction_vtbls,
                                                    construction_vtbls_var,
                                                    &insert_location2);
     }  /* if */
@@ -10376,6 +10417,7 @@ constructor, but may instead be after an assignment to "this".
                       /*base_of_complete_object=*/TRUE,
                       construction_vtbls_var, &insert_location2);
     }  /* for */
+#if !IA64_ABI
     /* Inserting under else_insert_location, in the "else" of the "if"
        (a subobject is being initialized): */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
@@ -10388,11 +10430,9 @@ constructor, but may instead be after an assignment to "this".
                                                        construction_vtbls_var,
                                                        class_type,
                                                        this_param_var,
-                                                       /*is_destructor=*/FALSE,
                                                        &else_insert_location);
     }  /* if */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-#if !IA64_ABI
     /* For each virtual base class of the current class, set the
        virtual base class pointer in the current class to point to the value
        of the associated virtual base class parameter, i.e., the address
@@ -10916,6 +10956,29 @@ is inserted at *insert_location.
 
 #endif /* GENERATE_EH_TABLES */
 
+static an_expr_node_ptr expr_for_dtor_complete_object_test(
+                                    a_destructor_wrapper_info_block *dtor_info)
+/*
+Create an expression that tests whether a destructor is dealing with a
+complete object, and return a pointer to it.  dtor_info->complete_obj_var
+points to an int variable that is non-zero if the object is complete.
+*/
+{
+  an_expr_node_ptr complete_obj_node, zero_constant_node, compare_node;
+
+  /* Make an expression node for the whole-object-indicator variable. */
+  complete_obj_node = var_rvalue_expr(dtor_info->complete_obj_var);
+  /* Make an expression node pointing to the zero constant. */
+  zero_constant_node = node_for_integer_constant(0L, (an_integer_kind)ik_int);
+  /* Make a node comparing the variable against zero. */
+  complete_obj_node->next = zero_constant_node;
+  compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
+                                    integer_type((an_integer_kind)ik_int),
+                                    complete_obj_node);
+  return compare_node;
+}  /* expr_for_dtor_complete_object_test */
+
+
 #if !GENERATE_EH_TABLES
 /*ARGSUSED*/  /* <-- prologue_insert_location is not used in some versions. */
 #endif /* !GENERATE_EH_TABLES */
@@ -10938,8 +11001,7 @@ insert_dtor_member_and_base_destructions.
 {
   a_routine_ptr          dtor_routine =
                                  innermost_function_scope->variant.routine.ptr;
-  a_variable_ptr         this_param_var, complete_obj_param_var;
-  an_expr_node_ptr       zero_constant_node, complete_obj_param_node;
+  a_variable_ptr         this_param_var;
   an_expr_node_ptr       compare_node;
   a_type_ptr             class_type;
   a_constructor_init_ptr ctor_init, ctor_init_list;
@@ -10954,34 +11016,23 @@ insert_dtor_member_and_base_destructions.
      there is other wrapper code added by lower_destructor_code.
 
      [For each data member on the ctor-initializer list:]
-       Call the destructor.  The complete-object implicit argument is 0x2.
+       Call the destructor for a complete object.
      [endfor]
      [For each direct nonvirtual base class on the ctor-initializer list:]
-       Call the destructor.  The complete-object implicit argument is 0.
-           If the destructor needs an array of destruction vtbl pointers,
-           store the address of the proper subarray of the array pointed
-           to by the destruction_vtbls temp into the transfer pointer in
-           the subobject, as a way of passing that information to the
-           subobject destructor.
+       Call the destructor for a subobject.
      [endfor]
      [If there are any items left on the ctor-initializer list (which
          must be for virtual base classes):]
-       If the added parameter != 0 (indicating a complete object is
-           being destroyed and virtual base classes must be destroyed):
+       If a complete object is being destroyed (and therefore virtual base
+           classes must be destroyed):
          [For each virtual base class on the ctor-initializer list:]
-           Call the destructor.  The complete-object implicit argument is 0.
-               If the destructor needs an array of destruction vtbl
-               pointers, store the address of an array specific to this
-               base class in the transfer pointer of the subobject, as
-               a way of passing that information to the subobject
-               destructor.
+           Call the destructor for a subobject.
          [endfor]
        endif
      [endif]
   */
   /* Get a pointer to the "this" parameter variable. */
   this_param_var = innermost_function_scope->variant.routine.parameters;
-  complete_obj_param_var = this_param_var->next;
   class_type = dtor_routine->source_corresp.parent.class_type;
   /* The constructor_inits list contains a list of destructions.  Each
      destruction is a default call supplied by the front end.  Every
@@ -11001,14 +11052,14 @@ insert_dtor_member_and_base_destructions.
   code_pos_for_lowering = error_position = closing_brace_pos;
   if (exceptions_enabled) {
 #if DO_FULL_PORTABLE_EH_LOWERING
-    a_handle_number complete_obj_param_handle;
+    a_handle_number complete_obj_handle;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
     /* Assign cleanup region numbers to the destructions.  This is done
        early so that we will know the right value to set __eh_curr_region
        to when beginning each destruction. */
     /* See whether there are any virtual base classes. */
     if (class_type->variant.class_struct_union.any_virtual_base_classes) {
-      /* The added parameter indicating a complete object will be used
+      /* The variable indicating a complete object will be used
          as a conditional flag for the destructions of the virtual base
          classes (we don't destroy the virtual base classes unless we
          are working on a complete object). */
@@ -11016,10 +11067,10 @@ insert_dtor_member_and_base_destructions.
       an_init_pos_descr ipd;
       /* Assign the object address table slot for the conditional
          variable. */
-      complete_obj_param_handle = object_addr_table_index();
+      complete_obj_handle = object_addr_table_index();
       /* Put the address of the variable into the object address table. */
-      set_var_init_pos_descr(complete_obj_param_var, &ipd);
-      init_object_addr_table_entry(&ipd, complete_obj_param_handle,
+      set_var_init_pos_descr(dtor_info->complete_obj_var, &ipd);
+      init_object_addr_table_entry(&ipd, complete_obj_handle,
                                    prologue_insert_location);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
       /* Process the ctor-inits for virtual base classes. */
@@ -11028,14 +11079,14 @@ insert_dtor_member_and_base_destructions.
            ctor_init = ctor_init->next) {
         if (ctor_init->kind ==
                              (a_constructor_init_kind)cik_virtual_base_class) {
-          /* Add complete_obj_param_var as a conditional flag. */
+          /* Add dtor_info->complete_obj_var as a conditional flag. */
           a_destructible_entity_descr_ptr dedp = 
                              ctor_init->initializer->destructible_entity_descr;
           check_assertion(dedp != NULL);
-          dedp->conditional_flag_var = complete_obj_param_var;
+          dedp->conditional_flag_var = dtor_info->complete_obj_var;
 #if DO_FULL_PORTABLE_EH_LOWERING
           if (exceptions_enabled) {
-            dedp->conditional_flag_handle = complete_obj_param_handle;
+            dedp->conditional_flag_handle = complete_obj_handle;
           }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
         }  /* if */
@@ -11093,23 +11144,12 @@ insert_dtor_member_and_base_destructions.
                          "gen_dtor_member_and_base_destructions:",
                          "bad ctor_init item kind");
     /* Put out code that tests whether or not the virtual base classes need
-       to be destroyed.  This is done by testing whether or not the
-       added parameter indicates we have a whole object. */
-    /* Note that we can do a "!= 0" test instead of a bit test because the
-       0x1 bit (for "free storage") would only be on for a whole object. */
-    /* Make an expression node pointing to the zero constant. */
-    zero_constant_node = node_for_integer_constant(0L,
-                                                   (an_integer_kind)ik_int);
-    /* Make an expression node for the parameter. */
-    complete_obj_param_node = var_rvalue_expr(complete_obj_param_var);
-    /* Make a node comparing the parameter against zero. */
-    complete_obj_param_node->next = zero_constant_node;
-    compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
-                                      integer_type((an_integer_kind)ik_int),
-                                      complete_obj_param_node);
+       to be destroyed.  This is done by testing whether we have
+       a complete object. */
+    compare_node = expr_for_dtor_complete_object_test(dtor_info);
     /* Make an "if" statement with a block statement under it:
-         if (param != 0) {}
-                          ^--- additional statements will be inserted.
+         if (complete-obj-test) {}
+                                 ^--- additional statements will be inserted.
     */
     insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
                         &insert_location, (a_statement_ptr *)NULL,
@@ -11400,8 +11440,8 @@ destructor scope, and also lower the user code.
 */
 {
   a_base_class_ptr       bcp;
-  a_variable_ptr         this_param_var, complete_obj_param_var;
-  a_type_ptr             class_type, int_type;
+  a_variable_ptr         this_param_var;
+  a_type_ptr             class_type;
   a_class_type_supplement_ptr
                          ctsp;
   an_insert_location     insert_location, insert_location2;
@@ -11409,14 +11449,17 @@ destructor scope, and also lower the user code.
   a_statement_ptr        user_code_stmts;
   a_boolean              has_function_try_block = FALSE;
   a_constructor_init_ptr ctor_init;
-  a_boolean              epilogue_setup_done = FALSE;
-  an_expr_node_ptr       zero_constant_node, complete_obj_param_node;
   an_expr_node_ptr       vtbl_addr_node, vptr_node;
   a_variable_ptr         vtbl_var;
   a_routine_ptr          dtor_routine = scope->variant.routine.ptr;
-  a_routine_ptr          delete_routine;
   a_source_position      saved_error_position, saved_code_pos;
-  a_source_position      opening_brace_pos, closing_brace_pos;
+  a_source_position      opening_brace_pos;
+#if !IA64_ABI
+  an_insert_location     else_insert_location;
+  a_source_position      closing_brace_pos;
+  a_routine_ptr          delete_routine;
+  a_boolean              epilogue_setup_done = FALSE;
+#endif /* !IA64_ABI */
   a_destructor_wrapper_info_block
                          dtor_info;
 
@@ -11425,21 +11468,24 @@ destructor scope, and also lower the user code.
      are tests and loops done in the processing in this routine; other
      lines are the code added to the destructor routine.
 
+#if !IA64_ABI
      [If a delete can be folded into the destructor:]
        If this != NULL test around entire routine.
      [endif]
+#endif // !IA64_ABI
      [If the current class requires a special array of virtual function table
          addresses (which is true when the class has virtual functions
          in virtual bases that are overridden):]
-       If the added parameter != 0 (indicating a complete object is
-           being destroyed):
+       If a complete object is being destroyed:
          Set the destruction_vtbls temp to point to a local static array
            containing vtbl pointer values to be used for a complete object.
+#if !IA64_ABI
        else
          Set the destruction_vtbls temp to the value of the transfer
              pointer in the class (the caller uses that to pass in the
              address of the array of vtbl pointers to be used during the
              subobject destruction).
+#endif // !IA64_ABI
        endif
      [endif]
      [If the current class has any virtual functions:]
@@ -11461,9 +11507,11 @@ destructor scope, and also lower the user code.
             code:
      Member and base destruction code (see
          gen_dtor_member_and_base_destructions).
+#if !IA64_ABI
      If (added parameter & 0x1) != 0:
-       delete((void)*this)
+       delete((void*)this)
      endif
+#endif // !IA64_ABI
      return;
   */
   saved_code_pos = code_pos_for_lowering;
@@ -11472,10 +11520,8 @@ destructor scope, and also lower the user code.
   set_position_from_stmt_source_position(opening_brace_pos,
                                          top_stmt->position);
   error_position = code_pos_for_lowering = opening_brace_pos;
-  int_type = integer_type((an_integer_kind)ik_int);
   /* Get a pointer to the "this" parameter variable. */
   this_param_var = scope->variant.routine.parameters;
-  complete_obj_param_var = this_param_var->next;
   class_type = dtor_routine->source_corresp.parent.class_type;
   /* Mark the class as referenced because, at the very least, the
      "this" parameter uses it.  For some cases involving generated virtual
@@ -11494,57 +11540,90 @@ destructor scope, and also lower the user code.
     user_code_stmts = top_stmt->variant.block.statements;
     set_block_start_insert_location(top_stmt, &insert_location);
   }  /* if */
+#if !IA64_ABI
   /* Get the position of the closing brace of the destructor.  Note that
      if the top statement was a try-block it has been rewritten as a
      block, and the source position was preserved. */
   set_position_from_stmt_source_position(
                            closing_brace_pos,
                            top_stmt->variant.block.extra_info->final_position);
+#endif /* !IA64_ABI */
   /* Start an object lifetime if appropriate. */
   begin_block_object_lifetime(scope->lifetime, &insert_location);
   dtor_info.epilogue_block = NULL;
   dtor_info.first_epilogue_destruction = NULL;
   dtor_info.destruction_vtbls_var = NULL;
+  dtor_info.complete_obj_var = NULL;
+#if !IA64_ABI
+  if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+    /* We need a variable that is non-zero to indicate that a complete
+       object is being destroyed.  For the IA-64 ABI, see below. */
+    /* For the Cfront-like ABI, we can test the complete-object parameter
+       directly.  A "!= 0" test works okay because the 0x1 bit (for
+       "free storage") would only be on for a whole object. */
+    dtor_info.complete_obj_var = this_param_var->next;
+  }  /* if */
+#endif /* !IA64_ABI */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
   if (ctsp->construction_vtbls != NULL) {
-    an_insert_location else_insert_location;
     an_expr_node_ptr   compare_node;
     /* This class is one that has overridden virtual functions in virtual
        base classes, and needs special versions of the virtual function
        tables when used to destruct a subobject. */
     /* Create a temporary that will point to an array of virtual function
-       table addresses. */
+       table addresses.  In the IA-64 ABI, the VTT parameter is used
+       directly. */
+#if !IA64_ABI
     dtor_info.destruction_vtbls_var = make_construction_vtbl_temporary();
-    /* Put out code that tests the added parameter to determine whether
-       we are destroying a complete object. */
-    /* Note that we can do a "!= 0" test instead of a bit test because the
-       0x1 bit (for "free storage") would only be on for a whole object. */
-    /* Make an expression node pointing to the zero constant. */
-    zero_constant_node = node_for_integer_constant(0L,
-                                                   (an_integer_kind)ik_int);
-    /* Make an expression node for the parameter. */
-    complete_obj_param_node = var_rvalue_expr(complete_obj_param_var);
-    /* Make a node comparing the parameter against zero. */
-    complete_obj_param_node->next = zero_constant_node;
-    compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
-                                      int_type, complete_obj_param_node);
+#else /* IA64_ABI */
+    dtor_info.destruction_vtbls_var = this_param_var->next;
+    /* For the IA-64 ABI, the VTT parameter is NULL if we are destroying
+       a complete object.  We need to generate a temporary that is non-zero
+       when the VTT parameter is NULL, i.e., temp = (vtt-param == NULL). */
+    { a_constant       null_constant;
+      an_expr_node_ptr null_constant_node, vtt_param_node;
+      a_variable_ptr   vtt_param_var = this_param_var->next;
+      dtor_info.complete_obj_var =
+                 make_lowered_temporary(integer_type((an_integer_kind)ik_int));
+      make_zero_of_proper_type(f_skip_typerefs(vtt_param_var->type),
+                               &null_constant);
+      null_constant_node = alloc_node_for_constant(&null_constant);
+      vtt_param_node = var_rvalue_expr(vtt_param_var);
+      vtt_param_node->next = null_constant_node;
+      compare_node = make_operator_node((an_expr_operator_kind)eok_peq,
+                                        integer_type((an_integer_kind)ik_int),
+                                        vtt_param_node);
+      (void)insert_var_assignment_statement(dtor_info.complete_obj_var,
+                                            (an_expr_operator_kind)eok_iassign,
+                                            compare_node,
+                                            &insert_location);
+    }
+#endif /* IA64_ABI */
+    /* Put out code that tests whether we are destroying a complete object. */
+    compare_node = expr_for_dtor_complete_object_test(&dtor_info);
     /* Make an "if" statement with a block statement under it:
-         if (param != 0) {}
-                          ^--- additional statements will be inserted.
+         if (complete-obj-test) {}
+                                 ^--- additional statements will be inserted.
     */
     insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
                         &insert_location, (a_statement_ptr *)NULL,
-                        &insert_location2, &else_insert_location);
+                        &insert_location2,
+#if IA64_ABI
+                        (an_insert_location *)NULL  /* No "else" needed. */
+#else /* !IA64_ABI */
+                        &else_insert_location
+#endif /* IA64_ABI */
+                                             );
     /* Inserting under insert_location2, in the "then" part of the "if"
        (a complete object is being destroyed): */
     /* Set the destruction_vtbls temporary to point to the default array
        of virtual function table pointers to be used when destroying a
        complete object. */
     insert_default_construction_vtbls_assignment(class_type,
-                                                 ctsp->construction_vtbls,
                                                  dtor_info.
                                                          destruction_vtbls_var,
                                                  &insert_location2);
+#if !IA64_ABI
     /* Inserting under else_insert_location, in the "else" of the "if"
        (a subobject is being destroyed): */
     /* Copy the value of the transfer pointer to the local
@@ -11552,11 +11631,11 @@ destructor scope, and also lower the user code.
        transfer pointer to pass information down to the subclass
        destructor. */
     receive_construction_vtbls_in_subobject_constructor(dtor_info.
-                                                         destruction_vtbls_var,
+                                                        destruction_vtbls_var,
                                                         class_type,
                                                         this_param_var,
-                                                        /*is_destructor=*/TRUE,
                                                         &else_insert_location);
+#endif /* !IA64_ABI */
   }  /* if */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
   /* If the current class has any virtual functions, generate code to
@@ -11671,8 +11750,11 @@ destructor scope, and also lower the user code.
     insert_dtor_member_and_base_destructions(&insert_location,
                                              top_stmt,
                                              &dtor_info);
+#if !IA64_ABI
     epilogue_setup_done = TRUE;
+#endif /* !IA64_ABI */
   }  /* if */
+#if !IA64_ABI
   /* Set the current position to the closing brace of the destructor. */
   code_pos_for_lowering = error_position = closing_brace_pos;
   /* Add code to free the storage if the "free" bit (0x1) is on in the
@@ -11682,11 +11764,13 @@ destructor scope, and also lower the user code.
      happens if a derived class inherits more than one delete routine, and
      therefore they're ambiguous.
   */
+  /* In the IA-64 ABI, this code is in the deleting destructor. */
   delete_routine = ctsp->assoc_operator_delete_routine;
   if (delete_routine != NULL) {
     an_expr_node_ptr this_param_node;
     an_expr_node_ptr and_node, two_constant_node, if_node;
-    a_param_type_ptr param1;
+    a_type_ptr       int_type = integer_type((an_integer_kind)ik_int);
+    an_expr_node_ptr zero_constant_node, complete_obj_param_node;
 
     if (!epilogue_setup_done) {
       a_boolean label_added;
@@ -11698,7 +11782,7 @@ destructor scope, and also lower the user code.
       epilogue_setup_done = TRUE;
     }  /* if */
     /* Make "param & 0x1". */
-    complete_obj_param_node = var_rvalue_expr(complete_obj_param_var);
+    complete_obj_param_node = var_rvalue_expr(this_param_var->next);
     two_constant_node = node_for_integer_constant(1L, (an_integer_kind)ik_int);
     complete_obj_param_node->next = two_constant_node;
     and_node = make_operator_node((an_expr_operator_kind)eok_and,
@@ -11735,43 +11819,12 @@ destructor scope, and also lower the user code.
                         &insert_location2, (an_insert_location *)NULL);
     /* Make "delete-routine((void *)this);" under the "if". */
     this_param_node = var_rvalue_expr(this_param_var);
-    this_param_node = add_cast_if_necessary(this_param_node, void_star_type());
-    /* If the delete routine takes two arguments, add a second argument
-       of type size_t that gives the size of the class. */
-    param1 = unlowered_param_type_list_for_routine(delete_routine);
-#if CHECKING
-    if (param1 == NULL) {
-      internal_error("lower_destructor_code: bad delete rout 1st param");
-    }  /* if */
-#endif /* CHECKING */
-    if (param1->next != NULL) {
-      /* Two-argument form.  Add a second argument of type size_t that
-         indicates the (static) size of the object. */
-      this_param_node->next =
-              node_for_host_large_integer(
-                                      (a_host_large_integer)(class_type->size),
-                                      targ_size_t_int_kind);
-    }  /* if */
-    delete_routine->source_corresp.referenced = TRUE;
-    make_call_statement(delete_routine, this_param_node, &insert_location2);
+    (void)make_delete_call(delete_routine, class_type, this_param_node,
+                           &insert_location2);
   }  /* if */
-  { an_expr_node_ptr this_param_node, null_constant_node, if_node;
-    a_constant       null_constant;
-
-    /* Make and add "if (this != NULL)" around the entire routine body.
-       This is needed when the delete call can be folded into the
-       destructor call, and is handy to avoid a test before the call
-       even when that is not allowed. */
-    this_param_node = var_rvalue_expr(this_param_var);
-    make_zero_of_proper_type(f_skip_typerefs(this_param_var->type),
-                             &null_constant);
-    null_constant_node = alloc_node_for_constant(&null_constant);
-    this_param_node->next = null_constant_node;
-    if_node = make_operator_node((an_expr_operator_kind)eok_pne,
-                                 int_type, this_param_node);
-    /* Make the "if" statement. */
-    enclose_routine_in_if(scope, if_node, (a_variable_ptr)NULL);
-  }
+  /* Add "if (this != NULL)" around the whole routine. */
+  add_null_test_around_routine(scope);
+#endif /* !IA64_ABI */
   error_position = saved_error_position;
   code_pos_for_lowering = saved_code_pos;
 }  /* lower_destructor_code */

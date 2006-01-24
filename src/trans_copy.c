@@ -1853,6 +1853,7 @@ the secondary translation unit IL).
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if IA64_ABI && DO_IL_LOWERING
   a_routine_list_entry_ptr saved_alternate_entry_points;
+  a_ctor_or_dtor_kind saved_ctor_dtor_kind;
 #endif /* IA64_ABI && DO_IL_LOWERING */
   a_symbol_ptr sym = (a_symbol_ptr)(rout->source_corresp.assoc_info);
   do_saves_for_overwrite(primary_rout, a_routine_ptr);
@@ -1861,6 +1862,7 @@ the secondary translation unit IL).
       primary_rout->special_kind == (a_special_function_kind)sfk_destructor) {
     saved_alternate_entry_points =
                         primary_rout->variant.ctor_dtor.alternate_entry_points;
+    saved_ctor_dtor_kind = primary_rout->ctor_dtor_kind;
   }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
   transfer_routine_flags(primary_rout, rout);
@@ -1880,6 +1882,7 @@ the secondary translation unit IL).
       primary_rout->special_kind == (a_special_function_kind)sfk_destructor) {
     primary_rout->variant.ctor_dtor.alternate_entry_points =
                                                   saved_alternate_entry_points;
+    primary_rout->ctor_dtor_kind = saved_ctor_dtor_kind;
   }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
   establish_as_canonical(&primary_rout->source_corresp);

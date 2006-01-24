@@ -7975,9 +7975,11 @@ typedef struct a_routine {
     struct {
       a_routine_list_entry_ptr
 		alternate_entry_points;
-			/* When ctor_dtor_kind == cdk_none, the other
-			   constructor and destructor entry points.
-			   Only valid within the front end. */
+			/* For a constructor or destructor with entry points,
+			   a list of the entry points.  Can be non-NULL only in
+			   the primary routine, i.e., the one with
+			   primary_ctor_or_dtor == NULL.  Only valid within
+			   the front end. */
       sizeof_t	base_name_offset;
 			/* Once the name has been mangled, the offset into
 			   the mangled name for this constructor/destructor
@@ -8317,7 +8319,13 @@ typedef struct a_routine {
   a_bit_field /* a_ctor_or_dtor_kind */
 		ctor_dtor_kind:2;
 			/* The kind of constructor or destructor.  cdk_none
-			   for other kinds of routines. */
+			   for other kinds of routines.  All constructors and
+			   destructors are given a kind other than cdk_none.
+			   Constructor and destructor routines created by
+			   the front end proper with kind cdk_none are changed
+			   to an appropriate kind during lowering, and entry
+			   points added by lowering are created with the right
+			   kind. */
 #endif /* DO_IL_LOWERING && IA64_ABI */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
@@ -8428,9 +8436,10 @@ typedef struct a_routine {
 #if DO_IL_LOWERING && IA64_ABI
   a_routine_ptr	primary_ctor_or_dtor;
 			/* In an entry for a constructor or destructor
-			   alternate entry point (i.e., an entry with
-			   ctor_dtor_kind != cdk_none), this points to the
-			   underlying constructor or destructor routine. */
+			   alternate entry point, this points to the
+			   primary constructor or destructor routine.
+			   NULL for a primary constructor or destructor
+			   routine */
 #endif /* DO_IL_LOWERING && IA64_ABI */
 #if ONE_INSTANTIATION_PER_OBJECT
   unsigned long	instantiation_needed_bit_number;

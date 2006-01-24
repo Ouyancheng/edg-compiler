@@ -4994,7 +4994,7 @@ have one yet.
 #if IA64_ABI
           /* Ignore alternate entry points for constructors and
              destructors. */
-          routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none &&
+          routine->primary_ctor_or_dtor == NULL &&
 #endif /* IA64_ABI */
           /* A member function of a template class is not marked as
              inline until it is fully instantiated, so we have to call
@@ -6958,7 +6958,7 @@ TRUE, bcp is a direct or indirect primary base of class_type.
     if (!rout->is_virtual) continue;
     /* Alternate entry points of constructors and destructors are not
        expected here. */
-    check_assertion(rout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none);
+    check_assertion(rout->primary_ctor_or_dtor == NULL);
     /* The routine should not have been lowered yet. */
     check_assertion(!visited_yet(rout));
     /* See if we already have an entry for this routine.  */
@@ -7407,6 +7407,7 @@ not lowered at this time (see lower_destructor_code).
   /* See lowered_return_type_of. */
   routine_type->variant.routine.return_type = void_star_type();
 #endif /* DTORS_RETURN_THIS */
+#if !IA64_ABI
   /* Add an int parameter that will indicate whether or not we have a
      complete object and whether or not the storage should be freed.
      add_destructor_params does the similar processing for param variables. */
@@ -7419,12 +7420,12 @@ not lowered at this time (see lower_destructor_code).
      whole list will be visited. */
   added_param->next = first_param->next;
   first_param->next = added_param;
-#if IA64_ABI
+#else /* IA64_ABI */
   if (class_type->variant.class_struct_union.any_virtual_base_classes) {
     /* Add the VTT parameter. */
     added_param = alloc_param_type(make_virtual_table_table_pointer_type());
-    added_param->next = first_param->next->next;
-    first_param->next->next = added_param;
+    added_param->next = first_param->next;
+    first_param->next = added_param;
   }  /* if */
 #endif /* IA64_ABI */
 }  /* lower_destructor_routine_type */
@@ -8068,6 +8069,14 @@ not include the function scope memory region, if any.
       record_vla_component_types_for_lowering(routine->type);
     }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#if IA64_ABI
+    if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+        routine->special_kind == (a_special_function_kind)sfk_destructor) {
+      /* Assign the constructor or destructor routine as one of the IA-64
+         entry points. */
+      set_primary_ctor_or_dtor_kind(routine);
+    }  /* if */
+#endif /* IA64_ABI */
     /* "lower_os_type" not needed; the routine and the type must both be
        in the file scope. */
     lower_type(routine->type);
@@ -8167,7 +8176,7 @@ not include the function scope memory region, if any.
 #if IA64_ABI
     if ((routine->special_kind == (a_special_function_kind)sfk_constructor ||
          routine->special_kind == (a_special_function_kind)sfk_destructor) &&
-        routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
+        routine->primary_ctor_or_dtor == NULL) {
       a_routine_list_entry_ptr rlep;
       /* Create the alternate entry points for a constructor or
          destructor, but do not define them at this time. */
@@ -8333,11 +8342,7 @@ lowered, return the list after any implicit parameters added by lowering.
       /* For destructors, a control parameter is always added. */
       param = param->next;
 #else /* IA64_ABI */
-      /* Skip the control parameter. */
-      if (routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
-        param = param->next;
-      }  /* if */
-      /* And sometimes the VTT parameter. */
+      /* Skip the VTT parameter if present. */
       if (dtor_needs_vtt_argument(routine)) param = param->next;
 #endif /* IA64_ABI */
     }  /* if */
@@ -15952,6 +15957,7 @@ scope.
     }  /* for */
   }  /* if */
 #else /* IA64_ABI */
+  set_primary_ctor_or_dtor_kind(ctor_routine);
   if (ctor_needs_vtt_argument(ctor_routine)) {
     /* Add the VTT parameter. */
     a_variable_ptr vtt_param_var = make_lowered_param_variable(
@@ -15969,29 +15975,30 @@ Add any required implicit parameter variables to the indicated destructor
 scope.
 */
 {
-  a_variable_ptr this_param_var, complete_obj_param_var;
-#if IA64_ABI
-  a_variable_ptr vtt_param_var;
-#endif /* IA64_ABI */
-
-  this_param_var = scope->variant.routine.parameters;
-  /* Add a parameter of type int after the "this" parameter.  The new
-     parameter has the 0x2 bit on if a complete object is being destroyed,
-     and the 0x1 bit on if the storage should be freed. */
-  /* lower_destructor_routine_type adds the parameter to the routine type
-     param_type_list. */
-  complete_obj_param_var =
+  a_variable_ptr this_param_var = scope->variant.routine.parameters;
+#if !IA64_ABI
+  {
+    /* Add a parameter of type int after the "this" parameter.  The new
+       parameter has the 0x2 bit on if a complete object is being destroyed,
+       and the 0x1 bit on if the storage should be freed. */
+    /* lower_destructor_routine_type adds the parameter to the routine type
+       param_type_list. */
+    a_variable_ptr complete_obj_param_var =
             make_lowered_param_variable(integer_type((an_integer_kind)ik_int));
-  complete_obj_param_var->next = this_param_var->next;
-  this_param_var->next = complete_obj_param_var;
-#if IA64_ABI
-  if (dtor_needs_vtt_argument(scope->variant.routine.ptr)) {
-    /* Add the VTT parameter. */
-    vtt_param_var = make_lowered_param_variable(
+    complete_obj_param_var->next = this_param_var->next;
+    this_param_var->next = complete_obj_param_var;
+  }
+#else /* IA64_ABI */
+  { a_routine_ptr dtor_routine = scope->variant.routine.ptr;
+    set_primary_ctor_or_dtor_kind(dtor_routine);
+    if (dtor_needs_vtt_argument(dtor_routine)) {
+      /* Add the VTT parameter. */
+      a_variable_ptr vtt_param_var = make_lowered_param_variable(
                                       make_virtual_table_table_pointer_type());
-    vtt_param_var->next = complete_obj_param_var->next;
-    complete_obj_param_var->next = vtt_param_var;
-  }  /* if */
+      vtt_param_var->next = this_param_var->next;
+      this_param_var->next = vtt_param_var;
+    }  /* if */
+  }
 #endif /* IA64_ABI */
 }  /* add_destructor_params */
 
@@ -16037,18 +16044,29 @@ when a base class return type is needed.  Definitions will be put out later.
           /* The adjustment offset is non-NULL, or the base class is
              virtual, so an entry/wrapper routine is needed. */
 #if IA64_ABI
-          /* Add thunks for any alternate entry points.  Note that in the
-             IA-64 ABI no thunk is made for the routine itself for a
-             destructor, because that's the internal entry point.
-             Constructors do not get here because they are not virtual. */
+          /* Add thunks for any alternate entry points.  Add thunks only for
+             the complete and deleting destructors.  The primary routine might
+             be the complete destructor, or it might be the subobject
+             destructor and require no thunk.  Constructors do not get here
+             because they cannot be virtual. */
           if (routine->special_kind ==
                                     (a_special_function_kind)sfk_destructor) {
             a_routine_list_entry_ptr rlep;
+            if (routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete) {
+              a_routine_ptr arouto =
+                       alternate_entry_point(ovf->primary_function,
+                                             (a_ctor_or_dtor_kind)cdk_complete,
+                                             /*define_now=*/FALSE);
+              (void)make_covariant_return_type_entry_routine(routine,
+                                                             arouto,
+                                                             adjustment_bcp,
+                                                             delta,
+                                                             vcall_index);
+            }  /* if */
             for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
                  rlep != NULL;
                  rlep = rlep->next) {
               a_routine_ptr arout = rlep->routine, arouto;
-              /* Add thunks only for the complete and deleting destructor. */
               if (arout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete ||
                   arout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting) {
                 arouto = alternate_entry_point(ovf->primary_function,
@@ -16217,7 +16235,7 @@ Do IL lowering of the indicated scope and everything under it.
          whether any thunks are needed. */
 #if IA64_ABI
       if (routine->special_kind == (a_special_function_kind)sfk_destructor &&
-          routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
+          routine->primary_ctor_or_dtor == NULL) {
         /* Create all the alternate entry points for a destructor so we
            can add thunks if necessary. */
         create_alternate_entry_points(routine, /*define_now=*/FALSE);
@@ -16357,7 +16375,7 @@ Do IL lowering of the indicated scope and everything under it.
 #if IA64_ABI
     if ((routine->special_kind == (a_special_function_kind)sfk_constructor ||
          routine->special_kind == (a_special_function_kind)sfk_destructor) &&
-        routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
+        routine->primary_ctor_or_dtor == NULL) {
       /* Create all the alternate entry points for a constructor or
          destructor, and give them definitions. */
       create_alternate_entry_points(routine, /*define_now=*/TRUE);

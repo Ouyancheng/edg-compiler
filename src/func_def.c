@@ -157,7 +157,7 @@ Require definitions for the virtual functions of the indicated class.
 #if IA64_ABI && DO_IL_LOWERING
         /* Secondary entry points of constructors and destructors should
            not get here. */
-        check_assertion(rp->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none);
+        check_assertion(rp->primary_ctor_or_dtor == NULL);
 #endif /* IA64_ABI && DO_IL_LOWERING */
         /* The function could be called, so mark it to be instantiated.  Note
            that the defer-inline flag is important here to prevent the actual

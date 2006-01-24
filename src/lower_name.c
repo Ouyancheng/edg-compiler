@@ -120,8 +120,8 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_OPERATOR_GNU_MIN "v23min"
 #define MANGLING_STRING_FOR_OPERATOR_GNU_MAX "v23max"
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#define MANGLING_STRING_FOR_CONSTRUCTOR "C9"  /* "9" changed later */
-#define MANGLING_STRING_FOR_DESTRUCTOR "D9"   /* "9" changed later */
+#define MANGLING_STRING_FOR_CONSTRUCTOR "C1"
+#define MANGLING_STRING_FOR_DESTRUCTOR "D1"
 #define MANGLING_STRING_FOR_CONVERSION_FUNC "cv"
 
 #else /* !IA64_ABI */
@@ -4907,7 +4907,7 @@ constructors and conversion functions.
 #if IA64_ABI
         switch (ctor_dtor_kind) {
           case cdk_none:                   break;
-          case cdk_complete:  name = "C1"; break;
+          case cdk_complete:               break;
           case cdk_subobject: name = "C2"; break;
           default:            unexpected_condition();
         }  /* switch */
@@ -4918,8 +4918,8 @@ constructors and conversion functions.
 #if IA64_ABI
         switch (ctor_dtor_kind) {
           case cdk_none:                   break;
+          case cdk_complete:               break;
           case cdk_deleting:  name = "D0"; break;
-          case cdk_complete:  name = "D1"; break;
           case cdk_subobject: name = "D2"; break;
           default:            unexpected_condition();
         }  /* switch */
@@ -5072,11 +5072,15 @@ to the point where the base name appears.
     opname_kind = routine->variant.opname_kind;
   }  /* if */
 #if IA64_ABI && DO_IL_LOWERING
-  ctor_dtor_kind = routine->ctor_dtor_kind;
-  if (force_primary_name) {
-    /* Use the "C1" or "D1" primary entry point for a constructor or
-       destructor. */
-    ctor_dtor_kind = (a_ctor_or_dtor_kind)cdk_complete;
+  if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+      routine->special_kind == (a_special_function_kind)sfk_destructor) {
+    set_primary_ctor_or_dtor_kind(routine);
+    ctor_dtor_kind = routine->ctor_dtor_kind;
+    if (force_primary_name) {
+      /* Use the "C1" or "D1" primary entry point for a constructor or
+         destructor. */
+      ctor_dtor_kind = (a_ctor_or_dtor_kind)cdk_complete;
+    }  /* if */
   }  /* if */
   if (base_name_offset != NULL) {
     *base_name_offset = mctl->length;

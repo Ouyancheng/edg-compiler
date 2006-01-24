@@ -20071,13 +20071,18 @@ previous instantiation flag entry.
   a_routine_list_entry_ptr	rlep;
   char				*name;
 
-  /* Create an entry point for the internal constructor/destructor, but without
-     having its name remapped to the primary. */
-  name = get_mangled_function_name_full(rout_ptr,
-                                        /*force_primary_name=*/FALSE,
-                                        /*externalize_if_necessary=*/TRUE);
-  write_to_template_info_file(tilt_entry_point, name,
-                              (char*)NULL, (a_symbol_ptr)NULL);
+  if (rout_ptr->ctor_dtor_kind != (a_ctor_or_dtor_kind)cdk_complete) {
+    /* The entry point for the complete object constructor/destructor
+       will have been output for the primary routine, regardless of the
+       ctor_dtor_kind setting of that routine.  If the primary routine is
+       not actually the complete object routine, put out its real name now as
+       an entry point. */
+    name = get_mangled_function_name_full(rout_ptr,
+                                          /*force_primary_name=*/FALSE,
+                                          /*externalize_if_necessary=*/TRUE);
+    write_to_template_info_file(tilt_entry_point, name,
+                                (char*)NULL, (a_symbol_ptr)NULL);
+  }  /* if */
   /* Write the entries for the alternate entry points. */
   for (rlep = rout_ptr->variant.ctor_dtor.alternate_entry_points;
        rlep != NULL;

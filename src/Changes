@@ -1,5 +1,16 @@
 Version 3.8
 
+1/24/06  IA-64 constructor/destructor entry point optimization
+
+The code generated for constructors and destructors in the IA-64
+ABI has been optimized with regard to constructor and destructor
+entry points.  The primary code-containing routine is now made
+to be the complete or subobject constructor or destructor, instead
+of an internal routine with a "C9" or "D9" name.  This eliminates
+one level of call or entry point.  Also, for destructors, the
+deletion code has now been moved into the "D0" deleting constructor
+and no longer appears in the primary routine.
+
 1/20/06  GNU compatibility: Abort when using function declared through typedef
 
 In GNU C or C++ modes, calling a function with the GNU attribute "format" with

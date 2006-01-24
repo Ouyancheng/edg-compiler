@@ -641,6 +641,14 @@ typedef struct a_destructor_wrapper_info_block {
 			/* Pointer to a variable that is an array of virtual
 			   function table addresses to be used during
 			   destruction, if needed.  NULL otherwise. */
+  a_variable_ptr
+		complete_obj_var;
+			/* For a destructor for a class with virtual base
+			   classes, pointer to a variable with a non-zero
+			   value if the destructor is destroying a complete
+			   object.  For the Cfront-like ABI, this is simply
+			   the parameter passed in.  For the IA-64 ABI, this
+			   is a temporary set to the proper value. */
 } a_destructor_wrapper_info_block;
 
 
@@ -655,8 +663,7 @@ is TRUE (only in the IA-64 ABI) if the constructor takes a VTT parameter.
                  variant.class_struct_union.any_virtual_base_classes)
 #else /* IA64_ABI */
 #define ctor_needs_vtt_argument(ctor_routine)                         \
-  (((ctor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none || \
-    (ctor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject) && \
+  ((ctor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject && \
    (ctor_routine)->source_corresp.parent.class_type->                \
                  variant.class_struct_union.any_virtual_base_classes)
 #define ctor_needs_implied_arg_list(ctor_routine)                     \
@@ -673,13 +680,11 @@ is TRUE (only in the IA-64 ABI) if the destructor takes a VTT parameter.
 #define dtor_needs_implied_arg_list(dtor_routine) TRUE
 #else /* IA64_ABI */
 #define dtor_needs_vtt_argument(dtor_routine) \
-  (((dtor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none || \
-    (dtor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject) && \
+  ((dtor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject && \
    (dtor_routine)->source_corresp.parent.class_type->                 \
                  variant.class_struct_union.any_virtual_base_classes)
 #define dtor_needs_implied_arg_list(dtor_routine) \
-  ((dtor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none || \
-   dtor_needs_vtt_argument(dtor_routine))
+   dtor_needs_vtt_argument(dtor_routine)
 #endif /* IA64_ABI */
 
 
