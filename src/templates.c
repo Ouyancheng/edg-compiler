@@ -3785,11 +3785,24 @@ Instantiate the body of the template function associated with tip.
   tssp = template_supplement_for_symbol(template_sym);
   func_info_ptr = func_info_for_template(tssp);
   if (nonclass_prototype_instantiations &&
-      defer_function_prototype_instantiations &&
-      !tssp->variant.function.has_prototype_instantiation) {
-    /* We are deferring the prototype instantiation of functions and this
-       function has not had a prototype instantiation done yet.  Do it now. */
-    function_prototype_instantiation(template_sym);
+      defer_function_prototype_instantiations) {
+    a_symbol_ptr			proto_sym;
+    a_template_symbol_supplement_ptr	proto_tssp;
+    if (template_sym->kind == (a_symbol_kind)sk_function_template) {
+      /* If this is a subordinate template, check for a instantiation of the
+         prototype template. */
+      proto_sym = prototype_template_of(template_sym);
+      proto_tssp = template_supplement_for_symbol(proto_sym);
+    } else {
+      proto_sym = template_sym;
+      proto_tssp = tssp;
+    }  /* if */
+    if (!proto_tssp->variant.function.has_prototype_instantiation) {
+      /* We are deferring the prototype instantiation of functions and this
+         function has not had a prototype instantiation done yet.
+         Do it now. */
+      function_prototype_instantiation(proto_sym);
+    }  /* if */
   }  /* if */
   if (tssp->pending_instantiations >= max_pending_instantiations) {
     /* This function instantiation occurs within the context of other

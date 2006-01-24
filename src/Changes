@@ -1,5 +1,25 @@
 Version 3.8
 
+1/24/06  GNU C++ compatibility: spurious error when deferring prototype
+         instantiations
+
+A change made in version 3.7 to defer function prototype instantiations
+in g++ mode (when gnu_version is >= 30400) resulted in spurious errors
+in certain cases.  Now fixed.
+
+  template <typename T> struct A {};
+  template<typename T1, typename T2> int operator-(const A<T1>&, const A<T2>&);
+  template<typename T> struct B {
+    A<T> f();
+    template<typename U> void g(A<T> a, U) { a - a; }
+  };
+  int main() {
+    B<char> bc;
+    bc.g(bc.f(), bc.f());
+    B<int> bi;
+    bi.g(bi.f(), bi.f());
+  }
+
 1/24/06  IA-64 constructor/destructor entry point optimization
 
 The code generated for constructors and destructors in the IA-64
