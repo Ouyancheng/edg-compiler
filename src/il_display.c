@@ -1617,13 +1617,13 @@ do_struct_union:
       if (ptr->variant.class_struct_union.is_interface) {
         disp_boolean("is_interface", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.sealed) {
+        disp_boolean("sealed", TRUE);
+      }  /* if */
+#if BACK_END_IS_CP_GEN_BE
       if (ptr->variant.class_struct_union
                                       .defined_with_abstract_class_modifier) {
         disp_boolean("defined_with_abstract_class_modifier", TRUE);
-      }  /* if */
-#if BACK_END_IS_CP_GEN_BE
-      if (ptr->variant.class_struct_union.sealed) {
-        disp_boolean("sealed", TRUE);
       }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
