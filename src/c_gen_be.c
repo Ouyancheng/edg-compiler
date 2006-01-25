@@ -3911,6 +3911,44 @@ of a routine.
 }  /* dump_routine_address */
 
 
+static void dump_result_of_overriding_function(void)
+/*
+Generate code for an enk_result_of_overriding_function node, which is
+generated as part of the body of an entry function used as a wrapper
+for a call of an overriding virtual function with a covariant return type,
+and also for thunks in the IA-64 ABI.
+*/
+{
+  if (covariant_return_expr != NULL) {
+    /* The body of the overriding function is being expanded as the
+       code for the wrapper.  The enk_result_of_overriding_function node
+       stands for the contents of a temporary with name generated from
+       covariant_return_expr, which was set previously. */
+    dump_temp_name((char *)covariant_return_expr);
+  } else {
+    /* The overriding function body is not being expanded in the
+       wrapper, so this node represents a call of the underlying
+       function with arguments that are the parameters of this routine. */
+    a_variable_ptr param;
+    a_routine_ptr  curr_routine =
+                                 innermost_function_scope->variant.routine.ptr;
+    a_routine_ptr  underlying_routine =
+                   curr_routine->overriding_function_for_covariant_return_type;
+    check_assertion(underlying_routine != NULL);
+    write_tok_ch('(');
+    dump_routine_name(underlying_routine);
+    write_tok_ch('(');
+    for (param = innermost_function_scope->variant.routine.parameters;
+         param != NULL;
+         param = param->next) {
+      dump_variable_name(param);
+      if (param->next != NULL) write_tok_str(", ");
+    }  /* for */
+    write_tok_str("))");
+  }  /* if */
+}  /* dump_result_of_overriding_function */
+
+
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens)
 /*
@@ -4972,9 +5010,8 @@ done_with_operation:
     case enk_result_of_overriding_function:
       /* Node generated as part of the body of an entry function used
          as a wrapper for a call of an overriding virtual function
-         with a covariant return type.  Here, stands for the contents
-         of a temporary with name generated from covariant_return_expr. */
-      dump_temp_name((char *)covariant_return_expr);
+         with a covariant return type. */
+      dump_result_of_overriding_function();
       break;
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if VLA_DEALLOCATIONS_IN_IL
@@ -7904,13 +7941,18 @@ by dump_routine_decl.
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
   /* Note that ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN is always
      TRUE when IA64_ABI is TRUE. */
-  if (rout->overriding_function_for_covariant_return_type != NULL) {
+  if (rout->overriding_function_for_covariant_return_type != NULL &&
+      skip_typerefs(rout->type)->variant.routine.extra_info->has_ellipsis) {
     /* This routine is a wrapper for an overriding virtual function with
        a covariant return type.  Its body is just a return statement giving
        the cast that needs to be put over the return from the overriding
        function to give it the right type.  Save the cast expression and
        fetch the body of the master routine, so it can be put out as part
        of the definition of the wrapper. */
+    /* We could do this for all thunks, but we choose to do it only
+       when it's necessary, i.e., for routines with variable arguments.
+       Doing it in all cases causes code bloat, especially for IA-64 ABI
+       destructor thunks. */
     a_statement_ptr stmt = scope->assoc_block->variant.block.statements;
     check_assertion(stmt != NULL);
     if (stmt->kind == (a_statement_kind)stmk_expr &&
@@ -7950,6 +7992,9 @@ by dump_routine_decl.
        The body of the alternate entry point is simply a call to the
        underlying routine, but may we have to assign values to some
        parameters. */
+    /* Note that we definitely don't want to do this for the deleting
+       destructor, since it contains additional deletion code in addition
+       to the call to the underlying routine. */
     if (skip_typerefs(rout->type)->variant.routine.extra_info->has_ellipsis) {
       master_routine = rout->primary_ctor_or_dtor;
     }  /* if */
