@@ -44,6 +44,14 @@ one level of call or entry point.  Also, for destructors, the
 deletion code has now been moved into the "D0" deleting constructor
 and no longer appears in the primary routine.
 
+As part of this, the C-generating back end has been changed to not
+incorporate the called function code into thunks and covariant
+routine wrappers unless the function has an ellipsis.  This became
+important when we noted that the above change was suddenly causing
+generation of large thunks because the C-generating back end was
+copying the whole body of the destructor into the thunk, instead of
+just a call to the internal routine.
+
 1/20/06  GNU compatibility: Abort when using function declared through typedef
 
 In GNU C or C++ modes, calling a function with the GNU attribute "format" with
