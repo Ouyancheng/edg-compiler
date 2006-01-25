@@ -1394,6 +1394,11 @@ to default values.
       pte->variant.class_struct_union.field_list = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.class_struct_union.is_interface = FALSE;
+      pte->variant.class_struct_union.sealed = FALSE;
+#if BACK_END_IS_CP_GEN_BE
+      pte->variant.class_struct_union.
+                 defined_with_abstract_class_modifier = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pte->variant.class_struct_union.any_const_member = FALSE;
       pte->variant.class_struct_union.any_volatile_member = FALSE;

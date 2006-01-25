@@ -163,6 +163,8 @@ typedef enum /*a_token_kind*/ {
   tok_accum,
   tok_sat,
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  tok_abstract,
+  tok_sealed,
   tok_cdecl,
   tok_declspec,
   tok_fastcall,
@@ -338,6 +340,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "_Bool", "_Complex", "_Imaginary", "__I__", "__NAN__", "__INFINITY__",
    "_Fract", "_Accum", "_Sat",
 #if MICROSOFT_EXTENSIONS_ALLOWED
+   "abstract", "sealed",
    "__cdecl", "__declspec", "__fastcall", "__stdcall", "__thiscall",
    "__inline", "__forceinline",
    "__unaligned", "__try", "__finally", "__leave", "__except",
@@ -727,6 +730,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_accum */
    (an_opname_kind)onk_none,          /* tok_sat */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+   (an_opname_kind)onk_none,          /* tok_abstract */
+   (an_opname_kind)onk_none,          /* tok_sealed */
    (an_opname_kind)onk_none,          /* tok_cdecl */
    (an_opname_kind)onk_none,          /* tok_declspec */
    (an_opname_kind)onk_none,          /* tok_fastcall */
@@ -2086,6 +2091,9 @@ extern unsigned long scan_universal_character(
 					a_boolean	issue_diagnostics);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
+                                                 char          *tok_str);
+
 extern a_boolean accum_quoted_string(unsigned long *num_chars,
                                      a_boolean     is_header_name,
                                      a_boolean     is_wide,

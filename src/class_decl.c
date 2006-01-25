@@ -2254,8 +2254,10 @@ declarations that produced the problem.
                                   ec_pure_virtual_function, &found);
 #if CHECKING
     /* If class_type is marked as abstract, at least one pure virtual function
-       should have been found. */
-    check_assertion(found);
+       should have been found (except maybe in some Microsoft modes, where
+       a class might be defined with the context-sensitive keyword
+       "abstract"). */
+    check_assertion(found || (microsoft_mode && microsoft_version >= 1400));
 #endif /* if */
   }  /* if */
   /* Terminate the supplementary messages. */
@@ -4883,6 +4885,11 @@ issue an error and return FALSE.
                                   /*explicit_inst=*/FALSE,
                                   /*adjust_template_base=*/TRUE,
                                   &error_position);
+      }  /* if */
+      if (base_class_type->variant.class_struct_union.sealed) {
+        /* Sealed classes cannot be derived from. */
+        error(ec_sealed_base_class);
+        okay = FALSE;
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

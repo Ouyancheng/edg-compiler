@@ -4877,6 +4877,15 @@ is the one associated with the definition of the class.
     gen_name(&type->source_corresp, iek_type, options,
              (a_boolean *)NULL);
     write_space();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (type->variant.class_struct_union
+                                     .defined_with_abstract_class_modifier) {
+      write_tok_str("abstract ");
+    }  /* if */
+    if (type->variant.class_struct_union.sealed) {
+      write_tok_str("sealed ");
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Put out the class definition. */
   if (il_header.source_language == sl_Cplusplus &&

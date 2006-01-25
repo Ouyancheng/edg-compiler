@@ -1496,6 +1496,8 @@ ec_redefinition;;"invalid redefinition of %nd"
 ec_dll_interface_in_unnamed_namespace;;"dllimport/dllexport applied to a member of an unnamed namespace"
 ec_thiscall_requires_nonstatic_member;;"__thiscall can only appear on nonstatic member function declarations"
 ec_vararg_thiscall;;"__thiscall not allowed on function with ellipsis parameter"
+ec_sealed_base_class;;"a sealed class type cannot be used as a base class"
+ec_duplicate_class_modifier;;"duplicate class modifier"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

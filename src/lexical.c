@@ -14036,6 +14036,29 @@ scanned is, in fact, an identifier).
 #undef in_if_exists
 }  /* coalesce_and_lookup_generalized_identifier */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
+                                          char          *tok_str)
+/*
+If the current token is an identifier spelled like *tok_str, turn that token
+into the given token kind.  Return whether (after this transformation) the
+current token is tok_kind.  This is useful to handle context-sensitive
+keywords (which are fairly common in Microsoft mode).
+*/
+{
+  if (curr_token == tok_identifier) {
+    a_symbol_header_ptr  sym_hdr = locator_for_curr_id.symbol_header;
+    if (sym_hdr->identifier[0] == tok_str[0] &&
+        strncmp(sym_hdr->identifier, tok_str,
+                sym_hdr->identifier_length) == 0) {
+      curr_token = tok_kind;
+    }  /* if */
+  }  /* if */
+  return curr_token == tok_kind;
+}  /* check_context_sensitive_keyword */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_file_suffix_ptr alloc_file_suffix(void)
 /*

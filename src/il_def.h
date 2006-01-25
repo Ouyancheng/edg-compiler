@@ -5690,6 +5690,18 @@ typedef struct a_type {
 			   such types are implicitly pure virtual.  (Implies
 			   kind == tk_struct, but a number of restrictions not
 			   applicable to structs are imposed.) */
+      a_bit_field
+		sealed:1;
+			/* TRUE if this class was defined with the context-
+			   sensitive keyword "sealed" (indicating that the
+			   class cannot be used as a base class). */
+#if BACK_END_IS_CP_GEN_BE
+      a_bit_field
+		defined_with_abstract_class_modifier:1;
+			/* TRUE if this class was defined with the context-
+			   sensitive keyword "abstract" (this also implies
+			   that the "abstract" flag is set). */
+#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
                 any_const_member:1;
@@ -5715,7 +5727,9 @@ typedef struct a_type {
 			   virtual member functions, this is an "abstract"
 			   class and is subject to certain restrictions
 			   (C++ only, ARM 10.3).  Also TRUE for Microsoft
-			   interface classes. */
+			   interface classes and for class defined with the
+			   context-sensitive keyword "abstract" (a Microsoft
+			   extension). */
       a_bit_field
 		any_virtual_functions:1;
 			/* TRUE if one or more member functions declared in

@@ -1243,6 +1243,55 @@ type_info type may be defined.
   return result;
 }  /* is_namespace_for_type_info_definition */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void check_for_microsoft_class_modifiers(a_token_kind  *next_tok)
+/*
+Microsoft compilers accept constructs like:
+    struct S sealed abstract: B { ... };
+where "sealed" and "abstract" are context-sensitive keywords: They are scanned
+as identifiers, but must be treated like keywords in certain contexts.
+Unfortunately, that means we may need to look ahead several tokens to
+determine whether or not a definition follows.  (In particular,
+    struct S sealed;
+should be treated as a declaration of a variable named "sealed", and not a
+declaration of a sealed type "S".)
+*/
+{
+  a_token_cache              token_cache;
+
+  clear_token_cache(&token_cache, /*reusable=*/FALSE);
+  /* First cache the tag name. */
+  cache_curr_token(&token_cache);
+  (void)get_token();
+  /* Cache additional identifiers (we know there is at least one. */
+  do {
+    cache_curr_token(&token_cache);
+    *next_tok = get_token();
+  } while (*next_tok == tok_identifier);
+  rescan_cached_tokens(&token_cache);
+  if (*next_tok == tok_lbrace || *next_tok == tok_colon) {
+    /* A class definition: The cached identifiers should have been
+       context-sensitive keywords.  Make an additional pass over the
+       cached tokens, turning the identifiers into keywords when
+       possible. */
+    clear_token_cache(&token_cache, /*reusable=*/FALSE);
+    cache_curr_token(&token_cache);
+    (void)get_token();
+    for (;;) {
+      if (check_context_sensitive_keyword(tok_abstract, "abstract") ||
+          check_context_sensitive_keyword(tok_sealed, "sealed")) {
+        cache_curr_token(&token_cache);
+        (void)get_token();
+      } else {
+        break;
+      }  /* if */
+    }  /* for */
+    rescan_cached_tokens(&token_cache);
+  }  /* if */
+}  /* check_for_microsoft_class_modifiers */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
@@ -1311,6 +1360,15 @@ caution when modifying this routine.
     /* Determine whether this is a definition or something else (a
        declaration or an elaborated type specifier). */
     next_tok = next_token();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (!C_mode() && microsoft_mode && microsoft_version >= 1400 &&
+        next_tok == tok_identifier && tag_kind != (a_symbol_kind)sk_enum_tag &&
+        !is_ref_within_new_expr) {
+      /* The next token is an identifier: It could be a declarator-id, or it
+         might be a context-sensitive token "sealed" or "abstract". */
+      check_for_microsoft_class_modifiers(&next_tok);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (next_tok == tok_lbrace ||
         (next_tok == tok_colon && C_dialect == C_dialect_cplusplus &&
          tag_kind != (a_symbol_kind)sk_enum_tag && !is_ref_within_new_expr)) {
@@ -2301,6 +2359,37 @@ using-declaration), issue an error.  For example:
   }  /* if */
 }  /* check_name_used_for_qualified_class_definition */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void scan_microsoft_class_modifiers(a_boolean  *is_abstract,
+                                           a_boolean  *is_sealed)
+/*
+Scan the (context-sensitive) keywords "abstract" and "sealed" and record their
+presence through the given pointers.  Duplicate specifiers are diagnosed as
+discretionary errors.
+*/
+{
+  for (;;) {
+    if (curr_token == tok_abstract) {
+      if (*is_abstract) {
+        diagnostic(es_discretionary_error, ec_duplicate_class_modifier);
+      } else {
+        *is_abstract = TRUE;
+      }  /* if */
+    }  else if (curr_token == tok_sealed) {
+      if (*is_sealed) {
+        diagnostic(es_discretionary_error, ec_duplicate_class_modifier);
+      } else {
+        *is_sealed = TRUE;
+      }  /* if */
+    } else {
+      break;
+    }  /* if */
+    (void)get_token();
+  }  /* for */
+}  /* scan_microsoft_class_modifiers */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED || \
     !MICROSOFT_EXTENSIONS_ALLOWED
@@ -2393,6 +2482,9 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   a_type_ptr              class_type;
   a_boolean               is_local_class = FALSE;
   a_boolean               is_interface = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean               is_abstract = FALSE, is_sealed = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean               is_template_class_instantiation = FALSE;
   a_boolean               tag_resolution = FALSE;
   a_boolean               err = FALSE;
@@ -2657,6 +2749,13 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
       err = TRUE;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Record any class modifiers (a C++/CLI feature accepted in "normal" C++ by
+     recent Microsoft C++ compilers. */
+  if (microsoft_mode && microsoft_version >= 1400) {
+    scan_microsoft_class_modifiers(&is_abstract, &is_sealed);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If the next token is a "{" or, in C++, a ":" (introducing a list of
      base classes) we should expect to scan a class definition.  The exception
      to this is when an elaborated class name (e.g., "struct S" instead of
@@ -2684,7 +2783,6 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   }  /* if */
   if (tag_sym != NULL && C_dialect == C_dialect_cplusplus) {
     a_class_symbol_supplement_ptr	cssp;
-
     cssp = (tag_sym->kind == (a_symbol_kind)sk_type) ?
                         NULL : tag_sym->variant.class_struct_union.extra_info;
     class_type = type_symbol_type(tag_sym);
@@ -2711,7 +2809,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
       set_to_named_error_locator(locator);
       err = TRUE;
     } else {
-      a_boolean		class_type_is_complete;
+      a_boolean  class_type_is_complete;
       class_type_is_complete = !is_incomplete_type(class_type);
       if (class_type->variant.class_struct_union.is_template_class) {
         /* A template class or a nested class within a template class. */
@@ -3298,6 +3396,16 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
   /* Now that we have a type, we can apply any attributes attached to it. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_abstract) {
+    class_type->variant.class_struct_union.abstract = TRUE;
+#if BACK_END_IS_CP_GEN_BE
+    class_type
+      ->variant.class_struct_union.defined_with_abstract_class_modifier = TRUE;
+#endif /* BACK_END_IS_CP_GEN_BE */
+  }  /* if */
+  if (is_sealed) {
+    class_type->variant.class_struct_union.sealed = TRUE;
+  }  /* if */
   if (p_ms_attributes != NULL && *p_ms_attributes != NULL && !is_local_class) {
     if (!is_class_definition && curr_token != tok_semicolon) {
       /* This is a non-autonomous declaration of the class: The attributes

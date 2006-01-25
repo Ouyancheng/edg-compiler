@@ -1,5 +1,18 @@
 Version 3.8
 
+1/25/06  Microsoft compatibility: Class modifiers "abstract" and "sealed"
+
+In Microsoft mode with microsoft_version >= 1400, the front end now supports
+the context-sensitive keywords "abstract" and "sealed" in definitions of named
+class types.  For example:
+
+  struct B abstract sealed {};
+  B b;  // Error: A complete object of abstract class type is not allowed.
+  struct D: B {};  // A sealed class type cannot be used as a base class type.
+
+This is a feature of ECMA-372 (also known as C++/CLI) that recent Microsoft
+compilers also provide in their normal C++ modes.
+
 1/24/06  GNU C++ compatibility: spurious error when deferring prototype
          instantiations
 
