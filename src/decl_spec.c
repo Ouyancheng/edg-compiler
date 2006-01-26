@@ -2409,7 +2409,7 @@ it returns FALSE.
 {
   a_boolean  result = FALSE;
 
-  if ((gpp_mode && gnu_version < 30400) || microsoft_version) {
+  if ((gpp_mode && gnu_version < 30400) || microsoft_mode) {
     if (innermost_function_scope == NULL &&
         scope_stack[depth_scope_stack].kind == sck_class_struct_union) {
       /* Check that the current scope encloses sym (not required for earlier
@@ -3090,10 +3090,12 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
             namespace_extension_pushed = TRUE;
             effective_decl_level = depth_scope_stack;
             delayed_nested_class_def = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
           } else if (delayed_nested_class_allowed_in_class(tag_sym)) {
             /* GNU and Microsoft C++ sometimes allow delayed nested class
                definitions in class scopes. */
             delayed_nested_class_def = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
           } else {
             pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
             tag_sym = NULL;
