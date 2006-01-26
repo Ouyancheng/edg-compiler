@@ -25,6 +25,7 @@ symbol_ref.c - Routines to manage references to symbols.
 /* Additional header files. */
 #include "symbol_ref.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#include "class_decl.h"
 #include "statements.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -1536,7 +1537,9 @@ created for this entity; otherwise, it is NULL.
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
       if (is_definition && !C_mode() &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          sym_ptr->variant.routine.ptr->overridden_function == NULL &&
+          !(microsoft_mode &&
+            microsoft_routine_def_is_unmovable(
+                        sym_ptr->variant.routine.ptr->overridden_function)) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           scope_stack[depth_scope_stack].kind ==
                                     (a_scope_kind)sck_class_struct_union &&

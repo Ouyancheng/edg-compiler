@@ -6039,7 +6039,13 @@ declaration of the function, and again overloading is a possibility.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
-        } else if (class_type_can_be_named_in_namespace_scope(class_type)) {
+        } else if (class_type_can_be_named_in_namespace_scope(class_type)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                   && !(microsoft_mode &&
+                        microsoft_routine_def_is_unmovable(
+                                                   /*overridden_fn=*/NULL))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                            ) {
           /* The primary source sequence entry will be deferred until the
              class definition has been completed; a secondary-decl entry
              will be put out here.  (That is not possible with unnamed
@@ -7192,6 +7198,65 @@ function or NULL if none can be found.
   return result;
 }  /* find_explicitly_overridden_member */
 
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
+
+a_boolean microsoft_routine_def_is_unmovable(a_routine_ptr  overridden_fn)
+/*
+Microsoft C++ allows some extended forms of member function definitions that
+cannot be moved outside a class definition.  The first case are members
+declared with a qualified name to indicate that overriding is limited to a
+specific base class (there is no syntax to define such functions outside their
+parent class definition).  The second are members defined in delayed nested
+class definitions that appear in class scope.  For example:
+    struct A {
+      struct B {
+        struct C;
+      };
+      struct B::C {
+        void f() {};
+      } x;
+    };
+The definition of A::B::C::f() cannot be placed immediately after the
+definition of A::B::C, nor after the definition of A.
+Return TRUE if the current declaration is such a member of friend that cannot
+be moved.  overridden_fn is the virtual base class member function explicitly
+by the current declaration (if any).
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (overridden_fn != NULL) {
+    result = TRUE;
+  } else {
+    a_type_ptr  class_type = scope_stack[depth_scope_stack].assoc_type;
+    check_assertion(scope_stack[depth_scope_stack].kind ==
+                                         (a_scope_kind)sck_class_struct_union);
+    if (class_type->source_corresp.is_class_member) {
+      /* A member or friend of a nested class.  If it we are in a delayed
+         nested class definition that appears in a class scope, we should not
+         attempt to moved the member definition outside the class, because it
+         cannot appear there. */
+      a_scope_depth  d = depth_scope_stack - 1;
+      a_boolean      in_reactivated_class =
+                 (scope_stack[d].kind == (a_scope_kind)sck_class_reactivation);
+      if (in_reactivated_class) {
+        /* A delayed nested class definition.  Look through the scope stack to
+           see if it appeared in a class scope. */
+        while (scope_stack[d].kind == (a_scope_kind)sck_class_reactivation ||
+               scope_stack[d].kind ==
+                                    (a_scope_kind)sck_namespace_reactivation) {
+          --d;
+        }  /* if */
+        result = (scope_stack[d].kind == (a_scope_kind)sck_class_struct_union);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* microsoft_routine_def_is_unmovable */
+
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED
@@ -7467,7 +7532,8 @@ is set to NULL by this function.
          no valid out-of-class syntax is available. */
       if (!class_type->source_corresp.is_local_to_function &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          overridden_function == NULL &&
+          !(microsoft_mode &&
+            microsoft_routine_def_is_unmovable(overridden_function)) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           class_type_can_be_named_in_namespace_scope(class_type)) {
         func_info->is_movable_member_or_friend_def = TRUE;
