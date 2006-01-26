@@ -7122,6 +7122,16 @@ skip_overloading:;
        process_curr_construct_pragmas; otherwise the pragmas we're interested
        in would have been disposed of. */
     record_lint_argsused_and_varargs_state(sym);
+    if (!C_mode() && !exceptions_enabled && 
+        !(func_info->is_inline || gpp_mode) &&
+        func_info->throw_position.seq != 0) {
+      /* Issue a diagnostic on attempting to define a noninline function with
+         an exception specification when exception support is not enabled.
+         (No diagnostic is issued on nondefinition -- the exception
+         specification is just ignored.  In GNU C++ mode, even exception
+         specifications on definitions are ignored.) */
+      pos_warning(ec_no_exception_support, &func_info->throw_position);
+    }  /* if */
     record_pragma_state_in_routine(routine_ptr);
   }  /* if */
   /* Do processing required for the rest of the pragmas, if any, that are

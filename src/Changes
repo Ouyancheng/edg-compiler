@@ -169,12 +169,13 @@ deallocation directly rather than by calling __cxa_vec_delete or the like.
 
 1/16/06  Exception specifications when support for exceptions is disabled
 
-The front end no longer issues an error on function definitions with exception
-specifications when support for exception handling is disabled.  Previously,
-such definitions were only accepted for inline functions.  For example:
+The front end now issues a warning instead of an error on a function
+definition with exception an specification when support for exception
+handling is disabled.  Previously, such definitions were only accepted
+for inline functions.  For example:
 
-  void f() throw() {}  // Now accepted when support for exception handling is
-                       // disabled.
+  void f() throw() {}  // Now accepted with a warning when support for
+                       // exception handling is disabled.
 
 1/16/06  Microsoft/GNU compatibility: Abort on nonstandard anonymous unions
 
