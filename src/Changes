@@ -63,10 +63,12 @@ copying the whole body of the destructor into the thunk, instead of
 just a call to the internal routine.
 
 1/20/06  GNU compatibility: Abort when using function declared through typedef
+         in call to function with "format" attribute
 
 In GNU C or C++ modes, calling a function with the GNU attribute "format" with
 a format string argument that is a call to a function declared through a
-typedef could result in an abort in overload.c.  For example:
+typedef could result in an abort in function "obtain_format_string_from_arg"
+(defined in overload.c).  For example:
 
   void p(char const*, ...) __attribute__((format(printf, 1, 2)));
   typedef char const* F();
