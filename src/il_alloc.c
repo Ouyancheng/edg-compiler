@@ -2206,6 +2206,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->inline_in_class_definition  = FALSE;
   rp->use_comdat                  = FALSE;
   rp->ctor_dtor_kind              = (a_ctor_or_dtor_kind)cdk_none;
+  rp->is_alias_entry              = FALSE;
 #endif /* DO_IL_LOWERING && IA64_ABI */
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;

@@ -3616,6 +3616,14 @@ routine will be the same as the one passed in.
       }  /* if */
       /* The new routine has an ellipsis if the old one does.  */
       new_rtsp->has_ellipsis = rtsp->has_ellipsis;
+      if (kind == (a_ctor_or_dtor_kind)cdk_subobject &&
+          routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete) {
+        /* When the primary routine is the complete object constructor or
+           destructor (happens when there are no virtual base classes),
+           the subobject entry point is an alias for the complete object
+           routine. */
+        new_routine->is_alias_entry = TRUE;
+      }  /* if */
       /* Add new_routine to the list of alternate entry points for 
          routine. */
       rlep = alloc_list_entry_for_routine();

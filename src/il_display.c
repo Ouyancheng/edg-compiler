@@ -2915,6 +2915,9 @@ Display the indicated routine.
     disp_ctor_or_dtor_kind_name(ptr->ctor_dtor_kind);
     (void)printf("\n");
   }  /* if */
+  if (ptr->is_alias_entry) {
+    disp_boolean("is_alias_entry", TRUE);
+  }  /* if */
 #endif /* DO_IL_LOWERING && IA64_ABI */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);

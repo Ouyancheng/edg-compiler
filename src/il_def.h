@@ -8340,6 +8340,13 @@ typedef struct a_routine {
 			   to an appropriate kind during lowering, and entry
 			   points added by lowering are created with the right
 			   kind. */
+  a_bit_field	is_alias_entry:1;
+			/* TRUE if this routine is an entry point that is an
+			   alias for the primary routine pointed to by
+			   primary_ctor_or_dtor.  In other words, the
+			   code for this entry point does nothing more than
+			   call the primary routine passing the same
+			   parameters. */
 #endif /* DO_IL_LOWERING && IA64_ABI */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
