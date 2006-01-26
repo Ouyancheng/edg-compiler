@@ -10254,6 +10254,7 @@ C-style casts and C++ functional-notation type conversions.
              type (even if there is a cv-qualifier difference implied) and
              it is not forced to an rvalue. */
         } else if (gpp_mode && gnu_version < 30400 && is_an_lvalue(operand) &&
+                   !curr_expr_kind_is_const() &&
                    is_integral_or_enum_type(source_type) &&
                    is_integral_or_enum_type(type_cast_to) &&
                    f_skip_typerefs(source_type)->size ==

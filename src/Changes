@@ -1,5 +1,15 @@
 Version 3.8
 
+1/26/06  Casts in constant expressions in g++ mode not seen as lvalue casts
+
+The change of 9/15/05 to GNU C++ lvalue casts broke some cases like the
+following.  Now fixed again.
+
+  struct S {
+    static const int x = 0;
+    static const int y = int(x);  // Was spurious error in g++ mode < 3.4
+  };
+
 1/25/06  Microsoft compatibility: Class modifiers "abstract" and "sealed"
 
 In Microsoft mode with microsoft_version >= 1400, the front end now supports
