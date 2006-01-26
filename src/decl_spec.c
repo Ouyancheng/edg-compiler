@@ -2642,7 +2642,8 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
     *declares_something = TRUE;
     check_assertion(!vacuous_decl_allowed || !is_friend_decl);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
-    if ((gpp_mode && gnu_version < 30400) || microsoft_mode) {
+    if (((gpp_mode && gnu_version < 30400) || microsoft_mode) &&
+        innermost_function_scope == NULL) {
       /* In GNU and Microsoft modes, the possibility of delayed nested class
          definitions in class scopes requires us to delay access checking
          until we known whether the tag name is part of such a definition. */
@@ -2655,7 +2656,8 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
                             &tag_resolution, &is_predeclared_type_decl,
                             &local_decl_pos_block);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
-    if ((gpp_mode && gnu_version < 30400) || microsoft_mode) {
+    if (((gpp_mode && gnu_version < 30400) || microsoft_mode) &&
+        innermost_function_scope == NULL) {
       end_deferral_of_access_checks();
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
