@@ -5364,12 +5364,14 @@ e.g., because it's externally defined.
     /* Generally, externally-defined routines are needed, because they might
        be referenced from some other compilation unit. */
     if (rout->storage_class == (a_storage_class)sc_unspecified) {
+      a_boolean unspecialized_template = (rout->is_template_function &&
+                                          !rout->is_specialized);
       is_needed = TRUE;
       if (rout->is_trivial_default_constructor) {
 	/* Trivial constructors have no bodies so are never needed. */
 	is_needed = FALSE;
       } else if (rout->is_inline &&
-                 !(rout->is_template_function &&
+                 !(unspecialized_template &&
                    !treat_as_static_inline(rout)) &&
 #if GNU_EXTENSIONS_ALLOWED
                  !(gcc_mode && !rout->suppress_inline_body) &&
@@ -5391,8 +5393,7 @@ e.g., because it's externally defined.
         /* Assume that all external routines from secondary translation units
            are needed.  This will be reconsidered after the routine has
            been copied to the primary translation unit. */
-      } else if (rout->is_template_function &&
-		 !rout->is_specialized) {
+      } else if (unspecialized_template) {
         /* An instantiation of an external template function must be considered
            to be needed if it was automatically instantiated (i.e, it is
            in the instantiation request file for this compilation), or if

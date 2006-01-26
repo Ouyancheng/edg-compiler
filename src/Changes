@@ -1,5 +1,12 @@
 Version 3.8
 
+1/26/06  Unneeded code for explicitly specialized extern inline functions
+
+A change made in version 3.5 caused the bodies of explicitly specialized
+extern inline template functions to be included in the IL even if they
+are unreferenced, which increased the size of object files.  This
+has now been reversed.  See Changes entry of 9/14/04.
+
 1/26/06  GNU/Microsoft C++ compatibility: Delayed nested class definitions in
          class scopes
 
