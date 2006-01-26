@@ -5727,7 +5727,7 @@ typedef struct a_type {
 			   virtual member functions, this is an "abstract"
 			   class and is subject to certain restrictions
 			   (C++ only, ARM 10.3).  Also TRUE for Microsoft
-			   interface classes and for class defined with the
+			   interface classes and for classes defined with the
 			   context-sensitive keyword "abstract" (a Microsoft
 			   extension). */
       a_bit_field
