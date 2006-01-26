@@ -1,5 +1,24 @@
 Version 3.8
 
+1/26/06  GNU/Microsoft C++ compatibility: Delayed nested class definitions in
+         class scopes
+
+In Microsoft C++ mode and in GNU C++ mode with gnu_version < 30400, the front
+end now accepts delayed nested class definitions in class scopes.  In GNU mode
+and in Microsoft mode with microsoft_version >= 1400, the delayed definition
+must appear in a parent class of the class being defined.  For example:
+
+  struct A {
+    struct B {
+      struct C1;
+      struct C2;
+    };
+    struct B::C1 {};  // Accepted in Microsoft mode and in some GNU modes.
+  };
+  struct X {
+    struct A::B::C2 {};  // Accepted in Microsoft mode only when
+  };                     // microsoft_version < 1400.
+
 1/26/06  Casts in constant expressions in g++ mode not seen as lvalue casts
 
 The change of 9/15/05 to GNU C++ lvalue casts broke some cases like the
