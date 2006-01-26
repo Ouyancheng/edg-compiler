@@ -2411,7 +2411,8 @@ it returns FALSE.
 
   if ((gpp_mode && gnu_version < 30400) || microsoft_mode) {
     if (innermost_function_scope == NULL &&
-        scope_stack[depth_scope_stack].kind == sck_class_struct_union) {
+        scope_stack[depth_scope_stack].kind ==
+                                       (a_scope_kind)sck_class_struct_union) {
       /* Check that the current scope encloses sym (not required for earlier
          Microsoft versions). */
       if (microsoft_bugs && microsoft_version < 1400) {
