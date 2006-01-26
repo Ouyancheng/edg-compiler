@@ -12424,9 +12424,12 @@ passed via template_decl.
 #if CHECKING
     } else if (!sym->is_error) {
       /* A nested class, struct, union, or enum definition.  Be sure the
-         parent class was marked correctly. */
+         parent class was marked correctly.  In GNU or Microsoft modes, this
+         could also be a delayed nested class definition appearing in a class
+         scope. */
       check_assertion_str2(sym->is_class_member &&
-                           sym->parent.class_type == class_type,
+                           (sym->parent.class_type == class_type ||
+                            microsoft_mode || gpp_mode),
                            "class_member_declaration:",
                            "bad parent type on nested type");
 #endif /* CHECKING */
@@ -14346,6 +14349,19 @@ next_declaration:
            Here the namespace-extension scope for N is still on the scope
            stack, but we want the placeholder typeref to be added to the file
            scope, which is what orig_decl_level should specify. */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+        if (scope_stack[orig_decl_level].il_scope->kind ==
+                                       (a_scope_kind)sck_class_struct_union) {
+          /* Microsoft and GNU C++ allow delayed nested class definitions that
+             appear in class scopes.  Make the placeholder a member of the
+             class in which the definition appears. */
+          a_type_ptr  enclosing_class = scope_stack[orig_decl_level].il_scope
+                                                          ->variant.assoc_type;
+          set_class_membership((a_symbol_ptr)NULL,
+                               &placeholder->source_corresp, enclosing_class);
+        } else
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
         if (scope_stack[orig_decl_level].il_scope->kind ==
                                             (a_scope_kind)sck_namespace) {
           /* The original declaration scope is a namespace scope instead of

@@ -2390,6 +2390,50 @@ discretionary errors.
 }  /* scan_microsoft_class_modifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+
+static a_boolean delayed_nested_class_allowed_in_class(a_symbol_ptr  sym)
+/*
+Some GNU and Microsoft compilers accept delayed nested class definitions in
+certain class scopes.  For example:
+    struct A {
+      struct B {
+        struct C;
+      };
+      struct B::C {};  // Accepted in some Microsoft and GNU modes.
+    };
+This routine returns TRUE if the current scope is a class scope and if the
+nested class type represented by sym can be defined in that scope.  Otherwise,
+it returns FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if ((gpp_mode && gnu_version < 30400) || microsoft_version) {
+    if (innermost_function_scope == NULL &&
+        scope_stack[depth_scope_stack].kind == sck_class_struct_union) {
+      /* Check that the current scope encloses sym (not required for earlier
+         Microsoft versions). */
+      if (microsoft_bugs && microsoft_version < 1400) {
+        result = TRUE;
+      } else {
+        a_symbol_ptr  curr_class_sym =
+                        symbol_for(scope_stack[depth_scope_stack].assoc_type);
+        a_symbol_ptr  parent_sym = sym;
+        do {
+          parent_sym = symbol_for(parent_sym->parent.class_type);
+          if (parent_sym == curr_class_sym) {
+            result = TRUE;
+            break;
+          }  /* if */
+        } while (parent_sym->is_class_member);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* delayed_nested_class_allowed_in_class */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED || \
     !MICROSOFT_EXTENSIONS_ALLOWED
@@ -2597,11 +2641,24 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     *declares_something = TRUE;
     check_assertion(!vacuous_decl_allowed || !is_friend_decl);
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+    if ((gpp_mode && gnu_version < 30400) || microsoft_mode) {
+      /* In GNU and Microsoft modes, the possibility of delayed nested class
+         definitions in class scopes requires us to delay access checking
+         until we known whether the tag name is part of such a definition. */
+      begin_deferral_of_access_checks();
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
     tag_sym = scan_tag_name(tag_kind, &locator, &is_friend_decl,
                             &vacuous_decl_allowed, is_interface,
                             is_ref_within_new_expr, &effective_decl_level,
                             &tag_resolution, &is_predeclared_type_decl,
                             &local_decl_pos_block);
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+    if ((gpp_mode && gnu_version < 30400) || microsoft_mode) {
+      end_deferral_of_access_checks();
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
     if (tag_sym != NULL) {
       if (is_friend_decl) {
         /* A friend declaration: if the identifier was a qualified name
@@ -3000,12 +3057,10 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
         } else if (is_class_definition) {
           /* A definition of a nested class that appears in the scope other
              than that of its parent class. */
-          parent_sym = (a_symbol_ptr)tag_sym->parent.class_type->
-                                                  source_corresp.assoc_info;
+          parent_sym = symbol_for(tag_sym->parent.class_type);
           /* Find the outermost enclosing class. */
           while (parent_sym->is_class_member) {
-            parent_sym = (a_symbol_ptr)parent_sym->parent.class_type->
-                                                    source_corresp.assoc_info;
+            parent_sym = symbol_for(parent_sym->parent.class_type);
           }  /* while */
           if (parent_sym->decl_scope == ssep->number) {
             /* Okay to define the nested class in this scope -- it is the
@@ -3032,6 +3087,10 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
             push_namespace_extension_scope(parent_sym->parent.namespace_ptr);
             namespace_extension_pushed = TRUE;
             effective_decl_level = depth_scope_stack;
+            delayed_nested_class_def = TRUE;
+          } else if (delayed_nested_class_allowed_in_class(tag_sym)) {
+            /* GNU and Microsoft C++ sometimes allow delayed nested class
+               definitions in class scopes. */
             delayed_nested_class_def = TRUE;
           } else {
             pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
@@ -7306,6 +7365,7 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
+            a_boolean  microsoft_elaborated_ctor = FALSE;
             if (any_decl_specifiers_seen &&
                 (strict_ansi_mode ||
                  *storage_class != (a_storage_class)sc_typedef)) {
@@ -7314,9 +7374,16 @@ process_class_specifier:
                  we're in strict mode. */
               vacuous_decl_allowed = FALSE;
             }  /* if */
-            if (microsoft_mode && is_member_decl && !err &&
-                is_constructor_decl(enclosing_class_type(input_flags))) {
-              /* In Microsoft mode, "struct S { struct S(); }; is accepted. */
+            if (microsoft_mode && is_member_decl && !err) {
+              /* In Microsoft mode, "struct S { struct S(); }; is accepted.
+                 Access checks are disabled during this processing. */
+              begin_deferral_of_access_checks();
+              microsoft_elaborated_ctor = is_constructor_decl(
+                                           enclosing_class_type(input_flags));
+              discard_deferred_access_checks();
+              end_deferral_of_access_checks();
+            }  /* if */
+            if (microsoft_elaborated_ctor) {
               basic_type = bt_no_type;
               *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
               /* Skip "class" or "struct". */
