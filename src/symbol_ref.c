@@ -1536,14 +1536,14 @@ created for this entity; otherwise, it is NULL.
         sym_ptr->kind == (a_symbol_kind)sk_routine) {
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
       if (is_definition && !C_mode() &&
+          scope_stack[depth_scope_stack].kind ==
+                                    (a_scope_kind)sck_class_struct_union &&
+          !scope_stack[depth_scope_stack].inside_local_class &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
           !(microsoft_mode &&
             microsoft_routine_def_is_unmovable(
                         sym_ptr->variant.routine.ptr->overridden_function)) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          scope_stack[depth_scope_stack].kind ==
-                                    (a_scope_kind)sck_class_struct_union &&
-          !scope_stack[depth_scope_stack].inside_local_class &&
           class_type_can_be_named_in_namespace_scope(
                                  scope_stack[depth_scope_stack].assoc_type)) {
         /* This is a member or friend function definition inside the
