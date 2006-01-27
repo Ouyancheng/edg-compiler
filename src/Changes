@@ -88,6 +88,12 @@ generation of large thunks because the C-generating back end was
 copying the whole body of the destructor into the thunk, instead of
 just a call to the internal routine.
 
+IL CHANGE: a new flag in the routine entry, is_alias_entry,
+indicates a contructor or destructor entry point that does nothing
+more than call the primary entry point and therefore can be put
+out as simply an alias for the primary entry point, if the back
+end has that capability.
+
 1/20/06  GNU compatibility: Abort when using function declared through typedef
          in call to function with "format" attribute
 
