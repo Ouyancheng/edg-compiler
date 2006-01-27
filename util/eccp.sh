@@ -149,6 +149,12 @@ use_default_instantiation_dir=1
 #
 export TMPDIR
 TMPDIR=${TMPDIR-/tmp}
+eccp_tmpdir=$TMPDIR/eccp$$
+rm -rf $eccp_tmpdir
+mkdir $eccp_tmpdir
+if [ $? -ne 0 ] ; then
+  echo eccp: could not create temporary directory $eccp_tmpdir.
+fi
 #
 # Suffix to be applied to the standard C++ library (libC.a) to select a
 # special version.
@@ -406,20 +412,33 @@ ii_file_specified=0
 #
 #  Temporary file used by command line processing
 #
-cmd_tmp_file=$TMPDIR/cl$$
+cmd_tmp_file=$eccp_tmpdir/cmd_tmp_file.txt
 #
 #  Temporary file used with a CPFE output filter.
 #
-output_tmp_file=$TMPDIR/of$$
+output_tmp_file=$eccp_tmpdir/output_filter.txt
 #
 # Define trap handlers
 #
 # Trap the "abort" signal to eliminate the shell-supplied diagnostic line
 # that frequently includes the process number.
-trap "exit 134" 6 # abort
-trap "exit 137" 9 # kill (used by timeout detection)
-trap "exit 138" 10 # bus error
-trap "exit 139" 11 2>/dev/null # segmentation fault (fails on some systems)
+trap "trap_function 1" 2 # Interrupt
+trap "trap_function 134" 6 # abort
+trap "trap_function 137" 9 # kill (used by timeout detection)
+trap "trap_function 138" 10 # bus error
+# segmentation fault (fails on some systems)
+trap "trap_function 139" 11 2>/dev/null
+
+
+trap_function()
+#
+# Trap handler.  The first argument is the exit code.
+#
+{
+  rm -rf $eccp_tmpdir
+  exit $1
+}
+
 #
 # Function that compiles a generated C file
 #
@@ -435,8 +454,8 @@ compile_int_c()
   if [ $strip_line_dirs -eq 1 ] ; then
     # Replace the #line directives with blank lines.  Also replace
     # GNU-style line directives with blank lines.
-    sed -e "s/#line.*//" -e "s/# [0-9].*//" $int_c_file >/tmp/$$sld
-    mv -f /tmp/$$sld $int_c_file
+    sed -e "s/#line.*//" -e "s/# [0-9].*//" $int_c_file >$eccp_tmpdir/sld.txt
+    mv -f $eccp_tmpdir/sld.txt $int_c_file
   fi
   command="$cc_command $c_to_obj_options -c $int_c_file"
   if [ $driver_debug -ne 0 ] ; then
@@ -1725,7 +1744,7 @@ fi
 use_new_obj_list_file=0
 if [ $prelink_copy_if_nonlocal -ne 0 -o $one_instantiation_per_object -ne 0 ]
 then
-  new_obj_list_file=$TMPDIR/nolf$$
+  new_obj_list_file=$eccp_tmpdir/obj_list_file.txt
   use_new_obj_list_file=1
   prelink_options=$prelink_options" -o $new_obj_list_file"
 fi
@@ -1761,7 +1780,7 @@ fi
 #
 if [ $compile_as_secondary -ne 0 ] ; then
   if [ "$EDG_DUMMY_PRIMARY_FILE" = "" ] ; then
-    dummy_primary_file_name=$TMPDIR/dp$$
+    dummy_primary_file_name=$eccp_tmpdir/dummy_primary_file.c
     echo "extern int dummy_primary_filexxx;" >$dummy_primary_file_name
     if [ $? -ne 0 ] ; then
       echo $driver_name: could not create dummy primary file $dummy_primary_file_name.
@@ -1794,8 +1813,8 @@ do
       gen_c_option=--gen_c_file_name=$gen_c_file_name
     fi
   else
-    gen_c_file_name=$TMPDIR/$basefile.$$""$gen_c_suffix
-    gen_c_obj_name=$basefile.$$""$gen_o_suffix
+    gen_c_file_name=$eccp_tmpdir/$basefile$gen_c_suffix
+    gen_c_obj_name=$basefile$gen_o_suffix
     gen_c_option=--gen_c_file_name=$gen_c_file_name
   fi
   if [ $cc_only -eq 1 -a $output_file_specified -eq 1 ] ; then
@@ -1860,7 +1879,7 @@ do
         instantiation_gen_c_dir=$curr_dir/$instantiation_gen_c_dir
       fi
     else
-      instantiation_gen_c_dir=$TMPDIR/igc$$.dir
+      instantiation_gen_c_dir=$eccp_tmpdir/instantiation.dir
       remove_instantiation_gen_c_dir=1
       # Attempt to remove any previously existing directory of this name.
       rm -rf $instantiation_gen_c_dir
@@ -1959,7 +1978,7 @@ do
       # The main reason this is done is that the instantiation directory
       # must come before any of the instantiation file name entries.
       if [ -f $ti_file_name ] ; then
-        ti_tmp=$TMPDIR/ti$$
+        ti_tmp=$eccp_tmpdir/temorary_ti.txt
         echo "cmd:$instantiation_command_line $instantiation_command_suffix" >$ti_tmp
         echo "dir:$curr_dir" >>$ti_tmp
         echo "fnm:$cfile" >>$ti_tmp
@@ -1978,7 +1997,7 @@ do
       if [ -f $ii_file_name ] ; then
         # An instantiation file exists which means the compilation involves
         # templates.  Construct the new .ii file.
-        ii_tmp_file=$TMPDIR/$$edgII
+        ii_tmp_file=$eccp_tmpdir/temporary_ii.txt
         if [ $old_ii_format -ne 1 ] ; then
   #       New format
           sed -e "1,3 d" $ii_file_name >$ii_tmp_file
@@ -2002,7 +2021,7 @@ do
   instantiation_list_exists=0
   if [ $automatic_instantiation -ne 0 ] ; then
     if [ $one_instantiation_per_object -ne 0 -a -f $ti_file_name ] ; then
-      instantiation_list=$TMPDIR/il$$
+      instantiation_list=$eccp_tmpdir/instantiation_list.txt
       fgrep "ifn:" $ti_file_name | sed -e "s/ifn://" >$instantiation_list
       instantiation_list_exists=1
     fi
@@ -2021,7 +2040,7 @@ do
 #
 #   Execute cc unless explicitly told not to.
 #
-    cc_tmp_file=$TMPDIR/$$cc
+    cc_tmp_file=$eccp_tmpdir/c_output.txt
     if [ $fe_only -ne 1 ]
     then
       # Compile the generate C file.
@@ -2164,7 +2183,7 @@ then
       if [ $driver_debug -ne 0 ] ; then
         echo $link_command $link_command_suffix
       fi
-      link_error_file=$TMPDIR/eccperr$$
+      link_error_file=$eccp_tmpdir/link_error_file.txt
       $link_command $link_command_suffix >$link_error_file 2>&1
       status=$?
       $EDG_DECODE <$link_error_file 1>&2
@@ -2200,7 +2219,7 @@ then
 #            2. Compile C file
 #            3. Re-link with object of C file
 #
-          tmpfile=$TMPDIR/$$edgm
+          tmpfile=$eccp_tmpdir/munch_tmp
           command="nm $EDG_MUNCH_NM_OPTIONS $executable | \
                    $MUNCH $EDG_MUNCH_OPTIONS"
           if [ $driver_debug -ne 0 ] ; then
@@ -2211,7 +2230,7 @@ then
           if [ $driver_debug -ne 0 ] ; then
             echo $command
           fi
-          (cd $TMPDIR; $command)
+          (cd $eccp_tmpdir; $command)
           status=$?
           if [ $status -ne 0 ] ; then
             echo "$driver_name: compilation of file generated by munch failed"
@@ -2246,4 +2265,5 @@ then
     fi
   fi
 fi
+rm -rf $eccp_tmpdir
 exit $max_status
