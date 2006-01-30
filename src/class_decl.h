@@ -95,7 +95,13 @@ extern void check_member_decl_is_copy_constructor(
 				a_boolean		compiler_generated);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
 extern a_boolean microsoft_routine_def_is_unmovable(a_routine_ptr  rtn);
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean is_two_argument_delete(a_routine_ptr delete_routine);
