@@ -40,15 +40,14 @@ Linux using the gcc/g++ header files.
   }  /* if */
   (void)enter_predef_macro("1", "__unix__", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-#ifdef __x86_64
+#ifdef USE_X86_64
+  /* Macro definitions for the 64-bit version of the x86 architecture. */
   (void)enter_predef_macro("long int", "__PTRDIFF_TYPE__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
   (void)enter_predef_macro("long unsigned int", "__SIZE_TYPE__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-  /* Define __x86_64 if the compiler being used to build the front end
-     has it defined.  Also define __x86_64__. */
   (void)enter_predef_macro("1", "__x86_64", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
   (void)enter_predef_macro("1", "__x86_64__", /*cannot_be_redefined=*/TRUE,
@@ -56,7 +55,8 @@ Linux using the gcc/g++ header files.
   (void)enter_predef_macro("int", "__WCHAR_TYPE__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-#else /* !__x86_64 */
+#else /* !USE_X86_64 */
+  /* Macro definitions for the 32-bit version of the x86 architecture. */
   (void)enter_predef_macro("int", "__PTRDIFF_TYPE__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
@@ -66,7 +66,7 @@ Linux using the gcc/g++ header files.
   (void)enter_predef_macro("long int", "__WCHAR_TYPE__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-#endif /* __x86_64 */
+#endif /* USE_X86_64 */
   (void)enter_predef_macro("1", "__linux__", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #if defined(__i386) || defined(__i386__)

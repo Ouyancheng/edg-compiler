@@ -30,7 +30,18 @@ This is the version for Linux.
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #endif /* ifndef COMPILE_MULTIPLE_SOURCE_FILES */
 
+/*
+The USE_x86_64
+*/
+#ifndef USE_X86_64
 #ifdef __x86_64
+#define USE_X86_64 1
+#else /* ifndef __x86_64 */
+#define USE_x86_64 0
+#endif /* ifdef __Xx86_64 */
+#endif /* ifndef USE_X86_64 */
+
+#ifdef USE_X86_64
 #define TARG_SIZEOF_LONG 8
 #define TARG_ALIGNOF_LONG 8
 #define TARG_SIZEOF_POINTER 8
@@ -47,20 +58,21 @@ This is the version for Linux.
 #define TYPE_FOR_AN_FP_VALUE_PART unsigned int
 #define TARG_JMP_BUF_NUM_ELEMENTS 25
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_long)
-#else /* _x86_64 */
+#define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 0
+#else /* USE_X86_64 */
 #define TARG_ALIGNOF_LONG_DOUBLE 4
 #define TARG_SIZEOF_LONG_DOUBLE 12
 #define TARG_JMP_BUF_NUM_ELEMENTS 39
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
-#endif /* _x86_64 */
-
 /* double and long long have two different alignments on Linux. */
-#define TARG_ALIGNOF_DOUBLE 8
 #define TARG_DOUBLE_FIELD_ALIGNMENT 4
-#define TARG_ALIGNOF_LONG_LONG 8
 #define TARG_LONG_LONG_FIELD_ALIGNMENT 4
+#endif /* USE_X86_64 */
+
+#define TARG_ALIGNOF_DOUBLE 8
+#define TARG_ALIGNOF_LONG_LONG 8
 
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
 #define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE 1
