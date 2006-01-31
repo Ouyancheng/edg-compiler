@@ -7250,9 +7250,9 @@ overridden by the current declaration (if any).
                scope_stack[d].kind ==
                                     (a_scope_kind)sck_namespace_reactivation) {
           --d;
-        }  /* if */
+        }  /* while */
         result = (scope_stack[d].kind == (a_scope_kind)sck_class_struct_union);
-      }  /* while */
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
