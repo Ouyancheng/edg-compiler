@@ -1,5 +1,22 @@
 Version 3.8
 
+1/31/06  Declaration position included in access diagnostics
+
+When an access error is reported, it can sometimes be difficult to know
+which declaration is the one that is inaccessible, particularly in the
+presence of template explicit specializations.  To make it easier to
+identify the inaccessible entity, the declaration position is now included
+in access diagnostics.
+
+  template <class T> class A {
+  public:
+    typedef int I;
+  };
+  template <> class A<int> {
+    typedef int I;  // private
+  };
+  A<int>::I i; // error: type "A<int>::I" (declared at line 6) is inaccessible
+
 1/31/06  Additional position information in instantiation context output
 
 Formerly, a noninline template referenced from a nontemplate context did not
