@@ -20481,6 +20481,11 @@ dllimport or dllexport attribute to a template instance.
       tip->class_explicitly_instantiated = is_class_instantiation;
       tip->explicit_instantiation_pos = *pos;
       tip->explicit_do_not_instantiate = FALSE;
+      /* Record this as the position of the first reference if that field
+         is not already set. */
+      if (tip->pos_of_first_reference.seq == 0) {
+        tip->pos_of_first_reference = *pos;
+      }  /* if */
     } else if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
       instantiation_required_flag = FALSE;
       tip->explicit_instantiation = FALSE;

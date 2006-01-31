@@ -1,5 +1,29 @@
 Version 3.8
 
+1/31/06  Additional position information in instantiation context output
+
+Formerly, a noninline template referenced from a nontemplate context did not
+have an instantiation position reported in diagnostic messages.  For example,
+this test case:
+
+  template <class T> void f() { T t; }
+  template <class T> void g() { f<T>(); } 
+  int main() { g<int>(); }
+
+Resulted in this output:
+
+"ex.c", line 1: warning: variable "t" was declared but never referenced
+  template <class T> void f() { T t; }
+                                  ^
+          detected during:
+            instantiation of "void f<T>() [with T=int]" at line 2
+            instantiation of "void g<T>() [with T=int]"
+
+The position of the first reference to the template is now used, making
+the second instantiation context line:
+
+            instantiation of "void g<T>() [with T=int]" at line 3
+
 1/26/06  Unneeded code for explicitly specialized extern inline functions
 
 A change made in version 3.5 caused the bodies of explicitly specialized

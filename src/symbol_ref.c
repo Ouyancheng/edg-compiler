@@ -1699,6 +1699,36 @@ specifier.
 
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void check_for_first_use_of_template(
+				a_symbol_ptr		sym_ptr,
+				a_source_position	*source_position)
+/*
+This routine is called when the referenced flag is not yet set on the symbol.
+If sym_ptr is a nonspecialized template function or template static data member
+the position of the first reference is recorded.
+*/
+{
+  a_template_instance_ptr		tip = NULL;
+
+  if (is_function_symbol(sym_ptr)) {
+    a_routine_ptr rp = sym_ptr->variant.routine.ptr;
+    if (rp->is_template_function && !rp->is_specialized) {
+      tip = sym_ptr->variant.routine.instance_ptr;
+    }  /* if */
+  } else if (sym_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+    a_variable_ptr vp = sym_ptr->variant.static_data_member.variable;
+    if (vp->is_template_static_data_member && !vp->is_specialized) {
+      tip = sym_ptr->variant.static_data_member.instance_ptr;
+    }  /* if */
+  }  /* if */
+  /* tip will be set if this is a template function or template
+     static data member for which a position should be recoreded. */
+  if (tip != NULL) {
+    tip->pos_of_first_reference = *source_position;
+  }  /* if */
+}  /* check_for_first_use_of_template */
+
+
 void record_symbol_reference(a_symbol_reference_kind kind,
                              a_symbol_ptr            sym_ptr,
                              a_source_position       *source_position,
@@ -1771,6 +1801,11 @@ projection symbol.
       }  /* if */
     }  /* if */
     write_xref_entry(kind_for_xref, sym_for_xref, source_position);
+  }  /* if */
+  if (!sym_ptr->referenced) {
+    /* If this is a template function or static data member, record the
+       position of the first reference. */
+    check_for_first_use_of_template(sym_ptr, source_position);
   }  /* if */
   /* Set the referenced flag in the symbol. */
   sym_ptr->referenced = TRUE;

@@ -1725,6 +1725,12 @@ typedef struct a_template_instance {
 		explicit_instantiation_pos;
 			/* The position of the instantiation request pragma
 			   when explicit_instantiation is TRUE. */
+  a_source_position
+		pos_of_first_reference;
+			/* The position of the first reference to the entity.
+			   This is used in diagnostic output to indicate the
+			   position of the first reference that caused an
+			   instantiation of the entity. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
 			/* When instance_sym points to an sk_routine or

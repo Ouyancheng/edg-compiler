@@ -11101,6 +11101,7 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->on_instantiations_list	   = FALSE;
   tip->error_issued                = FALSE;
   tip->explicit_instantiation_pos  = null_source_position;
+  tip->pos_of_first_reference      = null_source_position;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   tip->declared_type               = NULL;
   tip->declared_type_for_default_arg_fixup

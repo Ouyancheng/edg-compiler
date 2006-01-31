@@ -3208,16 +3208,57 @@ current source position and severity or restore the previously saved settings.
 
 
 #if !STANDALONE_UTILITY_PROGRAM
-static a_boolean include_in_context_output
-			(a_scope_stack_entry_ptr ssep,
+
+static a_source_position *context_position_for_instantiation(
+				a_symbol_ptr		sym,
+				a_source_position	*scope_stack_pos)
+/*
+Determine the position to be used as the point of instantiation of a
+template for diagnostic purposes.  This is normally the scope_stack_pos,
+but if that position represents the end-of-source position, then use the
+position of the first reference of the instance specified by "sym".
+*/
+{
+  char		*file_name;
+  char		*full_name;
+  a_line_number	line_number;
+  a_boolean	at_end_of_source;
+
+  a_source_position	*result_pos = scope_stack_pos;
+
+  conv_seq_to_file_and_line(scope_stack_pos->seq, &file_name, &full_name,
+                            &line_number, &at_end_of_source);
+  if (at_end_of_source) {
+    a_template_instance_ptr	tip = NULL;
+    /* Get the template instance (if any) associated with this symbol. */
+    if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+      tip = sym->variant.static_data_member.instance_ptr;
+    } else if (is_function_symbol(sym)) {
+      tip = sym->variant.routine.instance_ptr;
+    }  /* if */
+    if (tip != NULL) {
+      /* If the symbol has a position of first reference, use that. */
+      if (tip->pos_of_first_reference.seq != 0) {
+        result_pos = &tip->pos_of_first_reference;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result_pos;
+}  /* context_position_for_instantiation */
+
+
+static a_boolean include_in_context_output(
+			 a_scope_stack_entry_ptr ssep,
 			 a_symbol_ptr	         *context_sym,
 			 an_error_code		 *context_error_code,
+			 a_source_position	 *context_source_pos,
 			 a_boolean               add_detected_prefix)
 /*
 Return TRUE if this scope stack entry has context information that should
 be processed, otherwise return FALSE.  When TRUE is returned *context_sym
-is set to point to a symbol that provides the context information and
-*context_error_code is set to the appropriate error code.  When
+is set to point to a symbol that provides the context information,
+*context_error_code is set to the appropriate error code, and
+context_source_pos (if not NULL) is set to the position to be reported.  When
 add_detected_prefix is TRUE, the error code returned will refer to
 a message that includes the text (e.g., "detected during ") that is
 used when only a single line of context information is being supplied.
@@ -3225,9 +3266,10 @@ When multiple context lines are being displayed, the "detected during"
 message appears by itself on a separate line.
 */
 {
-  a_boolean	result = FALSE;
-  a_symbol_ptr	sym;
-  an_error_code error_code;
+  a_boolean		result = FALSE;
+  a_symbol_ptr		sym;
+  an_error_code		error_code;
+  a_source_position	*pos = NULL;
 
   if (ssep->exclude_from_context_output) {
     /* Don't include this scope in the context output. */
@@ -3252,16 +3294,21 @@ message appears by itself on a separate line.
         unexpected_condition();
       }  /* if */
       result = TRUE;
-    } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-      result = TRUE;
-      error_code = add_detected_prefix ?
+    } else {
+      if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+        result = TRUE;
+        error_code = add_detected_prefix ?
                       ec_det_during_implicit_static_data_member_definition :
                       ec_implicit_static_data_member_definition;
-    } else {
-      error_code = add_detected_prefix ?
+      } else {
+        error_code = add_detected_prefix ?
                                ec_det_during_template_instantiation_context :
                                ec_template_instantiation_context;
-      result = TRUE;
+        result = TRUE;
+      }  /* if */
+      /* Determine the position to be used as the location of this
+         instantiation. */
+      pos = context_position_for_instantiation(sym, &ssep->source_position);
     }  /* if */
   } else if (ssep->kind == (a_scope_kind)sck_function) {
     /* Compiler generated functions need additional information. */
@@ -3276,6 +3323,11 @@ message appears by itself on a separate line.
   if (result) {
     *context_sym = sym;
     *context_error_code = error_code;
+    /* If some other position was determined above, use that.  Otherwise,
+       use the position from the scope stack entry. */
+    if (context_source_pos != NULL) {
+      *context_source_pos = pos != NULL ? *pos : ssep->source_position;
+    }  /* if */
   }  /* if */
 #if CHECKING
   if (result && sym == NULL) {
@@ -3666,6 +3718,7 @@ and doing any required expansions, the diagnostic is written.
       for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
         if (include_in_context_output(&scope_stack[sd], &sym,
                                       &context_error_code,
+                                      (a_source_position*)NULL,
 				      /*add_detected_prefix=*/FALSE)) {
           num_of_contexts++;
         }  /* if */
@@ -3700,8 +3753,10 @@ and doing any required expansions, the diagnostic is written.
         }  /* if */
         for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
           a_scope_stack_entry_ptr ssep = &scope_stack[sd];
+          a_source_position	  context_source_pos;
           if (!include_in_context_output(ssep, &sym,
                                          &context_error_code,
+                                         &context_source_pos,
 					 /*add_detected_prefix=*/
 					     num_of_contexts == 1)) continue;
           contexts_processed++;
@@ -3735,7 +3790,7 @@ and doing any required expansions, the diagnostic is written.
           }  /* if */
           init_error_params();
           error_msg_syms[1] = sym;
-	  error_msg_positions[1] = &ssep->source_position;
+	  error_msg_positions[1] = &context_source_pos;
           error_msg_scopes[1] = ssep;
           diag_message(context_error_code,
                        error_pos, severity, context_diag_kind);
