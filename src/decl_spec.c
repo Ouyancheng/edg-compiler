@@ -2549,8 +2549,10 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   an_extended_decl_info_block
                           extended_decl_info;
-  a_boolean               tag_name_access_checks_deferred = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+  a_boolean               tag_name_access_checks_deferred = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr        attributes = NULL;
   a_source_position       attr_pos;
