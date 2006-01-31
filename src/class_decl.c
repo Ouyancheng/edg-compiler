@@ -7249,7 +7249,7 @@ overridden by the current declaration (if any).
         while (scope_stack[d].kind == (a_scope_kind)sck_class_reactivation ||
                scope_stack[d].kind ==
                                     (a_scope_kind)sck_namespace_reactivation) {
-          --d;
+          d = scope_stack[d].previous_scope;
         }  /* while */
         result = (scope_stack[d].kind == (a_scope_kind)sck_class_struct_union);
       }  /* if */
