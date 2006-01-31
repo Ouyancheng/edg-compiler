@@ -7220,14 +7220,16 @@ class definitions that appear in class scope.  For example:
     };
 The definition of A::B::C::f() cannot be placed immediately after the
 definition of A::B::C, nor after the definition of A.
-Return TRUE if the current declaration is such a member of friend that cannot
+Return TRUE if the current declaration is such a member or friend that cannot
 be moved.  overridden_fn is the virtual base class member function explicitly
-by the current declaration (if any).
+overridden by the current declaration (if any).
 */
 {
   a_boolean  result = FALSE;
 
   if (overridden_fn != NULL) {
+    /* An explicitly overridden function cannot be defined outside its parent
+       class. */
     result = TRUE;
   } else {
     a_type_ptr  class_type = scope_stack[depth_scope_stack].assoc_type;
@@ -7236,21 +7238,21 @@ by the current declaration (if any).
     if (class_type->source_corresp.is_class_member) {
       /* A member or friend of a nested class.  If it we are in a delayed
          nested class definition that appears in a class scope, we should not
-         attempt to moved the member definition outside the class, because it
+         attempt to move the member definition outside the class, because it
          cannot appear there. */
       a_scope_depth  d = depth_scope_stack - 1;
       a_boolean      in_reactivated_class =
                  (scope_stack[d].kind == (a_scope_kind)sck_class_reactivation);
       if (in_reactivated_class) {
-        /* A delayed nested class definition.  Look through the scope stack to
-           see if it appeared in a class scope. */
+        /* A delayed nested class definition.  Skip the reactivations and see
+           if they appeared in a class scope. */
         while (scope_stack[d].kind == (a_scope_kind)sck_class_reactivation ||
                scope_stack[d].kind ==
                                     (a_scope_kind)sck_namespace_reactivation) {
           --d;
         }  /* if */
         result = (scope_stack[d].kind == (a_scope_kind)sck_class_struct_union);
-      }  /* if */
+      }  /* while */
     }  /* if */
   }  /* if */
   return result;

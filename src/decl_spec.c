@@ -2549,6 +2549,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   an_extended_decl_info_block
                           extended_decl_info;
+  a_boolean               tag_name_access_checks_deferred = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr        attributes = NULL;
@@ -2649,6 +2650,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
          definitions in class scopes requires us to delay access checking
          until we known whether the tag name is part of such a definition. */
       begin_deferral_of_access_checks();
+      tag_name_access_checks_deferred = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
     tag_sym = scan_tag_name(tag_kind, &locator, &is_friend_decl,
@@ -2657,8 +2659,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
                             &tag_resolution, &is_predeclared_type_decl,
                             &local_decl_pos_block);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
-    if (((gpp_mode && gnu_version < 30400) || microsoft_mode) &&
-        innermost_function_scope == NULL) {
+    if (tag_name_access_checks_deferred) {
       end_deferral_of_access_checks();
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
