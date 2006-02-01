@@ -827,6 +827,11 @@ typedef struct a_class_symbol_supplement {
 			   list pointed to by the template symbol supplement
 			   of the template with which this instance is
 			   associated. */
+  a_source_position
+		instantiation_position;
+			/* For a nonspecialized template class that has been
+			   fully instantiated, this is the position of the
+			   reference that caused the instantiation. */
   a_scope_number
 		member_decl_scope;
 			/* Scope number of members of the class.  For

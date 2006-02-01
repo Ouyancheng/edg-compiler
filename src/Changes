@@ -1,5 +1,26 @@
 Version 3.8
 
+2/1/06   Position of use of template included in specialization diagnostic
+
+An explicit specialization must be declared before the first reference that
+would make use of the specialization.  When a specialization violates that
+rule, the location of the first use is now included in the diagnostic.  For
+example, this test case:
+
+  template <class T> struct A {
+    void f(){}
+  };
+  int main() {
+    A<int> ai;
+    ai.f();
+  }
+  template <> void A<int>::f();
+
+Results in this output:
+
+"ex.c", line 10: error: explicit specialization of function
+          "A<T>::f [with T=int]" must precede its first use (at line 7)
+
 1/31/06  Declaration position included in access diagnostics
 
 When an access error is reported, it can sometimes be difficult to know

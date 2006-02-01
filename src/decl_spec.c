@@ -2862,8 +2862,10 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
          specialized has already been referenced. */
       if (is_template_specialization &&
           !class_type->variant.class_struct_union.is_specialized) {
-        pos_sy_error(ec_specialization_of_referenced_entity,
-                     &tag_position, tag_sym);
+        pos2_sy_diagnostic(es_error,
+                           ec_specialization_of_referenced_entity_pos,
+                           &tag_position, &cssp->instantiation_position,
+                           tag_sym);
       } else {
         pos_sy_error(ec_already_defined, &tag_position, tag_sym);
       }  /* if */
@@ -2924,8 +2926,10 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
               } else if (class_type_is_complete && !err) {
                 /* The class has already been instantiated and can't now
                    be specialized. */
-                pos_sy_error(ec_specialization_of_referenced_entity,
-                             &tag_position, tag_sym);
+                pos2_sy_diagnostic(es_error,
+                                   ec_specialization_of_referenced_entity_pos,
+                                   &tag_position,
+                                   &cssp->instantiation_position, tag_sym);
               } else {
                 class_type->variant.class_struct_union.is_specialized = TRUE;
                 /* Set the referencing namespace to the namespace containing

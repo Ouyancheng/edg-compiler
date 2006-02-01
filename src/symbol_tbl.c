@@ -2679,6 +2679,7 @@ state.
         cssp->template_info = NULL;
         cssp->next_in_instantiations_list = NULL;
         cssp->member_decl_scope = NO_SCOPE_NUMBER;
+        cssp->instantiation_position = null_source_position;
         cssp->template_param_for_proxy_class = NULL;
         cssp->corresp_prototype_sym = NULL;
         cssp->prototype_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;

@@ -1498,6 +1498,7 @@ ec_thiscall_requires_nonstatic_member;;"__thiscall can only appear on nonstatic 
 ec_vararg_thiscall;;"__thiscall not allowed on function with ellipsis parameter"
 ec_sealed_base_class;;"a sealed class type cannot be used as a base class"
 ec_duplicate_class_modifier;;"duplicate class modifier"
+ec_specialization_of_referenced_entity_pos;;"explicit specialization of %n must precede its first use (%p)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

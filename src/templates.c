@@ -949,6 +949,23 @@ have already existed.
   f_exported_template = NULL;
 }  /* close_or_remove_exported_template_file */
 
+
+static a_template_instance_ptr template_instance_for_symbol(a_symbol_ptr sym)
+/*
+If "sym" is an entity with an associated template instance, return the
+template instance pointer.  Otherwise, return NULL.
+*/
+{
+  a_template_instance_ptr	tip = NULL;
+
+  if (is_function_symbol(sym)) {
+    tip = sym->variant.routine.instance_ptr;
+  } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+    tip = sym->variant.static_data_member.instance_ptr;
+  }  /* if */
+  return tip;
+}  /* template_instance_for_symbol */
+
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 static void set_instantiation_required_for_template_class_members
@@ -2526,6 +2543,8 @@ might not be able to if the template itself has not yet been defined.
                                  type_symbol_type(cssp->corresp_prototype_sym),
                                  /*is_template_based=*/TRUE);
       }  /* if */
+      /* Save the position of the reference that caused the instantiation. */
+      cssp->instantiation_position = pos_curr_token;
       /* Increment the count of instantiations-in-progress for the current
          class template.  It will be decremented when the instantiation is
          complete. */
@@ -16014,8 +16033,20 @@ that follows.
         an_error_severity	severity;
         severity = microsoft_bugs && microsoft_version <= 1300 &&
                                   sym->is_class_member ? es_warning : es_error;
-        pos_sy_diagnostic(severity, ec_specialization_of_referenced_entity,
-                          &locator.source_position, sym);
+        if (microsoft_nonstd_specialization) {
+          /* No reference position is available for Microsoft nonstandard
+             specializations. */
+          pos_sy_diagnostic(severity, ec_specialization_of_referenced_entity,
+                            &locator.source_position, sym);
+        } else {
+          a_template_instance_ptr	tip;
+          tip = template_instance_for_symbol(sym);
+          check_assertion(tip != NULL);
+          pos2_sy_diagnostic(severity,
+                             ec_specialization_of_referenced_entity_pos,
+                             &locator.source_position,
+                             &tip->pos_of_first_reference, sym);
+        }  /* if */
         if (severity == es_error) sym = NULL;
       } else if (is_definition && sym->defined) {
         /* The entity has already been defined. */
