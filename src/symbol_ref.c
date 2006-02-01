@@ -1699,7 +1699,7 @@ specifier.
 
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void check_for_first_use_of_template(
+static void record_first_use_if_template(
 				a_symbol_ptr		sym_ptr,
 				a_source_position	*source_position)
 /*
@@ -1726,7 +1726,7 @@ the position of the first reference is recorded.
   if (tip != NULL) {
     tip->pos_of_first_reference = *source_position;
   }  /* if */
-}  /* check_for_first_use_of_template */
+}  /* record_first_use_if_template */
 
 
 void record_symbol_reference(a_symbol_reference_kind kind,
@@ -1805,7 +1805,7 @@ projection symbol.
   if (!sym_ptr->referenced) {
     /* If this is a template function or static data member, record the
        position of the first reference. */
-    check_for_first_use_of_template(sym_ptr, source_position);
+    record_first_use_if_template(sym_ptr, source_position);
   }  /* if */
   /* Set the referenced flag in the symbol. */
   sym_ptr->referenced = TRUE;
