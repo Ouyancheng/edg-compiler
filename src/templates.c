@@ -949,6 +949,7 @@ have already existed.
   f_exported_template = NULL;
 }  /* close_or_remove_exported_template_file */
 
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 static a_template_instance_ptr template_instance_for_symbol(a_symbol_ptr sym)
 /*
@@ -966,7 +967,6 @@ template instance pointer.  Otherwise, return NULL.
   return tip;
 }  /* template_instance_for_symbol */
 
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 static void set_instantiation_required_for_template_class_members
 						(a_type_ptr	class_type)
