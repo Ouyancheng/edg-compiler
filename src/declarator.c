@@ -1597,7 +1597,7 @@ if this is the function declarator in a friend function declaration.
       unsigned long	param_number = 0;
       last_param_type = NULL;
       do {
-        a_decl_parse_state   state;
+        a_decl_parse_state   param_state;
         a_decl_pos_block     local_decl_pos_block;
         an_ms_attribute_ptr  ms_attributes = NULL;
         an_attribute_ptr     attributes = NULL;
@@ -1618,12 +1618,12 @@ if this is the function declarator in a friend function declaration.
         /* Count the number of parameters encountered. */
         param_number++;
         add_stop_token(tok_comma);
-        init_decl_parse_state(&state);
+        init_decl_parse_state(&param_state);
         copy_source_position(pos_curr_token, param_type_pos);
         clear_decl_pos_block(&local_decl_pos_block);
         /* Scan a parameter-declaration. */
         (void)decl_specifiers(dsi_flags, &dso_flags, &param_storage_class,
-                              &param_type_ptr, &state, &attributes,
+                              &param_type_ptr, &param_state, &attributes,
                               &ms_attributes, &decl_modifiers,
                               (a_named_register_id*)NULL,
                               &local_decl_pos_block, (a_upc_block_size *)NULL);
@@ -1707,7 +1707,7 @@ if this is the function declarator in a friend function declaration.
                accepting VLAs). */
             di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
           }  /* if */
-          declarator(di_flags, &do_flags, &state, param_type_ptr,
+          declarator(di_flags, &do_flags, &param_state, param_type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL,
                      &param_locator, &param_type_ptr, &param_ssep,
                      (a_func_info_block_ptr)NULL, &local_decl_pos_block,
@@ -1721,7 +1721,7 @@ if this is the function declarator in a friend function declaration.
         } else {
           /* No declarator. */
           set_to_error_locator(param_locator);
-          check_pending_qualifiers_used(&state);
+          check_pending_qualifiers_used(&param_state);
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
         if (gnu_mode) {
