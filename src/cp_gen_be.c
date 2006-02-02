@@ -10132,9 +10132,6 @@ is generated.
     write_tok_str("abstract ");
     *abstract_generated = TRUE;
   }  /* if */
-  if (rout->is_new) {
-    write_tok_str("new ");
-  }  /* if */
   if (rout->override) {
     write_tok_str("override ");
   }  /* if */

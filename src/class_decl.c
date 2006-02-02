@@ -3088,13 +3088,6 @@ Any diagnostics are issued at the given position.
   check_assertion(rout_sym->kind == (a_symbol_kind)sk_member_function);
   rout = rout_sym->variant.routine.ptr;
   rout->is_virtual = virtual_specified;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (rout->is_new) {
-    /* Member function declared with the function modifier "new" never
-       override a base class member. */
-    goto done;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   registry_ptr = &class_state->override_registry;
   /* We scan symbols on the inactive list, since we are only interested in
      functions declared in base classes. */
@@ -7512,7 +7505,6 @@ is set to NULL by this function.
       if (microsoft_version >= 1400) {
         /* Record any function modifiers (they can only appear in the class-
            scope declaration). */
-        rtn->is_new = func_info->is_new;
         rtn->sealed = func_info->sealed;
 #if BACK_END_IS_CP_GEN_BE
         rtn->abstract = func_info->abstract;

@@ -1195,10 +1195,6 @@ typedef struct a_func_info_block {
 			/* TRUE if the function was declared with the C++/CLI
 			   "abstract" modifier (a context-sensitive keyword).
 			   Only set in some Microsoft C++ modes. */
-  a_bit_field	is_new:1;
-			/* TRUE if the function was declared with the C++/CLI
-			   "new" modifier.  Only set in some Microsoft C++
-			    modes. */
   a_bit_field	override:1;
 			/* TRUE if the function was declared with the C++/CLI
 			   "override" modifier (a context-sensitive keyword).

@@ -1197,13 +1197,7 @@ syntactic properties of the current declaration.
   a_boolean  virtual_required_diag_issued = FALSE;
   for (;;) {
     a_boolean  explicit_virtual_required = FALSE;
-    if (curr_token == tok_new) {
-      if (func_info->override) {
-        error(ec_function_modifiers_new_and_override);
-      } else {
-        func_info->is_new = TRUE;
-      }  /* if */
-    } else if (curr_token != tok_identifier) {
+    if (curr_token != tok_identifier) {
       break;
     } else if (check_context_sensitive_keyword(tok_abstract, "abstract")) {
       if (func_info->sealed) {
@@ -1213,12 +1207,8 @@ syntactic properties of the current declaration.
         explicit_virtual_required = TRUE;
       }  /* if */
     } else if (check_context_sensitive_keyword(tok_override, "override")) {
-      if (func_info->is_new) {
-        error(ec_function_modifiers_new_and_override);
-      } else {
-        func_info->override = TRUE;
-        explicit_virtual_required = TRUE;
-      }  /* if */
+      func_info->override = TRUE;
+      explicit_virtual_required = TRUE;
     } else if (check_context_sensitive_keyword(tok_sealed, "sealed")) {
       if (func_info->abstract) {
         error(ec_function_modifiers_abstract_and_sealed);

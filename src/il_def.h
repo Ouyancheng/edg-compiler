@@ -8015,11 +8015,6 @@ typedef struct a_routine {
 			   "pure" specifier (C++ only).  TRUE only if
 			   is_virtual is also TRUE. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_bit_field	is_new:1;
-			/* TRUE for a member function that does not override
-			   a virtual member function in a base class (even if
-			   the two members have matching names and
-			   signatures). */
   a_bit_field	sealed:1;
 			/* TRUE for a virtual member function that does cannot
 			   be overridden in a derived class. */

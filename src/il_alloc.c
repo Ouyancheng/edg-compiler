@@ -2121,7 +2121,6 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_virtual                  = FALSE;
   rp->pure_virtual                = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  rp->is_new                      = FALSE;
   rp->sealed                   = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   rp->covariant_return_virtual_override

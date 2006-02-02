@@ -10488,7 +10488,6 @@ Clear the fields of a function information block to default values.
   func_info->any_default_args            = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   func_info->abstract                    = FALSE;
-  func_info->is_new                      = FALSE;
   func_info->override                    = FALSE;
   func_info->sealed                      = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

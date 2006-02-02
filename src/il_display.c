@@ -2754,9 +2754,6 @@ Display the indicated routine.
     disp_boolean("pure_virtual", TRUE);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ptr->is_new) {
-    disp_boolean("is_new", TRUE);
-  }  /* if */
   if (ptr->sealed) {
     disp_boolean("sealed", TRUE);
   }  /* if */
