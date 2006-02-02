@@ -1,5 +1,37 @@
 Version 3.8
 
+2/2/06   Microsoft C++ compatibility: Function modifiers "abstract", "sealed",
+         and "override"
+
+In Microsoft C++ mode with microsoft_version >= 1400, the front end now
+accepts the function modifiers "abstract", "sealed", and "override".  Each
+of these modifiers can only appear on member function declarations that
+include the keywords virtual (i.e., it is not sufficient for the function
+to be implicitly virtual because of a matching virtual function in a base
+class).  The modifiers are context-sensitive keywords with the following
+additional semantics:
+  - "abstract" indicates a virtual function is pure virtual (i.e., it
+    means the same thing as the "= 0" pure-specifier).
+  - "sealed" indicates that a virtual function may not be overridden
+    in a base class.
+  - "override" means that a virtual function must override a base class
+    member.
+For example:
+
+  struct B {
+    virtual void f0() abstract;  // Okay, same as "virtual void f0() = 0;"
+    virtual void f1() sealed;
+  };
+  struct D: B {
+    void f0() abstract;          // Error: "abstract" requires "virtual".
+    virtual void f1();           // Error: Attempt to override sealed B::f1.
+    virtual void f2() override;  // Error: f2 does not override anything.
+    
+  };
+
+This is a feature of ECMA-372 (also known as C++/CLI) that recent Microsoft
+compilers also provide in their normal C++ modes.
+
 2/1/06   Position of use of template included in specialization diagnostic
 
 An explicit specialization must be declared before the first reference that
