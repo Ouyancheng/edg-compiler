@@ -96,6 +96,7 @@ an upcoming declaration.
   ps->qualifiers_pos = null_source_position;
   ps->restrict_pos = null_source_position;
   ps->inline_pos = null_source_position;
+  ps->virtual_pos = null_source_position;
   ps->unused_qualifiers = FALSE;
 }  /* init_decl_parse_state */
 

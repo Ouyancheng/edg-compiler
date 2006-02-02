@@ -164,6 +164,7 @@ typedef enum /*a_token_kind*/ {
   tok_sat,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_abstract,
+  tok_override,
   tok_sealed,
   tok_cdecl,
   tok_declspec,
@@ -340,7 +341,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "_Bool", "_Complex", "_Imaginary", "__I__", "__NAN__", "__INFINITY__",
    "_Fract", "_Accum", "_Sat",
 #if MICROSOFT_EXTENSIONS_ALLOWED
-   "abstract", "sealed",
+   "abstract", "override", "sealed",
    "__cdecl", "__declspec", "__fastcall", "__stdcall", "__thiscall",
    "__inline", "__forceinline",
    "__unaligned", "__try", "__finally", "__leave", "__except",
@@ -731,6 +732,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_sat */
 #if MICROSOFT_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_abstract */
+   (an_opname_kind)onk_none,          /* tok_override */
    (an_opname_kind)onk_none,          /* tok_sealed */
    (an_opname_kind)onk_none,          /* tok_cdecl */
    (an_opname_kind)onk_none,          /* tok_declspec */

@@ -2120,6 +2120,10 @@ to it.  The entry is allocated in the file scope memory region.
   rp->address_taken               = FALSE;
   rp->is_virtual                  = FALSE;
   rp->pure_virtual                = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  rp->is_new                      = FALSE;
+  rp->sealed                   = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   rp->covariant_return_virtual_override
                                   = FALSE;
   rp->is_inline                   = FALSE;
@@ -2182,6 +2186,10 @@ to it.  The entry is allocated in the file scope memory region.
                                   = FALSE;
   rp->definition_has_direct_linkage_specifier
                                   = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  rp->abstract                 = FALSE;
+  rp->override                 = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if INSTANTIATE_EXTERN_INLINE
   rp->inline_instance_required    = FALSE;

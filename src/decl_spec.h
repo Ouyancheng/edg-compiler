@@ -60,6 +60,12 @@ extern void scan_and_discard_extended_decl_modifiers(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+extern void scan_microsoft_class_modifiers(a_boolean  *is_abstract,
+                                           a_boolean  *is_sealed);
+
+extern void check_for_microsoft_class_modifiers(a_token_kind  *next_tok,
+                                                a_token_kind  body_start);
+
 extern void update_dll_info_for_class(a_type_ptr         class_type,
                                       a_decl_modifier    flags,
                                       a_boolean          explicit_inst,

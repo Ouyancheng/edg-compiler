@@ -1190,6 +1190,24 @@ typedef struct a_func_info_block {
   a_bit_field	any_default_args:1;
 			/* TRUE if the function type declaration included
 			   the declarations of default arguments. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	abstract:1;
+			/* TRUE if the function was declared with the C++/CLI
+			   "abstract" modifier (a context-sensitive keyword).
+			   Only set in some Microsoft C++ modes. */
+  a_bit_field	is_new:1;
+			/* TRUE if the function was declared with the C++/CLI
+			   "new" modifier.  Only set in some Microsoft C++
+			    modes. */
+  a_bit_field	override:1;
+			/* TRUE if the function was declared with the C++/CLI
+			   "override" modifier (a context-sensitive keyword).
+			   Only set in some Microsoft C++ modes. */
+  a_bit_field	sealed:1;
+			/* TRUE if the function was declared with the C++/CLI
+			   "sealed" modifier (a context-sensitive keyword).
+			   Only set in some Microsoft C++ modes. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ASM_FUNCTION_ALLOWED
   a_bit_field	is_asm_function:1;
 			/* TRUE if the function type declaration included the
@@ -1198,13 +1216,13 @@ typedef struct a_func_info_block {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
   a_bit_field	is_movable_member_or_friend_def:1;
-#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 			/* TRUE if the function is defined inside a class
 			   definition but the source-sequence entry for its
 			   definition should make it appear to have been
 			   defined outside the class.  Only set when
 			   NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_
 			   SEQUENCE_LISTS is configured to TRUE. */
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
   a_source_sequence_entry_ptr
 		declarator_ssep;
 			/* Source sequence entry for the function

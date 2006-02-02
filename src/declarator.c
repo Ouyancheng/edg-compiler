@@ -1184,8 +1184,68 @@ type.  For templates, use the class template scope.
   return result;
 } /* current_scope_is_class */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static void scan_microsoft_function_modifiers(a_decl_parse_state  *state,
+                                              a_func_info_block   *func_info)
+/*
+Scan for function modifiers (like "sealed" or "abstract"; these are an ECMA
+C++/CLI extension also accepted by some Microsoft compilers in their non-CLI
+modes) and record their presence in *func_info.  *state describes some
+syntactic properties of the current declaration.
+*/
+{
+  a_boolean  virtual_required_diag_issued = FALSE;
+  for (;;) {
+    a_boolean  explicit_virtual_required = FALSE;
+    if (curr_token == tok_new) {
+      if (func_info->override) {
+        error(ec_function_modifiers_new_and_override);
+      } else {
+        func_info->is_new = TRUE;
+      }  /* if */
+    } else if (curr_token != tok_identifier) {
+      break;
+    } else if (check_context_sensitive_keyword(tok_abstract, "abstract")) {
+      if (func_info->sealed) {
+        error(ec_function_modifiers_abstract_and_sealed);
+      } else {
+        func_info->abstract = TRUE;
+        explicit_virtual_required = TRUE;
+      }  /* if */
+    } else if (check_context_sensitive_keyword(tok_override, "override")) {
+      if (func_info->is_new) {
+        error(ec_function_modifiers_new_and_override);
+      } else {
+        func_info->override = TRUE;
+        explicit_virtual_required = TRUE;
+      }  /* if */
+    } else if (check_context_sensitive_keyword(tok_sealed, "sealed")) {
+      if (func_info->abstract) {
+        error(ec_function_modifiers_abstract_and_sealed);
+      } else {
+        func_info->sealed = TRUE;
+        explicit_virtual_required = TRUE;
+      }  /* if */
+    } else {
+      break;
+    }  /* if */
+    if (explicit_virtual_required && state->virtual_pos.seq == 0 &&
+        !virtual_required_diag_issued) {
+      /* Several function modifiers are valid only on functions declared with
+         the "virtual" specifier (being implicitly virtual due to a matching
+         base class declaration is not enough). */
+      diagnostic(es_discretionary_error,
+                 ec_function_modifier_requires_virtual_specifier);
+      virtual_required_diag_issued = TRUE;
+    }  /* if */
+    (void)get_token();
+  }  /* for */
+}  /* scan_microsoft_function_modifiers */
+  
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void cplusplus_function_declarator_trailer(
+                        a_decl_parse_state             *state,
                         a_routine_type_supplement_ptr  rtsp,
                         a_func_info_block              *func_info,
                         a_symbol_locator               *locator,
@@ -1221,7 +1281,6 @@ see function_declarator (below) for which this is a helper function.
     /* In C++ the type of certain member functions may be qualified.  Scan
        for a const or volatile qualifier. */
     a_source_position  qualifier_pos;
-
     copy_source_position(pos_curr_token, qualifier_pos);
     qualifiers = collect_type_qualifiers(decl_pos_block,
                                          (a_upc_block_size *)NULL);
@@ -1315,34 +1374,42 @@ see function_declarator (below) for which this is a helper function.
   {
     rtsp->exception_specification = esp;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && microsoft_version >= 1400 && 
+      parent_type != NULL && is_nonstatic_member) {
+    scan_microsoft_function_modifiers(state, func_info);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* cplusplus_function_declarator_trailer */
 
 
-static void function_declarator(a_type_ptr        *new_type_ptr,
-                                a_func_info_block *func_info,
-                                a_symbol_locator  *locator,
-                                a_type_ptr        parent_type,
-                                a_boolean         is_nonstatic_member_function,
-                                a_boolean         is_constructor,
-                                a_boolean         is_destructor,
-                                a_boolean         disallow_default_args,
-                                a_boolean         disallow_exception_spec,
-                                a_boolean         is_typedef_decl,
-                                a_boolean         is_friend_decl,
-                                a_decl_pos_block  *decl_pos_block)
+static void function_declarator(a_decl_parse_state  *state,
+                                a_type_ptr          *new_type_ptr,
+                                a_func_info_block   *func_info,
+                                a_symbol_locator    *locator,
+                                a_type_ptr          parent_type,
+                                a_boolean           is_nonstatic_member,
+                                a_boolean           is_constructor,
+                                a_boolean           is_destructor,
+                                a_boolean           disallow_default_args,
+                                a_boolean           disallow_exception_spec,
+                                a_boolean           is_typedef_decl,
+                                a_boolean           is_friend_decl,
+                                a_decl_pos_block    *decl_pos_block)
 /*
 Scan a function declarator (3.5.4.3), or an array declarator in an
 abstract declarator (3.5.5).  Allocate and return in *new_type_ptr an
 appropriate function type.  The initial opening parenthesis has
 already been checked and passed over (which is unusual; that's
-necessary because of the syntactic strangeness of abstract
-declarators).  If func_info is NULL, then the function declarator is
+necessary because of the syntactic strangeness of abstract declarators).
+*state contains various bits of of information about the declaration
+being parsed.  If func_info is NULL, then the function declarator is
 not a top type or this is an abstract declarator (and therefore
 certain forms are disallowed); otherwise, extra information about the
 function declarator is returned in *func_info.  For member functions,
 parent_type is a pointer to the class (or struct or union) type of which
 it is a member; otherwise it is NULL.  When it is non-NULL,
-is_nonstatic_member_function will distinguish static from nonstatic
+is_nonstatic_member will distinguish static from nonstatic
 member functions when the current scope is that of a class definition.
 is_constructor or is_destructor is TRUE if previous processing had
 determined that this is a constructor or destructor declaration,
@@ -2183,9 +2250,10 @@ if this is the function declarator in a friend function declaration.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
-    cplusplus_function_declarator_trailer(extra_info, func_info, locator,
-                                          parent_type, is_top_level_declarator,
-                                          is_nonstatic_member_function,
+    cplusplus_function_declarator_trailer(state, extra_info, func_info,
+                                          locator, parent_type,
+                                          is_top_level_declarator,
+                                          is_nonstatic_member,
                                           is_constructor, is_destructor,
                                           disallow_exception_spec,
                                           is_typedef_decl, decl_pos_block);
@@ -4680,7 +4748,7 @@ function_lparen:
           disallow_exception_spec = (pm_member_type(derived_type) != NULL);
         }  /* if */
       }  /* if */
-      function_declarator(&new_type_ptr, local_func_info, locator,
+      function_declarator(state, &new_type_ptr, local_func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
                           *is_constructor, *is_destructor,
                           disallow_default_args, disallow_exception_spec,

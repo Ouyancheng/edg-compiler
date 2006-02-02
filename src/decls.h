@@ -235,6 +235,9 @@ typedef struct a_decl_parse_state {
   a_source_position
 		inline_pos;
 			/* The position of the "inline" specifier (if any). */
+  a_source_position
+		virtual_pos;
+			/* The position of the "virtual" specifier (if any). */
   a_bit_field
 		unused_qualifiers:1;
 			/* TRUE if there are pending qualifiers that have

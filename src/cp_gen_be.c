@@ -10117,6 +10117,32 @@ definition, is_definition is TRUE.
   gen_microsoft_deprecated_spec(&rout->source_corresp);
 }  /* gen_microsoft_routine_decl_modifiers */
 
+
+static void gen_microsoft_function_modifiers(
+                                           a_routine_ptr  rout,
+                                           a_boolean      *abstract_generated)
+/*
+Generate any needed "function-modifiers" (an ECMA C++/CLI extension also
+supported by some Microsoft C++ compilers in their non-CLI mode) for the given
+routine.  Set *abstract_generated to TRUE if the function-modifier "abstract"
+is generated.
+*/
+{
+  if (rout->abstract) {
+    write_tok_str("abstract ");
+    *abstract_generated = TRUE;
+  }  /* if */
+  if (rout->is_new) {
+    write_tok_str("new ");
+  }  /* if */
+  if (rout->override) {
+    write_tok_str("override ");
+  }  /* if */
+  if (rout->sealed) {
+    write_tok_str("sealed ");
+  }  /* if */
+}  /* gen_microsoft_function_modifiers */
+
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define gen_microsoft_routine_decl_modifiers(rout, is_definition) /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12060,6 +12086,7 @@ TRUE if the declaration following this one is such a continuation.
   a_src_seq_secondary_decl_ptr  sec_decl;
   a_boolean                     is_definition = FALSE, friend_decl;
   a_boolean                     decl_within_class = FALSE;
+  a_boolean                     abstract_generated = FALSE;
   a_boolean                     context_pop_needed;
   a_storage_class               storage_class;
   a_scope_ptr                   scope = NULL;
@@ -12470,10 +12497,17 @@ TRUE if the declaration following this one is such a continuation.
                                                       rtsp->param_type_list,
                                                       /*set=*/FALSE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (decl_within_class && microsoft_dialect_is_generated_code_target) {
+    gen_microsoft_function_modifiers(rout, &abstract_generated);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!is_definition) {
     /* A declaration of the routine. */
-    /* For a pure virtual function, add "= 0". */
-    if (rout->pure_virtual) write_tok_str(" = 0");
+    /* For a pure virtual function, add "= 0".  (If the "abstract" function
+       modifier has been generated already do not output the "= 0" since it
+       would be redundant.) */
+    if (rout->pure_virtual && !abstract_generated) write_tok_str(" = 0");
 #if GNU_EXTENSIONS_ALLOWED
     /* Emit any user-specified assembly symbol for this variable. */
     form_asm_name(rout->asm_name, &octl);

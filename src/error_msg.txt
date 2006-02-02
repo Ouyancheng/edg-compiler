@@ -1496,9 +1496,15 @@ ec_redefinition;;"invalid redefinition of %nd"
 ec_dll_interface_in_unnamed_namespace;;"dllimport/dllexport applied to a member of an unnamed namespace"
 ec_thiscall_requires_nonstatic_member;;"__thiscall can only appear on nonstatic member function declarations"
 ec_vararg_thiscall;;"__thiscall not allowed on function with ellipsis parameter"
+ec_specialization_of_referenced_entity_pos;;"explicit specialization of %n must precede its first use (%p)"
 ec_sealed_base_class;;"a sealed class type cannot be used as a base class"
 ec_duplicate_class_modifier;;"duplicate class modifier"
-ec_specialization_of_referenced_entity_pos;;"explicit specialization of %n must precede its first use (%p)"
+ec_function_modifiers_new_and_override;;"a member function cannot have both the \"new\" and \"override\" modifiers"
+ec_function_modifiers_abstract_and_sealed;;"a member function cannot have both the \"abstract\" and \"sealed\" modifiers"
+ec_pure_specifier_on_sealed_member;;"a sealed member cannot be pure virtual"
+ec_function_modifier_requires_virtual_specifier;;"function modifier only allowed on a member declaration with a \"virtual\" specifier"
+ec_override_member_does_not_override;;"member function declared with \"override\" modifier does not override a base class member"
+ec_override_of_sealed_function;;"cannot override sealed %nd"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

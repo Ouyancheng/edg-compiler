@@ -1245,7 +1245,8 @@ type_info type may be defined.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void check_for_microsoft_class_modifiers(a_token_kind  *next_tok)
+void check_for_microsoft_class_modifiers(a_token_kind  *next_tok,
+                                         a_token_kind  body_start)
 /*
 Microsoft compilers accept constructs like:
     struct S sealed abstract: B { ... };
@@ -1256,6 +1257,13 @@ determine whether or not a definition follows.  (In particular,
     struct S sealed;
 should be treated as a declaration of a variable named "sealed", and not a
 declaration of a sealed type "S".)
+This routine assumes that the token stream contains a generalized identifier
+followed by one or more plain identifiers.  If these plain identifiers turn
+out to be context-sensitive keywords, the tokens are transformed accordingly
+(i.e., they become "tok_abstract" or "tok_sealed" keywords).  *next_tok is
+set to the token kind that follows the identifiers.  body_start_token is the
+token that represents the beginning of a class body: tok_lbrace in the normal
+case, and tok_end_of_source during template prescanning.
 */
 {
   a_token_cache              token_cache;
@@ -1270,7 +1278,7 @@ declaration of a sealed type "S".)
     *next_tok = get_token();
   } while (*next_tok == tok_identifier);
   rescan_cached_tokens(&token_cache);
-  if (*next_tok == tok_lbrace || *next_tok == tok_colon) {
+  if (*next_tok == body_start || *next_tok == tok_colon) {
     /* A class definition: The cached identifiers should have been
        context-sensitive keywords.  Make an additional pass over the
        cached tokens, turning the identifiers into keywords when
@@ -1366,7 +1374,7 @@ caution when modifying this routine.
         !is_ref_within_new_expr) {
       /* The next token is an identifier: It could be a declarator-id, or it
          might be a context-sensitive token "sealed" or "abstract". */
-      check_for_microsoft_class_modifiers(&next_tok);
+      check_for_microsoft_class_modifiers(&next_tok, tok_lbrace);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (next_tok == tok_lbrace ||
@@ -2361,8 +2369,8 @@ using-declaration), issue an error.  For example:
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void scan_microsoft_class_modifiers(a_boolean  *is_abstract,
-                                           a_boolean  *is_sealed)
+void scan_microsoft_class_modifiers(a_boolean  *is_abstract,
+                                    a_boolean  *is_sealed)
 /*
 Scan the (context-sensitive) keywords "abstract" and "sealed" and record their
 presence through the given pointers.  Duplicate specifiers are diagnosed as
@@ -7088,6 +7096,7 @@ Returns TRUE if there is an error in the specifiers.
         } else {
           decl_specifiers_seen |= DS_VIRTUAL;
           *output_flags |= DSO_VIRTUAL;
+          copy_source_position(pos_curr_token, state->virtual_pos);
         }  /* if */
         break;
       case tok_inline:

@@ -3050,6 +3050,7 @@ static a_boolean check_for_virtual_function(
                                      a_symbol_ptr          rout_sym,
                                      a_type_ptr            class_type,
                                      a_class_def_state_ptr class_state,
+                                     a_func_info_block_ptr func_info,
                                      a_source_position     *source_pos)
 /*
 A nonstatic member function, represented by rout_sym, has been declared
@@ -3062,7 +3063,10 @@ functions that are overridden by the current declaration is recorded to
 allow for appropriate processing later (e.g., the construction of virtual
 function tables).  If the current routine is a virtual function either
 from explicit specification or from "inheriting" its virtualness, mark the
-routine entry and return TRUE; otherwise return FALSE.
+routine entry and return TRUE; otherwise return FALSE.  class_type and
+class_state describe the parent class of the member function, and func_info
+points to some additional information about the function declaration.
+Any diagnostics are issued at the given position.
 */
 {
   a_boolean                       overloaded;
@@ -3074,6 +3078,9 @@ routine entry and return TRUE; otherwise return FALSE.
   a_virtual_function_number       virtual_function_number 
                                       = VIRTUAL_FUNCTION_NUMBER_NONE;
   a_boolean                       any_override_candidates = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean                       override_modifier_okay = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_override_registry_entry_ptr  *registry_ptr;
   a_base_class_ptr                return_adjustment_bcp;
 
@@ -3081,6 +3088,13 @@ routine entry and return TRUE; otherwise return FALSE.
   check_assertion(rout_sym->kind == (a_symbol_kind)sk_member_function);
   rout = rout_sym->variant.routine.ptr;
   rout->is_virtual = virtual_specified;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (rout->is_new) {
+    /* Member function declared with the function modifier "new" never
+       override a base class member. */
+    goto done;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   registry_ptr = &class_state->override_registry;
   /* We scan symbols on the inactive list, since we are only interested in
      functions declared in base classes. */
@@ -3097,18 +3111,28 @@ routine entry and return TRUE; otherwise return FALSE.
         rp = sym->variant.routine.ptr;
         if (rp->is_virtual) {
           /* Base class destructor is virtual. */
-          rout->is_virtual = TRUE;
           if (exception_spec_is_less_restrictive(rout->type, rp->type)) {
             /* The exception specification for the overriding virtual function
                is less restrictive that that of the overridden function. */
             report_override_exception_spec_mismatch(rout_sym, sym, source_pos);
           }  /* if */
-          record_virtual_function_override(bcp, rp, rout,
-                                           (a_base_class_ptr)NULL);
-          if (shares_virtual_function_info(class_type, bcp)) {
-            /* The virtual function table is being shared, so we must use the
-               identical number. */
-            virtual_function_number = rp->virtual_function_number;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          override_modifier_okay = TRUE;
+          if (rp->sealed) {
+            /* Sealed virtual functions cannot be overridden. */
+            pos_sy_error(ec_override_of_sealed_function, source_pos, sym);
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
+          {
+            rout->is_virtual = TRUE;
+            record_virtual_function_override(bcp, rp, rout,
+                                             (a_base_class_ptr)NULL);
+            if (shares_virtual_function_info(class_type, bcp)) {
+              /* The virtual function table is being shared, so we must use the
+                 identical number. */
+              virtual_function_number = rp->virtual_function_number;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -3120,6 +3144,9 @@ routine entry and return TRUE; otherwise return FALSE.
       if (base_class_scope == NULL) {
         /* This is probably a nonreal base class in a prototype instantiation.
            Don't attempt a lookup in this case. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        override_modifier_okay = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         goto next_base_class;
       }  /* if */
       /* Inner loop:  go thorough all the symbols for this name, looking for
@@ -3235,38 +3262,49 @@ routine entry and return TRUE; otherwise return FALSE.
               report_override_exception_spec_mismatch(rout_sym, sym,
                                                       source_pos);
             }  /* if */
-            /* Record the virtual function override in the base class entry.
-               It can be used later, e.g., for building a virtual function
-               table. */
-            record_virtual_function_override(bcp, rp, rout,
-                                             return_adjustment_bcp);
-            if (return_adjustment_bcp != NULL) {
-              /* The overriding function has a covariant return type.
-                 Set a flag, since some extra processing may be needed
-                 later. */
-              rout->covariant_return_virtual_override = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            override_modifier_okay = TRUE;
+            if (rp->sealed) {
+              /* Sealed virtual functions cannot be overridden. */
+              pos_sy_error(ec_override_of_sealed_function, source_pos, sym);
+            } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            /* Do not insert code here. */
+            {
+              /* Record the virtual function override in the base class entry.
+                 It can be used later, e.g., for building a virtual function
+                 table. */
+              record_virtual_function_override(bcp, rp, rout,
+                                               return_adjustment_bcp);
+              if (return_adjustment_bcp != NULL) {
+                /* The overriding function has a covariant return type.
+                   Set a flag, since some extra processing may be needed
+                   later. */
+                rout->covariant_return_virtual_override = TRUE;
 #if IA64_ABI
-              /* If the adjustment will always be trivial, reuse the
-                 virtual function slot from the base class. */
-              if (shares_virtual_function_info(class_type, bcp) &&
-                  return_adjustment_bcp->offset == 0 &&
-                  !any_virtual_steps_in_derivation(return_adjustment_bcp)) {
+                /* If the adjustment will always be trivial, reuse the
+                   virtual function slot from the base class. */
+                if (shares_virtual_function_info(class_type, bcp) &&
+                    return_adjustment_bcp->offset == 0 &&
+                    !any_virtual_steps_in_derivation(return_adjustment_bcp)) {
+                  virtual_function_number = rp->virtual_function_number;
+                }  /* if */
+#endif /* IA64_ABI */
+              } else if (shares_virtual_function_info(class_type, bcp)) {
+                /* The virtual function table is being shared and there
+                   is no base-class adjustment on the return type, so we
+                   can use the same virtual function number. */
                 virtual_function_number = rp->virtual_function_number;
               }  /* if */
-#endif /* IA64_ABI */
-            } else if (shares_virtual_function_info(class_type, bcp)) {
-              /* The virtual function table is being shared and there
-                 is no base-class adjustment on the return type, so we
-                 can use the same virtual function number. */
-              virtual_function_number = rp->virtual_function_number;
-            }  /* if */
-            /* If this declaration amounts to an override of a member of an
-               overload set, record some information about it in the
-               partial-override-registry.  This allows for a diagnostic later
-               if the rest of the members are not also overridden. */
-            if (!rout->compiler_generated) {
-              update_override_registry(registry_ptr, sym_for_override_registry,
-                                       (a_symbol_ptr)NULL, bcp);
+              /* If this declaration amounts to an override of a member of an
+                 overload set, record some information about it in the
+                 partial-override-registry.  This allows for a diagnostic later
+                 if the rest of the members are not also overridden. */
+              if (!rout->compiler_generated) {
+                update_override_registry(
+                                      registry_ptr, sym_for_override_registry,
+                                      (a_symbol_ptr)NULL, bcp);
+              }  /* if */
             }  /* if */
             goto next_base_class;                                       
           }  /* for */
@@ -3282,6 +3320,11 @@ routine entry and return TRUE; otherwise return FALSE.
 next_base_class:;
   }  /* for */
 done:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (func_info->override && !override_modifier_okay) {
+    pos_error(ec_override_member_does_not_override, source_pos);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (rout->is_virtual) {
     /* Reflect the presence of a virtual function in the enclosing class. */
     class_type->variant.class_struct_union.any_virtual_functions = TRUE;
@@ -7455,15 +7498,27 @@ is set to NULL by this function.
                                   (a_boolean)func_info->is_definition,
                                   (a_boolean)func_info->is_inline);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* If this function explicitly overrides a virtual function in a base
-       class, record that fact. */
-    if (overridden_function != NULL) {
-      rtn->is_virtual = TRUE;
-      rtn->overridden_function = overridden_function;
-    }  /* if */
-    if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
-      apply_microsoft_attributes(p_ms_attributes, (char*)rtn,
-                                 (an_il_entry_kind)iek_routine, MSAT_METHOD);
+    if (microsoft_mode) {
+      /* If this function explicitly overrides a virtual function in a base
+         class, record that fact. */
+      if (overridden_function != NULL) {
+        rtn->is_virtual = TRUE;
+        rtn->overridden_function = overridden_function;
+      }  /* if */
+      if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
+        apply_microsoft_attributes(p_ms_attributes, (char*)rtn,
+                                   (an_il_entry_kind)iek_routine, MSAT_METHOD);
+      }  /* if */
+      if (microsoft_version >= 1400) {
+        /* Record any function modifiers (they can only appear in the class-
+           scope declaration). */
+        rtn->is_new = func_info->is_new;
+        rtn->sealed = func_info->sealed;
+#if BACK_END_IS_CP_GEN_BE
+        rtn->abstract = func_info->abstract;
+        rtn->override = func_info->override;
+#endif /* BACK_END_IS_CP_GEN_BE */
+      }  /* if */
     }  /* if */
   } else if (p_ms_attributes != NULL) {
     /* We indicate that the attributes have been consumed by clearing the
@@ -7809,7 +7864,7 @@ is set to NULL by this function.
            errors, we do not call check_for_virtual_function in such
            cases. */
       } else if (check_for_virtual_function(is_virtual, sym, class_type,
-                                            class_state,
+                                            class_state, func_info,
                                             &locator->source_position)) {
         /* Classes with virtual functions require constructors. */
         class_state->constructor_required = TRUE;
@@ -8110,20 +8165,21 @@ member or friend function declarator.  A pure specifier is defined as "= 0",
 and it is legal for virtual member functions only.
 */
 {
-  a_boolean          pure_specifier_allowed;
+  a_routine_ptr  rout;
+  a_boolean      pure_specifier_allowed;
 
   db_enter(4, "scan_pure_specifier");
   /* A pure specifier is allowed for virtual functions only.  (Check the
      parent class to exclude friend declarations.) */
   if (!rout_sym->is_class_member ||
       rout_sym->parent.class_type != class_type) {
+    rout = NULL;
     pure_specifier_allowed = FALSE;
   } else {
-    pure_specifier_allowed =
-             (rout_sym->kind == (a_symbol_kind)sk_function_template) ?
-                  rout_sym->variant.template_info->
-                                  variant.function.routine->is_virtual :
-                  rout_sym->variant.routine.ptr->is_virtual;
+    rout = (rout_sym->kind == (a_symbol_kind)sk_function_template) ?
+                   rout_sym->variant.template_info->variant.function.routine :
+                   rout_sym->variant.routine.ptr;
+    pure_specifier_allowed = rout->is_virtual;
     if (!pure_specifier_allowed &&
         class_type->variant.class_struct_union.is_prototype_instantiation) {
       /* If class_type has a template-dependent base, the routine might
@@ -8137,6 +8193,12 @@ and it is legal for virtual member functions only.
   }  /* if */
   if (!pure_specifier_allowed && !decl_info->invalid_virtual_specifier) {
     pos_error(ec_pure_specifier_on_nonvirtual_function, &pos_curr_token);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (pure_specifier_allowed && rout->sealed) {
+    /* A virtual member cannot be both pure and sealed. */
+    pos_error(ec_pure_specifier_on_sealed_member, &pos_curr_token);
+    pure_specifier_allowed = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Advance past the "=". */
   (void)get_token();
@@ -13000,6 +13062,13 @@ passed via template_decl.
         /* Look for a pure specifier ("= 0"), which may appear on virtual
            functions. */
         scan_pure_specifier(rout_sym, class_type, &decl_info);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (func_info.abstract) {
+        /* The function modifier "abstract" means the same thing as "= 0" (but
+           it always requires an explicit "virtual" specifier, which was
+           checked earlier). */ 
+        make_virtual_function_pure(rout_sym->variant.routine.ptr, class_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       if (function_def_present) {
         a_token_sequence_number  first_token_number;

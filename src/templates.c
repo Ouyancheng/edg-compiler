@@ -2614,19 +2614,33 @@ might not be able to if the template itself has not yet been defined.
 #endif /* DEBUG */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED
-      /* Check whether an explicit alignment was specified using
-         __declspec(align(...)) and if so record that in the IL.
-         We use the prototype instantiation to determine whether
-         the alignment was set explicitly. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode) {
         a_type_ptr proto_type = type_symbol_type(cssp->corresp_prototype_sym);
+#if USER_CONTROL_OF_STRUCT_PACKING
+        /* Check whether an explicit alignment was specified using
+           __declspec(align(...)) and if so record that in the IL.
+           We use the prototype instantiation to determine whether
+           the alignment was set explicitly. */
         if (proto_type->alignment_set_explicitly) {
           set_declspec_align(class_type, proto_type->alignment,
                              &class_type->source_corresp.decl_position);
         }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+        if (microsoft_version >= 1400) {
+          class_type->variant.class_struct_union.abstract = 
+                              proto_type->variant.class_struct_union.abstract;
+#if BACK_END_IS_CP_GEN_BE
+          class_type->variant.class_struct_union
+                             .defined_with_abstract_class_modifier = 
+                     proto_type->variant.class_struct_union
+                                        .defined_with_abstract_class_modifier;
+#endif /* BACK_END_IS_CP_GEN_BE */
+          class_type->variant.class_struct_union.sealed =
+                                proto_type->variant.class_struct_union.sealed;
+        }  /*if */
       }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       mark_defined(instance_sym, &instance_sym->decl_position);
       /* Scan the base specifiers list, if any, and the body of the class.
          The pending class definition counter is incremented while processing
@@ -9969,6 +9983,8 @@ static void update_extended_decl_info_for_class_template(
                          a_template_symbol_supplement_ptr tssp,
                          an_extended_decl_info_block      *extended_decl_info,
                          a_boolean                        class_definition,
+                         a_boolean                        is_abstract,
+                         a_boolean                        is_sealed,
                          a_source_position                *err_pos)
 /*
 Update the Microsoft decl modifiers information for the specified class
@@ -9997,6 +10013,16 @@ definition (as opposed to a mere declaration).
     update_extended_decl_info_for_class(prototype_type, extended_decl_info,
                                         class_definition,
                                         /*explicit_inst=*/FALSE, err_pos);
+    if (is_abstract) {
+      prototype_type->variant.class_struct_union.abstract = TRUE;
+#if BACK_END_IS_CP_GEN_BE
+      prototype_type->variant.class_struct_union
+                             .defined_with_abstract_class_modifier = TRUE;
+#endif /* BACK_END_IS_CP_GEN_BE */
+    }  /* if */
+    if (is_sealed) {
+      prototype_type->variant.class_struct_union.sealed = TRUE;
+    }  /* if */
   }  /* if */
   /* Update any instances that have already been created. */
   for (instance_sym = tssp->variant.class_template.instantiations;
@@ -10023,6 +10049,7 @@ definition (as opposed to a mere declaration).
       update_extended_decl_info_for_class_template(subordinate_tssp,
                                                    extended_decl_info,
                                                    class_definition,
+                                                   is_abstract, is_sealed,
                                                    err_pos);
     }  /* for */
   }  /* if */
@@ -11208,6 +11235,7 @@ declaration of a partial specialization declared outside of its class.
   a_symbol_ptr			    bad_partial_spec_parent_class_sym = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block       extended_decl_info;
+  a_boolean                         is_abstract = FALSE, is_sealed = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr                  attributes = NULL;
@@ -11347,6 +11375,12 @@ declaration of a partial specialization declared outside of its class.
     locator = locator_for_curr_id;
     next_tok = next_token();
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && microsoft_version >= 1400 &&
+      next_tok == tok_identifier) {
+    check_for_microsoft_class_modifiers(&next_tok, tok_lbrace);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   is_definition = (next_tok == tok_colon || next_tok == tok_lbrace);
   if (is_definition && locator_for_curr_id.is_qualified_name &&
       any_deferred_access_checks()) {
@@ -11360,7 +11394,14 @@ declaration of a partial specialization declared outside of its class.
   }  /* if */
   /* If we didn't report a missing identifier above, skip over the identifier
      token now. */
-  if (curr_token == tok_identifier) (void)get_token();
+  if (curr_token == tok_identifier) {
+    (void)get_token();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && microsoft_version >= 1400) {
+      scan_microsoft_class_modifiers(&is_abstract, &is_sealed);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
   /* Make sure this declaration is valid in this scope. */
   if (decl_state->is_template_friend) {
     if (decl_state->class_declared_in != NULL) {
@@ -11598,7 +11639,7 @@ friend_template_checks_done:
     }  /* if */
   }  /* if */
   {
-    a_boolean			err = FALSE;
+    a_boolean  err = FALSE;
     if (templ_params == NULL) {
       /* Don't create a real symbol no template parameter list was provided. */
       err = TRUE;
@@ -11806,7 +11847,8 @@ friend_template_checks_done:
          do this for subordinate templates -- the prototype of the prototype
          template is used. */
       update_extended_decl_info_for_class_template(tssp, &extended_decl_info,
-                                                   is_definition,
+                                                   is_definition, is_abstract,
+                                                   is_sealed,
                                                    &locator.source_position);
     }  /* if */
   }  /* if */
@@ -14768,6 +14810,7 @@ is a class template declaration of the form
 	friend	class-key identifier tok_end_of_source
 	      opt
 
+(In GNU and Microsoft dialects, additional tokens may be involved.)
 Return TRUE if the declaration is a class template declaration.
 Otherwise, return FALSE.  This is done by rescanning the tokens from
 the declaration token cache.
@@ -14801,9 +14844,23 @@ the declaration token cache.
                                         GID_USE_PROTOTYPE_NOT_NONREAL |
                                         GID_IS_TEMPLATE_PRESCAN |
 					GID_IMPLICIT_TYPE_CONTEXT)) {
-      (void)get_token();
-      if (curr_token == tok_colon || curr_token == tok_end_of_source) {
-        result = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode && microsoft_version >= 1400) {
+        a_token_kind  next_tok = next_token();
+        if (next_tok == tok_identifier) {
+          check_for_microsoft_class_modifiers(&next_tok, tok_end_of_source);
+        }  /* if */
+        if (next_tok == tok_colon || next_tok == tok_end_of_source) {
+          result = TRUE;
+        }  /* if */
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        (void)get_token();
+        if (curr_token == tok_colon || curr_token == tok_end_of_source) {
+          result = TRUE;
+        }  /* if */
       }  /* if */
     } else if (curr_token == tok_colon || curr_token == tok_end_of_source) {
       /* A class template declaration with a missing identifier.  Return

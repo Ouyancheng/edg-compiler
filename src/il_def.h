@@ -8014,6 +8014,16 @@ typedef struct a_routine {
 			/* TRUE for virtual member functions declared with a
 			   "pure" specifier (C++ only).  TRUE only if
 			   is_virtual is also TRUE. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	is_new:1;
+			/* TRUE for a member function that does not override
+			   a virtual member function in a base class (even if
+			   the two members have matching names and
+			   signatures). */
+  a_bit_field	sealed:1;
+			/* TRUE for a virtual member function that does cannot
+			   be overridden in a derived class. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	covariant_return_virtual_override:1;
 			/* TRUE if is_virtual is TRUE and this routine is an
 			   overriding virtual function with a covariant
@@ -8259,6 +8269,14 @@ typedef struct a_routine {
 			   specifier (extern "C" void f() { }) rather than
 			   simply inheriting it from a preceding declaration
 			   or from the surrounding linkage block. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	abstract:1;
+			/* TRUE for a virtual member function that was
+			   declared with the function-modifier "abstract". */
+  a_bit_field	override:1;
+			/* TRUE for a virtual member function that was
+			   declared with the function-modifier "override". */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if INSTANTIATE_EXTERN_INLINE
   a_bit_field	inline_instance_required:1;

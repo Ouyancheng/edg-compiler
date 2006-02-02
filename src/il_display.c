@@ -2753,6 +2753,14 @@ Display the indicated routine.
   if (ptr->pure_virtual) {
     disp_boolean("pure_virtual", TRUE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->is_new) {
+    disp_boolean("is_new", TRUE);
+  }  /* if */
+  if (ptr->sealed) {
+    disp_boolean("sealed", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->covariant_return_virtual_override) {
     disp_boolean("covariant_return_virtual_override", TRUE);
   }  /* if */
@@ -2872,6 +2880,14 @@ Display the indicated routine.
   if (ptr->definition_has_direct_linkage_specifier) {
     disp_boolean("definition_has_direct_linkage_specifier", TRUE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->abstract) {
+    disp_boolean("abstract", TRUE);
+  }  /* if */
+  if (ptr->override) {
+    disp_boolean("override", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
   if (ptr->suppress_inline_body) {
     disp_boolean("suppress_inline_body", TRUE);
