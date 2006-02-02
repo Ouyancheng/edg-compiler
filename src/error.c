@@ -3752,8 +3752,8 @@ and doing any required expansions, the diagnostic is written.
                        severity, dck_context_primary);
         }  /* if */
         for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
-          a_scope_stack_entry_ptr ssep = &scope_stack[sd];
-          a_source_position	  context_source_pos;
+          a_scope_stack_entry_ptr	ssep = &scope_stack[sd];
+          static a_source_position	context_source_pos;
           if (!include_in_context_output(ssep, &sym,
                                          &context_error_code,
                                          &context_source_pos,
