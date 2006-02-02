@@ -1739,6 +1739,7 @@ Initialize a dynamic_init entry of the kind specified.
   set_dynamic_init_kind(dip, kind);
 #if DO_IL_LOWERING
   dip->destructible_entity_descr     = NULL;
+  dip->init_destination              = NULL;
 #endif /* DO_IL_LOWERING */
   dip->lifetime_of_overlapping_temps = NULL;
   dip->master_entry                  = NULL;

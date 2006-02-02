@@ -823,7 +823,6 @@ static void scan_ctor_arguments(a_symbol_ptr       constructor_sym,
                                 a_type_ptr         object_class_type,
                                 a_type_ptr         dest_type,
                                 a_boolean          fill_in_dtor,
-                                a_boolean          initializing_var_or_temp,
                                 a_boolean          elision_allowed,
                                 a_dynamic_init_ptr *p_dip,
                                 an_expr_node_ptr   *p_temp_init_node)
@@ -845,10 +844,8 @@ the constructor being called (e.g., when a base class constructor is
 being called for a derived class object); if it's NULL, the class of
 the constructor is assumed.  If fill_in_dtor is TRUE, appropriate
 destruction is placed in the returned dynamic initialization.
-If initializing_var_or_temp is TRUE, the entity being initialized is
-a complete variable or temporary (not, for example, a base class in
-a ctor-initializer).  If elision_allowed is TRUE, a call of a copy
-constructor can be elided or turned into a bitwise move.
+If elision_allowed is TRUE, a call of a copy constructor can be
+elided or turned into a bitwise move.
 
 This routine may be called only in C++ mode.  It's used for parenthesis-
 enclosed initializers for classes that have constructors, as in
@@ -967,7 +964,6 @@ source position is after the closing parenthesis of the argument list.
                           class_type) &&
           is_temp_init_usable_in_optimization(&arg_operand_list->operand,
                                               /*suppress_dtor=*/!fill_in_dtor,
-                                              initializing_var_or_temp,
                                               &temp_init_node,
                                               &dip)) {
         /* The source operand for the copy is itself a temporary of the
@@ -1038,7 +1034,6 @@ source position is after the closing parenthesis of the argument list.
         (void)is_temp_init_usable_in_optimization(
                                                &arg_operand_list->operand,
                                                /*suppress_dtor=*/!fill_in_dtor,
-                                               initializing_var_or_temp,
                                                &temp_init_node,
                                                &dip);
         check_access_to_elided_copy_constructor(source_type, source_pos);
@@ -8621,7 +8616,6 @@ specification allow a variable-sized array as the top type.
       scan_ctor_arguments(ctor_sym, &init_position,
                           (a_type_ptr)NULL, (a_type_ptr)NULL,
                           /*fill_in_dtor=*/FALSE,
-                          /*initializing_var_or_temp=*/FALSE,
                           /* The constructor call cannot be eliminated or
                              turned into a bitwise move if it's doing the
                              allocation. */
@@ -11591,7 +11585,6 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
     scan_ctor_arguments(ctor_sym, start_position,
                         (a_type_ptr)NULL, type_cast_to,
                         /*fill_in_dtor=*/TRUE,
-                        /*initializing_var_or_temp=*/TRUE,
                         /*elision_allowed=*/TRUE,
                         &dip, &temp_init_node);
     error_position = *start_position;
@@ -14808,7 +14801,6 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
         prep_elision_initializer_operand(&operand, throw_type,
                                          /*initializing_return_value=*/FALSE,
                                          /*fill_in_dtor=*/FALSE,
-                                         /*initializing_var_or_temp=*/FALSE,
                                          ec_bad_initializer_type, &dip);
         if (dip == NULL) err = TRUE;
         /* Determine the destructor to be called.  This is done as
@@ -18111,7 +18103,6 @@ required_type will be void if the expression should have void type
     prep_elision_initializer_operand(&result, required_type,
                                      /*initializing_return_value=*/TRUE,
                                      /*fill_in_dtor=*/FALSE,
-                                     /*initializing_var_or_temp=*/FALSE,
                                      err_code, dip);
     wrap_up_dynamic_init_full_expression(*dip);
     /* Fix up destructor references in the overall expression. */
@@ -19010,7 +19001,6 @@ As indicated, this is initialization with the "=" semantics
   prep_elision_initializer_operand(&result, required_type,
                                    /*initializing_return_value=*/FALSE,
                                    /*fill_in_dtor=*/TRUE,
-                                   /*initializing_var_or_temp=*/TRUE,
                                    ec_bad_initializer_type, dip);
   wrap_up_dynamic_init_full_expression(*dip);
   /* *dip == NULL means there was an error. */
@@ -19187,7 +19177,6 @@ required_type_determined:
       prep_elision_initializer_operand(&result, required_type,
                                        /*initializing_return_value=*/FALSE,
                                        /*fill_in_dtor=*/FALSE,
-                                       /*initializing_var_or_temp=*/FALSE,
                                        ec_bad_initializer_type, dip);
       wrap_up_dynamic_init_full_expression(*dip);
       /* *dip == NULL means there was an error. */
@@ -19243,7 +19232,6 @@ void scan_class_parenthesized_initializer(
                                    a_boolean          force_object_lifetime,
                                    a_source_position  *source_pos,
                                    a_boolean          fill_in_dtor,
-                                   a_boolean          initializing_var_or_temp,
                                    a_dynamic_init_ptr *p_dip)
 /*
 Scan a parenthesized initializer for an object of type class_type.
@@ -19262,10 +19250,8 @@ An object lifetime is forced around the initialization if
 force_object_lifetime is TRUE.  On return, the current position is
 following the closing parenthesis of the initializer.  If fill_in_dtor
 is TRUE, any required destruction will be indicated in the dynamic
-initialization.  If initializing_var_or_temp is TRUE, the entity
-being initialized is a complete variable or temporary (not, for
-example, a base class in a ctor_initializer).  *source_pos is the
-source position to be used in overall errors.
+initialization.  *source_pos is the source position to be used in
+overall errors.
 */
 {
   an_expr_stack_entry           expr_stack_entry;
@@ -19287,7 +19273,6 @@ source position to be used in overall errors.
   scan_ctor_arguments(cssp->constructor, source_pos,
                       object_class_type, (a_type_ptr)NULL,
                       fill_in_dtor,
-                      initializing_var_or_temp,
                       /*elision_allowed=*/TRUE,
                       p_dip, (an_expr_node_ptr *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL

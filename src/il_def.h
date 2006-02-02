@@ -92,6 +92,8 @@ typedef struct an_ms_attribute *an_ms_attribute_ptr;
 #if DO_IL_LOWERING
 typedef struct a_destructible_entity_descr
                              a_destructible_entity_descr_dummy_typedef;
+typedef struct an_init_pos_descr
+                             an_init_pos_descr_dummy_typedef;
 #endif /* DO_IL_LOWERING */
 
 /* Opaque type definition for an_arg_operand (used in the expression
@@ -2051,6 +2053,12 @@ typedef struct a_dynamic_init {
 			   entity initialized, in an IL-lowering-specific
 			   form.  This is needed later when generating
 			   destruction code.  Not used for static variables. */
+  struct an_init_pos_descr
+		*init_destination;
+			/* Description of the initialization destination.
+			   Set by IL lowering, only for entries with
+			   is_optimized_class_rvalue_question_mark TRUE.
+			   Note that this points to a stack variable. */
 #endif /* DO_IL_LOWERING */
   an_object_lifetime_ptr
 		lifetime_of_overlapping_temps;

@@ -694,7 +694,6 @@ extern a_boolean operand_is_temp_init(an_operand *operand);
 extern a_boolean is_temp_init_usable_in_optimization(
                                    an_operand         *source_operand,
                                    a_boolean          suppress_dtor,
-                                   a_boolean          initializing_var_or_temp,
                                    an_expr_node_ptr   *p_temp_init_node,
                                    a_dynamic_init_ptr *p_dip);
 
@@ -703,7 +702,6 @@ extern void prep_elision_initializer_operand(
                                   a_type_ptr         dest_type,
                                   a_boolean          initializing_return_value,
                                   a_boolean          fill_in_dtor,
-                                  a_boolean          initializing_var_or_temp,
                                   an_error_code      err_code,
                                   a_dynamic_init_ptr *dip);
 

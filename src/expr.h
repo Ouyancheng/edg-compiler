@@ -158,7 +158,6 @@ extern void scan_class_parenthesized_initializer(
                                    a_boolean          force_object_lifetime,
                                    a_source_position  *source_pos,
                                    a_boolean          fill_in_dtor,
-                                   a_boolean          initializing_var_or_temp,
                                    a_dynamic_init_ptr *p_dip);
 
 extern void scan_template_argument_constant_expression(a_type_ptr param_type,

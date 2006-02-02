@@ -1,5 +1,15 @@
 Version 3.8
 
+2/2/06   Optimization of code for rvalue class "?" in return
+
+IL lowering's code generation for class rvalue "?" cases has been
+improved when the result is used in a return statement (and in some
+similar cases, such as in a throw or an aggregate initializer).
+The optimization of having the two forks of the "?" initialize the
+same result entity, which was formerly applied only when the
+result was a temporary or a whole variable, is now applied to
+these other cases as well.
+
 2/2/06   Microsoft C++ compatibility: Function modifiers "abstract", "sealed",
          and "override"
 

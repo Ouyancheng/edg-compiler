@@ -11733,21 +11733,17 @@ returns the value or address of the temporary is immaterial.
 
 
 a_boolean is_temp_init_usable_in_optimization(
-                                   an_operand         *source_operand,
-                                   a_boolean          suppress_dtor,
-                                   a_boolean          initializing_var_or_temp,
-                                   an_expr_node_ptr   *p_temp_init_node,
-                                   a_dynamic_init_ptr *p_dip)
+                                          an_operand         *source_operand,
+                                          a_boolean          suppress_dtor,
+                                          an_expr_node_ptr   *p_temp_init_node,
+                                          a_dynamic_init_ptr *p_dip)
 /*
 Determine whether or not source_operand is an enk_temp_init node that can be
 used in a copy constructor elision optimization.  Return TRUE if so, and
 also set *p_temp_init_node and *p_dip to the underlying expression node
 and dynamic initialization entry.  If suppress_dtor is TRUE, any destruction
 indicated in the initialization is cleared (this is used, for example,
-for a return, because the caller will do the destruction).  If
-initializing_var_or_temp is TRUE, the entity being initialized is
-a complete variable or temporary (not, for example, the return value
-of a function).
+for a return, because the caller will do the destruction).
 */
 {
   a_boolean          is_usable_temp_init = FALSE;
@@ -11763,12 +11759,7 @@ of a function).
     /* Avoid problems with dynamic inits with kind dik_none, created for
        functional-notation casts with no arguments (e.g., X()) for classes
        with no constructors. */
-    /* Also with optimized class rvalue "?" cases where the result is not
-       going to be a temporary or a variable (e.g., you can't do this
-       optimization on a return). */
-    if (dip->kind != (a_dynamic_init_kind)dik_none &&
-        (!dip->is_optimized_class_rvalue_question_mark ||
-         initializing_var_or_temp)) {
+    if (dip->kind != (a_dynamic_init_kind)dik_none) {
       is_usable_temp_init = TRUE;
       /* Take the dynamic init off whatever destruction list it is on, if any,
          because it will be given to the caller, who will put it on a
@@ -11823,7 +11814,6 @@ static void determine_dynamic_init_for_class_init(
                                    a_conv_descr       *conversion,
                                    a_conv_descr       *ctor_arg_conversion,
                                    a_boolean          fill_in_dtor,
-                                   a_boolean          initializing_var_or_temp,
                                    a_dynamic_init_ptr *p_dip,
                                    an_expr_node_ptr   *p_temp_init_node)
 /*
@@ -11835,14 +11825,12 @@ constructor (important only in some nonstandard modes).  Create a dynamic
 initialization entry to do the initialization (and any required
 destruction, if fill_in_dtor is TRUE) and return a pointer to
 it in *p_dip (or return *p_dip == NULL for an error).  If
-initializing_var_or_temp is TRUE, the entity being initialized is
-a complete variable or temporary (not, for example, the return value
-of a function).  If p_temp_init_node is non-NULL, create an
-enk_temp_init node (for the address of a temporary) pointing to that
-dynamic initialization entry, and return a pointer to it in
-*p_temp_init_node.  An error node is returned for an error.  dest_type
-is allowed to be a class having no constructors at all.  The
-initialization represented is an "=" initialization, i.e.,
+p_temp_init_node is non-NULL, create an enk_temp_init node (for the
+address of a temporary) pointing to that dynamic initialization entry,
+and return a pointer to it in *p_temp_init_node.  An error node is
+returned for an error.  dest_type is allowed to be a class having no
+constructors at all.  The initialization represented is an "="
+initialization, i.e.,
 
   dest_type var = source_operand;
 
@@ -11877,7 +11865,6 @@ happen only in C++ mode.
       /* See whether the source is a temporary that can be eliminated. */
       if (is_temp_init_usable_in_optimization(source_operand,
                                               !fill_in_dtor,
-                                              initializing_var_or_temp,
                                               &temp_init_node,
                                               &dip)) {
         /* Eliminate the temporary and the bitwise copy. */
@@ -11915,7 +11902,6 @@ happen only in C++ mode.
            optimized away. */
         if (is_temp_init_usable_in_optimization(source_operand,
                                                 !fill_in_dtor,
-                                                initializing_var_or_temp,
                                                 &temp_init_node,
                                                 &dip)) {
           elision_done = TRUE;
@@ -11952,7 +11938,6 @@ happen only in C++ mode.
       if (identical_types(source_operand->type, dest_type) &&
           is_temp_init_usable_in_optimization(source_operand,
                                               !fill_in_dtor,
-                                              initializing_var_or_temp,
                                               &temp_init_node,
                                               &dip)) {
         elision_done = TRUE;
@@ -12075,7 +12060,6 @@ void prep_elision_initializer_operand(
                                   a_type_ptr         dest_type,
                                   a_boolean          initializing_return_value,
                                   a_boolean          fill_in_dtor,
-                                  a_boolean          initializing_var_or_temp,
                                   an_error_code      err_code,
                                   a_dynamic_init_ptr *dip)
 /*
@@ -12086,13 +12070,11 @@ initializing_return_value is TRUE if the initialization is being done
 to return a value in a return statement.  The dynamic initialization
 entry will also indicate a destructor if appropriate and if
 fill_in_dtor is TRUE.  Return a pointer to the dynamic initialization
-entry in *dip (or NULL for an error).  If initializing_var_or_temp is
-TRUE, the entity being initialized is a complete variable or temporary
-(not, for example, the return value of a function).  err_code is the
-error code to be used in case of error.  source_operand may be changed
-by this routine.  This routine is used in both C and C++ mode, but it
-exists to do copy constructor elision in C++ mode.  This is an
-initialization with the "=" semantics (copy-initialization).
+entry in *dip (or NULL for an error).  err_code is the error code to be
+used in case of error.  source_operand may be changed by this routine.
+This routine is used in both C and C++ mode, but it exists to do copy
+constructor elision in C++ mode.  This is an initialization with the
+"=" semantics (copy-initialization).
 */
 {
   a_conv_descr conversion, ctor_arg_conversion;
@@ -12124,7 +12106,6 @@ initialization with the "=" semantics (copy-initialization).
     determine_dynamic_init_for_class_init(source_operand, dest_type,
                                           &conversion, &ctor_arg_conversion,
                                           fill_in_dtor,
-                                          initializing_var_or_temp,
                                           dip, (an_expr_node_ptr *)NULL);
   }  /* if */
   /* Restore the original source position, etc. */
@@ -13319,7 +13300,6 @@ see conversion_to_class_possible.
     determine_dynamic_init_for_class_init(source_operand, param_type,
                                           conversion, (a_conv_descr *)NULL,
                                           /*fill_in_dtor=*/TRUE,
-                                          /*initializing_var_or_temp=*/TRUE,
                                           &dip, &temp_init_node);
     make_expression_operand(temp_init_node, temp_init_node->type,
                             source_operand);

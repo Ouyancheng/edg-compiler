@@ -3200,7 +3200,6 @@ returned set to TRUE.
         scan_class_parenthesized_initializer(vp_type, vp_type,
                                              /*force_object_lifetime=*/FALSE,
                                              &pos, /*fill_in_dtor=*/TRUE,
-                                             /*initializing_var_or_temp=*/TRUE,
                                              &init_dip);
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4503,7 +4502,6 @@ scan_paren:
                                            /*force_object_lifetime=*/TRUE,
                                            &lparen_pos,
                                            /*fill_in_dtor=*/exceptions_enabled,
-                                           /*initializing_var_or_temp=*/FALSE,
                                            &dip);
             }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

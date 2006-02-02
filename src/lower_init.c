@@ -6229,6 +6229,11 @@ C99 mode for the same reason.
       /* Initializing a base class, so not a complete object. */
       have_complete_object = FALSE;
     }  /* if */
+    if (dip->is_optimized_class_rvalue_question_mark) {
+      /* Note the destination position for use down the tree in
+         lower_temp_init. */
+      dip->init_destination = ipdp;
+    }  /* if */
   }  /* if */
   if (dip->lifetime != NULL) {
     an_object_lifetime_ptr lifetime = dip->lifetime;
@@ -8081,7 +8086,12 @@ Do IL lowering of an enk_temp_init expression node.
       /* This entry initializes the temporary associated with another
          dynamic initialization.  Get the variable assigned for that. */
       temp_var = dip->master_entry->variable;
-      check_assertion(temp_var != NULL);
+      /* temp_var can be NULL when the master entry is initializing
+         something more complex than a variable or temporary (e.g.,
+         a function return value).  A description of the destination
+         is provided from higher up in the lowering process. */
+      check_assertion(temp_var != NULL ||
+                      dip->master_entry->init_destination != NULL);
     } else {
       /* Create a temporary variable.  Make it static if necessary. */
       if (!expr->variant.init.static_temp && !long_lifetime_temps &&
@@ -8099,30 +8109,44 @@ Do IL lowering of an enk_temp_init expression node.
         eff_keep_dynamic_init = &keep_dynamic_init;
       }  /* if */
     }  /* if */
-    dip->variable = temp_var;
-    if (dip->is_partially_initialized_compound_literal) {
-      /* Note that compound literals created
-         outside of functions do not use enk_temp_init so they are not
-         seen here (the front end creates an initialized static variable
-         for them). */
-      temp_var->is_partially_initialized = TRUE;
-    }  /* if */
-    if (variably_modified) {
-      temp_var->has_variably_modified_type = TRUE;
-    }  /* if */
-    /* Change the enk_temp_init to a reference to the value or address
-       of the temporary. */
-    if (result_is_addr) {
-      set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
-      /* The address of the temporary escapes (or might escape) into the
-         surrounding context, so set its address_taken flag. */
-      set_variable_address_taken(temp_var);
+    if (temp_var == NULL) {
+      /* Initializing something more complex than a variable. */
+      an_expr_node_ptr dest_expr;
+      /* copy_init_pos_descr need not be called here; there's no point in
+         allocating any modifiers in the heap. */
+      ipd = *dip->master_entry->init_destination;
+      dest_expr = make_init_entity_node(&ipd, /*using_as_address=*/FALSE,
+                                        /*using_as_dest=*/FALSE);
+      if (!result_is_addr) dest_expr = add_indirection_to_node(dest_expr);
+      overwrite_node(expr, dest_expr);
+      dip->master_entry = NULL;
     } else {
-      set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+      /* Normal case (not return). */
+      dip->variable = temp_var;
+      if (dip->is_partially_initialized_compound_literal) {
+        /* Note that compound literals created
+           outside of functions do not use enk_temp_init so they are not
+           seen here (the front end creates an initialized static variable
+           for them). */
+        temp_var->is_partially_initialized = TRUE;
+      }  /* if */
+      if (variably_modified) {
+        temp_var->has_variably_modified_type = TRUE;
+      }  /* if */
+      /* Change the enk_temp_init to a reference to the value or address
+         of the temporary. */
+      if (result_is_addr) {
+        set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
+        /* The address of the temporary escapes (or might escape) into the
+           surrounding context, so set its address_taken flag. */
+        set_variable_address_taken(temp_var);
+      } else {
+        set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+      }  /* if */
+      expr->variant.variable = temp_var;
+      /* Generate code for the dynamic init. */
+      set_var_init_pos_descr(temp_var, &ipd);
     }  /* if */
-    expr->variant.variable = temp_var;
-    /* Generate code for the dynamic init. */
-    set_var_init_pos_descr(temp_var, &ipd);
     /* Test the kind before calling lower_dynamic_init because that routine
        clears the kind in some cases. */
     is_constructor_init = (dip->kind == (a_dynamic_init_kind)dik_constructor);
@@ -8140,38 +8164,40 @@ Do IL lowering of an enk_temp_init expression node.
                        /*others_follow_in_aggr=*/FALSE,
                        &insert_location, eff_keep_dynamic_init,
                        (a_constant **)NULL);
+    if (temp_var != NULL) {
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-    /* After lowering, the type will no longer be variably-modified. */
-    temp_var->has_variably_modified_type = FALSE;
+      /* After lowering, the type will no longer be variably-modified. */
+      temp_var->has_variably_modified_type = FALSE;
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
-    if (temp_var->has_variably_modified_type) {
-      /* If the variable has variably-modified type, put out an stmk_vla_decl
-         for it. */
-      a_statement_ptr stmk_vla_decl_stmt =
+      if (temp_var->has_variably_modified_type) {
+        /* If the variable has variably-modified type, put out an stmk_vla_decl
+           for it. */
+        a_statement_ptr stmk_vla_decl_stmt =
                               alloc_statement((a_statement_kind)stmk_vla_decl);
-      stmk_vla_decl_stmt->variant.vla.is_typedef_decl = FALSE;
-      stmk_vla_decl_stmt->variant.vla.variant.variable = temp_var;
-      add_to_end_of_temp_init_statements_list(stmk_vla_decl_stmt);
-    }  /* if */
+        stmk_vla_decl_stmt->variant.vla.is_typedef_decl = FALSE;
+        stmk_vla_decl_stmt->variant.vla.variant.variable = temp_var;
+        add_to_end_of_temp_init_statements_list(stmk_vla_decl_stmt);
+      }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-    if (keep_dynamic_init) {
-      /* Record any dynamic initialization that might have been created
-         while lowering a compound literal. */
-      add_stmk_init_for_compound_literal(temp_var, dip);
-    }  /* if */
-    if (temp_var->init_kind == (an_init_kind)initk_zero) {
-      if (!has_static_storage_duration(temp_var->storage_class)) {
-        /* If an automatic temporary ends up with initk_zero initialization,
-           insert code to do the zeroing because we can't count on the block
-           being entered at the top. */
-        zero_automatic_temporary(temp_var, expr);
+      if (keep_dynamic_init) {
+        /* Record any dynamic initialization that might have been created
+           while lowering a compound literal. */
+        add_stmk_init_for_compound_literal(temp_var, dip);
+      }  /* if */
+      if (temp_var->init_kind == (an_init_kind)initk_zero) {
+        if (!has_static_storage_duration(temp_var->storage_class)) {
+          /* If an automatic temporary ends up with initk_zero initialization,
+             insert code to do the zeroing because we can't count on the block
+             being entered at the top. */
+          zero_automatic_temporary(temp_var, expr);
 #if IA64_ABI
-      } else {
-        /* static temporary.  Check for the need to change the initial
-           value to set pointers to data members to -1. */
-        lower_initializer(temp_var, &temp_var->init_kind,
-                          &temp_var->initializer, &insert_location);
+        } else {
+          /* static temporary.  Check for the need to change the initial
+             value to set pointers to data members to -1. */
+          lower_initializer(temp_var, &temp_var->init_kind,
+                            &temp_var->initializer, &insert_location);
 #endif /* IA64_ABI */
+        }  /* if */
       }  /* if */
     }  /* if */
     /* Try to optimize away the final term that just returns the address
@@ -8186,11 +8212,16 @@ Do IL lowering of an enk_temp_init expression node.
           expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
         an_expr_node_ptr first_operand = expr->variant.operation.operands;
         an_expr_node_ptr second_operand = first_operand->next;
-        if (result_is_addr ? is_variable_address_node(second_operand) :
-                             is_variable_node(second_operand)) {
-          /* The second operand is the value or address of a variable,
-             as appropriate.  It's not necessarily a temporary. */
+        if (!(is_operation_node(second_operand) &&
+              second_operand->variant.operation.kind ==
+                                           (an_expr_operator_kind)eok_comma)) {
+          /* The second operand is the original result value, usually
+             a simple variable or temporary reference.  We can tell this
+             from a comma-node check because of the way the expression
+             insertion scheme works. */
           a_boolean can_optimize = FALSE;
+          check_assertion(!node_has_side_effects(second_operand,
+                                                 (a_boolean *)NULL));
           if (result_is_not_used) {
             /* The result is not used and the second operand has no side
                effects (because it's a simple variable reference).  Do
