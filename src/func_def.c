@@ -1150,11 +1150,11 @@ this_class information.  Update rout_type with information from prev_type.
 }  /* adjust_member_routine_type */
 
 
-#if !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_modifiers is not used in some configurations;
-                decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL. */
-#endif /* !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL */
+#if !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL || \
+    !GNU_EXENSIONS_ALLOWED
+/*ARGSUSED*/ /* decl_modifiers, decl_pos_block, and attributes are not used in
+                all configurations. */
+#endif /* !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL || ... */
 static void define_member_function(a_symbol_locator            *locator,
                                    a_type_ptr                  type_ptr,
                                    a_func_info_block           *func_info,
@@ -1163,6 +1163,7 @@ static void define_member_function(a_symbol_locator            *locator,
                                    a_decl_modifiers_block_ptr  decl_modifiers,
                                    a_type_ptr                  *old_type,
                                    a_symbol_ptr                *ext_sym,
+                                   an_attribute_ptr            attributes,
                                    a_decl_pos_block_ptr        decl_pos_block)
 /*
 This routine is called in the case of a member function definition.  Its
@@ -1172,6 +1173,13 @@ it calls reconcile_routine_types to merge the current type with the type
 on a prior declaration.
 This function is also called in the case of a nondefining out-of-class
 member declaration (allowed in some Microsoft modes only).
+The function's declaration and type are described by locator, func_info, and
+type_ptr.  Additional dialect-specific attributes are passed through
+decl_modifiers (mostly Microsoft-specific) and attributes (GNU).  Existing
+symbol and type information (from the matching in-class declaration) is
+returned through *symbol_ptr and *old_type.  Extended position information
+is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
+*ext_sym is set to NULL.
 */
 {
   a_symbol_ptr         sym;
@@ -1427,6 +1435,11 @@ member declaration (allowed in some Microsoft modes only).
     /* Mark the routine to indicate that, though really belonging to the
        scope of its parent class, it is defined elsewhere. */
     if (!microsoft_out_of_class_redecl) rp->defined_outside_of_parent = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+    if (attributes != NULL) {
+      apply_attributes_to_routine(attributes, rp);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (!microsoft_out_of_class_redecl) {
       record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
@@ -1604,7 +1617,7 @@ member declaration (allowed in Microsoft mode only).
     check_assertion(prototyped);
     define_member_function(locator, rout_type, func_info, &symbol_ptr,
                            &linkage, decl_modifiers, &old_type, &ext_sym,
-                           decl_pos_block);
+                           attributes, decl_pos_block);
   } else {
     if (!prototyped) {
       /* Old-style id list.  Before calling decl_routine scan the

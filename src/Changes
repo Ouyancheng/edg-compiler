@@ -1,5 +1,16 @@
 Version 3.8
 
+2/2/06   GNU compatibility: Attributes on out-of-class member definitions
+
+In GNU C++ modes, the front end previously ignored attributes appearing on
+out-of-class member function definitions.  For example:
+
+  struct S { void f(); };
+  __attribute((deprecated)) void S::f() {}  // Attribute previously ignored.
+  void g(S *p) { p->f(); }  // Now triggers a warning.
+
+This has been fixed: The attributes are now correctly recorded.
+
 2/2/06   Optimization of code for rvalue class "?" in return
 
 IL lowering's code generation for class rvalue "?" cases has been
