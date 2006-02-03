@@ -2233,7 +2233,7 @@ void report_abstract_class_error(an_error_code      error_code,
 Issue an error (using the message specified by error_code) on an incorrect
 use of an object of abstract class type, as indicated by class_type.
 *error_pos is the source position at which the error should be issued.
-Except for the case of Microsoft interfaces, the diagnostic includes a list
+Except for some Microsoft-specific cases, the diagnostic includes a list
 of pure virtual functions, to assist the user in correcting the class
 declarations that produced the problem.
 */
@@ -2252,13 +2252,22 @@ declarations that produced the problem.
     /* Put out the list of pure virtual functions. */
     report_pure_virtual_functions(class_type, (a_base_class_ptr)NULL,
                                   ec_pure_virtual_function, &found);
-#if CHECKING
-    /* If class_type is marked as abstract, at least one pure virtual function
-       should have been found (except maybe in some Microsoft modes, where
-       a class might be defined with the context-sensitive keyword
-       "abstract"). */
-    check_assertion(found || (microsoft_mode && microsoft_version >= 1400));
-#endif /* if */
+    if (!found) {
+      /* If class_type is marked as abstract, at least one pure virtual
+         function should have been found (except maybe in some Microsoft
+         modes, where a class might be defined with the context-sensitive
+         keyword "abstract"). */
+      if (microsoft_mode && microsoft_version >= 1400) {
+        sym_add_diag_info(ec_type_is_declared_abstract,
+                          symbol_for(class_type));
+#if BACK_END_IS_CP_GEN_BE
+        check_assertion(class_type
+           ->variant.class_struct_union.defined_with_abstract_class_modifier);
+#endif /* BACK_END_IS_CP_GEN_BE */
+      } else {
+        unexpected_condition();
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* Terminate the supplementary messages. */
   end_error();
