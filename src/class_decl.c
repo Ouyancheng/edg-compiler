@@ -2260,10 +2260,10 @@ declarations that produced the problem.
       if (microsoft_mode && microsoft_version >= 1400) {
         sym_add_diag_info(ec_type_is_declared_abstract,
                           symbol_for(class_type));
-#if BACK_END_IS_CP_GEN_BE
+#if MICROSOFT_EXTENSIONS_ALLOWED && BACK_END_IS_CP_GEN_BE
         check_assertion(class_type
            ->variant.class_struct_union.defined_with_abstract_class_modifier);
-#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && BACK_END_IS_CP_GEN_BE */
       } else {
         unexpected_condition();
       }  /* if */
