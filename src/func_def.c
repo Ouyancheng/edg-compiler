@@ -1151,7 +1151,7 @@ this_class information.  Update rout_type with information from prev_type.
 
 
 #if !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL || \
-    !GNU_EXENSIONS_ALLOWED
+    !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* decl_modifiers, decl_pos_block, and attributes are not used in
                 all configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL || ... */
