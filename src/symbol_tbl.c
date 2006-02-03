@@ -11359,7 +11359,7 @@ mode.
     err = TRUE;
   } else {
     unsigned long	num_chars = 0;
-    a_boolean		is_wide;
+    a_boolean		is_wide = FALSE;
     *name_pos = pos_curr_token;
     /* Rescan the characters of the string literal. */
     curr_char_loc = start_of_curr_token;

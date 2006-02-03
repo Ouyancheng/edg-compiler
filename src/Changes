@@ -1,5 +1,10 @@
 Version 3.8
 
+2/3/06   Microsoft compatibility: uninitialized variable in push/pop_macro
+
+A variable in symbol_header_for_macro_push_or_pop was not set in some
+cases, which could result in spurious errors.  Now fixed.
+
 2/2/06   GNU compatibility: Attributes on out-of-class member definitions
 
 In GNU C++ modes, the front end previously ignored attributes appearing on
