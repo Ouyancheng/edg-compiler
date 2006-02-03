@@ -4220,7 +4220,7 @@ Reserve space at the end of the class object for virtual base classes.
     }  /* if */
     ctsp->alignment_without_virtual_base_classes = lob->alignment;
 #if IA64_ABI
-    if (emulate_gnu_abi_bugs) {
+    if (emulate_gnu_abi_bugs && gnu_abi_version < 30400) {
       /* Early GNU implementations for the IA-64 ABI force an alignment
          boundary before allocating trailing virtual bases. */
       if (!do_alignment(&lob->byte_offset, &lob->bit_offset, lob->alignment) &&

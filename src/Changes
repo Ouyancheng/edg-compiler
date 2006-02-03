@@ -1,5 +1,23 @@
 Version 3.8
 
+2/3/06   GNU IA-64 ABI: Alignment of first virtual base
+
+When DEFAULT_EMULATE_GNU_ABI_BUGS is TRUE, the front end emulated a layout bug
+in early GNU C++ compilers that caused the first virtual base to be forced on
+an alignment boundary corresponding to the strictest alignment requirement
+encountered so far during the layout of the complete type.  Now, this bug is
+only emulated when gnu_abi_version is less than 30400 (since the bug was fixed
+in GNU C++ 3.4).  For example, assuming a typical 32-bit platform:
+
+  struct B { virtual ~B(); char b; };  // 32-bit aligned because of the
+                                       // virtual function table.
+  struct V { short v; };    // 16-bit aligned.
+  struct D: B, virtual V {  // V only requires 16-bit aligned, but was
+    char d;                 // previously always 32-bit aligned when emulating
+  };                        // GNU ABI bugs.
+    // Now sizeof(D) = 12 when gnu_abi_version < 30400, and sizeof(D) = 8
+    // otherwise (assuming GNU ABI bugs are emulated).
+
 2/3/06   Microsoft compatibility: uninitialized variable in push/pop_macro
 
 A variable in symbol_header_for_macro_push_or_pop was not set in some
