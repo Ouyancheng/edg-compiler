@@ -1022,7 +1022,7 @@ memory is allocated in the memory region specified by "region".
     ptr = alloc_in_region(region, size);
   }  /* if */
   return ptr;
-}  /* alloc_general_or_region */
+}  /* alloc_general_or_in_region */
 
 
 #ifdef FFE

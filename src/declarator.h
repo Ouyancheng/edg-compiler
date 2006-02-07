@@ -9,8 +9,8 @@
 ******************************************************************************/
 /*
 
-decl_spec.h -- Declarations related to decl_spec.c (having to with
-               scanning of declaration specifiers).
+declarator.h -- Declarations related to declarator.c (having to with
+                scanning of declarators).
 
 */
 
