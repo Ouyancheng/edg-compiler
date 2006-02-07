@@ -145,7 +145,7 @@ error.
 */
 {
   error_position = null_source_position;
-  str_catastrophe(ec_file_write_error, "PCH");
+  error_code_catastrophe(ec_file_write_error, ec_pch);
 }  /* pch_write_error */
 
 

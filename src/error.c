@@ -421,10 +421,15 @@ static a_msg_segment_ptr curr_output_msg_segment;
 			   put_str_to_curr_output_msg_segment. */
 
 
-static char *error_text(an_error_code error_code)
+char *error_text(an_error_code error_code)
 /*
 Return a pointer to the error text for the message identified by the given
-error code.
+error code.  Note that if this routine is modified to get the text from
+some other source (e.g., a file) it should be copied into memory in such
+a way that it will not be invalidated by subsequent calls of this routine.
+This routine is called numerous times for each diagnostic, so it is important
+that it be fast.  If a file is used, all of the messages should probably
+be read into memory so that an array of strings can still be used here.
 */
 {
   check_assertion_str2((int)error_code < (int)ec_last,
@@ -649,7 +654,7 @@ redundant file names in a diagnostic.*/
       add_string_to_segment(end_of_source_string, seg_ptr);
     } else {
       add_string_to_segment(prefix_string, seg_ptr);
-      add_string_to_segment("at line ", seg_ptr);
+      add_string_to_segment(error_text(ec_at_line), seg_ptr);
 #if CHECKING
       if (digits_to_represent((unsigned long)pos->seq)
                           >= BASE_MSG_SEGMENT_SIZE) {
@@ -661,7 +666,8 @@ redundant file names in a diagnostic.*/
       /* Add the file name if needed. */
       if (strcmp(file_name, diag_file_name) != 0 &&
           strcmp(file_name, FILE_NAME_FOR_STDIN) != 0) {
-        add_string_to_segment(" of \"", seg_ptr);
+        add_string_to_segment(error_text(ec_of), seg_ptr);
+        add_string_to_segment("\"", seg_ptr);
         add_string_to_segment(file_name, seg_ptr);
         add_string_to_segment("\"", seg_ptr);
       }  /* if */
@@ -841,7 +847,8 @@ level.
         if (!*any_args) {
           /* This is the first argument displayed -- add the introduction
              string to the message. */
-          add_string_to_segment(" [with ", seg_ptr);
+          add_string_to_segment(" [", seg_ptr);
+          add_string_to_segment(error_text(ec_with), seg_ptr);
           *any_args = TRUE;
         } else {
           /* This is not the first argument -- add "," separator. */
@@ -907,7 +914,7 @@ declaration position to eliminate redundant file names in a diagnostic.
   a_symbol_ptr  fund_sym;	/* Pointer to the fundamental symbol of
 				   argument sym if it exists.  Otherwise,
 				   the value will be that of sym. */
-  char				*entity_kind;
+  an_error_code			entity_kind;
   a_boolean			force_function_params = FALSE;
   a_boolean			force_return_type = FALSE;
   a_boolean			return_type_needed = TRUE;
@@ -924,23 +931,24 @@ declaration position to eliminate redundant file names in a diagnostic.
       /* The name of a keyword is extracted from the token_names array, and
          is handled differently from other symbols. */
       if (! seg_ptr->variant.symbol.name_only) {
-        add_string_to_segment("keyword ", seg_ptr);
+        add_string_to_segment(error_text(ec_keyword), seg_ptr);
+        add_string_to_segment(" ", seg_ptr);
       } /* if */
       add_string_to_segment("\"", seg_ptr);
       /* Use the name in the header. */
       add_string_to_segment(sym->header->identifier, seg_ptr);
       break;
     case sk_macro:
-      entity_kind = "macro ";
+      entity_kind = ec_macro;
       goto symbol_name;
     case sk_label:
-      entity_kind = "label ";
+      entity_kind = ec_label;
       goto symbol_name;
     case sk_type:
       if (fund_sym->variant.type.ptr->kind == (a_type_kind)tk_template_param) {
-        entity_kind = "template parameter ";
+        entity_kind = ec_template_parameter;
       } else {
-        entity_kind = "type ";
+        entity_kind = ec_type;
       }  /* if */
       goto symbol_name;
     case sk_class_or_struct_tag:
@@ -953,11 +961,11 @@ declaration position to eliminate redundant file names in a diagnostic.
              sk_class_template. */
         } else {
           if (fund_sym->kind == (a_symbol_kind)sk_union_tag) {
-            entity_kind = "union ";
+            entity_kind = ec_union;
           } else if (C_dialect == C_dialect_cplusplus) {
-            entity_kind = "class ";
+            entity_kind = ec_class;
           } else {
-            entity_kind = "struct ";
+            entity_kind = ec_struct;
           }  /* if */
           if (distinct_template_signatures &&
               seg_ptr->variant.symbol.force_template_name_output) {
@@ -972,36 +980,36 @@ declaration position to eliminate redundant file names in a diagnostic.
       /*FALLTHROUGH*/
     case sk_class_template:
       if (sym->is_template_param) {
-        entity_kind = "template template parameter ";
+        entity_kind = ec_template_template_parameter;
       } else if (sym->kind == (a_symbol_kind)sk_class_template &&
                  sym->variant.template_info->is_nonreal_member) {
-        entity_kind = "template ";
+        entity_kind = ec_template;
       } else {
-        entity_kind = "class template ";
+        entity_kind = ec_class_template;
       }  /* if */
       goto symbol_name;
     case sk_enum_tag:
-      entity_kind = "enum ";
+      entity_kind = ec_enum;
       goto symbol_name;
     case sk_parameter:
-      entity_kind = "parameter ";
+      entity_kind = ec_parameter;
       type = fund_sym->variant.param_id->type;
       is_declaration_like = TRUE;
       goto symbol_name;
     case sk_variable:
       type = fund_sym->variant.variable.ptr->type;
       if (fund_sym->variant.variable.ptr->is_parameter) {
-        entity_kind = "parameter ";
+        entity_kind = ec_parameter;
       } else if (fund_sym->variant.variable.ptr->is_handler_param) {
-        entity_kind = "handler parameter ";
+        entity_kind = ec_handler_parameter;
       } else {
-        entity_kind = "variable ";
+        entity_kind = ec_variable;
       }  /* if */
       is_declaration_like = TRUE;
       goto symbol_name;
     case sk_extern_variable:
       type = fund_sym->variant.extern_symbol_descr->type;
-      entity_kind = "variable ";
+      entity_kind = ec_variable;
       is_declaration_like = TRUE;
       goto symbol_name;
     case sk_constant:
@@ -1012,9 +1020,9 @@ declaration position to eliminate redundant file names in a diagnostic.
         /* If the constant is a proxy or nonreal class member then use an
            entity kind of "nontype" to indicate that this is a generic
            nontype entity and not actually a constant. */
-        entity_kind = "nontype ";
+        entity_kind = ec_nontype;
       } else {
-        entity_kind = "constant ";
+        entity_kind = ec_constant;
       }  /* if */
       goto symbol_name;
     case sk_routine:
@@ -1044,24 +1052,24 @@ declaration position to eliminate redundant file names in a diagnostic.
         type = routine_symbol_type(fund_sym);
       }  /* if */
       routine = fund_sym->variant.routine.ptr;
-      entity_kind = "function ";
+      entity_kind = ec_function;
       is_declaration_like = TRUE;
       goto symbol_name;
     case sk_extern_routine:
       type = fund_sym->variant.extern_symbol_descr->type;
       routine = fund_sym->variant.extern_symbol_descr->variant.routine.ptr;
-      entity_kind = "function ";
+      entity_kind = ec_function;
       is_declaration_like = TRUE;
       goto symbol_name;
     case sk_overloaded_function:
-      entity_kind = "overloaded function ";
+      entity_kind = ec_overloaded_function;
       /* There is no specific type information available; this entity cannot
          be expressed as a declaration. */
       goto symbol_name;
     case sk_static_data_member:
       tip = fund_sym->variant.static_data_member.instance_ptr;
       type = fund_sym->variant.static_data_member.variable->type;
-      entity_kind = "member ";
+      entity_kind = ec_member;
       is_declaration_like = TRUE;
       if (tip != NULL && distinct_template_signatures) {
         /* When a static data member of a template class is displayed, it
@@ -1074,30 +1082,30 @@ declaration position to eliminate redundant file names in a diagnostic.
     case sk_field:
       type = fund_sym->variant.field.ptr->type;
       if (C_dialect == C_dialect_cplusplus) {
-        entity_kind = "member ";
+        entity_kind = ec_member;
         is_declaration_like = TRUE;
       } else {
-        entity_kind = "field ";
+        entity_kind = ec_field;
       }  /* if */
       goto symbol_name;
     case sk_namespace:
-      entity_kind = "namespace ";
+      entity_kind = ec_namespace;
       goto symbol_name;
 #if NAMED_REGISTERS_ALLOWED
     case sk_named_register:
-      entity_kind = "named register ";
+      entity_kind = ec_named_register;
       goto symbol_name;
 #endif /* NAMED_REGISTERS_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
     case sk_named_address_space:
-      entity_kind = "named address space ";
+      entity_kind = ec_named_address_space;
       goto symbol_name;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
     case sk_undefined:
-      entity_kind = "";
+      entity_kind = ec_no_error;
       goto symbol_name;
     case sk_function_template:
-      entity_kind = "function template ";
+      entity_kind = ec_function_template;
       routine = fund_sym->variant.template_info->variant.function.routine;
       type = routine->type;
       /* Function templates can differ only by return type, so include the
@@ -1109,7 +1117,10 @@ symbol_name:
       if (type == NULL) is_declaration_like = FALSE;
       if (! seg_ptr->variant.symbol.name_only &&
           ! (seg_ptr->variant.symbol.full_type && is_declaration_like) ) {
-        add_string_to_segment(entity_kind, seg_ptr);
+        if (entity_kind != ec_no_error) {
+          add_string_to_segment(error_text(entity_kind), seg_ptr);
+          add_string_to_segment(" ", seg_ptr);
+        }  /* if */
       } /* if */
       /* Add the beginning double quote. */
       add_string_to_segment("\"", seg_ptr);
@@ -1241,9 +1252,13 @@ symbol_name:
                     sym->kind == (a_symbol_kind)sk_class_template);
     check_assertion(ssep != NULL);
     if (ssep->template_arg_list != NULL) {
-      add_string_to_segment(" based on template argument", seg_ptr);
+      add_string_to_segment(" ", seg_ptr);
       if (ssep->template_arg_list->next != NULL) {
-        add_string_to_segment("s", seg_ptr);
+        add_string_to_segment(error_text(ec_based_on_template_arguments),
+                              seg_ptr);
+      } else {
+        add_string_to_segment(error_text(ec_based_on_template_argument),
+                              seg_ptr);
       }  /* if */
       add_string_to_segment(" ", seg_ptr);
       form_template_args(ssep->template_arg_list, &octl);
@@ -1251,8 +1266,9 @@ symbol_name:
   }  /* if */
   /* Add the declaration position as requested. */
   if (seg_ptr->variant.symbol.decl_pos) {
-    form_source_position(&sym->decl_position, error_pos, " (declared ", ")",
-                         "(at end of source)", seg_ptr);
+    form_source_position(&sym->decl_position, error_pos,
+                         error_text(ec_declared_prefix), ")",
+                         error_text(ec_at_end_of_source), seg_ptr);
   }  /* if */
   /* Add the translation unit associated with the symbol. */
   if (seg_ptr->variant.symbol.trans_unit) {
@@ -2330,7 +2346,7 @@ output.
      SP_COL_UNKINOWN. */
   /* If the line is from stdin, do not display the file name. */
   if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
-    *line_len += fprintf(f_error, "Line %lu", line_number);
+    *line_len += fprintf(f_error, "%s %lu", error_text(ec_Line), line_number);
   } else {
     *line_len += fprintf(f_error, "\"");
     /* Don't convert '\' to '\\' in error message output.  The
@@ -2339,10 +2355,12 @@ output.
     *line_len += write_file_name(file_name, f_error,
                                  /*process_escapes=*/FALSE,
                                  /*escape_nonprintable_chars=*/FALSE);
-    *line_len += fprintf(f_error, "\", line %lu", line_number);
+    *line_len += fprintf(f_error, "\", %s %lu", error_text(ec_line),
+                         line_number);
   }  /* if */
   if (column_number != SP_COL_UNKNOWN) {
-    *line_len += fprintf(f_error, " (col. %d)", column_number);
+    *line_len += fprintf(f_error, " (%s %d)", error_text(ec_col),
+                         column_number);
   }  /* if */
 }  /* write_position */
 
@@ -2363,11 +2381,12 @@ the actual source line is not available, the column number is added into
 the output.
 */
 {
-  char          *severity_string, *full_name;
+  char          *full_name;
   a_boolean	at_end_of_source;
   a_boolean     capitalize_severity;
   a_boolean     column_needed;
   a_boolean	local_display_error_number;
+  an_error_code	severity_code;
 
 #if STANDALONE_UTILITY_PROGRAM
   local_display_error_number = FALSE;
@@ -2394,7 +2413,7 @@ the output.
                               line_number, &at_end_of_source);
     if (at_end_of_source) {
       /* After end of source. */
-      *line_len += fprintf(f_error, "At end of source: ");
+      *line_len += fprintf(f_error, "%s: ", error_text(ec_at_end_of_source2));
     } else {
       /* Normal line in file, not end of file. */
 #if STANDALONE_UTILITY_PROGRAM
@@ -2439,33 +2458,36 @@ the output.
      diagnostic against the total for the severity. */
   switch (severity) {
     case es_remark:
-      severity_string = "remark";
+      severity_code = capitalize_severity ? ec_Remark : ec_remark;
       total_remarks++;
       break;
     case es_warning:
-      severity_string = "warning";
+      severity_code = capitalize_severity ? ec_Warning : ec_warning;
       total_warnings++;
       break;
     case es_discretionary_error:
     case es_error:
       if (local_display_error_number ||
           ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES) { /*lint !e506 !e774*/
-        severity_string = "error";
+        severity_code = capitalize_severity ? ec_Error : ec_error;
       } else {
-        severity_string = "";
+        severity_code = ec_no_error;
       }  /* if */
       total_errors++;
       break;
     case es_catastrophe:
-      severity_string = "catastrophic error";
+      severity_code = capitalize_severity ? ec_Catastrophic_error
+                                          : ec_catastrophic_error;
       total_catastrophes++;
       break;
     case es_command_line_error:
-      severity_string = "command-line error";
+      severity_code = capitalize_severity ? ec_Command_line_error
+                                          : ec_command_line_error;
       total_catastrophes++;
       break;
     case es_internal_error:
-      severity_string = "internal error";
+      severity_code = capitalize_severity ? ec_Internal_error
+                                          : ec_internal_error;
       total_catastrophes++;
       break;
 #if CHECKING
@@ -2474,13 +2496,8 @@ the output.
       internal_error("write_position_and_severity: bad severity");
 #endif /* CHECKING */
   }  /* switch */
-  if (capitalize_severity && *severity_string != '\0') {
-    /* Capitalize the first letter of the severity, because it's the first
-       thing on the line. */
-    *line_len += fprintf(f_error, "%c%s", toupper(*severity_string),
-                                          severity_string+1);
-  } else {
-    *line_len += fprintf(f_error, "%s", severity_string);
+  if (severity_code != ec_no_error) {
+    *line_len += fprintf(f_error, "%s", error_text(severity_code));
   }  /* if */
   /* The error number may optionally be displayed based on a command
      line option. */
@@ -2489,8 +2506,10 @@ the output.
        severity may be changed. */
     a_boolean	is_discretionary;
     is_discretionary = ((int)severity <= (int)es_discretionary_error);
-    *line_len += fprintf(f_error, " #%d%s: ", (int)error_code,
-                         is_discretionary ? "-D" : "");
+    *line_len +=
+           fprintf(f_error, " #%d%s: ", (int)error_code,
+                   error_text(is_discretionary ? ec_discretionary_suffix
+                                               : ec_non_discretionary_suffix));
   } else {
     *line_len += fprintf(f_error, ": ");
   }  /* if */
@@ -2862,7 +2881,7 @@ additional messages in a multiple message diagnostic.
        that remarks and warnings are never counted. */
     if (total_errors + total_catastrophes >= error_limit) {
 #if !USING_DRIVER
-      fprintf(f_error, "Error limit reached.\n");
+      fprintf(f_error, "%s\n", error_text(ec_error_limit_reached));
 #endif /* !USING_DRIVER */
 #if !STANDALONE_UTILITY_PROGRAM
       if (f_raw_listing != NULL) {
@@ -2893,7 +2912,8 @@ An internal error has occurred.  Write the given message and abort.
   /* Make sure that if one internal error leads to another, we abort
      the compilation instead of looping. */
   if (internal_error_loop) {
-    fprintf(f_error, "Internal error loop: %s\n", error_message);
+    fprintf(f_error, "%s: %s\n", error_text(ec_internal_error_loop),
+            error_message);
     term_compilation(es_internal_error);
   }  /* if */
   internal_error_loop = TRUE;
@@ -3597,7 +3617,7 @@ and doing any required expansions, the diagnostic is written.
       /* Make sure that if catastrophic error leads to another, we abort
          the compilation instead of looping. */
       if (catastrophe_has_occurred) {
-        fprintf(f_error, "Loop in catastrophic error processing.\n");
+        fprintf(f_error, "%s\n", error_text(ec_catastrophic_error_loop));
         term_compilation(es_catastrophe);
       }  /* if */
       catastrophe_has_occurred = TRUE;
@@ -4656,6 +4676,18 @@ indicated error_position, and then terminate the compilation.
   exit_compilation(es_internal_error);
 #endif /* __GNUC__ */
 }  /* pos_str2_catastrophe */
+
+
+DOES_NOT_RETURN error_code_catastrophe(an_error_code error_code,
+				       an_error_code error_code2)
+/*
+Report the catastrophe indicated by error_code at the position indicated by
+error_position, and then terminate the compilation.  error_code2 is used
+to create a fill-in string.
+*/
+{
+  str_catastrophe(error_code, error_text(error_code2));
+}  /* error_code_catastrophe */
 
 
 DOES_NOT_RETURN catastrophe(an_error_code error_code)

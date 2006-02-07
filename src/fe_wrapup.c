@@ -775,7 +775,7 @@ and before the back end (if any) is executed.
     /* Check for errors in writing the pp output file, then close it. */
     if (fflush(f_pp_output) || ferror(f_pp_output) ||
         (f_pp_output != stdout && fclose(f_pp_output))) {
-      str_catastrophe(ec_file_write_error, "preprocessing output");
+      error_code_catastrophe(ec_file_write_error, ec_preprocessing_output);
     }  /* if */
   }  /* if */
   f_pp_output = NULL;
@@ -784,7 +784,7 @@ and before the back end (if any) is executed.
   if (f_raw_listing != NULL) {
     if (fflush(f_raw_listing) || ferror(f_raw_listing) ||
         fclose(f_raw_listing)) {
-      str_catastrophe(ec_file_write_error, "raw listing");
+      error_code_catastrophe(ec_file_write_error, ec_raw_listing);
     }  /* if */
   }  /* if */
   f_raw_listing = NULL;
@@ -792,7 +792,7 @@ and before the back end (if any) is executed.
   /* Close the cross-reference file if one is being generated. */
   if (f_xref_info != NULL) {
     if (fflush(f_xref_info) || ferror(f_xref_info) || fclose(f_xref_info)) {
-      str_catastrophe(ec_file_write_error, "cross-reference");
+      error_code_catastrophe(ec_file_write_error, ec_cross_reference);
     }  /* if */
   }  /* if */
   f_xref_info = NULL;

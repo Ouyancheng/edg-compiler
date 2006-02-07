@@ -516,7 +516,7 @@ End the current line of output.
     /* Error in writing the output file.  This check supplements the check
        done when the file is closed.  The check here helps catch a disk full
        error quickly. */
-    str_catastrophe(ec_file_write_error, "generated C output");
+    error_code_catastrophe(ec_file_write_error, ec_generated_c_output);
   }  /* if */
   /* Keep track of the current position if we know where we are. */
   if (curr_output_pos_known) curr_output_line++;
@@ -5205,7 +5205,7 @@ the file.
 
   /* Seek to the beginning of the file. */
   if (fseek(f, 0L, SEEK_SET) != 0) {
-    str_catastrophe(ec_file_write_error, "temporary");
+    error_code_catastrophe(ec_file_write_error, ec_temporary);
   }  /* if */
   end_output_line_if_begun();
   /* We're counting on the fact that the initialization code will have its
@@ -8705,7 +8705,7 @@ If C_output_file_name is NULL, use stdout for the output.
   /* Check for errors in writing the output file, then close it. */
   if (fflush(f_C_output) || ferror(f_C_output) ||
       (f_C_output != stdout && fclose(f_C_output))) {
-    str_catastrophe(ec_file_write_error, "generated C output");
+    error_code_catastrophe(ec_file_write_error, ec_generated_c_output);
   }  /* if */
   f_primary = f_C_output = NULL;
 }  /* generate_C_output_file */

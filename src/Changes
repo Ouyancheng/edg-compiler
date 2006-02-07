@@ -1,5 +1,12 @@
 Version 3.8
 
+2/7/06   Improved support for international error message text
+
+Most of the error message text is in the error_msg.txt file, but quite
+a few of the strings used in the error output (such as "line", "error",
+"at end of source", etc.) were hard-coded in error.c and other places.
+These additional strings have now been made part of error_msg.txt.
+
 2/3/06   GNU IA-64 ABI: Alignment of first virtual base
 
 When DEFAULT_EMULATE_GNU_ABI_BUGS is TRUE, the front end emulated a layout bug

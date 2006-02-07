@@ -436,6 +436,10 @@ extern DOES_NOT_RETURN pos_st_catastrophe(an_error_code     error_code,
 /*lint -sem(str_catastrophe, r_no)*/
 extern DOES_NOT_RETURN str_catastrophe(an_error_code error_code,
                                        char          *error_string);
+/*lint -sem(str_catastrophe, r_no)*/
+extern DOES_NOT_RETURN error_code_catastrophe(an_error_code error_code,
+					      an_error_code error_code2);
+
 /*lint -sem(catastrophe, r_no)*/
 extern DOES_NOT_RETURN catastrophe(an_error_code error_code);
 
@@ -503,6 +507,8 @@ extern void embedded_cplusplus_noncompliance_diagnostic(
                                               a_source_position  *error_pos,
                                               an_error_code      error_code);
 
+extern char *error_text(an_error_code error_code);
+
 /* Macro that determines whether to report a violation of the Embedded C++
    subset. */
 #define feature_is_not_part_of_embedded_cplusplus_subset(pos, error_code) \
@@ -513,7 +519,7 @@ extern void embedded_cplusplus_noncompliance_diagnostic(
 extern void end_error(void);
 
 extern void start_command_line_error(an_error_code      error_code,
-			             char		 *error_string);
+			             char		*error_string);
 
 /*lint -sem(end_command_line_error, r_no)*/
 extern DOES_NOT_RETURN end_command_line_error(void);

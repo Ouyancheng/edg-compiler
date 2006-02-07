@@ -841,7 +841,8 @@ already exists.
     /* Close the file if it is open. */
     if (fclose(f_template_info)) {
       f_template_info = NULL;
-      str_catastrophe(ec_file_write_error, "template information file");
+      error_code_catastrophe(ec_file_write_error,
+                             ec_template_information_file);
     }  /* if */
   }  /* if */
   if (!automatic_instantiation_mode ||
@@ -934,7 +935,7 @@ have already existed.
     /* Close the file if it is open. */
     if (fclose(f_exported_template)) {
       f_exported_template = NULL;
-      str_catastrophe(ec_file_write_error, "exported template file");
+      error_code_catastrophe(ec_file_write_error, ec_exported_template_file);
     }  /* if */
   }  /* if */
   if (f_exported_template == NULL || total_errors != 0 ||
@@ -17976,7 +17977,8 @@ if one already exists.
         if (fclose(f_ii_file)) {
           /* Close the file before removing it.  This is necessary on
              some operating systems. */
-          str_catastrophe(ec_file_write_error, "instantiation request file");
+          error_code_catastrophe(ec_file_write_error,
+                                 ec_instantiation_request_file);
         }  /* if */
         delete_file(instantiation_request_file_name);
         f_ii_file = NULL;
@@ -17985,7 +17987,8 @@ if one already exists.
   }  /* if */
   if (f_ii_file != NULL) {
     if (fclose(f_ii_file)) {
-      str_catastrophe(ec_file_write_error, "instantiation request file");
+      error_code_catastrophe(ec_file_write_error,
+                             ec_instantiation_request_file);
     }  /* if */
   }  /* if */
 }  /* create_or_remove_instantiation_request_file */
@@ -19197,7 +19200,7 @@ for adding the entries to the actual instantiation request file.
   }  /* for */
   if (fclose(f_definition_list)) {
     f_definition_list = NULL;
-    str_catastrophe(ec_file_write_error, "definition list file");
+    error_code_catastrophe(ec_file_write_error, ec_definition_list_file);
   }  /* if */
   f_definition_list = NULL;
 }  /* add_entities_to_request_file */

@@ -2685,7 +2685,7 @@ is TRUE.
            most lines and supplements the check done when the file is closed.
            Checking here is so that a disk full error is caught fairly
            quickly. */
-        str_catastrophe(ec_file_write_error, "preprocessing output");
+        error_code_catastrophe(ec_file_write_error, ec_preprocessing_output);
       }  /* if */
       /* The newline at the end of the source line is represented by
          an LE_ESCAPE/LE_NEWLINE lexical escape sequence, so no newline
@@ -2850,7 +2850,7 @@ orig_line_modif_list modifications apply to the indicated text.
         /* Error in writing the raw listing file.  This check supplements 
            the check done when the file is closed.  Checking here is done so
            that a disk full error is caught fairly quickly. */
-        str_catastrophe(ec_file_write_error, "raw listing");
+        error_code_catastrophe(ec_file_write_error, ec_raw_listing);
       }  /* if */
       /* Write the final newline (the source line contains an
          LE_ESCAPE/LE_NEWLINE escape rather than an actual newline

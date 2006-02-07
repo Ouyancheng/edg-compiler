@@ -6815,8 +6815,8 @@ A catastrophic error is issued if the mode name is invalid.
 }  /* get_predef_macro_mode_value */
 
 
-static a_boolean process_predefined_macro_entry(char	*line,
-						char	**error_string)
+static a_boolean process_predefined_macro_entry(char		*line,
+						an_error_code	*error_code)
 /*
 Scan a predefined macro file entry.  The format is:
 
@@ -6838,7 +6838,7 @@ An entry may also be empty (just whitespace).  A line that begins with
 a "#" is a comment and is ignored.
 
 Return TRUE if the macro line was processed successfully, FALSE otherwise.
-When FALSE is returned, error_string points to a description of the error
+When FALSE is returned, error_code points to a description of the error
 that occurred.
 */
 {
@@ -6857,7 +6857,7 @@ that occurred.
   }  /* if */
 #endif /* DEBUG */
 #define skip_blanks() for (; *ptr == ' ' || *ptr == '\t'; ++ptr) {}
-  *error_string = NULL;
+  *error_code = ec_no_error;
   ptr = line;
   /* Skip any leading white space. */
   skip_blanks();
@@ -6874,7 +6874,7 @@ that occurred.
          *end_pos != '\t' && *end_pos != '\0'; end_pos++) {}
     /* We shouldn't be at the end of the string. */
     if (*end_pos == '\0') {
-      *error_string = "missing cannot-redefine flag";
+      *error_code = ec_missing_cannot_redefine_flag;
       goto error_exit;
     }  /* if */
     /* See if this is the last mode value. */
@@ -6886,7 +6886,7 @@ that occurred.
     ptr = end_pos + 1;
     /* There can't be white space in the mode list. */
     if (!done && (*ptr == ' ' || *ptr == '\t')) {
-      *error_string = "missing mode after ','";
+      *error_code = ec_missing_mode_after_comma;
       goto error_exit;
     }  /* if */
   }  /* for */
@@ -6897,7 +6897,7 @@ that occurred.
        *end_pos != ' ' && *end_pos != '\t' && *end_pos != '\0'; end_pos++) {}
   /* We shouldn't be at the end of the string. */
   if (*end_pos == '\0') {
-    *error_string = "missing macro name";
+    *error_code = ec_missing_macro_name;
     goto error_exit;
   }  /* if */
   /* Replace the delimiter with a null. */
@@ -6908,7 +6908,7 @@ that occurred.
     cannot_redefine = FALSE;
   } else {
     /* An invalid cannot-redefine value. */
-    *error_string = "invalid cannot-redefine value";
+    *error_code = ec_invalid_cannot_redefine_value;
     goto error_exit;
   }  /* if */
   ptr = end_pos + 1;
@@ -6916,7 +6916,7 @@ that occurred.
   skip_blanks();
   /* We shouldn't be at the end of the string. */
   if (*ptr == '\0') {
-    *error_string = "missing macro name";
+    *error_code = ec_missing_macro_name;
     goto error_exit;
   }  /* if */
   macro_name = ptr;
@@ -6946,7 +6946,7 @@ exit:
   result = TRUE;
 error_exit:
   /* The error string should be set in error cases. */
-  check_assertion(result || *error_string != NULL);
+  check_assertion(result || *error_code != ec_no_error);
   return result;
 }  /* process_predefined_macro_entry */
 
@@ -6992,16 +6992,16 @@ file name.
 {
   char		*line;
   unsigned long	line_number = 0;
-  char		*error_string;
+  an_error_code	error_code;
 
   f_predef_macros = open_predefined_macro_file();
   while ((line = read_line_from_file(f_predef_macros)) != NULL) {
     line_number++;
-    if (!process_predefined_macro_entry(line, &error_string)) {
+    if (!process_predefined_macro_entry(line, &error_code)) {
       /* The predefined macro line was invalid. */
       pos_str2_catastrophe(ec_bad_predef_macro_line,
                            conv_unsigned_long_to_str(line_number),
-			   error_string, &null_source_position);
+			   error_text(error_code), &null_source_position);
     }  /* if */
   }  /* while */
   (void)fclose(f_predef_macros);

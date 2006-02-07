@@ -1404,7 +1404,7 @@ End the current line of output.
     /* Error in writing the output file.  This check supplements the check
        done when the file is closed.  The check here helps catch a disk full
        error quickly. */
-    str_catastrophe(ec_file_write_error, "generated C output");
+    error_code_catastrophe(ec_file_write_error, ec_generated_c_output);
   }  /* if */
   curr_output_line++;
   curr_output_column = 0;
@@ -12823,7 +12823,7 @@ Generate C++ or C from the intermediate language.
   /* Check for errors in writing the output file, then close it. */
   if (fflush(f_C_output) || ferror(f_C_output) ||
       (f_C_output != stdout && fclose(f_C_output))) {
-    str_catastrophe(ec_file_write_error, "generated C output");
+    error_code_catastrophe(ec_file_write_error, ec_generated_c_output);
   }  /* if */
   f_C_output = NULL;
 }  /* cp_gen_be */
