@@ -248,6 +248,9 @@ extern int fileno(FILE *);
 /*lint -esym(765, trace_entry)*/
 /*lint -esym(714, trace_entry)*/
 #endif /* CHECKING && DEBUG && ALTERNATE_IL_FILE_FORMAT */
+#if !ALTERNATE_IL_FILE_FORMAT
+/*lint -esym(769,ec_intermediate_language_7)*/
+#endif /* !ALTERNATE_IL_FILE_FORMAT */
 #if DEBUG
 /*lint -esym(765, db_sym_list)*/
 /*lint -esym(714, db_sym_list)*/
