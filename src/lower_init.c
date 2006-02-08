@@ -394,7 +394,7 @@ done:;
 }  /* do_default_arg_promotions_on_node */
 
 
-static a_type_ptr lowered_return_type_of(a_type_ptr routine_type)
+a_type_ptr lowered_return_type_of(a_type_ptr routine_type)
 /*
 Return the type that is the return type of the given function type, as
 it would appear as the type on a call of the function in the lowered IL.
@@ -404,8 +404,7 @@ it would appear as the type on a call of the function in the lowered IL.
 
   routine_type = skip_typerefs(routine_type);
 #if CTORS_RETURN_THIS
-  if (!visited_yet(routine_type) &&
-      routine_type->variant.routine.extra_info->assoc_routine_is_ctor) {
+  if (routine_type->variant.routine.extra_info->assoc_routine_is_ctor) {
     /* Constructors return "pointer to class" in the Cfront-like ABI and
        a variant of the IA-64 ABI. */
     a_type_ptr class_type =
@@ -415,12 +414,11 @@ it would appear as the type on a call of the function in the lowered IL.
   } else
 #endif /* CTORS_RETURN_THIS */
 #if DTORS_RETURN_THIS
-  if (!visited_yet(routine_type) &&
-      routine_type->variant.routine.extra_info->assoc_routine_is_dtor) {
+  if (routine_type->variant.routine.extra_info->assoc_routine_is_dtor) {
     /* Destructors return "void *" in a variant of the IA-64 ABI.
        Note that deleting destructors return void even in that
-       variant, but those are always created in lowered form so
-       there's no problem here. */
+       variant, but those do not have assoc_routine_is_dtor set (it's
+       not set for entry points) so there's no problem here. */
     return_type = void_star_type();
   } else
 #endif /* DTORS_RETURN_THIS */

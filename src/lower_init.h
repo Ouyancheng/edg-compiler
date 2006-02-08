@@ -44,6 +44,8 @@ extern void do_ptr_to_data_member_arg_promotion_on_node(an_expr_node_ptr expr);
 
 extern void do_default_arg_promotions_on_node(an_expr_node_ptr expr);
 
+extern a_type_ptr lowered_return_type_of(a_type_ptr routine_type);
+
 #if !IA64_ABI
 extern a_routine_ptr make_subobject_destruction_routine(
                                                        a_dynamic_init_ptr dip);

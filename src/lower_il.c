@@ -5622,7 +5622,7 @@ yet.
      implicit "this" parameter processed). */
   mark_as_not_visited(entry_rout_type);
   entry_rout_type->variant.routine.return_type =
-                             overridden_rout_type->variant.routine.return_type;
+                                  lowered_return_type_of(overridden_rout_type);
   *entry_rout_type->variant.routine.extra_info =
                              *overriding_rout_type->variant.routine.extra_info;
   entry_rout_type->variant.routine.extra_info->assoc_routine = NULL;
