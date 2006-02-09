@@ -12840,6 +12840,7 @@ between clauses of the switch.  They are processed at the proper points.
         }  /* if */
       }  /* if */
       if (advance_to_next_lifetime) {
+        lifetime = curr_object_lifetime;
         while (between_clause_list != NULL) {
           /* Check whether the statements at the front of the between-clause
              list fall after this clause. */
@@ -12900,6 +12901,17 @@ the list or *between_clause_list is returned NULL.
        *prev_stmt = stmt, stmt = stmt->next) {
     if (stmt->kind == (a_statement_kind)stmk_label) {
       an_object_lifetime_ptr lifetime = stmt->variant.label.lifetime;
+      a_statement_ptr        temp_stmt;
+      while (lifetime != NULL &&
+             lifetime->kind ==
+                              (an_object_lifetime_kind)olk_block_after_label &&
+             lifetime->entity.kind == (a_byte_il_entry_kind)iek_statement &&
+             (temp_stmt = ((a_statement *)lifetime->entity.ptr))->kind ==
+                                                (a_statement_kind)stmk_label) {
+        /* Back up from a label to the previous lifetime, hoping to get
+           back to a switch clause. */
+        lifetime = temp_stmt->variant.label.lifetime;
+      }  /* while */
       if (lifetime != NULL) {
         if (lifetime->kind == (an_object_lifetime_kind)olk_block_after_label &&
             lifetime->entity.kind == (a_byte_il_entry_kind)iek_switch_clause) {

@@ -15397,6 +15397,12 @@ with it.  Entries associated with scopes must also have no child entries.
         if (has_child_with_temporary_lifetime(olp)) {
           /* Do not remove a block-after-label lifetime if it has any children
              that have temporary lifetimes. */
+        } else if (olp->entity.kind ==
+                                     (a_byte_il_entry_kind)iek_switch_clause &&
+                   olp->has_block_after_label_child_lifetime) {
+          /* A switch clause lifetime is kept in the IL if it has a
+             block-after-label child.  This is useful to
+             find_label_between_switch_clauses. */
         } else if (long_lifetime_temps &&
                    any_destruction_has_temp_lifetime(olp->parent_lifetime)) {
           /* If temps have long lifetimes, the label is the point at which

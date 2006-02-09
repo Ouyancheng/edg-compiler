@@ -1,5 +1,31 @@
 Version 3.8
 
+2/9/06   Abort in gen_goto_cleanup_actions, lowering of goto within switch
+
+IL lowering aborted in gen_goto_cleanup_actions ("common lifetime not
+found in curr lifetime parents") in a case involving a switch statement,
+a case within that switch that includes a label and a destructible
+temporary and ends with a break, and following that (still within the
+switch) a goto to a label at the same level.  Now fixed.
+
+  struct A {
+    A(int);
+    ~A();
+  };
+  void f(const A &);
+  int main() {
+    switch(1) {
+      case 1:
+      L1:
+        f((A)0);
+        break;
+      L2:
+        goto L3;  // Abort on this line
+      L3:
+        break;
+    }
+  }
+
 2/7/06   Improved support for international error message text
 
 Most of the error message text is in the error_msg.txt file, but quite
