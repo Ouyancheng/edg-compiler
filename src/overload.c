@@ -10077,7 +10077,7 @@ select_best_function:
                  a context don't get here. */
               check_assertion(!dependent_call &&
                               operator_tok_seq_number != 0);
-              record_nondependent_call(function_symbol,
+              record_nondependent_call(proj_function_symbol,
                                        operator_tok_seq_number);
             }  /* if */
             /* Check for the builtin operator=. */

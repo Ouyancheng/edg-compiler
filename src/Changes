@@ -1,5 +1,30 @@
 Version 3.8
 
+2/13/06  Spurious access error on overloaded operator with dependent name
+         processing
+
+The front end gave a spurious access error when dependent name
+processing is enabled (e.g., in strict mode) on a reference to an
+operator function whose access is adjusted via a using-declaration
+in a derived class.  Now fixed.
+
+  template <class T>
+  struct B {
+     void operator[](int index);
+  };
+  template <class T>
+  struct D : private B<int> {
+     using B<int>::operator [];
+  };
+  template <class T>
+  void foo() {
+     D<int> se;
+     se[0];  // Spurious error here
+  }
+  int main() {
+     foo<int>();
+  }
+
 2/10/06  Generating preprocessed output when using --preinclude_macros
 
 The front end produced incorrect preprocessed output when using macro
