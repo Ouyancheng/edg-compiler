@@ -4253,7 +4253,8 @@ is returned in result.  If the operation cannot be folded to
 a constant (because the pointers do not point to the same object),
 *did_not_fold is returned TRUE.  *err_code and *err_severity are set
 to indicate any error/warning detected, or *err_code == ec_no_error
-if everything went fine.
+if everything went fine.  Also handles address constants cast to an
+integral type, as in "(int)&x - (int)&x".
 */
 {
   a_constant       offset_2, offset_1;
@@ -4284,24 +4285,25 @@ if everything went fine.
       /* Divide the difference by the size of the objects pointed to.
          The caller has already checked that the type pointed to is
          not incomplete, so the size is not zero (except possibly
-         in gcc mode). */
-      a_targ_size_t  object_size;
-      object_type = type_pointed_to(constant_1->type);
-      object_type = skip_typerefs(object_type);
-      if (gcc_mode) {
-        object_size = gcc_stride_size(object_type);
-      } else {
-        object_size = object_type->size;
+         in gcc mode).  If the address constants have been cast to
+         integer, there is no scaling. */
+      if (!is_integral_type(constant_1->type)) {
+        a_targ_size_t  object_size;
+        object_type = type_pointed_to(constant_1->type);
+        object_type = skip_typerefs(object_type);
+        if (gcc_mode) {
+          object_size = gcc_stride_size(object_type);
+        } else {
+          object_size = object_type->size;
+        }  /* if */
+        /* Division by zero can come up in GNU mode with pointers to empty
+           class types or pointers to zero-length arrays. */
+        check_assertion_str(object_size != 0 || gnu_mode,
+                            "do_pdiff: size of object pointed to is zero");
+        set_unsigned_integer_value(&size_intval, object_size);
+        divide_integer_values(&difference, &size_intval,
+                              int_constant_is_signed(result), &err);
       }  /* if */
-      /* Division by zero can come up in GNU mode with pointers to empty class
-         types or pointers to zero-length arrays. */
-      check_assertion_str(object_size != 0 || gnu_mode,
-                          "do_pdiff: size of object pointed to is zero");
-      set_unsigned_integer_value(&size_intval, object_size);
-      /* Note that we treat &difference as signed here even if it was unsigned
-         above, since the difference is defined to be signed. */
-      divide_integer_values(&difference, &size_intval,
-                            /*is_signed=*/TRUE, &err);
     }  /* if */
     if (!err) {
       trunc_and_set_integer(&difference, result, /*check_overflow=*/TRUE,
@@ -4649,6 +4651,14 @@ as the position for any diagnostics issued.
 #endif /* CHECKING */
         do_padd(constant_1, op, constant_2, result, &err_code,
                 &err_severity);
+      } else if (gnu_mode &&
+                 op == (an_expr_operator_kind)eok_isubtract &&
+                 is_addr_constant_cast_to_integral_type(constant_2)) {
+        /* Allow
+             (int)addr_constant - (int)addr_constant
+           in GNU mode. */
+        do_pdiff(constant_1, constant_2, result, did_not_fold,
+                 &err_code, &err_severity);
       } else if (gnu_mode &&
                  op == (an_expr_operator_kind)eok_and &&
                  is_zero_constant(constant_2)) {

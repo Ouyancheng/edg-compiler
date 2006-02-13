@@ -1,5 +1,16 @@
 Version 3.8
 
+2/13/06  GNU compatibility: folding of difference of pointers cast to int
+
+In GNU mode, the difference of two pointers, each cast to int, is
+now considered a constant expression.
+
+  struct Foo {
+    int x;
+    int y;
+  } f;
+  int c = (int)&f.y - (int)&f;  // Now valid in GNU C mode
+
 2/13/06  Spurious access error on overloaded operator with dependent name
          processing
 
