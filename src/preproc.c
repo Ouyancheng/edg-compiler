@@ -2558,11 +2558,18 @@ been pushed onto the input stack.  Read to the end of each file.
       for (;;) {
         if (get_token() == tok_end_of_source) break;
       }  /* for */
+      /* Restore the generate_pp_output value before popping the last
+         macro preinclude file.  This is necessary to output a #line
+         directive for the primary source file.  Set the flag to indicate
+         that the current source line should not be emitted though. */
+      if (pfp->next == NULL) {
+        generate_pp_output = save_generate_pp_output;
+        do_not_put_curr_line_in_pp_output = TRUE;
+      }  /* if */
       /* Pop the current file, and push another preinclude if there
          is another one. */
       pop_input_stack();
     }  /* for */
-    generate_pp_output = save_generate_pp_output;
   }  /* if */
 }  /* process_macro_preincludes */
 

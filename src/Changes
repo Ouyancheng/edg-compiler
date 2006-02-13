@@ -1,5 +1,13 @@
 Version 3.8
 
+2/10/06  Generating preprocessed output when using --preinclude_macros
+
+The front end produced incorrect preprocessed output when using macro
+preinclude files.  If the last line of the preinclude file was not
+a preprocessing directive, it was emitted in the preprocessed output.
+In addition, the output lacked a #line directive to mark the beginning
+of output associated with the primary source file.  Now fixed.
+
 2/9/06   Abort in gen_goto_cleanup_actions, lowering of goto within switch
 
 IL lowering aborted in gen_goto_cleanup_actions ("common lifetime not
