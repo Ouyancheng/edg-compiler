@@ -3407,7 +3407,7 @@ returned set to TRUE.
       /* This must be a non-dynamic initialization of a local static
          variable. */
       check_assertion(in_file_scope(vp));
-      check_assertion(!in_file_scope(init_con));
+      check_assertion(!in_file_scope(init_con) || is_error_constant(init_con));
       if (init_con->kind == (a_constant_repr_kind)ck_aggregate ||
           has_non_file_scope_ref(init_con)) {
         /* Aggregate-constant initialization.  Since the aggregate constant
