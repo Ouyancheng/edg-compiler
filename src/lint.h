@@ -487,6 +487,17 @@ extern int fileno(FILE *);
 #if !GNU_EXTENSIONS_ALLOWED
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_types_compatible)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */
+/*lint -esym(759,is_char_array_type)*/
+/*lint -esym(765,is_char_array_type)*/
+/*lint -esym(714,is_char_array_type)*/
+/*lint -esym(759,is_wchar_t_array_type)*/
+/*lint -esym(765,is_wchar_t_array_type)*/
+/*lint -esym(714,is_wchar_t_array_type)*/
+/*lint -esym(759,is_wide_string_constant)*/
+/*lint -esym(765,is_wide_string_constant)*/
+/*lint -esym(714,is_wide_string_constant)*/
+/*lint -esym(755,extract_wide_char_from_string)*/
+/*lint -esym(755,wide_string_type)*/
 
 /******************************************************************************
 *                                                             \  ___  /       *

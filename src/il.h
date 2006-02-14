@@ -908,10 +908,6 @@ extern a_boolean is_wide_string_constant(a_constant_ptr constant);
 
 #define is_normal_character(kind)  ((kind) == (a_character_kind)chk_char)
 
-#define is_normal_string_constant(con)                                      \
-  ((con)->kind == (a_constant_repr_kind)ck_string &&                        \
-   is_normal_character((con)->character_kind))
-
 extern void make_zero_of_proper_type(a_type_ptr desired_type,
                                      a_constant *zero_constant);
 

@@ -4343,7 +4343,7 @@ Copy a constant entry from "from" to "to".
 }  /* copy_constant */
 
 
-a_type_ptr character_type(a_character_kind  kind)
+static a_type_ptr character_type(a_character_kind  kind)
 /*
 Return a character type entry (tk_integer) corresponding to the given
 character kind.

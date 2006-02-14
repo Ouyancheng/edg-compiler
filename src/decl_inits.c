@@ -259,7 +259,7 @@ truncated and the type may be modified (e.g., to set the length of the string).
 {
   /* The object being initialized has type array of characters, and
      is being initialized with a string.  Handle this case specially. */
-  a_type_ptr     array_type;
+  a_type_ptr     array_type, var_elem_type, string_elem_type;
   a_character_kind
                  char_kind = string_con->character_kind;
   a_targ_size_t  char_size = character_size[char_kind];
@@ -276,9 +276,10 @@ truncated and the type may be modified (e.g., to set the length of the string).
   /* The constant and the array should have the same underlying character
      element type -- e.g., it's a mismatch if one is a wide string
      and the other a normal string. */
-  err = (!identical_types_ignoring_qualifiers(
-                                      array_element_type(*var_type),
-                                      array_element_type(string_con->type)) &&
+  var_elem_type = array_element_type(*var_type);
+  string_elem_type = array_element_type(string_con->type);
+  err = (!identical_types_ignoring_qualifiers(var_elem_type,
+                                              string_elem_type) &&
          !is_template_dependent);
   if (!err) {
     /* The constant is a string with characters that are compatible with

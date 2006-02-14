@@ -7580,6 +7580,8 @@ The token can be a normal or wide string literal.
       character_kind = (a_character_kind)chk_char;
       curr_char_loc += 2;
       break;
+    default:
+      unexpected_condition();
   }  /* switch */
   if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
                           character_kind, '"')

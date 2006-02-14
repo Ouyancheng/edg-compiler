@@ -1061,6 +1061,8 @@ processing, and in wide characters if the constant is wide).
       con_type = integer_type(targ_char16_t_int_kind);
       temp_ptr = start_of_curr_token+2;
       break;
+    default:
+      unexpected_condition();
   }  /* switch */
   centity_mask = (unsigned long)1 << (centity_bits-1);
   centity_mask = centity_mask | (centity_mask - 1);
@@ -1104,6 +1106,8 @@ processing, and in wide characters if the constant is wide).
           conv_single_wide_char(&temp_ptr, &ch, centity_mask);
           if (i != 0) too_many_chars = TRUE;
           break;
+        default:
+          unexpected_condition();
       }  /* switch */
       /* Put the character in the right place. */
       set_unsigned_integer_value(&ch_int_val, (a_host_large_unsigned)ch);
@@ -1155,7 +1159,7 @@ processing, and in wide characters if the constant is wide).
     clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
     const_for_curr_token.type = con_type;
     const_for_curr_token.variant.integer_value = number;
-  const_for_curr_token.character_kind = character_kind;
+    const_for_curr_token.character_kind = character_kind;
   }  /* if */
 }  /* conv_char_literal */
 
@@ -1248,6 +1252,8 @@ smaller) than the number of characters needed to represent the string.
          ENCODE_IN_CHAR16_T macro). */
       centity_mask = ~0;
       break;
+    default:
+      unexpected_condition();
   }  /* switch */
   if (char_size != 1) {
     /* Skip over the 'L', 'U', or 'u': */
@@ -1293,12 +1299,14 @@ smaller) than the number of characters needed to represent the string.
           conv_line_loc_to_source_pos(prev_pos, &error_position);
           error(ec_no_char16_t_representation);
         } else {
-          for (i = 0; i < encoding_length; ++i) {
+          for (i = 0; i < (unsigned long)encoding_length; ++i) {
             put_wide_char_into_string((unsigned long)char16_t_vals[i],
                                       &pstr, char_size);
           }  /* for */
         }  /* if */
         break;
+      default:
+        unexpected_condition();
     }  /* switch */
   }  /* for */
   /* Add the final null. */
@@ -1319,6 +1327,8 @@ smaller) than the number of characters needed to represent the string.
       ch = 0;
       put_wide_char_into_string(ch, &pstr, char_size);
       break;
+    default:
+      unexpected_condition();
   }  /* switch */
 #if CHECKING
   /* Check that the length calculation was correct. */
