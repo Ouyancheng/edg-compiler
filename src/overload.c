@@ -9776,21 +9776,23 @@ such cases (where operator overloading might apply, but we can't tell).
           a_nondependent_call_info_ptr ndcall_info;
           ndcall_info = get_nondependent_call_info(operator_tok_seq_number);
           dependent_call = (ndcall_info == NULL);
-          function_symbol = NULL;
-          if (!dependent_call) function_symbol = ndcall_info->symbol;
-          if (function_symbol != NULL) {
+          proj_function_symbol = function_symbol = NULL;
+          if (!dependent_call) proj_function_symbol = ndcall_info->symbol;
+          if (proj_function_symbol != NULL) {
             /* We know the function selected for this nondependent call
                during the prototype instantiation.  Use that without going
                through overload resolution. */
-            a_boolean is_member = routine_type_is_nonstatic_member_function(
+            a_boolean is_member;
+            function_symbol = fundamental_symbol_of(proj_function_symbol);
+            is_member = routine_type_is_nonstatic_member_function(
                                          routine_symbol_type(function_symbol));
             if (is_member) {
-              member_functions_symbol = function_symbol;
+              member_functions_symbol = proj_function_symbol;
             } else {
-              nonmember_functions_symbol = function_symbol;
+              nonmember_functions_symbol = proj_function_symbol;
             }  /* if */
             try_overloaded_function_match(
-                                         function_symbol,
+                                         proj_function_symbol,
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
                                          is_member ? arg_operand_list2 :
