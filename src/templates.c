@@ -14823,6 +14823,7 @@ the declaration token cache.
   if (curr_token == tok_friend) (void)get_token();
   skip_illegal_class_template_decl_specifiers(/*diagnose=*/FALSE);
   if (is_class_type_keyword(curr_token)) {
+    a_token_kind  next_tok;
     (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
     if (microsoft_mode or_near_and_far_enabled()) {
@@ -14847,29 +14848,26 @@ the declaration token cache.
 					GID_IMPLICIT_TYPE_CONTEXT)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode && microsoft_version >= 1400) {
-        a_token_kind  next_tok = next_token();
+        next_tok = next_token();
         if (next_tok == tok_identifier) {
           check_for_microsoft_class_modifiers(&next_tok, tok_end_of_source);
-        }  /* if */
-        if (next_tok == tok_colon || next_tok == tok_end_of_source) {
-          result = TRUE;
         }  /* if */
       } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
       {
         (void)get_token();
-        if (curr_token == tok_colon || curr_token == tok_end_of_source) {
-          result = TRUE;
-        }  /* if */
+        next_tok = curr_token;
       }  /* if */
-    } else if (curr_token == tok_colon || curr_token == tok_end_of_source) {
-      /* A class template declaration with a missing identifier.  Return
-         TRUE for better error recovery. */
-      result = TRUE;
+    } else {
+      /* A class template declaration with a missing identifier.  If the next
+         token is a colon or semicolon, we still return TRUE for better error
+         recovery. */
+      next_tok = curr_token;
     }  /* if */
+    result = (next_tok == tok_colon || next_tok == tok_end_of_source);
   }  /* if */
-  /* Flush and remaining tokens from the reusable cache. */
+  /* Flush any remaining tokens from the reusable cache. */
   while (curr_token != tok_end_of_source) (void)get_token();
   /* Skip past the tok_end_of_source. */
   (void)get_token();

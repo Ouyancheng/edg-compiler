@@ -8024,8 +8024,8 @@ typedef struct a_routine {
 			   is_virtual is also TRUE. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	sealed:1;
-			/* TRUE for a virtual member function that does cannot
-			   be overridden in a derived class. */
+			/* TRUE for a virtual member function that cannot be
+			   overridden in a derived class. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	covariant_return_virtual_override:1;
 			/* TRUE if is_virtual is TRUE and this routine is an

@@ -3054,6 +3054,9 @@ restrictive.  Issue an appropriate diagnostic at the given position.
 }  /* report_override_exception_spec_mismatch */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* func_info is not used in some configurations. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean check_for_virtual_function(
                                      a_boolean             virtual_specified,
                                      a_symbol_ptr          rout_sym,

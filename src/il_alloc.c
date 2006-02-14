@@ -2122,7 +2122,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_virtual                  = FALSE;
   rp->pure_virtual                = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  rp->sealed                   = FALSE;
+  rp->sealed                      = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   rp->covariant_return_virtual_override
                                   = FALSE;
@@ -2187,8 +2187,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->definition_has_direct_linkage_specifier
                                   = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  rp->abstract                 = FALSE;
-  rp->override                 = FALSE;
+  rp->abstract                    = FALSE;
+  rp->override                    = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if INSTANTIATE_EXTERN_INLINE

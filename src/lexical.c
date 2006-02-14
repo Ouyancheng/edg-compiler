@@ -14051,7 +14051,8 @@ keywords (which are fairly common in Microsoft mode).
     a_symbol_header_ptr  sym_hdr = locator_for_curr_id.symbol_header;
     if (sym_hdr->identifier[0] == tok_str[0] &&
         strncmp(sym_hdr->identifier, tok_str,
-                sym_hdr->identifier_length) == 0) {
+                sym_hdr->identifier_length) == 0 &&
+        strlen(tok_str) == sym_hdr->identifier_length) {
       curr_token = tok_kind;
     }  /* if */
   }  /* if */

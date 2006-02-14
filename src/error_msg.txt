@@ -1581,6 +1581,7 @@ ec_missing_cannot_redefine_flag;INTERNAL;"missing cannot-redefine flag"
 ec_missing_mode_after_comma;INTERNAL;"missing mode after ','"
 ec_missing_macro_name;INTERNAL;"missing macro name"
 ec_invalid_cannot_redefine_value;INTERNAL;"invalid cannot-redefine value"
+ec_duplicate_function_modifier;;"duplicate function modifier"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

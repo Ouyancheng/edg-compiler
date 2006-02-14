@@ -1197,20 +1197,26 @@ syntactic properties of the current declaration.
   a_boolean  virtual_required_diag_issued = FALSE;
   for (;;) {
     a_boolean  explicit_virtual_required = FALSE;
-    if (curr_token != tok_identifier) {
-      break;
-    } else if (check_context_sensitive_keyword(tok_abstract, "abstract")) {
-      if (func_info->sealed) {
+    if (check_context_sensitive_keyword(tok_abstract, "abstract")) {
+      if (func_info->abstract) {
+        error(ec_duplicate_function_modifier);
+      } else if (func_info->sealed) {
         error(ec_function_modifiers_abstract_and_sealed);
       } else {
         func_info->abstract = TRUE;
         explicit_virtual_required = TRUE;
       }  /* if */
     } else if (check_context_sensitive_keyword(tok_override, "override")) {
-      func_info->override = TRUE;
-      explicit_virtual_required = TRUE;
+      if (func_info->override) {
+        error(ec_duplicate_function_modifier);
+      } else {
+        func_info->override = TRUE;
+        explicit_virtual_required = TRUE;
+      }  /* if */
     } else if (check_context_sensitive_keyword(tok_sealed, "sealed")) {
-      if (func_info->abstract) {
+      if (func_info->sealed) {
+        error(ec_duplicate_function_modifier);
+      } else if (func_info->abstract) {
         error(ec_function_modifiers_abstract_and_sealed);
       } else {
         func_info->sealed = TRUE;
@@ -1234,6 +1240,9 @@ syntactic properties of the current declaration.
   
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* state is not used in some configurations. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void cplusplus_function_declarator_trailer(
                         a_decl_parse_state             *state,
                         a_routine_type_supplement_ptr  rtsp,
@@ -1392,7 +1401,7 @@ abstract declarator (3.5.5).  Allocate and return in *new_type_ptr an
 appropriate function type.  The initial opening parenthesis has
 already been checked and passed over (which is unusual; that's
 necessary because of the syntactic strangeness of abstract declarators).
-*state contains various bits of of information about the declaration
+*state contains various bits of information about the declaration
 being parsed.  If func_info is NULL, then the function declarator is
 not a top type or this is an abstract declarator (and therefore
 certain forms are disallowed); otherwise, extra information about the

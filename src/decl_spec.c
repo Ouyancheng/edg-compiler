@@ -1261,9 +1261,9 @@ This routine assumes that the token stream contains a generalized identifier
 followed by one or more plain identifiers.  If these plain identifiers turn
 out to be context-sensitive keywords, the tokens are transformed accordingly
 (i.e., they become "tok_abstract" or "tok_sealed" keywords).  *next_tok is
-set to the token kind that follows the identifiers.  body_start_token is the
-token that represents the beginning of a class body: tok_lbrace in the normal
-case, and tok_end_of_source during template prescanning.
+set to the token kind that follows the identifiers.  body_start is the token
+that represents the beginning of a class body: tok_lbrace in the normal case,
+and tok_end_of_source during template prescanning.
 */
 {
   a_token_cache              token_cache;
@@ -1272,7 +1272,7 @@ case, and tok_end_of_source during template prescanning.
   /* First cache the tag name. */
   cache_curr_token(&token_cache);
   (void)get_token();
-  /* Cache additional identifiers (we know there is at least one. */
+  /* Cache additional identifiers (we know there is at least one). */
   do {
     cache_curr_token(&token_cache);
     *next_tok = get_token();
@@ -2822,7 +2822,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Record any class modifiers (a C++/CLI feature accepted in "normal" C++ by
-     recent Microsoft C++ compilers. */
+     recent Microsoft C++ compilers). */
   if (microsoft_mode && microsoft_version >= 1400) {
     scan_microsoft_class_modifiers(&is_abstract, &is_sealed);
   }  /* if */
