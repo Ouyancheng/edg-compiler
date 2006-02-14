@@ -10215,11 +10215,13 @@ the expression have already been lowered.
                    ((vtbl_temp =       -- Virtual function table entry address
                                           is address of virtual function table
                                           plus offset in table.
-                      *(__vtbl_entry **)this_temp +
+                      *(__vtbl_entry **)
+                        ((char *)this_temp +
                                        -- Pointer to virtual function table is
                                           found at offset zero in the object.
-                      ((ptrdiff_t)pmf.f / vtbl_entry_size),
-                                       -- Offset into table.
+                         ((ptrdiff_t)pmf.f - 1)),
+                                       -- Offset into table, dropping low-order
+                                          bit indicating virtual function.
                     *vtbl_temp))),     -- Address of virtual function to call.
          func_temp(                    -- Call the function.
                    this_temp,          -- "this" pointer for call.
