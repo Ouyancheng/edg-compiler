@@ -4651,7 +4651,8 @@ as the position for any diagnostics issued.
 #endif /* CHECKING */
         do_padd(constant_1, op, constant_2, result, &err_code,
                 &err_severity);
-      } else if (gnu_mode &&
+      } else if ((gcc_mode ||
+                  (gpp_mode && gnu_version < 40000)) &&
                  op == (an_expr_operator_kind)eok_isubtract &&
                  is_addr_constant_cast_to_integral_type(constant_2)) {
         /* Allow
