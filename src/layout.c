@@ -2268,7 +2268,8 @@ bit field in a trailing bit field container of one of its bases.
     }  /* for */
     if (trailing_field != NULL && trailing_field->is_bit_field &&
         (lob->curr_base_extent - trailing_field->offset + 1) * targ_char_bit
-                       > trailing_field->offset_bit_remainder + fp->bit_size) {
+                     > (a_targ_size_t)(trailing_field->offset_bit_remainder +
+                                       fp->bit_size)) {
       /* There is room to stuff fp in the bit padding of a preceding bit
          field. */
       result = TRUE;
