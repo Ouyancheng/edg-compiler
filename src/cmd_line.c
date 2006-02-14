@@ -1133,6 +1133,14 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
+  add_option_description(optk_uliterals,
+                         "uliterals",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_uliterals,
+                         "no_uliterals",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -4277,6 +4285,10 @@ enable_microsoft_mode:
       case optk_defer_parse_function_templates:
         /* Defer prototype instantiation of function templates. */
         defer_function_prototype_instantiations = opt_value;
+        break;
+      case optk_uliterals:
+        /* U... and u... literals should or should not be allowed. */
+        uliterals_allowed = opt_value;
         break;
       default:
         /* It should not be possible to get here. */

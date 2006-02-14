@@ -51,7 +51,7 @@ extern void conv_string_literal(unsigned long num_chars,
                                 char          **err_pos);
 extern void widen_string_literal(a_constant_ptr con);
 extern void concat_string_literals(a_token_cache_ptr cache,
-                                   a_boolean         wide_literals);
+                                   a_character_kind  kind);
 
 #endif /* ifndef LITERALS_H */
 

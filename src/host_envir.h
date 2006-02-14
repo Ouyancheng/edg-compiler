@@ -2381,7 +2381,11 @@ extern unsigned long write_file_name(char      *name,
 
 extern char *suffix_of(char		*file_name);
 
-extern unsigned long extract_wide_char_from_string(char *str);
+extern unsigned long extract_character_from_string(char          *str,
+                                                   unsigned int  char_size);
+
+#define extract_wide_char_from_string(str)                                  \
+  (extract_character_from_string(str, targ_sizeof_wchar_t))
 
 extern void host_envir_one_time_init(void);
 

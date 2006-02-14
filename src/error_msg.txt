@@ -1329,7 +1329,7 @@ ec_invalid_ms_attr_uuid_value;;"invalid argument value for the %sq attribute par
 ec_too_many_ms_attr_args;;"too many attribute arguments"
 ec_conv_from_inaccessible_base_class;;"conversion from inaccessible base class %t is not allowed"
 ec_cl_export_template_requires_distinct_templ_sigs;;"option \"export\" requires distinct template signatures"
-ec_mixed_string_concatenation;;"narrow and wide string literals cannot be concatenated"
+ec_mixed_string_concatenation;;"string literals with different character kinds cannot be concatenated"
 ec_no_gnu_virtual_base_gap;;"GNU layout bug not emulated because it places virtual base %no1 outside %no2 object boundaries"
 ec_gnu_virtual_base_gap;;"virtual base %no1 placed outside %no2 object boundaries"
 ec_nonstd_qualifier_in_namespace_member_decl;;"nonstandard qualified name in namespace member declaration"
@@ -1582,6 +1582,8 @@ ec_missing_mode_after_comma;INTERNAL;"missing mode after ','"
 ec_missing_macro_name;INTERNAL;"missing macro name"
 ec_invalid_cannot_redefine_value;INTERNAL;"invalid cannot-redefine value"
 ec_duplicate_function_modifier;;"duplicate function modifier"
+ec_no_char16_t_representation;;"invalid character for char16_t literal"
+ec_lprefix_and_uliteral;;"__LPREFIX cannot be applied to char16_t or char32_t literals"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -5676,19 +5676,21 @@ i.e., instead of "abc" (no final null) dump 'a','b','c'.
 
 static void dump_exploded_wide_string(a_constant_ptr constant)
 /*
-Dump out a wide string constant.  Dump each wchar_t as a separate integer
-value.
+Dump out a wide string constant.  Dump each character (wchar_t, char16_t, or
+char32_t) as a separate integer value.
 */
 {
-  a_targ_size_t a, len;
-  unsigned long temp;
+  a_targ_size_t  a, len, char_size;
+  unsigned long  temp;
   
   len = constant->variant.string.length;
-  for (a = 0; a < len; a += targ_sizeof_wchar_t) {
+  char_size = character_size[constant->character_kind];
+  for (a = 0; a < len; a += char_size) {
     /* Assemble the right number of bytes into one integer. */
-    temp = extract_wide_char_from_string(constant->variant.string.value + a);
+    temp = extract_character_from_string(constant->variant.string.value + a,
+                                         char_size);
     write_unsigned_num((a_host_large_unsigned)temp);
-    if (a != len-targ_sizeof_wchar_t) write_tok_ch(',');
+    if (a != len-char_size) write_tok_ch(',');
   }  /* for */
 }  /* dump_exploded_wide_string */
 
@@ -5825,7 +5827,8 @@ block with state information for the processing.
       if (constant == NULL) {
         /* Initialize to zero. */
         write_tok_ch('0');
-      } else if (is_wide_string_constant(constant)) {
+      } else if (constant->kind == (a_constant_repr_kind)ck_string &&
+                 !is_normal_character(constant->character_kind)) {
         /* If the initial value is a wide string constant, the string must
            be dumped specially. */
         write_tok_ch('{');
@@ -7656,7 +7659,8 @@ Called from the expression/statement traversal routines to put out
 prescan temporaries for the indicated constant.
 */
 {
-  if (is_wide_string_constant(con)) {
+  if (con->kind == (a_constant_repr_kind)ck_string &&
+      !is_normal_character(con->character_kind)) {
     /* When the value is a wide string literal, replace it by a variable. */
     dump_var_for_wide_string_constant(con);
   }  /* if */

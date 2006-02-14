@@ -77,6 +77,28 @@ EXTERN a_targ_size_t
 			   default value but reconfigurable. */
 
 EXTERN an_integer_kind
+		targ_char16_t_int_kind;
+			/* Integer kind associated with char16_t.  Initialized
+			   to the default value but reconfigurable. */
+EXTERN a_targ_size_t
+		targ_sizeof_char16_t;
+			/* Size of a char16_t entity.  Initialized to the
+			   default value but reconfigurable. */
+
+EXTERN an_integer_kind
+		targ_char32_t_int_kind;
+			/* Integer kind associated with char32_t.  Initialized
+			   to the default value but reconfigurable. */
+EXTERN a_targ_size_t
+		targ_sizeof_char32_t;
+			/* Size of a char32_t entity.  Initialized to the
+			   default value but reconfigurable. */
+
+EXTERN a_targ_size_t
+		character_size[(int)chk_last];
+			/* A table of sizes for the various character kinds. */
+
+EXTERN an_integer_kind
 		targ_bool_int_kind;
 			/* Integer kind associated with bool.  Initialized
 			   to the default value but reconfigurable. */

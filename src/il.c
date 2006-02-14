@@ -65,8 +65,8 @@ static a_type_ptr complex_types[(int)fk_last];
 static a_type_ptr imaginary_types[(int)fk_last];
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #define MAX_TRACKED_STRING_TYPE_LENGTH 80
-static a_type_ptr string_types[MAX_TRACKED_STRING_TYPE_LENGTH+1];
-static a_type_ptr wide_string_types[MAX_TRACKED_STRING_TYPE_LENGTH+1];
+static a_type_ptr string_types[(int)chk_last]
+                              [MAX_TRACKED_STRING_TYPE_LENGTH+1];
 static a_type_ptr il_error_type;
 static a_type_ptr il_unknown_type;
 static a_type_ptr il_void_type;
@@ -4343,6 +4343,34 @@ Copy a constant entry from "from" to "to".
 }  /* copy_constant */
 
 
+a_type_ptr character_type(a_character_kind  kind)
+/*
+Return a character type entry (tk_integer) corresponding to the given
+character kind.
+*/
+{
+  a_type_ptr  result;
+
+  switch (kind) {
+    case chk_char:
+      result = integer_type(plain_char_int_kind);
+      break;
+    case chk_wchar_t:
+      result = eff_wchar_t_type();
+      break;
+    case chk_char16_t:
+      result = integer_type(targ_char16_t_int_kind);
+      break;
+    case chk_char32_t:
+      result = integer_type(targ_char32_t_int_kind);
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* character_type */
+
+
 void explode_string_initializer(a_constant_ptr con)
 /*
 If the indicated initializer constant is a string literal constant,
@@ -4351,26 +4379,26 @@ characters.  The constant is updated in place.
 */
 {
   if (con->kind == (a_constant_repr_kind)ck_string) {
-    a_targ_size_t  i;
-    a_targ_size_t  len = con->variant.string.length;
-    char           *str = con->variant.string.value;
-    a_boolean      is_wide = !is_char_array_type(con->type);
+    a_character_kind  char_kind = con->character_kind;
+    a_targ_size_t     char_size = character_size[char_kind];
+    a_targ_size_t     i, len = con->variant.string.length;
+    char              *str = con->variant.string.value;
+    a_constant        char_val;
 
+    clear_constant(&char_val, (a_constant_repr_kind)ck_integer);
+    char_val.type = character_type(char_kind);
     set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
-    for (i = 0; i < len; i += (is_wide ? targ_sizeof_wchar_t : 1)) {
-      a_constant     char_val;
+    for (i = 0; i < len; i += char_size) {
       a_constant_ptr char_con;
-
       /* Make a constant for one character of the string. */
-      if (!is_wide) {
-        set_integer_constant(&char_val, (a_host_large_integer)str[i],
-                             (an_integer_kind)ik_char);
+      if (char_kind == (a_character_kind)chk_char) {
+        set_integer_value(&char_val.variant.integer_value,
+                          (a_host_large_integer)str[i]);
       } else {
         /* Wide string case. */
-        unsigned long val = extract_wide_char_from_string(str+i);
-        set_unsigned_integer_constant(&char_val,
-                                      (a_host_large_unsigned)val,
-                                      targ_wchar_t_int_kind);
+        unsigned long val = extract_character_from_string(str+i, char_size);
+        set_integer_value(&char_val.variant.integer_value,
+                          (a_host_large_unsigned)val);
       }  /* if */
       char_con = alloc_unshared_constant(&char_val);
       /* Add the constant to the aggregate list. */
@@ -6261,18 +6289,8 @@ a_boolean is_wide_string_constant(a_constant_ptr constant)
 Return TRUE if the indicated constant is a wide string constant (L"abc").
 */
 {
-  a_boolean  is_wide_string = FALSE;
-  a_type_ptr con_type, elem_type;
-
-  if (constant->kind == (a_constant_repr_kind)ck_string) {
-    check_assertion(!constant->implicit_cast);
-    con_type = skip_typerefs(constant->type);
-    elem_type = con_type->variant.array.element_type;
-    elem_type = skip_typerefs(elem_type);
-    /* Check for element type that is not some variety of char. */
-    is_wide_string = !is_character_type(elem_type);
-  }  /* if */
-  return is_wide_string;
+  return (constant->kind == (a_constant_repr_kind)ck_string &&
+          constant->character_kind == (a_character_kind)chk_wchar_t);
 }  /* is_wide_string_constant */
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -7099,8 +7117,7 @@ removed from the list.
 
 an_integer_kind char_int_kind_from_string_type(a_type_ptr str_type)
 /*
-Return the character element integer kind (char or wchar_t) from the
-indicated string type.
+Return the character element integer kind from the indicated string type.
 */
 {
   a_type_ptr elem_type;
@@ -7623,79 +7640,42 @@ return a pointer to it.
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-a_type_ptr string_type(a_targ_size_t num_chars)
+a_type_ptr string_literal_type(a_character_kind  kind,
+                               a_targ_size_t     num_chars)
 /*
-Make or find an entry for the type of a string literal of length num_chars
-characters, and return a pointer to it.
+Make or find an entry for the type of a string literal with the given number
+of characters and the given character kind.  Return a pointer to this type.
 */
 {
-  a_type_ptr pst, elem_type;
+  a_type_ptr  result;
 
   if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH &&
-      string_types[num_chars] != NULL) {
+      string_types[kind][num_chars] != NULL) {
     /* The type has previously been created, and can be reused. */
-    pst = string_types[num_chars];
+    result = string_types[kind][num_chars];
   } else {
-    /* The type must be created. */
-    pst = alloc_type((a_type_kind)tk_array);
-    elem_type = integer_type(plain_char_int_kind);
+    a_type_ptr  elem_type = character_type(kind);
     if (string_literals_are_const) {
-      /* The element type is CONST char. */
+      /* The element type is const (this is the case in standard C++, but
+         was not the case in the C++ ARM). */
       elem_type = make_qualified_type(elem_type, TQ_CONST);
     }  /* if */
-    pst->variant.array.element_type = elem_type;
-    pst->variant.array.variant.number_of_elements = num_chars;
-    set_type_size(pst);
+    result = alloc_type((a_type_kind)tk_array);
+    result->variant.array.element_type = elem_type;
+    result->variant.array.variant.number_of_elements = num_chars;
+    set_type_size(result);
     if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH) {
-      string_types[num_chars] = pst;
+      string_types[kind][num_chars] = result;
     }  /* if */
 #if ORPHAN_PROCESSING_NEEDED
     /* Record the type entry as an orphan in case it is discarded now
        and then found again in a later phase (e.g., IL lowering). */
-    add_orphaned_file_scope_il_entry((char *)pst,
+    add_orphaned_file_scope_il_entry((char *)result,
                                      (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
-  return pst;
-}  /* string_type */
-
-
-a_type_ptr wide_string_type(a_targ_size_t num_chars)
-/*
-Make or find an entry for the type of a wide string literal of length
-num_chars characters, and return a pointer to it.
-*/
-{
-  a_type_ptr pst;
-
-  if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH &&
-      wide_string_types[num_chars] != NULL) {
-    /* The type has previously been created, and can be reused. */
-    pst = wide_string_types[num_chars];
-  } else {
-    /* The type must be created. */
-    a_type_ptr	elem_type;
-    pst = alloc_type((a_type_kind)tk_array);
-    elem_type = eff_wchar_t_type();
-    if (string_literals_are_const) {
-      /* The element type is CONST wchar_t. */
-      elem_type = make_qualified_type(elem_type, TQ_CONST);
-    }  /* if */
-    pst->variant.array.element_type = elem_type;
-    pst->variant.array.variant.number_of_elements = num_chars;
-    set_type_size(pst);
-    if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH) {
-      wide_string_types[num_chars] = pst;
-    }  /* if */
-#if ORPHAN_PROCESSING_NEEDED
-    /* Record the type entry as an orphan in case it is discarded now
-       and then found again in a later phase (e.g., IL lowering). */
-    add_orphaned_file_scope_il_entry((char *)pst,
-                                     (an_il_entry_kind)iek_type);
-#endif /* ORPHAN_PROCESSING_NEEDED */
-  }  /* if */
-  return pst;
-}  /* wide_string_type */
+  return result;
+}  /* string_literal_type */
 
 
 a_type_ptr error_type(void)
@@ -18015,7 +17995,6 @@ in il_init.)
       pch_array_saved_var_array_elem(imaginary_types),
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       pch_array_saved_var_array_elem(string_types),
-      pch_array_saved_var_array_elem(wide_string_types),
 #if NAMED_REGISTERS_ALLOWED
       pch_array_saved_var_array_elem(named_register_variables),
 #endif /* NAMED_REGISTERS_ALLOWED */
@@ -18073,7 +18052,6 @@ in il_init.)
   register_trans_unit_array(imaginary_types);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   register_trans_unit_array(string_types);
-  register_trans_unit_array(wide_string_types);
 #if NAMED_REGISTERS_ALLOWED
   register_trans_unit_array(named_register_variables);
 #endif /* NAMED_REGISTERS_ALLOWED */
@@ -18178,7 +18156,6 @@ need initialization for every (primary and secondary) translation unit.
   memzero((char *)imaginary_types, sizeof(imaginary_types));
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   memzero((char *)string_types, sizeof(string_types));
-  memzero((char *)wide_string_types, sizeof(wide_string_types));
 #if NAMED_REGISTERS_ALLOWED
   memzero((char *)named_register_variables, sizeof(named_register_variables));
 #endif /* NAMED_REGISTERS_ALLOWED */

@@ -2157,7 +2157,26 @@ typedef struct a_template_param_coordinate {
 			   nested templates a given parameter is
                            associated. */
 } a_template_param_coordinate;
+
 #endif /* ifdef CIL */
+
+enum a_character_kind_tag {
+  chk_char,
+  chk_default = chk_char,
+  chk_wchar_t,
+  chk_char16_t,
+  chk_char32_t,
+  chk_last
+};
+
+/* Number of bits required to hold a character code kind.  cck_last need not
+   be accounted for. */
+#ifndef NUM_BITS_FOR_CHARACTER_KIND
+#define NUM_BITS_FOR_CHARACTER_KIND 2
+#endif /* ifndef NUM_BITS_FOR_CHARACTER_KIND */
+
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_character_kind;
 
 typedef struct a_constant {
   /* Description of a constant.  Also used as an element on an initializer
@@ -2190,6 +2209,12 @@ typedef struct a_constant {
                         /* A ck_init_position entry also has a NULL type
                            pointer. */
 #endif /* ifdef FIL */
+  a_bit_field	character_kind:NUM_BITS_FOR_CHARACTER_KIND;
+			/* If this constant represents a character or string
+			   literal, this fields indicates the character kind
+			   (e.g., chk_wchar_t for L"..." strings).  Otherwise,
+			   the field is set to chk_default (which equals
+			   chk_char). */
   a_bit_field	implicit_cast:1;
                         /* If this is TRUE, then the value indicated by
                            the representation has been cast to the type

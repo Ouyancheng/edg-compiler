@@ -7283,24 +7283,23 @@ return the original identifier pointer.
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 static
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-a_boolean accum_quoted_string(unsigned long *num_chars,
-                              a_boolean     is_header_name,
-                              a_boolean     is_wide,
-                              char          quoting_char)
+a_boolean accum_quoted_string(unsigned long     *num_chars,
+                              a_boolean         is_header_name,
+                              a_character_kind  character_kind,
+                              char              quoting_char)
 /*
-Scan a quoted construct, of kind indicated by ctoken.  This routine is
-used for character constants and string literals, in both the "wide"
-and normal forms (is_wide indicates which), and for header names in
-#include and #line directives (is_header_name is TRUE for the #include
-case).  curr_char_loc is just past the initial quote.  Scan to the
-matching closing quote (indicated by quoting_char), and do not be
-confused by escaped characters and multibyte character sequences.
-Increment *num_chars by the number of (possibly wide) characters
-contained in the string, after escape processing.  curr_char_loc and
-end_of_curr_token are set to point just before the closing quote of
-the string.  The return value is TRUE if the string was not terminated
-before the end of the line, FALSE if it was.  The caller is
-responsible for issuing error messages.
+Scan a quoted construct, i.e., a character constant or a string literal.
+character_kind indicates which character type should be used (e.g., wchar_t).
+This routine is also used for header names in #include and #line directives
+(is_header_name is TRUE for the #include case).  curr_char_loc is just
+past the initial quote.  Scan to the matching closing quote (indicated
+by quoting_char), and do not be confused by escaped characters and
+multibyte character sequences.  Increment *num_chars by the number of
+(possibly wide) characters contained in the string, after escape
+processing.  curr_char_loc and end_of_curr_token are set to point just
+before the closing quote of the string.  The return value is TRUE if
+the string was not terminated before the end of the line, FALSE if it
+was.  The caller is responsible for issuing error messages.
 */
 {
   register char ch;
@@ -7342,7 +7341,14 @@ responsible for issuing error messages.
                                        /*is_identifier=*/FALSE,
 				       /*is_identifier_start=*/FALSE,
                                        /*issue_diagnostics=*/FALSE);
-        nchars++;
+        if (ch == 'U' && character_kind == (a_character_kind)chk_char16_t) {
+          /* A 32-bit code to be stored in a 16-bit character representation.
+             Since we don't know how many characters will be needed for the
+             encoding, assume the longest. */
+          nchars += MAX_CHAR16_T_ENCODING_LENGTH;
+        } else {
+          ++nchars;
+        }  /* if */
       } else {
         curr_char_loc++;
         nchars++;
@@ -7390,11 +7396,27 @@ responsible for issuing error messages.
         /* Advance to the next character, dealing with multibyte characters. */
         int numch = mbc_length_simple(curr_char_loc);
         curr_char_loc += numch;
-        if (is_wide) {
-          nchars++;
-        } else {
-          nchars += (unsigned long)numch;
-        }  /* if */
+        switch (character_kind) {
+          case chk_char:
+            nchars += (unsigned long)numch;
+            break;
+          case chk_wchar_t:
+          case chk_char32_t:
+            /* char32_t (kind == 'U') should be able to accommodate any
+               character code, and wchar_t is assumed to be able to do so as
+               well (if needed, the code will be truncated to fit in a
+               wchar_t). */
+            ++nchars;
+            break;
+          case chk_char16_t:
+            /* A single char16_t is not assumed to be sufficient for a
+               multibyte input character.  Instead, we assume the longest
+               encoding case. */
+            nchars += MAX_CHAR16_T_ENCODING_LENGTH;
+            break;
+          default:
+            unexpected_condition();
+        }  /* switch */
       } else
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
       /* Do not insert code here -- this is the "else" of an "if". */
@@ -7420,20 +7442,35 @@ Scan a character constant token, return the token kind or tok_error.
 The token can be a normal or wide character constant.
 */
 {
-  a_token_kind  ctoken = tok_char_constant;
-  unsigned long num_chars = 0;
-  a_boolean     is_wide = FALSE;
-  an_error_code err_code;
-  char          *err_pos;
+  a_token_kind      ctoken = tok_char_constant;
+  a_character_kind  character_kind;
+  unsigned long     num_chars = 0;
+  an_error_code     err_code;
+  char              *err_pos;
 
-  if (*curr_char_loc == 'L') {
-    is_wide = TRUE;
-    curr_char_loc++;
-  }  /* if */
+  switch (*curr_char_loc) {
+    case '\'':
+      character_kind = (a_character_kind)chk_char;
+      break;
+    case 'L':
+      character_kind = (a_character_kind)chk_wchar_t;
+      ++curr_char_loc;
+      break;
+    case 'U':
+      character_kind = (a_character_kind)chk_char32_t;
+      ++curr_char_loc;
+      break;
+    case 'u':
+      character_kind = (a_character_kind)chk_char16_t;
+      ++curr_char_loc;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
   check_assertion(*curr_char_loc == '\'');
   curr_char_loc++;
   if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
-                          is_wide, '\'')) {
+                          character_kind, '\'')) {
     /* Error, character constant is unclosed. */
     /* Similar error for other strange cases of incomplete strings, which
        can come up with preprocessing. */
@@ -7469,12 +7506,14 @@ The token can be a normal or wide character constant.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static a_boolean scan_multiline_string(unsigned long *num_chars,
-                                       a_boolean     is_wide)
+static a_boolean scan_multiline_string(unsigned long     *num_chars,
+                                       a_character_kind  character_kind)
 /*
 Process the second and subsequent lines of a multi-line string.
-Return TRUE if the string turns out to be well-formed, FALSE
-otherwise.
+Return TRUE if the string turns out to be well-formed, FALSE otherwise.
+character_kind indicates the kind of character values (char, wchar_t, ...)
+to be scanned.  The number of characters scanned (a conservative estimate
+in the case of char16_t characters) is added to *num_chars.
 */
 {
   an_orig_line_modif_ptr olmp;
@@ -7500,7 +7539,7 @@ otherwise.
     /* Back up over the \n added above and resume scanning.  */
     curr_char_loc -= 2;
     if (!accum_quoted_string(num_chars, /*is_header_name=*/FALSE,
-                             is_wide, '"')) {
+                             character_kind, '"')) {
       /* End of string, done. */
       result = TRUE;
       break;
@@ -7517,27 +7556,40 @@ Scan a string literal token, return the token kind or tok_error.
 The token can be a normal or wide string literal.
 */
 {
-  a_token_kind           ctoken = tok_string_literal;
-  a_boolean              is_wide = FALSE;
-  unsigned long          num_chars = 0;
-  an_error_code          err_code;
-  char                   *err_pos;
+  a_token_kind   ctoken = tok_string_literal;
+  unsigned long  num_chars = 0;
+  an_error_code  err_code;
+  char           *err_pos;
+  char           character_kind;
 
-  if (*curr_char_loc == 'L') {
-    is_wide = TRUE;
-    curr_char_loc++;
-  }  /* if */
-  check_assertion(*curr_char_loc == '"');
-  curr_char_loc++;
+  /* Determine the string character kind, and skip over the leading quote. */
+  switch (*curr_char_loc) {
+    case '"':
+      character_kind = (a_character_kind)chk_char;
+      curr_char_loc += 1;
+      break;
+    case 'L':
+      character_kind = (a_character_kind)chk_char;
+      curr_char_loc += 2;
+      break;
+    case 'U':
+      character_kind = (a_character_kind)chk_char;
+      curr_char_loc += 2;
+      break;
+    case 'u':
+      character_kind = (a_character_kind)chk_char;
+      curr_char_loc += 2;
+      break;
+  }  /* switch */
   if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
-                          is_wide, '"')
+                          character_kind, '"')
 #if GNU_EXTENSIONS_ALLOWED
       /* GNU C and C++ versions prior to 3.3 permit a string literal to extend
          over multiple lines.  We also accept it for later versions as an
          extension. */
       && (!(gnu_mode && gnu_version < 30300) ||
           curr_command_line_macro_def != NULL ||
-          !scan_multiline_string(&num_chars, is_wide))
+          !scan_multiline_string(&num_chars, character_kind))
 #endif  /* GNU_EXTENSIONS_ALLOWED */
                                                       ) {
     /* Error, string is unclosed. */
@@ -7583,10 +7635,8 @@ Scan a header name token, return the token kind or tok_error.
      opens them. */
   if (quoting_char == '<') quoting_char = '>';
   check_assertion(quoting_char == '"' || quoting_char == '>');
-  if (accum_quoted_string(&num_chars,
-                          /*is_header_name=*/TRUE,
-                          /*is_wide=*/FALSE,
-                          quoting_char)) {
+  if (accum_quoted_string(&num_chars, /*is_header_name=*/TRUE,
+                          (a_character_kind)chk_char, quoting_char)) {
     /* Error, header name is unclosed. */
     ctoken = tok_error;
     err_code_for_error_token = ec_unclosed_string;
@@ -8370,7 +8420,7 @@ concatenation of strings and function-name keywords like __FUNCTION__;
 curr_token is already set in that case.
 */
 {
-  a_boolean          wide_strings;
+  a_character_kind   character_kind;
   a_token_cache      cache;
   a_cached_token_ptr ctp, ctp_next, first_string_token = NULL;
   a_boolean          more_than_one_string = FALSE;
@@ -8378,14 +8428,10 @@ curr_token is already set in that case.
   db_enter(5, "concat_adjacent_string_literals");
   check_assertion_str(!fetch_pp_tokens && do_string_literal_concatenation,
                       "concat_adjacent_string_literals: bad mode");
-  /* See if the string is a wide string. */
-  wide_strings = FALSE;
-  /* Watch out for the case where the constant is an error constant. */
-  if (!is_error_constant(&const_for_curr_token)) {
-    /* Use the negative test because in C mode, and in C++ mode when wchar_t
-       is not a keyword, wchar_t and char could be the same type. */
-    wide_strings = !is_char_array_type(const_for_curr_token.type);
-  }  /* if */
+  /* Start with the character kind of the first literal.  If this is a
+     normal char string, the kind of the result may still change if a
+     subsequent literal has a different character kind. */
+  character_kind = const_for_curr_token.character_kind;
   /* Start a token cache in which we will accumulate all the adjacent
      string literals.  Usually, this will be just a single string literal. */
   clear_token_cache(&cache, /*reusable=*/FALSE);
@@ -8443,19 +8489,27 @@ curr_token is already set in that case.
     }  /* if */
     /* End the loop if the new token is not a string literal. */
     if (curr_token != tok_string_literal) break;
-    if (!is_error_constant(&const_for_curr_token) &&
-        wide_strings != !is_char_array_type(const_for_curr_token.type)) {
-      /* The new string is wide and the old is not, or vice-versa.
-         In C99 or gcc/g++ modes, this is okay (the concatenation is
-         wide).  In other modes, it's an error, except that in the
-         degenerate case in C mode, or in C++ mode when wchar_t is
-         not a keyword, where wchar_t is char, wide string literals
-         are effectively the same as non-wide string literals and
-         they will be concatenated. */
-      if (!(c99_mode || gnu_mode)) {
-        diagnostic(es_discretionary_error, ec_mixed_string_concatenation);
+    if (character_kind != const_for_curr_token.character_kind &&
+        !is_error_constant(&const_for_curr_token)) {
+      /* The new string is and the old have different character kinds.
+         In C99 or gcc/g++ modes, this may be okay if one of the two kinds
+         is "char" (the concatenation results in the other kind).  In other
+         modes, it is a discretionary error.  If two different non-char
+         character types are mixed (e.g., U"A" L"B") a non-discretionary
+         error is issued in all modes. */
+      an_error_severity  sev;
+      if (character_kind != (a_character_kind)chk_char &&
+          const_for_curr_token.character_kind != (a_character_kind)chk_char) {
+        sev = es_error;
+      } else {
+        sev = (c99_mode || gnu_mode) ? es_none : es_discretionary_error;
+        if (character_kind == (a_character_kind)chk_char) {
+          character_kind = const_for_curr_token.character_kind;
+        }  /* if */
       }  /* if */
-      wide_strings = TRUE;
+      if (sev != es_none) {
+        diagnostic(sev, ec_mixed_string_concatenation);
+      }  /* if */
     }  /* if */
     /* This string literal is okay, and will be added to the concatenation
        in the token cache. */
@@ -8468,7 +8522,7 @@ curr_token is already set in that case.
   } else {
     a_cached_token_ptr last_token;
     /* More than one string literal -- concatenate. */
-    concat_string_literals(&cache, wide_strings);
+    concat_string_literals(&cache, character_kind);
     /* The constants have been concatenated into the first constant in the
        token cache (which might not be the first entry in the cache, if there
        are pragma entries first).  Discard the token cache entries for the
@@ -9102,6 +9156,17 @@ return_end_of_source_token:
         goto bad_token;
       }  /* if */
       /* This can't fall through into the next case. */
+    case 'U':
+    case 'u':
+      if (uliterals_allowed) {
+        /* The C committee's TR 19769 introduces character and string literals
+           of the forms u'...', U'...', u"...", and U"...".  These are
+           similar to wide literals, but potentially involve different
+           character types and encodings. */
+      } else {
+        goto id_scan;
+      }  /* if */
+      /*FALLTHROUGH*/
     case 'L':
       /* Probably an identifier, but check for a wide character
          constant (L'x') or wide string literal (L"xyz") first. */
@@ -9116,11 +9181,11 @@ return_end_of_source_token:
       /* Neither of those cases, fall through into identifier processing. */
     case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g':
     case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n':
-    case 'o': case 'p': case 'q': case 'r': case 's': case 't': case 'u':
+    case 'o': case 'p': case 'q': case 'r': case 's': case 't': /*above*/
     case 'v': case 'w': case 'x': case 'y': case 'z':
     case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G':
     case 'H': case 'I': case 'J': case 'K': /*above*/ case 'M': case 'N':
-    case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': case 'U':
+    case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': /*above*/
     case 'V': case 'W': case 'X': case 'Y': case 'Z':
     case '_':
 id_scan:
@@ -15081,10 +15146,8 @@ host-target conversions are performed.
     /* Tokenize the string. */
     curr_char_loc++;
     num_chars = 0;
-    unterminated = accum_quoted_string(&num_chars,
-                                       /*is_header_name=*/FALSE,
-                                       /*is_wide=*/FALSE,
-                                       '"');
+    unterminated = accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
+                                       (a_character_kind)chk_char, '"');
     check_assertion(unterminated == FALSE);
     /* Convert it to internal form. */
     conv_string_literal(num_chars, &err_code, &err_pos);

@@ -926,6 +926,14 @@ display_constant_value:
 #endif /* FIXED_POINT_ALLOWED */
     case ck_string:
       (void)printf("ck_string\n");
+      disp_name("character_kind");
+      switch(ptr->character_kind) {
+        case chk_char:     (void)printf("char\n");      break;
+        case chk_wchar_t:  (void)printf("wchar_t\n");   break;
+        case chk_char16_t: (void)printf("char16_t\n");  break;
+        case chk_char32_t: (void)printf("char32_t\n");  break;
+        default:           unexpected_condition();
+      }  /* switch */
       disp_host_large_unsigned(
                   "length", (a_host_large_unsigned)ptr->variant.string.length);
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS

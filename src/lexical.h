@@ -2096,10 +2096,10 @@ extern unsigned long scan_universal_character(
 extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
                                                  char          *tok_str);
 
-extern a_boolean accum_quoted_string(unsigned long *num_chars,
-                                     a_boolean     is_header_name,
-                                     a_boolean     is_wide,
-                                     char          quoting_char);
+extern a_boolean accum_quoted_string(unsigned long     *num_chars,
+                                     a_boolean         is_header_name,
+                                     a_character_kind  character_kind,
+                                     char              quoting_char);
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Macro that tests whether f_is_generalized_identifier_start needs

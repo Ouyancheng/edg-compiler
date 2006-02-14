@@ -2187,20 +2187,21 @@ output.
 static int form_wide_char(unsigned long                         wc,
                           an_il_to_str_output_control_block_ptr octl)
 /*
-Output the indicated wide character as part of a string literal or character
-constant.  Handle unprintable characters and necessary escapes.  Do the
-output in the way described by octl.  Return the number of characters
-output.
+Output the indicated wide character (which may be a wchar_t, char16_t, or
+char32_t character) as part of a string literal or character constant.
+Handle unprintable characters and necessary escapes.  Do the output in the
+way described by octl.  Return the number of characters output.
 */
 {
-  char buffer[2*sizeof(unsigned long)+3];
+  int   result;
+  char  buffer[2*sizeof(unsigned long)+3];
 
   /* Use hex escapes always to avoid having to convert the wide character
      back to a multibyte character string. */
-  (void)sprintf(buffer, "\\x%lx", wc);
+  result = sprintf(buffer, "\\x%lx", wc);
   /* Output the character. */
   output_partial_token_str(buffer, octl);
-  return strlen(buffer);
+  return result;
 }  /* form_wide_char */
 
 
@@ -3755,10 +3756,17 @@ precedence confusion.  Do the output in the way described by octl.
         output_optional_close_paren(need_char_cast_close_paren, octl);
       } else if (!octl->c_generating_back_end &&
                  con_type->kind == (a_type_kind)tk_integer &&
-                 con_type->variant.integer.wchar_t_type) {
+                 !is_normal_character(constant->character_kind)) {
         /* In C++, wide character constants have wchar_t type. */
-        a_boolean ovflo;
-        output_partial_token_str("L'", octl);
+        a_boolean  ovflo;
+        char       *prefix;
+        switch (constant->character_kind) {
+          case chk_wchar_t:   prefix = "L'";     break;
+          case chk_char16_t:  prefix = "u'";     break;
+          case chk_char32_t:  prefix = "U'";     break;
+          default:            unexpected_condition();
+        }  /* switch */
+        output_partial_token_str(prefix, octl);
         (void)form_wide_char(
                     (unsigned long)unsigned_value_of_integer_constant(constant,
                                                                       &ovflo),
@@ -3787,13 +3795,13 @@ precedence confusion.  Do the output in the way described by octl.
       { a_targ_size_t a;
         char          ch;
         unsigned long wc;
-        char          *str = constant->variant.string.value;
+        char          *str = constant->variant.string.value, *prefix;
         a_targ_size_t len = constant->variant.string.length;
         int           out_len = 0;
-
+        a_character_kind  character_kind = constant->character_kind;
 #if BACK_END_IS_C_GEN_BE
         if (octl->c_generating_back_end && constant->assoc_var_assigned &&
-            is_wide_string_constant(constant)) {
+            !is_normal_character(character_kind)) {
           /* The C-generating back end transforms wide string literals: it
              creates a variable initialized with the string value and then
              uses the variable instead of the string.  This ensures proper
@@ -3804,33 +3812,39 @@ precedence confusion.  Do the output in the way described by octl.
         } else
 #endif /* BACK_END_IS_C_GEN_BE */
         /* Do not insert code here.  This is the "else" of an "if". */
-        if (is_wide_string_constant(constant)) {
-          /* Wide string literal, e.g., L"abc". */
+        if (!is_normal_character(character_kind)) {
+          /* A string literal with a prefix, e.g., L"abc" or U"xyz". */
           /* The processing here must invert the processing done in
              conv_single_wide_char.  Do something that's right for the default
              (simple-minded) implementation, which maps one input character
              to one wide character. */
-          output_partial_token_str("L\"", octl);
-          for (a = 0; a < len; a += targ_sizeof_wchar_t) {
+          unsigned int char_size = character_size[character_kind];
+          switch (constant->character_kind) {
+            case chk_wchar_t:   prefix = "L\"";     break;
+            case chk_char16_t:  prefix = "u\"";     break;
+            case chk_char32_t:  prefix = "U\"";     break;
+            default:            unexpected_condition();
+          }  /* switch */
+          output_partial_token_str(prefix, octl);
+          for (a = 0; a < len; a += char_size) {
             /* When generating output for humans to read, abbreviate
                long strings. */
-            if (!octl->gen_compilable_code && a > 20*targ_sizeof_wchar_t &&
-                len > 25*targ_sizeof_wchar_t) {
+            if (!octl->gen_compilable_code && a > 20*char_size &&
+                len > 25*char_size) {
               output_partial_token_str("...", octl);
               break;
-            }  /* if */
-            if (out_len >= 128 && octl->gen_compilable_code &&
-                !octl->gen_pcc_code && !octl->suppress_line_breaking) {
+            } else if (out_len >= 128 && octl->gen_compilable_code &&
+                       !octl->gen_pcc_code && !octl->suppress_line_breaking) {
               /* Break long string constants by using concatenation.  This
                  allows the output routine to begin a new line. */
               output_partial_token_str("\"", octl);
               octl->output_str(" ");
-              output_partial_token_str("L\"", octl);
+              output_partial_token_str(prefix, octl);
               out_len = 0;
             }  /* if */
-            wc = extract_wide_char_from_string(str+a);
+            wc = extract_character_from_string(str+a, char_size);
             /* Suppress the last character if it is a null. */
-            if (a != (len - targ_sizeof_wchar_t) || wc != '\0') {
+            if (a != (len - char_size) || wc != '\0') {
               out_len += form_wide_char(wc, octl);
             }  /* if */
           }  /* for */

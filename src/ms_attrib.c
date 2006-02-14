@@ -1122,13 +1122,12 @@ the token is a string literal, but the constant is an error constant, "err"
 is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
 */
 {
-  char		*src = NULL;
-  a_boolean	valid_token = TRUE;
-  char		*result = NULL;
-  a_boolean	src_is_wide = FALSE;
-  a_targ_size_t	len;
-  a_targ_size_t	pos;
-  int		size = 1;
+  char		    *src = NULL;
+  a_boolean	    valid_token = TRUE;
+  char		    *result = NULL;
+  a_character_kind  char_kind = (a_character_kind)chk_char;
+  a_targ_size_t	    len, pos, char_size = 1;
+  int		    size = 1;
 
   *err = FALSE;
   /* Copy the characters into a buffer, converting any upper case characters
@@ -1150,10 +1149,10 @@ is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
     } else {
       src = const_for_curr_token.variant.string.value;
       /* Determine if the source constant is a wide string literal. */
-      src_is_wide = is_wide_string_constant(&const_for_curr_token);
-      size = src_is_wide ? targ_sizeof_wchar_t : 1;
+      char_kind = const_for_curr_token.character_kind;
+      char_size = character_size[char_kind];
       /* Subtract one character to ignore the null terminator. */
-      len = const_for_curr_token.variant.string.length - size;
+      len = const_for_curr_token.variant.string.length - char_size;
     }  /* if */
   } else if (is_keyword_token(curr_token)) {
     /* A token initially cached as a keyword that should be treated as an
@@ -1168,15 +1167,15 @@ is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
   if (src != NULL) {
     /* Copy the characters to the text buffer, converting them to lower
        case. */
-    for (pos = 0; pos < len; src += size, pos += size) {
+    for (pos = 0; pos < len; src += char_size, pos += char_size) {
       char	ch;
-      if (src_is_wide) {
+      if (char_kind == (a_character_kind)chk_char) {
+        ch = *src;
+      } else {
         /* A wide literal.  Extract the character value.  Values out of
            range are truncated.  As this routine is used for strings with
-           expected values, this should result an an error later. */
-        ch = (char)extract_wide_char_from_string(src);
-      } else {
-        ch = *src;
+           expected values, this should result in an error later. */
+        ch = (char)extract_character_from_string(src, char_size);
       }  /* if */
       if (is_id_char[ch-CHAR_MIN]) ch = tolower(ch);
       add_char_to_text_buffer(ms_attr_buffer, ch);

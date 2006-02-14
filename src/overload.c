@@ -6854,8 +6854,7 @@ format string can be deduced, set appropriate fields in arg_block.
          type test above. */
       con_ptr = con_ptr->variant.address.variant.constant;
       if (con_ptr->kind == (a_constant_repr_kind)ck_string &&
-          char_int_kind_from_string_type(con_ptr->type) ==
-                                                       plain_char_int_kind) {
+          is_normal_character(con_ptr->character_kind)) {
         /* The constant pointed to is a string (and not a wide string).
            Check that it is null-terminated. */
         arg_block->fmt_string = con_ptr->variant.string.value;

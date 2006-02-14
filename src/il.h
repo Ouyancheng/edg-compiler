@@ -605,9 +605,14 @@ extern a_boolean imaginary_type_used_in_primary_IL(a_float_kind kind);
 extern a_type_ptr imaginary_type(a_float_kind kind);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-extern a_type_ptr string_type(a_targ_size_t num_chars);
+extern a_type_ptr string_literal_type(a_character_kind  kind,
+                                      a_targ_size_t     num_chars);
 
-extern a_type_ptr wide_string_type(a_targ_size_t num_chars);
+#define string_type(num_chars)                                             \
+  string_literal_type((a_character_kind)chk_char, num_chars)
+
+#define wide_string_type(num_chars)                                        \
+  string_literal_type((a_character_kind)chk_wchar_t, num_chars)
 
 extern a_type_ptr error_type(void);
 
@@ -900,6 +905,12 @@ extern void set_unsigned_integer_constant(a_constant		*cp,
 extern a_boolean is_enum_constant(a_constant_ptr con);
 
 extern a_boolean is_wide_string_constant(a_constant_ptr constant);
+
+#define is_normal_character(kind)  ((kind) == (a_character_kind)chk_char)
+
+#define is_normal_string_constant(con)                                      \
+  ((con)->kind == (a_constant_repr_kind)ck_string &&                        \
+   is_normal_character((con)->character_kind))
 
 extern void make_zero_of_proper_type(a_type_ptr desired_type,
                                      a_constant *zero_constant);

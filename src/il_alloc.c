@@ -776,6 +776,7 @@ associated variant fields to default values.
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   cp->expr           = NULL;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  cp->character_kind = (a_character_kind)chk_default;
   cp->implicit_cast  = FALSE;
   cp->explicit_cast_applied = FALSE;
   cp->is_reinterpret_cast = FALSE;

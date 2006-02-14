@@ -3106,27 +3106,34 @@ invalid, set *err to TRUE if err is non-NULL, and return 1.
 
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
-unsigned long extract_wide_char_from_string(char *str)
+unsigned long extract_character_from_string(char          *str,
+                                            unsigned int  char_size)
 /*
-str points at a wide character represented as a sequence of normal chars.
-Extract the wide character value and return it.
+Extract a character of the given size from the given string and return its
+value.  This routine deals with endianness, but not with the possibility of
+multicharacter encodings (e.g., surrogate pairs in UTF-16 are not combined
+into single character values).
 */
 {
-  unsigned long wc = 0;
-  unsigned char ch;
-  int           i;
+  unsigned long  wc = 0;
+  unsigned char  ch;
+  unsigned int   i;
 
-  for (i = 0; i < (int)targ_sizeof_wchar_t; i++) {
-    if (targ_little_endian) {
-      ch = (unsigned char)str[(targ_sizeof_wchar_t - 1) - i];
-    } else {
+  if (targ_little_endian) {
+    for (i = 0; i < char_size; ++i) {
+      ch = (unsigned char)str[(char_size - 1) - i];
+      wc <<= targ_char_bit;
+      wc |= ch;
+    }  /* for */
+  } else {
+    for (i = 0; i < char_size; ++i) {
       ch = (unsigned char)str[i];
-    }  /* if */
-    wc <<= targ_char_bit;
-    wc |= ch;
-  }  /* for */
+      wc <<= targ_char_bit;
+      wc |= ch;
+    }  /* for */
+  }  /* if */
   return wc;
-}  /* extract_wide_char_from_string */
+}  /* extract_character_from_string */
 
 #if !STANDALONE_UTILITY_PROGRAM
 

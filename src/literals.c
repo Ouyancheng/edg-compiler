@@ -669,16 +669,56 @@ the character position of the error.
 }  /* conv_float_literal */
 
 
+static int ucn_to_utf16(unsigned long   ucn,
+                        unsigned short  *encoding)
+/*
+Encode the given 32-bit character code as UTF-16 values stored in an array
+pointed to by encoding.  Return the number of array elements used by the
+encoding (never more than MAX_CHAR16_T_ENCODING_LENGTH), or zero if no valid
+encoding could be achieved.  Note that this routine does not handle the
+conversion to the target char16_t representation (i.e., this the host-side
+of the encoding).
+*/
+{
+  int  result;
+
+  if (ucn <= 0xFFFF) {
+    /* No need for a surrogate pair.  (The code 0xD800 through 0xDFFF are
+       normally reserved for surrogate pair encoding.  They aren't valid
+       universal character names in C99 (caught elsewhere), but they are
+       in C++.  This encoding routine just encodes them "as is", which might
+       result in an invalid UTF-16 code.) */
+    result = 1;
+    encoding[0] = (unsigned short)ucn;
+  } else {
+    /* Form a surrogate pair. */
+    if (ucn < 0x10FFFF) {
+      unsigned long high, low;
+      result = 2;
+      ucn -= 0x10000;
+      low = 0xDC00 | (ucn & 0x3FF);
+      high = 0xD800 | ((ucn >> 10) & 0x3FF);
+      encoding[0] = (unsigned short)high;
+      encoding[1] = (unsigned short)low;
+    } else {
+      /* UTF-16 cannot represent code points above 0x10FFFF. */
+      result = 0;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* ucn_to_utf16 */
+
+
 void conv_single_char(char          **temp_ptr,
                       int           *remaining_mbc_char_count,
                       unsigned long *ch,
                       unsigned long centity_mask)
 /*
 Fetch one character of a character constant or string literal.  The current
-position in the token is *temp_ptr (it is incremented appropriately
-for what is taken).  The character gotten is returned (not sign-extended)
-in ch.  centity_mask defines the size of the character entity into which
-this character is going (char or wchar_t).  *remaining_mbc_char_count
+position in the token is *temp_ptr (it is incremented appropriately for what
+is taken).  The character gotten is returned (not sign-extended) in ch.
+centity_mask defines the size of the character entity into which this character
+is going (char, wchar_t, char16_t, or char32_t).  *remaining_mbc_char_count
 indicates the number of characters remaining to be extracted from a
 multibyte character sequence.  The caller must set it to zero before
 the first call of this routine in a given string.  It is updated
@@ -893,12 +933,13 @@ static void conv_single_wide_char(char          **temp_ptr,
                                   unsigned long *ch,
                                   unsigned long centity_mask)
 /*
-Fetch one wide character of a wide character constant or string literal.
+Fetch one wide character of a wide character constant or string literal
+(here, a "wide character" can be a wchar_t, a char16_t, or a char32_t).
 The current position in the token is *temp_ptr (it is incremented
 appropriately for what is taken).  More than one source character
 may be taken to produce one wide character as output.  The wide character
 gotten is returned (not sign-extended) in ch.  centity_mask defines
-the size of wchar_t.
+the size of character.
 */
 {
   int remaining_mbc_char_count = 0;
@@ -948,88 +989,122 @@ the number of characters contained within the quotes (after escape
 processing, and in wide characters if the constant is wide).
 */
 {
-  unsigned long    i;
-  unsigned long    ch;
-  an_integer_value number, ch_int_val;
-  char             *temp_ptr;
-  a_boolean        is_wide = FALSE, err;
-  a_type_ptr       con_type;
-  sizeof_t         constant_size;
-  unsigned long    centity_mask;
-  a_boolean        centity_is_signed;
-  int              centity_bits;
-  int              remaining_mbc_char_count = 0;
+  unsigned long     i;
+  unsigned long     ch;
+  an_integer_value  number, ch_int_val;
+  char              *temp_ptr;
+  a_boolean         err, too_many_chars = FALSE, bad_character = FALSE;
+  a_type_ptr        con_type;
+  sizeof_t          constant_size;
+  unsigned int      char_size;
+  unsigned long     centity_mask;
+  a_boolean         centity_is_signed;
+  int               centity_bits;
+  int               remaining_mbc_char_count = 0, encoding_length;
+  a_character_kind  character_kind;
 
-  *err_code = ec_no_error;
-  *err_pos = NULL;
-  temp_ptr = start_of_curr_token+1;
-  /* See if this is a wide character constant. */
-  /* Determine the constant type:
-       Wide character constant  (L'x'): wchar_t
-       Single character constant ('x'): int in C, char in C++
-       Multi-character constant ('xy'): int
+  /* Determine the constant type as follows:
+       Single-character constant     ('x'): int in C, char in C++
+       Multi-character constant     ('xy'): int
+       Wide character constant      (L'x'): wchar_t
+       char16_t character constant  (u'x'): char16_t
+       char32_t character constant  (U'x'): char32_t
   */
-  if (*start_of_curr_token == 'L') {
-    /* Wide character constant. */
-    is_wide = TRUE;
-    /* Skip over the "L". */
-    temp_ptr++;
-    constant_size = (sizeof_t)(num_chars*targ_sizeof_wchar_t);
-    centity_mask = (unsigned long)1 <<
-                                ((((int)targ_sizeof_wchar_t)*targ_char_bit)-1);
-    centity_mask = centity_mask | (centity_mask - 1);
-    centity_bits = (int)targ_sizeof_wchar_t*targ_char_bit;
-    centity_is_signed = int_kind_is_signed[(int)targ_wchar_t_int_kind];
-    con_type = eff_wchar_t_type();
-  } else {
-     /* Normal character constant. */
-    an_integer_kind int_kind;
-    if (C_dialect == C_dialect_cplusplus && num_chars == 1) {
-      int_kind = (an_integer_kind)ik_char;
-    } else {
-      int_kind = (an_integer_kind)ik_int;
-    }  /* if */
-    constant_size = (sizeof_t)num_chars;
-    centity_mask = (unsigned long)1 << (targ_char_bit-1);
-    centity_mask = centity_mask | (centity_mask - 1);
-    centity_bits = targ_char_bit;
-    centity_is_signed = targ_has_signed_chars; 
-    con_type = integer_type(int_kind);
-  }  /* if */
-  /* See if the characters we have will fit in the size we've determined. */
-  if (constant_size > con_type->size && !is_wide) {
-    /* Too many characters to fit.  For wide character literals, make this
-       allowed (with a warning below) because the C standard says it is
-       implementation-defined, and several test suites have something like
-        L'ab' in them. */
-    *err_code = ec_too_many_characters;
-    *err_pos = start_of_curr_token;
-  } else if (num_chars > 1) {
-    /* A character literal with more than one character produces an
-       implementation-defined value.  Issue a warning.  The "too many
-       characters" message is used for wide characters as this is
-       unlikely to produce a meaningful result. */
-    conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
-    warning(is_wide ? ec_too_many_characters : ec_multi_char_literal);
-  }  /* if */
-  if (*err_code == ec_no_error) {
+  switch (*start_of_curr_token) {
+    case '\'':
+      /* Normal character literal (single or multi). */
+      character_kind = (a_character_kind)chk_char;
+      char_size = 1;
+      constant_size = (sizeof_t)num_chars;
+      centity_bits = targ_char_bit;
+      centity_is_signed = targ_has_signed_chars; 
+      if (C_mode() || num_chars > 1) {
+        con_type = integer_type((an_integer_kind)ik_int);
+        /* Record whether there are too many characters to fit.  For wide
+           character literals, we allow this (with a warning below) because
+           the C standard says it is implementation-defined, and several test
+           suites have something like L'ab' in them. */
+        too_many_chars = (constant_size > targ_sizeof_int);
+      } else {
+        /* A single-character constant in C++. */
+        con_type = integer_type((an_integer_kind)ik_char);
+      }  /* if */
+      temp_ptr = start_of_curr_token+1;
+      break;
+    case 'L':
+      /* Wide character literal. */
+      character_kind = (a_character_kind)chk_wchar_t;
+      char_size = targ_sizeof_wchar_t;
+      centity_bits = char_size*targ_char_bit;
+      centity_is_signed = int_kind_is_signed[(int)targ_wchar_t_int_kind];
+      con_type = eff_wchar_t_type();
+      temp_ptr = start_of_curr_token+2;
+      break;
+    case 'U':
+      /* char32_t character literal. */
+      character_kind = (a_character_kind)chk_char32_t;
+      char_size = targ_sizeof_char32_t;
+      centity_bits = char_size*targ_char_bit;
+      centity_is_signed = FALSE; 
+      con_type = integer_type(targ_char32_t_int_kind);
+      temp_ptr = start_of_curr_token+2;
+      break;
+    case 'u':
+      /* char16_t character literal. */
+      character_kind = (a_character_kind)chk_char16_t;
+      char_size = targ_sizeof_char16_t;
+      /* Do not use a mask for char16_t characters at this time.  Any masking
+         operation is the responsibility of the encoding (invoked through the
+         ENCODE_IN_CHAR16_T macro). */
+      centity_bits = sizeof(unsigned long)*CHAR_BIT;
+      centity_is_signed = FALSE; 
+      con_type = integer_type(targ_char16_t_int_kind);
+      temp_ptr = start_of_curr_token+2;
+      break;
+  }  /* switch */
+  centity_mask = (unsigned long)1 << (centity_bits-1);
+  centity_mask = centity_mask | (centity_mask - 1);
+  if (!too_many_chars) {
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
     /* Initialize for scanning multibyte characters in the string. */
     mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
     set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
     /* Accumulate the characters. */
-    for (i = 0; i < num_chars; i++) {
+    for (i = 0; temp_ptr < end_of_curr_token; ++i) {
       /* Convert one character of the char constant. */
-      if (!is_wide) {
-        conv_single_char(&temp_ptr, &remaining_mbc_char_count, &ch,
-                         centity_mask);
-      } else {
-        conv_single_wide_char(&temp_ptr, &ch, centity_mask);
-      }  /* if */
-      /* For wide character constants with too many characters, ignore
-         characters that don't fit. */
-      if (is_wide && i > 0) continue;
+      switch (character_kind) {
+        case chk_char:
+          conv_single_char(&temp_ptr, &remaining_mbc_char_count, &ch,
+                           centity_mask);
+          break;
+        case chk_wchar_t:
+          conv_single_wide_char(&temp_ptr, &ch, centity_mask);
+          /* The value of a multi-character L'...' literal is truncated to
+             the first character. */
+          if (i != 0) continue;
+          break;
+        case chk_char16_t:
+          { unsigned short char16_t_vals[MAX_CHAR16_T_ENCODING_LENGTH];
+            conv_single_wide_char(&temp_ptr, &ch, centity_mask);
+            encoding_length = ENCODE_IN_CHAR16_T(ch, char16_t_vals);
+            if (encoding_length == 1 && i == 0) {
+              /* Normal case. */
+              ch = (unsigned long)char16_t_vals[0];
+            } else if (encoding_length == 0) {
+              /* ch contained a character code that cannot be encoded in a
+                 char16_t representation. */
+              bad_character = TRUE;
+            } else {
+              too_many_chars = TRUE;
+            }  /* if */
+          }
+          break;
+        case chk_char32_t:
+          conv_single_wide_char(&temp_ptr, &ch, centity_mask);
+          if (i != 0) too_many_chars = TRUE;
+          break;
+      }  /* switch */
       /* Put the character in the right place. */
       set_unsigned_integer_value(&ch_int_val, (a_host_large_unsigned)ch);
       if (targ_char_constant_first_char_most_significant) {
@@ -1057,46 +1132,56 @@ processing, and in wide characters if the constant is wide).
         } /* if */
       } /* if */
       or_integer_values(&number, &ch_int_val);
-    }  /* for */
-#if CHECKING
-    /* Make sure the whole constant was taken.  If not, the character count
-       from accum_quoted_string is wrong. */
-    if (temp_ptr != end_of_curr_token) {
-      internal_error("conv_char_literal: length miscalculated");
+    }  /* while */
+  }  /* if */
+  if (too_many_chars || bad_character) {
+    *err_code = bad_character ? ec_no_char16_t_representation
+                              : ec_too_many_characters;
+    *err_pos = start_of_curr_token;
+    /* Return an error constant. */
+    set_error_constant(&const_for_curr_token);
+  } else {
+    *err_code = ec_no_error;
+    *err_pos = NULL;
+    if (num_chars > 1) {
+      /* A character literal with more than one character produces an
+         implementation-defined value.  Issue a warning.  The "too many
+         characters" message is used for wide characters as this is
+         unlikely to produce a meaningful result. */
+      conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
+      warning((character_kind != (a_character_kind)chk_char) ?
+                              ec_too_many_characters : ec_multi_char_literal);
     }  /* if */
-#endif /* CHECKING */
     clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
     const_for_curr_token.type = con_type;
     const_for_curr_token.variant.integer_value = number;
-  }  /* if */
-  if (*err_code != ec_no_error) {
-    /* Return an error constant. */
-    set_error_constant(&const_for_curr_token);
+  const_for_curr_token.character_kind = character_kind;
   }  /* if */
 }  /* conv_char_literal */
 
 
-static void put_wide_char_into_string(unsigned long ch,
-                                      char     **pstr)
+static void put_wide_char_into_string(unsigned long  ch,
+                                      char           **pstr,
+                                      unsigned int   char_size)
 /*
-Put the wide character ch into the string pointed to by *pstr, and increment
-*pstr by the proper amount.
+Put the wide character (wchar_t, char16_t, or char32_t) ch into the string
+pointed to by *pstr, and increment *pstr by the proper amount.  char_size
+specifies the number of bytes in a wide character.
 */
 {
   unsigned int  i;
-  char *p = *pstr;
+  char          *p = *pstr;
 
   /* This is basically a copy of an integer to an array of characters;
      we must allow for the target endian-ness. */
   if (targ_little_endian) {
-    for (i = 0; i < targ_sizeof_wchar_t; i++) {
-      *p++ = (char) (ch & UCHAR_MAX);
+    for (i = 0; i < char_size; i++) {
+      *p++ = (char)(ch & UCHAR_MAX);
       ch >>= targ_char_bit;
     }  /* for */
   } else {
-    for (i = 0; i < targ_sizeof_wchar_t; i++) {
-      *p++ = (char) ((ch >> ((targ_sizeof_wchar_t - i - 1) *
-                                               targ_char_bit)) & UCHAR_MAX);
+    for (i = 0; i < char_size; i++) {
+      *p++ = (char)((ch >> ((char_size - i - 1) * targ_char_bit)) & UCHAR_MAX);
     }  /* for */
   }  /* if */
   *pstr = p;
@@ -1114,21 +1199,20 @@ there is no error, *err_code is set to ec_no_error (which is 0);
 otherwise, *err_code is set to an appropriate error code and *err_pos
 is set to the character position of the error.  num_chars indicates
 the number of characters contained within the quotes (after escape
-processing, and in wide characters if the string is wide).
+processing, and in wide characters if the string is wide).  If the string
+is a char16_t string of the form u"...", num_chars may be larger (but not
+smaller) than the number of characters needed to represent the string.
 */
 {
-  unsigned long i;
-  unsigned long ch;
-  char          *temp_ptr;
-  char          *pstr, *str_start;
-  a_boolean     is_wide = FALSE;
-  sizeof_t      constant_size;
-  a_targ_size_t num_elems;
-  unsigned long centity_mask;
-  int           remaining_mbc_char_count = 0;
+  unsigned long     i, ch, centity_mask;
+  char              *temp_ptr, *pstr, *str_start, *prev_pos;
+  sizeof_t          constant_size;
+  a_targ_size_t     num_elems;
+  int               remaining_mbc_char_count = 0, encoding_length;
+  unsigned int      char_size;
+  a_character_kind  character_kind;
+  unsigned short    char16_t_vals[MAX_CHAR16_T_ENCODING_LENGTH];
 
-  *err_code = ec_no_error;
-  *err_pos = NULL;  /* To make lint happy. */
   /* The number of array elements is one more than the number of characters,
      to leave space for the terminating null. */
   num_elems = (a_targ_size_t)num_chars + 1;
@@ -1137,24 +1221,46 @@ processing, and in wide characters if the string is wide).
   centity_mask = centity_mask | (centity_mask-1);
   temp_ptr = start_of_curr_token+1;
   /* See if this is a wide string literal. */
-  if (*start_of_curr_token == 'L') {
-    /* Wide string literal. */
-    is_wide = TRUE;
-    /* Skip over the "L". */
-    temp_ptr++;
-    constant_size = (sizeof_t)(num_elems*targ_sizeof_wchar_t);
-    /* Replicate the mask for one character as many times as there are
-       characters in the wide character.  This "inefficient" method is used
-       because it works right even when the target character is larger than
-       the host character.  In that case, there are "holes" in the bit
-       pattern where a "1" bit cannot be represented. */
-    for (i = 1; i < targ_sizeof_wchar_t; i++) {
+  switch (*start_of_curr_token) {
+    case '"':
+      /* Normal string literal. */
+      character_kind = (a_character_kind)chk_char;
+      char_size = 1;
+      constant_size = (sizeof_t)num_elems;
+      /* centity_mask is already set. */
+      break;
+    case 'L':
+      /* Wide string literal. */
+      character_kind = (a_character_kind)chk_wchar_t;
+      char_size = targ_sizeof_wchar_t;
+      break;
+    case 'U':
+      /* char32_t string literal. */
+      character_kind = (a_character_kind)chk_char32_t;
+      char_size = targ_sizeof_char32_t;
+      break;
+    case 'u':
+      /* char16_t string literal. */
+      character_kind = (a_character_kind)chk_char16_t;
+      char_size = targ_sizeof_char16_t;
+      /* Do not use a mask for char16_t characters at this time.  Any masking
+         operation is the responsibility of the encoding (invoked through the
+         ENCODE_IN_CHAR16_T macro). */
+      centity_mask = ~0;
+      break;
+  }  /* switch */
+  if (char_size != 1) {
+    /* Skip over the 'L', 'U', or 'u': */
+    ++temp_ptr;
+    constant_size = (sizeof_t)(num_elems*char_size);
+    /* Replicate the mask for one character as many times as there are chars
+       in the wide character.  This "inefficient" method is used because it
+       works right even when the target character is larger than the host
+       character.  In that case, there are "holes" in the bit pattern where a
+       "1" bit cannot be represented. */
+    for (i = 1; i < char_size; ++i) {
       centity_mask |= (centity_mask << targ_char_bit);
     }  /* for */
-  } else {
-    /* Normal string literal. */
-    constant_size = (sizeof_t)num_elems;
-    /* centity_mask is already set. */
   }  /* if */
   /* Allocate enough space to hold the final string, including the null
      added to it. */
@@ -1164,43 +1270,91 @@ processing, and in wide characters if the string is wide).
   mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   /* Accumulate the characters. */
-  for (i = 0; i < num_chars; i++) {
+  while (temp_ptr < end_of_curr_token) {
     /* Convert one character of the string literal. */
-    if (!is_wide) {
-      conv_single_char(&temp_ptr, &remaining_mbc_char_count, &ch,
-                       centity_mask);
-      /* Put the character in the right place. */
-      *pstr++ = (char)ch;
-    } else {
-      conv_single_wide_char(&temp_ptr, &ch, centity_mask);
-      put_wide_char_into_string(ch, &pstr);
-    }  /* if */
+    switch (character_kind) {
+      case chk_char:
+        conv_single_char(&temp_ptr, &remaining_mbc_char_count, &ch,
+                         centity_mask);
+        *pstr++ = (char)ch;
+        break;
+      case chk_wchar_t:
+      case chk_char32_t:
+        conv_single_wide_char(&temp_ptr, &ch, centity_mask);
+        put_wide_char_into_string(ch, &pstr, char_size);
+        break;
+      case chk_char16_t:
+        prev_pos = temp_ptr;
+        conv_single_wide_char(&temp_ptr, &ch, centity_mask);
+        encoding_length = ENCODE_IN_CHAR16_T(ch, char16_t_vals);
+        if (encoding_length == 0) {
+          /* ch contained a character code that cannot be encoded in a
+             char16_t representation. */
+          conv_line_loc_to_source_pos(prev_pos, &error_position);
+          error(ec_no_char16_t_representation);
+        } else {
+          for (i = 0; i < encoding_length; ++i) {
+            put_wide_char_into_string((unsigned long)char16_t_vals[i],
+                                      &pstr, char_size);
+          }  /* for */
+        }  /* if */
+        break;
+    }  /* switch */
   }  /* for */
-#if CHECKING
-  /* Make sure the whole string was taken.  If not, the character count
-     from accum_quoted_string is wrong. */
-  if (temp_ptr != end_of_curr_token) {
-    internal_error("conv_string_literal: length miscalculated");
-  }  /* if */
-#endif /* CHECKING */
   /* Add the final null. */
-  if (!is_wide) {
-    *pstr = '\0';
-  } else {
-    ch = 0;
-    put_wide_char_into_string(ch, &pstr);
-  }  /* if */
+  switch (character_kind) {
+    case chk_char:
+      /* Normal string literal. */
+      *(pstr++) = '\0';
+      break;
+    case chk_char16_t:
+      /* The allocated number of bytes may be too large due to a conservative
+         estimate for encoding length.  Update the size to reflect the actual
+         encoding. */
+      constant_size = pstr - (str_start) + char_size;
+      /*FALLTHROUGH*/
+    case chk_wchar_t:
+    case chk_char32_t:
+      /* L"...", u"...", or U"...": */
+      ch = 0;
+      put_wide_char_into_string(ch, &pstr, char_size);
+      break;
+  }  /* switch */
+#if CHECKING
+  /* Check that the length calculation was correct. */
+  check_assertion_str(pstr - str_start == constant_size,
+                      "conv_string_literal: length miscalculated");
+#endif /* CHECKING */
   /* Make the constant entry for the string. */
   clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_string);
-  const_for_curr_token.type = is_wide ? wide_string_type(num_elems) :
-                                        string_type(num_elems);
+  const_for_curr_token.type = string_literal_type(character_kind, num_elems);
   const_for_curr_token.variant.string.length = constant_size;
   const_for_curr_token.variant.string.value  = str_start;
-  if (*err_code != ec_no_error) {
-    /* Return an error constant. */
-    set_error_constant(&const_for_curr_token);
-  }  /* if */
+  const_for_curr_token.character_kind = character_kind;
+  /* Currently, no error is returned through err_code or err_pos. */
+  *err_code = ec_no_error;
+  *err_pos = NULL;  /* To make lint happy. */
 }  /* conv_string_literal */
+
+
+static void widening_copy(char              *src,
+                          char              *dst,
+                          a_targ_size_t     len,
+                          a_character_kind  kind)
+/*
+Copy an ordinary character string of length len pointed to by src to a
+character string pointed to by dst.  dst already points to storage that is
+sufficient to hold len characters of the indicated kind.
+*/
+{
+  a_targ_size_t  k = 0;
+  unsigned int   char_size = character_size[kind];
+
+  for (k = 0; k < len; ++k) {
+    unsigned long ch = (unsigned long)(unsigned char)src[k];
+    put_wide_char_into_string(ch, &dst, char_size);
+  }  /* for */
+}  /* widening_copy */
 
 
 void widen_string_literal(a_constant_ptr con)
@@ -1208,41 +1362,37 @@ void widen_string_literal(a_constant_ptr con)
 Change the indicated narrow string literal into a wide string literal.
 */
 {
-  a_targ_size_t narrow_str_len = con->variant.string.length;
-  char          *narrow_str = con->variant.string.value;
-  a_targ_size_t wide_str_len = narrow_str_len * targ_sizeof_wchar_t;
-  char          *wide_str=alloc_text_of_string_literal((sizeof_t)wide_str_len);
-  char          *wide_ptr = wide_str;
-  a_targ_size_t i;
+  a_targ_size_t  narrow_str_len = con->variant.string.length;
+  char           *narrow_str = con->variant.string.value;
 
-  for (i = 0; i < narrow_str_len; i ++) {
-    unsigned long ch = (unsigned long)(unsigned char)narrow_str[i];
-    put_wide_char_into_string(ch, &wide_ptr);
-  }  /* for */
   clear_constant(con, (a_constant_repr_kind)ck_string);
-  con->type = wide_string_type(narrow_str_len);
-  con->variant.string.length = wide_str_len;
-  con->variant.string.value = wide_str;
+  con->type = string_literal_type((a_character_kind)chk_wchar_t,
+                                  narrow_str_len);
+  con->character_kind = (a_character_kind)chk_wchar_t;
+  con->variant.string.length = narrow_str_len * targ_sizeof_wchar_t;
+  con->variant.string.value = alloc_text_of_string_literal(
+                                        (sizeof_t)con->variant.string.length);
+  widening_copy(narrow_str, con->variant.string.value,
+                con->variant.string.length, (a_character_kind)chk_wchar_t);
 }  /* widen_string_literal */
 
 
 void concat_string_literals(a_token_cache_ptr cache,
-                            a_boolean         wide_literals)
+                            a_character_kind  character_kind)
 /*
-Concatenate two or more string literals (or wide string literals) contained
-in the indicated token cache, and replace the constant in the first
-cached string token with the constant for the concatenation.  (The rest of the
-cached tokens are left as they are; the caller removes and frees them.)
-Some of the constants may be error constants if there were malformed
-string literals in the input; in that case, the output is an error constant.
-Some of the entries in the token cache may be for pragmas; they are ignored.
-This routine implements the lexical concatenation of section 2.1.1.2, phase
-6, of the C standard.  The nulls from the initial strings are discarded in
-doing the concatenation, and the one from the last string is copied as
-the final null of the concatenated string; see ANSI C 3.1.4.
-If wide_literals is FALSE, the result is a narrow string, and all the
-strings will be narrow.  If wide_literals is TRUE, the result is a
-wide string, and the strings can be narrow or wide.
+Concatenate two or more string literals contained in the indicated token
+cache, and replace the constant in the first cached string token with the
+constant for the concatenation.  (The rest of the cached tokens are left as
+they are; the caller removes and frees them.)  The result string will have
+characters of the given kind.  Some of the constants may be error constants if
+there were malformed string literals in the input; in that case, the output is
+an error constant.  Some of the entries in the token cache may be for pragmas;
+they are ignored.  This routine implements the lexical concatenation of
+section 2.1.1.2, phase 6, of the C standard.  The nulls from the initial
+strings are discarded in doing the concatenation, and the one from the last
+string is copied as the final null of the concatenated string; see ANSI C
+3.1.4.  The cached strings either all have the given character kind, or a
+mix of the given kind and chk_char.
 */
 {
   a_targ_size_t      total_len = 0, str_len, null_len;
@@ -1254,13 +1404,7 @@ wide string, and the strings can be narrow or wide.
   db_enter(4, "concat_string_literals");
   /* Determine the length of the terminating null on strings.  It's usually
      1, but it may be bigger for wide string literals. */
-  if (wide_literals) {
-    /* Wide string literal -- the null is the size of a wchar_t. */
-    null_len = targ_sizeof_wchar_t;
-  } else {
-    /* Non-wide string literal -- the null is one byte. */
-    null_len = 1;
-  }  /* if */
+  null_len = character_size[character_kind];
   /* Determine the length of the concatenation. */
   for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {
     /* Ignore pragma entries. */
@@ -1280,12 +1424,12 @@ wide string, and the strings can be narrow or wide.
       /* String constant. */
       check_assertion_str(con->kind == (a_constant_repr_kind)ck_string,
                           "concat_string_literals: constant not ck_string");
-      if (wide_literals && !is_wchar_t_array_type(con->type)) {
-        /* Widen this constant before concatenating it. */
-        widen_string_literal(ctp->variant.constant);
-      }  /* if */
       /* Determine the length of this string literal. */
       str_len = con->variant.string.length;
+      if (con->character_kind != character_kind) {
+        /* This string will need widening. */
+        str_len *= null_len;
+      }  /* if */
       /* Except on the last constant, subtract out the space for the
          final null in the string. */
       if (ctp->next != NULL) str_len -= null_len;
@@ -1321,8 +1465,15 @@ wide string, and the strings can be narrow or wide.
       if (ctp->next != NULL) str_len -= null_len;
       /* Copy the string text (including the final null, if that's
          appropriate). */
-      (void)memcpy(new_str+total_len, con->variant.string.value,
-                   size_t_arg(str_len));
+      if (con->character_kind != character_kind) {
+        /* A string like "xyz" in L"abc" "xyz" needs widening. */
+        check_assertion(con->character_kind == (a_character_kind)chk_char);
+        widening_copy(con->variant.string.value, new_str+total_len, 
+                      total_len, character_kind);
+      } else {
+        (void)memcpy(new_str+total_len, con->variant.string.value,
+                     size_t_arg(str_len));
+      }  /* if */
       /* Keep track of the total length so far, which is also the offset for
          storing into the concatenation. */
       total_len += str_len;
@@ -1339,12 +1490,9 @@ wide string, and the strings can be narrow or wide.
     concat_con->variant.string.length = total_len;
     concat_con->variant.string.value  = new_str;
     /* Adjust the constant type to match the new length. */
-    if (!wide_literals) {
-      concat_con->type = string_type((a_targ_size_t)total_len);
-    } else {
-      concat_con->type = wide_string_type(
-                             (a_targ_size_t)(total_len / targ_sizeof_wchar_t));
-    }  /* if */
+    concat_con->type = string_literal_type(character_kind,
+                                           (a_targ_size_t)total_len);
+    concat_con->character_kind = character_kind;
   }  /* if */
   db_exit();
 }  /* concat_string_literals */

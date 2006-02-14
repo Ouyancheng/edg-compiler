@@ -251,42 +251,41 @@ a copy is made and modified.
 a_boolean check_string_constant_initializer(a_type_ptr      *var_type,
                                             a_constant_ptr  string_con)
 /*
-var_type is an array of char or wchar_t (or an array whose element type is
-template dependent).  Return TRUE if and only if it can be initialized with
-the given string literal.  If necessary, the string literal may be truncated
-and the type may be modified (e.g., to set the length of the string).
+var_type is an array of narrow or wide characters (or an array whose element
+type is template dependent).  Return TRUE if and only if it can be initialized
+with the given string literal.  If necessary, the string literal may be
+truncated and the type may be modified (e.g., to set the length of the string).
 */
 {
-  /* The object being initialized has type array of char or wchar_t, and
+  /* The object being initialized has type array of characters, and
      is being initialized with a string.  Handle this case specially. */
   a_type_ptr     array_type;
-  a_targ_size_t  string_length, num_elems;
-  a_targ_size_t  array_length;
+  a_character_kind
+                 char_kind = string_con->character_kind;
+  a_targ_size_t  char_size = character_size[char_kind];
+  a_targ_size_t  string_length, num_elems, array_length;
   a_boolean      is_template_dependent = is_template_dependent_type(*var_type);
-  a_boolean      is_wide_string = !is_char_array_type(string_con->type);
   a_boolean      err = FALSE;
 
-  /* The object to be initialized is an array (possibly incomplete) of
-     char or wchar_t -- i.e., a string or wide string.  During prototype
-     instantiations, we assume that any template-dependent array type may
-     end up with an appropriate type during a real instantiation. */
-  check_assertion(is_char_array_type(*var_type) ||
-                  is_wchar_t_array_type(*var_type) ||
+  /* The object to be initialized is an array (possibly incomplete) of char,
+     wchar_t, char16_t, or char32_t -- i.e., a string or wide string.  During
+     prototype instantiations, we assume that any template-dependent array
+     type may end up with an appropriate type during a real instantiation. */
+  check_assertion(is_string_type(*var_type) ||
                   (is_array_type(*var_type) && is_template_dependent));
   /* The constant and the array should have the same underlying character
      element type -- e.g., it's a mismatch if one is a wide string
      and the other a normal string. */
-  err = (is_char_array_type(*var_type) != !is_wide_string &&
+  err = (!identical_types_ignoring_qualifiers(
+                                      array_element_type(*var_type),
+                                      array_element_type(string_con->type)) &&
          !is_template_dependent);
   if (!err) {
     /* The constant is a string with characters that are compatible with
        the array element type.  (Note that an array of characters of any
        signedness can be initialized with a string literal: ANSI C 3.5.7.) */
     num_elems = string_length = string_con->variant.string.length;
-    if (is_wide_string) {
-      /* Adjust the wide string number of elements. */
-      num_elems /= targ_sizeof_wchar_t;
-    }  /* if */
+    num_elems /= char_size;
     array_type = skip_typerefs(*var_type);
     if (is_incomplete_type(array_type)) {
       /* The array type is incomplete, and therefore the array size
@@ -310,15 +309,8 @@ and the type may be modified (e.g., to set the length of the string).
           /* Decrement the string length, and change its type,
              thus "dropping" the final null.  Note that this depends on
              the string not being shared. */
-          num_elems--;
-          if (!is_wide_string) {
-            string_length--;
-            string_con->type = string_type(num_elems);
-          } else {
-            string_length -= targ_sizeof_wchar_t;
-            string_con->type = wide_string_type(num_elems);
-          }  /* if */
-          string_con->variant.string.length = string_length;
+          string_con->type = string_literal_type(char_kind, num_elems-1);
+          string_con->variant.string.length = string_length - char_size;
         } else {
           /* The initializer string is too long for the array being
              initialized. */
@@ -429,10 +421,9 @@ initialization; otherwise, these pointers are NULL.
     }  /* if */
   }  /* if */
   if (is_string_init) {
-    /* The object being initialized has type array of char or wchar_t, and
+    /* The object being initialized has type array of character, and
        is being initialized with a string.  Handle this case specially. */
     a_boolean      err = FALSE;
-
     if (!using_pending_init_con) {
       /* The constant wasn't prescanned. */
       /* Do concatenations like "abc" __FUNCTION__. */
@@ -976,8 +967,8 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
   if (process_string_constant_initializer(
                                   &type, &cp, (an_aggregate_init_info_ptr)NULL,
                                   (an_aggregate_init_context_ptr)NULL)) {
-    /* The object being initialized has type pointer to char or wchar_t, and
-       is being initialized with a string. */
+    /* The object being initialized has type pointer to (narrow or wide)
+       characters, and is being initialized with a string. */
     is_constant = TRUE;
   } else if (nonconst_allowed) {
     /* Scan a potentially non-constant initializer expression.  The result
@@ -2000,7 +1991,7 @@ this function points to a tree that includes a dynamic-init entry.
     if (!(brace_flag && is_template_dependent_type(*type)) &&
         process_string_constant_initializer(type, &init_con,
                                             init_info, &context)) {
-      /* The object being initialized has type array of char or wchar_t, and
+      /* The object being initialized has type array of characters, and
          is being initialized with a string.  In prototype instantiations,
          we must beware of something like
            T s[] = { "a", "b" };  // "T" is a template parameter.

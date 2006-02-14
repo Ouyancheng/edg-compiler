@@ -80,6 +80,20 @@ predicates.
    !(tp)->variant.integer.wchar_t_type && \
    !(tp)->variant.integer.bool_type)
 
+/* A general character is a char-type, a wchar_t, a char16_t, or a char32_t. */
+#define is_general_character(tp) \
+  (is_integral(tp) && \
+   ((((tp)->variant.integer.int_kind == (an_integer_kind)ik_char || \
+      (tp)->variant.integer.int_kind == (an_integer_kind)ik_unsigned_char || \
+      (tp)->variant.integer.int_kind == (an_integer_kind)ik_signed_char) && \
+     !(tp)->variant.integer.bool_type) || \
+    (!wchar_t_is_keyword && \
+     ((tp)->variant.integer.int_kind == targ_wchar_t_int_kind)) || \
+    (uliterals_allowed && \
+     ((tp)->variant.integer.int_kind == targ_char16_t_int_kind || \
+      (tp)->variant.integer.int_kind == targ_char16_t_int_kind)) || \
+    (tp)->variant.integer.wchar_t_type))
+
 #if FIXED_POINT_ALLOWED
 #define is_fixed_point(tp) ((tp)->kind == (a_type_kind)tk_fixed_point)
 #endif /* FIXED_POINT_ALLOWED */
@@ -650,14 +664,19 @@ Return TRUE if the given type is an array of wchar_t.
 
 a_boolean is_string_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is an array of character (any kind) or
-an array of wchar_t.
+Return TRUE if the given type is an array of character (any kind, including
+wchar_t, char16_t, and char32_t).
 */
 {
-  a_boolean is_string;
+  a_boolean   result = FALSE;
+  a_type_ptr  elem_type;
 
-  is_string = is_char_array_type(tp) || is_wchar_t_array_type(tp);
-  return is_string;
+  tp = skip_typerefs(tp);
+  if (is_array(tp)) {
+    elem_type = skip_typerefs(tp->variant.array.element_type);
+    result = is_general_character(elem_type);
+  }  /* if */
+  return result;
 }  /* is_string_type */
 
 

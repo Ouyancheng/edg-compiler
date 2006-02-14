@@ -247,6 +247,7 @@ typedef enum /*an_option_kind*/ {
   optk_stdc_zero_in_system_headers,
   optk_template_typedefs_in_diagnostics,
   optk_defer_parse_function_templates,
+  optk_uliterals,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -884,6 +885,12 @@ EXTERN a_boolean
 			   Microsoft and GNU compilers (in both C and C++
 			   modes). */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+
+EXTERN a_boolean
+		uliterals_allowed;
+			/* TRUE if and only if TR 19769 literals of the forms
+			   u'...', U'...', u"...", and U"..." should be
+			   allowed in the source. */
 
 EXTERN a_boolean
 		wchar_t_is_keyword;

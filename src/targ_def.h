@@ -1340,6 +1340,48 @@ Wide character constant type (wchar_t, see stddef.h and stdlib.h).
 #endif /* !defined(TARG_SIZEOF_WCHAR_T) */
 
 /*
+Configuration of char16_t and char32_t (C extensions introduced by TR 19769).
+*/
+#ifndef TARG_CHAR16_T_INT_KIND
+#define TARG_CHAR16_T_INT_KIND  ((an_integer_kind)ik_unsigned_short)
+#endif /* !defined(TARG_CHAR16_T_INT_KIND) */
+
+#ifndef TARG_SIZEOF_CHAR16_T
+#define TARG_SIZEOF_CHAR16_T TARG_SIZEOF_SHORT
+			/* Default value, used to initialize global variable
+			   targ_sizeof_char16_t. */
+#endif /* !defined(TARG_SIZEOF_CHAR16_T) */
+
+#ifndef TARG_CHAR32_T_INT_KIND
+#define TARG_CHAR32_T_INT_KIND  ((an_integer_kind)ik_unsigned_long)
+#endif /* !defined(TARG_CHAR32_T_INT_KIND) */
+
+#ifndef TARG_SIZEOF_CHAR32_T
+#define TARG_SIZEOF_CHAR32_T TARG_SIZEOF_LONG
+			/* Default value, used to initialize global variable
+			   targ_sizeof_char32_t. */
+#endif /* !defined(TARG_SIZEOF_CHAR32_T) */
+
+/*
+Macro that determines how to encode a 32-bit character code (e.g., from a
+\Uxxxxxxxx universal character form) to char16_t character values.
+Invoking the macro should produce the number of values needed by the encoding
+or zero if the encoding failed.  The default is UTF-16 encoding.
+*/
+#ifndef ENCODE_IN_CHAR16_T
+#define ENCODE_IN_CHAR16_T(code, p_char16_t_vals) \
+  ucn_to_utf16((code), (p_char16_t_vals))
+#endif /* !defined(ENCODE_IN_CHAR16_T) */
+
+/*
+The maximum number of char16_t characters required to encode a 32-bit
+character code.
+*/
+#ifndef MAX_CHAR16_T_ENCODING_LENGTH
+#define MAX_CHAR16_T_ENCODING_LENGTH 2
+#endif /* !defined(MAX_CHAR16_T_ENCODING_LENGTH) */
+
+/*
 Integral kind to be used for the bool type in C++.
 */
 #ifndef TARG_BOOL_INT_KIND

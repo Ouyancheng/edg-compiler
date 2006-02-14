@@ -16538,9 +16538,23 @@ token following the operator, and should not be discarded.
       check_assertion(const_for_curr_token.kind ==
                                               (a_constant_repr_kind)ck_string);
       /* Widen the string unless it's already wide. */
-      if (!is_wchar_t_array_type(const_for_curr_token.type)) {
-        widen_string_literal(&const_for_curr_token);
-      }  /* if */
+      switch (const_for_curr_token.character_kind) {
+        case chk_char:
+          /* The normal case: Widen the string. */
+          widen_string_literal(&const_for_curr_token);
+          break;
+        case chk_wchar_t:
+          /* Already an L"..." string: Nothing to do. */
+          break;
+        case chk_char16_t:
+        case chk_char32_t:
+          /* u"..." and U"..." strings are invalid here. */
+          error(ec_lprefix_and_uliteral);
+          set_error_constant(&const_for_curr_token);
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
       if (next_token() == tok_rparen) {
         /* Everything looks good. */
         /* Save the string literal token so we can restore it below. */
@@ -19120,8 +19134,7 @@ string initializers.
       do {
         /* An array is also an aggregate.  However, generally the whole
            array is not initialized -- the first member is initialized. */
-        if (is_string_type(required_type) &&
-            result.is_simple_string_literal) {
+        if (result.is_simple_string_literal && is_string_type(required_type)) {
           /* char array initialized by string literal, either one possibly
              wide.  Don't go down to the member type. */
           string_case = TRUE;
