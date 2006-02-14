@@ -1771,6 +1771,14 @@ of the global variable named_registers_enabled.
 #endif /* !NAMED_REGISTERS_ALLOWED && DEFAULT_NAMED_REGISTERS_ENABLED */
 
 /*
+Flag that is TRUE if U-literals (as specified by ISO/IEC TR 19769) should be
+accepted by default.
+*/
+#ifndef DEFAULT_ULITERALS_ALLOWED
+#define DEFAULT_ULITERALS_ALLOWED FALSE
+#endif /* DEFAULT_ULITERALS_ALLOWED */
+
+/*
 Check that no mutually exclusive dialect emulations are simultaneously
 enabled.
 */

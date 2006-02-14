@@ -5145,6 +5145,7 @@ variables declared in cmd_line.h.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   microsoft_version = DEFAULT_MICROSOFT_VERSION;
   c99_mode = DEFAULT_C99_MODE;
+  uliterals_allowed = DEFAULT_ULITERALS_ALLOWED;
 }  /* cmd_line_static_var_init */
 
 
