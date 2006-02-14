@@ -171,35 +171,33 @@ Perform consistency check on target configuration variables.
   if (size != targ_sizeof_wchar_t) {
     internal_error("check_target_config: target wchar_t size is inconsistent");
   }  /* if */
-  if (uliterals_allowed) {
-    /* char16_t and char32 require checks similar to wchar_t, and in addition
-       they have minimum size requirements. */
-    get_integer_size_and_alignment((an_integer_kind)targ_char16_t_int_kind,
-                                   &size, &alignment);
-    if (size > sizeof(long)) {
-      internal_error("check_target_config: target char16_t is too large");
-    } else if (size*targ_char_bit < 16) {
-      internal_error("check_target_config: target char16_t is too small");
-    }  /* if */
-    /* targ_char16_t_int_kind and targ_sizeof_char16_t must be consistent:
-       if one is changed, the other should be changed, too. */
-    if (size != targ_sizeof_char16_t) {
-      internal_error(
-                 "check_target_config: target char16_t size is inconsistent");
-    }  /* if */
-    get_integer_size_and_alignment((an_integer_kind)targ_char32_t_int_kind,
-                                   &size, &alignment);
-    if (size > sizeof(long)) {
-      internal_error("check_target_config: target char32_t is too large");
-    } else if (size*targ_char_bit < 32) {
-      internal_error("check_target_config: target char32_t is too small");
-    }  /* if */
-    /* targ_char32_t_int_kind and targ_sizeof_char32_t must be consistent:
-       if one is changed, the other should be changed, too. */
-    if (size != targ_sizeof_char32_t) {
-      internal_error(
-                 "check_target_config: target char32_t size is inconsistent");
-    }  /* if */
+  /* char16_t and char32 require checks similar to wchar_t, and in addition
+     they have minimum size requirements. */
+  get_integer_size_and_alignment((an_integer_kind)targ_char16_t_int_kind,
+                                 &size, &alignment);
+  if (size > sizeof(long)) {
+    internal_error("check_target_config: target char16_t is too large");
+  } else if (size*targ_char_bit < 16) {
+    internal_error("check_target_config: target char16_t is too small");
+  }  /* if */
+  /* targ_char16_t_int_kind and targ_sizeof_char16_t must be consistent:
+     if one is changed, the other should be changed, too. */
+  if (size != targ_sizeof_char16_t) {
+    internal_error(
+               "check_target_config: target char16_t size is inconsistent");
+  }  /* if */
+  get_integer_size_and_alignment((an_integer_kind)targ_char32_t_int_kind,
+                                 &size, &alignment);
+  if (size > sizeof(long)) {
+    internal_error("check_target_config: target char32_t is too large");
+  } else if (size*targ_char_bit < 32) {
+    internal_error("check_target_config: target char32_t is too small");
+  }  /* if */
+  /* targ_char32_t_int_kind and targ_sizeof_char32_t must be consistent:
+     if one is changed, the other should be changed, too. */
+  if (size != targ_sizeof_char32_t) {
+    internal_error(
+               "check_target_config: target char32_t size is inconsistent");
   }  /* if */
   /* targ_size_t_max must fit in the target integer type targ_size_t_int_kind
      (but it need not fit exactly). */
