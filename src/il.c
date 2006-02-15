@@ -65,8 +65,7 @@ static a_type_ptr complex_types[(int)fk_last];
 static a_type_ptr imaginary_types[(int)fk_last];
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #define MAX_TRACKED_STRING_TYPE_LENGTH 80
-static a_type_ptr string_types[(int)chk_last]
-                              [MAX_TRACKED_STRING_TYPE_LENGTH+1];
+static a_type_ptr (*string_types)[MAX_TRACKED_STRING_TYPE_LENGTH+1];
 static a_type_ptr il_error_type;
 static a_type_ptr il_unknown_type;
 static a_type_ptr il_void_type;
@@ -17994,7 +17993,7 @@ in il_init.)
       pch_array_saved_var_array_elem(complex_types),
       pch_array_saved_var_array_elem(imaginary_types),
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      pch_array_saved_var_array_elem(string_types),
+      pch_saved_var_array_elem(string_types),
 #if NAMED_REGISTERS_ALLOWED
       pch_array_saved_var_array_elem(named_register_variables),
 #endif /* NAMED_REGISTERS_ALLOWED */
@@ -18051,7 +18050,7 @@ in il_init.)
   register_trans_unit_array(complex_types);
   register_trans_unit_array(imaginary_types);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  register_trans_unit_array(string_types);
+  register_trans_unit_variable(string_types);
 #if NAMED_REGISTERS_ALLOWED
   register_trans_unit_array(named_register_variables);
 #endif /* NAMED_REGISTERS_ALLOWED */
@@ -18155,7 +18154,12 @@ need initialization for every (primary and secondary) translation unit.
   memzero((char *)complex_types, sizeof(complex_types));
   memzero((char *)imaginary_types, sizeof(imaginary_types));
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  memzero((char *)string_types, sizeof(string_types));
+  { sizeof_t size = sizeof(a_type_ptr[(int)chk_last]
+                                     [MAX_TRACKED_STRING_TYPE_LENGTH+1]);
+    string_types = (a_type_ptr(*)[MAX_TRACKED_STRING_TYPE_LENGTH+1])
+                                                               alloc_fe(size);
+    memzero((char *)string_types, size_t_arg(size));
+  }
 #if NAMED_REGISTERS_ALLOWED
   memzero((char *)named_register_variables, sizeof(named_register_variables));
 #endif /* NAMED_REGISTERS_ALLOWED */

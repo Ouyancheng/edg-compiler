@@ -1501,7 +1501,7 @@ mix of the given kind and chk_char.
     concat_con->variant.string.value  = new_str;
     /* Adjust the constant type to match the new length. */
     concat_con->type = string_literal_type(character_kind,
-                                           (a_targ_size_t)total_len);
+                                           (a_targ_size_t)total_len/null_len);
     concat_con->character_kind = character_kind;
   }  /* if */
   db_exit();

@@ -259,7 +259,7 @@ truncated and the type may be modified (e.g., to set the length of the string).
 {
   /* The object being initialized has type array of characters, and
      is being initialized with a string.  Handle this case specially. */
-  a_type_ptr     array_type, var_elem_type, string_elem_type;
+  a_type_ptr     array_type;
   a_character_kind
                  char_kind = string_con->character_kind;
   a_targ_size_t  char_size = character_size[char_kind];
@@ -267,20 +267,39 @@ truncated and the type may be modified (e.g., to set the length of the string).
   a_boolean      is_template_dependent = is_template_dependent_type(*var_type);
   a_boolean      err = FALSE;
 
+  check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
   /* The object to be initialized is an array (possibly incomplete) of char,
      wchar_t, char16_t, or char32_t -- i.e., a string or wide string.  During
      prototype instantiations, we assume that any template-dependent array
      type may end up with an appropriate type during a real instantiation. */
   check_assertion(is_string_type(*var_type) ||
                   (is_array_type(*var_type) && is_template_dependent));
-  /* The constant and the array should have the same underlying character
-     element type -- e.g., it's a mismatch if one is a wide string
-     and the other a normal string. */
-  var_elem_type = array_element_type(*var_type);
-  string_elem_type = array_element_type(string_con->type);
-  err = (!identical_types_ignoring_qualifiers(var_elem_type,
-                                              string_elem_type) &&
-         !is_template_dependent);
+  if (!is_template_dependent) {
+    /* The constant and the array should have the same underlying character
+       element type -- e.g., it's a mismatch if one is a wide string
+       and the other a normal string. */
+    a_type_ptr  var_elem_type;
+    switch (string_con->character_kind) {
+      case chk_char:
+        err = !is_char_array_type(*var_type);
+        break;
+      case chk_wchar_t:
+        err = !is_wchar_t_array_type(*var_type);
+        break;
+      case chk_char16_t:
+        var_elem_type  = array_element_type(*var_type);
+        err = skip_typerefs(var_elem_type)->variant.integer.int_kind !=
+                                                       targ_char16_t_int_kind;
+        break;
+      case chk_char32_t:
+        var_elem_type  = array_element_type(*var_type);
+        err = skip_typerefs(var_elem_type)->variant.integer.int_kind !=
+                                                       targ_char32_t_int_kind;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
   if (!err) {
     /* The constant is a string with characters that are compatible with
        the array element type.  (Note that an array of characters of any
@@ -435,7 +454,9 @@ initialization; otherwise, these pointers are NULL.
         err = TRUE;
       }  /* if */
     }  /* if */
-    err = !check_string_constant_initializer(type_ptr, cp);
+    if (!err) {
+      err = !check_string_constant_initializer(type_ptr, cp);
+    }  /* if */
     if (err) {
       /* There was an error of some kind. */
       if (!is_error_type(cp->type)) {
