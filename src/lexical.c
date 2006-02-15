@@ -7569,15 +7569,15 @@ The token can be a normal or wide string literal.
       curr_char_loc += 1;
       break;
     case 'L':
-      character_kind = (a_character_kind)chk_char;
+      character_kind = (a_character_kind)chk_wchar_t;
       curr_char_loc += 2;
       break;
     case 'U':
-      character_kind = (a_character_kind)chk_char;
+      character_kind = (a_character_kind)chk_char32_t;
       curr_char_loc += 2;
       break;
     case 'u':
-      character_kind = (a_character_kind)chk_char;
+      character_kind = (a_character_kind)chk_char16_t;
       curr_char_loc += 2;
       break;
     default:

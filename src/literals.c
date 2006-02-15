@@ -1235,16 +1235,22 @@ smaller) than the number of characters needed to represent the string.
       break;
     case 'L':
       /* Wide string literal. */
+      /* Skip over the 'L': */
+      ++temp_ptr;
       character_kind = (a_character_kind)chk_wchar_t;
       char_size = targ_sizeof_wchar_t;
       break;
     case 'U':
       /* char32_t string literal. */
+      /* Skip over the 'U': */
+      ++temp_ptr;
       character_kind = (a_character_kind)chk_char32_t;
       char_size = targ_sizeof_char32_t;
       break;
     case 'u':
       /* char16_t string literal. */
+      /* Skip over the 'u': */
+      ++temp_ptr;
       character_kind = (a_character_kind)chk_char16_t;
       char_size = targ_sizeof_char16_t;
       /* Do not use a mask for char16_t characters at this time.  Any masking
@@ -1256,8 +1262,6 @@ smaller) than the number of characters needed to represent the string.
       unexpected_condition();
   }  /* switch */
   if (char_size != 1) {
-    /* Skip over the 'L', 'U', or 'u': */
-    ++temp_ptr;
     constant_size = (sizeof_t)(num_elems*char_size);
     /* Replicate the mask for one character as many times as there are chars
        in the wide character.  This "inefficient" method is used because it
