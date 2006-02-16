@@ -492,6 +492,10 @@ extern int fileno(FILE *);
 /*lint -esym(714,is_wide_string_constant)*/
 /*lint -esym(755,extract_wide_char_from_string)*/
 /*lint -esym(755,wide_string_type)*/
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*lint -esym(769,ec_cl_unrecognized_calling_convention)*/
+/*lint -esym(769,ec_cl_calling_convention_list)*/
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /******************************************************************************
 *                                                             \  ___  /       *

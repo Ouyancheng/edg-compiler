@@ -248,6 +248,9 @@ typedef enum /*an_option_kind*/ {
   optk_template_typedefs_in_diagnostics,
   optk_defer_parse_function_templates,
   optk_uliterals,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  optk_default_calling_convention,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;
 

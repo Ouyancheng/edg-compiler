@@ -1584,6 +1584,8 @@ ec_invalid_cannot_redefine_value;INTERNAL;"invalid cannot-redefine value"
 ec_duplicate_function_modifier;;"duplicate function modifier"
 ec_no_char16_t_representation;;"invalid character for char16_t literal"
 ec_lprefix_and_uliteral;;"__LPREFIX cannot be applied to char16_t or char32_t literals"
+ec_cl_unrecognized_calling_convention;;"unrecognized calling convention \"%s,\" must be one of:"
+ec_cl_calling_convention_list;INTERNAL;"%s"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

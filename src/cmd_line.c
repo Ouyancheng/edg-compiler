@@ -1141,6 +1141,12 @@ Initialize the option information table.
                          "no_uliterals",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  add_option_description(optk_default_calling_convention,
+                         "default_calling_convention",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* initialize_option_descriptions */
 
 
@@ -3248,6 +3254,9 @@ Process the arguments on the command line that invoked the compiler.
   a_boolean			non_pch_option_used = FALSE;
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
   a_boolean                     suppress_do_preprocessing_only = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  int                           i;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   /* Set a current position indicating we are looking at the command line. */
   pos_curr_token.seq = 0;
@@ -4290,6 +4299,32 @@ enable_microsoft_mode:
         /* U... and u... literals should or should not be allowed. */
         uliterals_allowed = opt_value;
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case optk_default_calling_convention:
+        /* The calling convention used for functions not explicitly declared
+           with one. */
+        for (i = 0; i < (int)cc_last; ++i) {
+          if (i != (int)cc_default &&
+              strcmp(calling_convention_names[i], opt_arg) == 0) {
+            break;
+          }  /* if */
+        }  /* for */
+        if (i != (int)cc_last) {
+          default_calling_convention = (a_calling_convention)i;
+        } else {
+          /* Report an invalid calling convention. */
+          start_command_line_error(ec_cl_unrecognized_calling_convention,
+                                   opt_arg);
+          for (i = 0; i < (int)cc_last; ++i) {
+            if (i != (int)cc_default) {
+              str_add_diag_info(ec_cl_calling_convention_list,
+                                calling_convention_names[i]);
+            }  /* if */
+          }  /* for */
+          end_command_line_error();
+        }  /* if */
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
