@@ -1474,6 +1474,10 @@ mix of the given kind and chk_char.
       con = ctp->variant.constant;
       /* Determine the length of this string literal. */
       str_len = con->variant.string.length;
+      if (con->character_kind != character_kind) {
+        /* This string will need widening. */
+        str_len *= null_len;
+      }  /* if */
       /* Except on the last constant, subtract out the space for the
          final null in the string. */
       if (ctp->next != NULL) str_len -= null_len;
