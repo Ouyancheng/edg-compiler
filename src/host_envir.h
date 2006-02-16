@@ -2053,13 +2053,11 @@ EXTERN a_directory_name_entry_ptr
 			/* Search path to find exported templates.
 			   The name strings are in general storage. */
 
-/* Static variable used by directory_of; here in the .h file so it
-   can be initialized by fe_init. */
 EXTERN a_directory_name_entry_ptr
-		dir_name_list;
-			/* List of all directory name strings used, so that
-			   they can be shared.  The name strings are in
-			   IL storage. */
+		dir_name_list_il;
+			/* List of all directory name strings used that have
+			   been allocated in IL memory.  Used so that the
+			   strings can be shared. */
 
 #if MAKE_FRONT_END_CALLABLE
 #include <setjmp.h> 
@@ -2111,8 +2109,15 @@ EXTERN a_boolean
 			   microsoft_mode is TRUE. */
 
 /* Extract the directory name from a file name. */
-extern char *directory_of(char *file_name);
-extern char *gs_directory_of(char *file_name);
+extern char *f_directory_of(char *file_name,
+                            a_boolean	in_general_memory);
+
+#if !STANDALONE_UTILITY_PROGRAM
+#define directory_of(file_name) f_directory_of(file_name,	\
+                                              /*in_general_memory=*/FALSE)
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+#define gs_directory_of(file_name) f_directory_of(file_name,	\
+                                                  /*in_general_memory=*/TRUE)
 
 /* Extract the base name from a file name. */
 extern char *derived_name(char *file_name,

@@ -4359,7 +4359,7 @@ used to find this file.
   /* Save the "display" form of the name and the full name. */
   curr_ise->full_name = full_file_name;
   curr_ise->file_name = display_name;
-  curr_ise->dir_name = directory_of(full_file_name);
+  curr_ise->dir_name = gs_directory_of(full_file_name);
   curr_ise->dir_entry = dir_entry;
   curr_ise->is_include_file = is_include_file;
   curr_ise->from_system_include_dir = from_system_include_dir;

@@ -2003,8 +2003,10 @@ from the PCH file) to reflect the information loaded from the file.
   /* Clear the stop tokens array that was restored. */
   clear_stop_tokens();
   /* Reset the directory name list.  It points to a list of entries in
-     general storage. */
-  dir_name_list = NULL;
+     general storage, but the entries point to strings in IL memory.
+     dir_name_list_general does not need to be reset because the entries
+     and strings are in general memory. */
+  dir_name_list_il = NULL;
   /* Rebuild the sequence number lookup table used for sequence number
      to file/line conversion. */
   build_seq_number_lookup_table((unsigned long)0);

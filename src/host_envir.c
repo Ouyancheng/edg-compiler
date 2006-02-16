@@ -362,6 +362,11 @@ static a_text_buffer_ptr
 		dir_and_file_buffer;
 			/* A text buffer used by combine_dir_and_file_name.*/
 
+static a_directory_name_entry_ptr
+		dir_name_list_general;
+			/* List of all directory name strings used that have
+			   been allocated in general memory.  Used so that the
+			   strings can be shared. */
 
 static void free_directory_name_entry(a_directory_name_entry_ptr dnep)
 /*
@@ -734,24 +739,24 @@ of the file name is returned.
 }  /* suffix_of */
 
 
-#if !STANDALONE_UTILITY_PROGRAM
-char *directory_of(char *file_name)
+char *f_directory_of(char	*file_name,
+		     a_boolean	in_general_memory)
 /*
 Return a string that is the directory name for the given file.  If the
 file has no explicit directory, return a representation for the current 
 directory.  This routine builds an internal list of directory name strings
 and attempts to reuse them to avoid allocating the same string over and
 over.  The string returned will be allocated in the intermediate language
-memory region.
+memory region (when in_general_memory is FALSE) or in general memory.
 */
 {
-  /* dir_name_list is in host_envir.h so it can be initialized by fe_init. */
-  a_directory_name_entry_ptr curr_dir_name;
+  a_directory_name_entry_ptr	curr_dir_name;
+  a_directory_name_entry_ptr	*list_ptr;
+  char				*last_slash;
+  sizeof_t			dir_name_length;
+  char				*dir_name;
 
-  char     *last_slash;
-  sizeof_t dir_name_length;
-  char     *dir_name;
-
+  list_ptr = in_general_memory ? &dir_name_list_general : &dir_name_list_il;
   last_slash = end_of_directory_name(file_name);
   if (last_slash == NULL) {
     /* No directory name, use "" meaning the current directory. */
@@ -764,7 +769,7 @@ memory region.
   /* We assume that a compilation is not going to use a large number of
      include file directories, so we don't need anything fancier than a
      linear linked list here. */
-  for (curr_dir_name = dir_name_list;
+  for (curr_dir_name = *list_ptr;
        curr_dir_name != NULL;
        curr_dir_name = curr_dir_name->next) {
     dir_name = curr_dir_name->dir_name;
@@ -775,7 +780,14 @@ memory region.
   }  /* for */
   /* No reusable name found.  Allocate a copy of the directory name in the
      file-scope IL region. */
-  dir_name = (char *)alloc_il((sizeof_t)(dir_name_length+1));
+#if !STANDALONE_UTILITY_PROGRAM
+  dir_name = in_general_memory
+                         ? (char *)alloc_general((sizeof_t)(dir_name_length+1))
+                         : (char *)alloc_il((sizeof_t)(dir_name_length+1));
+#else /* STANDALONE_UTILITY_PROGRAM */
+  check_assertion(in_general_memory);
+  dir_name = (char *)alloc_general((sizeof_t)(dir_name_length+1));
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   if (dir_name_length > 0) {
     (void)memcpy(dir_name, file_name, size_t_arg(dir_name_length));
   }  /* if */
@@ -783,42 +795,11 @@ memory region.
   /* Put this new name on the list for future reuse. */
   curr_dir_name = alloc_directory_name_entry();
   curr_dir_name->dir_name = dir_name;
-  curr_dir_name->next = dir_name_list;
-  dir_name_list = curr_dir_name;
+  curr_dir_name->next = *list_ptr;
+  *list_ptr = curr_dir_name;
 found_dir_name:;
   return(dir_name);
-}  /* directory_of */
-
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-
-char *gs_directory_of(char *file_name)
-/*
-Return a string that is the directory name for the given file.  If the
-file has no explicit directory, return a representation for the current 
-directory.  The string returned will be allocated in general storage, not
-in IL storage.  No pooling of strings is done.
-*/
-{
-  char     *last_slash;
-  sizeof_t dir_name_length;
-  char     *dir_name;
-
-  last_slash = end_of_directory_name(file_name);
-  if (last_slash == NULL) {
-    /* No directory name, use "" meaning the current directory. */
-    dir_name_length = 0;
-  } else {
-    /* There is a directory name.  Save its length including punctuation. */
-    dir_name_length = last_slash - file_name + 1;
-  }  /* if */
-  /* Allocate a copy of the directory name in general memory. */
-  dir_name = (char *)alloc_general((sizeof_t)(dir_name_length+1));
-  if (dir_name_length > 0) {
-    (void)memcpy(dir_name, file_name, size_t_arg(dir_name_length));
-  }  /* if */
-  dir_name[dir_name_length] = '\0';
-  return(dir_name);
-}  /* gs_directory_of */
+}  /* f_directory_of */
 
 
 #if __MICROSOFT_OS__
@@ -3559,7 +3540,8 @@ so that it can be redone to compile more than one source file in a single
 invocation of the front end.
 */
 {
-  dir_name_list = NULL;
+  dir_name_list_il = NULL;
+  dir_name_list_general = NULL;
 }  /* host_envir_init */
 
 /*

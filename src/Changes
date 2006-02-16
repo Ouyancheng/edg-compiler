@@ -1,5 +1,12 @@
 Version 3.8
 
+2/15/06  Memory allocation problem when using COMPILE_MULTIPLE_SOURCE_FILES
+
+A change in version 3.7 could result in the use of a pointer to IL memory
+that has already been freed, when the front end is configured with
+COMPILE_MULTIPLE_SOURCE_FILES == TRUE.  The reference occurred in
+compare_include_search_result.  Now fixed.
+
 2/14/06  U-literals (char16_t and char32_t)
 
 The front end now supports so-called U-literals: String and character literals
