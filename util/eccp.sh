@@ -565,6 +565,7 @@ check_abbreviation()
 --db_alloc_seq
 --db_name
 --debug
+--default_calling_convention
 --defer_parse_function_templates
 --define_macro
 --definition_list_file
@@ -1365,7 +1366,8 @@ process_option()
          --set_flag | \
          --clear_flag | \
 	 --upc_threads | \
-         --pack_alignment)
+         --pack_alignment | \
+         --default_calling_convention)
       feoptions=$feoptions" $curr_arg $curr_param"
       used_two_params=1
 #     See if an instantiation mode was specified
@@ -1438,7 +1440,8 @@ process_option()
           --clear_flag=* | \
 	  --upc_threads=* | \
           --definition_list_file=* | \
-          --pack_alignment=*)
+          --pack_alignment=* | \
+          --default_calling_convention=*)
       feoptions=$feoptions" $curr_arg"
 #     See if an instantiation mode was specified
       case $arg in
