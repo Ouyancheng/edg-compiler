@@ -37,7 +37,7 @@ appropriately defining macros TARG_CHAR16_T_INT_KIND, TARG_SIZEOF_CHAR16_T,
 TARG_CHAR32_T_INT_KIND, and TARG_SIZEOF_CHAR16_T (these initialize global
 variables with the corresponding lower-cased names).  U-literals are enabled
 or disabled using the command-line options --uliterals/--no_uliterals.  The
-macro DEFAULT_ULITERALS_ALLOWED can be defined to determine whether or not
+macro DEFAULT_ULITERALS_ENABLED can be defined to determine whether or not
 such U-literals are accepted by default.  In some cases, 32-bit character
 values must be encoded in 16-bit characters.  For example:
 
