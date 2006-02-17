@@ -890,10 +890,10 @@ EXTERN a_boolean
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 EXTERN a_boolean
-		uliterals_allowed;
+		uliterals_enabled;
 			/* TRUE if and only if TR 19769 literals of the forms
 			   u'...', U'...', u"...", and U"..." should be
-			   allowed in the source. */
+			   accepted. */
 
 EXTERN a_boolean
 		wchar_t_is_keyword;

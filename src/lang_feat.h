@@ -1774,9 +1774,9 @@ of the global variable named_registers_enabled.
 Flag that is TRUE if U-literals (as specified by ISO/IEC TR 19769) should be
 accepted by default.
 */
-#ifndef DEFAULT_ULITERALS_ALLOWED
-#define DEFAULT_ULITERALS_ALLOWED FALSE
-#endif /* DEFAULT_ULITERALS_ALLOWED */
+#ifndef DEFAULT_ULITERALS_ENABLED
+#define DEFAULT_ULITERALS_ENABLED FALSE
+#endif /* DEFAULT_ULITERALS_ENABLED */
 
 /*
 Check that no mutually exclusive dialect emulations are simultaneously

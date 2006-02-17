@@ -89,7 +89,7 @@ predicates.
      !(tp)->variant.integer.bool_type) || \
     (!wchar_t_is_keyword && \
      ((tp)->variant.integer.int_kind == targ_wchar_t_int_kind)) || \
-    (uliterals_allowed && \
+    (uliterals_enabled && \
      ((tp)->variant.integer.int_kind == targ_char16_t_int_kind || \
       (tp)->variant.integer.int_kind == targ_char16_t_int_kind)) || \
     (tp)->variant.integer.wchar_t_type))

@@ -9160,7 +9160,7 @@ return_end_of_source_token:
       /* This can't fall through into the next case. */
     case 'U':
     case 'u':
-      if (uliterals_allowed) {
+      if (uliterals_enabled) {
         /* The C committee's TR 19769 introduces character and string literals
            of the forms u'...', U'...', u"...", and U"...".  These are
            similar to wide literals, but potentially involve different

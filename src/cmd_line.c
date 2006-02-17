@@ -2461,6 +2461,11 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
        strict mode. */
     allow_dollar_in_id_chars = FALSE;
   }  /* if */
+  if (!option_kind_used[(int)optk_uliterals]) {
+    /* Support for U-literals (U... and u...) is off by default in strict
+       mode. */
+    uliterals_enabled = FALSE;
+  }  /* if */
   if (!c99_mode) {
     /* In strict mode the final field of a struct may not be an incomplete
        array, except in strict C99 mode. */
@@ -4297,7 +4302,7 @@ enable_microsoft_mode:
         break;
       case optk_uliterals:
         /* U... and u... literals should or should not be allowed. */
-        uliterals_allowed = opt_value;
+        uliterals_enabled = opt_value;
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case optk_default_calling_convention:
@@ -5180,7 +5185,7 @@ variables declared in cmd_line.h.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   microsoft_version = DEFAULT_MICROSOFT_VERSION;
   c99_mode = DEFAULT_C99_MODE;
-  uliterals_allowed = DEFAULT_ULITERALS_ALLOWED;
+  uliterals_enabled = DEFAULT_ULITERALS_ENABLED;
 }  /* cmd_line_static_var_init */
 
 
