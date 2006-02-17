@@ -1821,6 +1821,15 @@ the -v option.
 */
 
 /*
+Flag that provides the default value for check_for_byte_order_mark, which
+is TRUE if, when reading the first line of a source file, the front end
+should check for the presence of a byte order mark.
+*/
+#ifndef DEFAULT_CHECK_FOR_BYTE_ORDER_MARK
+#define DEFAULT_CHECK_FOR_BYTE_ORDER_MARK TRUE
+#endif /* ifndef DEFAULT_CHECK_FOR_BYTE_ORDER_MARK */
+
+/*
 Flag that provides the default value for null_chars_allowed_in_source,
 which controls whether null (zero) characters are allowed in source lines.
 */

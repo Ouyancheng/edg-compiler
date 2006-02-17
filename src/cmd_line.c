@@ -5057,6 +5057,7 @@ variables declared in cmd_line.h.
                      DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED;
   check_printf_scanf_positional_args =
                                     DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS;
+  check_for_byte_order_mark = DEFAULT_CHECK_FOR_BYTE_ORDER_MARK;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   multibyte_chars_in_source_enabled =
                                      DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED;

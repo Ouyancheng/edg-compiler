@@ -1042,6 +1042,12 @@ EXTERN a_boolean
 			   using dollar signs as in printf("%2$d%1$d\n", 1, 2)
 			   should be recognized and checked. */
 
+EXTERN a_boolean
+		check_for_byte_order_mark;
+			/* TRUE if, when reading the first line of a source
+			   file, the front end should check for the presence
+			   of a byte order mark. */
+
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 EXTERN a_boolean
 		multibyte_chars_in_source_enabled;

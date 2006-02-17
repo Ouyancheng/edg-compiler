@@ -1,5 +1,15 @@
 Version 3.8
 
+2/17/06  UTF-8 byte order mark recognized at the start of source files
+
+The #import mechanism of the Microsoft compiler (version 8.0) creates .tlh
+files with a "byte order mark" at the beginning of the file.  The byte order
+mark indicates the character encoding of the file.  For more information
+about byte order marks, see http://www.unicode.org/faq/utf_bom.html#BOM.
+The front end now checks for the presence of a byte order mark at the
+start of a source file.  Currently, only the UTF-8 byte order mark is
+allowed.
+
 2/15/06  Microsoft compatibility: command-line option for default calling
          convention
 
