@@ -5299,8 +5299,8 @@ for the GNU C multiline string extension.
      where the previous call of this routine read an incomplete last
      line; this call needs to return the end of file indication). */
   while (eof_read_on_curr_input_stream ||
-         (ch_has_been_fetched || (ch = getc(curr_input_stream))),
-         is_eof_char(ch)) {
+         (ch_has_been_fetched || (ch = getc(curr_input_stream)),
+          is_eof_char(ch))) {
     /* End of file encountered in the expected way, i.e., before a line
        has started. */
     eof_read_on_curr_input_stream = TRUE;
