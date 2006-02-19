@@ -1,5 +1,14 @@
 Version 3.8
 
+2/19/06  Abort on field selection from struct/union compound literal
+         in GNU C mode
+
+The front end aborted in get_pointer_offset ("bad kind") while
+processing a field selection out of a struct or union created via 
+a compound literal in gcc mode.  Now fixed.
+
+  int i = (struct { int i; }){0}.i;
+
 2/19/06  non_arithmetic flag preserved in shared constants
 
 The mechanism for sharing and reusing integer constants now preserves

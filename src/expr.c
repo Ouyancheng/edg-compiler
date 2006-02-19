@@ -2369,7 +2369,7 @@ The result is placed in *result.
     did_not_fold = TRUE;
     template_constant = FALSE;
     if (is_constant_operand(operand_1) && curr_expr_is_evaluated() &&
-        expr_stack->favor_constant_result
+        expr_stack->favor_constant_result && operand_1_is_pointer
 #if UPC_EXTENSIONS_ALLOWED
         /* Do not fold field operations for shared structs. */
         && !(upc_mode && is_shared_qualified_type(class_struct_union_type))
