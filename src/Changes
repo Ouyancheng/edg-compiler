@@ -1,5 +1,16 @@
 Version 3.8
 
+2/19/06  non_arithmetic flag preserved in shared constants
+
+The mechanism for sharing and reusing integer constants now preserves
+the non_arithmetic flag (set for hexadecimal and octal constants).
+
+  int main() {
+    int n;
+    n = 9; 
+    n = 0x9;   // No longer the same constant as the previous line
+  }
+
 2/17/06  UTF-8 byte order mark recognized at the start of source files
 
 The #import mechanism of the Microsoft compiler (version 8.0) creates .tlh

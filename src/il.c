@@ -5358,10 +5358,13 @@ nonidentical.
 #endif /* UPC_EXTENSIONS_ALLOWED */
       case ck_integer:
         eq = (cmp_integer_constants(cp1, cp2) == 0);
+        if (eq && strictly_identical) {
+          if (cp1->non_arithmetic != cp2->non_arithmetic
 #if GNU_EXTENSIONS_ALLOWED
-        if (strictly_identical &&
-            cp1->null_keyword != cp2->null_keyword) eq = FALSE;
+              || cp1->null_keyword != cp2->null_keyword
 #endif /* GNU_EXTENSIONS_ALLOWED */
+                                                       ) eq = FALSE;
+        }  /* if */
         break;
 #if FIXED_POINT_ALLOWED
       case ck_fixed_point:
