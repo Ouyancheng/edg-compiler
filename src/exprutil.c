@@ -7071,6 +7071,12 @@ still provided).
          This deals with cases like 0 ? 1 : 1/0, in which the last operand
          would not be in constant form because it couldn't be folded. */
       do_folding = TRUE;
+    } else if (gcc_mode) {
+      /* gcc mode allows reversion of a "?" operation to an lvalue, so
+         do not fold because that would prevent that process.
+         Note that constant cases do get folded because of the code
+         above. */
+      do_folding = FALSE;
     } else {
       /* Otherwise, we can fold at our discretion. */
       do_folding = ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS;

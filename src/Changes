@@ -1,5 +1,18 @@
 Version 3.8
 
+2/20/06  GNU C "?" and ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
+
+Some strange uses of the "?" operator as an lvalue in GNU C mode
+were accepted only if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
+is configured to FALSE.  Now fixed (so the cases are accepted
+regardless of the setting of that flag).
+
+  typedef struct { unsigned offset[400]; } __regbase;
+  void foo() {
+    unsigned dead = 2;
+    (1 ? ((__regbase *) 0x40000200)->offset[200] : dead) = 0; // Okay now
+  }
+
 2/20/06  Microsoft compatibility: reinterpret_cast of string literal that
          casts away const
 
