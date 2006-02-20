@@ -10824,6 +10824,7 @@ Syntax:
   an_error_code     warning_suggested;
   a_boolean         processed = FALSE;
   a_boolean         microsoft_ignored_case = FALSE;
+  a_boolean         is_const_string_literal_in_microsoft_mode = FALSE;
   a_ruled_out_expr_kind_set
                     ruled_out_expr_kinds = ROEK_NONE;
 
@@ -10855,6 +10856,10 @@ Syntax:
       /* MSVC++ seems to ignore a do-nothing reinterpret_cast to a
          pointer type.  MSVC++ 8.0 still did this. */
       microsoft_ignored_case = TRUE;
+    }  /* if */
+    if (microsoft_mode && string_literals_are_const &&
+        operand_is_string_literal(result)) {
+      is_const_string_literal_in_microsoft_mode = TRUE;
     }  /* if */
     /* Check for casts to reference type. */
     cast_to_reference = is_reference_type(type_cast_to);
@@ -10899,8 +10904,18 @@ Syntax:
         if (cast_removes_qualifiers(source_type, type_cast_to)) {
           /* This reinterpret_cast casts away constness, which is not
              allowed. */
-          pos_st_error(ec_cannot_cast_away_const, &start_position,
-                       "reinterpret_cast");
+          if (is_const_string_literal_in_microsoft_mode &&
+              is_pointer_type(source_type) &&
+              !cast_removes_qualifiers(make_pointer_type(
+                                         make_unqualified_type(
+                                           type_pointed_to(source_type))),
+                                       type_cast_to)) {
+            /* MSVC++ allows a cast of a string literal that removes
+               const (presumably because formerly strings were not const). */
+          } else {
+            pos_st_error(ec_cannot_cast_away_const, &start_position,
+                         "reinterpret_cast");
+          }  /* if */
         }  /* if */
         if (warning_suggested != ec_no_error) {
           /* Issue warning on oddball cases. */

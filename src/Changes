@@ -1,5 +1,15 @@
 Version 3.8
 
+2/20/06  Microsoft compatibility: reinterpret_cast of string literal that
+         casts away const
+
+Microsoft C++ mode now allows a reinterpret_cast of a string literal
+that casts away const when string literals are const.
+
+  int main() {
+    reinterpret_cast<int *>("ABC"); // Allowed in all Microsoft versions
+  }
+
 2/19/06  Abort on field selection from struct/union compound literal
          in GNU C mode
 
