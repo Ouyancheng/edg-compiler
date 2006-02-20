@@ -244,7 +244,16 @@ For example:
   };
 
 This is a feature of ECMA-372 (also known as C++/CLI) that recent Microsoft
-compilers also provide in their normal C++ modes.
+compilers also provide in their normal C++ modes.  However, the Microsoft
+compilers implement the feature slightly differently from what is specified
+in the ECMA-372 standard, and we do too to ensure compatibility.  For example:
+
+  struct S1 {
+    virtual void (*f() sealed)(); // Accepted, but not valid according to
+  };                              // to ECMA-372.
+  struct S2 {
+    virtual void (*f()) sealed; // Not accepted, but valid according to
+  };                            // ECMA-372.
 
 2/1/06   Position of use of template included in specialization diagnostic
 
