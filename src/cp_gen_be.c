@@ -12396,11 +12396,15 @@ TRUE if the declaration following this one is such a continuation.
          because simply
            extern "C" inline void foo() {}
          is not allowed by some compilers (the combination of a linkage
-         specification and "inline" is not accepted).  The brace form is
-         also needed for static functions, as well as for function
-         definitions where the original source did not have a direct linkage
-         specifier. */
-      if ((rout->is_inline && !decl_within_function) ||
+         specification and "inline" is not accepted).  However, MSVC++ both
+         accepts that form and gives it different semantics from those of
+         the brace-enclosed form, so we maintain the source form (as
+         reflected in the definition_has_direct_linkage_specifier flag) when
+         msvc_is_generated_code_target is TRUE.  The brace form is also
+         needed for static functions, as well as for function definitions
+         where the original source did not have a direct linkage specifier. */
+      if ((rout->is_inline && !decl_within_function &&
+           !msvc_is_generated_code_target) ||
           storage_class == (a_storage_class)sc_static ||
           (is_definition && !rout->definition_has_direct_linkage_specifier)) {
         write_tok_str("{ ");

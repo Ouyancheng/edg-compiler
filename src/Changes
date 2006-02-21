@@ -1,5 +1,19 @@
 Version 3.8
 
+2/21/06  C++-generating back end, Microsoft compatibility: extern "C" inline
+         functions
+
+The C++-generating back end formerly generated all inline functions with C
+linkage using the brace-enclosed form of linkage specification, regardless of
+which form of linkage specification was used in the source.  MSVC++ treats
+the two forms of linkage specification differently with respect to inline
+functions, however, so the C++-generating back end now maintains the source
+form for inline definitions when msvc_is_generated_code_target is TRUE.  For
+example:
+
+  extern "C" inline int f() { return 1; }  // No longer generated as
+                                           // extern "C" { inline ... }
+
 2/20/06  GNU C "?" and ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
 
 Some strange uses of the "?" operator as an lvalue in GNU C mode
