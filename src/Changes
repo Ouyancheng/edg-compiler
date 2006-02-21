@@ -38,13 +38,13 @@ that casts away const when string literals are const.
   }
 
 2/19/06  Abort on field selection from struct/union compound literal
-         in GNU C mode
+         in GNU mode
 
 The front end aborted in get_pointer_offset ("bad kind") while
 processing a field selection out of a struct or union created via 
-a compound literal in gcc mode.  Now fixed.
+a compound literal in gcc or g++ mode.  Now fixed.
 
-  int i = (struct { int i; }){0}.i;
+  int i = (struct { int i; }){0}.i;  // No longer aborts in gcc mode
 
 2/19/06  non_arithmetic flag preserved in shared constants
 
