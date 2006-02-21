@@ -5153,46 +5153,37 @@ Check for a following newline character.
 
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
 
-static void scan_byte_order_mark(int	first_char)
+static void do_check_for_byte_order_mark(void)
 /*
-We have determined that the file begins with a byte order mark.  first_char
-is the initial character of the byte order mark.  Scan the remaining
-characters and check for supported byte order.  Note that only the
-UTF-8 byte order mark is recognized.
+We are at the start of a source file.  See if the file begins with a
+byte order mark.  Note that only the UTF-8 byte order mark is recognized.
 */
 {
   int		ch;
-  a_boolean	err = FALSE;
+  a_boolean	is_bom = FALSE;
 
   /* Verify that the byte order mark is EF BB BF. */
-  if (first_char != 0xef) {
-    err = TRUE;
-  } else {
+  ch = getc(curr_input_stream);
+  if (ch == 0xef) {
     ch = getc(curr_input_stream);
-    if (is_eof_char(ch)) {
-      eof_read_on_curr_input_stream = TRUE;
-    } else {
-      if (ch != 0xbb) {
-        err = TRUE;
-      } else {
-        ch = getc(curr_input_stream);
-        if (is_eof_char(ch)) {
-          eof_read_on_curr_input_stream = TRUE;
-        } else {
-          if (ch != 0xbf) {
-            err = TRUE;
-          }  /* if */
-        }  /* if */
+    if (ch == 0xbb) {
+      ch = getc(curr_input_stream);
+      if (ch == 0xbf) {
+        is_bom = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
-  if (err || eof_read_on_curr_input_stream) {
-    /* The byte order mark is invalid.  Report a catastrophic error
-       because we don't know how to continue from this point. */
-    pos_st_catastrophe(ec_invalid_byte_order_mark, &null_source_position,
-                       curr_ise->file_name);
+  if (!is_bom) {
+    /* The file did not begin with a byte order mark.  Reset the file
+       position to the start of the file. */
+    if (fseek(curr_input_stream, 0L, SEEK_SET) != 0) {
+      /* The seek could not be done.  This implies some change
+         in the file since last it was opened. */
+      str_catastrophe(ec_source_file_could_not_be_opened,
+                      curr_ise->full_name);
+    }  /* if */
   }  /* if */
-}  /* scan_byte_order_mark */
+}  /* do_check_for_byte_order_mark */
 
 
 a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file,
@@ -5251,7 +5242,6 @@ for the GNU C multiline string extension.
 		       /* For checking of buffer overflow -- to leave
                           room for the newline and line-end lexical escapes. */
   unsigned long   ignored_trailing_white_space_chars = 0;
-  a_boolean	  ch_has_been_fetched = FALSE;
 
   /* This routine handles translation phases 1 (trigraphs, newlines) and
      2 (line splices) from the description of translation phases in
@@ -5279,19 +5269,7 @@ for the GNU C multiline string extension.
      byte order mark. */
   if (about_to_read_first_line_of_file && check_for_byte_order_mark) {
     about_to_read_first_line_of_file = FALSE;
-    ch = getc(curr_input_stream);
-    if (is_eof_char(ch)) {
-      eof_read_on_curr_input_stream = TRUE;
-    } else {
-      if (ch == 0xef) {
-        /* The file contains a byte order mark.  Scan the bytes that comprise
-           it and check for a supported byte order.  Note that only the
-           UTF-8 byte order mark is recognized. */
-        scan_byte_order_mark(ch);
-      } else {
-        ch_has_been_fetched = TRUE;
-      }  /* if */
-    }  /* if */
+    do_check_for_byte_order_mark();
   }  /* if */
   /* Get the first character of the line, checking for end of file in
      doing so.  If eof_read_on_curr_input_stream is already TRUE,
@@ -5299,13 +5277,11 @@ for the GNU C multiline string extension.
      where the previous call of this routine read an incomplete last
      line; this call needs to return the end of file indication). */
   while (eof_read_on_curr_input_stream ||
-         (ch_has_been_fetched || (ch = getc(curr_input_stream)),
-          is_eof_char(ch))) {
+         (ch = getc(curr_input_stream), is_eof_char(ch))) {
     /* End of file encountered in the expected way, i.e., before a line
        has started. */
     eof_read_on_curr_input_stream = TRUE;
     at_end_of_source_file = TRUE;
-    ch_has_been_fetched = FALSE;
     if (!do_pop_on_end_of_file || curr_ise->do_not_advance_past_end_of_file) {
       /* We're asked not to do the pop, so just return things as they
          are (at_end_of_source_file is TRUE). */

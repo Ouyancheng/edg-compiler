@@ -1823,10 +1823,15 @@ the -v option.
 /*
 Flag that provides the default value for check_for_byte_order_mark, which
 is TRUE if, when reading the first line of a source file, the front end
-should check for the presence of a byte order mark.
+should check for the presence of a byte order mark.  This flag defaults
+to TRUE if the host character set appears to be ASCII.
 */
 #ifndef DEFAULT_CHECK_FOR_BYTE_ORDER_MARK
+#if 'a' == 97
 #define DEFAULT_CHECK_FOR_BYTE_ORDER_MARK TRUE
+#else /* !('a' == 97) */
+#define DEFAULT_CHECK_FOR_BYTE_ORDER_MARK FALSE
+#endif /* 'a' == 97 */
 #endif /* ifndef DEFAULT_CHECK_FOR_BYTE_ORDER_MARK */
 
 /*
