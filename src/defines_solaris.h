@@ -63,7 +63,6 @@ This version is for the Sun Solaris operating system.
 #endif /* ifndef TARG_SIZEOF_LONG_DOUBLE */
 
 #define TARG_ALIGNOF_LONG_DOUBLE 8
-#define TARG_SIZEOF_WCHAR_T 4
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
