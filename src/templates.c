@@ -15935,7 +15935,8 @@ that follows.
            flag into declarator.  This flag can only be set when a parent class
            type is provided to declarator. */
         di_flags |= DI_IS_CONSTRUCTOR;
-      } else if (storage_class != (a_storage_class)sc_static) {
+      } else if (storage_class != (a_storage_class)sc_static &&
+                 (dso_flags & DSO_FRIEND) == 0) {
         /* A Microsoft in-class specialization should be considered a
            nonstatic member so that qualifiers will be accepted. */
         di_flags |= DI_NONSTATIC_MEMBER;
@@ -16033,15 +16034,23 @@ that follows.
     if (sym != NULL) {
       /* Specializations of namespace members can only occur within the
          namespace they belong to or a namespace that encloses it. */
-      if (sym->decl_scope != scope_stack[depth_scope_stack].number &&
-          ((!sym->is_class_member && sym->parent.namespace_ptr == NULL) ||
-           !namespace_is_enclosed_by_curr_scope(sym))) {
-        if (!decl_state->decl_scope_err) {
+      if (sym->decl_scope != scope_stack[depth_scope_stack].number) {
+        a_boolean	err = FALSE;
+        if (!sym->is_class_member && sym->parent.namespace_ptr == NULL) {
+          /* A global scope symbol.  This is allowed only if this is
+             a Microsoft in-class specialization. */
+          err = !microsoft_mode || !decl_state->is_member_decl;
+        } else if (!namespace_is_enclosed_by_curr_scope(sym)) {
+          /* A class or namespace member being specialized outside of its
+             namespace. */
+          err = TRUE;
+        }  /* if */
+        if (err && !decl_state->decl_scope_err) {
           pos_sy_error(ec_bad_scope_for_specialization,
                        &locator.source_position, sym);
           decl_state->decl_scope_err = TRUE;
         }  /* if */
-        sym = NULL;
+        if (err) sym = NULL;
       }  /* if */
     }  /* if */
     vp = NULL;

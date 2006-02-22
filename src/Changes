@@ -1,5 +1,15 @@
 Version 3.8
 
+2/22/06  Microsoft: in-class specialization of global function template
+
+The Microsoft compiler allows a global function template to be specialized
+in a class scope.  We now accept this in Microsoft mode.
+
+  template<class T> T f() { return T();}
+  struct C {
+    template<> friend C f<C>() { return C();}
+  };
+
 2/21/06  C++-generating back end, Microsoft compatibility: extern "C" inline
          functions
 
