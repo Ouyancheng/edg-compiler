@@ -10904,12 +10904,7 @@ Syntax:
         if (cast_removes_qualifiers(source_type, type_cast_to)) {
           /* This reinterpret_cast casts away constness, which is not
              allowed. */
-          if (is_const_string_literal_in_microsoft_mode &&
-              is_pointer_type(source_type) &&
-              !cast_removes_qualifiers(make_pointer_type(
-                                         make_unqualified_type(
-                                           type_pointed_to(source_type))),
-                                       type_cast_to)) {
+          if (is_const_string_literal_in_microsoft_mode) {
             /* MSVC++ allows a cast of a string literal that removes
                const (presumably because formerly strings were not const). */
           } else {
