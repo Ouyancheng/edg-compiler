@@ -1,5 +1,13 @@
 Version 3.8
 
+2/22/06  TARG_SIZEOF_WCHAR_T
+
+The configuration macro TARG_SIZEOF_WCHAR_T was redundant since the same
+information can be derived from the macro TARG_WCHAR_T_INT_KIND combined
+with the sizes of the other integer types.  The macro is therefore no longer
+used in the front end (e.g., if it is set in defines.h, its value will simply
+be ignored).
+
 2/22/06  Microsoft: in-class specialization of global function template
 
 The Microsoft compiler allows a global function template to be specialized
@@ -112,13 +120,13 @@ TR 19769 specifies that char16_t and char32_t be typedefs for unsigned integer
 types of sufficient range (corresponding to C99's uint_least16_t and
 uint_least32_t, respectively) provided in a new header <uchar.h> (not provided
 with the front end).  The front end can be configured to match those types by
-appropriately defining macros TARG_CHAR16_T_INT_KIND, TARG_SIZEOF_CHAR16_T,
-TARG_CHAR32_T_INT_KIND, and TARG_SIZEOF_CHAR32_T (these initialize global
-variables with the corresponding lower-cased names).  U-literals are enabled
-or disabled using the command-line options --uliterals/--no_uliterals.  The
-macro DEFAULT_ULITERALS_ENABLED can be defined to determine whether or not
-such U-literals are accepted by default.  In some cases, 32-bit character
-values must be encoded in 16-bit characters.  For example:
+appropriately defining macros TARG_CHAR16_T_INT_KIND and TARG_CHAR32_T_INT_KIND
+(these initialize global variables with the corresponding lower-cased names).
+U-literals are enabled or disabled using the command-line options --uliterals/
+--no_uliterals.  The macro DEFAULT_ULITERALS_ENABLED can be defined to
+determine whether or not such U-literals are accepted by default.  In some
+cases, 32-bit character values must be encoded in 16-bit characters.  For
+example:
 
   char16_t *str = u"\U00012345";
 
