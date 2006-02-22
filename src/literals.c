@@ -1234,8 +1234,6 @@ smaller) than the number of characters needed to represent the string.
       /* Normal string literal. */
       character_kind = (a_character_kind)chk_char;
       char_size = 1;
-      constant_size = (sizeof_t)num_elems;
-      /* centity_mask is already set. */
       break;
     case 'L':
       /* Wide string literal. */
@@ -1264,8 +1262,9 @@ smaller) than the number of characters needed to represent the string.
   /* Build a mask used to mask individual characters. */
   centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
   centity_mask = centity_mask | (centity_mask-1);
+  constant_size = (sizeof_t)num_elems;
   if (char_size != 1) {
-    constant_size = (sizeof_t)(num_elems*char_size);
+    constant_size *= char_size;
     /* Replicate the mask for one character as many times as there are chars
        in the wide character.  This "inefficient" method is used because it
        works right even when the target character is larger than the host
