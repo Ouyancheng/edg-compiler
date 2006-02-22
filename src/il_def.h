@@ -2161,15 +2161,23 @@ typedef struct a_template_param_coordinate {
 #endif /* ifdef CIL */
 
 enum a_character_kind_tag {
-  chk_char,
+  /* String and character literals can involve one of several character kinds
+     represented by the following enumerator constants. */
+  chk_char,		/* The "normal" string or character literal, expressed
+			   without prefix (character type "char"). */
   chk_default = chk_char,
-  chk_wchar_t,
-  chk_char16_t,
-  chk_char32_t,
-  chk_last
+  chk_wchar_t,		/* String or character literals expressed with the
+			   prefix "L" (e.g., L'x') (character type wchar_t). */
+  chk_char16_t,		/* String or character literals expressed with the
+			   prefix "u" (character type char16_t).  This is an
+			   extension specified in ISO/IEC TR 19769. */
+  chk_char32_t,		/* String or character literals expressed with the
+			   prefix "U" (character type char32_t).  This is an
+			   extension specified in ISO/IEC TR 19769. */
+  chk_last		/* Must be last. */
 };
 
-/* Number of bits required to hold a character code kind.  cck_last need not
+/* Number of bits required to hold a character code kind.  chk_last need not
    be accounted for. */
 #ifndef NUM_BITS_FOR_CHARACTER_KIND
 #define NUM_BITS_FOR_CHARACTER_KIND 2
@@ -2211,7 +2219,7 @@ typedef struct a_constant {
 #endif /* ifdef FIL */
   a_bit_field	character_kind:NUM_BITS_FOR_CHARACTER_KIND;
 			/* If this constant represents a character or string
-			   literal, this fields indicates the character kind
+			   literal, this field indicates the character kind
 			   (e.g., chk_wchar_t for L"..." strings).  Otherwise,
 			   the field is set to chk_default (which equals
 			   chk_char). */

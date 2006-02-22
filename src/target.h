@@ -849,7 +849,8 @@ EXTERN a_boolean
 #undef TARG_HAS_SIGNED_CHARS
 #undef TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT
 #undef TARG_WCHAR_T_INT_KIND
-#undef TARG_SIZEOF_WCHAR_T
+#undef TARG_CHAR16_T_INT_KIND
+#undef TARG_CHAR32_T_INT_KIND
 #undef TARG_BOOL_INT_KIND
 #undef TARG_SIZEOF_SHORT
 #undef TARG_ALIGNOF_SHORT
@@ -951,7 +952,8 @@ EXTERN a_boolean
 #define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT                   \
                         targ_char_constant_first_char_most_significant
 #define TARG_WCHAR_T_INT_KIND targ_wchar_t_int_kind
-#define TARG_SIZEOF_WCHAR_T targ_sizeof_wchar_t
+#define TARG_CHAR16_T_INT_KIND targ_char16_t_int_kind
+#define TARG_CHAR32_T_INT_KIND targ_char32_t_int_kind
 #define TARG_SIZEOF_SHORT targ_sizeof_short
 #define TARG_ALIGNOF_SHORT targ_alignof_short
 #define TARG_SIZEOF_INT targ_sizeof_int

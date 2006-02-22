@@ -161,44 +161,25 @@ Perform consistency check on target configuration variables.
     internal_error("check_target_config: target char is too large");
   }  /* if */
   /* The target wchar_t may be no bigger than the host long. */
-  get_integer_size_and_alignment((an_integer_kind)targ_wchar_t_int_kind,
-                                 &size, &alignment);
-  if (size > sizeof(long)) {
+  if (targ_sizeof_wchar_t > sizeof(long)) {
     internal_error("check_target_config: target wchar_t is too large");
   }  /* if */
-  /* targ_wchar_t_int_kind and targ_sizeof_wchar_t must be consistent:
-     if one is changed, the other should be changed, too. */
-  if (size != targ_sizeof_wchar_t) {
-    internal_error("check_target_config: target wchar_t size is inconsistent");
-  }  /* if */
-  /* char16_t and char32 require checks similar to wchar_t, and in addition
-     they have minimum size requirements. */
-  get_integer_size_and_alignment((an_integer_kind)targ_char16_t_int_kind,
-                                 &size, &alignment);
-  if (size > sizeof(long)) {
+  /* char16_t and char32 require a check similar to wchar_t, and in addition
+     they have minimum size requirements.  They must also be unsigned. */
+  if (targ_sizeof_char16_t > sizeof(long)) {
     internal_error("check_target_config: target char16_t is too large");
-  } else if (size*targ_char_bit < 16) {
+  } else if (targ_sizeof_char16_t*targ_char_bit < 16) {
     internal_error("check_target_config: target char16_t is too small");
   }  /* if */
-  /* targ_char16_t_int_kind and targ_sizeof_char16_t must be consistent:
-     if one is changed, the other should be changed, too. */
-  if (size != targ_sizeof_char16_t) {
-    internal_error(
-               "check_target_config: target char16_t size is inconsistent");
-  }  /* if */
-  get_integer_size_and_alignment((an_integer_kind)targ_char32_t_int_kind,
-                                 &size, &alignment);
-  if (size > sizeof(long)) {
+  check_assertion_str(!int_kind_is_signed[(int)targ_char16_t_int_kind],
+                      "check_target_config: target char16_t must be unsigned");
+  if (targ_sizeof_char32_t > sizeof(long)) {
     internal_error("check_target_config: target char32_t is too large");
-  } else if (size*targ_char_bit < 32) {
+  } else if (targ_sizeof_char32_t*targ_char_bit < 32) {
     internal_error("check_target_config: target char32_t is too small");
   }  /* if */
-  /* targ_char32_t_int_kind and targ_sizeof_char32_t must be consistent:
-     if one is changed, the other should be changed, too. */
-  if (size != targ_sizeof_char32_t) {
-    internal_error(
-               "check_target_config: target char32_t size is inconsistent");
-  }  /* if */
+  check_assertion_str(!int_kind_is_signed[(int)targ_char32_t_int_kind],
+                      "check_target_config: target char32_t must be unsigned");
   /* targ_size_t_max must fit in the target integer type targ_size_t_int_kind
      (but it need not fit exactly). */
   get_integer_size_and_alignment((an_integer_kind)targ_size_t_int_kind,
@@ -300,6 +281,21 @@ Perform consistency check on target configuration variables.
 
 #endif /* CHECKING */
 
+static void init_character_sizes(void)
+/*
+Initialize the global variables describing the sizes of various character
+kinds.
+*/
+{
+  a_targ_alignment  alignment;
+
+  get_integer_size_and_alignment((an_integer_kind)targ_wchar_t_int_kind,
+                                 &targ_sizeof_wchar_t, &alignment);
+  get_integer_size_and_alignment((an_integer_kind)targ_char16_t_int_kind,
+                                 &targ_sizeof_char16_t, &alignment);
+  get_integer_size_and_alignment((an_integer_kind)targ_char32_t_int_kind,
+                                 &targ_sizeof_char32_t, &alignment);
+}  /* init_character_sizes */
 
 #if BACK_END_IS_CP_GEN_BE
 
@@ -358,11 +354,8 @@ This is done before command line processing.
   targ_char_constant_first_char_most_significant =
                                 TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT;
   targ_wchar_t_int_kind = TARG_WCHAR_T_INT_KIND;
-  targ_sizeof_wchar_t = TARG_SIZEOF_WCHAR_T;
   targ_char16_t_int_kind = TARG_CHAR16_T_INT_KIND;
-  targ_sizeof_char16_t = TARG_SIZEOF_CHAR16_T;
   targ_char32_t_int_kind = TARG_CHAR32_T_INT_KIND;
-  targ_sizeof_char32_t = TARG_SIZEOF_CHAR32_T;
   targ_bool_int_kind = TARG_BOOL_INT_KIND;
   targ_sizeof_short = TARG_SIZEOF_SHORT;
   targ_alignof_short = TARG_ALIGNOF_SHORT;
@@ -526,6 +519,7 @@ This is done before command line processing.
   cp_gen_be_target_matches_source_dialect =
                                        CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT;
 #endif /* BACK_END_IS_CP_GEN_BE */
+  init_character_sizes();
 }  /* target_early_init */
 
 
@@ -536,13 +530,15 @@ executed once after command-line processing, and not again for each source
 file.
 */
 {
+  /* Record character sizes in an array that can be indexed by character
+     kind. */
+  character_size[(int)chk_char] = 1;
+  character_size[(int)chk_wchar_t] = targ_sizeof_wchar_t;
+  character_size[(int)chk_char16_t] = targ_sizeof_char16_t;
+  character_size[(int)chk_char32_t] = targ_sizeof_char32_t;
 #if CHECKING
   check_target_configuration();
 #endif /* CHECKING */
-  character_size[0] = 1;
-  character_size[1] = targ_sizeof_wchar_t;
-  character_size[2] = targ_sizeof_char16_t;
-  character_size[3] = targ_sizeof_char32_t;
 }  /* target_one_time_init */
 
 

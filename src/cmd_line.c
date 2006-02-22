@@ -2222,6 +2222,11 @@ setting is used, and to set various unmentioned settings as needed.
   if (option_kind_used[(int)optk_embedded_c]) {
     command_line_error(ec_cl_embedded_c_option_only_in_C);
   }  /* if */
+  /* U-literals are not currently supported in C++ modes. */
+  if (option_kind_used[(int)optk_uliterals]) {
+    command_line_error(ec_cl_uliterals_option_only_in_C);
+  }  /* if */
+  uliterals_enabled = FALSE;
   /* "//" is allowed as a comment delimiter. */
   end_of_line_comments_allowed = TRUE;
   /* Universal character names are allowed. */

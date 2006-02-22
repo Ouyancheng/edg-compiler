@@ -91,7 +91,7 @@ predicates.
      ((tp)->variant.integer.int_kind == targ_wchar_t_int_kind)) || \
     (uliterals_enabled && \
      ((tp)->variant.integer.int_kind == targ_char16_t_int_kind || \
-      (tp)->variant.integer.int_kind == targ_char16_t_int_kind)) || \
+      (tp)->variant.integer.int_kind == targ_char32_t_int_kind)) || \
     (tp)->variant.integer.wchar_t_type))
 
 #if FIXED_POINT_ALLOWED

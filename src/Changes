@@ -116,6 +116,11 @@ By default, this encoding is based on UTF-16.  A different encoding may be
 achieved by defining the macro ENCODE_IN_CHAR16_T to be an alias for a
 custom encoding routine.
 
+U-literals (and the --uliterals command-line option) are currently only
+allowed in C modes (the C++ committee is examining a similar extension for
+C++, but it is unclear at this time whether it will be entirely compatible
+with ISO/IEC TR 19769).
+
 Previously, the front end only handled two kinds of string literal constants
 (ck_string): normal ("char") and wide ("wchar_t").  The two were distinguished
 by their types.  With the introduction of two more character types, this is no

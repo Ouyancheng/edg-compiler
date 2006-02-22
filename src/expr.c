@@ -16561,11 +16561,12 @@ token following the operator, and should not be discarded.
           /* u"..." and U"..." strings are invalid here. */
           error(ec_lprefix_and_uliteral);
           set_error_constant(&const_for_curr_token);
+          err = TRUE;
           break;
         default:
           unexpected_condition();
       }  /* switch */
-      if (next_token() == tok_rparen) {
+      if (next_token() == tok_rparen && !err) {
         /* Everything looks good. */
         /* Save the string literal token so we can restore it below. */
         a_token_cache cache;
@@ -16586,7 +16587,9 @@ token following the operator, and should not be discarded.
         end_pos_curr_token = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       } else {
-        /* Missing closing parenthesis. */
+        /* Missing closing parenthesis (diagnosed below) or an invalid string
+           literal (a u"..." or U"..." literal; diagnosed above).  Just
+           consume the literal. */
         (void)get_token();
         err = TRUE;
       }  /* if */

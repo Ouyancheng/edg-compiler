@@ -8470,7 +8470,7 @@ curr_token is already set in that case.
   a_character_kind   character_kind;
   a_token_cache      cache;
   a_cached_token_ptr ctp, ctp_next, first_string_token = NULL;
-  a_boolean          more_than_one_string = FALSE;
+  a_boolean          more_than_one_string = FALSE, do_not_concatenate = FALSE;
 
   db_enter(5, "concat_adjacent_string_literals");
   check_assertion_str(!fetch_pp_tokens && do_string_literal_concatenation,
@@ -8538,7 +8538,7 @@ curr_token is already set in that case.
     if (curr_token != tok_string_literal) break;
     if (character_kind != const_for_curr_token.character_kind &&
         !is_error_constant(&const_for_curr_token)) {
-      /* The new string is and the old have different character kinds.
+      /* The new string and the old one have different character kinds.
          In C99 or gcc/g++ modes, this may be okay if one of the two kinds
          is "char" (the concatenation results in the other kind).  In other
          modes, it is a discretionary error.  If two different non-char
@@ -8548,6 +8548,7 @@ curr_token is already set in that case.
       if (character_kind != (a_character_kind)chk_char &&
           const_for_curr_token.character_kind != (a_character_kind)chk_char) {
         sev = es_error;
+        do_not_concatenate = TRUE;
       } else {
         sev = (c99_mode || gnu_mode) ? es_none : es_discretionary_error;
         if (character_kind == (a_character_kind)chk_char) {
@@ -8568,8 +8569,11 @@ curr_token is already set in that case.
        concatenation. */
   } else {
     a_cached_token_ptr last_token;
-    /* More than one string literal -- concatenate. */
-    concat_string_literals(&cache, character_kind);
+    /* More than one string literal -- concatenate, except for hard error
+       cases (for which concatenation might not be meaningful). */
+    if (!do_not_concatenate) {
+      concat_string_literals(&cache, character_kind);
+    }  /* if */
     /* The constants have been concatenated into the first constant in the
        token cache (which might not be the first entry in the cache, if there
        are pragma entries first).  Discard the token cache entries for the

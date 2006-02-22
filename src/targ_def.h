@@ -1333,11 +1333,6 @@ Wide character constant type (wchar_t, see stddef.h and stdlib.h).
 			/* Default value, used to initialize global variable
 			   targ_wchar_t_int_kind. */
 #endif /* !defined(TARG_WCHAR_T_INT_KIND) */
-#ifndef TARG_SIZEOF_WCHAR_T
-#define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_SHORT
-			/* Default value, used to initialize global variable
-			   targ_sizeof_wchar_t. */
-#endif /* !defined(TARG_SIZEOF_WCHAR_T) */
 
 /*
 Configuration of char16_t and char32_t (C extensions introduced by TR 19769).
@@ -1346,21 +1341,9 @@ Configuration of char16_t and char32_t (C extensions introduced by TR 19769).
 #define TARG_CHAR16_T_INT_KIND  ((an_integer_kind)ik_unsigned_short)
 #endif /* !defined(TARG_CHAR16_T_INT_KIND) */
 
-#ifndef TARG_SIZEOF_CHAR16_T
-#define TARG_SIZEOF_CHAR16_T TARG_SIZEOF_SHORT
-			/* Default value, used to initialize global variable
-			   targ_sizeof_char16_t. */
-#endif /* !defined(TARG_SIZEOF_CHAR16_T) */
-
 #ifndef TARG_CHAR32_T_INT_KIND
 #define TARG_CHAR32_T_INT_KIND  ((an_integer_kind)ik_unsigned_long)
 #endif /* !defined(TARG_CHAR32_T_INT_KIND) */
-
-#ifndef TARG_SIZEOF_CHAR32_T
-#define TARG_SIZEOF_CHAR32_T TARG_SIZEOF_LONG
-			/* Default value, used to initialize global variable
-			   targ_sizeof_char32_t. */
-#endif /* !defined(TARG_SIZEOF_CHAR32_T) */
 
 /*
 Macro that determines how to encode a 32-bit character code (e.g., from a

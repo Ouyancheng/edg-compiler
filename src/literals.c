@@ -675,16 +675,16 @@ static int ucn_to_utf16(unsigned long   ucn,
 Encode the given 32-bit character code as UTF-16 values stored in an array
 pointed to by encoding.  Return the number of array elements used by the
 encoding (never more than MAX_CHAR16_T_ENCODING_LENGTH), or zero if no valid
-encoding could be achieved.  Note that this routine does not handle the
-conversion to the target char16_t representation (i.e., this the host-side
-of the encoding).
+encoding could be achieved.  Note that this routine only handles the host-side
+of the encoding: Target-size issues (such as endianness) are handled elsewhere
+(e.g., in put_wide_char_into_string).
 */
 {
   int  result;
 
   if (ucn <= 0xFFFF) {
-    /* No need for a surrogate pair.  (The code 0xD800 through 0xDFFF are
-       normally reserved for surrogate pair encoding.  They aren't valid
+    /* No need for a surrogate pair.  (The code points 0xD800 through 0xDFFF
+       are normally reserved for surrogate pair encoding.  They aren't valid
        universal character names in C99 (caught elsewhere), but they are
        in C++.  This encoding routine just encodes them "as is", which might
        result in an invalid UTF-16 code.) */
@@ -692,7 +692,7 @@ of the encoding).
     encoding[0] = (unsigned short)ucn;
   } else {
     /* Form a surrogate pair. */
-    if (ucn < 0x10FFFF) {
+    if (ucn <= 0x10FFFF) {
       unsigned long high, low;
       result = 2;
       ucn -= 0x10000;
@@ -1009,6 +1009,10 @@ processing, and in wide characters if the constant is wide).
        Wide character constant      (L'x'): wchar_t
        char16_t character constant  (u'x'): char16_t
        char32_t character constant  (U'x'): char32_t
+     Multi-character wide-character literals don't really make sense, but we
+     do allow them (with a warning) for wchar_t literals because the C
+     standard says it is implementation-defined, and several test suites have
+     something like L'ab' in them.
   */
   switch (*start_of_curr_token) {
     case '\'':
@@ -1020,10 +1024,7 @@ processing, and in wide characters if the constant is wide).
       centity_is_signed = targ_has_signed_chars; 
       if (C_mode() || num_chars > 1) {
         con_type = integer_type((an_integer_kind)ik_int);
-        /* Record whether there are too many characters to fit.  For wide
-           character literals, we allow this (with a warning below) because
-           the C standard says it is implementation-defined, and several test
-           suites have something like L'ab' in them. */
+        /* Record whether there are too many characters to fit. */
         too_many_chars = (constant_size > targ_sizeof_int);
       } else {
         /* A single-character constant in C++. */
@@ -1088,6 +1089,7 @@ processing, and in wide characters if the constant is wide).
           break;
         case chk_char16_t:
           { unsigned short char16_t_vals[MAX_CHAR16_T_ENCODING_LENGTH];
+            char           *char_pos = temp_ptr;
             conv_single_wide_char(&temp_ptr, &ch, centity_mask);
             encoding_length = ENCODE_IN_CHAR16_T(ch, char16_t_vals);
             if (encoding_length == 1 && i == 0) {
@@ -1097,6 +1099,7 @@ processing, and in wide characters if the constant is wide).
               /* ch contained a character code that cannot be encoded in a
                  char16_t representation. */
               bad_character = TRUE;
+              *err_pos = char_pos;
             } else {
               too_many_chars = TRUE;
             }  /* if */
@@ -1138,9 +1141,13 @@ processing, and in wide characters if the constant is wide).
       or_integer_values(&number, &ch_int_val);
     }  /* while */
   }  /* if */
-  if (too_many_chars || bad_character) {
-    *err_code = bad_character ? ec_no_char16_t_representation
-                              : ec_too_many_characters;
+  if (bad_character) {
+    *err_code = ec_no_char16_t_representation;
+    /* *err_pos was already recorded as the problematic spot. */
+    /* Return an error constant. */
+    set_error_constant(&const_for_curr_token);
+  } else if (too_many_chars) {
+    *err_code = ec_too_many_characters;
     *err_pos = start_of_curr_token;
     /* Return an error constant. */
     set_error_constant(&const_for_curr_token);
@@ -1220,9 +1227,6 @@ smaller) than the number of characters needed to represent the string.
   /* The number of array elements is one more than the number of characters,
      to leave space for the terminating null. */
   num_elems = (a_targ_size_t)num_chars + 1;
-  /* Build a mask used to mask individual characters. */
-  centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
-  centity_mask = centity_mask | (centity_mask-1);
   temp_ptr = start_of_curr_token+1;
   /* See if this is a wide string literal. */
   switch (*start_of_curr_token) {
@@ -1253,14 +1257,13 @@ smaller) than the number of characters needed to represent the string.
       ++temp_ptr;
       character_kind = (a_character_kind)chk_char16_t;
       char_size = targ_sizeof_char16_t;
-      /* Do not use a mask for char16_t characters at this time.  Any masking
-         operation is the responsibility of the encoding (invoked through the
-         ENCODE_IN_CHAR16_T macro). */
-      centity_mask = ~0;
       break;
     default:
       unexpected_condition();
   }  /* switch */
+  /* Build a mask used to mask individual characters. */
+  centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
+  centity_mask = centity_mask | (centity_mask-1);
   if (char_size != 1) {
     constant_size = (sizeof_t)(num_elems*char_size);
     /* Replicate the mask for one character as many times as there are chars
@@ -1373,7 +1376,8 @@ sufficient to hold len characters of the indicated kind.
 
 void widen_string_literal(a_constant_ptr con)
 /*
-Change the indicated narrow string literal into a wide string literal.
+Change the indicated narrow string literal into a wide string (wchar_t)
+literal.
 */
 {
   a_targ_size_t  narrow_str_len = con->variant.string.length;

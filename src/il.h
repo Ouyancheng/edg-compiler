@@ -609,10 +609,10 @@ extern a_type_ptr string_literal_type(a_character_kind  kind,
                                       a_targ_size_t     num_chars);
 
 #define string_type(num_chars)                                             \
-  string_literal_type((a_character_kind)chk_char, num_chars)
+  string_literal_type((a_character_kind)chk_char, (num_chars))
 
 #define wide_string_type(num_chars)                                        \
-  string_literal_type((a_character_kind)chk_wchar_t, num_chars)
+  string_literal_type((a_character_kind)chk_wchar_t, (num_chars))
 
 extern a_type_ptr error_type(void);
 
@@ -906,7 +906,7 @@ extern a_boolean is_enum_constant(a_constant_ptr con);
 
 extern a_boolean is_wide_string_constant(a_constant_ptr constant);
 
-#define is_normal_character(kind)  ((kind) == (a_character_kind)chk_char)
+#define is_normal_character_kind(kind)  ((kind) == (a_character_kind)chk_char)
 
 extern void make_zero_of_proper_type(a_type_ptr desired_type,
                                      a_constant *zero_constant);

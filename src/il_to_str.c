@@ -3756,8 +3756,8 @@ precedence confusion.  Do the output in the way described by octl.
         output_optional_close_paren(need_char_cast_close_paren, octl);
       } else if (!octl->c_generating_back_end &&
                  con_type->kind == (a_type_kind)tk_integer &&
-                 !is_normal_character(constant->character_kind)) {
-        /* In C++, wide character constants have wchar_t type. */
+                 !is_normal_character_kind(constant->character_kind)) {
+        /* A wide character literal (wchar_t, char16_t, or char32_t). */
         a_boolean  ovflo;
         char       *prefix;
         switch (constant->character_kind) {
@@ -3801,7 +3801,7 @@ precedence confusion.  Do the output in the way described by octl.
         a_character_kind  character_kind = constant->character_kind;
 #if BACK_END_IS_C_GEN_BE
         if (octl->c_generating_back_end && constant->assoc_var_assigned &&
-            !is_normal_character(character_kind)) {
+            !is_normal_character_kind(character_kind)) {
           /* The C-generating back end transforms wide string literals: it
              creates a variable initialized with the string value and then
              uses the variable instead of the string.  This ensures proper
@@ -3812,14 +3812,14 @@ precedence confusion.  Do the output in the way described by octl.
         } else
 #endif /* BACK_END_IS_C_GEN_BE */
         /* Do not insert code here.  This is the "else" of an "if". */
-        if (!is_normal_character(character_kind)) {
+        if (!is_normal_character_kind(character_kind)) {
           /* A string literal with a prefix, e.g., L"abc" or U"xyz". */
           /* The processing here must invert the processing done in
              conv_single_wide_char.  Do something that's right for the default
              (simple-minded) implementation, which maps one input character
              to one wide character. */
           unsigned int char_size = character_size[character_kind];
-          switch (constant->character_kind) {
+          switch (character_kind) {
             case chk_wchar_t:   prefix = "L\"";     break;
             case chk_char16_t:  prefix = "u\"";     break;
             case chk_char32_t:  prefix = "U\"";     break;

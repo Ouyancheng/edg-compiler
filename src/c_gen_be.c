@@ -5828,7 +5828,7 @@ block with state information for the processing.
         /* Initialize to zero. */
         write_tok_ch('0');
       } else if (constant->kind == (a_constant_repr_kind)ck_string &&
-                 !is_normal_character(constant->character_kind)) {
+                 !is_normal_character_kind(constant->character_kind)) {
         /* If the initial value is a wide string constant, the string must
            be dumped specially. */
         write_tok_ch('{');
@@ -7660,7 +7660,7 @@ prescan temporaries for the indicated constant.
 */
 {
   if (con->kind == (a_constant_repr_kind)ck_string &&
-      !is_normal_character(con->character_kind)) {
+      !is_normal_character_kind(con->character_kind)) {
     /* When the value is a wide string literal, replace it by a variable. */
     dump_var_for_wide_string_constant(con);
   }  /* if */
