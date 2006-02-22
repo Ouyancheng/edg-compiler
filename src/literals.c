@@ -1414,7 +1414,7 @@ mix of the given kind and chk_char.
 {
   a_targ_size_t      total_len = 0, str_len, null_len;
   a_cached_token_ptr ctp, first_string_token = NULL;
-  a_boolean          any_error_constant = FALSE;
+  a_boolean          produce_error_constant = FALSE;
   a_constant_ptr     concat_con, con;
   char               *new_str;
 
@@ -1435,7 +1435,7 @@ mix of the given kind and chk_char.
     if (is_error_constant(con)) {
       /* If any constant is an error constant, the overall concatenation
          will be an error constant. */
-      any_error_constant = TRUE;
+      produce_error_constant = TRUE;
       break;
     } else {
       /* String constant. */
@@ -1444,8 +1444,14 @@ mix of the given kind and chk_char.
       /* Determine the length of this string literal. */
       str_len = con->variant.string.length;
       if (con->character_kind != character_kind) {
-        /* This string will need widening. */
-        str_len *= null_len;
+        if (con->character_kind != (a_character_kind)chk_char) {
+          /* An attempt to concatenate two different string kinds, neither of
+             which is a plain (narrow) string.  This is an error. */
+          produce_error_constant = TRUE;
+        } else {
+          /* This string will need widening. */
+          str_len *= null_len;
+        }  /* if */
       }  /* if */
       /* Except on the last constant, subtract out the space for the
          final null in the string. */
@@ -1455,12 +1461,13 @@ mix of the given kind and chk_char.
     }  /* if */
   }  /* for */
   /* Here, we either have the length of the concatenation in total_len, or
-     any_error_constant is set. */
+     produce_error_constant is set. */
   /* Build the concatenation and record it in the constant in the first
      string token in the cache. */
   concat_con = first_string_token->variant.constant;
-  if (any_error_constant) {
-    /* There is at least one error constant in the concatenation, so return
+  if (produce_error_constant) {
+    /* There is at least one error constant in the concatenation or the
+       strings were of incompatible kinds (e.g., L"a" U"b"), so return
        an error constant. */
     set_error_constant(concat_con);
   } else {
