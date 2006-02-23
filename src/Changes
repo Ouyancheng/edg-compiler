@@ -1,5 +1,14 @@
 Version 3.8
 
+2/23/06  Internal error on invalid UCN with RECORD_MACROS_IN_IL
+
+If a macro definition ended with an invalid universal character name
+an internal error (in make_il_macro_entry) could occur when using
+RECORD_MACROS_IN_IL.  Now fixed.
+
+  #define X \u
+  int x = 1;
+
 2/23/06  Microsoft compatibility: linkage specifications and inline functions
 
 MSVC++ has different semantics for the two syntaxes of linkage specifications

@@ -7184,6 +7184,9 @@ point to the character after the universal character name.
         conv_line_loc_to_source_pos(pos-1, &error_position);
         error(ec_malformed_universal_character);
       }  /* if */
+      /* Back up one character so that the invalid character will be
+         treated as part of the token that follows. */
+      pos--;
       err = TRUE;
       break;
     }  /* if */
