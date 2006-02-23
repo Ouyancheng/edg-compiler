@@ -12097,7 +12097,7 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     force_unqualified_name;
   a_boolean                     need_to_unset_typedefs = FALSE;
   a_scope_ptr                   common_scope, orig_scope = NULL;
-  a_boolean                     need_extern_C_closing_brace = FALSE;
+  a_boolean                     brace_form_linkage_spec = FALSE;
   a_boolean                     out_of_class_redecl = FALSE;
   a_template_decl_ptr           template_decl = NULL;
   a_template_ptr                assoc_template;
@@ -12391,30 +12391,49 @@ TRUE if the declaration following this one is such a continuation.
            specified. */
         (!is_definition || rout->definition_C_name_linkage_specified)) {
       write_tok_str("extern \"C\" ");
-      /* For declarations with an explicit "inline" keyword, use the form
-           extern "C" { inline void foo() {} }
-         because simply
-           extern "C" inline void foo() {}
-         is not allowed by some compilers (the combination of a linkage
-         specification and "inline" is not accepted).  However, MSVC++ both
-         accepts that form and gives it different semantics from those of
-         the brace-enclosed form, so we maintain the source form (as
-         reflected in the definition_has_direct_linkage_specifier flag) when
-         msvc_is_generated_code_target is TRUE.  The brace form is also
-         needed for static functions, as well as for function definitions
-         where the original source did not have a direct linkage specifier. */
-      if ((rout->is_inline && !decl_within_function &&
-           !msvc_is_generated_code_target) ||
-          storage_class == (a_storage_class)sc_static ||
-          (is_definition && !rout->definition_has_direct_linkage_specifier)) {
+      /* We must use the form of linkage specification with braces if the
+         function has static linkage.  Otherwise, we generally follow the
+         form used in the source, except that we will use the brace form for
+         inline functions if the target is other than MSVC++, because some
+         compilers reject the combination of a linkage specification with the
+         "inline" keyword. */
+      if (storage_class == (a_storage_class)sc_static) {
+        brace_form_linkage_spec = TRUE;
+      }
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      else if (!is_definition && msvc_is_generated_code_target) {
+        /* Maintain the original source form.  This is especially important
+           for inline functions, because the non-brace form causes MSVC++
+           to generate code even for unused inline functions. */
+        brace_form_linkage_spec =
+                                !rout->direct_linkage_specifier_on_nondef_decl;
+      }
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      else if ((rout->is_inline && !decl_within_function &&
+                !msvc_is_generated_code_target) ||
+               (is_definition &&
+                !rout->definition_has_direct_linkage_specifier)) {
+        brace_form_linkage_spec = TRUE;
+      }  /* if */
+      if (brace_form_linkage_spec) {
         write_tok_str("{ ");
-        /* Force matching "}" to be output later */
-        need_extern_C_closing_brace = TRUE;
       } else if (storage_class == (a_storage_class)sc_extern) {
         /* Suppress the storage class if it's "extern", because that's
            implied by extern "C". */
         storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (rout->source_corresp.name_linkage ==
+                                 (a_name_linkage_kind)nlk_cplusplus_external &&
+               !is_definition && rout->is_inline &&
+               rout->direct_linkage_specifier_on_nondef_decl) {
+      /* If a direct linkage specification appears on a non-definition
+         declaration of an inline_function, MSVC++ will spill the definition
+         to the object file, so we must issue the (otherwise unneeded)
+         extern "C++". */
+      write_tok_str("extern \"C++\" ");
+      storage_class = (a_storage_class)sc_unspecified;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* Put out the storage class determined above. */
     gen_storage_class(storage_class);
@@ -12557,7 +12576,7 @@ TRUE if the declaration following this one is such a continuation.
   if (context_pop_needed) {
     pop_name_context_if_member(&rout->source_corresp);
   }  /* if */
-  if (need_extern_C_closing_brace) {
+  if (brace_form_linkage_spec) {
     write_tok_ch('}');
     write_space();
   }  /* if */

@@ -1,5 +1,28 @@
 Version 3.8
 
+2/23/06  Microsoft compatibility: linkage specifications and inline functions
+
+MSVC++ has different semantics for the two syntaxes of linkage specifications
+when they apply to inline functions.  When a non-definition declaration of an
+inline function appears in a direct (non-brace) linkage specification, MSVC++
+will always generate code for the function, in similar fashion to the handling
+of explicit "extern inline" functions (see the entry of 8/15/02).  (Curiously,
+the form of linkage specification used on the definition of an inline function
+has no effect.)  For example:
+
+  extern "C" { void f(); }
+  inline void f() {}        // Not emitted by Microsoft compilers unless
+                            // really needed
+  extern "C" void g();
+  inline void g() {}        // Always emitted by Microsoft compilers
+
+This behavior is now emulated when INSTANTIATE_EXTERN_INLINE is TRUE.  The
+presence of a direct linkage specification on a non-definition function
+declaration is now recorded in the IL in Microsoft mode in the new a_routine
+flag direct_linkage_specifier_on_nondef_decl.  As part of this change, the
+C++-generating back end now generally maintains the form of linkage
+specification used in the source.
+
 2/22/06  TARG_SIZEOF_WCHAR_T
 
 The configuration macro TARG_SIZEOF_WCHAR_T was redundant since the same
@@ -17,20 +40,6 @@ in a class scope.  We now accept this in Microsoft mode.
   struct C {
     template<> friend C f<C>() { return C();}
   };
-
-2/21/06  C++-generating back end, Microsoft compatibility: extern "C" inline
-         functions
-
-The C++-generating back end formerly generated all inline functions with C
-linkage using the brace-enclosed form of linkage specification, regardless of
-which form of linkage specification was used in the source.  MSVC++ treats
-the two forms of linkage specification differently with respect to inline
-functions, however, so the C++-generating back end now maintains the source
-form for inline definitions when msvc_is_generated_code_target is TRUE.  For
-example:
-
-  extern "C" inline int f() { return 1; }  // No longer generated as
-                                           // extern "C" { inline ... }
 
 2/20/06  GNU C "?" and ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
 

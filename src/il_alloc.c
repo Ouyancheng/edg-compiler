@@ -2144,6 +2144,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_in_class_specialization  = FALSE;
   rp->declared_only_as_friend     = FALSE;
   rp->explicit_extern_inline      = FALSE;
+  rp->direct_linkage_specifier_on_nondef_decl = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

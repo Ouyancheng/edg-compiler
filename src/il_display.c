@@ -2810,6 +2810,9 @@ Display the indicated routine.
   if (ptr->explicit_extern_inline) {
     disp_boolean("explicit_extern_inline", TRUE);
   }  /* if */
+  if (ptr->direct_linkage_specifier_on_nondef_decl) {
+    disp_boolean("direct_linkage_specifier_on_nondef_decl", TRUE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

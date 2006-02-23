@@ -6923,6 +6923,9 @@ skip_overloading:;
         declared_storage_class == (a_storage_class)sc_extern) {
       routine_ptr->explicit_extern_inline = TRUE;
     }  /* if */
+    if (decl_modifiers->direct_linkage_specifier && !is_function_def) {
+      routine_ptr->direct_linkage_specifier_on_nondef_decl = TRUE;
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&

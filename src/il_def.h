@@ -8155,6 +8155,15 @@ typedef struct a_routine {
 			   both the "extern" and "inline" specifiers.  In
 			   Microsoft C++ mode, this forces the definition to
 			   be spilled. */
+  a_bit_field	direct_linkage_specifier_on_nondef_decl;
+			/* TRUE if any non-definition declaration of the
+			   routine has a direct (i.e., non-brace form)
+			   linkage specification.  In Microsoft C++ mode,
+			   such a declaration forces the definition of an
+			   inline function to be spilled, similar to the
+			   effect of the preceding flag.  (The presence,
+			   absence, and form of a linkage specification on
+			   the definition has no effect.) */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

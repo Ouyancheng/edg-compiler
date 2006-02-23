@@ -20015,10 +20015,14 @@ emitted in this translation unit.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode &&
              (rout_ptr->explicit_extern_inline ||
+              rout_ptr->direct_linkage_specifier_on_nondef_decl ||
               (!rout_ptr->compiler_generated &&
                (rout_ptr->decl_modifiers & DM_DLLEXPORT) != 0))) {
     /* In Microsoft mode "extern inline" in the source indicates that the
-       function definition should be spilled (even if unused).  Similarly,
+       function definition should be spilled (even if unused); the same is
+       true for inline functions that have a non-definition declaration that
+       has a direct (non-brace) linkage specifier (the presence, absence, and
+       form of linkage specifier on the definition don't matter).  Similarly,
        inline functions that are exported from a DLL must be spilled (except
        for compiler-generated functions). */
     result = TRUE;
