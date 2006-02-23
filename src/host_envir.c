@@ -1105,6 +1105,53 @@ directory or some other kind of special file).
 }  /* is_regular_file */
 
 
+static void do_check_for_byte_order_mark(FILE	*f_file,
+					 char	*file_name)
+/*
+We are at the start of a source file.  See if the f_file begins with a
+byte order mark.  Note that only the UTF-8 byte order mark is recognized.
+file_name is the name of the file, which is used for diagnostic purposes.
+*/
+{
+  int		ch;
+  a_boolean	is_eof;
+
+  /* Verify that the byte order mark is EF BB BF. */
+  ch = getc(f_file);
+  is_eof = is_eof_char(ch);
+  if (!is_eof && ch != 0xef) {
+    /* The first character of the file is not the start of a byte order
+       mark.  Unget the character so that it will be fetched when the
+       source line is read. */
+    int	ungetc_result;
+    ungetc_result = ungetc(ch, f_file);
+    check_assertion(ungetc_result != EOF);
+  } else {
+    a_boolean	is_bom = FALSE;
+    /* Read the subsequent characters of the byte order mark.  Stop if
+       we hit a character that is not part of the mark. */
+    if (!is_eof) {
+      ch = getc(f_file);
+      if (ch == 0xbb) {
+        ch = getc(f_file);
+        if (ch == 0xbf) {
+          is_bom = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (!is_bom) {
+      /* The file did not begin with a byte order mark.  Reset the file
+         position to the start of the file. */
+      if (fseek(f_file, 0L, SEEK_SET) != 0) {
+        /* The seek could not be done.  This implies some change
+           in the file since last it was opened. */
+        str_catastrophe(ec_source_file_could_not_be_opened, file_name);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* do_check_for_byte_order_mark */
+
+
 FILE *open_source_file(char          *file_name,
                        a_boolean     *not_found,
                        a_boolean     *bad_format,
@@ -1138,6 +1185,9 @@ of the file name is bad.
       *bad_format = TRUE;
       (void)fclose(temp_file);
       temp_file = NULL;
+    } else {
+      /* If the file contains a byte order mark, advance past it. */
+      do_check_for_byte_order_mark(temp_file, file_name);
     }  /* if */
   }  /* if */
   return(temp_file);
@@ -1154,7 +1204,12 @@ the compilation.  This is a subroutine (instead of just an fopen call)
 so that any necessary system-specific code can be inserted.
 */
 {
-  return(fopen(file_name, FOPEN_MODE_FOR_READ));
+  FILE	*temp_file;
+
+  temp_file = fopen(file_name, FOPEN_MODE_FOR_READ);
+  /* If the file contains a byte order mark, advance past it. */
+  if (temp_file != NULL) do_check_for_byte_order_mark(temp_file, file_name);
+  return temp_file;
 }  /* reopen_source_file */
 
 

@@ -402,10 +402,6 @@ static a_boolean
 			   be confused with the logical end of file variables
 			   like after_end_of_all_source. */
 
-static a_boolean
-		about_to_read_first_line_of_file;
-			/* TRUE if a source file has been opened but the
-			   first source line has not been read. */
 /*
 Variables related to the current source line (see lexical.h):
 */
@@ -4361,7 +4357,6 @@ used to find this file.
   /* Update other variables describing the current state. */
   eof_read_on_curr_input_stream = FALSE;
   curr_input_stream = curr_ise->file;
-  about_to_read_first_line_of_file = TRUE;
   /* Save the "display" form of the name and the full name. */
   curr_ise->full_name = full_file_name;
   curr_ise->file_name = display_name;
@@ -5065,17 +5060,6 @@ the full line.
   loc_in_line[2] = LE_ESCAPE; loc_in_line[3] = LE_END_OF_LINE; }
 
 
-/*
-Test a character to see if it is an end-of-file character.
-*/
-#if !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
-#define is_eof_char(ch) ((ch) == EOF)
-#else /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
-/* On MS-DOS when reading source files in binary mode, a control-Z
-   acts as an EOF. */
-#define is_eof_char(ch) ((ch) == EOF || (ch) == CONTROL_Z)
-#endif /* !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
-
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 #if BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
 #define MBC_CHECKING_NEEDED_IN_LINE_READING TRUE
@@ -5152,39 +5136,6 @@ Check for a following newline character.
 }  /* process_gnu_carriage_return */
 
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
-
-static void do_check_for_byte_order_mark(void)
-/*
-We are at the start of a source file.  See if the file begins with a
-byte order mark.  Note that only the UTF-8 byte order mark is recognized.
-*/
-{
-  int		ch;
-  a_boolean	is_bom = FALSE;
-
-  /* Verify that the byte order mark is EF BB BF. */
-  ch = getc(curr_input_stream);
-  if (ch == 0xef) {
-    ch = getc(curr_input_stream);
-    if (ch == 0xbb) {
-      ch = getc(curr_input_stream);
-      if (ch == 0xbf) {
-        is_bom = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  if (!is_bom) {
-    /* The file did not begin with a byte order mark.  Reset the file
-       position to the start of the file. */
-    if (fseek(curr_input_stream, 0L, SEEK_SET) != 0) {
-      /* The seek could not be done.  This implies some change
-         in the file since last it was opened. */
-      str_catastrophe(ec_source_file_could_not_be_opened,
-                      curr_ise->full_name);
-    }  /* if */
-  }  /* if */
-}  /* do_check_for_byte_order_mark */
-
 
 a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file,
                                    a_boolean extend_current_line)
@@ -5265,12 +5216,6 @@ for the GNU C multiline string extension.
      in the generated output. */
   no_token_separators_in_this_line_of_pp_output =
                                              no_token_separators_in_pp_output;
-  /* If this is the start of the source file, check for the presence of a
-     byte order mark. */
-  if (about_to_read_first_line_of_file && check_for_byte_order_mark) {
-    about_to_read_first_line_of_file = FALSE;
-    do_check_for_byte_order_mark();
-  }  /* if */
   /* Get the first character of the line, checking for end of file in
      doing so.  If eof_read_on_curr_input_stream is already TRUE,
      the end of file has already been read (this handles the case
@@ -15446,7 +15391,6 @@ done to determine whether a precompiled header may be used.
   /* Static variables in lexical.c: */
   curr_input_stream = NULL;
   eof_read_on_curr_input_stream = FALSE;
-  about_to_read_first_line_of_file = FALSE;
   after_end_of_all_source = FALSE;
   init_do_not_put_curr_line_in_pp_output = TRUE;
   curr_raw_listing_line_code = '\0';
