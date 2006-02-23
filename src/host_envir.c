@@ -1187,7 +1187,9 @@ of the file name is bad.
       temp_file = NULL;
     } else {
       /* If the file contains a byte order mark, advance past it. */
-      do_check_for_byte_order_mark(temp_file, file_name);
+      if (check_for_byte_order_mark) {
+        do_check_for_byte_order_mark(temp_file, file_name);
+      }  /* if */
     }  /* if */
   }  /* if */
   return(temp_file);
@@ -1208,7 +1210,9 @@ so that any necessary system-specific code can be inserted.
 
   temp_file = fopen(file_name, FOPEN_MODE_FOR_READ);
   /* If the file contains a byte order mark, advance past it. */
-  if (temp_file != NULL) do_check_for_byte_order_mark(temp_file, file_name);
+  if (temp_file != NULL && check_for_byte_order_mark) {
+    do_check_for_byte_order_mark(temp_file, file_name);
+  }  /* if */
   return temp_file;
 }  /* reopen_source_file */
 
