@@ -629,7 +629,7 @@ extern a_type_ptr ptr_to_member_type_full(a_type_ptr  member_type,
                                           a_boolean   is_ptr64);
 
 #define ptr_to_member_type(tp, cp)                                           \
-  (ptr_to_member_type_full((tp), (cp), /*is_ptr32=*/FALSE, /*is_ptr32=*/FALSE))
+  (ptr_to_member_type_full((tp), (cp), /*is_ptr32=*/FALSE, /*is_ptr64=*/FALSE))
 
 extern a_type_ptr related_member_type(a_type_ptr member_type,
                                       a_type_ptr class_type);
@@ -642,7 +642,7 @@ extern a_type_ptr make_pointer_type_full(a_type_ptr  type_pointed_to,
                                          a_boolean   is_ptr64);
 
 #define make_pointer_type(tp)                                                \
-  (make_pointer_type_full((tp), /*is_ptr32=*/FALSE, /*is_ptr32=*/FALSE))
+  (make_pointer_type_full((tp), /*is_ptr32=*/FALSE, /*is_ptr64=*/FALSE))
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_type_ptr make_based_pointer_type(a_type_ptr     type_pointed_to,
