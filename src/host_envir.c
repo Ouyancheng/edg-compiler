@@ -3562,6 +3562,7 @@ This is done before command line processing.
   use_predefined_macro_file = DEFAULT_USE_PREDEFINED_MACRO_FILE;
   memzero((a_void_ptr)predef_macro_mode_values,
 	  sizeof(predef_macro_mode_values));
+  check_for_byte_order_mark = DEFAULT_CHECK_FOR_BYTE_ORDER_MARK;
 #if MAKE_FRONT_END_CALLABLE
   exit_status = 0;
 #endif /* MAKE_FRONT_END_CALLABLE */

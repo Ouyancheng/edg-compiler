@@ -1847,6 +1847,12 @@ to be ASCII.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && 'a' == 97 */
 #endif /* ifndef DEFAULT_CHECK_FOR_BYTE_ORDER_MARK */
 
+EXTERN a_boolean
+		check_for_byte_order_mark;
+			/* TRUE if, when reading the first line of a source
+			   file, the front end should check for the presence
+			   of a byte order mark. */
+
 /*
 Flag that provides the default value for null_chars_allowed_in_source,
 which controls whether null (zero) characters are allowed in source lines.
