@@ -1,5 +1,10 @@
 Version 3.8
 
+2/27/06  Build error with Microsoft C compiler
+
+In its default mode (extensions enabled) the Microsoft C compiler failed to
+compile sys_predef.c.  This is now fixed.
+
 2/27/06  Internal error on invalid string literal initializer
 
 Certain invalid string literal initializers could lead to an internal error

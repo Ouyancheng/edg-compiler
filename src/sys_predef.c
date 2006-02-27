@@ -345,7 +345,7 @@ Enter the standard predeclared functions for GCC.
   /* We are about to create hundreds of predeclared functions.  The code is
      kept considerably more compact by using a number of macros. */
 #if defined(__STDC__) || defined(__cplusplus) || defined(__CENTERLINE__) ||   \
-    (defined(_lint) && !defined(SUNOS))
+    (defined(_lint) && !defined(SUNOS)) || defined(_MSC_VER)
 #define bfk_prefix(N) (a_builtin_function_kind)bfk##N
 #define edg_concat_impl(X, Y)  X##Y
 #else /* !(defined(__STDC__) || defined(__cplusplus) || ...) */
