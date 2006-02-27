@@ -613,6 +613,8 @@ VLA lowering).
   result = make_prototyped_runtime_call("__vla_alloc", &vla_alloc_routine,
                                         void_type(), void_star_type(),
                                         ptrdiff_type, result);
+  /* If the VLA was not previously referenced, it is so now. */
+  vla_var->source_corresp.referenced = TRUE;
   return result;
 }  /* make_vla_allocation_expr */
 
