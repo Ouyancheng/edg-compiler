@@ -1,5 +1,25 @@
 Version 3.8
 
+2/27/06  IL display utility and complex types
+
+The IL display utility had not been updated to correctly display complex types
+and complex constants.  This is now fixed.
+
+2/27/06  Invalid orphan entry list for internal complex values
+
+When writing an IL file in a mode supporting complex types (e.g., C99 or GNU
+modes), the front end failed to process the orphan entry list for the
+representation of complex values (an_internal_complex_value).  The resulting
+invalid IL file could easily trigger internal errors later on (e.g., in the
+stand-alone IL display utility).  The following example creates such orphan
+entries:
+
+  void f() {
+    1.0+2.0*__I__;  // Requires orphan entry of type an_internal_complex_value
+  }                 // which was previously incorrectly written to the IL file.
+
+This is now fixed.
+
 2/27/06  Lowering of VLAs and "referenced" flag
 
 When a VLA (variable-length array) variable is lowered, its "referenced" flag

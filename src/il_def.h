@@ -2357,9 +2357,13 @@ typedef struct a_constant {
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
     } string;
     /* When kind == ck_float: */
+#if C99_IL_EXTENSIONS_SUPPORTED
+    /* Also, when kind == ck_imaginary: */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     an_internal_float_value
                 float_value;
-                        /* A floating-point value in internal form. */
+                        /* A floating-point value (real or imaginary) in
+			   internal form. */
 #if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
     /* When kind == ck_complex: */
     an_internal_complex_value_ptr

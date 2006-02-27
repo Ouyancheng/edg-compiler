@@ -2081,8 +2081,10 @@ running them through the indicated remapping function.
      are not maintained on an orphan list.  String types at the file
      scope that are referenced from a function scope are written in that
      function scope region. */
-#ifdef FFE
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
   remap_orphan_entry_first(iek_internal_complex_value);
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FFE
   remap_orphan_entry_first(iek_bound_info_entry);
   remap_orphan_entry_first(iek_do_loop);
   remap_orphan_entry_first(iek_label_list_entry);
@@ -2190,8 +2192,10 @@ running them through the indicated remapping function.
      are not maintained on an orphan list.  String types at the file
      scope that are referenced from a function scope are written in that
      function scope region. */
-#ifdef FFE
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
   remap_orphan_entry_last(iek_internal_complex_value);
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FFE
   remap_orphan_entry_last(iek_bound_info_entry);
   remap_orphan_entry_last(iek_do_loop);
   remap_orphan_entry_last(iek_label_list_entry);

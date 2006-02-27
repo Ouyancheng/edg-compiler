@@ -948,12 +948,18 @@ display_constant_value:
       (void)printf("ck_float\n");
       disp_name("float_value");
       goto display_constant_value;
-#ifdef FFE
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
       (void)printf("ck_complex\n");
       disp_name("complex_value");
       goto display_constant_value;
-#endif /* ifdef FFE */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case ck_imaginary:
+      (void)printf("ck_imaginary\n");
+      disp_name("float_value");
+      goto display_constant_value;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CFE
     case ck_address:
       (void)printf("ck_address\n");
@@ -1527,12 +1533,17 @@ Display the indicated type entry.
 #endif /* FIXED_POINT_ALLOWED */
     case tk_float:
       (void)printf("tk_float\n");
-#ifdef FFE
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
       goto do_float_complex;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+      (void)printf("tk_complex\n");
+      goto do_float_complex;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_complex:
       (void)printf("tk_complex\n");
 do_float_complex:
-#endif /* ifdef FFE */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
       disp_name("float_kind");
       (void)printf("%s\n", float_kind_name(ptr->variant.float_kind));
       break;
@@ -5852,8 +5863,10 @@ This routine is called during IL walking.
     case iek_routine_type_supplement:
     case iek_based_type_list_member:
     case iek_block:
-#ifdef FFE
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
     case iek_internal_complex_value:
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FFE
     case iek_bound_info_entry:
     case iek_do_loop:
 #endif /* ifdef FFE */
