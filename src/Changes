@@ -1,5 +1,16 @@
 Version 3.8
 
+2/27/06  Internal error on invalid string literal initializer
+
+Certain invalid string literal initializers could lead to an internal error
+(in initializer(...), decl_inits.c).  For example:
+
+  void f() {
+    static char x[3](L"ab");  // Previously triggered an internal error.
+  }
+
+This is now fixed.
+
 2/23/06  Internal error on invalid UCN with RECORD_MACROS_IN_IL
 
 If a macro definition ended with an invalid universal character name
