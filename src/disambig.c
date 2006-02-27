@@ -1116,8 +1116,8 @@ done:
 
 static a_boolean is_decl_not_expr_full(a_disambig_flag_set flags)
 /*
-This routine is called via is_decl_not_expr (in C++ only) to distinguish
-statements and expressions from declarations -- for example:
+This routine is called (in C++ only) to distinguish statements and expressions
+from declarations -- for example:
   (1) a statement vs. a declaration, e.g.,
          typedef int I;
          I(i);                // declaration (= I i);
