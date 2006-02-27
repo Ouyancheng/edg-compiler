@@ -147,7 +147,7 @@ typedef struct a_pragma_kind_description {
 			/* TRUE if the text of this pragma should be saved as
 			   a null terminated string.  The string created
 			   begins with the identifier following the #pragma
-		           keyword.  The character string representation
+			   keyword.  The character string representation
 			   may be used in source-to-source transformation
 			   applications to pass pragmas to the generated
 			   output, and may also be used for pragmas which are
@@ -169,12 +169,12 @@ typedef struct a_pragma_kind_description {
   a_bit_field	fetch_pp_tokens:1;
 			/* TRUE if the tokens for this pragma should be
 			   fetched as pp-tokens.  When this flag is TRUE,
-			   make_text_not_tokens must be TRUE, and
-			   expand_macros and processing_C_code must be
-			   FALSE.  In this mode the spacing of the
-			   pragma invocation (i.e., the presence or absence
-			   of white space) is preserved, but white space and
-			   comments are standardized to a single space. */
+			   record_pragma_text must be TRUE, and expand_macros
+			   and processing_C_code must be FALSE.  In this mode
+			   the spacing of the pragma invocation (i.e., the
+			   presence or absence of white space) is preserved,
+			   but white space and comments are standardized to a
+			   single space. */
   a_bit_field	ignore_in_back_end:1;
 			/* TRUE if this pragma may be ignored if it is
 			   not recognized by the back end.  This allows the
