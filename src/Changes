@@ -1,5 +1,14 @@
 Version 3.8
 
+2/27/06  Preprocessing output with line splices inside comments
+
+When creating preprocessing output that includes comments, a comment that
+contained more than five consecutive spliced lines (a backslash at the end of
+the line) caused a #line directive to be inserted into the body of the
+comment.  This has now been fixed; blank lines are used instead of #line
+directives inside comments to resynchronize output line numbers with those
+of the source following line splices.
+
 2/27/06  IL display utility and complex types
 
 The IL display utility had not been updated to correctly display complex types

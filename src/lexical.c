@@ -488,6 +488,15 @@ static a_text_buffer_ptr
 			/* A text buffer used to hold a temporary copy of
 			   identifiers containing universal character names. */
 
+static a_boolean
+		curr_line_began_inside_comment;
+			/* TRUE if the call to read_logical_source_line for
+			   for the current line occurred during the scan of
+			   a multi-line comment.  This is used by
+			   gen_pp_line_info to avoid inserting line
+			   directives into comments when
+			   keep_comments_in_pp_output is TRUE. */
+
 /*
 Hash table used by nested_source_line_modif to find the source
 line modification associated with the ATTENTION_MARKER at a given
@@ -2641,19 +2650,21 @@ is TRUE.
     if (curr_seq_number != next_seq_in_pp_output &&
         prev_pp_output_line_was_complete &&
         line_start_source_line_modif == NULL) {
-      if (curr_seq_number <= next_seq_in_pp_output+5 &&
+      if ((curr_seq_number <= next_seq_in_pp_output+5 ||
+           (curr_line_began_inside_comment && keep_comments_in_pp_output)) &&
           /* Following line is needed for some cases involving reinsertion
              of a macro id at the beginning of a line.  The reinserted id
              is followed by a newline, which bumps up the next_seq_in_pp_output
              past curr_seq_number. */
           curr_seq_number > next_seq_in_pp_output) {
-        /* Optimization -- For changes of a small number of lines,
-           it is more efficient to put out one or more blank lines to
-           move up to the desired line number.  This is smaller in the
-           output file, and also more efficient to process on the
-           receiving end.  Note that if line position information is not
-           wanted in the output, the blank lines are not put out, since
-           they serve no real purpose. */
+        /* Optimization -- For changes of a small number of lines, it is more
+           efficient to put out one or more blank lines to move up to the
+           desired line number.  This is smaller in the output file, and also
+           more efficient to process on the receiving end.  We also avoid
+           using the line directive if it would go into a comment in the pp
+           output.  Note that if line position information is not wanted in
+           the output, the blank lines are not put out, since they serve no
+           real purpose. */
         while (curr_seq_number != next_seq_in_pp_output) {
           if (gen_line_info_in_pp_output) putc('\n', f_pp_output);
           next_seq_in_pp_output++;
@@ -5212,6 +5223,7 @@ for the GNU C multiline string extension.
   if (f_raw_listing != NULL) {
     gen_raw_listing_output_for_curr_line();
   }  /* if */
+  curr_line_began_inside_comment = FALSE;
   /* Reset the per-line state of whether token separators should be emitted
      in the generated output. */
   no_token_separators_in_this_line_of_pp_output =
@@ -6455,6 +6467,7 @@ normal_comment:
               /* Consider the comment closed. */
               goto end_of_comment;
             }  /* if */
+            curr_line_began_inside_comment = TRUE;
             /* Reset the start of comment location for subsequent lines. */
             comment_start_loc = curr_source_line;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
