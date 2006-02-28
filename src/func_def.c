@@ -499,6 +499,14 @@ pointer decay).
 #endif /* VLA_ALLOWED */
   add_to_parameters_list(vp);
   sym = param_id->symbol;
+  if (gnu_mode && sym != NULL && sym->ambiguous) {
+    /* In GNU C and C++ mode, a duplicate parameter name is only diagnosed in
+       function definitions.  Any duplicate parameters were marked "ambiguous"
+       when parsing the function declarator.  Issue an error and treat them
+       as unnamed parameters in what follows. */
+    pos_error(ec_dupl_param_name, &sym->decl_position);
+    sym = NULL;
+  }  /* if */
   if (sym == NULL) {
     /* This param_id entry represents an unnamed parameter (which is legal
        in function definitions in C++). */
@@ -1671,26 +1679,23 @@ member declaration (allowed in Microsoft mode only).
            param_id != NULL;
            param_id = param_id->next) {
         if (param_id->type == NULL) {
+          a_symbol_ptr  param_sym = param_id->symbol;
           /* Enter any undeclared parameters with a type of int. */
           param_id->type = integer_type((an_integer_kind)ik_int);
           param_id->declared_type = param_id->type;
           param_id->storage_class = (a_storage_class)sc_auto;
           param_id->implicitly_declared = TRUE;
-          copy_source_position(param_id->symbol->decl_position,
-                               param_id->type_pos);
+          copy_source_position(param_sym->decl_position, param_id->type_pos);
           /* Symbols for explicitly declared parameters will already have been
              entered into the symbol table; so the same for parameters that
              are implicitly declared. */
-          reenter_symbol(param_id->symbol, decl_scope_level,
-                         /*suppress_error=*/FALSE);
+          reenter_symbol(param_sym, decl_scope_level, param_sym->ambiguous);
           if (c99_mode) {
-            /* In C99, implicit declarations are not longer allowed. */
+            /* In C99, implicit declarations are no longer allowed. */
             pos_sy_diagnostic(strict_ansi_mode ?
-                                           strict_ansi_discretionary_severity :
-                                           es_warning,
+                               strict_ansi_discretionary_severity : es_warning,
                               ec_undeclared_parameter,
-                              &param_id->symbol->decl_position,
-                              param_id->symbol);
+                              &param_sym->decl_position, param_sym);
           }  /* if */
         }  /* if */
         /* The param_type entry must be allocated in the file-scope

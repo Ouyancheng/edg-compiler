@@ -1,5 +1,17 @@
 Version 3.8
 
+2/28/06  GNU compatibility: Duplicate parameter names
+
+In GNU C++ mode, the front end now accepts duplicate parameter names in
+function declarations that are not also definitions.  For example:
+
+  void f(int i, int i);  // Now accepted in GNU C++ mode.
+
+Duplicate parameter names are also accepted in non-prototype declarations in
+C mode (with a warning about specifying parameter names in that case):
+
+  void f(i, i);  // Accepted in GNU C mode (with a warning).
+
 2/27/06  Preprocessing output with line splices inside comments
 
 When creating preprocessing output that includes comments, a comment that

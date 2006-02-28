@@ -10315,16 +10315,21 @@ parameter.
 {
   a_param_id_ptr  new_param_id;
   a_symbol_ptr    sym;
-  a_boolean       unnamed_param = FALSE;
+  a_boolean       unnamed_param = FALSE, ambiguous = FALSE;
   a_boolean       is_prototype_param_decl = (type_ptr != NULL);
 
   /* See if this identifier name already appears on the list.  If so, issue
-     an error.  Create a param_id entry if this is a prototype parameter
-     list, but not otherwise. */
+     an error (except in GNU modes, where duplicate parameter names are only
+     diagnosed in function definitions).  Create a param_id entry if this is
+     a prototype parameter list, but not otherwise. */
   if (!is_error_locator(*locator)) {
     if (param_id_on_list(locator, func_info->param_id_list) != NULL) {
-      error(ec_dupl_param_name);
-      set_to_error_locator(*locator);
+      if (gpp_mode || (gcc_mode && !is_prototype_param_decl)) {
+        ambiguous = TRUE;
+      } else {
+        error(ec_dupl_param_name);
+        set_to_error_locator(*locator);
+      }  /* if */
     } /* if */
   } else if (is_prototype_param_decl) {
     /* Assume that if an error locator is passed in and this is a prototype
@@ -10356,7 +10361,7 @@ parameter.
            prototype scope.  It will later be copied to the function scope
            when it is changed to sk_variable. */
         sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
-                           depth_scope_stack, /*suppress_redecl_error=*/FALSE);
+                           depth_scope_stack, ambiguous);
         if (gpp_mode) {
           /* In GNU mode, the parameters are invisible within the prototype
              scope (e.g., they are invisible while scanning the default
@@ -10372,6 +10377,7 @@ parameter.
       }  /* if */
       new_param_id->symbol = sym;
       sym->variant.param_id = new_param_id;
+      sym->ambiguous = ambiguous;
       set_decl_sequence_number(sym);
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
