@@ -12396,11 +12396,11 @@ EXTERN an_il_header il_header;
 /* Table of debug names for expression operators. */
 EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
-= {"*", "i-", "f-",
+= {"*", "i-",
 #if FIXED_POINT_ALLOWED
    "fx-",
 #endif /* FIXED_POINT_ALLOWED */
-   "+", "!", "cast",
+   "f-", "+", "!", "cast",
 #ifdef CIL
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",
