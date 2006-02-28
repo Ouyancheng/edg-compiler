@@ -44,7 +44,7 @@ library.  For example:
 2/27/06  Build error with Microsoft C compiler
 
 In its default mode (extensions enabled) the Microsoft C compiler failed to
-compile sys_predef.c.  This is now fixed.
+compile sys_predef.c when GNU_EXTENSIONS_ALLOWED was TRUE.  This is now fixed.
 
 2/27/06  Internal error on invalid string literal initializer
 
