@@ -5489,30 +5489,41 @@ implement <stdarg.h>, a standard feature.
     if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
     scan_expr(&operand, PREC_PREFIX, local_options);
     operand_was_scanned = TRUE;
-#if GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
-    if (gnu_mode && gnu_version >= 30300 && is_expression_operand(&operand) &&
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_mode && is_expression_operand(&operand) &&
         operand.variant.expression->kind == (an_expr_node_kind)enk_operation) {
-      /* In recent GNU C and C++ compilers, __alignof__ applied to a field
-         selection operation (. or ->) results in the "field alignment" rather
-         than the intrinsic alignment.  For example (assuming recent GNU rules
-         on the IA-32 architecture where long long is intrinsically aligned to
-         8-byte boundaries, but aligned to 4-byte boundaries when laying out
-         fields):
-           struct S { long long x; } s;
-           int a1 = __alignof__(s.x);      // a1 == 4
-           int a2 = __alignof__((&s)->x);  // a2 == 4
-           int a3 = __alignof__(*&s.x);    // a3 == 8
-      */
-      an_expr_operator_kind  opkind = operand.variant.expression
-                                                      ->variant.operation.kind;
+      /* Field selection operations need special treatment in GNU modes. */
+      an_expr_node_ptr       expr = operand.variant.expression;
+      an_expr_operator_kind  opkind = expr->variant.operation.kind;
       if (opkind == (an_expr_operator_kind)eok_field ||
           opkind == (an_expr_operator_kind)eok_value_field ||
           opkind == (an_expr_operator_kind)eok_bit_field ||
           opkind == (an_expr_operator_kind)eok_value_bit_field) {
-        use_field_alignment = TRUE;
+        an_expr_node_ptr  field_op = expr->variant.operation.operands->next;
+        if (field_op->kind == (an_expr_node_kind)enk_field &&
+            field_op->variant.field->alignment != 0) {
+          /* A field selection for a field that has an explicit alignment
+             (presumably set by the "aligned" attribute). */
+          alignment = field_op->variant.field->alignment;
+#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
+        } else if (gnu_version >= 30300) {
+          /* In recent GNU C and C++ compilers, __alignof__ applied to a field
+             selection operation (. or ->) results in the "field alignment"
+             rather than the intrinsic alignment.  For example (assuming recent
+             GNU rules on the IA-32 architecture where long long is
+             intrinsically aligned to 8-byte boundaries, but aligned to 4-byte
+             boundaries when laying out fields):
+               struct S { long long x; } s;
+               int a1 = __alignof__(s.x);      // a1 == 4
+               int a2 = __alignof__((&s)->x);  // a2 == 4
+               int a3 = __alignof__(*&s.x);    // a3 == 8
+          */
+          use_field_alignment = TRUE;
+#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+        }  /* if */
       }  /* if */
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Do not convert a type of "routine returning type" to "pointer to
        routine returning type".  See section 3.2.2.1 in the C standard.
        Likewise do not convert arrays to pointers, or lvalues to rvalues. */

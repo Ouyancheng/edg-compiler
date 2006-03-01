@@ -1,5 +1,16 @@
 Version 3.8
 
+3/1/06   GNU compatibility: __alignof applied to field selection operations
+
+In GNU modes, the front end now takes into account explicit alignment settings
+of fields when applying the __alignof operator to a field selection operation.
+For example:
+
+  struct S { int i __attribute__((aligned(8))); } s;
+  int main() {
+    return __alignof(s.i); // Returns 8 (which may differ from __alignof(int)).
+  }
+
 3/1/06   Complex constants incorrectly lowered in GNU C++ mode
 
 In GNU C++ mode, the front end incorrectly lowered complex constants appearing
