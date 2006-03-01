@@ -648,9 +648,9 @@ used to represent stdin; it must return  NULL.
 */
 {
   char *last_slash;
-#if __MICROSOFT_OS__
+#if BACKSLASH_IS_ALSO_DIR_SEPARATOR
   char *last_backslash;
-#endif /* __MICROSOFT_OS__ */
+#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 
   if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
     /* Special pseudo-name used for stdin; no directory. */
@@ -663,7 +663,7 @@ used to represent stdin; it must return  NULL.
 #else /* !__VMS__ */
     /* UNIX-like system -- check for last slash. */
     last_slash = strrchr(file_name, DIRECTORY_SEPARATOR);
-#if __MICROSOFT_OS__
+#if BACKSLASH_IS_ALSO_DIR_SEPARATOR
     /* MSDOS -- Allow backslash as an alternative to "/", and check for ":"
        of disk name. */
     last_backslash = strrchr(file_name, '\\');
@@ -674,7 +674,7 @@ used to represent stdin; it must return  NULL.
       /* Disk name is specified, as in "c:abc". */
       last_slash = file_name+1;
     }  /* if */
-#endif /* __MICROSOFT_OS__ */
+#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 #endif /* __VMS__ */
   }  /* if */
   return(last_slash);
@@ -910,7 +910,7 @@ Add "name" to the path name in "buffer".
   a_boolean need_to_add_slash = FALSE;
   char	separator_char = DIRECTORY_SEPARATOR;
 
-#if __MICROSOFT_OS__
+#if BACKSLASH_IS_ALSO_DIR_SEPARATOR
   if (memchr(buffer->buffer, DIRECTORY_SEPARATOR, buffer->size) != NULL) {
     /* The original path uses regular UNIX-style slashes; use one to splice
        the file and path to make it look consistent. */
@@ -921,7 +921,7 @@ Add "name" to the path name in "buffer".
        slash. */
     separator_char = '\\';
   }  /* if */
-#endif /* __MICROSOFT_OS__ */
+#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
   remove_null_terminator_from_text_buffer(buffer);
   if (buffer->size > 0) {
     /* The current path name is not empty.  Add a directory separator. */
@@ -931,10 +931,10 @@ Add "name" to the path name in "buffer".
     need_to_add_slash = FALSE;
 #else /* !__VMS__ */
     need_to_add_slash = (last_char != DIRECTORY_SEPARATOR);
-#if __MICROSOFT_OS__
+#if BACKSLASH_IS_ALSO_DIR_SEPARATOR
     /* Under MSDOS, both kinds of slashes need to be checked. */
     need_to_add_slash = need_to_add_slash && (last_char != '\\');
-#endif /* __MICROSOFT_OS__ */
+#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 #endif /* __VMS__ */
   } /* if */
   if (need_to_add_slash) {
@@ -2046,13 +2046,13 @@ a_boolean is_absolute_file_name(char *file_name)
 Test whether or not a file name is absolute (a full path name).
 */
 {
-#if __MICROSOFT_OS__
+#if BACKSLASH_IS_ALSO_DIR_SEPARATOR
   return ((file_name)[0] == DIRECTORY_SEPARATOR) ||
          ((file_name)[0] == '\\') || 
          has_drive_specification(file_name);
-#else /* !__MICROSOFT_OS__ */
+#else /* !BACKSLASH_IS_ALSO_DIR_SEPARATOR */
   return (file_name)[0] == DIRECTORY_SEPARATOR;
-#endif /* __MICROSOFT_OS__ */
+#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 }
 
 
@@ -3180,14 +3180,14 @@ into single character values).
 /*
 Macro that returns TRUE if "ch" is a directory separator character.
 */
-#if __MICROSOFT_OS__
+#if BACKSLASH_IS_ALSO_DIR_SEPARATOR
 #define is_dir_separator(ch)						\
   ((ch) == DIRECTORY_SEPARATOR ||					\
    (ch) == '\\')
-#else /* __MICROSOFT_OS__ */
+#else /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 #define is_dir_separator(ch)						\
   ((ch) == DIRECTORY_SEPARATOR)
-#endif /* __MICROSOFT_OS__ */
+#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 
 static void append_dir_name(a_text_buffer_ptr	buf,
 			    char		*dir_name)

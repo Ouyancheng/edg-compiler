@@ -1988,6 +1988,16 @@ Locale to set when multibyte characters are enabled in source code.
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 /*
+Macro used to increment a pointer to an element of a character string,
+handling multibyte characters if needed.
+*/
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#define increment_mbc_ptr(ptr) (ptr += mbc_length_simple(ptr))
+#else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+#define increment_mbc_ptr(ptr) (++ptr)
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+/*
 Primary source file name, as given on the command line.  FILE_NAME_FOR_STDIN
 if the primary source file is stdin.  The string is allocated in general
 storage, not IL storage.
@@ -2168,6 +2178,18 @@ handled separately.
 #ifndef DIRECTORY_SEPARATOR_STRING
 #define DIRECTORY_SEPARATOR_STRING "/"
 #endif /* DIRECTORY_SEPARATOR_STRING */
+
+/*
+TRUE if '\' should also be treated as a directory separator in addition
+to the one defined above.
+*/
+#ifndef BACKSLASH_IS_ALSO_DIR_SEPARATOR
+#if __MICROSOFT_OS__
+#define BACKSLASH_IS_ALSO_DIR_SEPARATOR TRUE
+#else /* !__MICROSOFT_OS__ */
+#define BACKSLASH_IS_ALSO_DIR_SEPARATOR FALSE
+#endif /* __MICROSOFT_OS__ */
+#endif /* ifndef BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 
 /* Add a component to a path name. */
 extern void append_to_path_name(a_text_buffer_ptr	buffer,
