@@ -1362,7 +1362,12 @@ attributes were specified on a definition.
     switch (ap->kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:
-        vp->alignment = ap->variant.alignment;
+        if (vp->is_parameter) {
+          pos_st_error(ec_parameter_attribute_invalid, &ap->position,
+                       attribute_kind_names[(int)ap->kind]);
+        } else {
+          vp->alignment = ap->variant.alignment;
+        }  /* if */
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       case ak_unused:

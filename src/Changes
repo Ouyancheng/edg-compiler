@@ -1,5 +1,15 @@
 Version 3.8
 
+3/1/06   GNU compatibility: Attribute "aligned" on parameters
+
+In GNU modes, the front end now issues an error when attempting to specify the
+attribute "aligned" on a parameter declaration.  For example:
+
+  void f(int p __attribute__((aligned(4)))) {}  // Previously accepted.
+                                                // Now an error.
+
+Such examples were previously silently accepted.
+
 3/1/06   GNU compatibility: __alignof applied to field selection operations
 
 In GNU modes, the front end now takes into account explicit alignment settings
