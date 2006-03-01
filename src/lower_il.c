@@ -11829,21 +11829,31 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       }  /* if */
       break;
     case enk_constant:
-      lower_os_constant(expr->variant.constant);
-      if (check_for_troublesome_ptr_to_member_constant(expr->variant.constant,
-                                                       /*const_okay=*/TRUE,
-                                                       &temp_var)) {
-        /* This expression node is loading the value of a pointer-to-
-           member-function, which has or will become a struct represented by
-           a ck_aggregate constant.  Since a ck_aggregate constant is
-           not allowed here, use the value of a temporary variable
-           initialized with the ck_aggregate constant. */
-        set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-        expr->variant.variable = temp_var;
-        /* Note that the type will be lowered to the proper struct type.
-           The const on the variable type won't be there, but that's
-           correct; it should be dropped because the reference is an
-           rvalue. */
+#if GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX
+      if (expr->variant.constant->kind == (a_constant_repr_kind)ck_complex)  {
+        /* The lowering of a complex constant results in an aggregate constant,
+           which needs special treatment (much like the pointer-to-member case
+           below). */
+        lower_c99_constant_expr(expr);
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
+      /* Do not insert code here. */
+      {
+        lower_os_constant(expr->variant.constant);
+        if (check_for_troublesome_ptr_to_member_constant(
+                    expr->variant.constant, /*const_okay=*/TRUE, &temp_var)) {
+          /* This expression node is loading the value of a pointer-to-
+             member-function, which has or will become a struct represented by
+             a ck_aggregate constant.  Since a ck_aggregate constant is
+             not allowed here, use the value of a temporary variable
+             initialized with the ck_aggregate constant. */
+          set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+          expr->variant.variable = temp_var;
+          /* Note that the type will be lowered to the proper struct type.
+             The const on the variable type won't be there, but that's
+             correct; it should be dropped because the reference is an
+             rvalue. */
+        }  /* if */
       }  /* if */
       break;
     case enk_temp_init:

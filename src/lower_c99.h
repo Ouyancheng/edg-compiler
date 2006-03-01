@@ -108,6 +108,8 @@ extern void lower_c99_cast(an_expr_node_ptr expr);
 
 extern void lower_c99_constant(a_constant_ptr constant);
 
+extern void lower_c99_constant_expr(an_expr_node_ptr expr);
+
 extern void lower_c99_operator(an_expr_node_ptr expr);
 
 extern void lower_c99_expr(an_expr_node_ptr expr,

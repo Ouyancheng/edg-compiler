@@ -2927,7 +2927,7 @@ replace them by a representation compatible with C89.
 #if !LOWER_COMPLEX
 /*ARGSUSED*/  /* <-- expr is not used in that case. */
 #endif /* !LOWER_COMPLEX */
-static void lower_c99_constant_expr(an_expr_node_ptr  expr)
+void lower_c99_constant_expr(an_expr_node_ptr  expr)
 /*
 Transform the given enk_constant expression to remove certain C99-specific
 constructs.
