@@ -8,7 +8,9 @@ character in which the second byte looked like a directory separator,
 file names generated using the base name of the primary input field would
 be given incorrect names (e.g., compilation of xy/z.c (where "y/" represents
 a multibyte character sequence) would result in the creation of a
-file name z.int.c instead of xy/z.int.c).
+file name z.int.c instead of xy/z.int.c).  Multibyte characters are
+supported in file names when MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is
+TRUE.
 
 3/1/06   GNU compatibility: Attribute "aligned" on parameters
 
