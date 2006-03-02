@@ -240,110 +240,124 @@ error -- unknown MS-DOS compiler.
 #endif /* __TURBOC__ */
 #endif /* __MICROSOFT_OS__ */
 
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 
-/*
-Define a macro which takes a complete file path and breaks it up into the parts
-as described above.
-*/
 #if __MICROSOFT_OS__
-#if __TURBOC__
-#define split_path(path, drive, dir, file, ext) \
-	  (void)fnsplit(path, drive, dir, file, ext)
-#define merge_path(path, drive, dir, file, ext) \
-	  fnmerge(path, drive, dir, file, ext)
 
-#else /* __TURBOC__ */
-#if __MSC__
-#define split_path(path, drive, dir, file, ext) \
-	  _splitpath(path, drive, dir, file, ext)
-/* MSC does not have a function to assemble a path from its components, so use
-   "strcpy" and "strcat" to reassemble. */
-#define merge_path(path, drive, dir, file, ext) \
-	  (void)strcpy(path, drive);		\
-	  strcat(path, dir);			\
-	  strcat(path, file);			\
-	  strcat(path, ext);
-#else /* __MSC__ */
-#if __ZTC__
-static void split_path(char *path,
-                      char *drive,
-                      char *dir,
-                      char *file,
-                      char *ext)
+static char *mbc_memchr(char		*str,
+			int		chr,
+			sizeof_t	size)
 /*
-Zortech doesn't provide a version of split_path so we use our own version.
-This routine is similar to the Borland "fnsplit" and the Microsoft
-"_splitpath" except that this routine does not accept NULL values for
-path name components and doesn't return a value as the Borland version
-does.
+This is a version of the memchr routine that works properly for strings
+containing multibyte characters.  Return the first occurrence of chr in the
+first size bytes of str, or NULL if chr is not found.
 */
 {
-  char		*colon_pos;
-  char		*last_slash_pos;
-  char		*start_pos = path;
-  char		*dot_pos;
-  sizeof_t	length;
+  char	*p;
+  char	*result = NULL;
+  char	*end = str + size - 1;
 
-  /* Initialize the components of the string in case they are not
-     explicitly specified. */
-  strcpy(drive, "");
-  strcpy(dir, "");
-  strcpy(file, "");
-  strcpy(ext, "");
-  /* Get the drive.  Copy the drive to the destination -- the colon is
-     copied too. */
-  colon_pos = strchr(path, ':');
-  if (colon_pos != NULL) {
-    length = colon_pos - path + 1;
-    length = (length < __MAXDRIVE__) ? length : __MAXDRIVE__ - 1;
-    strncat(drive, start_pos, length);
-    /* If the drive name was truncated add the terminating colon. */
-    if (length == (__MAXDRIVE__ - 1)) {
-      drive[length-1] = ':';
+  for (p = str; p <= end; increment_mbc_ptr(p)) {
+    if (*p == chr) {
+      result = p;
+      break;
     }  /* if */
-    start_pos = colon_pos + 1;
-  }  /* if */
-  /* See if there is a directory name.  If so, copy it to the destination
-     including leading and trailing slashes. */
-  last_slash_pos = strrchr(start_pos, '\\');
-  if (last_slash_pos != NULL) {
-    length = last_slash_pos - start_pos + 1;
-    length = (length < __MAXDIR__) ? length : __MAXDIR__ - 1;
-    strncat(dir, start_pos, length);
-    start_pos = last_slash_pos + 1;
-  }  /* if */
-  /* Find the '.' that ends the filename if one exists.  Copy the file name
-     and extension.  The '.' is part of the extension. */
-  dot_pos = strchr(start_pos, '.');
-  if (dot_pos != NULL) {
-    /* An extension exists. */
-    length = dot_pos - start_pos;
-    length = (length < __MAXFILE__) ? length : __MAXFILE__ - 1;
-    strncat(file, start_pos, length);
-    length = __MAXEXT__ - 1;
-    strncat(ext, dot_pos, length);
-  } else {
-    /* No extension exists. */
-    length = __MAXFILE__ - 1;
-    strncat(file, start_pos, length);
-  }  /* if */
-}  /* split_path */
+  }  /* for */
+  return result;
+}  /* mbc_memchr */
 
-
-/* Zortech does not have a function to assemble a path from its components,
-   so use  "strcpy" and "strcat" to reassemble. */
-#define merge_path(path, drive, dir, file, ext) \
-	  (void)strcpy(path, drive);		\
-	  strcat(path, dir);			\
-	  strcat(path, file);			\
-	  strcat(path, ext);
-#else /* __ZTC */
-error -- unknown MS-DOS compiler.
-#endif /* __ZTC */
-#endif /* __MSC__ */
-#endif /* __TURBOC__ */
 #endif /* __MICROSOFT_OS__ */
 
+char *mbc_strchr(char	*str,
+                 int	chr)
+/*
+This is a version of the strchr routine that works properly for strings
+containing multibyte characters.  Return the first occurrence of chr in str,
+or NULL if chr does not occur in str.
+*/
+{
+  char	*p;
+  char	*result = NULL;
+
+  for (p = str; *p != '\0'; increment_mbc_ptr(p)) {
+    if (*p == chr) {
+      result = p;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* mbc_strchr */
+
+
+static char *mbc_strrchr(char	*str,
+                         int	chr)
+/*
+This is a version of the strrchr routine that works properly for strings
+containing multibyte characters.  Return the last occurrence of chr in str,
+or NULL if chr does not occur in str.
+*/
+{
+  char	*p;
+  char	*result = NULL;
+
+  for (p = str; *p != '\0'; increment_mbc_ptr(p)) {
+    if (*p == chr) result = p;
+  }  /* for */
+  return result;
+}  /* mbc_strrchr */
+
+
+#if __MICROSOFT_OS__
+
+static sizeof_t truncate_length_to_whole_characters(char	*str,
+						    sizeof_t	length)
+/*
+Return the number of bytes of "str" that represent whole characters whose
+total length does not exceed "length".  This is used to ensure that when
+a string is truncated, it is done on a multibyte character boundary.
+*/
+{
+  sizeof_t	result = length;
+  char		*ptr;
+  sizeof_t	last_len;
+  sizeof_t	curr_len;
+
+  for (ptr = str; *ptr != '\0'; last_len = curr_len, increment_mbc_ptr(ptr)) {
+    curr_len = ptr - str + mbc_length_simple(ptr);
+    if (curr_len == length) {
+      result = length;
+      break;
+    } else if (curr_len > length) {
+      result = last_len;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* truncate_length_to_whole_characters */
+
+#endif /* __MICROSOFT_OS__ */
+
+#else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+/*
+When not using multibyte characters, just map these names onto the
+normal C library routines.
+*/
+#define mbc_strrchr(str, chr) strrchr(str, chr)
+
+#if __MICROSOFT_OS__
+#define mbc_memchr(str, chr, size) memchr(str, chr, size)
+#endif /* __MICROSOFT_OS__ */
+
+#if __MICROSOFT_OS__
+/*
+When not using multibyte characters, this routine just returns the
+original length.
+*/
+#define truncate_length_to_whole_characters(str, length) (length)
+#endif /* __MICROSOFT_OS__ */
+
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 static a_text_buffer_ptr
 		file_read_buffer;
@@ -658,15 +672,15 @@ used to represent stdin; it must return  NULL.
   } else {
 #if __VMS__
     /* VMS -- Check for "[]" for directory, or ":" for disk or node name. */
-    last_slash = strrchr(file_name, ']');
-    if (last_slash == NULL) last_slash = strrchr(file_name, ':');
+    last_slash = mbc_strrchr(file_name, ']');
+    if (last_slash == NULL) last_slash = mbc_strrchr(file_name, ':');
 #else /* !__VMS__ */
     /* UNIX-like system -- check for last slash. */
-    last_slash = strrchr(file_name, DIRECTORY_SEPARATOR);
+    last_slash = mbc_strrchr(file_name, DIRECTORY_SEPARATOR);
 #if BACKSLASH_IS_ALSO_DIR_SEPARATOR
     /* MSDOS -- Allow backslash as an alternative to "/", and check for ":"
        of disk name. */
-    last_backslash = strrchr(file_name, '\\');
+    last_backslash = mbc_strrchr(file_name, '\\');
     if (last_slash == NULL || last_backslash > last_slash) {
       last_slash = last_backslash;
     }  /* if */
@@ -700,13 +714,15 @@ Return the first character of the file name portion of "file_name"
 static char *end_of_base_name(char *file_name)
 /*
 Given a simple file name (with no directory name), return a pointer to
-the last character of the file name before the suffix, if any.
+the last byte of the file name before the suffix, if any.  Note that
+this is the last byte of the name, not the start of the last (possibly
+multibyte) character.
 */
 {
   char	*last_dot;
   char	*name_end;
 
-  if ((last_dot = strrchr(file_name, '.')) == NULL) {
+  if ((last_dot = mbc_strrchr(file_name, '.')) == NULL) {
     /* No suffix, end of base name is the same as end of file name. */
     name_end = file_name + strlen(file_name) - 1;
   } else {
@@ -803,49 +819,26 @@ found_dir_name:;
 
 
 #if __MICROSOFT_OS__
-static void truncate_msdos_filename(char *filename)
+
+static sizeof_t truncated_msdos_base_name_length(char		*str,
+						 sizeof_t	base_length,
+						 sizeof_t	suffix_length)
 /*
-Truncate the base and extension parts of an MSDOS filename so that it fits into
-the maximum specified by "__MAXFILE__" and "__MAXEXT__".  Note that these
-lengths include the null terminator.  This routine can truncate the front of
-the base if necessary.
+If base_length + suffix_length is greater than the maximum file name
+length, return the number of characters of base_length that can be used
+without exceeding the file name limit.  "str" is the base name, possibly
+with some suffix.
 */
 {
-  char drive[__MAXDRIVE__];
-  char dir[__MAXDIR__];
-  char file[__MAXFILE__];
-  char ext[__MAXEXT__];
+  sizeof_t	result = base_length;
 
-  /* Split the name into its parts. */
-  split_path(filename, drive, dir, file, ext);
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-  /* See if the file name ends with the suffix used for C output. */
-  { char *C_file_suffix = GEN_C_FILE_SUFFIX;
-    if (strlen(filename) > strlen(C_file_suffix) &&
-        strcmp(filename + strlen(filename) - strlen(C_file_suffix),
-               C_file_suffix) == 0) {
-      sizeof_t IL_pre_suffix_len = strchr(C_file_suffix, '.') - C_file_suffix;
-      /* See if the suffix was truncated. */
-      if (memcmp(file+strlen(file)-IL_pre_suffix_len, C_file_suffix,
-                 size_t_arg(IL_pre_suffix_len)) != 0) {
-        /* Yes, it was truncated.  Re-truncate so as to preserve the "_int"
-           part of the base name.  For example, "abcdef_int" is truncated to
-           "abcd_int". */
-        (void)memcpy(file+__MAXFILE__-1-IL_pre_suffix_len,
-                     C_file_suffix, size_t_arg(IL_pre_suffix_len));
-        file[__MAXFILE__-1] = '\0';
-      }  /* if */
-    }  /* if */
-  }
-#endif /* BACK_END_IS_C_GEN_BE || ... */
-  /* Truncate the filename part at the end (this may be unnecessary). */
-  file[__MAXFILE__-1] = '\0';
-  /* Truncate the extension part at the end (this may be unnecessary). */
-  ext[__MAXEXT__-1] = '\0';
-  /* Put the file name back together.  The resulting name is never longer than
-     the original. */
-  merge_path(filename, drive, dir, file, ext);
-}  /* truncate_msdos_filename */
+  if ((base_length + suffix_length) >= __MAXFILE__) {
+    result = truncate_length_to_whole_characters(
+                                         str, __MAXFILE__ - suffix_length - 1);
+  }  /* if */
+  return result;
+}  /* truncated_msdos_base_name_length */
+
 #endif /* __MICROSOFT_OS__ */
 
 
@@ -872,7 +865,7 @@ be passed to the back end.
     name_start = last_slash + 1;
   }  /* if */
   /* Find suffix, if any. */
-  if ((last_dot = strrchr(name_start, '.')) == NULL) {
+  if ((last_dot = mbc_strrchr(name_start, '.')) == NULL) {
     /* No suffix, end of base name is the same as end of file name. */
     name_end = name_start + strlen(name_start) - 1;
   } else {
@@ -882,16 +875,18 @@ be passed to the back end.
   /* Copy the base name and suffix into the derived name. */
   suffix_length = strlen(suffix);
   base_name_length = name_end - name_start + 1;
+#if __MICROSOFT_OS__
+  /* Microsoft limits the length of file names.  If the base name and suffix
+     would be too long, truncate the base name. */
+  base_name_length = truncated_msdos_base_name_length(name_start,
+                                                      base_name_length,
+                                                      suffix_length);
+#endif /* __MICROSOFT_OS__ */
   der_name_length = base_name_length + suffix_length;
   der_name = (char *)alloc_general(der_name_length+1);
   (void)memcpy(der_name, name_start, size_t_arg(base_name_length));
   (void)memcpy(&der_name[base_name_length], suffix, size_t_arg(suffix_length));
   der_name[der_name_length] = '\0';
-#if __MICROSOFT_OS__
-  /* Check for and truncate file names that are too long for MSDOS 
-     to handle. */
-  truncate_msdos_filename(der_name);
-#endif /* __MICROSOFT_OS__ */
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "derived name = \"%s\".\n", der_name);
@@ -910,8 +905,11 @@ Add "name" to the path name in "buffer".
   a_boolean need_to_add_slash = FALSE;
   char	separator_char = DIRECTORY_SEPARATOR;
 
-#if BACKSLASH_IS_ALSO_DIR_SEPARATOR
-  if (memchr(buffer->buffer, DIRECTORY_SEPARATOR, buffer->size) != NULL) {
+#if __MICROSOFT_OS__
+  /* This is done based on __MICROSOFT_OS__ instead of
+     BACKSLASH_IS_ALSO_DIR_SEPARATOR so that a "/" separator will be
+     preferred on non-Microsoft operating systems. */
+  if (mbc_memchr(buffer->buffer, DIRECTORY_SEPARATOR, buffer->size) != NULL) {
     /* The original path uses regular UNIX-style slashes; use one to splice
        the file and path to make it look consistent. */
     separator_char = DIRECTORY_SEPARATOR;
@@ -921,7 +919,7 @@ Add "name" to the path name in "buffer".
        slash. */
     separator_char = '\\';
   }  /* if */
-#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
+#endif /* __MICROSOFT_OS__ */
   remove_null_terminator_from_text_buffer(buffer);
   if (buffer->size > 0) {
     /* The current path name is not empty.  Add a directory separator. */
@@ -984,8 +982,8 @@ to a buffer containing the line read, or NULL at end-of-file.  The pointer
 returned points to a static buffer that is reused for each call.
 */
 {
-  int      ch;
-  char     *result;
+  int		ch;
+  a_boolean	is_eof = FALSE;
 
   if (file_read_buffer == NULL) {
     /* Allocate a buffer into which the line is read. */
@@ -996,26 +994,41 @@ returned points to a static buffer that is reused for each call.
     add_char_to_text_buffer(file_read_buffer, (char)ch);
   }  /* while */
   /* Determine whether to return end-of-file (NULL). */
-  result = file_read_buffer->buffer;
   if (ch == EOF && file_read_buffer->size == 0) {
-    result = NULL;
-  } else if (file_read_buffer->size > 0) {
-    /* Strip any trailing blanks.*/
-    char	*ptr = &file_read_buffer->buffer[file_read_buffer->size - 1];
-    char	*orig_ptr = ptr;
-    /* Find the last non-blank. */
-    while (*ptr == ' ' && ptr >= result) ptr--;
-    if (ptr != orig_ptr) {
-      /* Set the position at which to add characters to one past the last
-         non blank.  If the buffer is all blanks, this will make the buffer
-         empty. */
-      ptr++;
-      set_buffer_position(file_read_buffer, ptr);
+    is_eof = TRUE;
+  } else if (file_read_buffer->size > 0 &&
+             file_read_buffer->buffer[file_read_buffer->size-1] == ' ') {
+    /* Strip any trailing blanks.  Note the blank test above could be
+       looking at the last byte of a multibyte character, but that is
+       okay.  The test is only used to rule out the common case where
+       the line does not end in a blank before doing the more expensive
+       processing below. */
+    char	*ptr;
+    char	*last_nonblank;
+    /* Add a null terminator to mark the end of the buffer for the
+       processing below.  This will be repeated below after we find
+       the last non-blank. */
+    add_char_to_text_buffer(file_read_buffer, '\0');
+    /* Find the last non-blank.  This is done from the start of the
+       string to correctly handle multibyte characters. */
+    last_nonblank = &file_read_buffer->buffer[0];
+    for (ptr = last_nonblank; *ptr != '\0'; increment_mbc_ptr(ptr)) {
+      if (*ptr != ' ') last_nonblank = ptr;
+    }  /* for */
+    if (*last_nonblank != '\0') {
+      /* If the buffer is not empty (except for blanks) set ptr to just
+         after the last nonblank. */
+      ptr = last_nonblank;
+      increment_mbc_ptr(ptr);
     }  /* if */
+    /* Set the position at which to add characters to one past the last
+       non blank.  If the buffer is all blanks, this will make the buffer
+       empty. */
+    set_buffer_position(file_read_buffer, ptr);
   }  /* if */
   /* Terminate string with a null character. */
   add_char_to_text_buffer(file_read_buffer, '\0');
-  return (result);
+  return (is_eof ? NULL : file_read_buffer->buffer);
 }  /* read_line_from_file */
 
 
@@ -1087,7 +1100,7 @@ which will be overwritten when ctime is called again.
     if (strip_newline) {
       char	*ptr;
       /* Replace the newline with a null. */
-      ptr = strchr(time_str, '\n');
+      ptr = mbc_strchr(time_str, '\n');
       if (ptr != NULL) *ptr = '\0';
     }  /* if */
   }  /* if */
@@ -1248,7 +1261,7 @@ writing.  This helps avoid problems with clobbering of input files.
       name_start = last_slash + 1;
     }  /* if */
     /* Find suffix, if any. */
-    if ((last_dot = strrchr(name_start, '.')) == NULL) {
+    if ((last_dot = mbc_strrchr(name_start, '.')) == NULL) {
       /* No suffix. */
       okay = TRUE;
     } else {
@@ -2246,7 +2259,7 @@ See comment above.
     }  /* if */
     result = dir_entry->d_name;
     /* Make sure the suffix matches the value passed by the caller. */
-    ptr = strrchr(result, '.');
+    ptr = mbc_strrchr(result, '.');
     if (ptr != NULL && strcmp(ptr, suffix) == 0) break;
   }  /* for */
   return result;
@@ -3085,6 +3098,11 @@ and return 1.  This should usually be called via the macro mbc_length.
     }  /* if */
   }
 #else /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+#if EDG_MULTIBYTE_CHAR_TEST_MODE
+  /* In EDG multibyte test mode, a "$" is treated as the start of a multibyte
+     character unless it is the last character of the string. */
+  len = *ptr == '$' && *(ptr+1) != '\0' ? 2 : 1;
+#else /* !EDG_MULTIBYTE_CHAR_TEST_MODE */
   /* Use standard C library routines. */
   len = mblen(ptr, MB_CUR_MAX);
   if (len < 0) {
@@ -3092,6 +3110,7 @@ and return 1.  This should usually be called via the macro mbc_length.
     if (err != NULL) *err = TRUE;
     len = 1;
   }  /* if */
+#endif /* EDG_MULTIBYTE_CHAR_TEST_MODE */
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
 
   return len;
@@ -3113,8 +3132,10 @@ invalid, set *err to TRUE if err is non-NULL, and return 1.
   int       numch;
   a_boolean local_err = FALSE;
 
-#if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
-  /* Use custom code for SJIS instead of the C library routines. */
+#if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING || \
+    EDG_MULTIBYTE_CHAR_TEST_MODE
+  /* Use custom code for SJIS instead of the C library routines.  This
+     is also used in EDG multibyte test mode. */
   numch = mbc_length(mb, &local_err);
   if (local_err) {
     /* Bad multibyte character. */
@@ -3127,7 +3148,8 @@ invalid, set *err to TRUE if err is non-NULL, and return 1.
       check_assertion(numch == 2);
     }  /* if */
   }  /* if */
-#else /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+#else /* !(USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING ||
+           EDG_MULTIBYTE_CHAR_TEST_MODE) */
   /* Use a standard C library routine to do the multibyte character
      sequence to wide character conversion. */
   { wchar_t wchar;
@@ -3141,7 +3163,8 @@ invalid, set *err to TRUE if err is non-NULL, and return 1.
       *wc = wchar;
     }  /* if */
   }
-#endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+#endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING ||
+          EDG_MULTIBYTE_CHAR_TEST_MODE */
   if (err != NULL) *err = local_err;
   return numch;
 }  /* mbc_to_wide_char */
@@ -3209,7 +3232,7 @@ Add "dir_name" to the end of the directory name specified by "buf".
     /* Save the position of the start of the directory name. */
     dir_start = ptr;
     /* Find the end of the directory. */
-    while (*ptr != '\0' && !is_dir_separator(*ptr)) ptr++;
+    while (*ptr != '\0' && !is_dir_separator(*ptr)) increment_mbc_ptr(ptr);
     length = ptr - dir_start;
     if (length == 1 && *dir_start == '.') {
       /* "." for the current directory.  Ignore it. */
@@ -3218,8 +3241,7 @@ Add "dir_name" to the end of the directory name specified by "buf".
       /* ".." (parent directory).  Remove the last directory component from
          the buffer. */
       /* Get a pointer to the end of the buffer so far. */
-      char	*buf_ptr = &buf->buffer[buf->size - 1];
-      char	*orig_buf_ptr = buf_ptr;
+      char	*buf_end = &buf->buffer[buf->size - 1];
       if (buf->size == 0) {
         /* We are already at the start of the buffer. */
 #if __MICROSOFT_OS__
@@ -3228,9 +3250,21 @@ Add "dir_name" to the end of the directory name specified by "buf".
            further. */
 #endif /* __MICROSOFT_OS */
       } else {
-        /* Back up the start of the previous directory component. */
-        while (!is_dir_separator(*buf_ptr)) --buf_ptr;
-        buf->size -= orig_buf_ptr - buf_ptr + 1;
+        /* Back up to the start of the previous directory component.  This
+           actually needs to be done by scanning from the start of the
+           string to handle multibyte characters. */
+        char	*last_dir_sep = NULL;
+        char	*ds_ptr;
+        for (ds_ptr = &buf->buffer[0]; ds_ptr < buf_end;
+            increment_mbc_ptr(ds_ptr)) {
+          if (is_dir_separator(*ds_ptr)) last_dir_sep = ds_ptr;
+        }  /* for */
+        if (last_dir_sep != NULL) {
+          buf->size -= buf_end - last_dir_sep + 1;
+        } else {
+          /* There was no previous directory separator. */
+          buf->size = 0;
+        }  /* if */
       }  /* if */
     } else if (length > 0) {
       /* If there was a separator, or if we already have a directory name,
@@ -3282,6 +3316,12 @@ to the current directory.
   append_dir_name(buf, dir_name);
   /* Terminate the string. */
   add_char_to_text_buffer(buf, '\0');
+#if DEBUG
+  if (db_flag_is_set("normalize_dir_name")) {
+    fprintf(f_debug, "normalize_dir_name in=%s out=%s\n", dir_name,
+            buf->buffer);
+  }  /* if */
+#endif /* DEBUG */
   return buf->buffer;
 }  /* normalize_dir_name */
 
@@ -3415,9 +3455,10 @@ put out using escape sequences.  Escape processing is generally suppressed
 for names appearing in error messages, so that multibyte characters will
 be output without escapes.  Escape processing is done when outputting names
 in preprocessed output, and similar contexts.  Return the number of characters
-written.  The caller must put out surrounding quotes if they are needed.
-This routine is used to write out the file name in #line directives and
-error messages.
+written (a multibyte character sequence counts as a single character when not
+escaping nonprinting characters).  The caller must put out surrounding quotes
+if they are needed.  This routine is used to write out the file name in #line
+directives and error messages.
 */
 {
   char          *p;
@@ -3426,6 +3467,7 @@ error messages.
   for (p = name; *p != '\0'; p++) {
     char ch = *p;
     if (!escape_nonprintable_chars || isprint((unsigned char)ch)) {
+      int	ch_len;
       /* If the character is printable, or if we are not escaping nonprintable
          characters, emit the character normally.  This is done so that
          characters from extended character sets and multibyte characters will
@@ -3436,7 +3478,13 @@ error messages.
         putc('\\', f_output);
         len++;
       }  /* if */
-      putc(ch, f_output);
+      /* Output all of the characters of a multibyte sequence so that the
+         length returned will be correct. */
+      for (ch_len = mbc_length_simple(p); ch_len > 0; ch_len--, p++) {
+        putc(*p, f_output);
+      }  /* for */
+      /* Decrement p because it will be incremented at the end of the loop. */
+      p--;
       len++;
     } else if (ch == '\n') {
       /* Put out newline as \n. */

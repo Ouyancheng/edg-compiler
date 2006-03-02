@@ -798,15 +798,24 @@ modifies those quantities to trim leading and trailing whitespace.
 E.g., "    stdio   " becomes "stdio".
 */
 {
+  char		*ptr;
+  char		*last_nonblank;
+  char		*end;
+
   /* Skip leading whitespace. */
   while (*len > 0 && (**name == ' ' || **name == '\t')) {
     ++(*name);
     --(*len);
   }  /* while */
-  /* Trim trailing whitespace. */
-  while (*len > 0 && ((*name)[*len - 1] == ' ' || (*name)[*len - 1] == '\t')) {
-    --(*len);
-  }  /* while */
+  if (*len > 0) {
+    /* Find the last nonblank character of the name. */
+    for (ptr = *name, end = ptr + *len - 1, last_nonblank = ptr;
+         ptr <= end; increment_mbc_ptr(ptr)) {
+       if (*ptr != ' ' && *ptr != '\t') last_nonblank = ptr;
+    }  /* for */
+    /* Trim trailing whitespace. */
+    *len = last_nonblank - *name + 1;
+  }  /* if */
 }  /* trim_leading_and_trailing_blanks_from_header_name */
 
 

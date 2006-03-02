@@ -1875,6 +1875,21 @@ for that.
 #endif /* ifndef USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
 
 /*
+Flag that is TRUE to enable a test version of multibyte character
+handling.
+*/
+#ifndef EDG_MULTIBYTE_CHAR_TEST_MODE
+#define EDG_MULTIBYTE_CHAR_TEST_MODE FALSE
+#endif /* ifndef EDG_MULTIBYTE_CHAR_TEST_MODE */
+
+#if EDG_MULTIBYTE_CHAR_TEST_MODE
+#if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
+ #error USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING \
+        and EDG_MULTIBYTE_CHAR_TEST_MODE cannot both be TRUE.
+#endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+#endif /* EDG_MULTIBYTE_CHAR_TEST_MODE */
+
+/*
 Indication of whether backslash, question mark, and star can appear as part of
 a multibyte character sequence.  If they cannot, processing for line splices,
 trigraphs, and C-style comments can be made more efficient.  For the
@@ -1901,11 +1916,16 @@ inefficient), and only when multibyte characters are enabled;
 the macro need not be defined at all.
 */
 #ifndef char_may_begin_multibyte_sequence
+#if 'a' == 97
+#if EDG_MULTIBYTE_CHAR_TEST_MODE
+/* In EDG multibyte test mode a "$" begins a multibyte character. */
+#define char_may_begin_multibyte_sequence(ch) (ch == '$')
+#else /*  EDG_MULTIBYTE_CHAR_TEST_MODE */
 /* If the character set appears to contain ASCII, a safe version of
    this is to test for the printable part of the ASCII code set. */
-#if 'a' == 97
 #define char_may_begin_multibyte_sequence(ch) \
   ((unsigned char)(ch) < 0x20 || ((unsigned char)(ch) > 0x7e))
+#endif /*  EDG_MULTIBYTE_CHAR_TEST_MODE */
 #endif /* 'a' == 97 */
 #endif /* ifndef char_may_begin_multibyte_sequence */
 
@@ -1960,6 +1980,12 @@ extern int mbc_to_wide_char(char          *mb,
 #define mbc_scan_init_if_multibyte_chars_in_source_enabled() /* Nothing. */
 
 #else /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+#if EDG_MULTIBYTE_CHAR_TEST_MODE
+/* Initialize for using mbc_length within one string of source characters. */
+#define mbc_scan_init() ((void)0)
+#define mbc_scan_init_if_multibyte_chars_in_source_enabled() /* Nothing. */
+
+#else /* !EDG_MULTIBYTE_CHAR_TEST_MODE */
 /* Use the standard C library routines. */
 
 /*
@@ -1984,7 +2010,26 @@ Locale to set when multibyte characters are enabled in source code.
 #define mbc_scan_init_if_multibyte_chars_in_source_enabled() \
   { if (multibyte_chars_in_source_enabled) mbc_scan_init(); }
 
+#endif /* EDG_MULTIBYTE_CHAR_TEST_MODE */
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+
+#else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+/* Allow mbc_length_simple to be used when multibyte character support
+   is not enabled. */
+#define mbc_length_simple(ptr) (1)
+
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+extern char *mbc_strchr(char *str,
+                        int  chr);
+#else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+/*
+When not using multibyte characters, just map this name onto the
+normal C library routine.
+*/
+#define mbc_strchr(str, chr) strchr(str, chr)
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 /*

@@ -1455,7 +1455,7 @@ text_segment:
          first character may actually be a percent sign when the
          original message contained a "%%" used to insert a single
          "%" in the output. */
-      end_ptr = strchr(msg_ptr+1, '%');
+      end_ptr = mbc_strchr(msg_ptr+1, '%');
       if (end_ptr == NULL) {
         /* This part is the end of the message template. */
         curr_segment->length = strlen(msg_ptr);
@@ -1492,9 +1492,9 @@ one error fill-in.
 {
   char *p;
 
-  p = strchr(error_text(error_code), '%');
+  p = mbc_strchr(error_text(error_code), '%');
   /* Ignore "%%"; it's not a real fill-in. */
-  while (p != NULL && p[1] == '%') p = strchr(p+2, '%');
+  while (p != NULL && p[1] == '%') p = mbc_strchr(p+2, '%');
   return (p != NULL);
 }  /* message_has_fill_in */
 

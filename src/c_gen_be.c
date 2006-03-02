@@ -5328,7 +5328,7 @@ the "routine" is a block.
     if (pos_in_module_list != NULL) {
       for (;;) {
         char saved_ch;
-        end_pos = strchr(pos_in_module_list, ',');
+        end_pos = mbc_strchr(pos_in_module_list, ',');
         if (end_pos == NULL) end_pos = strchr(pos_in_module_list, '\0');
         /* No check for the name matching the current module name.  It doesn't
            hurt to call the initialization routine twice. */

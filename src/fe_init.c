@@ -822,7 +822,7 @@ after the command-line processing has been done.
   pos_curr_token.column = SP_COL_UNKNOWN;
   set_err_pos_to_curr_token();
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-#if !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
+#if !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING && !EDG_MULTIBYTE_CHAR_TEST_MODE
   if (multibyte_chars_in_source_enabled) {
     /* Set the locale to allow processing of multibyte characters in source.
        Only change the category of processing related to character handling
@@ -833,7 +833,8 @@ after the command-line processing has been done.
                       LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED);
     }  /* if */
   }  /* if */
-#endif /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+#endif /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING &&
+          !EDG_MULTIBYTE_CHAR_TEST_MODE */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   target_one_time_init();
   host_envir_one_time_init();
