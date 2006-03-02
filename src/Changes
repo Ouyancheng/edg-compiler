@@ -1,5 +1,13 @@
 Version 3.8
 
+3/2/06   Incorrect space used output
+
+In version 3.7, the space used output did not include the space for
+certain resizable buffers.  This could cause the "Total used" value
+to be less that the actual total used.  It could also result in the
+"Not listed" value being negative.  Because the "Not listed" value is
+unsigned, it would be displayed as a large unsigned value.  Now fixed.
+
 3/2/06   Multibyte characters in file names
 
 Formerly, the front end was not prepared to handle file names containing

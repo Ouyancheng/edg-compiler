@@ -1165,6 +1165,9 @@ that the memory can be freed when the front end is reset.
 
   ptr = (char*)malloc_with_check(size);
   add_memory_allocation((a_void_ptr)ptr, size, /*is_resizable=*/TRUE);
+#if DEBUG
+  total_general_mem_allocated += size;
+#endif /* DEBUG */
   return ptr;
 }  /* alloc_resizable_buffer */
 
