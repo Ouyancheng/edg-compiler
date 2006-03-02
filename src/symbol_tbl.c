@@ -2624,7 +2624,7 @@ state.
       /* No variant fields to set. */
       break;
     case sk_keyword:
-      sym_ptr->variant.keyword.token = (a_byte_token_kind)tok_error;
+      sym_ptr->variant.keyword.token = (a_small_token_kind)tok_error;
       sym_ptr->variant.keyword.is_preprocessing_op_or_punc = FALSE;
       sym_ptr->variant.keyword.diagnostic_issued_if_used = ec_no_error;
       break;
@@ -5285,7 +5285,7 @@ token that corresponds to it.
 
   sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
 			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
-  sym_ptr->variant.keyword.token = (a_byte_token_kind)token;
+  sym_ptr->variant.keyword.token = (a_small_token_kind)token;
 }  /* enter_keyword */
 
 #if NAMED_ADDRESS_SPACES_ALLOWED

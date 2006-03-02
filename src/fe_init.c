@@ -250,7 +250,7 @@ specifies a diagnostic message to be issued if the keyword is used.
 
   sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
 			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
-  sym_ptr->variant.keyword.token = (a_byte_token_kind)tok_unimplemented;
+  sym_ptr->variant.keyword.token = (a_small_token_kind)tok_unimplemented;
   sym_ptr->variant.keyword.diagnostic_issued_if_used = error_code;
 }  /* enter_unimplemented_keyword */
 
@@ -266,7 +266,7 @@ preprocessing directives (i.e., operators like "and").
 
   sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
 			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
-  sym_ptr->variant.keyword.token = (a_byte_token_kind)token;
+  sym_ptr->variant.keyword.token = (a_small_token_kind)token;
   sym_ptr->variant.keyword.is_preprocessing_op_or_punc = TRUE;
 }  /* enter_preproc_op_keyword */
 

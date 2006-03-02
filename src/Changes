@@ -1,5 +1,18 @@
 Version 3.8
 
+3/2/06   Support for more than 255 token kinds
+
+The front end has used a byte field to represent a_token_kind in some
+data structures.  As the number of tokens kinds grows, we are getting close
+the point where a byte will no longer be sufficient in some configurations.
+With the additional token kinds added in version 3.8, some customers
+who have added their own token kinds may already hit this limit.  To
+support a larger number of token kinds, the typedef a_byte_token_kind has been
+renamed a_small_token_kind.  The type to be used as a_small_token_kind is
+specified by the TYPE_FOR_A_SMALL_TOKEN_KIND configuration macro, which
+defaults to a_byte.  An assertion check has been added to ensure that
+a_small_token_kind is not too small for the number of token kinds being used.
+
 3/2/06   Incorrect space used output
 
 In version 3.7, the space used output did not include the space for

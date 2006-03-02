@@ -2574,7 +2574,7 @@ typedef struct a_symbol {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
     struct {
-      a_byte_token_kind
+      a_small_token_kind
 		token;
 			/* For keywords, the token identifying the keyword. */
       a_bit_field

@@ -2910,7 +2910,7 @@ semicolon, add a semicolon to the cache.
     if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
       continue;
     }  /* if */
-    if (ctp->token != (a_byte_token_kind)tok_semicolon) {
+    if (ctp->token != (a_small_token_kind)tok_semicolon) {
       insert_semicolon = TRUE;
     } else {
       semicolon_token = ctp;

@@ -858,7 +858,7 @@ associated with the current token.
      is used. */
   ctp->end_source_position = ctp->source_position;
 #endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
-  ctp->token = (a_byte_token_kind)tok_error;
+  ctp->token = (a_small_token_kind)tok_error;
   ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   add_cached_token_to_cache(ctp, cache);
 #if DEBUG
@@ -984,7 +984,7 @@ Save an end-of-source token on the end of the list of tokens saved in *cache.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   ctp->end_source_position = pos_curr_token;
 #endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
-  ctp->token = (a_byte_token_kind)tok_end_of_source;
+  ctp->token = (a_small_token_kind)tok_end_of_source;
   ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
   /* Add the end-of-source token to the end of the cache. */
@@ -1026,7 +1026,7 @@ the newly created token.
 
   /* Build an entry for the end-of-source token. */
   alloc_cached_token(ctp);
-  ctp->token = (a_byte_token_kind)kind;
+  ctp->token = (a_small_token_kind)kind;
   ctp->token_sequence_number = sequence_number;
   ctp->source_position = *position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -1091,7 +1091,7 @@ This is used to save tokens for later rescanning.
   }  /* if */
   /* Build an entry for the current token itself. */
   alloc_cached_token(ctp);
-  ctp->token = (a_byte_token_kind)curr_token;
+  ctp->token = (a_small_token_kind)curr_token;
   ctp->source_position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   ctp->end_source_position = end_pos_curr_token;
@@ -10062,7 +10062,7 @@ in the location pointed to by seq.
   /* If there is no cached token or if the token is the end-of-source token
      which is used to terminate the token cache, then disregard this token
      and fetch the next token using the slower method. */
-  if (ctp != NULL && ctp->token != (a_byte_token_kind)tok_end_of_source) {
+  if (ctp != NULL && ctp->token != (a_small_token_kind)tok_end_of_source) {
     /* There is a cached token from which we can get then token kind. */
     ntoken = (a_token_kind)ctp->token;
     /* If seq is not NULL, return the sequence number of the next token. */
@@ -10135,7 +10135,7 @@ cannot be used when fetching raw preprocessing tokens.
   /* If there is no cached token or if the token is the end-of-source token
      which is used to terminate the token cache, then disregard this token
      and fetch the next token using the slower method. */
-  if (ctp != NULL && ctp->token != (a_byte_token_kind)tok_end_of_source) {
+  if (ctp != NULL && ctp->token != (a_small_token_kind)tok_end_of_source) {
     /* There is a cached token from which we can get then token kind. */
     ntoken = (a_token_kind)ctp->token;
     if (ntoken != first_token_must_be) {
@@ -10150,7 +10150,7 @@ cannot be used when fetching raw preprocessing tokens.
                                  (a_token_extra_info_kind)teik_pragma) {
         ctp = ctp->next;
       }  /* while */
-      if (ctp != NULL && ctp->token != (a_byte_token_kind)tok_end_of_source) {
+      if (ctp != NULL && ctp->token != (a_small_token_kind)tok_end_of_source) {
         /* We have found the next token in the cache that can be used to
            return the value of token_2.  Return the value and set tokens_found
            to indicate that no further processing is needed. */
@@ -14863,7 +14863,7 @@ and < end_tsn are included in the string.
     /* Stop if we've reached the specified ending token sequence number. */
     if (end_tsn != NO_TOKEN_SEQUENCE_NUMBER &&
         ctp->token_sequence_number >= end_tsn) break;
-    if (ctp->token == (a_byte_token_kind)tok_removed_default_arg) {
+    if (ctp->token == (a_small_token_kind)tok_removed_default_arg) {
       /* A special token that indicates the location of a removed
          default argument.  The actual default argument tokens should
          still be used for purposes of generating the template string. */
@@ -15202,6 +15202,10 @@ are handled in lexical_init.)
   size_input_stack = 0;
   in_pcc_mode_half_comment = FALSE;
 #if CHECKING
+  /* Make sure there are not too many tokens to fit into a_small_token_kind. */
+  if (sizeof(a_small_token_kind) == 1 && (int)tok_last > 255) {
+    internal_error("lexical_one_time_init: a_small_token_kind is too small");
+  }  /* if */
   /* Check that the table of token names is correctly initialized.  This
      guards against someone changing the enumeration and forgetting to
      update token_names. */

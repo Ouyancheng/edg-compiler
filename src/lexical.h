@@ -314,8 +314,15 @@ typedef enum /*a_token_kind*/ {
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
-/* More compact form: */
-typedef a_byte a_byte_token_kind;
+
+/*
+Define the type to be used as a more compact representation of a_token_kind.
+*/
+#ifndef TYPE_FOR_A_SMALL_TOKEN_KIND
+#define TYPE_FOR_A_SMALL_TOKEN_KIND a_byte
+#endif /* ifndef TYPE_FOR_A_SMALL_TOKEN_KIND */
+
+typedef TYPE_FOR_A_SMALL_TOKEN_KIND a_small_token_kind;
 
 /*
 Table of names corresponding to token kinds.
@@ -1794,7 +1801,7 @@ typedef struct a_cached_token {
 			   the source position of the last character of the
 			   token. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_byte_token_kind
+  a_small_token_kind
 		token;
 			/* The token kind (e.g., tok_identifier).  Not valid
 			   when extra_info_kind == teik_pragma. */
