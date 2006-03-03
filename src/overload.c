@@ -4830,6 +4830,7 @@ a_symbol_ptr select_overloaded_function(
                          an_operand               *bound_function_selector,
                          an_arg_operand_ptr       arg_operand_list,
                          a_boolean                do_arg_dep_lookup,
+                         a_boolean                force_dependent,
                          an_error_code            err_none_applies,
                          an_error_code            err_ambiguous,
                          a_source_position        *call_position,
@@ -4854,7 +4855,10 @@ volatile-qualified, and the selector expression is only needed for
 that discrimination.  do_arg_dep_lookup is TRUE if argument-dependent
 lookup should be done; if it is TRUE, overloaded_function_symbol may
 be an sk_undefined symbol, indicating that nothing was found on a
-normal id lookup of the function name.  call_position is the source
+normal id lookup of the function name.  force_dependent is
+TRUE if a call should be treated as dependent even when not
+doing argument dependent lookup (which usually forces a call to
+be treated as nondependent).  call_position is the source
 position of the call.  paren_tok_seq_number is the token sequence
 number of the opening parenthesis of the argument list, but it's
 required only when do_arg_dep_lookup is TRUE; it can be zero
@@ -4980,8 +4984,10 @@ and return NULL.  This routine is called only in C++ mode.
 in_instantiation:
     if (!do_arg_dep_lookup) {
       /* Calls where argument-dependent lookup is turned off are
-         not recorded, but they're always considered non-dependent. */
-      dependent_call = FALSE;
+         not recorded, but they're always considered non-dependent (except
+         when forced_dependent flag is TRUE).  This flag is used to emulate a
+         g++ bug that treats certain nondependent calls as dependent. */
+      dependent_call = force_dependent;
     } else {
       a_nondependent_call_info_ptr ndcall_info;
       ndcall_info = get_nondependent_call_info(paren_tok_seq_number);
@@ -7529,6 +7535,7 @@ routine is called only in C++ mode.
                                                bound_function_selector,
                                                arg_operand_list,
                                                do_arg_dep_lookup,
+                                               /*force_dependent=*/FALSE,
                                                err_none_applies,
                                                err_ambiguous,
                                                call_position,

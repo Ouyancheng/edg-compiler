@@ -512,6 +512,7 @@ extern a_symbol_ptr select_overloaded_function(
                          an_operand               *bound_function_selector,
                          an_arg_operand_ptr       arg_operand_list,
                          a_boolean                do_arg_dep_lookup,
+                         a_boolean                force_dependent,
                          an_error_code            err_none_applies,
                          an_error_code            err_ambiguous,
                          a_source_position        *call_position,

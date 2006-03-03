@@ -1,5 +1,27 @@
 Version 3.8
 
+3/3/06   GNU C++ compatibility: new operator treated as dependent
+
+Uses of the new operator in template dependent contexts are always treated
+as dependent by g++ starting with version 3.4.  In the example below, this
+causes the operator new declaration to be visible in A<T>::f even though
+it is declared after the definition of the template, and though that
+particular new operation is not actually dependent.  We now emulate this
+behavior in g++ mode when gnu_version is >= 30400.
+
+  typedef unsigned long size_t;
+  template <class T > struct A {
+    void f() {
+      void *p = 0;
+      new (&p) int(0);
+    }
+  };
+  void* operator new(size_t, void* p);
+  int main() {
+    A<int> a;
+    a.f();
+  }
+
 3/3/06   Microsoft compatibility: __is_convertible_to
 
 In Microsoft mode with microsoft_version >= 1400, the front end accepts the

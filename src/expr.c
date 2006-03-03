@@ -929,6 +929,7 @@ source position is after the closing parenthesis of the argument list.
                                                  (an_operand *)NULL,
                                                  arg_operand_list,
                                                  /*do_arg_dep_lookup=*/FALSE,
+                                                 /*force_dependent=*/FALSE,
                                                  ec_no_matching_constructor,
                                                  ec_ambiguous_constructor,
                                                  source_pos,
@@ -8108,6 +8109,7 @@ specification allow a variable-sized array as the top type.
   a_dynamic_init_ptr
                     dip;
   a_boolean         unknown_dependent_new = FALSE;
+  a_boolean         force_dependent = FALSE;
 
   db_enter(4, "scan_new_operator");
 
@@ -8336,9 +8338,24 @@ specification allow a variable-sized array as the top type.
       opname_kind = (an_opname_kind)onk_array_new;
     }  /* if */
     operator_new_symbol = NULL;
+    if (gpp_mode && gnu_version >= 30400) {
+      /* g++ 3.4 and above always treat an new operator as dependent. */
+      if (is_template_dependent_context()) {
+        /* During a prototype instantiation, suppress the lookup. */
+        unknown_dependent_new = TRUE;
+      } else if (is_nonspecialized_instantiation_context()) {
+        /* During a real instantiation force the lookup to be treated as
+           dependent (when argument dependent lookup is not done, lookups
+           are usually treated as nondependent). */
+        force_dependent = TRUE;
+      }  /* if */
+    }  /* if */
     if (!use_global_new && (array_new_and_delete_enabled || !array_new)) {
       /* Check for a member "operator new" or "operator new[]". */
-      if (is_template_param_or_nonreal_class_type(base_new_type)) {
+      if (unknown_dependent_new) {
+        /* Suppress this processing if the unknown flag was already set
+           above. */
+      } else if (is_template_param_or_nonreal_class_type(base_new_type)) {
         /* In a prototype instantiation, you might not be able to tell
            whether a class-specific operator new should be used. */
         unknown_dependent_new = TRUE;
@@ -8399,6 +8416,7 @@ specification allow a variable-sized array as the top type.
                                               (an_operand *)NULL,
                                               arg_operand_list,
                                               /*do_arg_dep_lookup=*/FALSE,
+                                              force_dependent,
                                               ec_no_matching_new_function,
                                               ec_ambiguous_overloaded_function,
                                               &new_position,
