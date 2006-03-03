@@ -27,6 +27,7 @@ folding.c -- Folding routines.
 #include "folding.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "layout.h"
+#include "overload.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -5157,45 +5158,39 @@ expression.
       /* A type is always considered convertible to itself. */
       result = TRUE;
     } else {
-      a_std_conv_descr  std_conv;
+      a_boolean  from_rvalue = TRUE, ref_init = FALSE;
       if (is_reference_type(type1)) {
-        /* A reference on the source type is always ignored. */
+        /* A reference on the source type is always ignored by the Microsoft
+           compiler, except that without it conversions from rvalues are
+           sometimes considered (instead of from lvalues as specified in
+           ISO/IEC TR 19768). */
+        from_rvalue = FALSE;
         type1 = type_pointed_to(type1);
       }  /* if */
-      if (is_reference_type(type2) &&
-          is_class_struct_union_type(type_pointed_to(type2))) {
-        /* A reference on the destination type appears to be ignored only if
-           it is a reference to a class type. */
-        type2 = type_pointed_to(type2);
-      }  /* if */
-      /* Simulate array-to-pointer and function-to-pointer decay. */
       if (is_array_type(type1)) {
-        type1 = make_pointer_type(array_element_type(type1));
+        from_rvalue = FALSE;
       } else if (is_function_type(type1)) {
-        type1 = make_pointer_type(type1);
+        from_rvalue = FALSE;
+      } else if (is_class_struct_union_type(type1)) {
+        from_rvalue = FALSE;
       }  /* if */
-      result = impl_conversion_possible(
-                                     type1, /*source_is_constant=*/FALSE,
-                                     /*source_is_string_literal=*/FALSE,
-                                     (a_constant_ptr)NULL, type2,
-                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                     /*suppress_extensions=*/FALSE,
-                                     ec_no_error, &std_conv);
-      if (!result &&
-          is_class_struct_union_type(type1) &&
-          is_class_struct_union_type(type2)) {
-        /* "Related-class conversions" are not directly handled by
-           impl_conversion_possible.  We check this case by examining the
-           associated "pointer-to-related-class conversions". */
-        result = impl_conversion_possible(
-                                     make_pointer_type(type1),
-                                     /*source_is_constant=*/FALSE,
-                                     /*source_is_string_literal=*/FALSE,
-                                     (a_constant_ptr)NULL,
-                                     make_pointer_type(type2),
-                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                     /*suppress_extensions=*/FALSE,
-                                     ec_no_error, &std_conv);
+      if (is_reference_type(type2)) {
+        a_type_ptr  under_type2 = type_pointed_to(type2);
+        if (is_class_struct_union_type(under_type2) ||
+            is_function_type(under_type2) || is_array_type(under_type2)) {
+          /* A reference on the destination type appears to be ignored only if
+             it is a reference to a class, array, or function type. */
+          type2 = under_type2;
+        } else {
+          ref_init = TRUE;
+        }  /* if */
+      }  /* if */
+      if (from_rvalue && ref_init) {
+        result = FALSE;
+      } else if (identical_types(type1, type2)) {
+        result = TRUE;
+      } else {
+        result = compute_is_convertible_to(type1, type2, from_rvalue);
       }  /* if */
     }  /* if */
     arg1->variant.type_operand.definition_needed = TRUE;
