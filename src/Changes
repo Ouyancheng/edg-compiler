@@ -1,5 +1,23 @@
 Version 3.8
 
+3/3/06   C++-generating back end: unneeded qualification in
+         elaborated-type-specifiers
+
+When a class or enumeration was hidden by a set of overloaded functions, some
+of which were made visible by a using-directive, the C++-generating back end
+unnecessarily used a qualified name in references to the type.  Now fixed.
+For example:
+
+  double log(double);
+  namespace std {
+    float log(float);
+  }
+  using namespace std;
+  struct log { };
+  void f() {
+    struct log l;    // Previously generated as "struct ::log l;"
+  }
+
 3/3/06   GNU C++ compatibility: new operator treated as dependent
 
 Uses of the new operator in template dependent contexts are always treated

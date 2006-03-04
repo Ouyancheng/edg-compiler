@@ -1060,8 +1060,17 @@ resolve ambiguities caused by a using-directive.  For example:
       old_sym_ptr->synthesized_namespace_projection) {
     if (old_sym_ptr->ambiguous ||
         old_sym_ptr->kind == (a_symbol_kind)sk_overloaded_function) {
-      hidden_class_or_namespace_member = TRUE;
-      tag_hidden_by_nontag = FALSE;
+      if (is_tag_symbol(sym_ptr) &&
+          old_sym_ptr->kind == (a_symbol_kind)sk_overloaded_function) {
+        /* We can use an elaborated-type-specifier to refer to the entity
+           without requiring qualification. */
+        tag_hidden_by_nontag = TRUE;
+        hidden_class_or_namespace_member = FALSE;
+      } else {
+        /* Use qualification to disambiguate from the namespace member(s). */
+        hidden_class_or_namespace_member = TRUE;
+        tag_hidden_by_nontag = FALSE;
+      }  /* if */
       record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
                                     hidden_class_or_namespace_member,
                                     /*simulated_hiding=*/FALSE, sp,
