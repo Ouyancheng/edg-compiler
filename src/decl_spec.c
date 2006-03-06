@@ -1379,10 +1379,17 @@ caution when modifying this routine.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (next_tok == tok_lbrace ||
         (next_tok == tok_colon && C_dialect == C_dialect_cplusplus &&
-         tag_kind != (a_symbol_kind)sk_enum_tag && !is_ref_within_new_expr)) {
+         (tag_kind != (a_symbol_kind)sk_enum_tag
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          || (microsoft_mode && microsoft_version >= 1400)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                          ) &&
+         !is_ref_within_new_expr)) {
       /* The token following the tag marks the start of a class or enum
          definition. Determine whether it is the resolution of a previous
-         incomplete declaration. */
+         incomplete declaration.  (In recent Microsoft compilers, a colon
+         can indicate an enum definition with an explicit underlying
+         type.) */
       /* Note that we had to check the is_ref_within_new_expr flag because a
          colon has a different meaning in an expression context than in a
          declaration context (namely, it may belong to a ?: operator). */
@@ -3683,6 +3690,235 @@ static an_integer_kind
 			   mode the integer kind corresponding to the
 			   largest integer type supported. */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void check_enum_uuid_string(a_type_ptr                   enum_type,
+                            an_extended_decl_info_block  *extended_decl_info,
+                            a_source_position            *tag_position)
+/*
+We're defining an enumeration type in Microsoft mode.  If a UUID string was
+specified, record it and check that it is consistent with any previous
+declarations.
+*/
+{
+  if (!C_mode() && microsoft_mode &&
+      extended_decl_info->decl_modifiers.uuid_string != NULL) {
+    char  *prev_uuid_string = uuid_string_of_type(enum_type);
+    if (prev_uuid_string != NULL) {
+      /* Issue an error if __declspec(uuid(...)) strings are present and
+         they aren't identical. */
+      if (strcmp(prev_uuid_string,
+                 extended_decl_info->decl_modifiers.uuid_string) != 0) {
+        pos_diagnostic(es_discretionary_error,
+                       ec_decl_modifiers_incompatible_with_previous_decl,
+                       tag_position);
+      }  /* if */
+    } else {
+      enum_type->variant.integer.uuid_string =
+                                extended_decl_info->decl_modifiers.uuid_string;
+    }  /* if */
+  }  /* if */
+}  /* check_enum_uuid_string */
+
+
+#if !(PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE)
+/*ARGSUSED*/  /* enum_type is not used in all configurations. */
+#endif /* !(PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE) */
+static an_integer_kind scan_explicit_enum_base_type(
+                                                 a_type_ptr         enum_type,
+                                                 a_source_position  *pos_type)
+/*
+Recent Microsoft C++ compilers accept the explicit specification of an
+enumeration type's underlying integer type.  For example:
+	enum E: short int { a, b };
+If such a base type was specified, the current token is the colon, and this
+routine scans it along with the specified type (which is returned).  In
+some configurations, the type is recorded in enum_type.
+*/
+{
+  an_integer_kind  result = (an_integer_kind)ik_none;
+
+  if (curr_token == tok_colon &&
+      microsoft_mode && microsoft_version >= 1400 && !C_mode()) {
+    a_type_ptr         base_type = NULL;
+    (void)get_token();
+    *pos_type = pos_curr_token;
+    add_stop_token(tok_lbrace);
+    type_name(&base_type);
+    remove_stop_token(tok_lbrace);
+    if (base_type != NULL) {
+      if (is_template_dependent_type(base_type)) {
+        /* Record the type in enum_type, but proceed with
+           largest_enum_int_kind. */
+        enum_type->variant.integer.has_explicit_enum_base = TRUE;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE
+        enum_type->variant.integer.base_type = base_type;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
+        result = largest_enum_int_kind;
+      } else if (!is_integral_type(base_type) || is_bool_type(base_type)) {
+        pos_error(ec_enum_base_type_must_be_integral, pos_type);
+      } else {
+        enum_type->variant.integer.has_explicit_enum_base = TRUE;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE
+        enum_type->variant.integer.base_type = base_type;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
+        result = skip_typerefs(base_type)->variant.integer.int_kind;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* scan_explicit_enum_base_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* explicit_base_kind and pos_explicit_base are not used in all
+                 configurations. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+static void set_enum_representation(a_type_ptr         enum_type,
+                                    a_source_position  *pos_enum_tag,
+                                    a_boolean          err,
+                                    an_integer_kind    explicit_base_kind,
+                                    a_source_position  *pos_explicit_base,
+                                    a_boolean          min_max_set,
+                                    a_constant_ptr     min_value,
+                                    a_constant_ptr     max_value)
+/*
+Determine the representation type for the given enumeration type.  When
+enum_types_can_be_smaller_than_int is FALSE (e.g., in pcc mode and Microsoft
+modes), it's always "int", and that's already set.  Otherwise, pick the first
+of "char", "signed char", "unsigned char", "short", "unsigned short", and
+"int" into which the enumeration values will fit.  Only if
+enum_types_can_be_larger_than_int (e.g., in strict C++ mode), is there any
+point in trying "unsigned int" and larger integer types.
+In some Microsoft C++ modes, the underlying integer type can be specified
+explicitly: In that case, explicit_base_kind will indicate the specified
+integer type, and pos_explicit_base is the source position of the explicit
+type specification.  If the range of constants has been determined,
+min_max_set will be TRUE, and the constants *min_value and *max_value will
+describe that range.  err is TRUE if some errors occurred earlier while
+parsing the enum definition.  pos_enum_tag is the position used for
+diagnostics not related to an explicit base specifier.
+*/
+{
+#if CHECKING
+  if (C_dialect == C_dialect_pcc) {
+    check_assertion(!enum_types_can_be_smaller_than_int &&
+                    !enum_types_can_be_larger_than_int);
+  }  /* if */
+#endif /* CHECKING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (explicit_base_kind != (an_integer_kind)ik_none) {
+    /* An explicit underlying type was specified as part of this enum type
+       definition (e.g., "enum E: short { e }").  Make sure the type can
+       represent the range of enumerator constants. */
+    if (min_max_set && !in_range_for_integer_kind(min_value, max_value,
+                                                  explicit_base_kind)) {
+      pos_ty_error(ec_enum_base_type_too_limited, pos_explicit_base,
+                   integer_type(explicit_base_kind));
+      explicit_base_kind = (an_integer_kind)ik_none;
+    } else {
+      enum_type->variant.integer.int_kind = explicit_base_kind;
+    }  /* if */
+  }  /* if */
+  if (explicit_base_kind != (an_integer_kind)ik_none) {
+    /* The underlying type is already determined: Nothing to be done. */
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  if (enum_types_can_be_smaller_than_int 
+#if GNU_EXTENSIONS_ALLOWED
+      || enum_type->variant.integer.packed || il_header.short_enums
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                                   ) {
+    if (!min_max_set || in_range_for_integer_kind(min_value, max_value,
+                                                  plain_char_int_kind)) {
+      /* "Plain" char. */
+      enum_type->variant.integer.int_kind = plain_char_int_kind;
+    } else if (in_range_for_integer_kind(min_value, max_value,
+                                         (an_integer_kind)ik_signed_char)) {
+      /* Signed char. */
+      enum_type->variant.integer.int_kind = (an_integer_kind)ik_signed_char;
+    } else if (in_range_for_integer_kind(min_value, max_value,
+                                        (an_integer_kind)ik_unsigned_char)) {
+      /* Unsigned char. */
+      enum_type->variant.integer.int_kind =
+                                           (an_integer_kind)ik_unsigned_char;
+    } else if (in_range_for_integer_kind(min_value, max_value,
+                                         (an_integer_kind)ik_short)) {
+      /* Short. */
+      enum_type->variant.integer.int_kind = (an_integer_kind)ik_short;
+    } else if ((targ_sizeof_short < targ_sizeof_int) &&
+                in_range_for_integer_kind(min_value, max_value,
+                                       (an_integer_kind)ik_unsigned_short)) {
+      /* Unsigned short.  Note that we can only get here if
+         sizeof(short) < sizeof(int) on the target, for otherwise the
+         previous test (for "short") is testing the same range as "int"
+         (into which all enumeration values must fall), so "short" would
+         have been selected.  This is important, as we would not want
+         to pick "unsigned short" if the integral promotions would
+         promote it to "unsigned int" rather than "int". */
+      enum_type->variant.integer.int_kind =
+                                          (an_integer_kind)ik_unsigned_short;
+    } else {
+      /* Use the default representation type, which is already set. */
+    }  /* if */
+  }  /* if */
+  /* If the underlying integer type of enums can be larger than "int" (as
+     is standard in C++) and if the type has not already been adjusted to
+     be smaller than int, keep checking. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (explicit_base_kind != (an_integer_kind)ik_none) {
+    /* The underlying type is already determined: Nothing to be done. */
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  if (min_max_set && enum_types_can_be_larger_than_int &&
+      enum_type->variant.integer.int_kind == (an_integer_kind)ik_int) {
+    if (in_range_for_integer_kind(min_value, max_value,
+                                  (an_integer_kind)ik_int)) {
+      /* Int. */
+      enum_type->variant.integer.int_kind = (an_integer_kind)ik_int;
+    } else if (in_range_for_integer_kind(min_value, max_value,
+                                        (an_integer_kind)ik_unsigned_int)) {
+      /* Unsigned int. */
+      enum_type->variant.integer.int_kind = (an_integer_kind)ik_unsigned_int;
+
+    } else if (in_range_for_integer_kind(min_value, max_value,
+                                         (an_integer_kind)ik_long)) {
+      /* Long. */
+      enum_type->variant.integer.int_kind = (an_integer_kind)ik_long;
+    } else if (in_range_for_integer_kind(min_value, max_value,
+                                        (an_integer_kind)ik_unsigned_long)) {
+      /* Unsigned long. */
+      enum_type->variant.integer.int_kind = (an_integer_kind)ik_unsigned_long;
+#if LONG_LONG_ALLOWED
+    } else if ((!strict_ansi_mode || long_long_is_standard) &&
+               in_range_for_integer_kind(min_value, max_value,
+                                         (an_integer_kind)ik_long_long)) {
+      /* Long long. */
+      enum_type->variant.integer.int_kind = (an_integer_kind)ik_long_long;
+    } else if ((!strict_ansi_mode || long_long_is_standard) &&
+               in_range_for_integer_kind(
+                                  min_value, max_value,
+                                  (an_integer_kind)ik_unsigned_long_long)) {
+      /* Unsigned long long. */
+      enum_type->variant.integer.int_kind =
+                                     (an_integer_kind)ik_unsigned_long_long;
+#endif /* LONG_LONG_ALLOWED */
+    } else {
+      /* No integer type can hold all the values.  We'll use the largest
+         available integer type and issue a diagnostic. */
+      enum_type->variant.integer.int_kind = largest_enum_int_kind;
+      if (!err && !scope_stack[depth_scope_stack].in_prototype_instantiation) {
+        pos_diagnostic(strict_ansi_mode ? es_error : es_warning,
+                       ec_insufficient_enum_range, pos_enum_tag);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* set_enum_representation */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -3698,8 +3934,8 @@ Scan an enumeration specifier (3.5.2.2).  The syntax is
 
 3.5.2.2
        enum-specifier:
-		enum identifier    { enumerator-list }
-                               opt
+		enum identifier    enum-base    { enumerator-list }
+		               opt          opt
 		enum identifier
 
        enumerator-list:
@@ -3710,7 +3946,11 @@ Scan an enumeration specifier (3.5.2.2).  The syntax is
 		enumeration-constant
 		enumeration-constant = constant-expression
 
-An enumeration-constant is an identifier.
+       enum-base:
+		: type-specifier-seq
+
+An enumeration-constant is an identifier.  enum-base is a Microsoft C++
+extension specifying the underlying integer type of the enumeration.
 
 The type is returned in *type_ptr.  *declares_something is set to indicate
 whether or not this specifier declares something, and *defines_something
@@ -3736,7 +3976,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
   an_access_specifier          access;
   a_scope_depth                effective_decl_level = decl_scope_level;
   a_boolean                    inside_class_definition;
-  a_boolean                    is_redeclaration;
+  a_boolean                    is_redeclaration, is_definition = FALSE;
   a_boolean                    namespace_extension_pushed = FALSE;
   a_boolean                    class_reactivation_pushed = FALSE;
   a_source_position            tag_position;
@@ -3744,6 +3984,8 @@ describes Microsoft attributes preceding the enum specifier (if any).
   a_boolean                    is_predeclared_type_decl = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block  extended_decl_info;
+  an_integer_kind              explicit_base_kind = (an_integer_kind)ik_none;
+  a_source_position            pos_explicit_base;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr             attributes;
@@ -3804,13 +4046,23 @@ describes Microsoft attributes preceding the enum specifier (if any).
                             /*is_interface=*/FALSE,
                             &effective_decl_level, &tag_resolution,
                             &is_predeclared_type_decl, &local_decl_pos_block);
+    if (curr_token == tok_lbrace) {
+      is_definition = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (curr_token == tok_colon &&
+               microsoft_mode && microsoft_version >= 1400) {
+      /* Recent Microsoft compilers accept a "base specifier" to indicate the
+         underlying type of an enum (e.g., "enum E: short { x }"). */
+      is_definition = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
     if (tag_resolution) {                            
       /* Resolution of a previous incomplete declaration. */
       if (effective_decl_level != decl_scope_level) {
         class_of_which_a_member = NULL;
         access = (an_access_specifier)as_public;
       }  /* if */
-    } else if (tag_sym != NULL && curr_token == tok_lbrace) {
+    } else if (tag_sym != NULL && is_definition) {
       /* This is a definition of an enumeration that has previously been
          declared. */
       if (tag_sym->is_class_member) {
@@ -3847,7 +4099,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
           set_to_error_locator(locator);
         }  /* if */
       }  /* if */
-    } else if (is_error_locator(locator) && curr_token != tok_lbrace) {
+    } else if (is_error_locator(locator) && !is_definition) {
       /* There was an error is looking up the tag, and this is not a
          definition.  For error recovery, return an error type. */
       *type_ptr = error_type();
@@ -3865,7 +4117,15 @@ describes Microsoft attributes preceding the enum specifier (if any).
     set_to_error_locator(locator);
     tag_position = pos_curr_token;
     if (curr_token == tok_lbrace) {
-      /* This is a tagless class definition. */
+      is_definition = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (curr_token == tok_colon &&
+               microsoft_mode && microsoft_version >= 1400) {
+      is_definition = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
+    if (is_definition) {
+      /* This is a tagless enum definition. */
     } else {
       /* Neither the tag id nor the {...} is present.  This is an error. */
       add_stop_token(tok_lbrace);
@@ -3957,7 +4217,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
     if (tag_id_present) {
       /* Note that mark_defined and mark_referenced are called after the
          namespace/class membership has been specified. */
-      if (curr_token == tok_lbrace) {
+      if (is_definition) {
         mark_defined(tag_sym, &locator.source_position);
       } else {
         mark_declared(tag_sym, &locator.source_position);
@@ -3975,7 +4235,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
       }  /* if */
     } else {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (curr_token == tok_lbrace) {
+      if (is_definition) {
         /* An unnamed enum type.  mark_defined can't be called to put out a
            source sequence entry for it, but we need one anyway, so call
            the subroutine directly. */
@@ -4005,7 +4265,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
     enum_type = type_symbol_type(tag_sym);
     is_redeclaration = TRUE;
     /* Record cross-reference information. */
-    if (curr_token == tok_lbrace) {
+    if (is_definition) {
       if (tag_sym->defined) {
         /* Catch errors like "enum A { e }; enum ::A { f };". */
         pos_sy_error(ec_redefinition, &locator.source_position, tag_sym);
@@ -4037,22 +4297,11 @@ describes Microsoft attributes preceding the enum specifier (if any).
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (!C_mode() && microsoft_mode &&
-      extended_decl_info.decl_modifiers.uuid_string != NULL) {
-    char *prev_uuid_string = uuid_string_of_type(enum_type);
-
-    if (prev_uuid_string != NULL) {
-      /* Issue an error if __declspec(uuid(...)) strings are present and
-         they aren't identical. */
-      if (strcmp(prev_uuid_string,
-                 extended_decl_info.decl_modifiers.uuid_string) != 0) {
-        pos_diagnostic(es_discretionary_error,
-                       ec_decl_modifiers_incompatible_with_previous_decl,
-                       &tag_position);
-      }  /* if */
-    } else {
-      enum_type->variant.integer.uuid_string =
-                                extended_decl_info.decl_modifiers.uuid_string;
+  if (microsoft_mode && !C_mode()) {
+    check_enum_uuid_string(enum_type, &extended_decl_info, &tag_position);
+    if (is_definition) {
+      explicit_base_kind = scan_explicit_enum_base_type(enum_type,
+                                                        &pos_explicit_base);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4399,107 +4648,9 @@ describes Microsoft attributes preceding the enum specifier (if any).
     add_end_of_construct_source_sequence_entry((char *)enum_type,
                                                (a_byte_il_entry_kind)iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    /* Determine the representation type for the enumeration.  When
-       enum_types_can_be_smaller_than_int is FALSE (e.g., in pcc mode and
-       Microsoft mode), it's always "int", and that's already set.
-       Otherwise, pick the first of "char", "signed char", "unsigned char",
-       "short", "unsigned short", and "int" into which the enumeration
-       values will fit.  Only if enum_types_can_be_larger_than_int (e.g.,
-       in strict C++ mode), is there any point in trying "unsigned int" and
-       larger integer types. */
-#if CHECKING
-    if (C_dialect == C_dialect_pcc) {
-      check_assertion(!enum_types_can_be_smaller_than_int &&
-                      !enum_types_can_be_larger_than_int);
-    }  /* if */
-#endif /* CHECKING */
-    if (enum_types_can_be_smaller_than_int 
-#if GNU_EXTENSIONS_ALLOWED
-        || enum_type->variant.integer.packed || il_header.short_enums
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                                                     ) {
-      if (!min_max_set || in_range_for_integer_kind(&min_value, &max_value,
-                                                    plain_char_int_kind)) {
-        /* "Plain" char. */
-        enum_type->variant.integer.int_kind = plain_char_int_kind;
-      } else if (in_range_for_integer_kind(&min_value, &max_value,
-                                           (an_integer_kind)ik_signed_char)) {
-        /* Signed char. */
-        enum_type->variant.integer.int_kind = (an_integer_kind)ik_signed_char;
-      } else if (in_range_for_integer_kind(&min_value, &max_value,
-                                          (an_integer_kind)ik_unsigned_char)) {
-        /* Unsigned char. */
-        enum_type->variant.integer.int_kind =
-                                             (an_integer_kind)ik_unsigned_char;
-      } else if (in_range_for_integer_kind(&min_value, &max_value,
-                                           (an_integer_kind)ik_short)) {
-        /* Short. */
-        enum_type->variant.integer.int_kind = (an_integer_kind)ik_short;
-      } else if ((targ_sizeof_short < targ_sizeof_int) &&
-                  in_range_for_integer_kind(&min_value, &max_value,
-                                         (an_integer_kind)ik_unsigned_short)) {
-        /* Unsigned short.  Note that we can only get here if
-           sizeof(short) < sizeof(int) on the target, for otherwise the
-           previous test (for "short") is testing the same range as "int"
-           (into which all enumeration values must fall), so "short" would
-           have been selected.  This is important, as we would not want
-           to pick "unsigned short" if the integral promotions would
-           promote it to "unsigned int" rather than "int". */
-        enum_type->variant.integer.int_kind =
-                                            (an_integer_kind)ik_unsigned_short;
-      } else {
-        /* Use the default representation type, which is already set. */
-      }  /* if */
-    }  /* if */
-    /* If the underlying integer type of enums can be larger than "int" (as
-       is standard in C++) and if the type has not already been adjusted to
-       be smaller than int, keep checking. */
-    if (min_max_set && enum_types_can_be_larger_than_int &&
-        enum_type->variant.integer.int_kind == (an_integer_kind)ik_int) {
-      if (in_range_for_integer_kind(&min_value, &max_value,
-                                    (an_integer_kind)ik_int)) {
-        /* Int. */
-        enum_type->variant.integer.int_kind = (an_integer_kind)ik_int;
-      } else if (in_range_for_integer_kind(&min_value, &max_value,
-                                          (an_integer_kind)ik_unsigned_int)) {
-        /* Unsigned int. */
-        enum_type->variant.integer.int_kind =
-                                             (an_integer_kind)ik_unsigned_int;
-
-      } else if (in_range_for_integer_kind(&min_value, &max_value,
-                                           (an_integer_kind)ik_long)) {
-        /* Long. */
-        enum_type->variant.integer.int_kind = (an_integer_kind)ik_long;
-      } else if (in_range_for_integer_kind(&min_value, &max_value,
-                                          (an_integer_kind)ik_unsigned_long)) {
-        /* Unsigned long. */
-        enum_type->variant.integer.int_kind =
-                                          (an_integer_kind)ik_unsigned_long;
-#if LONG_LONG_ALLOWED
-      } else if ((!strict_ansi_mode || long_long_is_standard) &&
-                 in_range_for_integer_kind(&min_value, &max_value,
-                                           (an_integer_kind)ik_long_long)) {
-        /* Long long. */
-        enum_type->variant.integer.int_kind = (an_integer_kind)ik_long_long;
-      } else if ((!strict_ansi_mode || long_long_is_standard) &&
-                 in_range_for_integer_kind(
-                                    &min_value, &max_value,
-                                    (an_integer_kind)ik_unsigned_long_long)) {
-        /* Unsigned long long. */
-        enum_type->variant.integer.int_kind =
-                                       (an_integer_kind)ik_unsigned_long_long;
-#endif /* LONG_LONG_ALLOWED */
-      } else {
-        /* No integer type can hold all the values.  We'll use the largest
-           available integer type and issue a diagnostic. */
-        enum_type->variant.integer.int_kind = largest_enum_int_kind;
-        if (!err &&
-            !scope_stack[depth_scope_stack].in_prototype_instantiation) {
-          pos_diagnostic(strict_ansi_mode ? es_error : es_warning,
-                         ec_insufficient_enum_range, &tag_position);
-        }  /* if */
-      }  /* if */
-    }  /* if */
+    set_enum_representation(enum_type, &tag_position, err,
+                            explicit_base_kind, &pos_explicit_base,
+                            min_max_set, &min_value, &max_value);
 #if GNU_EXTENSIONS_ALLOWED
     if (gcc_mode) {
       an_integer_kind  int_kind = enum_type->variant.integer.int_kind;

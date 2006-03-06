@@ -4287,6 +4287,15 @@ is the one associated with the definition of the enum.
     gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
              (a_boolean *)NULL);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_dialect_is_generated_code_target &&
+      type->variant.integer.base_type != NULL) {
+    /* Microsoft C++ allows the explicit specification of an underlying
+       type. */
+    write_tok_str(": ");
+    gen_type(type->variant.integer.base_type);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   write_tok_str(" { ");
   enum_con = type->variant.integer.enum_info.constant_list;
   if (enum_con != NULL) {

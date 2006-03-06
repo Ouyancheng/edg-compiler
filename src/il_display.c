@@ -1484,6 +1484,9 @@ Display the indicated type entry.
       if (ptr->variant.integer.microsoft_sized_int_type) {
         disp_boolean("microsoft_sized_int_type", TRUE);
       }  /* if */
+      if (ptr->variant.integer.has_explicit_enum_base) {
+        disp_boolean("has_explicit_enum_base", TRUE);
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (ptr->variant.integer.wchar_t_type) {
         disp_boolean("wchar_t_type", TRUE);
@@ -1504,6 +1507,20 @@ Display the indicated type entry.
         disp_ptr("enum_info.constant_list",
                  (char *)ptr->variant.integer.enum_info.constant_list,
                  iek_constant);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (ptr->variant.integer.uuid_string != NULL) {
+          disp_string_ptr("uuid_string", ptr->variant.integer.uuid_string,
+                          iek_other_text, (sizeof_t)0);
+        }  /* if */
+        /* uuid_variable not displayed since it is used for IL lowering
+           only. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE
+        if (ptr->variant.integer.base_type != NULL) {
+          disp_ptr("base_type", (char *)ptr->variant.integer.base_type,
+                   iek_type);
+        }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (ptr->variant.integer.enum_info.affiliated_type != NULL) {
         disp_ptr("enum_info.affiliated_type",
                  (char *)ptr->variant.integer.enum_info.affiliated_type,

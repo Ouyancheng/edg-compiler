@@ -1336,10 +1336,14 @@ to default values.
       pte->variant.integer.originally_unnamed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.integer.microsoft_sized_int_type = FALSE;
+      pte->variant.integer.has_explicit_enum_base = FALSE;
       pte->variant.integer.uuid_string = NULL;
 #if DO_IL_LOWERING
       pte->variant.integer.uuid_variable = NULL;
 #endif /* DO_IL_LOWERING */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE
+      pte->variant.integer.base_type = NULL;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING
       pte->variant.integer.avoid_codecenter_warnings = 0;

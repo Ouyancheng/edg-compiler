@@ -1094,13 +1094,19 @@ by octl.
 #ifdef CFE
       /* Enum types are often handled specially. */
       if (type->variant.integer.enum_type &&
-          /* Don't generate enums when generating pcc code in the C-generating
-             back end. */
-          !(octl->c_generating_back_end && octl->gen_pcc_code) &&
-          /* Empty enums (valid in C++ but not C) are put out as integers when
-             generating ANSI C from the C-generating back end. */
-          !(type->variant.integer.enum_info.constant_list == NULL &&
-            octl->c_generating_back_end)) {
+          /* Some enumeration types cannot be rendered in the C-generating
+             back end.  Specifically:
+               - don't generate enums when generating pcc mode
+               - don't generate enums with an explicit underlying type
+                 (valid only in Microsoft C++).
+               - don't generate empty enums (valid in C++, but not in C)
+             In these cases, the underlying integer type is used instead. */
+          !(octl->c_generating_back_end && 
+            (octl->gen_pcc_code ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+             type->variant.integer.has_explicit_enum_base ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+             type->variant.integer.enum_info.constant_list == NULL))) {
         /* Output a reference to the enum type. */
         form_tag_reference(type, octl);
       } else if (type->variant.integer.wchar_t_type &&

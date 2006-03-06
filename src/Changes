@@ -1,5 +1,15 @@
 Version 3.8
 
+3/6/06   Microsoft compatibility: Explicit enum base type
+
+In Microsoft mode with microsoft_version >= 1400, the front end now accepts
+explicit enum "base types".  For example:
+
+  enum E: signed char { e1 = -1, e2 = 1 };
+
+The "base type" specifies the underlying type and must be an integral type
+other than bool.
+
 3/6/06   Microsoft and GNU C++ compatibility: ADL and implicit instantiation
 
 The Microsoft and GNU compilers do not implicitly instantiate a class
