@@ -1,5 +1,30 @@
 Version 3.8
 
+3/6/06   Microsoft and GNU C++ compatibility: ADL and implicit instantiation
+
+The Microsoft and GNU compilers do not implicitly instantiate a class
+template specialization in order to determine its associated classes
+and namespaces.  This causes those compilers to accept code like this:
+
+  template <typename T> struct S { 
+    typedef typename T::member tt;
+  };
+  void f(void*);
+  void g(S<int>* p) {
+    f(p);  // should result in invalid instantiation of S<int>
+  }
+
+However, it also causes those compilers to reject code like this:
+
+  template <typename T> struct S {
+    friend void f1(S*){}
+  };
+  void g(S<int>* p) {
+    f1(p);
+  }
+
+We now emulate this behavior in Microsoft and g++ modes.
+
 3/3/06   C++-generating back end: unneeded qualification in
          elaborated-type-specifiers
 
