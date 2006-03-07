@@ -3984,9 +3984,9 @@ describes Microsoft attributes preceding the enum specifier (if any).
   a_boolean                    is_predeclared_type_decl = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block  extended_decl_info;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_integer_kind              explicit_base_kind = (an_integer_kind)ik_none;
   a_source_position            pos_explicit_base;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr             attributes;
 #endif /* GNU_EXTENSIONS_ALLOWED */
