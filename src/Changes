@@ -1,5 +1,17 @@
 Version 3.8
 
+3/8/06   Abort on Microsoft DLL attribute after block-extern declaration
+
+In Microsoft modes, declaring a block-extern variable or function with a DLL
+attribute (dllexport or dllimport), followed by a namespace scope declaration
+of the same entity with the same attribute resulted in an internal error.
+For example:
+
+  void f() { __declspec(dllexport) int g(); }
+  __declspec(dllexport) int g();  // Previously triggered an internal error.
+
+This is now fixed.
+
 3/7/06   GNU C++ compatibility: using-directives and multiple
          extern "C" functions
 

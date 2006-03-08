@@ -3256,8 +3256,14 @@ be issued at the given position.
          The "compatibility" may be a result of carrying over the dll
          attribute (e.g., for inline functions or block-extern
          declarations). */
+#if CHECKING
+      a_symbol_ptr  routine_sym = symbol_for(routine);
       check_assertion(is_redecl || routine->is_template_function ||
-                      is_inline || innermost_function_scope != NULL);
+                      is_inline || innermost_function_scope != NULL ||
+                      !(routine_sym->is_class_member ||
+                        routine_sym->parent.namespace_ptr != NULL ||
+                        routine_sym->decl_scope == file_scope_number));
+#endif /* CHECKING */
     } else if (old_dll_flags == 0) {
       /* This is the first time a DLL interface is specified: If there was a
          previous declaration, issue an error. */
@@ -3531,9 +3537,15 @@ position. */
          declaration: Nothing to be done.  (It could also be a full
          instantiation compatible with a prior partial instantiation.)
          The "compatibility" may be a result of carrying over the dll
-         attribute on a block-extern declaration. */
+         attribute on or from a block-extern declaration. */
+#if CHECKING
+      a_symbol_ptr  var_sym = symbol_for(var);
       check_assertion(is_redecl || var->is_template_static_data_member ||
-                      innermost_function_scope != NULL);
+                      innermost_function_scope != NULL ||
+                      !(var_sym->is_class_member ||
+                        var_sym->parent.namespace_ptr != NULL ||
+                        var_sym->decl_scope == file_scope_number));
+#endif /* CHECKING */
     } else if (old_dll_flags == 0) {
       /* This is the first time a DLL interface is specified: If there was a
          previous declaration, issue an error. */
