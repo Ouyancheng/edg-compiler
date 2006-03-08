@@ -6698,7 +6698,8 @@ using *pos as the error position.
              hidden and/or overridden by decl_sym (err == FALSE), or both
              symbols refer to the same entity (because they are extern "C"
              declarations). */
-          if (err && !symbols_are_lookup_equivalent(decl_sym, using_sym)) {
+          if (err && !symbols_are_lookup_equivalent(decl_sym, using_sym,
+                                                    /*is_using_dir=*/FALSE)) {
             pos_sy2_error(ec_conflicts_with_using_decl, pos, decl_sym,
                           using_sym);
           }  /* if */

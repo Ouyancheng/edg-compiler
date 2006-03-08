@@ -1,5 +1,27 @@
 Version 3.8
 
+3/7/06   GNU C++ compatibility: using-directives and multiple
+         extern "C" functions
+
+The standard says that extern "C" declarations with the same name but
+in different namespaces refer to the same entity.  g++ does not adhere
+to this rule (as indicated by the fact that they allow the different
+declarations to have different types).  When more than one such declaration
+is found by a using-directive lookup, g++ considers only the first
+declaration encountered.  Formerly we reported an ambiguity on the calls
+in the example below.  We now accept the calls and call the global
+function.
+
+  extern "C" int f(void);
+  extern "C" int g(void);
+  namespace N {
+    extern "C" int f(void);  // same type
+    extern "C" void g(void); // different type
+  };
+  using namespace N;
+  int i = f(); // calls ::f
+  int j = g(); // calls ::f
+
 3/6/06   Microsoft compatibility: Explicit enum base type
 
 In Microsoft mode with microsoft_version >= 1400, the front end now accepts
