@@ -1,5 +1,23 @@
 Version 3.8
 
+3/7/06   Microsoft compatibility: specialization allowed after use
+
+In Microsoft bugs mode, a member function may sometimes be specialized after
+its use.  A change made in version 3.7 restricted this special handling to
+Microsoft versions 1300 and below (see 11/1/05 entry).  It turns out that
+Microsoft versions above 1300 still allow such specializations if the
+associated template does not have a definition.  We now emulate this
+behavior.
+
+  template <class T> struct A {
+    static void f();
+  };
+  int main() {
+    A<int>::f();
+  };
+  // Specialization is allowed if A<T>::f does not have a definition
+  template<> void A<int>::f() {}
+
 3/8/06   Abort on Microsoft DLL attribute after block-extern declaration
 
 In Microsoft modes, declaring a block-extern variable or function with a DLL

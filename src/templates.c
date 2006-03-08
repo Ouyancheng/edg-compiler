@@ -16094,25 +16094,29 @@ that follows.
       }  /* if */
       if (scp->referenced && !already_specialized) {
         /* The entity has already been referenced and cannot be specialized.
-           This is accepted for class members in Microsoft bugs mode. */
-        an_error_severity	severity;
-        severity = microsoft_bugs && microsoft_version <= 1300 &&
-                                  sym->is_class_member ? es_warning : es_error;
+           This is accepted for class members in Microsoft bugs mode
+           through version 1300.  Later Microsoft versions also accept this
+           if the template has not yet been defined. */
         if (microsoft_nonstd_specialization) {
           /* No reference position is available for Microsoft nonstandard
              specializations. */
-          pos_sy_diagnostic(severity, ec_specialization_of_referenced_entity,
-                            &locator.source_position, sym);
+          pos_sy_warning(ec_specialization_of_referenced_entity,
+                         &locator.source_position, sym);
         } else {
           a_template_instance_ptr	tip;
+          an_error_severity	severity;
           tip = template_instance_for_symbol(sym);
           check_assertion(tip != NULL);
+          severity = microsoft_bugs && sym->is_class_member &&
+                     (microsoft_version <= 1300 ||
+                      !tip->template_sym->defined) ? es_warning
+                                                   : es_error;
           pos2_sy_diagnostic(severity,
                              ec_specialization_of_referenced_entity_pos,
                              &locator.source_position,
                              &tip->pos_of_first_reference, sym);
+          if (severity == es_error) sym = NULL;
         }  /* if */
-        if (severity == es_error) sym = NULL;
       } else if (is_definition && sym->defined) {
         /* The entity has already been defined. */
         if (microsoft_bugs && microsoft_version == 1200 && rp != NULL &&
