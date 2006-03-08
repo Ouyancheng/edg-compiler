@@ -1827,7 +1827,7 @@ IL traversal routines did not handle certain obscure default argument
 expressions correctly.  As a consequence, the IL file produced
 failed a consistency check when read back in.  Now fixed.
 
-11/18/06 GNU C++ compatibility: Using-declarations for invisible members
+11/18/05 GNU C++ compatibility: Using-declarations for invisible members
 
 In GNU C++ mode, the front end now accepts class-scope using-declarations for
 invisible members.  For example:
@@ -1838,7 +1838,7 @@ invisible members.  For example:
     using B::f;  // B::f invisible (hidden by C::f).  Nonstandard, but now
   };             // accepted in g++ mode.
 
-11/18/06 Enum type compatibility in C modes
+11/18/05 Enum type compatibility in C modes
 
 In C modes (C89 and C99), the front end now correctly treats different enum
 types as being incompatible (previously they were considered compatible).
@@ -1852,7 +1852,7 @@ For example:
 The enum types are still treated as compatible in Microsoft C mode and in
 GNU C mode when gnu_version < 30400.
 
-11/18/06 Microsoft compatibility: DLL attributes and unnamed namespaces
+11/18/05 Microsoft compatibility: DLL attributes and unnamed namespaces
 
 In Microsoft mode, the front end now issues a warning when applying a dllexport
 or dllimport attribute to a member of an unnamed namespace (unless that member
@@ -1863,14 +1863,14 @@ has C name linkage).  For example:
     extern "C" __declspec(dllimport) int x;  // No warning.
   }
 
-11/17/06 GNU compatibility: More predeclared functions
+11/17/05 GNU compatibility: More predeclared functions
 
 Many more (hundreds) GNU builtin functions (like __builtin_powil) are now
 predeclared by the front end in GNU modes.  We believe this now includes all
 the builtin functions listed in the GNU documentation for version 4.0 of the
 GNU compiler, as well as a few undocumented functions.
 
-11/17/06 Sun compatibility: template argument list following constructor name
+11/17/05 Sun compatibility: template argument list following constructor name
 
 The Sun compiler permits a template argument list to appear following a
 constructor name in a constructor definition that appears outside of the
