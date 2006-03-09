@@ -1,5 +1,21 @@
 Version 3.8
 
+3/7/06   Microsoft/GNU C++ compatibility: Name linkage and block-extern
+         declarations
+
+In Microsoft and GNU C++ modes, the front end now accepts a block-extern
+declaration of an entity E in a function declared with an explicit name
+linkage specifier that is different from the name linkage associated with a
+previous declaration of E.  The name linkage associated with the original
+declaration of E is retained.  For example:
+
+  void g();  // C++ name linkage by default.
+  extern "C" void f() {
+    void g();  // Normally an error because the implicit "C" name linkage
+  }            // conflicts with the prior declaration.  In GNU and Microsoft
+               // mode, the name linkage of the prior declaration is retained.
+
+
 3/7/06   Microsoft compatibility: specialization allowed after use
 
 In Microsoft bugs mode, a member function may sometimes be specialized after
