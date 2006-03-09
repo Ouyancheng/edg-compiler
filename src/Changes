@@ -1,5 +1,13 @@
 Version 3.8
 
+3/9/06   GNU C++ compatibility: Conversions from complex to real types
+
+Previously, the front end silently accepted implicit conversions from complex
+to real types in GNU C++ mode.  Now such conversions are no longer permitted.
+(They remain valid in C99 and GNU C modes.)  For example:
+
+  double x = 1.0+2.0i;  // No longer accepted in GNU C++ mode.
+
 3/9/06   GNU compatibility: __builtin_cabs and __builtin_carg
 
 The front end incorrectly defined the builtin functions __builtin_cabs and
