@@ -9,7 +9,7 @@
 ******************************************************************************/
 /*
 
-literals.h -- Declarations relating to lexicals.c (having to do with 
+literals.h -- Declarations relating to literals.c (having to do with 
               conversion of literal constants to and from internal form).
 
 */
