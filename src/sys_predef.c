@@ -418,6 +418,10 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func2(edg_concat(name,l), long_double, long_double,      \
                           long_double)
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#define enter_gnu_builtin_complex_to_real_funcs(name)                        \
+  enter_gnu_builtin_func1(name, double, complex_double);                     \
+  enter_gnu_builtin_func1(edg_concat(name,f), floating, complex_float);      \
+  enter_gnu_builtin_func1(edg_concat(name,l), long_double, complex_long_double)
 #define enter_gnu_builtin_complex_math_funcs1(name)                          \
   enter_gnu_builtin_func1(name, complex_double, complex_double);             \
   enter_gnu_builtin_func1(edg_concat(name,f), complex_float, complex_float); \
@@ -431,6 +435,7 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func2(edg_concat(name,l), complex_long_double,           \
                           complex_long_double, complex_long_double)
 #else /* !GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#define enter_gnu_builtin_complex_to_real_funcs(name) /* Nothing */
 #define enter_gnu_builtin_complex_math_funcs1(name) /* Nothing */
 #define enter_gnu_builtin_complex_math_funcs2(name) /* Nothing */
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
@@ -467,11 +472,11 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func3(_bcmp, int,
                           const_void_star, const_void_star, size_t);
   enter_gnu_builtin_func2(_bzero, no_return, void_star, size_t);
-  enter_gnu_builtin_complex_math_funcs1(_cabs);
+  enter_gnu_builtin_complex_to_real_funcs(_cabs);
   enter_gnu_builtin_complex_math_funcs1(_cacos);
   enter_gnu_builtin_complex_math_funcs1(_cacosh);
   enter_gnu_builtin_func2(_calloc, void_star, size_t, size_t);
-  enter_gnu_builtin_complex_math_funcs1(_carg);
+  enter_gnu_builtin_complex_to_real_funcs(_carg);
   enter_gnu_builtin_complex_math_funcs1(_casin);
   enter_gnu_builtin_complex_math_funcs1(_casinh);
   enter_gnu_builtin_complex_math_funcs1(_catan);
@@ -486,11 +491,7 @@ Enter the standard predeclared functions for GCC.
        not GNU C++. */
     enter_gnu_builtin_vararg_func0(_choose_expr, int);
   }  /* if */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
-  enter_gnu_builtin_func1(_cimag, double, complex_double);
-  enter_gnu_builtin_func1(_cimagf, floating, complex_float);
-  enter_gnu_builtin_func1(_cimagl, long_double, complex_long_double);
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+  enter_gnu_builtin_complex_to_real_funcs(_cimag);
   enter_gnu_builtin_vararg_func0(_classify_type, int);  /* Pseudo-function. */
   enter_gnu_builtin_bit_count_funcs(_clz);
   enter_gnu_builtin_complex_math_funcs1(_conj);
@@ -500,11 +501,7 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_real_math_funcs1(_cosh);
   enter_gnu_builtin_complex_math_funcs2(_cpow);
   enter_gnu_builtin_complex_math_funcs1(_cproj);
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
-  enter_gnu_builtin_func1(_creal, double, complex_double);
-  enter_gnu_builtin_func1(_crealf, floating, complex_float);
-  enter_gnu_builtin_func1(_creall, long_double, complex_long_double);
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+  enter_gnu_builtin_complex_to_real_funcs(_creal);
   enter_gnu_builtin_complex_math_funcs1(_csin);
   enter_gnu_builtin_complex_math_funcs1(_csinh);
   enter_gnu_builtin_complex_math_funcs1(_csqrt);
@@ -778,6 +775,7 @@ Enter the standard predeclared functions for GCC.
 #undef enter_gnu_builtin_real_math_funcs0
 #undef enter_gnu_builtin_real_math_funcs1
 #undef enter_gnu_builtin_real_math_funcs2
+#undef enter_gnu_builtin_complex_to_real_funcs
 #undef enter_gnu_builtin_complex_math_funcs1
 #undef enter_gnu_builtin_complex_math_funcs2
 #undef enter_gnu_builtin_bit_count_funcs

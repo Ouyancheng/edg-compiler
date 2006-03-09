@@ -1,5 +1,11 @@
 Version 3.8
 
+3/9/06   GNU compatibility: __builtin_cabs and __builtin_carg
+
+The front end incorrectly defined the builtin functions __builtin_cabs and
+__builtin_carg as returning complex types.  This is now corrected (they take
+a complex argument, but return a real value).
+
 3/7/06   Microsoft/GNU C++ compatibility: Name linkage and block-extern
          declarations
 
