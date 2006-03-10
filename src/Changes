@@ -32480,11 +32480,11 @@ in the C++ generating back end.  This has been fixed.
   template <class T> struct A { int f(); };
   int A<int>::f() { return 1; }
 
-10/1/99  Abort when the end of class template member is missing
+10/1/99  Abort when the end of a member function is missing
 
 An abort would occur if a source file ended unexpectedly in the middle of
-the definition of a member function of a class template.  This problem
-was introduced in version 2.42.
+the definition of a member function that was defined inside its class or
+class template.  This problem was introduced in version 2.42.
 
   template <class T> struct A {
     int f(int){
