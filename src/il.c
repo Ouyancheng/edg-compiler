@@ -12875,8 +12875,16 @@ be called to start a copy.
              have a nonconstant part under a sizeof. */
           expr_copy->variant.runtime_sizeof.is_type = TRUE;
           expr_copy->variant.runtime_sizeof.is_lvalue = FALSE;
-          expr_copy->variant.runtime_sizeof.variant.type =
+          if (expr->variant.runtime_sizeof.is_lvalue) {
+            /* Because lvalues are represented as pointers, we need to use
+               the type the expression points to; otherwise, the result will
+               be simply the size of a pointer. */
+            expr_copy->variant.runtime_sizeof.variant.type =
+              type_pointed_to(expr->variant.runtime_sizeof.variant.expr->type);
+          } else {
+            expr_copy->variant.runtime_sizeof.variant.type =
                                expr->variant.runtime_sizeof.variant.expr->type;
+          }  /* if */
         } else {
           expr_copy->variant.runtime_sizeof.variant.expr =
                     i_copy_expr_tree(expr->variant.runtime_sizeof.variant.expr,

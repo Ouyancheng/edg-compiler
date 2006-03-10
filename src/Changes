@@ -1,5 +1,20 @@
 Version 3.8
 
+3/9/06   Expressions in runtime sizeof operations
+
+Under some circumstances, the type appearing in an enk_runtime_sizeof
+expression node was a pointer to the type that should have been used.  Because
+enk_runtime_sizeof nodes are used to represent sizeof expressions when
+RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, this error could cause problems for
+those configurations, including incorrect output from the C++-generating back
+end.  This has now been fixed.  For example:
+
+  void f() {
+    char x[6];
+    char y[sizeof(x)];    // Formerly generated in g++ mode as
+                          // "sizeof(char (*)[6])", now as "sizeof(char [6])"
+  }
+
 3/9/06   GNU C++ compatibility: Conversions from complex to real types
 
 Previously, the front end silently accepted implicit conversions from complex
