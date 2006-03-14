@@ -1,5 +1,28 @@
 Version 3.8
 
+3/14/06  Spurious warning on argument of GNU complex projection operators
+
+In GNU C/C++ modes, the front end sometimes warned about a variable being set
+without being used even when the variable was in fact used as the operand of
+a GNU complex projection operator (__real__ or __imag__).
+
+  double f() {
+    __complex__ double z = 1.0+2.0i;  // Formerly spuriously diagnosed as
+    return __imag__ z;                // "set but never used".
+  }
+
+This is now fixed.
+
+3/14/06  GNU complex conjugate operation incorrect for complex constants
+
+In GNU C/C++ modes, the front end produced incorrect results when folding the
+complex conjugation ("~") operator.  For example:
+
+  __complex__ double z = ~(1.0+2.0i);  // Previously set z to -2.0i instead of
+                                       // 1.0-2.0i.
+
+This is now fixed.
+
 3/9/06   Expressions in runtime sizeof operations
 
 Under some circumstances, the type appearing in an enk_runtime_sizeof

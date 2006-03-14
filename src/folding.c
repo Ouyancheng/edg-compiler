@@ -2255,8 +2255,7 @@ types of complex values.
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  set_constant_kind(result, (a_constant_repr_kind)ck_complex);
-
+  copy_constant(constant, result);
   fp_negate(float_kind, &constant->variant.complex_value->imag,
             &result->variant.complex_value->imag, &err, depends_on_fp_mode);
   if (err) {

@@ -11099,6 +11099,9 @@ operators cannot be overloaded.
       expr = make_operator_node(op, make_pointer_type(result_type), expr);
       make_expression_operand(expr, result_type, result);
       result->state = (an_operand_state)os_lvalue;
+      /* References to the projection should be passed through to the
+         underlying rvalue. */
+      result->ref_entries_list = operand.ref_entries_list;
     } else {
       /* The argument is an rvalue: The result too. */
       do_unary_operation(
