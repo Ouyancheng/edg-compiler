@@ -4123,6 +4123,20 @@ Return TRUE if the candidate functions cfp1 and cfp2 are the same function.
           a_routine_ptr rout1 = sym1->variant.routine.ptr;
           a_routine_ptr rout2 = sym2->variant.routine.ptr;
           same = corresponding_routines(rout1, rout2);
+          if (!same && gpp_mode) {
+            /* In g++ mode we create distinct routine entries for extern "C"
+               functions in different namespaces.  g++ treats such routines
+               as identical if they have the same type. */
+            a_routine_ptr	rp1 = sym1->variant.routine.ptr;
+            a_routine_ptr	rp2 = sym2->variant.routine.ptr;
+            if (rp1->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_external &&
+                rp2->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_external &&
+                identical_types(rp1->type, rp2->type)) {
+              same = TRUE;
+            }  /* if */
+          }  /* if */
         } else {
           /* A function template.  Compare the canonical a_template entries. */
           a_template_ptr temp1, temp2;

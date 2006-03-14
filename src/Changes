@@ -1,5 +1,26 @@
 Version 3.8
 
+3/14/06  GNU C++ compatibility: argument-dependent lookup and extern "C"
+         functions
+
+The standard says that extern "C" declarations with the same name but
+in different namespaces refer to the same entity.  g++ does not adhere
+to this rule (as indicated by the fact that they allow the different
+declarations to have different types).  When more than one such declaration
+is found by argument-dependent lookup, and those declarations refer to
+extern "C" functions with the same function type, g++ considers the
+declarations to be equivalent and does not diagnose an ambiguity.  We
+no longer report an ambiguity on this example in g++ mode.
+
+  struct A { };
+  extern "C" int f (A);
+  namespace N {
+    extern "C" int f(A);
+    struct B {
+      B() { f(A()); }
+    };
+  }
+
 3/14/06  Spurious warning on argument of GNU complex projection operators
 
 In GNU C/C++ modes, the front end sometimes warned about a variable being set
