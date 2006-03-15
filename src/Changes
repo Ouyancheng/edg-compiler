@@ -303,7 +303,8 @@ function declarations that are not also definitions.  For example:
   void f(int i, int i);  // Now accepted in GNU C++ mode.
 
 Duplicate parameter names are also accepted in non-prototype declarations in
-C mode (with a warning about specifying parameter names in that case):
+C mode (parameter names in non-prototype declarations that are not definitions
+are accepted in GNU C mode with a warning):
 
   void f(i, i);  // Accepted in GNU C mode (with a warning).
 
