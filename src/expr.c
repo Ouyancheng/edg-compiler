@@ -8339,7 +8339,7 @@ specification allow a variable-sized array as the top type.
     }  /* if */
     operator_new_symbol = NULL;
     if (gpp_mode && gnu_version >= 30400) {
-      /* g++ 3.4 and above always treat an new operator as dependent. */
+      /* g++ 3.4 and above always treat a "new" operator as dependent. */
       if (is_template_dependent_context()) {
         /* During a prototype instantiation, suppress the lookup. */
         unknown_dependent_new = TRUE;

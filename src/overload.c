@@ -4870,9 +4870,9 @@ that discrimination.  do_arg_dep_lookup is TRUE if argument-dependent
 lookup should be done; if it is TRUE, overloaded_function_symbol may
 be an sk_undefined symbol, indicating that nothing was found on a
 normal id lookup of the function name.  force_dependent is
-TRUE if a call should be treated as dependent even when not
-doing argument dependent lookup (which usually forces a call to
-be treated as nondependent).  call_position is the source
+TRUE if the call should be treated as dependent even when
+argument-dependent lookup is not done (that would usually force the
+call to be treated as nondependent).  call_position is the source
 position of the call.  paren_tok_seq_number is the token sequence
 number of the opening parenthesis of the argument list, but it's
 required only when do_arg_dep_lookup is TRUE; it can be zero
@@ -4998,10 +4998,14 @@ and return NULL.  This routine is called only in C++ mode.
 in_instantiation:
     if (!do_arg_dep_lookup) {
       /* Calls where argument-dependent lookup is turned off are
-         not recorded, but they're always considered non-dependent (except
-         when forced_dependent flag is TRUE).  This flag is used to emulate a
-         g++ bug that treats certain nondependent calls as dependent. */
-      dependent_call = force_dependent;
+         not recorded, but they're always considered non-dependent. */
+      dependent_call = FALSE;
+      if (force_dependent) {
+        /* The caller asked that the call be treated as dependent anyway.
+           This is used to emulate a g++ bug that treats certain nondependent
+           operator "new" calls as dependent. */
+        dependent_call = TRUE;
+      }  /* if */
     } else {
       a_nondependent_call_info_ptr ndcall_info;
       ndcall_info = get_nondependent_call_info(paren_tok_seq_number);
