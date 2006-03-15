@@ -1876,7 +1876,8 @@ for that.
 
 /*
 Flag that is TRUE to enable a test version of multibyte character
-handling.
+handling.  This provides a simpler means of testing multibyte character
+support.  A "$" is treated as the first character of a multibyte sequence.
 */
 #ifndef EDG_MULTIBYTE_CHAR_TEST_MODE
 #define EDG_MULTIBYTE_CHAR_TEST_MODE FALSE
@@ -2029,7 +2030,7 @@ extern char *mbc_strchr(char *str,
 When not using multibyte characters, just map this name onto the
 normal C library routine.
 */
-#define mbc_strchr(str, chr) strchr(str, chr)
+#define mbc_strchr(str, chr) strchr((str), (chr))
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 /*
@@ -2226,7 +2227,8 @@ handled separately.
 
 /*
 TRUE if '\' should also be treated as a directory separator in addition
-to the one defined above.
+to the one defined above.  This allows some of the Microsoft directory
+handling code to be tested on a non-Microsoft system.
 */
 #ifndef BACKSLASH_IS_ALSO_DIR_SEPARATOR
 #if __MICROSOFT_OS__
@@ -2235,6 +2237,13 @@ to the one defined above.
 #define BACKSLASH_IS_ALSO_DIR_SEPARATOR FALSE
 #endif /* __MICROSOFT_OS__ */
 #endif /* ifndef BACKSLASH_IS_ALSO_DIR_SEPARATOR */
+
+#if __MICROSOFT_OS__
+#if !BACKSLASH_IS_ALSO_DIR_SEPARATOR
+ #error BACKSLASH_IS_ALSO_DIR_SEPARATOR must be TRUE when __MICROSOFT_OS__ \
+        is TRUE
+#endif /* !BACKSLASH_IS_ALSO_DIR_SEPARATOR */
+#endif /* __MICROSOFT_OS__ */
 
 /* Add a component to a path name. */
 extern void append_to_path_name(a_text_buffer_ptr	buffer,

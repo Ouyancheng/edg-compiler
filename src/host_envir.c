@@ -248,21 +248,26 @@ static char *mbc_memchr(char		*str,
 			int		chr,
 			sizeof_t	size)
 /*
-This is a version of the memchr routine that works properly for strings
-containing multibyte characters.  Return the first occurrence of chr in the
-first size bytes of str, or NULL if chr is not found.
+This is a version of the memchr routine that also works properly for strings
+containing multibyte characters when multibyte_chars_in_source_enabled is
+TRUE (otherwise is just calls memchr).  Return the first occurrence of chr
+in the first size bytes of str, or NULL if chr is not found.
 */
 {
-  char	*p;
   char	*result = NULL;
-  char	*end = str + size - 1;
 
-  for (p = str; p <= end; increment_mbc_ptr(p)) {
-    if (*p == chr) {
-      result = p;
-      break;
-    }  /* if */
-  }  /* for */
+  if (multibyte_chars_in_source_enabled) {
+    char	*p;
+    char	*end = str + size - 1;
+    for (p = str; p <= end; increment_mbc_ptr(p)) {
+      if (*p == chr) {
+        result = p;
+        break;
+      }  /* if */
+    }  /* for */
+  } else {
+    result = memchr(str, chr, size);
+  }  /* if */
   return result;
 }  /* mbc_memchr */
 
@@ -271,20 +276,25 @@ first size bytes of str, or NULL if chr is not found.
 char *mbc_strchr(char	*str,
                  int	chr)
 /*
-This is a version of the strchr routine that works properly for strings
-containing multibyte characters.  Return the first occurrence of chr in str,
-or NULL if chr does not occur in str.
+This is a version of the strchr routine that also works properly for strings
+containing multibyte characters when multibyte_chars_in_source_enabled is
+TRUE (otherwise is just calls strchr).  Return the first occurrence of chr
+in str, or NULL if chr does not occur in str.
 */
 {
-  char	*p;
   char	*result = NULL;
 
-  for (p = str; *p != '\0'; increment_mbc_ptr(p)) {
-    if (*p == chr) {
-      result = p;
-      break;
-    }  /* if */
-  }  /* for */
+  if (multibyte_chars_in_source_enabled) {
+    char	*p;
+    for (p = str; *p != '\0'; increment_mbc_ptr(p)) {
+      if (*p == chr) {
+        result = p;
+        break;
+      }  /* if */
+    }  /* for */
+  } else {
+    result = strchr(str, chr);
+  }  /* if */
   return result;
 }  /* mbc_strchr */
 
@@ -292,17 +302,22 @@ or NULL if chr does not occur in str.
 static char *mbc_strrchr(char	*str,
                          int	chr)
 /*
-This is a version of the strrchr routine that works properly for strings
-containing multibyte characters.  Return the last occurrence of chr in str,
-or NULL if chr does not occur in str.
+This is a version of the strrchr routine that also works properly for strings
+containing multibyte characters when multibyte_chars_in_source_enabled is
+TRUE (otherwise is just calls strrchr).  Return the last occurrence of chr
+in str, or NULL if chr does not occur in str.
 */
 {
-  char	*p;
   char	*result = NULL;
 
-  for (p = str; *p != '\0'; increment_mbc_ptr(p)) {
-    if (*p == chr) result = p;
-  }  /* for */
+  if (multibyte_chars_in_source_enabled) {
+    char	*p;
+    for (p = str; *p != '\0'; increment_mbc_ptr(p)) {
+      if (*p == chr) result = p;
+    }  /* for */
+  } else {
+    result = strrchr(str, chr);
+  }  /* if */
   return result;
 }  /* mbc_strrchr */
 
@@ -318,20 +333,25 @@ a string is truncated, it is done on a multibyte character boundary.
 */
 {
   sizeof_t	result = length;
-  char		*ptr;
-  sizeof_t	last_len;
-  sizeof_t	curr_len;
 
-  for (ptr = str; *ptr != '\0'; last_len = curr_len, increment_mbc_ptr(ptr)) {
-    curr_len = ptr - str + mbc_length_simple(ptr);
-    if (curr_len == length) {
-      result = length;
-      break;
-    } else if (curr_len > length) {
-      result = last_len;
-      break;
-    }  /* if */
-  }  /* for */
+  if (multibyte_chars_in_source_enabled) {
+    /* When not using multibyte characters, the specified length is just
+       returned. */
+    char		*ptr;
+    sizeof_t	last_len;
+    sizeof_t	curr_len;
+    for (ptr = str; *ptr != '\0';
+         last_len = curr_len, increment_mbc_ptr(ptr)) {
+      curr_len = ptr - str + mbc_length_simple(ptr);
+      if (curr_len == length) {
+        result = length;
+        break;
+      } else if (curr_len > length) {
+        result = last_len;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   return result;
 }  /* truncate_length_to_whole_characters */
 
@@ -343,10 +363,10 @@ a string is truncated, it is done on a multibyte character boundary.
 When not using multibyte characters, just map these names onto the
 normal C library routines.
 */
-#define mbc_strrchr(str, chr) strrchr(str, chr)
+#define mbc_strrchr(str, chr) strrchr((str), (chr))
 
 #if __MICROSOFT_OS__
-#define mbc_memchr(str, chr, size) memchr(str, chr, size)
+#define mbc_memchr(str, chr, size) memchr((str), (chr), (size))
 #endif /* __MICROSOFT_OS__ */
 
 #if __MICROSOFT_OS__
@@ -678,17 +698,19 @@ used to represent stdin; it must return  NULL.
     /* UNIX-like system -- check for last slash. */
     last_slash = mbc_strrchr(file_name, DIRECTORY_SEPARATOR);
 #if BACKSLASH_IS_ALSO_DIR_SEPARATOR
-    /* MSDOS -- Allow backslash as an alternative to "/", and check for ":"
-       of disk name. */
+    /* Allow backslash as an alternative to "/". */
     last_backslash = mbc_strrchr(file_name, '\\');
     if (last_slash == NULL || last_backslash > last_slash) {
       last_slash = last_backslash;
     }  /* if */
+#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
+#if __MICROSOFT_OS__
+    /* Check for the ":" of a disk name. */
     if (last_slash == NULL && strlen(file_name) >= 2 && file_name[1] == ':') {
       /* Disk name is specified, as in "c:abc". */
       last_slash = file_name+1;
     }  /* if */
-#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
+#endif /* __MICROSOFT_OS__ */
 #endif /* __VMS__ */
   }  /* if */
   return(last_slash);
@@ -915,8 +937,7 @@ Add "name" to the path name in "buffer".
     separator_char = DIRECTORY_SEPARATOR;
   } else {
     /* The directory name does not have any UNIX-style slashes or has no
-       slashes at all.  In either case, under MSDOS, use an MSDOS-style
-       slash. */
+       slashes at all.  In either case, on a Microsoft OS use a backslash. */
     separator_char = '\\';
   }  /* if */
 #endif /* __MICROSOFT_OS__ */
@@ -979,7 +1000,9 @@ char *read_line_from_file(FILE *f_file)
 /*
 Reads a line of input from the file specified by f_file.  Returns a pointer
 to a buffer containing the line read, or NULL at end-of-file.  The pointer
-returned points to a static buffer that is reused for each call.
+returned points to a static buffer that is reused for each call.  This
+is used to read auxiliary files such as .ti files and the predefined
+macro file.  It is not used when reading source files.
 */
 {
   int		ch;
@@ -2068,7 +2091,7 @@ Test whether or not a file name is absolute (a full path name).
 #else /* !BACKSLASH_IS_ALSO_DIR_SEPARATOR */
   return (file_name)[0] == DIRECTORY_SEPARATOR;
 #endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
-}
+}  /* is_absolute_file_name */
 
 
 /* Header comment for get_file_name_from_dir. */
