@@ -5509,7 +5509,8 @@ typedef struct a_type {
       a_bit_field
 		has_explicit_enum_base:1;
 			/* TRUE if this is an enumeration type with an explicit
-			   specifier for the underlying type. */
+			   specifier for the underlying type.  (If TRUE, the
+			   optional field base_type will be non-NULL.) */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
                 enum_type:1;
@@ -5573,7 +5574,8 @@ typedef struct a_type {
       a_type_ptr
 		base_type;
 			/* For enumeration types, the type explicitly set as
-			   the underlying type (if any).  Otherwise NULL. */
+			   the underlying type (if any).  Otherwise NULL.
+			   If non-NULL, has_explicit_enum_base will be TRUE. */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
