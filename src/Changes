@@ -1,5 +1,17 @@
 Version 3.8
 
+3/15/06  Abort on DLL attribute on extern "C" declarations
+
+In Microsoft mode with "Microsoft bugs" mode disabled (--no_microsoft_bugs),
+specifying the same DLL attributes on two extern "C" declarations appearing
+in different namespace triggered an internal error in decls.c.  For example:
+
+  namespace N1 { extern "C" __declspec(dllimport) void f(); }
+  namespace N2 { extern "C" __declspec(dllimport) void f(); }
+    // Previously could trigger an internal error in decls.c.
+
+This is now fixed.
+
 3/14/06  GNU C++ compatibility: argument-dependent lookup and extern "C"
          functions
 

@@ -3258,14 +3258,17 @@ be issued at the given position.
     if (old_dll_flags == new_dll_flags) {
       /* This is a redeclaration and it is compatible with the previous
          declaration: Nothing to be done.  (It could also be a full
-         instantiation compatible with a prior partial instantiation.)
-         The "compatibility" may be a result of carrying over the dll
-         attribute (e.g., for inline functions or block-extern
+         instantiation compatible with a prior partial instantiation or a
+         declaration of an extern "C" function also declared in another
+         namespace.) The "compatibility" may be a result of carrying over the
+         dll attribute (e.g., for inline functions or block-extern
          declarations). */
 #if CHECKING
       a_symbol_ptr  routine_sym = symbol_for(routine);
       check_assertion(is_redecl || routine->is_template_function ||
                       is_inline || innermost_function_scope != NULL ||
+                      routine->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_external ||
                       !(routine_sym->is_class_member ||
                         routine_sym->parent.namespace_ptr != NULL ||
                         routine_sym->decl_scope == file_scope_number));
@@ -3548,6 +3551,8 @@ position. */
       a_symbol_ptr  var_sym = symbol_for(var);
       check_assertion(is_redecl || var->is_template_static_data_member ||
                       innermost_function_scope != NULL ||
+                      var->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_external ||
                       !(var_sym->is_class_member ||
                         var_sym->parent.namespace_ptr != NULL ||
                         var_sym->decl_scope == file_scope_number));
