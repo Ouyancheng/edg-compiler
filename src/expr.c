@@ -15954,6 +15954,16 @@ overloaded_function:
   /* Remember whether or not this operand is the immediate operand of
      a "&" operator. */
   result->is_operand_of_address_of = is_operand_of_address_of;
+  if (is_expression_operand(result)) {
+    result->variant.expression->is_operand_of_address_of =
+                                                      is_operand_of_address_of;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  } else if (is_constant_operand(result) &&
+             result->variant.constant.expr != NULL) {
+    result->variant.constant.expr->is_operand_of_address_of =
+                                                      is_operand_of_address_of;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  }  /* if */
   if (!okay_for_integral_const_expr ||
       !(is_integral_type(result->type) ||
         is_template_param_type(result->type) ||
