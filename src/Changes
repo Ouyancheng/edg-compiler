@@ -176,7 +176,8 @@ other than bool.
 
 The Microsoft and GNU compilers do not implicitly instantiate a class
 template specialization in order to determine its associated classes
-and namespaces.  This causes those compilers to accept code like this:
+and namespaces for argument-dependent lookup.  This causes those compilers
+to accept code like this:
 
   template <typename T> struct S { 
     typedef typename T::member tt;
