@@ -1706,11 +1706,12 @@ internal linkage).
                !((microsoft_mode || gpp_mode) && idlbp->is_block_extern_decl &&
                  idlbp->prior_decl_in_enclosing_scope != NULL &&
                  !idlbp->direct_linkage_specifier)) {
-      /* Use the explicitly specified name-linkage even when there is a
-         prior declaration with different linkage.  In Microsoft and GNU modes,
-         a block-extern declaration in a function declared with an explicit
-         name-linkage specification still takes its name linkage from a prior
-         declaration. */
+      /* The name linkage was explicit specified (although not necessarily
+         directly on this declaration).  Use that name-linkage even when there
+         is a prior declaration with different linkage.  In Microsoft and GNU
+         modes, a block-extern declaration in a function declared with an
+         explicit name-linkage specification still takes its name linkage from
+         a prior declaration. */
       idlbp->name_linkage = ssep->default_name_linkage;
       idlbp->name_linkage_is_explicit = TRUE;
     } else {
