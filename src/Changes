@@ -131,7 +131,7 @@ behavior.
 3/8/06   Abort on Microsoft DLL attribute after block-extern declaration
 
 In Microsoft modes, declaring a block-extern variable or function with a DLL
-attribute (dllexport or dllimport), followed by a namespace scope declaration
+attribute (dllexport or dllimport) followed by a namespace scope declaration
 of the same entity with the same attribute resulted in an internal error.
 For example:
 
