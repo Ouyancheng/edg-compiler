@@ -80,13 +80,14 @@ end.  This has now been fixed.  For example:
                           // "sizeof(char (*)[6])", now as "sizeof(char [6])"
   }
 
-3/9/06   GNU C++ compatibility: Conversions from complex to real types
+3/9/06   GNU C++ compatibility: Conversions between complex and real types
 
-Previously, the front end silently accepted implicit conversions from complex
-to real types in GNU C++ mode.  Now such conversions are no longer permitted.
-(They remain valid in C99 and GNU C modes.)  For example:
+Previously, the front end silently accepted implicit conversions between
+complex and real types in GNU C++ mode.  Now such conversions are no longer
+permitted.  (They remain valid in C99 and GNU C modes.)  For example:
 
-  double x = 1.0+2.0i;  // No longer accepted in GNU C++ mode.
+  double x = 1.0+2.0i;         // No longer accepted in GNU C++ mode.
+  __complex__ double z = 1.0;  // Ditto.
 
 3/9/06   GNU compatibility: __builtin_cabs and __builtin_carg
 
