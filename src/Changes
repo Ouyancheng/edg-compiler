@@ -1,5 +1,14 @@
 Version 3.8
 
+3/15/06  C++-generating back end: static_cast operations
+
+The C++-generating back end formerly generated static_cast operations that
+appeared in the source as C-style casts or, in some contexts, as
+functional-notation casts.  These conversions now appear as static_cast
+operations in the generated code.  For example:
+
+  int i = static_cast<int>('x');  // Formerly generated as ((int)'x')
+
 3/15/06  Abort on DLL attribute on extern "C" declarations
 
 In Microsoft mode with "Microsoft bugs" mode disabled (--no_microsoft_bugs),
