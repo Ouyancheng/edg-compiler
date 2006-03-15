@@ -15203,7 +15203,7 @@ are handled in lexical_init.)
   in_pcc_mode_half_comment = FALSE;
 #if CHECKING
   /* Make sure there are not too many tokens to fit into a_small_token_kind. */
-  if (sizeof(a_small_token_kind) == 1 && (int)tok_last > 255) {
+  if ((sizeof(a_small_token_kind) * CHAR_BIT) == 8 && (int)tok_last > 255) {
     internal_error("lexical_one_time_init: a_small_token_kind is too small");
   }  /* if */
   /* Check that the table of token names is correctly initialized.  This
