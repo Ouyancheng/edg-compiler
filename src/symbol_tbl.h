@@ -2464,13 +2464,15 @@ typedef struct a_symbol {
 			   cfront mode (in other modes, the linkage of a class
 			   or enum is not affected by the ways it is used). */
   a_bit_field	ambiguous:1;
-			/* TRUE if the symbol name is ambiguous in
-			   the current scope, i.e., another symbol with the
-			   same name is visible, and there is no reason to
-			   prefer one over the other.  This is used for
-			   sk_projection, sk_namespace_projection, and
-			   sk_overloaded_function symbols that are
-			   synthesized namespace projection symbols. */
+			/* TRUE if the symbol name is ambiguous in the current
+			   scope, i.e., another symbol with the same name is
+			   visible, and there is no reason to prefer one over
+			   the other.  This is used for sk_projection,
+			   sk_namespace_projection, and sk_overloaded_function
+			   symbols that are synthesized namespace projection
+			   symbols.  Also TRUE for a symbol representing a
+			   parameter with a duplicate name in GNU modes
+			   (e.g., "int f(int i, int i);"). */
   a_bit_field	synthesized_namespace_projection:1;
 			/* TRUE for sk_namespace_projection and
 			   sk_overloaded_function symbols that were created

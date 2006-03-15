@@ -1688,7 +1688,10 @@ member declaration (allowed in Microsoft mode only).
           copy_source_position(param_sym->decl_position, param_id->type_pos);
           /* Symbols for explicitly declared parameters will already have been
              entered into the symbol table; so the same for parameters that
-             are implicitly declared. */
+             are implicitly declared.  In GNU modes, parameters may be marked
+             "ambiguous" if they have a duplicate name.  Since such GNU cases
+             are diagnosed elsewhere (in decl_parameter), we inhibit the
+             redeclaration diagnostic here. */
           reenter_symbol(param_sym, decl_scope_level, param_sym->ambiguous);
           if (c99_mode) {
             /* In C99, implicit declarations are no longer allowed. */
