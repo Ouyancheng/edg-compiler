@@ -9661,6 +9661,9 @@ typedef struct an_expr_node {
 			   are the result of function-to-pointer decay and
 			   those that are the result of an explicit address-of
 			   operation. */
+  a_bit_field	is_static_cast:1;
+			/* TRUE if this node represents a static_cast in the
+			   source. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */

@@ -3561,6 +3561,9 @@ Display the indicated expression node.
   if (ptr->is_operand_of_address_of) {
     disp_boolean("is_operand_of_address_of", TRUE);
   }  /* if */
+  if (ptr->is_static_cast) {
+    disp_boolean("is_static_cast", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:

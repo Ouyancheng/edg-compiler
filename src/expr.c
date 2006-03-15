@@ -10642,7 +10642,7 @@ Syntax:
 {
   a_source_position start_position, type_position, end_position;
   a_type_ptr        type_cast_to, orig_type_cast_to, source_type;
-  a_boolean         err = FALSE, processed = FALSE;
+  a_boolean         err = FALSE, processed = FALSE, ignored = FALSE;
   a_boolean         allow_rvalue_on_rewrite = FALSE;
   an_error_code     warning_suggested;
   a_ruled_out_expr_kind_set
@@ -10683,6 +10683,7 @@ Syntax:
       if ((microsoft_bugs || sun_mode) &&
           identical_types(type_cast_to, result->type)) {
         processed = TRUE;
+        ignored = TRUE;
       }  /* if */
     }  /* if */
     if (!processed) {
@@ -10831,7 +10832,18 @@ Syntax:
       }  /* if */
     }  /* if */
   }  /* if */
-  if (err) conv_to_error_operand(result);
+  if (err) {
+    conv_to_error_operand(result);
+  } else if (!ignored) {
+    if (is_expression_operand(result)) {
+      result->variant.expression->is_static_cast = TRUE;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    } else if (is_constant_operand(result) &&
+               result->variant.constant.expr != NULL) {
+      result->variant.constant.expr->is_static_cast = TRUE;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+    }  /* if */
+  }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   rule_out_expr_kinds(ruled_out_expr_kinds, result);

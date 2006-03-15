@@ -402,7 +402,8 @@ static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_type_ptr         init_entity_type,
                              a_boolean          parenthesized_init,
                              a_boolean          force_parens,
-                             a_boolean          obj_expr_of_mfunc_operator);
+                             a_boolean          obj_expr_of_mfunc_operator,
+                             a_boolean          is_static_cast);
 static void gen_ctor_initializers(a_constructor_init_ptr ctor_init);
 static void gen_statement_full(a_statement_ptr statement,
                                a_boolean       suppress_trailing_space);
@@ -444,7 +445,8 @@ static void gen_full_cast(a_type_ptr            dest_type,
                           an_expr_node_ptr      expr,
                           a_boolean             is_lvalue,
                           a_boolean             is_reference_cast,
-                          a_boolean             is_reinterpret_cast);
+                          a_boolean             is_reinterpret_cast,
+                          a_boolean             is_static_cast);
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens);
 /* Interfaces to gen_expr for the usual cases. */
@@ -3183,7 +3185,8 @@ constant is an aggregate the braces around it are suppressed.
     gen_dynamic_init(constant->variant.dynamic_init, type,
                      /*parenthesized_init=*/FALSE,
                      /*force_parens=*/FALSE,
-                     /*obj_expr_of_mfunc_operator=*/FALSE);
+                     /*obj_expr_of_mfunc_operator=*/FALSE,
+                     /*is_static_cast=*/FALSE);
   } else if ((!msvc_is_generated_code_target ||
               msvc_target_version_number >= 1100) &&
              constant->kind == (a_constant_repr_kind)ck_ptr_to_member &&
@@ -5894,7 +5897,8 @@ in determining how to generate dynamic initializations).
     /* A temp-init marked as a reused value is just put out as the
        underlying value. */
     gen_dynamic_init(dip, temp_type, /*parenthesized_init=*/FALSE,
-                     /*force_parens=*/FALSE, obj_expr_of_mfunc_operator);
+                     /*force_parens=*/FALSE, obj_expr_of_mfunc_operator,
+                     expr->is_static_cast);
   } else if (C_mode() ||
              ((dip->kind == (a_dynamic_init_kind)dik_constant ||
                dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
@@ -5921,7 +5925,8 @@ in determining how to generate dynamic initializations).
       }  /* if */
     }  /* if */
     gen_dynamic_init(dip, temp_type, /*parenthesized_init=*/FALSE,
-                     /*force_parens=*/FALSE, obj_expr_of_mfunc_operator);
+                     /*force_parens=*/FALSE, obj_expr_of_mfunc_operator,
+                     expr->is_static_cast);
     if (cast_added) write_tok_ch(')');
   }  /* if */
 }  /* gen_temp_init */
@@ -6559,7 +6564,8 @@ temporary expressions).
                 if (need_parens) write_tok_ch('(');
                 gen_full_cast(node->type, operand_1, /*is_lvalue=*/TRUE,
                               /*is_reference_cast=*/TRUE,
-                              node->variant.operation.is_reinterpret_cast);
+                              node->variant.operation.is_reinterpret_cast,
+                              node->is_static_cast);
                 if (need_parens) write_tok_ch(')');
                 processed = TRUE;
               }  /* if */
@@ -6808,12 +6814,14 @@ static void gen_full_cast(a_type_ptr            dest_type,
                           an_expr_node_ptr      expr,
                           a_boolean             is_lvalue,
                           a_boolean             is_reference_cast,
-                          a_boolean             is_reinterpret_cast)
+                          a_boolean             is_reinterpret_cast,
+                          a_boolean             is_static_cast)
 /*
 Generate a cast of expr to the type dest_type.  expr is an lvalue if
 is_lvalue is TRUE.  The original cast was a cast to a reference type
 if is_reference_cast is TRUE.  Usually, the output is an old-style cast,
-but a reinterpret_cast is put out when is_reinterpret_cast is TRUE.
+but a reinterpret_cast or a static_cast is put out when the corresponding
+flag is TRUE.
 */
 {
   a_type type_copy;
@@ -6831,6 +6839,10 @@ but a reinterpret_cast is put out when is_reinterpret_cast is TRUE.
     write_tok_str("reinterpret_cast< ");
     gen_type(dest_type);
     write_tok_str(">(");
+  } else if (is_static_cast) {
+    write_tok_str("static_cast< ");
+    gen_type(dest_type);
+    write_tok_str(">(");
   } else {
     gen_cast(dest_type);
   }  /* if */
@@ -6839,7 +6851,7 @@ but a reinterpret_cast is put out when is_reinterpret_cast is TRUE.
   } else {
     gen_expr_with_parens(expr);
   }  /* if */
-  if (is_reinterpret_cast) {
+  if (is_reinterpret_cast || is_static_cast) {
     write_tok_ch(')');
   }  /* if */
 }  /* gen_full_cast */
@@ -6863,7 +6875,8 @@ function call, notation.
     gen_dynamic_init(arg->variant.init.dynamic_init, param->type,
                      /*parenthesized_init=*/FALSE,
                      /*force_parens=*/FALSE,
-                     /*obj_expr_of_mfunc_operator=*/FALSE);
+                     /*obj_expr_of_mfunc_operator=*/FALSE,
+                     /*is_static_cast=*/FALSE);
   } else {
     /* If this is an argument to an overloaded operator being generated in
        operator notation, we may need extra parentheses to avoid precedence
@@ -7077,7 +7090,8 @@ Generate code for a new or delete operation.
       /* The allocated entity gets initialized. */
       gen_dynamic_init(ndsp->dynamic_init, type, /*parenthesized_init=*/TRUE,
                        /*force_parens=*/FALSE,
-                       /*obj_expr_of_mfunc_operator=*/FALSE);
+                       /*obj_expr_of_mfunc_operator=*/FALSE,
+                       /*is_static_cast=*/FALSE);
     }  /* if */
   } else {
     /* Delete.  The general form is
@@ -8161,7 +8175,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           } else {
             gen_full_cast(expr->type, operand_1, /*is_lvalue=*/FALSE,
                           expr->variant.operation.is_reference_cast,
-                          expr->variant.operation.is_reinterpret_cast);
+                          expr->variant.operation.is_reinterpret_cast,
+                          expr->is_static_cast);
           }  /* if */
           goto done_with_operation;
         case eok_base_class_cast:
@@ -8848,7 +8863,8 @@ done_with_operation_after_parens:
         gen_dynamic_init(tsp->dynamic_init, tsp->type,
                          /*parenthesized_init=*/FALSE,
                          /*force_parens=*/FALSE,
-                         /*obj_expr_of_mfunc_operator=*/FALSE);
+                         /*obj_expr_of_mfunc_operator=*/FALSE,
+                         /*is_static_cast=*/FALSE);
       }  /* if */
       if (need_parens) write_tok_ch(')');
       break;
@@ -8912,7 +8928,8 @@ done_with_operation_after_parens:
       { a_dynamic_init_ptr dip = expr->variant.reused_value_init;
         gen_dynamic_init(dip, expr->type, /*parenthesized_init=*/FALSE,
                          /*force_parens=*/FALSE,
-                         /*obj_expr_of_mfunc_operator=*/FALSE);
+                         /*obj_expr_of_mfunc_operator=*/FALSE,
+                         expr->is_static_cast);
       }
       break;
     case enk_temp_init:
@@ -10845,7 +10862,8 @@ statement unless suppress_trailing_space is TRUE.
             gen_dynamic_init(statement->variant.return_dynamic_init,
                              return_type, /*parenthesized_init=*/FALSE,
                              /*force_parens=*/FALSE,
-                             /*obj_expr_of_mfunc_operator=*/FALSE);
+                             /*obj_expr_of_mfunc_operator=*/FALSE,
+                             /*is_static_cast=*/FALSE);
           }  /* if */
           write_tok_ch(';');
         }  /* if */
@@ -11058,7 +11076,8 @@ static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_type_ptr         init_entity_type,
                              a_boolean          parenthesized_init,
                              a_boolean          force_parens,
-                             a_boolean          obj_expr_of_mfunc_operator)
+                             a_boolean          obj_expr_of_mfunc_operator,
+                             a_boolean          is_static_cast)
 /*
 Output the dynamic initialization described by dip.  init_entity_type
 indicates the type of entity being initialized.
@@ -11084,6 +11103,9 @@ that is being generated using operator notation rather than as a function
 call.  Some compilers (notably Sun) reject a traditional cast in such
 contexts, so such initializations are generated as functional-style casts
 when possible.
+
+If is_static_cast is TRUE, the initialization reflects a static_cast in the
+source and the expression is generated in that form.
 */
 {
   a_constant_ptr con;
@@ -11135,7 +11157,13 @@ when possible.
       using_old_style_cast = TRUE;
     }  /* if */
     if (using_old_style_cast) {
-      if (in_ctor_default_argument &&
+      if (is_static_cast) {
+        /* This was a static_cast in the source, so use that form now. */
+        write_tok_str("static_cast< ");
+        gen_type(init_entity_type);
+        write_tok_ch('>');
+        suppress_outermost_parentheses = TRUE;
+      } else if (in_ctor_default_argument &&
           msvc_is_generated_code_target &&
           msvc_target_version_number == 1200 &&
           dip->kind == (a_dynamic_init_kind)dik_constructor &&
@@ -11405,7 +11433,8 @@ initialization is in a condition declaration if is_condition is TRUE.
         }  /* if */
         gen_dynamic_init(initializer->dynamic, var->type, parenthesized_init,
                          /*force_parens=*/FALSE,
-                         /*obj_expr_of_mfunc_operator=*/FALSE);
+                         /*obj_expr_of_mfunc_operator=*/FALSE,
+                         /*is_static_cast=*/FALSE);
         break;
       default:
         unexpected_condition_str("gen_initializer: bad init kind");
@@ -11830,7 +11859,8 @@ a constructor.
       gen_dynamic_init(ctor_init->initializer, type,
                        /*parenthesized_init=*/TRUE,
                        /*force_parens=*/TRUE,
-                       /*obj_expr_of_mfunc_operator=*/FALSE);
+                       /*obj_expr_of_mfunc_operator=*/FALSE,
+                       /*is_static_cast=*/FALSE);
     }  /* if */
   }  /* for */
   if (!first_time) write_space();
