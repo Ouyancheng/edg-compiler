@@ -2082,15 +2082,14 @@ a_boolean is_absolute_file_name(char *file_name)
 Test whether or not a file name is absolute (a full path name).
 */
 {
+  return 
 #if BACKSLASH_IS_ALSO_DIR_SEPARATOR
-  return ((file_name)[0] == DIRECTORY_SEPARATOR) ||
+         ((file_name)[0] == '\\') ||
+#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 #if __MICROSOFT_OS__
          has_drive_specification(file_name) ||
 #endif /* __MICROSOFT_OS__ */
-         ((file_name)[0] == '\\');
-#else /* !BACKSLASH_IS_ALSO_DIR_SEPARATOR */
-  return (file_name)[0] == DIRECTORY_SEPARATOR;
-#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
+        (file_name)[0] == DIRECTORY_SEPARATOR;
 }  /* is_absolute_file_name */
 
 
