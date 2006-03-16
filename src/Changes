@@ -13,7 +13,8 @@ as static_cast operations.  For example:
 
 In Microsoft mode with "Microsoft bugs" mode disabled (--no_microsoft_bugs),
 specifying the same DLL attributes on two extern "C" declarations appearing
-in different namespace triggered an internal error in decls.c.  For example:
+in different namespaces triggered an internal error in decls.c (in function
+update_dll_info_for_routine or update_dll_info_for_variable).  For example:
 
   namespace N1 { extern "C" __declspec(dllimport) void f(); }
   namespace N2 { extern "C" __declspec(dllimport) void f(); }
