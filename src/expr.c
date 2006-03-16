@@ -9805,7 +9805,6 @@ for non-class operands).  This routine is called only in C++ mode.
                                          /*processed_arg=*/FALSE,
                                          &conversion,
                                          &ctor_arg_conversion,
-                                         /*no_diagnostic=*/FALSE,
                                          &failed)) {
           /* A user-defined conversion can be done. */
           conversion.is_explicit_cast = TRUE;

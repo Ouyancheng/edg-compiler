@@ -10763,7 +10763,6 @@ a_boolean user_defined_conversion_possible(
                                       a_boolean    processed_arg,
                                       a_conv_descr *conversion,
                                       a_conv_descr *ctor_arg_conversion,
-                                      a_boolean    no_diagnostic,
                                       a_boolean    *failed)
 /*
 Check whether or not the source operand can be converted to the
@@ -10771,9 +10770,9 @@ destination type by a user-defined conversion (constructor or
 conversion routine) in an initialization.  If so, set *conversion
 to describe the conversion and return TRUE.  If not, return FALSE.  If
 a user-defined conversion is the only hope of converting the source
-operand to the destination type (i.e., one or the other has a class type),
-and no conversion was found, issue an error (unless no_diagnostic is TRUE),
-change source_operand to an error operand, set *failed to TRUE, and return
+operand to the destination type (i.e., one or the other has a class
+type), and no conversion was found, issue an error, change
+source_operand to an error operand, set *failed to TRUE, and return
 FALSE.  need_lvalue_result is TRUE if the result is required to be
 an lvalue; otherwise, the result can be an lvalue or an rvalue.
 initializing_return_value is TRUE if the initialization is being
@@ -10890,11 +10889,7 @@ a reference type (the caller should have rewritten that case).
     /* The conversion failed. */
     if (!ambiguous) {
       /* No conversion applies. */
-      if (no_diagnostic) {
-        /* Do not issue a diagnostic (e.g., because we're only trying to find
-           out if the conversion is possible using the __is_convertible_to
-           extension. */
-      } else if (is_error_type(dest_type) || is_error_type(source_type)) {
+      if (is_error_type(dest_type) || is_error_type(source_type)) {
         /* Some previous error. */
       } else if (is_incomplete_type(dest_type) &&
                  is_class_struct_union_type(dest_type)) {
@@ -10908,6 +10903,7 @@ a reference type (the caller should have rewritten that case).
         if (single_type_message) {
           /* Single-type case. */
           pos_ty_error(err_code, &source_operand->position, class_type);
+          conv_to_error_operand(source_operand);
         } else {
           /* Normal double-type case. */
           type2_error_in_operand(err_code, source_operand,
@@ -11018,7 +11014,6 @@ is not a parameter.
 */
 {
   a_boolean          okay = FALSE, failed = FALSE, ambiguous;
-  a_boolean          no_diagnostic = (incompatible_err == ec_no_error);
   a_type_ptr         source_type;
   a_std_conv_descr   std_conv;
   an_arg_match_level match_level;
@@ -11039,7 +11034,7 @@ is not a parameter.
                                        is_reference_binding,
                                        processed_arg,
                                        conversion, ctor_arg_conversion,
-                                       no_diagnostic, &failed)) {
+                                       &failed)) {
     /* A user-defined conversion can be done. */
     okay = TRUE;
   } else if (!failed) {
@@ -11159,13 +11154,11 @@ is not a parameter.
 error:
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* The conversion is not legal. */
-      if (incompatible_err != ec_no_error) {
-        /* The "opt_ty2" routine puts in the types if the specific error
-           message has fill-ins for them, and otherwise ignores the types. */
-        pos_opt_ty2_error(incompatible_err, err_pos,
-                          source_type, orig_dest_type);
-        conv_to_error_operand(source_operand);
-      }  /* if */
+      /* The "opt_ty2" routine puts in the types if the specific error
+         message has fill-ins for them, and otherwise ignores the types. */
+      pos_opt_ty2_error(incompatible_err, err_pos,
+                        source_type, orig_dest_type);
+      conv_to_error_operand(source_operand);
     }  /* if */
   }  /* if */
 #if DEBUG
@@ -11177,52 +11170,6 @@ error:
   return okay;
 }  /* conversion_possible */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-a_boolean compute_is_convertible_to(a_type_ptr  src_type,
-                                    a_type_ptr  dst_type,
-                                    a_boolean   src_is_rvalue)
-/*
-Recent Microsoft compilers have built-in support to help implement the template
-"is_convertible_to" defined in the C++ committee's ISO/IEC TR 19769 (informally
-also known as the "library TR1").  This function handles the actual work for
-normal cases (called from "fold_is_convertible_to").  Some special cases (such
-as source types that are reference types) must be handled by the caller.
-The TR 19769 definition of "is_convertible_to" considers conversions from
-lvalue expressions, but Microsoft compilers appear to sometimes consider
-conversions from rvalues: src_is_rvalue is set to TRUE for those cases.
-*/
-{
-  an_operand    src_op;
-  a_variable    src_var;
-  a_boolean     result, need_lvalue_result = FALSE;
-  a_conv_descr  conversion, ctor_arg_conversion;
-
-  check_assertion(!is_reference_type(src_type));
-  src_var.type = src_type;
-  if (src_is_rvalue) {
-    make_expression_operand(var_rvalue_expr(&src_var), src_type, &src_op);
-  } else {
-    make_lvalue_variable_operand(&src_var, &src_op, (a_ref_entry_ptr)NULL,
-                                 /*record_expr=*/FALSE);
-  }  /* if */
-  if (is_reference_type(dst_type)) {
-    dst_type = type_pointed_to(dst_type);
-    need_lvalue_result = TRUE;
-  }  /* if */
-  result = conversion_possible(&src_op, dst_type,
-                               /*is_transparent=*/(a_boolean*)NULL,
-                               dst_type, need_lvalue_result,
-                               /*initializing_return_value=*/FALSE,
-                               /*is_copy_initialization=*/TRUE,
-                               /*orig_is_copy_initialization=*/TRUE,
-                               need_lvalue_result, /*processed_arg=*/FALSE,
-                               ec_no_error, (a_source_position*)NULL,
-                               &conversion, &ctor_arg_conversion);
-  return result;
-}  /* compute_is_convertible_to */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void prep_class_bitwise_copy_operand(an_operand *source_operand,
                                             a_type_ptr dest_type)

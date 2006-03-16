@@ -141,10 +141,6 @@ pointer is non-NULL, and the conversion is not unusable).
    !(conversion)->user_conversion_for_class_copy_must_be_determined)
 
 
-extern a_boolean compute_is_convertible_to(a_type_ptr  src_type,
-                                           a_type_ptr  dst_type,
-                                           a_boolean   src_is_rvalue);
-
 
 /*
 Bit flags used to indicate the kinds of built-in types allowed
@@ -682,7 +678,6 @@ extern a_boolean user_defined_conversion_possible(
                                       a_boolean    processed_arg,
                                       a_conv_descr *conversion,
                                       a_conv_descr *ctor_arg_conversion,
-                                      a_boolean    no_diagnostic,
                                       a_boolean    *failed);
 
 extern void user_convert_operand(an_operand   *operand,

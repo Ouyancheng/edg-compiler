@@ -239,19 +239,6 @@ behavior in g++ mode when gnu_version is >= 30400.
     a.f();
   }
 
-3/3/06   Microsoft compatibility: __is_convertible_to
-
-In Microsoft mode with microsoft_version >= 1400, the front end accepts the
-pseudo-function __is_convertible_to (see Changes entry of 10/19/05).  However,
-the EDG implementation failed to consider user-defined conversions when
-evaluating the pseudo-function.  For example:
-
-  struct S { operator int(); };
-  int r = __is_convertible_to(S, int);  // Previously initialized r to "0".
-                                        // Now, r is set to "1".
-
-This is now fixed.
-
 3/2/06   Support for more than 255 token kinds
 
 The front end has used a byte field to represent a_token_kind in some
