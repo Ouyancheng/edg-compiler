@@ -1594,8 +1594,8 @@ be given to the flag.
   *flag_var = value;
 }  /* set_flag_value */
 
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
 static void set_microsoft_mode_flags(void)
 /*
 Set other options whose values should be changed when Microsoft mode
@@ -1740,6 +1740,7 @@ by a command line option.
     /* A friend class declaration finds names made visible by
        using-directives. */
     friend_class_decl_can_find_using_dir = TRUE;
+    explicit_enum_base_enabled = microsoft_version >= 1400;
   }  /* if */
   /* The Microsoft compiler does not find typedefs when looking up names
      in elaborated type specifiers. */
@@ -5017,6 +5018,7 @@ variables declared in cmd_line.h.
   gnu_restrict_keyword_enabled = FALSE;
   long_lifetime_temps = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  explicit_enum_base_enabled = FALSE;
   default_calling_convention = (a_calling_convention)cc_cdecl;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS

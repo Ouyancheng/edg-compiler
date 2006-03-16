@@ -1381,7 +1381,7 @@ caution when modifying this routine.
         (next_tok == tok_colon && C_dialect == C_dialect_cplusplus &&
          (tag_kind != (a_symbol_kind)sk_enum_tag
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          || (microsoft_mode && microsoft_version >= 1400)
+          || explicit_enum_base_enabled
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                           ) &&
          !is_ref_within_new_expr)) {
@@ -3692,9 +3692,10 @@ static an_integer_kind
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-void check_enum_uuid_string(a_type_ptr                   enum_type,
-                            an_extended_decl_info_block  *extended_decl_info,
-                            a_source_position            *tag_position)
+static void check_enum_uuid_string(
+                             a_type_ptr                   enum_type,
+                             an_extended_decl_info_block  *extended_decl_info,
+                             a_source_position            *tag_position)
 /*
 We're defining an enumeration type in Microsoft mode.  If a UUID string was
 specified, record it and check that it is consistent with any previous
@@ -3738,9 +3739,8 @@ some configurations, the type is recorded in enum_type.
 {
   an_integer_kind  result = (an_integer_kind)ik_none;
 
-  if (curr_token == tok_colon &&
-      microsoft_mode && microsoft_version >= 1400 && !C_mode()) {
-    a_type_ptr         base_type = NULL;
+  if (curr_token == tok_colon && explicit_enum_base_enabled) {
+    a_type_ptr  base_type = NULL;
     (void)get_token();
     *pos_type = pos_curr_token;
     add_stop_token(tok_lbrace);
@@ -4049,8 +4049,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
     if (curr_token == tok_lbrace) {
       is_definition = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (curr_token == tok_colon &&
-               microsoft_mode && microsoft_version >= 1400) {
+    } else if (curr_token == tok_colon && explicit_enum_base_enabled) {
       /* Recent Microsoft compilers accept a "base specifier" to indicate the
          underlying type of an enum (e.g., "enum E: short { x }"). */
       is_definition = TRUE;
@@ -4119,8 +4118,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
     if (curr_token == tok_lbrace) {
       is_definition = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (curr_token == tok_colon &&
-               microsoft_mode && microsoft_version >= 1400) {
+    } else if (curr_token == tok_colon && explicit_enum_base_enabled) {
       is_definition = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
@@ -4299,10 +4297,10 @@ describes Microsoft attributes preceding the enum specifier (if any).
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && !C_mode()) {
     check_enum_uuid_string(enum_type, &extended_decl_info, &tag_position);
-    if (is_definition) {
-      explicit_base_kind = scan_explicit_enum_base_type(enum_type,
-                                                        &pos_explicit_base);
-    }  /* if */
+  }  /* if */
+  if (explicit_enum_base_enabled && is_definition) {
+    explicit_base_kind = scan_explicit_enum_base_type(enum_type,
+                                                      &pos_explicit_base);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (curr_token == tok_lbrace) {

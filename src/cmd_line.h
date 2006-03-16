@@ -870,6 +870,12 @@ EXTERN a_boolean
 			   or end of switch clause. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+EXTERN a_boolean
+		explicit_enum_base_enabled;
+			/* TRUE if the syntax "enum X: base-type { ... }"
+			   should be accepted.  (This is a Microsoft extension
+			   based on ECMA-372C++/CLI.) */
+
 EXTERN a_calling_convention
 		default_calling_convention;
 			/* The default calling convention.  cc_default is
