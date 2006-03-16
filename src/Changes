@@ -1,5 +1,18 @@
 Version 3.8
 
+3/16/06  GNU compatibility: Attribute "aligned" and bit fields
+
+In GNU C/C++ modes, the front end previously silently ignored the GNU
+attribute "aligned" on bit fields in configurations with
+TARG_BIT_FIELD_CONTAINER_SIZE >= 0.  For example:
+
+  struct S {
+    char c;
+    int x:1 __attribute__ ((aligned (1)));  // Attribute previously ignored.
+  };
+
+This is now fixed:  The alignment value is applied to the bit field container.
+
 3/15/06  C++-generating back end: static_cast operations
 
 Formerly, conversions appearing in the source as static_cast operations were

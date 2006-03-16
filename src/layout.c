@@ -807,6 +807,45 @@ if necessary.
   }  /* if */
 } /* adjust_alignment_for_packing */
 
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean apply_explicit_field_alignment_directive(
+                                                 a_field_ptr       field,
+                                                 a_targ_alignment  *alignment)
+/*
+The given field has a "natural alignment" value of *alignment.  If the field
+was declared with an explicit alignment directive, return TRUE.  If that
+explicit alignment value is valid, update *alignment as needed; if it is
+invalid, the field entry may be updated to reflect a valid value.  If no
+explicit alignment value was specified, return FALSE.
+*/
+{
+  a_boolean   result = FALSE;
+
+  /* If the alignment of this field was explicitly specified, honor that. */
+  if (field->alignment != 0) {
+#if GNU_EXTENSIONS_ALLOWED
+    a_type_ptr  class_type = field->source_corresp.parent.class_type;
+    class_type = skip_typerefs(class_type);
+    if (gnu_mode && field->alignment < *alignment &&
+        !(field->is_packed ||
+          class_type->variant.class_struct_union.is_packed)) {
+      /* GNU C compilers ignore alignment directives that reduce the
+         alignment, unless the packed attribute was also specified. */
+      pos_warning(ec_alignment_reduction_ignored,
+                  &field->source_corresp.decl_position);
+      field->alignment = *alignment;
+    } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    {
+      *alignment = field->alignment;
+    }  /* if */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* apply_explicit_field_alignment_directive */
+
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 static a_targ_alignment alignment_of_field(a_field_ptr  field)
@@ -821,22 +860,9 @@ GNU attributes specified on that field.
   class_type = skip_typerefs(class_type);
 #if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-  /* If the alignment of this field was explicitly specified, honor that. */
-  if (field->alignment != 0) {
-#if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && field->alignment < field_alignment &&
-        !(field->is_packed ||
-          class_type->variant.class_struct_union.is_packed)) {
-      /* GNU C compilers ignore alignment directives that reduce the
-         alignment, unless the packed attribute was also specified. */
-      pos_warning(ec_alignment_reduction_ignored,
-                  &field->source_corresp.decl_position);
-      field->alignment = field_alignment;
-    } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    {
-      field_alignment = field->alignment;
-    }  /* if */
+  if (apply_explicit_field_alignment_directive(field, &field_alignment)) {
+    /* An explicit field alignment was specified.  field_alignment will have
+       been updated as needed.  Nothing more to be done. */
 #if IA64_ABI
   } else if (emulate_gnu_abi_bugs && field->is_bit_field &&
              field->bit_size == 0 && !is_union_type(class_type)) {
@@ -1203,6 +1229,8 @@ targ_microsoft_bit_field_allocation is FALSE.)
              "align_offsets_for_bit_field: bad targ_bit_field_container_size");
 #endif /* CHECKING */
       }  /* if */
+      (void)apply_explicit_field_alignment_directive(field,
+                                                     &container_alignment);
     } else if (targ_bit_field_container_size == 0) {
       /* Use the smallest integral type into which the field will fit as
          the container.  Try first to find such a type for the current
@@ -1263,6 +1291,8 @@ targ_microsoft_bit_field_allocation is FALSE.)
 #endif /* CHECKING */
         }  /* if */
       }  /* if */
+      (void)apply_explicit_field_alignment_directive(field,
+                                                     &container_alignment);
     } else {
       /* targ_bit_field_container_size < 0 */
       /* Always use the base type size.  For the alignment use the base type
@@ -1274,7 +1304,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
       if (emulate_gnu_abi_bugs && container_alignment > container_size) {
         container_size = container_alignment;
       }  /* if */
-#endif /*IA64_ABI */
+#endif /* IA64_ABI */
     }  /* if */
   }  /* if */
 
