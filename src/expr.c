@@ -10646,6 +10646,7 @@ Syntax:
   an_error_code     warning_suggested;
   a_ruled_out_expr_kind_set
                     ruled_out_expr_kinds = ROEK_NONE;
+  an_expr_node_ptr  operand_expression = NULL;
 
   db_enter(4, "scan_static_cast_operator");
   /* Save the position of the static_cast keyword. */
@@ -10672,6 +10673,13 @@ Syntax:
     a_boolean cast_to_void      = is_void_type(type_cast_to);
 
     orig_type_cast_to = type_cast_to;
+    if (is_expression_operand(result)) {
+      operand_expression = result->variant.expression;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    } else if (is_constant_operand(result)) {
+      operand_expression = result->variant.constant.expr;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+    }  /* if */
     /* Check for user-defined conversions and casts to reference type. */
     check_user_defined_conversions_for_cast(type_cast_to, result,
                                             &allow_rvalue_on_rewrite,
@@ -10834,13 +10842,29 @@ Syntax:
   if (err) {
     conv_to_error_operand(result);
   } else if (!ignored) {
+    an_expr_node_ptr result_expression = NULL;
     if (is_expression_operand(result)) {
-      result->variant.expression->is_static_cast = TRUE;
+      result_expression = result->variant.expression;
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-    } else if (is_constant_operand(result) &&
-               result->variant.constant.expr != NULL) {
-      result->variant.constant.expr->is_static_cast = TRUE;
+    } else if (is_constant_operand(result)) {
+      result_expression = result->variant.constant.expr;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+    }  /* if */
+    if (result_expression != NULL &&
+        result_expression != operand_expression &&
+        (result_expression->kind == (an_expr_node_kind)enk_temp_init ||
+         (is_operation_node(result_expression) &&
+          (node_operator_is(result_expression, eok_cast) ||
+           node_operator_is(result_expression, eok_base_class_cast) ||
+           node_operator_is(result_expression, eok_derived_class_cast) ||
+           node_operator_is(result_expression, eok_pm_base_class_cast) ||
+           node_operator_is(result_expression, eok_pm_derived_class_cast) ||
+           node_operator_is(result_expression, eok_lvalue_cast) ||
+           node_operator_is(result_expression, eok_bool_cast) ||
+           node_operator_is(result_expression, eok_static_cast))))) {
+      /* An expression node was created that represents this static_cast:
+         mark it as resulting from a static_cast operation. */
+      result_expression->is_static_cast = TRUE;
     }  /* if */
   }  /* if */
   set_operand_position(result, &start_position, &end_position,

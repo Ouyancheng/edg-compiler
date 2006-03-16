@@ -9665,7 +9665,9 @@ typedef struct an_expr_node {
 			   operation. */
   a_bit_field	is_static_cast:1;
 			/* TRUE if this node represents a static_cast in the
-			   source. */
+			   source.  Set only on enk_temp_init nodes and on
+			   eok_cast and eok_XXX_cast enk_operation nodes;
+			   will be FALSE everywhere else. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */
