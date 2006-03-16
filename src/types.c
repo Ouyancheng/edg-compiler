@@ -5599,10 +5599,11 @@ See conversion_possible.
           std_conv->promotion = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
-        } else if (gpp_mode && is_nonreal_floating_type(source_type) &&
-                   !is_nonreal_floating_type(dest_type)) {
-          /* GNU C++ does not allow _Complex double -> double, for example.
-             C99 and GNU C do allow that conversion. */
+        } else if (gpp_mode &&
+                   is_nonreal_floating_type(source_type) !=
+                                        is_nonreal_floating_type(dest_type)) {
+          /* GNU C++ does not allow _Complex double -> double and vice versa,
+             for example.  C99 and GNU C do allow those conversions. */
           okay = FALSE;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         }  /* if */
