@@ -1,5 +1,14 @@
 Version 3.8
 
+3/17/06  Bug in optimization for pointer-to-member call, IA-64 EABI
+
+The change made to optimize pointer-to-member calls in the IA-64
+ABI (see Changes entry of 12/9/05) wasn't right for configurations
+with IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR set to TRUE
+(e.g., for compatibility with the ARM EABI variant of the IA-64 ABI).
+An incorrect subtraction of one was present in the generated code.
+Now fixed.
+
 3/16/06  GNU compatibility: Attribute "aligned" and bit fields
 
 In GNU C/C++ modes, the front end previously silently ignored the GNU

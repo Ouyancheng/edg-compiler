@@ -10344,13 +10344,18 @@ the expression have already been lowered.
     offset_node = node_to_select_field_from_rvalue(pmf_node, mptr_f_field);
     /* We're using the "f" field of __mptr as a ptrdiff_t. */
     offset_node = add_cast(offset_node, integer_type(targ_ptrdiff_t_int_kind));
+#if !IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR
     /* Subtract 1 to drop the low-order bit that indicates that the
-       function is virtual. */
+       function is virtual.  For the variant for architectures where the
+       low-order bit of the address of a function can be 1, the bit is in
+       the "d" field, so no subtraction is needed -- "f" is simply the
+       offset. */
     offset_node->next = node_for_integer_constant(1L,
                                                   targ_ptrdiff_t_int_kind);
     offset_node = make_operator_node((an_expr_operator_kind)eok_isubtract,
                                      offset_node->type,
                                      offset_node);
+#endif /* !IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
 #endif /* IA64_ABI */
     /* Add the virtual function table address and the offset, giving the
        address of the virtual function table entry, and store that in
