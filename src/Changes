@@ -430,7 +430,7 @@ flag direct_linkage_specifier_on_nondef_decl.  As part of this change, the
 C++-generating back end now generally maintains the form of linkage
 specification used in the source.
 
-2/22/06  TARG_SIZEOF_WCHAR_T
+2/22/06  TARG_SIZEOF_WCHAR_T no longer used
 
 The configuration macro TARG_SIZEOF_WCHAR_T was redundant since the same
 information can be derived from the macro TARG_WCHAR_T_INT_KIND combined
