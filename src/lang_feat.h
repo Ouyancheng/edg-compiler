@@ -1186,6 +1186,17 @@ only used when DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED is TRUE.
 #endif /* DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED */
 
 /*
+The name of the macro to be defined when type traits pseudo-functions (like
+"__is_union"; to ease the implementation of ISO/IEC TR 19768) are accepted.
+In Microsoft mode, the macro is not defined but the pseudo-functions are
+accepted (with slight semantic differences in some cases).
+*/
+#ifndef MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED
+#define MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED                       \
+                                                   "__EDG_TYPE_TRAITS_ENABLED"
+#endif /* ifndef MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED */
+
+/*
 Flag that is TRUE if, in C++ mode, operator keywords (e.g., bitand, compl)
 and digraphs are recognized.  This is the default value for the global
 flag alternative_tokens_allowed, the value of which may also be modified

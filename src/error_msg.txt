@@ -1482,7 +1482,7 @@ ec_bad_qualifier_for_nested_class_decl;;"invalid qualifier for %t (a derived cla
 ec_bad_qualifier_for_delayed_class_definition;;"invalid qualifier for definition of class %t"
 ec_no_prior_push_macro;;"no prior push_macro for %sq"
 ec_wide_string_not_allowed;;"wide string literal not allowed"
-ec_feature_requires_cplusplus;;"%sq is only allowed in C++"
+REMOVED;ec_feature_requires_cplusplus;;"%sq is only allowed in C++"
 ec_feature_requires_c;;"%sq is only allowed in C"
 ec_microsoft_ptr_width_must_follow_star;;"__ptr32 and __ptr64 must follow a \"*\""
 ec_microsoft_ptr_width_conflict;;"__ptr32 and __ptr64 cannot both apply"
@@ -1590,6 +1590,7 @@ ec_cl_uliterals_option_only_in_C;;"option \"--uliterals\" can be used only when 
 ec_parameter_attribute_invalid;;"attribute %sq not allowed on parameter declarations"
 ec_enum_base_type_must_be_integral;;"underlying type of enum type must be an integral type other than bool"
 ec_enum_base_type_too_limited;;"some enumerator constants cannot be represented by %t"
+ec_feature_not_allowed_in_current_mode;;"%sq not allowed in current mode"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

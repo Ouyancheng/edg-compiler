@@ -1185,7 +1185,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
     */
 #if IA64_ABI
    if (field->declared_bit_size != field->bit_size &&
-       /* In some (error) cases, named zero length big fields are given
+       /* In some (error) cases, named zero length bit fields are given
           a bit size of one (error recovery). */
        field->declared_bit_size != 0) {
       /* Handle alignment for bit fields that are too long for their

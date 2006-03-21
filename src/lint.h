@@ -462,28 +462,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_if_exists_not_allowed)*/
 /*lint -esym(769,ec_if_exists_not_closed)*/
 #endif /* !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*lint -esym(769,a_builtin_operation_kind_tag::has_assign)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::has_copy)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::has_nothrow_assign)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::has_nothrow_constructor)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::has_nothrow_copy)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::has_trivial_assign)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::has_trivial_constructor)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::has_trivial_copy)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::has_trivial_destructor)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::has_user_destructor)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::has_virtual_destructor)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::is_abstract)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::is_base_of)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::is_class)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::is_convertible_to)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::is_empty)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::is_enum)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::is_pod)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::is_polymorphic)*/
-/*lint -esym(769,a_builtin_operation_kind_tag::is_union)*/
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #if !GNU_EXTENSIONS_ALLOWED
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_types_compatible)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */

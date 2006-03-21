@@ -283,7 +283,6 @@ typedef enum /*a_token_kind*/ {
   tok_upc_localsizeof,
   tok_upc_elemsizeof,
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   tok_has_assign,
   tok_has_copy,
   tok_has_nothrow_assign,
@@ -304,7 +303,6 @@ typedef enum /*a_token_kind*/ {
   tok_is_pod,
   tok_is_polymorphic,
   tok_is_union,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Token used to indicate keywords that are not yet implemented. */
   tok_unimplemented,
   /* Error token. */
@@ -391,7 +389,6 @@ EXTERN char	*token_names[(int)tok_last+1]
    "upc_wait", "upc_fence", "THREADS", "MYTHREAD", "upc_blocksizeof",
    "upc_localsizeof", "upc_elemsizeof",
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
    "__has_assign",
    "__has_copy",
    "__has_nothrow_assign",
@@ -412,7 +409,6 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__is_pod",
    "__is_polymorphic",
    "__is_union",
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "unimplemented", "error", "removed default arg",
    "last" /* used to check that initialization is right. */
   }
@@ -850,7 +846,6 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_upc_localsizeof */
    (an_opname_kind)onk_none,          /* tok_upc_elemsizeof */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_has_assign */
    (an_opname_kind)onk_none,          /* tok_has_copy */
    (an_opname_kind)onk_none,          /* tok_has_nothrow_assign */
@@ -871,7 +866,6 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_is_pod */
    (an_opname_kind)onk_none,          /* tok_is_polymorphic */
    (an_opname_kind)onk_none,          /* tok_is_union */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_none,          /* tok_error */
    (an_opname_kind)onk_none,          /* tok_removed_default_arg */

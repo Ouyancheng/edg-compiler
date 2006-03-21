@@ -9404,45 +9404,34 @@ typedef enum a_builtin_operation_kind_tag {
      */
   bok_offsetof,		/* Builtin offsetof (currently only available in some
 			   GNU modes).  Two operands: A type and a field. */
-  bok_has_assign,	/* Microsoft __has_assign.  One operand: A type. */
-  bok_has_copy,		/* Microsoft __has_copy.  One operand: A type. */
+  bok_has_assign,	/* __has_assign.  One operand: A type. */
+  bok_has_copy,		/* __has_copy.  One operand: A type. */
   bok_has_nothrow_assign,
-			/* Microsoft __has_nothrow_assign.  One operand: A
-			   type. */
+			/* __has_nothrow_assign.  One operand: A type. */
   bok_has_nothrow_constructor,
-			/* Microsoft __has_nothrow_constructor.  One operand:
-			   A type. */
-  bok_has_nothrow_copy,	/* Microsoft __has_nothrow_copy.  One operand: A
-			   type. */
+			/* __has_nothrow_constructor.  One operand: A type. */
+  bok_has_nothrow_copy,	/* __has_nothrow_copy.  One operand: A type. */
   bok_has_trivial_assign,
-			/* Microsoft __has_trivial_assign.  One operand: A
-			   type. */
+			/* __has_trivial_assign.  One operand: A type. */
   bok_has_trivial_constructor,
-			/* Microsoft __has_trivial_constructor.  One operand:
-			   A type. */
-  bok_has_trivial_copy,	/* Microsoft __has_trivial_copy.  One operand: A
-			   type. */
+			/* __has_trivial_constructor.  One operand: A type. */
+  bok_has_trivial_copy,	/* __has_trivial_copy.  One operand: A type. */
   bok_has_trivial_destructor,
-			/* Microsoft __has_trivial_destructor.  One operand: A
-			   type. */
+			/* __has_trivial_destructor.  One operand: A type. */
   bok_has_user_destructor,
-			/* Microsoft __has_user_destructor.  One operand: A
-			   type. */
+			/* __has_user_destructor.  One operand: A type. */
   bok_has_virtual_destructor,
-			/* Microsoft __has_virtual_destructor.  One operand: A
-			   type. */
-  bok_is_abstract,	/* Microsoft __is_abstract.  One operand: A type. */
-  bok_is_base_of,	/* Microsoft __is_base_of.  Two operands, both
-			   types. */
-  bok_is_class,		/* Microsoft __is_class.  One operand: A type. */
+			/* __has_virtual_destructor.  One operand: A type. */
+  bok_is_abstract,	/* __is_abstract.  One operand: A type. */
+  bok_is_base_of,	/* __is_base_of.  Two operands, both types. */
+  bok_is_class,		/* __is_class.  One operand: A type. */
   bok_is_convertible_to,
-			/* Microsoft __is_convertible_to.  Two operands, both
-			   types. */
-  bok_is_empty,		/* Microsoft __is_empty.  One operand: A type. */
-  bok_is_enum,		/* Microsoft __is_enum.  One operand: A type. */
-  bok_is_pod,		/* Microsoft __is_pod.  One operand: A type. */
-  bok_is_polymorphic,	/* Microsoft __is_polymorphic.  One operand: A type. */
-  bok_is_union,		/* Microsoft __is_union.  One operand: A type. */
+			/* __is_convertible_to.  Two operands, both types. */
+  bok_is_empty,		/* __is_empty.  One operand: A type. */
+  bok_is_enum,		/* __is_enum.  One operand: A type. */
+  bok_is_pod,		/* __is_pod.  One operand: A type. */
+  bok_is_polymorphic,	/* __is_polymorphic.  One operand: A type. */
+  bok_is_union,		/* __is_union.  One operand: A type. */
   bok_types_compatible,	/* GNU __builtin_types_compatible.  Two operands, both
 			   types. */
   bok_last              /* Marks the end of the list. */

@@ -2013,6 +2013,7 @@ process.
     set_c99_mode_flags();
   } /* if */
   elab_type_lookup_finds_typedefs = FALSE;
+  type_traits_helpers_enabled = FALSE;
 }  /* set_c_mode_flags */
 
 
@@ -2749,6 +2750,7 @@ checked again here.)
      specializations. */
   use_microsoft_specialization_scope = TRUE;
   allow_default_arg_on_template_member_definition = TRUE;
+  type_traits_helpers_enabled = FALSE;
 }  /* check_and_set_sun_mode_options */
 
 
@@ -2835,6 +2837,7 @@ exclude the GNU modes already.  Hence those are not checked again here.)
   if (!(option_kind_used[(int)optk_stdc_zero_in_system_headers])) {
     stdc_zero_in_system_headers = DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS;
   }  /* if */
+  type_traits_helpers_enabled = FALSE;
 }  /* check_and_set_gnu_mode_options */
 
 
@@ -5193,6 +5196,7 @@ variables declared in cmd_line.h.
   microsoft_version = DEFAULT_MICROSOFT_VERSION;
   c99_mode = DEFAULT_C99_MODE;
   uliterals_enabled = DEFAULT_ULITERALS_ENABLED;
+  type_traits_helpers_enabled = TRUE;
 }  /* cmd_line_static_var_init */
 
 

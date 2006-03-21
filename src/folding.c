@@ -5066,7 +5066,6 @@ it represents.
   constant->type = expr->type;
 }  /* fold_offsetof */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void fold_is_base_of(an_expr_node_ptr   expr,
                             a_constant_ptr     constant)
@@ -5210,14 +5209,14 @@ expression.
 }  /* fold_is_convertible_to */
 
 
-static void fold_unary_microsoft_type_trait(
+static void fold_unary_type_trait_helper(
                                     an_expr_node_ptr   expr,
                                     a_constant_ptr     constant,
                                     a_source_position  *pos,
                                     a_boolean          complete_class_property)
 /*
-expr is an enk_builtin_operation node representing a Microsoft-specific
-boolean type predicate with a single type operand (e.g., "__is_union").  If
+expr is an enk_builtin_operation node representing a boolean type predicate --
+based on ISO/IEC 19768 -- with a single type operand (e.g., "__is_union").  If
 the operand types is nondependent, store a boolean constant in *constant.  The
 boolean constant will have value "true" if the associated type predicate is
 true for the type represented by its operand.  otherwise, the constant will
@@ -5262,10 +5261,12 @@ tpck_expression variant and will point to the given expression.
     }  /* if */
     switch (kind) {
       case bok_has_assign:
+        /* If there is no copy assignment operator, then __has_assign returns
+           false, but __has_nothrow_assign returns true. */
+        check_assertion(microsoft_mode);
+        /*FALLTHROUGH*/
       case bok_has_nothrow_assign:
         sym = cssp->assignment_operator;
-        /* If there is no copy assignment operator, then __has_assign returns
-           false, but __has_nothrow_copy returns true. */
         result = (kind != (a_builtin_operation_kind)bok_has_assign);
         if (sym == NULL || cssp->assignment_by_bitwise_copy_allowed) {
           /* There is no copy assignment operator. */
@@ -5284,19 +5285,28 @@ tpck_expression variant and will point to the given expression.
               result = (kind == (a_builtin_operation_kind)bok_has_assign ||
                         rp->compiler_generated ||
                         is_nothrow_type(skip_typerefs(rp->type)));
-              /* Microsoft compilers only consider the first declared copy
-                 assignment operator.  Since we store the constructors in
-                 reverse order of declaration, continue the loop in case
-                 another such operator appears on the list. */
+              if (microsoft_mode) {
+                /* Microsoft compilers only consider the first declared copy
+                   assignment operator.  Since we store those operators in
+                   reverse order of declaration, continue the loop in case
+                   another such operator appears on the list. */
+              } else if (!result) {
+                /* If any of the copy-assignment operators may throw an
+                   exception, __has_nothrow_assign should return FALSE (in
+                   non-Microsoft modes). */
+                goto result_known;
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* for */
         break;
       case bok_has_copy:
-      case bok_has_nothrow_copy:
-        sym = cssp->constructor;
         /* If there is no copy constructor, then __has_copy returns false,
            but __has_nothrow_copy returns true. */
+        check_assertion(microsoft_mode);
+        /*FALLTHROUGH*/
+      case bok_has_nothrow_copy:
+        sym = cssp->constructor;
         result = (kind != (a_builtin_operation_kind)bok_has_copy);
         if (sym == NULL || cssp->construction_by_bitwise_copy_allowed) {
           /* There is no copy constructor. */
@@ -5314,10 +5324,17 @@ tpck_expression variant and will point to the given expression.
                                          /*is_declarative_context=*/TRUE)) {
               result = (kind == (a_builtin_operation_kind)bok_has_copy ||
                         rp->compiler_generated || is_nothrow_type(rtp));
-              /* Microsoft compilers only consider the first declared copy
-                 constructor.  Since we store the constructors in reverse order
-                 of declaration, continue the loop in case another copy
-                 constructor appears on the list. */
+              if (microsoft_mode) {
+                /* Microsoft compilers only consider the first declared copy
+                   constructor.  Since we store the constructors in reverse
+                   order of declaration, continue the loop in case another copy
+                   constructor appears on the list. */
+              } else if (!result) {
+                /* If any of the copy-contructors may throw an exception,
+                   __has_nothrow_copy should return FALSE (in non-Microsoft
+                   modes). */
+                goto result_known;
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* for */
@@ -5337,12 +5354,21 @@ tpck_expression variant and will point to the given expression.
           if (sym->kind == (a_symbol_kind)sk_member_function) {
             a_routine_ptr  rp = sym->variant.routine.ptr;
             if (is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {
+              /* There may be more than one default constructor.  E.g.:
+                   struct S { S(int = 0); S(short = 0); };  */
               result = (rp->compiler_generated ||
                         is_nothrow_type(skip_typerefs(rp->type)));
-              /* Microsoft compilers only consider the first declared default
-                 constructor.  Since we store the constructors in reverse order
-                 of declaration, continue the loop in case another default
-                 constructor appears on the list. */
+              if (microsoft_mode) {
+                /* Microsoft compilers only consider the first declared default
+                   constructor.  Since we store the constructors in reverse
+                   order of declaration, continue the loop in case another
+                   default constructor appears on the list. */
+              } else if (!result) {
+                /* If any of the default contructors may throw an exception,
+                   __has_nothrow_constructor should return FALSE (in non-
+                   Microsoft modes). */
+                goto result_known;
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* for */
@@ -5360,6 +5386,7 @@ tpck_expression variant and will point to the given expression.
         result = cssp->destructor == NULL;
         break;
       case bok_has_user_destructor:
+        check_assertion(microsoft_mode);
         result = cssp->destructor != NULL &&
                  !cssp->destructor->variant.routine.ptr->compiler_generated;
         break;
@@ -5408,9 +5435,8 @@ result_known:
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   }  /* if */
   constant->type = expr->type;
-}  /* fold_unary_microsoft_type_trait */
+}  /* fold_unary_type_trait_helper */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
 static void fold_types_compatible(an_expr_node_ptr   expr,
@@ -5494,7 +5520,6 @@ non-NULL diagnostics are issued at the indicated position.
         fold_types_compatible(expr, constant);
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
       case bok_has_assign:
       case bok_has_copy:
       case bok_has_nothrow_assign:
@@ -5510,17 +5535,17 @@ non-NULL diagnostics are issued at the indicated position.
       case bok_is_empty:
       case bok_is_pod:
       case bok_is_polymorphic:
-        /* Various Microsoft single-type operators that cannot be applied
-           to incomplete class types. */
-        fold_unary_microsoft_type_trait(expr, constant, pos,
-                                        /*complete_class_property=*/TRUE);
+        /* Various type trait helpers that require their single argument to be
+           a complete class type. */
+        fold_unary_type_trait_helper(expr, constant, pos,
+                                     /*complete_class_property=*/TRUE);
         break;
       case bok_is_class:
       case bok_is_enum:
       case bok_is_union:
-        /* Various Microsoft single-type operators. */
-        fold_unary_microsoft_type_trait(expr, constant, pos,
-                                        /*complete_class_property=*/FALSE);
+        /* Various type trait helpers that take a single argument. */
+        fold_unary_type_trait_helper(expr, constant, pos,
+                                     /*complete_class_property=*/FALSE);
         break;
       case bok_is_base_of:
         fold_is_base_of(expr, constant);
@@ -5528,7 +5553,6 @@ non-NULL diagnostics are issued at the indicated position.
       case bok_is_convertible_to:
         fold_is_convertible_to(expr, constant);
         break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition();
     }  /* switch */

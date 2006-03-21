@@ -869,6 +869,12 @@ EXTERN a_boolean
 			   have lifetimes that end at end of scope, label,
 			   or end of switch clause. */
 
+EXTERN a_boolean
+		type_traits_helpers_enabled;
+			/* TRUE if support for built-in pseudo-functions (like
+			   __is_union) to help implement ISO/IEC TR 19768 (aka.
+			   "C++ Library TR1") should be enabled. */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_boolean
 		explicit_enum_base_enabled;

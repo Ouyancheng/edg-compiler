@@ -271,6 +271,51 @@ preprocessing directives (i.e., operators like "and").
 }  /* enter_preproc_op_keyword */
 
 
+static void enter_type_traits_helpers(void)
+/*
+Enter the names of "type trait pseudo-functions" as keywords.  They are
+patterned after the similar extensions introduced by Microsoft's Visual
+C++ 8.0.  They provide direct support for the C++ committee's "Library TR1"
+(ISO/IEC TR 19768).  While only supported when type_traits_helpers_enabled
+is TRUE (normally, in most C++ modes), they are recognized and diagnosed as
+errors in other modes.  A few of the pseudo-functions do not correspond to
+any TR 19768 facilities: Those are only recognized in Microsoft modes.
+*/
+{
+  if (microsoft_mode) {
+    enter_keyword((a_token_kind)tok_has_assign, "__has_assign");
+    enter_keyword((a_token_kind)tok_has_copy, "__has_copy");
+    enter_keyword((a_token_kind)tok_has_user_destructor,
+                  "__has_user_destructor");
+  }  /* if */
+  enter_keyword((a_token_kind)tok_has_nothrow_assign,
+                "__has_nothrow_assign");
+  enter_keyword((a_token_kind)tok_has_nothrow_constructor,
+                "__has_nothrow_constructor");
+  enter_keyword((a_token_kind)tok_has_nothrow_copy, "__has_nothrow_copy");
+  enter_keyword((a_token_kind)tok_has_trivial_assign,
+                "__has_trivial_assign");
+  enter_keyword((a_token_kind)tok_has_trivial_constructor,
+                "__has_trivial_constructor");
+  enter_keyword((a_token_kind)tok_has_trivial_copy,
+                "__has_trivial_copy");
+  enter_keyword((a_token_kind)tok_has_trivial_destructor,
+                "__has_trivial_destructor");
+  enter_keyword((a_token_kind)tok_has_virtual_destructor,
+                "__has_virtual_destructor");
+  enter_keyword((a_token_kind)tok_is_abstract, "__is_abstract");
+  enter_keyword((a_token_kind)tok_is_base_of, "__is_base_of");
+  enter_keyword((a_token_kind)tok_is_class, "__is_class");
+  enter_keyword((a_token_kind)tok_is_convertible_to,
+                "__is_convertible_to");
+  enter_keyword((a_token_kind)tok_is_empty, "__is_empty");
+  enter_keyword((a_token_kind)tok_is_enum, "__is_enum");
+  enter_keyword((a_token_kind)tok_is_pod, "__is_pod");
+  enter_keyword((a_token_kind)tok_is_polymorphic, "__is_polymorphic");
+  enter_keyword((a_token_kind)tok_is_union, "__is_union");
+}  /* enter_type_traits_helpers */
+
+
 static void keyword_init(void)
 /*
 Install the keywords in the symbol table.
@@ -443,42 +488,9 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_noop, "__noop");
       enter_keyword((a_token_kind)tok_microsoft_identifier, "__identifier");
     }  /* if */
-    if (microsoft_version >= 1400) {
-      /* The following "type trait pseudo-functions" are only accepted in
-         Microsoft C++ mode.  However, they are recognized (and rejected) in
-         Microsoft C mode. */
-      enter_keyword((a_token_kind)tok_has_assign, "__has_assign");
-      enter_keyword((a_token_kind)tok_has_copy, "__has_copy");
-      enter_keyword((a_token_kind)tok_has_nothrow_assign,
-                    "__has_nothrow_assign");
-      enter_keyword((a_token_kind)tok_has_nothrow_constructor,
-                    "__has_nothrow_constructor");
-      enter_keyword((a_token_kind)tok_has_nothrow_copy, "__has_nothrow_copy");
-      enter_keyword((a_token_kind)tok_has_trivial_assign,
-                    "__has_trivial_assign");
-      enter_keyword((a_token_kind)tok_has_trivial_constructor,
-                    "__has_trivial_constructor");
-      enter_keyword((a_token_kind)tok_has_trivial_copy,
-                    "__has_trivial_copy");
-      enter_keyword((a_token_kind)tok_has_trivial_destructor,
-                    "__has_trivial_destructor");
-      enter_keyword((a_token_kind)tok_has_user_destructor,
-                    "__has_user_destructor");
-      enter_keyword((a_token_kind)tok_has_virtual_destructor,
-                    "__has_virtual_destructor");
-      enter_keyword((a_token_kind)tok_is_abstract, "__is_abstract");
-      enter_keyword((a_token_kind)tok_is_base_of, "__is_base_of");
-      enter_keyword((a_token_kind)tok_is_class, "__is_class");
-      enter_keyword((a_token_kind)tok_is_convertible_to,
-                    "__is_convertible_to");
-      enter_keyword((a_token_kind)tok_is_empty, "__is_empty");
-      enter_keyword((a_token_kind)tok_is_enum, "__is_enum");
-      enter_keyword((a_token_kind)tok_is_pod, "__is_pod");
-      enter_keyword((a_token_kind)tok_is_polymorphic, "__is_polymorphic");
-      enter_keyword((a_token_kind)tok_is_union, "__is_union");
-    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  enter_type_traits_helpers();
   if (gcc_mode && !c99_mode) {
     /* "inline" will already have been entered in C99 mode. */
     enter_keyword((a_token_kind)tok_inline, "inline");

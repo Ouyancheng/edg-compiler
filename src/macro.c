@@ -7294,6 +7294,13 @@ command line -D options.
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
 #endif /* ifdef _M_IX86 */
+  } else if (type_traits_helpers_enabled) {
+    /* Not a Microsoft mode.  Enter a macro to indicate that native type traits
+       helpers are available to ease the implementation of ISO/IEC TR 19768. */
+    (void)enter_predef_macro(
+              "1", MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED,
+              /*cannot_be_redefined=*/TRUE, /*ref_suppresses_pch_file=*/FALSE);
+
   }  /* if */
   /* Enter a predefined macro that can be used to determine that the
      EDG front end is being used. */

@@ -5708,7 +5708,6 @@ work is done by scan_field_selection_operator.
   (void)required_token(tok_rparen, ec_exp_rparen);
 }  /* scan_offsetof */
 
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 static an_expr_node_ptr scan_builtin_operation_arg(an_il_entry_kind  arg_kind)
 /*
@@ -5816,8 +5815,6 @@ the constant cases.)
   (void)required_token(tok_rparen, ec_exp_rparen);
 }  /* scan_call_like_builtin_operation */
 
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void scan_is_base_of(an_operand  *result)
 /*
@@ -5825,15 +5822,14 @@ Scan a constant-expression of the form
       __is_base_of( <typeB> , <typeD> )
 The result is a boolean of value true if typeD is derived from typeB (where
 a class type is always considered to be derived from itself).  This construct
-is a Microsoft extension.
+is meant to help implement ISO/IEC TR 19768.
 */
 {
   a_type_ptr  result_type;
 
-  check_assertion(microsoft_mode);
-  if (C_mode()) {
-    /* __is_base_of is not accepted in C mode. */
-    pos_st_error(ec_feature_requires_cplusplus, &pos_curr_token,
+  if (!type_traits_helpers_enabled) {
+    /* __is_base_of is not accepted in some modes. */
+    pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
                  builtin_operation_names[(int)bok_is_base_of]);
     result_type = integer_type((an_integer_kind)ik_int);
   } else {
@@ -5842,7 +5838,7 @@ is a Microsoft extension.
   scan_call_like_builtin_operation(bok_is_base_of, result_type,
                                    iek_type, iek_type, iek_none,
                                    result);
-  if (C_mode()) {
+  if (!type_traits_helpers_enabled) {
     /* Turn the operand into an error operand to avoid any surprises later
        on. */
     conv_to_error_operand(result);
@@ -5855,15 +5851,14 @@ static void scan_is_convertible_to(an_operand  *result)
 Scan a constant-expression of the form
       __is_convertible_to( <typeA> , <typeB> )
 The result is a boolean of value true if typeA is "implicitly convertible to"
-typeB.  This construct is a Microsoft extension.
+typeB.  This construct is meant to help implement ISO/IEC TR 19768.
 */
 {
   a_type_ptr  result_type;
 
-  check_assertion(microsoft_mode);
-  if (C_mode()) {
-    /* __is_convertible_to is not accepted in C mode. */
-    pos_st_error(ec_feature_requires_cplusplus, &pos_curr_token,
+  if (!type_traits_helpers_enabled) {
+    /* __is_convertible_to is not accepted in some modes. */
+    pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
                  builtin_operation_names[(int)bok_is_convertible_to]);
     result_type = integer_type((an_integer_kind)ik_int);
   } else {
@@ -5871,7 +5866,7 @@ typeB.  This construct is a Microsoft extension.
   }  /* if */
   scan_call_like_builtin_operation(bok_is_convertible_to, result_type,
                                    iek_type, iek_type, iek_none, result);
-  if (C_mode()) {
+  if (!type_traits_helpers_enabled) {
     /* Turn the operand into an error operand to avoid any surprises later
        on. */
     conv_to_error_operand(result);
@@ -5879,19 +5874,19 @@ typeB.  This construct is a Microsoft extension.
 }  /* scan_is_convertible_to */
 
 
-static void scan_unary_microsoft_type_trait(an_operand  *result)
+static void scan_unary_type_trait_helper(an_operand  *result)
 /*
 Scan a constant-expression of the form
       __trait_keyword( <type> )
 The result is a boolean of value true if <type> satisfies a predicate
 corresponding to the __trait_keyword (the latter is the current token).
-(Examples "trait keywords" include "__is_union" and "__has_user_destructor".)
+(Example "trait keywords" include "__is_union" and "__has_user_destructor".
+These help implement the type traits suggested in ISO/IEC TR 19768.)
 */
 {
   a_type_ptr                    result_type;
   a_builtin_operation_kind_tag  bok;
 
-  check_assertion(microsoft_mode);
   switch (curr_token) {
     case tok_has_assign:              bok = bok_has_assign; break;
     case tok_has_copy:                bok = bok_has_copy; break;
@@ -5914,9 +5909,9 @@ corresponding to the __trait_keyword (the latter is the current token).
     default:
       unexpected_condition();
   }  /* switch */
-  if (C_mode()) {
-    /* These pseudo-functions are not accepted in C mode. */
-    pos_st_error(ec_feature_requires_cplusplus, &pos_curr_token,
+  if (!type_traits_helpers_enabled) {
+    /* These pseudo-functions are not accepted in this mode. */
+    pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
                  builtin_operation_names[(int)bok]);
     result_type = integer_type((an_integer_kind)ik_int);
   } else {
@@ -5925,14 +5920,13 @@ corresponding to the __trait_keyword (the latter is the current token).
   scan_call_like_builtin_operation(bok, result_type,
                                    iek_type, iek_none, iek_none,
                                    result);
-  if (C_mode()) {
+  if (!type_traits_helpers_enabled) {
     /* Turn the operand into an error operand to avoid any surprises later
        on. */
     conv_to_error_operand(result);
   }  /* if */
-}  /* scan_unary_microsoft_type_trait */
+}  /* scan_unary_type_trait_helper */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
 static void scan_builtin_types_compatible(an_operand  *result)
@@ -17181,7 +17175,6 @@ see expr.h).
       scan_offsetof(&local_result);
       break;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_has_assign:
     case tok_has_copy:
     case tok_has_nothrow_assign:
@@ -17200,18 +17193,17 @@ see expr.h).
     case tok_is_pod:
     case tok_is_polymorphic:
     case tok_is_union:
-      /* Various Microsoft single-type operators. */
-      scan_unary_microsoft_type_trait(&local_result);
+      /* Various single-type unary traits helpers. */
+      scan_unary_type_trait_helper(&local_result);
       break;
     case tok_is_base_of:
-      /* Microsoft __is_base_of construct: */
+      /* __is_base_of construct: */
       scan_is_base_of(&local_result);
       break;
     case tok_is_convertible_to:
-      /* Microsoft __is_convertible_to construct: */
+      /* __is_convertible_to construct: */
       scan_is_convertible_to(&local_result);
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if GNU_EXTENSIONS_ALLOWED
     case tok_builtin_types_compatible:
