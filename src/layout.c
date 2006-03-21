@@ -1229,8 +1229,10 @@ targ_microsoft_bit_field_allocation is FALSE.)
              "align_offsets_for_bit_field: bad targ_bit_field_container_size");
 #endif /* CHECKING */
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       (void)apply_explicit_field_alignment_directive(field,
                                                      &container_alignment);
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (targ_bit_field_container_size == 0) {
       /* Use the smallest integral type into which the field will fit as
          the container.  Try first to find such a type for the current
@@ -1291,8 +1293,10 @@ targ_microsoft_bit_field_allocation is FALSE.)
 #endif /* CHECKING */
         }  /* if */
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       (void)apply_explicit_field_alignment_directive(field,
                                                      &container_alignment);
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* targ_bit_field_container_size < 0 */
       /* Always use the base type size.  For the alignment use the base type
