@@ -11500,6 +11500,7 @@ the temporary.
       do_class_object_adjustment(operand, dest_type, conversion);
     } else {
       /* Nonclass case. */
+      an_expr_node_ptr conv_function_call_node = operand->variant.expression;
       if (!conversion->result_is_an_lvalue || 
           conversion->std.nontrivial_conversion) {
         /* The caller will not accept an lvalue, or a standard conversion
@@ -11514,6 +11515,14 @@ the temporary.
                      /*is_implicit_cast=*/!is_explicit_cast,
                      /*is_reinterpret_cast=*/FALSE,
                      /*reinterpret_semantics=*/FALSE);
+        if (is_explicit_cast && operand->variant.expression !=
+                                                     conv_function_call_node) {
+          /* If there's a cast on top of the conversion function call, that is
+             the explicit conversion; the conversion function call is an
+             implicit side effect of that cast and should be marked as
+             compiler-generated. */
+          conv_function_call_node->variant.operation.compiler_generated = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   } else {

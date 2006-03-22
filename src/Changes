@@ -1,5 +1,25 @@
 Version 3.8
 
+3/22/06  C++-generating back end: conversion function calls
+
+In a cast that invokes a user-defined conversion function but in which the
+target type is different from the type returned by the conversion function,
+the C++-generating back end generated the conversion function call as an
+explicit cast, in addition to the cast to the ultimate target type.  Such
+conversion function calls are now marked as compiler-generated and thus
+omitted from the generated code.  For example:
+
+  typedef char Arr[1];
+
+  struct S {
+    operator Arr& ( );
+  };
+
+  char *f() {
+    static S s;
+    return (char*) s;  // Formerly generated as (char *)(((Arr &)s))
+  }
+
 3/21/06  Support for type traits (ISO/IEC TR 19768)
 
 In most C++ modes -- the exceptions are GNU and Sun C++ modes -- the front end
