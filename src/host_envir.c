@@ -249,25 +249,20 @@ static char *mbc_memchr(char		*str,
 			sizeof_t	size)
 /*
 This is a version of the memchr routine that also works properly for strings
-containing multibyte characters when multibyte_chars_in_source_enabled is
-TRUE (otherwise is just calls memchr).  Return the first occurrence of chr
+containing multibyte characters.  Return the first occurrence of chr
 in the first size bytes of str, or NULL if chr is not found.
 */
 {
   char	*result = NULL;
+  char	*p;
+  char	*end = str + size - 1;
 
-  if (multibyte_chars_in_source_enabled) {
-    char	*p;
-    char	*end = str + size - 1;
-    for (p = str; p <= end; increment_mbc_ptr(p)) {
-      if (*p == chr) {
-        result = p;
-        break;
-      }  /* if */
-    }  /* for */
-  } else {
-    result = memchr(str, chr, size);
-  }  /* if */
+  for (p = str; p <= end; increment_mbc_ptr(p)) {
+    if (*p == chr) {
+      result = p;
+      break;
+    }  /* if */
+  }  /* for */
   return result;
 }  /* mbc_memchr */
 
@@ -277,24 +272,19 @@ char *mbc_strchr(char	*str,
                  int	chr)
 /*
 This is a version of the strchr routine that also works properly for strings
-containing multibyte characters when multibyte_chars_in_source_enabled is
-TRUE (otherwise is just calls strchr).  Return the first occurrence of chr
+containing multibyte characters.  Return the first occurrence of chr
 in str, or NULL if chr does not occur in str.
 */
 {
   char	*result = NULL;
+  char	*p;
 
-  if (multibyte_chars_in_source_enabled) {
-    char	*p;
-    for (p = str; *p != '\0'; increment_mbc_ptr(p)) {
-      if (*p == chr) {
-        result = p;
-        break;
-      }  /* if */
-    }  /* for */
-  } else {
-    result = strchr(str, chr);
-  }  /* if */
+  for (p = str; *p != '\0'; increment_mbc_ptr(p)) {
+    if (*p == chr) {
+      result = p;
+      break;
+    }  /* if */
+  }  /* for */
   return result;
 }  /* mbc_strchr */
 
@@ -303,21 +293,16 @@ static char *mbc_strrchr(char	*str,
                          int	chr)
 /*
 This is a version of the strrchr routine that also works properly for strings
-containing multibyte characters when multibyte_chars_in_source_enabled is
-TRUE (otherwise is just calls strrchr).  Return the last occurrence of chr
+containing multibyte characters.  Return the last occurrence of chr
 in str, or NULL if chr does not occur in str.
 */
 {
   char	*result = NULL;
+  char	*p;
 
-  if (multibyte_chars_in_source_enabled) {
-    char	*p;
-    for (p = str; *p != '\0'; increment_mbc_ptr(p)) {
-      if (*p == chr) result = p;
-    }  /* for */
-  } else {
-    result = strrchr(str, chr);
-  }  /* if */
+  for (p = str; *p != '\0'; increment_mbc_ptr(p)) {
+    if (*p == chr) result = p;
+  }  /* for */
   return result;
 }  /* mbc_strrchr */
 
@@ -333,25 +318,21 @@ a string is truncated, it is done on a multibyte character boundary.
 */
 {
   sizeof_t	result = length;
+  char		*ptr;
+  sizeof_t	last_len;
+  sizeof_t	curr_len;
 
-  if (multibyte_chars_in_source_enabled) {
-    /* When not using multibyte characters, the specified length is just
-       returned. */
-    char		*ptr;
-    sizeof_t	last_len;
-    sizeof_t	curr_len;
-    for (ptr = str; *ptr != '\0';
-         last_len = curr_len, increment_mbc_ptr(ptr)) {
-      curr_len = ptr - str + mbc_length_simple(ptr);
-      if (curr_len == length) {
-        result = length;
-        break;
-      } else if (curr_len > length) {
-        result = last_len;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
+  for (ptr = str; *ptr != '\0';
+       last_len = curr_len, increment_mbc_ptr(ptr)) {
+    curr_len = ptr - str + mbc_length_simple(ptr);
+    if (curr_len == length) {
+      result = length;
+      break;
+    } else if (curr_len > length) {
+      result = last_len;
+      break;
+    }  /* if */
+  }  /* for */
   return result;
 }  /* truncate_length_to_whole_characters */
 
