@@ -66,7 +66,7 @@ ABI (see Changes entry of 12/9/05) wasn't right for configurations
 with IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR set to TRUE
 (e.g., for compatibility with the ARM EABI variant of the IA-64 ABI).
 An incorrect subtraction of one was present in the generated code.
-Now fixed.
+Now fixed.  [Patch sent out 3/23/06.]
 
 3/16/06  GNU compatibility: Attribute "aligned" and bit fields
 
@@ -101,7 +101,7 @@ update_dll_info_for_routine or update_dll_info_for_variable).  For example:
   namespace N2 { extern "C" __declspec(dllimport) void f(); }
     // Previously could trigger an internal error in decls.c.
 
-This is now fixed.
+This is now fixed.  [Patch sent out 3/23/06.]
 
 3/14/06  GNU C++ compatibility: argument-dependent lookup and extern "C"
          functions
@@ -135,7 +135,7 @@ a GNU complex projection operator (__real__ or __imag__).
     return __imag__ z;                // "set but never used".
   }
 
-This is now fixed.
+This is now fixed.  [Patch sent out 3/23/06.]
 
 3/14/06  GNU complex conjugate operation incorrect for complex constants
 
@@ -145,7 +145,7 @@ complex conjugation ("~") operator.  For example:
   __complex__ double z = ~(1.0+2.0i);  // Previously set z to -2.0i instead of
                                        // 1.0-2.0i.
 
-This is now fixed.
+This is now fixed.  [Patch sent out 3/23/06.]
 
 3/9/06   Expressions in runtime sizeof operations
 
@@ -162,6 +162,8 @@ end.  This has now been fixed.  For example:
                           // "sizeof(char (*)[6])", now as "sizeof(char [6])"
   }
 
+[Patch sent out 3/23/06.]
+
 3/9/06   GNU C++ compatibility: Conversions between complex and real types
 
 Previously, the front end silently accepted implicit conversions between
@@ -175,7 +177,7 @@ permitted.  (They remain valid in C99 and GNU C modes.)  For example:
 
 The front end incorrectly defined the builtin functions __builtin_cabs and
 __builtin_carg as returning complex types.  This is now corrected (they take
-a complex argument, but return a real value).
+a complex argument, but return a real value).  [Patch sent out 3/23/06.]
 
 3/7/06   Microsoft/GNU C++ compatibility: Name linkage and block-extern
          declarations
@@ -221,7 +223,7 @@ For example:
   void f() { __declspec(dllexport) int g(); }
   __declspec(dllexport) int g();  // Previously triggered an internal error.
 
-This is now fixed.
+This is now fixed.  [Patch sent out 3/23/06.]
 
 3/7/06   GNU C++ compatibility: using-directives and multiple
          extern "C" functions
@@ -279,7 +281,8 @@ However, it also causes those compilers to reject code like this:
     f1(p);
   }
 
-We now emulate this behavior in Microsoft and g++ modes.
+We now emulate this behavior in Microsoft and g++ modes.  [Patch sent
+out 3/23/06.]
 
 3/3/06   C++-generating back end: unneeded qualification in
          elaborated-type-specifiers
@@ -385,7 +388,7 @@ the C-generating back end.  For example:
     1.0+2.0i;  // Produced invalid C code when compiled in GNU C++ mode.
   }
 
-This is now fixed.
+This is now fixed.  [Patch sent out 3/23/06.]
 
 2/28/06  GNU compatibility: Duplicate parameter names
 
@@ -427,7 +430,7 @@ entries:
     1.0+2.0*__I__;  // Requires orphan entry of type an_internal_complex_value
   }                 // which was previously incorrectly written to the IL file.
 
-This is now fixed.
+This is now fixed.  [Patch sent out 3/23/06.]
 
 2/27/06  Lowering of VLAs and "referenced" flag
 
@@ -445,7 +448,7 @@ library.  For example:
 
 When GNU_EXTENSIONS_ALLOWED is TRUE, the file sys_predef.c failed to compile
 using the Microsoft C compiler in its default mode (i.e., with extensions
-enabled).  This is now fixed.
+enabled).  This is now fixed.  [Patch sent out 3/23/06.]
 
 2/27/06  Internal error on invalid string literal initializer
 
@@ -581,7 +584,7 @@ example:
 A change in version 3.7 could result in the use of a pointer to IL memory
 that has already been freed, when the front end is configured with
 COMPILE_MULTIPLE_SOURCE_FILES == TRUE.  The reference occurred in
-compare_include_search_result.  Now fixed.
+compare_include_search_result.  Now fixed.  [Patch sent out 3/23/06.]
 
 2/14/06  U-literals (char16_t and char32_t)
 
@@ -665,6 +668,7 @@ preinclude files.  If the last line of the preinclude file was not
 a preprocessing directive, it was emitted in the preprocessed output.
 In addition, the output lacked a #line directive to mark the beginning
 of output associated with the primary source file.  Now fixed.
+[Patch sent out 3/23/06.]
 
 2/9/06   Abort in gen_goto_cleanup_actions, lowering of goto within switch
 
@@ -672,7 +676,8 @@ IL lowering aborted in gen_goto_cleanup_actions ("common lifetime not
 found in curr lifetime parents") in a case involving a switch statement,
 a case within that switch that includes a label and a destructible
 temporary and ends with a break, and following that (still within the
-switch) a goto to a label at the same level.  Now fixed.
+switch) a goto to a label at the same level.  Now fixed.  [Patch sent
+out 3/23/06.]
 
   struct A {
     A(int);
@@ -720,7 +725,8 @@ in GNU C++ 3.4).  For example, assuming a typical 32-bit platform:
 2/3/06   Microsoft compatibility: uninitialized variable in push/pop_macro
 
 A variable in symbol_header_for_macro_push_or_pop was not set in some
-cases, which could result in spurious errors.  Now fixed.
+cases, which could result in spurious errors.  Now fixed.  [Patch sent
+out 3/23/06.]
 
 2/2/06   GNU compatibility: Attributes on out-of-class member definitions
 
@@ -851,7 +857,8 @@ the second instantiation context line:
 A change made in version 3.5 caused the bodies of explicitly specialized
 extern inline template functions to be included in the IL even if they
 are unreferenced, which increased the size of object files.  This
-has now been reversed.  See Changes entry of 9/14/04.
+has now been reversed.  See Changes entry of 9/14/04.  [Patch sent out
+3/23/06.]
 
 1/26/06  GNU/Microsoft C++ compatibility: Delayed nested class definitions in
          class scopes
@@ -875,7 +882,7 @@ must appear in a parent class of the class being defined.  For example:
 1/26/06  Casts in constant expressions in g++ mode not seen as lvalue casts
 
 The change of 9/15/05 to GNU C++ lvalue casts broke some cases like the
-following.  Now fixed again.
+following.  Now fixed again.  [Patch sent out 3/23/06.]
 
   struct S {
     static const int x = 0;
@@ -900,7 +907,7 @@ compilers also provide in their normal C++ modes.
 
 A change made in version 3.7 to defer function prototype instantiations
 in g++ mode (when gnu_version is >= 30400) resulted in spurious errors
-in certain cases.  Now fixed.
+in certain cases.  Now fixed.  [Patch sent out 3/23/06.]
 
   template <typename T> struct A {};
   template<typename T1, typename T2> int operator-(const A<T1>&, const A<T2>&);
@@ -955,7 +962,7 @@ typedef could result in an abort in function "obtain_format_string_from_arg"
     p(f());  // Previously resulted in an abort.
   }
 
-This is now fixed.
+This is now fixed.  [Patch sent out 3/23/06.]
 
 1/20/06  Abort on certain template cases with multiple translation units
 
@@ -1002,7 +1009,7 @@ For example:
     X<typeof(int)>  x(1);  // With "--g++ --xref outfile" the instantiation of
   }                        // X<typeof(int)> previously triggered an abort.
 
-This is now fixed.
+This is now fixed.  [Patch sent out 3/23/06.]
 
 1/17/06  Optimization on IA-64 array delete code generation
 
@@ -1049,7 +1056,8 @@ This is now fixed.
 Version 3.7 introduced a problem in the processing of in-class specializations
 (in Microsoft mode) and friend declarations (Microsoft and GNU modes)
 of function templates that could result in spurious errors (or an internal
-error if using INSTANTIATE_EXTERN_INLINE).  Now fixed.
+error if using INSTANTIATE_EXTERN_INLINE).  Now fixed.  [Patch sent
+out 3/23/06.]
 
   template <class T> struct A {
     A() { }
