@@ -441,8 +441,9 @@ library.  For example:
 
 2/27/06  Build error with Microsoft C compiler
 
-In its default mode (extensions enabled) the Microsoft C compiler failed to
-compile sys_predef.c when GNU_EXTENSIONS_ALLOWED was TRUE.  This is now fixed.
+When GNU_EXTENSIONS_ALLOWED is TRUE, the file sys_predef.c failed to compile
+using the Microsoft C compiler in its default mode (i.e., with extensions
+enabled).  This is now fixed.
 
 2/27/06  Internal error on invalid string literal initializer
 
