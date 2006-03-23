@@ -396,6 +396,8 @@ Flags to be set when using the KAI inliner.
 #define TARG_SIZEOF_LONG_DOUBLE 16
 #define TARG_ALIGNOF_LONG_DOUBLE 8
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
+/* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
+#define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
 #define HOST_ALIGNMENT_REQUIRED 4
@@ -620,6 +622,8 @@ Flags to be set when using the KAI inliner.
 #define TARG_SIZEOF_LONG_DOUBLE 12
 #define TARG_ALIGNOF_LONG_DOUBLE 4
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_unsigned_short)
+/* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
+#define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_SHORT
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
 #define HOST_ALIGNMENT_REQUIRED 8
@@ -652,6 +656,8 @@ Flags to be set when using the KAI inliner.
 #define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY 0
 #define NEW_CAN_BE_FOLDED_INTO_CTOR 0
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
+/* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
+#define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 #define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED 1
 #define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 0
 #define PRAGMA_WEAK_ALLOWED 1
