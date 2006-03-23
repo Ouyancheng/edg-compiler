@@ -1147,6 +1147,14 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  add_option_description(optk_type_traits_helpers,
+                         "type_traits_helpers",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_type_traits_helpers,
+                         "no_type_traits_helpers",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2013,6 +2021,9 @@ process.
     set_c99_mode_flags();
   } /* if */
   elab_type_lookup_finds_typedefs = FALSE;
+  if (option_kind_used[(int)optk_type_traits_helpers]) {
+    command_line_error(ec_cl_type_traits_helpers_option_only_in_cplusplus);
+  }  /* if */
   type_traits_helpers_enabled = FALSE;
 }  /* set_c_mode_flags */
 
@@ -2750,7 +2761,9 @@ checked again here.)
      specializations. */
   use_microsoft_specialization_scope = TRUE;
   allow_default_arg_on_template_member_definition = TRUE;
-  type_traits_helpers_enabled = FALSE;
+  if (!option_kind_used[(int)optk_type_traits_helpers]) {
+    type_traits_helpers_enabled = FALSE;
+  }  /* if */
 }  /* check_and_set_sun_mode_options */
 
 
@@ -2837,7 +2850,9 @@ exclude the GNU modes already.  Hence those are not checked again here.)
   if (!(option_kind_used[(int)optk_stdc_zero_in_system_headers])) {
     stdc_zero_in_system_headers = DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS;
   }  /* if */
-  type_traits_helpers_enabled = FALSE;
+  if (!option_kind_used[(int)optk_type_traits_helpers]) {
+    type_traits_helpers_enabled = FALSE;
+  }  /* if */
 }  /* check_and_set_gnu_mode_options */
 
 
@@ -4339,6 +4354,10 @@ enable_microsoft_mode:
         }  /* if */
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case optk_type_traits_helpers:
+        /* Enable or disable __is_union, has_virtual_destructor, etc. */
+        type_traits_helpers_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

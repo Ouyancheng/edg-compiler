@@ -40,15 +40,17 @@ a boolean constant-expression.  For example:
   int a[__is_class(S)];             // Okay.  Same as "int a[1];".
   int b[__has_user_destructor(S)];  // Okay in Microsoft C++ mode only.
 
-These extensions are not accepted in Sun and GNU C++ modes to avoid potential
-conflicts with future versions of the Sun and GNU compilers (e.g., if they end
-up using slight variants of these constructs).  In non-Microsoft C++ modes, a
-macro is predefined by the front end if the pseudo-functions are accepted.
-The macro's name is configured through the front end configuration macro
-MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED, whose default value is
-"__EDG_TYPE_TRAITS_ENABLED".  In Microsoft C++ mode, this macro is not
-predefined and some of the pseudo-functions have slightly different meanings.
-For example:
+By default, these extensions are not accepted in Sun and GNU C++ modes to
+avoid potential conflicts with future versions of the Sun and GNU compilers
+(e.g., if they end up using slight variants of these constructs).  This can
+be overridden using the command-line option --type_traits_helpers.  Conversely,
+in the other C++ modes, --no_type_traits_helpers disables the extensions.
+In non-Microsoft C++ modes, a macro is predefined by the front end if the
+pseudo-functions are accepted.  The macro's name is configured through the
+front end configuration macro MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED,
+whose default value is "__EDG_TYPE_TRAITS_ENABLED".  In Microsoft C++ mode,
+this macro is not predefined and some of the pseudo-functions have slightly
+different meanings.  For example:
 
   struct X {
     X(X &) throw();
