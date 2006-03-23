@@ -18,7 +18,7 @@ version.h -- Front end version number.
 Definition of the version number of this version.  It is made a separate
 file to make updates easy.
 */
-#define VERSION_NUMBER "3.7"  /* January 12, 2005. */
+#define VERSION_NUMBER "3.7.1"  /* March 23, 2006. */
 
 /*
 Version number used to set a predefined macro that expands to the
