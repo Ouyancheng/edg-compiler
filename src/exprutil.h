@@ -1135,7 +1135,8 @@ extern void make_function_call(an_expr_node_ptr  function_node,
                                a_boolean         found_through_adl,
                                a_boolean         uses_operator_syntax,
                                a_source_position *call_pos,
-                               an_operand        *result);
+                               an_operand        *result,
+                               an_expr_node_ptr  *function_call_node);
 
 extern void assemble_function_call(an_operand        *function_operand,
                                    an_operand        *bound_function_selector,

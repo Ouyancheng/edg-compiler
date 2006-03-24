@@ -11466,6 +11466,8 @@ the temporary.
   } else if (conversion_routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
     /* Conversion function. */
+    an_expr_node_ptr conv_function_call_node;
+
     set_up_for_conversion_function_call(operand, conversion_routine,
                                         conversion->routine_symbol,
                                         &arg_expr_list);
@@ -11483,7 +11485,8 @@ the temporary.
                        /*arg_dep_lookup_suppressed=*/FALSE,
                        /*found_through_adl=*/FALSE,
                        /*uses_operator_syntax=*/FALSE,
-                       &orig_operand.position, operand);
+                       &orig_operand.position, operand,
+                       &conv_function_call_node);
     if (dest_type == NULL) {
       /* No specified destination type.  The result type of the conversion
          function is what we want. */
@@ -11500,7 +11503,6 @@ the temporary.
       do_class_object_adjustment(operand, dest_type, conversion);
     } else {
       /* Nonclass case. */
-      an_expr_node_ptr conv_function_call_node = operand->variant.expression;
       if (!conversion->result_is_an_lvalue || 
           conversion->std.nontrivial_conversion) {
         /* The caller will not accept an lvalue, or a standard conversion
@@ -11511,12 +11513,15 @@ the temporary.
       }  /* if */
       /* Do any necessary standard or trivial conversion. */
       if (is_an_rvalue(operand)) {
+        an_expr_node_ptr before_cast = (is_expression_operand(operand)) ?
+                                            operand->variant.expression : NULL;
         cast_operand(dest_type, operand, /*check_cast_access=*/TRUE,
                      /*is_implicit_cast=*/!is_explicit_cast,
                      /*is_reinterpret_cast=*/FALSE,
                      /*reinterpret_semantics=*/FALSE);
-        if (is_explicit_cast && operand->variant.expression !=
-                                                     conv_function_call_node) {
+        if (is_explicit_cast && conv_function_call_node != NULL &&
+            is_expression_operand(operand) &&
+            operand->variant.expression != before_cast) {
           /* If there's a cast on top of the conversion function call, that is
              the explicit conversion; the conversion function call is an
              implicit side effect of that cast and should be marked as

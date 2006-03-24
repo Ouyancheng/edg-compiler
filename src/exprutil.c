@@ -8364,7 +8364,8 @@ static an_expr_node_ptr func_call_expr(
                                    a_boolean         arg_dep_lookup_suppressed,
                                    a_boolean         found_through_adl,
                                    a_boolean         uses_operator_syntax,
-                                   a_source_position *err_pos)
+                                   a_source_position *err_pos,
+                                   an_expr_node_ptr  *function_call_node)
 /*
 Make an expression for a call of the function indicated by function_node,
 whose type is function_type, and which is virtual if is_virtual is TRUE or
@@ -8386,7 +8387,10 @@ was suppressed on the call.  found_through_adl is TRUE if the call
 was resolved only through argument-dependent lookup (i.e., ordinary
 lookup did not yield the called function).  uses_operator_syntax is TRUE when
 a call to an overloaded operator is the result of operator notation ("a+b")
-rather than an explicit function call.
+rather than an explicit function call.  If non-NULL, function_call_node is
+the address of an expression node pointer that will be set to point to the
+actual call node itself (which might be below the node returned because of
+transformations on the return value).
 */
 {
   an_expr_operator_kind         op;
@@ -8397,6 +8401,9 @@ rather than an explicit function call.
   a_dynamic_init_ptr            dip;
   a_routine_ptr                 rp;
 
+  if (function_call_node != NULL) {
+    *function_call_node = NULL;
+  }  /* if */
   function_type = skip_typerefs(function_type);
   /* See if we know which function is being called. */
   rp = routine_from_function_expr(function_node);
@@ -8441,6 +8448,9 @@ rather than an explicit function call.
   }  /* if */
   /* Make an expression for the function call. */
   call_node = make_operator_node(op, return_type, function_node);
+  if (function_call_node != NULL) {
+    *function_call_node = call_node;
+  }  /* if */
   call_node->variant.operation.compiler_generated = compiler_generated;
   call_node->variant.operation.is_conversion_call = is_conversion;
   call_node->variant.operation.arg_dependent_lookup_suppressed_on_call =
@@ -8481,7 +8491,8 @@ void make_function_call(an_expr_node_ptr  function_node,
                         a_boolean         found_through_adl,
                         a_boolean         uses_operator_syntax,
                         a_source_position *call_pos,
-                        an_operand        *result)
+                        an_operand        *result,
+                        an_expr_node_ptr  *function_call_node)
 /*
 Make an operand for a call of the function indicated by function_node, whose
 type is function_type, and which is virtual if is_virtual is TRUE or
@@ -8497,7 +8508,10 @@ suppressed on the call.  found_through_adl is TRUE if the call was
 resolved only through argument-dependent lookup (i.e., ordinary lookup did not
 yield the called function).  uses_operator_syntax is TRUE when a call to an
 overloaded operator is the result of operator notation ("a+b") rather than an
-explicit function call.  *call_pos gives the source position of the call.
+explicit function call.  *call_pos gives the source position of the call.  If
+non-NULL, function_call_node is the address of an expression node pointer that
+will be set to point to the actual call node itself (which might be below the
+expression in the result because of transformations on the return value).
 */
 {
   an_expr_node_ptr call_node;
@@ -8509,7 +8523,7 @@ explicit function call.  *call_pos gives the source position of the call.
                              virtual_suppressed, compiler_generated,
                              is_conversion, arg_dep_lookup_suppressed,
                              found_through_adl, uses_operator_syntax,
-                             call_pos);
+                             call_pos, function_call_node);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, call_node->type, result);
   result->position = *call_pos;
@@ -8622,7 +8636,8 @@ overall call is constructed in *result.
                        (a_boolean)function_operand->is_qualified_name,
                        compiler_generated, is_conversion,
                        arg_dep_lookup_suppressed, found_through_adl,
-                       uses_operator_syntax, call_position, result);
+                       uses_operator_syntax, call_position, result,
+                       /*function_call_node=*/(an_expr_node_ptr *)NULL);
   }  /* if */
   result->position = *call_position;
 }  /* assemble_function_call */
@@ -8689,7 +8704,8 @@ intended to be called from outside of the expression routines.
                         /*arg_dep_lookup_suppressed=*/FALSE,
                         /*found_through_adl=*/FALSE,
                         /*uses_operator_syntax=*/FALSE,
-                        err_pos);
+                        err_pos,
+                        /*function_call_node=*/(an_expr_node_ptr *)NULL);
   node = wrap_up_full_expression(node);
   /* Allocate the statement. */
   stmt = alloc_expr_statement(node);
