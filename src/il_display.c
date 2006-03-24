@@ -1269,6 +1269,9 @@ Display a_routine_type_supplement.
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   disp_long("fmt_arg", ptr->fmt_arg);
+  if (ptr->sentinel_pos != 0) {
+    disp_long("sentinel_pos", ptr->sentinel_pos);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   disp_name("calling_convention");

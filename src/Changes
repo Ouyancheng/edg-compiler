@@ -1,5 +1,26 @@
 Version 3.8
 
+3/24/06  GNU compatibility: Attribute "sentinel"
+
+In GNU modes, the front end now supports attribute "sentinel".  This attribute
+can only appear on function types with an ellipsis parameter.  It takes an
+optional integer argument that represents a position in an argument list: The
+last position is zero, the one before that is one, etc.  If a call of a routine
+with that type does not have a constant null pointer argument at the indicated
+position, a warning is emitted.  A warning is also issued if there aren't
+enough arguments for a sentinel.   (If the position is omitted, it is assumed
+to be zero.)  For example:
+
+  void f1(int, ...)  __attribute__((sentinel));
+  void f2(int*, ...)  __attribute__((sentinel(2)));
+  int main() {
+    f1(0, 0);           // Warning: Last argument (sentinel) is not a constant
+                        // null pointer.
+    f1(0, (void*)0);    // Okay.
+    f2((int*)0, 1, 2);  // Okay.
+    f2((int*)0, 1);     // Warning: Too few arguments for a sentinel.
+  }
+
 3/22/06  C++-generating back end: conversion function calls
 
 In a cast that invokes a user-defined conversion function but in which the

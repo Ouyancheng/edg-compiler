@@ -64,6 +64,7 @@ enum an_attribute_kind_tag {
   ak_transparent_union,
   ak_format,
   ak_format_arg,
+  ak_sentinel,
 #if GNU_NAKED_ATTRIBUTE_ALLOWED
   ak_naked,
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
@@ -114,6 +115,7 @@ EXTERN char *attribute_kind_names[(int)ak_last + 1]
 /* ak_transparent_union */          "transparent_union",
 /* ak_format */                     "format",
 /* ak_format_arg */                 "format_arg",
+/* ak_sentinel */                   "sentinel",
 #if GNU_NAKED_ATTRIBUTE_ALLOWED
 /* ak_naked */                      "naked",
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
@@ -216,6 +218,10 @@ typedef struct an_attribute {
     int         fmt_arg;
 			/* The index (starting from 1) of the argument
 			   that is a format string. */
+    /* When kind == ak_sentinel. */
+    int		sentinel_pos;
+			/* The sentinel position (counted backward from the
+			   last argument position, which is number one). */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     /* When kind == ak_visibility. */
     an_ELF_visibility_kind

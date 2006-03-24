@@ -369,6 +369,9 @@ pointed to be "pos" can be freed when this routine returns.
     case ak_format_arg:
       ap->variant.fmt_arg = 0;
       break;
+    case ak_sentinel:
+      ap->variant.sentinel_pos = 0;
+      break;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     case ak_visibility:
       ap->variant.ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
@@ -444,6 +447,9 @@ Return a copy of the complete attribute list.
         break;
       case ak_format_arg:
         (*end)->variant.fmt_arg = attributes->variant.fmt_arg;
+        break;
+      case ak_sentinel:
+        (*end)->variant.sentinel_pos = attributes->variant.sentinel_pos;
         break;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       case ak_visibility:
@@ -709,6 +715,28 @@ that do take arguments.
         result = TRUE;
       }
       break;
+    case ak_sentinel:
+      { a_host_large_integer  param_number;
+        a_boolean             error_occurred;
+        a_boolean             ovflo;
+        /* If things go well, result will be reset to TRUE. */
+        result = FALSE;
+        /* Scan the argument number. */
+        param_number = scan_integral_argument(&error_occurred, &ovflo);
+        /* If there was no integer constant, a message has already been
+           issued. */
+        if (error_occurred) goto done;
+        /* For overflow, issue the message now. */
+        if (ovflo || param_number < 0 ||
+            param_number > INT_MAX-1) { /*lint !e685*/
+          goto error;
+        }  /* if */
+        /* Remember the value. */
+        attribute->variant.sentinel_pos = param_number+1;
+        /* All went well. */
+        result = TRUE;
+      }
+      break;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     case ak_visibility:
       { char  *visibility_str;
@@ -933,6 +961,7 @@ function returns the address of the last attribute.
           case ak_alias:
           case ak_format:
           case ak_format_arg:
+          case ak_sentinel:
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
           case ak_visibility:
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -1003,6 +1032,11 @@ function returns the address of the last attribute.
             attribute->variant.alignment = targ_maximum_intrinsic_alignment;
             break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+          case ak_sentinel:
+            /* If there is no argument to the "sentinel" attribute, the
+               sentinel position is the last argument (numbered one). */
+            attribute->variant.sentinel_pos = 1;
+            break;
           default:
             syntax_error(ec_exp_lparen);
             attribute_kind = (an_attribute_kind)ak_error;
@@ -1730,6 +1764,18 @@ messages about any invalid attributes.
           }  /* if */
         }
         break;
+      case ak_sentinel:
+        { a_routine_type_supplement_ptr rtsp;
+          ensure_routine_type_is_modifiable(&rp->type);
+          rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
+          if (rtsp->has_ellipsis) {
+            rtsp->sentinel_pos = ap->variant.sentinel_pos;
+          } else {
+            pos_error(ec_gnu_sentinel_attribute_requires_ellipsis,
+                      &ap->position);
+          }  /* if */
+        }
+        break;
 #if GNU_NAKED_ATTRIBUTE_ALLOWED
       case ak_naked:
         rp->is_naked = TRUE;
@@ -1892,6 +1938,35 @@ a typedef, is_typedef is TRUE.
           /* In the typedef case, the type has already been laid out
              so we can do the check now. */
           tp->variant.class_struct_union.is_transparent = TRUE;
+        }  /* if */
+      }
+      break;
+    case ak_sentinel:
+      { a_type_ptr  *p_rtp = NULL;
+        /* The attribute applies to function types, as well as to pointer- and
+           reference-to-function types. */
+        if (is_function_type(tp)) {
+          p_rtp = &tp;
+        } else if (is_ptr_or_ref_type(tp) &&
+                   is_function_type(type_pointed_to(tp))) {
+          p_rtp = &tp->variant.pointer.type;
+        } else {
+          pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
+        }  /* if */
+        if (p_rtp != NULL) {
+          /* Skip any typerefs on top of the routine type. */
+          while ((*p_rtp)->kind == (a_type_kind)tk_typeref) {
+            p_rtp = &(*p_rtp)->variant.typeref.type;
+          }  /* while */
+          check_assertion((*p_rtp)->kind == (a_type_kind)tk_routine);
+          /* The routine type is copied to avoid problems in cases where it
+             was shared (presumably through a typedef).  This could be
+             optimized, but since this attribute is relatively rare, it is
+             not worth the additional code complexity. */
+          *p_rtp = copy_type_and_apply_attributes((an_attribute_ptr)NULL,
+                                                  *p_rtp, is_typedef);
+          (*p_rtp)->variant.routine.extra_info->sentinel_pos =
+                                                     ap->variant.sentinel_pos;
         }  /* if */
       }
       break;

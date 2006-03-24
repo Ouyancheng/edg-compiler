@@ -1592,6 +1592,9 @@ ec_enum_base_type_must_be_integral;;"underlying type of enum type must be an int
 ec_enum_base_type_too_limited;;"some enumerator constants cannot be represented by %t"
 ec_feature_not_allowed_in_current_mode;;"%sq not allowed in current mode"
 ec_cl_type_traits_helpers_option_only_in_cplusplus;;"option \"--type_traits_helpers\" can be used only when compiling C++"
+ec_gnu_sentinel_attribute_requires_ellipsis;;"attribute \"sentinel\" requires an ellipsis parameter"
+ec_invalid_gnu_sentinel_argument;;"argument must be a constant null pointer value"
+ec_no_gnu_sentinel_argument;;"insufficient number of arguments for sentinel value"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

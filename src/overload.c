@@ -6754,6 +6754,7 @@ or NULL otherwise (e.g., for a call through a pointer to function).
   arg_block->argument_tail = NULL;
 #if GNU_EXTENSIONS_ALLOWED
   arg_block->fmt_arg = 0;
+  arg_block->sentinel_pos = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   arg_block->printf_scanf_args = NULL;
   arg_block->fmt_string = NULL;
@@ -6785,6 +6786,7 @@ or NULL otherwise (e.g., for a call through a pointer to function).
          the numbering of the format argument here. */
       --arg_block->fmt_arg;
     }  /* if */
+    arg_block->sentinel_pos = extra_info->sentinel_pos;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* start_call_argument_processing */
@@ -7155,6 +7157,32 @@ arguments).
   }  /* while */
 }  /* check_printf_scanf_arg_list */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void warn_if_missing_sentinel(an_arg_operand_ptr  arg_operand_list,
+                                     an_arg_check_block  *arg_block)
+/*
+arg_block->sentinel_pos is nonzero.  Check that the corresponding argument
+is a constant null pointer.
+*/
+{
+  if (arg_block->arg_ctr < arg_block->sentinel_pos) {
+    pos_warning(ec_no_gnu_sentinel_argument,
+                &arg_block->closing_paren_position);
+  } else {
+    an_operand  *sentinel;
+    int         k = arg_block->arg_ctr - arg_block->sentinel_pos;
+    /* Skip to the operand that should be the sentinel. */
+    while (k--) arg_operand_list = arg_operand_list->next;
+    sentinel = &arg_operand_list->operand;
+    /* Check that the operand is a valid sentinel. */
+    if (!op_is_null_pointer_value(sentinel)) {
+      pos_warning(ec_invalid_gnu_sentinel_argument, &sentinel->position);
+    }  /* if */
+  }  /* if */
+}  /* warn_if_missing_sentinel */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void process_end_of_call_arguments(an_arg_check_block *arg_block)
 /*
@@ -7224,6 +7252,11 @@ operand list is deallocated).  Some state information is recorded in *arg_block
     /* Check printf/scanf-like argument lists. */
     check_printf_scanf_arg_list(arg_block);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (arg_block->sentinel_pos != 0) {
+    warn_if_missing_sentinel(arg_operand_list, arg_block);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Convert the operand list to an expression list. */
   for (arg_operand = arg_operand_list;
        arg_operand != NULL;

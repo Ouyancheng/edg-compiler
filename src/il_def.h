@@ -4127,6 +4127,14 @@ typedef struct a_routine_type_supplement {
 			   argument that will contain the fmt_string
 			   for a routine marked with the "format_arg"
 			   attribute. */
+  int		sentinel_pos;
+			/* Argument position (counted backward from the last
+			   argument, which is number one) of a sentinel: The
+			   argument at that position must be a constant null
+			   pointer (zero cast to a pointer type).  Zero
+			   indicates no sentinel position is defined.  A non-
+			   zero value is only possible when has_ellipsis be
+			   TRUE. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   a_calling_convention
