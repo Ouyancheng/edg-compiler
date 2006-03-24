@@ -51,8 +51,10 @@ The USE_x86_64
 #define TARG_SIZEOF_LONG_DOUBLE 16
 #define TARG_ALIGNOF_LONG_DOUBLE 16
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_int)
+#ifndef _lint
 /* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_INT
+#endif
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long)
 #define HOST_ALIGNMENT_REQUIRED 8
@@ -66,8 +68,10 @@ The USE_x86_64
 #define TARG_JMP_BUF_NUM_ELEMENTS 39
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
+#ifndef _lint
 /* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
+#endif
 /* double and long long have two different alignments on Linux. */
 #define TARG_DOUBLE_FIELD_ALIGNMENT 4
 #define TARG_LONG_LONG_FIELD_ALIGNMENT 4

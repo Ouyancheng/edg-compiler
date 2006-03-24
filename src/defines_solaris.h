@@ -64,8 +64,10 @@ This version is for the Sun Solaris operating system.
 
 #define TARG_ALIGNOF_LONG_DOUBLE 8
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
+#ifndef _lint
 /* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
+#endif
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
 #define HOST_ALIGNMENT_REQUIRED 4
