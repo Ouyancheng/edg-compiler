@@ -1,5 +1,23 @@
 Version 3.8
 
+3/24/06  C++-generating back end: operator->() with a reference return type
+
+The C++-generating back end generated incorrect code for a call to an
+operator->() function when the function's return type was a reference to a
+pointer type (rather than simply a pointer type).  Now fixed.  For example:
+
+  struct S {
+    int i;
+  };
+  typedef S* Sp;
+  struct P {
+    Sp& operator->();
+  };
+
+  int f(P p) {
+    return p->i;    // Formerly generated as (*(p->)).i
+  }
+
 3/24/06  GNU compatibility: Attribute "sentinel"
 
 In GNU modes, the front end now supports attribute "sentinel".  This attribute

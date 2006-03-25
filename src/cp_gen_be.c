@@ -5717,9 +5717,11 @@ and field_expr is an enk_field node.  The caller will put parentheses around
 this selection.
 */
 {
-  a_type_ptr naming_class, selection_class;
-  a_boolean  need_context_pop = FALSE;
-  a_boolean  class_has_operator_ampersand = FALSE;
+  a_type_ptr       naming_class, selection_class;
+  a_boolean        need_context_pop = FALSE;
+  a_boolean        class_has_operator_ampersand = FALSE;
+  an_expr_node_ptr object_expr_operand = (is_operation_node(object_expr)) ?
+                                object_expr->variant.operation.operands : NULL;
 
   if (il_header.source_language == sl_Cplusplus) {
     /* Remove unnecessary base class casts. */
@@ -5761,6 +5763,16 @@ this selection.
     /* This expression implicitly invokes an operator->() function; generate
        it in the original "x->y" form. */
     gen_expression(object_expr);
+  } else if (object_expr_operand != NULL &&
+             node_operator_is(object_expr, eok_indirect) &&
+             object_expr_operand->implicit_reference_indirection &&
+             is_operator_syntax_arrow(object_expr_operand)) {
+    /* This expression implicitly invokes an operator->() function whose
+       return type is a reference to a pointer (hence the extra level of
+       indirection); generate it in the original "x->y" form. */
+    object_expr_operand->implicit_reference_indirection = FALSE;
+    gen_expression(object_expr_operand);
+    object_expr_operand->implicit_reference_indirection = TRUE;
   } else {
     /* Normal "." case. */
     gen_lvalue(object_expr);
