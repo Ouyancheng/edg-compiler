@@ -5501,11 +5501,15 @@ implement <stdarg.h>, a standard feature.
           opkind == (an_expr_operator_kind)eok_bit_field ||
           opkind == (an_expr_operator_kind)eok_value_bit_field) {
         an_expr_node_ptr  field_op = expr->variant.operation.operands->next;
+        a_targ_alignment  explicit_alignment = 0;
+#if USER_CONTROL_OF_STRUCT_PACKING
+        explicit_alignment = field_op->variant.field->alignment;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
         if (field_op->kind == (an_expr_node_kind)enk_field &&
-            field_op->variant.field->alignment != 0) {
+            explicit_alignment != 0) {
           /* A field selection for a field that has an explicit alignment
              (presumably set by the "aligned" attribute). */
-          alignment = field_op->variant.field->alignment;
+          alignment = explicit_alignment;
 #if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
         } else if (gnu_version >= 30300) {
           /* In recent GNU C and C++ compilers, __alignof__ applied to a field
