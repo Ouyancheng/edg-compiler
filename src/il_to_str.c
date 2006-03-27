@@ -4214,7 +4214,6 @@ described by octl.
   *need_leading_space = TRUE;
 }  /* form_string_argument_attribute */
 
-#if USER_CONTROL_OF_STRUCT_PACKING || GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
 
 static void form_unsigned_argument_attribute(
                    char                                   *attribute_name,
@@ -4241,7 +4240,6 @@ described by octl.
   *need_leading_space = TRUE;
 }  /* form_unsigned_argument_attribute */
 
-#endif /* USER_CONTROL_OF_STRUCT_PACKING || GNU_INIT_PRIORITY_ATTRIBUTE... */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
 static void form_ELF_visibility_attribute(
