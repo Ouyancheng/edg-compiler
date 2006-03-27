@@ -807,6 +807,7 @@ if necessary.
   }  /* if */
 } /* adjust_alignment_for_packing */
 
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean apply_explicit_field_alignment_directive(
@@ -846,7 +847,6 @@ explicit alignment value was specified, return FALSE.
 }  /* apply_explicit_field_alignment_directive */
 
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 static a_targ_alignment alignment_of_field(a_field_ptr  field)
 /*
