@@ -807,7 +807,6 @@ if necessary.
   }  /* if */
 } /* adjust_alignment_for_packing */
 
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean apply_explicit_field_alignment_directive(
@@ -847,6 +846,7 @@ explicit alignment value was specified, return FALSE.
 }  /* apply_explicit_field_alignment_directive */
 
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 static a_targ_alignment alignment_of_field(a_field_ptr  field)
 /*
@@ -1229,10 +1229,12 @@ targ_microsoft_bit_field_allocation is FALSE.)
              "align_offsets_for_bit_field: bad targ_bit_field_container_size");
 #endif /* CHECKING */
       }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       (void)apply_explicit_field_alignment_directive(field,
                                                      &container_alignment);
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     } else if (targ_bit_field_container_size == 0) {
       /* Use the smallest integral type into which the field will fit as
          the container.  Try first to find such a type for the current
@@ -1293,10 +1295,12 @@ targ_microsoft_bit_field_allocation is FALSE.)
 #endif /* CHECKING */
         }  /* if */
       }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       (void)apply_explicit_field_alignment_directive(field,
                                                      &container_alignment);
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     } else {
       /* targ_bit_field_container_size < 0 */
       /* Always use the base type size.  For the alignment use the base type
