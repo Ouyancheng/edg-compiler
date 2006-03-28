@@ -775,6 +775,7 @@ check_abbreviation()
 --trace_includes
 --trans_unit_test_mode
 --trigraphs
+--type_traits_helpers
 --typename
 --undefine_macro
 --unsigned_chars
@@ -1179,6 +1180,8 @@ process_option()
          --no_special_subscript_cost | \
          --remove_unneeded_entities | \
          --no_remove_unneeded_entities | \
+         --type_traits_helpers | \
+         --no_type_traits_helpers | \
          --typename | \
          --no_typename | \
          --implicit_typename | \
