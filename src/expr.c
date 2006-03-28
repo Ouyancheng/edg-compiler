@@ -5835,7 +5835,7 @@ is meant to help implement ISO/IEC TR 19768.
     /* __is_base_of is not accepted in some modes. */
     pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
                  builtin_operation_names[(int)bok_is_base_of]);
-    result_type = integer_type((an_integer_kind)ik_int);
+    result_type = boolean_result_type();
   } else {
     result_type = bool_type();
   }  /* if */
@@ -5864,7 +5864,7 @@ typeB.  This construct is meant to help implement ISO/IEC TR 19768.
     /* __is_convertible_to is not accepted in some modes. */
     pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
                  builtin_operation_names[(int)bok_is_convertible_to]);
-    result_type = integer_type((an_integer_kind)ik_int);
+    result_type = boolean_result_type();
   } else {
     result_type = bool_type();
   }  /* if */
@@ -5917,7 +5917,7 @@ These help implement the type traits suggested in ISO/IEC TR 19768.)
     /* These pseudo-functions are not accepted in this mode. */
     pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
                  builtin_operation_names[(int)bok]);
-    result_type = integer_type((an_integer_kind)ik_int);
+    result_type = boolean_result_type();
   } else {
     result_type = bool_type();
   }  /* if */

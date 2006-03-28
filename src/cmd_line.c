@@ -4355,7 +4355,7 @@ enable_microsoft_mode:
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case optk_type_traits_helpers:
-        /* Enable or disable __is_union, has_virtual_destructor, etc. */
+        /* Enable or disable __is_union, __has_virtual_destructor, etc. */
         type_traits_helpers_enabled = opt_value;
         break;
       default:
