@@ -703,6 +703,7 @@ check_abbreviation()
 --no_template_typedefs_in_diagnostics
 --no_thread_local_storage
 --no_trigraphs
+--no_type_traits_helpers
 --no_typename
 --no_upc
 --no_use_before_set_warnings
