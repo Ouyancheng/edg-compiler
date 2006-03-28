@@ -278,8 +278,9 @@ patterned after the similar extensions introduced by Microsoft's Visual
 C++ 8.0.  They provide direct support for the C++ committee's "Library TR1"
 (ISO/IEC TR 19768).  While only supported when type_traits_helpers_enabled
 is TRUE (normally, in most C++ modes), they are recognized and diagnosed as
-errors in other modes.  A few of the pseudo-functions do not correspond to
-any TR 19768 facilities: Those are only recognized in Microsoft modes.
+errors in Microsoft C mode when microsoft_version >= 1400.  A few of the
+pseudo-functions do not correspond to any TR 19768 facilities: Those are only
+recognized in Microsoft modes.
 */
 {
   if (microsoft_mode) {
@@ -490,7 +491,10 @@ Install the keywords in the symbol table.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  enter_type_traits_helpers();
+  if (type_traits_helpers_enabled ||
+      (microsoft_mode && microsoft_version >= 1400)) {
+    enter_type_traits_helpers();
+  }  /* if */
   if (gcc_mode && !c99_mode) {
     /* "inline" will already have been entered in C99 mode. */
     enter_keyword((a_token_kind)tok_inline, "inline");

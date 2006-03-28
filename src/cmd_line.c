@@ -1749,6 +1749,10 @@ by a command line option.
        using-directives. */
     friend_class_decl_can_find_using_dir = TRUE;
     explicit_enum_base_enabled = microsoft_version >= 1400;
+    if (!option_kind_used[(int)optk_type_traits_helpers] &&
+        microsoft_version >= 1400) {
+      type_traits_helpers_enabled = TRUE;
+    }  /* if */
   }  /* if */
   /* The Microsoft compiler does not find typedefs when looking up names
      in elaborated type specifiers. */
@@ -5215,7 +5219,7 @@ variables declared in cmd_line.h.
   microsoft_version = DEFAULT_MICROSOFT_VERSION;
   c99_mode = DEFAULT_C99_MODE;
   uliterals_enabled = DEFAULT_ULITERALS_ENABLED;
-  type_traits_helpers_enabled = TRUE;
+  type_traits_helpers_enabled = DEFAULT_TYPE_TRAITS_HELPERS_ENABLED;
 }  /* cmd_line_static_var_init */
 
 

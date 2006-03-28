@@ -5218,7 +5218,7 @@ based on ISO/IEC 19768 -- with a single type operand (e.g., "__is_union").  If
 the operand types is nondependent, store a boolean constant in *constant.  The
 boolean constant will have value "true" if the associated type predicate is
 true for the type represented by its operand.  otherwise, the constant will
-have value "false".  If the operand types is dependent, store a
+have value "false".  If the operand type is dependent, store a
 ck_template_param constant in *constant.  The constant will be of the
 tpck_expression variant and will point to the given expression.
 */

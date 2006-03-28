@@ -67,29 +67,32 @@ omitted from the generated code.  For example:
 
 3/21/06  Support for type traits (ISO/IEC TR 19768)
 
-In most C++ modes -- the exceptions are GNU and Sun C++ modes -- the front end
-now accepts the following type trait pseudo-functions: __has_nothrow_assign,
-__has_nothrow_constructor, __has_nothrow_copy, __has_trivial_assign,
-__has_trivial_constructor, __has_trivial_copy, __has_trivial_destructor,
-__is_abstract, __is_class, __is_convertible_to, __is_empty, __is_enum,
-__is_pod, __is_polymorphic, and __is_union.  These enable or simplify the
-implementation of type traits templates as specified in ISO/IEC TR 19768.
-In Microsoft C++ mode with microsoft_version >= 1400, these pseudo-functions
-and three others (__has_assign, __has_copy, and __has_user_destructor) were
-already accepted, and that support has now been extended to all Microsoft C++
-modes (i.e., even when microsoft_version < 1400).  (See also the Changes entry
-of 10/19/05.)  All of the pseudo-functions take one or two types, and produce
-a boolean constant-expression.  For example:
+The front end can now accept the following type trait pseudo-functions in C++
+mode: __has_nothrow_assign, __has_nothrow_constructor, __has_nothrow_copy,
+__has_trivial_assign, __has_trivial_constructor, __has_trivial_copy,
+__has_trivial_destructor, __is_abstract, __is_class, __is_convertible_to,
+__is_empty, __is_enum, __is_pod, __is_polymorphic, and __is_union.  These
+enable or simplify the implementation of type traits templates as specified in
+ISO/IEC TR 19768.
+
+ All of the pseudo-functions take one
+or two types, and produce a boolean constant-expression.  For example:
 
   struct S { ~S(); };
   int a[__is_class(S)];             // Okay.  Same as "int a[1];".
   int b[__has_user_destructor(S)];  // Okay in Microsoft C++ mode only.
 
-By default, these extensions are not accepted in Sun and GNU C++ modes to
-avoid potential conflicts with future versions of the Sun and GNU compilers
-(e.g., if they end up using slight variants of these constructs).  This can
-be overridden using the command-line option --type_traits_helpers.  Conversely,
-in the other C++ modes, --no_type_traits_helpers disables the extensions.
+Support for these extensions can be explicitly enabled or disabled in any
+C++ mode using the command-line options --type_traits_helpers and
+--no_type_traits_helpers.  In Sun and GNU C++ mode, the extensions are
+disabled by default (to avoid potential future conflicts if the Sun or GNU
+compilers add a similar facility).  As was already the case (see Changes entry
+of 10/19/05), the extensions are enabled by default in Microsoft C++ mode with
+microsoft_version >= 1400 (along with three others: __has_assign, __has_copy,
+and __has_user_destructor).  In all other C++ modes, the new configuration
+macro DEFAULT_TYPE_TRAITS_HELPERS_ENABLED determines whether the extensions
+are enabled by default.
+
 In non-Microsoft C++ modes, a macro is predefined by the front end if the
 pseudo-functions are accepted.  The macro's name is configured through the
 front end configuration macro MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED,
@@ -103,7 +106,11 @@ different meanings.  For example:
   };  // If exceptions are enabled, __has_nothrow_copy(X) is true in Microsoft
       // mode, but false in other modes.  (Microsoft compilers only consider
       // the first declaration of a copy constructor.)
-  
+
+Finally, in Microsoft C mode with microsoft_version >= 1400, the extension is
+recognized but not accepted (e.g., "__is_union" is not available as a user-
+declared identifier).  This was already the case previously.
+
 3/17/06  Bug in optimization for pointer-to-member call, IA-64 EABI
 
 The change made to optimize pointer-to-member calls in the IA-64

@@ -1033,6 +1033,19 @@ undefined, the compiler may rely on it in performing optimizations.
 #endif /* ifndef DEFAULT_RESTRICT_ENABLED */
 
 /*
+Flag that is TRUE if, in C++ modes other than GNU and Sun C++ modes, type
+traits helpers (like __is_union and __has_virtual_destructor) should be
+enabled by default.  Type traits helpers are meant to ease the implementation
+of ISO/IEC TR 19768.  This macro is used for the initialization of the global
+variable type_traits_helpers_enabled.   (In GNU and Sun C++ modes, the type
+traits helpers are never enabled by default to avoid potential future
+conflicts if the GNU or Sun compilers add a similar facility.)
+*/
+#ifndef DEFAULT_TYPE_TRAITS_HELPERS_ENABLED
+#define DEFAULT_TYPE_TRAITS_HELPERS_ENABLED TRUE
+#endif /* DEFAULT_TYPE_TRAITS_HELPERS_ENABLED */
+
+/*
 Flag that is TRUE if, in C++ mode, wchar_t is a keyword by default.  This is
 the default value for the global flag wchar_t_is_keyword, the value of
 which may be modified using command line options.
