@@ -5076,7 +5076,6 @@ Complete the multiple command line error being processed.
 #endif /* __GNUC__ */
 }  /* end_command_line_error */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 void error_early_init(void)
 /*
@@ -5095,14 +5094,11 @@ line processing is done.
 #endif /* DEBUG */
   catastrophe_has_occurred = FALSE;
   error_threshold = es_warning;
-  error_source_line = NULL;
-  after_end_of_error_source_line = NULL;
   cs_saved_severity = (an_error_severity)es_default;
   error_limit = 100;
   context_limit = DEFAULT_CONTEXT_LIMIT;
   strict_ansi_error_severity = es_warning;
   strict_ansi_discretionary_severity = es_warning;
-  f_err_src_file = NULL;
   anachronism_error_severity
 #if DEFAULT_ALLOW_ANACHRONISMS
                              = es_warning;
@@ -5127,6 +5123,11 @@ line processing is done.
            sizeof(current_severity_for_error_code));
   memzero((a_void_ptr)once_flag_for_error_code,
            sizeof(once_flag_for_error_code));
+#if !STANDALONE_UTILITY_PROGRAM
+  error_source_line = NULL;
+  after_end_of_error_source_line = NULL;
+  f_err_src_file = NULL;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* error_early_init */
 
 
@@ -5137,6 +5138,7 @@ Do one-time initialization of variables related to the error routines.
 are handled in error_init.)
 */
 {
+#if !STANDALONE_UTILITY_PROGRAM
   /* Save variables from error.h and error.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
@@ -5148,6 +5150,7 @@ are handled in error_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* error_one_time_init */
 
 
@@ -5165,12 +5168,16 @@ Perform any initializations necessary for error.c functions at the beginning
 of each compilation.
 */
 {
-  clear_file_index_list();
   memzero((char *)recorded_diagnostic_table,
           sizeof(recorded_diagnostic_table));
   memzero((a_void_ptr)diagnostic_issued_for_error_code,
            sizeof(diagnostic_issued_for_error_code));
+#if !STANDALONE_UTILITY_PROGRAM
+  clear_file_index_list();
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* error_init */
+
+#if !STANDALONE_UTILITY_PROGRAM
 
 #if MAKE_FRONT_END_CALLABLE
 

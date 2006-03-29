@@ -1,5 +1,13 @@
 Version 3.8
 
+3/28/06  Standalone utility programs an error initialization
+
+Formerly, the error initialization routines were not called for standalone
+utility programs.  A change made in version 3.7 requires the error
+initialization routines to be run before an error is issued.  This could
+cause an abort if a standalone utility program attempted to issue a diagnostic.
+Now fixed.
+
 3/27/06  Build error when USER_CONTROL_OF_STRUCT_PACKING is FALSE
 
 The unusual configuration of GNU_EXTENSIONS_ALLOWED set to TRUE, and

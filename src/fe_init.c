@@ -49,8 +49,11 @@ Initialize global variables that may be used by standalone utility programs.
 */
 {
   target_early_init();
+  error_early_init();
   target_one_time_init();
+  error_one_time_init();
   target_init();
+  error_init();
 }  /* standalone_utility_init */
 
 #else /* !STANDALONE_UTILITY_PROGRAM */
