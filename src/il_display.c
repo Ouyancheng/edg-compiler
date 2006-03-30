@@ -1268,9 +1268,9 @@ Display a_routine_type_supplement.
     disp_pragma_kind_name(ptr->arg_pragma);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  disp_long("fmt_arg", ptr->fmt_arg);
+  disp_long("fmt_arg", (long)ptr->fmt_arg);
   if (ptr->sentinel_pos != 0) {
-    disp_long("sentinel_pos", ptr->sentinel_pos);
+    disp_long("sentinel_pos", (long)ptr->sentinel_pos);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
