@@ -27,9 +27,9 @@ Now fixed.
 
 3/27/06  Build error when USER_CONTROL_OF_STRUCT_PACKING is FALSE
 
-The unusual configuration of GNU_EXTENSIONS_ALLOWED set to TRUE, and
-USER_CONTROL_OF_STRUCT_PACKING set to FALSE resulted in build errors when
-trying to compile expr.c.  This is now fixed.
+The unusual configuration of GNU_EXTENSIONS_ALLOWED set to TRUE and
+USER_CONTROL_OF_STRUCT_PACKING set to FALSE resulted in build errors in
+expr.c.  This is now fixed.
 
 3/24/06  C++-generating back end: operator->() with a reference return type
 
