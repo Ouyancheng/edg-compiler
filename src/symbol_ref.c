@@ -672,7 +672,10 @@ class, too, and thus must be flagged as requiring qualification.
     /* Get the base class scope's hidden names before trying to clone them
        (unless the scope belongs to a secondary translation unit; it's an
        error to try to put hidden names into such scopes). */
+    a_scope_depth init_depth = depth_scope_stack;
     push_class_reactivation_scope(base_class, /*extend_namespace=*/FALSE);
+    /* Skip scopes that were previously pushed for hidden name processing. */
+    scope_stack[init_depth+1].previous_scope = DEPTH_OF_FILE_SCOPE;
     check_name_hiding_for_scope(base_scope);
     pop_class_reactivation_scope();
   }  /* if */

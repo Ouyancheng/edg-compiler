@@ -1,5 +1,28 @@
 Version 3.8
 
+3/30/06  C++-generating back end: hidden file-scope names in classes with a
+         derived class in a nested namespace
+
+The change to the C++-generating back end described in the entry of 11/10/05
+resulted in the generation of incorrect code for cases like the following
+when RECORD_FORM_OF_NAME_REFERENCE was configured as FALSE:
+
+  int f(int);
+  struct S {
+    int f();
+  };
+  int S::f() {
+    return ::f(0);    // Previously generated without qualification: "f(0)"
+  }
+  namespace N {
+  struct O { 
+    struct D : public S {}; 
+    int f();
+  };
+  }
+
+This has now been fixed.
+
 3/29/06  Microsoft compatibility: macro argument expansion
 
 The front end has been changed to emulate the Microsoft preprocessor more
