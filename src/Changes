@@ -17,7 +17,7 @@ invocation of M2), and the expanded text was simply "a".  Like MSVC, the new
 Microsoft-mode processing accepts the code without complaint and gives "a,b"
 as the resulting expansion.
 
-3/28/06  Standalone utility programs an error initialization
+3/29/06  Standalone utility programs and error initialization
 
 Formerly, the error initialization routines were not called for standalone
 utility programs.  A change made in version 3.7 requires the error
