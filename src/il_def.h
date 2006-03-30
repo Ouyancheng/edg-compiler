@@ -4133,7 +4133,7 @@ typedef struct a_routine_type_supplement {
 			   argument at that position must be a constant null
 			   pointer (zero cast to a pointer type).  Zero
 			   indicates no sentinel position is defined.  A non-
-			   zero value is only possible when has_ellipsis be
+			   zero value is only possible when has_ellipsis is
 			   TRUE. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
