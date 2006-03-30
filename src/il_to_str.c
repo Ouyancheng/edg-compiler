@@ -4334,7 +4334,10 @@ Do the output in the way described by octl.
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
   if (rtsp->sentinel_pos != 0 && !octl->c_generating_back_end) {
     /* Don't emit the attribute in generated C code to avoid having a back-end
-       C compiler duplicate a diagnostic already emitted by the front end. */
+       C compiler duplicate a diagnostic already emitted by the front end.
+       Note that our representation is "one off" compared to the source form:
+       I.e., "sentinel(0)" in the source is represented with sentinel_pos == 1
+       to reserve sentinel_pos == 0 as a representation for "no sentinel". */
     form_unsigned_argument_attribute(
                      "sentinel", (a_host_large_unsigned)(rtsp->sentinel_pos-1),
                      need_leading_space, octl);

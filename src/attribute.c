@@ -731,7 +731,10 @@ that do take arguments.
             param_number > INT_MAX-1) { /*lint !e685*/
           goto error;
         }  /* if */
-        /* Remember the value. */
+        /* Remember the value.  Note that our representation is "one off"
+           compared to the source form: I.e., "sentinel(0)" in the source is
+           represented with sentinel_pos == 1 to reserve sentinel_pos == 0 as
+           a representation for "no sentinel". */
         attribute->variant.sentinel_pos = param_number+1;
         /* All went well. */
         result = TRUE;

@@ -221,7 +221,12 @@ typedef struct an_attribute {
     /* When kind == ak_sentinel. */
     int		sentinel_pos;
 			/* The sentinel position (counted backward from the
-			   last argument position, which is number one). */
+			   last argument position, which is number one). This
+			   representation is "one off" compared to the source
+			   form: I.e., "sentinel(0)" in the source is
+			   represented with sentinel_pos == 1 to reserve
+			   sentinel_pos == 0 as a representation for "no
+			   sentinel". */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     /* When kind == ak_visibility. */
     an_ELF_visibility_kind

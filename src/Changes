@@ -58,7 +58,8 @@ last position is zero, the one before that is one, etc.  If a call of a routine
 with that type does not have a constant null pointer argument at the indicated
 position, a warning is emitted.  A warning is also issued if there aren't
 enough arguments for a sentinel.   (If the position is omitted, it is assumed
-to be zero.)  For example:
+to be zero.)  When gnu_version >= 40002, the sentinel should must correspond
+to an ellipsis parameter. For example:
 
   void f1(int, ...)  __attribute__((sentinel));
   void f2(int*, ...)  __attribute__((sentinel(2)));
@@ -66,7 +67,7 @@ to be zero.)  For example:
     f1(0, 0);           // Warning: Last argument (sentinel) is not a constant
                         // null pointer.
     f1(0, (void*)0);    // Okay.
-    f2((int*)0, 1, 2);  // Okay.
+    f2((int*)0, 1, 2);  // Okay if gnu_version < 40002; warning otherwise.
     f2((int*)0, 1);     // Warning: Too few arguments for a sentinel.
   }
 

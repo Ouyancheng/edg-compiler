@@ -7170,13 +7170,35 @@ is a constant null pointer.
     pos_warning(ec_no_gnu_sentinel_argument,
                 &arg_block->closing_paren_position);
   } else {
-    an_operand  *sentinel;
-    int         k = arg_block->arg_ctr - arg_block->sentinel_pos;
+    an_operand        *sentinel;
+    int               k = arg_block->arg_ctr - arg_block->sentinel_pos;
+    a_param_type_ptr  param = skip_typerefs(arg_block->routine->type)
+                                ->variant.routine.extra_info->param_type_list;
+    a_boolean         valid_sentinel_value;
     /* Skip to the operand that should be the sentinel. */
-    while (k--) arg_operand_list = arg_operand_list->next;
+    while (k--) {
+      arg_operand_list = arg_operand_list->next;
+      if (param != NULL) param = param->next;
+    }  /* while */
     sentinel = &arg_operand_list->operand;
+    valid_sentinel_value = op_is_null_pointer_value(sentinel);
     /* Check that the operand is a valid sentinel. */
-    if (!op_is_null_pointer_value(sentinel)) {
+    if (gnu_mode && gnu_version >= 40002 && param != NULL) {
+      /* gcc/g++ version 4.0.0 allowed a sentinel to correspond to a named
+         parameter, but version 4.0.2 diagnosed such cases.  For example:
+           int f(int *, ...)  __attribute__((sentinel));
+           int x = f(NULL);  // Okay with g++ 4.0.0; warning with g++ 4.0.2.
+         Different diagnostics are issued depending on whether the argument in
+         the sentinel position is otherwise valid (constant null pointer) or
+         not. */
+      if (valid_sentinel_value) {
+        pos_warning(ec_gnu_sentinel_must_be_ellipsis_argument,
+                    &sentinel->position);
+      } else {
+        pos_warning(ec_no_gnu_sentinel_argument,
+                    &arg_block->closing_paren_position);
+      }  /* if */
+    } else if (!valid_sentinel_value) {
       pos_warning(ec_invalid_gnu_sentinel_argument, &sentinel->position);
     }  /* if */
   }  /* if */
