@@ -452,7 +452,7 @@ typedef struct an_arg_check_block {
 			   argument at that position must be a constant null
 			   pointer (zero cast to a pointer type).  Zero
 			   indicates no sentinel position is defined.  A non-
-			   zero value is only possible when has_ellipsis be
+			   zero value is only possible when has_ellipsis is
 			   TRUE. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   an_arg_operand_ptr
