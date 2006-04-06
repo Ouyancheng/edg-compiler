@@ -3290,7 +3290,9 @@ returned set to TRUE.
          literal. */
       a_constant  constant;
       scan_constant_initializer_expression(vp_type, &constant);
+      switch_to_file_scope_region(&region_to_switch_back_to);
       init_con = alloc_unshared_constant(&constant);
+      switch_back_to_original_region(region_to_switch_back_to);
       if (!var_err && vp != NULL && is_incomplete_type(vp->type)) {
         /* An array of unspecified size is initialized with a constant that
            has a known number of elements: adjust the variable type. */
@@ -3420,9 +3422,12 @@ returned set to TRUE.
       /* This must be a non-dynamic initialization of a local static
          variable. */
       check_assertion(in_file_scope(vp));
-      check_assertion(!in_file_scope(init_con) || is_error_constant(init_con));
-      if (init_con->kind == (a_constant_repr_kind)ck_aggregate ||
-          has_non_file_scope_ref(init_con)) {
+      if (in_file_scope(init_con)) {
+        /* Initialzer constant is already in the file scope memory region. */
+        vp->initializer.constant = init_con;
+        vp->init_kind = (an_init_kind)initk_static;
+      } else if (init_con->kind == (a_constant_repr_kind)ck_aggregate ||
+                 has_non_file_scope_ref(init_con)) {
         /* Aggregate-constant initialization.  Since the aggregate constant
            is in the local memory region, the variable can't have a pointer
            to it.  Instead, create a local-static-variable-init entry to point
