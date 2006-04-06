@@ -3423,7 +3423,7 @@ returned set to TRUE.
          variable. */
       check_assertion(in_file_scope(vp));
       if (in_file_scope(init_con)) {
-        /* Initialzer constant is already in the file scope memory region. */
+        /* Initializer constant is already in the file scope memory region. */
         vp->initializer.constant = init_con;
         vp->init_kind = (an_init_kind)initk_static;
       } else if (init_con->kind == (a_constant_repr_kind)ck_aggregate ||
