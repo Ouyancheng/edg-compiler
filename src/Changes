@@ -1,5 +1,20 @@
 Version 3.8
 
+4/10/06  Microsoft compatibility: macro redefinitions and push_macro pragma
+
+Our implementation of the Microsoft push_macro did not match the Microsoft
+implementation if a macro was redefined after having been pushed (instead
+of being undefined and redefined).  Now fixed.
+
+  extern "C" int printf(const char *, ...);
+  int main() {
+  #define X 1
+  #pragma push_macro("X")
+  #define X 2
+  #pragma pop_macro("X")  
+    printf("%s\n", X == 1 ? "pass" : "fail");
+  }
+
 4/10/06  Initialization issue when using MAKE_FRONT_END_CALLABLE
 
 The memory allocation change described in the 2/15/06 entry initialized

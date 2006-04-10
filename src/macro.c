@@ -1577,7 +1577,7 @@ to it.
 }  /* alloc_macro_param */
 
 
-static void clear_macro_def(a_macro_def_ptr mdp)
+void clear_macro_def(a_macro_def_ptr mdp)
 /*
 Clear a macro definition entry to default values.
 */

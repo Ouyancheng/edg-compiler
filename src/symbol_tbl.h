@@ -534,8 +534,16 @@ typedef struct a_saved_macro_state {
   a_symbol_ptr	symbol;
 			/* The macro symbol to which the macro name refers at
 			   the point at which the push_macro appeared.  This
-			   will be NULL if the symbol was undefined at that
+			   will be NULL if the macro was undefined at that
 			   point. */
+  a_macro_def
+		macro_def;
+			/* The macro definition of the symbol at the point at
+			   which the push_macro appeared.  This is not set
+			   (i.e., all of the fields will be cleared) if the
+			   macro was undefined at that point.  This is
+			   needed if the macro is redefined without first
+			   being undefined. */
 } a_saved_macro_state;
 
 extern void push_macro_pragma(a_pending_pragma_ptr	ppp);

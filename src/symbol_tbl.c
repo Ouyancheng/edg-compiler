@@ -29,10 +29,10 @@ symbol_tbl.c - Symbol table management routines.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "literals.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#ifdef GUARD_MACRO_FOR_VA_LIST
-/* macro.h is needed for enter_predef_macro. */
+#if defined(GUARD_MACRO_FOR_VA_LIST) || MICROSOFT_EXTENSIONS_ALLOWED
+/* macro.h is needed for enter_predef_macro and clear_macro_def. */
 #include "macro.h"
-#endif /* ifdef GUARD_MACRO_FOR_VA_LIST */
+#endif /* defined(GUARD_MACRO_FOR_VA_LIST) || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -11300,6 +11300,7 @@ Allocate a new saved macro state entry and return a pointer to it.
   }  /* if */
   smsp->next = NULL;
   smsp->symbol = NULL;
+  clear_macro_def(&smsp->macro_def);
   return smsp;
 }  /* alloc_saved_macro_state */
 
@@ -11442,10 +11443,18 @@ preprocessing only.
   sym_hdr = symbol_header_for_macro_push_or_pop(ppp, &name_pos);
   if (sym_hdr != NULL) {
     a_saved_macro_state_ptr	smsp;
+    a_symbol_ptr		symbol;
     smsp = alloc_saved_macro_state();
     /* Find the symbol for a currently defined macro of the specified name.
        If there is no such macro, NULL will be returned. */
-    smsp->symbol = find_macro_symbol(sym_hdr);
+    symbol = find_macro_symbol(sym_hdr);
+    smsp->symbol = symbol;
+    if (symbol != NULL) {
+      /* If there is a currently defined macro, also save the macro definition
+         entry.  This is needed if the symbol is redefined without being
+         undefined. */
+      smsp->macro_def = *symbol->variant.macro_def;
+    }  /* if */
     /* Put this entry on the front of the stack of saved macros. */
     smsp->next = sym_hdr->saved_macro_stack;
     sym_hdr->saved_macro_stack = smsp;
@@ -11486,8 +11495,10 @@ preprocessing only.
       /* Find the symbol for a currently defined macro of the specified name.
          If there is no such macro, NULL will be returned. */
       curr_macro_sym = find_macro_symbol(sym_hdr);
-      if (curr_macro_sym == smsp->symbol) {
-        /* The correct macro symbol is present.  No action is needed. */
+      if (curr_macro_sym != NULL && curr_macro_sym == smsp->symbol) {
+        /* The correct macro symbol is present.  Reset its macro definition
+           to the original value. */
+        *curr_macro_sym->variant.macro_def = smsp->macro_def;
       } else {
         /* The macro symbol currently entered is not the desired one.
            Remove it. */
