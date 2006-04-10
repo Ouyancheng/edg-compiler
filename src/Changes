@@ -1,5 +1,29 @@
 Version 3.8
 
+4/10/06  Microsoft compatibility: __declspec(implementation_key(...))
+
+In Microsoft mode, the front end now accepts (and ignores) constructs of the
+form __declspec(implementation_key(n)) (where n is an integer constant) when
+such constructs appear in code delimited by #pragma start_map_region and
+#pragma stop_map_region.  These constructs are sometimes generated in .tlh
+files by the #import mechanism of the Microsoft C++ compiler (when it
+processes a class with a very large number of member functions).  The
+implementation in the front end is only meant to allow the parsing of such
+generated files: The constructs are not recorded in the IL, nor are they
+fully checked for validity.  For example:
+
+  struct S {
+    void f();
+  };
+  #pragma start_map_region("filename")  // Now accepted in Microsoft mode
+  __declspec(implementation_key(1)) void S::f();
+  #pragma stop_map_region
+
+In code delimited by #pragma start_map_region and #pragma stop_map_region
+the front end also accepts nondefining class member function declarations
+appearing outside the class definition (as illustrated in the example above;
+see also Changes entry of 3/1/05).
+
 4/10/06  IL memory region problem on compound literals in GNU C mode
 
 In some cases, a compound literal scanned as part of the initializer

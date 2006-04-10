@@ -1203,14 +1203,18 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
   class_type = locator->specific_symbol->parent.class_type;
   rout_type = skip_typerefs(type_ptr);
   sym = locator->specific_symbol;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_out_of_class_redecl && microsoft_version >= 1310 &&
+      !in_microsoft_implementation_key_mapping_region &&
       (!is_member_function_symbol(sym) ||
        !sym->variant.routine.ptr->is_template_function)) {
     /* Recent microsoft compilers only accept the out-of-class redeclaration
-       syntax for template specializations. */
+       syntax for template specializations, or inside a region of code
+       delimited by #pragma start_map_region/stop_map_region. */
     pos_sy_error(ec_member_function_redecl_outside_class,
                  &locator->source_position, sym);
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!is_member_function_symbol(sym)) {
     /* A nonfunction class member.  This is an error, so set sym to NULL to
        force the creation of a fake member function symbol. */

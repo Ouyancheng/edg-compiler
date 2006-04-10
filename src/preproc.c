@@ -2218,6 +2218,88 @@ is called directly by compound_statement.
 }  /* upc_pragma */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void microsoft_start_map_region_pragma(a_pending_pragma_ptr  ppp)
+/*
+Scan a pragma for the form
+	#pragma start_map_region ( <string-literal> )
+This is a Microsoft extension that determines whether constructs of the form
+__declspec(implementation_key(<integer-constant>)) are accepted.  The effect
+of this pragma extends to the next occurrence of #pragma stop_map_region.
+*/
+{
+  a_boolean          err = FALSE;
+  a_source_position  pragma_pos;
+
+  pragma_pos = pos_curr_token;
+  /* Bypass the pragma identifier. */
+  (void)get_token();
+  /* Scan the "(". */
+  if (curr_token == tok_lparen) {
+    (void)get_token();
+  } else {
+    warning(ec_exp_lparen);
+    err = TRUE;
+  }  /* if */
+  add_stop_token(tok_rparen);
+  /* Scan the string literal that specifies the identifier. */
+  if (curr_token != tok_string_literal) {
+    if (!err) {
+      warning(ec_exp_string_literal);
+      err = TRUE;
+    }  /* if */
+  } else {
+    /* Skip the string literal. */
+    (void)get_token();
+  }  /* if */
+  /* Scan the ")". */
+  if (curr_token == tok_rparen) {
+    (void)get_token();
+  } else if (!err) {
+    warning(ec_exp_rparen);
+    err = TRUE;
+  }  /* if */
+  remove_stop_token(tok_rparen);
+  if (curr_token != tok_newline) {
+    /* Flush extraneous tokens and issue a warning if none was issued yet. */
+    if (!err) {
+      warning(ec_extra_text_in_pragma);
+    }  /* if */
+    flush_to_newline();
+  }  /* if */
+  if (!err) {
+    if (in_microsoft_implementation_key_mapping_region) {
+      pos_warning(ec_start_map_region_ignored, &pragma_pos);
+    } else {
+      in_microsoft_implementation_key_mapping_region = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* microsoft_start_map_region_pragma */
+
+
+void microsoft_stop_map_region_pragma(a_pending_pragma_ptr  ppp)
+/*
+Scan a pragma for the form
+	#pragma stop_map_region ( <string-literal> )
+This is a Microsoft extension that terminates the effect of the preceding
+#pragma start_map_region construct.
+*/
+{
+  if (!in_microsoft_implementation_key_mapping_region) {
+    warning(ec_stop_map_region_ignored);
+  } else {
+    in_microsoft_implementation_key_mapping_region = FALSE;
+  }  /* if */
+  /* Bypass the pragma identifier. */
+  (void)get_token();
+  if (curr_token != tok_newline) {
+    warning(ec_extra_text_in_pragma);
+    flush_to_newline();
+  }  /* if */
+}  /* microsoft_stop_map_region_pragma */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if ALIAS_DIRECTIVE
 static void proc_alias(void)
@@ -2656,6 +2738,9 @@ One-time initialization for preproc.c and preproc.h variables.
       pch_saved_var_array_elem(num_upc_pragma_stack_entries_allocated),
 #endif /* if DEBUG */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(in_microsoft_implementation_key_mapping_region),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -2669,6 +2754,9 @@ One-time initialization for preproc.c and preproc.h variables.
 #if UPC_EXTENSIONS_ALLOWED
   register_trans_unit_variable(upc_coherence_stack);
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  register_trans_unit_variable(in_microsoft_implementation_key_mapping_region);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* preproc_one_time_init */
 
 
@@ -2702,6 +2790,9 @@ every translation unit.
 #if UPC_EXTENSIONS_ALLOWED
   upc_coherence_stack = NULL;
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  in_microsoft_implementation_key_mapping_region = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* preproc_trans_unit_init */
 
 

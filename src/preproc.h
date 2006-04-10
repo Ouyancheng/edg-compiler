@@ -277,6 +277,12 @@ extern void check_for_upc_pragmas(a_statement_ptr  sp);
 extern void upc_pragma(a_pending_pragma_ptr  ppp);
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void microsoft_start_map_region_pragma(a_pending_pragma_ptr  ppp);
+
+extern void microsoft_stop_map_region_pragma(a_pending_pragma_ptr  ppp);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern void once_pragma(a_pending_pragma_ptr ppp);
 
 extern void hdrstop_or_no_pch_pragma(a_pending_pragma_ptr ppp);

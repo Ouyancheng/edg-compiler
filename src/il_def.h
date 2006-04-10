@@ -3544,6 +3544,8 @@ enum a_pragma_kind_tag {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   pk_push_macro,
   pk_pop_macro,
+  pk_start_map_region,
+  pk_stop_map_region,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   pk_unrecognized,	/* This pragma kind is used for pragmas that are
@@ -3635,6 +3637,8 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* pk_push_macro */		"push_macro",
 /* pk_pop_macro */		"pop_macro",
+/* pk_start_map_region */	"start_map_region",
+/* pk_stop_map_region */	"stop_map_region",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
 /* pk_unrecognized */		"unrecognized",

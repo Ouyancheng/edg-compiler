@@ -424,6 +424,8 @@ possible.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case pk_push_macro:
     case pk_pop_macro:
+    case pk_start_map_region:
+    case pk_stop_map_region:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     default:
@@ -2004,6 +2006,20 @@ Initialize the pragma description table.
 		 /*il_info_is_complete=*/TRUE,
                  /*automatically_include_in_il=*/TRUE,
 		 /*ignore_in_back_end=*/TRUE);
+    (void)add_preproc_immediate_pragma_kind_description
+                ((a_pragma_kind)pk_start_map_region,
+                 microsoft_start_map_region_pragma,
+                 /*record_pragma_text=*/FALSE,
+                 /*il_info_is_complete=*/TRUE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*ignore_in_back_end=*/TRUE);
+    (void)add_preproc_immediate_pragma_kind_description
+                ((a_pragma_kind)pk_stop_map_region,
+                 microsoft_stop_map_region_pragma,
+                 /*record_pragma_text=*/FALSE,
+                 /*il_info_is_complete=*/TRUE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*ignore_in_back_end=*/TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL

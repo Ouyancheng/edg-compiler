@@ -12187,22 +12187,38 @@ TRUE if the declaration following this one is such a continuation.
          not defined). */
       discard_declaration = TRUE;
     }  /* if */
-#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (rout->source_corresp.is_class_member &&
-        rout->source_corresp.parent.class_type->
-                                variant.class_struct_union.is_template_class &&
-        rout->is_specialized &&
-        rout->template_arg_list == NULL &&
         !curr_name_context_is_a_class()) {
-      /* This is a non-definition declaration of an explicit specialization
-         of a (non-template) member function of a class template, occurring
-         outside the definition of the class template specialization.  The
-         class template specialization will have contained a declaration of
-         this function, so we must suppress its redeclaration in namespace
-         scope. */
-      discard_declaration = TRUE;
-    }  /* if */
+      /* A nondefining member function declaration outside a class
+         definition. */
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      if (rout->source_corresp.parent.class_type->
+                                variant.class_struct_union.is_template_class &&
+          rout->is_specialized &&
+          rout->template_arg_list == NULL) {
+        /* This is a non-definition declaration of an explicit specialization
+           of a (non-template) member function of a class template, occurring
+           outside the definition of the class template specialization.  The
+           class template specialization will have contained a declaration of
+           this function, so we must suppress its redeclaration in namespace
+           scope. */
+        discard_declaration = TRUE;
+      }  /* if */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+      if ((!msvc_is_generated_code_target ||
+           msvc_target_version_number >= 1310) &&
+          !rout->is_template_function) {
+        /* Microsoft compilers accept nondefining class member function
+           declarations outside class definitions.  The more recent versions
+           only accept such constructs for template specializations, or for
+           declarations delimited by #pragma start_map_region/stop_map_region.
+           Since the latter pragmas are not recorded in the IL, we also do
+           not render the nondefining member function declarations they may 
+           contain.  Such declarations are also not rendered in the target is
+           not a Microsoft compiler. */
+        discard_declaration = TRUE;
+      }  /* if */
+    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     marked_as_gnu_extension = sec_decl->marked_as_gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */

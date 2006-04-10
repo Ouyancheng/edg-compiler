@@ -237,6 +237,41 @@ alignment specification to *decl_modifiers.
 
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
+static void scan_declspec_implementation_key(void)
+/*
+Scan the Microsoft C++ mode extension
+
+  __declspec(implementation_key(<integer-literal>))
+
+The current token is the "implementation_key" modifier token.  This construct
+is currently ignored, except that an error is diagnosed if it does not appear
+inside a region delimited by #pragma start_map_region/#pragma stop_map_region.
+*/
+{
+  if (!in_microsoft_implementation_key_mapping_region) {
+    error(ec_implementation_key_outside_mapping_region);
+  }  /* if */
+  /* Skip the "implementation_key" specifier. */
+  (void)get_token();
+  if (curr_token != tok_lparen) {
+    error(ec_exp_lparen);
+  } else {
+    /* Skip the left parenthesis. */
+    (void)get_token();
+    add_stop_token(tok_rparen);
+    if (curr_token == tok_int_constant) {
+      /* We currently simply ignore the "implementation key". */
+      (void)get_token();
+    } else {
+      syntax_error(ec_exp_int_literal);
+    }  /* if */
+    /* Check for closing parenthesis. */
+    (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+    remove_stop_token(tok_rparen);
+  }  /* if */
+}  /* scan_declspec_implementation_key */
+
+
 static void scan_declspec_property(a_decl_modifiers_block_ptr  decl_modifiers)
 /*
 Scan the Microsoft C++ mode extension
@@ -429,6 +464,7 @@ Scan the Microsoft __declspec specifier, which has the form
                 property ( get = xxx, put = yyy )
                 allocate ( data-segment-name )
                 intrin_type
+                implementation_key ( unsigned-integer-literal )
 
 Return the modifiers that were found by updating the decl_modifiers block.
 Issue a warning for an unrecognized modifier.  If an error occurs (e.g., a
@@ -537,6 +573,10 @@ declaration of a class member.
       } else if (strcmp(modifier, "align") == 0) {
         scan_declspec_align(decl_modifiers);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      } else if (strcmp(modifier, "implementation_key") == 0) {
+        /* The "implementation_key" specifier is currently ignored (except
+           for being diagnosed in some cases). */
+        scan_declspec_implementation_key();
       } else if (!C_mode() && strcmp(modifier, "uuid") == 0) {
         if (!is_class_decl) {
           /* "uuid" is allowed only on a C++ class declaration. */

@@ -144,6 +144,12 @@ EXTERN a_type_ptr
 EXTERN a_type_ptr
 		type_of_guid;
 			/* Points to the definition of the _GUID struct. */
+
+EXTERN a_boolean
+		in_microsoft_implementation_key_mapping_region;
+			/* Indicates whether the source being parsed is inside
+			   a region of code delimited by "#pragma
+			   start_map_region" and "#pragma stop_map_region". */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_boolean
@@ -1158,6 +1164,7 @@ extern a_boolean has_nonreal_parent_type(a_source_correspondence	*scp);
 extern void add_to_ms_attributes_list(an_ms_attribute_ptr	msap,
                                       a_scope_depth		scope_depth);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 extern void add_to_ms_if_exists_list(an_ms_if_exists_ptr	msiep,
                                      a_scope_depth		scope_depth);
