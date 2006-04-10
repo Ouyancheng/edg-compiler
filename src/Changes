@@ -1,5 +1,11 @@
 Version 3.8
 
+4/10/06  Initialization issue when using MAKE_FRONT_END_CALLABLE
+
+The memory allocation change described in the 2/15/06 entry initialized
+a variable later than it should have been.  This could potentially cause
+problems when using MAKE_FRONT_END_CALLABLE.  Now fixed.
+
 3/30/06  C++-generating back end: hidden file-scope names in classes with a
          derived class in a nested namespace
 

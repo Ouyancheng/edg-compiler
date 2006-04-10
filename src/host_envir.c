@@ -3557,6 +3557,7 @@ This is done before command line processing.
      get_curr_dir_name on some systems. */
   temp_text_buffer = NULL;
   size_temp_text_buffer = 0;
+  dir_name_list_general = NULL;
   /* Get the current directory name. */
   ptr = get_curr_dir_name();
   current_directory_name = (char *)alloc_general((sizeof_t)strlen(ptr) + 1);
@@ -3654,7 +3655,6 @@ invocation of the front end.
 */
 {
   dir_name_list_il = NULL;
-  dir_name_list_general = NULL;
 }  /* host_envir_init */
 
 /*
