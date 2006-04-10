@@ -1,5 +1,21 @@
 Version 3.8
 
+4/10/06  IL memory region problem on compound literals in GNU C mode
+
+In some cases, a compound literal scanned as part of the initializer
+for a local static variable in GNU C mode was allocated incorrectly
+(partly in the file scope memory region and partly in a function scope
+memory region).  This could cause aborts later in processing,
+especially if an IL file was written and read back in.  Now fixed.
+
+  typedef struct { } raw_X_t;
+  typedef struct {
+    raw_X_t raw_x;
+  } X_t;
+  int f(void) {
+    static X_t x = (X_t) { . raw_x = { } };
+  }
+
 4/10/06  Microsoft compatibility: macro redefinitions and push_macro pragma
 
 Our implementation of the Microsoft push_macro did not match the Microsoft

@@ -11305,7 +11305,6 @@ to the compound literal.
   a_dynamic_init_ptr      dip;
   a_boolean               is_static;
   an_expr_stack_entry_ptr saved_expr_stack;
-  a_memory_region_number  region_to_switch_back_to;
 
   check_assertion((C_mode() || gpp_mode) &&
                   !curr_expr_kind_is(ek_pp) &&
@@ -11346,7 +11345,6 @@ to the compound literal.
      initializer is not part of any expression we may currently be
      inside of. */
   save_expr_stack(&saved_expr_stack);
-  if (is_static) switch_to_file_scope_region(&region_to_switch_back_to);
   /* Scan the brace-enclosed initializer. */
   scan_compound_literal_initializer(&literal_type, is_static, &dip);
   /* No dynamic init entry will be returned if an error occurred. */
@@ -11380,7 +11378,6 @@ to the compound literal.
     make_expression_operand(expr, literal_type, result);
     result->state = (an_operand_state)os_lvalue;
   }  /* if */
-  if (is_static) switch_back_to_original_region(region_to_switch_back_to);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
 }  /* scan_compound_literal */
 

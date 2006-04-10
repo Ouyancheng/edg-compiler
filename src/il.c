@@ -9969,6 +9969,49 @@ parameter field of the current block scope, and return a pointer to it.
 }  /* make_handler_parameter */
 
 
+void add_temporary_to_front_of_variables_list(a_variable_ptr temp,
+                                              a_scope_ptr    scope)
+/*
+Add the indicated temporary variable to the variables list of the
+indicated scope.  Add it at the front of the list.  temp may be
+a static or nonstatic variable.
+*/
+{
+  a_scope_stack_entry_ptr ssep;
+  a_variable_ptr          *prev_ptr_ptr, *last_ptr_ptr;
+
+  check_assertion(scope != NULL);
+  /* See if the scope we are adding to is active on the scope stack.
+     If so, we have to maintain the "last" pointer too. */
+  ssep = NULL;
+  if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+    ssep = &scope_stack[scope->depth_in_scope_stack];
+  }  /* if */
+  /* The variable goes on either the static or the nonstatic variables list,
+     so determine the proper pointers to adjust. */
+  last_ptr_ptr = NULL;
+  if (temp->storage_class == (a_storage_class)sc_static) {
+    prev_ptr_ptr = &scope->variables;
+    if (ssep != NULL) {
+      last_ptr_ptr = &(assoc_pointers_block_of(ssep)->last_variable);
+    }  /* if */
+  } else {
+    prev_ptr_ptr = &scope->nonstatic_variables;
+    if (ssep != NULL) last_ptr_ptr = &ssep->last_nonstatic_variable;
+  }  /* if */
+  /* The temporary goes at the front, but after any unnamed entities.  That
+     ensures that temporaries built later come after temporaries built
+     earlier, which is needed when record_needed_destruction is called
+     for a temporary. */
+  while (*prev_ptr_ptr != NULL && !has_name(*prev_ptr_ptr)) {
+    prev_ptr_ptr = &(*prev_ptr_ptr)->next;
+  }  /* while */
+  temp->next = *prev_ptr_ptr;
+  *prev_ptr_ptr = temp;
+  if (last_ptr_ptr != NULL && temp->next == NULL) *last_ptr_ptr = temp;
+}  /* add_temporary_to_front_of_variables_list */
+
+
 a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type,
                                         a_boolean  force_static)
 /*
@@ -9979,9 +10022,11 @@ rare cases where the front end proper (as opposed to, say, IL lowering)
 needs to generate an explicit temporary.
 */
 {
-  a_variable_ptr  temp_var;
-  a_boolean       at_file_scope;
-  a_storage_class storage_class;
+  a_variable_ptr             temp_var;
+  a_boolean                  at_file_scope;
+  a_storage_class            storage_class;
+  a_scope_ptr                sp;
+  a_scope_pointers_block_ptr pointers_block;
 
   /* Typically, a temporary variable will have automatic storage class,
      since it will appear in an expression in a function or block scope.
@@ -10001,11 +10046,17 @@ needs to generate an explicit temporary.
       storage_class = (a_storage_class)sc_auto;
     }  /* if */
   }  /* if */
-  /* make_variable/alloc_variable uses the appropriate memory region,
-     based on storage class.*/
-  temp_var = make_variable(temp_type, storage_class,
-                           at_file_scope ? DEPTH_OF_FILE_SCOPE :
-                                           decl_scope_level);
+  /* Allocate the variable.  Do not put it on a scope variable list yet.
+     make_variable/alloc_variable uses the appropriate memory region,
+     based on storage class.  */
+  temp_var = make_variable(temp_type, storage_class, NO_SCOPE_DEPTH);
+  /* Find the proper scope and add the temporary at the start of the
+     scope's variable list. */
+  sp = get_scope_for_list(at_file_scope ? DEPTH_OF_FILE_SCOPE :
+                                          decl_scope_level,
+                          &temp_var->source_corresp,
+                          &pointers_block);
+  add_temporary_to_front_of_variables_list(temp_var, sp);
   /* Name linkage stays nlk_none. */
   return temp_var;
 }  /* alloc_temporary_variable */

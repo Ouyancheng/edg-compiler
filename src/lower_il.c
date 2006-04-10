@@ -1373,9 +1373,6 @@ Add the indicated temporary variable to the variables list of the indicated
 scope.  If scope is NULL, use the nearest enclosing scope.
 */
 {
-  a_scope_stack_entry_ptr ssep;
-  a_variable_ptr          *prev_ptr_ptr, *last_ptr_ptr;
-
   if (scope == NULL) {
     a_scopeless_compound_stmt_ptr scsp;
     /* Determine the nearest enclosing scope. */
@@ -1424,37 +1421,10 @@ scope.  If scope is NULL, use the nearest enclosing scope.
     /* Mark local variables of functions. */
     temp->source_corresp.is_local_to_function = TRUE;
   }  /* if */
-  /* See if the scope we are adding to is active on the scope stack.
-     If so, we have to maintain the "last" pointer too. */
-  ssep = NULL;
-  if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
-    ssep = &scope_stack[scope->depth_in_scope_stack];
-  }  /* if */
   /* Add the temporary to the scope list (at the front).  We cannot use
      add_to_variables_list because we might be working on a scope that is
      not on the stack. */
-  /* The variable goes on either the static or the nonstatic variables list,
-     so determine the proper pointers to adjust. */
-  last_ptr_ptr = NULL;
-  if (temp->storage_class == (a_storage_class)sc_static) {
-    prev_ptr_ptr = &scope->variables;
-    if (ssep != NULL) {
-      last_ptr_ptr = &(assoc_pointers_block_of(ssep)->last_variable);
-    }  /* if */
-  } else {
-    prev_ptr_ptr = &scope->nonstatic_variables;
-    if (ssep != NULL) last_ptr_ptr = &ssep->last_nonstatic_variable;
-  }  /* if */
-  /* The temporary goes at the front, but after any unnamed entities.  That
-     ensures that temporaries built later come after temporaries built
-     earlier, which is needed when record_needed_destruction is called
-     for a temporary. */
-  while (*prev_ptr_ptr != NULL && !has_name(*prev_ptr_ptr)) {
-    prev_ptr_ptr = &(*prev_ptr_ptr)->next;
-  }  /* while */
-  temp->next = *prev_ptr_ptr;
-  *prev_ptr_ptr = temp;
-  if (last_ptr_ptr != NULL && temp->next == NULL) *last_ptr_ptr = temp;
+  add_temporary_to_front_of_variables_list(temp, scope);
 }  /* add_temporary_to_scope */
 
 

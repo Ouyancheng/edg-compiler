@@ -3290,9 +3290,7 @@ returned set to TRUE.
          literal. */
       a_constant  constant;
       scan_constant_initializer_expression(vp_type, &constant);
-      switch_to_file_scope_region(&region_to_switch_back_to);
       init_con = alloc_unshared_constant(&constant);
-      switch_back_to_original_region(region_to_switch_back_to);
       if (!var_err && vp != NULL && is_incomplete_type(vp->type)) {
         /* An array of unspecified size is initialized with a constant that
            has a known number of elements: adjust the variable type. */
@@ -3423,7 +3421,8 @@ returned set to TRUE.
          variable. */
       check_assertion(in_file_scope(vp));
       if (in_file_scope(init_con)) {
-        /* Initializer constant is already in the file scope memory region. */
+        /* Initializer constant is already in the file scope memory region.
+           (This happens, for example, for an error constant case.) */
         vp->initializer.constant = init_con;
         vp->init_kind = (an_init_kind)initk_static;
       } else if (init_con->kind == (a_constant_repr_kind)ck_aggregate ||

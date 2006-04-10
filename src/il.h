@@ -952,6 +952,9 @@ extern a_variable_ptr make_variable(a_type_ptr      type_ptr,
 
 extern a_variable_ptr make_handler_parameter(a_type_ptr  type_ptr);
 
+extern void add_temporary_to_front_of_variables_list(a_variable_ptr temp,
+                                                     a_scope_ptr    scope);
+
 extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type,
                                                a_boolean  force_static);
 

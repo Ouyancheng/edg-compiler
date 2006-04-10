@@ -10111,6 +10111,14 @@ literal).  Make the given operand a variable initialized with that constant.
                                                      /*force_static=*/TRUE);
   temp_var->is_compound_literal = TRUE;
   temp_var->init_kind = (an_init_kind)initk_static;
+  if (!in_file_scope(constant)) {
+    /* Copy the constant to the file scope memory region.  This copies
+       the whole tree for aggregate constants. */
+    a_memory_region_number region_to_switch_back_to;
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    constant = copy_unshared_constant(constant);
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
   temp_var->initializer.constant = constant;
   /* The operand is an lvalue for the temporary. */
   make_lvalue_variable_operand(temp_var, operand, (a_ref_entry_ptr)NULL,
