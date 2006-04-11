@@ -10507,6 +10507,20 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
           }  /* if */
         }  /* if */
       }  /* if */
+      if (!destructor_okay && microsoft_mode) {
+        /* If we haven't found a valid destructor, in Micrsoft mode look for
+           a variable with a type that matches the destructor type. */
+        a_symbol_ptr	sym;
+        clear_specific_symbol(locator_for_curr_id);
+        sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+        if (sym != NULL && sym->kind == (a_symbol_kind)sk_variable) {
+          tp = sym->variant.variable.ptr->type;
+          if (acceptable_dtor_type(field_sel_type, tp)) {
+            type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+            destructor_okay = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
       if (!destructor_okay && !error_already_issued) {
         /* None of the lookups match the field selection class.  Determine
            whether any of them match a base class.  If either of the
