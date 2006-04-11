@@ -2220,6 +2220,7 @@ is called directly by compound_statement.
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+/*ARGSUSED*/ /* <-- ppp is not used. */
 void microsoft_start_map_region_pragma(a_pending_pragma_ptr  ppp)
 /*
 Scan a pragma for the form
@@ -2278,6 +2279,7 @@ of this pragma extends to the next occurrence of #pragma stop_map_region.
 }  /* microsoft_start_map_region_pragma */
 
 
+/*ARGSUSED*/ /* <-- ppp is not used. */
 void microsoft_stop_map_region_pragma(a_pending_pragma_ptr  ppp)
 /*
 Scan a pragma for the form
