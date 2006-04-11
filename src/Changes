@@ -1,5 +1,17 @@
 Version 3.8
 
+4/11/06  Spurious error on inactive complex integer literal
+
+In GNU mode, the front end issued a spurious error when encountering a complex
+integer literal while scanning through code in the inactive branch of a
+conditional compilation directive.  For example:
+
+  #ifdef NOT_DEFINED
+  __complex float z = 3i;  // Previously an error even though this code is
+  #endif                   // not active.
+
+This is now fixed.
+
 4/11/06  Microsoft compatibility: destructor call with variable instead of type
 
 The Microsoft compiler accepts an explicit destructor call in which the

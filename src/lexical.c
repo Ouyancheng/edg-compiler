@@ -6618,7 +6618,8 @@ the kind of token.
       }  /* if */
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
     } else if (gnu_mode &&
-               (ch == 'i' || ch == 'I' || ch == 'j' || ch == 'J')) {
+               (ch == 'i' || ch == 'I' || ch == 'j' || ch == 'J') &&
+               !fetch_pp_tokens) {
       /* A GNU imaginary literal 0 (e.g., "0i").  We do not generally support
          imaginary integer literals, but for "0" and for decimal integers
          without any other suffix we recognize the case, issue a discretionary
@@ -6660,7 +6661,7 @@ the kind of token.
     if (ch == 'e' || ch == 'E')       goto float_accum_2;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
     if (gnu_mode && (ch == 'i' || ch == 'I' || ch == 'j' || ch == 'J') &&
-        !is_id_char[*(curr_char_loc+1)-CHAR_MIN]) {
+        !is_id_char[*(curr_char_loc+1)-CHAR_MIN] && !fetch_pp_tokens) {
       /* A GNU imaginary literal of integral type (e.g., "12").  We do not
          generally support imaginary integer literals, but for "0" and for
          decimal integers without any other suffix we recognize the case,
