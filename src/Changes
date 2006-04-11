@@ -1,5 +1,10 @@
 Version 3.8
 
+4/11/06  Microsoft compatibility: Empty wide character literal
+
+In Microsoft mode, the front end now accepts an empty wide character literal
+(L'') and treats it as a null character constant (i.e., like L'\0').
+
 4/10/06  Microsoft compatibility: __declspec(implementation_key(...))
 
 In Microsoft mode, the front end now accepts (and ignores) constructs of the

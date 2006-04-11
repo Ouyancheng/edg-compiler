@@ -7487,10 +7487,18 @@ The token can be a normal or wide character constant.
     /* Advance past closing quote. */
     check_assertion(*curr_char_loc == '\'');
     curr_char_loc++;
-    /* Character constants may not be zero length. */
+    /* Character constants may not be zero length.  (Except wide character
+       literals in Microsoft mode.) */
+    /* Do not insert code here. */
     if (num_chars == 0) {
-      ctoken = tok_error;
-      err_code_for_error_token = ec_zero_length_string;
+      if (microsoft_mode && character_kind == (a_character_kind)chk_wchar_t) {
+        /* Microsoft accepts L'' as a null character constant.  (The call to
+           conv_char_literal below will correctly produce a zero value given
+           an empty literal.) */
+      } else {
+        ctoken = tok_error;
+        err_code_for_error_token = ec_zero_length_string;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (!fetch_pp_tokens) {
