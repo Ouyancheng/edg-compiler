@@ -12214,7 +12214,7 @@ TRUE if the declaration following this one is such a continuation.
            declarations delimited by #pragma start_map_region/stop_map_region.
            Since the latter pragmas are not recorded in the IL, we also do
            not render the nondefining member function declarations they may 
-           contain.  Such declarations are also not rendered in the target is
+           contain.  Such declarations are also not rendered if the target is
            not a Microsoft compiler. */
         discard_declaration = TRUE;
       }  /* if */
