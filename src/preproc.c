@@ -2756,9 +2756,6 @@ One-time initialization for preproc.c and preproc.h variables.
 #if UPC_EXTENSIONS_ALLOWED
   register_trans_unit_variable(upc_coherence_stack);
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  register_trans_unit_variable(in_microsoft_implementation_key_mapping_region);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* preproc_one_time_init */
 
 
