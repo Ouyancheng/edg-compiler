@@ -1596,7 +1596,7 @@ ec_gnu_sentinel_attribute_requires_ellipsis;;"attribute \"sentinel\" requires an
 ec_invalid_gnu_sentinel_argument;;"argument must be a constant null pointer value"
 ec_no_gnu_sentinel_argument;;"insufficient number of arguments for sentinel value"
 ec_gnu_sentinel_must_be_ellipsis_argument;;"sentinel argument must correspond to an ellipsis parameter"
-ec_implementation_key_outside_mapping_region;;"__declspec(implementation_key(...) can only appear between #pragma start_map_region and #pragma stop_map_region"
+ec_implementation_key_outside_mapping_region;;"__declspec(implementation_key(...) can appear only between #pragma start_map_region and #pragma stop_map_region"
 ec_extra_text_in_pragma;;"extra text after expected end of pragma"
 ec_start_map_region_ignored;;"#pragma start_map_region already active: pragma ignored"
 ec_stop_map_region_ignored;;"no #pragma start_map_region is currently active: pragma ignored"
