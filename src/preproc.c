@@ -2283,7 +2283,7 @@ of this pragma extends to the next occurrence of #pragma stop_map_region.
 void microsoft_stop_map_region_pragma(a_pending_pragma_ptr  ppp)
 /*
 Scan a pragma for the form
-	#pragma stop_map_region ( <string-literal> )
+	#pragma stop_map_region
 This is a Microsoft extension that terminates the effect of the preceding
 #pragma start_map_region construct.
 */
