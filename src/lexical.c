@@ -15153,7 +15153,7 @@ Display and return the amount of space used for various lexical tables.
 #endif /* DEBUG */
 
 
-void create_sun_include_file_suffixes(void)
+static void create_sun_include_file_suffixes(void)
 /*
 The Sun compiler does special processing of certain files included
 with the <..> syntax.  Create a special include file suffix entries to emulate
