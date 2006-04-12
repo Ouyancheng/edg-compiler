@@ -2220,7 +2220,6 @@ is called directly by compound_statement.
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-/*ARGSUSED*/ /* <-- ppp is not used. */
 void microsoft_start_map_region_pragma(a_pending_pragma_ptr  ppp)
 /*
 Scan a pragma for the form
@@ -2233,9 +2232,8 @@ of this pragma extends to the next occurrence of #pragma stop_map_region.
   a_boolean          err = FALSE;
   a_source_position  pragma_pos;
 
+  begin_rescan_of_pragma_tokens(ppp);
   pragma_pos = pos_curr_token;
-  /* Bypass the pragma identifier. */
-  (void)get_token();
   /* Scan the "(". */
   if (curr_token == tok_lparen) {
     (void)get_token();
@@ -2262,13 +2260,9 @@ of this pragma extends to the next occurrence of #pragma stop_map_region.
     err = TRUE;
   }  /* if */
   remove_stop_token(tok_rparen);
-  if (curr_token != tok_newline) {
-    /* Flush extraneous tokens and issue a warning if none was issued yet. */
-    if (!err) {
-      warning(ec_extra_text_in_pragma);
-    }  /* if */
-    flush_to_newline();
-  }  /* if */
+  /* Microsoft ignores extra tokens in the pragma: Passing TRUE for
+     error_in_pragma achieves the same effect. */
+  wrapup_rescan_of_pragma_tokens(/*error_in_pragma=*/TRUE);
   if (!err) {
     if (in_microsoft_implementation_key_mapping_region) {
       pos_warning(ec_start_map_region_ignored, &pragma_pos);
@@ -2279,7 +2273,6 @@ of this pragma extends to the next occurrence of #pragma stop_map_region.
 }  /* microsoft_start_map_region_pragma */
 
 
-/*ARGSUSED*/ /* <-- ppp is not used. */
 void microsoft_stop_map_region_pragma(a_pending_pragma_ptr  ppp)
 /*
 Scan a pragma for the form
@@ -2288,17 +2281,15 @@ This is a Microsoft extension that terminates the effect of the preceding
 #pragma start_map_region construct.
 */
 {
+  begin_rescan_of_pragma_tokens(ppp);
   if (!in_microsoft_implementation_key_mapping_region) {
     warning(ec_stop_map_region_ignored);
   } else {
     in_microsoft_implementation_key_mapping_region = FALSE;
   }  /* if */
-  /* Bypass the pragma identifier. */
-  (void)get_token();
-  if (curr_token != tok_newline) {
-    warning(ec_extra_text_in_pragma);
-    flush_to_newline();
-  }  /* if */
+  /* Microsoft ignores extra tokens in the pragma: Passing TRUE for
+     error_in_pragma achieves the same effect. */
+  wrapup_rescan_of_pragma_tokens(/*error_in_pragma=*/TRUE);
 }  /* microsoft_stop_map_region_pragma */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

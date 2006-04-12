@@ -2006,20 +2006,32 @@ Initialize the pragma description table.
 		 /*il_info_is_complete=*/TRUE,
                  /*automatically_include_in_il=*/TRUE,
 		 /*ignore_in_back_end=*/TRUE);
-    (void)add_preproc_immediate_pragma_kind_description
+    (void)add_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_start_map_region,
                  microsoft_start_map_region_pragma,
-                 /*record_pragma_text=*/FALSE,
-                 /*il_info_is_complete=*/TRUE,
+                 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
-                 /*ignore_in_back_end=*/TRUE);
-    (void)add_preproc_immediate_pragma_kind_description
+                 /*record_pragma_text=*/FALSE,
+                 /*expand_macros=*/TRUE,
+                 /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+                 es_warning);
+    (void)add_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_stop_map_region,
                  microsoft_stop_map_region_pragma,
-                 /*record_pragma_text=*/FALSE,
-                 /*il_info_is_complete=*/TRUE,
+                 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
-                 /*ignore_in_back_end=*/TRUE);
+                 /*record_pragma_text=*/FALSE,
+                 /*expand_macros=*/TRUE,
+                 /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+                 es_warning);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
