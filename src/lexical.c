@@ -633,6 +633,12 @@ static a_file_suffix_ptr
 			/* List of file suffixes used when searching for a
 			   header file whose name does not include a suffix. */
 
+static a_file_suffix_ptr
+		 sun_include_file_suffix_list;
+			/* List of file suffixes used in Sun mode when
+			   searching for includes specified with the <...>
+			   syntax. */
+
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
@@ -3942,6 +3948,7 @@ static a_boolean search_for_input_file(
 			a_directory_name_entry_ptr	search_path,
 			a_file_suffix_ptr		suffix_list,
 			a_boolean			is_implicit_include,
+			a_boolean			is_system_include,
 			char				**name_found,
 			FILE				**new_input_file,
 			a_boolean			*suppress_include,
@@ -3957,7 +3964,8 @@ is used to supply a default suffix for headers specified without a
 suffix.  The path name of the file found is returned in name_found.
 *dir_entry is set to point to the directory name entry on the search
 path in which the file was found, or NULL if the search path was not
-used.  Return TRUE if the file was found (the file was either opened
+used.  is_system_include is TRUE if the included file name was specified
+in <...>.  Return TRUE if the file was found (the file was either opened
 or a previously included file was found).  If the file was opened, the
 file pointer is returned in new_input_file.  If the include is to be
 suppressed because the file was already included, TRUE is returned in
@@ -3973,6 +3981,8 @@ suppress_include.
   a_text_buffer_ptr		buffer = NULL;
   a_boolean			replace_suffix;
   an_include_search_result_ptr	isrp = NULL;
+  char				*suffix;
+  a_boolean			special_sun_include = FALSE;
 
   *dir_entry = NULL;
   *new_input_file = NULL;
@@ -3980,7 +3990,17 @@ suppress_include.
   /* Determine whether we need to do the suffix replacement processing.
      This is done when is_implicit_include is TRUE or when when file name
      supplied has no suffix. */
-  replace_suffix = is_implicit_include || *suffix_of(file_name) == '\0';
+  suffix = suffix_of(file_name);
+  replace_suffix = is_implicit_include || *suffix == '\0';
+  if (!replace_suffix) {
+    /* In Sun mode, includes using the <...> syntax searches for files with
+       a special suffix.  Use a special suffix list for this search. */
+    if (sun_mode && is_system_include && strcmp(suffix, ".h") == 0) {
+      special_sun_include = TRUE;
+      replace_suffix = TRUE;
+      suffix_list = sun_include_file_suffix_list;
+    }  /* if */
+  }  /* if */
   if (!use_search_path || is_absolute_file_name(file_name)) {
     /* File name is absolute, so search path is not used. */
     name_to_try = file_name;
@@ -4007,10 +4027,12 @@ suppress_include.
       dir_name = curr_directory_name_entry->dir_name;
       prev_dir_name = dir_name;
       isrp = NULL;
-      if (!is_implicit_include) {
+      if (!is_implicit_include && !special_sun_include) {
         /* See if we have searched for this file before.  This is not done
            when looking for implicit include files because the suffix list
-           used is different in that case. */
+           used is different in that case.  It is also not done for the
+           special Sun include processing because the suffix replacement
+           is not done for all includes (only for the <...> form). */
         a_boolean	is_new_entry;
         isrp = find_or_create_include_search_result(dir_name, file_name,
                                                     &is_new_entry);
@@ -4191,7 +4213,8 @@ a catastrophic error is not issued, FALSE is returned.
   } else if (is_implicit_include) {
     file_found = search_for_input_file(file_name, use_search_path, search_path,
                                        implicit_instantiation_file_suffix_list,
-                                       is_implicit_include, &temp_file_name,
+                                       is_implicit_include, is_system_include,
+                                       &temp_file_name,
                                        new_input_file, suppress_include,
                                        dir_entry);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
@@ -4199,6 +4222,7 @@ a catastrophic error is not issued, FALSE is returned.
     file_found = search_for_input_file(file_name, use_search_path, search_path,
                                        include_file_suffix_list,
                                        /*is_implicit_include=*/FALSE,
+                                       is_system_include,
                                        &temp_file_name,
                                        new_input_file, suppress_include,
                                        dir_entry);
@@ -15126,6 +15150,24 @@ Display and return the amount of space used for various lexical tables.
 #endif /* DEBUG */
 
 
+void create_sun_include_file_suffixes(void)
+/*
+The Sun compiler does special processing of certain files included
+with the <..> syntax.  Create a special include file suffix entries to emulate
+this behavior.  Also, add the special suffix to the normal include file
+suffix list.  The sun_include_file_suffix_list is used for files with a .h
+suffix, the normal include_file_suffix_list is used for unsuffixed files.
+*/
+{
+  char	*suffix;
+
+  sun_include_file_suffix_list =
+                              conv_string_to_file_suffix_list("h:h.SUNWCCh:");
+  suffix = "SUNWCCh";
+  add_to_file_suffix_list(&include_file_suffix_list, suffix, strlen(suffix));
+}  /* create_sun_include_file_suffixes */
+
+
 static void init_include_file_suffixes(void)
 /*
 Create the include file suffix list used for header files with no suffix.
@@ -15140,6 +15182,11 @@ Create the include file suffix list used for header files with no suffix.
     /* The list is empty.  The empty suffix should be included in such
        cases. */
     add_to_file_suffix_list(&include_file_suffix_list, "", 0);
+  }  /* if */
+  sun_include_file_suffix_list = NULL;
+  if (sun_mode) {
+    /* Add include file suffix entries needed for Sun compiler emulation. */
+    create_sun_include_file_suffixes();
   }  /* if */
 }  /* init_include_file_suffixes */
 

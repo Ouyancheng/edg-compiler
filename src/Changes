@@ -1,5 +1,12 @@
 Version 3.8
 
+4/11/06  Sun compatibility: searching for system header files
+
+When searching for a header file specified using the <...> syntax, the
+the Sun compiler searches for the specified header file name and also for a
+version with the suffix .SUNWCCh appended (e.g., stddef.h.SUNWCCh).  We now
+emulate this behavior in Sun mode.
+
 4/11/06  Spurious error on inactive complex integer literal
 
 In GNU mode, the front end issued a spurious error when encountering a complex
