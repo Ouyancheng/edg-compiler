@@ -7,15 +7,15 @@ the Sun compiler searches for the specified header file name and also for a
 version with the suffix .SUNWCCh appended (e.g., stddef.h.SUNWCCh).  We now
 emulate this behavior in Sun mode.
 
-4/11/06  Spurious error on inactive complex integer literal
+4/11/06  Spurious error on complex integer literal skipped in preprocessing
 
 In GNU mode, the front end issued a spurious error when encountering a complex
-integer literal while scanning through code in the inactive branch of a
+integer literal while scanning through code in the skipped branch of a
 conditional compilation directive.  For example:
 
   #ifdef NOT_DEFINED
   __complex float z = 3i;  // Previously an error even though this code is
-  #endif                   // not active.
+  #endif                   // skipped.
 
 This is now fixed.
 
