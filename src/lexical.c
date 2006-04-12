@@ -6642,15 +6642,16 @@ the kind of token.
       }  /* if */
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
     } else if (gnu_mode &&
-               (ch == 'i' || ch == 'I' || ch == 'j' || ch == 'J') &&
-               !fetch_pp_tokens) {
+               (ch == 'i' || ch == 'I' || ch == 'j' || ch == 'J')) {
       /* A GNU imaginary literal 0 (e.g., "0i").  We do not generally support
          imaginary integer literals, but for "0" and for decimal integers
          without any other suffix we recognize the case, issue a discretionary
          error, and proceed as if it were a "_Complex double" literal. */
       ++curr_char_loc;
-      diagnostic_at_line_pos(es_discretionary_error, ec_complex_integral_type,
-                             curr_char_loc);
+      if (!fetch_pp_tokens) {
+        diagnostic_at_line_pos(es_discretionary_error,
+                               ec_complex_integral_type, curr_char_loc);
+      }  /* if */
       goto end_float_accum;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
     } else {
@@ -6685,14 +6686,16 @@ the kind of token.
     if (ch == 'e' || ch == 'E')       goto float_accum_2;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
     if (gnu_mode && (ch == 'i' || ch == 'I' || ch == 'j' || ch == 'J') &&
-        !is_id_char[*(curr_char_loc+1)-CHAR_MIN] && !fetch_pp_tokens) {
+        !is_id_char[*(curr_char_loc+1)-CHAR_MIN]) {
       /* A GNU imaginary literal of integral type (e.g., "12").  We do not
          generally support imaginary integer literals, but for "0" and for
          decimal integers without any other suffix we recognize the case,
          issue a discretionary error, and proceed as if it were a "_Complex
          double" literal. */
-      diagnostic_at_line_pos(es_discretionary_error, ec_complex_integral_type,
-                             curr_char_loc);
+      if (!fetch_pp_tokens) {
+        diagnostic_at_line_pos(es_discretionary_error,
+                               ec_complex_integral_type, curr_char_loc);
+      }  /* if */
       goto end_float_accum;
     }  /* if */
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
