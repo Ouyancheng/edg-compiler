@@ -1,5 +1,21 @@
 Version 3.8
 
+4/13/06  GNU C++ compatibility: template static data member with missing
+         initializer
+
+Version 3.7 issues an error if the definition of a const template static
+data member does not provide an initializer, when nonclass prototype
+instantiations are enabled (e.g., strict mode, --parse_templates, g++ mode
+when gnu_version is >= 30400).  g++ only issues an error if the static data
+member is instantiated.  The severity of the diagnostic issued on the
+static data member definition has been reduced to a warning in g++ mode.
+An error is still issued if the static data member is instantiated.
+
+  template <class T> struct A {
+    static const int i;
+  };
+  template <class T> const int A<T>::i;
+
 4/13/06  Internal error during prototype instantiation of static data member
 
 An internal error (in check_for_missing_initializer, decl_inits.c) could

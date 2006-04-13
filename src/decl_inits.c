@@ -5385,6 +5385,14 @@ are created by a new expression (in which case sym is NULL).  In both cases
                 severity = es_warning;
               }  /* if */
             }  /* if */
+            if (gpp_mode &&
+                sym->kind == (a_symbol_kind)sk_static_data_member &&
+                is_prototype_instantiation_context()) {
+              /* g++ fails to diagnose a missing initializer for a static
+                 data member at template definition time.  An error is
+                 issued if the template is instantiated. */
+              severity = es_warning;
+            }  /* if */
             if (is_class_struct_union_type(type) && !is_incomplete_array &&
                 !any_cfront_mode() && !microsoft_mode) {
                /* Even if the class has an implicitly declared default
