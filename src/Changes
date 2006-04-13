@@ -1,5 +1,15 @@
 Version 3.8
 
+4/13/06  Microsoft compatibility: invalid template default arguments
+
+In general, invalid template default arguments are accepted in Microsoft
+mode and only diagnosed if the default argument is actually used.  Certain
+errors regarding invalid class template arguments were still issued, however.
+These cases are now accepted without error.
+
+  template<typename T> class C {};
+  template<typename T, typename U = C<U> > class D {};
+
 4/13/06  GNU C++ compatibility: template static data member with missing
          initializer
 

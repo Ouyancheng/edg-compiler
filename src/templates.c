@@ -12292,10 +12292,13 @@ Place the tokens for a template parameter into a token cache.
   incr_token_set_array_element(stop_tokens, tok_semicolon);
   incr_token_set_array_element(stop_tokens, tok_lbrace);
   clear_token_cache(token_cache, /*reusable=*/TRUE);
-  if (curr_token != tok_template) {
+  if (curr_token != tok_template && !microsoft_mode) {
     /* When not scanning a template template parameter, stop on a ","
        or ">".  These may appear in a template template parameter declaration,
-       so when scanning those we scan until a semicolon or brace. */
+       so when scanning those we scan until a semicolon or brace.  The more
+       general caching mechanism is also used in Microsoft mode to avoid
+       errors on certain invalid class template references that could be
+       issued by cache_token_stream_coalesce_identifiers. */
     incr_token_set_array_element(stop_tokens, tok_comma);
     incr_token_set_array_element(stop_tokens, tok_gt);
     cache_token_stream_coalesce_identifiers(token_cache, stop_tokens,
