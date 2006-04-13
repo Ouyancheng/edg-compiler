@@ -40,16 +40,23 @@ work correctly when the called function is not overloaded.
     A a(&func);
   }
 
-4/13/06  GNU/Microsoft C++ compatibility: Name linkage ignored for variables
+4/13/06  Name linkage conflicts for variables in nonstrict modes
 
-GNU and Microsoft C++ compilers mostly ignore name linkage specifiers for
-variable declarations.  In GNU and Microsoft C++ modes, the front end
-therefore now allows variable declarations that only differ in name linkage
-(with a warning; previously an error was issued).  For example:
+In nonstrict C++ modes, the front end allows name linkage conflicts when
+redeclaring variables (with a warning).  For example:
 
   extern "C++" int i;
-  extern "C" int i;  // Now accepted with a warning in Microsoft and GNU C++
-                     // modes.
+  extern "C" int i;  // Accepted with a warning in nonstrict C++ mode.
+
+However, similar conflicts were previously not permitted when the variable
+declarations appear in different scopes.  To match common practice in other
+compilers (e.g., GNU and Microsoft C++ compilers), the front end now also
+accepts such cases with a warning.  For example:
+
+  void f1() { extern int i; }
+  extern "C" void f2() {
+    extern int i;  // Previously an error in all C++ modes.  Now accepted
+  }                // with a warning in nonstrict C++ modes.
 
 4/13/06  Microsoft compatibility: invalid template default arguments
 

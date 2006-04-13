@@ -2983,7 +2983,7 @@ created; the caller must set it.
       check_assertion(old_name != NULL);
       if ((!C_mode() && !is_function &&
            (a_name_linkage_kind)scp->name_linkage != name_linkage &&
-           !(microsoft_mode || gpp_mode) &&
+           strict_ansi_mode &&
            ((a_name_linkage_kind)scp->name_linkage ==
                                            (a_name_linkage_kind)nlk_external ||
             name_linkage == (a_name_linkage_kind)nlk_external)) ||
