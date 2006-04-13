@@ -1,5 +1,16 @@
 Version 3.8
 
+4/13/06  GNU/Microsoft C++ compatibility: Name linkage ignored for variables
+
+GNU and Microsoft C++ compilers mostly ignore name linkage specifiers for
+variable declarations.  In GNU and Microsoft C++ modes, the front end
+therefore now allows variable declarations that only differ in name linkage
+(with a warning; previously an error was issued).  For example:
+
+  extern "C++" int i;
+  extern "C" int i;  // Now accepted with a warning in Microsoft and GNU C++
+                     // modes.
+
 4/13/06  Microsoft compatibility: invalid template default arguments
 
 In general, invalid template default arguments are accepted in Microsoft
