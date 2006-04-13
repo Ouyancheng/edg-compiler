@@ -1073,7 +1073,8 @@ processing, and in wide characters if the constant is wide).
     mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
     set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
-    /* Accumulate the characters. */
+    /* Accumulate the characters.  A wide literal with no characters (L'')
+       is possible in Microsoft mode and must produce a zero value. */
     for (i = 0; temp_ptr < end_of_curr_token; ++i) {
       /* Convert one character of the char constant. */
       switch (character_kind) {
