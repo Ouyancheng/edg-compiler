@@ -1,5 +1,45 @@
 Version 3.8
 
+4/13/06  Address of template function with explicit arguments in overload
+         resolution
+
+Overload resolution's analysis of argument matching now considers
+an argument that is a template function with explicit arguments
+as equivalent to a single non-overloaded function.  (This is
+part of the resolution of core issue 115.)
+
+  struct A {
+    template <class T> void foo();
+  };
+  struct B : public A { };
+  typedef void (B::*pmb)();
+  void f(int);
+  void f(pmb);
+  int main() {
+    f(&A::foo<int>);
+  }
+
+4/13/06  Overloaded function passed to reference to const pointer in
+         overload resolution
+
+Overload resolution now correctly handles a case where the address
+of an overloaded function is passed as an argument to a parameter
+of type reference to const pointer to function of the type of one
+of the members of the overload set.  Formerly, it failed to
+consider that a reference to const could match a pointer
+produced by the function-to-pointer decay.  Such cases did
+work correctly when the called function is not overloaded.
+
+  struct A {
+    typedef void (*fptr)();
+    A(const fptr&);
+  };
+  void func();
+  void func(int);
+  int main() {
+    A a(&func);
+  }
+
 4/13/06  GNU/Microsoft C++ compatibility: Name linkage ignored for variables
 
 GNU and Microsoft C++ compilers mostly ignore name linkage specifiers for

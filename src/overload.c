@@ -112,6 +112,7 @@ cast.
 */
 {
   a_boolean        is_ptr = FALSE, is_ref = FALSE, is_ptr_to_member = FALSE;
+  a_boolean        is_ref_to_const = FALSE;
   a_boolean        sym_is_list, need_templates_pass;
   a_boolean        dest_type_has_type_qualifiers = FALSE;
   a_type_ptr       routine_type, dest_class, ptr_routine_type;
@@ -120,6 +121,7 @@ cast.
   unsigned long    number_of_matches = 0;
   a_std_conv_descr std_conversion;
   a_boolean        exception_spec_checked = FALSE;
+  a_boolean        is_new_template_instance;
 
   db_enter(4, "find_addr_of_overloaded_function_match");
   clear_std_conv_descr(std_conv);
@@ -141,6 +143,7 @@ cast.
     dest_class = NULL;
     is_ref = TRUE;
     dest_underlying_type = type_pointed_to(dest_type);
+    is_ref_to_const = is_const_qualified_type(dest_underlying_type);
   } else if (is_ptr_to_member_type(dest_type)) {
     dest_class = pm_class_type(dest_type);
     is_ptr_to_member = TRUE;
@@ -259,7 +262,6 @@ cast.
           number_of_matches = 2;
         } else {
           /* Generate a partial instantiation of the matching instance. */
-          a_boolean  is_new_template_instance;
           match_sym = matching_template_function(
                                             sym, dest_underlying_type,
                                             template_arg_list,
@@ -272,25 +274,35 @@ cast.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (number_of_matches == 0 && !is_ref) {
+    if (number_of_matches == 0 && (!is_ref || is_ref_to_const)) {
       /* Try matches involving an implicit conversion.  This is here
          primarily for the pointer-to-member case, but it makes sense to
          handle the normal pointer case too in case the implicit conversion
          rules change (also, it makes the error message clearer in the
          case where dest_type is "void *").  Implicit conversions are
-         not attempted for the reference case. */
+         not attempted for the (non-const) reference case. */
+      a_type_ptr         match_routine_type = NULL;
+      a_template_arg_ptr match_template_arg_list = NULL;
+      a_type_ptr         eff_dest_type = dest_type;
+      if (is_ref) eff_dest_type = type_pointed_to(eff_dest_type);
       for (proj_sym = ovl_sym;
            proj_sym != NULL;
            proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
+        a_template_arg_ptr new_template_arg_list = NULL;
         /* Remove projections added for namespaces, if any. */
         sym = fundamental_symbol_of(proj_sym);
+        routine_type = NULL;
         if (symbol_is_invisible_friend(proj_sym)) {
           /* Ignore invisible symbols from friend declarations. */
         } else if (sym->kind == (a_symbol_kind)sk_function_template) {
-          /* Template.  Could be converted to "void *", but that would always
-             be ambiguous. */
-          if (is_ptr && is_void_type(dest_underlying_type)) {
-            goto is_ambiguous;
+          /* Template.  If we have an explicit template argument list that
+             selects a unique instance, use that. */
+          if (is_template_id) {
+            routine_type =
+                 explicit_arg_list_identifies_specialization(
+                                                       sym,
+                                                       template_arg_list,
+                                                       &new_template_arg_list);
           }  /* if */
         } else if (is_template_id) {
           /* There is an explicit template argument list, so do not consider
@@ -298,6 +310,8 @@ cast.
         } else {
           /* Not a function template (i.e., a normal function). */
           routine_type = routine_symbol_type(sym);
+        }  /* if */
+        if (routine_type != NULL) {
           if (routine_type_is_nonstatic_member_function(routine_type)) {
             /* The class of the pointer to member is always the class in
                which the function is defined, not any derived class
@@ -321,7 +335,7 @@ cast.
                                      /*source_is_constant=*/FALSE,
                                      /*source_is_string_literal=*/FALSE,
                                      (a_constant_ptr)NULL,
-                                     dest_type,
+                                     eff_dest_type,
                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                      ec_no_error,
                                      &std_conversion.warning_suggested)) :
@@ -329,13 +343,15 @@ cast.
                                          /*source_is_constant=*/FALSE,
                                          /*source_is_string_literal=*/FALSE,
                                          (a_constant_ptr)NULL,
-                                         dest_type,
+                                         eff_dest_type,
                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                         /*suppress_extensions=*/TRUE,
+                                         /*suppress_extensions=*/FALSE,
                                          ec_no_error,
                                          &std_conversion))) {
             /* A match. */
             match_sym = proj_sym;
+            match_routine_type = routine_type;
+            match_template_arg_list = new_template_arg_list;
             *match_level = aml_std_conversion;
             *std_conv = std_conversion;
             number_of_matches++;
@@ -343,9 +359,20 @@ cast.
           }  /* if */
         }  /* if */
       }  /* for */
+      if (number_of_matches == 1) {
+        if (match_template_arg_list != NULL) {
+          /* Make the template instance for the best match. */
+          match_sym = matching_template_function(
+                                            match_sym, match_routine_type,
+                                            match_template_arg_list,
+                                            is_template_id,
+                                            /*is_decl_context=*/FALSE,
+                                            /*in_class_specialization=*/FALSE,
+                                            &is_new_template_instance);
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (number_of_matches > 1) {
-is_ambiguous:
       /* Ambiguous case. */
       *ambiguous = TRUE;
       match_sym = NULL;
@@ -431,6 +458,31 @@ is TRUE, template_arg_list is a set of explicit template arguments for sym.
 }  /* choose_function_and_make_address_constant */
 
 
+static a_type_ptr arg_type_for_unique_specialization(a_type_ptr arg_type,
+                                                     an_operand *operand)
+/*
+Helper routine used when calling explicit_arg_list_identifies_specialization.
+Converts the function type returned by that function (arg_type) into a
+pointer or pointer-to-member type as appropriate.  operand, if non-NULL,
+is the source indefinite function operand.
+*/
+{
+  if (operand == NULL || !is_a_function_designator(operand)) {
+    /* The operand is not a function designator, so make a pointer or
+       pointer to member as the argument type. */
+    if (routine_type_is_nonstatic_member_function(arg_type)) {
+      arg_type = ptr_to_member_type(
+                          arg_type,
+                          skip_typerefs(
+                            arg_type->variant.routine.extra_info->this_class));
+    } else {
+      arg_type = make_pointer_type(arg_type);
+    }  /* if */
+  }  /* if */
+  return arg_type;
+}  /* arg_type_for_unique_specialization */
+
+
 static
 a_boolean indefinite_function_can_be_template_arg(an_operand   *operand,
                                                   a_type_ptr   param_type,
@@ -461,17 +513,8 @@ param_type.
                                                     &new_arg_list);
       if (matching_arg_type != NULL) {
         can_be_arg = TRUE;
-        if (!is_a_function_designator(operand)) {
-          /* The operand is not a function designator, so make a pointer or
-             pointer to member as the argument type. */
-          if (routine_type_is_nonstatic_member_function(matching_arg_type)) {
-            matching_arg_type = ptr_to_member_type(
-                    matching_arg_type,
-                    matching_arg_type->variant.routine.extra_info->this_class);
-          } else {
-            matching_arg_type = make_pointer_type(matching_arg_type);
-          }  /* if */
-        }  /* if */
+        matching_arg_type = arg_type_for_unique_specialization(
+                                                   matching_arg_type, operand);
       }  /* if */
     }  /* if */
   } else {
@@ -496,12 +539,9 @@ param_type.
                                                     &new_arg_list);
           if (routine_type != NULL) {
             matches = TRUE;
-            if (routine_type_is_nonstatic_member_function(routine_type)) {
-              ptr_routine_type = ptr_to_member_type(routine_type,
-                                                    sym->parent.class_type);
-            } else {
-              ptr_routine_type = make_pointer_type(routine_type);
-            }  /* if */
+            ptr_routine_type = arg_type_for_unique_specialization(
+                                                           routine_type,
+                                                           (an_operand *)NULL);
           }  /* if */
         }  /* if */
       } else {
@@ -1495,29 +1535,6 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     arg_operand_is_simple_string_literal =
                                          arg_operand->is_simple_string_literal;
   }  /* if */
-  /* Try an exact match or one involving trivial conversions.  This is
-     case [1] in the ARM.  Trivial conversions are
-       From:      To:
-       T          T&
-       T          qualified T
-       T*         (qualified T)*
-       T[]        T*
-       T(args)    (*T)(args)
-       T(args)    (X::*T)(args)    -- not in ARM (extension)
-     T& --> T is done automatically in expression processing; an argument
-     here never has a reference type T& -- it's an lvalue of type T.  Cases
-     that involve
-       From:      To:
-       T*         (qualified T)*
-       T          (qualified T)&
-     (the latter coming from T --> qualified T --> (qualified T)&, and making
-     more sense here than the ARM's T& --> (qualified T)& because the argument
-     cannot be a reference) are considered worse than those that do not
-     involve them.
-  */
-  /* Remove parts of the param type that could be added by trivial
-     conversions, hoping thereby to end up with the arg type. */
-  ref_type_qualifiers_dropped = ref_type_qualifiers_added = FALSE;
   param_is_reference = is_reference_type(param_type);
   /* See if the array --> pointer and function --> pointer transformations
      should be done. */
@@ -1547,6 +1564,9 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     arg_operand = NULL;
     arg_converted_to_rvalue = TRUE;
   }  /* if */
+  /* Remove parts of the param type that could be added by trivial
+     conversions, hoping thereby to end up with the arg type. */
+  ref_type_qualifiers_dropped = ref_type_qualifiers_added = FALSE;
   if (param_is_reference) {
     a_type_qualifier_set param_type_qualifiers, arg_type_qualifiers;
     /* The parameter type is a reference.  Drop the reference and remember
@@ -1566,10 +1586,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     } else {
       /* Normal case.  A reference can bind to an rvalue only if it's
          a reference to const. */
-      /* Note that, as of Feb. 1995, the WP does not require the test for
-         const volatile here.  It's not clear whether that's an oversight or
-         not.  (A core working group discussed it in Austin in March 1995
-         and decided it didn't care to bring it up in full committee.) */
+      /* Note that the C++ Standard does not require the test for
+         const volatile here.  (A core working group discussed it in
+         Austin in March 1995 and decided it didn't care to bring it
+         up in full committee.) */
       source_can_be_rvalue = ((param_type_qualifiers & TQ_CONST) != 0);
     }  /* if */
     /* Check the type qualifiers to see if they can be reconciled by
@@ -1706,13 +1726,13 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       }  /* if */
     }  /* if */
     if (arg_operand != NULL && is_indefinite_function_operand(arg_operand) &&
-        (!param_is_reference || is_a_function_designator(arg_operand))) {
+        (source_can_be_rvalue || is_a_function_designator(arg_operand))) {
       /* The source is an indefinite function, i.e., the address of an
          overloaded function.  It can be converted to an appropriate
          pointer, reference, or pointer-to-member type.  For the
          pointer and pointer-to-member cases, the operand can be a function
-         designator or pointer to function; for the reference case it
-         must be a function designator. */
+         designator or pointer to function; for the (non-const) reference
+         case it must be a function designator. */
       a_boolean unknown_dependent_function;
       if (find_addr_of_overloaded_function_match(arg_operand->variant.symbol,
                                                  (a_boolean)arg_operand->
