@@ -10536,7 +10536,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
         }  /* if */
       }  /* if */
       if (!destructor_okay && microsoft_mode) {
-        /* If we haven't found a valid destructor, in Micrsoft mode look for
+        /* If we haven't found a valid destructor, in Microsoft mode look for
            a variable with a type that matches the destructor type. */
         a_symbol_ptr	sym;
         clear_specific_symbol(locator_for_curr_id);
@@ -10546,6 +10546,8 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
           if (acceptable_dtor_type(field_sel_type, tp)) {
             type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
             destructor_okay = TRUE;
+            pos_sy_warning(ec_var_used_as_destructor,
+                           &locator_for_curr_id.source_position, sym);
           }  /* if */
         }  /* if */
       }  /* if */
