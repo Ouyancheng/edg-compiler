@@ -3590,10 +3590,12 @@ the default constructor (if one exists) is called.
         var->storage_class != (a_storage_class)sc_extern &&
         !is_incomplete_type(var_type)) {
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-        /* Perform the default initialization of a static data member with
-           its parent class reactivated. */
-        push_class_reactivation_scope(sym->parent.class_type,
-                                      /*extend_namespace=*/TRUE);
+        if (!is_template_dependent_context()) {
+          /* Perform the default initialization of a static data member with
+             its parent class reactivated. */
+          push_class_reactivation_scope(sym->parent.class_type,
+                                        /*extend_namespace=*/TRUE);
+        }  /* if */
       } else {
         if (exceptions_enabled && static_lifetime &&
             depth_innermost_function_scope != NO_SCOPE_DEPTH) {
@@ -3727,8 +3729,10 @@ the default constructor (if one exists) is called.
 #endif /* DEBUG */
       }  /* if */
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-        pop_class_reactivation_scope();
-      } else {
+        if (!is_template_dependent_context()) {
+          pop_class_reactivation_scope();
+        }  /* if */
+    } else {
         /* If an object lifetime was pushed to surround the initialization of
            a local static variable, pop it now. */
         if (local_static_lifetime != NULL) {
