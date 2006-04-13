@@ -3993,8 +3993,14 @@ suppress_include.
   suffix = suffix_of(file_name);
   replace_suffix = is_implicit_include || *suffix == '\0';
   if (!replace_suffix) {
-    /* In Sun mode, includes using the <...> syntax searches for files with
-       a special suffix.  Use a special suffix list for this search. */
+    /* In Sun mode, includes that use the <...> syntax search for the
+       specified file, and also the file with a special suffix.  This
+       code handles the case where the file has a .h suffix.  The additional
+       search is done by using a special include file suffix list, and
+       employing that list for .h files (normally a suffix list is only
+       used for unsuffixed files).  The special Sun mode processing for
+       unsuffixed files is done by adding an extra entry to the normal
+       include file suffix list during initialization. */
     if (sun_mode && is_system_include && strcmp(suffix, ".h") == 0) {
       special_sun_include = TRUE;
       replace_suffix = TRUE;
@@ -15158,10 +15164,10 @@ Display and return the amount of space used for various lexical tables.
 static void create_sun_include_file_suffixes(void)
 /*
 The Sun compiler does special processing of certain files included
-with the <..> syntax.  Create a special include file suffix entries to emulate
+with the <..> syntax.  Create a special include file suffix list to emulate
 this behavior.  Also, add the special suffix to the normal include file
 suffix list.  The sun_include_file_suffix_list is used for files with a .h
-suffix, the normal include_file_suffix_list is used for unsuffixed files.
+suffix; the normal include_file_suffix_list is used for unsuffixed files.
 */
 {
   char	*suffix;
