@@ -3482,6 +3482,11 @@ user later during real instantiations.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   var_ptr->declared_type = var_ptr->type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Set the storage class for the prototype instantiation to indicate that
+     it has been defined. */
+  var_ptr->storage_class = (a_storage_class)sc_unspecified;
+  var_ptr->source_corresp.name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
   /* Set the referencing namespace for the prototype instantiation. */
   tip = template_sym->variant.static_data_member.instance_ptr;
   check_assertion(tip != NULL);

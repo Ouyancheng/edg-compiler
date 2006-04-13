@@ -1,5 +1,22 @@
 Version 3.8
 
+4/13/06  Internal error during prototype instantiation of static data member
+
+An internal error (in check_for_missing_initializer) could occur during
+the prototype instantiation of a template static data member.  Such
+prototype instantiations are done when nonclass prototype instantiations
+are requested (e.g., strict mode, --parse_templates, g++ mode when gnu_version
+is >= 30400).  The internal error would occur for const objects without
+an initializer.  Now fixed.
+
+  struct A {
+    A() { }
+  };
+  template <class T> struct B {
+    static const A a;
+  };
+  template <class T> const A B<T>::a;
+
 4/11/06  Sun compatibility: searching for system header files
 
 When searching for a header file specified using the <...> syntax, the
