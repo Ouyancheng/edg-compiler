@@ -3732,7 +3732,7 @@ the default constructor (if one exists) is called.
         if (!is_template_dependent_context()) {
           pop_class_reactivation_scope();
         }  /* if */
-    } else {
+      } else {
         /* If an object lifetime was pushed to surround the initialization of
            a local static variable, pop it now. */
         if (local_static_lifetime != NULL) {
