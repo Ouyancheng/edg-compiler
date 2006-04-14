@@ -2981,26 +2981,33 @@ created; the caller must set it.
       old_name = scp->name;
       new_name = locator->symbol_header->identifier;
       check_assertion(old_name != NULL);
-      if ((!C_mode() && !is_function &&
-           (a_name_linkage_kind)scp->name_linkage != name_linkage &&
-           strict_ansi_mode &&
-           ((a_name_linkage_kind)scp->name_linkage ==
+      if (!C_mode() && !is_function) {
+        /* Check for external name conflicts between two variables. */
+        an_error_severity  sev = es_none;
+        if ((a_name_linkage_kind)scp->name_linkage != name_linkage &&
+            ((a_name_linkage_kind)scp->name_linkage ==
                                            (a_name_linkage_kind)nlk_external ||
-            name_linkage == (a_name_linkage_kind)nlk_external)) ||
-          (old_name != new_name && strcmp(old_name, new_name) != 0)) {
-        /* Two distinct entities ended up mapping to the same external name.
-           One case occurs when an extern "C" declaration in a namespace
-           conflicts with a variable declaration in global scope.  The other
-           case can result from two different names in the source being mapped
-           onto the same external name (e.g., when external names are case-
-           insensitive). */
-        if (!suppress_incompatible_error) {
-          pos_sy_error(ec_external_name_clash, &locator->source_position,
-                       ext_sym);
+             name_linkage == (a_name_linkage_kind)nlk_external)) {
+          /* An extern "C" variable in one scope collides with a variable with
+             a different linkage (usually "C++") in another scope.  Since most
+             compilers accept this and it is mostly harmless, we only issue a
+             warning in nonstrict modes. */
+          sev = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
+        } else if (old_name != new_name && strcmp(old_name, new_name) != 0) {
+          /* Two different names in the source end up being mapped onto the
+             same external name (e.g., when external names are case-
+             insensitive). */
+          sev = es_discretionary_error;
         }  /* if */
-        err = TRUE;
-        /* Force creation of a new external symbol. */
-        ext_sym = NULL;
+        if (sev != es_none) {
+          if (!suppress_incompatible_error) {
+            pos_sy_diagnostic(sev, ec_external_name_clash,
+                              &locator->source_position, ext_sym);
+          }  /* if */
+          err = TRUE;
+          /* Force creation of a new external symbol. */
+          ext_sym = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (is_function && !err) {
