@@ -138,7 +138,8 @@ now emulate this behavior in Microsoft mode.
 4/11/06  Microsoft compatibility: Empty wide character literal
 
 In Microsoft mode, the front end now accepts an empty wide character literal
-(L'') and treats it as a null character constant (i.e., like L'\0').
+(L'') with a warning and treats it as a null character constant (i.e., like
+L'\0').
 
 4/10/06  Microsoft compatibility: __declspec(implementation_key(...))
 

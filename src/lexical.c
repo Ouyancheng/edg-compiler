@@ -7529,6 +7529,9 @@ The token can be a normal or wide character constant.
         /* Microsoft accepts L'' as a null character constant.  (The call to
            conv_char_literal below will correctly produce a zero value given
            an empty literal.) */
+        if (!fetch_pp_tokens) {
+          warning_at_line_pos(ec_empty_wide_character, start_of_curr_token);
+        }  /* if */
       } else {
         ctoken = tok_error;
         err_code_for_error_token = ec_zero_length_string;
