@@ -9092,7 +9092,8 @@ void type_name_full(a_boolean   disallow_variably_modified_type,
 /*
 Scan a type-name (see 3.5.5) and set *type_ptr to the type.
 If explicit_cv_qualifiers is non-NULL, set *explicit_cv_qualifiers to TRUE if
-explicit cv-qualifiers were scanned.
+explicit cv-qualifiers were scanned (and not discarded as having no effect;
+e.g., when applied to a reference type).
 The syntax is:
 
 3.5.5  type-name:
@@ -9146,9 +9147,6 @@ needed).
     /* Missing type specifier. */
     report_implicit_int(&start_pos, *type_ptr);
   }  /* if */
-  if (explicit_cv_qualifiers != NULL) {
-    *explicit_cv_qualifiers = (state.qualifiers != TQ_NONE);
-  }  /* if */
   if (*type_ptr != NULL) {
     (skip_typerefs(*type_ptr))->source_corresp.referenced = TRUE;
   }  /* if */
@@ -9180,6 +9178,9 @@ needed).
         pos_error(ec_vla_with_unspecified_bound_not_allowed, &start_pos);
       }  /* if */
     }  /* if */
+  } else if (explicit_cv_qualifiers != NULL) {
+    *explicit_cv_qualifiers = (state.qualifiers != TQ_NONE &&
+                               !state.unused_qualifiers);
   }  /* if */
   if ((any_cfront_mode() &&
        check_member_function_typedef(*type_ptr, &start_pos)) ||

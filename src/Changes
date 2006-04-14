@@ -1,5 +1,17 @@
 Version 3.8
 
+4/14/06  Abort on cast to reference with extraneous cv-qualifier
+
+Version 3.7 of the front end introduced a bug that caused the front end to
+abort in cast_type_precheck (expr.c) when processing a cast to a typedef for
+a reference type additionally qualified with const and/or volatile.  For
+example:
+
+  typedef int &R;
+  int i = (R const)i;  // Aborted in version 3.7.
+
+This is now fixed.
+
 4/14/06  Infinities and NaN in generated GNU C and C++ code
 
 Floating point infinities (resulting, for example, from overflow when
