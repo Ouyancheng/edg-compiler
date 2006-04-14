@@ -3313,11 +3313,21 @@ Output the given floating-point value with the proper suffix (or cast in
 K&R/pcc mode) determined by fkind.
 */
 {
-  char      *str, *suffix = "";
-  char      buf[64];
+  char          *str, *suffix = "";
+  char          buf[64];
   a_boolean pos_infinity, neg_infinity, not_a_number;
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-  char      *gnu_builtin_suffix = "";
+  char          *gnu_builtin_suffix = "";
+  unsigned long gnu_targ_version =
+#if GCC_IS_GENERATED_CODE_TARGET || \
+    (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
+                                   gnu_target_version_number;
+#else /* !(GCC_IS_GENERATED_CODE_TARGET || ...) */
+  /* We don't have a variable that gives us the actual target version, but
+     all gcc versions since 2.96 (including ones newer than 3.2) can handle
+     the "large constant" form of HUGE_VAL, so we'll assume that. */
+                                   29600;
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
   if (!octl->gen_pcc_code) {
@@ -3366,8 +3376,7 @@ K&R/pcc mode) determined by fkind.
       /* MSVC++ gives an error on (x/0.0), so use a comma operator to
          fool it. */
       (void)sprintf(buf, "(%s%s/(0,0.0%s))", dividend, suffix, suffix);
-    } else if (gcc_is_generated_code_target &&
-               gnu_target_version_number >= 30300) {
+    } else if (gcc_is_generated_code_target && gnu_targ_version >= 30300) {
       /* Use the builtin function. */
       if (not_a_number) {
         (void)sprintf(buf, "(__builtin_nan%s(""))", gnu_builtin_suffix);
@@ -3375,8 +3384,7 @@ K&R/pcc mode) determined by fkind.
         (void)sprintf(buf, "(%s__builtin_huge_val%s())",
                       (neg_infinity) ? "-" : "", gnu_builtin_suffix);
       }  /* if */
-    } else if (gcc_is_generated_code_target &&
-               gnu_target_version_number >= 29600 &&
+    } else if (gcc_is_generated_code_target && gnu_targ_version >= 29600 &&
                !not_a_number) {
       /* Use a large hexadecimal floating-point constant. */
       const char *sign = (neg_infinity) ? "-" : "";
