@@ -2632,6 +2632,9 @@ is in fact valid.
     if (match && !trans_unit_test_mode &&
         var->storage_class == (a_storage_class)sc_unspecified &&
         corresp_var->storage_class == (a_storage_class)sc_unspecified &&
+        (!var->is_template_static_data_member ||
+         !var->source_corresp.parent.class_type
+                    ->variant.class_struct_union.is_prototype_instantiation) &&
 #if GNU_EXTENSIONS_ALLOWED
         !(var->is_weak || corresp_var->is_weak) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
