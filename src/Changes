@@ -1,5 +1,19 @@
 Version 3.8
 
+4/14/06  Infinities and NaN in generated GNU C and C++ code
+
+Floating point infinities (resulting, for example, from overflow when
+converting a floating point literal to the internal representation) were
+represented in the output of the C- and C++-generating back ends by the
+expression 1.0/0.0, and similarly for NaNs (0.0/0.0).  Although gcc accepts
+these forms silently, g++ warns of division by zero.  Consequently, the C-
+and C++-generating back ends now use the appropriate GNU formats when
+gcc_is_generated_code_target, depending on gnu_target_version_number.  For
+example:
+
+  double d = 1e5000;  // 29600 <= ver <  30300: "__extension__ 0x1.0p2047"
+                      //          ver >= 30300: "__builtin_huge_val()"
+
 4/13/06  Address of template function with explicit arguments in overload
          resolution
 

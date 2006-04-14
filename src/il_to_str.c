@@ -3314,13 +3314,19 @@ K&R/pcc mode) determined by fkind.
 */
 {
   char      *str, *suffix = "";
-  char      buf[20];
+  char      buf[64];
   a_boolean pos_infinity, neg_infinity, not_a_number;
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+  char      *gnu_builtin_suffix = "";
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
   if (!octl->gen_pcc_code) {
     /* Determine the suffix. */
     if (fkind == (a_float_kind)fk_float) {
       suffix = "F";
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+      gnu_builtin_suffix = "f";
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
     } else if (fkind == (a_float_kind)fk_long_double) {
       suffix = "L";
 #if BACK_END_IS_C_GEN_BE
@@ -3330,6 +3336,9 @@ K&R/pcc mode) determined by fkind.
       if (octl->c_generating_back_end) suffix = "";
 #endif /* LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
 #endif /* BACK_END_IS_C_GEN_BE */
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+      gnu_builtin_suffix = "l";
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
     }  /* if */
   } else {
     /* Generating K&R C.  Suffixes are not allowed. */
@@ -3357,6 +3366,27 @@ K&R/pcc mode) determined by fkind.
       /* MSVC++ gives an error on (x/0.0), so use a comma operator to
          fool it. */
       (void)sprintf(buf, "(%s%s/(0,0.0%s))", dividend, suffix, suffix);
+    } else if (gcc_is_generated_code_target &&
+               gnu_target_version_number >= 30300) {
+      /* Use the builtin function. */
+      if (not_a_number) {
+        (void)sprintf(buf, "(__builtin_nan%s(""))", gnu_builtin_suffix);
+      } else {
+        (void)sprintf(buf, "(%s__builtin_huge_val%s())",
+                      (neg_infinity) ? "-" : "", gnu_builtin_suffix);
+      }  /* if */
+    } else if (gcc_is_generated_code_target &&
+               gnu_target_version_number >= 29600 &&
+               !not_a_number) {
+      /* Use a large hexadecimal floating-point constant. */
+      const char *sign = (neg_infinity) ? "-" : "";
+      if (fkind == (a_float_kind)fk_float) {
+        sprintf(buf, "(%s(__extension__ 0x1.0p255f))", sign);
+      } else if (fkind == (a_float_kind)fk_double) {
+        sprintf(buf, "(%s(__extension__ 0x1.0p2047))", sign);
+      } else {
+        sprintf(buf, "((long double) %s(__extension 0x1.0p2047))", sign);
+      }  /* if */
     } else
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
     {
