@@ -5132,8 +5132,8 @@ it is an external definition).
          been copied to the primary translation unit. */
       is_needed = TRUE;
     } else if (var->is_specialized) {
-      /* A specialized static data member is always needed. */
-      is_needed = TRUE;
+      /* A specialized static data member is always needed if it is defined. */
+      is_needed = var->storage_class != (a_storage_class)sc_extern;
     } else {
       /* An instantiation of a static data member must be considered
          to be needed if it was automatically instantiated (i.e, it is
