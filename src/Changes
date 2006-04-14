@@ -239,23 +239,6 @@ when RECORD_FORM_OF_NAME_REFERENCE was configured as FALSE:
 
 This has now been fixed.
 
-3/29/06  Microsoft compatibility: macro argument expansion
-
-The front end has been changed to emulate the Microsoft preprocessor more
-closely by deferring the expansion of macro arguments as long as possible
-rather than fully expanding them immediately, as required by Standard C and
-C++.  For example:
-
-  #define M1(x) M2(x)
-  #define M2(x) x
-  #define AB a,b
-  M1(AB)
-
-Formerly this code resulted in a warning of "too many arguments" (in the
-invocation of M2), and the expanded text was simply "a".  Like MSVC, the new
-Microsoft-mode processing accepts the code without complaint and gives "a,b"
-as the resulting expansion.
-
 3/29/06  Standalone utility programs and error initialization
 
 Formerly, the error initialization routines were not called for standalone
