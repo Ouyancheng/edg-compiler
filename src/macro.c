@@ -5406,14 +5406,7 @@ Scan and process a #define directive.
             put_start_of_non_text_section(rt_paste, 0);
             if (param_num != 0) {
               /* The token following "##" is a parameter. */
-              if (microsoft_mode) {
-                /* In Microsoft mode, parameters are expanded only when they
-                   appear adjacent to a "##" operator. */
-                put_start_of_non_text_section(rt_argument, param_num);
-                param_ptr->need_expanded_form = TRUE;
-              } else {
-                put_start_of_non_text_section(rt_raw_argument, param_num);
-              }  /* if */
+              put_start_of_non_text_section(rt_raw_argument, param_num);
               need_end_of_token_marker = TRUE;
               (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                     &any_white_space_skipped);
@@ -5499,17 +5492,12 @@ Scan and process a #define directive.
              case put it out as the raw value of the argument. */
           /* In pcc mode, always use the raw form of the argument.  Expansion
              is done on rescan of the macro body. */
-          /* Microsoft mode is like pcc mode, except that parameters are
-             expanded when they appear next to "##". */
           /* Save information on current token because mdefn_get_token will
              change it. */
-          a_token_kind next_token;
           save_param_num = param_num;
           save_param_ptr = param_ptr;
-          next_token = mdefn_get_token(param_list, &param_num, &param_ptr,
-                                       &any_white_space_skipped);
-          if ((next_token == tok_paste && !microsoft_mode) ||
-              (next_token != tok_paste && microsoft_mode) ||
+          if (mdefn_get_token(param_list, &param_num, &param_ptr,
+                              &any_white_space_skipped) == tok_paste ||
               pcc_preprocessing_mode) {
             put_start_of_non_text_section(rt_raw_argument, save_param_num);
           } else {
