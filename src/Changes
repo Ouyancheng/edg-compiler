@@ -1,5 +1,19 @@
 Version 3.8
 
+4/15/06  Microsoft compatibility: commas in macro arguments
+
+The Microsoft preprocessor gives special treatment to commas appearing in
+the substituted text of macro arguments: if that text appears as a macro
+argument when rescanned for further expansion, such commas do not delimit
+macro arguments.  The front end has now been modified to emulate this behavior
+in Microsoft mode.  For example:
+
+  #define M1(a) M2(a)
+  #define M2(a) a
+  #define XY x,y
+  M1(XY)    // Formerly warned of "too many arguments" and expanded to "x"
+            // Now expands to "x,y" with no warning
+
 4/14/06  Needed flag for specialized static data member without definition
 
 A template static data member that was named in an explicit specialization

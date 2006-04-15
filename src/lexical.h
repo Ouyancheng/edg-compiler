@@ -1280,6 +1280,14 @@ escape.
 #define LE_NULL 6	/* In modes that allow a null (zero) character in
 			   an input line (e.g., gcc mode), indicates such
 			   a character. */
+#define LE_START_ARGUMENT 7
+			/* In Microsoft mode, marks the start of substituted
+			   argument text.  Used to prevent embedded commas
+			   in arguments from delimiting macro arguments
+			   when the expansion is rescanned. */
+#define LE_END_ARGUMENT 8
+			/* In Microsoft mode, marks the end of substituted
+			   argument text. */
 
 /*
 Modifications made to the current source line.  orig_line_modif holds
@@ -1577,6 +1585,17 @@ EXTERN int	kind_of_white_space_skipped;
 			   as follows: */
 #define WHITE_SPACE_COMMENTS 0x01
 #define WHITE_SPACE_OTHER    0x02
+
+EXTERN int	last_macro_arg_delimiter_seen;
+			/* The last macro argument delimiter (start or stop)
+			   skipped by the most recent call to
+			   skip_white_space.  Used only in Microsoft mode to
+			   prevent commas in substituted arguments from
+			   delimiting macro arguements when the expansion is
+			   rescanned.  0 if no macro argument delimiters were
+			   encountered by skip_white_space, otherwise either
+			   LE_START_ARGUMENT or LE_END_ARGUMENT. */
+
 EXTERN a_source_line_modif_ptr
 		last_source_line_modif_exited_while_skipping_white_space;
 			/* Set by skip_white_space whenever a source line

@@ -2777,6 +2777,9 @@ is TRUE.
             putc('\0', f_pp_output);
             prev_ch = '\0';
             loc_in_line += LE_ESCAPE_LEN;
+          } else if (ch == LE_START_ARGUMENT || ch == LE_END_ARGUMENT) {
+            /* Do not output argument boundary markers. */
+            loc_in_line += LE_ESCAPE_LEN;
           } else {
             unexpected_condition_str(
                             "gen_pp_output_for_curr_line: bad lexical escape");
@@ -3042,8 +3045,11 @@ the calls to this routine.
         /* Lexical escape. */
         ch = loc_in_line[1];
         if (ch == LE_END_OF_TOKEN ||
-            ch == LE_INERT_MACRO) {
-          /* Do not output end-of-token or inert-macro markers. */
+            ch == LE_INERT_MACRO ||
+            ch == LE_START_ARGUMENT ||
+            ch == LE_END_ARGUMENT) {
+          /* Do not output end-of-token, inert-macro, or argument boundary
+             markers. */
           token_start = TRUE;
           loc_in_line += LE_ESCAPE_LEN;
         } else if (ch == LE_END_OF_INSERTION) {
@@ -6032,6 +6038,7 @@ source text (end of token, start of expansion, end of expansion).
   /* Forget that we know where the current token's characters are. */
   start_of_curr_token = NULL;
   kind_skipped = 0;  /* No white space skipped so far. */
+  last_macro_arg_delimiter_seen = 0;  /* None seen so far. */
 white_space_loop:
   /* Examine the current character to see if it is white space.  Throw away
      spaces and horizontal tabs quickly, since they are always white space
@@ -6138,6 +6145,14 @@ white_space_loop:
         /* Null (zero) character. */
         warning_at_line_pos(ec_null_char_ignored, curr_char_loc);
         kind_skipped |= WHITE_SPACE_OTHER;
+        curr_char_loc += LE_ESCAPE_LEN;
+      } else if (ch == LE_START_ARGUMENT) {
+        /* Start of text copied from a macro argument. */
+        last_macro_arg_delimiter_seen = LE_START_ARGUMENT;
+        curr_char_loc += LE_ESCAPE_LEN;
+      } else if (ch == LE_END_ARGUMENT) {
+        /* End of text copied from a macro argument. */
+        last_macro_arg_delimiter_seen = LE_END_ARGUMENT;
         curr_char_loc += LE_ESCAPE_LEN;
       } else {
         unexpected_condition_str("skip_white_space: bad lexical escape");
@@ -7830,12 +7845,15 @@ non-NULL, also append the characters in the comment, through but not including
         ch = curr_char[1];
         if (ch == LE_END_OF_TOKEN ||
             ch == LE_INERT_MACRO ||
-            ch == LE_NULL) {
+            ch == LE_NULL ||
+            ch == LE_START_ARGUMENT ||
+            ch == LE_END_ARGUMENT) {
           /* Marker put into text by preprocessing of macros, to force the
              same interpretation of token boundaries as during the macro
              definition.  Or, marker that indicates that a macro name should
-             not be expanded, or represents a null (zero) character.  Skip
-             over the escape and don't put it out. */
+             not be expanded, or represents a null (zero) character.  Or,
+             marker delimiting the start or end of text copied from a macro
+             argument.  Skip over the escape and don't put it out. */
           next_char = curr_char + LE_ESCAPE_LEN;
         } else if (ch == LE_END_OF_INSERTION) {
           /* End of the expansion text for a macro.  Find the character
@@ -8876,6 +8894,11 @@ return_end_of_source_token:
       } else if (ch == LE_NULL) {
         /* Null (zero) character.  Let the white-space routine figure it
            out. */
+        skip_white_space();
+        goto start_of_token_scan;
+      } else if (ch == LE_START_ARGUMENT || ch == LE_END_ARGUMENT) {
+        /* Start or end of text copied from a macro argument.  Process it
+           as white space. */
         skip_white_space();
         goto start_of_token_scan;
       } else {

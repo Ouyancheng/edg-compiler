@@ -1758,6 +1758,16 @@ print the replacement text and expansions of macros.
         ch = '0';
         n_printed++;
         p += LE_ESCAPE_LEN;
+      } else if (ch == LE_START_ARGUMENT) {
+        /* Marker indicating the beginning of a substituted argument. */
+        ch = '{';
+        n_printed++;
+        p += LE_ESCAPE_LEN;
+      } else if (ch == LE_END_ARGUMENT) {
+        /* Marker indicating the end of a substituted argument. */
+        ch = '}';
+        n_printed++;
+        p += LE_ESCAPE_LEN;
       } else {
         (void)fprintf(f_debug, "**BAD LEXICAL ESCAPE**");
         break;
@@ -2457,11 +2467,12 @@ In such cases, charize is TRUE.
   for (p = map->raw_text; ; p++) {
     ch = *p;
     if (ch == LE_ESCAPE) {
-      if (p[1] == LE_END_OF_TOKEN || p[1] == LE_INERT_MACRO) {
+      if (p[1] == LE_END_OF_TOKEN || p[1] == LE_INERT_MACRO ||
+          p[1] == LE_START_ARGUMENT || p[1] == LE_END_ARGUMENT) {
         /* End of token marker, also indicates end of character constant or
            string literal, and start of another token soon.  The end of token
-           marker itself is not put out.  The inert-macro marker is handled
-           the same way. */
+           marker itself is not put out.  The inert-macro marker and the
+           macro argument delimiters are handled the same way. */
         within_char_literal = FALSE;
         start_of_token = TRUE;
         p += LE_ESCAPE_LEN-1;
@@ -3212,6 +3223,7 @@ associated global variables will also have been set).
   a_boolean       is_macro_call = TRUE;  /* Assume. */
   a_boolean       is_inert_macro = FALSE;  /* Assume. */
   a_boolean       pcc_mode_macro_recursion = FALSE;
+  a_boolean       inside_macro_argument = FALSE;
   a_source_position
                   start_pos;
   char            *file_name, *full_name;
@@ -3806,18 +3818,33 @@ do_argument_again:
                      (b1) a right parenthesis, or
                      (b2) a comma when we are not in the last argument
                           (pp->next == NULL) of a variadic macro.
+             In addition, in Microsoft mode commas occurring inside a
+             substituted macro argument do not terminate a macro argument.
           */
           while (!(curr_token == tok_newline ||
                    curr_token == tok_end_of_source ||
                    (paren_count == 0 &&
                     (curr_token == tok_rparen ||
                      (curr_token == tok_comma &&
+                      !inside_macro_argument &&
                       !(pp != NULL && pp->next == NULL && mdp->variadic)))))) {
             /* Track nesting of parentheses. */
             if (curr_token == tok_lparen) {
               paren_count++;
             } else if (curr_token == tok_rparen) {
               if (paren_count > 0) paren_count--;
+            }  /* if */
+            if (last_macro_arg_delimiter_seen == LE_START_ARGUMENT &&
+                !inside_macro_argument) {
+              if (need_expanded_form) {
+                /* Copy the argument delimiter to the raw buffer so it will be
+                   seen when rescanning to get the expanded form. */
+                ensure_arg_raw_text_space(LE_ESCAPE_LEN, map);
+                map->raw_text[map->raw_len] = LE_ESCAPE;
+                map->raw_text[map->raw_len+1] = LE_START_ARGUMENT;
+                map->raw_len += LE_ESCAPE_LEN;
+              }  /* if */
+              inside_macro_argument = TRUE;
             }  /* if */
             if (scanning_text_not_in_primary_source_line) {
               /* This token was fetched from a source line modification.
@@ -3852,6 +3879,18 @@ do_argument_again:
               remark(err_code_for_error_token);
             }  /* if */
             (void)arg_get_token(&any_white_space_skipped);
+            if (last_macro_arg_delimiter_seen == LE_END_ARGUMENT &&
+                inside_macro_argument) {
+              if (need_expanded_form) {
+                /* Copy the argument delimiter to the raw buffer so it will be
+                   seen when rescanning to get the expanded form. */
+                ensure_arg_raw_text_space(LE_ESCAPE_LEN, map);
+                map->raw_text[map->raw_len] = LE_ESCAPE;
+                map->raw_text[map->raw_len+1] = LE_END_ARGUMENT;
+                map->raw_len += LE_ESCAPE_LEN;
+              }  /* if */
+              inside_macro_argument = FALSE;
+            }  /* if */
             if (scanning_text_not_in_primary_source_line &&
                 within_curr_source_line(start_of_curr_token)) {
               /* This argument started out in a macro expansion and now
@@ -3974,6 +4013,14 @@ do_argument_again:
           /* Ignore initial white space. */
           any_white_space_skipped = FALSE;  /* Should be FALSE already. */
           need_end_of_token_marker = FALSE;
+          if (microsoft_mode) {
+            /* Add argument delimiter so embedded commas won't terminate a
+               macro argument when the text is rescanned. */
+            ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
+            *map->expanded_text = LE_ESCAPE;
+            *(map->expanded_text+1) = LE_START_ARGUMENT;
+            map->expanded_len += LE_ESCAPE_LEN;
+          }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
           /* Reinitialize the tracker for the scan through the raw text.  This
              time we use NO_PARENT_MACRO_INVOCATION as the context to preserve
@@ -4021,6 +4068,14 @@ scan_expanded_tokens:
                            map->offset_in_raw_text_of_primary_source_line_text;
             (void)arg_get_token(&any_white_space_skipped);
             goto scan_expanded_tokens;
+          }  /* if */
+          if (microsoft_mode) {
+            /* Add argument delimiter so embedded commas won't terminate a
+               macro argument when the text is rescanned. */
+            ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
+            map->expanded_text[map->expanded_len] = LE_ESCAPE;
+            map->expanded_text[map->expanded_len+1] = LE_END_ARGUMENT;
+            map->expanded_len += LE_ESCAPE_LEN;
           }  /* if */
           /* Place terminating LE_END_OF_INSERTION lexical escape. */
           ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
