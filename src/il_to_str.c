@@ -3389,11 +3389,12 @@ K&R/pcc mode) determined by fkind.
       /* Use a large hexadecimal floating-point constant. */
       const char *sign = (neg_infinity) ? "-" : "";
       if (fkind == (a_float_kind)fk_float) {
-        sprintf(buf, "(%s(__extension__ 0x1.0p255f))", sign);
+        (void)sprintf(buf, "(%s(__extension__ 0x1.0p255f))", sign);
       } else if (fkind == (a_float_kind)fk_double) {
-        sprintf(buf, "(%s(__extension__ 0x1.0p2047))", sign);
+        (void)sprintf(buf, "(%s(__extension__ 0x1.0p2047))", sign);
       } else {
-        sprintf(buf, "((long double) %s(__extension__ 0x1.0p2047))", sign);
+        (void)sprintf(buf, "((long double) %s(__extension__ 0x1.0p2047))",
+                      sign);
       }  /* if */
     } else
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
