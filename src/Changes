@@ -141,12 +141,13 @@ An error is still issued if the static data member is instantiated.
 
 4/13/06  Internal error during prototype instantiation of static data member
 
-An internal error (in check_for_missing_initializer, decl_inits.c) could
-occur during the prototype instantiation of a template static data member.
-Such prototype instantiations are done when nonclass prototype instantiations
-are requested (e.g., strict mode, --parse_templates, g++ mode when gnu_version
-is >= 30400).  The internal error would occur for const objects without
-an initializer.  Now fixed.
+A change made in version 3.7 could result in an internal error (in
+check_for_missing_initializer, decl_inits.c) during the prototype
+instantiation of a template static data member.  Such prototype
+instantiations are done when nonclass prototype instantiations are
+requested (e.g., strict mode, --parse_templates, g++ mode when
+gnu_version is >= 30400).  The internal error would occur for const
+objects without an initializer.  Now fixed.
 
   struct A {
     A() { }
