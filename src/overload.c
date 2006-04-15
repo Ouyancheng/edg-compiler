@@ -102,10 +102,11 @@ pointer/reference to one of the overloaded functions, return a pointer
 to that function's symbol (possibly a projection symbol); otherwise,
 return NULL.  Also set *match_level to indicate whether or not any
 conversion is needed after the coercion to a specific function pointer
-and set *std_conv to indicate any such conversion.  If the function
-cannot be determined because some template-dependent types are involved
-(in a prototype instantiation), return NULL and *unknown_dependent_function
-TRUE.  If more than one function matches, return NULL and *ambiguous TRUE.
+and set *std_conv to indicate any such conversion.  If std_conv == NULL,
+do not attempt any conversions.  If the function cannot be determined
+because some template-dependent types are involved (in a prototype
+instantiation), return NULL and *unknown_dependent_function TRUE.
+If more than one function matches, return NULL and *ambiguous TRUE.
 See WP [over.over], and ARM 13.3, "Address of Overloaded Function".  If
 is_cast is TRUE, this disambiguation is being done via an explicit
 cast.
@@ -124,7 +125,7 @@ cast.
   a_boolean        is_new_template_instance;
 
   db_enter(4, "find_addr_of_overloaded_function_match");
-  clear_std_conv_descr(std_conv);
+  if (std_conv != NULL) clear_std_conv_descr(std_conv);
   *ambiguous = FALSE;
   *unknown_dependent_function = FALSE;
   if (is_template_dependent_context() &&
@@ -274,13 +275,15 @@ cast.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (number_of_matches == 0 && (!is_ref || is_ref_to_const)) {
+    if (number_of_matches == 0 && std_conv != NULL &&
+        (!is_ref || is_ref_to_const)) {
       /* Try matches involving an implicit conversion.  This is here
          primarily for the pointer-to-member case, but it makes sense to
          handle the normal pointer case too in case the implicit conversion
          rules change (also, it makes the error message clearer in the
-         case where dest_type is "void *").  Implicit conversions are
-         not attempted for the (non-const) reference case. */
+         case where dest_type is "void *").  In addition, for reference-to-
+         const cases the function-to-pointer or function-to-pointer-to-
+         member decay can be done to get a match. */
       a_type_ptr         match_routine_type = NULL;
       a_template_arg_ptr match_template_arg_list = NULL;
       a_type_ptr         eff_dest_type = dest_type;
@@ -378,7 +381,7 @@ cast.
       match_sym = NULL;
     }  /* if */
   }  /* if */
-  if (match_sym != NULL) {
+  if (match_sym != NULL && std_conv != NULL) {
     /* If the pointer type we converted to has extra type qualifiers,
        set the tie-breaker flag in the standard conversion description.
        The flag might also have been set by the call of
@@ -5564,8 +5567,12 @@ elided_reference is TRUE if the routine was referenced in the program but
 the reference is being elided in the intermediate language (operand should
 be NULL in that case).  address_taken is TRUE if the address of the
 function is being taken (as opposed to the function being called); it
-controls the type of reference recorded.  On return, *access_error_reported
-is TRUE if an access control checking error was detected and reported.
+controls the type of reference recorded.  Note that this routine
+should not be called with address_taken TRUE and operand != NULL when
+function_symbol is a nonstatic member function; see
+address_taken_overloaded_function_catch_up instead.  On return,
+*access_error_reported is TRUE if an access control checking error was
+detected and reported.
 */
 {
   a_symbol_ptr     base_function_symbol =
@@ -5579,6 +5586,12 @@ is TRUE if an access control checking error was detected and reported.
   if (base_function_symbol->kind != (a_symbol_kind)sk_routine &&
       base_function_symbol->kind != (a_symbol_kind)sk_member_function) {
     internal_error("overloaded_function_catch_up: bad function_symbol");
+  }  /* if */
+  /* See comment above about address_taken_overloaded_function_catch_up. */
+  if (address_taken && operand != NULL &&
+      base_function_symbol->kind == (a_symbol_kind)sk_member_function) {
+    a_type_ptr routine_type = routine_symbol_type(base_function_symbol);
+    check_assertion(!routine_type_is_nonstatic_member_function(routine_type));
   }  /* if */
 #endif /* CHECKING */
   /* The address of the function is not really taken if the current expression
@@ -5666,6 +5679,57 @@ is TRUE if an access control checking error was detected and reported.
     }  /* if */
   }  /* if */
 }  /* overloaded_function_catch_up */
+
+
+void address_taken_overloaded_function_catch_up(
+                                  a_symbol_ptr      function_symbol,
+                                  a_symbol_ptr      overloaded_function_symbol,
+                                  an_operand        *orig_operand,
+                                  an_operand        *operand)
+/*
+Convenient interface for overloaded_function_catch_up for the case where
+the address of the function is taken.  Aside from convenience, handles
+creating a pointer-to-member for member function cases.  In addition
+to the meanings for the parameters required by
+overloaded_function_catch_up, orig_operand must be the original
+operand (used for positions and other attributes).
+*/
+{
+  a_symbol_ptr base_function_symbol = fundamental_symbol_of(function_symbol);
+  a_boolean    ptr_to_member_case = FALSE;
+  a_boolean    access_error_reported;
+
+  check_assertion(operand != orig_operand);
+  if (base_function_symbol->kind == (a_symbol_kind)sk_member_function) {
+    a_type_ptr routine_type = routine_symbol_type(base_function_symbol);
+    if (routine_type_is_nonstatic_member_function(routine_type)) {
+      ptr_to_member_case = TRUE;
+    }  /* if */
+  }  /* if */
+  overloaded_function_catch_up(function_symbol,
+                               overloaded_function_symbol,
+                               (a_boolean)orig_operand->is_qualified_name,
+                               &orig_operand->position,
+                               end_position_of_operand(orig_operand),
+                               &orig_operand->id_position,
+                               /*elided_reference=*/FALSE,
+                               /*address_taken=*/TRUE,
+                               ptr_to_member_case ? (an_operand *)NULL :
+                                                    operand,
+                               &access_error_reported);
+  if (ptr_to_member_case) {
+    /* Make an operand for the pointer-to-member case. */
+    make_ptr_to_member_constant_operand(function_symbol,
+                                        overloaded_function_symbol,
+                                        &orig_operand->position,
+                                        !access_error_reported,
+                                        (a_boolean)orig_operand->
+                                                      is_qualified_name,
+                                        (a_boolean)orig_operand->
+                                                      is_operand_of_address_of,
+                                        operand);
+  }  /* if */
+}  /* address_taken_overloaded_function_catch_up */
 
 
 void combine_unneeded_selector_with_operand(
@@ -12618,7 +12682,6 @@ direct binding is "possible" and not whether it is "valid".
        If there is an overloaded function with the right type, the reference
        can be bound to it. */
     an_arg_match_level match_level;
-    a_std_conv_descr   std_conversion;
     a_boolean          ambiguous, unknown_dependent_function;
 
     *function_symbol =
@@ -12630,7 +12693,7 @@ direct binding is "possible" and not whether it is "valid".
                                                dest_type,
                                                /*is_cast=*/FALSE,
                                                &match_level,
-                                               &std_conversion,
+                                               (a_std_conv_descr *)NULL,
                                                &unknown_dependent_function,
                                                &ambiguous);
     if (ambiguous) {
@@ -13062,20 +13125,12 @@ to be acceptable, and *conversion describes it.
       /* Do whatever would have been done with the function if we had
          known all along which function was intended.  Make an operand
          for the specific function's address. */
-      a_boolean access_error_reported;
-
       check_assertion(is_indefinite_function_operand(source_operand));
-      overloaded_function_catch_up(function_symbol,
-                                   source_operand->variant.symbol,
-                                   (a_boolean)
-                                             source_operand->is_qualified_name,
-                                   &orig_operand.position,
-                                   end_position_of_operand(&orig_operand),
-                                   &orig_operand.position,
-                                   /*elided_reference=*/FALSE,
-                                   /*address_taken=*/TRUE,
-                                   source_operand,
-                                   &access_error_reported);
+      address_taken_overloaded_function_catch_up(
+                                                function_symbol,
+                                                source_operand->variant.symbol,
+                                                &orig_operand,
+                                                source_operand);
     } else {
       /* Normal case (not an indefinite function). */
       if (exceptions_enabled) {

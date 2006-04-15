@@ -2961,7 +2961,7 @@ ambiguous or inaccessible base classes.  This routine does not handle
 user-defined conversions.
 */
 {
-  a_boolean         did_not_fold, access_error_reported, ambiguous;
+  a_boolean         did_not_fold, ambiguous;
   a_constant        local_constant;
   an_expr_node_ptr  node;
   an_operand        orig_operand;
@@ -2969,7 +2969,7 @@ user-defined conversions.
   an_arg_match_level
                     match_level;
   a_std_conv_descr  std_conversion;
-  a_boolean         ptr_to_member_case, unknown_dependent_function;
+  a_boolean         unknown_dependent_function;
 
 #if CHECKING
   if (!is_an_rvalue(operand) && !is_error_operand(operand)) {
@@ -3128,34 +3128,15 @@ user-defined conversions.
             internal_error("cast_operand: bad func symbol");
           }  /* if */
 #endif /* CHECKING */
-          ptr_to_member_case = is_ptr_to_member_type(new_type);
           /* Do whatever would have been done with the function if we had
              known all along which function was intended.  Make an operand
-             for the specific function's address, except for the
+             for the specific function's address, a pointer-to-member for the
              pointer to member case. */
-          overloaded_function_catch_up(function_symbol,
-                                       overloaded_function_symbol,
-                                       (a_boolean)operand->is_qualified_name,
-                                       &orig_operand.position,
-                                       end_position_of_operand(&orig_operand),
-                                       &orig_operand.id_position,
-                                       /*elided_reference=*/FALSE,
-                                       /*address_taken=*/TRUE,
-                                       ptr_to_member_case ? (an_operand *)NULL:
-                                                            operand,
-                                       &access_error_reported);
-          if (ptr_to_member_case) {
-            /* Make an operand for the pointer-to-member case. */
-            make_ptr_to_member_constant_operand(function_symbol,
-                                                overloaded_function_symbol,
-                                                &orig_operand.position,
-                                                !access_error_reported,
-                                                (a_boolean)operand->
-                                                      is_qualified_name,
-                                                (a_boolean)operand->
-                                                      is_operand_of_address_of,
-                                                operand);
-          }  /* if */
+          address_taken_overloaded_function_catch_up(
+                                                    function_symbol,
+                                                    overloaded_function_symbol,
+                                                    &orig_operand,
+                                                    operand);
         }  /* if */
         /* If the pointer to member is to a related class, or the pointer
            to function differs because of a conversion (e.g., a C++ vs.
