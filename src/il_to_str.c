@@ -3393,7 +3393,7 @@ K&R/pcc mode) determined by fkind.
       } else if (fkind == (a_float_kind)fk_double) {
         sprintf(buf, "(%s(__extension__ 0x1.0p2047))", sign);
       } else {
-        sprintf(buf, "((long double) %s(__extension 0x1.0p2047))", sign);
+        sprintf(buf, "((long double) %s(__extension__ 0x1.0p2047))", sign);
       }  /* if */
     } else
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
