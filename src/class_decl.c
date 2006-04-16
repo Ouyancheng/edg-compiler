@@ -8613,10 +8613,14 @@ cfront compatibility case.
 {
   a_boolean         found = FALSE;
   a_param_type_ptr  ptp;
-  a_type_ptr        tp;
+  a_type_ptr        tp, routine_type;
+  a_routine_type_supplement_ptr
+                    rtsp;
 
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
-  ptp = routine_symbol_type(sym)->variant.routine.extra_info->param_type_list;
+  routine_type = routine_symbol_type(sym);
+  rtsp = routine_type->variant.routine.extra_info;
+  ptp = rtsp->param_type_list;
   check_assertion(ptp != NULL);
   tp = skip_typerefs(ptp->type);
   if (is_reference_type(tp)) {
@@ -8649,6 +8653,12 @@ cfront compatibility case.
          of get_type_qualifiers because we know tp cannot be an array.) */
       *qualifiers = get_top_level_type_qualifiers(tp);
     }  /* if */
+  }  /* if */
+  if (rtsp->qualifiers != TQ_NONE) {
+    /* cv-qualifiers on the function disqualify it as a "copy assignment
+       operator".  As of April 2006 this is not in 12.8p9 of the standard,
+       but it makes sense. */
+    found = FALSE;
   }  /* if */
   return found;
 }  /* is_assignment_operator_for_copy */

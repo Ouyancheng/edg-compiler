@@ -1,5 +1,35 @@
 Version 3.8
 
+4/16/06  No cv-qualifiers on copy assignment operator
+
+Cases like the following got an ambiguity error on generation of the
+copy assignment operator:
+
+  struct B {
+    int x;
+    B& operator=(B);
+    B& operator=(B) volatile;
+  };
+  struct A {
+    struct B a;
+    struct B b;
+  };
+  void test(void)
+  {
+    A p0;
+    A p1;
+    p0=p1;
+  }
+
+That's because both of the operator= functions were seen as "copy
+assignment operators" by the definition of 12.8p9 of the C++
+standard.  However, operator= functions with cv-qualifiers
+should probably not be considered to be "copy assignment operators,"
+since the concept has to do with generated functions that copy
+normal objects.  We've changed the implementation of the definition
+in the Front End, and we're raising a core issue with the standards
+committee.
+
 4/15/06  Microsoft compatibility: commas in macro arguments
 
 The Microsoft preprocessor gives special treatment to commas appearing in
