@@ -1591,7 +1591,7 @@ EXTERN int	last_macro_arg_delimiter_seen;
 			   skipped by the most recent call to
 			   skip_white_space.  Used only in Microsoft mode to
 			   prevent commas in substituted arguments from
-			   delimiting macro arguements when the expansion is
+			   delimiting macro arguments when the expansion is
 			   rescanned.  0 if no macro argument delimiters were
 			   encountered by skip_white_space, otherwise either
 			   LE_START_ARGUMENT or LE_END_ARGUMENT. */

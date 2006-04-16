@@ -3223,6 +3223,7 @@ associated global variables will also have been set).
   a_boolean       is_macro_call = TRUE;  /* Assume. */
   a_boolean       is_inert_macro = FALSE;  /* Assume. */
   a_boolean       pcc_mode_macro_recursion = FALSE;
+  a_boolean       comma_ignored_inside_argument = microsoft_mode;
   a_boolean       inside_macro_argument = FALSE;
   a_source_position
                   start_pos;
@@ -4013,7 +4014,7 @@ do_argument_again:
           /* Ignore initial white space. */
           any_white_space_skipped = FALSE;  /* Should be FALSE already. */
           need_end_of_token_marker = FALSE;
-          if (microsoft_mode) {
+          if (comma_ignored_inside_argument) {
             /* Add argument delimiter so embedded commas won't terminate a
                macro argument when the text is rescanned. */
             ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
@@ -4069,7 +4070,7 @@ scan_expanded_tokens:
             (void)arg_get_token(&any_white_space_skipped);
             goto scan_expanded_tokens;
           }  /* if */
-          if (microsoft_mode) {
+          if (comma_ignored_inside_argument) {
             /* Add argument delimiter so embedded commas won't terminate a
                macro argument when the text is rescanned. */
             ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
