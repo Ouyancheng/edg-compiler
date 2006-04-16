@@ -2899,7 +2899,8 @@ final semicolon if output_final_semi is TRUE.
            (which is undefined behavior) and for fieldless classes from C++
            passed through IL lowering.  However, GNU C does accept empty
            struct types and gives them size zero (and it also gives size
-           zero to "struct { int:0; }"). */
+           zero to "struct { int:0; }").  Note that the test here must
+           match one in dump_initializer_part. */
         write_tok_str("char __dummy;");
       }  /* if */
     }
@@ -5918,7 +5919,18 @@ block with state information for the processing.
       if (!*gen_assignments) {
         /* Do any first-time processing necessary. */
         start_initializer_constants(icbp);
-        write_tok_ch('0');
+#if GNU_EXTENSIONS_ALLOWED
+        /* When targetting gcc, we don't generate the dummy field, because
+           gcc doesn't mind empty structs.  Note that because we did the
+           start_initializer_constant call above we will get {}, which is
+           appropriate.  Note that the test here must match one in
+           dump_struct_union_definition. */
+        if (!(il_header.gcc_mode && gcc_is_generated_code_target))
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          write_tok_ch('0');
+        }  /* if */
       }  /* if */
     } else if (elem_con == NULL && is_array_type(type) &&
                type->variant.array.bound_is_zero) {

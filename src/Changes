@@ -1,5 +1,21 @@
 Version 3.8
 
+4/16/06  C-generating back end: gcc output and empty struct initializer
+
+The C-generating back end has historically put out a dummy field
+to avoid putting out a struct with no fields.  A change of 11/16/04
+suppressed this when running in gcc mode and when generating
+code to be consumed by gcc.  Unfortunately, the other half of
+this trick, the one that put out a dummy 0 initializer for the
+dummy field, was not suppressed at the same time.  As a consequence,
+the generated code for an example like
+
+  struct A { } a = {};
+
+had an excess zero initializer.  gcc ignored this with a warning,
+so it wasn't terribly visible, but it was still wrong and has now
+been fixed.
+
 4/16/06  No cv-qualifiers on copy assignment operator
 
 Cases like the following got an ambiguity error on generation of the
