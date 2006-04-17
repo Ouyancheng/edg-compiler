@@ -7691,6 +7691,12 @@ process_class_specifier:
         } else if (sun_mode && implicit_typename_enabled) {
           /* typename is ignored in Sun mode.  Simply discard the token
              unless the user has disabled implicit typename mode. */
+        } else if (microsoft_mode && basic_type != bt_none) {
+          /* In Microsoft mode, ignore a typename specifier if a basic type
+             has already been seen.  This allows typename to be used in some
+             invalid locations.  In particular this allows typename before
+             a declarator. */
+          warning(ec_invalid_typename_specifier);
         } else {
           a_symbol_ptr	type_sym;
           if (basic_type == bt_none) {

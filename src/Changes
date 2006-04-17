@@ -1,5 +1,16 @@
 Version 3.8
 
+4/17/06  Microsoft compatibility: typename allowed before declarator
+
+The Microsoft compiler allows (and ignores) the typename keyword before
+the declarator of a member of a class template declared outside of its class.
+This is now accepted in Microsoft mode (with a warning).
+
+  template <class T> struct A {
+    int f(int);
+  };
+  template <class T> int typename A<T>::f(int) {}
+
 4/16/06  C-generating back end: gcc output and empty struct initializer
 
 The C-generating back end has historically put out a dummy field

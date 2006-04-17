@@ -1601,6 +1601,7 @@ ec_start_map_region_ignored;;"#pragma start_map_region already active: pragma ig
 ec_stop_map_region_ignored;;"no #pragma start_map_region is currently active: pragma ignored"
 ec_var_used_as_destructor;;"%n cannot be used to name a destructor (a type name is required)"
 ec_empty_wide_character;;"nonstandard empty wide character literal treated as L'\\0'"
+ec_invalid_typename_specifier;;"\"typename\" may not be specified here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
