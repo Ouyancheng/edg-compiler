@@ -3318,6 +3318,7 @@ K&R/pcc mode) determined by fkind.
   a_boolean pos_infinity, neg_infinity, not_a_number;
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   char          *gnu_builtin_suffix = "";
+  int           max_exp = targ_dbl_max_exp;
   unsigned long gnu_targ_version =
 #if GCC_IS_GENERATED_CODE_TARGET || \
     (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
@@ -3336,6 +3337,7 @@ K&R/pcc mode) determined by fkind.
       suffix = "F";
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
       gnu_builtin_suffix = "f";
+      max_exp = targ_flt_max_exp;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
     } else if (fkind == (a_float_kind)fk_long_double) {
       suffix = "L";
@@ -3348,6 +3350,7 @@ K&R/pcc mode) determined by fkind.
 #endif /* BACK_END_IS_C_GEN_BE */
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
       gnu_builtin_suffix = "l";
+      max_exp = targ_ldbl_max_exp;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
     }  /* if */
   } else {
@@ -3387,15 +3390,8 @@ K&R/pcc mode) determined by fkind.
     } else if (gcc_is_generated_code_target && gnu_targ_version >= 29600 &&
                !not_a_number) {
       /* Use a large hexadecimal floating-point constant. */
-      const char *sign = (neg_infinity) ? "-" : "";
-      if (fkind == (a_float_kind)fk_float) {
-        (void)sprintf(buf, "(%s(__extension__ 0x1.0p255f))", sign);
-      } else if (fkind == (a_float_kind)fk_double) {
-        (void)sprintf(buf, "(%s(__extension__ 0x1.0p2047))", sign);
-      } else {
-        (void)sprintf(buf, "((long double) %s(__extension__ 0x1.0p2047))",
-                      sign);
-      }  /* if */
+      (void)sprintf(buf, "(%s(__extension__ 0x1.0p%d%s))",
+                    (neg_infinity) ? "-" : "", 2*max_exp-1, suffix);
     } else
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
     {
