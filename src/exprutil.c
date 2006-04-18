@@ -9137,8 +9137,7 @@ converted to an rvalue.
          lvalue for it, at least not one we want to make accessible to
          the user. */
       possible = FALSE;
-    }  /* if */
-    if (!see_if_possible) {
+    } else if (!see_if_possible) {
       node->kind = (an_expr_node_kind)enk_variable_address;
       set_variable_address_taken(node->variant.variable);
       node->implicit_reference_indirection = FALSE;
