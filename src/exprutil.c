@@ -1388,6 +1388,7 @@ values.
   operand->end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   operand->ref_entries_list = NULL;
+  operand->saved_ref_entries_list = NULL;
   operand->template_arg_list = NULL;
   operand->id_position = null_source_position;
   set_operand_kind(operand, kind);
@@ -1970,6 +1971,7 @@ Restore the ref_entries_list too (not usually wanted).
 {
   restore_operand_details(operand, orig_operand);
   operand->ref_entries_list = orig_operand->ref_entries_list;
+  operand->saved_ref_entries_list = orig_operand->saved_ref_entries_list;
 }  /* restore_operand_details_incl_ref */
 
 #if RECORD_FORM_OF_NAME_REFERENCE
@@ -4989,12 +4991,10 @@ for example, in something like "(short)i = 0").
         a_type_ptr cast_type = NULL;
         orig_operand = *operand;
         if (casts_removed) {
-          if (gcc_mode && gnu_version < 40000 &&
+          if (gcc_mode &&
               still_an_lvalue(type_before_cast, type_cast_to)) {
             /* gcc treats certain "near-enough" casts as lvalue casts
-               if it needs an lvalue.  Note that do_cast preserves the
-               reference entries on such casts, and the condition there
-               should match the one tested here. */
+               if it needs an lvalue. */
             cast_type = type_cast_to;
           }  /* if */
           if (gpp_mode &&
@@ -5038,7 +5038,9 @@ for example, in something like "(short)i = 0").
           }  /* if */
           operand->type = lvalue_type;
         }  /* if */
-        restore_operand_details_incl_ref(operand, &orig_operand);
+        restore_operand_details(operand, &orig_operand);
+        /* Restore the lvalue reference entries saved by do_cast, if any. */
+        operand->ref_entries_list = orig_operand.saved_ref_entries_list;
       }  /* if */
     }  /* if */
   } else if (is_an_lvalue(operand)) {

@@ -10316,13 +10316,10 @@ C-style casts and C++ functional-notation type conversions.
             a_ref_entry_ptr ref_entries_list = operand->ref_entries_list;
             /* Normal cast.  All standard C cases. */
             conv_lvalue_to_rvalue(operand);
-            if (gcc_mode && gnu_version < 40000 &&
-                still_an_lvalue(source_type, type_cast_to)) {
+            if (gcc_mode && gnu_version < 40000) {
               /* For a cast that might get removed if the operand is turned
-                 back into an lvalue, keep the references.  Note that the
-                 test here has to match the corresponding one in
-                 revert_gcc_rvalue_to_lvalue_if_possible. */
-              operand->ref_entries_list = ref_entries_list;
+                 back into an lvalue, keep the references. */
+              operand->saved_ref_entries_list = ref_entries_list;
             }  /* if */
           }  /* if */
           operand_is_constant = is_constant_operand(operand);

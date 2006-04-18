@@ -1,5 +1,19 @@
 Version 3.8
 
+4/18/06  GNU C mode: incorrect kind-of-reference warnings near possible
+         lvalue casts
+
+The latest round of changes to emulate gcc lvalue casts (see Changes
+entry of 9/15/05) broke some of the kind-of-reference tracking done
+in expression processing, with the consequence that set-but-not-used
+warnings and the like were sometimes incorrectly issued in GNU C
+mode.  Now fixed.
+
+  void f(void* p1, char *p2) {
+    *((char **) p1) = p2;  // Got spurious "set but never used" warning
+                           // in gcc mode
+  }
+
 4/17/06  Microsoft compatibility: typename allowed before declarator
 
 The Microsoft compiler allows (and ignores) the typename keyword before

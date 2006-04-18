@@ -341,7 +341,15 @@ typedef struct an_operand {
 			   for functions and for entities involved in lvalue
 			   address computations, whose reference kinds might
 			   be changed once the full context surrounding the
-			   operand is known. */
+			   operand is known.  Note that this list does
+			   sometimes have meaning in an operand that is an
+			   rvalue, e.g., for an array name that has decayed
+			   to a pointer. */
+  a_ref_entry_ptr
+		saved_ref_entries_list;
+			/* Saved list of reference entries used for cases
+			   where an rvalue can be turned back into an
+			   lvalue, e.g., in gcc mode. */
   a_template_arg_ptr
 		template_arg_list;
 			/* When is_template_id is TRUE, a template argument
