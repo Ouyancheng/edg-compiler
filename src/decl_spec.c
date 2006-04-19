@@ -1301,28 +1301,31 @@ This routine assumes that the token stream contains a generalized identifier
 followed by one or more plain identifiers.  If these plain identifiers turn
 out to be context-sensitive keywords, the tokens are transformed accordingly
 (i.e., they become "tok_abstract" or "tok_sealed" keywords).  *next_tok is
-set to the token kind that follows the identifiers.  body_start is the token
-that represents the beginning of a class body: tok_lbrace in the normal case,
-and tok_end_of_source during template prescanning.
+set to the token kind that follows the tag name and the class modifiers (if
+any).  body_start is the token that represents the beginning of a class body:
+tok_lbrace in the normal case, and tok_end_of_source during template
+prescanning.
 */
 {
-  a_token_cache              token_cache;
+  a_token_cache  token_cache;
+  a_token_kind   tok;
 
   clear_token_cache(&token_cache, /*reusable=*/FALSE);
   /* First cache the tag name. */
   cache_curr_token(&token_cache);
-  (void)get_token();
+  *next_tok = get_token();
   /* Cache additional identifiers (we know there is at least one). */
   do {
     cache_curr_token(&token_cache);
-    *next_tok = get_token();
-  } while (*next_tok == tok_identifier);
+    tok = get_token();
+  } while (tok == tok_identifier);
   rescan_cached_tokens(&token_cache);
-  if (*next_tok == body_start || *next_tok == tok_colon) {
+  if (tok == body_start || tok == tok_colon) {
     /* A class definition: The cached identifiers should have been
        context-sensitive keywords.  Make an additional pass over the
        cached tokens, turning the identifiers into keywords when
        possible. */
+    *next_tok = tok;
     clear_token_cache(&token_cache, /*reusable=*/FALSE);
     cache_curr_token(&token_cache);
     (void)get_token();
