@@ -950,6 +950,7 @@ source position is after the closing parenthesis of the argument list.
                             (a_type_qualifier_set *)NULL,
                             /*is_declarative_context=*/FALSE) &&
         /* Avoid problems with specified arguments with defaults: */
+        arg_operand_list != NULL &&
         arg_operand_list->next == NULL) {
       a_routine_ptr conv_routine;
       a_type_ptr    conv_rout_type;

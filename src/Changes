@@ -1,5 +1,19 @@
 Version 3.8
 
+4/19/06  Abort on use of constructor that is both default and copy constructor
+
+A case like the one below where a single constructor is both a default
+and a copy constructor (thanks to a default argument) caused an abort
+in scan_ctor_arguments in expr.c.  Now fixed.
+
+  struct B {
+    B(int i);
+    B(const B& = B(0));
+  };
+  void f_B(){
+    B* pB = new B(); // Abort on this previously
+  }
+
 4/18/06  GNU C mode: incorrect kind-of-reference warnings near possible
          lvalue casts
 
