@@ -1,5 +1,19 @@
 Version 3.8
 
+4/20/06  Error on class with virtual destructor and no default operator delete
+
+An error is now issued in configurations with IA64_ABI and DO_IL_LOWERING
+TRUE on a virtual destructor definition in a class with no visible
+default operator delete.  This is allowed by core issue 252 and avoids
+an abort in IL lowering in lower_init.c/define_default_version_of_routine.
+
+  struct D {
+    D() {}
+    virtual ~D() {}
+    void operator delete(void*, void*) {}
+  };
+  void f() { D d; }
+
 4/19/06  Abort on use of constructor that is both default and copy constructor
 
 A case like the one below where a single constructor is both a default

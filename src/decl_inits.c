@@ -5261,6 +5261,18 @@ though neither constructors nor initialization is involved here.)
     if (delete_routine != NULL) {
       mark_routine_referenced(delete_routine);
       delete_routine->called = TRUE;
+    } else {
+      /* There is no default delete routine.  The destructor will not call one,
+         and delete operations will get an error or will specify a specific
+         other delete routine. */
+#if DO_IL_LOWERING && IA64_ABI
+      /* The IA-64 ABI generates a deleting destructor for classes with virtual
+         destructors, so in that case we need to have a default destructor.
+         An error is okay by core issue 252. */
+      if (dtor_rout->is_virtual) {
+        pos_error(ec_no_default_delete_in_virtual_dtor, &source_pos);
+      }  /* if */
+#endif /* DO_IL_LOWERING && IA64_ABI */
     }  /* if */
   }
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
