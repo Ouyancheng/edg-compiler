@@ -1,5 +1,23 @@
 Version 3.8
 
+4/21/06  IA-64 ABI: incorrect type_info code for initially-incomplete class
+
+IL lowering for the IA-64 ABI sometimes generated incorrect initial
+values for the type_info variables generated for classes when the
+type_info is first used in a context where that class is incomplete
+and then later the class is completed.  The incorrect initializer
+aggregate did not match the structure of the type_info variable it
+initialized, which could cause aborts in back ends (e.g., the
+C-generating back end).  Now fixed.
+
+  #include <typeinfo>
+  struct A;
+  void f() {
+    void *p = (void*)&typeid(A*);
+  };
+  struct AA { };
+  struct A : AA {};
+
 4/20/06  Error on class with virtual destructor and no default operator delete
 
 An error is now issued on a virtual destructor definition in a class

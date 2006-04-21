@@ -1352,8 +1352,7 @@ typeinfo variable in a COMDAT group.
                  typeinfo_kind = get_typeinfo_kind(type);
   a_type_info_kind
                  typeinfo_kind_for_vtbl;
-  a_type_ptr     tinfo_type = make_typeinfo_type(typeinfo_kind, 
-                                                 (a_type_ptr)NULL);
+  a_type_ptr     tinfo_type = make_typeinfo_type(typeinfo_kind, type);
   a_variable_ptr typeinfo_var = type->typeinfo_var;
   a_variable_ptr vtbl_var;
   a_constant_ptr aggr_con;
@@ -1376,6 +1375,18 @@ typeinfo variable in a COMDAT group.
   check_assertion(type->kind != (a_type_kind)tk_typeref);
   saved_error_position = error_position;
   error_position = type->source_corresp.decl_position;
+#if IA64_ABI
+  if (is_class_type) {
+    /* Update the type in the typeinfo variable.  It might be different
+       if type is a class and was incomplete when make_typeinfo_var was
+       called.  Note that the address of the typeinfo variable is always
+       cast to some base class when stored somewhere, so changing its
+       type now is not going to cause problems. */
+    if (f_skip_typerefs(typeinfo_var->type) != tinfo_type) {
+      typeinfo_var->type = make_qualified_type(tinfo_type, TQ_CONST);
+    }  /* if */
+  }  /* if */
+#endif /* IA64_ABI */
   /* Set the linkage on the typeinfo variable. */
   if (force_static) {
     /* When forced to by the flag force_static, change the storage class to
