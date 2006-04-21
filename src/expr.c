@@ -8496,8 +8496,7 @@ specification allow a variable-sized array as the top type.
         if (!value_init) {
           set_class_assoc_operator_new_routine(unqual_base_new_type);
           if (exceptions_enabled) {
-            set_class_assoc_operator_delete_routine(unqual_base_new_type,
-                                                    (a_routine_ptr)NULL);
+            set_class_assoc_operator_delete_routine(unqual_base_new_type);
           }  /* if */
           if (unqual_base_new_type->variant.class_struct_union.extra_info->
                                    assoc_operator_new_routine == new_routine &&
@@ -9109,8 +9108,7 @@ As an anachronism, allow an expression inside the [ ].
         a_type_ptr unqual_base_delete_type = skip_typerefs(base_delete_type);
         /* Determine and remember the default operator delete() routine for
            the class. */
-        set_class_assoc_operator_delete_routine(unqual_base_delete_type,
-                                                (a_routine_ptr)NULL);
+        set_class_assoc_operator_delete_routine(unqual_base_delete_type);
         /* If the delete routine we are using is the default for the class,
            and the class has a destructor, we can fold the delete into the
            destructor call. */

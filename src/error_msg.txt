@@ -1602,7 +1602,7 @@ ec_stop_map_region_ignored;;"no #pragma start_map_region is currently active: pr
 ec_var_used_as_destructor;;"%n cannot be used to name a destructor (a type name is required)"
 ec_empty_wide_character;;"nonstandard empty wide character literal treated as L'\\0'"
 ec_invalid_typename_specifier;;"\"typename\" may not be specified here"
-ec_no_default_delete_in_virtual_dtor;;"a class with a virtual destructor must have a visible default operator delete"
+ec_no_default_delete_in_virtual_dtor;;"a non-placement operator delete must be visible in a class with a virtual destructor"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

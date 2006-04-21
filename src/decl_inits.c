@@ -5071,8 +5071,7 @@ scan_paren:
         /* When exceptions are enabled, the constructor has to be able to
            delete the storage allocated if an exception is thrown, so it
            needs the delete routine too. */
-        set_class_assoc_operator_delete_routine(class_type,
-                                                (a_routine_ptr)NULL);
+        set_class_assoc_operator_delete_routine(class_type);
         delete_routine = ctsp->assoc_operator_delete_routine;
         if (delete_routine != NULL) {
           mark_routine_referenced(delete_routine);
@@ -5250,29 +5249,53 @@ though neither constructors nor initialization is involved here.)
       }  /* if */
     }  /* if */
   }  /* for */
+  /* If the destructor is virtual, the class must have a visible
+     default operator delete() (core issue 252). */
+  if (dtor_rout->is_virtual) {
+    a_boolean do_check = TRUE;
+    if (microsoft_mode) do_check = FALSE;
+#if DO_IL_LOWERING && IA64_ABI
+    /* The IA-64 ABI requires this check, because the deleting destructor
+       references the delete routine. */
+    do_check = TRUE;
+#endif /* DO_IL_LOWERING && IA64_ABI */
+    if (do_check) {
+      a_symbol_ptr del_sym;
+      a_boolean    ambiguous;
+
+      del_sym = find_class_assoc_operator_delete_routine(class_type,
+                                                         &ambiguous);
+      if (ambiguous) {
+        /* The operator delete is ambiguous by inheritance. */
+        pos_sy2_error(ec_implicit_call_of_ambiguous_name,
+                      &source_pos, del_sym,
+                      (a_symbol_ptr)dtor_rout->source_corresp.assoc_info);
+      } else if (del_sym == NULL) {
+        /* There is no visible default operator delete. */
+        pos_error(ec_no_default_delete_in_virtual_dtor,
+                  &source_pos);
+      } else if (del_sym->is_class_member) {
+        /* Check access to a member operator delete (it might be in a base
+           class).  Note that the access is also checked on every delete. */
+        a_symbol_locator locator;
+        make_locator_for_symbol(del_sym, &locator);
+        check_ambiguity_and_verify_access(&locator);
+      }  /* if */
+    }  /* if */
+  }  /* if */
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
+  /* Determine and remember the default operator delete() routine for the
+     class.  This is done here because we are working out the "wrapper"
+     code that will be required, and the "delete" routine may be called from
+     the wrapper.  This is only an optimization, so if the delete routine
+     turns out not to exist it is simply not recorded, and no error is
+     issued (here). */
   { a_routine_ptr delete_routine;
-    /* Determine and remember the default operator delete() routine for the
-       class.  This is done here because we are working out the "wrapper"
-       code that will be required, and the "delete" routine will be called from
-       the wrapper. */
-    set_class_assoc_operator_delete_routine(class_type, dtor_rout);
+    set_class_assoc_operator_delete_routine(class_type);
     delete_routine = ctsp->assoc_operator_delete_routine;
     if (delete_routine != NULL) {
       mark_routine_referenced(delete_routine);
       delete_routine->called = TRUE;
-    } else {
-      /* There is no default delete routine.  The destructor will not call one,
-         and delete operations will get an error or will specify a specific
-         other delete routine. */
-#if DO_IL_LOWERING && IA64_ABI
-      /* The IA-64 ABI generates a deleting destructor for classes with virtual
-         destructors, so in that case we need to have a default destructor.
-         An error is okay by core issue 252. */
-      if (dtor_rout->is_virtual) {
-        pos_error(ec_no_default_delete_in_virtual_dtor, &source_pos);
-      }  /* if */
-#endif /* DO_IL_LOWERING && IA64_ABI */
     }  /* if */
   }
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */

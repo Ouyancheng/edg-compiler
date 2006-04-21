@@ -10629,15 +10629,47 @@ class and record it in the class's assoc_operator_new_routine field.
 }  /* set_class_assoc_operator_new_routine */
 
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+
+a_symbol_ptr find_class_assoc_operator_delete_routine(a_type_ptr class_type,
+                                                      a_boolean  *ambiguous)
+/*
+Determine the default operator delete() function to be used for the
+indicated class and return a pointer to its symbol.  Return NULL
+if there is no visible default operator delete().  If the symbol
+found is ambiguous, return it and also return *ambiguous TRUE.
+*/
+{
+  a_symbol_ptr sym, other_sym;
+
+  check_assertion(is_immediate_class_type(class_type));
+  *ambiguous = FALSE;
+  /* Use the class "delete" if there is one, and otherwise the global
+     operator delete. */
+  sym = opname_member_function_symbol((an_opname_kind)onk_delete,
+                                      class_type);
+  if (sym != NULL) {
+    /* A member delete. */
+    if (sym->ambiguous) {
+      *ambiguous = TRUE;
+    }  /* if */
+  } else {
+    sym = opname_function_symbol((an_opname_kind)onk_delete);
+  }  /* if */
+  check_assertion(sym != NULL);
+  if (!*ambiguous) {
+    /* Since delete might be overloaded, find the default version. */
+    other_sym = find_default_operator_delete_sym(sym, ambiguous);
+    if (!*ambiguous) sym = other_sym;
+  }  /* if */
+  return sym;
+}  /* find_class_assoc_operator_delete_routine */
+
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
 
-void set_class_assoc_operator_delete_routine(a_type_ptr     class_type,
-                                             a_routine_ptr  dtor_rout)
+void set_class_assoc_operator_delete_routine(a_type_ptr class_type)
 /*
 Determine the operator delete() function to be used for the indicated class
-and record it in the class's assoc_operator_delete_routine field.  If
-dtor_rout is non-NULL, it indicates a destructor for which the delete
-function is potentially part of the wrapper code.
+and record it in the class's assoc_operator_delete_routine field.
 */
 {
   a_symbol_ptr                sym;
@@ -10647,38 +10679,10 @@ function is potentially part of the wrapper code.
   check_assertion(is_immediate_class_type(class_type));
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp->assoc_operator_delete_routine == NULL) {
-    /* Use the class "delete" if there is one, and otherwise the global
-       operator delete. */
-    sym = opname_member_function_symbol((an_opname_kind)onk_delete,
-                                        class_type);
-    if (sym != NULL) {
-      /* A member delete. */
-      if (sym->ambiguous) {
-        if (dtor_rout != NULL && dtor_rout->is_virtual) {
-          /* Only issue the diagnostic if the destructor is virtual.  For
-             nonvirtual destructors (or for implicit deallocation when an
-             exception occurs in the midst of construction) the diagnostic is
-             issued when the delete (or new) expression is processed. */
-          check_assertion(dtor_rout->special_kind ==
-                                    (a_special_function_kind)sfk_destructor);
-          pos_sy2_error(ec_implicit_call_of_ambiguous_name,
-                        &error_position, sym,
-                        (a_symbol_ptr)dtor_rout->source_corresp.assoc_info);
-        }  /* if */
-        /* Don't return an ambiguous function. */
-        sym = NULL;
-      }  /* if */
-    } else {
-      sym = opname_function_symbol((an_opname_kind)onk_delete);
-      check_assertion(sym != NULL);
-    }  /* if */
-    if (sym != NULL) {
-      /* Since delete might be overloaded, find the default version. */
-      sym = find_default_operator_delete_sym(sym, &ambiguous);
-      if (sym != NULL) {
-        sym = fundamental_symbol_of(sym);
-        ctsp->assoc_operator_delete_routine = sym->variant.routine.ptr;
-      }  /* if */
+    sym = find_class_assoc_operator_delete_routine(class_type, &ambiguous);
+    if (sym != NULL && !ambiguous) {
+      sym = fundamental_symbol_of(sym);
+      ctsp->assoc_operator_delete_routine = sym->variant.routine.ptr;
     }  /* if */
   }  /* if */
 }  /* set_class_assoc_operator_delete_routine */
