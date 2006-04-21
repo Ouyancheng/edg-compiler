@@ -278,17 +278,25 @@ This is now fixed.
 4/11/06  Microsoft compatibility: destructor call with variable instead of type
 
 The Microsoft compiler accepts an explicit destructor call in which the
-destructor name is specified using a variable whose type matches the type
-of the object, instead of a type name as mandated by the language.  We
-now emulate this behavior in Microsoft mode.
+destructor name is specified using a variable or data member whose type
+matches the type of the object, instead of a type name as mandated by the
+language.  We now emulate this behavior in Microsoft mode.
 
   struct A {
     ~A() { }
   };
-  int main() {
-    A a;
-    a.~a();  // uses variable instead of type name after ~
-  }
+  struct B {
+  public:
+    A member1;
+    static A member2;
+    void f() {
+      A variable;
+      // uses variable or data member instead of type name after ~
+      variable.~variable();
+      member1.~member1();
+      member2.~member2();
+    }
+ };
 
 4/11/06  Microsoft compatibility: Empty wide character literal
 

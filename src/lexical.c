@@ -10569,17 +10569,31 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
       }  /* if */
       if (!destructor_okay && microsoft_mode) {
         /* If we haven't found a valid destructor, in Microsoft mode look for
-           a variable with a type that matches the destructor type. */
+           a variable or data member (static or nonstatic) with a type that
+           matches the destructor type. */
         a_symbol_ptr	sym;
         clear_specific_symbol(locator_for_curr_id);
         sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-        if (sym != NULL && sym->kind == (a_symbol_kind)sk_variable) {
-          tp = sym->variant.variable.ptr->type;
-          if (acceptable_dtor_type(field_sel_type, tp)) {
-            type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
-            destructor_okay = TRUE;
-            pos_sy_warning(ec_var_used_as_destructor,
-                           &locator_for_curr_id.source_position, sym);
+        if (sym != NULL) {
+          /* If this is one of the symbol kinds accepted by the Microsoft
+             compiler, get the type of the entity to see if it matches the
+             destructor type. */
+          if (sym->kind == (a_symbol_kind)sk_variable) {
+            tp = sym->variant.variable.ptr->type;
+          } else if (sym->kind == (a_symbol_kind)sk_field) {
+            tp = sym->variant.field.ptr->type;
+          } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+            tp = sym->variant.static_data_member.variable->type;
+          } else {
+            tp = NULL;
+          }  /* if */
+          if (tp != NULL) {
+            if (acceptable_dtor_type(field_sel_type, tp)) {
+              type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+              destructor_okay = TRUE;
+              pos_sy_warning(ec_var_used_as_destructor,
+                             &locator_for_curr_id.source_position, sym);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
