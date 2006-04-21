@@ -2984,6 +2984,7 @@ created; the caller must set it.
       if (!C_mode() && !is_function) {
         /* Check for external name conflicts between two variables. */
         an_error_severity  sev = es_none;
+        an_error_code      diag; 
         if ((a_name_linkage_kind)scp->name_linkage != name_linkage &&
             ((a_name_linkage_kind)scp->name_linkage ==
                                            (a_name_linkage_kind)nlk_external ||
@@ -2993,16 +2994,17 @@ created; the caller must set it.
              compilers accept this and it is mostly harmless, we only issue a
              warning in nonstrict modes. */
           sev = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
+          diag = ec_name_linkage_mismatch_for_variable;
         } else if (old_name != new_name && strcmp(old_name, new_name) != 0) {
           /* Two different names in the source end up being mapped onto the
              same external name (e.g., when external names are case-
              insensitive). */
           sev = es_discretionary_error;
+          diag = ec_external_name_clash;
         }  /* if */
         if (sev != es_none) {
           if (!suppress_incompatible_error) {
-            pos_sy_diagnostic(sev, ec_external_name_clash,
-                              &locator->source_position, ext_sym);
+            pos_sy_diagnostic(sev, diag, &locator->source_position, ext_sym);
           }  /* if */
           err = TRUE;
           /* Force creation of a new external symbol. */
