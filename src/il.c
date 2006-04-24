@@ -8024,7 +8024,9 @@ a_type_ptr ptr_to_member_type_full(a_type_ptr  member_type,
 Allocate and return a pointer-to-member type, initializing its fields based
 on the specified member and class types.  Attempt to find and reuse an
 existing type entry.  is_ptr32 or is_ptr64 is TRUE when an explicitly sized
-pointer (a Microsoft extension) is requested.
+pointer (a Microsoft extension) is requested.  (member_type may be NULL, e.g.,
+when building a type from nested declarators outward.  class_type must be
+non-NULL.)
 */
 {
   a_type_ptr         tp;
@@ -8165,7 +8167,8 @@ a_type_ptr make_pointer_type_full(a_type_ptr  pointed_to_type,
 /*
 Allocate a pointer type record and initialize it.  Attempt to find and reuse
 an existing entry if possible.  is_ptr32 or is_ptr64 is TRUE when an explicitly
-sized pointer (a Microsoft extension) is requested.
+sized pointer (a Microsoft extension) is requested.  (pointed_to_type may be
+NULL, e.g., when building a type from nested declarators outward.)
 */
 {
   a_type_ptr  ptr;
@@ -8181,9 +8184,11 @@ sized pointer (a Microsoft extension) is requested.
     kind = (a_based_type_kind)btk_ptr64;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  ptr = get_based_type(pointed_to_type, kind, (a_type_qualifier_set)TQ_NONE,
-                       /*expl_mem_attr_implicit=*/FALSE,
-                       /*class_type=*/(a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
+  if (pointed_to_type != NULL) {
+    ptr = get_based_type(pointed_to_type, kind, (a_type_qualifier_set)TQ_NONE,
+                         /*expl_mem_attr_implicit=*/FALSE,
+                         /*class_type=*/(a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
+  }  /* if */
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
     ptr = alloc_type((a_type_kind)tk_pointer);
@@ -8193,9 +8198,11 @@ sized pointer (a Microsoft extension) is requested.
     ptr->variant.pointer.is_ptr64 = is_ptr64;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     set_type_size(ptr);
-    /* Remember the existence of this pointer type by putting a pointer
-       to it in the based_types list. */
-    add_based_type_list_member(pointed_to_type, kind, ptr);
+    if (pointed_to_type != NULL) {
+      /* Remember the existence of this pointer type by putting a pointer
+         to it in the based_types list. */
+      add_based_type_list_member(pointed_to_type, kind, ptr);
+    }  /* if */
   }  /* if */
 
   return ptr;
