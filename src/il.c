@@ -8188,6 +8188,8 @@ NULL, e.g., when building a type from nested declarators outward.)
     ptr = get_based_type(pointed_to_type, kind, (a_type_qualifier_set)TQ_NONE,
                          /*expl_mem_attr_implicit=*/FALSE,
                          /*class_type=*/(a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
+  } else {
+    ptr = NULL;
   }  /* if */
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
