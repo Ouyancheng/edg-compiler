@@ -1,5 +1,15 @@
 Version 3.8
 
+4/24/06  Abort on use of __ptr32/ptr64 in nested declarator
+
+In Microsoft mode, the front end sometimes aborted when using the Microsoft-
+specific __ptr32/__ptr64 qualifiers in nested (i.e., parenthesized)
+declarators.  For example:
+
+  void (*__ptr32 g());  // Previously aborted in Microsoft mode.
+
+This is now fixed.
+
 4/21/06  IA-64 ABI: incorrect type_info code for initially-incomplete class
 
 IL lowering for the IA-64 ABI sometimes generated incorrect initial
