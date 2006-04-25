@@ -1275,9 +1275,9 @@ when it is a secondary file.
          "std" is explicitly declared (unless the --ignore_std option is
          used or we are in g++ mode). */
       make_symbol_for_namespace_std();
-      if (ignore_std_namespace || gpp_mode) {
+      if (ignore_std_namespace || gpp_mode || sun_mode) {
         /* In --ignore_std mode, enter "std" so it can be used as a
-           synonym for the global namespace.  In g++ mode, "std" is
+           synonym for the global namespace.  In g++ and Sun modes, "std" is
            predeclared. */
         clear_locator(&locator_for_curr_id, &null_source_position);
         enter_symbol_for_namespace_std(&locator_for_curr_id);

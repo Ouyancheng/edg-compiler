@@ -1,5 +1,11 @@
 Version 3.8
 
+4/25/06  Sun compatibility: namespace std is predeclared
+
+In Sun mode, the std namespace is predeclared.
+
+  using namespace std;
+
 4/24/06  Abort on use of __ptr32/ptr64 in nested declarator
 
 In Microsoft mode, the front end sometimes aborted when using the Microsoft-
