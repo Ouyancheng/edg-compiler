@@ -2802,6 +2802,13 @@ as specified in the control block.
       break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     case enk_lowered_eh_construct:
+      if (expr->variant.lowered_eh.kind ==
+                              (a_lowered_eh_construct_kind)leck_internal_try) {
+        traverse_expr(expr->variant.lowered_eh.variant.internal_try.try_expr,
+                      tblock);
+        traverse_expr(expr->variant.lowered_eh.variant.internal_try.catch_expr,
+                      tblock);
+      }  /* if */
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
@@ -2963,6 +2970,12 @@ as specified in the control block.
       traverse_dynamic_init(statement->variant.dynamic_init, tblock);
       break;
     case stmk_asm:
+      { an_asm_entry_ptr   aep = statement->variant.asm_entry;
+        an_asm_operand_ptr aop;
+        for (aop = aep->operands; aop != NULL; aop = aop->next) {
+          traverse_expr(aop->expression, tblock);
+        }  /* for */
+      }
       break;
 #if ASM_FUNCTION_ALLOWED
     case stmk_asm_func_body:
