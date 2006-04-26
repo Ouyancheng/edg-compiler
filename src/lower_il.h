@@ -993,12 +993,6 @@ extern void lower_operations_returning_lvalue_instead_of_usual_rvalue(
                                                    a_boolean        is_lvalue);
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
 
-extern void set_lvalue_and_boolean_controlling_expr_masks(
-                             an_expr_node_ptr  expr,
-                             a_boolean         is_lvalue,
-                             unsigned int      *is_lvalue_mask,
-                             unsigned int      *is_bool_controlling_expr_mask);
-
 extern void lower_expr_list(an_expr_node_ptr expr_list,
                             unsigned int     is_lvalue_mask,
                             unsigned int     is_bool_controlling_expr_mask);

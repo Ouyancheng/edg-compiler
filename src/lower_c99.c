@@ -3122,17 +3122,13 @@ statement "statement".  See lower_c99_expr for an interface without the
 second parameter.
 */
 {
-  unsigned int  lvalue_mask = 0, bool_controlling_expr_mask = 0;
+  unsigned int lvalue_mask;
 
   switch (expr->kind) {
     case enk_operation:
       /* First lower all the operands (if any). */
-      /* Determine which operands if any are lvalues, and whether or not
-         the operand has boolean-controlling-expression operands. */
-      set_lvalue_and_boolean_controlling_expr_masks(
-                                                 expr, used_as_lvalue,
-                                                 &lvalue_mask,
-                                                 &bool_controlling_expr_mask);
+      /* Determine which operands if any are lvalues. */
+      lvalue_mask = expr_lvalue_operand_mask(expr, used_as_lvalue);
       lower_c99_expr_list(expr->variant.operation.operands, lvalue_mask);
       /* Then transform the current operator if needed. */
       lower_c99_operator(expr);

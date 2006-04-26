@@ -11231,52 +11231,31 @@ to the enk_temp_init node and return TRUE.  Otherwise, return FALSE.
 }  /* is_optimizable_temp_init_indirection */
 
 
-void set_lvalue_and_boolean_controlling_expr_masks(
-                             an_expr_node_ptr  expr,
-                             a_boolean         is_lvalue,
-                             unsigned int      *is_lvalue_mask,
-                             unsigned int      *is_bool_controlling_expr_mask)
+static unsigned int expr_boolean_controlling_expr_mask(an_expr_node_ptr expr)
 /*
-Given the expression node expr and whether it is used as an lvalue (is_lvalue)
-this routine sets bits in is_lvalue_mask and is_bool_controlling_expr_mask to
-indicate whether the corresponding operand is used as an lvalue and/or a
-controlling boolean expression.
+Given the expression node expr (of kind enk_operation), this routine
+returns a bit mask indicating whether its operands are used as boolean
+controlling boolean expressions.  A "1" bit indicates a boolean controlling
+expression, with the least-significant bit corresponding to the first
+operand, the bit after that corresponding to the second operand, etc.
 */
 {
-  an_expr_operator_kind  op = expr->variant.operation.kind;
+  an_expr_operator_kind  op;
+  unsigned int           bool_controlling_expr_mask = 0;
 
-  *is_lvalue_mask = 0;
-  *is_bool_controlling_expr_mask = 0;
+  check_assertion(is_operation_node(expr));
+  op = expr->variant.operation.kind;
   if (op == (an_expr_operator_kind)eok_question) {
-    /* Question mark's second and third operands are lvalues if the
-       question mark itself is. */
-    if (is_lvalue) *is_lvalue_mask = 0x6;
-    /* The first operand is a boolean controlling expression. */
-    *is_bool_controlling_expr_mask = 1;
+    bool_controlling_expr_mask = 0x1;
   } else if (op == (an_expr_operator_kind)eok_land ||
              op == (an_expr_operator_kind)eok_lor) {
     /* "&&" and "||". */
-    *is_bool_controlling_expr_mask = 3;
+    bool_controlling_expr_mask = 0x3;
   } else if (op == (an_expr_operator_kind)eok_not) {
-    *is_bool_controlling_expr_mask = 1;
-  } else if (op == (an_expr_operator_kind)eok_comma) {
-    /* Comma's second operand is an lvalue if the comma itself is. */
-    if (is_lvalue) *is_lvalue_mask = 0x2;
-  } else if (op == (an_expr_operator_kind)eok_points_to_static ||
-             op == (an_expr_operator_kind)eok_lvalue_dot_static ||
-             op == (an_expr_operator_kind)eok_rvalue_dot_static) {
-    /* A static selection's second operand is an lvalue if the
-       selection itself is. */
-    if (is_lvalue) *is_lvalue_mask = 0x2;
-  } else if (op == (an_expr_operator_kind)eok_cast) {
-    /* The operand of a cast is considered an lvalue if the result
-       of the cast is used as the address of an lvalue. */
-    if (is_lvalue) *is_lvalue_mask = 0x1;
-  } else {
-    /* Other operators.  See if the first operand is an lvalue. */
-    if (operator_takes_lvalue_operand(op)) *is_lvalue_mask = 0x1;
+    bool_controlling_expr_mask = 0x1;
   }  /* if */
-}  /* set_lvalue_and_boolean_controlling_expr_masks */
+  return bool_controlling_expr_mask;
+}  /* expr_boolean_controlling_expr_mask */
 
 
 void lower_reuse_value_expr(an_expr_node_ptr expr)
@@ -11439,9 +11418,9 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         a_type_ptr  type;
         /* Determine which operands if any are lvalues, and whether or not
            the operand has boolean-controlling-expression operands. */
-        set_lvalue_and_boolean_controlling_expr_masks(
-                                             expr, is_lvalue, &is_lvalue_mask,
-                                             &is_bool_controlling_expr_mask);
+        is_lvalue_mask = expr_lvalue_operand_mask(expr, is_lvalue);
+        is_bool_controlling_expr_mask =
+                                      expr_boolean_controlling_expr_mask(expr);
         if (op == (an_expr_operator_kind)eok_question) {
           /* Look for a "?" operator where one of the operands is a throw
              expression and the other has a non-void type.  The throw

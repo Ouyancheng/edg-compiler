@@ -1353,7 +1353,8 @@ extern an_expr_operator_kind generic_operator_for_opname_kind(
                                                 an_opname_kind kind,
                                                 a_boolean      unary_operator);
 
-extern a_boolean operator_takes_lvalue_operand(an_expr_operator_kind op);
+extern unsigned int expr_lvalue_operand_mask(an_expr_node_ptr  expr,
+                                             a_boolean         is_lvalue);
 
 extern void add_base_class_casts(a_base_class_ptr  bcp,
                                  a_type_ptr        qualifiers_model,
