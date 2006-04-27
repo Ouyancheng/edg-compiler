@@ -3064,6 +3064,7 @@ as specified in the control block.
       traverse_dynamic_init(statement->variant.dynamic_init, tblock);
       break;
     case stmk_asm:
+#if GNU_EXTENSIONS_ALLOWED
       { an_asm_entry_ptr   aep = statement->variant.asm_entry;
         an_asm_operand_ptr aop;
         for (aop = aep->operands; aop != NULL; aop = aop->next) {
@@ -3072,6 +3073,7 @@ as specified in the control block.
         }  /* for */
         tblock->expr_is_lvalue = FALSE;
       }
+#endif /* GNU_EXTENSIONS_ALLOWED */
       break;
 #if ASM_FUNCTION_ALLOWED
     case stmk_asm_func_body:
