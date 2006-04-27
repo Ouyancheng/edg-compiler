@@ -553,6 +553,8 @@ typedef enum /*an_il_entry_kind*/ {
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   iek_ms_if_exists,	/* an_ms_if_exists */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+  iek_local_expr_node_ref,
+			/* a_local_expr_node_ref */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -696,6 +698,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 /* iek_ms_if_exists */			"ms-if-exists",
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+/* iek_local_expr_node_ref */		"local-expr-node-ref",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -2560,7 +2563,18 @@ typedef struct a_constant {
 			   represented.  NULL for __uuidof(0). */
           an_expr_node_ptr
 		expr;	/* If the sizeof etc. was applied to an expression,
+			   stored in the same memory region as this constant
 			   this points to the expression.  NULL otherwise. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+          a_bit_field
+		local_expr_ref:1;
+			/* TRUE if the sizeof etc. was applied to an
+			   expression stored in a function scope memory
+			   region while this constant is stored in the file
+			   scope memory memory region.  In that case, expr
+			   will be NULL and the expression can be found using
+			   find_local_expr_node instead. */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         } templ_sizeof;
         /* When template param constant kind == tpck_template_ref: */
         struct {
@@ -5182,6 +5196,15 @@ typedef struct a_template_param_type_supplement {
 			/* The dependent expression used in a typeof
 			   specifier.  NULL if the typeof construct encloses
 			   a type specification rather than an expression. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_bit_field
+		local_expr_ref:1;
+			/* TRUE for typeof specifiers with a local expression
+			   argument.  In such cases, the entry cannot directly
+			   point to the expression node (i.e., expr is NULL
+			   because of memory region constraints), and the node
+			   must instead be found using find_local_expr_node. */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 } a_template_param_type_supplement;
 
@@ -9602,6 +9625,46 @@ typedef struct an_eh_prologue_supplement {
 } an_eh_prologue_supplement;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+
+typedef enum a_local_expr_node_ref_kind_tag {
+  lerk_none,		/* Used for initialization only. */
+  lerk_generic_typeof,	/* A template-dependent expression used as an argument
+			   for a typeof construct. */
+  lerk_generic_sizeof,	/* A template-dependent expression used as an argument
+			   for a sizeof, alignof, or uuidof construct. */
+} a_local_expr_node_ref_kind_tag;
+
+typedef a_byte a_local_expr_node_ref_kind;
+
+typedef struct a_local_expr_node_ref *a_local_expr_node_ref_ptr;
+typedef struct a_local_expr_node_ref {
+  /* Entities in file-scope memory region cannot directly refer to function-
+     local entities.  To work around that constraint for function-local
+     expression nodes, the reference to the local expression is placed on
+     a list in the function's memory region and with that reference a pointer
+     to the entity in the file-scope memory.  That list is then searched
+     whenever reference must be resolved.  (This technique is similar to
+     that enabled by a_local_static_variable_init entries.) */
+  a_local_expr_node_ref_ptr
+		next;
+			/* Pointer to the next reference in the current
+			   (function or block) scope. */
+  an_expr_node_ptr
+		expr;
+			/* Pointer to the referenced expression. */
+  a_local_expr_node_ref_kind
+		kind;
+			/* Identifies the nature of the construct that
+			   causes the reference. */
+  a_tagged_pointer
+		referrer;
+			/* Tag and generic pointer identifying the entity (in
+			   file scope memory region) implicitly referring to
+			   expr. */
+} a_local_expr_node_ref;
+
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 typedef struct an_expr_node {
   /* A single expression node. */
@@ -12098,6 +12161,15 @@ typedef struct a_scope {
 			   within a given function -- sck_function scopes;
 			   The order of entries on the list is not
 			   significant. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_local_expr_node_ref_ptr
+		expr_node_refs;
+			/* List of references to expressions within this scope
+			   (only non-NULL for certain function scopes).  The
+			   order of entries on the list is not significant.
+			   The entries represent implicit references from the
+			   file scope memory region. */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #endif /* ifdef CIL */
   a_pragma_ptr	pragmas;
 			/* A linked list of pragma entries.  They may be
@@ -12683,6 +12755,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   sizeof(an_ms_if_exists),
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  sizeof(a_local_expr_node_ref),
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */
