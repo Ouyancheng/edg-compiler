@@ -4345,9 +4345,6 @@ Copy a constant entry from "from" to "to".
 #if ONE_INSTANTIATION_PER_OBJECT
   to->source_corresp.per_instantiation_needed_flags = NULL;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-  if (in_file_scope(to) && innermost_function_scope != NULL) {
-    fix_memory_region_problems_in_copied_constant(to);
-  }  /* if */
 }  /* copy_constant */
 
 
