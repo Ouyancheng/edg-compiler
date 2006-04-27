@@ -553,8 +553,10 @@ typedef enum /*an_il_entry_kind*/ {
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   iek_ms_if_exists,	/* an_ms_if_exists */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
   iek_local_expr_node_ref,
 			/* a_local_expr_node_ref */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -698,7 +700,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 /* iek_ms_if_exists */			"ms-if-exists",
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
 /* iek_local_expr_node_ref */		"local-expr-node-ref",
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
