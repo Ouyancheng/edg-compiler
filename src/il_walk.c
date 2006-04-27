@@ -2553,6 +2553,7 @@ default values.
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   tblock->process_expressions_for_constants = FALSE;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  tblock->expr_is_lvalue = FALSE;
   tblock->set_unordered_on_dynamic_inits = FALSE;
   tblock->relink_dynamic_inits = FALSE;
   tblock->last_relinked_dynamic_init = NULL;
@@ -2630,7 +2631,7 @@ it's the initializer for an aggregate.
       break;
   }  /* switch */
 post_processing:
-  if (tblock->process_post_constant != NULL) {
+  if (tblock->process_post_constant != NULL && !tblock->terminate) {
     /* Call the user-provided (post-subtree) routine. */
     tblock->process_post_constant(constant, tblock);
   }  /* if */
@@ -2681,7 +2682,7 @@ routines as specified in the control block.
       unexpected_condition_str("traverse_dynamic_init: bad kind");
   }  /* switch */
 post_processing:
-  if (tblock->process_post_dynamic_init != NULL) {
+  if (tblock->process_post_dynamic_init != NULL && !tblock->terminate) {
     /* Call the user-provided (post-subtree) routine. */
     tblock->process_post_dynamic_init(dip, tblock);
   }  /* if */
@@ -2706,6 +2707,75 @@ as specified in the control block.
 }  /* traverse_expr_list */
 
 
+static void traverse_operand_list(
+                                 an_expr_node_ptr                    expr,
+                                 a_boolean                           is_lvalue,
+                                 an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Walk the operands of the given enk_operation expression node.  The expression
+is used as an lvalue if is_lvalue is TRUE.  Call user-provided routines as
+specified in the control block.  This differs from traverse_expr_list in
+that it tracks lvalue/rvalue for call arguments.
+*/
+{
+  a_boolean             saved_expr_is_lvalue = tblock->expr_is_lvalue;
+  an_expr_operator_kind op = expr->variant.operation.kind;
+  an_expr_node_ptr      operand = expr->variant.operation.operands;
+ 
+  if (op == (an_expr_operator_kind)eok_call ||
+      op == (an_expr_operator_kind)eok_virtual_call ||
+      op == (an_expr_operator_kind)eok_pm_call) {
+    /* A call.  Traverse specially to track whether the arguments are
+       lvalues. */
+    a_type_ptr       type;
+    a_param_type_ptr param;
+    /* Extract the called routine type. */
+    type = operand->type;
+    if (op == (an_expr_operator_kind)eok_pm_call) {
+      if (!is_ptr_to_member_type(type)) goto normal_traversal;
+      type = pm_member_type(type);
+    } else {
+      if (!is_pointer_type(type)) goto normal_traversal;
+      type = type_pointed_to(type);
+    }  /* if */
+    type = skip_typerefs(type);
+    if (type->kind != (a_type_kind)tk_routine) goto normal_traversal;
+    param = type->variant.routine.extra_info->param_type_list;
+    /* Traverse the expression that identifies the function. */
+    tblock->expr_is_lvalue = FALSE;
+    traverse_expr(operand, tblock);
+    if (tblock->terminate) goto end_of_routine;
+    operand = operand->next;
+    /* Traverse the argument expressions, tracking their correspondence to
+       the parameter list. */
+    for (; operand != NULL; operand = operand->next) {
+      tblock->expr_is_lvalue = FALSE;
+      if (param != NULL) {
+        tblock->expr_is_lvalue = is_reference_type(param->type);
+        param = param->next;
+      }  /* if */
+      traverse_expr(operand, tblock);
+      /* Terminate the walk if told to do so. */
+      if (tblock->terminate) break;
+    }  /* for */
+  } else {
+    unsigned int lvalue_mask;
+normal_traversal:
+    /* Normal operation (not a call). */
+    lvalue_mask = expr_lvalue_operand_mask(expr, is_lvalue);
+    for (; operand != NULL; operand = operand->next) {
+      tblock->expr_is_lvalue = (lvalue_mask & 1);
+      traverse_expr(operand, tblock);
+      /* Terminate the walk if told to do so. */
+      if (tblock->terminate) break;
+      lvalue_mask >>= 1;
+    }  /* for */
+  }  /* if */
+end_of_routine:
+  tblock->expr_is_lvalue = saved_expr_is_lvalue;
+}  /* traverse_operand_list */
+
+
 void traverse_expr(an_expr_node_ptr                    expr,
                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
@@ -2713,6 +2783,13 @@ Walk the tree of the given expression.  Call user-provided routines
 as specified in the control block.
 */
 {
+  a_boolean saved_expr_is_lvalue = tblock->expr_is_lvalue;
+  a_boolean internal_expr_is_lvalue = saved_expr_is_lvalue;
+
+  if (expr->void_expression_lvalue) {
+    /* This expression is explicitly marked as an lvalue. */
+    tblock->expr_is_lvalue = internal_expr_is_lvalue = TRUE;
+  }  /* if */
   if (tblock->process_expr != NULL) {
     /* Call the user-provided routine. */
     tblock->process_expr(expr, tblock);
@@ -2724,14 +2801,17 @@ as specified in the control block.
       goto post_processing;
     }  /* if */
   }  /* if */
+  /* Assume the expression is not an lvalue, and change later if it is. */
+  tblock->expr_is_lvalue = FALSE;
   switch (expr->kind) {
     case enk_error:
       break;
     case enk_operation:
-      traverse_expr_list(expr->variant.operation.operands, tblock);
+      traverse_operand_list(expr, internal_expr_is_lvalue, tblock);
       break;
     case enk_constant:
       if (tblock->process_non_dynamic_constants) {
+        tblock->expr_is_lvalue = internal_expr_is_lvalue;
         traverse_constant(expr->variant.constant, tblock);
       }  /* if */
       break;
@@ -2783,11 +2863,13 @@ as specified in the control block.
       break;
     case enk_typeid:
       if (expr->variant.typeid_info.expr != NULL) {
+        tblock->expr_is_lvalue = TRUE;
         traverse_expr(expr->variant.typeid_info.expr, tblock);
       }  /* if */
       break;
     case enk_runtime_sizeof:
       if (!expr->variant.runtime_sizeof.is_type) {
+        tblock->expr_is_lvalue = expr->variant.runtime_sizeof.is_lvalue;
         traverse_expr(expr->variant.runtime_sizeof.variant.expr, tblock);
       }  /* if */
       break;
@@ -2830,11 +2912,13 @@ as specified in the control block.
       unexpected_condition_str("traverse_expr: bad expr kind");
   }  /* switch */
 post_processing:
-  if (tblock->process_post_expr != NULL) {
+  if (tblock->process_post_expr != NULL && !tblock->terminate) {
+    tblock->expr_is_lvalue = internal_expr_is_lvalue;
     /* Call the user-provided (post-subtree) routine. */
     tblock->process_post_expr(expr, tblock);
   }  /* if */
-end_of_routine:;
+end_of_routine:
+  tblock->expr_is_lvalue = saved_expr_is_lvalue;
 }  /* traverse_expr */
 
 
@@ -2862,6 +2946,7 @@ Walk the tree of the given statement.  Call user-provided routines
 as specified in the control block.
 */
 {
+  tblock->expr_is_lvalue = FALSE;
   if (tblock->process_statement != NULL) {
     /* Call the user-provided routine. */
     tblock->process_statement(statement, tblock);
@@ -2909,6 +2994,15 @@ as specified in the control block.
       if (statement->variant.return_dynamic_init != NULL) {
         traverse_dynamic_init(statement->variant.return_dynamic_init, tblock);
       } else if (statement->expr != NULL) {
+        if (innermost_function_scope != NULL) {
+          a_routine_ptr curr_rout =
+                                 innermost_function_scope->variant.routine.ptr;
+          a_type_ptr    rout_type = skip_typerefs(curr_rout->type);
+          if (is_reference_type(rout_type->variant.routine.return_type)) {
+            /* A return of a reference treats the expression as an lvalue. */
+            tblock->expr_is_lvalue = TRUE;
+          }  /* if */
+        }  /* if */
         traverse_expr(statement->expr, tblock);
       }  /* if */
       break;
@@ -2973,8 +3067,10 @@ as specified in the control block.
       { an_asm_entry_ptr   aep = statement->variant.asm_entry;
         an_asm_operand_ptr aop;
         for (aop = aep->operands; aop != NULL; aop = aop->next) {
+          tblock->expr_is_lvalue = (aop->modifiers & (int)aom_output) != 0;
           traverse_expr(aop->expression, tblock);
         }  /* for */
+        tblock->expr_is_lvalue = FALSE;
       }
       break;
 #if ASM_FUNCTION_ALLOWED
@@ -3043,7 +3139,7 @@ as specified in the control block.
       unexpected_condition_str("traverse_statement: bad statement kind");
   }  /* if */
 post_processing:
-  if (tblock->process_post_statement != NULL) {
+  if (tblock->process_post_statement != NULL && !tblock->terminate) {
     /* Call the user-provided (post-subtree) routine. */
     tblock->process_post_statement(statement, tblock);
   }  /* if */

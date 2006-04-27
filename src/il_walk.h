@@ -286,6 +286,9 @@ typedef struct an_expr_or_stmt_traversal_block {
 			   the model is that the expression replaces the
 			   constant in the traversal. */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  a_boolean	expr_is_lvalue;
+			/* If TRUE, the expression currently being processed
+			   is an lvalue.  If FALSE, it's an rvalue. */
   /* Fields used by examine_expr_for_unordered_temp_inits: */
   a_boolean	set_unordered_on_dynamic_inits;
 			/* If TRUE, set the "unordered" flag in dynamic

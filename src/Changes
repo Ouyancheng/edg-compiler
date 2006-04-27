@@ -1,5 +1,11 @@
 Version 3.8
 
+4/27/06  Lvalue flag in traverse_expr
+
+The traverse_expr routine now maintains a flag expr_is_lvalue in
+the traversal block, which allows the call-back routine to know when
+the expression being handled is considered an lvalue.
+
 4/25/06  Sun compatibility: namespace std is predeclared
 
 In Sun mode, the std namespace is predeclared.
