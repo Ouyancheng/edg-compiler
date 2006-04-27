@@ -2204,10 +2204,6 @@ end_sizeof:;
                   a_local_static_variable_init_ptr,
                   iek_local_static_variable_init);
         walk_list(ptr->vla_dimensions, a_vla_dimension_ptr, iek_vla_dimension);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-        walk_list(ptr->expr_node_refs, a_local_expr_node_ref_ptr,
-                  iek_local_expr_node_ref);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #endif /* ifdef CFE */
         walk_list(ptr->pragmas, a_pragma_ptr, iek_pragma);
         walk_list(ptr->templates, a_template_ptr, iek_template);
@@ -3074,16 +3070,7 @@ after_entry_from_class:
       }
       break;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-    case iek_local_expr_node_ref:
-      { a_local_expr_node_ref_ptr ptr = (a_local_expr_node_ref_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_local_expr_node_ref_ptr,
-                       iek_local_expr_node_ref);
-        walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
-        walk_ptr(ptr->referrer.ptr, a_char_ptr, ptr->referrer.kind);
-      }
-      break;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+
     case iek_id_name:
     case iek_string_text:
     case iek_other_text:

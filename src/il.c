@@ -4004,18 +4004,12 @@ fix them.
           kind == (a_template_param_constant_kind)tpck_alignof ||
           kind == (a_template_param_constant_kind)tpck_uuidof) {
         /* If a constant in the file scope memory region has an attached
-           expression in a function scope memory region, break the link to the
-           expression.  In configurations that record prototype instantiations
-           in the IL, an entry of type a_local_expr_node_ref is recorded so
-           that the expression can be recovered using the function
-           find_local_expr_node. */
+           expression in a function scope memory region, break the link to
+           the expression.  The sizeof falls back to just the type. */
         an_expr_node_ptr expr =
                          cp->variant.template_param.variant.templ_sizeof.expr;
-        if (expr != NULL && !in_file_scope(expr)) {
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-          make_local_expr_node_ref(
-            expr, (a_local_expr_node_ref_kind)lerk_generic_sizeof, (char*)cp);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+        if (expr != NULL &&
+            !in_file_scope(expr)) {
           cp->variant.template_param.variant.templ_sizeof.expr = NULL;
         }  /* if */
       }  /* if */
@@ -5543,8 +5537,10 @@ nonidentical.
                       cp1->variant.template_param.variant.templ_sizeof.type,
                       cp2->variant.template_param.variant.templ_sizeof.type);
               if (eq) {
-                an_expr_node_ptr expr1 = generic_sizeof_arg_expr(cp1);
-                an_expr_node_ptr expr2 = generic_sizeof_arg_expr(cp2);
+                an_expr_node_ptr expr1 =
+                         cp1->variant.template_param.variant.templ_sizeof.expr;
+                an_expr_node_ptr expr2 =
+                         cp2->variant.template_param.variant.templ_sizeof.expr;
                 if (expr1 == NULL && expr2 == NULL) {
                   eq = TRUE;
                 } else if (expr1 == NULL || expr2 == NULL) {
@@ -5897,12 +5893,11 @@ put it on a list of constants).
        not be shared. */
     scp = alloc_unshared_constant(cp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-  } else if (cp->kind == (a_constant_repr_kind)ck_template_param) {
-    /* Template param constants should not be made part of the IL tree proper,
-       unless prototype instantiations are recorded in the IL.  In the latter
-       case, the constant may need to refer to a local expression, which
-       prevents sharing.  Those with assoc_info non-NULL were handled above.
-       For others, make a new copy every time. */
+  } else if (cp->kind == (a_constant_repr_kind)ck_template_param &&
+             !prototype_instantiations_in_il) {
+    /* Template param constants should not be made part of the IL tree proper.
+       Those with assoc_info non-NULL were handled above.  For others, make a
+       new copy every time. */
     scp = alloc_unshared_constant(cp);
   } else if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
     /* Don't share aggregate constants (they come up for compound literals
@@ -8739,97 +8734,6 @@ entry.
   return vlap;
 }  /* find_vla_dimension */
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-
-void make_local_expr_node_ref(an_expr_node_ptr            expr,
-                              a_local_expr_node_ref_kind  kind,
-                              char                        *referrer)
-/*
-expr is a node in the current function's memory region and referrer is an
-entry in the file scope memory region.  Create an entry in the current
-function's memory region to represent an implicit reference from referrer
-to expr.  kind indicates the nature of the referrer.  (This is needed
-because file scope memory entries cannot directly point to entries in
-function scope memory regions.)  The expression can then be recovered
-using find_local_expr_node.
-*/
-{
-  a_memory_region_number     region_to_switch_back_to;
-  a_local_expr_node_ref_ptr  new_ref;
-
-  check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
-  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
-  new_ref = alloc_local_expr_node_ref();
-  switch_back_to_original_region(region_to_switch_back_to);
-  new_ref->next = innermost_function_scope->expr_node_refs;
-  new_ref->expr = expr;
-  new_ref->kind = kind;
-  new_ref->referrer.ptr = referrer;
-  switch (kind) {
-    case lerk_generic_typeof:
-      new_ref->referrer.kind =
-                   (a_byte_il_entry_kind)iek_template_param_type_supplement;
-      ((a_template_param_type_supplement_ptr)referrer)
-                                                    ->local_expr_ref = TRUE;
-      break;
-    case lerk_generic_sizeof:
-      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_constant;
-      ((a_constant_ptr)referrer)
-         ->variant.template_param.variant.templ_sizeof.local_expr_ref = TRUE;
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-  innermost_function_scope->expr_node_refs = new_ref;
-}  /* make_local_expr_node_ref */
-
-
-#if !CHECKING
-/*ARGSUSED*/  /* kind is not used in all configurations. */
-#endif /* !CHECKING */
-an_expr_node_ptr find_local_expr_node(char  *referrer,
-                                      a_local_expr_node_ref_kind  kind)
-/*
-referrer is an entry in the file scope memory region that implicitly refers to
-an expression in a function scope memory region.  If innermost_function_scope
-is non-NULL and if it is the function containing that expression, return a
-pointer to that expression.  Otherwise, return NULL.
-*/
-{
-  an_expr_node_ptr  result = NULL;
-
-  if (innermost_function_scope != NULL) {
-    a_local_expr_node_ref_ptr  ref = innermost_function_scope->expr_node_refs;
-    for (; ref != NULL; ref = ref->next) {
-      if (ref->referrer.ptr == referrer) {
-        check_assertion(ref->kind == kind);
-        result = ref->expr;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return result;
-}  /* find_local_expr_node */
-
-
-an_expr_node_ptr generic_sizeof_arg_expr(a_constant_ptr  con)
-/*
-Return the expression argument for the generic sizeof, alignof, or uuidof
-construct represented by the given constant.  The expression may be referred
-to indirectly through an entry of type a_local_expr_node_ref.
-*/
-{
-  an_expr_node_ptr  result =
-                        con->variant.template_param.variant.templ_sizeof.expr;
-
-  if (result == NULL && innermost_function_scope != NULL) {
-    result = find_local_expr_node(
-                 (char*)con, (a_local_expr_node_ref_kind)lerk_generic_sizeof);
-  }  /* if */
-  return result;
-}  /* generic_sizeof_arg_expr */
-
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_type_ptr make_field_selection_type(a_field_ptr           field,
@@ -12440,7 +12344,8 @@ name lookup options.
         /* The template param represents sizeof(T), __ALIGNOF__(T), or
            __uuidof(T), where T is a type containing a template parameter.
            Determine the type of T after substitution. */
-        { an_expr_node_ptr expr = generic_sizeof_arg_expr(con);
+        { an_expr_node_ptr expr =
+                         con->variant.template_param.variant.templ_sizeof.expr;
           if (expr != NULL) {
             /* There's an associated expression.  Do substitution on it. */
             a_constant       sizeof_expr_con;
@@ -12479,7 +12384,7 @@ name lookup options.
           if (same_entities(
                       new_type,
                       con->variant.template_param.variant.templ_sizeof.type) &&
-              expr == generic_sizeof_arg_expr(con)) {
+              expr == con->variant.template_param.variant.templ_sizeof.expr) {
             /* No change in the type or the expression, so the original
                constant is still okay. */
           } else if (is_template_dependent_type(new_type)) {
@@ -12489,7 +12394,6 @@ name lookup options.
             constant->variant.template_param.variant.templ_sizeof.type =
                                                                       new_type;
             constant->variant.template_param.variant.templ_sizeof.expr = expr;
-            fix_memory_region_problems_in_copied_constant(constant);
             con_copy = NULL;
           } else {
             /* No longer a template parameter type, so the sizeof/alignof

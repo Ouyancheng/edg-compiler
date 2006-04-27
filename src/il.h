@@ -695,20 +695,6 @@ extern a_vla_dimension_ptr find_vla_dimension_in_current_function(
 
 extern a_vla_dimension_ptr find_vla_dimension(a_type_ptr array_type);
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-extern void make_local_expr_node_ref(an_expr_node_ptr            expr,
-                                     a_local_expr_node_ref_kind  kind,
-                                     char                        *referrer);
-
-extern an_expr_node_ptr find_local_expr_node(char  *referrer,
-                                             a_local_expr_node_ref_kind  kind);
-
-extern an_expr_node_ptr generic_sizeof_arg_expr(a_constant_ptr  con);
-#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
-#define generic_sizeof_arg_expr(con)                                        \
-  ((con)->variant.template_param.variant.templ_sizeof.expr)
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-
 extern a_type_ptr make_field_selection_type(a_field_ptr           field,
                                             a_type_qualifier_set  qualifiers);
 

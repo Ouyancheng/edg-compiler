@@ -149,10 +149,6 @@ extern void set_expr_node_kind(an_expr_node_ptr  node,
 extern void clear_expr_node(an_expr_node_ptr  node,
                             an_expr_node_kind kind);
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-extern a_local_expr_node_ref_ptr alloc_local_expr_node_ref(void);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-
 extern an_expr_node_ptr alloc_expr_node(an_expr_node_kind node_kind);
 
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING

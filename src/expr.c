@@ -5042,8 +5042,6 @@ Syntax:
   a_boolean             err = FALSE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
   a_boolean             operand_was_scanned = FALSE, operand_was_used = FALSE;
-  a_memory_region_number
-                        region_to_switch_back_to;
 
   db_enter(4, "scan_sizeof_operator");
 #if CHECKING
@@ -5052,7 +5050,6 @@ Syntax:
     internal_error("scan_sizeof_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
-  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
@@ -5391,7 +5388,6 @@ Syntax:
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   pop_expr_stack();
-  switch_back_to_original_region(region_to_switch_back_to);
 
   db_exit();
 }  /* scan_sizeof_operator */
@@ -5428,12 +5424,9 @@ implement <stdarg.h>, a standard feature.
   a_boolean           use_field_alignment = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
   a_boolean           operand_was_scanned = FALSE, operand_was_used = FALSE;
-  a_memory_region_number
-                      region_to_switch_back_to;
 
   db_enter(4, "scan_alignof_operator");
 
-  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
@@ -5645,7 +5638,6 @@ implement <stdarg.h>, a standard feature.
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   pop_expr_stack();
-  switch_back_to_original_region(region_to_switch_back_to);
 
   db_exit();
 }  /* scan_alignof_operator */
@@ -6066,36 +6058,19 @@ NULL, the end position in its specifiers_range is updated.
                                is_template_dependent_type(result);
       /* A dependent type or expression.  Encode it in a tk_template_param
          if we are recording prototype instantiations in the IL. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (dependent_arg && prototype_instantiations_in_il && !is_type) {
-      a_type_ptr        typeof_type =
-                                   alloc_type((a_type_kind)tk_template_param);
-      an_expr_node_ptr  expr;
-      a_template_param_type_supplement_ptr
-                        tptsp;
+      a_type_ptr  typeof_type = alloc_type((a_type_kind)tk_template_param);
+      a_template_param_type_supplement_ptr  tptsp;
       set_type_size(typeof_type);
       tptsp = typeof_type->variant.template_param.extra_info;
       typeof_type->variant.template_param.kind = 
                                       (a_template_param_type_kind)tptk_typeof;
       prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
-      expr = make_node_from_operand(&operand);
-      /* The type entry (and its supplement) are stored in the file scope
-         memory region.  If the expression is a local expression,  the type
-         entry cannot point directly to it, and instead we use the
-         "a_local_expr_node_ref" mechanism. */
-      if (in_file_scope(expr)) {
-        tptsp->expr = expr;
-      } else {
-        make_local_expr_node_ref(
-          expr, (a_local_expr_node_ref_kind)lerk_generic_typeof, (char*)tptsp);
-      }  /* if */
+      tptsp->expr = make_node_from_operand(&operand);
       operand_was_used = TRUE;
       result = typeof_type;
       add_to_types_list(typeof_type, DEPTH_OF_FILE_SCOPE);
-    } else
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-    /* Do not insert code here. */
-    if (!dependent_arg || (prototype_instantiations_in_il && is_type)) {
+    } else if (!dependent_arg || (prototype_instantiations_in_il && is_type)) {
       /* If this is a plain nondependent type, create a special typeref.
          Also create such a typeref if we are recording prototype
          instantiations in the IL and the argument of the operator was
@@ -7311,8 +7286,6 @@ which case it's the token after __uuidof.
   a_boolean           is_type;
   a_boolean           operand_was_scanned = FALSE, operand_was_used = FALSE;
   an_expr_stack_entry expr_stack_entry;
-  a_memory_region_number
-                      region_to_switch_back_to;
 
 
   db_enter(4, "scan_uuidof_operator");
@@ -7324,7 +7297,6 @@ which case it's the token after __uuidof.
     internal_error("scan_uuidof_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
-  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
   if (curr_expr_kind_is(ek_integral_constant)) {
     /* __uuidof is not allowed in integral constant expression. */
     pos_error(ec_bad_integral_operator, &start_position);
@@ -7434,7 +7406,6 @@ which case it's the token after __uuidof.
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
-  switch_back_to_original_region(region_to_switch_back_to);
   db_exit();
 }  /* scan_uuidof_operator */
 
