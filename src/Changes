@@ -1,5 +1,23 @@
 Version 3.8
 
+4/28/06  Abort on sizeof, typeof, etc. when PROTOTYPE_INSTANTIATION_IN_IL set
+
+In configurations with both PROTOTYPE_INSTANTIATIONS_IN_IL and
+IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE, the front end sometimes aborted with
+an internal error on uses of typeof (a GNU extension), sizeof, __alignof, and
+__uuidof (a Microsoft extension), when such an operator was applied to an
+expression in function scope.  For example:
+
+  template<typename T> void f() {
+    T x;
+    typedef int X[sizeof(x)];  // Could trigger an internal error in some
+  }                            // configurations.
+
+The internal error only occurred when the function template was parsed in its
+generic form (e.g., with the command-line option --parse_templates; this
+option is also implicit in strict mode and in some GNU C++ modes).
+This is now fixed.
+
 4/27/06  Lvalue flag in traverse_expr
 
 The traverse_expr routine now maintains a flag expr_is_lvalue in
