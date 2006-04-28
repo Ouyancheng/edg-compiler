@@ -830,6 +830,11 @@ do_sizeof_cases:
       disp_ptr("expr",
                (char *)ptr->variant.template_param.variant.templ_sizeof.expr,
                iek_expr_node);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      if (ptr->variant.template_param.variant.templ_sizeof.local_expr_ref) {
+        disp_boolean("local_expr_ref", TRUE);
+      }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       break;
     case tpck_template_ref:
       (void)printf("tpck_template_ref\n");
@@ -1380,6 +1385,11 @@ Display the indicated template parameter type supplement.
   disp_template_param_coordinate(&ptr->coordinates);
 #if GNU_EXTENSIONS_ALLOWED
   disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (ptr->local_expr_ref) {
+    disp_boolean("local_expr_ref", TRUE);
+  }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* disp_template_param_type_supplement */
 
@@ -3530,6 +3540,30 @@ node.
 }  /* disp_eh_prologue_supplement */
 
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+
+static void disp_local_expr_node_ref(a_local_expr_node_ref  ptr)
+/*
+Display the given reference to an expression node in a function-scope (i.e.,
+local) memory region.
+*/
+{
+  disp_ptr("expr", (char*)ptr->expr, iek_expr_node);
+  switch (ptr->kind) {
+    case lerk_generic_typeof:
+      (void)printf("generic-typeof");
+      break;
+    case lerk_generic_typeof:
+      (void)printf("generic-sizeof");
+      break;
+    default:
+      (void)printf("**BAD LOCAL-EXPR-NODE-REF KIND**");
+  }  /* switch */
+  disp_ptr("referrer", (char*)ptr->referrer.ptr,
+           (an_il_entry_kind)ptr->referrer.kind);
+}  /* disp_local_expr_node_ref */
+
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 static void disp_expr_node(an_expr_node_ptr ptr)
 /*
@@ -4811,6 +4845,12 @@ do_assoc_type:
     disp_ptr("local_static_variable_inits",
              (char *)ptr->local_static_variable_inits,
              iek_local_static_variable_init);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (scope->expr_node_refs != NULL) {
+      disp_ptr("expr_node_refs", (char *)ptr->expr_node_refs,
+               iek_local_expr_node_ref);
+    }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   if (ptr->kind == (a_scope_kind)sck_function &&
       il_header.source_language != (a_source_language)sl_Cplusplus) {

@@ -1211,9 +1211,26 @@ by octl.
                                     (a_template_param_type_kind)tptk_typeof) {
           an_expr_node_ptr  expr = type->variant.template_param.extra_info
                                         ->expr;
-          check_assertion(expr != NULL);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+          if (expr == NULL && innermost_function_scope != NULL) {
+            expr = find_local_expr_node(
+                             (char*)type->variant.template_param.extra_info,
+                             (a_local_expr_node_ref_kind)lerk_generic_typeof);
+            check_assertion(expr != NULL);
+          }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           octl->output_str("__typeof__(");
-          form_expression(expr, octl);
+          if (expr != NULL) {
+            form_expression(expr, octl);
+          } else {
+            /* __typeof__ was applied to a template-dependent local expression,
+               but innermost_function_scope was not set (e.g., because this is
+               a call from the stand-alone IL display code).  We just emit a
+               placeholder for the expression in such cases. */
+            check_assertion(innermost_function_scope == NULL &&
+                            !octl->gen_compilable_code);
+            octl->output_str("<expr>");
+          }  /* if */
           octl->output_str(")");
         } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -2584,15 +2601,29 @@ if given an empty union.
 }  /* select_arbitrary_field_of_union */
 
 
-void form_uuidof_reference(a_type_ptr                            uuid_type,
-                           an_expr_node_ptr                      uuid_expr,
+void form_uuidof_reference(a_constant_ptr                        con,
                            an_il_to_str_output_control_block_ptr octl)
 /*
-Output a Microsoft __uuidof reference.  uuid_type is the type, or NULL
-to indicate the "0" case.  uuid_expr is an expression for the entity,
-or NULL if the type should be used.  Do the output in the way described
+Output a Microsoft __uuidof reference implied by the given constant (which is a
+ck_address or ck_template_param constant).  Do the output in the way described
 by octl. */
 {
+  a_type_ptr        uuid_type = NULL;
+  an_expr_node_ptr  uuid_expr = NULL;
+
+  switch (con->kind) {
+    case ck_address:
+      check_assertion_str(con->variant.address.kind ==
+                                              (an_address_base_kind)abk_uuidof,
+                          "form_lvalue_for_addressed_entity: bad kind");
+      uuid_type = con->variant.address.variant.type;
+      break;
+    case ck_template_param:
+      uuid_expr = generic_sizeof_arg_expr(con);
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
   octl->output_str("__uuidof(");
   if (uuid_expr != NULL) {
     form_expression(uuid_expr, octl);
@@ -2763,11 +2794,7 @@ parentheses are not needed.
       form_constant(con, /*need_parens=*/FALSE, octl);
     } else {
       /* Microsoft __uuidof. */
-      check_assertion_str(constant->variant.address.kind ==
-                                              (an_address_base_kind)abk_uuidof,
-                          "form_lvalue_for_addressed_entity: bad kind");
-      form_uuidof_reference(constant->variant.address.variant.type,
-                            (an_expr_node_ptr)NULL, octl);
+      form_uuidof_reference(constant, octl);
     }  /* if */
   }  /* if */
   /* If the type is right and the offset is zero, we have what we need. */
@@ -4079,27 +4106,23 @@ precedence confusion.  Do the output in the way described by octl.
         case tpck_alignof:
           octl->output_str("__ALIGNOF__(");
 do_sizeof_cases:
-          if (constant->variant.template_param.variant.templ_sizeof.expr !=
-                                                                        NULL) {
-            form_expression(
-                    constant->variant.template_param.variant.templ_sizeof.expr,
-                    octl);
-          } else {
-            form_type(
+          { an_expr_node_ptr  expr = generic_sizeof_arg_expr(constant);
+            if (expr != NULL) {
+              form_expression(expr, octl);
+            } else {
+              form_type(
                     constant->variant.template_param.variant.templ_sizeof.type,
                     octl);
-          }  /* if */
-          octl->output_str(")");
+            }  /* if */
+            octl->output_str(")");
+          }
           break;
         case tpck_uuidof:
           /* The constant represents the address of the __uuidof, so add
              a "&". */
           if (need_parens) octl->output_str("(");
           octl->output_str("&");
-          form_uuidof_reference(
-                    constant->variant.template_param.variant.templ_sizeof.type,
-                    constant->variant.template_param.variant.templ_sizeof.expr,
-                    octl);
+          form_uuidof_reference(constant, octl);
           if (need_parens) octl->output_str(")");
           break;
         default:

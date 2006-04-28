@@ -3444,8 +3444,25 @@ for more information.
                 /* Two types obtained with the __typeof__(<expr>) construct,
                    where the expression has a template-dependent type.
                    Compare the expression trees. */
-                identical = compare_template_param_constant_expressions(
-                                                tptsp_1->expr, tptsp_2->expr);
+                { an_expr_node_ptr  expr1 = tptsp_1->expr,
+                                    expr2 = tptsp_2->expr;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+                  if (expr1 == NULL) {
+                    expr1 = find_local_expr_node(
+                              (char*)tptsp_1,
+                              (a_local_expr_node_ref_kind)lerk_generic_typeof);
+                    check_assertion(expr1 != NULL);
+                  }  /* if */
+                  if (expr2 == NULL) {
+                    expr2 = find_local_expr_node(
+                              (char*)tptsp_2,
+                              (a_local_expr_node_ref_kind)lerk_generic_typeof);
+                    check_assertion(expr2 != NULL);
+                  }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+                  identical =
+                     compare_template_param_constant_expressions(expr1, expr2);
+                }
                 break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
               default:
