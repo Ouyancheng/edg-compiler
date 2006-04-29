@@ -2986,10 +2986,14 @@ precedence confusion.  Do the output in the way described by octl.
        Don't do this in the C-generating back end, because some casts
        added there are "implicit" and yet they have to be put out. */
     if (constant->variant.address.kind == (an_address_base_kind)abk_variable &&
-        is_array_type(constant->variant.address.variant.variable->type)) {
+        (is_array_type(constant->variant.address.variant.variable->type) ||
+         is_class_struct_union_type(skip_typerefs(
+                         constant->variant.address.variant.variable->type)))) {
       /* The decay of an array variable to a pointer is implicit, but
          requires a non-NULL desired_type in the form_lvalue... routine
-         to get the right result. */
+         to get the right result.  Similarly, if the variable is a class type,
+         the target type is potentially needed to address the correct
+         member. */
       desired_type = con_type;
       desired_type = type_pointed_to(desired_type);
     } else {

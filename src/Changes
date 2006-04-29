@@ -1,5 +1,18 @@
 Version 3.8
 
+4/29/06  C++-generating back end: address constants naming class or union
+         members
+
+In configurations in which RECORD_CONSTANT_EXPRESSIONS_IN_IL is FALSE, an
+address constant naming a union member or a member of a class or struct at
+offset 0 was generated as the name of the class/struct/union object rather
+than the member name.  This has now been fixed.  For example:
+
+  struct S {
+    int i;
+  } s;
+  int j = s.i;  // Formerly generated as "int j = (s);"
+
 4/28/06  Abort on sizeof, typeof, etc. when PROTOTYPE_INSTANTIATION_IN_IL set
 
 In configurations with both PROTOTYPE_INSTANTIATIONS_IN_IL and
