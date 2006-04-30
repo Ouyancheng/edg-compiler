@@ -2985,17 +2985,28 @@ precedence confusion.  Do the output in the way described by octl.
     /* The constant was cast, but only implicitly, so leave off the cast.
        Don't do this in the C-generating back end, because some casts
        added there are "implicit" and yet they have to be put out. */
-    if (constant->variant.address.kind == (an_address_base_kind)abk_variable &&
-        (is_array_type(constant->variant.address.variant.variable->type) ||
-         is_class_struct_union_type(skip_typerefs(
-                         constant->variant.address.variant.variable->type)))) {
-      /* The decay of an array variable to a pointer is implicit, but
+    a_boolean need_desired_type = FALSE;
+    if (constant->variant.address.kind == (an_address_base_kind)abk_variable) {
+      a_type_ptr var_type =
+               skip_typerefs(constant->variant.address.variant.variable->type);
+      if (is_array_type(var_type)) {
+        /* The decay of an array variable to a pointer is implicit, but
          requires a non-NULL desired_type in the form_lvalue... routine
-         to get the right result.  Similarly, if the variable is a class type,
-         the target type is potentially needed to address the correct
-         member. */
-      desired_type = con_type;
-      desired_type = type_pointed_to(desired_type);
+         to get the right result. */
+        need_desired_type = TRUE;
+      } else if (is_class_struct_union_type(var_type) &&
+                 !identical_types(f_skip_typerefs(type_pointed_to(con_type)),
+                                  var_type)) {
+        /* Similarly, if the variable is of a class type and the type of the
+           constant is different (indicating that the constant addresses a
+           member of the class/struct/union object and not the object itself),
+           the target type is potentially needed to address the correct
+           member. */
+        need_desired_type = TRUE;
+      }  /* if */
+    }
+    if (need_desired_type) {
+      desired_type = type_pointed_to(con_type);
     } else {
       /* Normal implicit cast on a constant. */
       desired_type = NULL;
