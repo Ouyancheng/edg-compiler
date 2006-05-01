@@ -5877,10 +5877,9 @@ from entity_type itself.  Insert the code for the call at *insert_location.
     array_element_count *= num_array_elements(entity_type);
   } /* if */
   element_type = skip_typerefs(element_type);
-  if (!have_complete_object &&
-      is_immediate_class_type(element_type) &&
-       element_type->variant.class_struct_union.is_empty_class) {
-    /* Put out no code at all to zero an empty base class. */
+  if (is_immediate_class_type(element_type) &&
+      element_type->variant.class_struct_union.is_empty_class) {
+    /* Put out no code at all to zero an empty class. */
 #if IA64_ABI
   } else if (contains_ptr_to_data_member(element_type)) {
     /* If the entity type contains pointers to data members they must

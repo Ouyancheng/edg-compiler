@@ -1,5 +1,15 @@
 Version 3.8
 
+5/1/06   No zeroing code for empty classes
+
+IL lowering now puts out no code to zero empty classes.  Formerly,
+such code was suppressed only for empty base classes.
+
+  struct A { };
+  int main() {
+    A *p = new A();  // No zeroing of allocated storage now
+  }
+
 4/29/06  C++-generating back end: address constants naming class or union
          members
 
