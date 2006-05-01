@@ -2989,14 +2989,14 @@ precedence confusion.  Do the output in the way described by octl.
     if (constant->variant.address.kind == (an_address_base_kind)abk_variable) {
       a_type_ptr var_type =
                skip_typerefs(constant->variant.address.variant.variable->type);
+      a_type_ptr target_type = f_skip_typerefs(type_pointed_to(con_type));
       if (is_array_type(var_type)) {
         /* The decay of an array variable to a pointer is implicit, but
          requires a non-NULL desired_type in the form_lvalue... routine
          to get the right result. */
         need_desired_type = TRUE;
       } else if (is_class_struct_union_type(var_type) &&
-                 !identical_types(f_skip_typerefs(type_pointed_to(con_type)),
-                                  var_type)) {
+                 !identical_types(target_type, var_type)) {
         /* Similarly, if the variable is of a class type and the type of the
            constant is different (indicating that the constant addresses a
            member of the class/struct/union object and not the object itself),
