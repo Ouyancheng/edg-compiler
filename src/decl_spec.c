@@ -1544,7 +1544,9 @@ caution when modifying this routine.
             /* A typedef name was scanned.  Work with the underlying class
                symbol in what follows. */
             a_type_ptr  typedef_tp = skip_typerefs(tag_sym->variant.type.ptr);
-            tag_sym = (a_symbol_ptr)typedef_tp->source_corresp.assoc_info;
+            if (is_immediate_class_type(typedef_tp)) {
+              tag_sym = (a_symbol_ptr)typedef_tp->source_corresp.assoc_info;
+            }  /* if */
           }  /* if */
           if (tag_sym->kind != tag_kind) {
             /* A qualified name is being used with a different tag kind than
