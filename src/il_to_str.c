@@ -2996,7 +2996,7 @@ precedence confusion.  Do the output in the way described by octl.
          to get the right result. */
         need_desired_type = TRUE;
       } else if (is_class_struct_union_type(var_type) &&
-                 !identical_types(target_type, var_type)) {
+                 !same_entities(target_type, var_type)) {
         /* Similarly, if the variable is of a class type and the type of the
            constant is different (indicating that the constant addresses a
            member of the class/struct/union object and not the object itself),
