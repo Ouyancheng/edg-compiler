@@ -1,5 +1,11 @@
 Version 3.8
 
+5/1/06   IL display of GNU built-in functions
+
+The code in il_display.c that outputs GNU built-in function descriptions used
+an outdated list of supported built-in functions.  This problem was introduced
+in version 3.7 of the front end and is now fixed.
+
 5/1/06   Abort on elaborated typedef name in GNU C++ mode
 
 In GNU C++ mode, certain erroneous uses of a typedef name in an elaborated

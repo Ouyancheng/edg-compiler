@@ -2555,102 +2555,15 @@ static void disp_builtin_function_kind_name(a_builtin_function_kind kind)
 {
   char *s;
 
-  switch (kind) {
-    case bfk_none:                  s = "bfk_none";                      break;
-    case bfk_alloca:                s = "bfk_alloca";                    break;
-    case bfk_abs:                   s = "bfk_abs";                       break;
-    case bfk_labs:                  s = "bfk_labs";                      break;
-    case bfk_fabs:                  s = "bfk_fabs";                      break;
-    case bfk_fabsf:                 s = "bfk_fabsf";                     break;
-    case bfk_fabsl:                 s = "bfk_fabsl";                     break;
-    case bfk_ffs:                   s = "bfk_ffs";                       break;
-    case bfk_index:                 s = "bfk_index";                     break;
-    case bfk_rindex:                s = "bfk_rindex";                    break;
-    case bfk_memcpy:                s = "bfk_memcpy";                    break;
-    case bfk_memcmp:                s = "bfk_memcmp";                    break;
-    case bfk_memset:                s = "bfk_memset";                    break;
-    case bfk_strcat:                s = "bfk_strcat";                    break;
-    case bfk_strncat:               s = "bfk_strncat";                   break;
-    case bfk_strcpy:                s = "bfk_strcpy";                    break;
-    case bfk_strncpy:               s = "bfk_strncpy";                   break;
-    case bfk_strcmp:                s = "bfk_strcmp";                    break;
-    case bfk_strncmp:               s = "bfk_strncmp";                   break;
-    case bfk_strlen:                s = "bfk_strlen";                    break;
-    case bfk_strstr:                s = "bfk_strstr";                    break;
-    case bfk_strpbrk:               s = "bfk_strpbrk";                   break;
-    case bfk_strspn:                s = "bfk_strspn";                    break;
-    case bfk_strcspn:               s = "bfk_strcspn";                   break;
-    case bfk_strchr:                s = "bfk_strchr";                    break;
-    case bfk_strrchr:               s = "bfk_strrchr";                   break;
-    case bfk_fsqrt:                 s = "bfk_fsqrt";                     break;
-    case bfk_sin:                   s = "bfk_sin";                       break;
-    case bfk_cos:                   s = "bfk_cos";                       break;
-    case bfk_sqrtf:                 s = "bfk_sqrtf";                     break;
-    case bfk_sinf:                  s = "bfk_sinf";                      break;
-    case bfk_cosf:                  s = "bfk_cosf";                      break;
-    case bfk_sqrtl:                 s = "bfk_sqrtl";                     break;
-    case bfk_sinl:                  s = "bfk_sinl";                      break;
-    case bfk_cosl:                  s = "bfk_cosl";                      break;
-    case bfk_saveregs:              s = "bfk_saveregs";                  break;
-    case bfk_next_arg:              s = "bfk_next_arg";                  break;
-    case bfk_args_info:             s = "bfk_args_info";                 break;
-    case bfk_frame_address:         s = "bfk_frame_address";             break;
-    case bfk_return_address:        s = "bfk_return_address";            break;
-    case bfk_aggregate_incoming_address: 
-                                   s = "bfk_aggregate_incoming_address"; break;
-    case bfk_apply_args:            s = "bfk_apply_args";                break;
-    case bfk_apply:                 s = "bfk_apply";                     break;
-    case bfk_return:                s = "bfk_return";                    break;
-    case bfk_setjmp:                s = "bfk_setjmp";                    break;
-    case bfk_longjmp:               s = "bfk_longjmp";                   break;
-    case bfk_trap:                  s = "bfk_trap";                      break;
-    case bfk_putchar:               s = "bfk_putchar";                   break;
-    case bfk_puts:                  s = "bfk_puts";                      break;
-    case bfk_printf:                s = "bfk_printf";                    break;
-    case bfk_fputc:                 s = "bfk_fputc";                     break;
-    case bfk_fputs:                 s = "bfk_fputs";                     break;
-    case bfk_fwrite:                s = "bfk_fwrite";                    break;
-    case bfk_fprintf:               s = "bfk_fprintf";                   break;
-    case bfk_unwind_init:           s = "bfk_unwind_init";               break;
-    case bfk_dwarf_cfa:             s = "bfk_dwarf_cfa";                 break;
-    case bfk_dwarf_fp_regnum:       s = "bfk_dwarf_fp_regnum";           break;
-    case bfk_init_dwarf_reg_size_table: 
-                                    s = "bfk_init_dwarf_reg_size_table"; break;
-    case bfk_frob_return_addr:      s = "bfk_frob_return_addr";          break;
-    case bfk_extract_return_addr:   s = "bfk_extract_return_addr";       break;
-#if TARG_ALL_POINTERS_SAME_SIZE
-    case bfk_eh_return:             s = "bfk_eh_return";                 break;
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
-    case bfk_eh_return_data_regno:  s = "bfk_eh_return_data_regno";      break;
-    case bfk_classify_type:         s = "bfk_classify_type";             break;
-    case bfk_constant_p:            s = "bfk_constant_p";                break;
-    case bfk_expect:                s = "bfk_expect";                    break;
-    case bfk_bzero:                 s = "bfk_bzero";                     break;
-    case bfk_bcmp:                  s = "bfk_bcmp";                      break;
-#if LONG_LONG_ALLOWED
-    case bfk_llabs:                 s = "bfk_llabs";                     break;
-#endif /* LONG_LONG_ALLOWED */
-    case bfk_imaxabs:               s = "bfk_imaxabs";                   break;
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case bfk_conj:                  s = "bfk_conj";                      break;
-    case bfk_conjf:                 s = "bfk_conjf";                     break;
-    case bfk_conjl:                 s = "bfk_conjl";                     break;
-    case bfk_creal:                 s = "bfk_creal";                     break;
-    case bfk_crealf:                s = "bfk_crealf";                    break;
-    case bfk_creall:                s = "bfk_creall";                    break;
-    case bfk_cimag:                 s = "bfk_cimag";                     break;
-    case bfk_cimagf:                s = "bfk_cimagf";                    break;
-    case bfk_cimagl:                s = "bfk_cimagl";                    break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-    case bfk_isgreater:             s = "bfk_isgreater";                 break;
-    case bfk_isgreaterequal:        s = "bfk_isgreaterequal";            break;
-    case bfk_isless:                s = "bfk_isless";                    break;
-    case bfk_islessequal:           s = "bfk_islessequal";               break;
-    case bfk_islessgreater:         s = "bfk_islessgreater";             break;
-    case bfk_isunordered:           s = "bfk_isunordered";               break;
-    case bfk_last:                  s = "bfk_last";                      break;
-    default:                        s = "**BAD BUILTIN FUNCTION KIND**";
-  }  /* switch */
+  if (kind == (a_builtin_function_kind)bfk_none) {
+    s = "(bfk_none)";
+  } else if (kind == (a_builtin_function_kind)bfk_last) {
+    s = "(bfk_last)";
+  } else if (kind > (a_builtin_function_kind)bfk_last) {
+    s = "**BAD BUILTIN FUNCTION KIND**";
+  } else {
+    s = builtin_function_kind_names[(int)kind];
+  }  /* if */
   (void)printf("%s", s);
 }  /* disp_builtin_function_kind_name */
 
