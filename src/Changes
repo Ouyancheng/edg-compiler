@@ -24,7 +24,7 @@ in version 3.7 of the front end and is now fixed.
 In GNU C++ mode, certain erroneous uses of a typedef name in an elaborated
 class name could lead to an abort in scan_tag_name (decl_spec.c).  For example:
 
-  typedef int I
+  typedef int I;
   namespace { struct ::I; }  // Previously aborted in GNU C++ mode.
                              // Now a normal error is issued.
  
