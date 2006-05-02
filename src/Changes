@@ -1,5 +1,18 @@
 Version 3.8
 
+5/2/06   Designated initializers and nonstandard anonymous unions
+
+In C modes accepting both nonstandard anonymous unions and designated
+initializers (e.g., in GNU C mode) the front end sometimes failed to resolve
+field designators for elements of the nonstandard anonymous union.
+For example:
+
+  struct S {
+    union { int f; };    // Nonstandard anonymous union in C.
+  } s = { { .f = 1 } };  // Now accepted (previously, "f" was not found).
+
+Such cases are now accepted.
+
 5/1/06   IL display of GNU built-in functions
 
 The code in il_display.c that outputs GNU built-in function descriptions used
