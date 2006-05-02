@@ -1699,6 +1699,7 @@ multiple designators are handled by the recursion in get_initializer.
           type_to_look_in = type_to_look_in->source_corresp.parent.class_type;
           ctsp = type_to_look_in->variant.class_struct_union.extra_info;
         }  /* while */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       } else if (type_to_look_in
                  ->variant.class_struct_union.is_nonstd_anonymous_union_type) {
         /* Nonstandard anonymous-union-like constructs are possible in some
@@ -1710,6 +1711,7 @@ multiple designators are handled by the recursion in get_initializer.
           check_assertion(is_immediate_class_type(type_to_look_in));
         } while (type_to_look_in
                   ->variant.class_struct_union.is_nonstd_anonymous_union_type);
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
       }  /* if */
       member_sym = class_qualified_id_lookup(&locator_for_curr_id,
                                              type_to_look_in, IDL_NO_OPTIONS);
