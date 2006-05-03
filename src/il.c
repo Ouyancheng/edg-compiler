@@ -8831,8 +8831,12 @@ be referred to indirectly through an entry of type a_local_expr_node_ref.
   an_expr_node_ptr  result;
 
   check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
-                  con->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_sizeof);
+                  (con->variant.template_param.kind ==
+                               (a_template_param_constant_kind)tpck_sizeof ||
+                   con->variant.template_param.kind ==
+                               (a_template_param_constant_kind)tpck_alignof ||
+                   con->variant.template_param.kind ==
+                               (a_template_param_constant_kind)tpck_uuidof));
   result = con->variant.template_param.variant.templ_sizeof.expr;
   if (result == NULL && innermost_function_scope != NULL &&
       con->variant.template_param.variant.templ_sizeof.local_expr_ref) {
