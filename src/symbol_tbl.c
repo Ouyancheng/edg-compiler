@@ -4772,16 +4772,25 @@ progenitor_sym is a member) if ambiguous is TRUE.
        The base class with which the fundamental symbol is associated is the
        one we want. */
     a_type_ptr  tp = pdp->fundamental_symbol->parent.class_type;
-    bcp = class_ptr->variant.class_struct_union.extra_info->base_classes;
     if (!ambiguous) {
       /* There is no ambiguity in the use of this name, so a simple type match
-         is enough to identify the base class of the fundamental symbol. */
+         may enough to identify the base class of the fundamental symbol. (In
+         some cases -- like static members -- the progenitor symbol itself may
+         not be considered ambiguous, but the base class associated with it may
+         be.  In such cases, the base class must still be selected based on
+         the derivation path, because one path may grant more access than the
+         other.) */
+      bcp = class_ptr->variant.class_struct_union.extra_info->base_classes;
       for (; bcp != NULL; bcp = bcp->next) {
         if (same_entities(bcp->type, tp)) {
           pdp->fundamental_base_class = bcp;
+          ambiguous = bcp->ambiguous;
           break;
         }  /* if */
       }  /* for */
+    }  /* if */
+    if (!ambiguous) {
+      /* We're done finding the fundamental base class. */
 #if CHECKING
     } else if (path == NULL) {
       unexpected_condition();

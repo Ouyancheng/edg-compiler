@@ -1,5 +1,25 @@
 Version 3.8
 
+5/3/06   Spurious access error for static member of ambiguous base class
+
+The front end sometimes issued a spurious access error when attempting to
+access a static member of an ambiguous base class.  In these situations,
+the base class was public along some derivation paths, and private along
+other paths.  For example:
+
+  struct B {
+    static void f();
+    static void f(int);
+  };
+  struct C1: private B {};
+  struct C2: public B {};
+  struct D: C1, C2 {};
+  void g(D *p) {
+    p->f();  // Previously triggered a spurious access error.  Now accepted,
+  }          // because the B::f() found via C2 is public.
+
+This is now fixed.
+
 5/2/06   Designated initializers and nonstandard anonymous unions
 
 In C modes accepting both nonstandard anonymous unions and designated
