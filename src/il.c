@@ -2671,8 +2671,9 @@ region_to_switch_back_to for use later by switch_back_to_original_region.
 void switch_to_scope_region(a_scope_depth          scope_depth,
                             a_memory_region_number *region_to_switch_back_to)
 /*
-Switch to the function-scope memory region if not already there.  Set
-region_to_switch_back_to for use later by switch_back_to_original_region.
+Switch to the memory region associated with the given scope depth if not
+already there.  Set region_to_switch_back_to for use later by
+switch_back_to_original_region.
 */
 {
   a_memory_region_number region;
@@ -8762,6 +8763,7 @@ using find_local_expr_node.
   a_memory_region_number     region_to_switch_back_to;
   a_local_expr_node_ref_ptr  new_ref;
 
+  check_assertion(!in_file_scope(expr) && in_file_scope(referrer));
   check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
   switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
   new_ref = alloc_local_expr_node_ref();
@@ -8770,6 +8772,7 @@ using find_local_expr_node.
   new_ref->expr = expr;
   new_ref->kind = kind;
   new_ref->referrer.ptr = referrer;
+  check_assertion(!in_file_scope(new_ref));
   switch (kind) {
     case lerk_generic_typeof:
       new_ref->referrer.kind =
@@ -8819,17 +8822,23 @@ pointer to that expression.  Otherwise, return NULL.
 
 an_expr_node_ptr generic_sizeof_arg_expr(a_constant_ptr  con)
 /*
-Return the expression argument for the generic sizeof, alignof, or uuidof
-construct represented by the given constant.  The expression may be referred
-to indirectly through an entry of type a_local_expr_node_ref.
+The given constant is a ck_template_param of kind tpck_sizeof representing
+a sizeof, alignof, or uuidof construct.  If the construct had an expression
+argument return that expression, otherwise, return NULL.  The expression may
+be referred to indirectly through an entry of type a_local_expr_node_ref.
 */
 {
-  an_expr_node_ptr  result =
-                        con->variant.template_param.variant.templ_sizeof.expr;
+  an_expr_node_ptr  result;
 
-  if (result == NULL && innermost_function_scope != NULL) {
+  check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
+                  con->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_sizeof);
+  result = con->variant.template_param.variant.templ_sizeof.expr;
+  if (result == NULL && innermost_function_scope != NULL &&
+      con->variant.template_param.variant.templ_sizeof.local_expr_ref) {
     result = find_local_expr_node(
                  (char*)con, (a_local_expr_node_ref_kind)lerk_generic_sizeof);
+    check_assertion(result != NULL);
   }  /* if */
   return result;
 }  /* generic_sizeof_arg_expr */

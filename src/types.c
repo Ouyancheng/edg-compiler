@@ -3451,13 +3451,13 @@ for more information.
                     expr1 = find_local_expr_node(
                               (char*)tptsp_1,
                               (a_local_expr_node_ref_kind)lerk_generic_typeof);
-                    check_assertion(expr1 != NULL);
+                    check_assertion(expr1 != NULL && tptsp_1->local_expr_ref);
                   }  /* if */
                   if (expr2 == NULL) {
                     expr2 = find_local_expr_node(
                               (char*)tptsp_2,
                               (a_local_expr_node_ref_kind)lerk_generic_typeof);
-                    check_assertion(expr2 != NULL);
+                    check_assertion(expr2 != NULL && tptsp_2->local_expr_ref);
                   }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
                   identical =

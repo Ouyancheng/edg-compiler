@@ -2567,8 +2567,9 @@ typedef struct a_constant {
 			   represented.  NULL for __uuidof(0). */
           an_expr_node_ptr
 		expr;	/* If the sizeof etc. was applied to an expression,
-			   stored in the same memory region as this constant
-			   this points to the expression.  NULL otherwise. */
+			   stored in the same memory region as this constant,
+			   this points to the expression.  NULL otherwise (in
+			   particular, NULL when local_expr_ref is TRUE). */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
           a_bit_field
 		local_expr_ref:1;
@@ -5199,7 +5200,8 @@ typedef struct a_template_param_type_supplement {
 		expr;
 			/* The dependent expression used in a typeof
 			   specifier.  NULL if the typeof construct encloses
-			   a type specification rather than an expression. */
+			   a type specification rather than an expression or
+			   if local_expr_ref is TRUE. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_bit_field
 		local_expr_ref:1;
@@ -9645,11 +9647,14 @@ typedef struct a_local_expr_node_ref *a_local_expr_node_ref_ptr;
 typedef struct a_local_expr_node_ref {
   /* Entities in file-scope memory region cannot directly refer to function-
      local entities.  To work around that constraint for function-local
-     expression nodes, the reference to the local expression is placed on
-     a list in the function's memory region and with that reference a pointer
-     to the entity in the file-scope memory.  That list is then searched
-     whenever reference must be resolved.  (This technique is similar to
-     that enabled by a_local_static_variable_init entries.) */
+     expression nodes, an implicit referencing mechanism is used.  The
+     implicit references are represented by a_local_expr_node_ref entries
+     stored in the function's memory region: Each entry points to both the
+     referenced expression and to the entity in file-scope memory that
+     implicitly refers to that expression.  The list of a_local_expr_node_ref
+     entries can then be searched whenever the reference must be resolved for
+     a given entity in file-scope memory.  (This technique is similar to that
+     enabled by a_local_static_variable_init entries.) */
   a_local_expr_node_ref_ptr
 		next;
 			/* Pointer to the next reference in the current

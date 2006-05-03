@@ -1216,7 +1216,9 @@ by octl.
             expr = find_local_expr_node(
                              (char*)type->variant.template_param.extra_info,
                              (a_local_expr_node_ref_kind)lerk_generic_typeof);
-            check_assertion(expr != NULL);
+            check_assertion(expr != NULL &&
+                            type->variant.template_param.extra_info
+                                ->local_expr_ref);
           }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           octl->output_str("__typeof__(");

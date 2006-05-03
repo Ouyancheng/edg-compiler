@@ -291,6 +291,10 @@ file-scope and normal allocation methods as necessary).
 }  /* do_any_alloc */
 
 
+#define clear_tagged_ptr(tagged_ptr)                                        \
+  (((tagged_ptr).kind = (a_byte_il_entry_kind)iek_none),                    \
+   ((tagged_ptr).ptr = NULL))
+
 #ifdef TRACE_ALLOC
 /*
 If a problem is found with a node allocated at address A, it is often useful
@@ -2439,8 +2443,7 @@ node, initialize it, and return a pointer to it.
   ptr->next = NULL;
   ptr->expr = NULL;
   ptr->kind = (a_local_expr_node_ref_kind)lerk_none;
-  ptr->referrer.kind = (a_byte_il_entry_kind)iek_none;
-  ptr->referrer.ptr = NULL;
+  clear_tagged_ptr(ptr->referrer);
   return ptr;
 }  /* alloc_local_expr_node_ref */
 
@@ -3096,8 +3099,7 @@ in the current IL memory region.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   pp->is_microsoft_pragma_operator = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  pp->entity.kind           = (a_byte_il_entry_kind)iek_none;
-  pp->entity.ptr            = NULL;
+  clear_tagged_ptr(pp->entity);
   pp->position              = null_source_position;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pp->source_sequence_entry = NULL;
@@ -3240,8 +3242,7 @@ to it.
 #endif /* DEBUG */
   }  /* if */
   /* Set the fields to default values. */
-  olp->entity.kind                = (a_byte_il_entry_kind)iek_none;
-  olp->entity.ptr                 = NULL;
+  clear_tagged_ptr(olp->entity);
   olp->kind                       = kind;
   olp->has_block_after_label_child_lifetime
                                   = FALSE;
@@ -3297,8 +3298,7 @@ Allocate a using-decl entry, initialize its fields, and return a pointer to it.
 #endif /* DEBUG */
   udp->next                  = NULL;
   udp->position              = null_source_position;
-  udp->entity.kind           = (a_byte_il_entry_kind)iek_none;
-  udp->entity.ptr            = (char *)NULL;
+  clear_tagged_ptr(udp->entity);
   udp->is_using_directive    = FALSE;
   udp->is_class_member       = FALSE;
   udp->hidden                = FALSE;
@@ -3472,8 +3472,7 @@ to it.
   /* Initialize the fields. */
   ssep->next        = NULL;
   ssep->prev        = NULL;
-  ssep->entity.kind = (a_byte_il_entry_kind)iek_none;
-  ssep->entity.ptr  = NULL;
+  clear_tagged_ptr(ssep->entity);
 
   return ssep;
 }  /* alloc_source_sequence_entry */
@@ -3496,8 +3495,7 @@ and return a pointer to it.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   sssdp->decl_pos_info               = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  sssdp->entity.kind                 = (a_byte_il_entry_kind)iek_none;
-  sssdp->entity.ptr                  = NULL;
+  clear_tagged_ptr(sssdp->entity);
 #if RECORD_FORM_OF_NAME_REFERENCE
   sssdp->name_reference              = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -3537,8 +3535,7 @@ return a pointer to it.
   num_src_seq_end_of_constructs_allocated++;
 #endif /* DEBUG */
   sseocp->position    = null_source_position;
-  sseocp->entity.kind = (a_byte_il_entry_kind)iek_none;
-  sseocp->entity.ptr  = NULL;
+  clear_tagged_ptr(sseocp->entity);
 
   return sseocp;
 }  /* alloc_src_seq_end_of_construct */
@@ -3578,8 +3575,7 @@ a pointer to it.
   num_instantiation_directives_allocated++;
 #endif /* DEBUG */
   idp->position    = null_source_position;
-  idp->entity.kind = (a_byte_il_entry_kind)iek_none;
-  idp->entity.ptr  = NULL;
+  clear_tagged_ptr(idp->entity);
   idp->do_not_instantiate = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   idp->decl_pos_info = NULL;
@@ -3603,8 +3599,7 @@ fields, and return a pointer to it.
   num_hidden_names_allocated++;
 #endif /* DEBUG */
   hnp->next                             = NULL;
-  hnp->entity.kind                      = (a_byte_il_entry_kind)iek_none;
-  hnp->entity.ptr                       = NULL;
+  clear_tagged_ptr(hnp->entity);
   hnp->qualification_needed             = FALSE;
   hnp->elaborated_type_specifier_needed = FALSE;
   hnp->partially_hidden_by_microsoft_injected_class_name
@@ -3898,8 +3893,7 @@ and return a pointer to it.
   num_ms_if_exists_allocated++;
 #endif /* DEBUG */
   msiep->next = NULL;
-  msiep->entity.kind = (a_byte_il_entry_kind)iek_none;
-  msiep->entity.ptr  = NULL;
+  clear_tagged_ptr(msiep->entity);
   msiep->position = null_source_position;
 #if RECORD_FORM_OF_NAME_REFERENCE
   msiep->name_reference = NULL;
@@ -3929,8 +3923,7 @@ and return a pointer to it.
   msap->kind = (an_ms_attribute_kind)msak_none;
   msap->next = NULL;
   msap->next_in_block = NULL;
-  msap->entity.kind = (a_byte_il_entry_kind)iek_none;
-  msap->entity.ptr  = NULL;
+  clear_tagged_ptr(msap->entity);
   msap->string = NULL;
   msap->arg_list = NULL;
   msap->name = NULL;
