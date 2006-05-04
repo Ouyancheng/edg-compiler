@@ -1,5 +1,30 @@
 Version 3.8
 
+5/4/06   Virtual function table not generated due to strange key function
+
+In ABIs that allow "inline" on an out-of-class definition of a member
+function to affect the choice of the key or decider function for the
+class (i.e., the Cfront-like ABI and the IA-64 ABI with
+IA64_ABI_VARIANT_KEY_FUNCTION), IL lowering sometimes failed to
+generate a virtual function table definition in the compilation
+where the key function is defined.  An example:
+
+  struct A {
+    virtual ~A() {}
+  };
+  class X : public A {
+    virtual void f1();
+    virtual void f2();
+  };
+  void X::f2() { }
+  inline void X::f1() { }  // inline here makes f2 the key function
+  int main() {}
+
+In versions that use the template prelinker to instantiate inline
+functions, this was largely masked; it just meant one possible
+additional iteration to instantiate the missing entities.  But in
+other versions, it could result in link errors.  Now fixed.
+
 5/3/06   Spurious access error for static member of ambiguous base class
 
 The front end sometimes issued a spurious access error when attempting to

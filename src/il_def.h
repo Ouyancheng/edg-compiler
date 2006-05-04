@@ -5976,6 +5976,12 @@ typedef struct a_type {
 		has_operator_ampersand:1;
 			/* TRUE if this class type has an operator&() member
 			   function. */
+      a_bit_field
+		virtual_functions_marked_as_required:1;
+			/* TRUE if the virtual functions of the class have
+			   been marked as required by
+			   require_definitions_of_virtual_functions_in_class;
+			   this is used to avoid doing it again. */
       bitfield_to_avoid_codecenter_warnings()
 #if USER_CONTROL_OF_STRUCT_PACKING
       a_targ_alignment

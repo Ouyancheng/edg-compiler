@@ -932,6 +932,8 @@ extern a_variable_ptr make_var_for_virtual_function_table(
                                                    a_base_class_ptr bcp,
                                                    a_base_class_ptr ctor_bcp);
 
+extern a_routine_ptr vtbl_decider_function_for_class(a_type_ptr class_type);
+
 extern a_boolean inline_virtual_function_definitions_needed(
                                                         a_type_ptr class_type);
 
@@ -939,9 +941,6 @@ extern a_boolean inline_virtual_function_definitions_needed(
 extern a_boolean external_typeinfo_will_be_defined_for_class(
                                                         a_type_ptr class_type);
 #endif /* ABI_COMPATIBILITY_VERSION < 238 */
-
-extern a_boolean virtual_functions_needed_due_to_definition_of(
-                                                        a_routine_ptr routine);
 
 extern void add_to_return_memo_list(a_statement_ptr return_stmt);
 

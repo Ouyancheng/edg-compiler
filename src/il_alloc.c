@@ -1452,6 +1452,8 @@ to default values.
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       pte->variant.class_struct_union.has_operator_ampersand = FALSE;
+      pte->variant.class_struct_union.virtual_functions_marked_as_required =
+                                                                         FALSE;
 #if CENTERLINE_CHECKING
       pte->variant.class_struct_union.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

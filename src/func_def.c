@@ -189,12 +189,16 @@ compilation.
 */
 {
   class_type = skip_typerefs(class_type);
-  if (class_type->variant.class_struct_union.
+  if (!class_type->variant.class_struct_union.
+                                        virtual_functions_marked_as_required &&
+      class_type->variant.class_struct_union.
                              any_virtual_functions_including_in_base_classes) {
     a_base_class_ptr bcp;
     a_class_type_supplement_ptr
                      ctsp = class_type->variant.class_struct_union.extra_info;
 
+    class_type->variant.class_struct_union.
+                                   virtual_functions_marked_as_required = TRUE;
     /* Loop through the routines list and check the virtual functions. */
     require_definitions_of_virtual_functions_on_routine_list(class_type);
     /* Do the same for base class virtual functions. */
@@ -208,8 +212,6 @@ compilation.
   }  /* if */
 }  /* require_definitions_of_virtual_functions_in_class */
 
-/* IL lowering provides its own version of this routine. */
-#if !DO_IL_LOWERING
 
 static a_boolean virtual_functions_needed_due_to_definition_of(
                                                          a_routine_ptr routine)
@@ -217,25 +219,46 @@ static a_boolean virtual_functions_needed_due_to_definition_of(
 Return TRUE if definitions of virtual functions of the class of which the
 indicated routine is a member are needed (somewhere in the program, but
 not necessarily in the current compilation).  The definition of the
-indicated routine has just been processed.
+indicated routine has just been processed.  Returns FALSE if the class
+has previously had its virtual functions marked as needed.
 */
 {
   a_boolean  needed = FALSE;
   a_type_ptr class_type = routine->source_corresp.parent.class_type;
 
-  if (class_type->variant.class_struct_union.
+  if (!class_type->variant.class_struct_union.
+                                        virtual_functions_marked_as_required &&
+      class_type->variant.class_struct_union.
                              any_virtual_functions_including_in_base_classes) {
     if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
         routine->special_kind == (a_special_function_kind)sfk_destructor) {
       /* Constructor and destructor wrappers refer to the virtual function
          table and therefore the virtual functions are needed. */
       needed = TRUE;
+#if DO_IL_LOWERING
+    } else if (routine->is_virtual) {
+      a_routine_ptr decider = vtbl_decider_function_for_class(class_type);
+      if (decider != NULL &&
+          (decider == routine || routine_has_been_defined(decider))) {
+        /* This routine is the decider function for definition of the
+           virtual function table.  Since it's defined, the virtual function
+           table definition will be put out in this compilation and therefore
+           the virtual functions are needed. */
+        /* Also mark the virtual functions as needed if the decider function
+           was previously defined at a point when it wasn't known to be
+           the decider function.  This can happen only for ABIs (like
+           the ARM EABI; see IA64_ABI_VARIANT_KEY_FUNCTION) where the
+           decider function can be altered by an out-of-class definition
+           that specifies "inline" for a function that otherwise would have
+           been considered to be the decider function. */
+        needed = TRUE;
+      }  /* if */
+#endif /* DO_IL_LOWERING */
     }  /* if */
   }  /* if */
   return needed;
 }  /* virtual_functions_needed_due_to_definition_of */
 
-#endif /* !DO_IL_LOWERING */
 
 static void require_definitions_of_virtual_functions_due_to_definition_of(
                                                          a_routine_ptr routine)

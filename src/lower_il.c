@@ -4939,7 +4939,7 @@ class_type if any are needed and if they have not already been generated.
 }  /* make_vars_for_virtual_function_tables */
 
 
-static a_routine_ptr vtbl_decider_function_for_class(a_type_ptr class_type)
+a_routine_ptr vtbl_decider_function_for_class(a_type_ptr class_type)
 /*
 Return a pointer to the routine that is the decider function for generation
 of the definition of the virtual function table for the given class.
@@ -5197,36 +5197,6 @@ in a different and better way in version 2.38.
 }  /* external_typeinfo_will_be_defined_for_class */
 
 #endif /* ABI_COMPATIBILITY_VERSION < 238 */
-
-a_boolean virtual_functions_needed_due_to_definition_of(a_routine_ptr routine)
-/*
-Return TRUE if definitions of virtual functions of the class of which the
-indicated routine is a member are needed (somewhere in the program, but
-not necessarily in the current compilation).  The definition of the
-indicated routine has just been processed.
-*/
-{
-  a_boolean  needed = FALSE;
-  a_type_ptr class_type = routine->source_corresp.parent.class_type;
-
-  if (class_type->variant.class_struct_union.
-                             any_virtual_functions_including_in_base_classes) {
-    if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
-        routine->special_kind == (a_special_function_kind)sfk_destructor) {
-      /* Constructor and destructor wrappers refer to the virtual function
-         table and therefore the virtual functions are needed. */
-      needed = TRUE;
-    } else if (vtbl_decider_function_for_class(class_type) == routine) {
-      /* This routine is the decider function for definition of the
-         virtual function table.  Since it's defined, the virtual function
-         table definition will be put out in this compilation and therefore
-         the virtual functions are needed. */
-      needed = TRUE;
-    }  /* if */
-  }  /* if */
-  return needed;
-}  /* virtual_functions_needed_due_to_definition_of */
-
 
 /*
 Pointer to routine entry for the runtime routine __pure_virtual_called,
