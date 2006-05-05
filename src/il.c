@@ -8840,9 +8840,24 @@ be referred to indirectly through an entry of type a_local_expr_node_ref.
   result = con->variant.template_param.variant.templ_sizeof.expr;
   if (result == NULL && innermost_function_scope != NULL &&
       con->variant.template_param.variant.templ_sizeof.local_expr_ref) {
+    /* The argument of the sizeof/alignof/uuidof construct is an expression,
+       whose representation is stored in a function scope memory region.
+       Since we are currently inside a function, look if the expression is
+       part of this function.  This is not always the case.  For example:
+         template<int N> struct S {};
+         template<typename T> void f1(T x1) {
+           int const n1 = sizeof(x1);
+            S<n1> s1;
+         }
+         template<typename T> void f2(T x2) {
+           int const n2 = sizeof(x2);
+           S<n2> s2;
+         }
+      When looking whether the nonreal instance S<n2> already exists, the
+      instance S<n1> may be considered, but the representation of n1
+      will no longer be available. */
     result = find_local_expr_node(
                  (char*)con, (a_local_expr_node_ref_kind)lerk_generic_sizeof);
-    check_assertion(result != NULL);
   }  /* if */
   return result;
 }  /* generic_sizeof_arg_expr */
