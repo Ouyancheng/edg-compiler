@@ -15769,6 +15769,22 @@ normal_function:
                                           rep, result);
             } else {
               /* Normal case: "x" is interpreted as "this->x". */
+              if (sun_mode && curr_expr_kind_is(ek_sizeof) &&
+                 !variable_this_exists(&var_ptr)) {
+                /* Sun mode allows a use of a nonstatic data member without
+                   an available "this" inside a sizeof.  Use a zero pointer
+                   instead of "this". */
+                a_type_ptr class_ptr_type =
+                                 make_pointer_type(sym_ptr->parent.class_type);
+                make_integer_constant_operand(&this_pointer_operand,
+                                              (a_host_large_integer)0L);
+                cast_operand(class_ptr_type, &this_pointer_operand,
+                             /*check_cast_access=*/FALSE,
+                             /*is_implicit_cast=*/FALSE,
+                             /*is_reinterpret_cast=*/FALSE,
+                             /*reinterpret_semantics=*/FALSE);
+                goto do_selection;
+              }  /* if */
               /* Make an operand for the "this" pointer. */
               if (make_this_pointer_operand(sym_ptr,
                                             projection_sym_ptr,
@@ -15779,6 +15795,7 @@ normal_function:
                 /* Do the field selection relative to the "this" pointer. */
                 /* Extract the possibly qualified version of the class type
                    pointed to. */
+do_selection:
                 qual_class_type = type_pointed_to(this_pointer_operand.type);
                 do_field_selection_operation(&this_pointer_operand,
                                              qual_class_type,

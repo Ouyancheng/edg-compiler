@@ -1,5 +1,18 @@
 Version 3.8
 
+5/4/06   Sun compatibility: nonstatic data member without object, in sizeof
+
+Sun compatibility mode now allows a use of a nonstatic data member without
+an object inside a sizeof.  Ordinarily, such a reference is not valid
+unless an implicit "this->" applies.
+
+  typedef struct _X {
+    char A[512];
+  } X;
+  static unsigned int foo() {
+    return sizeof(X::A);  // Now accepted in Sun mode
+  }
+
 5/4/06   Virtual function table not generated due to strange key function
 
 In ABIs that allow "inline" on an out-of-class definition of a member
