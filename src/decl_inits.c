@@ -1098,7 +1098,7 @@ to this routine).
   a_boolean                      string_literal = FALSE;
   a_constant                     constant;
   unsigned long                  levels_down;
-  a_class_symbol_supplement_ptr  cssp;
+  a_class_symbol_supplement_ptr  cssp = NULL;
   a_dynamic_init_ptr             dip;
 
   if (!is_array_type(context->type)) {
@@ -1152,6 +1152,11 @@ to this routine).
       /* The initialization applies at the current level. */
       (*init_constant)->type = rvalue_type(context->type);
       if (!is_constant) {
+        /* We should only get here for class types (as opposed to array types).
+           If we emulate GNU C++ whole-object initialization using nonconstant
+           compound literals, some array cases may get here too, and the
+           following should be revised. */
+        check_assertion(cssp != NULL);
         context->any_dynamic_initialization = TRUE;
         if (exceptions_enabled) {
           if (cssp->destructor != NULL) {
