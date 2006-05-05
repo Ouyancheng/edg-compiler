@@ -1,5 +1,13 @@
 Version 3.8
 
+5/5/06   GNU C99 compatibility: Warn only on void return in nonvoid function
+
+In GNU C99 mode, the front end now issues a warning instead of an error when
+encountering a return statement without a return expression in a function
+with a nonvoid return type.  For example:
+
+  int f() { return; }  // Now a warning in GNU C99 mode (previously an error).
+
 5/4/06   Sun compatibility: nonstatic data member without object, in sizeof
 
 Sun compatibility mode now allows a use of a nonstatic data member without
