@@ -1,5 +1,15 @@
 Version 3.8
 
+5/5/06   GNU alias loops
+
+The front end now detects attempts to create alias loops within a translation
+unit.  Previously such loops were undiagnosed in ordinary compilations and
+could lead to aborts when simultaneously compiling multiple translation units.
+For example:
+
+  void a(void) __attribute__((alias("b")));  // Now triggers an error.
+  void b(void) __attribute__((alias("a")));
+
 5/5/06   GNU C99 compatibility: Warn only on void return in nonvoid function
 
 In GNU C99 mode, the front end now issues a warning instead of an error when

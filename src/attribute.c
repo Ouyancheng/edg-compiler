@@ -113,6 +113,47 @@ Return the given entry to the list of available entries.
 }  /* free_alias_fixup */
 
 
+static void report_any_alias_loop(an_alias_fixup_ptr  alias_fixup)
+/*
+Issue an error if the given alias fixup describes an alias that completes a
+cycle of aliased entities.  Break the cycle if that is the case.
+*/
+{
+  a_boolean     alias_loop = FALSE;
+  a_symbol_ptr  sym = alias_fixup->alias;
+
+  switch (sym->kind) {
+    case sk_routine:
+      { a_routine_ptr  orig_rp = sym->variant.routine.ptr,
+                       rp = orig_rp->aliased_routine;
+        for (; rp != NULL; rp = rp->aliased_routine) {
+          if (same_entities(rp, orig_rp)) {
+            alias_loop = TRUE;
+            orig_rp->aliased_routine = NULL;
+            break;
+          }  /* if */
+        }  /* for */
+      }
+      break;
+    case sk_variable:
+      { a_variable_ptr  orig_vp = sym->variant.variable.ptr,
+                        vp = orig_vp->aliased_variable;
+        for (; vp != NULL; vp = vp->aliased_variable) {
+          if (same_entities(vp, orig_vp)) {
+            alias_loop = TRUE;
+            orig_vp->aliased_variable = NULL;
+            break;
+          }  /* if */
+        }  /* for */
+      }
+      break;
+  }  /* switch */
+  if (alias_loop) {
+    pos_error(ec_alias_loop, &alias_fixup->alias_position);
+  }  /* if */
+}  /* report_any_alias_loop */
+
+
 void process_alias_fixup_list(void)
 /*
 Traverse the list of alias fixups and set the alias fields as needed.
@@ -201,10 +242,12 @@ Traverse the list of alias fixups and set the alias fields as needed.
         case sk_routine:
           entry->alias->variant.routine.ptr->aliased_routine =
                                               aliased_sym->variant.routine.ptr;
+          report_any_alias_loop(entry);
           break;
         case sk_variable:
           entry->alias->variant.variable.ptr->aliased_variable =
                                              aliased_sym->variant.variable.ptr;
+          report_any_alias_loop(entry);
           break;
         default:
           unexpected_condition();
