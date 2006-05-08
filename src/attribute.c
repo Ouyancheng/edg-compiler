@@ -147,6 +147,8 @@ cycle of aliased entities.  Break the cycle if that is the case.
         }  /* for */
       }
       break;
+    default:
+      unexpected_condition();
   }  /* switch */
   if (alias_loop) {
     pos_error(ec_alias_loop, &alias_fixup->alias_position);
