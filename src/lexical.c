@@ -1539,7 +1539,7 @@ in the cache, nothing is done.  discard_curr_token is TRUE if the
 current token should be discarded, FALSE if the token should be retained.
 */
 {
-  db_enter(4, "rescan_cached_tokens");
+  db_enter(4, "f_rescan_cached_tokens");
 #if DEBUG
   /* This cache was marked as reusable but is now being destructively
      rescanned.  Update the count of reusable cached tokens. */
