@@ -1155,6 +1155,10 @@ Initialize the option information table.
                          "no_type_traits_helpers",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_cpp0x_mode, "c++0x", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_cpp0x_mode, "no_c++0x", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2423,6 +2427,26 @@ an otherwise implicitly enabled GNU C++ mode.
 }  /* exclude_gpp_mode */
 
 
+static void exclude_cpp0x_mode(an_error_code  error_code)
+/*
+C++0x mode is incompatible with other settings.  Either issue the given
+diagnostic (error_code) if the conflict is explicit, or silently turn off
+an otherwise implicitly enabled C++0x mode.
+*/
+{
+  if (cpp0x_mode) {
+    if (option_kind_used[(int)optk_cpp0x_mode]) {
+      /* C++0x mode was enabled by a command line option. */
+      command_line_error(error_code);
+    } else {
+      /* C++0x mode was enabled by default.  Silently disable it since an
+         explicit mode setting on the command line overrides it. */
+      cpp0x_mode = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* exclude_cpp0x_mode */
+
+
 static void check_and_set_ansi_mode_options(void)
 /*
 Both for strict ANSI C and C++ modes, check that no command-line setting
@@ -3136,6 +3160,7 @@ order of development of this front end, and is inconsistent and strange.
     exclude_cfront_mode(ec_cl_incompatible_language_modes);
     exclude_sun_mode(ec_cl_sun_mode_only_in_cplusplus);
     exclude_gpp_mode(ec_cl_incompatible_language_modes);
+    exclude_cpp0x_mode(ec_cl_incompatible_language_modes);
   }  /* if */
   if (C_dialect == C_dialect_pcc) {
     /* Issue an error for specifying a language mode that is valid only
@@ -4362,6 +4387,12 @@ enable_microsoft_mode:
         /* Enable or disable __is_union, __has_virtual_destructor, etc. */
         type_traits_helpers_enabled = opt_value;
         break;
+      case optk_cpp0x_mode:
+        /* Enable C++ features added to the working paper for the next
+           C++ standard. */
+        cpp0x_mode = opt_value;
+        C_dialect = C_dialect_cplusplus;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -5220,6 +5251,7 @@ variables declared in cmd_line.h.
   c99_mode = DEFAULT_C99_MODE;
   uliterals_enabled = DEFAULT_ULITERALS_ENABLED;
   type_traits_helpers_enabled = DEFAULT_TYPE_TRAITS_HELPERS_ENABLED;
+  cpp0x_mode = DEFAULT_CPP0X_MODE;
 }  /* cmd_line_static_var_init */
 
 

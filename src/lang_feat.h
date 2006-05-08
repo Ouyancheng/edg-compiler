@@ -1803,6 +1803,20 @@ accepted by default.
 #endif /* DEFAULT_ULITERALS_ENABLED */
 
 /*
+Flag that is TRUE if extensions added to the working paper for the next C++
+standard should be enabled by default.  This is the default value of the
+global variable cpp0x_mode.
+*/
+#ifndef DEFAULT_CPP0X_MODE
+#define DEFAULT_CPP0X_MODE FALSE
+#endif /* DEFAULT_CPP0X_MODE */
+
+EXTERN a_boolean
+		cpp0x_mode;
+			/* When TRUE accept language features defined by the
+			   current working paper for the next C++ standard. */
+
+/*
 Check that no mutually exclusive dialect emulations are simultaneously
 enabled.
 */

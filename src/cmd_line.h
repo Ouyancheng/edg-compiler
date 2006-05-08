@@ -252,6 +252,7 @@ typedef enum /*an_option_kind*/ {
   optk_default_calling_convention,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_type_traits_helpers,
+  optk_cpp0x_mode,
   optk_last		/* Must be last. */
 } an_option_kind;
 
