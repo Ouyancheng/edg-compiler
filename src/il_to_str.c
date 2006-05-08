@@ -2617,7 +2617,7 @@ by octl. */
     case ck_address:
       check_assertion_str(con->variant.address.kind ==
                                               (an_address_base_kind)abk_uuidof,
-                          "form_lvalue_for_addressed_entity: bad kind");
+                          "form_uuidof_reference: bad kind");
       uuid_type = con->variant.address.variant.type;
       break;
     case ck_template_param:
