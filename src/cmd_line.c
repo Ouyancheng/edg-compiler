@@ -2178,6 +2178,16 @@ setting is used, and to set various unmentioned settings as needed.
 }  /* check_and_set_c_mode_options */
 
 
+static void check_and_set_cpp0x_mode_options(void)
+/*
+Enable any features specific to C++0x (i.e., features not in the published
+C++ standards of 1998 or 2003, but currently present in the working paper for
+the next standard).
+*/
+{
+}  /* check_and_set_cpp0x_mode_options */
+
+
 static void check_and_set_cplusplus_mode_options(void)
 /*
 This routine is called in C++ mode to check that no non-C++ command-line
@@ -2253,6 +2263,9 @@ setting is used, and to set various unmentioned settings as needed.
   /* Universal character names are allowed. */
   universal_character_names_allowed = TRUE;
   elab_type_lookup_finds_typedefs = TRUE;
+  if (cpp0x_mode) {
+    check_and_set_cpp0x_mode_options();
+  }  /* if */
 }  /* check_and_set_cplusplus_mode_options */
 
 
