@@ -1,5 +1,12 @@
 Version 3.8
 
+5/8/06   GNU compatibility: complex floating-point types
+
+Some of the code associated with support for GNU complex floating-point
+types (see the 11/7/05 entry) had incorrect conditional compilation guards,
+leading to compilation errors when C99_IL_EXTENSIONS_SUPPORTED and/or
+GNU_COMPLEX_EXTENSIONS_ALLOWED are FALSE.  This has now been corrected.
+
 5/8/06   C++0x mode: Right shift token can be two closing angle brackets
 
 In C++0x mode, a right shift token (">>") not enclosed by parentheses or
