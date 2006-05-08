@@ -3815,13 +3815,13 @@ Do IL lowering of the indicated constant and everything under it.
       case ck_init_repeat:
         /* No handling required. */
         break;
-#if GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
       case ck_complex:
 #if LOWER_COMPLEX
         lower_c99_complex_constant(constant);
 #endif /* LOWER_COMPLEX */
         break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case ck_address:
         switch (constant->variant.address.kind) {
           case abk_routine:
@@ -7458,11 +7458,11 @@ Do IL lowering of the indicated type and everything under it.
           lower_type(type->variant.integer.enum_info.affiliated_type);
         }  /* if */
         break;
-#if GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
       case tk_complex:
         /* Complex types are lowered separately. */
         break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if FIXED_POINT_ALLOWED
       case tk_fixed_point:
         unexpected_condition();
@@ -11461,7 +11461,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           case eok_xdivide_assign:
             rewrite_compound_assignment(expr, /*is_lvalue=*/FALSE);
             break;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
           case eok_xconj:
             lower_xconj(expr);
             break;
@@ -11471,7 +11471,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           case eok_lvalue_imag_part:
             lower_complex_projection(expr);
             break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #endif /* LOWER_COMPLEX */
           case eok_virtual_function_ptr:
             /* Determine virtual function address. */

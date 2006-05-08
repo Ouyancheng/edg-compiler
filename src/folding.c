@@ -2233,7 +2233,7 @@ Do the "!" (not) operation on all types of scalars.
 #endif /* DEBUG */
 }  /* do_not */
 
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
 
 static void do_xconj(a_constant        *constant,
                      a_constant        *result,
@@ -2283,7 +2283,7 @@ Extract the real or imaginary part of a complex constant.
   }  /* if */
 }  /* do_complex_projection */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 
 /*
 Return TRUE if the indicated constant is an address constant cast to
@@ -2385,7 +2385,7 @@ the reason is that the constant is a template parameter constant).
         case eok_not:
           do_not(constant, result, did_not_fold);
           break;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
         case eok_xconj:
           do_xconj(constant, result, &err_code, &err_severity,
                    &depends_on_fp_mode);
@@ -2394,7 +2394,7 @@ the reason is that the constant is a template parameter constant).
         case eok_imag_part:
           do_complex_projection(op, constant, result);
           break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #if CHECKING
         default:
           internal_error("unary_operation: bad unary operator");

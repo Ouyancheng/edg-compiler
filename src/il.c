@@ -11290,12 +11290,14 @@ to TRUE.  *source_pos gives the source position for errors.
       case eok_fgnu_max:
       case eok_pgnu_min:
       case eok_pgnu_max:
+#if C99_IL_EXTENSIONS_SUPPORTED
       case eok_xadd:
       case eok_xsubtract:
       case eok_xmultiply:
       case eok_xdivide:
       case eok_xeq:
       case eok_xne:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         do_usual_arith_conversions = TRUE;
         break;
@@ -11313,12 +11315,12 @@ to TRUE.  *source_pos gives the source position for errors.
       case eok_remainder_assign:
       case eok_and_assign:
       case eok_or_assign:
-#if GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
       case eok_xadd_assign:
       case eok_xsubtract_assign:
       case eok_xmultiply_assign:
       case eok_xdivide_assign:
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         do_usual_arith_conversions = TRUE;
         assignment_case = TRUE;
         break;
@@ -14780,10 +14782,10 @@ operand.
     case eok_divide_assign:
     case eok_address:
     case eok_lvalue:
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
     case eok_lvalue_real_part:
     case eok_lvalue_imag_part:
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
       takes_lvalue = TRUE;
       break;
     default:

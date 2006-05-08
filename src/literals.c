@@ -638,7 +638,7 @@ the character position of the error.
     *err_pos = start_of_curr_token;
   } else {
     /* Build a constant with the right type and value. */
-#if GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     if (is_imaginary_literal) {
       clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_complex);
       const_for_curr_token.type = complex_type(kind);
@@ -647,7 +647,7 @@ the character position of the error.
                      &const_for_curr_token.variant.complex_value->real, &err);
       const_for_curr_token.variant.complex_value->imag = number;
     } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     /* Do not insert code here. */
     {
       clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_float);

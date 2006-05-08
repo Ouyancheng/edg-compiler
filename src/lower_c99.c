@@ -1527,7 +1527,7 @@ negating one part in the "-" case.
                     expr->type, comma_node);
 }  /* lower_real_imag_add_subtract */
 
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
 
 /* Complex conjugation routines. */
 static a_routine_ptr  xconj_routine[(int)fk_last];
@@ -1588,7 +1588,7 @@ Lower the given complex projection expression ("__real z" or "__imag z").
   overwrite_node(expr, result);
 }  /* lower_complex_projection */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 
 void lower_c99_complex_cast(an_expr_node_ptr  expr)
 /*
@@ -2666,7 +2666,7 @@ _Bool type, and VLA types.
       /* Mixed real/imaginary add/subtract. */
       lower_real_imag_add_subtract(expr);
       break;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
     case eok_xconj:
       lower_xconj(expr);
       break;
@@ -2676,7 +2676,7 @@ _Bool type, and VLA types.
     case eok_lvalue_imag_part:
       lower_complex_projection(expr);
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #endif /* LOWER_COMPLEX */
     case eok_cast:
     case eok_bool_cast:
@@ -3966,9 +3966,9 @@ Do one-time initialization of variables related to C99 IL lowering.
       pch_array_saved_var_array_elem(xdivide_routine),
       pch_array_saved_var_array_elem(xeq_routine),
       pch_array_saved_var_array_elem(xne_routine),
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
       pch_array_saved_var_array_elem(xconj_routine),
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(cast_cfloat_to_cdouble_routine),
       pch_saved_var_array_elem(cast_cfloat_to_clong_double_routine),
       pch_saved_var_array_elem(cast_cdouble_to_cfloat_routine),
@@ -4025,9 +4025,9 @@ Do one-time initialization of variables related to C99 IL lowering.
   register_trans_unit_array(xdivide_routine);
   register_trans_unit_array(xeq_routine);
   register_trans_unit_array(xne_routine);
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
   register_trans_unit_array(xconj_routine);
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
   register_trans_unit_variable(cast_cfloat_to_cdouble_routine);
   register_trans_unit_variable(cast_cfloat_to_clong_double_routine);
   register_trans_unit_variable(cast_cdouble_to_cfloat_routine);
@@ -4099,9 +4099,9 @@ for each translation unit.
       xdivide_routine[k] = NULL;
       xeq_routine[k] = NULL;
       xne_routine[k] = NULL;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
       xconj_routine[k] = NULL;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
     }  /* for */
   }
   cast_cfloat_to_cdouble_routine = NULL;

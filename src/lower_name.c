@@ -4263,7 +4263,7 @@ Add to the mangled name the encoding for the type "type".
 #endif /* CHECKING */
         }  /* switch */
         break;
-#if GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
       case tk_complex:
         switch (type->variant.float_kind) {
           case fk_float:          
@@ -4281,7 +4281,7 @@ Add to the mangled name the encoding for the type "type".
 #endif /* CHECKING */
         }  /* switch */
         break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case tk_pointer:
         if (type->variant.pointer.is_reference) {
           s = MANGLING_STRING_FOR_REFERENCE;
@@ -4664,9 +4664,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_fxnegate:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_fnegate:
-#if GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xnegate:
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_negate:
       opkind = (an_opname_kind)onk_minus;
       num_operands = 1;
@@ -4693,9 +4693,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
 #endif /* IA64_ABI */
       num_operands = 1;
       break;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
     case eok_xconj:
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
     case eok_complement:
       opkind = (an_opname_kind)onk_compl;
       num_operands = 1;
@@ -4705,9 +4705,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_fxadd:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_fadd:
-#if GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xadd:
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_add:
       opkind = (an_opname_kind)onk_plus;
       break;
@@ -4716,9 +4716,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_fxsubtract:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_fsubtract:
-#if GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xsubtract:
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_subtract:
       opkind = (an_opname_kind)onk_minus;
       break;
@@ -4727,9 +4727,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_fxmultiply:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_fmultiply:
-#if GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xmultiply:
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_multiply:
       opkind = (an_opname_kind)onk_star;
       break;
@@ -4738,9 +4738,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_fxdivide:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_fdivide:
-#if GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xdivide:
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_divide:
       opkind = (an_opname_kind)onk_divide;
       break;
@@ -4749,9 +4749,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_fxeq:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_feq:
-#if GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xeq:
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_eq:
       opkind = (an_opname_kind)onk_eq;
       break;
@@ -4760,9 +4760,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_fxne:
 #endif /* FIXED_POINT_ALLOWED */
     case eok_fne:
-#if GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xne:
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_ne:
       opkind = (an_opname_kind)onk_ne;
       break;
