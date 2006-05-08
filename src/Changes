@@ -1,5 +1,12 @@
 Version 3.8
 
+5/8/06   C++0x mode
+
+New command-line options --c++0x and --no_c++0x have been added to enable
+or disable support for certain C++ extensions added to the working paper for
+the next C++ standard.  The default behavior can be configured using the
+macro DEFAULT_CPP0X_MODE.
+
 5/5/06   GNU alias loops
 
 The front end now detects attempts to create alias loops within a translation
