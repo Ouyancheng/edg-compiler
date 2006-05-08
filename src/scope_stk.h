@@ -845,11 +845,11 @@ typedef struct a_scope_stack_entry {
 			   current template declaration. */
   unsigned long
 		pending_templ_arg_lists;
-			/* The number of template argument lists that are
-			   currently in the process of being scanned.
-			   In other words, the number of opening "<" delimiters
-			   that have been seen without matching closing ">"
-			   delimiters. */
+			/* The number of opening "<" delimiters that have been
+			   seen without matching closing ">" delimiters.  (This
+			   is slightly more general than "pending template
+			   argument lists", because "<" delimiters also appear
+			   in new-style cast constructs.) */
   a_nondependent_call_info_ptr
 		next_nondependent_call;
 			/* When doing dependent name processing, this

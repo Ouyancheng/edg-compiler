@@ -270,8 +270,18 @@ current expression (used to decide how a comma should be treated).
     case tok_minus:
       new_prec = PREC_PLUS_MINUS;
       break;
-    case tok_shift_left:
     case tok_shift_right:
+      /* ">>" can be the end of a template argument list in some modes.
+         E.g., A<B<2>> in C++0x mode.  It's not if there is a set of
+         parentheses or the like inside the template argument expression,
+         since the ">>" is then not top-level. */
+      if (right_shift_can_be_angle_brackets &&
+          expr_stack->is_template_arg_expression &&
+          expr_stack->nested_construct_depth == 0) {
+        done = TRUE;
+      }  /* if */
+      /*FALLTHROUGH*/
+    case tok_shift_left:
       new_prec = PREC_SHIFT;
       break;
     case tok_gt:
@@ -7486,8 +7496,10 @@ the type defines something); FALSE is returned if there is an error.
 {
   a_boolean err = FALSE, explicit_cv_qualifiers, allow_array = FALSE;
 
-  /* Check for and pass over the "<". */
+  /* Check for and pass over the "<".  Record that an opening angle bracket
+     has been seen (to correctly handle ">>" in some cases). */
   (void)required_token(tok_lt, ec_exp_lt);
+  ++scope_stack[depth_scope_stack].pending_templ_arg_lists;
   add_stop_token(tok_gt);
   /* Scan the type.  Note that type_name does not allow definition of types
      in the type-id. */
@@ -7504,6 +7516,7 @@ the type defines something); FALSE is returned if there is an error.
   err = cast_type_pre_check(cast_type, explicit_cv_qualifiers, allow_array);
   /* Check for and pass over the ">". */
   (void)required_token(tok_gt, ec_exp_gt);
+  --scope_stack[depth_scope_stack].pending_templ_arg_lists;
   remove_stop_token(tok_gt);
   /* Check for and pass over the "(". */
   (void)required_token(tok_lparen, ec_exp_lparen);

@@ -2185,6 +2185,7 @@ C++ standards of 1998 or 2003, but currently present in the working paper for
 the next standard).
 */
 {
+  right_shift_can_be_angle_brackets = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -5265,6 +5266,7 @@ variables declared in cmd_line.h.
   uliterals_enabled = DEFAULT_ULITERALS_ENABLED;
   type_traits_helpers_enabled = DEFAULT_TYPE_TRAITS_HELPERS_ENABLED;
   cpp0x_mode = DEFAULT_CPP0X_MODE;
+  right_shift_can_be_angle_brackets = FALSE;
 }  /* cmd_line_static_var_init */
 
 

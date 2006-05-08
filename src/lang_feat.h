@@ -1816,6 +1816,12 @@ EXTERN a_boolean
 			/* When TRUE accept language features defined by the
 			   current working paper for the next C++ standard. */
 
+EXTERN a_boolean
+		right_shift_can_be_angle_brackets;
+			/* When TRUE, treat right shift (">>") tokens as
+			   double closing angle brackets (as mandated by the
+			   C++0x working paper). */
+
 /*
 Check that no mutually exclusive dialect emulations are simultaneously
 enabled.

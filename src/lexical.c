@@ -11235,33 +11235,46 @@ this routine.  Its value is unchanged if no errors are detected.
 }  /* scan_template_argument_list */
 
 
-static void invalid_end_of_template_arg_list(void)
+static void f_check_closing_angle_bracket(a_boolean  *any_errors)
 /*
 This routine is called when the end of a template argument list is reached
-but the current token is not ">".  The main purpose of this routine is
-to more gracefully handle the case when a ">>" appears where a ">" was
-expected, and there is currently more than one template argument list in
-the process of being scanned.
+but the current token is not ">".  The main purpose of this routine is to
+treat a ">>" as two consecutive ">" tokens.  This may be a matter of normal
+behavior in some modes (e.g., C++0x), or for improved error recovery in other
+modes.
 */
 {
   if (curr_token == tok_shift_right &&
-      scope_stack[depth_scope_stack].pending_templ_arg_lists > 1) {
+      (right_shift_can_be_angle_brackets ||
+       (scope_stack[depth_scope_stack].pending_templ_arg_lists > 1 &&
+        !*any_errors))) {
     /* A ">>" that appears to have been intended to close two template
-       argument lists.  Issue a special diagnostic for this case and insert a
-       ">" into the token stream that will close the outer template
-       argument list. */
+       argument lists.  In C++0x that is a valid construct.  In other
+       C++ modes, issue a special diagnostic for this case.  Either way,
+       this is handled by inserting a ">" into the token stream that will
+       close the outer template argument list.  (The outer angle bracket
+       may also close a new-style cast.) */
     a_token_cache 	cache;
-    error(ec_exp_gt_not_shift_right);
+    if (!right_shift_can_be_angle_brackets) {
+      error(ec_exp_gt_not_shift_right);
+      *any_errors = TRUE;
+    }  /* if */
     clear_token_cache(&cache, /*reusable=*/FALSE);
     curr_token = tok_gt;
     cache_curr_token(&cache);
     rescan_cached_tokens(&cache);
-  } else {
+  } else if (!*any_errors) {
     /* There are not two template argument lists pending.  Simply issue an
        "expected '>'" error. */
     syntax_error(ec_exp_gt);
+    *any_errors = TRUE;
   }  /* if */
-}  /* invalid_end_of_template_arg_list */
+}  /* f_check_closing_angle_bracket */
+
+#define check_closing_angle_bracket(p_any_errors)                            \
+  if (curr_token != tok_gt) {                                                \
+    f_check_closing_angle_bracket((p_any_errors));                           \
+  }  /* if */
 
 
 a_symbol_ptr coalesce_template_class_reference(
@@ -11508,14 +11521,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
      token below to represent the original identifier with the newly
      found template class symbol. */
   set_err_pos_to_curr_token();
-  if (curr_token != tok_gt) {
-    if (!any_errors) {
-      /* Report the error and gracefully recover if a ">>" was used in place
-         of "> >". */
-      invalid_end_of_template_arg_list();
-    }  /* if */
-    any_errors = TRUE;
-  }  /* if */
+  check_closing_angle_bracket(&any_errors);
   /* Decrement the number of template argument lists that are being scanned. */
   scope_stack[depth_scope_stack].pending_templ_arg_lists--;
   if (!any_errors && template_sym != NULL) {
@@ -11716,12 +11722,7 @@ is the one actually associated with this reference.
        token below to represent the original identifier with the newly
        found template class symbol. */
     set_err_pos_to_curr_token();
-    if (curr_token != tok_gt) {
-      /* Report the error and gracefully recover if a ">>" was used in place
-         of "> >". */
-      invalid_end_of_template_arg_list();
-      any_errors = TRUE;
-    }  /* if */
+    check_closing_angle_bracket(&any_errors);
     /* Decrement the number of template argument lists that are being
        scanned. */
     scope_stack[depth_scope_stack].pending_templ_arg_lists--;

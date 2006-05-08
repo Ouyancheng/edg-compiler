@@ -1,5 +1,22 @@
 Version 3.8
 
+5/8/06   C++0x mode: Right shift token can be two closing angle brackets
+
+In C++0x mode, a right shift token (">>") not enclosed by parentheses or
+square brackets is treated as two closing angle brackets (">") if after least
+one opening angle bracket ("<") has not been closed.  For example:
+
+  template<typename T> struct S { S(int) {} };
+  template<int N> class C {};
+  void f() {
+    S<S<int>> s(1);          // Okay in C++0x mode.  Syntax error otherwise.
+    static_cast<S<int>>(2);  // Okay in C++0x mode.  Syntax error otherwise.
+    C<3 >> 1> c;             // Error in C++0x mode because ">>" is not
+                             // as a "right shift operator".  Okay in other
+                             // C++ modes.
+    C<(3 >> 1)> c2;          // Accepted in all C++ modes.
+  }
+
 5/8/06   C++0x mode
 
 New command-line options --c++0x and --no_c++0x have been added to enable
