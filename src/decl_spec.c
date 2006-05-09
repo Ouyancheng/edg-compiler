@@ -2640,6 +2640,10 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
        is a nested class declaration within a local class.  In either case,
        it is a local class. */
     is_local_class = TRUE;
+    if (depth_innermost_function_scope != NO_SCOPE_NUMBER) {
+      innermost_function_scope->variant.routine.ptr
+                              ->contains_local_class_type = TRUE;
+    }  /* if */
   }  /* if */
   if (is_class_type_keyword(curr_token)) {
     /* Skip over "class", "struct", or "union", remembering which appears.

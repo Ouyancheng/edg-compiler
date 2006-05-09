@@ -2821,6 +2821,9 @@ Display the indicated routine.
   if (ptr->contains_try_block) {
     disp_boolean("contains_try_block", TRUE);
   }  /* if */
+  if (ptr->contains_local_class_type) {
+    disp_boolean("contains_local_class_type", TRUE);
+  }  /* if */
   if (ptr->superseded_external) {
     disp_boolean("superseded_external", TRUE);
   }  /* if */

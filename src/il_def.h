@@ -8313,6 +8313,9 @@ typedef struct a_routine {
 			   at least one "try" block.  This may affect
 			   optimization relating to local variables of the
 			   routine. */
+  a_bit_field	contains_local_class_type:1;
+			/* TRUE if the routine has a definition that contains
+			   a local class, struct, or union declaration. */
   a_bit_field	superseded_external:1;
 			/* TRUE (in SVR4 C mode only) if the current routine
 			   was created to represent a block extern declaration

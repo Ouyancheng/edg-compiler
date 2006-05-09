@@ -2186,6 +2186,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->instance_required           = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   rp->contains_try_block          = FALSE;
+  rp->contains_local_class_type   = FALSE;
   rp->superseded_external         = FALSE;
   rp->defined_in_friend_decl      = FALSE;
   rp->defined_outside_of_parent   = FALSE;
