@@ -613,6 +613,87 @@ already been copied over.
   }  /* if */
 }  /* file_scope_il_wrapup_part_3 */
 
+/* Forward declaration: */
+static void finish_function_processing_for_memory_region(
+                                            a_memory_region_number n,
+                                            a_boolean              only_inline);
+
+
+static void finish_local_function_body_processing(a_scope_ptr sp)
+/*
+If the routine that has associated scope sp has any local functions
+(e.g., members of local classes), do final processing on their bodies
+as necessary.  This is to ensure they are processed before the surrounding
+function.  (To give one example why this is needed, we want to lower the
+constructor body for a local class before we lower the surrounding
+function, so that we know the virtual function table is used
+by the time we process it in the surrounding function.)  This routine
+calls itself recursively, and on those calls sp will be a block scope.
+*/
+{
+  a_type_ptr    type;
+  a_routine_ptr routine;
+  a_scope_ptr   block_scope;
+
+  /* Visit all types, looking for local classes. */
+  for (type = sp->types; type != NULL; type = type->next) {
+    if (is_immediate_class_type(type)) {
+      a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+      /* Visit the class scope if it has one. */
+      if (ctsp != NULL) {
+        a_scope_ptr class_scope = ctsp->assoc_scope;
+        if (class_scope != NULL) {
+          /* Visit the member functions of the class. */
+          for (routine = class_scope->routines;
+               routine != NULL;
+               routine = routine->next) {
+            a_memory_region_number rn = routine->assoc_scope;
+            if (rn != NULL_region_number) {
+              finish_function_processing_for_memory_region(rn,
+                                                        /*only_inline=*/FALSE);
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Visit all block scopes to look for local classes. */
+  for (block_scope = sp->scopes;
+       block_scope != NULL;
+       block_scope = block_scope->next) {
+    finish_local_function_body_processing(block_scope);
+  }  /* for */
+}  /* finish_local_function_body_processing */
+
+
+static void finish_function_processing_for_memory_region(
+                                             a_memory_region_number n,
+                                             a_boolean              only_inline)
+/*
+If memory region n contains a function body for which body processing has
+not been finished, finish it now.  If only_inline is TRUE, finish the
+processing only if the function is inline.
+*/
+{
+  if (mem_region_table[n] == NULL) {
+    /* This memory has already been freed. */
+  } else {
+    a_scope_ptr sp = il_header.region_scope_entry[n];
+    if (sp->kind == (a_scope_kind)sck_function &&
+        (!only_inline || sp->variant.routine.ptr->is_inline) &&
+        !in_secondary_trans_unit(sp) &&
+        !sp->function_body_processing_finished) {
+      if (!C_mode() && sp->variant.routine.ptr->contains_local_class_type) {
+        /* Ensure that the definitions of local functions are
+           processed before the enclosing function. */
+        finish_local_function_body_processing(sp);
+      }  /* if */
+      finish_function_body_processing(sp, /*discard_function_body=*/FALSE);
+    }  /* if */
+  }  /* if */
+}  /* finish_function_processing_for_memory_region */
+
 
 static void finish_processing_for_function_bodies(void)
 /*
@@ -630,18 +711,7 @@ there may be some functions in the primary IL for which lowering was delayed.
       for (n = FILE_SCOPE_REGION_NUMBER + 1;
            n <= highest_used_region_number;
            n++) {
-        if (mem_region_table[n] == NULL) {
-          /* This memory has already been freed. */
-        } else {
-          a_scope_ptr sp = il_header.region_scope_entry[n];
-          if (sp->kind == (a_scope_kind)sck_function &&
-              sp->variant.routine.ptr->is_inline == inline_pass &&
-              !in_secondary_trans_unit(sp) &&
-              !sp->function_body_processing_finished) {
-            finish_function_body_processing(sp,
-                                            /*discard_function_body=*/FALSE);
-          }  /* if */
-        }  /* if */
+        finish_function_processing_for_memory_region(n, inline_pass);
       }  /* for */
       if (!inline_pass) break;
       inline_pass = FALSE;
