@@ -10,8 +10,9 @@ GNU_COMPLEX_EXTENSIONS_ALLOWED are FALSE.  This has now been corrected.
 5/8/06   C++0x mode: Right shift token can be two closing angle brackets
 
 In C++0x mode, a right shift token (">>") not enclosed by parentheses or
-square brackets is treated as two closing angle brackets (">") if after least
-one opening angle bracket ("<") has not been closed.  For example:
+square brackets is treated as two closing angle brackets (">") if the
+right shift token appears after at least one opening angle bracket ("<")
+that has not been closed.  For example:
 
   template<typename T> struct S { S(int) {} };
   template<int N> class C {};
