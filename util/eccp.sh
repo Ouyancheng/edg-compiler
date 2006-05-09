@@ -547,6 +547,7 @@ check_abbreviation()
 --c89
 --c99
 --c++
+--c++0x
 --c_to_obj_lib
 --cfront_2.1
 --cfront_3.0
@@ -644,6 +645,7 @@ check_abbreviation()
 --no_bool
 --no_brief_diagnostics
 --no_c99
+--no_c++0x
 --no_class_name_injection
 --no_code_gen
 --no_compound_literals
@@ -1130,9 +1132,11 @@ process_option()
          --no_anachronisms | \
     -# | --timing | \
          --c++ | \
+         --c++0x | \
          --c89 | \
          --c99 | \
          --no_c99 | \
+         --no_c++0x | \
          --display_error_number | \
          --dollar | \
 	 --old_line_commands | \
@@ -1294,7 +1298,8 @@ process_option()
             cc_command=$cc_command" "$EDG_C_TO_OBJ_C99_OPTIONS
           fi
           ;;
-        -b | --c++ | --cfront_2.1 | --cfront_3.0 | --g++ | --no_g++)
+        -b | --c++ | --c++0x | --no_c++0x | --cfront_2.1 | --cfront_3.0 | \
+	--g++ | --no_g++)
           c_mode=0
           ;;
 	--no_preproc_only)
