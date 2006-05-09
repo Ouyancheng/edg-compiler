@@ -121,6 +121,8 @@ void post_lower_c99_bool_cast(an_expr_node_ptr expr);
 
 extern void lower_c99_il_memory_region(a_memory_region_number region_number);
 
+#else /* !DO_C99_IL_LOWERING */
+#define c99_il_lowering_needed() (FALSE)
 #endif /* DO_C99_IL_LOWERING */
 
 extern void lower_c99_one_time_init(void);
