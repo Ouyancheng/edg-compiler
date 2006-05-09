@@ -3136,13 +3136,13 @@ Display the name of an expression operator.
 #if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
     case eok_xnegate:           s = "eok_xnegate";                break;
 #endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
     case eok_xconj:             s = "eok_xconj";                  break;
     case eok_real_part:         s = "eok_real_part";              break;
     case eok_imag_part:         s = "eok_imag_part";              break;
     case eok_lvalue_real_part:  s = "eok_lvalue_real_part";       break;
     case eok_lvalue_imag_part:  s = "eok_lvalue_imag_part";       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #ifdef FFE
     case eok_char_length:       s = "eok_char_length";            break;
     case eok_address_of_value:  s = "eok_address_of_value";       break;
