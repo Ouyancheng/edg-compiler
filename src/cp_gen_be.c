@@ -299,12 +299,6 @@ Macro to test a type kind to see if it is a class, struct, or union.
    (kind) == (a_type_kind)tk_union)
 
 /*
-Macro to test a type kind to see if it is a tag (class or enum).
-*/
-#define is_tag_type_kind(kind)                                        \
-  (is_class_type_kind(kind) || (kind) == (a_type_kind)tk_enum)
-
-/*
 Flags for gen_name:
 */
 typedef int a_gen_name_options_set;
@@ -1192,9 +1186,8 @@ to indicate a primary declaration.
 */
 {
   a_boolean   autonomous;
-  a_type_kind kind = type->kind;
 
-  if (!is_tag_type_kind(kind)) {
+  if (!is_tag_type(type)) {
     /* Non-tag, always autonomous. */
     autonomous = TRUE;
   } else {
@@ -1284,10 +1277,8 @@ indicated type.  Advance to the first source sequence entry after the
 end of the type definition.
 */
 {
-  a_type_kind kind = type->kind;
-
   check_and_take_source_seq_entry_for_type(type);
-  if (is_tag_type_kind(kind)) {
+  if (is_tag_type(type)) {
     /* For a class or enum, loop through source sequence entries looking
        for the end-of-construct entry for the type. */
     for (;;) {
@@ -2371,7 +2362,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
              dependent qualified name (but not preceding every qualifier).
              (Prefer the former variants to select the right namespace.) */
           a_type_ptr  type = (a_type_ptr)scp;
-          if (is_immediate_class_type(type) || is_immediate_enum_type(type)) {
+          if (is_tag_type(type)) {
             write_tok_str(tag_keyword(type));
             write_space();
           } else {
@@ -5413,12 +5404,13 @@ this one is such a continuation.
                    type->variant.class_struct_union.is_in_class_specialization,
                    template_arg_list);
     }  /* if */
-    if (kind == (a_type_kind)tk_typeref) {
-      /* Handle the nonstandard "friend typedef-name". */
+    if (!is_immediate_class_type(type)) {
+      /* Handle nonstandard friend declarations (such as "friend int;" and
+         "friend typedef-name"). */
       if (friend_decl) {
         adv_curr_source_sequence_entry();
         write_tok_str("friend ");
-        gen_type_name(type);
+        gen_type(type);
       } else if (type->is_builtin_va_list) {
         /* This is the declaration of the builtin va_list, from <stdarg.h>. */
         suppress_closing_punct = TRUE;

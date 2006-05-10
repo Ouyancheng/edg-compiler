@@ -1822,6 +1822,13 @@ EXTERN a_boolean
 			   double closing angle brackets (as mandated by the
 			   C++0x working paper). */
 
+EXTERN a_boolean
+		extended_friends_enabled;
+			/* When TRUE, allow the form "friend <type-name>;"
+			   where <type-name> is not necessarily an elaborated
+			   type specifier (an extension specified in the C++0x
+			   working paper). */
+
 /*
 Check that no mutually exclusive dialect emulations are simultaneously
 enabled.

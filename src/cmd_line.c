@@ -2186,6 +2186,7 @@ the next standard).
 */
 {
   right_shift_can_be_angle_brackets = TRUE;
+  extended_friends_enabled = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -5267,6 +5268,7 @@ variables declared in cmd_line.h.
   type_traits_helpers_enabled = DEFAULT_TYPE_TRAITS_HELPERS_ENABLED;
   cpp0x_mode = DEFAULT_CPP0X_MODE;
   right_shift_can_be_angle_brackets = FALSE;
+  extended_friends_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

@@ -11930,9 +11930,11 @@ Check that this is a valid type and if so make member_type a friend.
              class_type->variant.class_struct_union.is_interface) {
     pos_error(ec_interface_cannot_have_friend, &decl_info->decl_start_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if ((is_class_struct_union_type(member_type) ||
-              is_template_param_type(member_type)) &&
-             !is_top_level_qualified_type(member_type) &&
+  } else if ((((is_class_struct_union_type(member_type) ||
+                is_template_param_type(member_type)) &&
+               !is_top_level_qualified_type(member_type)) ||
+              (extended_friends_enabled &&
+               decl_info->qualifiers == TQ_NONE)) &&
              depth_template_declaration_scope == NO_SCOPE_DEPTH) {
     /* This is a friend class declaration.  Normally, only the form
            friend class A;  // or "struct" or "union" instead of "class"
@@ -11940,47 +11942,86 @@ Check that this is a valid type and if so make member_type a friend.
        without a class-key.  For example:
             friend A;
        We also accept the latter form as an extension (except in strict
-       mode). */
-    if (decl_info->dso_flags & DSO_TYPENAME) {
-      /* "friend typename ..." is not allowed. */
+       mode).  The working paper for the next standard allows many other
+       forms (e.g., "friend int;", but not "friend int const;").  We
+       implement those rules when extended_friends_enabled is TRUE (e.g.,
+       in C++0x mode). */
+    a_boolean  normal_friend_type =
+                               (!extended_friends_enabled ||  /* For speed. */
+                                is_class_struct_union_type(member_type) ||
+                                is_template_param_type(member_type));
+    if ((decl_info->dso_flags & DSO_TYPENAME) && !extended_friends_enabled) {
+      /* "friend typename ..." is not allowed in many modes. */
       pos_error(ec_no_typename_in_friend_class_decl,
                 &decl_info->decl_start_pos);
     } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      a_boolean  generated_real_instance =
+                 (class_type->variant.class_struct_union.is_template_class &&
+                  !class_type
+                     ->variant.class_struct_union.is_prototype_instantiation &&
+                  !class_type->variant.class_struct_union.is_specialized);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (decl_info->dso_flags & (DSO_INLINE | DSO_VIRTUAL)) {
         /* A friend class declaration cannot contain inline or virtual
            specifiers. */
         pos_error(ec_bad_friend_decl, &decl_info->decl_start_pos);
+      } else if (!normal_friend_type) {
+        /* This is a friend declaration that names neither a class type nor a
+           template-dependent type.  For example, "friend int;".  Such friend
+           declarations have no effect, but we may need to record them in the
+           list of source sequence entries.  Since these do not have any
+           effect, we do not record them in the source sequence list if they
+           result from a template instantiation (even when instances are
+           otherwise recorded in the source sequence entry list).  Among other
+           things, this avoids potential problems with the code produced by
+           the C++-generating back end not being consumable by older C++
+           compilers. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        if (!generated_real_instance &&
+            !source_sequence_entries_disallowed) {
+          a_source_sequence_entry_ptr   ssep;
+          a_src_seq_secondary_decl_ptr  sssdp;
+          ssep = add_empty_source_sequence_entry();
+          sssdp = make_source_sequence_secondary_decl(
+                               (char*)member_type, (an_il_entry_kind)iek_type,
+                               (a_type_ptr)NULL);
+          sssdp->friend_decl = TRUE;
+          sssdp->decl_position = decl_info->decl_start_pos;
+          ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+          ssep->entity.ptr  = (char *)sssdp;
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       } else if (!(decl_info->dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
-        char         *class_key_string;
-        a_type_kind  kind = skip_typerefs(member_type)->kind;
-        switch (kind) {
-          case tk_class:   class_key_string = "class";   break;
-          case tk_struct:  class_key_string = "struct";  break;
-          case tk_union:   class_key_string = "union";   break;
-          case tk_template_param:
-                           class_key_string = "class";   break;
-          default:
-            unexpected_condition();
-        }  /* switch */
-        /* Strict ANSI diagnostic in strict ANSI mode, remark
-           otherwise. */
-        pos_st_diagnostic(strict_ansi_mode ?
-                            strict_ansi_error_severity : es_remark,
-                          ec_nonstd_friend_decl,
-                          &locator_for_curr_id.source_position,
-                          class_key_string);
+        member_type = skip_typerefs(member_type);
+        if (!extended_friends_enabled) {
+          char  *class_key_string;
+          switch (member_type->kind) {
+            case tk_class:   class_key_string = "class";   break;
+            case tk_struct:  class_key_string = "struct";  break;
+            case tk_union:   class_key_string = "union";   break;
+            case tk_template_param:
+                             class_key_string = "class";   break;
+            default:
+              unexpected_condition();
+          }  /* switch */
+          /* Strict ANSI diagnostic in strict ANSI mode, remark
+             otherwise. */
+          pos_st_diagnostic(strict_ansi_mode ?
+                              strict_ansi_error_severity : es_remark,
+                            ec_nonstd_friend_decl,
+                            &locator_for_curr_id.source_position,
+                            class_key_string);
+        }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-        if (class_type->variant.class_struct_union.is_template_class  &&
-            !class_type
-                    ->variant.class_struct_union.is_prototype_instantiation &&
-            !class_type->variant.class_struct_union.is_specialized) {
-          /* We're parsing a normal instantiation and it is not to be
-             recorded in the source sequence list in this configuration. */
+        if (generated_real_instance) {
+          /* We're parsing a normal instantiation and it is not to be recorded
+             in the source sequence list in this configuration. */
           goto done_with_sse_for_nonstandard_friend;
-        }  /*  */
+        }  /* if */
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-        if (kind == (a_type_kind)tk_template_param) {
+        if (member_type->kind == (a_type_kind)tk_template_param) {
           if (!prototype_instantiations_in_il) {
             /* We are in a prototype instantiation, but we do not record them
                in the IL: Nothing should be done in terms of source sequence
@@ -12008,7 +12049,13 @@ Check that this is a valid type and if so make member_type a friend.
 done_with_sse_for_nonstandard_friend:;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
-      decl_friend_class(class_type, member_type);
+      if (normal_friend_type) {
+        /* decl_friend_class is only called if member_type is a class or a
+           template-dependent type.  Constructs like "friend int;" do not
+           have a semantic effect and therefore do not need a call to
+           decl_friend_class. */
+        decl_friend_class(class_type, member_type);
+      }  /* if */
     }  /* if */
   } else {
     /* Invalid friend declaration. */
@@ -12533,6 +12580,7 @@ passed via template_decl.
   decl_info.is_destructor = (dso_flags & DSO_DESTRUCTOR) != 0;
   mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
   decl_info.dso_flags = dso_flags;
+  decl_info.qualifiers = state.qualifiers;
   remove_stop_token(tok_colon);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
@@ -14818,7 +14866,7 @@ is nothing that prevents it from being changed to having external linkage.
   a_boolean  is_external_linkage_candidate = FALSE;
 
   db_enter(5, "is_candidate_for_linkage_change");
-  check_assertion(is_immediate_class_type(tp) || is_immediate_enum_type(tp));
+  check_assertion(is_tag_type(tp));
   if (tp->source_corresp.name_linkage !=
                                (a_name_linkage_kind)nlk_internal) {
     /* Already marked as having external linkage or else no linkage.  Only
@@ -15086,8 +15134,7 @@ because they were used in declaring an external function or variable.
        at routines and variables as soon as possible. */
     num_internally_linked_types = 0;
     for (tp = scope->types; tp != NULL; tp = tp->next) {
-      if (!tp->source_corresp.is_local_to_function &&
-          (is_immediate_class_type(tp) || is_immediate_enum_type(tp))) {
+      if (!tp->source_corresp.is_local_to_function && is_tag_type(tp)) {
         if (is_candidate_for_linkage_change(tp)) {
           num_internally_linked_types++;
         }  /* if */

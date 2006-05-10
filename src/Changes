@@ -1,5 +1,23 @@
 Version 3.8
 
+5/10/06  C++0x mode: Extended friend types
+
+In C++0x mode, the friend class declaration syntax is extended to allow
+various additional forms.  Specifically, the use of an elaborated class name
+is no longer required, and the nominated type need not be a class type (in
+the latter case, the friend declaration has essentially no effect).
+For example:
+
+  typedef struct S ST;
+  typedef int const IC;
+  class C {
+    friend S;          // Okay in C++0x mode.
+    friend ST;         // Okay in C++0x mode.
+    friend int;        // Okay in C++0x mode (but no effect).
+    friend IC;         // Okay in C++0x mode (but no effect).
+    friend int const;  // Error: cv-qualifiers not (directly) allowed.
+  };   
+
 5/9/06   GNU compatibility: DO_C99_IL_LOWERING is required
 
 Various GNU C features are lowered using C99 lowering.  It was previously

@@ -142,6 +142,9 @@ an enum type).
   ((type)->kind == (a_type_kind)tk_integer &&                         \
    (type)->variant.integer.enum_type)
 
+#define is_tag_type(type)                                             \
+  (is_immediate_class_type((type)) || is_immediate_enum_type((type)))
+
 #define is_unknown_type(tp) ((tp)->kind == (a_type_kind)tk_unknown)
 
 /*

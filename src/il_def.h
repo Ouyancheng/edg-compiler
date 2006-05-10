@@ -911,7 +911,8 @@ typedef struct a_src_seq_secondary_decl {
 			   flag set. */
   a_bit_field	friend_decl:1;
 			/* TRUE when the declaration is a friend declaration;
-			   "entity" will refer to a routine or class. */
+			   "entity" will refer to a routine or class.  (In
+			   some modes, it may refer to other types as well.) */
   a_bit_field	implicit_decl:1;
 			/* TRUE when this declaration is an implicit function
 			   declaration. */
