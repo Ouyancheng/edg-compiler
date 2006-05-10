@@ -1,5 +1,14 @@
 Version 3.8
 
+5/9/06   GNU compatibility: DO_C99_IL_LOWERING is required
+
+Various GNU C features are lowered using C99 lowering.  It was previously
+possible to configure the front end with DO_IL_LOWERING and
+GNU_EXTENSIONS_ALLOWED set to TRUE and DO_C99_IL_LOWERING set to FALSE.
+Ths combination left some IL constructs unlowered, which could result in
+aborts in the C-generating back end.  Attempting to use this configuration
+now results in a build-time error.
+
 5/9/06   Missing virtual function table in multiple translation unit mode
 
 The IL lowering process failed to generate a definition for a virtual

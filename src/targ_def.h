@@ -299,6 +299,9 @@ support library.
  #error -- C99 IL lowering cannot be done if C99 or GNU IL extensions not \
            supported
 #endif /* DO_C99_IL_LOWERING && !(C99_IL_EXTENSIONS_SUPPORTED || GNU_...) */
+#if DO_IL_LOWERING && GNU_EXTENSIONS_ALLOWED && !DO_C99_IL_LOWERING
+ #error -- Lowering GNU extensions requires DO_C99_IL_LOWERING
+#endif /* DO_IL_LOWERING && GNU_EXTENSIONS_ALLOWED && !DO_C99_IL_LOWERING */
 
 #if !C99_IL_EXTENSIONS_SUPPORTED && GNU_COMPLEX_EXTENSIONS_ALLOWED
  #error -- GNU_COMPLEX_EXTENSIONS_ALLOWED requires C99_IL_EXTENSIONS_SUPPORTED
