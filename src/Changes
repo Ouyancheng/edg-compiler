@@ -17,8 +17,8 @@ In C++0x mode, the front end now accepts string literal concatenations
 involving an ordinary char string literal and a wide string literal.
 For example:
 
-  wchar_t str1 = L"a" "b";  // Okay, same as L"ab".
-  wchar_t str2 = "a" L"b";  // Okay, same as L"ab".
+  wchar_t *str1 = L"a" "b";  // Okay, same as L"ab".
+  wchar_t *str2 = "a" L"b";  // Okay, same as L"ab".
 
 (Such constructs were already accepted in C99 and GNU modes.)
 
