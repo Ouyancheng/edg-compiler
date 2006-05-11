@@ -98,7 +98,11 @@ void lower_complex_projection(an_expr_node_ptr  expr);
     designators_allowed                                                      \
     or_fixed_point_lowering_needed()) &&                                     \
    !suppress_il_lowering && total_errors == 0)
+#else /* !DO_C99_IL_LOWERING */
+#define c99_il_lowering_needed() FALSE
+#endif /* DO_C99_IL_LOWERING */
 
+#if DO_C99_IL_LOWERING
 #if LOWER_FIXED_POINT
 extern a_type_ptr lowered_integer_type_for_fixed_point_type(
                                                            a_type_ptr fx_type);
@@ -121,8 +125,6 @@ void post_lower_c99_bool_cast(an_expr_node_ptr expr);
 
 extern void lower_c99_il_memory_region(a_memory_region_number region_number);
 
-#else /* !DO_C99_IL_LOWERING */
-#define c99_il_lowering_needed() (FALSE)
 #endif /* DO_C99_IL_LOWERING */
 
 extern void lower_c99_one_time_init(void);
