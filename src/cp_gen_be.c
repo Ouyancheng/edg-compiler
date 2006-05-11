@@ -7304,6 +7304,7 @@ call in the normal way.
     a_routine_ptr routine = operand_1->variant.routine;
     a_type_ptr    return_type =
                      skip_typerefs(routine->type)->variant.routine.return_type;
+    a_type_ptr    bare_return_type = skip_typerefs(return_type);
     /* This is a call of a conversion function. */
     if (expr->variant.operation.compiler_generated) {
       /* This is an implicit conversion.  Put out just the operand. */
@@ -7311,16 +7312,21 @@ call in the normal way.
       handled = TRUE;
     } else if (in_ctor_default_argument &&
                msvc_is_generated_code_target &&
-               msvc_target_version_number == 1200 &&
-               skip_typerefs(return_type)->source_corresp.is_class_member &&
+               ((msvc_target_version_number == 1200 &&
+                 bare_return_type->source_corresp.is_class_member) ||
+                (msvc_target_version_number < 1310 &&
+                 !bare_return_type->source_corresp.is_class_member &&
+                 bare_return_type->source_corresp.parent.namespace_ptr
+                                                                   != NULL)) &&
                has_name_before_mangling(return_type)) {
       /* Some builds of MSVC 6.0 (12.00.8804, for instance, but not
          12.00.8168) have a bug in which using an old-style cast to a
          nested class type in the default argument of a constructor causes
-         an internal compiler error.  A different bug causes a spurious
-         error if a functional cast to the nested class type is enclosed
-         in parentheses in that context. */
-      gen_type_name(return_type);
+         an internal compiler error.  For a type that is a namespace
+         member, the affected versions include both 6.0 and 7.0.  A
+         different bug causes a spurious error if a functional cast to the
+         class type is enclosed in parentheses in that context. */
+      gen_type_name(bare_return_type);
       write_tok_ch('(');
       gen_lvalue(operand_2);
       write_tok_ch(')');
@@ -11158,6 +11164,7 @@ source and the expression is generated in that form.
       using_old_style_cast = TRUE;
     }  /* if */
     if (using_old_style_cast) {
+      a_type_ptr bare_init_entity_type = skip_typerefs(init_entity_type);
       if (is_static_cast) {
         /* This was a static_cast in the source, so use that form now. */
         write_tok_str("static_cast< ");
@@ -11165,19 +11172,25 @@ source and the expression is generated in that form.
         write_tok_ch('>');
         suppress_outermost_parentheses = TRUE;
       } else if (in_ctor_default_argument &&
-          msvc_is_generated_code_target &&
-          msvc_target_version_number == 1200 &&
-          dip->kind == (a_dynamic_init_kind)dik_constructor &&
-          skip_typerefs(init_entity_type)->source_corresp.is_class_member &&
-          has_name_before_mangling(init_entity_type)) {
+                 msvc_is_generated_code_target &&
+                 dip->kind == (a_dynamic_init_kind)dik_constructor &&
+                 ((msvc_target_version_number == 1200 &&
+                   bare_init_entity_type->source_corresp.is_class_member) ||
+                  (msvc_target_version_number < 1310 &&
+                   !bare_init_entity_type->source_corresp.is_class_member &&
+                   bare_init_entity_type->source_corresp.parent.namespace_ptr
+                                                                   != NULL)) &&
+                 has_name_before_mangling(init_entity_type)) {
         /* Some builds of MSVC 6.0 (12.00.8804, for instance, but not
            12.00.8168) have a bug in which using an old-style cast to a
-           nested class type in the default argument of a constructor causes
-           an internal compiler error.  A different bug causes a spurious
-           error if a functional cast to the nested class type is enclosed
-           in parentheses in that context. */
+           nested class type in the default argument of a constructor
+           causes an internal compiler error.  For a type that is a
+           namespace member, the affected versions include both 6.0 and
+           7.0.  A different bug causes a spurious error if a functional
+           cast to the class type is enclosed in parentheses in that
+           context. */
         suppress_outermost_parentheses = TRUE;
-        gen_type_name(init_entity_type);
+        gen_type_name(bare_init_entity_type);
 #if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
       } else if (gcc_is_generated_code_target &&
                  gnu_target_version_number < 30400 &&

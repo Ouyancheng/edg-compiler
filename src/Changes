@@ -1,5 +1,30 @@
 Version 3.8
 
+5/11/06  C++-generating back end: Microsoft compatibility in casts to a
+         namespace member type
+
+Some builds of MSVC++ versions 6.0 and 7.0 have a bug in which using an
+old-style cast to a type that is a member of a namespace in the default
+argument of a constructor causes an internal compiler error.  (See the Changes
+entry of 2/26/05 for a similar issue with nested class types.)  For example:
+
+  struct S { } s;
+  namespace N {
+     struct Inner {
+       Inner(S);
+     };
+  }
+  struct Outer {
+    Outer(const N::Inner& r = N::Inner(s));  // Formerly generated as
+                                             // ((N::Inner)(s))
+  };
+
+thus triggering the MSVC++ bug.  Now, when msvc_is_generated_code_target is
+TRUE and msvc_target_version_number is less than 1310, the default argument
+will be generated as a functional cast with no enclosing parentheses:
+
+    Outer(const N::Inner& r = N::Inner(s));
+
 5/10/06  C++0x mode: Extended friend types
 
 In C++0x mode, the friend class declaration syntax is extended to allow
