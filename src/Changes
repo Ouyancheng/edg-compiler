@@ -65,6 +65,10 @@ For example:
     friend int const;  // Error: cv-qualifiers not (directly) allowed.
   };   
 
+This extension was voted into the C++ committee's working paper for the next
+standard in October 2005 (meeting in Mont Tremblant, through proposal numbered
+N1791).
+
 5/9/06   GNU compatibility: DO_C99_IL_LOWERING is required
 
 Various GNU C features are lowered using C99 lowering.  It was previously
