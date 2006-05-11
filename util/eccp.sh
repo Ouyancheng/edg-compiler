@@ -707,6 +707,7 @@ check_abbreviation()
 --no_trigraphs
 --no_type_traits_helpers
 --no_typename
+--no_uliterals
 --no_upc
 --no_use_before_set_warnings
 --no_using_std
@@ -780,6 +781,7 @@ check_abbreviation()
 --trigraphs
 --type_traits_helpers
 --typename
+--uliterals
 --undefine_macro
 --unsigned_chars
 --upc
@@ -1286,6 +1288,8 @@ process_option()
          --no_defer_parse_function_templates | \
          --macro_positions_in_diagnostics | \
          --no_macro_positions_in_diagnostics | \
+         --uliterals | \
+         --no_uliterals | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
