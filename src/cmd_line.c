@@ -1958,6 +1958,7 @@ Set the various flags appropriate to C99 mode.
   /* Allow nonconstant expressions in aggregate initializers for automatic
      variables. */
   allow_nonconstant_auto_aggr_init_in_c_mode = TRUE;
+  mixed_string_concat_enabled = TRUE;
 }  /* set_c99_mode_flags */
 
 
@@ -2187,6 +2188,7 @@ the next standard).
 {
   right_shift_can_be_angle_brackets = TRUE;
   extended_friends_enabled = TRUE;
+  mixed_string_concat_enabled = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -2896,6 +2898,7 @@ exclude the GNU modes already.  Hence those are not checked again here.)
   if (!option_kind_used[(int)optk_type_traits_helpers]) {
     type_traits_helpers_enabled = FALSE;
   }  /* if */
+  mixed_string_concat_enabled = TRUE;
 }  /* check_and_set_gnu_mode_options */
 
 
@@ -5269,6 +5272,7 @@ variables declared in cmd_line.h.
   cpp0x_mode = DEFAULT_CPP0X_MODE;
   right_shift_can_be_angle_brackets = FALSE;
   extended_friends_enabled = FALSE;
+  mixed_string_concat_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

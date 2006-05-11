@@ -8563,17 +8563,17 @@ curr_token is already set in that case.
     if (character_kind != const_for_curr_token.character_kind &&
         !is_error_constant(&const_for_curr_token)) {
       /* The new string and the old one have different character kinds.
-         In C99 or gcc/g++ modes, this may be okay if one of the two kinds
-         is "char" (the concatenation results in the other kind).  In other
-         modes, it is a discretionary error.  If two different non-char
-         character types are mixed (e.g., U"A" L"B") a non-discretionary
-         error is issued in all modes. */
+         In some modes (C99, C++0x, and GNU), this may be okay if one of
+         the two kinds is "char" (the concatenation results in the other
+         kind).  In other modes, it is a discretionary error.  If two
+         different non-char character types are mixed (e.g., U"A" L"B") a
+         non-discretionary error is issued in all modes. */
       an_error_severity  sev;
       if (character_kind != (a_character_kind)chk_char &&
           const_for_curr_token.character_kind != (a_character_kind)chk_char) {
         sev = es_error;
       } else {
-        sev = (c99_mode || gnu_mode) ? es_none : es_discretionary_error;
+        sev = mixed_string_concat_enabled ? es_none : es_discretionary_error;
         if (character_kind == (a_character_kind)chk_char) {
           character_kind = const_for_curr_token.character_kind;
         }  /* if */

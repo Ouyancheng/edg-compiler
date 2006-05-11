@@ -1829,6 +1829,14 @@ EXTERN a_boolean
 			   type specifier (an extension specified in the C++0x
 			   working paper). */
 
+EXTERN a_boolean
+		mixed_string_concat_enabled;
+			/* When TRUE, string literal concatenation is allowed
+			   even when one of the string literals is an ordinary
+			   "char" string and the other literal is a wide
+			   string literal (e.g., L"a" "b" is then accepted; so
+			   is "a" U"b" in modes that allow U-literals). */
+
 /*
 Check that no mutually exclusive dialect emulations are simultaneously
 enabled.

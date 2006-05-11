@@ -1,5 +1,16 @@
 Version 3.8
 
+5/11/06  C++0x mode: Mixed string literal concatenations
+
+In C++0x mode, the front end now accepts string literal concatenations
+involving an ordinary char string literal and a wide string literal.
+For example:
+
+  wchar_t str1 = L"a" "b";  // Okay, same as L"ab".
+  wchar_t str2 = "a" L"b";  // Okay, same as L"ab".
+
+(Such constructs were already accepted in C99 and GNU modes.)
+
 5/11/06  C++-generating back end: Microsoft compatibility in casts to a
          namespace member type
 
