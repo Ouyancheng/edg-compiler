@@ -1,5 +1,16 @@
 Version 3.8
 
+5/11/06  C++0x mode: Trailing comma in definition of enumeration type
+
+In C++0x mode, the front end now silently accepts a trailing comma in the
+definition of enumeration types (even when combined with strict mode).
+For example:
+
+  enum E { e, };  // Silently accepted in C++0x mode.
+
+This was already silently accepted in C99 and K&R C modes.  It was also
+accepted with a remark in all other nonstrict modes.
+
 5/11/06  C++0x mode: Mixed string literal concatenations
 
 In C++0x mode, the front end now accepts string literal concatenations

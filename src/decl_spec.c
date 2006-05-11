@@ -4652,13 +4652,13 @@ describes Microsoft attributes preceding the enum specifier (if any).
         copy_source_position(pos_curr_token, pos_comma);
         done = !loop_token(tok_comma);
         if (!done && curr_token == tok_rbrace) {
-           /* In K&R and C99 C modes an extra comma is allowed at the end of
-              the list.  In other C and C++ modes, we allow it as an
+           /* In K&R C, C99, and C++0x modes an extra comma is allowed at the
+              end of the list.  In other C and C++ modes, we allow it as an
               extension, with a strict ANSI diagnostic (the gcc compiler
-              source includes cases like this, and that source is part of
-              the SPEC benchmark suite). */
+              source includes cases like this, and that source is part of the
+              SPEC benchmark suite). */
           done = TRUE;
-          if (C_dialect != C_dialect_pcc && !c99_mode) {
+          if (C_dialect != C_dialect_pcc && !c99_mode && !cpp0x_mode) {
             an_error_severity    severity;
             severity = strict_ansi_mode ? strict_ansi_discretionary_severity :
                                           es_remark;
