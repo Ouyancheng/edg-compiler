@@ -4406,7 +4406,7 @@ enable_microsoft_mode:
         type_traits_helpers_enabled = opt_value;
         break;
       case optk_cpp0x_mode:
-        /* Enable or disabled C++ features added to the working paper for the
+        /* Enable or disable C++ features added to the working paper for the
            next C++ standard. */
         cpp0x_mode = opt_value;
         C_dialect = C_dialect_cplusplus;
