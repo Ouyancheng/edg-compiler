@@ -5404,14 +5404,14 @@ this one is such a continuation.
                    type->variant.class_struct_union.is_in_class_specialization,
                    template_arg_list);
     }  /* if */
-    if (!is_immediate_class_type(type)) {
+    if (friend_decl && !is_immediate_class_type(type)) {
       /* Handle nonstandard friend declarations (such as "friend int;" and
-         "friend typedef-name"). */
-      if (friend_decl) {
-        adv_curr_source_sequence_entry();
-        write_tok_str("friend ");
-        gen_type(type);
-      } else if (type->is_builtin_va_list) {
+         "friend typedef-name;"). */
+      adv_curr_source_sequence_entry();
+      write_tok_str("friend ");
+      gen_type(type);
+    } else if (kind == (a_type_kind)tk_typeref) {
+      if (type->is_builtin_va_list) {
         /* This is the declaration of the builtin va_list, from <stdarg.h>. */
         suppress_closing_punct = TRUE;
         adv_curr_source_sequence_entry();
