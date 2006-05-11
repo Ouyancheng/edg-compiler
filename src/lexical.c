@@ -9805,6 +9805,20 @@ Interface to pop_stop_token_stack_full that passes in final_pop == FALSE.
 }  /* pop_stop_token_stack */
 
 
+static void replace_right_shift_by_two_closing_angle_brackets(void)
+/*
+The current token must be a ">>": Replace it with two ">" tokens.
+*/
+{
+  a_token_cache  cache;
+
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  curr_token = tok_gt;
+  cache_curr_token(&cache);
+  rescan_cached_tokens(&cache);
+}  /* replace_right_shift_by_two_closing_angle_brackets */
+
+
 void flush_until_matching_token(void)
 /*
 The current token is the opening token of a pair of matched tokens (e.g.,
@@ -9860,6 +9874,16 @@ an opening parenthesis).  Flush to the corresponding closing token.
              "A<(1>2)>" the first ">" doesn't count. */
           if (paren_count == 0 && bracket_count == 0 && brace_count == 0) {
             done = TRUE;
+          }  /* if */
+        }  /* if */
+        break;
+      case tok_shift_right:
+        /* A ">>" may need to be treated as two ">". */
+        if (right_shift_can_be_angle_brackets && closing_token == tok_gt) {
+          if (paren_count == 0 && bracket_count == 0 && brace_count == 0) {
+            replace_right_shift_by_two_closing_angle_brackets();
+            /* Restart this loop iteration with the replaced tokens. */
+            continue;
           }  /* if */
         }  /* if */
         break;
@@ -11254,19 +11278,18 @@ modes.
        this is handled by inserting a ">" into the token stream that will
        close the outer template argument list.  (The outer angle bracket
        may also close a new-style cast.) */
-    a_token_cache 	cache;
     if (!right_shift_can_be_angle_brackets) {
       error(ec_exp_gt_not_shift_right);
       *any_errors = TRUE;
     }  /* if */
-    clear_token_cache(&cache, /*reusable=*/FALSE);
-    curr_token = tok_gt;
-    cache_curr_token(&cache);
-    rescan_cached_tokens(&cache);
+    replace_right_shift_by_two_closing_angle_brackets();
   } else if (!*any_errors) {
     /* There are not two template argument lists pending.  Simply issue an
        "expected '>'" error. */
     syntax_error(ec_exp_gt);
+    if (right_shift_can_be_angle_brackets && curr_token == tok_shift_right) {
+      replace_right_shift_by_two_closing_angle_brackets();
+    }  /* if */
     *any_errors = TRUE;
   }  /* if */
 }  /* f_check_closing_angle_bracket */
@@ -11492,6 +11515,11 @@ a routine to lookup the appropriate instance (or generate one if needed).
   /* Always allocate template arguments at the file scope. */
   switch_to_file_scope_region(&region_to_switch_back_to);
   add_stop_token(tok_gt);
+  if (right_shift_can_be_angle_brackets) {
+    /* The opening angle bracket might end up being closed by a double
+       angle bracket written as a right shift token. */
+    add_stop_token(tok_shift_right);
+  }  /* if */
   add_stop_token(tok_lbrace);
   add_stop_token(tok_semicolon);
   /* Get the angle bracket token. */
@@ -11617,6 +11645,9 @@ a routine to lookup the appropriate instance (or generate one if needed).
   }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
   remove_stop_token(tok_gt);
+  if (right_shift_can_be_angle_brackets) {
+    remove_stop_token(tok_shift_right);
+  }  /* if */
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
 
@@ -11705,6 +11736,11 @@ is the one actually associated with this reference.
     /* Always allocate template arguments at the file scope. */
     switch_to_file_scope_region(&region_to_switch_back_to);
     add_stop_token(tok_gt);
+    if (right_shift_can_be_angle_brackets) {
+      /* The opening angle bracket might end up being closed by a double
+         angle bracket written as a right shift token. */
+      add_stop_token(tok_shift_right);
+    }  /* if */
     add_stop_token(tok_lbrace);
     add_stop_token(tok_semicolon);
     /* Get the angle bracket token. */
@@ -11728,6 +11764,9 @@ is the one actually associated with this reference.
     scope_stack[depth_scope_stack].pending_templ_arg_lists--;
     switch_back_to_original_region(region_to_switch_back_to);
     remove_stop_token(tok_gt);
+    if (right_shift_can_be_angle_brackets) {
+      remove_stop_token(tok_shift_right);
+    }  /* if */
     remove_stop_token(tok_lbrace);
     remove_stop_token(tok_semicolon);
     if (curr_token != tok_gt) {
