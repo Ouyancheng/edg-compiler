@@ -109,10 +109,11 @@ that has not been closed.  For example:
 
 5/8/06   C++0x mode
 
-New command-line options --c++0x and --no_c++0x have been added to enable
-or disable support for certain C++ extensions added to the working paper for
-the next C++ standard.  The default behavior can be configured using the
-macro DEFAULT_CPP0X_MODE.
+New command-line options --c++0x and --no_c++0x have been added to enable or
+disable support for certain C++ extensions added to the working paper for the
+next C++ standard.  The default behavior can be configured using the macro
+DEFAULT_CPP0X_MODE.  C++0x mode can be combined with strict conformance mode
+(--strict) to ensure maximal conformance to the working paper specifications.
 
 5/5/06   GNU alias loops
 
