@@ -2275,6 +2275,7 @@ setting is used, and to set various unmentioned settings as needed.
     right_shift_can_be_angle_brackets =
                                     DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS;
     mixed_string_concat_enabled = TRUE;
+    extended_friends_enabled = TRUE;
   }  /* if */
 }  /* check_and_set_cplusplus_mode_options */
 
@@ -2759,6 +2760,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
          modes. */
       right_shift_can_be_angle_brackets = FALSE;
       mixed_string_concat_enabled = FALSE;
+      extended_friends_enabled = FALSE;
     }  /* if */
   }  /* if */
   /* Make sure that strict ANSI messages come out even if the

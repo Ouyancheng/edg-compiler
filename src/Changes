@@ -69,11 +69,11 @@ will be generated as a functional cast with no enclosing parentheses:
 
 5/10/06  C++0x mode: Extended friend types
 
-In C++0x mode, the friend class declaration syntax is extended to allow
-various additional forms.  Specifically, the use of an elaborated class name
-is no longer required, and the nominated type need not be a class type (in
-the latter case, the friend declaration has essentially no effect).
-For example:
+In C++0x mode and in other nonstrict C++ modes, the friend class declaration
+syntax has been extended to allow various additional forms.  Specifically, the
+use of an elaborated class name is no longer required, and the nominated type
+need not be a class type (in the latter case, the friend declaration has
+essentially no effect).  For example:
 
   typedef struct S ST;
   typedef int const IC;
