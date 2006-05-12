@@ -29,14 +29,14 @@ standard in April 2006 (meeting in Berlin, through resolution of Core issue
 
 5/11/06  C++0x mode: Mixed string literal concatenations
 
-In C++0x mode, the front end now accepts string literal concatenations
-involving an ordinary char string literal and a wide string literal.
-For example:
+In C++0x mode and in other nonstrict C++ modes, the front end now accepts
+string literal concatenations involving an ordinary char string literal and
+a wide string literal.  For example:
 
   wchar_t *str1 = L"a" "b";  // Okay, same as L"ab".
   wchar_t *str2 = "a" L"b";  // Okay, same as L"ab".
 
-(Such constructs were already accepted in C99 and GNU modes.)
+Such constructs were already accepted in C99 and GNU modes.
 
 This extension was voted into the C++ committee's working paper for the next
 standard in October 2005 (meeting in Mont Tremblant, through proposal numbered

@@ -2267,10 +2267,14 @@ setting is used, and to set various unmentioned settings as needed.
   /* Universal character names are allowed. */
   universal_character_names_allowed = TRUE;
   elab_type_lookup_finds_typedefs = TRUE;
-  right_shift_can_be_angle_brackets =
-                                    DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS;
   if (cpp0x_mode) {
     check_and_set_cpp0x_mode_options();
+  } else {
+    /* The following settings may be overridden later on (e.g., by
+       check_and_set_ansi_mode_options). */
+    right_shift_can_be_angle_brackets =
+                                    DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS;
+    mixed_string_concat_enabled = TRUE;
   }  /* if */
 }  /* check_and_set_cplusplus_mode_options */
 
@@ -2751,7 +2755,10 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
       }  /* if */
     }  /* if */
     if (!cpp0x_mode) {
+      /* Disable C++0x extensions that might have been enabled in non-C++0x
+         modes. */
       right_shift_can_be_angle_brackets = FALSE;
+      mixed_string_concat_enabled = FALSE;
     }  /* if */
   }  /* if */
   /* Make sure that strict ANSI messages come out even if the
