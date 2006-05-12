@@ -3670,12 +3670,18 @@ pointers to data members are properly initialized to -1 for NULL.
       ++elem;
     }  /* while */
   } else if (is_class_or_struct(type)) {
-    a_field_ptr f, first_f, last_f = NULL;
+    a_field_ptr f;
+#if LOWER_DESIGNATED_INITIALIZERS
+    a_field_ptr first_f, last_f;
+#else /* !LOWER_DESIGNATED_INITIALIZERS */
+    a_constant_ptr prev_con, rest_of_list = NULL, end_of_list = NULL;
+#endif /* !LOWER_DESIGNATED_INITIALIZERS */
     /* Note that we generate initializers for base classes,
        virtual function table pointers, etc., because the class
        is prelowered.  Make sure it is. */
     prelower_class_type(type);
     f = next_initializable_field(type->variant.class_struct_union.field_list);
+#if LOWER_DESIGNATED_INITIALIZERS
     /* Skip over the initialized fields.  Note that they have previously
        been run through this routine so they fully initialize any pointer
        to data members. */
@@ -3684,11 +3690,11 @@ pointers to data members are properly initialized to -1 for NULL.
          cp = cp->next) {
       f = next_initializable_field(f->next);
     }  /* for */
-    /* At this point f points to the first field that will need
-       initialization. */
+    /* At this point f points to the first field that is uninitialized. */
     first_f = f;
     /* Find the last uninitialized field containing a pointer to data
        member. */
+    last_f = NULL;
     while (f != NULL) {
       if (contains_ptr_to_data_member(f->type)) {
         last_f = f;
@@ -3698,20 +3704,75 @@ pointers to data members are properly initialized to -1 for NULL.
     /* Create initializers for the uninitialized fields until we get to
        the last field that contains a pointer to data member. */
     if (last_f != NULL) {
+      f = first_f;
       for (;;) {
-        cp = lower_zero_initialization(first_f->type);
+        cp = lower_zero_initialization(f->type);
         if (constant->variant.aggregate.first_constant == NULL) {
           constant->variant.aggregate.first_constant = cp;
         } else {
           constant->variant.aggregate.last_constant->next = cp;
         }  /* if */
         constant->variant.aggregate.last_constant = cp;
-        if (first_f == last_f) {
+        if (f == last_f) {
           break;
         }  /* if */
-        first_f = next_initializable_field(first_f->next);
+        f = next_initializable_field(f->next);
       }  /* for */
     }  /* if */
+#else /* !LOWER_DESIGNATED_INITIALIZERS */
+    /* Designated initializers are not being lowered, so some might appear on
+       the list. */
+    /* Skip over the initialized fields.  Note that they have previously
+       been run through this routine so they fully initialize any pointer
+       to data members. */
+    for (prev_con = NULL, cp = constant->variant.aggregate.first_constant;
+         cp != NULL;
+         prev_con = cp, cp = cp->next) {
+      if (cp->kind == (a_constant_repr_kind)ck_designator) {
+        /* If a designator is encountered, save the rest of the list off
+           to the side, generate initializers for any pointer-to-member
+           members following this point, and put the rest of the list back on
+           at the end. */
+        rest_of_list = cp;
+        if (prev_con == NULL) {
+          constant->variant.aggregate.first_constant = NULL;
+        } else {
+          prev_con->next = NULL;
+        }  /* if */
+        end_of_list = constant->variant.aggregate.last_constant;
+        constant->variant.aggregate.last_constant = prev_con;
+        break;
+      }  /* if */
+      f = next_initializable_field(f->next);
+    }  /* for */
+    /* Look for so-far uninitialized fields that contain pointers to
+       members and put out designators initializing them to "zero". */
+    while (f != NULL) {
+      if (contains_ptr_to_data_member(f->type)) {
+        a_constant_ptr descp = alloc_constant(
+                                          (a_constant_repr_kind)ck_designator);
+        descp->variant.designator.field = f;
+        cp = lower_zero_initialization(f->type);
+        descp->next = cp;
+        if (constant->variant.aggregate.first_constant == NULL) {
+          constant->variant.aggregate.first_constant = descp;
+        } else {
+          constant->variant.aggregate.last_constant->next = descp;
+        }  /* if */
+        constant->variant.aggregate.last_constant = cp;
+      }  /* if */
+      f = next_initializable_field(f->next);
+    }  /* while */
+    if (rest_of_list != NULL) {
+      /* Replace the end of the list, which starts with a designator. */
+      if (constant->variant.aggregate.first_constant == NULL) {
+        constant->variant.aggregate.first_constant = rest_of_list;
+      } else {
+        constant->variant.aggregate.last_constant->next = rest_of_list;
+      }  /* if */
+      constant->variant.aggregate.last_constant = end_of_list;
+    }  /* if */
+#endif /* !LOWER_DESIGNATED_INITIALIZERS */
   }  /* if */
 }  /* fill_out_aggregate_ptr_to_data_member_initialization */
 
