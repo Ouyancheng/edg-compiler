@@ -1822,6 +1822,14 @@ EXTERN a_boolean
 			   double closing angle brackets (as mandated by the
 			   C++0x working paper). */
 
+/*
+Flag that determines the default value of right_shift_can_be_angle_brackets
+in nonstrict, non-C++0x C++ modes.
+*/
+#ifndef DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS
+#define DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS FALSE
+#endif /* DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS */
+
 EXTERN a_boolean
 		extended_friends_enabled;
 			/* When TRUE, allow the form "friend <type-name>;"

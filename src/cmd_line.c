@@ -2267,6 +2267,8 @@ setting is used, and to set various unmentioned settings as needed.
   /* Universal character names are allowed. */
   universal_character_names_allowed = TRUE;
   elab_type_lookup_finds_typedefs = TRUE;
+  right_shift_can_be_angle_brackets =
+                                    DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS;
   if (cpp0x_mode) {
     check_and_set_cpp0x_mode_options();
   }  /* if */
@@ -2747,6 +2749,9 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
       } else {
         ignore_std_namespace = FALSE;
       }  /* if */
+    }  /* if */
+    if (!cpp0x_mode) {
+      right_shift_can_be_angle_brackets = FALSE;
     }  /* if */
   }  /* if */
   /* Make sure that strict ANSI messages come out even if the

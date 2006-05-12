@@ -131,6 +131,10 @@ that has not been closed.  For example:
     C<(3 >> 1)> c2;          // Accepted in all C++ modes.
   }
 
+A new configuration macro DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS allows
+this feature to be enabled also in non-strict, non-C++0x modes (the feature
+is always disabled in strict non-C++0x mode).
+
 This extension was voted into the C++ committee's working paper for the next
 standard in April 2006 (meeting in Berlin, through proposal numbered N1757).
 
