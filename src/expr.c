@@ -12014,7 +12014,7 @@ static void scan_add_operator(an_operand *operand_1,
 Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
 */
 {
-  an_expr_operator_kind op;
+  an_expr_operator_kind op = (an_expr_operator_kind)eok_error;
   a_token_kind          save_token;
   an_operand            operand_2;
   an_operand            operand_temp;

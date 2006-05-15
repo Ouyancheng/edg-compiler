@@ -1683,8 +1683,8 @@ error.
   a_cached_token_ptr		ctp;
   a_cached_token_ptr		first_ctp_to_move = NULL;
   a_cached_token_ptr		before_first_ctp_to_move = NULL;
-  a_cached_token_ptr		prev_first_ctp_to_move;
-  a_cached_token_ptr		prev_before_first_ctp_to_move;
+  a_cached_token_ptr		prev_first_ctp_to_move = NULL;
+  a_cached_token_ptr		prev_before_first_ctp_to_move = NULL;
 
   check_assertion_str2(cache1->is_reusable && cache2->is_reusable,
                        "split_token_cache:",
@@ -1736,6 +1736,7 @@ error.
   cache2->first_token = first_ctp_to_move;
   cache2->last_token = cache1->last_token;
   /* Break the links in cache1. */
+  check_assertion(before_first_ctp_to_move != NULL);
   cache1->last_token = before_first_ctp_to_move;
   cache1->last_token->next = NULL;
   /* Add a new terminator to the end of the original. */
@@ -2691,6 +2692,7 @@ is TRUE.
            expensive processing. */
         (!null_chars_allowed_in_source ||
          orig_line_modif_list == NULL ||
+         /* coverity[returned_null] */  /* coverity[dereference] */
          strchr(curr_source_line, LE_ESCAPE)[1] == LE_NEWLINE)) {
       /* For the common case, output the line quickly. */
       /* We count on the fact that an LE_ESCAPE sequence will end the
@@ -5223,7 +5225,7 @@ the current source line instead of beginning a new line.  This is used
 for the GNU C multiline string extension.
 */
 {
-  int             ch;
+  int             ch = 0;
   char            *loc_in_line;
   a_boolean       return_value;
   unsigned long   curr_column;
