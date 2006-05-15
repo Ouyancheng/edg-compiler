@@ -2192,6 +2192,25 @@ the next standard).
 }  /* check_and_set_cpp0x_mode_options */
 
 
+static void check_and_set_default_cpp0x_extensions(void)
+/*
+Some C++0x features are enabled in default (i.e., non-C++-0x) C++ mode, but
+not in other non-C++0x modes (like non-C++0x Microsoft mode).  This routine
+enables the appropriate extensions in default C++ mode.  Individual features
+may get enabled in the other non-C++0x modes.
+*/
+{
+  check_assertion(!C_mode() && !cpp0x_mode);
+  if (!strict_ansi_mode &&
+      !microsoft_mode && !gpp_mode && !sun_mode && !any_cfront_mode()) {
+    right_shift_can_be_angle_brackets =
+                                    DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS;
+    mixed_string_concat_enabled = TRUE;
+    extended_friends_enabled = TRUE;
+  }  /* if */
+}  /* check_and_set_default_cpp0x_extensions */
+
+
 static void check_and_set_cplusplus_mode_options(void)
 /*
 This routine is called in C++ mode to check that no non-C++ command-line
@@ -2270,12 +2289,7 @@ setting is used, and to set various unmentioned settings as needed.
   if (cpp0x_mode) {
     check_and_set_cpp0x_mode_options();
   } else {
-    /* The following settings may be overridden later on (e.g., by
-       check_and_set_ansi_mode_options). */
-    right_shift_can_be_angle_brackets =
-                                    DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS;
-    mixed_string_concat_enabled = TRUE;
-    extended_friends_enabled = TRUE;
+    check_and_set_default_cpp0x_extensions();
   }  /* if */
 }  /* check_and_set_cplusplus_mode_options */
 
@@ -2754,13 +2768,6 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
       } else {
         ignore_std_namespace = FALSE;
       }  /* if */
-    }  /* if */
-    if (!cpp0x_mode) {
-      /* Disable C++0x extensions that might have been enabled in non-C++0x
-         modes. */
-      right_shift_can_be_angle_brackets = FALSE;
-      mixed_string_concat_enabled = FALSE;
-      extended_friends_enabled = FALSE;
     }  /* if */
   }  /* if */
   /* Make sure that strict ANSI messages come out even if the

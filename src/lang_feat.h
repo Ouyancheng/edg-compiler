@@ -1823,8 +1823,8 @@ EXTERN a_boolean
 			   C++0x working paper). */
 
 /*
-Flag that determines the default value of right_shift_can_be_angle_brackets
-in nonstrict, non-C++0x C++ modes.
+Flag that determines the value of right_shift_can_be_angle_brackets in default
+C++ mode.
 */
 #ifndef DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS
 #define DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS FALSE
