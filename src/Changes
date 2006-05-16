@@ -1,5 +1,25 @@
 Version 3.8
 
+5/16/06  Copy constructor optimization dropped cv-qualifiers
+
+An optimization added in version 3.6 to eliminate extra copy constructor
+calls in direct-initializations (see Changes entry of 3/21/05) caused the
+Front End to lose cv-qualifier adjustments in some cases.  Now fixed.
+
+  struct A {
+    int value;
+    A() : value(0) { }
+    A(const A &a) : value(a.value) { }
+    A(int value) : value(value) { }
+    A add(int x) { return A(value + x); }
+    static A fromValue(int value);
+  };
+  const A operator+(const A &a1, const A &a2)
+  { return A(a1.value + a2.value); }
+  int main() {
+    A a2 = A(A(1)+A(2)).add(3);  // Got spurious error because "const" kept
+  }
+
 5/16/06  Microsoft: memory region problem with VC6 using-directive emulation
 
 In Microsoft bugs mode, when microsoft_version is <= 1200, we emulate

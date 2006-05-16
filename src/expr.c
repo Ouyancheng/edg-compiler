@@ -1130,10 +1130,8 @@ source position is after the closing parenthesis of the argument list.
       /* Existing enk_temp_init; make sure we get the value of the
          temporary instead of its address.  Note that in this case dip
          is the dynamic init pointer extracted from that node. */
-      if (temp_init_node->variant.init.result_is_addr) {
-        temp_init_node->variant.init.result_is_addr = FALSE;
-        temp_init_node->type = type_pointed_to(temp_init_node->type);
-      }  /* if */
+      temp_init_node->variant.init.result_is_addr = FALSE;
+      temp_init_node->type = dest_type;
       /* Put the dynamic initialization on a destruction list if
          appropriate. */
       set_temp_init_dynamic_init_lifetime(temp_init_node);
