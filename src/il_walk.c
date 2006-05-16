@@ -2938,6 +2938,25 @@ as specified in the control block.
   }  /* for */
 }  /* traverse_statement_list */
 
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+
+static void traverse_local_expr_node_ref_list(
+                                  a_scope_ptr                          scope,
+                                  an_expr_or_stmt_traversal_block_ptr  tblock)
+/*
+The given scope must be a function scope (sck_function).  If it has a list of
+a_local_expr_node_ref entries, traverse the expressions referenced by that
+list.
+*/
+{
+  a_local_expr_node_ref_ptr  entry = scope->expr_node_refs;
+
+  for (; entry != NULL; entry = entry->next) {
+    traverse_expr(entry->expr, tblock);
+  }  /* for */
+}  /* traverse_local_expr_node_ref_list */
+
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 void traverse_statement(a_statement_ptr                     statement,
                         an_expr_or_stmt_traversal_block_ptr tblock)
@@ -3008,6 +3027,12 @@ as specified in the control block.
       break;
     case stmk_block:
       traverse_statement_list(statement->variant.block.statements, tblock);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      if (innermost_function_scope != NULL &&
+          innermost_function_scope->assoc_block == statement) {
+        traverse_local_expr_node_ref_list(innermost_function_scope, tblock);
+      }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       break;
     case stmk_for:
 #if UPC_EXTENSIONS_ALLOWED
