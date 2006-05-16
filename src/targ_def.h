@@ -329,26 +329,6 @@ vla_enabled.
 #endif /* ifndef VLA_ALLOWED */
 
 /*
-This flag controls whether variable-length arrays (a C99 feature also
-available in other modes) are lowered to standard C.  The lowering relies
-on facilities in the run-time support library.
-*/
-#ifndef LOWER_VARIABLE_LENGTH_ARRAYS
-#if VLA_ALLOWED && BACK_END_IS_C_GEN_BE
-#define LOWER_VARIABLE_LENGTH_ARRAYS TRUE
-#else /* !(VLA_ALLOWED && BACK_END_IS_C_GEN_BE) */
-#define LOWER_VARIABLE_LENGTH_ARRAYS FALSE
-#endif /* VLA_ALLOWED && BACK_END_IS_C_GEN_BE */
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-
-#if LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED
- #error -- Lowering of VLAs requires VLA_ALLOWED to be TRUE
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED */
-#if LOWER_VARIABLE_LENGTH_ARRAYS && !(DO_C99_IL_LOWERING || DO_IL_LOWERING)
- #error -- VLAs cannot be lowered without doing C99 or C++ IL lowering
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !(DO_C99_IL_LOWERING... */
-
-/*
 Flag that is TRUE if designators of the form 'x:' and '[expr ... expr]'
 should be accepted in aggregate initializers.  This also makes the '='
 following an array element designation optional.  It should not be TRUE
@@ -389,11 +369,12 @@ handles them).
 #endif /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE && ... */
 
 /*
-Flag that is TRUE when C99 IL constructs should be lowered to constructs that
-fit in the IL definition for C89.  This may result in calls to a C99 runtime
-support library.  (Note: the term "C99 lowering" should be understood to
-refer to all non-C++ IL lowering, e.g., from GNU C constructs that are not
-part of C89.)
+Flag that is TRUE when C IL constructs that are not part of C89 (from C99, GNU
+C, etc.)  should be lowered to constructs that fit in the IL definition for
+C89.  This may result in calls to a C99 runtime support library.  (Note: the
+term "C99 lowering" reflects its original use and is maintained only for
+backward compatibility; it should actually be understood to refer to all
+non-C++ IL lowering.)
 */
 #ifndef DO_C99_IL_LOWERING
 #if DO_IL_LOWERING && (C99_IL_EXTENSIONS_SUPPORTED ||                \
@@ -411,8 +392,28 @@ part of C89.)
  #error -- C99 IL lowering cannot be done if DO_IL_LOWERING is FALSE
 #endif /* DO_C99_IL_LOWERING && !DO_IL_LOWERING */
 #if DO_IL_LOWERING && GNU_EXTENSIONS_ALLOWED && !DO_C99_IL_LOWERING
- #error -- Lowering GNU extensions requires DO_C99_IL_LOWERING
+ #error -- Lowering GNU C extensions requires DO_C99_IL_LOWERING
 #endif /* DO_IL_LOWERING && GNU_EXTENSIONS_ALLOWED && !DO_C99_IL_LOWERING */
+
+/*
+This flag controls whether variable-length arrays (a C99 feature also
+available in other modes) are lowered to standard C.  The lowering relies
+on facilities in the run-time support library.
+*/
+#ifndef LOWER_VARIABLE_LENGTH_ARRAYS
+#if VLA_ALLOWED && BACK_END_IS_C_GEN_BE
+#define LOWER_VARIABLE_LENGTH_ARRAYS TRUE
+#else /* !(VLA_ALLOWED && BACK_END_IS_C_GEN_BE) */
+#define LOWER_VARIABLE_LENGTH_ARRAYS FALSE
+#endif /* VLA_ALLOWED && BACK_END_IS_C_GEN_BE */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+
+#if LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED
+ #error -- Lowering of VLAs requires VLA_ALLOWED to be TRUE
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED */
+#if LOWER_VARIABLE_LENGTH_ARRAYS && !(DO_C99_IL_LOWERING || DO_IL_LOWERING)
+ #error -- VLAs cannot be lowered without doing C99 or C++ IL lowering
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !(DO_C99_IL_LOWERING... */
 
 /*
 This switch controls whether complex and imaginary types and operations
@@ -3811,9 +3812,9 @@ of times.
 #ifndef LOWER_DESIGNATED_INITIALIZERS
 #define LOWER_DESIGNATED_INITIALIZERS TRUE
 #endif /* ifndef LOWER_DESIGNATED_INITIALIZERS */
-#if LOWER_DESIGNATED_INITIALIZERS && !DO_C99_IL_LOWERING
- #error LOWER_DESIGNATED_INITIALIZERS requires C99 IL lowering
-#endif /* LOWER_DESIGNATED_INITIALIZERS && !DO_C99_IL_LOWERING */
+#if LOWER_DESIGNATED_INITIALIZERS && !(DO_C99_IL_LOWERING || DO_IL_LOWERING)
+ #error LOWER_DESIGNATED_INITIALIZERS requires C99 or C++ IL lowering
+#endif /* LOWER_DESIGNATED_INITIALIZERS && !(DO_C99_IL_LOWERING || ... */
 #if LOWER_DESIGNATED_INITIALIZERS && !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
  #error -- Designated initializers cannot be lowered unless designated \
            initializers can be enabled
