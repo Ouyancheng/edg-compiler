@@ -2567,11 +2567,14 @@ file scope if it refers to the namespace being popped.
       /* Get a pointer to the namespace to be used. */
       udp_nsp = skip_namespace_aliases((a_namespace_ptr)udp->entity.ptr);
       if (!end_of_scope || udp_nsp == nsp) {
+        a_memory_region_number region_to_switch_back_to;
+        switch_to_file_scope_region(&region_to_switch_back_to);
         make_using_directive(udp_nsp, DEPTH_OF_FILE_SCOPE,
                              &null_source_position,
                              /*compiler_generated=*/TRUE,
 			     (an_attribute_ptr)NULL);
         any_using_dirs_added = TRUE;
+        switch_back_to_original_region(region_to_switch_back_to);
       }  /* if */
     }  /* if */
     udp = udp->next;

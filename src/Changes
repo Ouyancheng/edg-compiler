@@ -1,5 +1,15 @@
 Version 3.8
 
+5/16/06  Microsoft: memory region problem with VC6 using-directive emulation
+
+In Microsoft bugs mode, when microsoft_version is <= 1200, we emulate
+a Microsoft using-directive bug that makes certain names visible in the
+file scope when they should not be.  A refinement made to this emulation
+(see 6/23/05 entry) could cause a using-directive allocated in a function
+scope memory region to be added to the file scope using-directive list.
+This could result in an abort, an internal error, or other incorrect
+behavior.  Now fixed.
+
 5/16/06  C++0x mode: Support for long long
 
 If LONG_LONG_ALLOWED is configured to TRUE, the long long type is accepted in
