@@ -304,8 +304,9 @@ than the member name.  This has now been fixed.  For example:
 In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the IL
 could get corrupted by uses of typeof (a GNU extension), sizeof, __alignof,
 or __uuidof (a Microsoft extension) applied to a template-dependent
-expression in function scope.  If IL_SHOULD_BE_WRITTEN_TO_FILE is also set
-to TRUE, this corruption resulted in a internal error.  For example:
+expression in function scope.  (E.g., when IL_SHOULD_BE_WRITTEN_TO_FILE is
+also set to TRUE, this corruption frequently resulted in a internal error.)
+For example:
 
   template<typename T> void f() {
     T x;
