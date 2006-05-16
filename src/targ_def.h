@@ -269,23 +269,139 @@ ABIs older that 2.32.
 #endif /* ifndef EXPORT_ENABLING_POSSIBLE */
 
 /*
-Certain C99 features require IL constructs not otherwise present.
+Certain C99 and GNU C features require IL constructs not otherwise present.
 Because certain back ends may not support the new constructs, a mechanism
 is provided to disable the C99 features that require back end support.
 The C99_IL_EXTENSIONS_SUPPORTED flag should be TRUE if a back end
-is prepared to accept all of the C99 IL extensions.
+is prepared to accept all of the C99 IL extensions (or if C99 IL lowering
+will be used; see below).
 */
 #ifndef C99_IL_EXTENSIONS_SUPPORTED
 #define C99_IL_EXTENSIONS_SUPPORTED TRUE
 #endif /* ifndef C99_IL_EXTENSIONS_SUPPORTED */
 
+#if !C99_IL_EXTENSIONS_SUPPORTED && GNU_COMPLEX_EXTENSIONS_ALLOWED
+ #error -- GNU_COMPLEX_EXTENSIONS_ALLOWED requires C99_IL_EXTENSIONS_SUPPORTED
+#endif /* !C99_IL_EXTENSIONS_SUPPORTED && GNU_COMPLEX_EXTENSIONS_ALLOWED */
+
+/*
+Flag that is TRUE if compound literals, which look vaguely like a cast
+whose source expression is a brace-enclosed initializer (e.g.,
+(int []){1, 2, 3}) should be accepted in expressions.  It is the
+initial value of the global variable compound_literals_allowed.
+*/
+#ifndef DEFAULT_COMPOUND_LITERALS_ALLOWED
+#define DEFAULT_COMPOUND_LITERALS_ALLOWED FALSE
+#endif /* DEFAULT_COMPOUND_LITERALS_ALLOWED */
+
+/*
+This switch controls whether support for compound literals (a C99 feature)
+can be enabled.  Having this TRUE means the back end is prepared to accept
+compound literals, which are represented as enk_temp_init nodes (or that
+C99 IL lowering is enabled).  The C-generating and C++-generating back ends
+can handle compound literals (but that's useful only if the downstream
+compiler also handles them).
+*/
+#ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE
+#if C99_IL_EXTENSIONS_SUPPORTED
+#define COMPOUND_LITERAL_ENABLING_POSSIBLE TRUE
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
+#define COMPOUND_LITERAL_ENABLING_POSSIBLE FALSE
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE */
+#if !COMPOUND_LITERAL_ENABLING_POSSIBLE && DEFAULT_COMPOUND_LITERALS_ALLOWED
+ #error -- compound literal enabling not allowed
+#endif /* !COMPOUND_LITERAL_ENABLING_POSSIBLE && ... */
+
+/*
+Flag that is TRUE if variable length arrays (VLAs) are allowed.  A VLA is
+an array whose size is known only at execution time.  If VLA_ALLOWED is
+TRUE, support is enabled and disabled based on DEFAULT_VLA_ENABLED and
+command-line options --[no_]vla, which control the global variable
+vla_enabled.
+*/
+#ifndef VLA_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
+#define VLA_ALLOWED TRUE
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
+#define VLA_ALLOWED FALSE
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* ifndef VLA_ALLOWED */
+
+/*
+This flag controls whether variable-length arrays (a C99 feature also
+available in other modes) are lowered to standard C.  The lowering relies
+on facilities in the run-time support library.
+*/
+#ifndef LOWER_VARIABLE_LENGTH_ARRAYS
+#if VLA_ALLOWED && BACK_END_IS_C_GEN_BE
+#define LOWER_VARIABLE_LENGTH_ARRAYS TRUE
+#else /* !(VLA_ALLOWED && BACK_END_IS_C_GEN_BE) */
+#define LOWER_VARIABLE_LENGTH_ARRAYS FALSE
+#endif /* VLA_ALLOWED && BACK_END_IS_C_GEN_BE */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+
+#if LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED
+ #error -- Lowering of VLAs requires VLA_ALLOWED to be TRUE
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED */
+#if LOWER_VARIABLE_LENGTH_ARRAYS && !(DO_C99_IL_LOWERING || DO_IL_LOWERING)
+ #error -- VLAs cannot be lowered without doing C99 or C++ IL lowering
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !(DO_C99_IL_LOWERING... */
+
+/*
+Flag that is TRUE if designators of the form 'x:' and '[expr ... expr]'
+should be accepted in aggregate initializers.  This also makes the '='
+following an array element designation optional.  It should not be TRUE
+if DEFAULT_DESIGNATORS_ALLOWED is FALSE.  It is the initial value
+of the global variable extended_designators_allowed.
+*/
+#ifndef DEFAULT_EXTENDED_DESIGNATORS_ALLOWED
+#define DEFAULT_EXTENDED_DESIGNATORS_ALLOWED FALSE
+#endif /* DEFAULT_EXTENDED_DESIGNATORS_ALLOWED */
+
+/*
+Flag that is TRUE if designators of the form '.x' and '[expr]' should be
+accepted in aggregate initializers.  It is the initial value of the global
+variable designators_allowed.
+*/
+#ifndef DEFAULT_DESIGNATORS_ALLOWED
+#define DEFAULT_DESIGNATORS_ALLOWED FALSE
+#endif /* DEFAULT_DESIGNATORS_ALLOWED */
+
+/*
+Flag that is TRUE if support for designated initializers and extended
+designated initializers can be enabled.  Having this TRUE means the back
+end is prepared to accept designated initializers, either in the
+unlowered form or the lowered form (see LOWER_DESIGNATED_INITIALIZERS).
+The C-generating and C++-generating back ends can handle designated
+initializers (but that's useful only if the downstream compiler also
+handles them).
+*/
+#ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
+#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE TRUE
+#else /* !(C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED) */
+#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE FALSE
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
+#endif /* ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+#if !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE && DEFAULT_DESIGNATORS_ALLOWED
+ #error -- designated initializer enabling not allowed
+#endif /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE && ... */
+
 /*
 Flag that is TRUE when C99 IL constructs should be lowered to constructs that
 fit in the IL definition for C89.  This may result in calls to a C99 runtime
-support library.
+support library.  (Note: the term "C99 lowering" should be understood to
+refer to all non-C++ IL lowering, e.g., from GNU C constructs that are not
+part of C89.)
 */
 #ifndef DO_C99_IL_LOWERING
-#if DO_IL_LOWERING && (C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED)
+#if DO_IL_LOWERING && (C99_IL_EXTENSIONS_SUPPORTED ||                \
+                       GNU_EXTENSIONS_ALLOWED ||                     \
+                       COMPOUND_LITERAL_ENABLING_POSSIBLE ||         \
+                       VLA_ALLOWED ||                                \
+                       DESIGNATED_INITIALIZER_ENABLING_POSSIBLE ||   \
+                       FIXED_POINT_ALLOWED)
 #define DO_C99_IL_LOWERING TRUE
 #else /* !(DO_IL_LOWERING && (C99_IL_EXTENSIONS_SUPPORTED || GNU_...)) */
 #define DO_C99_IL_LOWERING FALSE
@@ -294,18 +410,9 @@ support library.
 #if DO_C99_IL_LOWERING && !DO_IL_LOWERING
  #error -- C99 IL lowering cannot be done if DO_IL_LOWERING is FALSE
 #endif /* DO_C99_IL_LOWERING && !DO_IL_LOWERING */
-#if DO_C99_IL_LOWERING && \
-    !(C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED)
- #error -- C99 IL lowering cannot be done if C99 or GNU IL extensions not \
-           supported
-#endif /* DO_C99_IL_LOWERING && !(C99_IL_EXTENSIONS_SUPPORTED || GNU_...) */
 #if DO_IL_LOWERING && GNU_EXTENSIONS_ALLOWED && !DO_C99_IL_LOWERING
  #error -- Lowering GNU extensions requires DO_C99_IL_LOWERING
 #endif /* DO_IL_LOWERING && GNU_EXTENSIONS_ALLOWED && !DO_C99_IL_LOWERING */
-
-#if !C99_IL_EXTENSIONS_SUPPORTED && GNU_COMPLEX_EXTENSIONS_ALLOWED
- #error -- GNU_COMPLEX_EXTENSIONS_ALLOWED requires C99_IL_EXTENSIONS_SUPPORTED
-#endif /* !C99_IL_EXTENSIONS_SUPPORTED && GNU_COMPLEX_EXTENSIONS_ALLOWED */
 
 /*
 This switch controls whether complex and imaginary types and operations
@@ -3298,38 +3405,6 @@ a code generator.
 #endif /* ifndef UNARY_PLUS_IN_IL */
 
 /*
-Flag that is TRUE if variable length arrays (VLAs) are allowed.  A VLA is
-an array whose size is known only at execution time.  This is supported in
-C mode only.  If VLA_ALLOWED is TRUE, support is enabled and disabled based
-on DEFAULT_VLA_ENABLED and command-line options --[no_]vla, which control
-the global variable vla_enabled.
-*/
-#ifndef VLA_ALLOWED
-#if C99_IL_EXTENSIONS_SUPPORTED
-#define VLA_ALLOWED TRUE
-#else /* !C99_IL_EXTENSIONS_SUPPORTED */
-#define VLA_ALLOWED FALSE
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#endif /* ifndef VLA_ALLOWED */
-
-/*
-This flag controls whether variable-length arrays (a C99 feature also
-available in other modes) are lowered to standard C.  The lowering relies
-on facilities in the run-time support library.
-*/
-#ifndef LOWER_VARIABLE_LENGTH_ARRAYS
-#if VLA_ALLOWED && BACK_END_IS_C_GEN_BE
-#define LOWER_VARIABLE_LENGTH_ARRAYS TRUE
-#else /* !(VLA_ALLOWED && BACK_END_IS_C_GEN_BE) */
-#define LOWER_VARIABLE_LENGTH_ARRAYS FALSE
-#endif /* VLA_ALLOWED && BACK_END_IS_C_GEN_BE */
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-
-#if LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED
- #error -- Lowering of VLAs requires VLA_ALLOWED to be TRUE
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS && !VLA_ALLOWED */
-
-/*
 VLA_DEALLOC_STATEMENTS_IN_IL was previously used to determine whether special
 statements (no longer part of our IL specification) should be included in the
 IL.  Now we generate enk_vla_dealloc expression nodes instead.  In some cases
@@ -3456,73 +3531,6 @@ applies only in other modes, e.g., default C mode.
 #if DEFAULT_VLA_ENABLED && !VLA_ALLOWED
   #error -- DEFAULT_VLA_ENABLED cannot be true unless VLA_ALLOWED is true
 #endif /* DEFAULT_VLA_ENABLED && !VLA_ALLOWED */
-
-/*
-Flag that is TRUE if designators of the form 'x:' and '[expr ... expr]'
-should be accepted in aggregate initializers.  This also makes the '='
-following an array element designation optional.  It should not be TRUE
-if DEFAULT_DESIGNATORS_ALLOWED is FALSE.  It is the initial value
-of the global variable extended_designators_allowed.
-*/
-#ifndef DEFAULT_EXTENDED_DESIGNATORS_ALLOWED
-#define DEFAULT_EXTENDED_DESIGNATORS_ALLOWED FALSE
-#endif /* DEFAULT_EXTENDED_DESIGNATORS_ALLOWED */
-
-/*
-Flag that is TRUE if designators of the form '.x' and '[expr]' should be
-accepted in aggregate initializers.  It is the initial value of the global
-variable designators_allowed.
-*/
-#ifndef DEFAULT_DESIGNATORS_ALLOWED
-#define DEFAULT_DESIGNATORS_ALLOWED FALSE
-#endif /* DEFAULT_DESIGNATORS_ALLOWED */
-
-/*
-Flag that is TRUE if support for designated initializers and extended
-designated initializers can be enabled.  Having this TRUE means the back
-end is prepared to accept designated initializers, either in the
-unlowered form or the lowered form (see LOWER_DESIGNATED_INITIALIZERS).
-The C-generating and C++-generating back ends can handle designated
-initializers (but that's useful only if the downstream compiler also
-handles them).
-*/
-#ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
-#if C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED
-#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE TRUE
-#else /* !(C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED) */
-#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE FALSE
-#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_EXTENSIONS_ALLOWED */
-#endif /* ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
-#if !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE && DEFAULT_DESIGNATORS_ALLOWED
- #error -- designated initializer enabling not allowed
-#endif /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE && ... */
-/*
-Flag that is TRUE if compound literals, which look vaguely like a cast
-whose source expression is a brace-enclosed initializer (e.g.,
-(int []){1, 2, 3}) should be accepted in expressions.  It is the
-initial value of the global variable compound_literals_allowed.
-*/
-#ifndef DEFAULT_COMPOUND_LITERALS_ALLOWED
-#define DEFAULT_COMPOUND_LITERALS_ALLOWED FALSE
-#endif /* DEFAULT_COMPOUND_LITERALS_ALLOWED */
-
-/*
-This switch controls whether support for compound literals (a C99 feature)
-can be enabled.  Having this TRUE means the back end is prepared to
-accept compound literals, which are represented as enk_temp_init nodes.
-The C-generating and C++-generating back ends can handle compound literals
-(but that's useful only if the downstream compiler also handles them).
-*/
-#ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE
-#if C99_IL_EXTENSIONS_SUPPORTED
-#define COMPOUND_LITERAL_ENABLING_POSSIBLE TRUE
-#else /* !C99_IL_EXTENSIONS_SUPPORTED */
-#define COMPOUND_LITERAL_ENABLING_POSSIBLE FALSE
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#endif /* ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE */
-#if !COMPOUND_LITERAL_ENABLING_POSSIBLE && DEFAULT_COMPOUND_LITERALS_ALLOWED
- #error -- compound literal enabling not allowed
-#endif /* !COMPOUND_LITERAL_ENABLING_POSSIBLE && ... */
 
 /*
 This switch controls whether a post-pass is done after IL lowering
@@ -3803,6 +3811,13 @@ of times.
 #ifndef LOWER_DESIGNATED_INITIALIZERS
 #define LOWER_DESIGNATED_INITIALIZERS TRUE
 #endif /* ifndef LOWER_DESIGNATED_INITIALIZERS */
+#if LOWER_DESIGNATED_INITIALIZERS && !DO_C99_IL_LOWERING
+ #error LOWER_DESIGNATED_INITIALIZERS requires C99 IL lowering
+#endif /* LOWER_DESIGNATED_INITIALIZERS && !DO_C99_IL_LOWERING */
+#if LOWER_DESIGNATED_INITIALIZERS && !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+ #error -- Designated initializers cannot be lowered unless designated \
+           initializers can be enabled
+#endif /* LOWER_DESIGNATED_INITIALIZERS && !DESIGNATED_INITIALIZER... */
 
 /*
 This switch controls whether or not "guard" code is placed around

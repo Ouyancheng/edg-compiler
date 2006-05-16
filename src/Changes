@@ -96,7 +96,9 @@ possible to configure the front end with DO_IL_LOWERING and
 GNU_EXTENSIONS_ALLOWED set to TRUE and DO_C99_IL_LOWERING set to FALSE.
 Ths combination left some IL constructs unlowered, which could result in
 aborts in the C-generating back end.  Attempting to use this configuration
-now results in a build-time error.
+now results in a build-time error.  (As part of this change, consistency
+checking between DO_C99_IL_LOWERING and other configuration settings has
+also been tightened up.)
 
 5/9/06   Missing virtual function table in multiple translation unit mode
 
