@@ -2189,6 +2189,8 @@ the next standard).
   right_shift_can_be_angle_brackets = TRUE;
   extended_friends_enabled = TRUE;
   mixed_string_concat_enabled = TRUE;
+  long_long_is_standard = TRUE;
+  long_long_promotion_allowed = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 

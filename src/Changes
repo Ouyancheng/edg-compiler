@@ -1,5 +1,18 @@
 Version 3.8
 
+5/16/06  C++0x mode: Support for long long
+
+The long long type is accepted in C++0x mode.  As in C99, unsuffixed integer
+literals that do not fit in type "long", but can fit in type "unsigned long",
+are given type "long long" instead.  This is different from the handling of
+such constants in C++ modes with type "long long" enabled, but C++0x disabled.
+For example:
+
+  bool b = 4000000000 > -1;  // b == true in C++0x mode.  b == false in
+                             // default C++ mode with "long long" enabled
+                             // (a warning is issued on the conversion of
+                             // "-1" to an unsigned type in that case).
+
 5/12/06  IA-64 ABI: Abort with LOWER_DESIGNATED_INITIALIZERS set to FALSE
 
 IL lowering aborted in fill_out_aggregate_ptr_to_data_member_initialization
