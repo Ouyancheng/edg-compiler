@@ -5062,6 +5062,10 @@ Syntax:
     internal_error("scan_sizeof_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
+  /* If we're in the file-scope memory region instead of a function-scope
+     memory region because we're scanning something like an array bound,
+     switch back.  Any expression nodes allocated must be in the function-scope
+     memory region. */
   switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -5443,6 +5447,10 @@ implement <stdarg.h>, a standard feature.
 
   db_enter(4, "scan_alignof_operator");
 
+  /* If we're in the file-scope memory region instead of a function-scope
+     memory region because we're scanning something like an array bound,
+     switch back.  Any expression nodes allocated must be in the function-scope
+     memory region. */
   switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -7334,6 +7342,10 @@ which case it's the token after __uuidof.
     internal_error("scan_uuidof_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
+  /* If we're in the file-scope memory region instead of a function-scope
+     memory region because we're scanning something like an array bound,
+     switch back.  Any expression nodes allocated must be in the function-scope
+     memory region. */
   switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
   if (curr_expr_kind_is(ek_integral_constant)) {
     /* __uuidof is not allowed in integral constant expression. */
