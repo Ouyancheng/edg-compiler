@@ -1467,8 +1467,7 @@ of a line of debug output.
 
 #endif /* DEBUG */
 
-static void determine_arg_match_level(
-                               an_operand           *arg_operand,
+void determine_arg_match_level(an_operand           *arg_operand,
                                a_type_ptr           arg_type,
                                a_type_ptr           param_type,
                                a_boolean            param_type_is_deduced,
@@ -11042,7 +11041,6 @@ a reference type (the caller should have rewritten that case).
         if (single_type_message) {
           /* Single-type case. */
           pos_ty_error(err_code, &source_operand->position, class_type);
-          conv_to_error_operand(source_operand);
         } else {
           /* Normal double-type case. */
           type2_error_in_operand(err_code, source_operand,

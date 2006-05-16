@@ -726,7 +726,13 @@ extern a_boolean conversion_for_direct_reference_binding_possible(
                                      a_conv_descr             *conversion,
                                      a_boolean                *ambiguous,
                                      a_candidate_function_ptr *ambiguity_list);
-
+extern void determine_arg_match_level(
+                               an_operand           *arg_operand,
+                               a_type_ptr           arg_type,
+                               a_type_ptr           param_type,
+                               a_boolean            param_type_is_deduced,
+                               a_boolean            try_user_conversions,
+                               an_arg_match_summary *arg_summary);
 extern a_boolean direct_reference_binding_possible(
                                        an_operand   *source_operand,
                                        a_type_ptr   source_type,

@@ -1839,33 +1839,16 @@ pointer to it.
 }  /* alloc_vla_dimension */
 
 
-a_variable_ptr alloc_variable(a_storage_class  storage_class)
+void clear_variable(a_variable_ptr vp)
 /*
-Allocate a variable entry, clear it to default values, and return a pointer
-to it.
+Clear the fields of the given variable to default values.
 */
 {
-  a_variable_ptr vp;
-
-  db_enter(5, "alloc_variable");
-
-  if (storage_class == (a_storage_class)sc_extern ||
-      storage_class == (a_storage_class)sc_unspecified ||
-      storage_class == (a_storage_class)sc_static) {
-    /* Variable that will have static storage should always be allocated in
-       the file scope memory region. */
-    vp = (a_variable_ptr)alloc_il(sizeof(a_variable));
-  } else {
-    vp = (a_variable_ptr)alloc_cil(sizeof(a_variable));
-  }  /* if */
-#if DEBUG
-  num_variables_allocated++;
-#endif /* DEBUG */
   set_default_source_corresp(vp->source_corresp);
   vp->next                        = NULL;
   vp->type                        = NULL;
   vp->assoc_param_type            = NULL;
-  vp->storage_class               = storage_class;
+  vp->storage_class               = (a_storage_class)sc_unspecified;
   vp->declared_storage_class      = (a_storage_class)sc_unspecified;
 #if DECL_MODIFIERS_IN_USE
   vp->decl_modifiers              = DM_NONE;
@@ -1970,7 +1953,33 @@ to it.
   vp->association_offset          = 0;
   vp->function_result_var_function= NULL;
 #endif /* ifdef FIL */
+}  /* clear__variable */
 
+
+a_variable_ptr alloc_variable(a_storage_class  storage_class)
+/*
+Allocate a variable entry, clear it to default values, and return a pointer
+to it.
+*/
+{
+  a_variable_ptr vp;
+
+  db_enter(5, "alloc_variable");
+
+  if (storage_class == (a_storage_class)sc_extern ||
+      storage_class == (a_storage_class)sc_unspecified ||
+      storage_class == (a_storage_class)sc_static) {
+    /* Variable that will have static storage should always be allocated in
+       the file scope memory region. */
+    vp = (a_variable_ptr)alloc_il(sizeof(a_variable));
+  } else {
+    vp = (a_variable_ptr)alloc_cil(sizeof(a_variable));
+  }  /* if */
+#if DEBUG
+  num_variables_allocated++;
+#endif /* DEBUG */
+  clear_variable(vp);
+  vp->storage_class = storage_class;
   db_exit();
   return vp;
 }  /* alloc_variable */

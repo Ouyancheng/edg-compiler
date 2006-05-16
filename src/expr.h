@@ -235,6 +235,10 @@ extern an_expr_node_ptr make_assignment_expr(
                                       an_expr_operator_kind  op,
                                       an_expr_node_ptr       rvalue_expr);
 
+extern a_boolean compute_is_convertible(a_type_ptr  src_type,
+                                        a_type_ptr  dst_type,
+                                        a_boolean   src_is_rvalue);
+
 /*
 Macro that is TRUE if the node is an operation node.
 */

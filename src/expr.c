@@ -19914,6 +19914,81 @@ operator op, and return a pointer to it.
 }  /* make_assignment_expr */
 
 
+a_boolean compute_is_convertible(a_type_ptr  src_type,
+                                 a_type_ptr  dst_type,
+                                 a_boolean   src_is_rvalue)
+/*
+Compute the "is_convertible" type relationship predicate of the C++
+standard TR1.  See [lib.meta.rel].  It determines whether an invented
+lvalue of type src_type is convertible to the type dst_type, and
+returns TRUE if so.  src_is_rvalue is TRUE for a Microsoft variant
+of this where the source should be considered an rvalue.
+*/
+{
+  a_boolean               result;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+
+  /* Even though this is not an expression scan, make sure the expr_stack
+     has something on it.  If there is already something on the stack,
+     save it, clear the stack, and restore it later. */
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  if (is_reference_type(src_type)) {
+    /* It's not clear what it means to specify a reference type as
+       the source type (the standard doesn't say), but we ignore it. */
+    src_type = type_pointed_to(src_type);
+  }  /* if */
+  if (is_void_type(dst_type)) {
+    /* Any type can be converted to void. */
+    result = TRUE;
+  } else if (is_void_type(src_type) ||
+             is_array_type(dst_type) ||
+             is_function_type(dst_type)) {
+    /* void can't be converted to any other type, and you can't convert to
+       an array or function type. */
+    result = FALSE;
+  } else if (is_incomplete_type(src_type) ||
+             is_incomplete_type(dst_type) ||
+             is_abstract_class_type(dst_type)) {
+    /* Cases enumerated in [lib.meta.rel] as ill-formed.  However, that's
+       to accommodate a C++ template-tricks version of this predicate, and
+       the committee sense seems to be that returning FALSE is what's
+       really desired. */
+    result = FALSE;
+  } else {
+    an_operand              src_op;
+    a_variable              src_var;
+    an_arg_match_summary    arg_match;
+    /* Test whether the conversion is possible. */
+    /* Make a variable with the given type. */
+    clear_variable(&src_var);
+    src_var.type = src_type;
+    make_lvalue_variable_operand(&src_var, &src_op, (a_ref_entry_ptr)NULL,
+                                 /*record_expr=*/FALSE);
+    if (src_is_rvalue &&
+        !is_array_type(src_type) &&
+        !is_function_type(src_type)) { 
+      conv_lvalue_to_rvalue(&src_op);
+    }  /* if */
+    /* Use the argument match routine because it can test whether the
+       conversion is possible without generating any errors.  It also
+       handles destination types that are references. */
+    determine_arg_match_level(&src_op, (a_type_ptr)NULL,
+                              dst_type,
+                              /*param_type_is_deduced=*/FALSE,
+                              /*try_user_conversions=*/TRUE,
+                              &arg_match);
+    result = (arg_match.match_level != aml_none);
+  }  /* if */
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return result;
+}  /* compute_is_convertible */
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *

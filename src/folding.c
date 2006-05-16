@@ -5117,14 +5117,13 @@ expression.
 static void fold_is_convertible_to(an_expr_node_ptr   expr,
                                    a_constant_ptr     constant)
 /*
-expr is an enk_builtin_operation node for an __is_convertible_to operation.  If
-the operand types are nondependent, store a boolean constant in *constant.  The
-boolean constant will have value "true" if the first operand type is
-"implicitly convertible to" (in a sense somewhat similar to the conversions
-allowed by impl_conversion_possible) the second operand type.  If either of the
-operand types is dependent, store a ck_template_param constant in *constant.
-The constant will be of the tpck_expression variant and will point to the given
-expression.
+expr is an enk_builtin_operation node for an __is_convertible_to operation,
+which implements the C++ TR1 is_convertible type relationship predicate
+(see [lib.meta.rel]).  Store a boolean constant in *constant whose value
+is "true" if the first operand type is "implicitly convertible to" the
+second operand type.  If either of the operand types is dependent, store
+a ck_template_param constant in *constant.  The constant will be of the
+tpck_expression variant and will point to the given expression.
 */
 {
   an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
@@ -5143,56 +5142,48 @@ expression.
                    constant, (a_template_param_constant_kind)tpck_expression);
     constant->variant.template_param.variant.expr = expr;
   } else {
-    /* The exact rules used by the Microsoft compiler to determine
-       "convertibility" are not entirely clear, but the following algorithm
-       seems to emulate all the known examples. */
-    a_boolean  result;
-    type1 = skip_typerefs(type1);
-    type2 = skip_typerefs(type2);
-    if (identical_types(type1, type2)) {
-      /* A type is always considered convertible to itself. */
-      result = TRUE;
-    } else {
-      a_std_conv_descr  std_conv;
+    a_boolean  from_rvalue = FALSE, ref_init = FALSE, result;
+    /* The Microsoft version of this test considers the source as an rvalue
+       in some cases. */
+    if (microsoft_mode) {
+      from_rvalue = TRUE;
       if (is_reference_type(type1)) {
-        /* A reference on the source type is always ignored. */
+        /* A reference on the source type is always ignored by the Microsoft
+           compiler, except that without it conversions from rvalues are
+           sometimes considered (instead of from lvalues as specified in
+           the standard). */
+        from_rvalue = FALSE;
         type1 = type_pointed_to(type1);
-      }  /* if */
-      if (is_reference_type(type2) &&
-          is_class_struct_union_type(type_pointed_to(type2))) {
-        /* A reference on the destination type appears to be ignored only if
-           it is a reference to a class type. */
-        type2 = type_pointed_to(type2);
-      }  /* if */
-      /* Simulate array-to-pointer and function-to-pointer decay. */
-      if (is_array_type(type1)) {
-        type1 = make_pointer_type(array_element_type(type1));
+      } else if (is_array_type(type1)) {
+        from_rvalue = FALSE;
       } else if (is_function_type(type1)) {
-        type1 = make_pointer_type(type1);
+        from_rvalue = FALSE;
+      } else if (is_class_struct_union_type(type1)) {
+        from_rvalue = FALSE;
       }  /* if */
-      result = impl_conversion_possible(
-                                     type1, /*source_is_constant=*/FALSE,
-                                     /*source_is_string_literal=*/FALSE,
-                                     (a_constant_ptr)NULL, type2,
-                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                     /*suppress_extensions=*/FALSE,
-                                     ec_no_error, &std_conv);
-      if (!result &&
-          is_class_struct_union_type(type1) &&
-          is_class_struct_union_type(type2)) {
-        /* "Related-class conversions" are not directly handled by
-           impl_conversion_possible.  We check this case by examining the
-           associated "pointer-to-related-class conversions". */
-        result = impl_conversion_possible(
-                                     make_pointer_type(type1),
-                                     /*source_is_constant=*/FALSE,
-                                     /*source_is_string_literal=*/FALSE,
-                                     (a_constant_ptr)NULL,
-                                     make_pointer_type(type2),
-                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                     /*suppress_extensions=*/FALSE,
-                                     ec_no_error, &std_conv);
+      if (is_reference_type(type2)) {
+        a_type_ptr  under_type2 = type_pointed_to(type2);
+        if (is_class_struct_union_type(under_type2) ||
+            is_function_type(under_type2) || is_array_type(under_type2)) {
+           /* A reference on the destination type appears to be ignored only if
+             it is a reference to a class, array, or function type. */
+          type2 = under_type2;
+        } else {
+          ref_init = TRUE;
+        }  /* if */
       }  /* if */
+    }  /* if */
+    if (microsoft_mode && from_rvalue && ref_init) {
+      result = FALSE;
+    } else if (microsoft_mode && identical_types(type1, type2)) {
+      /* Microsoft returns TRUE when the types are the same, even
+         if they are (e.g.) both arrays. */
+      result = TRUE;
+    } else if (microsoft_mode && is_void_type(type2)) {
+      /* Microsoft considers a conversion to void to fail. */
+      result = FALSE;
+    } else {
+      result = compute_is_convertible(type1, type2, from_rvalue);
     }  /* if */
     arg1->variant.type_operand.definition_needed = TRUE;
     arg2->variant.type_operand.definition_needed = TRUE;
