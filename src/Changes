@@ -276,20 +276,20 @@ than the member name.  This has now been fixed.  For example:
   } s;
   int j = s.i;  // Formerly generated as "int j = (s);"
 
-4/28/06  Abort on sizeof, typeof, etc. when PROTOTYPE_INSTANTIATION_IN_IL set
+4/28/06  Abort on sizeof, typeof, etc. when PROTOTYPE_INSTANTIATIONS_IN_IL set
 
-In configurations with both PROTOTYPE_INSTANTIATIONS_IN_IL and
-IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE, the front end sometimes aborted with
-an internal error on uses of typeof (a GNU extension), sizeof, __alignof, and
-__uuidof (a Microsoft extension), when such an operator was applied to an
-expression in function scope.  For example:
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the IL
+could get corrupted by uses of typeof (a GNU extension), sizeof, __alignof,
+or __uuidof (a Microsoft extension) applied to a template-dependent
+expression in function scope.  If IL_SHOULD_BE_WRITTEN_TO_FILE is also set
+to TRUE, this corruption resulted in a internal error.  For example:
 
   template<typename T> void f() {
     T x;
     typedef int X[sizeof(x)];  // Could trigger an internal error in some
   }                            // configurations.
 
-The internal error only occurred when the function template was parsed in its
+The corruption only occurred when the function template was parsed in its
 generic form (e.g., with the command-line option --parse_templates; this
 option is also implicit in strict mode and in some GNU C++ modes).
 This is now fixed.
