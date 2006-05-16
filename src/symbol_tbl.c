@@ -9725,9 +9725,8 @@ entry that points to the class in which the nonreal member is created.
   a_base_class_ptr	bcp = base_classes_of(class_type);
   a_base_class_ptr	nonreal_bcp = NULL;
 
-  /* Loop through the base classes to find a nonreal base.  A direct
-     nonreal base is found, if possible.  Otherwise, the first indirect
-     nonreal base is used. */
+  /* Loop through the base classes to find a direct nonreal base.  Any
+     class with nonreal bases must have at least one direct nonreal base. */
   for (; bcp != NULL; bcp = bcp->next) {
     a_type_ptr		base_type = bcp->type;
     if (base_type->variant.class_struct_union.is_nonreal_class) {
@@ -9735,7 +9734,6 @@ entry that points to the class in which the nonreal member is created.
         nonreal_bcp = bcp;
         break;
       }  /* if */
-      if (nonreal_bcp != NULL) nonreal_bcp = bcp;
     }  /* if */
   }  /* for */
   check_assertion_str2(nonreal_bcp != NULL,

@@ -2872,8 +2872,7 @@ tokens during the token string creation process.
   a_cached_token_ptr	first_token = tcsp->before_first_token->next;
 
   /* Skip over any pragmas that precede the first token of the body. */
-  while (first_token != NULL &&
-         first_token->extra_info_kind ==
+  while (first_token->extra_info_kind ==
                                         (a_token_extra_info_kind)teik_pragma) {
     first_token = first_token->next;
   }  /* while */
@@ -2918,8 +2917,7 @@ semicolon, add a semicolon to the cache.
     break;
   }  /* for */
   /* Skip over any pragmas that precede the first token of the body. */
-  while (first_token != NULL &&
-         first_token->extra_info_kind ==
+  while (first_token->extra_info_kind ==
                                         (a_token_extra_info_kind)teik_pragma) {
     first_token = first_token->next;
   }  /* while */
@@ -13748,6 +13746,7 @@ set, and its source sequence entry, if any, has been put out.)
             proto_sym = prototype_template_of(sym);
             proto_tssp = template_supplement_for_symbol(proto_sym);
             rout = tssp->variant.function.routine;
+            check_assertion(proto_tssp != NULL);
             rout = proto_tssp->variant.function.routine;
             if (proto_tssp != tssp) {
               /* This is an instance of a member template of a class template.
@@ -14566,6 +14565,7 @@ caller.
   if (err) decl_state->decl_scope_err = TRUE;
   if (sym != NULL) {
     tssp = template_supplement_for_symbol(sym);
+    check_assertion(tssp != NULL);
     rout_ptr = tssp->variant.function.routine;
   }  /* if */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template) {
@@ -16228,6 +16228,7 @@ that follows.
           if (vp->declared_type == NULL) vp->declared_type = type;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        check_assertion(vp != NULL);
         vp->is_specialized = TRUE;
         if (dso_flags & DSO_INLINE) {
           /* Inline may not be specified. */
@@ -17820,18 +17821,21 @@ enter the names into a hash table.  Returns TRUE if any entries
 were entered in the hash table; otherwise returns FALSE.
 */
 {
-  char				*line;
-  a_boolean			result = FALSE;
-  int				i;
+  char		*line;
+  a_boolean	result = FALSE;
 
   if (open_instantiation_request_file()) {
     /* If the file does not exist, the open routine will return FALSE. */
-    /* Skip over initial lines of the instantiation request file
-       that don't contain instantiation entries. */
-    for (i = 1; i <= INSTANTIATION_REQUEST_LINES_RESERVED; ++i) {/*lint !e681*/
-      /* Read and discard the line. */
-      (void)read_line_from_file(f_instantiation_request);
-    }  /* if */
+#if INSTANTIATION_REQUEST_LINES_RESERVED > 0
+    { int	i;
+      /* Skip over initial lines of the instantiation request file
+         that don't contain instantiation entries. */
+      for (i = 1; i <= INSTANTIATION_REQUEST_LINES_RESERVED; ++i) {
+        /* Read and discard the line. */
+        (void)read_line_from_file(f_instantiation_request);
+      }  /* if */
+    }
+#endif /* INSTANTIATION_REQUEST_LINES_RESERVED > 0 */
     while ((line = read_line_from_file(f_instantiation_request)) != NULL) {
       an_instance_lookup_entry_ptr	ilp;
       ilp = find_instance(line, /*add=*/TRUE);
@@ -18857,6 +18861,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
          primary translation unit we are dealing with the completed IL
          (i.e., any IL from secondary translation units has already been
          copied.  If the entry is not needed, reset the instantiation count. */
+      check_assertion(use_master_instance);
       if (is_primary_translation_unit) {
         mip->instance_required_count = 0;
       } else if (tip->instantiation_required) {
