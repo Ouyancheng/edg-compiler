@@ -560,9 +560,9 @@ the character position of the error.
   char         old_next_char, old_next2_char;
   a_boolean    err;
   a_boolean    inexact = FALSE;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_SUPPORTED
   a_boolean    is_imaginary_literal = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_SUPPORTED */
 
   *err_code = ec_no_error;
   /* See if there is a suffix (or two). */
