@@ -1,6 +1,6 @@
 Version 3.8
 
-5/18/06  Abort on use of ambiguous class template in some Microsoft modes
+5/17/06  Abort on use of ambiguous class template in some Microsoft modes
 
 In Microsoft C++ mode with Microsoft bugs mode disabled (--no_microsoft_bugs),
 certain uses of an ambiguous class template could lead to an abort in
