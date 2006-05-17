@@ -13,6 +13,10 @@ in default C++ mode only a warning is issued.  For example:
                      // warning) is issued in default C++ mode.  In non-C++0x
                      // strict mode, a discretionary error is (still) issued.
 
+This extension was voted into the C++ committee's working paper for the next
+standard in October 2005 (meeting in Mont Tremblant, through resolution of
+Core issue 382).
+
 5/16/06  Copy constructor optimization dropped cv-qualifiers
 
 An optimization added in version 3.6 to eliminate extra copy constructor
