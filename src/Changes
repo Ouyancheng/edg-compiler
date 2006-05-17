@@ -1,5 +1,18 @@
 Version 3.8
 
+5/17/06  C++0x mode: Relaxed rules for "typename" specifier
+
+The current C++ standard requires that uses of "typename" followed by a
+qualified name only occur inside templates.  Previously, such uses outside
+any template triggered a discretionary error in strict mode, and a warning
+in default mode.  Now such uses are silently accepted in C++0x modes and
+in default C++ mode only a warning is issued.  For example:
+
+  struct S { struct N {}; };
+  typename S::N *p;  // Accepted in C++0x mode.  A remark (instead of a
+                     // warning) is issued in default C++ mode.  In non-C++0x
+                     // strict mode, a discretionary error is (still) issued.
+
 5/16/06  Copy constructor optimization dropped cv-qualifiers
 
 An optimization added in version 3.6 to eliminate extra copy constructor

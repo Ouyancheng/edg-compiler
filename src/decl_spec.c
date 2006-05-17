@@ -4845,13 +4845,12 @@ a declaration.
   a_type_ptr	tp = NULL;
 
   *type_sym = NULL;
-  /* Skip over "typename". */
   check_assertion(curr_token == tok_typename);
   /* The typename keyword may only be used within a template, including the
      template parameter list. */
-  if (!is_template_context()) {
+  if (!is_template_context() && !cpp0x_mode) {
     diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
-                                : es_warning,
+                                : es_remark,
                ec_typename_not_in_template);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4860,6 +4859,7 @@ a declaration.
     decl_pos_block->specifiers_range.end = end_pos_curr_token;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Skip over "typename". */
   (void)get_token();
   /* The Microsoft compiler allows the typename specifier to be repeated. */
   while (microsoft_bugs && curr_token == tok_typename) (void)get_token();
