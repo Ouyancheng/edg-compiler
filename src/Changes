@@ -1,5 +1,19 @@
 Version 3.8
 
+5/18/06  Abort on use of ambiguous class template in some Microsoft modes
+
+In Microsoft C++ mode with Microsoft bugs mode disabled (--no_microsoft_bugs),
+certain uses of an ambiguous class template could lead to an abort in
+prescan_extended_decl_modifiers (disambig.c).  For example:
+
+  namespace N { template<typename T> struct S {}; }
+  using namespace N;
+  template<typename T> struct S {};
+  template<typename T> typename S<T>::I f();  // Previously aborted in some
+                                              // Microsoft modes.
+
+This is now fixed.
+
 5/17/06  C++0x mode: Relaxed rules for "typename" specifier
 
 The current C++ standard requires that uses of "typename" followed by a

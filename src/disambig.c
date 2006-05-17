@@ -300,7 +300,8 @@ not need to be cached.
          __virtual_inheritance).  Single-underscore versions of the keywords
          are also allowed. */
       a_boolean	done = TRUE;
-      if (curr_token == tok_identifier) {
+      if (curr_token == tok_identifier &&
+          locator_for_curr_id.symbol_header != NULL) {
         char  *name = locator_for_curr_id.symbol_header->identifier;
         if (*(name++) == '_') {
           if (*name == '_') name++;
