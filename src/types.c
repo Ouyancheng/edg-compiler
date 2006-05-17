@@ -728,42 +728,45 @@ Return TRUE if the given type is a GNU C transparent union.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-static a_boolean class_has_field_type(a_type_ptr  class_type,
-                                      a_type_ptr  field_type)
+static a_boolean transparent_union_has_field_type(a_type_ptr  union_type,
+                                                  a_type_ptr  field_type)
 /*
-Return TRUE if the given class type has a field of type field_type.
+Return TRUE if the given transparent union type has a field of type
+field_type.  Top-level qualifiers are ignored.
 */
 {
   a_boolean    result = FALSE;
   a_field_ptr  field;
 
-  class_type = skip_typerefs(class_type);
-  field = class_type->variant.class_struct_union.field_list;
+  union_type = skip_typerefs(union_type);
+  check_assertion(is_union(union_type));
+  field = union_type->variant.class_struct_union.field_list;
   for (; field != NULL; field = field->next) {
-    if (identical_types(field->type, field_type)) {
+    if (identical_types(skip_typerefs(field->type),
+                        skip_typerefs(field_type))) {
       result = TRUE;
       break;
     }  /* if */
   }  /* for */
   return result;
-}  /* class_has_field_type */
+}  /* transparent_union_has_field_type */
 
 
 static a_boolean transparent_union_match(a_type_ptr  tp1,
                                          a_type_ptr  tp2)
 /*
 Return TRUE if one of the types is a transparent union and the other type is
-the type of a field in that union.
+the type of a field in that union (ignoring top-level qualifiers).
 */
 {
   a_boolean  result = FALSE;
 
   if (is_transparent_union_type(tp1)) {
     /* Check if tp1 has a field of type tp2. */
-    result = class_has_field_type(tp1, tp2);
+    result = transparent_union_has_field_type(tp1, tp2);
   } else if (is_transparent_union_type(tp2)) {
     /* The reverse case is entirely similar. */
-    result = class_has_field_type(tp2, tp1);
+    result = transparent_union_has_field_type(tp2, tp1);
   }  /* if */
   return result;
 }  /* transparent_union_match */
