@@ -62,7 +62,7 @@ with type "long long" enabled, but C++0x disabled.  For example:
 
 This extension was voted into the C++ committee's working paper for the next
 standard in October 2005 (meeting in Mont Tremblant, through proposal numbered
-N11811).
+N1811).
 
 5/12/06  IA-64 ABI: Abort with LOWER_DESIGNATED_INITIALIZERS set to FALSE
 
