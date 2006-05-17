@@ -1615,12 +1615,8 @@ these other cases as well.
          and "override"
 
 In Microsoft C++ mode with microsoft_version >= 1400, the front end now
-accepts the function modifiers "abstract", "sealed", and "override".  Each
-of these modifiers can only appear on member function declarations that
-include the keyword "virtual" (i.e., it is not sufficient for the function
-to be implicitly virtual because of a matching virtual function in a base
-class).  The modifiers are context-sensitive keywords with the following
-additional semantics:
+accepts the function modifiers "abstract", "sealed", and "override".  The
+modifiers are context-sensitive keywords with the following semantics:
   - "abstract" indicates a virtual function is pure virtual (i.e., it
     means the same thing as the "= 0" pure-specifier).
   - "sealed" indicates that a virtual function may not be overridden
@@ -1634,7 +1630,6 @@ For example:
     virtual void f1() sealed;
   };
   struct D: B {
-    void f0() abstract;          // Error: "abstract" requires "virtual".
     virtual void f1();           // Error: Attempt to override sealed B::f1.
     virtual void f2() override;  // Error: f2 does not override anything.
     
@@ -1651,6 +1646,9 @@ in the ECMA-372 standard, and we do too to ensure compatibility.  For example:
   struct S2 {
     virtual void (*f()) sealed; // Not accepted, but valid according to
   };                            // ECMA-372.
+  struct S3 {
+    void f() abstract;          // Accepted, but ECMA-372 requires an explicit
+  }                             // keyword "virtual" with all the modifiers.
 
 2/1/06   Position of use of template included in specialization diagnostic
 

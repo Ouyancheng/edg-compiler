@@ -1194,9 +1194,7 @@ modes) and record their presence in *func_info.  *state describes some
 syntactic properties of the current declaration.
 */
 {
-  a_boolean  virtual_required_diag_issued = FALSE;
   for (;;) {
-    a_boolean  explicit_virtual_required = FALSE;
     if (check_context_sensitive_keyword(tok_abstract, "abstract")) {
       if (func_info->abstract) {
         error(ec_duplicate_function_modifier);
@@ -1204,14 +1202,12 @@ syntactic properties of the current declaration.
         error(ec_function_modifiers_abstract_and_sealed);
       } else {
         func_info->abstract = TRUE;
-        explicit_virtual_required = TRUE;
       }  /* if */
     } else if (check_context_sensitive_keyword(tok_override, "override")) {
       if (func_info->override) {
         error(ec_duplicate_function_modifier);
       } else {
         func_info->override = TRUE;
-        explicit_virtual_required = TRUE;
       }  /* if */
     } else if (check_context_sensitive_keyword(tok_sealed, "sealed")) {
       if (func_info->sealed) {
@@ -1220,19 +1216,9 @@ syntactic properties of the current declaration.
         error(ec_function_modifiers_abstract_and_sealed);
       } else {
         func_info->sealed = TRUE;
-        explicit_virtual_required = TRUE;
       }  /* if */
     } else {
       break;
-    }  /* if */
-    if (explicit_virtual_required && state->virtual_pos.seq == 0 &&
-        !virtual_required_diag_issued) {
-      /* Several function modifiers are valid only on functions declared with
-         the "virtual" specifier (being implicitly virtual due to a matching
-         base class declaration is not enough). */
-      diagnostic(es_discretionary_error,
-                 ec_function_modifier_requires_virtual_specifier);
-      virtual_required_diag_issued = TRUE;
     }  /* if */
     (void)get_token();
   }  /* for */

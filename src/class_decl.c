@@ -3356,6 +3356,10 @@ done:
       update_virtual_function_number(rout, number_ptr);
 #endif /* ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (func_info->sealed || func_info->abstract) {
+    pos_error(ec_function_modifier_requires_virtual_function, source_pos);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   db_exit();
   return rout->is_virtual;
