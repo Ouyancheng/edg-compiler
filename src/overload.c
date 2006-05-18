@@ -10577,8 +10577,10 @@ mode.
            calling the conversion function is the argument to the
            copy constructor). */
         try_conversion_functions = TRUE;
-        if (any_cfront_mode() || sun_mode) {
-          /* Cfront and the Sun 5.0 compiler do this in a nonstandard way. */
+        if (any_cfront_mode() || sun_mode ||
+            (microsoft_mode && orig_is_copy_initialization)) {
+          /* Cfront, Microsoft, and the Sun 5.0 compiler do this in a
+             nonstandard way. */
         } else {
           try_as_arg_of_bitwise_cctor = TRUE;
         }  /* if */

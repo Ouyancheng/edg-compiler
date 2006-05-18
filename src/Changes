@@ -1,5 +1,27 @@
 Version 3.8
 
+5/18/06  Microsoft compatibility: overload resolution, bitwise copy constructor
+
+A corner case has been improved in emulation of overload resolution in
+Microsoft mode.  The problem case involves a class with a generated
+copy constructor that does bitwise copying, a copy-initialization,
+and a template conversion function.
+
+  struct A {
+    void f();
+  };
+  struct B {
+    template <typename T> operator T() {
+      T t;
+      t.f();
+      return t;
+    }
+  };
+  int main() {
+    A a = B();  // Caused spurious error in instantiation of template
+    return 0;
+  }
+
 5/18/06  Include guard checks added to basics.h
 
 Include guard checks have been added to basics.h.  These are not
