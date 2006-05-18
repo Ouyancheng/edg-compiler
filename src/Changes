@@ -1,5 +1,12 @@
 Version 3.8
 
+5/18/06  Include guard checks added to basics.h
+
+Include guard checks have been added to basics.h.  These are not
+actually needed based on the way that the front end uses basics.h, but
+they have been added in case basics.h ends up being included more that
+once in customer-supplied code.
+
 5/17/06  GNU C compatibility: Ignore type qualifiers in transparent unions
 
 In GNU C mode, top-level type qualifiers (like const or __restrict__) are now

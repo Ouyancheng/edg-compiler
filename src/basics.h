@@ -15,6 +15,10 @@ This should be included first in every compilation unit.
 
 */
 
+/* Avoid including these declarations more than once. */
+#ifndef BASICS_H
+#define BASICS_H 1
+
 /*
 Include the header file that supplies the default configuration
 parameters for this version.
@@ -825,6 +829,8 @@ one.
 #endif /* __GNUC__ == 3 && __GNUC_MINOR__ <= 2 */
 #endif /* ifdef __GNUC__ */
 #endif /* defined(sun) && defined(__i386__) */
+
+#endif /* ifndef BASICS_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *
