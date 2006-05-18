@@ -3625,6 +3625,7 @@ Do C99 lowering for all entities in and under the given scope.
   a_scope_ptr                      saved_innermost_function_scope;
 
   push_context(&context, scope, (an_object_lifetime_ptr)NULL);
+  saved_innermost_function_scope = innermost_function_scope;
   /* Mark the scope as lowered.  This is used by
      check_for_done_with_memory_region to tell whether the code for a function
      has been lowered yet. */
@@ -3636,7 +3637,6 @@ Do C99 lowering for all entities in and under the given scope.
       break;
     case sck_function:
       /* Lower all parameters. */
-      saved_innermost_function_scope = innermost_function_scope;
       innermost_function_scope = scope;
       for (variable = scope->variant.routine.parameters;
            variable != NULL;
@@ -3698,7 +3698,6 @@ Do C99 lowering for all entities in and under the given scope.
     /* Discard the VLA dimensions list since the VLAs have all been lowered. */
     scope->vla_dimensions = NULL;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-    innermost_function_scope = saved_innermost_function_scope;
   } else if (scope->kind == (a_scope_kind)sck_file) {
 #if LOWER_VARIABLE_LENGTH_ARRAYS
     if (vla_enabled) {
@@ -3713,6 +3712,7 @@ Do C99 lowering for all entities in and under the given scope.
     }  /* if */
 #endif /* MINIMAL_INLINING */
   }  /* if */
+  innermost_function_scope = saved_innermost_function_scope;
   pop_context();
 }  /* lower_c99_scope */
 
