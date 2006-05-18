@@ -3168,7 +3168,7 @@ the source file structure to do the conversion.
   a_source_file_ptr	curr_file;
   a_source_file_ptr	child_file;
   a_source_file_ptr	grandchild_file;
-  a_source_file_ptr	phys_curr_file;
+  a_source_file_ptr	phys_curr_file = NULL;
   a_source_file_ptr	orig_curr_file;
   a_seq_number		first_seq_for_cache;
   a_seq_number		last_seq_for_cache;
@@ -3263,6 +3263,7 @@ examine_children:
   if (physical_line) {
     /* If we want to ignore #line directives, go back to the last entry
        for a real file that we saw. */
+    check_assertion(phys_curr_file != NULL);
     curr_file = phys_curr_file;
   }  /* if */
   /* Save information about the file in which this sequence number was found
@@ -3339,7 +3340,8 @@ physical line position for the sequence number.
   if (debug_level >= 5 ||
       db_flag_is_set("source_file_for_seq")) {
     fprintf(f_debug, "File=%s, Line=%lu, sequence number=%lu\n",
-                     curr_file->file_name, *line_number, seq_number);
+            curr_file == NULL ? "<NULL>" : curr_file->file_name,
+            *line_number, seq_number);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
