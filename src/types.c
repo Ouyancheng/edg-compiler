@@ -740,10 +740,11 @@ field_type.  Top-level qualifiers are ignored.
 
   union_type = skip_typerefs(union_type);
   check_assertion(is_union(union_type));
+  field_type = skip_typerefs(field_type);
   field = union_type->variant.class_struct_union.field_list;
   for (; field != NULL; field = field->next) {
-    if (identical_types(skip_typerefs(field->type),
-                        skip_typerefs(field_type))) {
+    a_type_ptr  tp = skip_typerefs(field->type);
+    if (identical_types(tp, field_type)) {
       result = TRUE;
       break;
     }  /* if */
