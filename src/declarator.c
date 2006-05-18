@@ -1185,6 +1185,8 @@ type.  For templates, use the class template scope.
 } /* current_scope_is_class */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
+/*ARGSUSED*/  /* "state" is currently unused. */
 static void scan_microsoft_function_modifiers(a_decl_parse_state  *state,
                                               a_func_info_block   *func_info)
 /*
