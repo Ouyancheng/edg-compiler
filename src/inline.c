@@ -790,7 +790,7 @@ variables.
     an_expr_operator_kind op = expr->variant.operation.kind;
     an_expr_node_ptr      operand = expr->variant.operation.operands;
     an_expr_node_ptr      operand2 = operand->next;
-    a_constant_ptr        con2;
+    a_constant_ptr        con2 = NULL;
     a_constant            constant;
     a_boolean             has_constant_value = FALSE;
     if (is_constant_node(operand) &&
@@ -824,6 +824,7 @@ variables.
              file scope).  Test is done for integer/pointer to be conservative
              in case other kinds of constants in the future are changed by
              lowering. */
+          check_assertion(con2 != NULL);  /* For Coverity */
           if ((con->kind != (a_constant_repr_kind)ck_integer &&
                con->kind != (a_constant_repr_kind)ck_address) ||
               (con2->kind != (a_constant_repr_kind)ck_integer &&
