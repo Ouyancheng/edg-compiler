@@ -5612,6 +5612,7 @@ Lower an enk_throw expression node.
                                          (a_ctor_or_dtor_kind)cdk_complete,
                                          /*define_now=*/FALSE);
 #endif /* IA64_ABI */
+      check_assertion(flags_node != NULL);  /* For Coverity */
       flags_node->next = function_addr_expr(destructor,
                                             /*set_address_taken_flag=*/TRUE);
       call_node = make_runtime_rout_call("__throw_setup_dtor",
