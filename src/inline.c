@@ -652,6 +652,7 @@ following the original expression.
       /* The argument expression must be evaluated for its side effects
          but it isn't stored into the parameter because the parameter
          isn't used. */
+      check_assertion(vrip->arg_expr != NULL);
       vrip->arg_expr->next = NULL;
       stmt = insert_expr_statement(vrip->arg_expr, &local_insert_location);
       set_stmt_pos_to_code_pos_for_lowering(stmt);
