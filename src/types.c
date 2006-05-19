@@ -244,7 +244,7 @@ are not dropped here.
 }  /* skip_typedefs */
 
 
-static a_type_ptr skip_typerefs_not_typedefs(a_type_ptr type_ptr)
+a_type_ptr skip_typerefs_not_typedefs(a_type_ptr type_ptr)
 /*
 Strip any non-typedef typeref entries off the given type, and return a
 pointer to the underlying type.  This removes cv-qualifiers but not

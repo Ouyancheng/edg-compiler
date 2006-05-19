@@ -1,5 +1,24 @@
 Version 3.8
 
+5/18/06  GNU and Microsoft compatibility: Anonymous unions
+
+In GNU mode, the front end now accepts const- and volatile-qualifier anonymous
+union constructs in class types.  Both standard and nonstandard variations are
+accepted, but nonstandard anonymous unions declared through a typedef can not
+be qualified.  For example:
+
+  typedef union { int u; } U;
+  struct S {
+    const union { int i1; };  // Now an anonymous union in GNU modes.
+    const struct { int i2; }; // Now an anonymous union in GNU modes.
+    const U;                  // Not accepted in GNU C++ mode.  Not an
+  } s;                        // anonymous union in GNU C mode.
+  int main() { return s.i1; }  // Now okay in GNU mode.
+
+Previously, Microsoft C++ mode also treated the qualified typedef case as an
+anonymous union construct.  Now only Microsoft C mode does so.  This matches
+the behavior of the Microsoft compilers.
+
 5/18/06  Spurious warning on local variables in templates
 
 When parsing templates in generic form (e.g., in strict mode) the declaration

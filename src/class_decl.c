@@ -9417,12 +9417,32 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
   } else {
     /* This may in fact be an anonymous-union-like construct. */
     /* Skip the typedefs but not cv qualifiers. */
-    a_type_ptr  tp = skip_typedefs(member_type);
-
-    if (tp->kind == (a_type_kind)tk_typeref && !microsoft_mode) {
+    a_type_ptr  tp;
+    if (member_type->kind == (a_type_kind)tk_typeref) {
+      if ((microsoft_mode || gnu_mode)) {
+        /* In Microsoft C mode, cv-qualifiers are allowed on all anonymous-
+           union-like constructs.  In Microsoft C++ mode, and in GNU modes
+           that is true only for such constructs that aren't expressed via
+           a typedef. */
+        if (C_mode() && microsoft_mode) {
+          tp = skip_typerefs(member_type);
+        } else if (skip_typerefs_not_typedefs(member_type)->kind !=
+                                                    (a_type_kind)tk_typeref) {
+          /* member_type is a qualified immediate class type (i.e., there is
+             no typedef involved). */
+          tp = skip_typerefs(member_type);
+        } else {
+          tp = skip_typedefs(member_type);
+        }  /* if */
+      } else {
+        tp = skip_typedefs(member_type);
+      }  /* if */
+    }  /* if */
+    if (tp->kind == (a_type_kind)tk_typeref) {
       /* This must be a cv qualifier on top of what we already know to be a
          class, struct, or union type.  The qualifier disqualifies it from
-         being treated as an anonymous-union-like construct. */
+         being treated as an anonymous-union-like construct (except in
+         Microsoft and GNU C++ modes). */
     } else {
       if (C_mode()) {
         /* In C mode that's all we need to know. */
@@ -12090,7 +12110,9 @@ moreover, several fields of *decl_info may be updated by this routine.
   if (storage_class == (a_storage_class)sc_unspecified &&
       !is_incomplete_type(member_type) &&
       is_anonymous_union_decl(member_type, decl_info)) {
-    /* A C++ anonymous union -- "union { int i, j; };" */
+    /* A C++ anonymous union -- "union { int i, j; };".
+       decl_info->is_anonymous_union will have been set to TRUE by the call
+       to is_anonymous_union_decl. */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
     /* It might also be an anonymous-union-like construct in C or C++, namely
        an unnamed class/struct/union type, possibly represented by a typedef
@@ -12119,7 +12141,6 @@ moreover, several fields of *decl_info may be updated by this routine.
       }  /* if */
     }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-    decl_info->is_anonymous_union = TRUE;
     /* Set the IL referenced flag for the anonymous union type. */
     member_type->source_corresp.referenced = TRUE;
   } else if (!C_mode()) {
@@ -12657,8 +12678,9 @@ passed via template_decl.
     missing_declarator = TRUE;
     if (decl_info.is_anonymous_union) {
       /* decl_nonstatic_data_member needs to be called. */
-      /* Ignore any top level cv-qualifiers in Microsoft mode. */
-      if (microsoft_mode && member_type->kind == (a_type_kind)tk_typeref &&
+      /* Ignore any top level cv-qualifiers in Microsoft and GNU modes. */
+      if ((microsoft_mode || gnu_mode) &&
+          member_type->kind == (a_type_kind)tk_typeref &&
           !typeref_is_typedef(member_type)) {
         member_type = skip_typerefs(member_type);
       }  /* if */
