@@ -632,6 +632,7 @@ pointers) and move the list as a whole to the available list.
       fprintf(f_debug, "Removing entire list:\n");
       for (;;) {
         fprintf(f_debug, "  ");
+        check_assertion(cfdp != NULL);
         db_cfd(cfdp);
         if (cfdp == tail) break;
         cfdp = cfdp->next;
@@ -2445,7 +2446,8 @@ the goto, and label_cfsp describes the associated label.
     } else {
       /* Forward (2) and (4): back up from the goto to the beginning of the
          outermost noncommon parent. */
-      check_assertion(outermost_noncommon_parent->parent == common_parent);
+      check_assertion(outermost_noncommon_parent != NULL &&
+                      outermost_noncommon_parent->parent == common_parent);
       add_vla_dealloc_stmts(goto_cfdp, outermost_noncommon_parent,
                             /*is_goto=*/TRUE);
     }  /* if */
@@ -2456,7 +2458,8 @@ the goto, and label_cfsp describes the associated label.
     } else {
       /* Backwards (3) and (4): back up from the goto to the end of the
          outermost noncommon parent. */
-      check_assertion(outermost_noncommon_parent->parent == common_parent);
+      check_assertion(outermost_noncommon_parent != NULL &&
+                      outermost_noncommon_parent->parent == common_parent);
       check_assertion(outermost_noncommon_parent->
                                   variant.block.end_of_block != NULL);
       add_vla_dealloc_stmts(goto_cfdp,
@@ -4467,6 +4470,7 @@ The affinity can be an expression or the keyword "continue".
     remove_stop_token(tok_semicolon);
   }  /* if */
   /* Scan the incrementing expression if it is present. */
+  /* coverity[dead_error_condition] */
   if (curr_token != tok_rparen &&
       !(processing_upc_forall && curr_token == tok_semicolon)) {
     a_reachability_summary saved_reachability;
