@@ -5049,6 +5049,7 @@ function_lparen:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator. */
+    check_assertion(complete_type != NULL);
     if (!is_function_type(complete_type)) {
       if (locator != NULL &&
           (locator->is_operator_name || locator->is_conversion_name)) {
