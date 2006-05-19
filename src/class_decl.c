@@ -4475,8 +4475,10 @@ of the base specifiers graph.  This position is independent of the which
 appearance of the base class happens to have been marked preferred.
 */
 {
-  a_base_class_derivation_ptr  bcdp, preferred_bcdp;
-  an_access_specifier          access, preferred_access;
+  a_base_class_derivation_ptr
+                       bcdp, preferred_bcdp = NULL;
+  an_access_specifier  access,
+                       preferred_access = (an_access_specifier)as_inaccessible;
 
   db_enter(4, "set_preferred_base_class_derivation");
   /* Has this set of base class derivations been checked yet?  This can be
@@ -4509,6 +4511,7 @@ appearance of the base class happens to have been marked preferred.
         preferred_access = access;
       } else if (access == preferred_access) {
         /* No preference based on accessibility.  Look for other criteria. */
+        check_assertion(preferred_bcdp != NULL);
         if (!preferred_bcdp->direct) {
           if (bcdp->direct) {
             /* Choose a direct base class over an indirect. */
@@ -11203,6 +11206,7 @@ TRUE.
     if (same_entities(udp->qualifier.class_type, sym->parent.class_type)) {
       scp = source_corresp_for_il_entry(udp->entity.ptr,
                                         (an_il_entry_kind)udp->entity.kind);
+      check_assertion(scp != NULL);
       if (((a_symbol_ptr)scp->assoc_info)->header == sym->header) {
         /* This must be a duplicate.  In strict mode issue an error (see
            7.3.3 para 8); otherwise issue a lesser diagnostic. */
