@@ -2964,6 +2964,7 @@ the type of that entity.
            nesting is involved as in "int x = { f(), { 1, { 2 }}};". */
       } else {
         combine_initializers(constant, *init_dip, next_constant, next_dip);
+        check_assertion(next_dip != NULL || next_constant != NULL);
         /* If the combined initializer is non-constant, keep using the
            dynamic-initializer representation. */
         if (next_dip != NULL) {
@@ -4520,12 +4521,12 @@ scan_paren:
               scan_dependent_type_parenthesized_initializer(
                                         /*force_object_lifetime=*/TRUE, &dip);
             } else {
-              a_type_ptr        object_class_type;
-  
+              a_type_ptr  object_class_type;
               /* If it is a base class, the object being constructed is the
                  whole class (and the base class is a subobject thereof).
                  If it is a field, the object being constructed is field
                  itself.  Set the object class type accordingly. */
+              check_assertion(new_cip != NULL);
               if (new_cip->kind == (a_constructor_init_kind)cik_field) {
                 object_class_type = init_type;
               } else {
