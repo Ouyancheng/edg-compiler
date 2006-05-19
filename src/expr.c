@@ -2118,6 +2118,7 @@ Syntax:
     call_node = make_operator_node(op,
                                    type_of_unknown_templ_param_nontype,
                                    function_node);
+    /* coverity[dead_error_condition] */
     if (arg_dep_lookup_suppressed) {
       call_node->variant.operation.
                                 arg_dependent_lookup_suppressed_on_call = TRUE;
@@ -2830,6 +2831,7 @@ local_options is the current set of expression-scanning options.
     /* In C++, explicit calls of destructors are allowed for simple types
        and classes without destructors.  For example, p->int::~int(). */
     gid_flags |= GID_VACUOUS_DTOR_RECOGNIZED;
+    /* coverity[var_deref_model] */
     if (err || !is_class_struct_union_type(class_struct_union_type)) {
       /* If the first operand is not a class, the vacuous destructor calls
          can be things like p->~int(). */
@@ -3132,6 +3134,7 @@ qualified_name_check:
        purposes. */
     /* Don't do this if the symbol is an overloaded function (we don't
        yet know which function is being called). */
+    check_assertion(member_sym != NULL);
     if (member_sym->kind == (a_symbol_kind)sk_overloaded_function) {
       rep = NULL;
     } else if (member_sym->potentially_overloaded) {
@@ -14634,9 +14637,6 @@ See section 3.3.16 of the standard.
     operand_1_clone_unused = FALSE;
     insert_temporary_initialization(temp_init_expr, result);
   }  /* if */
-  if (operand_1_clone_unused) {
-    operand_will_not_be_used_because_of_error(&operand_1_clone);
-  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
@@ -16248,6 +16248,7 @@ for the __PRETTY_FUNCTION__ keyword.
     if (rt_sym != NULL) {
       a_routine_ptr                     generic_rp;
       templ_info = template_supplement_for_symbol(rt_sym);
+      /* coverity[var_deref_op] */
       generic_rp = templ_info->variant.function.routine;
       type_to_render = generic_rp->type;
       scp = &generic_rp->source_corresp;

@@ -2094,6 +2094,7 @@ precedence confusion.  Do the output in the way described by octl.
       negate_integer_value(&local_constant.variant.integer_value, &err);
       if (!err &&
           le_max_integer_value_of_kind(&local_constant.variant.integer_value,
+                                       /* coverity[uninit_use_in_call] */
                                        /*is_signed=*/TRUE, ikind)) {
         /* The negative of the constant is a legal constant. */
       } else {
@@ -3814,6 +3815,7 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* GNU_EXTENSIONS_ALLOWED */
       } else if (!octl->c_generating_back_end &&
                  il_header.source_language == sl_Cplusplus &&
+                 /* coverity[var_deref_model] */
                  is_bool_type(con_type)) {
         /* A bool constant. */
         octl->output_str((char *)(
@@ -3821,9 +3823,11 @@ precedence confusion.  Do the output in the way described by octl.
                             (a_host_large_integer)0) != 0 ? "true" : "false"));
       } else if (!octl->c_generating_back_end &&
                  il_header.source_language == sl_Cplusplus &&
+                 /* coverity[var_deref_model] */
                  is_character_type(con_type)) {
         /* In C++, character constants have char type. */
         a_boolean       ovflo, need_char_cast_close_paren = FALSE;
+        /* coverity[var_deref_op] */
         an_integer_kind ikind = con_type->variant.integer.int_kind;
         /* Use a cast if the constant is signed or unsigned, e.g.,
            (unsigned char)'a'. */
@@ -3840,6 +3844,7 @@ precedence confusion.  Do the output in the way described by octl.
         output_partial_token_str("'", octl);
         output_optional_close_paren(need_char_cast_close_paren, octl);
       } else if (!octl->c_generating_back_end &&
+                 /* coverity[var_deref_op] */
                  con_type->kind == (a_type_kind)tk_integer &&
                  !is_normal_character_kind(constant->character_kind)) {
         /* A wide character literal (wchar_t, char16_t, or char32_t). */
@@ -3870,6 +3875,7 @@ precedence confusion.  Do the output in the way described by octl.
       check_assertion(is_fixed_point_type(constant->type));
       octl->output_str("(");
       form_fixed_point_constant(&constant->variant.fixed_point_value,
+                                /* coverity[var_deref_op] */
                                 &con_type->variant.fixed_point,
                                 octl);
       octl->output_str(")");
@@ -3971,6 +3977,7 @@ precedence confusion.  Do the output in the way described by octl.
       /* Put parentheses around the constant in case it's negative. */
       octl->output_str("(");
       form_float_constant(&constant->variant.float_value,
+                          /* coverity[var_deref_op] */
                           con_type->variant.float_kind,
                           octl);
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -3988,10 +3995,12 @@ precedence confusion.  Do the output in the way described by octl.
          ( A + B*__I__ ). */
       octl->output_str("(");
       form_float_constant(&constant->variant.complex_value->real,
+                          /* coverity[var_deref_op] */
                           con_type->variant.float_kind,
                           octl);
       octl->output_str(" + ");
       form_float_constant(&constant->variant.complex_value->imag,
+                          /* coverity[var_deref_op] */
                           con_type->variant.float_kind,
                           octl);
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
