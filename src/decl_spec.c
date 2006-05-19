@@ -3273,6 +3273,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
               pos_error(ec_interface_cannot_have_nested_class,
                         &decl_start_pos);
             }  /* if */
+            /* coverity[dead_error_condition] */
             if (is_interface) {
               pos_error(ec_interface_cannot_be_nested_class, &decl_start_pos);
             }  /* if */
@@ -6669,6 +6670,7 @@ tokens are consumed by this routine.
         /* The storage class depends on whether this was a classic (unnamed)
            register storage specifier, or a named-register storage specifier
            (the latter is an Embedded C extension). */
+        /* coverity[dead_error_condition] */
         *storage_class = is_named_register ? (a_storage_class)sc_extern
                                            : (a_storage_class)sc_register;
         break;
@@ -8174,6 +8176,7 @@ no_get_token:
   }  /* for */
 exit_loop:
 #if GNU_EXTENSIONS_ALLOWED
+  /* coverity[dead_error_condition] */
   if (delayed_error != ec_no_error) {
     /* Some GNU C compilers do not diagnose certain invalid specifier
        combinations in typedef declarations that do not include a
