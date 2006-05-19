@@ -4016,13 +4016,7 @@ NULL.
                  !var_ptr->has_gnu_unused_attribute &&
                  !var_ptr->has_gnu_used_attribute &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                 var_type->kind != (a_type_kind)tk_template_param &&
-                 !(is_immediate_class_type(var_type) &&
-                   (var_type->variant.class_struct_union.is_nonreal_class ||
-                    symbol_supplement_for_class(var_type)->
-                                              any_template_dependent_fields ||
-                    symbol_supplement_for_class(var_type)->
-                                                 any_nonreal_base_classes))) {
+                 !could_be_dependent_class_type(var_type)) {
         /* An unreferenced or unused variable or an unused parameter.
            If a class is nonreal or if it has a template-dependent field or
            base, it may yet have side effects and no diagnostic should be
