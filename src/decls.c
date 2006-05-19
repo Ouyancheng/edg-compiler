@@ -6050,6 +6050,7 @@ declaration.
     }  /* if */
     linked_symbol = NULL;
     sym = *symbol_ptr;
+    effective_decl_level = DEPTH_OF_FILE_SCOPE;
   } else {
     if (!C_mode() && locator->specific_symbol != NULL &&
         (qualifier_namespace_ptr(*locator) != NULL ||
