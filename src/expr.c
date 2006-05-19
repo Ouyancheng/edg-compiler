@@ -14637,6 +14637,15 @@ See section 3.3.16 of the standard.
     operand_1_clone_unused = FALSE;
     insert_temporary_initialization(temp_init_expr, result);
   }  /* if */
+  /* The following test is defensive programming: although
+     operand_1_clone_unused cannot currently ever be TRUE at this point, it's
+     possible that additional development might lead to "err" being set at
+     some point during the processing after operand_1 is cloned, making this
+     code necessary. */
+  /* coverity[dead_error_condition] */
+  if (operand_1_clone_unused) {
+    operand_will_not_be_used_because_of_error(&operand_1_clone);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
