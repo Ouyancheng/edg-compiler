@@ -3879,6 +3879,7 @@ Do IL lowering of the indicated constant and everything under it.
 #if C99_IL_EXTENSIONS_SUPPORTED
       case ck_complex:
 #if LOWER_COMPLEX
+        /* coverity[var_deref_model] */
         lower_c99_complex_constant(constant);
 #endif /* LOWER_COMPLEX */
         break;
@@ -6400,9 +6401,11 @@ table.
     if (ctor_bcp == NULL) {
       delta = (bcp != NULL) ? (a_targ_ptrdiff_t)bcp->offset :
                               (a_targ_ptrdiff_t)0;
-#if IA64_ABI
     } else if (bcp == NULL) {
+#if IA64_ABI
       delta = (a_targ_ptrdiff_t)0;
+#else /* !IA64_ABI */
+      unexpected_condition();
 #endif /* IA64_ABI */
     } else {
       a_base_class_ptr eff_bcp = corresp_base_class(bcp, ctor_bcp);
@@ -8323,6 +8326,7 @@ lowered, return the list after any implicit parameters added by lowering.
          class. */
       /* Get the class type from the "this" parameter type. */
       a_type_ptr class_type = rtsp->this_class;
+      /* coverity[var_deref_op] */
       if (class_type->variant.class_struct_union.any_virtual_base_classes) {
         a_base_class_ptr bcp;
         for (bcp = class_type->variant.class_struct_union.extra_info->
@@ -13955,6 +13959,7 @@ handled).
       }  /* if */
     } else {
       /* Switch statement. */
+      check_assertion(expr != NULL);
       lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
       lower_switch_dependent_statement(statement);
     }  /* if */
@@ -15089,7 +15094,8 @@ and all subscopes.
             scope->kind == (a_scope_kind)sck_block) {
           /* For a placeholder in the file scope types list, take the
              placeholder off the list.  Ditto for a function or block scope. */
-          check_assertion(insert_pointer->next == type);
+          check_assertion(insert_pointer != NULL &&
+                          insert_pointer->next == type);
           insert_pointer->next = type->next;
         } else {
           check_assertion(scope->kind == (a_scope_kind)sck_namespace);
