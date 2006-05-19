@@ -6664,6 +6664,7 @@ do_assignment:;
       a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
       check_assertion_str(dedp != NULL, "lower_dynamic_init: missing dedp");
       dedp->initialization_done = TRUE;
+      /* coverity[uninit_use] */
       if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
           !C_mode() &&
           latest_initialization_on_entry !=
@@ -7591,11 +7592,11 @@ The subtree of the node has not yet been lowered.
                                                  /*check_constructor=*/TRUE)) {
     /* An array "new". */
     lower_array_new(expr);
+  } else if (ndsp->routine == NULL) {
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
 #if IA64_ABI
  #error -- IA64_ABI requires NEW_CAN_BE_FOLDED_INTO_CTOR set to FALSE
 #endif /* IA64_ABI */
-  } else if (ndsp->routine == NULL) {
     /* The "new" call has been folded into the constructor call. */
     a_routine_ptr    ctor_routine = dip->variant.constructor.ptr;
     an_expr_node_ptr implied_arg_list, end_implied_arg_list;
@@ -7630,6 +7631,10 @@ The subtree of the node has not yet been lowered.
     call_node = add_cast_if_necessary(call_node, expr->type);
     /* Overwrite the enk_new_delete node with the call/cast. */
     overwrite_node(expr, call_node);
+#else /* !NEW_CAN_BE_FOLDED_INTO_CTOR */
+    /* The routine should not be NULL if the new cannot be folded into a
+       constructor. */
+    unexpected_condition();
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
   } else {
     /* Non-array case, or array case that does not require special handling. */
@@ -10455,6 +10460,7 @@ constructor, but may instead be after an assignment to "this".
         dedp->conditional_flag_var = complete_var;
 #if DO_FULL_PORTABLE_EH_LOWERING
         if (exceptions_enabled) {
+          /* coverity[uninit_use] */
           dedp->conditional_flag_handle = complete_var_handle;
         }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
