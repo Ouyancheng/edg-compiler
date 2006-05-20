@@ -9420,25 +9420,25 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
   } else {
     /* This may in fact be an anonymous-union-like construct. */
     /* Skip the typedefs but not cv qualifiers. */
-    a_type_ptr  tp;
-    if (member_type->kind == (a_type_kind)tk_typeref) {
+    a_type_ptr  tp = member_type;
+    if (tp->kind == (a_type_kind)tk_typeref) {
       if ((microsoft_mode || gnu_mode)) {
         /* In Microsoft C mode, cv-qualifiers are allowed on all anonymous-
            union-like constructs.  In Microsoft C++ mode, and in GNU modes
            that is true only for such constructs that aren't expressed via
            a typedef. */
         if (C_mode() && microsoft_mode) {
-          tp = skip_typerefs(member_type);
-        } else if (skip_typerefs_not_typedefs(member_type)->kind !=
+          tp = skip_typerefs(tp);
+        } else if (skip_typerefs_not_typedefs(tp)->kind !=
                                                     (a_type_kind)tk_typeref) {
           /* member_type is a qualified immediate class type (i.e., there is
              no typedef involved). */
-          tp = skip_typerefs(member_type);
+          tp = skip_typerefs(tp);
         } else {
-          tp = skip_typedefs(member_type);
+          tp = skip_typedefs(tp);
         }  /* if */
       } else {
-        tp = skip_typedefs(member_type);
+        tp = skip_typedefs(tp);
       }  /* if */
     }  /* if */
     if (tp->kind == (a_type_kind)tk_typeref) {
