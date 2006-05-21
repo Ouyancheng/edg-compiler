@@ -7565,6 +7565,7 @@ overloaded operator cases.
     for (arg_operand = arg_operand_list,
              param = routine_type->variant.routine.extra_info->param_type_list;
          arg_operand != NULL || param != NULL;) {
+      check_assertion(arg_match != NULL);
       arg = node_for_arg_of_overloaded_function_call(
                                          arg_operand, arg_match, param,
                                          routine);
@@ -7772,7 +7773,7 @@ routine is called only in C++ mode.
        list of argument expressions. */
     an_arg_check_block arg_block;
     /* This shouldn't happen for nonstatic member functions. */
-    check_assertion(!have_selector);
+    check_assertion(function_symbol != NULL && !have_selector);
     function_symbol = fundamental_symbol_of(function_symbol);
     start_call_argument_processing(routine_symbol_type(function_symbol),
                                    function_symbol->variant.routine.ptr,
@@ -7926,6 +7927,7 @@ This routine is only used in C++ mode.
     } else {
       a_type_ptr eff_dest_type = dest_type;
       /* The symbol is a function template. */
+      check_assertion(dest_type != NULL);  /* For Coverity. */
       /* Don't do type deduction if that would produce a conversion
          function that returns an abstract class type (which would be
          invalid). */
@@ -10289,6 +10291,7 @@ select_best_function:
 
               /* Make a pointer for the selector, and adjust its type if
                  necessary. */
+              /* coverity[var_deref_model] */
               prep_special_selector_operand(bound_function_selector,
                                             routine_type);
               change_some_ref_kinds(bound_function_selector->ref_entries_list,
@@ -10683,6 +10686,8 @@ mode.
         if (ctor_arg_conversion != NULL &&
             candidate_functions->conversion.routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor) {
+          check_assertion(
+                 candidate_functions->arg_matches != NULL);  /* For Coverity */
           *ctor_arg_conversion = candidate_functions->arg_matches->conversion;
           ctor_arg_conversion_set = TRUE;
         }  /* if */
@@ -10785,6 +10790,7 @@ C++ mode.
   } else {
     candidate_functions = NULL;
     /* Find any viable conversion functions. */
+    /* coverity[deref_ptr_in_call] */  /* Coverity bug. */
     try_conversion_function_match(source_operand, dest_type,
                                   builtin_types_allowed, need_lvalue_result,
                                   is_copy_initialization,
