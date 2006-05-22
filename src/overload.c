@@ -7566,7 +7566,8 @@ overloaded operator cases.
     for (arg_operand = arg_operand_list,
              param = routine_type->variant.routine.extra_info->param_type_list;
          arg_operand != NULL || param != NULL;) {
-      check_assertion(arg_match != NULL);
+      check_assertion(arg_match != NULL ||
+                      arg_operand == NULL);  /* For Coverity */
       arg = node_for_arg_of_overloaded_function_call(
                                          arg_operand, arg_match, param,
                                          routine);
