@@ -5048,6 +5048,8 @@ in_instantiation:
     if (!do_arg_dep_lookup) {
       /* No argument-dependent lookup.  Use only the function symbol
          provided. */
+      /* coverity[dead_error_line] */  /* Coverity bug: tool thinks
+                                          single_function is NULL here. */
       if (single_function != NULL && !have_selector) {
         /* If the function is a single non-overloaded function, overload
            resolution is not required. */
