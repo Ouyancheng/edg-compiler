@@ -2824,6 +2824,7 @@ operator+(a, b).
         this_match->is_match_for_this_param = TRUE;
       } else {
         /* The function requires a selector, and we have one. */
+        check_assertion(surrogate_function_conv_sym == NULL);
         /* Determine the effective "this" parameter type.  When namespaces
            are involved in classes, the parameter type is taken to be the
            class in which the "using" occurs. */
