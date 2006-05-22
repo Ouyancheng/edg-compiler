@@ -21,10 +21,10 @@ the behavior of the Microsoft compilers.
 
 5/18/06  Spurious warning on local variables in templates
 
-When parsing templates in generic form (e.g., in strict mode) the declaration
-of an otherwise unreferenced local variable previously elicited a warning
-("declared but never referenced") if the variable's type was a template
-parameter.  For example:
+When the front end is parsing templates in generic form (e.g., in strict
+mode), the declaration of an otherwise unreferenced local variable previously
+elicited a warning ("declared but never referenced") if the variable's type
+was a template parameter.  For example:
 
   template<typename T> void f() {
     T x;  // Previously triggered a spurious warning in some modes.
