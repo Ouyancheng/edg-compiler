@@ -2358,9 +2358,9 @@ void record_nondependent_call(a_symbol_ptr		symbol,
 This routine is called within the scope of a template (either a
 template declaration scope or a prototype instantiation) to record
 the result of overload resolution for a nondependent call.  "symbol"
-is the function symbol for the function to be called.  "tsn" is a
-token sequence number used to represent this call so that the
-entry can be found during a real instantiation.
+is the function symbol for the function to be called; it can be NULL
+for an error case.  "tsn" is a token sequence number used to represent
+this call so that the entry can be found during a real instantiation.
 */
 {
   a_scope_stack_entry_ptr	ssep;
@@ -2385,7 +2385,7 @@ entry can be found during a real instantiation.
 #if DEBUG
   if (db_flag_is_set("nondep_call")) {
     fprintf(f_debug, "Recording nondependent call at %ld to ", (long)tsn);
-    db_symbol_name(symbol);
+    if (symbol != NULL) db_symbol_name(symbol);
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
