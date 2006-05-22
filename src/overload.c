@@ -5291,6 +5291,7 @@ in_instantiation:
     candidate_functions->arg_matches = NULL;
     if (candidate_functions->surrogate_function_conv_sym != NULL) {
       /* The best function is a surrogate function. */
+      check_assertion(surrogate_function_conv_sym != NULL);  /* For Coverity */
       *surrogate_function_conv_sym =
                               candidate_functions->surrogate_function_conv_sym;
 #if DEBUG
