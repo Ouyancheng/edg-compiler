@@ -2,9 +2,9 @@ Version 3.8
 
 5/18/06  GNU and Microsoft compatibility: Anonymous unions
 
-In GNU mode, the front end now accepts const- and volatile-qualifier anonymous
+In GNU mode, the front end now accepts const- and volatile-qualified anonymous
 union constructs in class types.  Both standard and nonstandard variations are
-accepted, but nonstandard anonymous unions declared through a typedef can not
+accepted, but nonstandard anonymous unions declared through a typedef cannot
 be qualified.  For example:
 
   typedef union { int u; } U;
