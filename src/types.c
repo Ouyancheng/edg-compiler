@@ -6787,6 +6787,7 @@ make_new_comp_type:
         if (rtsp->param_type_list == NULL) {
           rtsp->param_type_list = new_ptp;
         } else {
+          /* coverity[var_deref_op] */
           end_of_list->next = new_ptp;
         }  /* if */
         end_of_list = new_ptp;
