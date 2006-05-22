@@ -1,5 +1,14 @@
 Version 3.8
 
+5/22/06  Memory corruption problem, IA-64 ABI termination routines
+
+When IL lowering generated a termination routine to destroy a local
+static variable that is an array of destructible class type in the
+IA-64 ABI, the parameter variable for the generated function was
+allocated in the wrong memory region.  As a consequence, back
+ends might have aborted if the memory for the variable had been freed
+or overwritten by the time it was used.  Now fixed.
+
 5/22/06  Const string literals in Sun mode
 
 String literals are now considered to have const type in Sun C++ mode,

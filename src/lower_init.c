@@ -4558,15 +4558,15 @@ for variables with the GNU init_priority set to that value.
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   /* Make a memory region, scope, and block for the routine definition. */
   scope = make_routine_definition(init_rout, /*make_return=*/TRUE, il_region);
+  /* Save the current state and push a new context for the generated
+     routine. */
+  push_generated_routine_context(scope, *il_region, grcontext);
 #if IA64_ABI
   if (param1_type != NULL) {
     scope->variant.routine.parameters = 
                                       make_lowered_param_variable(param1_type);
   }  /* if */
 #endif /* IA64_ABI */
-  /* Save the current state and push a new context for the generated
-     routine. */
-  push_generated_routine_context(scope, *il_region, grcontext);
   /* Set the insert location to the start of the top-level block. */
   set_block_start_insert_location(scope->assoc_block,
                                   insert_location);
