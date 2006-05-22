@@ -1,5 +1,18 @@
 Version 3.8
 
+5/22/06  Typedef redeclarations in C mode
+
+In C modes, duplicate typedef declarations with incompatible underlying types
+are now diagnosed in the same was as in C++ mode.  In particular, the error
+now indicates where the earlier typedef declaration occurred.  For example:
+
+  typedef int S;    // Line 1.
+  typedef float S;  // Now triggers the same diagnostic in C and C++ modes.
+                    // The error refers to "line 1".
+
+Other typedef redeclaration diagnostics (e.g., with compatible types) have not
+changed.
+
 5/22/06  Memory corruption problem, IA-64 ABI termination routines
 
 When IL lowering generated a termination routine to destroy a local
