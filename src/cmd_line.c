@@ -2832,6 +2832,9 @@ checked again here.)
   if (!option_kind_used[(int)optk_type_traits_helpers]) {
     type_traits_helpers_enabled = FALSE;
   }  /* if */
+  if (!option_kind_used[(int)optk_const_string_literals]) {
+    string_literals_are_const = TRUE;
+  }  /* if */
 }  /* check_and_set_sun_mode_options */
 
 

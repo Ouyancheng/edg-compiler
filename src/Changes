@@ -1,5 +1,11 @@
 Version 3.8
 
+5/22/06  Const string literals in Sun mode
+
+String literals are now considered to have const type in Sun C++ mode,
+since that appears to be what all recent versions of the Sun compiler
+do.
+
 5/22/06  Assignment to "this" and IA-64 ABI mode
 
 The assignment-to-this anachronism can now be permitted in IA-64 ABI
