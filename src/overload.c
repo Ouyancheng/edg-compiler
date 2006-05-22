@@ -2827,11 +2827,12 @@ operator+(a, b).
         /* Determine the effective "this" parameter type.  When namespaces
            are involved in classes, the parameter type is taken to be the
            class in which the "using" occurs. */
-        a_type_ptr this_param_type =
+        a_type_ptr this_param_type;
+        check_assertion(proj_function_symbol != NULL); /* For Coverity */
+        this_param_type =
                       this_param_type_for_overload_res(routine_type,
                                                        proj_function_symbol,
                                                        /*is_conv_func=*/FALSE);
-        check_assertion(surrogate_function_conv_sym == NULL);
         if (implicit_selector_type != NULL) {
           /* The selector is an implicit "this->".  See how well it
              matches.  It might not match at all. */
