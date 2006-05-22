@@ -1,5 +1,12 @@
 Version 3.8
 
+5/22/06  Assignment to "this" and IA-64 ABI mode
+
+The assignment-to-this anachronism can now be permitted in IA-64 ABI
+versions by setting ASSIGNMENT_TO_THIS_ALLOWED to TRUE, as long as
+DO_IL_LOWERING is FALSE.  The --anachronisms option or the like is still
+required to turn the feature on.
+
 5/22/06  Sun mode: do-nothing reinterpret_cast allowed
 
 Sun mode now allows a reinterpret_cast that does nothing (e.g., int --> int,

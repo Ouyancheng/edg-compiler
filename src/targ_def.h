@@ -2078,17 +2078,18 @@ to "this" is allowed, the interface to and wrapper code within constructors
 and destructors may have to be changed.
 */
 #ifndef ASSIGNMENT_TO_THIS_ALLOWED
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
 /* In the IA64 ABI, new cannot be folded into constructors, so assignment to
-   this is not supported. */
+   "this" is not supported. */
 #define ASSIGNMENT_TO_THIS_ALLOWED FALSE
-#else /* !IA64_ABI */
+#else /* !(IA64_ABI && DO_IL_LOWERING) */
 #define ASSIGNMENT_TO_THIS_ALLOWED TRUE
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && DO_IL_LOWERING */
 #endif /* ifndef ASSIGNMENT_TO_THIS_ALLOWED */
-#if ASSIGNMENT_TO_THIS_ALLOWED && IA64_ABI
- #error -- ASSIGNMENT_TO_THIS_ALLOWED and IA64_ABI cannot both be TRUE
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED && IA64_ABI */
+#if ASSIGNMENT_TO_THIS_ALLOWED && IA64_ABI && DO_IL_LOWERING
+ #error -- ASSIGNMENT_TO_THIS_ALLOWED and IA64_ABI cannot both be TRUE \
+           if IL lowering is done
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED && IA64_ABI && DO_IL_LOWERING */
 
 /*
 Control over whether or not C++ "new" and "delete" operations are allowed
@@ -2101,11 +2102,11 @@ to be folded into the constructor or destructor if possible.
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 #define NEW_CAN_BE_FOLDED_INTO_CTOR TRUE  /* cfront compatibility setting. */
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
-#if IA64_ABI
+#if IA64_ABI && DO_IL_LOWERING
 #define NEW_CAN_BE_FOLDED_INTO_CTOR FALSE /* Do not change this. */
-#else /* ! IA64_ABI */
+#else /* !(IA64_ABI && DO_IL_LOWERING) */
 #define NEW_CAN_BE_FOLDED_INTO_CTOR TRUE  /* Can be changed. */
-#endif /* ! IA64_ABI */
+#endif /* !(IA64_ABI && DO_IL_LOWERING) */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #endif /* !defined(NEW_CAN_BE_FOLDED_INTO_CTOR) */
 #ifndef DELETE_CAN_BE_FOLDED_INTO_DTOR
@@ -2124,7 +2125,7 @@ to be folded into the constructor or destructor if possible.
  #error -- DELETE_CAN_BE_FOLDED_INTO_DTOR may not be FALSE if \
            ASSIGNMENT_TO_THIS_ALLOWED is TRUE
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED ... */
-#if IA64_ABI && NEW_CAN_BE_FOLDED_INTO_CTOR 
+#if IA64_ABI && NEW_CAN_BE_FOLDED_INTO_CTOR && DO_IL_LOWERING
  #error -- NEW_CAN_BE_FOLDED_INTO_CTOR may not be TRUE if \
            IA64_ABI is TRUE
 #endif /* IA64_ABI ... */
