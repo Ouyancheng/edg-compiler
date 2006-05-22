@@ -1,5 +1,15 @@
 Version 3.8
 
+5/22/06  Sun mode: do-nothing reinterpret_cast allowed
+
+Sun mode now allows a reinterpret_cast that does nothing (e.g., int --> int,
+or class --> class).  A warning is issued.
+
+  int foo() {
+    int x = 3;
+    return reinterpret_cast<int>(x);
+  }
+
 5/18/06  GNU and Microsoft compatibility: Anonymous unions
 
 In GNU mode, the front end now accepts const- and volatile-qualified anonymous
