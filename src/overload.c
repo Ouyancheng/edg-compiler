@@ -5264,6 +5264,7 @@ in_instantiation:
       }  /* for */
       if (use_class_call_message) {
         /* Candidate set includes at least one surrogate function. */
+        check_assertion(bound_function_selector != NULL);
         pos_ty_start_error(ec_ambiguous_class_call, call_position,
                            type_pointed_to(bound_function_selector->type));
       } else {
