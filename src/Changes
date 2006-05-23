@@ -141,7 +141,7 @@ The current C++ standard requires that uses of "typename" followed by a
 qualified name only occur inside templates.  Previously, such uses outside
 any template triggered a discretionary error in strict mode, and a warning
 in default mode.  Now such uses are silently accepted in C++0x modes and
-in default C++ mode only a warning is issued.  For example:
+in default C++ mode only a remark is issued.  For example:
 
   struct S { struct N {}; };
   typename S::N *p;  // Accepted in C++0x mode.  A remark (instead of a
