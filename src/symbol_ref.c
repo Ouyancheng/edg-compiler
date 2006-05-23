@@ -1911,7 +1911,8 @@ projection symbol.
                    function definition should have been reported as an error
                    and recorded as an srk_error reference. */
                 check_assertion(ssep->number == sym_ptr->decl_scope ||
-                                !scptr->is_local_to_function);
+                                (scptr != NULL &&
+                                 !scptr->is_local_to_function));
                 /* We are at the outermost scope of the function.  Check for
                    a label. */
                 goto check_label_decl_seq;

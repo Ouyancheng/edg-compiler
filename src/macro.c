@@ -3137,6 +3137,7 @@ hence its name should not be changed.
               map->raw_text[1] == LE_INERT_MACRO) sect_len -= LE_ESCAPE_LEN;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           { char *post_end;
+            /* coverity[var_deref_model] */
             if (microsoft_mode && prev_section_is_paste &&
                 is_microsoft_function_name_paste(map,
                                                  prev_text,
@@ -7020,6 +7021,7 @@ Return the file descriptor.
 
   /* Make sure the auxiliary directory name is not NULL. */
   aux_dir_name = EDG_AUXILIARY_INFO_DIR_NAME;
+  /* coverity[dead_error_condition] */ /* coverity[dead_error_line] */
   if (aux_dir_name == NULL) aux_dir_name = "";
   buf = combine_dir_and_file_name(edg_base_directory, aux_dir_name,
                                   (a_text_buffer_ptr)NULL);

@@ -2118,6 +2118,8 @@ Syntax:
     call_node = make_operator_node(op,
                                    type_of_unknown_templ_param_nontype,
                                    function_node);
+    /* Coverity bug: This code is not dead: arg_dep_lookup_suppressed is
+       TRUE for non-member undefined symbols and indefinite functions. */
     /* coverity[dead_error_condition] */
     if (arg_dep_lookup_suppressed) {
       call_node->variant.operation.

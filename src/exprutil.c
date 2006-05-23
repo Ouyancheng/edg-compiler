@@ -221,6 +221,7 @@ up to the caller and therefore cannot be modified further.
       if (curr_expr_ref_entries == NULL) {
         curr_expr_ref_entries = rep;
       } else {
+        /* coverity[var_deref_op] */
         last_rep->next = rep;
       }  /* if */
       last_rep = rep;

@@ -444,6 +444,7 @@ entries in the primary IL.
 {
   a_scope_pointers_block *pointers_block = get_pointers_block_for_scope(scope);
 
+  check_assertion(pointers_block != NULL);
   fix_last_pointer(pointers_block->last_constant, scope->constants,
                    a_constant_ptr, iek_constant);
   fix_last_pointer(pointers_block->last_type, scope->types,
@@ -2075,6 +2076,7 @@ unit set to the primary translation unit.
                                               (a_storage_class)sc_unspecified);
         if (move_to_end) {
           remove_from_variables_list(primary_variable, NO_SCOPE_DEPTH);
+          /* coverity[var_deref_op] */
           last_variable = pointers_block->last_variable;
           add_to_list = TRUE;
         }  /* if */
@@ -2127,6 +2129,7 @@ unit set to the primary translation unit.
     if (last_dyn_init == NULL) {
       primary_scope->dynamic_inits = copied_inits;
     } else {
+      /* coverity[var_deref_op] */
       last_dyn_init = pointers_block->last_dynamic_init;
       last_dyn_init->next = copied_inits;
     }  /* if */

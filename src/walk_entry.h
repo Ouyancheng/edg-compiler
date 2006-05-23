@@ -654,6 +654,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                      a_name_reference_ptr, iek_name_reference);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+            /* coverity[var_deref_model] */
             set_proper_definition_needed_flag(
                                     pm_class_type_possibly_lowered(ptr->type));
             if (ptr->variant.ptr_to_member.cast_to_base) {
