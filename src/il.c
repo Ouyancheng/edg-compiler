@@ -5084,6 +5084,8 @@ Return TRUE if dip1 and dip2 are equivalent dynamic initializations.
 
   if (dip1 == NULL && dip2 == NULL) {
     eq = TRUE;
+  } else if (dip1 == NULL || dip2 == NULL) {
+    /* Not equal. */
   } else if (dip1->kind == dip2->kind &&
              same_entities(dip1->variable, dip2->variable) &&
              same_entities(dip1->destructor, dip2->destructor)) {
@@ -5132,6 +5134,8 @@ are allowed under a sizeof (etc.) in a template argument expression.
 
   if (node1 == NULL && node2 == NULL) {
     eq = TRUE;
+  } else if (node1 == NULL || node2 == NULL) {
+    /* Not equal. */
   } else if (node1->kind == node2->kind) {
     switch (node1->kind) {
       case enk_operation:
@@ -11217,6 +11221,10 @@ to TRUE.  *source_pos gives the source position for errors.
       type_3 = type_of_copied_template_expr(*operand_3, constant_3,
                                             *alloc_con_3);
     }  /* if */
+  } else {
+    /* Let Coverity Prevent know that op_3_present cannot be TRUE when
+       op_2_present is FALSE. */
+    check_assertion(op_3_present == FALSE);
   }  /* if */
   if (is_bad_type_for_template_arg_operand(type_1) ||
       (op_2_present && is_bad_type_for_template_arg_operand(type_2)) ||

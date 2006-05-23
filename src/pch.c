@@ -921,6 +921,9 @@ Return TRUE if two PCH events are equivalent.
           (pep2->value == NULL || *(pep2->value) == '\0')) {
         /* Both value strings are empty so are equivalent.  Leave result
            set to TRUE. */
+      } else if (pep1->value == NULL || pep2->value == NULL) {
+        /* Only one string is NULL.  The values are not equal. */
+        result = FALSE;
       } else {
         if (!is_include) {
           result = strcmp(pep1->value, pep2->value) == 0;

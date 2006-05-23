@@ -1465,6 +1465,7 @@ mix of the given kind and chk_char.
      produce_error_constant is set. */
   /* Build the concatenation and record it in the constant in the first
      string token in the cache. */
+  check_assertion(first_string_token != NULL); /* For Coverity. */
   concat_con = first_string_token->variant.constant;
   if (produce_error_constant) {
     /* There is at least one error constant in the concatenation or the

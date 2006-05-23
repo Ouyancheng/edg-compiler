@@ -3060,6 +3060,7 @@ the calls to this routine.
              source line, stop. */
           if (slmp == line_start_source_line_modif) break;
           /* End of a macro.  Pick up after the invocation text. */
+          check_assertion(slmp != NULL);  /* For Coverity. */
           walk_out_of_insertion(slmp, loc_in_line);
           token_start = TRUE;
         } else if (ch == LE_NEWLINE) {
@@ -3696,7 +3697,10 @@ inclusion.  is_include_next is TRUE if the file is being pushed for an
                                    &display_name, &input_file,
                                    &suppress_include, &dir_entry);
   check_assertion(file_found || continue_on_open_failure);
-  if (!file_found) goto done;
+  if (!file_found) {
+    check_assertion(input_file == NULL); /* For Coverity. */
+    goto done;
+  }  /* if */
   if (suppress_include ||
       (is_include_file &&
        suppress_subsequent_include_of_file(full_file_name, &ifhp,
@@ -13927,9 +13931,10 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
          type and qualifier_namespace will be NULL.  If the qualifier
          is a namespace, qualifier_type will be NULL and qualifier_namespace
          will point to the namespace. */
-      qualifier_is_type = locator_for_curr_id.is_class_member;
+
       qualifier_type = qualifier_class_type(locator_for_curr_id);
       qualifier_namespace = qualifier_namespace_ptr(locator_for_curr_id);
+      qualifier_is_type = locator_for_curr_id.is_class_member;
       qualifier_is_super = locator_for_curr_id.qualifier_is_super;
       is_vacuous_dtor = locator_for_curr_id.is_vacuous_destructor_reference;
       return_value = TRUE;

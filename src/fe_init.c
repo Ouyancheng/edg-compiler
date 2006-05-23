@@ -1270,6 +1270,7 @@ when it is a secondary file.
 #endif /* RUNTIME_USES_NAMESPACES */
     if (need_std || ignore_std_namespace ||
         va_list_in_std_namespace) {  /*lint !e774*/
+      /* coverity[dead_error_line] */
       /* Predeclare namespace "std" and create a symbol for it.  Note that
          the symbol is not actually added to the symbol table until namespace
          "std" is explicitly declared (unless the --ignore_std option is

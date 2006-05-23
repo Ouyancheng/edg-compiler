@@ -1393,6 +1393,7 @@ memory or with an IL file.
     /* Keep the memory for the region.  Trim the region to reclaim unused
        storage at the end of the last block.  Unused storage at the ends
        of blocks other than the last was previously reclaimed. */
+    /* coverity[dead_error_line] */
     trim_memory_region(region_number);
   } else {
     /* Free the memory for the region. */

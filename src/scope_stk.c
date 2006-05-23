@@ -2955,6 +2955,7 @@ are non-NULL when they should be used for the outermost instantiation scope.
         /* Get the template declaration information associated with
            the class. */
         tssp = template_supplement_for_symbol(template_sym);
+        check_assertion(tssp != NULL);
         decl_info = cache_for_template(tssp)->decl_info;
       }  /* if */
     }  /* if */
@@ -6061,7 +6062,8 @@ End a name scope by popping an entry off the scope stack.
   }  /* if */
   if (!old_region_still_needed) {
     /* The old memory region is no longer needed. */
-    check_assertion(kind == (a_scope_kind)sck_function);
+    check_assertion(kind == (a_scope_kind)sck_function &&
+                    curr_routine != NULL);
     /* See whether this is a function whose body should be discarded. */
     discard_function_body = function_body_should_be_discarded(curr_routine) ||
                             scope_stack[depth_scope_stack].discard_when_popped;
