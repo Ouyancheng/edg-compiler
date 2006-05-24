@@ -1823,6 +1823,7 @@ Free all memory used by the compilation.  This must be called at the
 very end of processing.
 */
 {
+  free_all_memory_regions();
 #if !STANDALONE_UTILITY_PROGRAM
 #if USE_MMAP_FOR_MEMORY_REGIONS
   if (mmap_initialized) {

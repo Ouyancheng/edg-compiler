@@ -1,5 +1,12 @@
 Version 3.8
 
+5/24/06  Memory leak when using MAKE_FRONT_END_CALLABLE
+
+When the front end is built with MAKE_FRONT_END_CALLABLE == TRUE, memory
+that is allocated as part of a memory region could be leaked when a
+compilation terminates abnormally (via a catastrophic error, internal error,
+etc.).  This has been fixed.
+
 5/24/06  Microsoft compatibility: more on ADL and friend injection
 
 An additional tweak on the changes of 3/10/04 to emulate the argument-
