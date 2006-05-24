@@ -2381,8 +2381,57 @@ done:;
 }  /* function_template_call_argument_deduction */
 
 
+/*
+Bit flags used for arg_dep_lookup_extra_info parameters.
+*/
+#define ADLEI_NONE 0
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define ADLEI_FROM_NAMESPACE 1
+			/* The name was found during the associated namespace
+			   portion of argument-dependent lookup (as opposed to
+			   the associated class portion).  Used for a Microsoft
+			   bug emulation. */
+#define ADLEI_ORIG_SYM_IN_NAMESPACE 2
+			/* The primary symbol originally found (not via
+			   argument-dependent lookup) is a member of a
+			   namespace.  Used for a Microsoft bug emulation. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static int adl_extra_arg(a_symbol_list_entry_ptr slep,
+                         a_symbol_ptr            normal_lookup_symbol)
+/*
+Determine the argument-dependent lookup extra information argument
+based on the current entry on the ADL symbol list (slep) and the
+symbol found by normal lookup (which might be NULL).  This is
+used to emulate some Microsoft ADL/friend injection weirdness.
+*/
+{
+  int adlei_arg = ADLEI_NONE;
+
+  if (slep->from_arg_dep_lookup_namespace) {
+    /* The current symbol was added during the associated namespace portion
+       of ADL. */
+    adlei_arg |= ADLEI_FROM_NAMESPACE;
+  }  /* if */
+  if (normal_lookup_symbol != NULL &&
+      !normal_lookup_symbol->is_class_member &&
+      normal_lookup_symbol->parent.namespace_ptr != NULL) {
+    /* The symbol found by the normal id lookup is a member of a namespace,
+       which seems to suppress the Microsoft weirdness. */
+    adlei_arg = ADLEI_ORIG_SYM_IN_NAMESPACE;
+  }  /* if */
+  return adlei_arg;
+}  /* adl_extra_arg */
+
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+
+#define adl_extra_arg(slep, normal_lookup_symbol) ADLEI_NONE
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- is_overloaded_operator and from_arg_dep_lookup_namespace
+/*ARGSUSED*/ /* <-- is_overloaded_operator and arg_dep_lookup_extra_info
                     are only used if Microsoft extensions are allowed. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean candidate_function_is_visible(
@@ -2390,7 +2439,7 @@ static a_boolean candidate_function_is_visible(
                                     a_boolean    is_template_id,
                                     a_boolean    effects_copy_initialization,
                                     a_boolean    from_arg_dep_lookup,
-                                    a_boolean    from_arg_dep_lookup_namespace,
+                                    int          arg_dep_lookup_extra_info,
                                     a_boolean    dependent_call,
                                     a_boolean    is_overloaded_operator,
                                     a_boolean    *invisible_because_explicit)
@@ -2404,11 +2453,10 @@ explicit template argument list.  effects_copy_initialization is
 TRUE if this call is the user-defined conversion in a copy-initialization
 (constructors marked "explicit" are considered invisible).
 from_arg_dep_lookup is TRUE if the function was found by argument-dependent
-lookup.  from_arg_dep_lookup_namespace is TRUE if the function was
-found in an associated namespace in argument-dependent lookup.
-dependent_call is TRUE if the call is a template-dependent
-call.  is_overloaded_operator is TRUE if the call is written in
-operator form, e.g., a+b rather than operator+(a, b).  If
+lookup.  arg_dep_lookup_extra_info provides extra information about
+argument-dependent lookup.  dependent_call is TRUE if the call is a
+template-dependent call.  is_overloaded_operator is TRUE if the call
+is written in operator form, e.g., a+b rather than operator+(a, b).  If
 invisible_because_explicit is non-NULL, it is returned TRUE
 if the routine is invisible because it is an explicit constructor,
 FALSE otherwise.
@@ -2433,7 +2481,9 @@ FALSE otherwise.
   if (microsoft_mode && microsoft_version >= 1310 &&
       is_overloaded_operator &&
       function_symbol->is_microsoft_invisible_operator &&
-      (!from_arg_dep_lookup || from_arg_dep_lookup_namespace)) {
+      (arg_dep_lookup_extra_info & ADLEI_ORIG_SYM_IN_NAMESPACE) == 0 &&
+      (!from_arg_dep_lookup ||
+       (arg_dep_lookup_extra_info & ADLEI_FROM_NAMESPACE) != 0)) {
     /* As of MSVC++ 7.1, certain operators defined as friends are
        not visible.  This is an approximation to eliminating friend
        injection, in some limited cases. */
@@ -2518,7 +2568,7 @@ static void determine_function_viability(
                  a_boolean                effects_copy_initialization,
                  a_boolean                allow_udc_on_arguments,
                  a_boolean                from_arg_dep_lookup,
-                 a_boolean                from_arg_dep_lookup_namespace,
+                 int                      arg_dep_lookup_extra_info,
                  a_boolean                dependent_call,
                  a_boolean                known_to_be_visible,
                  a_boolean                is_overloaded_operator,
@@ -2560,13 +2610,12 @@ copy-initialization; constructors that are marked "explicit" are
 ignored.  allow_udc_on_arguments is TRUE if user-defined conversions
 should be allowed on the argument matches.  from_arg_dep_lookup is
 TRUE if the function was found by argument-dependent lookup.
-from_arg_dep_lookup_namespace is TRUE if the function was
-found in an associated namespace in argument-dependent lookup.
-dependent_call is TRUE if the call is a template-dependent call.
-known_to_be_visible is TRUE if the function is known to be visible and
-the visibility check should be suppressed.  is_overloaded_operator is
-TRUE if the call is written in operator form, e.g., a+b rather than
-operator+(a, b).
+arg_dep_lookup_extra_info provides extra information about
+argument-dependent lookup.  dependent_call is TRUE if the call is a
+template-dependent call.  known_to_be_visible is TRUE if the function
+is known to be visible and the visibility check should be suppressed.
+is_overloaded_operator is TRUE if the call is written in operator form,
+e.g., a+b rather than operator+(a, b).
 */
 {
   a_symbol_ptr             function_symbol;
@@ -2595,7 +2644,7 @@ operator+(a, b).
                                        is_template_id,
                                        effects_copy_initialization,
                                        from_arg_dep_lookup,
-                                       from_arg_dep_lookup_namespace,
+                                       arg_dep_lookup_extra_info,
                                        dependent_call,
                                        is_overloaded_operator,
                                        &invisible_because_explicit)) {
@@ -2964,7 +3013,7 @@ static void try_overloaded_function_match(
                  a_boolean                effects_copy_initialization,
                  a_boolean                allow_udc_on_arguments,
                  a_boolean                from_arg_dep_lookup,
-                 a_boolean                from_arg_dep_lookup_namespace,
+                 int                      arg_dep_lookup_extra_info,
                  a_boolean                dependent_call,
                  a_boolean                known_to_be_visible,
                  a_boolean                is_overloaded_operator,
@@ -2999,13 +3048,12 @@ is TRUE if this call is the user-defined conversion in a copy-initialization;
 constructors that are marked "explicit" are ignored.  allow_udc_on_arguments
 is TRUE if user-defined conversions should be allowed on the argument
 matches.  from_arg_dep_lookup is TRUE if the function was found by
-argument-dependent lookup.  from_arg_dep_lookup_namespace is TRUE if
-the function was found in an associated namespace in argument-dependent
-lookup.  dependent_call is TRUE if the call is a template-dependent call.
-known_to_be_visible is TRUE if the function is known to be visible and
-the visibility check should be suppressed.  is_overloaded_operator is
-TRUE if the call is written in operator form, e.g., a+b rather than
-operator+(a, b).
+argument-dependent lookup.  arg_dep_lookup_extra_info provides extra
+information about argument-dependent lookup.  dependent_call is TRUE
+if the call is a template-dependent call.  known_to_be_visible is TRUE
+if the function is known to be visible and the visibility check should
+be suppressed.  is_overloaded_operator is TRUE if the call is written
+in operator form, e.g., a+b rather than operator+(a, b).
 */
 {
   a_boolean     overloaded_function_case;
@@ -3097,7 +3145,7 @@ operator+(a, b).
                                  effects_copy_initialization,
                                  allow_udc_on_arguments,
                                  from_arg_dep_lookup,
-                                 from_arg_dep_lookup_namespace,
+                                 arg_dep_lookup_extra_info,
                                  dependent_call,
                                  known_to_be_visible,
                                  is_overloaded_operator,
@@ -3139,7 +3187,7 @@ are viable functions, FALSE if not.  Issues no errors.
                                 /*effects_copy_initialization=*/FALSE,
                                 /*allow_udc_on_arguments=*/TRUE,
                                 /*from_arg_dep_lookup=*/FALSE,
-                                /*from_arg_dep_lookup_namespace=*/FALSE,
+                                ADLEI_NONE,
                                 /*dependent_call=*/FALSE,
                                 /*known_to_be_visible=*/FALSE,
                                 /*is_overloaded_operator=*/FALSE,
@@ -3235,7 +3283,7 @@ arguments of the call (given by arg_operand_list).
                                        /*effects_copy_initialization=*/FALSE,
                                        /*allow_udc_on_arguments=*/TRUE,
                                        /*from_arg_dep_lookup=*/FALSE,
-                                       /*from_arg_dep_lookup_namespace=*/FALSE,
+                                       ADLEI_NONE,
                                        /*dependent_call=*/FALSE,
                                        /*known_to_be_visible=*/FALSE,
                                        /*is_overloaded_operator=*/FALSE,
@@ -5063,7 +5111,7 @@ in_instantiation:
                                        is_template_id,
                                        /*effects_copy_initialization=*/FALSE,
                                        /*from_arg_dep_lookup=*/FALSE,
-                                       /*from_arg_dep_lookup_namespace=*/FALSE,
+                                       ADLEI_NONE,
                                        dependent_call,
                                        /*is_overloaded_operator=*/FALSE,
                                        (a_boolean *)NULL))) {
@@ -5085,7 +5133,7 @@ in_instantiation:
                                     /*effects_copy_initialization=*/FALSE,
                                     /*allow_udc_on_arguments=*/TRUE,
                                     /*from_arg_dep_lookup=*/FALSE,
-                                    /*from_arg_dep_lookup_namespace=*/FALSE,
+                                    ADLEI_NONE,
                                     dependent_call,
                                     known_to_be_visible,
                                     /*is_overloaded_operator=*/FALSE,
@@ -5130,8 +5178,8 @@ in_instantiation:
                                           /*from_arg_dep_lookup=*/
                                                (symbol_list->symbol !=
                                                 normal_lookup_function_symbol),
-                                          (a_boolean)symbol_list->
-                                                 from_arg_dep_lookup_namespace,
+                                          adl_extra_arg(symbol_list,
+                                                normal_lookup_function_symbol),
                                           dependent_call,
                                           /*is_overloaded_operator=*/FALSE,
                                           (a_boolean *)NULL)) {
@@ -5172,8 +5220,8 @@ in_instantiation:
                                                (slep != symbol_list ||
                                                 function_symbol !=
                                                 normal_lookup_function_symbol),
-                                      (a_boolean)slep->
-                                                 from_arg_dep_lookup_namespace,
+                                      adl_extra_arg(slep,
+                                                normal_lookup_function_symbol),
                                       dependent_call,
                                       /*known_to_be_visible=*/FALSE,
                                       /*is_overloaded_operator=*/FALSE,
@@ -9978,8 +10026,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*effects_copy_initialization=*/FALSE,
                                          /*allow_udc_on_arguments=*/TRUE,
                                          /*from_arg_dep_lookup=*/FALSE,
-                                         /*from_arg_dep_lookup_namespace=*/
-                                                                         FALSE,
+                                         ADLEI_NONE,
                                          /*dependent_call=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
                                          /*is_overloaded_operator=*/TRUE,
@@ -10020,8 +10067,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*effects_copy_initialization=*/FALSE,
                                          /*allow_udc_on_arguments=*/TRUE,
                                          /*from_arg_dep_lookup=*/FALSE,
-                                         /*from_arg_dep_lookup_namespace=*/
-                                                                         FALSE,
+                                         ADLEI_NONE,
                                          dependent_call,
                                          /*known_to_be_visible=*/TRUE,
                                          /*is_overloaded_operator=*/TRUE,
@@ -10102,8 +10148,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                                  (slep != symbol_list ||
                                                   nonmember_functions_symbol !=
                                                   normal_sym),
-                                         (a_boolean)slep->
-                                                 from_arg_dep_lookup_namespace,
+                                         adl_extra_arg(slep, normal_sym),
                                          dependent_call,
                                          /*known_to_be_visible=*/FALSE,
                                          /*is_overloaded_operator=*/TRUE,
@@ -10558,7 +10603,7 @@ mode.
                                     /*allow_udc_on_arguments=*/
                                               !adjusted_is_copy_initialization,
                                     /*from_arg_dep_lookup=*/FALSE,
-                                    /*from_arg_dep_lookup_namespace=*/FALSE,
+                                    ADLEI_NONE,
                                     /*dependent_call=*/FALSE,
                                     /*known_to_be_visible=*/FALSE,
                                     /*is_overloaded_operator=*/FALSE,

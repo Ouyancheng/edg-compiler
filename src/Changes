@@ -1,5 +1,34 @@
 Version 3.8
 
+5/24/06  Microsoft compatibility: more on ADL and friend injection
+
+An additional tweak on the changes of 3/10/04 to emulate the argument-
+dependent lookup and friend lookup behavior of MSVC++ 7.1:  Now,
+if the name found by normal lookup in such cases is a namespace
+member, the special processing is suppressed.
+
+  class A {};
+  class B {
+  public:
+    B(const A &);
+    friend bool operator<(const B&b1, const B&b2) {
+        return b1.c(b2);
+    }
+    int c(const B &) const;
+  };
+  namespace ns0 {
+    template<typename X> void bar(X x) {
+      x < x;  // No longer an error here with -tused and
+              // microsoft_version == 1310
+    }
+    class C;
+    bool operator<(const C&, const C&);
+  }
+  void foobar() {
+      A a;
+      ns0::bar(a);
+  }
+
 5/22/06  Typedef redeclarations in C mode
 
 In C modes, duplicate typedef declarations with incompatible underlying types
