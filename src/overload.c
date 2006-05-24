@@ -2913,7 +2913,7 @@ accept_function:
        and instantiated. */
     a_candidate_function_ptr candidate = *candidate_functions;
     candidate->is_user_conversion = TRUE;
-    check_assertion(proj_function_symbol != NULL);  /* For Coverity */
+    /* coverity[uninit_use] */
     if (!function_template_case) candidate->conversion.routine = routine;
   }  /* if */
 #if BACK_END_IS_CP_GEN_BE
