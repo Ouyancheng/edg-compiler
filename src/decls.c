@@ -9118,7 +9118,7 @@ needed).
 */
 {
   a_storage_class              storage_class;
-  a_decl_flag_set              dso_flags, do_flags, di_flags;
+  a_decl_flag_set              dsi_flags, dso_flags, do_flags, di_flags;
   a_decl_modifiers_block       decl_modifiers;
   a_source_position            start_pos;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
@@ -9128,8 +9128,9 @@ needed).
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
   init_decl_parse_state(&state);
-  (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags, &storage_class,
-                        type_ptr, &state, (an_attribute_ptr*)NULL,
+  dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR;
+  (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, type_ptr,
+                        &state, (an_attribute_ptr*)NULL,
                         (an_ms_attribute_ptr*)NULL, &decl_modifiers,
                         (a_named_register_id*)NULL, (a_decl_pos_block_ptr)NULL,
                         (a_upc_block_size*)NULL);
@@ -9232,7 +9233,8 @@ within this routine if is_parenthesized comes in FALSE.
 {
   a_type_ptr                  complete_type, new_type_ptr;
   a_type_ptr                  derived_type, bottom_derived_type;
-  a_decl_flag_set             dso_flags, do_flags = DO_NO_OUTPUT_FLAGS;
+  a_decl_flag_set             dsi_flags, dso_flags,
+                              do_flags = DO_NO_OUTPUT_FLAGS;
   a_decl_modifiers_block      decl_modifiers;
   a_source_position           start_pos;
   a_storage_class             storage_class;
@@ -9252,11 +9254,13 @@ within this routine if is_parenthesized comes in FALSE.
   init_decl_parse_state(&state);
   clear_decl_pos_block(&decl_pos_block);
   copy_source_position(pos_curr_token, start_pos);
-  (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME,
-                        &dso_flags, &storage_class, type_ptr, &state,
-                        (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
-                        &decl_modifiers, (a_named_register_id*)NULL,
-                        &decl_pos_block, (a_upc_block_size*)NULL);
+  dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME |
+              DSI_NO_REAL_DECLARATOR;
+  (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, type_ptr,
+                        &state, (an_attribute_ptr*)NULL,
+                        (an_ms_attribute_ptr*)NULL, &decl_modifiers,
+                        (a_named_register_id*)NULL, &decl_pos_block,
+                        (a_upc_block_size*)NULL);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
@@ -9410,8 +9414,8 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
   pos = pos_curr_token;
   init_decl_parse_state(&state);
   clear_decl_pos_block(&decl_pos_block);
-  (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
-                        &storage_class, &type_ptr, &state,
+  (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR,
+                        &dso_flags, &storage_class, &type_ptr, &state,
                         (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
                         &decl_modifiers, (a_named_register_id*)NULL,
                         &decl_pos_block, (a_upc_block_size*)NULL);
@@ -9503,16 +9507,17 @@ operator function reference.
     /* It is the start of a type name. */
     a_boolean           ptr_to_member_scanned;
     a_decl_parse_state  state;
+    a_decl_flag_set     input_flags;
     is_conversion_operator = TRUE;
     set_err_pos_to_curr_token();
     copy_source_position(pos_curr_token, type_pos);
     init_decl_parse_state(&state);
     clear_decl_pos_block(&decl_pos_block);
+    input_flags = DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR;
     (void)decl_specifiers(
-             DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags, &storage_class,
-             &specifiers_type, &state, (an_attribute_ptr*)NULL,
-             (an_ms_attribute_ptr*)NULL, &decl_modifiers,
-             (a_named_register_id*)NULL, &decl_pos_block,
+             input_flags, &dso_flags, &storage_class, &specifiers_type,
+             &state, (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
+             &decl_modifiers, (a_named_register_id*)NULL, &decl_pos_block,
              (a_upc_block_size*)NULL);
     if (dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */

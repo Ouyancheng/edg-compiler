@@ -23,19 +23,17 @@ conversion).  Now fixed.
 
 5/24/06  GNU compatibility: Typedefs with adjectives
 
-In GNU C mode with gnu_version < 30400 and in GNU C++ mode (any gnu_version
-value) the front end now accepts the combination of certain typedefs with
-modifiers like "unsigned" or "short" independently of whether the adjectives
-appear before or after the types (earlier only adjectives appearing after the
-typedef were accepted in these modes).  For example:
+In GNU C++ mode with gnu_version >= 30400, the front end now accepts sign and
+size adjectives (like "short" and "unisigned") preceding a typedef for an
+integer type in certain contexts.  (The similar case with adjectives following
+the typedef name was already accepted in many GNU modes.) For example:
 
   typedef long long I64;
-  unsigned I64 x;  // Now accepted in many GNU modes.
-  I64 unsigned y;  // Already accepted previously in many GNU modes.
-
-(This matches the behavior of more recent GNU C and C++ compilers, but it is
-slightly more permissive when emulating GNU C and C++ compilers earlier than
-version 3.4.)
+  void f() {
+    I64 unsigned y;       // Already accepted previously in many GNU modes.
+    y = (unsigned I64)3;  // Now accepted in GNU C++ 3.4 mode.
+    unsigned I64 x;       // Still invalid in any GNU mode.
+  }
 
 5/24/06  Memory leak when using MAKE_FRONT_END_CALLABLE
 

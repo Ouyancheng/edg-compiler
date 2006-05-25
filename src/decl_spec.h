@@ -194,10 +194,13 @@ extern void decl_spec_one_time_init(void);
 #define DSI_MARKED_AS_GNU_EXTENSION ((a_decl_flag_set)0x40000)
 			/* If this bit is set the declaration was preceded by
 			   the GNU keyword __extension__. */
-#define DSI_IS_ABSTRACT_DECLARATOR ((a_decl_flag_set)0x80000)
+#define DSI_IN_ABSTRACT_FUNC_DECLARATOR ((a_decl_flag_set)0x80000)
 			/* If this bit is set the declaration is part of an
 			   abstract function declarator. */
-#define DSI_LAST DSI_IS_ABSTRACT_DECLARATOR
+#define DSI_NO_REAL_DECLARATOR ((a_decl_flag_set)0x100000)
+			/* If this bit is set, the specifiers cannot be
+			   followed by a real declarator (e.g., in a cast). */
+#define DSI_LAST DSI_NO_REAL_DECLARATOR
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DSI_LAST)*/
 

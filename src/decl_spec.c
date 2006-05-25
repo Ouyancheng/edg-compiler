@@ -7000,7 +7000,7 @@ Returns TRUE if there is an error in the specifiers.
         break;
       case tok_lbracket:
         if (any_decl_specifiers_seen || !microsoft_mode || C_mode() ||
-            (input_flags & DSI_IS_ABSTRACT_DECLARATOR) != 0 ||
+            (input_flags & DSI_IN_ABSTRACT_FUNC_DECLARATOR) != 0 ||
              p_ms_attributes == NULL) {
           /* Microsoft attributes have to precede any specifiers.  They are
              only recognized in Microsoft C++ mode.  Attributes are not
@@ -7823,9 +7823,15 @@ process_class_specifier:
           /* There is an indication of sign and/or size (but no indication
              of a basic type).  In ANSI C and C++, assume we're dealing with
              a declarator.  In pcc mode and in some GNU modes, adjectival
-             modification of a typedef is allowed in certain circumstances,
-             so keep going till we know if the identifier is a typedef. */
-          if (!current_mode_allows_typedef_with_adjectives()) {
+             modification of a typedef is allowed in certain circumstances, so
+             keep going till we know if the identifier is a typedef.  (GNU
+             compilers behave differently depending on whether the sign or
+             size modifier appears before or after the typedef name.  This
+             code handles the usual case where the modifier appears before the
+             typedef name: That is only accepted by g++ 3.4 and later.) */
+          if (!(C_dialect == C_dialect_pcc ||
+                (gpp_mode && gnu_version >= 30400 &&
+                 (input_flags & DSI_NO_REAL_DECLARATOR) != 0))) {
             goto exit_loop;
           }  /* if */
         }  /* if */
