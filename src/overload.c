@@ -7880,7 +7880,8 @@ to either
     builtin_types_allowed != BTK_NONE, and a non-const lvalue of that
     type if need_lvalue_result is TRUE (if both (a) and (b) apply,
     (b) takes precedence, and dest_type is used only to guide the
-    selection of template conversion functions).
+    selection of template conversion functions and to establish the
+    cost of any conversion needed after the conversion function).
 
 If a conversion function to do that conversion exists, evaluate how
 well it matches the arguments and add it to the candidate_functions list,
@@ -8196,6 +8197,14 @@ This routine is only used in C++ mode.
            converted to the desired integral type. */
         compatible = TRUE;
         std_conversion.nontrivial_conversion = TRUE;
+        if (dest_type != NULL) {
+          a_type_ptr promoted_type =type_after_integral_promotion(return_type);
+          if (types_are_compatible_ignoring_qualifiers(promoted_type,
+                                                       dest_type)) {
+            /* The conversion is a promotion. */
+            std_conversion.promotion = TRUE;
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
     /* Give up on this function if it does not return a type we can use. */

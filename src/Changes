@@ -1,5 +1,26 @@
 Version 3.8
 
+5/25/06  Cost of promotion from enum in overload resolution for builtin
+         operator
+
+In some cases, overload resolution failed to consider the cost of the
+conversion from an enum type returned by a conversion function to
+an integral type as a promotion (it always counted as a standard
+conversion).  Now fixed.
+
+  enum enumtype {
+    large_enum_val     = 4294967295U,  // Force enum type to be unsigned
+    small_enum_val     = 5
+  };
+  struct unsignedconv {
+    unsignedconv(unsigned int);
+  };
+  struct enumoper {
+    operator enumtype() const;
+  };
+  bool operator==(unsigned int, const unsignedconv&);
+  bool yuk(enumoper eo) { return eo == 1U; }  // No longer ambiguous
+
 5/24/06  GNU compatibility: Typedefs with adjectives
 
 In GNU C mode with gnu_version < 30400 and in GNU C++ mode (any gnu_version
