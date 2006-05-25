@@ -2151,14 +2151,6 @@ extern a_boolean accum_quoted_string(unsigned long     *num_chars,
 #define is_decl_qualified_name_start()					  \
  (is_generalized_identifier_start(GID_NO_OPTIONS))
 
-/* Same thing for use in switch statements, in the form
-     case QUALIFIED_NAME_START_CASE:
-   Note that one must check for "::new" and "::delete" separately.
-*/
-#define QUALIFIED_NAME_START_CASE tok_identifier:	\
-                             case tok_colon_colon       \
-     if_microsoft_extensions(: case tok_super)
-
 /*
 Return TRUE if the indicated token is a type qualifier.  This is
 straightforward for const, volatile, and restrict but and __unaligned is

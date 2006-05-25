@@ -5180,6 +5180,14 @@ typedef enum {
 /*lint -esym(749,cxa_imaginary)*/
 #endif /* !C99_IL_EXTENSIONS_SUPPORTED */
 
+/*
+Macro that determines whether the current mode allows certain typedefs to be
+modified by sign and/or size specifiers.  E.g.:
+  typedef long L;  unsigned L x;  // Allowed in some modes.
+*/
+#define current_mode_allows_typedef_with_adjectives()                       \
+  (C_dialect == C_dialect_pcc || gpp_mode || (gcc_mode && gnu_version < 30400))
+
 static a_basic_type basic_type_from_typedef(a_type_ptr   *type_ptr,
                                             a_type_sign  *sign,
                                             a_type_size  *size)
@@ -5321,8 +5329,7 @@ modifier _Sat was specified.
   a_float_kind     fkind;
   a_boolean        bad_combination = FALSE;
 
-  if ((C_dialect == C_dialect_pcc || gpp_mode ||
-       (gcc_mode && gnu_version < 30400)) &&
+  if (current_mode_allows_typedef_with_adjectives() &&
       basic_type == bt_typedef && (sign != sign_none || size != size_none)) {
     /* GNU C/C++ (except GNU C 3.4 and later) and pcc allow unsigned, long,
        and short as adjectives modifying a typedef type.  Turn the typedef
@@ -7759,7 +7766,11 @@ process_class_specifier:
         *type_ptr = scan_typeof_operator(decl_pos_block);
         goto no_get_token;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      case QUALIFIED_NAME_START_CASE:  /* Identifier or "::". */
+      case tok_identifier:  /* Identifier or "::". */
+      case tok_colon_colon:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_super:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Identifier. */
         /* The appearance of an identifier may mean that the specifiers
            are complete (the identifier is a declarator) or it may be another
@@ -7811,10 +7822,12 @@ process_class_specifier:
         if (sign != sign_none || size != size_none) {
           /* There is an indication of sign and/or size (but no indication
              of a basic type).  In ANSI C and C++, assume we're dealing with
-             a declarator.  In pcc mode, adjectival modification of a typedef
-             is allowed in certain circumstances, so keep going till we know
-             if the identifier is a typedef. */
-          if (C_dialect != C_dialect_pcc) goto exit_loop;
+             a declarator.  In pcc mode and in some GNU modes, adjectival
+             modification of a typedef is allowed in certain circumstances,
+             so keep going till we know if the identifier is a typedef. */
+          if (!current_mode_allows_typedef_with_adjectives()) {
+            goto exit_loop;
+          }  /* if */
         }  /* if */
         /* Look up the identifier as a type symbol, if it has not already been
            looked up. */
