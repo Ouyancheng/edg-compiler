@@ -1,5 +1,24 @@
 Version 3.8
 
+5/26/06  Implicit int rules
+
+The default severity of the diagnostic for declarations that are missing a
+type specifier (which is implicitly assumed to be "int", to parallel the C89
+and ARM C++ rules) has been raised to "discretionary error".  In Microsoft C++
+mode, the diagnostic is still a warning.  In addition, the front end is now
+often able to detect that an "implicit int" was intended for the declaration
+of a member function of a class template with dependent base classes.  For
+example:
+
+  template<typename T> struct B {};
+  template<typename T> struct D: B<T> {
+    f();  // Now recognized as a member function declaration (and accepted
+  };      // with a warning in Microsoft mode).  Previously, "f" was always
+          // assumed to name a type, which resulted in a variety of syntax
+          // errors.
+
+This change improves compatibility with Microsoft C++ compilers.
+
 5/25/06  Cost of promotion from enum in overload resolution for builtin
          operator
 

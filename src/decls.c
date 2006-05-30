@@ -9045,15 +9045,15 @@ cv-qualifier).
              b(){}
              extern c();
              extern d(){}
-        */
+           This was accepted by the Cfront compiler, and is still accepted
+           (with a warning) by Microsoft C++ compilers. */
         error_code = ec_nonstd_implicit_int;
         if (any_cfront_mode()) {
           severity = es_remark;
-        } else if (strict_ansi_mode) {
-          severity = strict_ansi_discretionary_severity;
-        } else {
-          /* Default mode. */
+        } else if (microsoft_mode) {
           severity = es_warning;
+        } else {
+          severity = es_discretionary_error;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -9076,8 +9076,7 @@ cv-qualifier).
       severity = es_warning;
     } else {
       error_code = ec_nonstd_implicit_int;
-      severity = strict_ansi_mode ?
-                   strict_ansi_discretionary_severity : es_warning;
+      severity = microsoft_mode ? es_warning : es_discretionary_error;
     }  /* if */
   }  /* if */
   /* Unless the error is suppressed (e.g., in pcc mode), put out the

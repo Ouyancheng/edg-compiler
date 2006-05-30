@@ -5844,6 +5844,47 @@ above, but reject the code if X is neither a class type nor an enum type.
 }  /* implicit_int_member_with_name_of_type */
 
 
+static a_boolean looks_like_member_function_declarator(void)
+/*
+We are scanning the specifiers for a class template member.  The current token
+is an identifier assumed to refer to a type because of the presence of a
+template-dependent base class.  However, it might be that the identifier was
+meant to be a member function name declared with the "implicit int return"
+assumption.  For example:
+    template<typename T> struct B {}
+    template<typename T> struct D: B<T> { f(); };
+Return TRUE if this looks like it is the case (and the code could not
+otherwise be valid).
+Recognizing such cases allows for a closer (but not exact) emulation of the
+behavior of Microsoft compilers, and also enables better error recovery in
+other modes.
+*/
+{
+  a_boolean      result = FALSE;
+  a_token_cache  cache;
+
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  /* Cache the identifier. */
+  check_assertion(curr_token == tok_identifier);
+  cache_curr_token(&cache);
+  (void)get_token();
+  if (curr_token == tok_lparen) {
+    cache_curr_token(&cache);
+    (void)get_token();
+    if (!is_declarator_start()) {
+      /* We're not dealing with a construct of the form
+             T (<nested-declarator>) ...
+         So this must be a member function declarator for a declaration that
+         assumes "implicit int return" rules. */
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Restore the token state. */
+  rescan_cached_tokens(&cache);
+  return result;
+}  /* looks_like_member_function_declarator */
+
+
 /* Define a bit vector to be used within decl_specifiers to track which
    specifiers have been encountered. */
 typedef long a_decl_specifiers_set;
@@ -7840,6 +7881,24 @@ process_class_specifier:
         curr_token_type_symbol =
                     curr_type_symbol((input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                                      /*in_prescan=*/FALSE);
+        if (is_member_decl && (decl_specifiers_seen & DS_TYPE) == 0 &&
+            curr_token_type_symbol != NULL && !C_mode() &&
+            !locator_for_curr_id.is_qualified_name &&
+            is_template_param_type_symbol(curr_token_type_symbol) &&
+            skip_typerefs(curr_token_type_symbol->variant.type.ptr)
+              ->variant.template_param.kind ==
+                                    (a_template_param_type_kind)tptk_member) {
+          /* This is the first type specifier we see, but it is only a
+             placeholder that assumes the symbol will be found as a type in
+             a dependent base class.  If it looks like the start of a member
+             function declarator with an implicit int return type, discard
+             the result of the lookup.  This is too allow code like:
+               template<class T> struct B {};
+               template<class T> struct D: B { f(const int); };  */
+          if (looks_like_member_function_declarator()) {
+            curr_token_type_symbol = NULL;
+          }  /* if */
+        }  /* if */
         if (curr_token_type_symbol != NULL) {
           if (locator_for_curr_id.is_class_member &&
               ((curr_token_type_symbol->kind == (a_symbol_kind)sk_type &&
