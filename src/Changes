@@ -1,5 +1,25 @@
 Version 3.8
 
+5/30/06  C++-generating back end, GNU compatibility: base classes nested
+         inside other base classes
+
+Given a derived class, one of whose base classes is a nested class of another
+of its base classes, all versions of g++ incorrectly require that a
+qualified-id be used when referring to the nested class name from the scope of
+the derived class.  The C++-generating back end has been changed to generate
+qualified-ids in such cases when gcc_is_generated_code_target is TRUE.  For
+example:
+
+  struct A {
+    struct B {
+    };
+  };
+
+  struct D: A, A::B {
+    void f(A::B b);    // Formerly generated as "f(B b)"
+  };
+
+
 5/26/06  Implicit int rules
 
 The default severity of the diagnostic for declarations that are missing a

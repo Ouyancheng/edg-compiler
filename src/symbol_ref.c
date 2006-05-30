@@ -764,6 +764,21 @@ hidden name checking on its own members, too.
          not a local class). */
       check_defeatable_base_inaccessibility(class_type, bcp);
     }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+    if (gcc_is_generated_code_target &&
+        bcp->type->source_corresp.is_class_member &&
+        find_base_class_of(class_type,
+                           bcp->type->source_corresp.parent.class_type) !=
+                                                                        NULL) {
+      /* g++ incorrectly rejects unqualified references to a base class that
+         is nested inside another base class, so mark this as hidden. */
+      record_defeatable_name_hiding(symbol_for(bcp->type),
+                                    /*tag_hidden_by_nontag=*/FALSE,
+                                    /*hidden_class_or_namespace_member=*/TRUE,
+                                    /*simulated_hiding=*/FALSE,
+                                    sp, /*hidden_by=*/(a_symbol_ptr)NULL);
+    }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
   }  /* for */
   if (!top_level) {
     sym_ptr = symbol_supplement_for_class(class_type)->symbols;
