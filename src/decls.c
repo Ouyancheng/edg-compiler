@@ -9046,13 +9046,16 @@ cv-qualifier).
              extern c();
              extern d(){}
            This was accepted by the Cfront compiler, and is still accepted
-           (with a warning) by Microsoft C++ compilers. */
-        error_code = ec_nonstd_implicit_int;
+           (with a warning) by Microsoft C++ compilers.  In these modes we
+           issue a slightly different diagnostic. */
         if (any_cfront_mode()) {
+          error_code = ec_nonstd_implicit_int;
           severity = es_remark;
         } else if (microsoft_mode) {
+          error_code = ec_nonstd_implicit_int;
           severity = es_warning;
         } else {
+          error_code = ec_missing_type_specifier;
           severity = es_discretionary_error;
         }  /* if */
       }  /* if */
@@ -9068,17 +9071,18 @@ cv-qualifier).
     }  /* if */
   } else {
     /* Non-function declaration with at least some decl-specifiers -- e.g.,
-       "const i;" or "typedef const CI;".  Use a different message and
-       severity in C++ and C99 than in ordinary C, since it's a standards
-       violation in C++ and C99. */
+       "const i;" or "typedef const CI;".  We issue a slightly different
+       diagnostic in C++ modes that allow the "implicit int" by default
+       (Cfront and Microsoft C++ modes). */
     if (implicit_int_allowed) {
       error_code = ec_missing_type_specifier;
       severity = es_warning;
     } else {
-      error_code = ec_nonstd_implicit_int;
       if (microsoft_mode || any_cfront_mode()) {
+        error_code = ec_nonstd_implicit_int;
         severity = es_warning;
       } else {
+        error_code = ec_missing_type_specifier;
         severity = es_discretionary_error;
       }  /* if */
     }  /* if */
