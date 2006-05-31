@@ -24,11 +24,11 @@ example:
 
 The default severity of the diagnostic for declarations that are missing a
 type specifier (which is implicitly assumed to be "int", to parallel the C89
-and ARM C++ rules) has been raised to "discretionary error".  In Microsoft C++
-mode, the diagnostic is still a warning.  In addition, the front end is now
-often able to detect that an "implicit int" was intended for the declaration
-of a member function of a class template with dependent base classes.  For
-example:
+and ARM C++ rules) has been raised to "discretionary error".  In Microsoft and
+Cfront modes, the diagnostic is still a warning.  In addition, the front end
+is now often able to detect that an "implicit int" was intended for the
+declaration of a member function of a class template with dependent base
+classes.  For example:
 
   template<typename T> struct B {};
   template<typename T> struct D: B<T> {

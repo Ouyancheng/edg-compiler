@@ -9076,7 +9076,11 @@ cv-qualifier).
       severity = es_warning;
     } else {
       error_code = ec_nonstd_implicit_int;
-      severity = microsoft_mode ? es_warning : es_discretionary_error;
+      if (microsoft_mode || any_cfront_mode()) {
+        severity = es_warning;
+      } else {
+        severity = es_discretionary_error;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Unless the error is suppressed (e.g., in pcc mode), put out the
