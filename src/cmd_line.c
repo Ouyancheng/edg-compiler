@@ -2191,6 +2191,7 @@ the next standard).
   mixed_string_concat_enabled = TRUE;
   long_long_is_standard = TRUE;
   long_long_promotion_allowed = TRUE;
+  variadic_macros_allowed = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 
