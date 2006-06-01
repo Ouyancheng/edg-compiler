@@ -17215,8 +17215,10 @@ template entities.
            Simply skip the instantiation unless an instantiation was
            explicitly requested. */
         if (tip->explicit_instantiation && !tip->error_issued) {
-          pos_sy_error(ec_instantiation_requested_and_specialized,
-  	             &tip->explicit_instantiation_pos, tip->instance_sym);
+          pos_sy_diagnostic(strict_ansi_discretionary_severity,
+                            ec_instantiation_requested_and_specialized,
+                            &tip->explicit_instantiation_pos,
+                            tip->instance_sym);
           tip->error_issued = TRUE;
         }  /* if */
       }  /* if */
@@ -20513,7 +20515,8 @@ instantiated.  Pure virtual functions cannot be instantiated.
       /* A specialization declaration has been supplied. */
       result = FALSE;
       if (issue_errors) {
-        sym_error(ec_instantiation_requested_and_specialized, sym);
+        sym_diagnostic(strict_ansi_discretionary_severity,
+                       ec_instantiation_requested_and_specialized, sym);
       }  /* if */
     } else if (is_inline_template_function(tip, /*in_class=*/FALSE)) {
       /* An inline function is allowed in an explicit instantiation, but not
@@ -20533,7 +20536,8 @@ instantiated.  Pure virtual functions cannot be instantiated.
       /* A specialization declaration has been supplied. */
       result = FALSE;
       if (issue_errors) {
-        sym_error(ec_instantiation_requested_and_specialized, sym);
+        sym_diagnostic(strict_ansi_discretionary_severity,
+                       ec_instantiation_requested_and_specialized, sym);
       }  /* if */
     }  /* if */
   }  /* if */

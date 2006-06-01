@@ -1,5 +1,17 @@
 Version 3.8
 
+5/31/06  Entities that are both explicitly specialized and instantiated
+
+The diagnostic issued when an entity is both explicitly specialized and
+explicitly instantiated has been reduced in severity from an error to
+a warning, except in strict mode where it is now a discretionary error.
+
+  template <class T> struct A {
+    void f(){}
+  };
+  template <> void A<int>::f() {}
+  template void A<int>::f();
+
 5/31/06  C++0x mode: variadic macros
 
 In C++0x mode, the front end now accepts C99-style variadic macros (see the
