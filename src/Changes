@@ -35,7 +35,10 @@ a warning, except in strict mode where it is now a discretionary error.
 5/31/06  C++0x mode: variadic macros
 
 In C++0x mode, the front end now accepts C99-style variadic macros (see the
-Changes entry of 7/1/99).
+Changes entry of 7/1/99).  This extension was voted by the C++ Standard
+Committee into the working paper for the next Standard at the October, 2005
+(Mont Tremblant) meeting by adoption of paper N1653 = J16/04-0093 (as
+amended).
 
 5/30/06  C++-generating back end, GNU compatibility: base classes nested
          inside other base classes
