@@ -7892,7 +7892,7 @@ process_class_specifier:
              placeholder that assumes the symbol will be found as a type in
              a dependent base class.  If it looks like the start of a member
              function declarator with an implicit int return type, discard
-             the result of the lookup.  This is too allow code like:
+             the result of the lookup.  This is to allow code like:
                template<class T> struct B {};
                template<class T> struct D: B { f(const int); };  */
           if (looks_like_member_function_declarator()) {
