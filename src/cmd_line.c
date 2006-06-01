@@ -2210,6 +2210,7 @@ may get enabled in the other non-C++0x modes.
                                     DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS;
     mixed_string_concat_enabled = TRUE;
     extended_friends_enabled = TRUE;
+    variadic_macros_allowed = TRUE;
   }  /* if */
 }  /* check_and_set_default_cpp0x_extensions */
 
