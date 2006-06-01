@@ -1,5 +1,15 @@
 Version 3.8
 
+6/1/06   Float to integer conversions when built with MSVC 7.1
+
+When the front end was configured with INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+set to TRUE and built with MSVC 7.1, compile-time conversions from a
+floating point constant to an integral type would fail with the message,
+"floating-point value does not fit in required integral type."  The culprit
+was an incorrect definition for LLONG_MIN in the Microsoft-supplied limits.h
+header (corrected in MSVC 8.0).  The front end now detects that incorrect
+value and uses an alternate definition in setting MIN_INTEGER_VALUE.
+
 6/1/06   Error in constant folding in unevaluated first argument of "?"
 
 The front end incorrectly gave an error on a constant expression that
