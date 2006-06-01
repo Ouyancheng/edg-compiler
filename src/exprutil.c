@@ -7034,6 +7034,7 @@ still provided).
     /* Some error. */
     make_error_operand(result);
   } else if (curr_expr_kind_is_const() &&
+             curr_expr_is_evaluated() &&
              !(!C_mode() &&
                is_template_dependent_context() &&
                is_constant_operand(operand_1) &&
