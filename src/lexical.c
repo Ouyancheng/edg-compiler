@@ -10507,18 +10507,20 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
       a_type_ptr	tp;
       a_boolean		ambiguous = FALSE;
       a_boolean		error_already_issued = FALSE;
+      a_type_ptr	qualifier_type = NULL;
 
       field_sel_type = skip_typerefs(field_sel_type);
       field_sym = (a_symbol_ptr)field_sel_type->source_corresp.assoc_info;
       check_assertion_str2(field_sym != NULL, "get_destructor_name:",
                            "NULL assoc_info");
+      if (qualifier_sym != NULL) {
+        qualifier_type = type_symbol_type(qualifier_sym);
+        qualifier_type = skip_typerefs(qualifier_type);
+      }  /* if */
       if (qualifier_sym != NULL && is_type_symbol(qualifier_sym)) {
         /* If the destructor name was specified with a qualified name,
            make sure the class specified by the qualifier names the
            field selection class or a base class thereof. */
-        a_type_ptr	qualifier_type;
-        qualifier_type = type_symbol_type(qualifier_sym);
-        qualifier_type = skip_typerefs(qualifier_type);
         if (!acceptable_dtor_type(field_sel_type, qualifier_type) &&
             (!is_template_dependent_type(qualifier_type) &&
              find_base_class_of(field_sel_type, qualifier_type) == NULL)) {
@@ -10556,7 +10558,17 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
           normal_tp = type_symbol_type(normal_sym);
           normal_tp = skip_typerefs(normal_tp);
           if (acceptable_dtor_type(field_sel_type, normal_tp)) {
-            type_sym = normal_sym;
+            if (is_template_dependent_context() &&
+                is_template_dependent_type(normal_tp) &&
+                !is_template_dependent_type(qualifier_type)) {
+              /* In a reference like p->X::~T, where the type of "p" is
+                 dependent but X is not, use X for T because after this
+                 routine exits, we have only the name of T not its
+                 actual type. */
+              type_sym = qualifier_sym;
+            } else {
+              type_sym = normal_sym;
+            }  /* if */
             destructor_okay = TRUE;
             locator_for_curr_id = normal_locator;
           } else {
@@ -13552,8 +13564,7 @@ selection operator, in which case it points to the type of the left operand.
 	(e.g., int::~int). */
      is_nonclass_dtor = is_vacuous_dtor;
      if (can_be_vacuous_dtor && field_sel_type != NULL &&
-         (!is_class_struct_union_type(field_sel_type) ||
-          is_proxy_class(field_sel_type))) {
+         (!is_class_struct_union_type(field_sel_type))) {
        /* A destructor call for a non-class type is always vacuous, even if
           the destructor name erroneously named a class type. */
        is_nonclass_dtor = is_vacuous_dtor = TRUE;

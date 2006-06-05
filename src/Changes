@@ -1,5 +1,29 @@
 Version 3.8
 
+6/5/06   Spurious error on destructor call during prototype instantiation
+
+In modes in which nonclass prototype instantiations are performed (strict
+mode, g++ mode when gnu_version is >= 30400, etc.), a spurious error could
+result when a destructor was called on a template parameter type (in the
+example below the expression p->g() is considered to have a template
+parameter type in our implementation) and the destructor was named using
+a class or class template specialization name.  Now fixed.
+
+  template <class T> struct A {
+    ~A(){}
+    A<T> *g();
+  };
+  template <class T> struct B {
+    void f(A<T> *p) {
+      p->g()->~A<T>();
+    }
+  };
+  int main() {
+    B<int> b;
+    A<int> *a;
+    b.f(a);
+  }
+
 6/5/06   C++0x mode: empty macro arguments
 
 In C++0x mode, the front end no longer issues a warning for empty macro
