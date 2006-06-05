@@ -3931,11 +3931,11 @@ do_argument_again:
              generate the diagnostic if the argument was ended because of
              the end of source or of a preprocessing directive.  This
              is a warning instead of a strict ANSI diagnostic because this
-             is "undefined" and not illegal.  In C99, empty macro arguments
-             are valid. */
+             is "undefined" and not illegal.  In C99 and C++0x, empty macro
+             arguments are valid. */
           if (map->raw_len == 0 &&
               (curr_token != tok_end_of_source && curr_token != tok_newline)) {
-            if (strict_ansi_mode && !c99_mode) {
+            if (strict_ansi_mode && !c99_mode && !cpp0x_mode) {
               warning(ec_empty_macro_argument);
             }  /* if */
             /* Strangely, the Microsoft compiler ignores empty macro arguments.

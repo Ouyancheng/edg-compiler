@@ -1,5 +1,12 @@
 Version 3.8
 
+6/5/06   C++0x mode: empty macro arguments
+
+In C++0x mode, the front end no longer issues a warning for empty macro
+arguments.  This extension was voted by the C++ Standard Committee into the
+working paper for the next Standard at the October, 2005 (Mont Tremblant)
+meeting by adoption of paper N1653 = J16/04-0093 (as amended).
+
 6/1/06   Float to integer conversions when built with MSVC 7.1
 
 When the front end was configured with INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
