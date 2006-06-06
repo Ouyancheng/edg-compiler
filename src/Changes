@@ -1,5 +1,14 @@
 Version 3.8
 
+6/6/06   C mode abort in r_declarator on severe syntax error
+
+In C mode, some unusual syntax errors could lead to an abort in the function
+r_declarator (declarator.c).  For example:
+
+  void f(x([));  // Triggered an abort in C mode.
+
+This is now fixed (ordinary errors are issued).
+
 6/6/06   Sun compatibility: Nonstandard friend template declaration
 
 In Sun mode, the front end now treats as a friend template declaration a

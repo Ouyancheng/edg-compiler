@@ -4973,7 +4973,8 @@ function_lparen:
       }  /* if */
     }  /* if */
   }  /* if */
-  if (derived_type != NULL && complete_type != NULL) {
+  if (derived_type != NULL && complete_type != NULL &&
+      bottom_derived_type != NULL) {
     if (bottom_derived_type->kind == (a_type_kind)tk_pointer &&
         bottom_derived_type->variant.pointer.is_reference &&
         is_reference_type(complete_type)) {
