@@ -15,6 +15,8 @@ For example:
 
   template<class> void ::f();  // Now accepted in all Sun and GNU C++ modes.
 
+A warning is issued on such cases.
+
 6/6/06   GNU compatibility: __builtin_offsetof revisited
 
 Version 3.7 introduced support for the GNU __builtin_offsetof operation.
