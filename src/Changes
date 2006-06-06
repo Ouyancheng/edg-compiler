@@ -1,5 +1,20 @@
 Version 3.8
 
+6/6/06   GNU and Sun compatibility: Extraneous global scope qualification
+
+In GNU C++ mode, the front end already accepted declarations with a global
+scope qualifier even when the declaration is not a redeclaration.  E.g.,
+
+  int ::x;  // Already accepted in GNU C++ mode.  Now also in Sun mode.
+
+Such declarations are now also accepted in Sun mode.  Furthermore, similar
+invalid template declarations are now also accepted in GNU and Sun modes.
+Previously, they were only accepted in GNU C++ modes that also enabled
+dependent name processing (the default when gnu_version >= 30400).
+For example:
+
+  template<class> void ::f();  // Now accepted in all Sun and GNU C++ modes.
+
 6/6/06   GNU compatibility: __builtin_offsetof revisited
 
 Version 3.7 introduced support for the GNU __builtin_offsetof operation.

@@ -3786,7 +3786,9 @@ be a function.
            (It is not benign, however, when the qualifier appears on the
            declarator of a template declaration, because the entire declarator
            is cached and rescanned during instantiations, at which point it is
-           possible that the qualifier's meaning will have changed.) */
+           possible that the qualifier's meaning will have changed.  The case
+           of a simple globally-qualified identifier (e.g., ::f) presents no
+           such problem.) */
         a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
         a_boolean                is_template_decl = FALSE;
 
@@ -3815,7 +3817,8 @@ be a function.
           an_error_code      err_code;
           a_boolean          keep_qualifier = FALSE;
           /* The declarator name is qualified by the current namespace. */
-          if (is_template_decl && !do_dependent_name_processing) {
+          if (is_template_decl && !do_dependent_name_processing &&
+              qualifier_namespace_ptr(locator_for_curr_id) != NULL) {
             severity = es_error;
           } else if (is_specialization_or_instantiation && !strict_ansi_mode) {
             severity = es_remark;
@@ -3835,11 +3838,11 @@ be a function.
                 ssep == &scope_stack[depth_scope_stack]) {
               severity = strict_ansi_mode ? es_discretionary_error : es_remark;
               keep_qualifier = TRUE;
-            } else if (gpp_mode) {
-              /* GNU compilers accept the superfluous qualifier and ignore it.
-                 As explained above, we cannot emulate this behavior for
-                 templates (unless dependent name processing has been enabled,
-                 which is the default for gnu_version >= 30400). */
+            } else if (gpp_mode || sun_mode) {
+              /* GNU and Sun compilers accept the superfluous qualifier and
+                 ignore it.  As explained above, we cannot always emulate this
+                 behavior for templates (unless dependent name processing is
+                 enabled, which is the default for gnu_version >= 30400). */
               severity = es_warning;
             }  /* if */
           }  /* if */
