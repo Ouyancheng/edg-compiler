@@ -9868,8 +9868,7 @@ typedef struct an_expr_node {
     a_field_ptr field;
 			/* A pointer to the field.  Used as an operand to an
 			   eok_field or eok_value_field operation (or the
-			   similar bit-field operators).  Also sometimes used
-			   as an operand for an enk_builtin_operation node. */
+			   similar bit-field operators). */
     /* When kind == enk_temp_init: */
     /* C++ only, but used in C for C99 compound literals. */
     struct {
