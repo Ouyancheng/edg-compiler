@@ -1,5 +1,27 @@
 Version 3.8
 
+6/6/06   GNU compatibility: __builtin_offsetof revisited
+
+Version 3.7 introduced support for the GNU __builtin_offsetof operation.
+Our initial implementation required that the second argument be a simple
+(but possibly qualified) field name.  However, GNU compilers accept multilevel
+field selections as well as constant array subscripts.  We now emulate that
+behavior.  For example:
+
+  struct F {
+    int a[20];
+  };
+  struct S {
+    struct F f[10];
+  };
+  double x[__builtin_offsetof(S, f[2].a[4])];
+
+Previously, the second operand of a bok_offsetof node (the IL representation
+of a __builtin_offsetof construct) was an enk_field node.  That is now no
+longer the case (IL CHANGE): The second operand is now an expression tree
+representing an access of the indicated member (applied to a placeholder
+operand represented by a null pointer constant).
+
 6/5/06   Spurious error on destructor call during prototype instantiation
 
 In modes in which nonclass prototype instantiations are performed (strict

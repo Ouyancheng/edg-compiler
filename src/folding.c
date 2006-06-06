@@ -4988,6 +4988,90 @@ through the usual interface because a field cannot be passed as a constant.
 }  /* fold_field_selection */
 
 
+static a_boolean add_offset_of_accessed_member(an_expr_node_ptr   expr,
+                                               a_targ_size_t      *offset,
+                                               a_source_position  *pos)
+/*
+expr represents the element access operation of a builtin offsetof operator
+(or a part thereof in multilevel cases).  Add to *offset the offset implied
+by this access operation.  Multilevel cases (e.g., "offsetof(T, x[3].y)") are
+handled through recursion.
+*/
+{
+  a_boolean         okay = TRUE;
+  an_expr_node_ptr  args;
+
+  if (is_constant_node(expr)) {
+    /* Presumably the null constant to which the member access operations
+       were applied. */
+    goto done;
+  } else {
+    check_assertion(is_operation_node(expr));
+    args = expr->variant.operation.operands;
+    okay = add_offset_of_accessed_member(args, offset, pos);
+  }  /* if */
+  switch (expr->variant.operation.kind) {
+    case eok_field:
+      {
+        a_field_ptr    field;
+        a_targ_size_t  field_offset;
+        check_assertion(args->next->kind == (an_expr_node_kind)enk_field);
+        field = args->next->variant.field;
+        field_offset = field->offset;
+        if (!C_mode()) {
+          /* ctype is the type in which the offset is sought and stype is the
+             type in which the field is defined.  In C++ those two can be
+             different because of inheritance.  Note that since the field was
+             not ambiguous, there won't be more than one base class of type
+             stype. */
+          a_type_ptr  ctype = skip_typerefs(type_pointed_to(args->type));
+          a_type_ptr  stype = field->source_corresp.parent.class_type;
+          if (!same_entities(ctype, stype)) {
+            /* Determine in which base class the field was defined. */
+            a_base_class_ptr  bcp = base_classes_of(ctype);
+            while (bcp != NULL && !same_entities(bcp->type, stype)) {
+              bcp = bcp->next;
+            }  /* while */
+            check_assertion(bcp != NULL);
+            field_offset += bcp->offset;
+            if (bcp->is_virtual) {
+              /* We don't currently allow the offset of a member of a virtual
+                 base class to be taken (the GNU compiler produces a somewhat
+                 strange value). */
+              okay = FALSE;
+              if (pos != NULL) {
+                pos_error(ec_offsetof_virtual_base_member, pos);
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        *offset += field_offset;
+      }
+      break;
+    case eok_padd_subsc:
+      { a_constant_ptr  con;
+        a_boolean       ovflo;
+        a_type_ptr      elem_type;
+        a_targ_size_t   elem_num;
+        elem_type = skip_typerefs(type_pointed_to(args->type));
+        check_assertion(is_constant_node(args->next));
+        con = args->next->variant.constant;
+        elem_num = (a_targ_size_t)value_of_integer_constant(con, &ovflo);
+        *offset += elem_num*elem_type->size;
+      }
+      break;
+    case eok_cast:
+    case eok_base_class_cast:
+      /* Nothing more to be done. */
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+done:
+  return okay;
+}  /* add_offset_of_accessed_member */
+
+
 static void fold_offsetof(an_expr_node_ptr   expr,
                           a_constant_ptr     constant,
                           a_source_position  *pos)
@@ -5006,56 +5090,20 @@ it represents.
 
   check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
                   arg1->kind == (an_expr_node_kind)enk_type_operand);
-  if (arg2->kind == (an_expr_node_kind)enk_constant) {
-    /* The template-dependent case (the second argument must be a
-       tpck_member constant). */
+  if (is_template_dependent_type(arg1->variant.type_operand.type)) {
+    /* The template-dependent case. */
     clear_constant(constant, (a_constant_repr_kind)ck_template_param);
     set_template_param_constant_kind(
                    constant, (a_template_param_constant_kind)tpck_expression);
     constant->variant.template_param.variant.expr = expr;
   } else {
-    a_field_ptr    field = arg2->variant.field;
-    a_boolean      err = FALSE;
-    a_targ_size_t  offset;
-    check_assertion(arg2->kind == (an_expr_node_kind)enk_field);
-    offset = field->offset;
-    if (field->is_bit_field) {
-      err = TRUE;
-      if (pos != NULL) {
-        pos_error(ec_offsetof_bit_field, pos);
-      }  /* if */
-    } else if (!C_mode()) {
-      /* ctype is the type in which the offset is sought and stype is the type
-         in which the field is defined.  In C++ those two can be different
-         because of inheritance.  Note that since the field was not ambiguous,
-         there won't be more than one base class of type stype. */
-      a_type_ptr  ctype = skip_typerefs(arg1->variant.type_operand.type);
-      a_type_ptr  stype = field->source_corresp.parent.class_type;
-      if (!same_entities(ctype, stype)) {
-        /* Determine in which base class the field was defined. */
-        a_base_class_ptr  bcp = base_classes_of(ctype);
-        while (bcp != NULL && !same_entities(bcp->type, stype)) {
-          bcp = bcp->next;
-        }  /* while */
-        check_assertion(bcp != NULL);
-        offset += bcp->offset;
-        if (bcp->is_virtual) {
-          /* We don't currently allow the offset of a member of a virtual base
-             class to be taken (the GNU compiler produces a somewhat strange
-             value). */
-          err = TRUE;
-          if (pos != NULL) {
-            pos_error(ec_offsetof_virtual_base_member, pos);
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    if (err) {
-      clear_constant(constant, (a_constant_repr_kind)ck_error);
-    } else {
+    a_targ_size_t  offset = 0;
+    if (add_offset_of_accessed_member(arg2, &offset, pos)) {
       set_unsigned_integer_constant(constant, (a_host_large_unsigned)offset,
                                     targ_size_t_int_kind);
       arg1->variant.type_operand.definition_needed = TRUE;
+    } else {
+      clear_constant(constant, (a_constant_repr_kind)ck_error);
     }  /* if */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     constant->expr = expr;

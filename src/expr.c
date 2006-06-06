@@ -67,6 +67,29 @@ static void scan_expr_full(an_operand              *result,
                  (local_options))
 
 
+static void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack)
+/*
+Clear the expression stack, returning the old expression stack pointer
+to the caller in *saved_expr_stack, for later restoration by calling
+restore_expr_stack.  This is used at the start of processing of an
+expression that is not part of the surrounding context.
+*/
+{
+  *saved_expr_stack = expr_stack;
+  expr_stack = NULL;
+}  /* save_expr_stack */
+
+
+static void restore_expr_stack(an_expr_stack_entry_ptr saved_expr_stack)
+/*
+Restore the expression stack to the state it had when save_expr_stack
+was called.
+*/
+{
+  expr_stack = saved_expr_stack;
+}  /* restore_expr_stack */
+
+
 static a_ref_entry_ptr merge_ref_lists(a_ref_entry_ptr list1,
                                        a_ref_entry_ptr list2)
 /*
@@ -455,13 +478,17 @@ we want to go to check_for_operator_overloading to handle that).
 
 
 static void scan_subscript_operator(an_operand *operand_1,
-                                    an_operand *result)
+                                    an_operand *result,
+                                    a_boolean  for_builtin_offsetof)
 /*
 Scan array subscripting.  See section 3.3.2.1 of the standard.
 
 Syntax:
 	pointer-expression [ integral-expression ]
 	integral-expression [ pointer-expression ]
+
+This routine is also used when scanning __builtin_offsetof constructs, in
+which case for_builtin_offsetof is set to TRUE.
 */
 {
   an_operand         operand_2, operand_temp;
@@ -588,7 +615,10 @@ Syntax:
 
       /* The subscript must be integral or enum. */
       (void)check_integral_or_enum_operand(&operand_2);
-
+      if (for_builtin_offsetof && !is_constant_operand(&operand_2)) {
+        pos_error(ec_subscript_must_be_constant, &operand_2.position);
+        make_error_operand(&operand_2);
+      }  /* if */
       /* Build the expression.  The order of the operands is pointer and
          then the subscript, regardless of the original order of the two. */
       /* Note that the integral promotions are NOT done on the subscript;
@@ -2563,68 +2593,6 @@ end_of_routine:;
 }  /* process_overloaded_operator_arrow */
 
 
-static void make_offsetof_result(a_type_ptr         type,
-                                 a_symbol_ptr       member_sym,
-                                 a_source_position  *member_pos,
-                                 an_operand         *result)
-/*
-Create an operand representing a built-in offsetof construct (as opposed to
-the constant-expression resulting from the more traditional macro expansion).
-The resulting operand, stored in *result, holds either an integer constant or
-an enk_builtin_operation node.
-*/
-{
-  an_expr_node_ptr  expr, arg1, arg2;
-
-  /* Build the node representing the member whose offset is sought. */
-  if (is_nontype_template_param_symbol(member_sym)) {
-    /* The member symbol is a "constant" representing a synthesized field. */
-    a_constant_ptr  member = member_sym->variant.constant;
-    check_assertion(member->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_member);
-#if RECORD_FORM_OF_NAME_REFERENCE
-    member->source_corresp.name_references =
-                                  make_name_reference(&locator_for_curr_id,
-                                                      &member->source_corresp);
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-    arg2 = alloc_node_for_constant(member);
-  } else if (member_sym->kind != (a_symbol_kind)sk_field) {
-    pos_error(ec_offsetof_nonfield, member_pos);
-    make_error_operand(result);
-    goto done;
-  } else {
-    a_field_ptr    field = member_sym->variant.field.ptr;
-    arg2 = alloc_expr_node((an_expr_node_kind)enk_field);
-    arg2->type = field->type;
-    arg2->variant.field = field;
-  }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (member_pos != NULL) {
-    copy_source_position(*member_pos, arg2->expr_range.start);
-    copy_source_position(end_pos_curr_token, arg2->expr_range.end);
-  }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Build the first operand as a type node. */
-  arg1 = alloc_expr_node((an_expr_node_kind)enk_type_operand);
-  arg1->type = void_type();
-  arg1->variant.type_operand.type = type;
-  /* Finally, create the node representing the offsetof operation, and fold
-     it into a constant. */
-  expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
-  expr->type = integer_type(targ_size_t_int_kind);
-  expr->variant.builtin_operation.kind =
-                                       (a_builtin_operation_kind)bok_offsetof;
-  expr->variant.builtin_operation.operands = arg1;
-  arg1->next = arg2;
-  clear_operand((an_operand_kind)ok_constant, result);
-  fold_builtin_operation_if_possible(expr, &result->variant.constant,
-                                     member_pos);
-  result->type = result->variant.constant.type;
-  result->state = (an_operand_state)os_rvalue;
-done:;
-}  /* make_offsetof_result */
-
-
 static void scan_field_selection_operator(
                             an_operand               *operand_1,
                             a_local_expr_options_set local_options,
@@ -2634,14 +2602,14 @@ static void scan_field_selection_operator(
 Scan the "." and "->" operators, or a built-in offsetof operator.  The left
 operand must be (a pointer to) a class, struct, or union.  The right operand
 must be a member of the class, struct, or union.  Return the result of the
-selection (or the offset representation in case f the built-in offsetof
-operator) in *result.  If the field selection produces a bound function in
+selection in *result.  If the field selection produces a bound function in
 C++, return the object bound with the function in *bound_function_selector.
-local_options is the current set of expression-scanning options.
+local_options is the current set of expression-scanning options.  This routine
+is also called to parse a __builtin_offsetof construct.
 */
 {
   a_symbol_ptr          member_sym, projection_member_sym;
-  a_boolean             is_arrow_operator, is_offsetof, rvalue_result;
+  a_boolean             is_arrow_operator, rvalue_result;
   a_type_ptr            class_struct_union_type = NULL;
   a_type_ptr            orig_class_struct_union_type;
   a_boolean             err = FALSE, found_id = FALSE;
@@ -2670,7 +2638,6 @@ local_options is the current set of expression-scanning options.
 
   /* Remember if this was an arrow or a dot selector. */
   is_arrow_operator = (curr_token == tok_arrow);
-  is_offsetof = (curr_token == tok_comma);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operator_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3162,10 +3129,6 @@ qualified_name_check:
          which means we do not know whether x is really used. */
       change_operand_refs_to_error(operand_1);
       change_refs_to_error(rep);
-    } else if (is_offsetof) {
-      /* The built-in offsetof operator requires that a field be selected. */
-      make_offsetof_result(operand_1->type, member_sym, &member_position,
-                           result);
     } else {
       /* See what kind of member we have. */
       switch (member_sym->kind) {
@@ -3334,6 +3297,19 @@ nonstatic_member_function:
           internal_error("scan_field_selection_operator: bad symbol kind");
 #endif /* CHECKING */
       }  /* switch */
+      if (local_options & EOPT_FIELD_SELECTION_REQUIRED) {
+        /* Enforce a field access.  The field should not be a bit field. */
+        if (is_nontype_template_param_symbol(member_sym)) {
+          /* A template-dependent case: We cannot tell yet whether the
+             access will resolve to a field. */
+        } else if (member_sym->kind != (a_symbol_kind)sk_field) {
+          pos_error(ec_offsetof_nonfield, &member_position);
+          conv_to_error_operand(result);
+        } else if (member_sym->variant.field.ptr->is_bit_field) {
+          pos_error(ec_offsetof_bit_field, &member_position);
+          conv_to_error_operand(result);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 
@@ -5682,12 +5658,14 @@ __builtin_offsetof construct, which takes the general form:
 This routine assumes the current token is __builtin_offsetof, scans the
 construct, and either creates an integer constant operand or an
 enk_builtin_operation node to represent the operation.  Much of the difficult
-work is done by scan_field_selection_operator.
+work is done by scan_field_selection_operator and scan_subscript_operator.
 */
 {
   a_type_ptr         type;
   a_source_position  pos_type, start_pos;
   a_boolean          valid_type;
+  an_operand         operand, local_result;
+  an_expr_node_ptr   node, args;
 
   copy_source_position(pos_curr_token, start_pos);
   /* Pass over the built-in offsetof token. */
@@ -5699,7 +5677,7 @@ work is done by scan_field_selection_operator.
   add_stop_token(tok_rparen);
   type_name(&type);
   if (is_class_struct_union_type(type)) {
-    if (!symbol_supplement_for_class(type)->is_POD) {
+    if (!C_mode() && !symbol_supplement_for_class(type)->is_POD) {
       pos_warning(ec_offset_in_non_POD_nonstandard, &pos_type);
     }  /* if */
     valid_type = TRUE;
@@ -5712,30 +5690,69 @@ work is done by scan_field_selection_operator.
   /* Check for the comma. */
   if (curr_token != tok_comma) {
     syntax_error(ec_exp_comma);
+    make_error_operand(result);
   } else {
-    /* Synthesize an operand representing a variable of the scanned type and
-       call scan_field_selection_operator on that.  The latter function will
-       recognize that the current token is a comma, and produce the
-       appropriate kind of result as a consequence. */
-    an_operand  synth_op;
-    if (!valid_type) {
-      make_error_operand(&synth_op);
+    /* Synthesize a null operand representing an lvalue of the scanned type
+       and call scan_field_selection_operator on that (with the comma token
+       replaced by a period token).  The construct may involve multilevel
+       field or array element access (e.g., "__builtin_offsetof(a, x.y[3])"),
+       so we iterate over field selection and/or array subscript operations
+       as needed. */
+    an_expr_stack_entry      expr_stack_entry;
+    an_expr_stack_entry_ptr  saved_expr_stack;
+    /* The selection operations should be scanned in a "sizeof" context since
+       they are not evaluated. */
+    save_expr_stack(&saved_expr_stack);
+    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/TRUE);
+    expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
+    clear_operand((an_operand_kind)ok_constant, &local_result);
+    local_result.type = type;
+    local_result.state = (an_operand_state)os_lvalue;
+    make_zero_of_proper_type(make_pointer_type(type),
+                             &local_result.variant.constant);
+    curr_token = tok_period;
+    do {
+      copy_operand(&local_result, &operand);
+      if (curr_token == tok_period) {
+        scan_field_selection_operator(&operand, EOPT_FIELD_SELECTION_REQUIRED,
+                                      &local_result, (an_operand*)NULL);
+      } else {
+        scan_subscript_operator(&operand, &local_result,
+                                /*for_builtin_offsetof=*/TRUE);
+      }  /* if */
+    } while (curr_token == tok_period || curr_token == tok_lbracket);
+    if (valid_type && !is_error_operand(&local_result)) {
+      /* Build the first operand as a type node. */
+      args = alloc_expr_node((an_expr_node_kind)enk_type_operand);
+      args->type = void_type();
+      args->variant.type_operand.type = type;
+      /* The second operand is the selection expression.  Find the dummy
+         variable in that subtree and replace it by a constant. */
+      args->next = make_node_from_operand(&local_result);
+      /* Finally, create the node representing the offsetof operation, and
+         fold it into a constant. */
+      node = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
+      node->type = integer_type(targ_size_t_int_kind);
+      node->variant.builtin_operation.kind =
+                                       (a_builtin_operation_kind)bok_offsetof;
+      node->variant.builtin_operation.operands = args;
+      clear_operand((an_operand_kind)ok_constant, result);
+      fold_builtin_operation_if_possible(node, &result->variant.constant,
+                                         &start_pos);
+      result->type = result->variant.constant.type;
+      result->state = (an_operand_state)os_rvalue;
     } else {
-      a_variable  synth_var;
-      clear_operand((an_operand_kind)ok_constant, &synth_op);
-      synth_var.next = NULL;
-      synth_var.type = type;
-      synth_var.storage_class = (a_storage_class)sc_static;
-      set_variable_address_constant(&synth_var, &synth_op.variant.constant,
-                                    /*set_address_taken_flag=*/FALSE);
-      synth_op.type = type;
+      make_error_operand(result);
+      operand_will_not_be_used_because_of_error(&local_result);
     }  /* if */
-    copy_source_position(start_pos, synth_op.position);
-    scan_field_selection_operator(&synth_op, EOPT_NO_OPTIONS, result,
-                                  (an_operand*)NULL);
+    copy_source_position(start_pos, result->position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     copy_source_position(end_pos_curr_token, result->end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
   }  /* if */
   remove_stop_token(tok_rparen);
   /* Check for and pass over the right parenthesis. */
@@ -5986,29 +6003,6 @@ is returned through *result.
 }  /* scan_builtin_types_compatible */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
-
-static void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack)
-/*
-Clear the expression stack, returning the old expression stack pointer
-to the caller in *saved_expr_stack, for later restoration by calling
-restore_expr_stack.  This is used at the start of processing of an
-expression that is not part of the surrounding context.
-*/
-{
-  *saved_expr_stack = expr_stack;
-  expr_stack = NULL;
-}  /* save_expr_stack */
-
-
-static void restore_expr_stack(an_expr_stack_entry_ptr saved_expr_stack)
-/*
-Restore the expression stack to the state it had when save_expr_stack
-was called.
-*/
-{
-  expr_stack = saved_expr_stack;
-}  /* restore_expr_stack */
-
 #if GNU_EXTENSIONS_ALLOWED
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
@@ -17593,7 +17587,8 @@ bad_start_of_primary:
 	break;
       case tok_lbracket:
 	/* Subscript. */
-        scan_subscript_operator(&operand, &local_result);
+        scan_subscript_operator(&operand, &local_result,
+                                /*for_builtin_offsetof=*/FALSE);
 	break;
       case tok_lparen:
 	/* Routine call. */

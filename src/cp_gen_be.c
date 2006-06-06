@@ -7604,6 +7604,66 @@ Generate code for the indicated expression, which is a non-virtual call.
 }  /* gen_call */
 
 
+static void gen_member_selector_for_builtin_offsetof(an_expr_node_ptr  expr)
+/*
+Generate the second argument of a __builtin_offsetof construct.  expr
+represents that argument as a data member selection applied to a dummy
+address placeholder (a null pointer constant).  The selection can involve
+normal field selections using the dot (.) operator and array element
+selections.  Multilevel cases (e.g., "__builtin_offsetof(T, x.y[3])") are
+handled through recursion.
+*/
+{
+  an_expr_node_ptr  arg1, arg2;
+
+  check_assertion(is_operation_node(expr));
+  arg1 = expr->variant.operation.operands;
+  arg2 = arg1->next;
+  /* Skip any (pointer) casts on the first operand. */
+  while (is_operation_node(arg1) &&
+         (arg1->variant.operation.kind == (an_expr_operator_kind)eok_cast ||
+          arg1->variant.operation.kind ==
+                                (an_expr_operator_kind)eok_base_class_cast)) {
+    arg1 = arg1->variant.operation.operands;
+  }  /* while */
+  switch (expr->variant.operation.kind) {
+     case eok_field:
+      if (!is_constant_node(arg1)) {
+        /* This is not the bottom-most operation (which is applied to a null
+           pointer constant that is just a placeholder).  Render the
+           underlying accesses first. */
+        gen_member_selector_for_builtin_offsetof(arg1);
+        write_tok_ch('.');
+      }  /* if */
+      gen_field_reference(arg2);
+      break;
+    case eok_lvalue_dot_static:
+      if (!is_constant_node(arg1)) {
+        /* This is not the bottom-most operation (which is applied to a null
+           pointer constant that is just a placeholder).  Render the
+           underlying accesses first. */
+        gen_member_selector_for_builtin_offsetof(arg1);
+        write_tok_ch('.');
+      }  /* if */
+      gen_lvalue_no_parens(arg2);
+      break;
+    case eok_padd_subsc:
+      gen_member_selector_for_builtin_offsetof(arg1);
+      write_tok_ch('[');
+      gen_expression(arg2);
+      write_tok_ch(']');
+      break;
+    case eok_cast:
+    case eok_base_class_cast:
+      /* The casts are implicit and should not be rendered. */
+      gen_member_selector_for_builtin_offsetof(arg1);
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* gen_member_selector_for_builtin_offsetof */
+
+
 static void gen_builtin_offsetof(an_expr_node_ptr  expr)
 /*
 Generate code for a builtin offsetof construct (currently accepted only in
@@ -7627,7 +7687,7 @@ therefore always render the operator as "__builtin_offsetof".
   if (type != NULL) {
     push_class_name_context(skip_typerefs(type));
   }  /* if */
-  gen_expr(arg2, /*need_parens=*/FALSE);
+  gen_member_selector_for_builtin_offsetof(arg2);
   if (type != NULL) {
     pop_name_context();
   }  /* if */
