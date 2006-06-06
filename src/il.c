@@ -8780,12 +8780,14 @@ using find_local_expr_node.
   new_ref->referrer.ptr = referrer;
   check_assertion(!in_file_scope(new_ref));
   switch (kind) {
+#if GNU_EXTENSIONS_ALLOWED
     case lerk_generic_typeof:
       new_ref->referrer.kind =
                    (a_byte_il_entry_kind)iek_template_param_type_supplement;
       ((a_template_param_type_supplement_ptr)referrer)
                                                     ->local_expr_ref = TRUE;
       break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case lerk_generic_sizeof:
       new_ref->referrer.kind = (a_byte_il_entry_kind)iek_constant;
       ((a_constant_ptr)referrer)
