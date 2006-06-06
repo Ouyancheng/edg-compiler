@@ -1581,15 +1581,15 @@ caution when modifying this routine.
       }  /* if */
     } else if (curr_token == tok_identifier &&
                (decl_scope_level == depth_innermost_namespace_scope ||
-                (microsoft_mode && *is_friend_decl)) &&
+                ((microsoft_mode || sun_mode) && *is_friend_decl)) &&
                tag_kind != (a_symbol_kind)sk_enum_tag) {
       /* Look up what may be a class template symbol.  If the name is
          the start of a qualified name (e.g., A::B) or has a template
          argument list (e.g., A<T>) it will have been coalesced by the
          call to coalesce_and_lookup_qualified_name.  If it just a simple
          identifier (e.g., "A") we need look it up and coalesce it here.
-         In Microsoft mode, a simple friend declaration that resolves to
-         a template is treated as a friend template declaration.  A linkage
+         In Microsoft and Sun modes, a simple friend declaration that resolves
+         to a template is treated as a friend template declaration.  A linkage
          lookup should not be done for a Microsoft friend declaration as
          such declarations can refer to class members. */
       an_id_lookup_options_set	lookup_options = IDL_NO_OPTIONS;
@@ -1613,15 +1613,15 @@ caution when modifying this routine.
          normal_id_lookup. */
       if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
         tag_sym = coalesce_template_class_reference(
-                                   templ_sym,
-                                   microsoft_mode ? GID_TEMPLATE_ARGS_OPTIONAL
+                     templ_sym,
+                     (microsoft_mode || sun_mode) ? GID_TEMPLATE_ARGS_OPTIONAL
                                                   : GID_NO_OPTIONS,
-                                   &err);
+                     &err);
         if (tag_sym->kind == (a_symbol_kind)sk_class_template) {
-          if (microsoft_mode) {
-            /* In Microsoft mode, simple friend declarations may refer to
-               templates: These are treated as friend template declarations.
-               For example:
+          if (microsoft_mode || sun_mode) {
+            /* In Microsoft and Sun C++ modes, simple friend declarations may
+               refer to templates: These are treated as friend template
+               declarations.  For example:
                   template<class T> struct S;
                   class C {
                     friend struct S;
@@ -2265,14 +2265,14 @@ which it was added.
   if (!friend_injection_enabled) (*sym)->is_invisible = TRUE;
 }  /* duplicate_friend_sym_in_namespace */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
 
 static void decl_nonstandard_friend_template(a_symbol_ptr  sym)
 /*
 We've seen a friend declaration of the form "friend class X;" where X is a
-class template represented by sym.  In Microsoft mode, this is treated as a
-friend template declaration.  Update the IL as needed and issue an appropriate
-diagnostic.
+class template represented by sym.  In Microsoft and Sun modes, this is
+treated as a friend template declaration.  Update the IL as needed and issue
+an appropriate diagnostic.
 */
 {
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
@@ -2280,7 +2280,7 @@ diagnostic.
                            tssp = sym->variant.template_info;
   a_template_ptr           tp;
 
-  check_assertion(microsoft_mode);
+  check_assertion(microsoft_mode || sun_mode);
   /* Pragmas cannot bind to this "implicit template". */
   cannot_bind_to_curr_construct();
   if (ssep->kind != (a_scope_kind)sck_class_struct_union) {
@@ -2319,7 +2319,7 @@ diagnostic.
 done:;
 }  /* decl_nonstandard_friend_template */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* is_template is only used for Microsoft emulation. */
@@ -2368,13 +2368,13 @@ to TRUE.
     }  /* if */
     set_to_named_error_locator(*locator);
     *tag_sym = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
   } else if (is_class_template_symbol(*tag_sym)) {
-    /* Microsoft compilers accept "friend class X;" where X is a class
+    /* Microsoft and Sun compilers accept "friend class X;" where X is a class
        template.  It is treated as a friend template declaration. */
     decl_nonstandard_friend_template(*tag_sym);
     *is_template = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* check_friend_class_declaration */
 
@@ -2737,15 +2737,15 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
            issue an error. */
         a_boolean  is_template = FALSE;
         check_friend_class_declaration(&locator, &tag_sym, &is_template);
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
         if (is_template) {
-          /* In Microsoft mode a friend class declaration may refer to a
-             template.  That case is full handled by the call to
+          /* In Microsoft and Sun modes a friend class declaration may refer
+             to a template.  That case is full handled by the call to
              check_friend_class_declaration. */
           *type_ptr = NULL;
           goto done;
         }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
       } else if ((is_explicit_instantiation || is_template_specialization) &&
                  !is_declarator_start()) {
         /* This is an explicit instantiation directive or a specialization
@@ -3720,9 +3720,9 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   } else {
     *type_ptr = class_type;
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
 done:
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (debug_level >= 3) {
     db_symbol(tag_sym, "tag_sym: ", 4);
@@ -8366,12 +8366,13 @@ exit_loop:
       /* Error has already been diagnosed. */
       *type_ptr = error_type();
       err = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
     } else if (*type_ptr == NULL && basic_type == bt_struct_union) {
       /* A friend declaration of the form "friend class X;" where "X" is a
          class template. */
-      check_assertion(microsoft_mode && (decl_specifiers_seen & DS_FRIEND));
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      check_assertion((microsoft_mode || sun_mode) &&
+                      (decl_specifiers_seen & DS_FRIEND));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 #if VLA_ALLOWED
     } else if (vla_enabled && inside_local_class && *type_ptr != NULL &&
                is_nonlocal_variably_modified_type(*type_ptr)) {

@@ -1,5 +1,18 @@
 Version 3.8
 
+6/6/06   Sun compatibility: Nonstandard friend template declaration
+
+In Sun mode, the front end now treats as a friend template declaration a
+declaration that uses ordinary friend class syntax while naming a class
+template.  For example:
+
+  template<typename T> class A;
+  template<typename T> class B {
+    friend class A;  // Accepted in Sun mode (with a warning), and treated as
+  };                 // "template<typename> friend class A;".
+
+(This extension was already implemented in Microsoft mode.)
+
 6/6/06   GNU and Sun compatibility: Extraneous global scope qualification
 
 In GNU C++ mode, the front end already accepted declarations with a global

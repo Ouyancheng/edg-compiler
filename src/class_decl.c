@@ -12614,12 +12614,20 @@ passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     consume_any_stray_microsoft_rparen();
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+  if (microsoft_mode || sun_mode) {
     if (member_type == NULL && type_explicitly_specified) {
       /* A friend declaration of the form "friend class X;" where "X" is a
          class template. */
       check_assertion(friend_specified && curr_token == tok_semicolon);
       goto next_declaration;
     }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
     if (ms_attributes != NULL &&
         (is_member_template || is_member_template_rescan ||
          is_template_context() ||
