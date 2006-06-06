@@ -10513,14 +10513,12 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
       field_sym = (a_symbol_ptr)field_sel_type->source_corresp.assoc_info;
       check_assertion_str2(field_sym != NULL, "get_destructor_name:",
                            "NULL assoc_info");
-      if (qualifier_sym != NULL) {
-        qualifier_type = type_symbol_type(qualifier_sym);
-        qualifier_type = skip_typerefs(qualifier_type);
-      }  /* if */
       if (qualifier_sym != NULL && is_type_symbol(qualifier_sym)) {
         /* If the destructor name was specified with a qualified name,
            make sure the class specified by the qualifier names the
            field selection class or a base class thereof. */
+        qualifier_type = type_symbol_type(qualifier_sym);
+        qualifier_type = skip_typerefs(qualifier_type);
         if (!acceptable_dtor_type(field_sel_type, qualifier_type) &&
             (!is_template_dependent_type(qualifier_type) &&
              find_base_class_of(field_sel_type, qualifier_type) == NULL)) {
@@ -10560,6 +10558,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
           if (acceptable_dtor_type(field_sel_type, normal_tp)) {
             if (is_template_dependent_context() &&
                 is_template_dependent_type(normal_tp) &&
+                qualifier_type != NULL &&
                 !is_template_dependent_type(qualifier_type)) {
               /* In a reference like p->X::~T, where the type of "p" is
                  dependent but X is not, use X for T because after this
