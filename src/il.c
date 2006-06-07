@@ -11788,81 +11788,27 @@ static an_expr_node_ptr copy_template_param_builtin_operation(
 Copy the expression expr, which has an enk_builtin_operation on top, and
 return a pointer to the copy.  The expression is part of a template argument
 expression.  See copy_template_param_expr for the parameter descriptions.
-
-Most builtin operations can be deal with using a generic copy loop, but
-some (notably bok_offsetof) require special treatment.
 */
 {
   an_expr_node_ptr  args = expr->variant.builtin_operation.operands;
   an_expr_node_ptr  expr_copy = NULL, new_args = NULL;
+  an_expr_node_ptr  arg = args, *new_arg = &new_args;
   a_constant      const_result;
   a_constant_ptr  alloc_const_result;
 
-  switch (expr->variant.builtin_operation.kind) {
-    case bok_offsetof:
-      { an_expr_node_ptr  arg2 = args->next;
-        if (is_constant_node(arg2)) {
-          an_expr_node_ptr  new_arg2;
-          new_args = copy_template_param_expr(
-                                  args, template_arg_list, template_param_list,
-                                  (a_type_ptr)NULL, /*indef_lvalue=*/FALSE,
-                                  source_pos, options, copy_error,
-                                  &const_result, &alloc_const_result);
-          if (*copy_error) {
-            break;
-          } else {
-            /* Substitute the second argument and transform it into the
-               appropriate IL entry. */
-            a_constant_ptr  cp = arg2->variant.constant;
-            a_constant      pmc;
-            check_assertion(cp->kind ==
-                                    (a_constant_repr_kind)ck_template_param &&
-                            cp->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_member);
-            cp = copy_template_param_unknown_entity_con(
-                     cp, template_arg_list, template_param_list,
-                     (a_type_ptr)NULL, /*is_address=*/TRUE,
-                     /*is_template_ref=*/FALSE, (a_template_arg_ptr)NULL,
-                     source_pos, options, copy_error, &pmc);
-            if (!*copy_error && cp == NULL &&
-                pmc.kind == (a_constant_repr_kind)ck_ptr_to_member &&
-                !pmc.variant.ptr_to_member.is_function_ptr) {
-              /* The substitution produced a pointer-to-data-member constant
-                 for a valid field whose offset is sought.  Create an enk_field
-                 entry for this field. */
-              a_field_ptr  field = pmc.variant.ptr_to_member.variant.field;
-              new_arg2 = alloc_expr_node((an_expr_node_kind)enk_field);
-              new_arg2->type = field->type;
-              new_arg2->variant.field = field;
-              new_args->next = new_arg2;
-            } else {
-              *copy_error = TRUE;
-            }  /* if */
-          }  /* if */          
-        } else {
-          goto default_case;
-        }  /* if */
-      }
-      break;
-    default:
-default_case:
-      { an_expr_node_ptr  arg = args, *new_arg = &new_args;
-        /* First copy the argument list with any necessary substitutions. */
-        while (arg != NULL) {
-          *new_arg =  copy_template_param_expr(
-                                  arg, template_arg_list, template_param_list,
-                                  (a_type_ptr)NULL, /*indef_lvalue=*/FALSE,
-                                  source_pos, options, copy_error,
-                                  &const_result, &alloc_const_result);
-          if (*copy_error) break;
-          *new_arg = alloc_copied_template_param_expr(*new_arg, &const_result,
-                                                      alloc_const_result);
-          arg = arg->next;
-          new_arg = &((*new_arg)->next);
-        }  /* while */
-      }
-      break;
-  }  /* switch */
+  /* First copy the argument list with any necessary substitutions. */
+  while (arg != NULL) {
+    *new_arg =  copy_template_param_expr(
+                            arg, template_arg_list, template_param_list,
+                            (a_type_ptr)NULL, /*indef_lvalue=*/FALSE,
+                            source_pos, options, copy_error,
+                            &const_result, &alloc_const_result);
+    if (*copy_error) break;
+    *new_arg = alloc_copied_template_param_expr(*new_arg, &const_result,
+                                                alloc_const_result);
+    arg = arg->next;
+    new_arg = &((*new_arg)->next);
+  }  /* while */
   if (!*copy_error) {
     /* Copy the expression node and attach the copied argument list to it. */
     expr_copy = copy_node(expr);

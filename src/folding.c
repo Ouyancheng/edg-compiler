@@ -4995,7 +4995,8 @@ static a_boolean add_offset_of_accessed_member(an_expr_node_ptr   expr,
 expr represents the element access operation of a builtin offsetof operator
 (or a part thereof in multilevel cases).  Add to *offset the offset implied
 by this access operation.  Multilevel cases (e.g., "offsetof(T, x[3].y)") are
-handled through recursion.
+handled through recursion.  Diagnose any case involving a member of a virtual
+base class (at the given position).
 */
 {
   a_boolean         okay = TRUE;
@@ -5018,33 +5019,6 @@ handled through recursion.
         check_assertion(args->next->kind == (an_expr_node_kind)enk_field);
         field = args->next->variant.field;
         field_offset = field->offset;
-        if (!C_mode()) {
-          /* ctype is the type in which the offset is sought and stype is the
-             type in which the field is defined.  In C++ those two can be
-             different because of inheritance.  Note that since the field was
-             not ambiguous, there won't be more than one base class of type
-             stype. */
-          a_type_ptr  ctype = skip_typerefs(type_pointed_to(args->type));
-          a_type_ptr  stype = field->source_corresp.parent.class_type;
-          if (!same_entities(ctype, stype)) {
-            /* Determine in which base class the field was defined. */
-            a_base_class_ptr  bcp = base_classes_of(ctype);
-            while (bcp != NULL && !same_entities(bcp->type, stype)) {
-              bcp = bcp->next;
-            }  /* while */
-            check_assertion(bcp != NULL);
-            field_offset += bcp->offset;
-            if (bcp->is_virtual) {
-              /* We don't currently allow the offset of a member of a virtual
-                 base class to be taken (the GNU compiler produces a somewhat
-                 strange value). */
-              okay = FALSE;
-              if (pos != NULL) {
-                pos_error(ec_offsetof_virtual_base_member, pos);
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }  /* if */
         *offset += field_offset;
       }
       break;
@@ -5060,8 +5034,30 @@ handled through recursion.
         *offset += elem_num*elem_type->size;
       }
       break;
-    case eok_cast:
     case eok_base_class_cast:
+      { a_type_ptr  dtype = skip_typerefs(type_pointed_to(args->type));
+        a_type_ptr  btype = skip_typerefs(type_pointed_to(expr->type));
+        a_base_class_ptr  bcp = base_classes_of(dtype);
+        /* Look for the base class to which the cast refers, and update
+           *offset accordingly.  Since the field was unambiguous, the
+           base class should be unambiguous too. */
+        while (bcp != NULL && !same_entities(bcp->type, btype)) {
+          bcp = bcp->next;
+        }  /* while */
+        check_assertion(bcp != NULL && !bcp->ambiguous);
+        *offset += bcp->offset;
+        if (bcp->is_virtual) {
+          /* We don't currently allow the offset of a member of a virtual
+             base class to be taken (the GNU compiler produces a somewhat
+             strange value). */
+          okay = FALSE;
+          if (pos != NULL) {
+            pos_error(ec_offsetof_virtual_base_member, pos);
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case eok_cast:
       /* Nothing more to be done. */
       break;
     default:
