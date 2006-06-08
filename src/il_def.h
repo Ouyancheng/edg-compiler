@@ -4189,7 +4189,10 @@ typedef struct a_routine_type_supplement {
                            Also used for types and tags declared in an
                            old-style parameter list, because those types
                            are likewise needed outside the routine in order
-                           to check type compatibility.  Always NULL in C++. */
+                           to check type compatibility.  Always NULL in C++
+                           unless RECORD_HIDDEN_NAMES_IN_IL is TRUE, in which
+                           case the prototype scope will be used solely for
+                           the hidden name list. */
   an_exception_specification_ptr
 		exception_specification;
 			/* In C++ only, pointer to an entry describing the

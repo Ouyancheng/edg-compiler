@@ -1,5 +1,14 @@
 Version 3.8
 
+6/8/06   C++-generating back end: name hiding by function parameters
+
+The C++-generating back end formerly generated incorrect code when the name
+of a parameter was the same as that of an entity used in a subsequent
+parameter declaration.  This has now been fixed.  For example:
+
+  struct S { };
+  void f(int S, struct S s) { }  // Previously generated as f(int S, S s)
+
 6/8/08   Default function call arguments on non-function declarations
 
 Default function call arguments are normally only allowed on function

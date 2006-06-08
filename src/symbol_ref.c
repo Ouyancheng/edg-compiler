@@ -1042,6 +1042,70 @@ C++-generating back end.
 }  /* check_name_hiding_of_qualifiable_name */
 
 
+void check_name_hiding_by_parameter(a_symbol_locator *param_locator,
+                                    a_scope_ptr      sp)
+/*
+Determine whether the function parameter described by param_locator hides any
+declarations in enclosing scopes that can be referred to in succeeding
+parameter declarations using an elaborated-type-specifier or a qualified-id.
+If so, put corresponding entries on the hidden name list in the indicated
+function prototype scope.
+*/
+{
+  a_symbol_locator         locator;
+  a_symbol_ptr             old_sym_ptr;
+  a_boolean                tag_hidden_by_nontag;
+  a_boolean                hidden_class_or_namespace_member;
+
+  check_assertion(param_locator->symbol_header != NULL);
+  if (param_locator->symbol_header->any_tag_decl ||
+      param_locator->symbol_header->any_decl_in_file_or_namespace_scope ||
+      param_locator->symbol_header->inactive_symbols != NULL) {
+    /* There are symbols that might be hidden but able to be named using an
+       elaborated-type-specifier or qualified-id. */
+    clear_locator(&locator, &param_locator->source_position);
+    locator.symbol_header = param_locator->symbol_header;
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+      fputs("    ...doing skip-curr-scope lookup for parameter\n", f_debug);
+    }  /* if */
+#endif /* DEBUG */
+    old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
+                                             IDL_SKIP_CURR_SCOPE);
+    if (old_sym_ptr == NULL) {
+      /* There are no hidden symbols. */
+    } else if (old_sym_ptr->is_nonreal_member) {
+      /* Ignore members of proxy and nonreal classes: they don't correspond
+         to actual declarations and therefore cannot be hidden. */
+    } else {
+      if (is_class_struct_union_symbol(old_sym_ptr)) {
+        /* The entity can be named using an elaborated-type-specifier. */
+        tag_hidden_by_nontag = TRUE;
+        hidden_class_or_namespace_member = FALSE;
+      } else if (old_sym_ptr->decl_scope == file_scope_number ||
+                 old_sym_ptr->is_class_member ||
+                 old_sym_ptr->parent.namespace_ptr != NULL ||
+                 old_sym_ptr->synthesized_namespace_projection) {
+        /* The entity can be named using a qualified-id. */
+        tag_hidden_by_nontag = FALSE;
+        hidden_class_or_namespace_member = TRUE;
+      } else {
+        /* The entity cannot be named. */
+        tag_hidden_by_nontag = FALSE;
+        hidden_class_or_namespace_member = FALSE;
+      }  /* if */
+      if (tag_hidden_by_nontag || hidden_class_or_namespace_member) {
+        /* The entity can be named: record the hiding. */
+        record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
+                                      hidden_class_or_namespace_member,
+                                      /*simulated_hiding=*/FALSE, sp,
+                                      (a_symbol_ptr)NULL);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_name_hiding_by_parameter */
+
+
 static void resolve_using_directive_ambiguity(a_symbol_ptr  sym_ptr,
                                               a_scope_ptr   sp)
 /*

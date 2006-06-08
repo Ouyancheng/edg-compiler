@@ -3882,6 +3882,10 @@ default arguments should be suppressed (needed for template specializations).
     } else {
       /* List the parameter types (and, if this is the definition, names
          too). */
+      if (rtsp->prototype_scope != NULL) {
+        /* Set up any name hiding by parameters. */
+        push_name_context(rtsp->prototype_scope);
+      }  /* if */
       if (scope == NULL) {
         /* This is not a definition.  Advance past the source sequence
            entries for types declared or defined in the function declarator. */
@@ -3992,6 +3996,12 @@ default arguments should be suppressed (needed for template specializations).
       }  /* for */
       /* Put out the ellipsis if there is one. */
       if (rtsp->has_ellipsis) write_tok_str(", ...");
+      if (rtsp->prototype_scope != NULL) {
+        /* Restore any names hidden by parameters (if this is a definition,
+           they will also be represented in the hidden name list in the
+           function scope and thus rehidden when that scope is pushed). */
+        pop_name_context();
+      }  /* if */
     }  /* if */
   }  /* if */
   write_tok_ch(')');

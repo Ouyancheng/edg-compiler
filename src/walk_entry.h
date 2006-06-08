@@ -2076,6 +2076,16 @@ end_sizeof:;
             /* Also see assoc_block below. */
             break;
           case sck_func_prototype:
+#if RECORD_HIDDEN_NAMES_IN_IL
+            if (!C_mode()) {
+              /* Function prototype scopes in C++ exist only to carry
+                 hidden name lists and thus can leave the associated function
+                 type unprocessed if not done here. */
+              walk_ptr(ptr->variant.assoc_type, a_type_ptr, iek_type);
+              break;
+            }
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
+            /* FALLTHROUGH */
           case sck_class_struct_union:
             remap_ptr_not_needed(ptr->variant.assoc_type, a_type_ptr,
                                  iek_type);
