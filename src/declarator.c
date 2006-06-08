@@ -1862,13 +1862,19 @@ if this is the function declarator in a friend function declaration.
           if (!default_arg_allowed_on_curr_param) {
             pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
 
-          } else if (strict_ansi_mode && !is_top_level_declarator) {
-            /* In strict mode default arguments are only allowed on top-level
+          } else if (!is_top_level_declarator) {
+            /* Default arguments are normally only allowed on top-level
                function declarations (i.e., not on typedef declarations,
                pointer-to-function or pointer-to-member-function declarations,
-               param type declarations, etc.). */
-            pos_diagnostic(strict_ansi_discretionary_severity,
-                           ec_nonstd_default_arg, &pos_curr_token);
+               param type declarations, etc.).  Cfront and early Microsoft and
+               GNU compilers do accept them on other declarators. */
+            an_error_severity  sev = es_discretionary_error;
+            if ((microsoft_mode && microsoft_version <= 1300) ||
+                (gpp_mode && gnu_version < 30400) ||
+                any_cfront_mode()) {
+              sev = es_remark;
+            }  /* if */
+            pos_diagnostic(sev, ec_nonstd_default_arg, &pos_curr_token);
           }  /* if */
           /* Advance past the equal sign. */
           (void)get_token();
