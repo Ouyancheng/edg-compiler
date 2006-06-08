@@ -1,5 +1,18 @@
 Version 3.8
 
+6/8/06   Duplicate error on invalid using-declaration
+
+Class members designated by a using-declaration in a derived class must be
+visible in a direct base class of that derived class.  When a using-
+declaration refers to an overload set not visible in a direct base class,
+the front end previously issued multiple indistinguishable errors.  Now
+only one error is emitted in such cases.  For example:
+
+  struct A { void f(); void foo(int); };
+  struct B: A { void f(); };      // A::f hidden in B.
+  struct C: B { using A::foo; };  // Invalid.  Previously triggered two
+                                  // errors; now just one.
+
 6/8/06   GNU compatibility: Initializers and register variables
 
 In GNU mode, the front end now emits an error for initializers appearing on

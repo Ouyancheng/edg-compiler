@@ -11398,17 +11398,20 @@ static void check_member_using_visibility(a_type_ptr    class_type,
                                           a_symbol_ptr  fund_sym,
                                           a_boolean     *err)
 /*
-Members designated by a member using-declaration must be visible in a
-direct base class of the class in which the using-declaration appears.
+Members (represented by fund_sym) designated by a member using-declaration must
+be visible in a direct base class of the class (represented by class_type) in
+which the using-declaration appears.  If that is not the case, *err is set to
+TRUE and an error is issued (*err should be passed in as FALSE).
 */
 {
   a_base_class_ptr  direct_bcp = base_classes_of(class_type);
   a_symbol_locator  locator;
 
+  check_assertion(!*err);
   if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
     /* Treat each member of the overload set separately. */
     fund_sym = fund_sym->variant.overloaded_function.symbols;
-    for (; fund_sym != NULL; fund_sym = fund_sym->next) {
+    for (; fund_sym != NULL && !*err; fund_sym = fund_sym->next) {
       check_member_using_visibility(class_type,
                                     fundamental_symbol_of(fund_sym), err);
     }  /* for */
@@ -11436,8 +11439,6 @@ search_done:
   if (direct_bcp == NULL) {
     error(ec_member_using_must_be_visible_in_direct_base);
     *err = TRUE;
-  } else {
-    *err = FALSE;
   }  /* if */
 }  /* check_member_using_visibility */
 
