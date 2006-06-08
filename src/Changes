@@ -1,5 +1,23 @@
 Version 3.8
 
+6/6/08   Template deduction, sizeof reference type
+
+When template deduction dealt with a sizeof applied to a reference
+type, it incorrectly used the size of the reference instead of the
+size of the underlying type.  Now fixed.
+
+  template <int I> struct A {
+    int X[I-I];
+  };
+  template <> struct A<1> {
+    A(int){}
+  };
+  template <class T> void f(A<sizeof(T)>){}
+  int main() {
+    typedef char (&x)[1];
+    f<x>(0);
+  }
+
 6/6/06   C mode abort in r_declarator on severe syntax error
 
 In C mode, some unusual syntax errors could lead to an abort in the function

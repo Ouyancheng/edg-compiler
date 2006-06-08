@@ -12468,6 +12468,9 @@ name lookup options.
                                                    source_pos,
                                                    options,
                                                    copy_error);
+            if (is_reference_type(new_type)) {
+              new_type = type_pointed_to(new_type);
+            }  /* if */
           }  /* if */
           if (same_entities(
                       new_type,
