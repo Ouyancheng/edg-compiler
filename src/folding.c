@@ -5025,9 +5025,9 @@ base class (at the given position).
     case eok_padd_subsc:
       { a_constant_ptr  con;
         a_boolean       ovflo;
-        a_type_ptr      elem_type;
+        a_type_ptr      elem_type = type_pointed_to(args->type);
         a_targ_size_t   elem_num;
-        elem_type = skip_typerefs(type_pointed_to(args->type));
+        elem_type = skip_typerefs(elem_type);
         check_assertion(is_constant_node(args->next));
         con = args->next->variant.constant;
         elem_num = (a_targ_size_t)value_of_integer_constant(con, &ovflo);
@@ -5035,12 +5035,15 @@ base class (at the given position).
       }
       break;
     case eok_base_class_cast:
-      { a_type_ptr  dtype = skip_typerefs(type_pointed_to(args->type));
-        a_type_ptr  btype = skip_typerefs(type_pointed_to(expr->type));
-        a_base_class_ptr  bcp = base_classes_of(dtype);
+      { a_type_ptr        dtype = type_pointed_to(args->type);
+        a_type_ptr        btype = type_pointed_to(expr->type);
+        a_base_class_ptr  bcp;
         /* Look for the base class to which the cast refers, and update
            *offset accordingly.  Since the field was unambiguous, the
            base class should be unambiguous too. */
+        dtype = skip_typerefs(dtype);
+        btype = skip_typerefs(btype);
+        bcp = base_classes_of(dtype);
         while (bcp != NULL && !same_entities(bcp->type, btype)) {
           bcp = bcp->next;
         }  /* while */
