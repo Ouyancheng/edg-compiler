@@ -1,5 +1,13 @@
 Version 3.8
 
+6/8/06   GNU compatibility: Initializers and register variables
+
+In GNU mode, the front end now emits an error for initializers appearing on
+variables with static storage duration that have been mapped on a specific
+register using the GNU construct asm("register-name").  For example:
+
+  register int rA asm("%eax") = 5;  // Now an error.
+
 6/8/06   C++-generating back end: name hiding by function parameters
 
 The C++-generating back end formerly generated incorrect code when the name
