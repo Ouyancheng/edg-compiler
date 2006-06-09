@@ -1,5 +1,22 @@
 Version 3.8
 
+6/9/06   Abort after function redeclaration with incompatible name linkage
+
+The front end previously aborted on some error cases involving the
+redeclaration of a function with internal linkage first declared with
+extern "C" name linkage.  For example:
+
+  extern "C" namespace N {
+    extern void f();
+    static void f();      // Error: incompatible linkage
+  }
+  namespace N {
+    static void f() {}    // Previously triggered an abort.
+  }
+
+(The abort occurred in schedule_move_to_current_end_of_routines_list.)
+This is now fixed.
+
 6/8/06   Duplicate error on invalid using-declaration
 
 Class members designated by a using-declaration in a derived class must be

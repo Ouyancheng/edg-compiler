@@ -4304,7 +4304,11 @@ associated sk_external_variable or sk_external_routine symbol, if any.
            other didn't (in which case the later declaration is favored,
            except in Microsoft mode where the later name linkage is
            ignored). */
-        if ((idlbp->name_linkage_is_explicit && !microsoft_mode &&
+        if (err && is_function) {
+          /* This is an error (see below).  Resetting the name linkage could
+             lead to problems downstream when e.g. trying to determine at
+             what scope depth the routine is linked. */
+        } else if ((idlbp->name_linkage_is_explicit && !microsoft_mode &&
              !sym->explicit_linkage_specifier) ||
             scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
             idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
