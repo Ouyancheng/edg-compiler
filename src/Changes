@@ -1,5 +1,16 @@
 Version 3.8
 
+6/9/06   GNU compatibility: Attributes "aligned" and "packed" on bit fields
+
+In GNU mode, the front end effectively ignored (for layout purposes) any
+attribute "aligned" that appeared on a bit field also declared with an
+attribute "packed".  Now the attribute "aligned" takes effect.  For example:
+
+  struct S {
+    char c;
+    int i:6  __attribute__((packed)) __attribute__((aligned));
+  };  // Previously, sizeof(struct S)==2; now, sizeof(struct S)==16
+
 6/9/06   Abort after function redeclaration with incompatible name linkage
 
 The front end previously aborted on some error cases involving the

@@ -2527,7 +2527,7 @@ there's no overflow TRUE is returned.
       /* Do any necessary alignment for a bit-field. */
 #if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
       if (curr_max_member_alignment == 0 &&
-          (field->is_packed
+          ((field->is_packed && field->alignment == 0)
 #if ABI_COMPATIBILITY_VERSION >= 307
            || (class_type->variant.class_struct_union.is_packed &&
 #if IA64_ABI
@@ -2540,7 +2540,8 @@ there's no overflow TRUE is returned.
            or the whole class is marked as "packed", and no explicit alignment
            attribute was specified.  Earlier GNU versions appear to ignore
            the "packed" attribute applied to a class type for the purpose of
-           laying out bit fields. */
+           laying out bit fields. If a bit field is both marked as "packed"
+           an explicitly aligned, the alignment is performed. */
       } else
 #endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
       {
