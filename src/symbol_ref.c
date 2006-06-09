@@ -1071,7 +1071,8 @@ function prototype scope.
     }  /* if */
 #endif /* DEBUG */
     old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
-                                             IDL_SKIP_CURR_SCOPE);
+                                             IDL_SKIP_CURR_SCOPE |
+                                             IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
     if (old_sym_ptr == NULL) {
       /* There are no hidden symbols. */
     } else if (old_sym_ptr->is_nonreal_member) {
