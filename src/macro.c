@@ -579,6 +579,9 @@ source entry will be preserved.
      target offset as the source entry's start of region is to the starting
      source offset.  The corresponding source position will be identical. */
   ++mtmep;
+  check_assertion_str2(mtmep < src_map->entries + src_map->num_entries,
+                       "clone_macro_text_map_entries",
+                       "map entry pointer past end of entries array");
   while (mtmep->start_of_region < starting_src_offset + src_region_len) {
 #if MACRO_INVOCATION_TREE_IN_IL
     if (macro_context == NO_PARENT_MACRO_INVOCATION) {
@@ -591,6 +594,9 @@ source entry will be preserved.
                                 mtmep->corresponding_source_pos.seq,
                                 mtmep->corresponding_source_pos.column, ctx);
     ++mtmep;
+    check_assertion_str2(mtmep < src_map->entries + src_map->num_entries,
+                         "clone_macro_text_map_entries",
+                         "map entry pointer past end of entries array");
   }  /* while */
 }  /* clone_macro_text_map_entries */
 
@@ -4432,19 +4438,22 @@ end_arg_expansion:;
                    after the escape (the identifier name) in the normal
                    code below. */
                 sizeof_t initial_len = final_inert_escape - text_loc;
+                if (initial_len > 0) {
 #if FULLY_RESOLVED_MACRO_POSITIONS
-                /* Copy the map entries for the text preceding the escape. */
-                clone_macro_text_map_entries(&map->raw_text_map,
-                                             (sizeof_t)(text_loc -
-                                                        map->raw_text),
-                                             initial_len - 1,
-                                             &macro_text_map,
-                                             (sizeof_t)(src_loc - rescan_loc),
-                                             this_macro_invocation_record);
+                  /* Copy the map entries for the text preceding the escape. */
+                  clone_macro_text_map_entries(&map->raw_text_map,
+                                               (sizeof_t)(text_loc -
+                                                          map->raw_text),
+                                               initial_len - 1,
+                                               &macro_text_map,
+                                               (sizeof_t)(src_loc -
+                                                          rescan_loc),
+                                               this_macro_invocation_record);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-                (void)memcpy(src_loc, text_loc,
-                             size_t_arg(initial_len)); /*lint !e668 */
-                src_loc += initial_len;
+                  (void)memcpy(src_loc, text_loc,
+                               size_t_arg(initial_len)); /*lint !e668 */
+                  src_loc += initial_len;
+                }  /* if */
                 *src_loc++ = LE_ESCAPE;
                 *src_loc++ = LE_END_OF_TOKEN;
                 text_loc = final_inert_escape+LE_ESCAPE_LEN;

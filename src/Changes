@@ -1,5 +1,18 @@
 Version 3.8
 
+6/9/06   Abort with FULLY_RESOLVED_MACRO_POSITIONS with inert macro names
+
+In configurations in which FULLY_RESOLVED_MACRO_POSITIONS is TRUE, an abort
+could occur (depending on the value of uninitialized memory) if an inert
+(recursively-invoked) macro name is used as a macro argument and the
+corresponding parameter is followed by a concatentation operator.  This is
+now fixed.  For example:
+
+  #define X(a) Y(X, a)
+  #define Y(a, b) Z(a, b)
+  #define Z(a, b) a ## b
+  int X(1);
+
 6/9/06   GNU compatibility: Attributes "aligned" and "packed" on bit fields
 
 In GNU mode, the front end effectively ignored (for layout purposes) any
