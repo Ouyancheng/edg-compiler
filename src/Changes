@@ -1,5 +1,22 @@
 Version 3.8
 
+6/11/06  C++-generating back end: missing qualifier in pointer-to-member
+         constant
+
+In configurations where RECORD_FORM_OF_NAME_REFERENCE is TRUE, a
+pointer-to-member constant referring to a member of an instance of a class
+template was generated with a missing or incorrect qualifier if the
+pointer-to-member expression triggered a template instantiation.  Now fixed.
+For example:
+
+  template <class T> struct S {
+    bool b() const { return false; }
+  };
+
+  void f() {
+    &S<int>::b;    // Formerly generated as &b in some modes
+  }
+
 6/9/06   Abort with FULLY_RESOLVED_MACRO_POSITIONS with inert macro names
 
 In configurations in which FULLY_RESOLVED_MACRO_POSITIONS is TRUE, an abort

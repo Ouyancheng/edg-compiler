@@ -17572,6 +17572,7 @@ data member specified by tip.
      current token positions as a result.  Save these positions so that they
      may be restored when we are done. */
   a_source_position saved_pos_curr_token, saved_error_position;
+  a_symbol_locator  saved_locator_for_curr_id;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -17586,6 +17587,7 @@ data member specified by tip.
 #endif /* DEBUG */
   saved_pos_curr_token = pos_curr_token;
   saved_error_position = error_position;
+  saved_locator_for_curr_id = locator_for_curr_id;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -17659,6 +17661,7 @@ data member specified by tip.
   }  /* if */
   error_position = saved_error_position;
   pos_curr_token = saved_pos_curr_token;
+  locator_for_curr_id = saved_locator_for_curr_id;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
