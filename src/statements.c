@@ -4089,6 +4089,8 @@ semicolon.  However, this routine is also called for some error cases as
 well.
 */
 {
+  a_statement_ptr  esp = NULL;
+
   db_enter(3, "empty_statement");
   if (curr_token == tok_semicolon) {
     /* Issue diagnostics on pragmas that are trying to bind to the empty
@@ -4100,10 +4102,8 @@ well.
     discard_curr_construct_pragmas();
   }  /* if */
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
-  {
-    a_statement_ptr  esp = add_statement((a_statement_kind)stmk_empty);
-    stmt_update_source_sequence_list(esp);
-  }
+  esp = add_statement((a_statement_kind)stmk_empty);
+  stmt_update_source_sequence_list(esp);
 #else /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
   if (C_mode() && struct_stmt_stack[depth_stmt_stack].in_else_of_if) {
     a_statement_ptr  sp;
@@ -4131,6 +4131,9 @@ well.
   if (curr_token == tok_semicolon) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
+    if (esp != NULL) {
+      set_stmt_source_position(esp->end_position, curr_construct_end_position);
+    }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
   }  /* if */

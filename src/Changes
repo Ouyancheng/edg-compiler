@@ -1,5 +1,12 @@
 Version 3.8
 
+6/12/06  End position of empty statement
+
+In configurations with EXTRA_SOURCE_POSITIONS_IN_IL and
+REPRESENT_EMPTY_STATEMENTS_IN_IL set to TRUE, the front end previously left
+the end_position of stmk_empty statements as the null source position.  Now
+fixed.
+
 6/11/06  C++-generating back end: missing qualifier in pointer-to-member
          constant
 
