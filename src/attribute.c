@@ -1573,8 +1573,10 @@ messages about any invalid attributes.
         break;
       case ak_packed:
         /* If a field is declared to be "packed", then it is aligned on
-           a character boundary. */
-        fp->alignment = 1;
+           a character boundary.  (However, we don't set the "alignment"
+           field because that would indicate that the "aligned" attribute
+           was specified, which in some cases involving bit fields has a
+           subtle effect on class layout.) */
         fp->is_packed = TRUE;
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */

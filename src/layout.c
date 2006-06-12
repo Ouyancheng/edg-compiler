@@ -841,6 +841,12 @@ explicit alignment value was specified, return FALSE.
       *alignment = field->alignment;
     }  /* if */
     result = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (field->is_packed) {
+    /* By default, the "packed" attribute implies an alignment of "1". */
+    *alignment = 1;
+    result = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   return result;
 }  /* apply_explicit_field_alignment_directive */
