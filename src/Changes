@@ -29,7 +29,7 @@ For example:
 In configurations in which FULLY_RESOLVED_MACRO_POSITIONS is TRUE, an abort
 could occur (depending on the value of uninitialized memory) if an inert
 (recursively-invoked) macro name is used as a macro argument and the
-corresponding parameter is followed by a concatentation operator.  This is
+corresponding parameter is followed by a concatenation operator.  This is
 now fixed.  For example:
 
   #define X(a) Y(X, a)
