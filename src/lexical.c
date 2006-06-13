@@ -14914,6 +14914,9 @@ of characters added.
              token == tok_pretty_function_name) {
     /* In the Microsoft dialect, __PRETTY_FUNCTION__ is __FUNCSIG__. */
     put_str_to_temp_text_buffer("__FUNCSIG__");
+  } else if (gcc_is_generated_code_target && token == tok_alignof) {
+    /* g++ expects the lower-case variant of the keyword spelling. */
+    put_str_to_temp_text_buffer("__alignof__");
 #endif /* BACK_END_IS_CP_GEN_BE */
   } else {
     /* A keyword or other token whose literal name can be put out. */
