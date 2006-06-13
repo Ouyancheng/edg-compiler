@@ -2083,7 +2083,7 @@ end_sizeof:;
                  type unprocessed if not done here. */
               walk_ptr(ptr->variant.assoc_type, a_type_ptr, iek_type);
               break;
-            }
+            }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
             /* FALLTHROUGH */
           case sck_class_struct_union:
