@@ -2547,7 +2547,7 @@ there's no overflow TRUE is returned.
            attribute was specified.  Earlier GNU versions appear to ignore
            the "packed" attribute applied to a class type for the purpose of
            laying out bit fields. If a bit field is both marked as "packed"
-           an explicitly aligned, the alignment is performed. */
+           and explicitly aligned, the alignment is performed. */
       } else
 #endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
       {
