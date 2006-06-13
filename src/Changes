@@ -93,13 +93,19 @@ only one error is emitted in such cases.  For example:
   struct C: B { using A::foo; };  // Invalid.  Previously triggered two
                                   // errors; now just one.
 
-6/8/06   GNU compatibility: Initializers and register variables
+6/8/06   GNU compatibility: Register variables constraints
 
 In GNU mode, the front end now emits an error for initializers appearing on
 variables with static storage duration that have been mapped on a specific
 register using the GNU construct asm("register-name").  For example:
 
   register int rA asm("%eax") = 5;  // Now an error.
+
+Furthermore, attempts to place variable with non-POD class types in specific
+registers are now also diagnosed with an error.  For example:
+
+  struct S { ~S(); };
+  register S rA asm("%eax");  // Now an error.
 
 6/8/06   C++-generating back end: name hiding by function parameters
 

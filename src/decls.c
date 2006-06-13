@@ -4867,8 +4867,12 @@ detected, issue a diagnostic at the given position.
       /* Unknown register name: Issue an error. */
       pos_st_error(ec_bad_reg_name, diag_pos, asm_name);
     } else {
-      if (variable->asm_name_is_valid &&
-          variable->asm_name_or_reg.name == NULL) {
+      a_type_ptr  var_type = skip_typerefs(variable->type);
+      if (is_immediate_class_type(var_type) &&
+          !symbol_supplement_for_class(var_type)->is_POD) {
+        pos_error(ec_register_mapped_variable_must_be_POD, diag_pos);
+      } else if (variable->asm_name_is_valid &&
+                 variable->asm_name_or_reg.name == NULL) {
         /* This is the first "asm name" construct for this entity. */
         variable->asm_name_or_reg.reg = anr;
         variable->asm_name_is_valid = FALSE;

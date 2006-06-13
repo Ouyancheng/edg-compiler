@@ -1607,6 +1607,7 @@ ec_name_linkage_mismatch_for_variable;;"name linkage conflicts with previous dec
 ec_alias_loop;;"alias creates cycle of aliased entities"
 ec_subscript_must_be_constant;;"subscript must be constant"
 ec_register_mapped_variable_cannot_have_initializer;;"a variable with static storage duration allocated in a specific register cannot be declared with an initializer"
+ec_register_mapped_variable_must_be_POD;;"a variable allocated in a specific register must have POD type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
