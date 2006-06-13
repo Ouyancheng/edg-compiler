@@ -14909,6 +14909,12 @@ of characters added.
   } else if (gnu_mode && token == tok_va_copy) {
     put_str_to_temp_text_buffer("__builtin_va_copy");
 #endif /* GCC_BUILTIN_VARARGS */
+#if BACK_END_IS_CP_GEN_BE
+  } else if (microsoft_dialect_is_generated_code_target &&
+             token == tok_pretty_function_name) {
+    /* In the Microsoft dialect, __PRETTY_FUNCTION__ is __FUNCSIG__. */
+    put_str_to_temp_text_buffer("__FUNCSIG__");
+#endif /* BACK_END_IS_CP_GEN_BE */
   } else {
     /* A keyword or other token whose literal name can be put out. */
     put_str_to_temp_text_buffer(token_names[(int)token]);

@@ -1,5 +1,13 @@
 Version 3.8
 
+6/13/06  C++-generating back end, Microsoft compatibility: spelling of
+         __FUNCSIG__
+
+When generating code for the Microsoft dialect, the C++-generating back end
+transformed the keyword __FUNCSIG__ appearing in a template definition into
+__PRETTY_FUNCTION__, which is not recognized by Microsoft compilers.  Now
+fixed.
+
 6/12/06  End position of empty statement
 
 In configurations with EXTRA_SOURCE_POSITIONS_IN_IL and
