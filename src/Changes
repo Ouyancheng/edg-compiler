@@ -112,9 +112,9 @@ parameter declaration.  This has now been fixed.  For example:
 
 6/8/08   Default function call arguments on non-function declarations
 
-Default function call arguments are normally only allowed on function
-(and member function) declarations; not e.g. on typedefs of function types
-or declarations of pointers to functions.  Previously, the front end only
+Standard C++ only allows default function call arguments on function (and
+member function) declarations; not e.g. on typedefs of function types or
+declarations of pointers to functions.  Previously, the front end only
 diagnosed violations of this rule in strict mode.  Now a discretionary error
 is issued in all modes, except in Cfront modes, Microsoft C++ mode with
 microsoft_version <= 1300, and GNU C++ mode with gnu_version < 30400 (in
