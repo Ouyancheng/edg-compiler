@@ -330,6 +330,7 @@ to match the source dialect (including the version of the dialect).
   } else if (microsoft_mode) {
     microsoft_dialect_is_generated_code_target = TRUE;
     msvc_target_version_number = microsoft_version;
+    msvc_is_generated_code_target = MSVC_IS_GENERATED_CODE_TARGET;
   } else if (sun_mode) {
     sun_is_generated_code_target = TRUE;
 #ifdef SUN_TARGET_VERSION_NUMBER
@@ -510,7 +511,13 @@ This is done before command line processing.
 #endif /* ifdef SUN_TARGET_VERSION_NUMBER */
   gcc_builtin_varargs_in_generated_code =
                                          GCC_BUILTIN_VARARGS_IN_GENERATED_CODE;
+#if BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+  /* Will be set to MSVC_IS_GENERATED_CODE_TARGET if the source dialect is
+     Microsoft mode. */
+  msvc_is_generated_code_target = FALSE;
+#else /* !(BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
   msvc_is_generated_code_target = MSVC_IS_GENERATED_CODE_TARGET;
+#endif /* BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT */
   msvc_target_version_number = MSVC_TARGET_VERSION_NUMBER;
   microsoft_dialect_is_generated_code_target =
                                     MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET;

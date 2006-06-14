@@ -2582,6 +2582,19 @@ generate code for a GNU compiler (gcc or g++).
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 
+#if BACK_END_IS_CP_GEN_BE
+/*
+If CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT is TRUE, the C++-generating back
+end should generate code that matches the dialect selected for the front end.
+(E.g., if the front end is set to parse GNU code, the back end can generate
+GNU __attribute__ constructs, whereas if the front end is set to accept
+Microsoft extensions, the back end might generate __declspec specifiers.)
+*/
+#ifndef CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+#define CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT FALSE
+#endif /* !defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
+#endif /* BACK_END_IS_CP_GEN_BE */
+
 /*
 Macro representing the version of GNU C or C++ for which the C- and C++-
 generating back ends should produce code.  For version x.y.z of a GNU
@@ -2690,7 +2703,9 @@ that are trying to detect uninitialized values, but not in general.
 Switch that is TRUE if the C-generating or C++-generating back end should
 generate code for MSVC++ (the Microsoft C/C++ compiler).  This is the initial
 value of the global variable msvc_is_generated_code_target.  (See also
-MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET below.)
+MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET below.)  Note that this setting is
+ignored when BACK_END_IS_CP_GEN_BE if CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+and the source dialect is not Microsoft mode.
 */
 #ifndef MSVC_IS_GENERATED_CODE_TARGET
 #if EDG_WIN32
@@ -2719,9 +2734,10 @@ This is the initial value of the global variable
 microsoft_dialect_is_generated_code_target.
 */
 #ifndef MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET
-#if MSVC_IS_GENERATED_CODE_TARGET
+#if MSVC_IS_GENERATED_CODE_TARGET && \
+    !(BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
 #define MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET TRUE
-#else /* !MSVC_IS_GENERATED_CODE_TARGET */
+#else /* !(MSVC_IS_GENERATED_CODE_TARGET && ...) */
 #define MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET FALSE
 #endif /* MSVC_IS_GENERATED_CODE_TARGET */
 #endif /* MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET */
@@ -2729,11 +2745,16 @@ microsoft_dialect_is_generated_code_target.
 /*
 Compensating for Microsoft compiler bugs without actually generating
 Microsoft extensions is not likely an intentional configuration option.
+(It's allowed with CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT because
+MSVC_IS_GENERATED_CODE_TARGET is ignored in non-Microsoft modes.)
 */
-#if MSVC_IS_GENERATED_CODE_TARGET && \
-    !MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET
- #error -- MSVC_IS_GENERATED_CODE_TARGET requires \
-           MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET
+#if MSVC_IS_GENERATED_CODE_TARGET &&                \
+    !(MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET || \
+      (BACK_END_IS_CP_GEN_BE &&                     \
+       CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT))
+ #error -- MSVC_IS_GENERATED_CODE_TARGET requires        \
+           MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET or \
+           CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
 #endif /* MSVC_IS_GENERATED_CODE_TARGET && !MICROSOFT_DIALECT_... */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
@@ -2768,7 +2789,8 @@ code for more than one specific target dialect (Microsoft, GNU, or Sun).
 
 #ifdef MULTIPLE_TARGET_DIALECTS_SET
  #error -- Multiple target dialects selected (GCC_IS_GENERATED_CODE_TARGET, \
-           SUN_IS_GENERATED_CODE_TARGET, or MSVC_IS_GENERATED_CODE_TARGET)
+           SUN_IS_GENERATED_CODE_TARGET, or                                 \
+           MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET)
 #endif /* ifdef MULTIPLE_TARGET_DIALECTS_SET */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
@@ -2784,22 +2806,7 @@ instead of K&R C.
 #define C_GEN_BE_GENERATES_ANSI_C FALSE
 #endif /* GCC_IS_GENERATED_CODE_TARGET || USING_ISO_C */
 #endif /* !defined(C_GEN_BE_GENERATES_ANSI_C) */
-#endif /* BACK_END_IS_C_GEN_BE */
 
-#if BACK_END_IS_CP_GEN_BE
-/*
-If CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT is TRUE, the C++-generating back
-end should generate code that matches the dialect selected for the front end.
-(E.g., if the front end is set to parse GNU code, the back end can generate
-GNU __attribute__ constructs, whereas if the front end is set to accept
-Microsoft extensions, the back end might generate __declspec specifiers.)
-*/
-#ifndef CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
-#define CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT FALSE
-#endif /* !defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
-#endif /* BACK_END_IS_CP_GEN_BE */
-
-#if BACK_END_IS_C_GEN_BE
 /*
 If SUPPRESS_CONST_IN_GENERATED_C is TRUE, "const" will not be put out when
 the C-generating back end generates ANSI C.  (const is never put out when
