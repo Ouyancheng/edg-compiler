@@ -93,7 +93,7 @@ only one error is emitted in such cases.  For example:
   struct C: B { using A::foo; };  // Invalid.  Previously triggered two
                                   // errors; now just one.
 
-6/8/06   GNU compatibility: Register variables constraints
+6/8/06   GNU compatibility: Register variable constraints
 
 In GNU mode, the front end now emits an error for initializers appearing on
 variables with static storage duration that have been mapped on a specific
