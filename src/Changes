@@ -1,5 +1,20 @@
 Version 3.8
 
+6/15/06  C-generating back end: qualified array typedefs
+
+When the elements of a const-qualified array are to be initialized by
+executable code (either in the original source or because of lowering), the
+array declaration in the generated code must not be const-qualified in
+order to permit the initialization.  However, the C-generating back end
+generated a const-qualified declaration in some cases involving typedefs.
+This has now been fixed.  For example:
+
+  struct S { S(); };
+  typedef S S_array[1];
+  typedef const S_array const_S_array;
+  const_S_array x;    // Previously generated as "const S_array x;"
+                      // Now generated as "S_array x;"
+
 6/14/06  C++-generating back end, Microsoft compatibility: selection of
          generated code target
 

@@ -1384,6 +1384,9 @@ block, needed because it indicates whether local typedefs are invisible.
                       get_top_level_type_qualifiers(unqual_array_element_type);
       type = underlying_array_element_type(type);
       qualifiers = get_top_level_type_qualifiers(type);
+      if (suppress_const) {
+        qualifiers &= ~TQ_CONST;
+      }  /* if */
       *p_qualifiers = qualifiers & ~unqual_array_qualifiers;
       *p_type = unqual_array_type;
       can_use_typedef = TRUE;
