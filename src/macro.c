@@ -5243,18 +5243,51 @@ Scan and process a #define directive.
 	                                     &locator_for_curr_id);
     if (assoc_symbol == NULL) {
       /* No such macro, so #define can be done. */
-    } else if (assoc_symbol->variant.macro_def->cannot_be_redefined &&
-               curr_command_line_macro_def == NULL) {
-      /* The macro is predefined, and therefore cannot be redefined (except
-         on the command line). */
-      /* In Microsoft mode, this is just a warning. */
-      diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
-                 ec_cannot_redef_predef_macro);
-      /* Clear the symbol, which means we will enter an error symbol and
-         define it as a macro.  The net effect is that the redefinition
-         is ignored. */
-      set_to_error_locator(locator_for_curr_id);
-      assoc_symbol = NULL;
+    } else if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
+      a_boolean         ignore_new_definition;
+      an_error_severity severity;
+
+      /* Redefinitions of predefined macros are handled differently in
+         different modes and depending on whether the redefinition is from
+         the command line or program text. */
+      if (microsoft_mode) {
+        ignore_new_definition = TRUE;
+        severity = es_warning;
+      } else if (gnu_mode) {
+        ignore_new_definition = FALSE;
+        severity = es_warning;
+      } else if (sun_mode) {
+        ignore_new_definition = TRUE;
+        severity = es_discretionary_error;
+      } else if (curr_command_line_macro_def == NULL) {
+        /* From program text. */
+        ignore_new_definition = TRUE;
+        severity = es_discretionary_error;
+      } else {
+        /* From the command line. */
+        ignore_new_definition = FALSE;
+        severity = es_none;
+        /* Allow only benign (identical) redefinitions: */
+        redefinition = TRUE;
+      }  /* if */
+      if (severity != es_none) {
+        char *saved_command_line_macro_def = curr_command_line_macro_def;
+        /* Ensure that a warning is printed: */
+        curr_command_line_macro_def = NULL;
+        pos_sy_diagnostic(severity,
+                          ignore_new_definition ?
+                          ec_cannot_redef_predef_macro :
+                          ec_predef_macro_redef_ignored, &start_pos,
+                          assoc_symbol);
+        curr_command_line_macro_def = saved_command_line_macro_def;
+      }  /* if */
+      if (ignore_new_definition) {
+        /* Clear the symbol, which means we will enter an error symbol and
+           define it as a macro.  The net effect is that the redefinition
+           is ignored. */
+        set_to_error_locator(locator_for_curr_id);
+        assoc_symbol = NULL;
+      }  /* if */
     } else {
       /* Macro can be redefined, but only if the new definition matches
          the old.  Check is done later. */

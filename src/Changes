@@ -1,5 +1,15 @@
 Version 3.8
 
+6/16/06  Microsoft, GNU, and Sun compatibility: redefinition of predefined
+         macros
+
+The front end now more closely mimics the processing of these compilers when
+an attempt is made to redefine a predefined macro.  In all three cases, no
+distinction is made between redefinitions on the command line and in the
+source code.  In Microsoft mode, a warning is issued and the redefinition is
+ignored; in GNU mode, a warning is issued and the macro is redefined; and in
+Sun mode, a discretionary error is issued and the redefinition is ignored.
+
 6/15/06  C-generating back end: qualified array typedefs
 
 When the elements of a const-qualified array are to be initialized by
