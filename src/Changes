@@ -1,5 +1,28 @@
 Version 3.8
 
+6/17/06  Certain lowered EH operators have no side effects
+
+The partially-lowered exception handling operators
+leck_caught_object_address and leck_thrown_object_address
+are now considered by the side-effect testing routines to have no
+side effects.  This fixes an abort in lower_temp_init in lower_init.c
+during processing of a throw of an optimizable rvalue class object
+when DO_FULL_PORTABLE_EH_LOWERING is FALSE.
+
+  struct A {
+    A() {};
+  };
+  int main() {
+    try {
+      A a;
+      int x = 0;
+      throw x ? a : A();
+    }
+    catch(A abc)
+    {
+    }
+  }
+
 6/16/06  Microsoft, GNU, and Sun compatibility: redefinition of predefined
          macros
 
