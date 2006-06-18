@@ -5274,11 +5274,11 @@ Scan and process a #define directive.
         char *saved_command_line_macro_def = curr_command_line_macro_def;
         /* Ensure that a warning is printed: */
         curr_command_line_macro_def = NULL;
-        pos_sy_diagnostic(severity,
+        pos_st_diagnostic(severity,
                           ignore_new_definition ?
                           ec_cannot_redef_predef_macro :
                           ec_predef_macro_redef_ignored, &start_pos,
-                          assoc_symbol);
+                          assoc_symbol->header->identifier);
         curr_command_line_macro_def = saved_command_line_macro_def;
       }  /* if */
       if (ignore_new_definition) {
