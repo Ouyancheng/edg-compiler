@@ -5241,59 +5241,12 @@ Scan and process a #define directive.
     assoc_symbol = find_macro_symbol_by_name(start_of_curr_token,
                                              len_of_curr_token,
 	                                     &locator_for_curr_id);
-    if (assoc_symbol == NULL) {
-      /* No such macro, so #define can be done. */
-    } else if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
-      a_boolean         ignore_new_definition;
-      an_error_severity severity;
-
-      /* Redefinitions of predefined macros are handled differently in
-         different modes and depending on whether the redefinition is from
-         the command line or program text. */
-      if (microsoft_mode) {
-        ignore_new_definition = TRUE;
-        severity = es_warning;
-      } else if (gnu_mode) {
-        ignore_new_definition = FALSE;
-        severity = es_warning;
-      } else if (sun_mode) {
-        ignore_new_definition = TRUE;
-        severity = es_discretionary_error;
-      } else if (curr_command_line_macro_def == NULL) {
-        /* From program text. */
-        ignore_new_definition = TRUE;
-        severity = es_discretionary_error;
-      } else {
-        /* From the command line. */
-        ignore_new_definition = FALSE;
-        severity = es_none;
-        /* Allow only benign (identical) redefinitions: */
-        redefinition = TRUE;
-      }  /* if */
-      if (severity != es_none) {
-        char *saved_command_line_macro_def = curr_command_line_macro_def;
-        /* Ensure that a warning is printed: */
-        curr_command_line_macro_def = NULL;
-        pos_st_diagnostic(severity,
-                          ignore_new_definition ?
-                          ec_cannot_redef_predef_macro :
-                          ec_predef_macro_redef_ignored, &start_pos,
-                          assoc_symbol->header->identifier);
-        curr_command_line_macro_def = saved_command_line_macro_def;
-      }  /* if */
-      if (ignore_new_definition) {
-        /* Clear the symbol, which means we will enter an error symbol and
-           define it as a macro.  The net effect is that the redefinition
-           is ignored. */
-        set_to_error_locator(locator_for_curr_id);
-        assoc_symbol = NULL;
-      }  /* if */
-    } else {
-      /* Macro can be redefined, but only if the new definition matches
-         the old.  Check is done later. */
+    if (assoc_symbol != NULL) {
+      /* This is an attempt to redefine an already-defined symbol;
+         the validity of this attempt is determined below once the
+         definition has been processed. */
       redefinition = TRUE;
-    }  /* if */
-    if (assoc_symbol == NULL && !is_error_locator(locator_for_curr_id)) {
+    } else if (!is_error_locator(locator_for_curr_id)) {
       a_scope_depth  scope_depth;
       /* Enter the macro symbol.  assoc_symbol remains NULL if an error
          locator is being used.  This suppresses the creation of a
@@ -5659,54 +5612,122 @@ Scan and process a #define directive.
     db_dump_macro_def(assoc_symbol, object_like, param_list, buffer_start);
 #endif /* DEBUG */
     mdp = NULL;
-    if (redefinition &&
-        (curr_command_line_macro_def == NULL ||
-         assoc_symbol->variant.macro_def->cannot_be_redefined)) {
-      /* This is a redefinition of a previous macro.  Check that the
-         redefinition is benign (see standard, 3.8.3, constraints).
-         Both definitions have to be object-like or function-like, and the
-         replacement text and parameter list have to have the same spelling
-         after white space is standardized.  Redefinitions on the command line
-         are always fine if they were not predefined; if they were predefined
-         then the redefinition must be benign. */
-      sizeof_t new_length = next_avail_in_macro_buffer - buffer_start;
-      mdp = assoc_symbol->variant.macro_def;
-      if ((a_boolean)mdp->object_like == object_like &&
-          (a_boolean)mdp->variadic == variadic &&
-          equiv_replacement_text(buffer_start, new_length, mdp)) {
-        /* Check parameter lists to make sure they match. */
-        for (pp = param_list, pp2 = mdp->param_list;
-             pp != NULL && pp2 != NULL;
-             pp = pp->next, pp2 = pp2->next) {
-          if (strcmp(pp->name, pp2->name) != 0) goto redef_error;
-        }  /* for */
-        if (pp == NULL && pp2 == NULL) {
-#if FULLY_RESOLVED_MACRO_POSITIONS
-          if (curr_command_line_macro_def == NULL &&
-              assoc_symbol != NULL) {
-            /* A benign redefinition -- terminate the tracker (and just abandon
-               the text map entries added to macro_text_map: they'll be
-               discarded the next time macro_buffer is truncated). */
-            terminate_macro_text_map(&tracker,
-                                     (sizeof_t)(next_avail_in_macro_buffer -
-                                                buffer_start));
-          }  /* if */
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-          goto def_done;
+    if (redefinition) {
+      a_boolean         defs_are_same = TRUE;
+      a_boolean         ignore_new_definition;
+      an_error_severity severity;
+      an_error_code     code;
+      char              *saved_command_line_macro_def =
+                                                   curr_command_line_macro_def;
+      if (curr_command_line_macro_def == NULL ||
+          assoc_symbol->variant.macro_def->cannot_be_redefined) {
+        /* If the redefinition is from the program text or if it is for a
+           predefined symbol, check to see if the new definition is benign,
+           i.e., identical to the existing one.  (Redefinitions of
+           non-predefined symbols from the command line are always honored,
+           so there's no need to check.) */
+        sizeof_t new_length = next_avail_in_macro_buffer - buffer_start;
+        mdp = assoc_symbol->variant.macro_def;
+        if ((a_boolean)mdp->object_like != object_like ||
+            (a_boolean)mdp->variadic != variadic ||
+            !equiv_replacement_text(buffer_start, new_length, mdp)) {
+          defs_are_same = FALSE;
+        } else {
+          /* Check parameter lists to make sure they match. */
+          for (pp = param_list, pp2 = mdp->param_list; defs_are_same;
+               pp = pp->next, pp2 = pp2->next) {
+            if (pp == NULL || pp2 == NULL) {
+              if (pp != pp2) {
+                /* One has more parameters than the other. */
+                defs_are_same = FALSE;
+              }  /* if */
+              break;
+            }  /* if */
+            if (strcmp(pp->name, pp2->name) != 0) {
+              defs_are_same = FALSE;
+            }  /* if */
+          }  /* for */
         }  /* if */
       }  /* if */
-redef_error:
-      /* Bad redefinition.  Keep the new definition, give a diagnostic. */
-      { an_error_severity severity = es_warning;
-        if (curr_command_line_macro_def) {
-          /* An invalid command-line redefinition is always an error. */
-          severity = es_error;
-        } else if (strict_ansi_mode) {
-          severity = strict_ansi_error_severity;
+      if (defs_are_same) {
+        /* Redefinitions of non-predefined macros on the command line are
+           always honored (without checking that they are identical), but
+           all other redefinitions are ignored. */
+        ignore_new_definition = (curr_command_line_macro_def == NULL ||
+                                 assoc_symbol->variant.macro_def->
+                                                          cannot_be_redefined);
+        if (assoc_symbol->variant.macro_def->cannot_be_redefined &&
+            curr_command_line_macro_def == NULL) {
+          /* Even benign redefinitions of predefined symbols from the
+             program text are diagnosed. */
+          severity = microsoft_mode ? es_warning : es_discretionary_error;
+          code = ec_cannot_redef_predef_macro;
+        } else {
+          /* No diagnostics for other redefinitions (including command-line
+             benign redefinitions of predefined symbols). */
+          severity = es_none;
         }  /* if */
-        pos_sy_diagnostic(severity, ec_bad_macro_redef, &start_pos,
-                          assoc_symbol);
-      }
+      } else {
+        if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
+          if (microsoft_mode) {
+            ignore_new_definition = TRUE;
+            severity = es_warning;
+            code = ec_cannot_redef_predef_macro;
+          } else if (gnu_mode) {
+            ignore_new_definition = FALSE;
+            severity = es_warning;
+            code = ec_predef_macro_redefined;
+          } else if (sun_mode) {
+            ignore_new_definition = TRUE;
+            severity = es_discretionary_error;
+            code = ec_cannot_redef_predef_macro;
+          } else if (curr_command_line_macro_def == NULL) {
+            /* From program text. */
+            ignore_new_definition = TRUE;
+            severity = es_discretionary_error;
+            code = ec_cannot_redef_predef_macro;
+          } else {
+            /* From the command line. */
+            ignore_new_definition = FALSE;
+            severity = es_error;
+            code = ec_cannot_redef_predef_macro;
+          }  /* if */
+        } else {
+          ignore_new_definition = FALSE;
+          code = ec_bad_macro_redef;
+          if (curr_command_line_macro_def != NULL) {
+            /* An invalid command-line redefinition is always an error. */
+            severity = es_error;
+          } else if (strict_ansi_mode) {
+            severity = strict_ansi_error_severity;
+          } else {
+            severity = es_warning;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (severity != es_none) {
+        if (severity < es_error) {
+          /* Ensure that warnings are printed and discretionary errors do
+             not become catastrophic: */
+          curr_command_line_macro_def = NULL;
+        }  /* if */
+        pos_sy_diagnostic(severity, code, &start_pos, assoc_symbol);
+        curr_command_line_macro_def = saved_command_line_macro_def;
+      }  /* if */
+      if (ignore_new_definition) {
+#if FULLY_RESOLVED_MACRO_POSITIONS
+        if (curr_command_line_macro_def == NULL &&
+            assoc_symbol != NULL) {
+          /* Terminate the tracker (and just abandon the text map entries
+             added to macro_text_map: they'll be discarded the next time
+             macro_buffer is truncated). */
+          terminate_macro_text_map(&tracker,
+                                   (sizeof_t)(next_avail_in_macro_buffer -
+                                              buffer_start));
+        }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+        goto def_done;
+      }  /* if */
     }  /* if */
     /* Allocate space for the text, and copy it. */
     repl_text_len = next_avail_in_macro_buffer - buffer_start;

@@ -93,7 +93,7 @@ ec_incompatible_operands;;"operand types are incompatible (%t1 and %t2)"
 REMOVED;ec_expr_not_integral_or_pointer;;"expression must have integral or pointer type"
 ec_expr_not_pointer;;"expression must have pointer type"
 ec_cannot_undef_predef_macro;;"#undef may not be used on this predefined name"
-ec_cannot_redef_predef_macro;;"%sq is predefined; attempted redefinition ignored"
+ec_cannot_redef_predef_macro;;"%nod is predefined; attempted redefinition ignored"
 ec_bad_macro_redef;;"incompatible redefinition of macro %nod"
 REMOVED;ec_mixed_function_object_pointers;;"cast between pointer-to-object and pointer-to-function"
 ec_duplicate_macro_param_name;;"duplicate macro parameter name"
@@ -1608,7 +1608,7 @@ ec_alias_loop;;"alias creates cycle of aliased entities"
 ec_subscript_must_be_constant;;"subscript must be constant"
 ec_register_mapped_variable_cannot_have_initializer;;"a variable with static storage duration allocated in a specific register cannot be declared with an initializer"
 ec_register_mapped_variable_must_be_POD;;"a variable allocated in a specific register must have POD type"
-ec_predef_macro_redef_ignored;;"predefined meaning of %sq discarded"
+ec_predef_macro_redefined;;"predefined meaning of %nod discarded"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

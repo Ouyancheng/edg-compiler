@@ -27,11 +27,13 @@ when DO_FULL_PORTABLE_EH_LOWERING is FALSE.
          macros
 
 The front end now more closely mimics the processing of these compilers when
-an attempt is made to redefine a predefined macro.  In all three cases, no
-distinction is made between redefinitions on the command line and in the
-source code.  In Microsoft mode, a warning is issued and the redefinition is
-ignored; in GNU mode, a warning is issued and the macro is redefined; and in
-Sun mode, a discretionary error is issued and the redefinition is ignored.
+an attempt is made to redefine a predefined macro.  In all three cases, a
+"benign" (identical) redefinition on the command line is quietly accepted;
+otherwise, no distinction is made between definitions on the command line
+and in the source code.  In Microsoft mode, a warning is issued and the
+redefinition is ignored; in GNU mode, a warning is issued and the macro is
+redefined; and in Sun mode, a discretionary error is issued and the
+redefinition is ignored.
 
 6/15/06  C-generating back end: qualified array typedefs
 
