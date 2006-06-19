@@ -615,7 +615,8 @@ which case for_builtin_offsetof is set to TRUE.
 
       /* The subscript must be integral or enum. */
       (void)check_integral_or_enum_operand(&operand_2);
-      if (for_builtin_offsetof && !is_constant_operand(&operand_2)) {
+      if (for_builtin_offsetof && !is_constant_operand(&operand_2) &&
+          !is_error_operand(&operand_2)) {
         pos_error(ec_subscript_must_be_constant, &operand_2.position);
         make_error_operand(&operand_2);
       }  /* if */
@@ -2605,7 +2606,8 @@ must be a member of the class, struct, or union.  Return the result of the
 selection in *result.  If the field selection produces a bound function in
 C++, return the object bound with the function in *bound_function_selector.
 local_options is the current set of expression-scanning options.  This routine
-is also called to parse a __builtin_offsetof construct.
+is also called to parse a __builtin_offsetof construct (local_options will
+have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
 */
 {
   a_symbol_ptr          member_sym, projection_member_sym;
@@ -3297,7 +3299,7 @@ nonstatic_member_function:
           internal_error("scan_field_selection_operator: bad symbol kind");
 #endif /* CHECKING */
       }  /* switch */
-      if (local_options & EOPT_FIELD_SELECTION_REQUIRED) {
+      if (local_options & EOPT_FIELD_FOR_OFFSETOF) {
         /* Enforce a field access.  The field should not be a bit field. */
         if (is_nontype_template_param_symbol(member_sym)) {
           /* A template-dependent case: We cannot tell yet whether the
@@ -5698,11 +5700,9 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
        field or array element access (e.g., "__builtin_offsetof(a, x.y[3])"),
        so we iterate over field selection and/or array subscript operations
        as needed. */
-    an_expr_stack_entry      expr_stack_entry;
-    an_expr_stack_entry_ptr  saved_expr_stack;
+    an_expr_stack_entry  expr_stack_entry;
     /* The selection operations should be scanned in a "sizeof" context since
        they are not evaluated. */
-    save_expr_stack(&saved_expr_stack);
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/TRUE);
@@ -5716,7 +5716,7 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
     do {
       copy_operand(&local_result, &operand);
       if (curr_token == tok_period) {
-        scan_field_selection_operator(&operand, EOPT_FIELD_SELECTION_REQUIRED,
+        scan_field_selection_operator(&operand, EOPT_FIELD_FOR_OFFSETOF,
                                       &local_result, (an_operand*)NULL);
       } else {
         scan_subscript_operator(&operand, &local_result,
@@ -5728,8 +5728,7 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
       args = alloc_expr_node((an_expr_node_kind)enk_type_operand);
       args->type = void_type();
       args->variant.type_operand.type = type;
-      /* The second operand is the selection expression.  Find the dummy
-         variable in that subtree and replace it by a constant. */
+      /* The second operand is the selection expression. */
       args->next = make_node_from_operand(&local_result);
       /* Finally, create the node representing the offsetof operation, and
          fold it into a constant. */
@@ -5752,7 +5751,6 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
     copy_source_position(end_pos_curr_token, result->end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     pop_expr_stack();
-    restore_expr_stack(saved_expr_stack);
   }  /* if */
   remove_stop_token(tok_rparen);
   /* Check for and pass over the right parenthesis. */

@@ -4989,18 +4989,21 @@ through the usual interface because a field cannot be passed as a constant.
 
 
 static a_boolean add_offset_of_accessed_member(an_expr_node_ptr   expr,
-                                               a_targ_size_t      *offset,
+                                               a_constant_ptr     offset,
                                                a_source_position  *pos)
 /*
 expr represents the element access operation of a builtin offsetof operator
 (or a part thereof in multilevel cases).  Add to *offset the offset implied
 by this access operation.  Multilevel cases (e.g., "offsetof(T, x[3].y)") are
-handled through recursion.  Diagnose any case involving a member of a virtual
-base class (at the given position).
+handled through recursion.  Error cases can occur when accessing a member of a
+virtual base, or when dealing with subscripts that are too large (overflow).
+In such cases, return FALSE and isue a diagnostic at the given position (if it
+is non-NULL).  Otherwise, return TRUE.
 */
 {
-  a_boolean         okay = TRUE;
+  a_boolean         okay = TRUE, ovflo = FALSE;
   an_expr_node_ptr  args;
+  an_integer_value  int_val;
 
   if (is_constant_node(expr)) {
     /* Presumably the null constant to which the member access operations
@@ -5013,42 +5016,38 @@ base class (at the given position).
   }  /* if */
   switch (expr->variant.operation.kind) {
     case eok_field:
-      {
-        a_field_ptr    field;
-        a_targ_size_t  field_offset;
+      { a_field_ptr  field;
         check_assertion(args->next->kind == (an_expr_node_kind)enk_field);
         field = args->next->variant.field;
-        field_offset = field->offset;
-        *offset += field_offset;
+        set_unsigned_integer_value(&int_val, field->offset);
+        add_integer_values(&offset->variant.integer_value, &int_val,
+                           /*is_signed=*/FALSE, &ovflo);
       }
       break;
     case eok_padd_subsc:
       { a_constant_ptr  con;
         a_boolean       ovflo;
         a_type_ptr      elem_type = type_pointed_to(args->type);
-        a_targ_size_t   elem_num;
         elem_type = skip_typerefs(elem_type);
         check_assertion(is_constant_node(args->next));
         con = args->next->variant.constant;
-        elem_num = (a_targ_size_t)value_of_integer_constant(con, &ovflo);
-        *offset += elem_num*elem_type->size;
+        set_unsigned_integer_value(&int_val, elem_type->size);
+        multiply_integer_values(&int_val, &con->variant.integer_value,
+                                /*is_signed=*/FALSE, &ovflo);
+        if (!ovflo) {
+          add_integer_values(&offset->variant.integer_value, &int_val,
+                             /*is_signed=*/FALSE, &ovflo);
+        }  /* if */
       }
       break;
     case eok_base_class_cast:
       { a_type_ptr        dtype = type_pointed_to(args->type);
         a_type_ptr        btype = type_pointed_to(expr->type);
-        a_base_class_ptr  bcp;
         /* Look for the base class to which the cast refers, and update
            *offset accordingly.  Since the field was unambiguous, the
            base class should be unambiguous too. */
-        dtype = skip_typerefs(dtype);
-        btype = skip_typerefs(btype);
-        bcp = base_classes_of(dtype);
-        while (bcp != NULL && !same_entities(bcp->type, btype)) {
-          bcp = bcp->next;
-        }  /* while */
+        a_base_class_ptr  bcp = find_base_class_of(dtype, btype);
         check_assertion(bcp != NULL && !bcp->ambiguous);
-        *offset += bcp->offset;
         if (bcp->is_virtual) {
           /* We don't currently allow the offset of a member of a virtual
              base class to be taken (the GNU compiler produces a somewhat
@@ -5057,6 +5056,10 @@ base class (at the given position).
           if (pos != NULL) {
             pos_error(ec_offsetof_virtual_base_member, pos);
           }  /* if */
+        } else {
+          set_unsigned_integer_value(&int_val, bcp->offset);
+          add_integer_values(&offset->variant.integer_value, &int_val,
+                             /*is_signed=*/FALSE, &ovflo);
         }  /* if */
       }
       break;
@@ -5066,6 +5069,10 @@ base class (at the given position).
     default:
       unexpected_condition();
   }  /* switch */
+  if (okay && ovflo) {
+    okay = FALSE;
+    pos_error(ec_integer_overflow_internal, pos);
+  }  /* if */
 done:
   return okay;
 }  /* add_offset_of_accessed_member */
@@ -5096,10 +5103,9 @@ it represents.
                    constant, (a_template_param_constant_kind)tpck_expression);
     constant->variant.template_param.variant.expr = expr;
   } else {
-    a_targ_size_t  offset = 0;
-    if (add_offset_of_accessed_member(arg2, &offset, pos)) {
-      set_unsigned_integer_constant(constant, (a_host_large_unsigned)offset,
-                                    targ_size_t_int_kind);
+    set_unsigned_integer_constant(constant, (a_host_large_unsigned)0,
+                                  targ_size_t_int_kind);
+    if (add_offset_of_accessed_member(arg2, constant, pos)) {
       arg1->variant.type_operand.definition_needed = TRUE;
     } else {
       clear_constant(constant, (a_constant_repr_kind)ck_error);

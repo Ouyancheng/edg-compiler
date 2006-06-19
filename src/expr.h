@@ -64,7 +64,7 @@ expr.h -- Declarations related to expression parsing.
 			   unary "&" operator where a pointer-to-member
 			   constant would be valid (presumably without
 			   intervening parentheses). */
-#define EOPT_FIELD_SELECTION_REQUIRED 0x200
+#define EOPT_FIELD_FOR_OFFSETOF 0x200
 			/* The dot or arrow operator being scanned must
 			   resolve to a nonstatic data member (or "field").
 			   This is used in the implementation of
