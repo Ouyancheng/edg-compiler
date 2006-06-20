@@ -5614,7 +5614,7 @@ Scan and process a #define directive.
     mdp = NULL;
     if (redefinition) {
       a_boolean         defs_are_same = TRUE;
-      a_boolean         ignore_new_definition;
+      a_boolean         discard_new_definition;
       an_error_severity severity;
       an_error_code     code;
       char              *saved_command_line_macro_def =
@@ -5652,9 +5652,9 @@ Scan and process a #define directive.
       if (defs_are_same) {
         /* Redefinitions of non-predefined macros on the command line are
            always honored (without checking that they are identical), but
-           all other redefinitions are ignored. */
-        ignore_new_definition = (curr_command_line_macro_def == NULL ||
-                                 assoc_symbol->variant.macro_def->
+           all other redefinitions are discarded. */
+        discard_new_definition = (curr_command_line_macro_def == NULL ||
+                                  assoc_symbol->variant.macro_def->
                                                           cannot_be_redefined);
         if (assoc_symbol->variant.macro_def->cannot_be_redefined &&
             curr_command_line_macro_def == NULL) {
@@ -5668,32 +5668,38 @@ Scan and process a #define directive.
           severity = es_none;
         }  /* if */
       } else {
+        /* This is a non-benign redefinition.  The diagnostic issued and
+           whether the redefinition is honored or discarded depend on the
+           emulation, whether the redefinition is from program text or the
+           command line, and whether the symbol was predefined. */
         if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
+          /* A redefinition of a predefined symbol. */
           if (microsoft_mode) {
-            ignore_new_definition = TRUE;
+            discard_new_definition = TRUE;
             severity = es_warning;
             code = ec_cannot_redef_predef_macro;
           } else if (gnu_mode) {
-            ignore_new_definition = FALSE;
+            discard_new_definition = FALSE;
             severity = es_warning;
             code = ec_predef_macro_redefined;
           } else if (sun_mode) {
-            ignore_new_definition = TRUE;
+            discard_new_definition = TRUE;
             severity = es_discretionary_error;
             code = ec_cannot_redef_predef_macro;
           } else if (curr_command_line_macro_def == NULL) {
             /* From program text. */
-            ignore_new_definition = TRUE;
+            discard_new_definition = TRUE;
             severity = es_discretionary_error;
             code = ec_cannot_redef_predef_macro;
           } else {
             /* From the command line. */
-            ignore_new_definition = FALSE;
+            discard_new_definition = FALSE;
             severity = es_error;
             code = ec_cannot_redef_predef_macro;
           }  /* if */
         } else {
-          ignore_new_definition = FALSE;
+          /* A non-predefined symbol. */
+          discard_new_definition = FALSE;
           code = ec_bad_macro_redef;
           if (curr_command_line_macro_def != NULL) {
             /* An invalid command-line redefinition is always an error. */
@@ -5714,7 +5720,7 @@ Scan and process a #define directive.
         pos_sy_diagnostic(severity, code, &start_pos, assoc_symbol);
         curr_command_line_macro_def = saved_command_line_macro_def;
       }  /* if */
-      if (ignore_new_definition) {
+      if (discard_new_definition) {
 #if FULLY_RESOLVED_MACRO_POSITIONS
         if (curr_command_line_macro_def == NULL &&
             assoc_symbol != NULL) {
