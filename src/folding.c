@@ -5026,7 +5026,6 @@ is non-NULL).  Otherwise, return TRUE.
       break;
     case eok_padd_subsc:
       { a_constant_ptr  con;
-        a_boolean       ovflo;
         a_type_ptr      elem_type = type_pointed_to(args->type);
         elem_type = skip_typerefs(elem_type);
         check_assertion(is_constant_node(args->next));
