@@ -67,29 +67,6 @@ static void scan_expr_full(an_operand              *result,
                  (local_options))
 
 
-static void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack)
-/*
-Clear the expression stack, returning the old expression stack pointer
-to the caller in *saved_expr_stack, for later restoration by calling
-restore_expr_stack.  This is used at the start of processing of an
-expression that is not part of the surrounding context.
-*/
-{
-  *saved_expr_stack = expr_stack;
-  expr_stack = NULL;
-}  /* save_expr_stack */
-
-
-static void restore_expr_stack(an_expr_stack_entry_ptr saved_expr_stack)
-/*
-Restore the expression stack to the state it had when save_expr_stack
-was called.
-*/
-{
-  expr_stack = saved_expr_stack;
-}  /* restore_expr_stack */
-
-
 static a_ref_entry_ptr merge_ref_lists(a_ref_entry_ptr list1,
                                        a_ref_entry_ptr list2)
 /*
@@ -6001,6 +5978,29 @@ is returned through *result.
 }  /* scan_builtin_types_compatible */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+
+static void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack)
+/*
+Clear the expression stack, returning the old expression stack pointer
+to the caller in *saved_expr_stack, for later restoration by calling
+restore_expr_stack.  This is used at the start of processing of an
+expression that is not part of the surrounding context.
+*/
+{
+  *saved_expr_stack = expr_stack;
+  expr_stack = NULL;
+}  /* save_expr_stack */
+
+
+static void restore_expr_stack(an_expr_stack_entry_ptr saved_expr_stack)
+/*
+Restore the expression stack to the state it had when save_expr_stack
+was called.
+*/
+{
+  expr_stack = saved_expr_stack;
+}  /* restore_expr_stack */
+
 #if GNU_EXTENSIONS_ALLOWED
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
