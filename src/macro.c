@@ -5652,7 +5652,7 @@ Scan and process a #define directive.
       if (defs_are_same) {
         /* Redefinitions of non-predefined macros on the command line are
            always honored (without checking that they are identical), but
-           all other redefinitions are discarded. */
+           all other benign redefinitions are discarded. */
         discard_new_definition = (curr_command_line_macro_def == NULL ||
                                   assoc_symbol->variant.macro_def->
                                                           cannot_be_redefined);
