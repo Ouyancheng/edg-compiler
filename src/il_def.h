@@ -3237,30 +3237,30 @@ enum a_type_qualifier_tag {
 /*
 Definitions of the bits in bit sets of type a_type_qualifier_set.
 */
-#define TQ_NONE		0x0
+#define TQ_NONE		((a_type_qualifier_set)0x0)
 			/* No type qualifiers. */
-#define TQ_CONST	(1 << (int)tqt_const)
+#define TQ_CONST	((a_type_qualifier_set)(1 << (int)tqt_const))
 			/* This bit is set to represent const. */
-#define TQ_VOLATILE	(1 << (int)tqt_volatile)
+#define TQ_VOLATILE	((a_type_qualifier_set)(1 << (int)tqt_volatile))
 			/* This bit is set to represent volatile. */
-#define TQ_RESTRICT	(1 << (int)tqt_restrict)
+#define TQ_RESTRICT	((a_type_qualifier_set)(1 << (int)tqt_restrict))
 			/* This bit is set to represent restrict. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define TQ_UNALIGNED	(1 << (int)tqt_unaligned)
+#define TQ_UNALIGNED	((a_type_qualifier_set)(1 << (int)tqt_unaligned))
 			/* This bit is set to represent __unaligned. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
-#define TQ_NEAR		(1 << (int)tqt_near)
+#define TQ_NEAR		((a_type_qualifier_set)(1 << (int)tqt_near))
 			/* This bit is set to represent near. */
-#define TQ_FAR		(1 << (int)tqt_far)
+#define TQ_FAR		((a_type_qualifier_set)(1 << (int)tqt_far))
 			/* This bit is set to represent far. */
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
-#define TQ_UPC_SHARED	(1 << (int)tqt_upc_shared)
+#define TQ_UPC_SHARED	((a_type_qualifier_set)(1 << (int)tqt_upc_shared))
 			/* This bit is set to represent UPC shared. */
-#define TQ_UPC_STRICT	(1 << (int)tqt_upc_strict)
+#define TQ_UPC_STRICT	((a_type_qualifier_set)(1 << (int)tqt_upc_strict))
 			/* This bit is set to represent UPC strict. */
-#define TQ_UPC_RELAXED	(1 << (int)tqt_upc_relaxed)
+#define TQ_UPC_RELAXED	((a_type_qualifier_set)(1 << (int)tqt_upc_relaxed))
 			/* This bit is set to represent UPC relaxed. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
@@ -3897,6 +3897,11 @@ enum a_decl_modifier_tag {
   dmt_last
 };
 
+/*
+Type used to represent a set of decl modifiers.
+*/
+typedef unsigned short a_decl_modifier;
+
 #if DECL_MODIFIERS_IN_USE
 EXTERN char *decl_modifier_names[(int)dmt_last + 1]
 #if VAR_INITIALIZERS
@@ -3933,58 +3938,61 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
 A bit set whose values are used to supply additional declarative information
 about variables and routines.
 */
-#define DM_NONE	0x0
+#define DM_NONE		((a_decl_modifier)0x0)
 			/* No decl modifiers. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define DM_DLLIMPORT	(1 << (int)dmt_dllimport)
+#define DM_DLLIMPORT	((a_decl_modifier)(1 << (int)dmt_dllimport))
 			/* TRUE if the declaration includes the
 			   Microsoft __declspec(dllimport) specifier. */
-#define DM_DLLEXPORT	(1 << (int)dmt_dllexport)
+#define DM_DLLEXPORT	((a_decl_modifier)(1 << (int)dmt_dllexport))
 			/* TRUE if the declaration includes the
 			   Microsoft __declspec(dllexport) specifier. */
 #define DM_DLLFLAGS	(DM_DLLIMPORT | DM_DLLEXPORT)
 			/* Convenience macro to select DLL-related flags. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
-#define DM_THREAD	(1 << (int)dmt_thread)
+#define DM_THREAD	((a_decl_modifier)(1 << (int)dmt_thread))
 			/* TRUE if the declaration includes the __thread or
 			   __declspec(thread) specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define DM_NAKED	(1 << (int)dmt_naked)
+#define DM_NAKED	((a_decl_modifier)(1 << (int)dmt_naked))
 			/* TRUE if the declaration includes the
 			   Microsoft __declspec(naked) specifier. */
 #define DM_MICROSOFT_INLINE						\
-			(1 << (int)dmt_microsoft_inline)
+			((a_decl_modifier)(1 << (int)dmt_microsoft_inline))
 			/* TRUE if the declaration includes the
 			   Microsoft __inline specifier. */
-#define DM_FORCEINLINE	(1 << (int)dmt_forceinline)
+#define DM_FORCEINLINE	((a_decl_modifier)(1 << (int)dmt_forceinline))
 			/* TRUE if the declaration includes the
 			   Microsoft __forceinline specifier. */
-#define DM_SELECTANY	(1 << (int)dmt_selectany)
+#define DM_SELECTANY	((a_decl_modifier)(1 << (int)dmt_selectany))
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(selectany) specifier. */
-#define DM_NOTHROW	(1 << (int)dmt_nothrow)
+#define DM_NOTHROW	((a_decl_modifier)(1 << (int)dmt_nothrow))
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(nothrow) specifier. */
-#define DM_NOVTABLE	(1 << (int)dmt_novtable)
+#define DM_NOVTABLE	((a_decl_modifier)(1 << (int)dmt_novtable))
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(novtable) specifier. */
-#define DM_NORETURN	(1 << (int)dmt_noreturn)
+#define DM_NORETURN	((a_decl_modifier)(1 << (int)dmt_noreturn))
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(noreturn) specifier. */
-#define DM_NOINLINE	(1 << (int)dmt_noinline)
+#define DM_NOINLINE	((a_decl_modifier)(1 << (int)dmt_noinline))
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(noinline) specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
-#define DM_GLOBAL_LINK_SCOPE	(1 << (int)dmt_global_link_scope)
+#define DM_GLOBAL_LINK_SCOPE \
+			((a_decl_modifier)(1 << (int)dmt_global_link_scope))
 			/* TRUE if the declaration includes the Sun __global
 			   specifier. */
-#define DM_SYMBOLIC_LINK_SCOPE	(1 << (int)dmt_symbolic_link_scope)
+#define DM_SYMBOLIC_LINK_SCOPE \
+			((a_decl_modifier)(1 << (int)dmt_symbolic_link_scope))
 			/* TRUE if the declaration includes the Sun __symbolic
 			   specifier. */
-#define DM_HIDDEN_LINK_SCOPE	(1 << (int)dmt_hidden_link_scope)
+#define DM_HIDDEN_LINK_SCOPE \
+			((a_decl_modifier)(1 << (int)dmt_hidden_link_scope))
 			/* TRUE if the declaration includes the Sun __hidden
 			   specifier. */
 #define DM_ANY_SUN_LINK_SCOPE	(DM_GLOBAL_LINK_SCOPE |    \
@@ -3993,11 +4001,6 @@ about variables and routines.
 			/* TRUE if the entity was declared with any Sun link
 			   scope specifier. */
 #endif /* SUN_EXTENSIONS_ALLOWED */
-
-/*
-Type used to represent a set of decl modifiers.
-*/
-typedef unsigned short a_decl_modifier;
 
 #endif /* ifdef CIL */
 
