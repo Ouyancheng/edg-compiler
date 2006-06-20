@@ -4526,6 +4526,7 @@ appearance of the base class happens to have been marked preferred.
       }  /* if */
     }  /* if */
   }  /* for */
+  /* coverity[var_deref_op] */
   preferred_bcdp->preferred = TRUE;
 done:;
   db_exit();
@@ -14653,7 +14654,8 @@ next_declaration:
       curr_routine_fixup = saved_routine_fixup;
       if (class_type->variant.class_struct_union.is_prototype_instantiation &&
           !class_type->variant.class_struct_union.is_specialized) {
-        a_template_symbol_supplement_ptr      tssp = class_tssp;
+        a_template_symbol_supplement_ptr  tssp = class_tssp;
+        check_assertion(tssp != NULL);
         tssp->variant.class_template.prototype_instantiation = tag_sym;
         tssp->variant.class_template.prototype_instantiation_complete = TRUE;
         if (tag_sym->is_class_member && tssp->cache_segment != NULL) {

@@ -4494,6 +4494,7 @@ initialized.  These are addressed in the course of the processing.
             for (; new_cip != NULL; new_cip = new_cip->next) {
               if (new_cip->variant.base_class == bcp) break;
             }  /* for */
+            check_assertion(new_cip != NULL);
             /* new_cip was initially marked as compiler-generated. Reset the
                flag now that it's appeared explicitly in the ctor-initializer
                list. */
@@ -4632,8 +4633,8 @@ scan_paren:
                 a_dynamic_init_kind init_kind = (a_dynamic_init_kind)dik_zero;
                 if ((microsoft_bugs && microsoft_version < 1310 &&
                      emulate_msvc_value_initialization_bugs) ||
-                    (gpp_mode &&
-                     emulate_gnu_value_initialization_bugs &&
+                    (gpp_mode && emulate_gnu_value_initialization_bugs &&
+                     new_cip != NULL &&
                      new_cip->kind != (a_constructor_init_kind)cik_field) ||
                     flexible_array_member) {
                   /* MSVC++ up to version 7.0 never initializes the entity in

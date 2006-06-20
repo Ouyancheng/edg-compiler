@@ -3315,7 +3315,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                                                       &pending_qualifiers_pos);
           complete_type = make_qualified_type(complete_type,
                                               pending_qualifiers);
-        } else {
+        } else if (left_qualifiers != NULL) {
           /* Return left-most qualifiers to the caller. */
           *left_qualifiers = pending_qualifiers;
         }  /* if */
