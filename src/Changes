@@ -1,5 +1,11 @@
 Version 3.8
 
+6/23/06  Infinite loop processing redefine_extname pragma in multiple
+         translation unit mode
+
+In configurations with COMPILE_MULTIPLE_TRANSLATION_UNITS set to TRUE, a
+redefine_extname pragma triggered an infinite loop.  This is now fixed.
+
 6/17/06  Certain lowered EH operators have no side effects
 
 The partially-lowered exception handling operators

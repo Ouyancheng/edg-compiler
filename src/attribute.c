@@ -166,6 +166,7 @@ Traverse the list of alias fixups and set the alias fields as needed.
   a_symbol_locator    locator;
   a_source_position   *pos;
 
+  alias_fixup_list = NULL;
   while (entries != NULL) {
     entry = entries;
     entries = entries->next;
