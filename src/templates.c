@@ -15013,6 +15013,7 @@ information gathered in the front end structures.
                                     sym_tpp->variant.templ->il_template_entry;
         new_tpp->variant.templ.default_arg_template =
                                                    sym_tpp->default_arg.templ;
+         /* coverity[returned_null] */  /* coverity[dereference] */
         new_tpp->source_corresp = *source_corresp_for_il_entry(
                   (char*)new_tpp->variant.templ.class_template, iek_template);
         break;
@@ -16225,6 +16226,7 @@ that follows.
             name_ref->used_in_primary_declarator = TRUE;
           }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+          check_assertion(vp != NULL);  /* For Coverity. */
           if (vp->declared_type == NULL) vp->declared_type = type;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

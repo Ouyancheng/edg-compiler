@@ -9573,6 +9573,8 @@ if no such base-class symbol is found).
           /* Now merge what's left of the two lists. */
           if (new_set != NULL) {
             if (progenitor_set == NULL) {
+              /* Coverity bug: tool progenitor_set cannot be NULL. */
+              /* coverity[dead_error_line] */
               progenitor_set = new_set;
             } else {
               for (pp = progenitor_set; pp->next != NULL; pp = pp->next) { }

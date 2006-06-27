@@ -503,6 +503,7 @@ separate sublists.
       if (sp->src_seq_sublist_list == NULL) {
         sp->src_seq_sublist_list = sublist;
       } else {
+        check_assertion(end_of_sublist_list != NULL);  /* For Coverity. */
         end_of_sublist_list->next = sublist;
       }  /* if */
       end_of_sublist_list = sublist;
@@ -1026,6 +1027,7 @@ end; otherwise, insert it immediatedly before insert_before.
     if (scope_stack_ptr != NULL) {
       scope_stack_ptr->source_sequence_list = head;
     } else {
+      check_assertion(il_scope != NULL);  /* For Coverity. */
       il_scope->source_sequence_list = head;
     }  /* if */
   } else {

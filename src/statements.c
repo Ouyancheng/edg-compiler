@@ -5469,7 +5469,7 @@ See also 3.6.6.4.
 #if VLA_DEALLOCATIONS_IN_IL
   a_statement_ptr    vla_dealloc_stmts = NULL;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
-  an_expr_node_ptr   return_expr;
+  an_expr_node_ptr   return_expr = NULL;
   a_dynamic_init_ptr dip = NULL;
   a_routine_ptr      rout;
   a_type_ptr         rout_type, return_type;

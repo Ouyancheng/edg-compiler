@@ -123,7 +123,7 @@ Macro to write a value to the PCH output file.
   (void)fwrite((a_stdio_arg)&(value), sizeof(value), 1, f_pch_output)
 
 
-static void bad_pch_file(void)
+static DOES_NOT_RETURN bad_pch_file(void)
 /*
 Called when a read operation on a PCH file fails.  Issue a catastrophic
 error.
@@ -813,6 +813,7 @@ is returned.
 */
 {
   sizeof_t	length;
+  /* coverity[tainted_data_argument] */
   pch_read_value(length);
   ensure_pch_buffer_space(length);
   if (length == 0) {
@@ -1109,6 +1110,7 @@ restore the memory regions.
      a separate area so that it can be compared with the existing
      information. */
   pch_read_value(new_size);
+  /* coverity[tainted_data_argument] */
   pch_read_value(new_alloc_history_entries);
   bytes_in_new_alloc_history = new_alloc_history_entries *
                                                  sizeof(a_mem_alloc_history);
@@ -1355,6 +1357,7 @@ header information about the memory regions such as the memory_region_table.
   pch_read_value(il_header_from_pch);
   /* Read the memory region table and the region_scope_entry table from
      the IL header.  Note that index_for_il_file is not written. */
+  /* coverity[tainted_data_argument] */
   pch_read_value(highest_used_region_number);
   /* Make sure that the tables allocated to store the memory region
      information are large enough. */

@@ -1434,8 +1434,10 @@ file should be a binary file if binary_file is TRUE.
   if (temp_dir == NULL) {
 #if __MICROSOFT_OS__
     /* On a Microsoft OS, first use the TMP environment variable, if set. */
+    /* coverity[tainted_string_return_content] */ /* coverity[var_assign] */
     temp_dir = getenv("TMP");
 #endif /* __MICROSOFT_OS__ */
+    /* coverity[tainted_string_return_content] */ /* coverity[var_assign] */
     if (temp_dir == NULL) temp_dir = getenv("TMPDIR");
     if (temp_dir == NULL || strlen(temp_dir) == 0) temp_dir = DEFAULT_TMPDIR;
   }  /* if */
@@ -1467,6 +1469,7 @@ file should be a binary file if binary_file is TRUE.
       /* The file exists already. */
     } else {
       /* The file does not exist.  Try opening it. */
+      /* coverity[toctou] */
       temp_file = fopen(buffer, binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE :
                                               FOPEN_MODE_FOR_UPDATE);
       if (temp_file != NULL) goto have_file;

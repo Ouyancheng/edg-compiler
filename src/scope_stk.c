@@ -5851,6 +5851,7 @@ End a name scope by popping an entry off the scope stack.
         kind == (a_scope_kind)sck_block) {
       /* If there are any local classes, check for compiler-generated
          virtual destructors for which bodies should be put out. */
+      check_assertion(il_scope != NULL); /* For Coverity. */
       generate_required_virtual_destructor_bodies(il_scope);
     }  /* if */
   }  /* if */
@@ -5917,6 +5918,7 @@ End a name scope by popping an entry off the scope stack.
                            "for function or block scope");
       (void)pop_object_lifetime();
       if (kind == (a_scope_kind)sck_function) {
+        check_assertion(il_scope != NULL); /* For Coverity. */
         if (!il_scope->variant.routine.ptr->compiler_generated) {
           /* Flow control wrapup for statement processing is done here because
              part of what needs to be done is dependent on popping the object
@@ -6079,6 +6081,7 @@ End a name scope by popping an entry off the scope stack.
     {
       /* Do final processing on the function body.  That includes
          IL lowering if appropriate. */
+      check_assertion(il_scope != NULL); /* For Coverity. */
       finish_function_body_processing(il_scope, discard_function_body);
     }  /* if */
     if (!discard_function_body) {
@@ -6111,6 +6114,7 @@ End a name scope by popping an entry off the scope stack.
     if (discard_function_body) {
       /* This is a function whose body should be discarded (e.g., a
          trivial default constructor).  Discard it now. */
+      check_assertion(il_scope != NULL); /* For Coverity. */
       clear_function_body(il_scope);
       /* Put the "defined" flag back on. */
       curr_routine->defined = TRUE;

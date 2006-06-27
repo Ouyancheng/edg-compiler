@@ -5307,6 +5307,7 @@ tpck_expression variant and will point to the given expression.
         check_assertion(microsoft_mode);
         /*FALLTHROUGH*/
       case bok_has_nothrow_assign:
+        check_assertion(cssp != NULL);  /* For Coverity. */
         sym = cssp->assignment_operator;
         result = (kind != (a_builtin_operation_kind)bok_has_assign);
         if (sym == NULL || cssp->assignment_by_bitwise_copy_allowed) {
@@ -5347,6 +5348,7 @@ tpck_expression variant and will point to the given expression.
         check_assertion(microsoft_mode);
         /*FALLTHROUGH*/
       case bok_has_nothrow_copy:
+        check_assertion(cssp != NULL);  /* For Coverity. */
         sym = cssp->constructor;
         result = (kind != (a_builtin_operation_kind)bok_has_copy);
         if (sym == NULL || cssp->construction_by_bitwise_copy_allowed) {
@@ -5381,6 +5383,7 @@ tpck_expression variant and will point to the given expression.
         }  /* for */
         break;
       case bok_has_nothrow_constructor:
+        check_assertion(cssp != NULL);  /* For Coverity. */
         sym = cssp->constructor;
         if (sym == NULL) {
           /* __has_nothrow_constructor returns true if there is no default
@@ -5415,23 +5418,29 @@ tpck_expression variant and will point to the given expression.
         }  /* for */
         break;
       case bok_has_trivial_assign:
+        check_assertion(cssp != NULL);  /* For Coverity. */
         result = cssp->assignment_by_bitwise_copy_allowed;
         break;
       case bok_has_trivial_constructor:
+        check_assertion(cssp != NULL);  /* For Coverity. */
         result = cssp->is_POD || cssp->trivial_default_constructor != NULL;
         break;
       case bok_has_trivial_copy:
+        check_assertion(cssp != NULL);  /* For Coverity. */
         result = cssp->construction_by_bitwise_copy_allowed;
         break;
       case bok_has_trivial_destructor:
+        check_assertion(cssp != NULL);  /* For Coverity. */
         result = cssp->destructor == NULL;
         break;
       case bok_has_user_destructor:
         check_assertion(microsoft_mode);
+        check_assertion(cssp != NULL);  /* For Coverity. */
         result = cssp->destructor != NULL &&
                  !cssp->destructor->variant.routine.ptr->compiler_generated;
         break;
       case bok_has_virtual_destructor:
+        check_assertion(cssp != NULL);  /* For Coverity. */
         result = cssp->destructor != NULL &&
                  cssp->destructor->variant.routine.ptr->is_virtual;
         break;
@@ -5449,6 +5458,7 @@ tpck_expression variant and will point to the given expression.
         break;
       case bok_is_pod:
         /* Note that only class types are considered by Microsoft compilers. */
+        check_assertion(cssp != NULL);  /* For Coverity. */
         result = cssp->is_POD;
         break;
       case bok_is_polymorphic:

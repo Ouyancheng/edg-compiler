@@ -3689,6 +3689,7 @@ inclusion.  is_include_next is TRUE if the file is being pushed for an
   a_boolean			suppress_include = FALSE;
 
   db_enter(2, "open_file_and_push_input_stack");
+  /* coverity[alloc_arg] */
   file_found = open_file_for_input(file_name, use_search_path, is_include_file,
                                    is_system_include, is_include_next,
                                    /*is_implicit_include=*/FALSE,
@@ -9787,6 +9788,7 @@ to alter the constancy check at the end of the routine.
     if (check_stop_tokens) { /*lint !e774*/
       /* Make sure that all of the array elements of the entry being popped
          have been reset to their initial value of zero. */
+      /* coverity[dead_error_line] */
       check_all_stop_token_entries_are_reset(stsep->stop_tokens);
     }  /* if */
   }
@@ -13760,6 +13762,7 @@ selection operator, in which case it points to the type of the left operand.
           /* If this is a vacuous destructor reference, just make sure
              the name of the destructor matches the name of the class. */
           a_symbol_ptr	class_sym;
+          /* coverity[dead_error_begin] */  /* Coverity bug. */
           class_sym = (a_symbol_ptr)qualifier_type->source_corresp.assoc_info;
           if (is_error_locator(locator_for_curr_id)) {
              /* An error occurred earlier while checking the destructor. */
@@ -14030,6 +14033,7 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
             } else {
               /* Look up the id in the class scope. */
               a_boolean	qualifier_is_enum_type;
+              check_assertion(qualifier_type != NULL); /*  For Coverity. */
               qualifier_is_enum_type = microsoft_bugs && qualifier_is_type &&
                                        is_enum_type(qualifier_type);
               if (microsoft_bugs && qualifier_is_enum_type &&
