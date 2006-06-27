@@ -14033,7 +14033,8 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
             } else {
               /* Look up the id in the class scope. */
               a_boolean	qualifier_is_enum_type;
-              check_assertion(qualifier_type != NULL); /*  For Coverity. */
+              /*  For Coverity. */
+              check_assertion(!qualifier_is_type || qualifier_type != NULL);
               qualifier_is_enum_type = microsoft_bugs && qualifier_is_type &&
                                        is_enum_type(qualifier_type);
               if (microsoft_bugs && qualifier_is_enum_type &&

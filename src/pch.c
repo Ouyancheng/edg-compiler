@@ -253,6 +253,7 @@ value passed by the caller.
 {
   a_pch_file_section	section_in_file;
 
+  /* coverity[tainted_data_argument] */ /* coverity[string_null_argument] */
   pch_read_value(section_in_file);
 #if DEBUG
   if (section_in_file != section) {
@@ -465,6 +466,7 @@ file.
   if (value != NULL) {
     /* Copy the value string. */
     pep->value = (char *)alloc_general((sizeof_t)(strlen(value) + 1));
+    /* coverity[deref_ptr_in_call] */  /* Coverity bug. */
     (void)strcpy(pep->value, value);
   }  /* if */
   pep->position = *position;
@@ -508,6 +510,7 @@ the command line.
     /* Command line events are reused for multiple source files so
        the value string must be allocated in general memory. */
     pep->value = (char *)alloc_general((sizeof_t)(strlen(opt_arg) + 1));
+    /* coverity[deref_ptr_in_call] */  /* Coverity bug. */
     (void)strcpy(pep->value, opt_arg);
   }  /* if */
   /* Add this entry to the list. */
