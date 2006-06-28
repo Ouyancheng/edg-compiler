@@ -1,5 +1,21 @@
 Version 3.8
 
+6/28/06  Microsoft compatibility: spurious "unexpected function type"
+         error
+
+Version 3.6 introduced a problem that could cause a spurious "instantiation
+result in unexpected function type" error in Microsoft mode.  The problem
+would occur if, during a class definition, the partial instantiation of
+a member template of another class was performed.  Now fixed.
+
+  template <class T> struct A {
+    template <class T2> A(const T2&) {}
+  };
+  template <class T> struct B {
+    static const int i = sizeof(A<int>(1.0));
+  };
+  B<char> b;
+
 6/23/06  Infinite loop processing redefine_extname pragma in multiple
          translation unit mode
 

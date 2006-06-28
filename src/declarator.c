@@ -4692,7 +4692,8 @@ function_lparen:
             member_parent_type != NULL && derived_type == NULL &&
             !(input_flags & DI_IS_TYPEDEF_DECLARATION) &&
             scope_stack[decl_scope_level].kind ==
-                                       (a_scope_kind)sck_class_struct_union) {
+                                       (a_scope_kind)sck_class_struct_union &&
+            depth_innermost_instantiation_scope < decl_scope_level) {
           /* Microsoft mode allows for "selective virtual overriders" in which
              a qualified name is used for a member function declaration.
              However, in that case the member_parent_type is not the type
