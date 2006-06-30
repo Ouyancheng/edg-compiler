@@ -1,5 +1,21 @@
 Version 3.8
 
+6/30/06  GNU C++ compatibility: invalid aggregate initialization of template
+         static data member
+
+The g++ compiler accepts an invalid aggregate initialization in the
+definition of a template static data member (the error is diagnosed if
+the static data member is instantiated).  We now emulate this behavior
+when parsing nonclass templates in g++ mode (e.g., gnu_version >= 30400).
+
+  struct A {
+    A(double val);
+  };
+  template <class T> struct B {
+    static const A I[1];
+  };
+  template <class T> const A B<T>::I[1]= { {1.,0.,0.,0.} };
+
 6/28/06  Microsoft compatibility: spurious "unexpected function type"
          error
 

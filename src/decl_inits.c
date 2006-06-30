@@ -2012,10 +2012,12 @@ this function points to a tree that includes a dynamic-init entry.
       if (is_class_struct_union_type(context.type) &&
           !symbol_supplement_for_class(context.type)->is_class_aggregate) {
         if (!skip_typerefs(context.type)
-                              ->variant.class_struct_union.is_nonreal_class) {
+                              ->variant.class_struct_union.is_nonreal_class &&
+            !(gpp_mode && is_prototype_instantiation_context())) {
           /* For a nonreal class, we cannot relate the initializers to the
-             inner type structure of that class.  An error type ensures that
-             we just collect the expressions, but no diagnostic should be
+             inner type structure of that class.  The g++ compiler does not
+             do this check at template definition time.  An error type ensures
+             that we just collect the expressions, but no diagnostic should be
              issued. */
           pos_ty_error(ec_brace_initialization_not_allowed, &pos_curr_token,
                        context.type);
