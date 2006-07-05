@@ -5965,7 +5965,9 @@ static a_boolean is_static_variable_address_node(an_expr_node_ptr expr,
 /*
 Return TRUE if the indicated expression is the address of a variable with
 static storage duration, including cases where that is implicitly cast
-to some other type.  Set *var to the variable.
+to some other type.  Return FALSE for nominally-static variables
+that have non-constant addresses, e.g., thread-local variables.
+Set *var to the variable.
 */
 {
   a_boolean is_static_var_addr = FALSE;
@@ -5977,7 +5979,8 @@ to some other type.  Set *var to the variable.
     expr = expr->variant.operation.operands;
   }  /* while */
   if (is_variable_address_node(expr) &&
-      has_static_storage_duration(expr->variant.variable->storage_class) &&
+      variable_has_constant_address(expr->variant.variable,
+                                    /*in_expr_proc=*/FALSE) &&
       /* Avoid potential ordering issues with addresses of local variables. */
       !expr->variant.variable->source_corresp.is_local_to_function) {
     is_static_var_addr = TRUE;

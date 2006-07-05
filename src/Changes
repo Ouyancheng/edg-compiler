@@ -1,5 +1,17 @@
 Version 3.8
 
+7/5/06   Address of Microsoft dllimport variable is not a constant
+
+IL lowering sometimes generated generated initializations to the
+address of a dllimport variable as if the variable's address is a
+constant, but in fact it isn't.  Now fixed (such initializations
+are now dynamic).
+
+  #define DLLIMPORT __declspec(dllimport)
+  struct DLLIMPORT CObject1 {};
+  extern "C" DLLIMPORT CObject1 ObjOne;
+  CObject1* ObjOnePtr = &ObjOne;
+
 6/30/06  GNU C++ compatibility: invalid aggregate initialization of template
          static data member
 

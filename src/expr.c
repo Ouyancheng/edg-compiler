@@ -15624,7 +15624,8 @@ variable:
                __INTADDR__. */
             if ((curr_expr_kind_is(ek_init_constant) ||
                  curr_expr_kind_is(ek_template_arg)) &&
-                variable_has_constant_address(var_ptr) &&
+                variable_has_constant_address(var_ptr,
+                                              /*in_expr_proc=*/TRUE) &&
 #if UPC_EXTENSIONS_ALLOWED
                 /* Disallow static initializations using addresses of shared
                    data. */
