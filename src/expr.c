@@ -17009,12 +17009,14 @@ see expr.h).
         /* We're not inside a function. */
         error_and_make_error_operand(ec_this_used_incorrectly, &local_result);
       } else if (curr_expr_kind_is_const() &&
-                 /* cfront and Microsoft allow this->k, where k is a constant,
-                    in a constant expression. */
-                 !((any_cfront_mode() || (microsoft_mode && !C_mode())) &&
+                 /* cfront, Microsoft, and g++ allow this->k, where k is a
+                    constant, in a constant expression. */
+                 !((any_cfront_mode() || (microsoft_mode && !C_mode()) ||
+                    (gpp_mode && gnu_version <= 30300)) &&
                    next_token() == tok_arrow &&
                    (curr_expr_kind_is(ek_integral_constant) ||
-                    curr_expr_kind_is(ek_template_arg)))) {
+                    curr_expr_kind_is(ek_template_arg) ||
+                    curr_expr_kind_is(ek_init_constant)))) {
         /* "this" cannot be used in a constant expression. */
         error_and_make_error_operand(ec_expr_not_constant, &local_result);
       } else {

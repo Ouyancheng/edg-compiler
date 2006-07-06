@@ -1,5 +1,10 @@
 Version 3.8
 
+7/6/06   GNU C++ compatibility: this->k as a constant
+
+In g++ mode, this->k is now accepted in a constant expression if the
+member k is constant-valued.
+
 7/5/06   Address of Microsoft dllimport variable is not a constant
 
 IL lowering sometimes generated generated initializations to the
