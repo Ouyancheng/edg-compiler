@@ -5810,7 +5810,7 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
                                                                    ) {
     /* In a constant expression, just throw away the left operand.  This
        comes up in prototype instantiations and with an extension in
-       cfront and Microsoft modes:
+       some modes:
          struct A { enum { e1 = 1 }; } a;
          int x[a.e1];
     */

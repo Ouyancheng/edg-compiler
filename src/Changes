@@ -1,9 +1,11 @@
 Version 3.8
 
-7/6/06   GNU C++ compatibility: this->k as a constant
+7/6/06   GNU and Microsoft compatibility: extended integral constants
 
-In g++ mode, this->k is now accepted in a constant expression if the
-member k is constant-valued.
+GNU and Microsoft C++ modes now accept some additional nonstandard
+kinds of expressions as integral constant expressions.  The cases
+now accepted are generally some variant of expr->k, where k
+is a constant-valued member.
 
 7/5/06   Address of Microsoft dllimport variable is not a constant
 

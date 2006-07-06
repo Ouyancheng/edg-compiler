@@ -2630,8 +2630,9 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
              curr_expr_kind_is(ek_template_arg)) {
     /* Field selection is not allowed in integral constant expressions
        or template argument expressions. */
-    if (any_cfront_mode() || (microsoft_mode && !C_mode())) {
-      /* ... except in cfront or Microsoft C++ mode, where something like
+    if (any_cfront_mode() || (microsoft_mode && !C_mode()) ||
+        (gpp_mode && gnu_version < 30300)) {
+      /* ... except in cfront, Microsoft, or GNU C++ mode, where something like
            struct A { enum { e1 = 1 }; } a;
            int x[a.e1];
          is allowed.  The constant check is done at the end. */
@@ -2645,6 +2646,14 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
       pos_error(ec_bad_templ_arg_expr_operator, &pos_curr_token);
       err = TRUE;
     }  /* if */
+  } else if (curr_expr_kind_is(ek_init_constant) &&
+             !C_mode() &&
+             (microsoft_mode || (gpp_mode && gnu_version <= 30300)) &&
+             is_arrow_operator) {
+    /* In Microsoft and GNU C++, a->e1 can be used as a constant if e1
+       is a constant member (like an enumerator).  The constant check is done
+       at the end. */
+    allow_integral_constant_selection = TRUE;
   }  /* if */
   if (err) {
     /* Operation is not allowed in this kind of expression. */
@@ -3157,8 +3166,7 @@ qualified_name_check:
                template. */
 nonstatic_member_function:
             /* Such a reference is not allowed in an initializer constant
-               expression.  In truth, though, it's almost impossible to get
-               such a thing in C++. */
+               expression. */
             if (curr_expr_kind_is(ek_init_constant)) {
               error_and_make_error_operand(ec_expr_not_constant, result);
             } else {
@@ -7802,7 +7810,8 @@ example, be a floating-point constant).  prec_level is the precedence
 level to be used in scanning the expression.  The constant returned
 might be an error constant or a template parameter constant.  This
 routine exists mainly to allow the sorts of constant expressions used
-in the implementation of offsetof.
+in the implementation of offsetof, but it also deals with the fact that
+some dialects (GNU, Microsoft) allow extended forms of integer constants.
 */
 {
   an_expr_stack_entry expr_stack_entry;
@@ -7832,10 +7841,12 @@ in the implementation of offsetof.
        is_integral_or_enum_type(con.type) ||
        is_template_param_type(con.type))) {
     /* Okay. */
-  } else if (!is_error_constant(&con)) {
+  } else {
     /* The expression doesn't reduce to a value that will be an integer
        constant (possibly once cast to an integral type). */
-    error_in_operand(ec_expr_not_integral_constant, operand);
+    if (!is_error_constant(&con)) {
+      error_in_operand(ec_expr_not_integral_constant, operand);
+    }  /* if */
   }  /* if */
   pop_expr_stack();
   db_exit();
@@ -9490,14 +9501,12 @@ expressions allow only certain limited casts).
                       ec_expr_not_arithmetic : ec_expr_not_arithmetic_or_enum;
       }  /* if */
     }  /* if */
-  } else if ((local_options & (EOPT_OPERAND_OF_CAST |
-                               EOPT_MICROSOFT_CASE_LABEL)) &&
+  } else if ((local_options & EOPT_OPERAND_OF_CAST) &&
              is_pointer_type(dest_type) &&
              (is_integral_or_enum_type(source_type) ||
               is_template_param_type(source_type))) {
     /* When the cast is the immediate operand of another cast, allow
-       integer --> pointer as an extension.  Also allowed for a case
-       label in Microsoft mode. */
+       integer --> pointer as an extension. */
     valid_in_integral_const_expr = TRUE;
     if (strict_ansi_mode) {
       err_severity = strict_ansi_error_severity;
@@ -11551,7 +11560,6 @@ Also scans GNU statement expressions:
       a_local_expr_options_set options =
                                       (local_options &
                                                 (EOPT_OPERAND_OF_CAST |
-                                                 EOPT_MICROSOFT_CASE_LABEL |
                                                  EOPT_OPERAND_OF_ADDRESS_OF)) |
                                        EOPT_ALLOW_BOUND_FUNCTION |
                                        EOPT_PRESERVE_PROPERTY_REF;
@@ -15295,10 +15303,10 @@ to constants.  For example,
 
   if ((any_cfront_mode() ||
        (microsoft_mode && !C_mode()) ||
-       gpp_mode) &&
+       (gpp_mode && gnu_version <= 30300)) &&
       (curr_expr_kind_is(ek_integral_constant) ||
        curr_expr_kind_is(ek_template_arg) ||
-       (gpp_mode && curr_expr_kind_is(ek_init_constant)))) {
+       curr_expr_kind_is(ek_init_constant))) {
     allows_folding = TRUE;
   }  /* if */
   return allows_folding;
@@ -15307,7 +15315,7 @@ to constants.  For example,
 
 static a_boolean is_field_selection_of_type_foldable(a_type_ptr type)
 /*
-We are current in a constant expression in a mode that allows the
+We are currently in a constant expression in a mode that allows the
 nonstandard folding of field selections to constants.  type is the
 type of a variable or field, which is the current token.  If it is
 followed by a field selection, return TRUE.
@@ -18389,8 +18397,10 @@ and [expr.const] in the ISO C++98 standard.
 
   db_enter(3, "scan_integral_constant_expression");
 
-  if (gnu_mode) {
-    /* GNU C and C++ allow more than the standard allows. */
+  if (gcc_mode ||
+      (gpp_mode && gnu_version <= 30300) ||
+      microsoft_mode) {
+    /* GNU and Microsoft C and C++ allow more than the standard allows. */
     scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
                                                /*will_cast=*/FALSE,
                                                PREC_LOWEST,
@@ -18840,8 +18850,8 @@ copy-initialization ("="-form).
 
   db_enter(3, "scan_member_constant_initializer_expression");
 
-  if (gnu_mode) {
-    /* GNU C and C++ allow more than the standard allows. */
+  if ((gpp_mode && gnu_version <= 30300) || microsoft_mode) {
+    /* GNU and Microsoft C++ allow more than the standard allows. */
     scan_constant_initializer_expression(required_type, constant);
   } else {
     check_assertion(expr_stack == NULL); /* Check this is a full expression. */
@@ -19502,33 +19512,20 @@ and return the value of the constant in *constant.  MSVC++ allows
 things like (void *)1 as case constants.
 */
 {
-  an_operand          result;
-  an_expr_stack_entry expr_stack_entry;
+  an_operand result;
 
   db_enter(3, "scan_microsoft_case_label_constant_expression");
-  push_expr_stack((an_expression_kind)ek_integral_constant, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  /* Scan the constant expression. */
-  scan_expr(&result, PREC_LOWEST,
-            (EOPT_DISALLOW_COMMA_OPERATOR | EOPT_MICROSOFT_CASE_LABEL));
-  do_operand_transformations(&result, TOPT_NO_OPTIONS);
-  /* Make a constant from the operand. */
+  scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
+                                             /*will_cast=*/TRUE,
+                                             PREC_LOWEST,
+                                             &result);
   extract_constant_from_operand(&result, constant);
-  /* Check that the constant is represented as an integer constant. */
-  if (is_error_constant(constant)) {
-    /* Previous error, okay. */
-  } else if (constant->kind == (a_constant_repr_kind)ck_template_param) {
-    /* Template parameter constant, okay. */
-  } else if (constant->kind != (a_constant_repr_kind)ck_integer) {
-    /* The expression doesn't reduce to a value that will be an integer
-       constant once cast to an integral type. */
-    error_in_operand(ec_expr_not_integral_constant, &result);
-    set_error_constant(constant);
-  } else if (!is_integral_or_enum_type(constant->type)) {
-    pos_warning(ec_expr_not_integral_constant, &result.position);
+  if (!is_integral_or_enum_type(constant->type)) {
+    /* MSVC++ allows some weird cases like (void *)1.  Warn on those. */
+    if (!is_error_type(constant->type)) {
+      pos_warning(ec_expr_not_integral_constant, &result.position);
+    }  /* if */
   }  /* if */
-  pop_expr_stack();
   db_exit();
 }  /* scan_microsoft_case_label_constant_expression */
 

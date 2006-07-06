@@ -56,15 +56,12 @@ expr.h -- Declarations related to expression parsing.
 #define EOPT_MARKED_AS_GNU_EXTENSION 0x40
 			/* The caller of scan_expr scanned over the GNU keyword
 			   __extension__. */
-#define EOPT_MICROSOFT_CASE_LABEL 0x80
-			/* The expression is the top level of a case label
-			   constant in Microsoft mode. */
-#define EOPT_PTR_TO_MEMBER_CONTEXT 0x100
+#define EOPT_PTR_TO_MEMBER_CONTEXT 0x80
 			/* The expression is the immediate operand of the
 			   unary "&" operator where a pointer-to-member
 			   constant would be valid (presumably without
 			   intervening parentheses). */
-#define EOPT_FIELD_FOR_OFFSETOF 0x200
+#define EOPT_FIELD_FOR_OFFSETOF 0x100
 			/* The dot or arrow operator being scanned must
 			   resolve to a nonstatic data member (or "field").
 			   This is used in the implementation of
