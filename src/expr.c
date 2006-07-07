@@ -2647,12 +2647,16 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
       err = TRUE;
     }  /* if */
   } else if (curr_expr_kind_is(ek_init_constant) &&
-             !C_mode() &&
+             !C_mode() && is_arrow_operator &&
              (microsoft_mode || (gpp_mode && gnu_version <= 30300)) &&
-             is_arrow_operator) {
+             (is_an_lvalue(operand_1) || !is_constant_operand(operand_1))) {
     /* In Microsoft and GNU C++, a->e1 can be used as a constant if e1
-       is a constant member (like an enumerator).  The constant check is done
-       at the end. */
+       is a constant member (like an enumerator).  The "a" expression
+       requires a dereference (test just done), so this selection will
+       get an error in the normal processing.  Suppress the dereference
+       of the first operand in exchange for a requirement that the result
+       is a constant (in which case the left operand would not have to be
+       evaluated). */
     allow_integral_constant_selection = TRUE;
   }  /* if */
   if (err) {
