@@ -10476,6 +10476,9 @@ is a "get" if put_operand is NULL.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (curr_expr_kind_is_const() && !is_error_operand(operand)) {
+    error_in_operand(ec_expr_not_constant, operand);
+  }  /* if */
   rule_out_expr_kinds(ROEK_CONSTANT, operand);
 }  /* rewrite_property_field_reference */
 
