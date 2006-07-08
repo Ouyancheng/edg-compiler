@@ -2649,7 +2649,8 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
   } else if (curr_expr_kind_is(ek_init_constant) &&
              !C_mode() && is_arrow_operator &&
              (microsoft_mode || (gpp_mode && gnu_version <= 30300)) &&
-             (is_an_lvalue(operand_1) || !is_constant_operand(operand_1))) {
+             (is_an_lvalue(operand_1) ||
+              (is_an_rvalue(operand_1) && !is_constant_operand(operand_1)))) {
     /* In Microsoft and GNU C++, a->e1 can be used as a constant if e1
        is a constant member (like an enumerator).  The "a" expression
        requires a dereference (test just done), so this selection will
