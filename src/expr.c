@@ -18855,8 +18855,11 @@ copy-initialization ("="-form).
 
   db_enter(3, "scan_member_constant_initializer_expression");
 
-  if ((gpp_mode && gnu_version <= 30300) || microsoft_mode) {
+  if (gpp_mode || microsoft_mode) {
     /* GNU and Microsoft C++ allow more than the standard allows. */
+    /* Note than g++ did start disallowing some extensions in version 3.4,
+       but it continues to allow float constants, so we continue to
+       use the slightly-too-broad extended version. */
     scan_constant_initializer_expression(required_type, constant);
   } else {
     check_assertion(expr_stack == NULL); /* Check this is a full expression. */
