@@ -3594,7 +3594,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
 
 /* Local macro that tests whether or not a symbol is acceptable.  An
    injected class name symbol is only acceptable when the injected symbol
-   does not points to the class in which the lookup is being done;
+   does not point to the class in which the lookup is being done;
    otherwise, that symbol is rejected and (typically) the constructor
    symbol will be returned later.  An injected class name is accepted
    when doing a class-or-namespace or tag lookup, because such a lookup
@@ -3616,7 +3616,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     symbol_may_precede_qualifier(fund_sym)) &&	     		      \
    (!must_be_class ||						      \
     is_class_or_class_proxy_symbol(fund_sym)) &&     		      \
-   (!must_be_tag || is_tag_or_tag_proxy_symbol(fund_sym)) &&	      \
+   (!must_be_tag || is_tag_or_tag_proxy_symbol(fund_sym) ||           \
+    (microsoft_bugs && fund_sym->kind == (a_symbol_kind)sk_type)) &&  \
    !(sym)->is_invisible)
 
   db_enter(4, "class_qualified_id_lookup");
@@ -3753,7 +3754,15 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
       /* We reached the end of the list.  If there is a tag symbol, or
          type tag symbol saved within the loop, use it. */
       if (type_tag_symbol != NULL) {
-        sym = type_tag_symbol;
+        if (microsoft_bugs) {
+          /* MSVC++ allows an elaborated-type-specifier with a qualified-id
+             to refer to a typedef for a tagged type.  Return the symbol
+             for the tagged type. */
+          sym = (a_symbol_ptr)skip_typerefs(type_tag_symbol->
+                                  variant.type.ptr)->source_corresp.assoc_info;
+        } else {
+          sym = type_tag_symbol;
+        }  /* if */
         goto end_lookup;
       } else if (tag_symbol != NULL) {
         sym = tag_symbol;

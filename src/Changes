@@ -1,5 +1,27 @@
 Version 3.8
 
+7/10/06  Microsoft compatibility: typedefs and elaborated-type-specifiers
+
+MSVC++ allows typedefs and elaborated-type-specifiers to be used together
+in non-standard ways: an elaborated-type-specifier appearing in a class
+context injects the named type into the surrounding non-class context,
+hiding (instead of conflicting with) an existing typedef in that scope, and
+an elaborated-type-specifier with a qualified-id can be used to refer to a
+typedef member of the named class.  The front end has been changed to accept
+these elaborated-type-specifiers in Microsoft bugs mode.  For example:
+
+  typedef enum { e1 } E1;
+
+  struct S {
+    static enum E1 se1;   // new ::E1 injected, hiding old ::E1
+    typedef enum { e2 } E2;
+  };
+
+  enum E1 { e1x };        // okay: define new ::E1
+  E1 S::se1 = e1x;        // okay: use new ::E1's enumerator
+
+  enum S::E2 se2;         // now accepted
+
 7/6/06   GNU and Microsoft compatibility: extended integral constants
 
 GNU and Microsoft C++ modes now accept some additional nonstandard

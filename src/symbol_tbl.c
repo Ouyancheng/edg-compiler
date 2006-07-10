@@ -3238,6 +3238,17 @@ this is not allowed, an error will be issued by the caller.
         end_error();
       }  /* if */
       err = FALSE;
+    } else if (microsoft_bugs &&
+               scope_stack[depth_scope_stack].kind ==
+                                        (a_scope_kind)sck_class_struct_union &&
+               scope_stack[scope_depth].kind !=
+                                        (a_scope_kind)sck_class_struct_union &&
+               is_tag_symbol_kind(new_sym->kind) &&
+               old_sym->kind == (a_symbol_kind)sk_type) {
+      /* MSVC++ allows an elaborated-type-specifier used in a class scope to
+         inject a type in the surrounding non-class scope and hide an
+         existing typedef-name in that scope. */
+      err = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (scope_stack[scope_depth].in_prototype_instantiation &&
                scope_stack[scope_depth].kind ==
@@ -3747,7 +3758,9 @@ symbol must be added to the inactive list.
                in most cases, this is an error, but in C++, one is allowed to
                define a tag name and a non-type name in the same scope (see ARM
                3.2, 3.1c, and 7.1.3).  In cfront and pcc modes a variable is
-               allowed to hide a function parameter. */
+               allowed to hide a function parameter.  MSVC++ allows an
+               elabrated-type-specifier (if declared in a class scope) to
+               hide a typedef in the containing scope. */
             if (!symbols_may_coexist_in_curr_scope
                             (old_sym_ptr, sym_ptr,
                              set_insert_after ? &insert_after :
