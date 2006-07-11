@@ -3,8 +3,9 @@ Version 3.8
 7/11/06  C++-generating back end: incorrect qualification in incomplete
          class declarations
 
-An incomplete class declaration was sometimes incorrectly generated using a
-qualified name.  This has now been fixed.  For example:
+The C++-generating back end sometimes incorrectly generated an incomplete
+class declaration using a qualified name.  This has now been fixed.  For
+example:
 
   namespace N {
     struct S;
