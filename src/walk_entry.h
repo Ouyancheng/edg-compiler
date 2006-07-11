@@ -3091,7 +3091,8 @@ after_entry_from_class:
         remap_next_ptr(ptr->next, a_local_expr_node_ref_ptr,
                        iek_local_expr_node_ref);
         walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
-        walk_ptr(ptr->referrer.ptr, a_char_ptr, ptr->referrer.kind);
+        walk_ptr(ptr->referrer.ptr, a_char_ptr,
+                 (an_il_entry_kind)ptr->referrer.kind);
       }
       break;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
