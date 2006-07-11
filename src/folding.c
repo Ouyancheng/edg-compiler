@@ -4997,8 +4997,8 @@ expr represents the element access operation of a builtin offsetof operator
 by this access operation.  Multilevel cases (e.g., "offsetof(T, x[3].y)") are
 handled through recursion.  Error cases can occur when accessing a member of a
 virtual base, or when dealing with subscripts that are too large (overflow).
-In such cases, return FALSE and isue a diagnostic at the given position (if it
-is non-NULL).  Otherwise, return TRUE.
+In such cases, return FALSE and issue a diagnostic at the given position (if
+it is non-NULL).  Otherwise, return TRUE.
 */
 {
   a_boolean         okay = TRUE, ovflo = FALSE;
