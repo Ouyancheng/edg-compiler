@@ -3724,9 +3724,7 @@ inclusion.  is_include_next is TRUE if the file is being pushed for an
     if (list_included_files) {
       display_included_file_name(depth_input_stack + 1, display_name);
     }  /* if */
-    /* Check whether a PCH file should be generated at the end of the
-       execution of this include directive. */
-    check_for_generation_of_pch_on_return_to_primary_file();
+    actual_include_was_suppressed = TRUE;
     goto done;
   }  /* if */
   push_input_stack(input_file, file_name, display_name, full_file_name,

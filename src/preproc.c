@@ -984,7 +984,7 @@ pass_stdarg_references_to_generated_code.
       /* Instead or reading the <stdarg.h> or <cstdarg> header file, create
          builtin definitions for the things it's known to define. */
       proc_stdarg_include(is_cstdarg);
-      *was_simulated_stdarg_include = TRUE;
+      actual_include_was_suppressed = TRUE;
     } else {
       /* Push the name and associated search directory onto the input stack,
          thus starting input from that file.  If the include file cannot be
@@ -2425,6 +2425,7 @@ execute the preprocessor directive.
   fetch_pp_tokens = TRUE;
   expand_macros = FALSE;
   do_string_literal_concatenation = FALSE;
+  actual_include_was_suppressed = FALSE;
   /* Start a new stop token context that will stop flushing on error, and
      put the newline token into it. */
   push_stop_token_stack();
@@ -2587,11 +2588,11 @@ execute the preprocessor directive.
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
   do_string_literal_concatenation = save_do_string_literal_concatenation;
-  if (was_simulated_stdarg_include) {
+  if (actual_include_was_suppressed) {
     /* Normally the check for generation of a PCH file is done when the
-       input stack is popped.  For a simulated stdarg include it is done
-       here.  This is not done in proc_include because certain state (e.g.,
-       the stop token stack state) is not correct there. */
+       input stack is popped.  For include operations where the actual
+       include is suppressed, it is done here (so that certain state
+       information, such as the stop token stack state, is correct). */
     check_for_generation_of_pch_on_return_to_primary_file();
   }  /* if */
   /* Restore the error position as at entry. */
@@ -2787,6 +2788,7 @@ every translation unit.
   pp_if_stack_depth = -1;
   base_pp_if_stack_depth = -1;
   is_header_stop_dir = FALSE;
+  actual_include_was_suppressed = FALSE;
 #if UPC_EXTENSIONS_ALLOWED
   upc_coherence_stack = NULL;
 #endif /* UPC_EXTENSIONS_ALLOWED */

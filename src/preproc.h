@@ -241,6 +241,15 @@ EXTERN sizeof_t	size_pp_dir_string_buffer;
                            See preproc.c for the definition of
 			   pp_dir_string_buffer. */
 
+EXTERN a_boolean
+		actual_include_was_suppressed;
+			/* TRUE if an #include operation did not result in
+			   the actual inclusion of a file.  This could occur
+			   if the include was simulated (as is sometimes done
+			   for stdarg.h, etc.), or because the include was
+			   suppressed because the file had already been
+			   included. */
+
 /* Scan a preprocessing directive. */
 extern void pp_directive(void);
 /* Verify that all #ifs are closed at end of source. */
