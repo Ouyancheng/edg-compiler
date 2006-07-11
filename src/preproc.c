@@ -917,12 +917,15 @@ is_cstdarg is TRUE in C++ if the header name was "cstdarg".
 }  /* proc_stdarg_include */
 
 
-static void proc_include(a_boolean is_include_next)
+static void proc_include(a_boolean is_include_next,
+                         a_boolean *was_simulated_stdarg_include)
 /*
 Scan and process a #include directive.  If is_include_next is TRUE, the
 directive is a #include_next (a gcc extension that begins the search for
 the file in the directory on the search path that follows the directory
-in which the current file was found).
+in which the current file was found).  was_simulated_stdarg_include specifies
+whether or not the include was of stdarg.h or cstdarg when using
+pass_stdarg_references_to_generated_code.
 */
 {
   char      *name_start_pos;
@@ -938,6 +941,7 @@ in which the current file was found).
      (where the pp-tokens are macro-expanded to yield one of the
      first two forms.)
   */
+  *was_simulated_stdarg_include = FALSE;
   ifg_state = get_ifg_state();
   if (ifg_state < IFG_STATE_FAIL) {
     /* If another include is seen outside of the #ifndef/#endif guard
@@ -980,9 +984,7 @@ in which the current file was found).
       /* Instead or reading the <stdarg.h> or <cstdarg> header file, create
          builtin definitions for the things it's known to define. */
       proc_stdarg_include(is_cstdarg);
-      /* Check whether a PCH file should be generated at the end of the
-         execution of this include directive. */
-      check_for_generation_of_pch_on_return_to_primary_file();
+      *was_simulated_stdarg_include = TRUE;
     } else {
       /* Push the name and associated search directory onto the input stack,
          thus starting input from that file.  If the include file cannot be
@@ -2410,6 +2412,7 @@ execute the preprocessor directive.
   a_source_position  	start_of_dir_position;
   a_pp_directive_kind	dir_kind;
   a_boolean		local_is_header_stop_dir;
+  a_boolean		was_simulated_stdarg_include = FALSE;
 
   db_enter(3, "pp_directive");
 
@@ -2478,7 +2481,7 @@ execute the preprocessor directive.
         proc_endif();
         break;
       case ppd_include:
-        proc_include(/*is_include_next=*/FALSE);
+        proc_include(/*is_include_next=*/FALSE, &was_simulated_stdarg_include);
         break;
       case ppd_define:
         proc_define();
@@ -2527,7 +2530,7 @@ execute the preprocessor directive.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case ppd_include_next:
         nonstandard_pp_directive();
-        proc_include(/*is_include_next=*/TRUE);
+        proc_include(/*is_include_next=*/TRUE, &was_simulated_stdarg_include);
         break;
       case ppd_null:
         /* Null directive -- ignore. */
@@ -2584,6 +2587,13 @@ execute the preprocessor directive.
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
   do_string_literal_concatenation = save_do_string_literal_concatenation;
+  if (was_simulated_stdarg_include) {
+    /* Normally the check for generation of a PCH file is done when the
+       input stack is popped.  For a simulated stdarg include it is done
+       here.  This is not done in proc_include because certain state (e.g.,
+       the stop token stack state) is not correct there. */
+    check_for_generation_of_pch_on_return_to_primary_file();
+  }  /* if */
   /* Restore the error position as at entry. */
   copy_source_position(save_error_position, error_position);
   if (is_header_stop_dir || local_is_header_stop_dir) {
