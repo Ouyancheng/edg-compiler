@@ -4089,7 +4089,9 @@ semicolon.  However, this routine is also called for some error cases as
 well.
 */
 {
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
   a_statement_ptr  esp = NULL;
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
 
   db_enter(3, "empty_statement");
   if (curr_token == tok_semicolon) {
