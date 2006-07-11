@@ -5921,7 +5921,7 @@ block with state information for the processing.
         /* Do any first-time processing necessary. */
         start_initializer_constants(icbp);
 #if GNU_EXTENSIONS_ALLOWED
-        /* When targetting gcc, we don't generate the dummy field, because
+        /* When targeting gcc, we don't generate the dummy field, because
            gcc doesn't mind empty structs.  Note that because we did the
            start_initializer_constant call above we will get {}, which is
            appropriate.  Note that the test here must match one in

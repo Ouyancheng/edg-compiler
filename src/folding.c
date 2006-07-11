@@ -5373,7 +5373,7 @@ tpck_expression variant and will point to the given expression.
                    order of declaration, continue the loop in case another copy
                    constructor appears on the list. */
               } else if (!result) {
-                /* If any of the copy-contructors may throw an exception,
+                /* If any of the copy-constructors may throw an exception,
                    __has_nothrow_copy should return FALSE (in non-Microsoft
                    modes). */
                 goto result_known;
@@ -5408,7 +5408,7 @@ tpck_expression variant and will point to the given expression.
                    order of declaration, continue the loop in case another
                    default constructor appears on the list. */
               } else if (!result) {
-                /* If any of the default contructors may throw an exception,
+                /* If any of the default constructors may throw an exception,
                    __has_nothrow_constructor should return FALSE (in non-
                    Microsoft modes). */
                 goto result_known;
