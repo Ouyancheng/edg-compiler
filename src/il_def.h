@@ -9653,7 +9653,7 @@ typedef enum a_local_expr_node_ref_kind_tag {
   lerk_none,		/* Used for initialization only. */
   lerk_generic_typeof,	/* A template-dependent expression used as an argument
 			   for a typeof construct. */
-  lerk_generic_sizeof,	/* A template-dependent expression used as an argument
+  lerk_generic_sizeof	/* A template-dependent expression used as an argument
 			   for a sizeof, alignof, or uuidof construct. */
 } a_local_expr_node_ref_kind_tag;
 
