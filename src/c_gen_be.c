@@ -5682,11 +5682,12 @@ Dump out a wide string constant.  Dump each character (wchar_t, char16_t, or
 char32_t) as a separate integer value.
 */
 {
-  a_targ_size_t  a, len, char_size;
+  a_targ_size_t  a, len;
+  unsigned int   char_size;
   unsigned long  temp;
   
   len = constant->variant.string.length;
-  char_size = character_size[constant->character_kind];
+  char_size = (unsigned int)character_size[constant->character_kind];
   for (a = 0; a < len; a += char_size) {
     /* Assemble the right number of bytes into one integer. */
     temp = extract_character_from_string(constant->variant.string.value + a,

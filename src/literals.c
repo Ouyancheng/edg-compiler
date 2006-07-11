@@ -1035,7 +1035,7 @@ processing, and in wide characters if the constant is wide).
     case 'L':
       /* Wide character literal. */
       character_kind = (a_character_kind)chk_wchar_t;
-      char_size = targ_sizeof_wchar_t;
+      char_size = (unsigned int)targ_sizeof_wchar_t;
       centity_bits = char_size*targ_char_bit;
       centity_is_signed = int_kind_is_signed[(int)targ_wchar_t_int_kind];
       con_type = eff_wchar_t_type();
@@ -1044,7 +1044,7 @@ processing, and in wide characters if the constant is wide).
     case 'U':
       /* char32_t character literal. */
       character_kind = (a_character_kind)chk_char32_t;
-      char_size = targ_sizeof_char32_t;
+      char_size = (unsigned int)targ_sizeof_char32_t;
       centity_bits = char_size*targ_char_bit;
       centity_is_signed = FALSE; 
       con_type = integer_type(targ_char32_t_int_kind);
@@ -1053,7 +1053,7 @@ processing, and in wide characters if the constant is wide).
     case 'u':
       /* char16_t character literal. */
       character_kind = (a_character_kind)chk_char16_t;
-      char_size = targ_sizeof_char16_t;
+      char_size = (unsigned int)targ_sizeof_char16_t;
       /* Do not use a mask for char16_t characters at this time.  Any masking
          operation is the responsibility of the encoding (invoked through the
          ENCODE_IN_CHAR16_T macro). */
@@ -1241,21 +1241,21 @@ smaller) than the number of characters needed to represent the string.
       /* Skip over the 'L': */
       ++temp_ptr;
       character_kind = (a_character_kind)chk_wchar_t;
-      char_size = targ_sizeof_wchar_t;
+      char_size = (unsigned int)targ_sizeof_wchar_t;
       break;
     case 'U':
       /* char32_t string literal. */
       /* Skip over the 'U': */
       ++temp_ptr;
       character_kind = (a_character_kind)chk_char32_t;
-      char_size = targ_sizeof_char32_t;
+      char_size = (unsigned int)targ_sizeof_char32_t;
       break;
     case 'u':
       /* char16_t string literal. */
       /* Skip over the 'u': */
       ++temp_ptr;
       character_kind = (a_character_kind)chk_char16_t;
-      char_size = targ_sizeof_char16_t;
+      char_size = (unsigned int)targ_sizeof_char16_t;
       break;
     default:
       unexpected_condition();
@@ -1365,7 +1365,7 @@ sufficient to hold len characters of the indicated kind.
 */
 {
   a_targ_size_t  k = 0;
-  unsigned int   char_size = character_size[kind];
+  unsigned int   char_size = (unsigned int)character_size[kind];
 
   for (k = 0; k < len; ++k) {
     unsigned long ch = (unsigned long)(unsigned char)src[k];

@@ -3912,7 +3912,7 @@ precedence confusion.  Do the output in the way described by octl.
              conv_single_wide_char.  Do something that's right for the default
              (simple-minded) implementation, which maps one input character
              to one wide character. */
-          unsigned int char_size = character_size[character_kind];
+          a_targ_size_t char_size = character_size[character_kind];
           switch (character_kind) {
             case chk_wchar_t:   prefix = "L\"";     break;
             case chk_char16_t:  prefix = "u\"";     break;
@@ -3936,7 +3936,7 @@ precedence confusion.  Do the output in the way described by octl.
               output_partial_token_str(prefix, octl);
               out_len = 0;
             }  /* if */
-            wc = extract_character_from_string(str+a, char_size);
+            wc = extract_character_from_string(str+a, (unsigned int)char_size);
             /* Suppress the last character if it is a null. */
             if (a != (len - char_size) || wc != '\0') {
               out_len += form_wide_char(wc, octl);

@@ -4393,7 +4393,7 @@ characters.  The constant is updated in place.
 {
   if (con->kind == (a_constant_repr_kind)ck_string) {
     a_character_kind  char_kind = con->character_kind;
-    a_targ_size_t     char_size = character_size[char_kind];
+    unsigned int      char_size = (unsigned int)character_size[char_kind];
     a_targ_size_t     i, len = con->variant.string.length;
     char              *str = con->variant.string.value;
     a_constant        char_val;
