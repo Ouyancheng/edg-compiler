@@ -5609,7 +5609,9 @@ Scan and process a #define directive.
        unclosed string. */
     end_of_cpp_string = NULL;
 #if DEBUG
-    db_dump_macro_def(assoc_symbol, object_like, param_list, buffer_start);
+    if (assoc_symbol != NULL) {
+      db_dump_macro_def(assoc_symbol, object_like, param_list, buffer_start);
+    }  /* if */
 #endif /* DEBUG */
     mdp = NULL;
     if (redefinition) {

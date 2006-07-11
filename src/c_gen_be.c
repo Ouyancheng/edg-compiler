@@ -688,6 +688,7 @@ etc.
     }  /* if */
     if (line_directive_needed) {
       /* Write a #line directive for the new line position. */
+      check_assertion(new_output_file != NULL);
       write_line_directive(line_number, new_output_file);
       started_new_line = TRUE;
     } else {
@@ -8426,6 +8427,7 @@ if this routine has a body (dump nothing if it has no body).
       /* If appropriate, set a flag to assure special processing for asm
          function definitions. */
       if (storage_class == (a_storage_class)sc_asm) {
+        /* coverity[dead_error_line] */  /* Coverity bug. */
         within_asm_function_definition = TRUE;
       }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
