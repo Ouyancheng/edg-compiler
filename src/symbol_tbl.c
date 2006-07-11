@@ -3759,7 +3759,7 @@ symbol must be added to the inactive list.
                define a tag name and a non-type name in the same scope (see ARM
                3.2, 3.1c, and 7.1.3).  In cfront and pcc modes a variable is
                allowed to hide a function parameter.  MSVC++ allows an
-               elabrated-type-specifier (if declared in a class scope) to
+               elaborated-type-specifier (if declared in a class scope) to
                hide a typedef in the containing scope. */
             if (!symbols_may_coexist_in_curr_scope
                             (old_sym_ptr, sym_ptr,
