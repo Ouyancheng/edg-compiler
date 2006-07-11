@@ -1,5 +1,18 @@
 Version 3.8
 
+7/11/06  C++-generating back end: incorrect qualification in incomplete
+         class declarations
+
+An incomplete class declaration was sometimes incorrectly generated using a
+qualified name.  This has now been fixed.  For example:
+
+  namespace N {
+    struct S;
+  }
+  struct S;
+  struct S;   // Previously generated as "struct ::S;"
+  using namespace N;
+
 7/10/06  Microsoft compatibility: typedefs and elaborated-type-specifiers
 
 MSVC++ allows typedefs and elaborated-type-specifiers to be used together

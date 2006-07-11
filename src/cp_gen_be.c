@@ -3389,10 +3389,12 @@ These follow the tag kind, e.g., "struct __single_inheritance xxx".
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void gen_tag_reference(a_type_ptr type)
+static void gen_tag_reference(a_type_ptr             type,
+                              a_gen_name_options_set options)
 /*
 Generate a reference to the indicated type, which is a class, struct, union,
-or enum.
+or enum; options may be GN_DECLARATION if the reference is in a secondary
+declaration ("struct S;") or GN_NO_OPTIONS for other kinds of reference.
 */
 {
   a_source_sequence_scan_state saved_state;
@@ -3468,7 +3470,6 @@ or enum.
       type->has_been_declared = TRUE;
     } else {
       /* References after the initial declaration can use a qualified name. */
-      a_gen_name_options_set options = GN_NO_OPTIONS;
       if (type_is_prototype_instantiation(type)) {
         /* No template arguments on a prototype instantiation. */
         options |= GN_NO_TEMPLATE_ARGS;
@@ -3547,7 +3548,7 @@ A reference is not the definition.
       gen_possibly_dependent_type_name(type);
     } else {
       /* Use an elaborated type specifier, e.g., "class X". */
-      gen_tag_reference(type);
+      gen_tag_reference(type, (a_gen_name_options_set)GN_NO_OPTIONS);
     }  /* if */
   }  /* if */
 }  /* gen_type_reference */
@@ -5496,7 +5497,7 @@ this one is such a continuation.
         type->has_been_declared = TRUE;
       }  /* if */
       saved_has_been_declared = type->has_been_declared;
-      gen_tag_reference(type);
+      gen_tag_reference(type, (a_gen_name_options_set)GN_DECLARATION);
       if (friend_decl) {
         /* Don't set type->has_been_declared for a friend declaration: it will
            not be visible until it is really declared and so will require an
@@ -10355,7 +10356,7 @@ Generate code for an instantiation directive.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Allow qualified names in instantiation directives. */
           class_type->has_been_declared = TRUE;
-          gen_tag_reference(class_type);
+          gen_tag_reference(class_type, (a_gen_name_options_set)GN_NO_OPTIONS);
           write_tok_ch(';');
         }
         break;
