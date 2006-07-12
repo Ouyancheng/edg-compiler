@@ -1,5 +1,7 @@
 Version 3.8
 
+7/12/06  IL version number changed to 3.8
+
 7/11/06  C++-generating back end: omitted qualification of names hidden by
          the injected class name
 
