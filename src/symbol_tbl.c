@@ -11380,26 +11380,20 @@ mode.
       warning(ec_exp_string_literal);
       err = TRUE;
     }  /* if */
-  } else if (*start_of_curr_token == 'L') {
+  } else if (*start_of_curr_token != '"') {
     /* A wide string is not allowed. */
     warning(ec_wide_string_not_allowed);
     err = TRUE;
   } else {
-    unsigned long	num_chars = 0;
-    a_boolean		is_wide = FALSE;
+    unsigned long num_chars = 0;
     *name_pos = pos_curr_token;
     /* Rescan the characters of the string literal. */
     curr_char_loc = start_of_curr_token;
-    /* Check for a wide string literal. */
-    if (*curr_char_loc == 'L') {
-      is_wide = TRUE;
-      curr_char_loc++;
-    }  /* if */
     /* Advance past the opening quote. */
     curr_char_loc++;
     /* Scan the characters that make up the string literal. */
     if (!accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
-                            is_wide, '"')) {
+                            (a_character_kind)chk_char, '"')) {
       char		*err_char_pos;
       an_error_code	err_code;
       /* Convert the string literal into a string constant. */
