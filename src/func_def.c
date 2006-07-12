@@ -1719,7 +1719,8 @@ member declaration (allowed in Microsoft mode only).
              "ambiguous" if they have a duplicate name.  Since such GNU cases
              are diagnosed elsewhere (in decl_parameter), we inhibit the
              redeclaration diagnostic here. */
-          reenter_symbol(param_sym, decl_scope_level, param_sym->ambiguous);
+          reenter_symbol(param_sym, decl_scope_level,
+                         (a_boolean)param_sym->ambiguous);
           if (c99_mode) {
             /* In C99, implicit declarations are no longer allowed. */
             pos_sy_diagnostic(strict_ansi_mode ?
