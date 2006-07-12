@@ -112,6 +112,7 @@ Return the given entry to the list of available entries.
   avail_alias_fixups = entry;
 }  /* free_alias_fixup */
 
+#if GNU_EXTENSIONS_ALLOWED
 
 static void report_any_alias_loop(an_alias_fixup_ptr  alias_fixup)
 /*
@@ -155,6 +156,7 @@ cycle of aliased entities.  Break the cycle if that is the case.
   }  /* if */
 }  /* report_any_alias_loop */
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void process_alias_fixup_list(void)
 /*
