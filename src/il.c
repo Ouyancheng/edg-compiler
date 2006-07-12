@@ -4410,8 +4410,8 @@ characters.  The constant is updated in place.
       } else {
         /* Wide string case. */
         unsigned long val = extract_character_from_string(str+i, char_size);
-        set_integer_value(&char_val.variant.integer_value,
-                          (a_host_large_unsigned)val);
+        set_unsigned_integer_value(&char_val.variant.integer_value,
+                                   (a_host_large_unsigned)val);
       }  /* if */
       char_con = alloc_unshared_constant(&char_val);
       /* Add the constant to the aggregate list. */
