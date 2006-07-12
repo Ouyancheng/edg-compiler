@@ -972,11 +972,11 @@ C++-generating back end.
       if (tp->source_corresp.is_class_member) {
         push_class_reactivation_scope(tp->source_corresp.parent.class_type,
                                       /*extend_namespace=*/FALSE);
-        popper = &pop_class_reactivation_scope;
+        popper = pop_class_reactivation_scope;
       } else if (tp->source_corresp.parent.namespace_ptr != NULL) {
         push_namespace_extension_scope(tp->
                                           source_corresp.parent.namespace_ptr);
-        popper = &pop_namespace_extension_scope;
+        popper = pop_namespace_extension_scope;
       }  /* if */
       if (popper != NULL) {
         /* The class was nested, so there are further scopes to search.
