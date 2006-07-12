@@ -5714,7 +5714,7 @@ Scan and process a #define directive.
         }  /* if */
       }  /* if */
       if (severity != es_none) {
-        if (severity < es_error) {
+        if ((int)severity < (int)es_error) {
           /* Ensure that warnings are printed and discretionary errors do
              not become catastrophic: */
           curr_command_line_macro_def = NULL;
