@@ -3912,6 +3912,7 @@ of a routine.
   if (need_parens) write_tok_ch(')');
 }  /* dump_routine_address */
 
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 
 static void dump_result_of_overriding_function(void)
 /*
@@ -3950,6 +3951,7 @@ and also for thunks in the IA-64 ABI.
   }  /* if */
 }  /* dump_result_of_overriding_function */
 
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens)
