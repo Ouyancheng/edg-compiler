@@ -960,7 +960,8 @@ C++-generating back end.
       (is_tag_symbol(old_sym_ptr) || is_class_template_symbol(old_sym_ptr))) {
     a_type_ptr    tp = skip_typerefs(type_symbol_type(sym_ptr));
     a_scope_depth init_depth = depth_scope_stack;
-    void          (*popper)(void) = NULL;
+    a_boolean     redo_lookup = FALSE;
+    a_boolean     pushed_class_scope;
 
     tag_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
     if (tag_sym != NULL && symbols_are_equivalent(old_sym_ptr, tag_sym)) {
@@ -972,13 +973,15 @@ C++-generating back end.
       if (tp->source_corresp.is_class_member) {
         push_class_reactivation_scope(tp->source_corresp.parent.class_type,
                                       /*extend_namespace=*/FALSE);
-        popper = pop_class_reactivation_scope;
+        redo_lookup = TRUE;
+        pushed_class_scope = TRUE;
       } else if (tp->source_corresp.parent.namespace_ptr != NULL) {
         push_namespace_extension_scope(tp->
                                           source_corresp.parent.namespace_ptr);
-        popper = pop_namespace_extension_scope;
+        redo_lookup = TRUE;
+        pushed_class_scope = FALSE;
       }  /* if */
-      if (popper != NULL) {
+      if (redo_lookup) {
         /* The class was nested, so there are further scopes to search.
            Skip over the scopes already pushed for hidden name processing so
            we don't find the same symbol again. */
@@ -986,7 +989,11 @@ C++-generating back end.
         clear_specific_symbol(locator);
         old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
                                                  IDL_SKIP_CURR_SCOPE);
-        (*popper)();
+        if (pushed_class_scope) {
+          pop_class_reactivation_scope();
+        } else {
+          pop_namespace_extension_scope();
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
