@@ -2227,7 +2227,8 @@ way described by octl.  Return the number of characters output.
 
   /* Use hex escapes always to avoid having to convert the wide character
      back to a multibyte character string. */
-  result = sprintf(buffer, "\\x%lx", wc);
+  (void)sprintf(buffer, "\\x%lx", wc);
+  result = strlen(buffer);
   /* Output the character. */
   output_partial_token_str(buffer, octl);
   return result;
