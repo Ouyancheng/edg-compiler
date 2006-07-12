@@ -1,5 +1,21 @@
 Version 3.8
 
+7/11/06  C++-generating back end: omitted qualification of names hidden by
+         the injected class name
+
+The C++-generating back end failed to generate proper qualification for a
+use of a name from a containing scope that is hidden by the injected class
+name when the class is defined outside its containing class or namespace.
+This is now fixed.  For example:
+
+  typedef int I;
+  namespace O {
+    struct I;
+  }
+  struct O::I {
+    ::I i;    // Previously generated as "I i;"
+  };
+
 7/11/06  C++-generating back end: incorrect qualification in incomplete
          class declarations
 

@@ -956,6 +956,40 @@ C++-generating back end.
 #endif /* DEBUG */
   old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
                                            IDL_SKIP_CURR_SCOPE);
+  if (old_sym_ptr != NULL && is_injected_class_symbol(sym_ptr) &&
+      (is_tag_symbol(old_sym_ptr) || is_class_template_symbol(old_sym_ptr))) {
+    a_type_ptr    tp = skip_typerefs(type_symbol_type(sym_ptr));
+    a_scope_depth init_depth = depth_scope_stack;
+    void          (*popper)(void) = NULL;
+
+    tag_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+    if (tag_sym != NULL && symbols_are_equivalent(old_sym_ptr, tag_sym)) {
+      /* The lookup found the class corresponding to the injected-class-name.
+         (This usually happens because a class is defined outside its parent
+         class or namespace.)  If this class has a parent, we need to push
+         that scope and redo the lookup to see if there is a hidden
+         qualifiable symbol further out. */
+      if (tp->source_corresp.is_class_member) {
+        push_class_reactivation_scope(tp->source_corresp.parent.class_type,
+                                      /*extend_namespace=*/FALSE);
+        popper = &pop_class_reactivation_scope;
+      } else if (tp->source_corresp.parent.namespace_ptr != NULL) {
+        push_namespace_extension_scope(tp->
+                                          source_corresp.parent.namespace_ptr);
+        popper = &pop_namespace_extension_scope;
+      }  /* if */
+      if (popper != NULL) {
+        /* The class was nested, so there are further scopes to search.
+           Skip over the scopes already pushed for hidden name processing so
+           we don't find the same symbol again. */
+        scope_stack[init_depth+1].previous_scope = DEPTH_OF_FILE_SCOPE;
+        clear_specific_symbol(locator);
+        old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
+                                                 IDL_SKIP_CURR_SCOPE);
+        (*popper)();
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (old_sym_ptr == NULL) {
     /* There is no symbol that may potentially be hidden. */
   } else if (old_sym_ptr->is_nonreal_member) {
