@@ -1174,7 +1174,8 @@ is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
         /* A wide literal.  Extract the character value.  Values out of
            range are truncated.  As this routine is used for strings with
            expected values, this should result in an error later. */
-        ch = (char)extract_character_from_string(src, char_size);
+        ch = (char)extract_character_from_string(src,
+                                                 (unsigned int)char_size);
       }  /* if */
       if (is_id_char[ch-CHAR_MIN]) ch = tolower(ch);
       add_char_to_text_buffer(ms_attr_buffer, ch);
