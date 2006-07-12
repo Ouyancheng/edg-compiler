@@ -3431,7 +3431,7 @@ K&R/pcc mode) determined by fkind.
     } else if (gcc_is_generated_code_target && gnu_targ_version >= 30300) {
       /* Use the builtin function. */
       if (not_a_number) {
-        (void)sprintf(buf, "(__builtin_nan%s(""))", gnu_builtin_suffix);
+        (void)sprintf(buf, "(__builtin_nan%s(\"\"))", gnu_builtin_suffix);
       } else {
         (void)sprintf(buf, "(%s__builtin_huge_val%s())",
                       (neg_infinity) ? "-" : "", gnu_builtin_suffix);
