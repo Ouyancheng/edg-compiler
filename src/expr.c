@@ -15469,6 +15469,7 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
   sym_ptr = coalesce_and_lookup_generalized_identifier
                                             (GID_IS_EXPR_CONTEXT,
                                              ilm_expr, &err);
+#if GNU_EXTENSIONS_ALLOWED
   { a_token_sequence_number paren_tok_seq_number;
     if (gpp_mode && gnu_version >= 30400 &&
         do_dependent_name_processing &&
@@ -15488,6 +15489,7 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
                                  IDL_SUPPRESS_DECL_SEQ_CHECK);
     }  /* if */
   }
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (locator_for_curr_id.is_semivisible_nested_type) {
     /* The symbol in the locator is a nested class that is not visible
        according to the ARM lookup rules but is returned in support of the
