@@ -7627,11 +7627,11 @@ Scan a string literal token, return the token kind or tok_error.
 The token can be a normal or wide string literal.
 */
 {
-  a_token_kind   ctoken = tok_string_literal;
-  unsigned long  num_chars = 0;
-  an_error_code  err_code;
-  char           *err_pos;
-  char           character_kind;
+  a_token_kind     ctoken = tok_string_literal;
+  unsigned long    num_chars = 0;
+  an_error_code    err_code;
+  char             *err_pos;
+  a_character_kind character_kind;
 
   /* Determine the string character kind, and skip over the leading quote. */
   switch (*curr_char_loc) {
@@ -14282,7 +14282,7 @@ keywords (which are fairly common in Microsoft mode).
     a_symbol_header_ptr  sym_hdr = locator_for_curr_id.symbol_header;
     if (sym_hdr->identifier[0] == tok_str[0] &&
         strncmp(sym_hdr->identifier, tok_str,
-                sym_hdr->identifier_length) == 0 &&
+                size_t_arg(sym_hdr->identifier_length)) == 0 &&
         strlen(tok_str) == sym_hdr->identifier_length) {
       curr_token = tok_kind;
     }  /* if */
