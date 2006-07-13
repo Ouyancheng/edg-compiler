@@ -2484,7 +2484,7 @@ copying the whole body of the destructor into the thunk, instead of
 just a call to the internal routine.
 
 IL CHANGE: a new flag in the routine entry, is_alias_entry,
-indicates a contructor or destructor entry point that does nothing
+indicates a constructor or destructor entry point that does nothing
 more than call the primary entry point and therefore can be put
 out as simply an alias for the primary entry point, if the back
 end has that capability.
@@ -16364,7 +16364,7 @@ is done anyway.
 
 As of version 3.3, the C++-generating back end started putting out
 multi-line pragmas as multiple lines of output (without "\"
-line-splice continations), which does not work.  Now working again.
+line-splice continuations), which does not work.  Now working again.
 
   #pragma mc_func _clear_lock { \
     "48003403" \
