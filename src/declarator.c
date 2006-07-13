@@ -1702,12 +1702,8 @@ if this is the function declarator in a friend function declaration.
 #if RECORD_HIDDEN_NAMES_IN_IL
           if (!C_mode() && param_locator.symbol_header != NULL) {
             /* In C++, parameter names may hide names from surrounding
-               scopes used in subsequent parameter declarations, so make
-               sure we have a scope IL entry and record any such hidden
-               names therein. */
-            (void)ensure_il_scope_exists(&scope_stack[depth_scope_stack]);
-            check_name_hiding_by_parameter(&param_locator,
-                                           extra_info->prototype_scope);
+               scopes used in subsequent parameter declarations. */
+            check_name_hiding_by_parameter(&param_locator);
           }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if GNU_EXTENSIONS_ALLOWED

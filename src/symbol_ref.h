@@ -175,8 +175,7 @@ void check_use_of_deprecated_entity(a_source_correspondence_ptr  scp,
 
 #if RECORD_HIDDEN_NAMES_IN_IL
 extern void check_name_hiding_for_scope(a_scope_ptr  sp);
-extern void check_name_hiding_by_parameter(a_symbol_locator *param_locator,
-                                           a_scope_ptr      sp);
+extern void check_name_hiding_by_parameter(a_symbol_locator *param_locator);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
 extern void symbol_ref_one_time_init(void);

@@ -1083,14 +1083,14 @@ C++-generating back end.
 }  /* check_name_hiding_of_qualifiable_name */
 
 
-void check_name_hiding_by_parameter(a_symbol_locator *param_locator,
-                                    a_scope_ptr      sp)
+void check_name_hiding_by_parameter(a_symbol_locator *param_locator)
 /*
 Determine whether the function parameter described by param_locator hides any
 declarations in enclosing scopes that can be referred to in succeeding
 parameter declarations using an elaborated-type-specifier or a qualified-id.
-If so, put corresponding entries on the hidden name list in the indicated
-function prototype scope.
+If so, put corresponding entries on the hidden name list in the current
+(function prototype) scope (creating the scope entry if it does not already
+exist).
 */
 {
   a_symbol_locator         locator;
@@ -1138,6 +1138,10 @@ function prototype scope.
       }  /* if */
       if (tag_hidden_by_nontag || hidden_class_or_namespace_member) {
         /* The entity can be named: record the hiding. */
+        a_scope_ptr sp;
+        check_assertion(scope_stack[depth_scope_stack].kind ==
+                                             (a_scope_kind)sck_func_prototype);
+        sp = ensure_il_scope_exists(&scope_stack[depth_scope_stack]);
         record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
                                       hidden_class_or_namespace_member,
                                       /*simulated_hiding=*/FALSE, sp,
