@@ -615,8 +615,8 @@ already been copied over.
 
 /* Forward declaration: */
 static void finish_function_processing_for_memory_region(
-                                            a_memory_region_number n,
-                                            a_boolean              only_inline);
+                                           a_memory_region_number n,
+                                           a_boolean              only_inline);
 
 
 static void finish_local_function_body_processing(a_scope_ptr sp)
@@ -668,8 +668,8 @@ calls itself recursively, and on those calls sp will be a block scope.
 
 
 static void finish_function_processing_for_memory_region(
-                                             a_memory_region_number n,
-                                             a_boolean              only_inline)
+                                            a_memory_region_number n,
+                                            a_boolean              only_inline)
 /*
 If memory region n contains a function body for which body processing has
 not been finished, finish it now.  If only_inline is TRUE, finish the
