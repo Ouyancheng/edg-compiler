@@ -3458,7 +3458,7 @@ node.
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
 
-static void disp_local_expr_node_ref(a_local_expr_node_ref  ptr)
+static void disp_local_expr_node_ref(a_local_expr_node_ref_ptr  ptr)
 /*
 Display the given reference to an expression node in a function-scope (i.e.,
 local) memory region.
@@ -3469,7 +3469,7 @@ local) memory region.
     case lerk_generic_typeof:
       (void)printf("generic-typeof");
       break;
-    case lerk_generic_typeof:
+    case lerk_generic_sizeof:
       (void)printf("generic-sizeof");
       break;
     default:
@@ -4762,7 +4762,7 @@ do_assoc_type:
              (char *)ptr->local_static_variable_inits,
              iek_local_static_variable_init);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (scope->expr_node_refs != NULL) {
+    if (ptr->expr_node_refs != NULL) {
       disp_ptr("expr_node_refs", (char *)ptr->expr_node_refs,
                iek_local_expr_node_ref);
     }  /* if */
@@ -6090,6 +6090,11 @@ This routine is called during IL walking.
           disp_seq_number_lookup_entry(
                                     (a_seq_number_lookup_entry_ptr)entry_ptr);
           break;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+        case iek_local_expr_node_ref:
+          disp_local_expr_node_ref((a_local_expr_node_ref_ptr)entry_ptr);
+          break;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         default:
           (void)printf("**BAD ENTRY KIND**\n");
       }  /* switch */
