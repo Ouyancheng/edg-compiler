@@ -8752,6 +8752,7 @@ entry.
 }  /* find_vla_dimension */
 
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
+#if !STANDALONE_UTILITY_PROGRAM
 
 void make_local_expr_node_ref(an_expr_node_ptr            expr,
                               a_local_expr_node_ref_kind  kind,
@@ -8799,6 +8800,7 @@ using find_local_expr_node.
   innermost_function_scope->expr_node_refs = new_ref;
 }  /* make_local_expr_node_ref */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if !CHECKING
 /*ARGSUSED*/  /* kind is not used in all configurations. */
