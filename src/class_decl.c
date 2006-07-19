@@ -9076,6 +9076,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
   switch (assoc_object_sym->kind) {
     case sk_variable:
       assoc_object_type = assoc_object_sym->variant.variable.ptr->type;
+      assoc_object_type = skip_typerefs(assoc_object_type);
       check_assertion(assoc_object_type->kind == (a_type_kind)tk_union);
       assoc_object_access = (an_access_specifier)as_public;
       break;

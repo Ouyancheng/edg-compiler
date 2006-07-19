@@ -1,3 +1,12 @@
+7/19/06  Microsoft and GNU compatibility: Qualified anonymous unions
+
+In GNU and Microsoft C++ modes, anonymous unions can now be qualified with
+const and/or volatile.  For example:
+
+  static const union { int x; float y; };  // Now accepted in GNU and
+                                           // Microsoft C++ modes.
+
+-------------------------------------------------------------------------------
 Version 3.8, July 14, 2006
 
 7/12/06  IL version number changed to 3.8

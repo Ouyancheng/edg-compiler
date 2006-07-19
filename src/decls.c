@@ -1240,7 +1240,7 @@ current scope.
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Mark the type declaration as autonomous. */
-  anon_union_type->autonomous_primary_tag_decl = TRUE;
+  skip_typerefs(anon_union_type)->autonomous_primary_tag_decl = TRUE;
   /* Also put out a source sequence entry for the variable (even though the
      variable declaration doesn't actually appear). */
   vp->declared_type = anon_union_type;
@@ -11612,6 +11612,7 @@ the decl-specifiers were scanned.
   a_boolean          defines_something;
   a_boolean          inline_specified;
   an_error_severity  severity;
+  a_type_ptr         tp = skip_typerefs(type_ptr);
 
   declares_something = ((dso_flags & DSO_DECLARES_SOMETHING) != 0);
   if (curr_token == tok_semicolon) {
@@ -11636,30 +11637,31 @@ the decl-specifiers were scanned.
                    ec_decl_should_be_of_param);
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      { a_type_ptr  tp = skip_typerefs(type_ptr);
-        if (defines_something) {
-          tp->autonomous_primary_tag_decl = TRUE;
-        } else {
-          (void)set_src_seq_secondary_decl_fields((char *)tp, (a_type_ptr)NULL,
-                                                  (a_name_reference_ptr)NULL,
-                                                  SSSD_AUTONOMOUS_TAG_DECL);
-        }  /* if */
-      }
+      if (defines_something) {
+        tp->autonomous_primary_tag_decl = TRUE;
+      } else {
+        (void)set_src_seq_secondary_decl_fields((char *)tp, (a_type_ptr)NULL,
+                                                (a_name_reference_ptr)NULL,
+                                                SSSD_AUTONOMOUS_TAG_DECL);
+      }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else if (!declares_something && C_dialect == C_dialect_cplusplus &&
-               defines_something && type_ptr->kind == (a_type_kind)tk_union &&
+               defines_something &&
+               (type_ptr->kind == (a_type_kind)tk_union ||
+                ((gpp_mode || microsoft_mode) &&
+                 tp->kind == (a_type_kind)tk_union)) &&
                storage_class != (a_storage_class)sc_typedef) {
       /* Special C++ case:  the declaration of an anonymous union.   Do the
          required error checking and special processing, including creation
          of a variable which will represent the anonymous union and with
          which its fields will be aliased. */
       check_assertion(is_unnamed_tag_symbol(
-                        (a_symbol_ptr)(type_ptr->source_corresp.assoc_info)));
+                              (a_symbol_ptr)(tp->source_corresp.assoc_info)));
       make_anonymous_union_variable(type_ptr, storage_class);
       /* The anonymous union variable is marked as referenced, as are all
          unnamed entities.  So its type is also marked referenced. */
-      type_ptr->source_corresp.referenced = TRUE;
-    } else if (is_linkage_spec_decl && is_enum_type(type_ptr)) {
+      tp->source_corresp.referenced = TRUE;
+    } else if (is_linkage_spec_decl && is_immediate_enum_type(tp)) {
       /* This is a declaration like
                       extern "C" enum E { e1, e2, e3 };
          which is not allowed (inference from ARM 7.4). */
@@ -11669,7 +11671,7 @@ the decl-specifiers were scanned.
         /* Typedef declaration with no declarator. */
         severity = es_warning;
         if (declares_something ||
-            (C_mode() && defines_something && is_enum_type(type_ptr))) {
+            (C_mode() && defines_something && is_immediate_enum_type(tp))) {
           /* No error on a case like "typedef struct S { int i; };" or
              "typedef enum { red, green, blue };" -- see first constraint,
              Section 3.5 of the ANSI C standard.  However, a warning should
@@ -11684,7 +11686,7 @@ the decl-specifiers were scanned.
         diagnostic(severity, ec_missing_typedef_name);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (defines_something) {
-          skip_typerefs(type_ptr)->autonomous_primary_tag_decl = TRUE;
+          tp->autonomous_primary_tag_decl = TRUE;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ASM_FUNCTION_ALLOWED
@@ -11734,7 +11736,6 @@ the decl-specifiers were scanned.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (defines_something || declares_something) {
           /* This is a class/struct/union or enum declaration. */
-          a_type_ptr  tp = skip_typerefs(type_ptr);
           if (defines_something) {
             tp->autonomous_primary_tag_decl = TRUE;
           } else {
@@ -11781,6 +11782,7 @@ the decl-specifiers were scanned.
   }  /* if */
   return declarator_omitted;
 }  /* check_for_missing_declarator */
+
 
 static void report_member_function_redeclaration(
                                         a_symbol_locator       *locator,
