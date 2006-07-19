@@ -57,6 +57,7 @@ enum an_attribute_kind_tag {
   ak_pure,
   ak_const,
   ak_weak,
+  ak_weakref,
   ak_section,
   ak_alias,
   ak_malloc,
@@ -108,6 +109,7 @@ EXTERN char *attribute_kind_names[(int)ak_last + 1]
 /* ak_pure */                       "pure",
 /* ak_const */                      "const",
 /* ak_weak */                       "weak",
+/* ak_weakref */                    "weakref",
 /* ak_section */                    "section",
 /* ak_alias */                      "alias",
 /* ak_malloc */                     "malloc",
@@ -197,7 +199,7 @@ typedef struct an_attribute {
     char        *section;
 			/* The section indicated for the entity to
 			   which this attribute applies. */
-    /* When kind == ak_alias. */
+    /* When kind == ak_alias or ak_weakref. */
     char        *alias;
 			/* The name of the entity for which this entity is an
 			   alias. */

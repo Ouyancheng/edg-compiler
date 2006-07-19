@@ -4571,7 +4571,9 @@ Do the output in the way described by octl.
     form_ELF_visibility_attribute(var->ELF_visibility, &var->source_corresp,
                                   &need_leading_space, octl);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-    if (var->is_weak) {
+    if (var->is_weak && !var->is_weakref) {
+      /* The "weakref" attribute implies the "weak" attribute: We don't need
+         to emit both. */
       form_simple_attribute("__weak__", &need_leading_space, octl);
     }  /* if */
     if (var->has_gnu_unused_attribute) {
@@ -4599,9 +4601,12 @@ Do the output in the way described by octl.
                                      &need_leading_space, octl);
     }  /* if */
     if (var->aliased_variable != NULL) {
+      char  *attr_str = var->is_weakref ? "__weakref__" : "__alias__";
       form_string_argument_attribute(
-                      "__alias__", var->aliased_variable->source_corresp.name,
+                      attr_str, var->aliased_variable->source_corresp.name,
                       &need_leading_space, octl);
+    } else if (var->is_weakref) {
+      form_simple_attribute("__weakref__", &need_leading_space, octl);
     }  /* if */
     if (is_pointer_type(var->type) &&
         is_function_type(type_pointed_to(var->type))) {
@@ -4677,7 +4682,9 @@ Do the output in the way described by octl.
     if (rout->is_pure) {
       form_simple_attribute("__pure__", &need_leading_space, octl);
     }  /* if */
-    if (rout->is_weak) {
+    if (rout->is_weak && !rout->is_weakref) {
+      /* The "weakref" attribute implies the "weak" attribute: We don't need
+         to emit both. */
       form_simple_attribute("__weak__", &need_leading_space, octl);
     }  /* if */
     if (rout->has_gnu_unused_attribute) {
@@ -4719,9 +4726,12 @@ Do the output in the way described by octl.
                                      &need_leading_space, octl);
     }  /* if */
     if (rout->aliased_routine != NULL) {
+      char  *attr_str = rout->is_weakref ? "__weakref__" : "__alias__";
       form_string_argument_attribute(
-                      "__alias__", rout->aliased_routine->source_corresp.name,
+                      attr_str, rout->aliased_routine->source_corresp.name,
                       &need_leading_space, octl);
+    } else if (rout->is_weakref) {
+      form_simple_attribute("__weakref__", &need_leading_space, octl);
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     form_ELF_visibility_attribute(rout->ELF_visibility, &rout->source_corresp,

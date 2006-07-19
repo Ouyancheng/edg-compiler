@@ -34,11 +34,11 @@ attribute.c -- Processing of attributes, a GCC extension.
 
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 /*
-The "alias" attribute can refer to entities that are declared later in a
-translation unit.  Therefore, we record such attributes in a fixup list and
-process the list at the end of the translation unit.  This is also used to
-implement the "redefine_extname" pragma used by the Sun Solaris operating
-system.
+The "alias" and "weakref" attributes can refer to entities that are declared
+later in a translation unit.  Therefore, we record such attributes in a fixup
+list and process the list at the end of the translation unit.  This is also
+used to implement the "redefine_extname" pragma used by the Sun Solaris
+operating system.
 */
 
 typedef struct an_alias_fixup *an_alias_fixup_ptr;
@@ -407,6 +407,7 @@ pointed to be "pos" can be freed when this routine returns.
       ap->variant.section = NULL;
       break;
     case ak_alias:
+    case ak_weakref:
       ap->variant.alias = NULL;
       break;
     case ak_format:
@@ -488,6 +489,7 @@ Return a copy of the complete attribute list.
         (*end)->variant.section = attributes->variant.section;
         break;
       case ak_alias:
+      case ak_weakref:
         (*end)->variant.alias = attributes->variant.alias;
         break;
       case ak_format:
@@ -660,8 +662,8 @@ that do take arguments.
       break;
     case ak_section:
     case ak_alias:
-      /* Look for a string-literal giving the section or alias
-         name. */
+    case ak_weakref:
+      /* Look for a string-literal giving the section or alias name. */
       if (curr_token != tok_string_literal) {
         result = FALSE;
         goto error;
@@ -680,7 +682,8 @@ that do take arguments.
       if (attribute->kind == (an_attribute_kind)ak_section) {
         attribute->variant.section = const_for_curr_token.variant.string.value;
       } else {
-        check_assertion(attribute->kind == (an_attribute_kind)ak_alias);
+        check_assertion(attribute->kind == (an_attribute_kind)ak_alias ||
+                        attribute->kind == (an_attribute_kind)ak_weakref);
         attribute->variant.alias = const_for_curr_token.variant.string.value;
       }  /* if */
       /* Consume the string literal. */
@@ -1010,6 +1013,7 @@ function returns the address of the last attribute.
           case ak_mode:
           case ak_section:
           case ak_alias:
+          case ak_weakref:
           case ak_format:
           case ak_format_arg:
           case ak_sentinel:
@@ -1485,6 +1489,19 @@ attributes were specified on a definition.
           vp->section = ap->variant.section;
         }  /* if */
         break;
+      case ak_weakref:
+        if (check_variable_has_external_linkage(vp, ap)) {
+          vp->is_weak = TRUE;
+          vp->is_weakref = TRUE;
+          if (ap->variant.alias == NULL) {
+            /* A weakref attribute without an argument.  Don't create an alias
+               fixup until an alias attribute is seen. */
+          } else {
+            add_alias_fixup((a_symbol_ptr)vp->source_corresp.assoc_info,
+                            (char*)NULL, ap->variant.alias, &ap->position);
+          }  /* if */
+        }  /* if */
+        break;
       case ak_alias:
         if (check_variable_is_local(vp, ap, /*allow_local_static=*/FALSE,
                                     (an_error_severity)es_error)) {
@@ -1672,6 +1689,17 @@ messages about any invalid attributes.
       case ak_section:
         rp->section = ap->variant.section;
         break;
+      case ak_weakref:
+        if (check_routine_has_external_linkage(rp, ap)) {
+          rp->is_weak = TRUE;
+          rp->is_weakref = TRUE;
+        }  /* if */
+        if (ap->variant.alias == NULL) {
+          /* A weakref attribute without an argument.  Don't create an alias
+             fixup until an alias attribute is seen. */
+          break;
+        }  /* if */
+        /* FALLTHROUGH */
       case ak_alias:
         if (gcc_mode && rp->is_inline &&
             rp->assoc_scope != NULL_region_number &&

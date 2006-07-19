@@ -6511,7 +6511,10 @@ typedef struct a_variable {
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   a_bit_field   is_weak:1;
 			/* TRUE if this variable was declared with the
-			   weak attribute. */
+			   weak or weakref attribute. */
+  a_bit_field	is_weakref:1;
+			/* TRUE if this variable was declared with the 
+			   weakref attribute.*/
   a_bit_field   has_gnu_unused_attribute:1;
 			/* TRUE if this variable was declared with the
 			   GNU "unused" attribute. */
@@ -6763,7 +6766,8 @@ typedef struct a_variable {
   a_variable_ptr
 		aliased_variable;
 			/* If non-NULL, the variable for which this variable
-			   is an alias. */
+			   is an alias.  (Used for attributes "alias" and
+			   "weakref".) */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && IA64_ABI
   char		*comdat_group;
@@ -8252,7 +8256,10 @@ typedef struct a_routine {
 			   pure attribute. */
   a_bit_field	is_weak:1;
 			/* TRUE if this routine was declared with the 
-			   weak attribute. */
+			   weak or weakref attribute. */
+  a_bit_field	is_weakref:1;
+			/* TRUE if this routine was declared with the 
+			   weakref attribute. */
   a_bit_field   has_gnu_unused_attribute:1;
 			/* TRUE if this routine was declared with the
 			   GNU "unused" attribute. */
@@ -8537,7 +8544,8 @@ typedef struct a_routine {
 			   routine should be placed. */
   a_routine_ptr	aliased_routine; 
 			/* If non-NULL, the routine for which this routine
-			   is an alias. */
+			   is an alias.  (Used for attributes "alias" and
+			   "weakref".) */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   char		*asm_name;
