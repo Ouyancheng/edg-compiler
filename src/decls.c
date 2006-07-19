@@ -4868,7 +4868,7 @@ detected, issue a diagnostic at the given position.
       pos_st_error(ec_bad_reg_name, diag_pos, asm_name);
     } else {
       a_type_ptr  var_type = skip_typerefs(variable->type);
-      if (is_immediate_class_type(var_type) &&
+      if (!C_mode() && is_immediate_class_type(var_type) &&
           !symbol_supplement_for_class(var_type)->is_POD) {
         pos_error(ec_register_mapped_variable_must_be_POD, diag_pos);
       } else if (variable->asm_name_is_valid &&

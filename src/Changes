@@ -1,3 +1,15 @@
+7/19/06  GNU C compatibility: Spurious error on struct variable in specific
+         register
+
+In GNU C mode (but not in GNU C++ mode), the front end incorrectly diagnosed
+a struct variable allocated in a specific register as not having a POD type.
+For example:
+
+  register struct { int i; } reg __asm("ax");
+                     // Previously triggered a spurious error in GNU C mode.
+
+That is now fixed.
+
 7/19/06  Microsoft and GNU compatibility: Qualified anonymous unions
 
 In GNU and Microsoft C++ modes, anonymous unions can now be qualified with
