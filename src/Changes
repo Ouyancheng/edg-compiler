@@ -31,6 +31,12 @@ const and/or volatile.  For example:
   static const union { int x; float y; };  // Now accepted in GNU and
                                            // Microsoft C++ modes.
 
+7/19/06  Errors when compiling IL display utility
+
+When PROTOTYPE_INSTANTIATIONS_IN_IL is configured TRUE, building the IL
+display utility resulted in compilation errors (in il_display.c).  This
+is now fixed.
+
 -------------------------------------------------------------------------------
 Version 3.8, July 14, 2006
 
