@@ -291,6 +291,11 @@ typedef struct a_macro_arg {
 			   it's best to start small and extend only those maps
 			   where the extra entries are actually needed. */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+  a_boolean	raw_text_includes_argument_delimiters;
+			/* If TRUE, the raw text of the argument contains
+			   LE_START_ARGUMENT and LE_END_ARGUMENT escapes that
+			   must be removed before the raw text is used in a
+			   macro expansion. */
 } a_macro_arg;
 
 static a_macro_arg_ptr
@@ -1680,6 +1685,7 @@ and return a pointer to it.
   map->final_modif_for_initial_text = NULL;
   map->offset_in_raw_text_of_primary_source_line_text = 0;
   map->expanded_len = 0;
+  map->raw_text_includes_argument_delimiters = FALSE;
   db_exit();
   return map;
 }  /* alloc_macro_arg */
@@ -3094,6 +3100,35 @@ hence its name should not be changed.  *length is the value to be adjusted.
 }  /* adjust_length_for_magic_arg */
 
 
+static void remove_argument_delimiters_from_raw_text(a_macro_arg_ptr map)
+/*
+Remove all LE_START_ARGUMENT and LE_END_ARGUMENT escapes from the raw text
+of the indicated macro argument.  In Microsoft mode, a comma in the text of
+a macro argument is not considered to be an argument delimiter when the
+expanded text is rescanned, and the argument delimiters enable this
+processing.  When they occur in a macro argument, they are copied into the
+raw text so they will be propagated into the argument's expanded text, but
+if the raw text is also needed in the macro's expansion, they must be
+stripped out again before the raw text is used.
+*/
+{
+  char *from = map->raw_text;
+  char *to = map->raw_text;
+  char *end = map->raw_text + map->raw_len;
+
+  while (from < end) {
+    if (from[0] == LE_ESCAPE &&
+        (from[1] == LE_START_ARGUMENT || from[1] == LE_END_ARGUMENT)) {
+      from += LE_ESCAPE_LEN;
+    } else {
+      *to++ = *from++;
+    }  /* if */
+  }  /* while */
+  map->raw_len -= from - to;
+  map->raw_text_includes_argument_delimiters = FALSE;
+}  /* remove_argument_delimiters_from_raw_text */
+
+
 static sizeof_t length_of_replacement_text(char            *rtp,
                                            sizeof_t        n_params,
                                            a_macro_def_ptr mdp,
@@ -3135,6 +3170,9 @@ hence its name should not be changed.
       get_arg_value(rts_number, map);
       switch (rts_kind) {
         case rt_raw_argument:
+          if (map->raw_text_includes_argument_delimiters) {
+            remove_argument_delimiters_from_raw_text(map);
+          }  /* if */
           sect_len = map->raw_len;
           /* Don't count an LE_INERT_MACRO escape at the beginning if present,
              since it will be removed. */
@@ -3161,6 +3199,9 @@ hence its name should not be changed.
           break;
         case rt_stringized_raw_argument:
         case rt_charized_raw_argument:
+          if (map->raw_text_includes_argument_delimiters) {
+            remove_argument_delimiters_from_raw_text(map);
+          }  /* if */
           /* Determine the length of the stringized version of the argument
              (or the charized version in some Microsoft macros). */
           sect_len = stringized_arg(map, (char **)NULL,
@@ -3851,6 +3892,7 @@ do_argument_again:
                 map->raw_text[map->raw_len] = LE_ESCAPE;
                 map->raw_text[map->raw_len+1] = LE_START_ARGUMENT;
                 map->raw_len += LE_ESCAPE_LEN;
+                map->raw_text_includes_argument_delimiters = TRUE;
               }  /* if */
               inside_macro_argument = TRUE;
             }  /* if */

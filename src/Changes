@@ -1,3 +1,16 @@
+7/20/06  Microsoft compatibility: macro arguments used both standalone and
+         concatenated in one expansion
+
+The change to Microsoft-mode macro expansion described in the 4/15/06 entry
+introduced a bug that caused concatenation of certain macro arguments not
+to be performed correctly if the argument also appears in the expansion in
+unconcatenated form.  This is now fixed.  For example:
+
+  #define y z
+  #define A(x) x x##y
+  #define B(x) A(x)
+  B(xx)    // Previously expanded as "xx xxz", now correctly as "xx xxy"
+
 7/19/06  GNU C compatibility: Spurious error on struct variable in specific
          register
 
