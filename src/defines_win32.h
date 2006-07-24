@@ -63,6 +63,7 @@ Definitions for Windows NT/95/98:
 #define GUARD_MACRO_FOR_VA_LIST "_VA_LIST_DEFINED"
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
 #define DEFAULT_VA_LIST_IN_STD_NAMESPACE 0
+#define DEFAULT_EXCEPTIONS_ENABLED 1
 
 /* The EDG driver on NT does not support one instantiation per object mode. */
 #define ONE_INSTANTIATION_PER_OBJECT 0
