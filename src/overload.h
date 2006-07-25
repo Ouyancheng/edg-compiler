@@ -651,17 +651,18 @@ extern void try_to_convert_class_operand_to_builtin_type(
                                  a_boolean               *processed);
 
 extern void check_for_operator_overloading(
-                               an_opname_kind          kind,
-                               a_boolean               unary_operator,
-                               a_boolean               must_be_member_function,
-                               a_boolean               try_conversions,
-                               a_boolean               has_predef_meaning,
-                               an_operand              *operand_1,
-                               an_operand              *operand_2,
-                               a_source_position       *operator_position,
-                               a_token_sequence_number operator_tok_seq_number,
-                               an_operand              *result,
-                               a_boolean               *processed);
+                             an_opname_kind            kind,
+                             a_boolean                 unary_operator,
+                             a_boolean                 must_be_member_function,
+                             a_boolean                 try_conversions,
+                             a_boolean                 has_predef_meaning,
+                             an_operand                *operand_1,
+                             an_operand                *operand_2,
+                             a_source_position         *operator_position,
+                             a_token_sequence_number   operator_tok_seq_number,
+                             a_nondependent_call_depth call_depth,
+                             an_operand                *result,
+                             a_boolean                 *processed);
 
 extern a_boolean conversion_to_class_possible(
                           an_operand               *source_operand,

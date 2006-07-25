@@ -2283,6 +2283,7 @@ fields, and return a pointer to it.
   ndcip->next = NULL;
   ndcip->previous = NULL;
   ndcip->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+  ndcip->depth = 0;
   ndcip->symbol = NULL;
 #if DEBUG
   num_nondependent_call_info_allocated++;
@@ -2292,7 +2293,8 @@ fields, and return a pointer to it.
 
 
 a_nondependent_call_info_ptr get_nondependent_call_info(
-				a_token_sequence_number		tsn)
+                                a_token_sequence_number         tsn,
+                                a_nondependent_call_depth       depth)
 /*
 If "tsn" is the token sequence number of a nondependent call in the
 nondependent call list of the current template, return a pointer to
@@ -2301,7 +2303,8 @@ dependent), return NULL.  The list is maintained in token sequence
 number order, and is pointed to from the template decl info block for
 the template.  The current position on the list is maintained in the
 next_nondependent_call field of the scope stack entry for the innermost
-instantiation scope.
+instantiation scope.  depth is usually zero, but serves as an additional
+position disambiguator on tsn if non-zero.
 */
 {
   a_scope_stack_entry_ptr	ssep;
@@ -2331,6 +2334,29 @@ instantiation scope.
     if (tsn == list_ptr->token_sequence_number) {
       /* The token sequence number matches the next entry on the list.
          Return the entry. */
+      if (depth != list_ptr->depth) {
+        /* Unusual case -- we have to find a nearby entry to match the
+           depth as well. */
+        if (depth > list_ptr->depth) {
+          while (list_ptr != NULL &&
+                 depth > list_ptr->depth &&
+                 tsn == list_ptr->token_sequence_number) {
+            list_ptr = list_ptr->next;
+          }  /* while */
+        } else {
+          while (list_ptr != NULL &&
+                 depth < list_ptr->depth &&
+                 tsn == list_ptr->token_sequence_number) {
+            list_ptr = list_ptr->previous;
+          }  /* while */
+        }  /* if */
+        if (list_ptr != NULL &&
+            (tsn != list_ptr->token_sequence_number ||
+             depth != list_ptr->depth)) {
+          /* No entry with the right depth value found. */
+          list_ptr = NULL;
+        }  /* if */
+      }  /* if */
       result = list_ptr;
     }  /* if */
   }  /* if */
@@ -2340,7 +2366,11 @@ instantiation scope.
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("nondep_call")) {
-    fprintf(f_debug, "Searching for nondependent call at %ld\n", (long)tsn);
+    fprintf(f_debug, "Searching for nondependent call at %ld", (long)tsn);
+    if (depth != 0) {
+      fprintf(f_debug, " (depth %lu)", (unsigned long)depth);
+    }  /* if */
+    fprintf(f_debug, "\n");
     if (result != NULL) {
       fprintf(f_debug, "  Found ");
       db_symbol_name(result->symbol);
@@ -2352,8 +2382,9 @@ instantiation scope.
 }  /* get_nondependent_call_info */
 
 
-void record_nondependent_call(a_symbol_ptr		symbol,
-			      a_token_sequence_number	tsn)
+void record_nondependent_call(a_symbol_ptr              symbol,
+                              a_token_sequence_number   tsn,
+                              a_nondependent_call_depth depth)
 /*
 This routine is called within the scope of a template (either a
 template declaration scope or a prototype instantiation) to record
@@ -2361,6 +2392,8 @@ the result of overload resolution for a nondependent call.  "symbol"
 is the function symbol for the function to be called; it can be NULL
 for an error case.  "tsn" is a token sequence number used to represent
 this call so that the entry can be found during a real instantiation.
+depth is usually zero, but serves as an additional position disambiguator
+on tsn if non-zero.
 */
 {
   a_scope_stack_entry_ptr	ssep;
@@ -2384,7 +2417,11 @@ this call so that the entry can be found during a real instantiation.
   check_assertion(tdip != NULL);
 #if DEBUG
   if (db_flag_is_set("nondep_call")) {
-    fprintf(f_debug, "Recording nondependent call at %ld to ", (long)tsn);
+    fprintf(f_debug, "Recording nondependent call at %ld ", (long)tsn);
+    if (depth != 0) {
+      fprintf(f_debug, "(depth %lu) ", (unsigned long)depth);
+    }  /* if */
+    fprintf(f_debug, "to ");
     if (symbol != NULL) db_symbol_name(symbol);
     fprintf(f_debug, "\n");
   }  /* if */
@@ -2393,11 +2430,14 @@ this call so that the entry can be found during a real instantiation.
   ndcip = alloc_nondependent_call_info();
   ndcip->symbol = symbol;
   ndcip->token_sequence_number = tsn;
+  ndcip->depth = depth;
   /* Add the entry to the appropriate point in the list.  This is usually
      immediately after the last entry added, but in certain cases we need
      to locate the appropriate insertion point. */
   if (tdip->nondependent_calls == NULL ||
-      tdip->nondependent_calls->token_sequence_number > tsn) {
+      tdip->nondependent_calls->token_sequence_number > tsn ||
+      (tdip->nondependent_calls->token_sequence_number == tsn &&
+       tdip->nondependent_calls->depth > depth)) {
     /* Either the list is entry, or the token sequence number of this entry
        precedes the previous start of the list. */
     ndcip->next = tdip->nondependent_calls;
@@ -2412,7 +2452,9 @@ this call so that the entry can be found during a real instantiation.
     insert_loc = tdip->last_entry_added;
     /* If the token sequence number of the insert location is after the
        desired location, restart the search from the beginning of the list. */
-    if (insert_loc->token_sequence_number > tsn) {
+    if (insert_loc->token_sequence_number > tsn ||
+        (insert_loc->token_sequence_number == tsn &&
+         insert_loc->depth > depth)) {
       insert_loc = tdip->nondependent_calls;
     }  /* if */
     /* Find an entry with a token sequence number greater than the one we
@@ -2420,6 +2462,11 @@ this call so that the entry can be found during a real instantiation.
        right place (i.e., nothing needs to be done). */
     while (insert_loc->next != NULL &&
            insert_loc->next->token_sequence_number < tsn) {
+      insert_loc = insert_loc->next;
+    }  /* while */
+    while (insert_loc->next != NULL &&
+           insert_loc->next->token_sequence_number == tsn &&
+           insert_loc->next->depth < depth) {
       insert_loc = insert_loc->next;
     }  /* while */
     ndcip->next = insert_loc->next;

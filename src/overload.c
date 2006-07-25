@@ -5081,7 +5081,8 @@ in_instantiation:
       }  /* if */
     } else {
       a_nondependent_call_info_ptr ndcall_info;
-      ndcall_info = get_nondependent_call_info(paren_tok_seq_number);
+      ndcall_info = get_nondependent_call_info(paren_tok_seq_number,
+                                               (a_nondependent_call_depth)0);
       dependent_call = (ndcall_info == NULL);
       if (!dependent_call && ndcall_info->symbol != NULL) {
         /* We know the function selected for this nondependent call during
@@ -5377,7 +5378,8 @@ have_function:
        a (possibly dependent) block extern declaration, which must be
        resolved in the real instantiation. */
     check_assertion(paren_tok_seq_number != 0);
-    record_nondependent_call(function_symbol, paren_tok_seq_number);
+    record_nondependent_call(function_symbol, paren_tok_seq_number,
+                             (a_nondependent_call_depth)0);
   }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
@@ -9852,17 +9854,18 @@ for non-unary operations).  The result operand is returned in *result.
 
 
 void check_for_operator_overloading(
-                               an_opname_kind          kind,
-                               a_boolean               unary_operator,
-                               a_boolean               must_be_member_function,
-                               a_boolean               try_conversions,
-                               a_boolean               has_predef_meaning,
-                               an_operand              *operand_1,
-                               an_operand              *operand_2,
-                               a_source_position       *operator_position,
-                               a_token_sequence_number operator_tok_seq_number,
-                               an_operand              *result,
-                               a_boolean               *processed)
+                             an_opname_kind            kind,
+                             a_boolean                 unary_operator,
+                             a_boolean                 must_be_member_function,
+                             a_boolean                 try_conversions,
+                             a_boolean                 has_predef_meaning,
+                             an_operand                *operand_1,
+                             an_operand                *operand_2,
+                             a_source_position         *operator_position,
+                             a_token_sequence_number   operator_tok_seq_number,
+                             a_nondependent_call_depth call_depth,
+                             an_operand                *result,
+                             a_boolean                 *processed)
 /*
 operand_1 and operand_2 are the operands of an operator indicated by kind.
 If unary_operator is TRUE, the operation has only one operand, which is
@@ -9887,8 +9890,9 @@ operator "?", with unary_operator FALSE; the two operands are the second
 and third operands of the "?" ("?" cannot be overloaded, but conversion
 functions could still apply).  operator_position gives the operator source
 position.  operator_tok_seq_number gives the token sequence number of
-the operator.  This routine also checks for template-dependent operands
-in a prototype instantiation, and builds a generic expression for
+the operator.  call_depth is usually zero, but if non-zero is a disambiguator
+for operator_tok_seq_number.  This routine also checks for template-dependent
+operands in a prototype instantiation, and builds a generic expression for
 such cases (where operator overloading might apply, but we can't tell).
 */
 {
@@ -10003,7 +10007,8 @@ such cases (where operator overloading might apply, but we can't tell).
              nondependent call, it was recorded, along with (usually) the
              symbol chosen by overload resolution. */
           a_nondependent_call_info_ptr ndcall_info;
-          ndcall_info = get_nondependent_call_info(operator_tok_seq_number);
+          ndcall_info = get_nondependent_call_info(operator_tok_seq_number,
+                                                   call_depth);
           dependent_call = (ndcall_info == NULL);
           proj_function_symbol = function_symbol = NULL;
           if (!dependent_call) proj_function_symbol = ndcall_info->symbol;
@@ -10202,7 +10207,8 @@ select_best_function:
             /* Make sure this call is treated as a nondependent call in
                a real instantiation. */
             record_nondependent_call((a_symbol_ptr)NULL,
-                                     operator_tok_seq_number);
+                                     operator_tok_seq_number,
+                                     call_depth);
           }  /* if */
           *processed = TRUE;
         } else if (undecidable_because_of_error) {
@@ -10306,7 +10312,8 @@ select_best_function:
               check_assertion(!dependent_call &&
                               operator_tok_seq_number != 0);
               record_nondependent_call(proj_function_symbol,
-                                       operator_tok_seq_number);
+                                       operator_tok_seq_number,
+                                       call_depth);
             }  /* if */
             /* Check for the builtin operator=. */
             if (kind == (an_opname_kind)onk_assign &&

@@ -1,5 +1,27 @@
 Version 3.9
 
+7/25/06  Dependent call processing and multi-level operator->
+
+In versions that do dependent name processing on calls (e.g., strict
+mode and g++ mode with gnu_version >= 30400), multi-level operator->
+substitution on -> operators inside templates did not work right
+if the substitutions involved more than one function that is
+nondependent.  Now fixed.
+
+  struct A {
+    void foo();
+  };
+  struct Accessor {
+    A* operator->();
+  };
+  struct Ptr {
+    Accessor operator->();
+  };
+  template <typename T> struct B {
+    void goo() { Ptr p; p->foo();}  // Formerly got spurious error
+  };
+  template class B<int>;
+
 7/20/06  Microsoft compatibility: macro arguments used both standalone and
          concatenated in one expansion
 

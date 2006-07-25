@@ -1331,6 +1331,7 @@ token sequence number order.
 For class templates, the list includes nondependent call entries for
 default arguments and bodies of nontemplate member functions.
 */
+typedef unsigned long a_nondependent_call_depth;
 typedef struct a_nondependent_call_info {
   a_nondependent_call_info_ptr
 		previous;
@@ -1347,6 +1348,12 @@ typedef struct a_nondependent_call_info {
 			   number associated with the "(" of the argument
 			   list.  For calls made via operators, this is the
 			   position of the operator. */
+  a_nondependent_call_depth
+		depth;
+			/* Disambiguator on token_sequence_number.  Usually
+			   zero, but for operator-> functions indicates the
+			   depth, since chained operator-> replacement
+			   calls will have the same token_sequence_number. */
   a_symbol_ptr	symbol;
 			/* Pointer to the symbol of the function to be
 			   called.  NULL for nondependent calls for which
@@ -3193,10 +3200,12 @@ extern an_out_of_class_partial_spec_ptr alloc_out_of_class_partial_spec(void);
 extern a_template_decl_info_ptr alloc_template_decl_info(void);
 
 extern a_nondependent_call_info_ptr get_nondependent_call_info(
-				a_token_sequence_number		tsn);
+                                a_token_sequence_number         tsn,
+                                a_nondependent_call_depth       depth);
 
-extern void record_nondependent_call(a_symbol_ptr		symbol,
-				     a_token_sequence_number	tsn);
+extern void record_nondependent_call(a_symbol_ptr              symbol,
+                                     a_token_sequence_number   tsn,
+                                     a_nondependent_call_depth depth);
 
 extern a_templ_friend_info_ptr alloc_templ_friend_info(void);
 

@@ -548,6 +548,7 @@ which case for_builtin_offsetof is set to TRUE.
                                      operand_1, &operand_2,
                                      &operator_position,
                                      operator_tok_seq_number,
+                                     (a_nondependent_call_depth)0,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -2504,15 +2505,17 @@ typedef struct an_operator_arrow_block {
 static void process_overloaded_operator_arrow(
                                           an_operand                  *operand,
                                           a_token_sequence_number     tsn,
+                                          a_nondependent_call_depth   depth,
                                           an_operator_arrow_block_ptr parent)
 /*
 operand is the first operand of a "->" field selection in C++.  See
 whether an operator-> function (or several) applies to convert the
 operand to a class or pointer to class.  If so, do the transformation
 and return the updated operand.  tsn is the token sequence number of the
-"->" token.  parent points to a list of blocks indicating transformations
-done so far on this operand, as a way to catch loops.  The current token
-is the "->".
+"->" token.  depth indicates the recursion depth (1 for a top-level
+call).  parent points to a list of blocks indicating transformations done
+so far on this operand, as a way to catch loops.  The current token is
+the "->".
 */
 {
   check_assertion(curr_token == tok_arrow);
@@ -2549,7 +2552,7 @@ is the "->".
                                      /*has_predef_meaning=*/TRUE,
                                      operand, (an_operand *)NULL,
                                      &pos_curr_token,
-                                     tsn,
+                                     tsn, depth,
                                      &result, &processed);
     }  /* if */
     if (processed) {
@@ -2564,7 +2567,7 @@ is the "->".
          loops. */
       block.parent = parent;
       block.class_type = qual_class_type;
-      process_overloaded_operator_arrow(operand, tsn, &block);
+      process_overloaded_operator_arrow(operand, tsn, depth+1, &block);
     }  /* if */
   }  /* if */
 end_of_routine:;
@@ -2668,6 +2671,7 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
       /* Process overloaded operator->, if applicable. */
       process_overloaded_operator_arrow(operand_1,
                                         operator_tok_seq_number,
+                                        (a_nondependent_call_depth)1,
                                         (an_operator_arrow_block_ptr)NULL);
     }  /* if */
     { an_expression_kind saved_expr_kind = expr_stack->expression_kind;
@@ -3434,6 +3438,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
                                      operand_1, &operand_2,
                                      &operator_position,
                                      operator_tok_seq_number,
+                                     (a_nondependent_call_depth)0,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -3707,6 +3712,7 @@ to get the temporary initialized; otherwise, it is set to NULL.
                                    operand, (an_operand *)NULL,
                                    operator_position,
                                    (a_token_sequence_number)0,
+                                   (a_nondependent_call_depth)0,
                                    result, processed);
   }  /* if */
 }  /* prepare_property_ref_incr_decr */
@@ -3849,6 +3855,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                      operand, &zero_operand,
                                      &operator_position,
                                      operator_tok_seq_number,
+                                     (a_nondependent_call_depth)0,
                                      result, &processed);
       if (!processed && allow_one_arg) {
         /* Try the anachronism that allows a one-argument function to
@@ -3861,6 +3868,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                        operand, (an_operand *)NULL,
                                        &operator_position,
                                        operator_tok_seq_number,
+                                       (a_nondependent_call_depth)0,
                                        result, &processed);
         if (processed) {
           if (!is_error_operand(result)) {
@@ -3883,6 +3891,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                          operand, &zero_operand,
                                          &operator_position,
                                          operator_tok_seq_number,
+                                         (a_nondependent_call_depth)0,
                                          result, &processed);
         }  /* if */
       }  /* if */
@@ -4141,6 +4150,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
                                      &operand, (an_operand *)NULL,
                                      &start_position,
                                      operator_tok_seq_number,
+                                     (a_nondependent_call_depth)0,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -4389,6 +4399,7 @@ operation is a pointer-to-member (see ARM 5.3).
                                        &operand, (an_operand *)NULL,
                                        &start_position,
                                        operator_tok_seq_number,
+                                       (a_nondependent_call_depth)0,
                                        result, &processed);
       }  /* if */
       if (!processed) {
@@ -4712,6 +4723,7 @@ See section 3.3.3.2 of the standard.
                                      &operand, (an_operand *)NULL,
                                      &start_position,
                                      operator_tok_seq_number,
+                                     (a_nondependent_call_depth)0,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -4852,6 +4864,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
                                    &operand, (an_operand *)NULL,
                                    &start_position,
                                    operator_tok_seq_number,
+                                   (a_nondependent_call_depth)0,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -11968,6 +11981,7 @@ be of integral type.  See section 3.3.5 of the standard.
                                    operand_1, &operand_2,
                                    &operator_position,
                                    operator_tok_seq_number,
+                                   (a_nondependent_call_depth)0,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -12073,6 +12087,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                                    operand_1, &operand_2,
                                    &operator_position,
                                    operator_tok_seq_number,
+                                   (a_nondependent_call_depth)0,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -12363,6 +12378,7 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
                                    operand_1, &operand_2,
                                    &operator_position,
                                    operator_tok_seq_number,
+                                   (a_nondependent_call_depth)0,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -12540,6 +12556,7 @@ standard.
                                    operand_1, &operand_2,
                                    &operator_position,
                                    operator_tok_seq_number,
+                                   (a_nondependent_call_depth)0,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -12706,6 +12723,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
                                    operand_1, &operand_2,
                                    &operator_position,
                                    operator_tok_seq_number,
+                                   (a_nondependent_call_depth)0,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -12840,6 +12858,7 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
                                    operand_1, &operand_2,
                                    &operator_position,
                                    operator_tok_seq_number,
+                                   (a_nondependent_call_depth)0,
                                    result, &processed);
   }  /* if */
   if (!processed) {
@@ -13019,6 +13038,7 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
                                    operand_1, &operand_2,
                                    &operator_position,
                                    operator_tok_seq_number,
+                                   (a_nondependent_call_depth)0,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -13187,6 +13207,7 @@ standard.
                                    operand_1, &operand_2,
                                    &operator_position,
                                    operator_tok_seq_number,
+                                   (a_nondependent_call_depth)0,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -13770,6 +13791,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                                        &operand_2, &operand_3,
                                        &operator_position,
                                        operator_tok_seq_number,
+                                       (a_nondependent_call_depth)0,
                                        result, &processed);
         /* processed TRUE means an error has been detected. */
         if (processed) {
@@ -14258,6 +14280,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
                                      operand_1, &operand_2,
                                      &operator_position,
                                      operator_tok_seq_number,
+                                     (a_nondependent_call_depth)0,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -14426,6 +14449,7 @@ See section 3.3.16 of the standard.
                                      operand_1, &operand_2,
                                      &operator_position,
                                      operator_tok_seq_number,
+                                     (a_nondependent_call_depth)0,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -15047,6 +15071,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
                                      operand_1, &operand_2,
                                      &operator_position,
                                      operator_tok_seq_number,
+                                     (a_nondependent_call_depth)0,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -15478,7 +15503,8 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
         arg_dependent_lookup_enabled &&
         !locator_for_curr_id.is_qualified_name &&
         next_token_with_seq_number(&paren_tok_seq_number) == tok_lparen &&
-        get_nondependent_call_info(paren_tok_seq_number) == NULL) {
+        get_nondependent_call_info(paren_tok_seq_number,
+                                   (a_nondependent_call_depth)0) == NULL) {
       /* This is a dependent call in a real (not prototype) instantiation.
          g++ 3.4 has a bug with dependent name lookup -- it does not
          ignore entities declared later in the compilation.  Redo the
