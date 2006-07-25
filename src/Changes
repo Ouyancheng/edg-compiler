@@ -1,5 +1,20 @@
 Version 3.9
 
+7/25/06  GNU C++: adjustment on rvalues used as lvalues
+
+As part of the change of 7/17/05, a couple of cases where g++ allows
+rvalues to be used as lvalues were accidentally disabled for
+gnu_version >= 40000 even though g++ 4.0 does still accept them.
+They are once again accepted.
+
+  struct Vector {
+    float x;
+  };
+  void glLightfv(const float*);
+  void foo() {
+    glLightfv(&(Vector().x));  // Once again accepted in g++ 4.0 mode
+  }
+
 7/25/06  GNU compatibility: Attribute "weakref"
 
 In GNU C and C++ mode, the front end now accepts attribute "weakref" when

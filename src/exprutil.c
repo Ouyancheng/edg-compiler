@@ -4906,14 +4906,14 @@ for example, in something like "(short)i = 0").
   an_operand orig_operand;
 
   check_assertion(gnu_mode);
-  if (gnu_version < 40000 && is_an_rvalue(operand)) {
+  if (is_an_rvalue(operand)) {
     if (is_expression_operand(operand)) {
       a_boolean             do_recovery = FALSE;
       a_boolean             casts_removed = FALSE;
       a_type_ptr            type_cast_to = NULL, type_before_cast = NULL;
       an_expr_node_ptr      expr = operand->variant.expression;
       an_expr_operator_kind op;
-      if (gpp_mode &&
+      if (gpp_mode && gnu_version < 40000 &&
           is_operation_node(expr) &&
           expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
         type_cast_to = expr->type;
@@ -4926,7 +4926,8 @@ for example, in something like "(short)i = 0").
         }  /* if */
       }  /* if */
       if (is_operation_node(expr)) op = expr->variant.operation.kind;
-      if (is_operation_node(expr) &&
+      if (gnu_version < 40000 &&
+          is_operation_node(expr) &&
           (op == (an_expr_operator_kind)eok_cast ||
            (gcc_mode &&
             (op == (an_expr_operator_kind)eok_question ||
@@ -4981,7 +4982,7 @@ for example, in something like "(short)i = 0").
         /* A function call returning a class value can be treated as
            an lvalue. */
         revert_class_rvalue_to_lvalue_if_possible(operand);
-      } else if (gcc_mode && is_variable_node(expr)) {
+      } else if (gcc_mode && gnu_version < 40000 && is_variable_node(expr)) {
         /* In some unusual cases, like optimizing "(1 ? a : a)" to
            simply "a", we may have to turn a variable back into an
            lvalue for the variable. */
