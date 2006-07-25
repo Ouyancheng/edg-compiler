@@ -4016,6 +4016,7 @@ NULL.
                  var_ptr->section == NULL &&
                  !var_ptr->has_gnu_unused_attribute &&
                  !var_ptr->has_gnu_used_attribute &&
+                 !var_ptr->is_weakref &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
                  !could_be_dependent_class_type(var_type)) {
         /* An unreferenced or unused variable or an unused parameter.
@@ -4191,9 +4192,11 @@ NULL.
              file. */
 #if GNU_EXTENSIONS_ALLOWED
         } else if (rout_ptr->has_gnu_unused_attribute ||
-                   rout_ptr->has_gnu_used_attribute) {
+                   rout_ptr->has_gnu_used_attribute ||
+                   rout_ptr->is_weakref) {
           /* Do not diagnose an unused function that carries the "unused"
-             or "used" attributes. */
+             or "used" attributes.  Similarly, do not diagnosed weakref
+             functions. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if ASM_FUNCTION_ALLOWED
         } else if (storage_class == (a_storage_class)sc_asm) {
@@ -4314,6 +4317,12 @@ NULL.
               rout_ptr->source_corresp.name_linkage !=
                                          (a_name_linkage_kind)nlk_external)) &&
              !routine_defined(rout_ptr)) {
+#if GNU_EXTENSIONS_ALLOWED
+          if (rout_ptr->is_weakref) {
+            /* GNU weakref entities have no definition. */
+          } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
           if (C_dialect == C_dialect_pcc) {
             /* In pcc mode, just change the routine to extern. */
             rout_ptr->storage_class = (a_storage_class)sc_extern;

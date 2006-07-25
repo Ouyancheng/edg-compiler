@@ -1609,6 +1609,7 @@ ec_subscript_must_be_constant;;"subscript must be constant"
 ec_register_mapped_variable_cannot_have_initializer;;"a variable with static storage duration allocated in a specific register cannot be declared with an initializer"
 ec_register_mapped_variable_must_be_POD;;"a variable allocated in a specific register must have POD type"
 ec_predef_macro_redefined;;"predefined meaning of %no discarded"
+ec_attribute_requires_internal_linkage;;"the %sq attribute can only appear on functions and variables with internal linkage"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

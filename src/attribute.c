@@ -175,13 +175,21 @@ Traverse the list of alias fixups and set the alias fields as needed.
     if (entry->alias == NULL) {
       /* This entry is the result of a redefine_extname pragma directive. */
       pos = &entry->alias_position;
+#if GNU_EXTENSIONS_ALLOWED
     } else {
       pos = &entry->alias->decl_position;
-      if (entry->alias->defined) {
+      if (entry->alias->defined &&
+          !(entry->alias->kind == (a_symbol_kind)sk_variable &&
+            entry->alias->variant.variable.ptr->storage_class ==
+                                                 (a_storage_class)sc_static &&
+            entry->alias->variant.variable.ptr->init_kind ==
+                                                  (an_init_kind)initk_none)) {
         /* An entity cannot have a definition and simultaneously be an alias
-           for another entity. */
+           for another entity.  An exception is made for weakref attributes on
+           variables: They are defined, but they cannot have an initializer. */
         pos_error(ec_alias_cannot_have_definition, pos);
       }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     clear_locator(&locator, pos);
     (void)find_symbol(entry->aliased_name,
@@ -901,6 +909,9 @@ is not a recognized kind of attribute, set *kind to ak_last.
       *kind = (an_attribute_kind)ak_last;
       break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+    case ak_weakref:
+      min_gnu_version = 40100;
+      break;
     default:
       break;
   }  /* switch */
@@ -1376,6 +1387,27 @@ Otherwise, return TRUE.
 }  /* check_variable_has_external_linkage */
 
 
+static a_boolean check_variable_has_internal_linkage(
+                                                  a_variable_ptr    variable,
+                                                  an_attribute_ptr  attribute)
+/*
+The given attribute only applies to variables with internal linkage.  If the
+given variable does not have internal linkage issue an error and return FALSE.
+Otherwise, return TRUE.
+*/
+{
+  a_boolean has_internal_linkage = TRUE;
+
+  if (variable->storage_class != (a_storage_class)sc_static) {
+    pos_st_error(ec_attribute_requires_internal_linkage,
+                 &attribute->position, 
+                 attribute_kind_names[(int)attribute->kind]);
+    has_internal_linkage = FALSE;
+  }  /* if */
+  return has_internal_linkage;
+}  /* check_variable_has_internal_linkage */
+
+
 static a_boolean check_routine_has_external_linkage(
                                                   a_routine_ptr     routine,
                                                   an_attribute_ptr  attribute)
@@ -1396,6 +1428,27 @@ Otherwise, return TRUE.
   }  /* if */
   return has_external_linkage;
 }  /* check_routine_has_external_linkage */
+
+
+static a_boolean check_routine_has_internal_linkage(
+                                                  a_routine_ptr     routine,
+                                                  an_attribute_ptr  attribute)
+/*
+The given attribute only applies to routines with internal linkage.  If the
+given routine does not have internal linkage issue an error and return FALSE.
+Otherwise, return TRUE.
+*/
+{
+  a_boolean has_internal_linkage = TRUE;
+
+  if (routine->storage_class != (a_storage_class)sc_static) {
+    pos_st_error(ec_attribute_requires_internal_linkage,
+                 &attribute->position, 
+                 attribute_kind_names[(int)attribute->kind]);
+    has_internal_linkage = FALSE;
+  }  /* if */
+  return has_internal_linkage;
+}  /* check_routine_has_internal_linkage */
 
 
 a_boolean check_transparent_union(a_type_ptr        tp,
@@ -1490,7 +1543,13 @@ attributes were specified on a definition.
         }  /* if */
         break;
       case ak_weakref:
-        if (check_variable_has_external_linkage(vp, ap)) {
+        /* gcc 4.1 and 4.2 have opposite constraints on weakref entities:
+           With gcc 4.1 they must have external linkage and with gcc 4.2
+           they must have internal linkage. */
+        if ((gnu_version < 40200 &&
+             check_variable_has_external_linkage(vp, ap)) ||
+            (gnu_version >= 40200 &&
+             check_variable_has_internal_linkage(vp, ap))) {
           vp->is_weak = TRUE;
           vp->is_weakref = TRUE;
           if (ap->variant.alias == NULL) {
@@ -1690,7 +1749,13 @@ messages about any invalid attributes.
         rp->section = ap->variant.section;
         break;
       case ak_weakref:
-        if (check_routine_has_external_linkage(rp, ap)) {
+        /* gcc 4.1 and 4.2 have opposite constraints on weakref entities:
+           With gcc 4.1 they must have external linkage and with gcc 4.2
+           they must have internal linkage. */
+        if ((gnu_version < 40200 &&
+             check_routine_has_external_linkage(rp, ap)) ||
+            (gnu_version >= 40200 &&
+             check_routine_has_internal_linkage(rp, ap))) {
           rp->is_weak = TRUE;
           rp->is_weakref = TRUE;
         }  /* if */

@@ -1,5 +1,25 @@
 Version 3.9
 
+7/25/06  GNU compatibility: Attribute "weakref"
+
+In GNU C and C++ mode, the front end now accepts attribute "weakref" when
+gnu_version >= 40100.  A variable or function defined with this attribute is
+an alias for another entity, but references to the weakref declaration do not
+require the referenced entity to be defined.  When gnu_version < 40200, the
+attribute must appear on a declaration with external linkage; otherwise, it
+must appear on declaration with internal linkage.  For example:
+
+  int a;
+  extern int b __attribute__((weakref("a")));  // Okay only when
+                                               // gnu_version < 40200.
+  static int c __attribute__((weakref("a")));  // Error only when
+                                               // gnu_version >= 40200.
+
+As with attribute "alias" the front end currently resolves the reference by
+looking it up as an unqualified name.  This is different from the GNU
+compilers which handle it through the assembler (and therefore use
+mangled names).
+
 7/25/06  Dependent call processing and multi-level operator->
 
 In versions that do dependent name processing on calls (e.g., strict
