@@ -971,7 +971,8 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	is_POD:1;
 			/* TRUE if the class is a "POD" -- an aggregate with
 			   further restrictions that make it look like a
-			   C struct or union (WP 9 [class]). */
+			   C struct or union (WP 9 [class]).  Always FALSE in
+			   C mode. */
   a_bit_field	has_operator_new:1;
 			/* TRUE if a member operator new() has been declared
 			   for this class or a class from which it derived. */
