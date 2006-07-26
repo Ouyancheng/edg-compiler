@@ -38,9 +38,10 @@ must appear on declaration with internal linkage.  For example:
                                                // gnu_version >= 40200.
 
 As with attribute "alias" the front end currently resolves the reference by
-looking it up as an unqualified name.  This is different from the GNU
-compilers which handle it through the assembler (and therefore use
-mangled names).
+looking it up as an unqualified name.  This addresses the known cases, which
+either occur in C mode or in C++ with C name linkage.  However, it is
+different from the GNU compilers: They handle the reference through the
+assembler (and therefore use mangled names).
 
 7/25/06  Dependent call processing and multi-level operator->
 
