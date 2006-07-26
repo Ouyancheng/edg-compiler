@@ -4195,7 +4195,7 @@ NULL.
                    rout_ptr->has_gnu_used_attribute ||
                    rout_ptr->is_weakref) {
           /* Do not diagnose an unused function that carries the "unused"
-             or "used" attributes.  Similarly, do not diagnosed weakref
+             or "used" attributes.  Similarly, do not diagnose weakref
              functions. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if ASM_FUNCTION_ALLOWED
