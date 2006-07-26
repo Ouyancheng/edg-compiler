@@ -1,5 +1,12 @@
 Version 3.9
 
+7/25/06  Build problem when compiling the front end as C++
+
+Version 3.8 of the front end introduced the macro "string_type", which could
+conflict with uses of that same identifier in the C++ standard library (when
+the front end was compiled as C++ code).  This is now fixed (when compiling
+the front end as C++, "string_type" is now an inline function).
+
 7/25/06  GNU C++: adjustment on rvalues used as lvalues
 
 As part of the change of 7/17/05, a couple of cases where g++ allows

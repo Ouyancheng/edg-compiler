@@ -614,8 +614,20 @@ extern a_type_ptr imaginary_type(a_float_kind kind);
 extern a_type_ptr string_literal_type(a_character_kind  kind,
                                       a_targ_size_t     num_chars);
 
+#if !defined(__cplusplus)
 #define string_type(num_chars)                                             \
   string_literal_type((a_character_kind)chk_char, (num_chars))
+#else /* defined(__cplusplus) */
+inline a_type_ptr string_type(a_targ_size_t  num_chars)
+/*
+The C++ standard library uses the identifier "string_type", which makes it
+unsuitable for use as a macro.  When compiled as C++, we therefore implement
+is using an inline forwarding function.
+*/
+{
+    return string_literal_type((a_character_kind)chk_char, num_chars);
+}  /* string_type */
+#endif /* !defined(__cplusplus) */
 
 #define wide_string_type(num_chars)                                        \
   string_literal_type((a_character_kind)chk_wchar_t, (num_chars))
