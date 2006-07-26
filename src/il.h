@@ -622,7 +622,7 @@ inline a_type_ptr string_type(a_targ_size_t  num_chars)
 /*
 The C++ standard library uses the identifier "string_type", which makes it
 unsuitable for use as a macro.  When compiled as C++, we therefore implement
-is using an inline forwarding function.
+it using an inline forwarding function.
 */
 {
     return string_literal_type((a_character_kind)chk_char, num_chars);
