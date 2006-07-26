@@ -69,11 +69,19 @@ constant is an address that is not known until link time.)
        routines, which might have zero addresses because of linker magic
        like weak externals. */
     if (kind == (an_address_base_kind)abk_variable) {
-      known_bool = (con->variant.address.variant.variable->storage_class !=
-                    (a_storage_class)sc_extern);
+      a_variable_ptr  vp = con->variant.address.variant.variable;
+      known_bool = vp->storage_class != (a_storage_class)sc_extern
+#if GNU_EXTENSIONS_ALLOWED
+                   && !vp->is_weak
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                  ;
     } else if (kind == (an_address_base_kind)abk_routine) {
-      known_bool = (con->variant.address.variant.routine->storage_class !=
-                    (a_storage_class)sc_extern);
+      a_routine_ptr  rp = con->variant.address.variant.routine;
+      known_bool = rp->storage_class != (a_storage_class)sc_extern
+#if GNU_EXTENSIONS_ALLOWED
+                   && !rp->is_weak
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                  ;
     }  /* if */
   } else if (con->kind == (a_constant_repr_kind)ck_template_param) {
     known_bool = FALSE;
