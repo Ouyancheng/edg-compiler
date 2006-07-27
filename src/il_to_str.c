@@ -4601,7 +4601,8 @@ Do the output in the way described by octl.
                                      &need_leading_space, octl);
     }  /* if */
     if (var->aliased_variable != NULL) {
-      char  *attr_str = var->is_weakref ? "__weakref__" : "__alias__";
+      char  *attr_str = var->is_weakref ? (char*)"__weakref__"
+                                        : (char*)"__alias__";
       form_string_argument_attribute(
                       attr_str, var->aliased_variable->source_corresp.name,
                       &need_leading_space, octl);
