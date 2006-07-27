@@ -12087,6 +12087,7 @@ instantiations have been generated.
       dip_next = dip->next;
       dip->next = NULL;
       set_var_init_pos_descr(dip->variable, &ipd);
+      lower_dynamic_init_designated_initializers(dip);
       lower_dynamic_init(dip, &ipd,
                          (a_constructor_init_ptr)NULL,
                          (a_variable_ptr)NULL,
