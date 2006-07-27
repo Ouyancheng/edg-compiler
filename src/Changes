@@ -26,12 +26,14 @@ Formerly, a case like the following got a spurious error:
     max<int>(a,b);
   }
 
-7/25/06  Build problem when compiling the front end as C++
+7/25/06  Potential build problem when compiling the front end as C++
 
 Version 3.8 of the front end introduced the macro "string_type", which could
 conflict with uses of that same identifier in the C++ standard library (when
-the front end was compiled as C++ code).  This is now fixed: "string_type" is
-an inline function when the front end is compiled as C++.
+the front end was compiled as C++ code).  The conflict did not manifest itself
+in normal builds, but could occur in other code that includes some of the
+front end headers.  This is now fixed: "string_type" is now an ordinary
+function.
 
 7/25/06  GNU C++: adjustment on rvalues used as lvalues
 

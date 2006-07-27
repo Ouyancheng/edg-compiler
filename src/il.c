@@ -7697,6 +7697,18 @@ of characters and the given character kind.  Return a pointer to this type.
 }  /* string_literal_type */
 
 
+a_type_ptr string_type(a_targ_size_t  num_chars)
+/*
+Return the type of an ordinary character string of the given length.  Note
+that this should not be implemented as a forwarding macro if the code is
+to be compiled as C++ because "string_type" is an identifier defined by the
+C++ standard library.
+*/
+{
+    return string_literal_type((a_character_kind)chk_char, num_chars);
+}  /* string_type */
+
+
 a_type_ptr error_type(void)
 /*
 Make or find a type entry for an error type, and return a pointer to it.
