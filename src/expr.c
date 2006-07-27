@@ -5348,6 +5348,7 @@ Syntax:
         /* Make a sizeof expression that sits behind the constant and
            gives the original expression. */
         if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+          switch_back_to_original_region(region_to_switch_back_to);
           if (!is_type &&
               curr_il_region_number == file_scope_region_number &&
               (innermost_function_scope != NULL || inside_local_class)) {
@@ -5364,6 +5365,7 @@ Syntax:
           constant.expr = make_runtime_sizeof_expr(is_type, orig_sizeof_type,
                                                    &operand);
           operand_was_used = !is_type;
+          switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
         }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       }  /* if */

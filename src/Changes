@@ -1,5 +1,19 @@
 Version 3.9
 
+7/27/06  Memory region problem with RECORD_CONSTANT_EXPRESSIONS_IN_IL
+
+In versions that have RECORD_CONSTANT_EXPRESSIONS_IN_IL set to TRUE
+(e.g., C++-generating back end versions), the change of 4/28/06
+broke certain cases that involve a sizeof in a constant expression
+inside a function.  The IL created had some memory region problems,
+which could cause an abort in the IL write/read routines or in
+a back end.  Now fixed.
+
+  const long N = 32; 
+  void WriteData() {       
+    char szBuf[N + sizeof("")];
+  }
+
 7/26/06  Dropping qualifiers when binding reference in overload resolution
 
 Overload resolution's handling of dropping of cv-qualifiers when
