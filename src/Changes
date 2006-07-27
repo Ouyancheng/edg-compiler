@@ -1,5 +1,17 @@
 Version 3.9
 
+7/26/06  Dropping qualifiers when binding reference in overload resolution
+
+Overload resolution's handling of dropping of cv-qualifiers when
+binding a reference for an argument where the argument and parameter
+underlying types are not reference-related has been corrected.
+Formerly, a case like the following got a spurious error:
+
+  template <class T> void max(const T&, const T&);
+  void foo(long a, volatile long b) {
+    max<int>(a,b);
+  }
+
 7/25/06  Build problem when compiling the front end as C++
 
 Version 3.8 of the front end introduced the macro "string_type", which could

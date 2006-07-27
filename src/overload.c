@@ -1492,6 +1492,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   a_boolean         source_can_be_rvalue = TRUE;
   a_boolean         param_is_class_type, arg_is_class_type;
   a_boolean         ref_type_qualifiers_dropped, ref_type_qualifiers_added;
+  a_boolean         ref_qualifiers_dropped_related_type;
   a_boolean         uses_type_qualifiers_dropped_anachronism = FALSE;
   a_std_conv_descr  std_conversion;
   a_base_class_ptr  bcp;
@@ -1569,6 +1570,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   /* Remove parts of the param type that could be added by trivial
      conversions, hoping thereby to end up with the arg type. */
   ref_type_qualifiers_dropped = ref_type_qualifiers_added = FALSE;
+  ref_qualifiers_dropped_related_type = FALSE;
   if (param_is_reference) {
     a_type_qualifier_set param_type_qualifiers, arg_type_qualifiers;
     /* The parameter type is a reference.  Drop the reference and remember
@@ -1610,6 +1612,14 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
         uses_type_qualifiers_dropped_anachronism = TRUE;
       } else {
         ref_type_qualifiers_dropped = TRUE;
+        /* If the types are not reference-related, any dropping of
+           cv-qualifiers is not relevant as a qualification issue. */
+        if (identical_types_ignoring_qualifiers(arg_type, param_type) ||
+            (is_class_struct_union_type(arg_type) &&
+             is_class_struct_union_type(param_type) &&
+             find_base_class_of(arg_type, param_type) != NULL)) {
+          ref_qualifiers_dropped_related_type = TRUE;
+        }  /* if */
       }  /* if */
     } else {
       /* Some type qualifiers are being added.  That's okay, but it may
@@ -1677,7 +1687,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   /* If the type qualifiers are not okay, do not check for the simple
      matches; go directly to user-defined conversions (which do their own
      variety of checking of type qualifiers). */
-  if (!ref_type_qualifiers_dropped) {
+  if (!ref_qualifiers_dropped_related_type) {
     /* Check for an exact match.  This is case [1] in the ARM. */
     /* The "_ignoring_qualifiers" version is called here to deal with
        array types with qualifiers on the element type. */
@@ -1696,7 +1706,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     /* Check for another exact match case, for pointers involving addition
        of type qualifiers on the type pointed to (the "T* --> qualified T *"
        case). */
-    if ((!param_is_reference || microsoft_bugs) &&
+    if ((!param_is_reference ||
+         (microsoft_bugs && !ref_type_qualifiers_dropped)) &&
         is_pointer_type(param_type) &&
         is_pointer_type(arg_type)
 #ifdef pointer_types_have_same_repr
@@ -1845,10 +1856,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       set_arg_summary_for_user_conversion(arg_summary, &conversion,
                                           orig_param_type, param_is_reference);
       goto have_level;
-    } else if (ref_type_qualifiers_dropped &&
-               (identical_types(unqual_arg_type, unqual_param_type) ||
-                (arg_is_class_type && param_is_class_type &&
-                 find_base_class_of(arg_type, param_type) != NULL))) {
+    } else if (ref_qualifiers_dropped_related_type) {
       /* This is a case where cv-qualifiers are dropped in a reference
          binding, and the underlying types are reference-related (see
          [dcl.init.ref] in the C++ standard).  This cannot be made to match.
