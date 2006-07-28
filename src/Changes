@@ -1198,7 +1198,14 @@ For example:
 The corruption only occurred when the function template was parsed in its
 generic form (e.g., with the command-line option --parse_templates; this
 option is also implicit in strict mode and in some GNU C++ modes).
-This is now fixed.
+
+This is now fixed.  IL entries representing affected typeof, sizeof, etc.
+operations now have a new flag "local_expr_ref" set.  Those entries no
+longer directly point to their argument expression.  Instead, the expression
+can be found by searching a list of a_local_expr_node_ref nodes (a new
+kind of IL entry) attached to the surrounding function scope.  This is
+similar to the technique used to represent variable length array dimensions
+(see Changes entry of 6/2/97).
 
 4/27/06  Lvalue flag in traverse_expr
 
