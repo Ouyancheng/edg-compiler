@@ -4727,7 +4727,8 @@ Do the output in the way described by octl.
                                      &need_leading_space, octl);
     }  /* if */
     if (rout->aliased_routine != NULL) {
-      char  *attr_str = rout->is_weakref ? "__weakref__" : "__alias__";
+      char  *attr_str = rout->is_weakref ? (char*)"__weakref__"
+                                         : (char*)"__alias__";
       form_string_argument_attribute(
                       attr_str, rout->aliased_routine->source_corresp.name,
                       &need_leading_space, octl);
