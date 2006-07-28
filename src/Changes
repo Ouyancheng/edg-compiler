@@ -1,5 +1,15 @@
 Version 3.9
 
+7/27/06  Failure to lower a designated initializer in a dynamic initialization
+
+IL lowering failed to lower a designated initializer in a C++-mode
+file-scope dynamic initialization (e.g., in GNU C++ mode).  As
+a consequence, the back end received a constant kind it did not
+expect.  Now fixed.
+
+  int f();
+  struct { int i; int j; } x = { .i = f(), .j = 2 };
+
 7/27/06  Memory region problem with RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
 In versions that have RECORD_CONSTANT_EXPRESSIONS_IN_IL set to TRUE
