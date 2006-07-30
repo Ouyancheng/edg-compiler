@@ -9420,8 +9420,13 @@ called in C mode as well as C++ mode.
 {
   if (designators_allowed &&
       init_con->kind == (a_constant_repr_kind)ck_aggregate) {
+    a_memory_region_number region_to_switch_back_to = NULL_region_number;
+    if (in_file_scope(init_con)) {
+      switch_to_file_scope_region(&region_to_switch_back_to);
+    }  /* if */
     lower_aggregate_designated_initializers(init_con,
                                             (a_constant_ptr)NULL);
+    switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
 }  /* lower_designated_initializers */
 
