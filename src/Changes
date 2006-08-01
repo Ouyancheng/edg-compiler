@@ -1,5 +1,17 @@
 Version 3.9
 
+8/1/06   Designated initializers in C++ mode
+
+The front end no longer accepts designated initializers for non-POD types in
+GNU C++ mode (and other C++ modes that accept designated initializers).
+For example:
+
+  struct S { S(); ~S(); };
+  S[3] = { [2] = S() };  // No longer accepted in GNU C++ mode.
+
+This restriction is introduced to avoid difficult issues concerning the order
+of construction and destruction of the various part of an object.
+
 8/1/06   Spurious access error on explicit instantiation (GNU, Microsoft)
 
 Version 3.8 of the front end introduced a bug that caused spurious access
