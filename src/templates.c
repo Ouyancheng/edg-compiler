@@ -447,6 +447,7 @@ Initialize a template declaration state block.
   tdsp->defines_something = FALSE;
   tdsp->in_prototype_instantiation = FALSE;
   tdsp->decl_scope_err = FALSE;
+  tdsp->nesting_depth_err = FALSE;
   tdsp->export_present = FALSE;
   tdsp->partial_spec_outside_of_class_template = FALSE;
   tdsp->has_dependent_templ_param = FALSE;
@@ -9612,15 +9613,17 @@ to be used.
   a_template_param_ptr		old_tpp;
   a_boolean			any_errors = FALSE;
   a_template_param_ptr		prev_new_tpp = NULL;
-  a_template_nesting_depth	old_depth;
-  a_template_nesting_depth	new_depth;
 
-  old_depth = nesting_depth_of_template_param(old_list);
-  new_depth = nesting_depth_of_template_param(new_list);
-  if (!equiv_nesting_depths(old_depth, new_depth)) {
-    /* The nesting depths do not match -- don't check any further. */
-    any_errors = TRUE;
-    goto done;
+  if ((options & ETP_NESTING_DEPTH_MISMATCH_OKAY) == 0) {
+    a_template_nesting_depth	old_depth;
+    a_template_nesting_depth	new_depth;
+    old_depth = nesting_depth_of_template_param(old_list);
+    new_depth = nesting_depth_of_template_param(new_list);
+    if (!equiv_nesting_depths(old_depth, new_depth)) {
+      /* The nesting depths do not match -- don't check any further. */
+      any_errors = TRUE;
+      goto done;
+    }  /* if */
   }  /* if */
   old_tpp = old_list;
   new_tpp = new_list;
@@ -9700,11 +9703,12 @@ done:
 
 
 static a_boolean reconcile_template_param_lists(
-				 a_template_param_ptr param_list,
-                                 a_symbol_ptr         class_sym,
-				 a_source_position    *error_pos,
-				 a_boolean	      default_allowed,
-				 a_boolean	      checking_parent_params)
+			a_template_param_ptr param_list,
+			a_symbol_ptr         class_sym,
+			a_source_position    *error_pos,
+			a_boolean	     default_allowed,
+			a_boolean	     checking_parent_params,
+			a_boolean	     allow_nesting_depth_mismatch)
 /*
 Compare the template parameter list of the template declaration currently
 being scanned with the template parameter list of a previous declaration
@@ -9727,6 +9731,9 @@ default_allowed is TRUE if a default argument is permitted in the new argument
 list (the one specified by param_list).  checking_parent_params is TRUE
 for a member of class template being defined outside of its class.  It is
 FALSE for the redeclaration of a class template.
+
+allow_nesting_depth_mismatch is TRUE if template parameter lists of different
+nesting depths should be treated as equivalent.
 */
 {
   a_template_param_ptr	new_tpp;
@@ -9750,6 +9757,9 @@ FALSE for the redeclaration of a class template.
     if (!checking_parent_params || gnu_version < 30300) {
       etp_options |= ETP_BAD_PARAM_TYPE_OKAY;
     }  /* if */
+  }  /* if */
+  if (allow_nesting_depth_mismatch) {
+    etp_options |= ETP_NESTING_DEPTH_MISMATCH_OKAY;
   }  /* if */
   /* Compare the two template parameter lists. */
   any_errors = !equiv_template_param_lists(old_tpp, new_tpp,
@@ -9928,7 +9938,8 @@ Otherwise, return FALSE.
     if (!reconcile_template_param_lists(decl_info->parameters,
                                         template_sym, error_pos,
                                         /*default_allowed=*/FALSE,
-                                        /*checking_parent_params=*/TRUE)) {
+                                        /*checking_parent_params=*/TRUE,
+                                        decl_state->nesting_depth_err)) {
       any_mismatches = TRUE;
     }  /* if */
     /* Skip out to the enclosing class type. */
@@ -11705,7 +11716,8 @@ friend_template_checks_done:
           } else if (!reconcile_template_param_lists(
                                 templ_params, sym, &locator.source_position,
                                 default_allowed,
-                                /*checking_parent_params=*/FALSE)) {
+                                /*checking_parent_params=*/FALSE,
+                                decl_state->nesting_depth_err)) {
             err = TRUE;
           }  /* if */
         } /* if */
@@ -11809,7 +11821,7 @@ friend_template_checks_done:
                                             decl_state->class_declared_in);
   }  /* if */
   if (sym->is_class_member && sym->kind == (a_symbol_kind)sk_class_template &&
-      !is_redecl) {
+      !is_redecl && !suppress_redecl_error) {
     /* This is a member class template declaration.  See if the enclosing
        class was also generated from a template.  If so, find the
        corresponding class template symbol from the prototype instantiation. */
@@ -15758,7 +15770,7 @@ issued, and TRUE is returned.
        in case this discretionary error is reduced in severity. */
     pos_sy_diagnostic(es_discretionary_error,
                       ec_template_depth_mismatch, pos, sym);
-    result = TRUE;
+    decl_state->nesting_depth_err = TRUE;
   }  /* if */
   return result;
 }  /* check_template_nesting_depth */

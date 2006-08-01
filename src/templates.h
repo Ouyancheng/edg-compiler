@@ -65,6 +65,8 @@ typedef struct a_tmpl_decl_state {
   a_boolean	decl_scope_err;
 			/* TRUE if the template declaration is invalid in the
 			   current scope. */
+  a_boolean	nesting_depth_err;
+			/* TRUE if a nesting depth error was detected. */
   a_boolean	export_present;
 			/* TRUE if the "export" keyword was used on the
 			   declaration. */
@@ -215,6 +217,9 @@ typedef int an_equiv_templ_param_options_set;
 			   one type may be redeclared later with a different
 			   type.  This is used to emulate Microsoft and
 			   g++ bugs. */
+#define ETP_NESTING_DEPTH_MISMATCH_OKAY	0x2
+			/* TRUE if the comparison of nesting depths should be
+			   suppressed. */
 
 /*
 Flags used to specify options to set_instance_requried and
