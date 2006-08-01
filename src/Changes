@@ -1,5 +1,19 @@
 Version 3.9
 
+8/1/06   Spurious access error on explicit instantiation (GNU, Microsoft)
+
+Version 3.8 of the front end introduced a bug that caused spurious access
+errors to be issued on explicit instantiation directives (such directives are
+normally exempt from the usual access checking rules) in Microsoft and GNU
+(gnu_version < 30400) modes.  For example:
+
+  template<typename> struct S {};
+  class C { struct N; };
+  template struct S<C::N>;  // Previously a spurious access error in some
+                            // modes.
+
+This is now fixed.
+
 7/27/06  Failure to lower a designated initializer in a dynamic initialization
 
 IL lowering failed to lower a designated initializer in a C++-mode
