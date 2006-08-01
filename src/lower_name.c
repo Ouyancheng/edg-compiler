@@ -2792,6 +2792,10 @@ first named field; leave it unchanged if there is no named field.
   char        *name = NULL;
   a_field_ptr field;
 
+  if (gpp_mode || microsoft_mode) {
+    /* GNU and Microsoft compilers allow cv-qualifiers on anonymous unions. */
+    class_type = skip_typerefs(class_type);
+  }  /* if */
   check_assertion(is_immediate_class_type(class_type));
   /* Look at fields, find the first named one. */
   for (field = class_type->variant.class_struct_union.field_list;
