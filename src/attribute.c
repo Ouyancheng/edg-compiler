@@ -960,6 +960,10 @@ These attributes take arguments:
   format ( identifier, constant-expression, constant-expression )
   format_arg ( constant-expression )
 
+The following attribute can appear with our without an argument:
+
+  weakref or weakref( string-literal )
+
 The attributes are appended at the location pointed to by next.  This
 function returns the address of the last attribute.
 */
