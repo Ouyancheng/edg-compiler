@@ -5003,7 +5003,8 @@ typedef struct a_class_type_supplement {
   a_field_ptr	anonymous_union_field;
 			/* If anonymous_union_kind == auk_field, pointer to
 			   the unnamed field entry whose type is the anonymous
-			   union; otherwise NULL. */
+			   union (in some modes possibly cv-qualified);
+			   otherwise NULL. */
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes that

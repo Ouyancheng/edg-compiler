@@ -2711,7 +2711,11 @@ typedef struct a_symbol {
 			   Note that the symbol for an anonymous union member
 			   is "promoted" into the scope of its parent entity,
 			   so that this is a way to get at the intervening
-			   anonymous structure(s) it belongs to. */
+			   anonymous structure(s) it belongs to.  The type of
+			   the parent object is normally a union type (or a
+			   class type for certain nonstandard anonymous
+			   unions); in some modes, that type may be
+			   cv-qualified. */
     } field;
     /* When kind == sk_routine or sk_member_function: */
     struct {
