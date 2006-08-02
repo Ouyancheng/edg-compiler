@@ -8,7 +8,7 @@ For example:
 
   template<typename> struct R;
   template<typename T> struct S {
-    typedef R<T>::I I;
+    typedef typename R<T>::I I;
     I (T::*pmf)();
   };
 
