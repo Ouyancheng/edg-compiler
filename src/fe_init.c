@@ -562,6 +562,8 @@ Install the keywords in the symbol table.
      in C programs. */
   if (C_dialect == C_dialect_ANSI && (strict_ansi_mode || microsoft_mode)) {
     /* Strict ANSI C or Microsoft C mode -- do not enter "asm". */
+  } else if (gcc_mode && c99_mode) {
+    /* "asm" is not a keyword in gcc C99 mode. */
   } else {
     enter_keyword((a_token_kind)tok_asm, "asm");
   }  /* if */

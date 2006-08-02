@@ -1,5 +1,9 @@
 Version 3.9
 
+8/1/06   GNU C compatibility: asm not a keyword in gcc C99 mode
+
+In gcc C99 mode, "asm" is not a keyword.
+
 8/1/06   Internal error when reducing severity of nesting depth error
 
 When the severity of the nesting depth mismatch discretionary error is reduced
