@@ -1089,7 +1089,9 @@ function returns the address of the last attribute.
           case ak_cdecl:
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
           case ak_strong:
-            /* These attributes do not take arguments. */
+          case ak_weakref:
+            /* These attributes do not take arguments (or the arguments are
+               optional). */
             break;
 #if USER_CONTROL_OF_STRUCT_PACKING
           case ak_aligned:
