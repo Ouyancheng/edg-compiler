@@ -5865,13 +5865,13 @@ other modes.
 
   clear_token_cache(&cache, /*reusable=*/FALSE);
   /* Cache the identifier. */
-  check_assertion(curr_token == tok_identifier);
+  check_assertion(curr_token == tok_identifier && !C_mode());
   cache_curr_token(&cache);
   (void)get_token();
   if (curr_token == tok_lparen) {
     cache_curr_token(&cache);
     (void)get_token();
-    if (!is_declarator_start()) {
+    if (!is_declarator_start() && !is_ptr_to_member_declarator_start()) {
       /* We're not dealing with a construct of the form
              T (<nested-declarator>) ...
          So this must be a member function declarator for a declaration that

@@ -1,5 +1,19 @@
 Version 3.9
 
+8/2/06   Spurious error on member pointer-to-member declaration (Microsoft)
+
+In Microsoft C++ mode, the front end issued a spurious syntax error on
+certain pointer-to-member declarations in class template definitions.
+For example:
+
+  template<typename> struct R;
+  template<typename T> struct S {
+    typedef R<T>::I I;
+    I (T::*pmf)();
+  };
+
+This bug was introduced in version 3.8 and is now fixed.
+
 8/1/06   Build error when REPRESENT_EMPTY_STATEMENTS_IN_IL is FALSE and
          EXTRA_SOURCE_POSITIONS_IN_IL is TRUE
 
