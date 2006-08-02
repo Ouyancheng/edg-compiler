@@ -1,5 +1,13 @@
 Version 3.9
 
+8/1/06   Build error when REPRESENT_EMPTY_STATEMENTS_IN_IL is FALSE and
+         EXTRA_SOURCE_POSITIONS_IN_IL is TRUE
+
+Version 3.8 of the front end failed to build in configurations that set
+REPRESENT_EMPTY_STATEMENTS_IN_IL to FALSE and EXTRA_SOURCE_POSITIONS_IN_IL
+to TRUE (the compilation error was in function empty_statement(), in
+file statements.c).  This is now fixed.
+
 8/1/06   GNU C compatibility: asm not a keyword in gcc C99 mode
 
 In gcc C99 mode, "asm" is not a keyword.

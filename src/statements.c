@@ -4133,9 +4133,11 @@ well.
   if (curr_token == tok_semicolon) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
+#if REPRESENT_EMPTY_STATEMENTS_IN_IL
     if (esp != NULL) {
       set_stmt_source_position(esp->end_position, curr_construct_end_position);
     }  /* if */
+#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
   }  /* if */
