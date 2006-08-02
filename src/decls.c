@@ -11655,9 +11655,16 @@ the decl-specifiers were scanned.
          required error checking and special processing, including creation
          of a variable which will represent the anonymous union and with
          which its fields will be aliased. */
+      a_type_ptr  anon_var_type = type_ptr;
+      if (gpp_mode && gnu_version >= 40200) {
+        /* GNU and Microsoft compilers accept cv-qualified anonymous unions,
+           but recent GNU compilers no longer apply the qualifiers to the
+           implied variable. */
+        anon_var_type = tp;
+      }  /* if */
       check_assertion(is_unnamed_tag_symbol(
                               (a_symbol_ptr)(tp->source_corresp.assoc_info)));
-      make_anonymous_union_variable(type_ptr, storage_class);
+      make_anonymous_union_variable(anon_var_type, storage_class);
       /* The anonymous union variable is marked as referenced, as are all
          unnamed entities.  So its type is also marked referenced. */
       tp->source_corresp.referenced = TRUE;
