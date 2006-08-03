@@ -1,5 +1,28 @@
 Version 3.9
 
+8/3/06   GNU C++ compatibility: typeof and "names for linkage purposes"
+
+Standard C++ allows unnamed class types to have a "name for linkage purposes"
+through typedefs.  For example:
+
+  typedef class {} C;  // "C" is the name for linkage purposes of the
+                        // class type being defined.
+
+In GNU C++ mode, this can now also be achieved by a typedef for a typeof
+construct.  For example:
+
+  struct {} x;
+  typedef typeof(x) S;   // "S" is the name for linkage purposes.
+  typedef typeof(x) S2;  // "S2" isn't the name for linkage purposes,
+                         // since once is established already.
+
+A consequence of this change, is that after such a typedef, the type can be
+used as a template type argument.  E.g., with the above declarations:
+
+  template<typename> struct G {};
+  G<typeof(x)> g;  // Valid because typeof(x) acquired linkage through the
+                   // typedef above.
+
 8/3/06   Microsoft compatibility: enum qualified names
 
 In Microsoft mode, when microsoft_version is >= 1400, both member and

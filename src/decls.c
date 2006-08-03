@@ -8491,8 +8491,26 @@ NULL.
        typedef name will serve as the "name for linkage purposes" (WP 7.1.3
        [dcl.typedef]).  If so, set the name pointer in the type entry to
        point to the same name as the current typedef name. */
-    a_boolean  is_class_or_enum = is_immediate_class_type(type_ptr) ||
-                                  is_immediate_enum_type(type_ptr);
+    a_boolean  is_class_or_enum;
+#if GNU_EXTENSIONS_ALLOWED
+    if (gpp_mode) {
+      /* Normally, a typedef imbues a name for linkage purposes only when it
+         directly contains a class type definition.  E.g.:
+           typedef struct {} S;
+         However, GNU compilers also allow this to happen through a typeof
+         construct:
+           struct {} x;
+           typedef typeof(x) S;   // "S" is the name for linkage purposes.
+           typedef typeof(x) S2;  // "S2" isn't the name for linkage purposes,
+                                  // since once is established already. */
+      while (type_ptr->kind == (a_type_kind)tk_typeref &&
+             type_ptr->variant.typeref.is_typeof) {
+        type_ptr = type_ptr->variant.typeref.type;
+      }  /* while */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    is_class_or_enum = is_immediate_class_type(type_ptr) ||
+                       is_immediate_enum_type(type_ptr);
     tp = NULL;
     if (is_class_or_enum) {
       if (type_ptr->source_corresp.name == NULL) {
