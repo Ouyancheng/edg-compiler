@@ -11656,11 +11656,18 @@ the decl-specifiers were scanned.
          of a variable which will represent the anonymous union and with
          which its fields will be aliased. */
       a_type_ptr  anon_var_type = type_ptr;
-      if (gpp_mode && gnu_version >= 40200) {
-        /* GNU and Microsoft compilers accept cv-qualified anonymous unions,
-           but recent GNU compilers no longer apply the qualifiers to the
-           implied variable. */
-        anon_var_type = tp;
+      if (is_qualified_type(type_ptr)) {
+        if (gpp_mode && gnu_version >= 40002) {
+          /* GNU and Microsoft compilers accept cv-qualified anonymous unions,
+             but recent GNU compilers no longer apply the qualifiers to the
+             implied variable. */
+          anon_var_type = tp;
+          pos_warning(ec_anonymous_union_qualifier_ignored,
+                      decl_start_pos);
+        } else {
+          pos_warning(ec_nonstandard_anonymous_union_qualifier,
+                      decl_start_pos);
+        }  /* if */
       }  /* if */
       check_assertion(is_unnamed_tag_symbol(
                               (a_symbol_ptr)(tp->source_corresp.assoc_info)));
