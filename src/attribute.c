@@ -960,7 +960,7 @@ These attributes take arguments:
   format ( identifier, constant-expression, constant-expression )
   format_arg ( constant-expression )
 
-The following attribute can appear with our without an argument:
+The following attribute can appear with or without an argument:
 
   weakref or weakref( string-literal )
 
