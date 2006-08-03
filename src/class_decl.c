@@ -12693,12 +12693,20 @@ passed via template_decl.
     missing_declarator = TRUE;
     if (decl_info.is_anonymous_union) {
       /* decl_nonstatic_data_member needs to be called. */
-      /* Ignore any top level cv-qualifiers in Microsoft mode and in some
-         GNU modes. */
-      if ((microsoft_mode || (gnu_mode && gnu_version >= 30400)) &&
+      /* Ignore any top-level cv-qualifiers in Microsoft mode and in some
+         GNU modes.  (In GNU modes prior to 3.4, the qualifiers are accepted
+         and they apply to the implied field.) */
+      if ((microsoft_mode || gnu_mode && gnu_version) &&
           member_type->kind == (a_type_kind)tk_typeref &&
           !typeref_is_typedef(member_type)) {
-        member_type = skip_typerefs(member_type);
+        if (gnu_mode && gnu_version < 30400) {
+          pos_warning(ec_nonstandard_anonymous_union_qualifier,
+                      &decl_start_pos);
+        } else {
+          member_type = skip_typerefs(member_type);
+          pos_warning(ec_anonymous_union_qualifier_ignored,
+                      &decl_start_pos);
+        }  /* if */
       }  /* if */
     } else {
       cannot_bind_to_curr_construct();
