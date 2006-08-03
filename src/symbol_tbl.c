@@ -1593,11 +1593,10 @@ return NULL.
 }  /* underlying_routine_type */
 
 
-a_boolean is_member_enum_symbol(a_symbol_ptr sym)
+a_boolean is_ms_enum_qualifier_symbol(a_symbol_ptr sym)
 /*
 Used in Microsoft mode to determine whether a symbol refers to an
-enumeration that is a class member.  Such enumerations are accepted
-by the Microsoft compiler in the qualifier portion of a name.
+enumeration that can be used as the qualifier in a qualified name.
 Return TRUE if the symbol refers to a class member enumeration.
 */
 {
@@ -1614,11 +1613,12 @@ Return TRUE if the symbol refers to a class member enumeration.
   } else {
     tp = NULL;
   }  /* if */
-  /* If a type was found, does it refer to a class member?  If not, set
-     the type pointer to NULL. */
-  if (tp != NULL && !tp->source_corresp.is_class_member) tp = NULL;
+  /* For Microsoft versions below 1400, the type found must be a class member.
+     If it is not, set the type pointer to NULL. */
+  if (tp != NULL && !tp->source_corresp.is_class_member &&
+      microsoft_version < 1400) tp = NULL;
   return tp != NULL;
-}  /* is_member_enum_symbol */
+}  /* is_ms_enum_qualifier_symbol */
 
 
 a_boolean overload_set_contains_template(a_symbol_ptr sym)

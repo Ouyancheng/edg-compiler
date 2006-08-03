@@ -3919,7 +3919,7 @@ Return the master instance pointer of a template instance.
    ((sym)->kind == (a_symbol_kind)sk_type &&			      \
     is_enum_type((sym)->variant.type.ptr)))
 
-extern a_boolean is_member_enum_symbol(a_symbol_ptr sym);
+extern a_boolean is_ms_enum_qualifier_symbol(a_symbol_ptr sym);
 
 extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
 
@@ -3943,7 +3943,7 @@ extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
    (sym)->kind == (a_symbol_kind)sk_namespace ||		      \
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
     is_template_param_type((sym)->variant.type.ptr)) ||		      \
-   (microsoft_bugs && is_member_enum_symbol(sym)))
+   (microsoft_bugs && is_ms_enum_qualifier_symbol(sym)))
 
 /* Return TRUE if a symbol is a class symbol, a class template symbol,
    a template parameter symbol, or a typedef to a template parameter.

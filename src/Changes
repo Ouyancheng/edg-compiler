@@ -1,5 +1,16 @@
 Version 3.9
 
+8/3/06   Microsoft compatibility: enum qualified names
+
+In Microsoft mode, when microsoft_version is >= 1400, both member and
+nonmember enum types may be used as the qualifier in a qualified name.
+A warning is issued.  When microsoft_version is < 1400, the behavior is
+unchanged (only member enum types may be used as qualifiers in Microsoft
+mode, with no diagnostic).
+
+  enum E { e };
+  E my_enum = E::e;
+
 8/2/06   Spurious error on member pointer-to-member declaration (Microsoft)
 
 In Microsoft C++ mode, the front end issued a spurious syntax error on

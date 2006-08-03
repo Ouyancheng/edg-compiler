@@ -1611,6 +1611,7 @@ ec_register_mapped_variable_must_be_POD;;"a variable allocated in a specific reg
 ec_predef_macro_redefined;;"predefined meaning of %no discarded"
 ec_attribute_requires_internal_linkage;;"the %sq attribute can only appear on functions and variables with internal linkage"
 ec_designator_for_non_POD;;"designator may not specify a non-POD subobject"
+ec_enum_qualifier_nonstd;;"enum qualified name is nonstandard"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

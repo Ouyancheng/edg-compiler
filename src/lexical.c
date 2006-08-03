@@ -12554,7 +12554,8 @@ compiler.
       case tk_template_param:
         break;
       case tk_enum:
-        result = tp->source_corresp.is_class_member;
+        result = tp->source_corresp.is_class_member ||
+                 microsoft_version >= 1400;
         break;
       default:
         result = FALSE;
@@ -13196,15 +13197,20 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_namespace = namespace_symbol_namespace(qualifier_sym);
           qualifier_is_type = FALSE;
         } else if (microsoft_bugs && is_enum_symbol(qualifier_sym) &&
-                   skip_typerefs(type_symbol_type(qualifier_sym))->
-                                              source_corresp.is_class_member) {
+                   (microsoft_version >= 1400 ||
+                    skip_typerefs(type_symbol_type(qualifier_sym))->
+                                             source_corresp.is_class_member)) {
           /* In Microsoft bugs mode the qualifier can be an enumeration
-             name.  Only member enumerations are considered. */
+             name.  For Microsoft versions before 1400, only member
+             enumerations are considered. */
           qualifier_type = type_symbol_type(qualifier_sym);
           qualifier_type = skip_typerefs(qualifier_type);
           qualifier_is_type = TRUE;
           qualifier_type_is_class = FALSE;
           qualifier_is_enum = TRUE;
+          if (microsoft_version >= 1400) {
+            warning(ec_enum_qualifier_nonstd);
+          }  /* if */
         } else if (qualifier_sym->kind == (a_symbol_kind)sk_type ||
                    (qualifier_sym->kind == (a_symbol_kind)sk_enum_tag &&
                     is_vacuous_dtor)) {
