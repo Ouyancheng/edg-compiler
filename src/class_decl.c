@@ -12696,7 +12696,7 @@ passed via template_decl.
       /* Ignore any top-level cv-qualifiers in Microsoft mode and in some
          GNU modes.  (In GNU modes prior to 3.4, the qualifiers are accepted
          and they apply to the implied field.) */
-      if ((microsoft_mode || gnu_mode && gnu_version) &&
+      if ((microsoft_mode || gnu_mode) &&
           member_type->kind == (a_type_kind)tk_typeref &&
           !typeref_is_typedef(member_type)) {
         if (gnu_mode && gnu_version < 30400) {
