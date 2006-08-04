@@ -17,7 +17,7 @@ is now fixed.  For example:
 
 8/3/06  Sun compatibility: searching for system header files
 
-Version 3.7 introduced a Sun compatibility feature that allowed the front
+Version 3.8 introduced a Sun compatibility feature that allowed the front
 end to implicitly search for a file with a .SUNWCCh suffix in certain cases.
 When searching for a file such as <stddef.h>, the front end would first
 look for stddef.h and then for stddef.h.SUNWCCh, but the search should have
