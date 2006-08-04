@@ -4101,24 +4101,29 @@ suppress_include.
             /* Allocate the suffix buffer, it not already allocated. */
             suffix_replacement_buffer = alloc_text_buffer(128);
           }  /* if */
+          /* Save a copy the file name. */
+          reset_text_buffer(suffix_replacement_buffer);
+          add_to_text_buffer(suffix_replacement_buffer, buffer->buffer,
+                             buffer->size);
           /* Loop through the linked list of suffixes. */
           for (fsp = suffix_list;
                fsp != NULL;
                fsp = fsp->next) {
-            /* Copy the file name to a temporary buffer. */
-            reset_text_buffer(suffix_replacement_buffer);
-            add_to_text_buffer(suffix_replacement_buffer, buffer->buffer,
-                               buffer->size);
             /* Replace the existing suffix with a new one. */
-            replace_file_name_suffix(fsp->suffix,
-                                     suffix_replacement_buffer);
+            replace_file_name_suffix(fsp->suffix, buffer);
             /* Get the current buffer pointer in case it was reallocated. */
-            name_to_try = suffix_replacement_buffer->buffer;
+            name_to_try = buffer->buffer;
             /* Now try to open the modified file. */
             file_found = try_to_open_source_file_if_not_already_included(
                              name_to_try, file_name, new_input_file,
                              suppress_include);
             if (file_found) break;
+            if (fsp->next != NULL) {
+              /* Copy the original file name back into the buffer. */
+              reset_text_buffer(suffix_replacement_buffer);
+              add_to_text_buffer(buffer, suffix_replacement_buffer->buffer,
+                                 suffix_replacement_buffer->size);
+            }  /* if */
           }  /* for */
         }  /* if */
       }  /* if */
