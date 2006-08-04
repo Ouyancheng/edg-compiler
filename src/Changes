@@ -1,5 +1,20 @@
 Version 3.9
 
+8/4/06  C++-generating back end: pointer casts involving temporaries
+
+The C++-generating back end incorrectly generated some casts involving
+pointers to temporary class objects as casts to reference types (the C++
+Standard requires an lvalue operand for a cast to a reference type).  This
+is now fixed.  For example:
+
+  struct B { };
+  B f();
+
+  struct D: public B { };
+  D g() {
+    return *(D*) &(f());  // Previously generated as "(D &)f()"
+  }
+
 8/3/06  Sun compatibility: searching for system header files
 
 Version 3.7 introduced a Sun compatibility feature that allowed the front

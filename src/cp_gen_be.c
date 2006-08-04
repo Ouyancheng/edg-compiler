@@ -6568,6 +6568,10 @@ temporary expressions).
                   } else if (is_template_param_type(dest_type)) {
                     /* A cast to a template parameter type in a prototype
                        instantiation. */
+                  } else if (operand_1->kind ==
+                                            (an_expr_node_kind)enk_temp_init) {
+                    /* An rvalue (temporary) cannot be cast to a reference
+                       type. */
                   } else {
                     /* The cast appears to have been a reference cast. */
                     is_reference_cast = TRUE;
