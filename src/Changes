@@ -256,9 +256,9 @@ anonymous union in GNU C++ modes with gnu_version < 30400.  For example:
   }
 
 In modes other than GNU and Microsoft C++, attempting to qualify an anonymous
-union results in interpreted as a declaration with a missing declarator (as
-opposed to an anonymous union).  This results in an error in strict mode, or
-a warning otherwise.
+union is interpreted as a declaration with a missing declarator (as opposed to
+an anonymous union).  This results in an error in strict mode, or a warning
+otherwise.
 
 7/19/06  Errors when compiling IL display utility
 
