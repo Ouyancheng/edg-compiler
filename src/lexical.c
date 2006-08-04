@@ -488,6 +488,11 @@ static a_text_buffer_ptr
 			/* A text buffer used to hold a temporary copy of
 			   identifiers containing universal character names. */
 
+static a_text_buffer_ptr
+		suffix_replacement_buffer;
+			/* A text buffer used to store a copy of the file
+			   name when doing suffix replacement. */
+
 static a_boolean
 		curr_line_began_inside_comment;
 			/* TRUE if the call to read_logical_source_line for
@@ -4092,14 +4097,23 @@ suppress_include.
         } else {
           /* We need to replace the suffix.  Go through the list of
              suffixes. */
+          if (suffix_replacement_buffer == NULL) {
+            /* Allocate the suffix buffer, it not already allocated. */
+            suffix_replacement_buffer = alloc_text_buffer(128);
+          }  /* if */
           /* Loop through the linked list of suffixes. */
           for (fsp = suffix_list;
                fsp != NULL;
                fsp = fsp->next) {
+            /* Copy the file name to a temporary buffer. */
+            reset_text_buffer(suffix_replacement_buffer);
+            add_to_text_buffer(suffix_replacement_buffer, buffer->buffer,
+                               buffer->size);
             /* Replace the existing suffix with a new one. */
-            replace_file_name_suffix(fsp->suffix, buffer);
+            replace_file_name_suffix(fsp->suffix,
+                                     suffix_replacement_buffer);
             /* Get the current buffer pointer in case it was reallocated. */
-            name_to_try = buffer->buffer;
+            name_to_try = suffix_replacement_buffer->buffer;
             /* Now try to open the modified file. */
             file_found = try_to_open_source_file_if_not_already_included(
                              name_to_try, file_name, new_input_file,
@@ -15288,7 +15302,7 @@ suffix; the normal include_file_suffix_list is used for unsuffixed files.
   char	*suffix;
 
   sun_include_file_suffix_list =
-                              conv_string_to_file_suffix_list("h:h.SUNWCCh:");
+                              conv_string_to_file_suffix_list("h.SUNWCCh:h:");
   suffix = "SUNWCCh";
   add_to_file_suffix_list(&include_file_suffix_list, suffix, strlen(suffix));
 }  /* create_sun_include_file_suffixes */
@@ -15688,6 +15702,7 @@ of the front end.
   in_token_insertion_from_string = FALSE;
   token_insertion_position = null_source_position;
   ucn_buffer = NULL;
+  suffix_replacement_buffer = NULL;
   caching_tokens = FALSE;
   /* Initialize the output control block for the il-to-str routines. */
   clear_il_to_str_output_control_block(&octl);

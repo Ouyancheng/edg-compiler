@@ -1,5 +1,13 @@
 Version 3.9
 
+8/3/06  Sun compatibility: searching for system header files
+
+Version 3.7 introduced a Sun compatibility feature that allowed the front
+end to implicitly search for a file with a .SUNWCCh suffix in certain cases.
+When searching for a file such as <stddef.h>, the front end would first
+look for stddef.h and then for stddef.h.SUNWCCh, but the search should have
+been done in the opposite order.  This has been fixed.
+
 8/3/06   GNU C++ compatibility: typeof and "names for linkage purposes"
 
 Standard C++ allows unnamed class types to have a "name for linkage purposes"
