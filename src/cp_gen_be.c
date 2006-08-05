@@ -6569,9 +6569,12 @@ temporary expressions).
                     /* A cast to a template parameter type in a prototype
                        instantiation. */
                   } else if (operand_1->kind ==
-                                            (an_expr_node_kind)enk_temp_init) {
-                    /* An rvalue (temporary) cannot be cast to a reference
-                       type. */
+                                            (an_expr_node_kind)enk_temp_init &&
+                             is_pointer_type(dest_type) &&
+                             get_type_qualifiers(type_pointed_to(dest_type))
+                                                                 != TQ_CONST) {
+                    /* An rvalue (temporary) cannot be cast to a non-const
+                       reference type. */
                   } else {
                     /* The cast appears to have been a reference cast. */
                     is_reference_cast = TRUE;
