@@ -3,9 +3,8 @@ Version 3.9
 8/4/06  C++-generating back end: pointer casts involving temporaries
 
 The C++-generating back end incorrectly generated some casts involving
-pointers to temporary class objects as casts to reference types (the C++
-Standard requires an lvalue operand for a cast to a non-const reference type).
-This is now fixed.  For example:
+pointers to temporary class objects as casts to reference types.  This is
+now fixed.  For example:
 
   struct B { };
   B f();

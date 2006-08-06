@@ -6570,11 +6570,13 @@ temporary expressions).
                        instantiation. */
                   } else if (operand_1->kind ==
                                             (an_expr_node_kind)enk_temp_init &&
-                             is_pointer_type(dest_type) &&
-                             get_type_qualifiers(type_pointed_to(dest_type))
-                                                                 != TQ_CONST) {
-                    /* An rvalue (temporary) cannot be cast to a non-const
-                       reference type. */
+                             !(op ==
+                                  (an_expr_operator_kind)eok_base_class_cast &&
+                               get_type_qualifiers(type_pointed_to(dest_type))
+                                                                == TQ_CONST)) {
+                    /* The operand is a class temporary (rvalue) and the
+                       cast is not to a const-qualified base class type, so
+                       this cannot be a reference cast. */
                   } else {
                     /* The cast appears to have been a reference cast. */
                     is_reference_cast = TRUE;
