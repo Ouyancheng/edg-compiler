@@ -6569,14 +6569,28 @@ temporary expressions).
                     /* A cast to a template parameter type in a prototype
                        instantiation. */
                   } else if (operand_1->kind ==
-                                            (an_expr_node_kind)enk_temp_init &&
-                             !(op ==
-                                  (an_expr_operator_kind)eok_base_class_cast &&
-                               get_type_qualifiers(type_pointed_to(dest_type))
-                                                                == TQ_CONST)) {
-                    /* The operand is a class temporary (rvalue) and the
-                       cast is not to a const-qualified base class type, so
-                       this cannot be a reference cast. */
+                                            (an_expr_node_kind)enk_temp_init) {
+                    /* The operand is a class temporary (rvalue).  A
+                       reference cast is permitted only under certain
+                       circumstances. */
+                    if (!node->variant.operation.is_reinterpret_cast &&
+                        is_pointer_type(dest_type)) {
+                      /* This is not a reinterpret_cast, and the target
+                         type is a pointer to some type, so a reference
+                         cast is possible, depending on the relationship
+                         between the source and target types. */
+                      dest_type = type_pointed_to(dest_type);
+                      source_type =
+                                   skip_typerefs(type_pointed_to(source_type));
+                      if (get_type_qualifiers(dest_type) == TQ_CONST &&
+                          (op == (an_expr_operator_kind)eok_base_class_cast ||
+                           skip_typerefs(dest_type) == source_type)) {
+                        /* A cast to a const-qualified base class type or
+                           to the same type -- a reference cast can be
+                           used. */
+                        is_reference_cast = TRUE;
+                      }  /* if */
+                    }  /* if */
                   } else {
                     /* The cast appears to have been a reference cast. */
                     is_reference_cast = TRUE;
