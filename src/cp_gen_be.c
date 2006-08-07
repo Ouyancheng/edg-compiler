@@ -6555,7 +6555,8 @@ temporary expressions).
                 is_reference_cast = TRUE;
               } else {
                 /* Try to figure out whether the source form was a
-                   reference cast. */
+                   reference cast (or, failing that, whether the generated
+                   code can be a reference cast). */
                 a_type_ptr source_type = operand_1->type;
                 if (is_pointer_type(source_type) &&
                     is_class_struct_union_type(type_pointed_to(source_type))) {
@@ -6569,10 +6570,24 @@ temporary expressions).
                     /* A cast to a template parameter type in a prototype
                        instantiation. */
                   } else if (operand_1->kind ==
-                                            (an_expr_node_kind)enk_temp_init) {
-                    /* The operand is a class temporary (rvalue).  A
-                       reference cast is permitted only under certain
-                       circumstances. */
+                                            (an_expr_node_kind)enk_temp_init &&
+                             !sun_is_generated_code_target) {
+                    /* The operand is a class temporary (rvalue).  While the
+                       Sun C++ compiler accepts code of the form
+
+                           struct S { };
+                           S f();
+                           ... (T&)f() ...
+
+                       and rejects the alternative representation,
+
+                           ... *(T*)&f() ...
+
+                       other compilers reject a cast of a class rvalue to a
+                       reference type unless the target type is a
+                       const-qualified reference to the same class type or
+                       one of its bases but do allow taking the address of
+                       a class rvalue. */
                     if (!node->variant.operation.is_reinterpret_cast &&
                         is_pointer_type(dest_type)) {
                       /* This is not a reinterpret_cast, and the target
@@ -6592,7 +6607,7 @@ temporary expressions).
                       }  /* if */
                     }  /* if */
                   } else {
-                    /* The cast appears to have been a reference cast. */
+                    /* The cast can be generated as a reference cast. */
                     is_reference_cast = TRUE;
                   }  /* if */
                 }  /* if */
