@@ -6596,7 +6596,7 @@ temporary expressions).
                          between the source and target types. */
                       dest_type = type_pointed_to(dest_type);
                       source_type =
-                                   skip_typerefs(type_pointed_to(source_type));
+                                 f_skip_typerefs(type_pointed_to(source_type));
                       if (get_type_qualifiers(dest_type) == TQ_CONST &&
                           (op == (an_expr_operator_kind)eok_base_class_cast ||
                            skip_typerefs(dest_type) == source_type)) {
