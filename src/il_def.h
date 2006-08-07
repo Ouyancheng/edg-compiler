@@ -7164,6 +7164,9 @@ enum a_builtin_function_kind_tag {
   bfk_cimagf,                   /* "__builtin_cimagf" */
   bfk_cimagl,                   /* "__builtin_cimagl" */
   bfk_classify_type,            /* "__builtin_classify_type" */
+  bfk_clog,                     /* "__builtin_clog" */
+  bfk_clogf,                    /* "__builtin_clogf" */
+  bfk_clogl,                    /* "__builtin_clogl" */
   bfk_clz,                      /* "__builtin_clz" */
   bfk_clzl,                     /* "__builtin_clzl" */
 #if LONG_LONG_ALLOWED
@@ -7620,6 +7623,9 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_cimagf */                   "__builtin_cimagf",
   /* bfk_cimagl */                   "__builtin_cimagl",
   /* bfk_classify_type */            "__builtin_classify_type",
+  /* bfk_clog */                     "__builtin_clog",
+  /* bfk_clogf */                    "__builtin_clogf",
+  /* bfk_clogl */                    "__builtin_clogl",
   /* bfk_clz */                      "__builtin_clz",
   /* bfk_clzl */                     "__builtin_clzl",
 #if LONG_LONG_ALLOWED

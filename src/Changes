@@ -1,5 +1,10 @@
 Version 3.9
 
+8/7/06  GNU compatibility:  __builtin_clog
+
+In GNU mode, the front end now accepts the built-in functions __builtin_clog,
+__builtin_clogf, and __builtin_clogl.
+
 8/4/06  C++-generating back end: pointer casts involving temporaries
 
 The C++-generating back end incorrectly generated some casts involving

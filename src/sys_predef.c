@@ -493,6 +493,7 @@ Enter the standard predeclared functions for GCC.
   }  /* if */
   enter_gnu_builtin_complex_to_real_funcs(_cimag);
   enter_gnu_builtin_vararg_func0(_classify_type, int);  /* Pseudo-function. */
+  enter_gnu_builtin_complex_math_funcs1(_clog);
   enter_gnu_builtin_bit_count_funcs(_clz);
   enter_gnu_builtin_complex_math_funcs1(_conj);
   enter_gnu_builtin_vararg_func0(_constant_p, int);  /* Pseudo-function. */
