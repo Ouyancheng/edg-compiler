@@ -1567,7 +1567,7 @@ Display the indicated type entry.
       goto do_float_complex;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_imaginary:
-      (void)printf("tk_complex\n");
+      (void)printf("tk_imaginary\n");
       goto do_float_complex;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_complex:

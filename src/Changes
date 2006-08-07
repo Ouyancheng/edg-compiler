@@ -1,5 +1,10 @@
 Version 3.9
 
+8/7/06  Typo in IL display output
+
+The front end erroneously output "tk_complex" for imaginary types.  It now
+correctly outputs "tk_imaginary" for such types.
+
 8/7/06  GNU compatibility:  __builtin_clog
 
 In GNU mode, the front end now accepts the built-in functions __builtin_clog,
