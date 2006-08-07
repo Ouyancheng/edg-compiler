@@ -1794,6 +1794,23 @@ init_info tracks the whole initializer.
       designator_coming(&array_designator)) {
     /* Process an array designator ( [x] = ) or a field designator
        ( .f = ). */
+    if (designators_allowed && !C_mode() &&
+        init_info->designation_state ==
+                               (a_designation_state)ds_no_designation) {
+      /* Allowing designators in non-POD types would raise subtle questions
+         about order of initialization and destruction.  For now, at least,
+         we disallow such constructs.  (The error is only issued on the first
+         designator if there is a sequence of consecutive designators.) */
+      a_type_ptr  elem_type = skip_typerefs(context->type);
+      if (is_array_type(elem_type)) {
+        elem_type = underlying_array_element_type(elem_type);
+        elem_type = skip_typerefs(elem_type);
+      }  /* if */
+      if (is_immediate_class_type(elem_type) &&
+          !symbol_supplement_for_class(elem_type)->is_POD) {
+        pos_error(ec_designator_for_non_POD, &pos_curr_token);
+      }  /* if */
+    }  /* if */
     designator_present = TRUE;
     add_stop_token(tok_assign);
     if (array_designator) {
@@ -1991,23 +2008,6 @@ this function points to a tree that includes a dynamic-init entry.
   *nothing_taken = FALSE;
   *any_dynamic_init = FALSE;
   initialize_init_context(&context, prev_init_context, *type);
-  if (designators_allowed && !C_mode() &&
-      init_info->designation_state ==
-                               (a_designation_state)ds_complete_designation &&
-      curr_token != tok_rbrace && curr_token != tok_comma) {
-    /* Allowing designated initialization of non-POD types would raise subtle
-       questions about order of initialization and destruction.  For now, at
-       least, we disallow such constructs. */
-    a_type_ptr  elem_type = skip_typerefs(*type);
-    if (is_array_type(elem_type)) {
-      elem_type = underlying_array_element_type(elem_type);
-      elem_type = skip_typerefs(elem_type);
-    }  /* if */
-    if (is_immediate_class_type(elem_type) &&
-        !symbol_supplement_for_class(elem_type)->is_POD) {
-      pos_error(ec_designator_for_non_POD, &pos_curr_token);
-    }  /* if */
-  }  /* if */
   if (process_whole_object_init(init_info, &context, &init_con)) {
     /* process_whole_object_init might have found that the "whole object
        initialization" case did not apply, in which case "FALSE" was returned
