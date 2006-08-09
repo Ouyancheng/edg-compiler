@@ -1,5 +1,28 @@
 Version 3.9
 
+8/9/06  Microsoft compatibility: Diagnostics on some __declspec attributes
+
+The front end now warns about declarations without a declarator that contain
+a __declspec(dllimport) or __declspec(dllexport) construct that can only apply
+to a declarator.  For example:
+
+  __declspec(dllexport) struct S {};  // Now a warning (the __declspec
+                                      // attribute does not apply to the type).
+
+Other __declspec constructs (e.g., __declspec(novtable)) used in this way
+previously triggered a discretionary error and are now diagnosed with a
+(clearer) warning instead.
+
+  __declspec(novtable) struct S {};  // Previously a fairly generic error.
+                                     // Now a more specific warning.
+
+Furthermore, the diagnostic reporting that __declspec(dllimport) or
+__declspec(dllexport) constructs are ignored when applied to C mode structs
+has been reworded for clarity.  For example:
+
+  struct S __declspec(dllimport) S;  // __declspec has no meaning in C.  Now
+                                     // a clearer warning in C mode.
+
 8/7/06  Typo in IL display output
 
 The IL display program erroneously output "tk_complex" for imaginary types.

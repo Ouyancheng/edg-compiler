@@ -1614,6 +1614,8 @@ ec_designator_for_non_POD;;"designator may not specify a non-POD subobject"
 ec_enum_qualifier_nonstd;;"enum qualified name is nonstandard"
 ec_nonstandard_anonymous_union_qualifier;;"anonymous union qualifier is nonstandard"
 ec_anonymous_union_qualifier_ignored;;"anonymous union qualifier is ignored"
+ec_declspec_missing_declarator;;"__declspec ignored (no variable or function declared)"
+ec_struct_declspec_ignored_in_C_mode;;"__declspec(%s) ignored (it has no meaning for a C struct"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

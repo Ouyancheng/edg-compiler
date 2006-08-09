@@ -8262,11 +8262,8 @@ Issue a diagnostic if the modifier is invalid.
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* The dllimport and dllexport attributes can validly appear on type
-     declarations. */
-  flags &= ~(a_decl_modifier)DM_DLLFLAGS;
   if (microsoft_mode && flags != 0) {
-    pos_diagnostic(es_discretionary_error, ec_declspec_invalid, pos);
+    pos_warning(ec_declspec_missing_declarator, pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* diagnose_decl_modifiers_on_type_declaration */

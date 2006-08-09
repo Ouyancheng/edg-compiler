@@ -491,8 +491,8 @@ declaration of a class member.
         }  /* if */
       } else if (strcmp(modifier, "dllexport") == 0) {
         if (is_class_decl && C_mode()) {
-          /* "dllexport" is not allowed on a struct declaration in C. */
-          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+          /* "dllexport" is ignored on a struct declaration in C. */
+          pos_st_warning(ec_struct_declspec_ignored_in_C_mode,
                          &pos_curr_token, modifier);
         } else if (decl_modifiers->flags & DM_DLLIMPORT) {
           /* The dllimport and dllexport attributes are mutually
@@ -503,8 +503,8 @@ declaration of a class member.
         }  /* if */
       } else if (strcmp(modifier, "dllimport") == 0) {
         if (is_class_decl && C_mode()) {
-          /* "dllimport" is not allowed on a struct declaration in C. */
-          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+          /* "dllimport" is ignored on a struct declaration in C. */
+          pos_st_warning(ec_struct_declspec_ignored_in_C_mode,
                          &pos_curr_token, modifier);
         } else if (decl_modifiers->flags & DM_DLLEXPORT) {
           /* The dllimport and dllexport attributes are mutually
