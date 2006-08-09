@@ -6291,6 +6291,17 @@ Output a new-style cast.
 }  /* gen_new_style_cast */
 
 
+static void gen_array_subscript(an_expr_node_ptr  expr)
+/*
+Render the given expression surrounded by brackets.
+*/
+{
+  write_tok_ch('[');
+  gen_expression(expr);
+  write_tok_ch(']');
+}  /* gen_array_subscript */
+
+
 static void gen_lvalue_full(an_expr_node_ptr node,
                             a_boolean        need_parens,
                             a_boolean        obj_expr_of_mfunc_operator)
@@ -6466,9 +6477,7 @@ temporary expressions).
              a subscripting operation (i.e., *(a+b) becomes a[b]). */
           if (need_parens) write_tok_ch('(');
           gen_expr_with_parens(operand_1);
-          write_tok_ch('[');
-          gen_expression(operand_2);
-          write_tok_ch(']');
+          gen_array_subscript(operand_2);
           if (need_parens) write_tok_ch(')');
           processed = TRUE;
           break;
@@ -7676,16 +7685,7 @@ handled through recursion.
     arg1 = arg1->variant.operation.operands;
   }  /* while */
   switch (expr->variant.operation.kind) {
-     case eok_field:
-      if (!is_constant_node(arg1)) {
-        /* This is not the bottom-most operation (which is applied to a null
-           pointer constant that is just a placeholder).  Render the
-           underlying accesses first. */
-        gen_member_selector_for_builtin_offsetof(arg1);
-        write_tok_ch('.');
-      }  /* if */
-      gen_field_reference(arg2);
-      break;
+    case eok_field:
     case eok_lvalue_dot_static:
       if (!is_constant_node(arg1)) {
         /* This is not the bottom-most operation (which is applied to a null
@@ -7694,13 +7694,15 @@ handled through recursion.
         gen_member_selector_for_builtin_offsetof(arg1);
         write_tok_ch('.');
       }  /* if */
-      gen_lvalue_no_parens(arg2);
+      if (expr->variant.operation.kind == (an_expr_operator_kind)eok_field) {
+        gen_field_reference(arg2);
+      } else {
+        gen_lvalue_no_parens(arg2);
+      }  /* if */
       break;
     case eok_padd_subsc:
       gen_member_selector_for_builtin_offsetof(arg1);
-      write_tok_ch('[');
-      gen_expression(arg2);
-      write_tok_ch(']');
+      gen_array_subscript(arg2);
       break;
     case eok_cast:
     case eok_base_class_cast:
@@ -8638,9 +8640,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_subscript:
           gen_expr_with_parens(operand_1);
-          write_tok_ch('[');
-          gen_expression(operand_2);
-          write_tok_ch(']');
+          gen_array_subscript(operand_2);
           goto done_with_operation;
         case eok_field:
           gen_ampersand(type_pointed_to(expr->type));

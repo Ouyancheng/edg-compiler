@@ -4141,6 +4141,48 @@ and pointer-to-function.
 }  /* gcc_stride_size */
 
 
+static void accum_array_offset(a_constant_ptr  total_offset,
+                               a_boolean       offset_is_signed,
+                               a_boolean       subtract,
+                               a_constant_ptr  count,
+                               a_targ_size_t   elem_size,
+                               a_boolean       no_ovflo_on_unsigned_add,
+                               a_boolean       *ovflo)
+/*
+Perform the multiply-add or multiply-subtract implied by array subscripting
+or pointer arithmetic.  *total_offset is a constant to/from which the implied
+offset must be added/subtracted (subtract determines which operation it is).
+offset_is_signed determines whether *total_offset should be treated as a
+signed value (this can be different from the signedness implied by the type).
+count describes the number of array elements "added" or "subtracted", and
+elem_size is the size of each of those elements.  *ovflo is set to TRUE if an
+overflow occurs.  If an overflow resulting from an unsigned addition should
+be ignored, *no_ovflo_on_unsigned_add should be set to TRUE.
+*/
+{
+  an_integer_value  array_offset;
+  a_boolean         count_is_signed = int_constant_is_signed(count);
+
+  set_unsigned_integer_value(&array_offset, elem_size);
+  multiply_integer_values(&array_offset, &count->variant.integer_value,
+                          int_constant_is_signed(count), ovflo);
+  if (!*ovflo) {
+    /* Add/subtract the increment to/from the original offset. */
+    if (subtract) {
+      subtract_mixed_signed_integer_values(
+          &total_offset->variant.integer_value, offset_is_signed,
+          &array_offset, count_is_signed, ovflo);
+    } else {
+      add_mixed_signed_integer_values(
+          &total_offset->variant.integer_value, offset_is_signed,
+          &array_offset, count_is_signed, ovflo);
+    }  /* if */
+    /* If this was an unsigned integer operation, overflow is ignored. */
+    if (no_ovflo_on_unsigned_add && !offset_is_signed) *ovflo = FALSE;
+  }  /* if */
+}  /* accum_array_offset */
+
+
 static void do_padd(a_constant            *constant_1,
                     an_expr_operator_kind op,
 		    a_constant            *constant_2,
@@ -4160,9 +4202,8 @@ detected, or *err_code == ec_no_error if everything went fine.
 */
 {
   a_targ_size_t    size;
-  an_integer_value op2;
   a_constant       offset;
-  a_boolean        err, offset_is_signed = FALSE, op2_is_signed, just_past_end;
+  a_boolean        err, offset_is_signed = FALSE, just_past_end;
   a_boolean        integer_case = FALSE;
 
   *err_code = ec_no_error;
@@ -4187,32 +4228,18 @@ detected, or *err_code == ec_no_error if everything went fine.
        of arrays with zero bounds in gnu mode. */
     check_assertion_str(size != 0 || gnu_mode, "do_padd: size is zero");
   }  /* if */
-  /* Multiply the increment constant by the size. */
-  set_unsigned_integer_value(&op2, size);
-  op2_is_signed = int_constant_is_signed(constant_2);
-  multiply_integer_values(&op2, &constant_2->variant.integer_value,
-                          op2_is_signed, &err);
-  if (!err) {
-    /* Get the offset from the first constant. */
-    get_pointer_offset(constant_1, &offset);
-    /* When dealing with an address cast to an integral type, treat the
-       offset as having the signedness of the type cast to. */
-    offset_is_signed = integer_case ? int_constant_is_signed(constant_1) :
-                                      int_constant_is_signed(&offset);
-    /* Add/subtract the increment to/from the original offset. */
-    if (op == (an_expr_operator_kind)eok_psubtract ||
-        op == (an_expr_operator_kind)eok_isubtract) {
-      subtract_mixed_signed_integer_values(&offset.variant.integer_value,
-                                           offset_is_signed,
-                                           &op2, op2_is_signed, &err);
-    } else {
-      add_mixed_signed_integer_values(&offset.variant.integer_value,
-                                      offset_is_signed,
-                                      &op2, op2_is_signed, &err);
-    }  /* if */
-    /* If this was an unsigned integer operation, overflow is ignored. */
-    if (integer_case && !offset_is_signed) err = FALSE;
-  }  /* if */
+  /* Get the offset from the first constant. */
+  get_pointer_offset(constant_1, &offset);
+  /* When dealing with an address cast to an integral type, treat the
+     offset as having the signedness of the type cast to. */
+  offset_is_signed = integer_case ? int_constant_is_signed(constant_1) :
+                                    int_constant_is_signed(&offset);
+  /* Perform the necessary multiply-add or multiply-subtract. */
+  accum_array_offset(&offset, offset_is_signed,
+                     (op == (an_expr_operator_kind)eok_psubtract ||
+                      op == (an_expr_operator_kind)eok_isubtract),
+                      constant_2, size, (integer_case && !offset_is_signed),
+                      &err);
   if (!err) {
     /* Build the result pointer constant. */
     copy_constant(constant_1, result);
@@ -4918,6 +4945,23 @@ as the position for any diagnostics issued.
 }  /* binary_operation */
 
 
+static void accum_field_offset(a_constant_ptr  total_offset,
+                               a_field_ptr     field,
+                               a_boolean       *ovflo)
+/*
+total_offset represents an offset: Add to it the offset of the given field,
+and set *ovflo to TRUE if an overflow occurred.
+*/
+{
+  an_integer_value  field_offset;
+
+  set_unsigned_integer_value(&field_offset, field->offset);
+  add_mixed_signed_integer_values(&total_offset->variant.integer_value,
+                                  int_constant_is_signed(total_offset),
+                                  &field_offset, /*is_signed=*/FALSE, ovflo);
+}  /* accum_field_offset */
+
+
 void fold_field_selection(a_constant            *constant_1,
                           a_symbol_ptr          field_sym,
                           a_type_ptr            result_type,
@@ -4932,9 +4976,7 @@ TRUE and do not fold the operation.  This folding operation is not done
 through the usual interface because a field cannot be passed as a constant.
 */
 {
-  a_field_ptr      field;
   a_constant       offset;
-  an_integer_value field_offset;
   a_boolean        err;
   a_symbol_ptr     anon_parent_sym;
 
@@ -4966,20 +5008,10 @@ through the usual interface because a field cannot be passed as a constant.
            anon_parent_sym->kind != (a_symbol_kind)sk_variable) {
       check_assertion(anon_parent_sym->kind == (a_symbol_kind)sk_field);
       /* ... add the offset of the anonymous union, ... */
-      set_unsigned_integer_value(&field_offset,
-                                 anon_parent_sym->variant.field.ptr->offset);
-      add_mixed_signed_integer_values(&offset.variant.integer_value,
-                                      int_constant_is_signed(&offset),
-                                      &field_offset,
-                                      /*is_signed=*/FALSE, &err);
+      accum_field_offset(&offset, anon_parent_sym->variant.field.ptr, &err);
     }  /* while */
-    field = field_sym->variant.field.ptr;
     /* ... add the offset of the field, ... */
-    set_unsigned_integer_value(&field_offset, field->offset);
-    add_mixed_signed_integer_values(&offset.variant.integer_value,
-                                    int_constant_is_signed(&offset),
-                                    &field_offset,
-                                    /*is_signed=*/FALSE, &err);
+    accum_field_offset(&offset, field_sym->variant.field.ptr, &err);
     /* ... and put the offset into the result pointer constant.  Note that
        no overflow/object-size checking is needed, since the field has
        to be within the underlying object. */
@@ -5024,27 +5056,16 @@ it is non-NULL).  Otherwise, return TRUE.
   }  /* if */
   switch (expr->variant.operation.kind) {
     case eok_field:
-      { a_field_ptr  field;
-        check_assertion(args->next->kind == (an_expr_node_kind)enk_field);
-        field = args->next->variant.field;
-        set_unsigned_integer_value(&int_val, field->offset);
-        add_integer_values(&offset->variant.integer_value, &int_val,
-                           /*is_signed=*/FALSE, &ovflo);
-      }
+      check_assertion(args->next->kind == (an_expr_node_kind)enk_field);
+      accum_field_offset(offset, args->next->variant.field, &ovflo);
       break;
     case eok_padd_subsc:
-      { a_constant_ptr  con;
-        a_type_ptr      elem_type = type_pointed_to(args->type);
-        elem_type = skip_typerefs(elem_type);
+      { a_type_ptr      elem_type = type_pointed_to(args->type);
         check_assertion(is_constant_node(args->next));
-        con = args->next->variant.constant;
-        set_unsigned_integer_value(&int_val, elem_type->size);
-        multiply_integer_values(&int_val, &con->variant.integer_value,
-                                /*is_signed=*/FALSE, &ovflo);
-        if (!ovflo) {
-          add_integer_values(&offset->variant.integer_value, &int_val,
-                             /*is_signed=*/FALSE, &ovflo);
-        }  /* if */
+        accum_array_offset(offset, /*offset_is_signed=*/FALSE,
+                           /*subtract=*/FALSE, args->next->variant.constant,
+                           skip_typerefs(elem_type)->size,
+                           /*no_ovflo_on_unsigned_add=*/FALSE, &ovflo);
       }
       break;
     case eok_base_class_cast:
