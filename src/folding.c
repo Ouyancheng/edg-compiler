@@ -4157,7 +4157,7 @@ signed value (this can be different from the signedness implied by the type).
 count describes the number of array elements "added" or "subtracted", and
 elem_size is the size of each of those elements.  *ovflo is set to TRUE if an
 overflow occurs.  If an overflow resulting from an unsigned addition should
-be ignored, *no_ovflo_on_unsigned_add should be set to TRUE.
+be ignored, no_ovflo_on_unsigned_add should be set to TRUE.
 */
 {
   an_integer_value  array_offset;
