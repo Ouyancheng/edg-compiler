@@ -116,6 +116,15 @@ extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
                                  a_decl_pos_block_ptr        decl_pos_block,
                                  a_upc_block_size            *upc_block_size);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void scan_microsoft_secondary_decl_specifiers(
+                                 a_decl_flag_set            input_flags,
+                                 a_decl_flag_set            *output_flags,
+                                 a_type_ptr                 *type_ptr,
+                                 a_decl_parse_state         *state,
+                                 a_decl_pos_block_ptr       decl_pos_block);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern void set_name_linkage_for_type(a_type_ptr  tp);
 
 extern void decl_spec_one_time_init(void);
@@ -200,7 +209,10 @@ extern void decl_spec_one_time_init(void);
 #define DSI_NO_REAL_DECLARATOR ((a_decl_flag_set)0x100000)
 			/* If this bit is set, the specifiers cannot be
 			   followed by a real declarator (e.g., in a cast). */
-#define DSI_LAST DSI_NO_REAL_DECLARATOR
+#define DSI_MICROSOFT_SECONDARY_SPECIFIERS ((a_decl_flag_set)0x100000)
+			/* If this bit is set, secondary specifiers (a
+			   Microsoft extension/bug) are scanned. */
+#define DSI_LAST DSI_MICROSOFT_SECONDARY_SPECIFIERS
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DSI_LAST)*/
 

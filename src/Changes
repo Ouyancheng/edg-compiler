@@ -1,5 +1,36 @@
 Version 3.9
 
+8/11/06  Microsoft compatibility: Secondary specifiers
+
+Microsoft C++ compilers allow decl-specifiers to appear after a comma
+separating multiple declarators (we call these "secondary specifiers").
+For example:
+
+  int i, char *p;
+
+(This is mostly likely to appear in for-init declarations.)  The front end now
+emulates this behavior in Microsoft C++ mode when microsoft_version >= 1000.
+Many secondary specifiers still result in an error, and many others (including
+cv-qualifiers) are ignored with a warning.  "Primary cv-qualifiers" are
+preserved, however.  For example:
+
+  int i1, char const* s1;       // s1 has type char* ("const" ignored with
+                                // a warning).
+  int const i2, char* s2;       // s2 has type char const*.
+  int i3, extern char* s3;      // "extern" is ignored with a warning.
+  int i4, extern "C" char* s4;  // Syntax error.
+
+Unlike Microsoft compilers, the front end does not accept such constructs for
+class member declarations.  For example:
+
+  struct S {
+    int i, char *s;    // Still an error.
+  };
+
+The C++-generating back end will render entities declared in this way as
+separate declarations (each terminated by a semicolon), except when dealing
+with for-init declarations (where a semicolon would be invalid).
+
 8/9/06   Microsoft compatibility: Diagnostics on some __declspec attributes
 
 The front end now warns about declarations without a declarator that contain

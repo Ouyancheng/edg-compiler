@@ -4076,6 +4076,12 @@ describes Microsoft attributes preceding the enum specifier (if any).
                                  &extended_decl_info, &local_err);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_mode) {
+      /* Look for any attributes that apply to this type. */
+      attributes = scan_attributes();
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* If there is an identifier next, it is a tag.  It can be the declaration
      of a new tag or a reference to an existing tag. */
   tag_id_present = is_expr_qualified_name_start();
@@ -4678,7 +4684,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode) {
       /* Look for any attributes that apply to this type. */
-      attributes = scan_attributes();
+      *last_attribute_link(&attributes) = scan_attributes();
       apply_attributes_to_type(attributes, enum_type, /*is_typedef=*/FALSE);
       free_attribute_list(attributes);
     }  /* if */
@@ -6980,11 +6986,15 @@ Returns TRUE if there is an error in the specifiers.
       case tok_register:
       case tok_mutable:
         /* A storage class specifier (3.5.1). */
-        process_storage_class_specifier(
+        if ((input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS)) {
+          warning(ec_secondary_specifier_ignored);
+        } else {
+          process_storage_class_specifier(
                           input_flags, output_flags, storage_class,
                           p_ms_attributes, decl_pos_block, &storage_class_pos,
                           &decl_specifiers_seen, register_id, &err);
-        goto no_get_token;
+          goto no_get_token;
+        }  /* if */
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
       case tok_thread:
         /* A storage specifier allowed in certain modes (can be combined with
@@ -7032,6 +7042,11 @@ Returns TRUE if there is an error in the specifiers.
            allows these in some nonstandard places such as on
            linkage declarations (e.g., extern "C" declarations). */
         { a_boolean  no_remaining_token;
+          if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
+            /* These specifiers are ignored by the caller when scanning
+               secondary specifiers; e.g., "int i, __declspec(thread) j;" */
+            warning(ec_secondary_specifier_ignored);
+          }  /* if */
           microsoft_specific_decl_specifiers(input_flags, output_flags,
                                              &decl_specifiers_seen,
                                              decl_modifiers,
@@ -7087,6 +7102,13 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_const:
         /* const type qualifier (3.5.3). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
+          /* E.g., "int i, double const j;". */
+          warning(ec_type_qualifier_ignored);
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
         if (qualifiers & TQ_CONST) {
           /* const may not appear more than once (except in Microsoft and
              C99 modes). */
@@ -7109,6 +7131,13 @@ Returns TRUE if there is an error in the specifiers.
         break;
       case tok_volatile:
         /* volatile type qualifier (3.5.3). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
+          /* E.g., "int i, double const j;". */
+          warning(ec_type_qualifier_ignored);
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
         if (qualifiers & TQ_VOLATILE) {
           /* volatile may not appear more than once (except in Microsoft and
              C99 modes). */
@@ -7199,6 +7228,13 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* UPC_EXTENSIONS_ALLOWED */
       case tok_restrict:
         /* restrict type qualifier. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
+          /* E.g., "int i, double const j;". */
+          warning(ec_type_qualifier_ignored);
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
         if (qualifiers & TQ_RESTRICT) {
           /* Issue a diagnostic if restrict appears more than once. */
           if (c99_mode || microsoft_mode) {
@@ -7219,6 +7255,11 @@ Returns TRUE if there is an error in the specifiers.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_unaligned:
         /* Microsoft __unaligned type qualifier. */
+        if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
+          /* E.g., "int i, double const j;". */
+          warning(ec_type_qualifier_ignored);
+        } else
+        /* Do not insert code here. */
         if (qualifiers & TQ_UNALIGNED) {
           /* __unaligned may not appear more than once. */
           warning(ec_dupl_type_qualifier);
@@ -8439,6 +8480,56 @@ exit_loop:
   return(err);
 }  /* decl_specifiers */
 
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void scan_microsoft_secondary_decl_specifiers(
+                                 a_decl_flag_set            input_flags,
+                                 a_decl_flag_set            *output_flags,
+                                 a_type_ptr                 *type_ptr,
+                                 a_decl_parse_state         *state,
+                                 a_decl_pos_block_ptr       decl_pos_block)
+/*
+This is a wrapper function for decl_specifiers(...), to handle the scanning
+of Microsoft C++ mode decl-specifiers appearing after a comma separating
+multiple declarators (we call these "secondary specifiers").  Many specifiers
+result in an error in this context, and many others (including cv-qualifiers)
+are ignored with a warning.  "Primary cv-qualifiers" are preserved, however.
+For example:
+    int i1, char const* s1;       // s1 has type char*
+    int const i2, char* s2;       // s2 has type char const*
+    int i3, extern char* s3;      // "extern" is ignored
+    int i4, extern "C" char* s4;  // syntax error
+This Microsoft extension/bug is sometimes used in "for" statements:
+    for (char *p = s, int k = 0; ...
+
+See decl_specifiers(...) for the meaning of the parameters.
+*/
+{
+  a_storage_class         storage_class;
+  a_decl_modifiers_block  decl_modifiers;
+  a_type_qualifier_set    saved_qualifiers = state->qualifiers;
+  a_source_position       pos;
+
+  check_assertion(microsoft_mode && !C_mode());
+  pos = pos_curr_token;
+  input_flags &= ~(DSI_MICROSOFT_SECONDARY_SPECIFIERS |DSI_INLINE_ALLOWED |
+                   DSI_ASM_ALLOWED | DSI_EMPTY_DECL_SPECIFIERS_ALLOWED);
+  (void)decl_specifiers(input_flags, output_flags, &storage_class, type_ptr,
+                        state, (an_attribute**)NULL, (an_ms_attribute**)NULL,
+                        &decl_modifiers, (a_named_register_id*)NULL,
+                        decl_pos_block, (a_upc_block_size*)NULL);
+  /* Restore the primary cv-qualifiers: */
+  state->qualifiers = saved_qualifiers;
+  add_type_qualifiers(type_ptr, state, UPC_BLOCK_SIZE_NONE);
+  /* Issue a warning in most cases, but if a class or enumeration type was
+     defined make it an error. */
+  pos_diagnostic((*output_flags & DSO_DEFINES_SOMETHING) ? es_error
+                                                         : es_warning,
+                 ec_nonstandard_secondary_decl_specifiers, &pos);
+}  /* scan_microsoft_secondary_decl_specifiers */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void decl_spec_one_time_init(void)
 /*

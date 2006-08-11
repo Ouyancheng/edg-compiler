@@ -1616,6 +1616,8 @@ ec_nonstandard_anonymous_union_qualifier;;"anonymous union qualifier is nonstand
 ec_anonymous_union_qualifier_ignored;;"anonymous union qualifier is ignored"
 ec_declspec_missing_declarator;;"__declspec ignored (no variable or function declared)"
 ec_struct_declspec_ignored_in_C_mode;;"__declspec(%s) ignored (it has no meaning for a C struct)"
+ec_nonstandard_secondary_decl_specifiers;;"specifiers after comma in multiple-declaration syntax are nonstandard"
+ec_secondary_specifier_ignored;;"nonstandard specifier ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

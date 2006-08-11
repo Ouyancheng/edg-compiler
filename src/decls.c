@@ -12149,11 +12149,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    is_tentative_definition;
   a_variable_ptr               var_ptr;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_boolean                    first_declarator = TRUE;
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_named_register_id          register_id = 0;
   char                         *asm_name = NULL;
   a_source_position            asm_name_pos;
@@ -12528,6 +12524,30 @@ continue_with_declaration:
     do {
       an_attribute_ptr  declarator_attributes = NULL;
       an_attribute_ptr  attributes = NULL;
+      if (!first_declarator) {
+        /* We've just skipped a comma separating two declarators. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_mode && !C_mode() && microsoft_version >= 1000 &&
+            !is_abstract_or_real_declarator_start() &&
+            is_decl_start(IDS_MS_ATTRIB_NOT_ALLOWED)) {
+          /* Microsoft C++ compilers allow decl-specifiers to appear after the
+             comma separating two declarators.  E.g.: "int i, char *s;" */
+          scan_microsoft_secondary_decl_specifiers(dsi_flags, &dso_flags,
+                                                   &type_ptr, &state,
+                                                   &decl_pos_block);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+        if (depth_scope_stack == depth_innermost_namespace_scope) {
+          /* This is a declaration at file scope, and not the first declarator
+             in the declarator list.  As for the start of the declaration, set
+             the source-sequence insert point for instantiations to NULL. */
+          reset_ss_list_instantiation_insert_point();
+        }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      }  /* if */
       add_stop_token(tok_comma);
       need_comma_remove_stop_token = TRUE;
       add_stop_token(tok_assign);
@@ -12542,17 +12562,6 @@ continue_with_declaration:
         func_info.is_asm_function = TRUE;
       }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      if (!first_declarator &&
-          depth_scope_stack == depth_innermost_namespace_scope) {
-        /* This is a declaration at file scope, and not the first declarator
-           in the declarator list.  As for the start of the declaration,
-           set the source-sequence insert point for instantiations to NULL. */
-        reset_ss_list_instantiation_insert_point();
-      }  /* if */
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
       /* Scan prefix declarator attributes.  Note that those can only
          appear after a comma separating two declarators.  Any attributes
@@ -13518,11 +13527,7 @@ continue_with_declaration:
       done_with_func_info(func_info);
       remove_stop_token(tok_comma);
       need_comma_remove_stop_token = FALSE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       first_declarator = FALSE;
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
       /* We are done with the declarator attributes. */
       *last_specifier_attribute = NULL;

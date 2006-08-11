@@ -11864,12 +11864,25 @@ declaration following this one is such a continuation.
   /* Output the semicolon or comma at the end of the declaration, but not
      for a condition. */
   if (!is_condition) {
+    a_boolean  use_comma_terminator = FALSE;
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list =
              another_declaration_in_comma_list_follows(var_type,
                                                        /*typedef_only=*/FALSE,
                                                        for_init);
-    write_end_of_declaration_punctuation(*another_decl_in_comma_list);
+    /* In Microsoft mode, it is possible that a for-init declaration
+       contained two separate declarations separated by a comma.  E.g.,
+          for (int i, double j; ... ; ...) ...
+       This may happen in other contexts too, but in those other contexts,
+       replacing the comma by a semicolon is harmless. */
+    if (*another_decl_in_comma_list ||
+        (for_init && curr_source_sequence_entry != NULL &&
+         ss_entry_kind(curr_source_sequence_entry) ==
+                                            (an_il_entry_kind)iek_variable)) {
+      check_assertion(*another_decl_in_comma_list || microsoft_mode);
+      use_comma_terminator = TRUE;
+    }  /* if */
+    write_end_of_declaration_punctuation(use_comma_terminator);
   }  /* if */
   if (need_extern_C_closing_brace) {
     check_assertion(!is_condition && !*another_decl_in_comma_list);
