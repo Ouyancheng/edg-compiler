@@ -17217,7 +17217,11 @@ see expr.h).
         if (curr_expr_is_evaluated()) {
           /* An undefined identifier in a #if expression has been replaced
              with zero. */
-          remark(ec_undefined_preproc_id);
+          char *id = alloc_general(len_of_curr_token + 1);
+          strncpy(id, start_of_curr_token, len_of_curr_token);
+          id[len_of_curr_token] = 0;
+          pos_st_remark(ec_undefined_preproc_id, &pos_curr_token, id);
+          free_general(id, len_of_curr_token + 1);
         }  /* if */
         const_for_curr_token.from_undefined_preproc_id = FALSE;
       }  /* if */
