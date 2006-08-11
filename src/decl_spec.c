@@ -8513,8 +8513,9 @@ See decl_specifiers(...) for the meaning of the parameters.
 
   check_assertion(microsoft_mode && !C_mode());
   pos = pos_curr_token;
-  input_flags &= ~(DSI_MICROSOFT_SECONDARY_SPECIFIERS |DSI_INLINE_ALLOWED |
-                   DSI_ASM_ALLOWED | DSI_EMPTY_DECL_SPECIFIERS_ALLOWED);
+  input_flags &= ~(DSI_INLINE_ALLOWED | DSI_ASM_ALLOWED |
+                   DSI_EMPTY_DECL_SPECIFIERS_ALLOWED);
+  input_flags |= DSI_MICROSOFT_SECONDARY_SPECIFIERS;
   (void)decl_specifiers(input_flags, output_flags, &storage_class, type_ptr,
                         state, (an_attribute**)NULL, (an_ms_attribute**)NULL,
                         &decl_modifiers, (a_named_register_id*)NULL,
