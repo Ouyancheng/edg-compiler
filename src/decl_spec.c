@@ -4038,7 +4038,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
   an_integer_kind              explicit_base_kind = (an_integer_kind)ik_none;
   a_source_position            pos_explicit_base;
 #if GNU_EXTENSIONS_ALLOWED
-  an_attribute_ptr             attributes;
+  an_attribute_ptr             attributes = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_name_reference_ptr         name_ref = NULL;
