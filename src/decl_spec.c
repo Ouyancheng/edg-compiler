@@ -4076,6 +4076,12 @@ describes Microsoft attributes preceding the enum specifier (if any).
                                  &extended_decl_info, &local_err);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_mode && curr_token == tok_attribute) {
+      /* Look for any attributes that apply to this type. */
+      attributes = scan_attributes();
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* If there is an identifier next, it is a tag.  It can be the declaration
      of a new tag or a reference to an existing tag. */
   tag_id_present = is_expr_qualified_name_start();
@@ -4678,7 +4684,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode) {
       /* Look for any attributes that apply to this type. */
-      attributes = scan_attributes();
+      *last_attribute_link(&attributes) = scan_attributes();
       apply_attributes_to_type(attributes, enum_type, /*is_typedef=*/FALSE);
       free_attribute_list(attributes);
     }  /* if */
