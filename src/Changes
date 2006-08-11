@@ -1,5 +1,16 @@
 Version 3.9
 
+8/11/06  Remark for undefined preprocessing identifier
+
+The diagnostic issued when an undefined identifier is used in a
+preprocessing expression has been changed to display the name of the
+identifier.  For example:
+
+  #define A (B+1)
+  #if A > 0       // Diagnostic now refers to "identifier B"
+  int i;
+  #endif
+
 8/11/06  GNU compatibility: Enum attributes
 
 The front end previously accepted GNU attributes for enumeration types only
