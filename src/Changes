@@ -1,6 +1,6 @@
 Version 3.9
 
-8/9/06  Microsoft compatibility: Diagnostics on some __declspec attributes
+8/9/06   Microsoft compatibility: Diagnostics on some __declspec attributes
 
 The front end now warns about declarations without a declarator that contain
 a __declspec(dllimport) or __declspec(dllexport) construct that can only apply
@@ -23,17 +23,17 @@ has been reworded for clarity.  For example:
   struct S __declspec(dllimport) S;  // __declspec has no meaning in C.  Now
                                      // a clearer warning in C mode.
 
-8/7/06  Typo in IL display output
+8/7/06   Typo in IL display output
 
 The IL display program erroneously output "tk_complex" for imaginary types.
 It now correctly outputs "tk_imaginary" for such types.
 
-8/7/06  GNU compatibility:  __builtin_clog
+8/7/06   GNU compatibility:  __builtin_clog
 
 In GNU mode, the front end now accepts the built-in functions __builtin_clog,
 __builtin_clogf, and __builtin_clogl.
 
-8/4/06  C++-generating back end: pointer casts involving temporaries
+8/4/06   C++-generating back end: pointer casts involving temporaries
 
 The C++-generating back end incorrectly generated some casts involving
 pointers to temporary class objects as casts to reference types.  This is
@@ -47,7 +47,7 @@ now fixed.  For example:
     return *(D*) &(f());  // Previously generated as "(D &)f()"
   }
 
-8/3/06  Sun compatibility: searching for system header files
+8/3/06   Sun compatibility: searching for system header files
 
 Version 3.8 introduced a Sun compatibility feature that allowed the front
 end to implicitly search for a file with a .SUNWCCh suffix in certain cases.
