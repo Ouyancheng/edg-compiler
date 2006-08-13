@@ -209,7 +209,7 @@ extern void decl_spec_one_time_init(void);
 #define DSI_NO_REAL_DECLARATOR ((a_decl_flag_set)0x100000)
 			/* If this bit is set, the specifiers cannot be
 			   followed by a real declarator (e.g., in a cast). */
-#define DSI_MICROSOFT_SECONDARY_SPECIFIERS ((a_decl_flag_set)0x100000)
+#define DSI_MICROSOFT_SECONDARY_SPECIFIERS ((a_decl_flag_set)0x200000)
 			/* If this bit is set, secondary specifiers (a
 			   Microsoft extension/bug) are scanned. */
 #define DSI_LAST DSI_MICROSOFT_SECONDARY_SPECIFIERS
