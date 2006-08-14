@@ -12798,6 +12798,9 @@ Allocate a copy of an expression node and return a pointer to it.
     expr_copy->variant.lowered_eh.variant.prologue_info = copy_prologue_info;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
   }  /* if */
+#if EXPR_RANGE_MODIFIERS_IN_IL
+  copy_expr_range_modifiers(expr, expr_copy);
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
   return expr_copy;
 }  /* copy_node */
 

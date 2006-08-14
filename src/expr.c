@@ -416,6 +416,34 @@ are set appropriately.
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+#if EXPR_RANGE_MODIFIERS_IN_IL
+
+static void add_expr_range_modifier(an_operand                  *result,
+                                    an_expr_range_modifier_kind kind,
+                                    a_source_position           *start,
+                                    a_source_position           *end)
+/*
+If the operand designated by result has an associated expression node, add
+a range modifier of the specified kind at the head of its linked list of
+modifiers and set the modifier's range to the specified positions.
+*/
+{
+  an_expr_node_ptr expr = expr_node_from_operand(result);
+
+  if (expr != NULL &&
+      /* Ignore compiler-generated operations. */
+      (!is_operation_node(expr) ||
+       !expr->variant.operation.compiler_generated)) {
+    an_expr_range_modifier_ptr ermp = alloc_expr_range_modifier(kind);
+    ermp->range.start = *start;
+    ermp->range.end = *end;
+    ermp->next = expr->range_modifiers;
+    expr->range_modifiers = ermp;
+  }  /* if */
+}  /* add_expr_range_modifier */
+
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
+
 /*
 Macro to record source positions in an_operand at the end of scanning
 an expression.  result is the result operand.  start_pos and end_pos
@@ -4503,8 +4531,16 @@ operation is a pointer-to-member (see ARM 5.3).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
 
+#if EXPR_RANGE_MODIFIERS_IN_IL
+  /* Do not use set_operand_position in order to maintain the position in the
+     underlying expression. */
+  set_base_operand_position(result, &start_position, &end_position);
+  add_expr_range_modifier(result, (an_expr_range_modifier_kind)erm_ampersand,
+                          &start_position, &end_position);
+#else /* !EXPR_RANGE_MODIFIERS_IN_IL */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   db_exit();
 }  /* scan_ampersand_operator */
@@ -4781,6 +4817,10 @@ See section 3.3.3.2 of the standard.
   /* set_operand_position is not used on purpose, because we want to keep
      the position that is in the underlying expression. */
   set_base_operand_position(result, &start_position, &operand.end_position);
+#if EXPR_RANGE_MODIFIERS_IN_IL
+  add_expr_range_modifier(result, (an_expr_range_modifier_kind)erm_asterisk,
+                          &start_position, &operand.end_position);
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
 
   db_exit();
@@ -10745,13 +10785,7 @@ Syntax:
     a_boolean cast_to_void      = is_void_type(type_cast_to);
 
     orig_type_cast_to = type_cast_to;
-    if (is_expression_operand(result)) {
-      operand_expression = result->variant.expression;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-    } else if (is_constant_operand(result)) {
-      operand_expression = result->variant.constant.expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-    }  /* if */
+    operand_expression = expr_node_from_operand(result);
     /* Check for user-defined conversions and casts to reference type. */
     check_user_defined_conversions_for_cast(type_cast_to, result,
                                             &allow_rvalue_on_rewrite,
@@ -10914,14 +10948,7 @@ Syntax:
   if (err) {
     conv_to_error_operand(result);
   } else if (!ignored) {
-    an_expr_node_ptr result_expression = NULL;
-    if (is_expression_operand(result)) {
-      result_expression = result->variant.expression;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-    } else if (is_constant_operand(result)) {
-      result_expression = result->variant.constant.expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-    }  /* if */
+    an_expr_node_ptr result_expression = expr_node_from_operand(result);
     if (result_expression != NULL &&
         result_expression != operand_expression &&
         (result_expression->kind == (an_expr_node_kind)enk_temp_init ||
@@ -11612,6 +11639,10 @@ Also scans GNU statement expressions:
          anything to the expression to represent the parentheses, so the
          expression still represents the thing inside the parentheses). */
       set_base_operand_position(result, &start_position, &end_position);
+#if EXPR_RANGE_MODIFIERS_IN_IL
+      add_expr_range_modifier(result, (an_expr_range_modifier_kind)erm_parens,
+                              &start_position, &end_position);
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
     }  /* if */
   }  /* if */
 

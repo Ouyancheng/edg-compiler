@@ -1,5 +1,39 @@
 Version 3.9
 
+8/14/06  Source range for expressions involving parentheses and unary & and *
+
+Because lvalues are represented in the EDG IL as pointers, the unary
+pointer operators & and * generally just change the interpretation of an
+existing expression node instead of resulting in the creation of a new
+one.  Similar considerations dictate that parentheses also do not have
+their own expression nodes.  As a result it is not clear what should be
+covered by the source_range of some expression nodes.  For example, the
+statement
+
+  return *(f());
+
+is represented in the IL by an stmk_return statement whose expression is an
+eok_call expression operation node.  Should the source range of the
+eok_call node reflect just the call, "f()", or should it cover the entire
+expression of the return statement, "*(f())"?
+
+When the new configuration option EXPR_RANGE_MODIFIERS_IN_IL is set to
+TRUE, this quandary is addressed by adding a list of "range modifiers" to
+the expression node, each describing the source range of the expression
+resulting from applying one additional syntactic element to the expression
+directly denoted by the node.  In the above example, the ranges for the
+eok_call node and its list of modifiers might be:
+
+                      source range       expression
+                      ------------       ----------
+  expr_range:         columns 15-17          f()
+  range_modifiers:
+    asterisk:         columns 13-18        *(f())
+    parentheses:      columns 14-18         (f())
+
+See the comments in il_def.h for the a_source_range_modifier entry and the
+range_modifiers member of an_expr_node for details.
+
 8/14/06  Memory leak when using MAKE_FRONT_END_CALLABLE
 
 When the front end is built with MAKE_FRONT_END_CALLABLE == TRUE, memory used

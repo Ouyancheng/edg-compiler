@@ -249,6 +249,11 @@ extern a_name_reference_ptr alloc_name_reference(void);
 extern void clear_name_reference(a_name_reference_ptr	nrp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
+#if EXPR_RANGE_MODIFIERS_IN_IL
+extern an_expr_range_modifier_ptr alloc_expr_range_modifier(
+                                             an_expr_range_modifier_kind kind);
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 extern char *copy_string_to_region(a_memory_region_number region,

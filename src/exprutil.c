@@ -1406,17 +1406,8 @@ operator_position is non-NULL, use that position as the operator position
 if setting the positions in the underlying expression.
 */
 {
-  an_expr_node_ptr expr = NULL;
+  an_expr_node_ptr expr = expr_node_from_operand(operand);
 
-  if (is_expression_operand(operand)) {
-    expr = operand->variant.expression;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  } else if (is_constant_operand(operand)) {
-    /* Some constants have a record of the expression from which they were
-       generated. */
-    expr = operand->variant.constant.expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-  }  /* if */
   if (expr != NULL &&
       /* Don't set the position on compiler-generated operations. */
       (!is_operation_node(expr) ||
@@ -9421,6 +9412,7 @@ non-NULL return *con_value == NULL.
   a_source_range saved_expr_range;
   a_source_position
                  saved_operator_position;
+  a_boolean      added_indirection_to_node = FALSE;
 
   saved_expr_range = node->expr_range;
   saved_operator_position = node->operator_position;
@@ -9602,6 +9594,9 @@ non-NULL return *con_value == NULL.
     /* Not an optimized case.  Just add an indirection.  This also drops
        the type qualifiers as appropriate. */
     node = add_indirection_to_node(node);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    added_indirection_to_node = TRUE;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   if (template_constant) {
     /* The result is a template-dependent constant.  We have a correct
@@ -9634,7 +9629,10 @@ non-NULL return *con_value == NULL.
   if (node != NULL) {
     /* Restore the original expression position. */
     node->expr_range = saved_expr_range;
-    if (is_operation_node(node)) {
+    if (is_operation_node(node) && !added_indirection_to_node) {
+      /* Don't restore the operator position to an added indirection node:
+         this node does not correspond to a unary * appearing in the
+         source, so giving it an operator position is just confusing. */
       node->operator_position = saved_operator_position;
     }  /* if */
   }  /* if */
@@ -9706,6 +9704,9 @@ cases so we don't do it here.
   a_type_ptr       operand_type, cast_orig_type;
   a_boolean        constant_case = FALSE, qualifiers_dropped = FALSE;
   a_constant_ptr   con_value;
+#if EXPR_RANGE_MODIFIERS_IN_IL
+  an_expr_node_ptr orig_node = expr_node_from_operand(operand);
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 
   /* Ignore non-lvalues. */
   if (is_an_lvalue(operand)) {
@@ -9918,6 +9919,22 @@ cases so we don't do it here.
     }  /* if */
     /* Restore the operand's source position. */
     restore_operand_details(operand, &orig_operand);
+#if EXPR_RANGE_MODIFIERS_IN_IL
+    if (orig_node != NULL) {
+      /* If there is a new node replacing the original node (i.e., the
+         operand's current node is not the original and not an eok_indirect
+         on top of it), copy the expr_range and range_modifiers from the
+         original. */
+      an_expr_node_ptr curr_node = expr_node_from_operand(operand);
+      if (curr_node != NULL && curr_node != orig_node &&
+          !(is_operation_node(curr_node) &&
+            node_operator_is(curr_node, eok_indirect))) {
+        curr_node->expr_range = orig_node->expr_range;
+        curr_node->operator_position = orig_node->operator_position;
+        copy_expr_range_modifiers(orig_node, curr_node);
+      }  /* if */
+    }  /* if */
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
     /* The ref_entries_list is cleared because it should only contain
        information on lvalue addresses. */
     operand->ref_entries_list = NULL;
@@ -10972,6 +10989,66 @@ types to get a boolean expression (see process_boolean_controlling_expression).
   restore_operand_details(operand, &orig_operand);
   return okay;
 }  /* check_boolean_controlling_expr */
+
+
+#if EXPR_RANGE_MODIFIERS_IN_IL
+
+void copy_expr_range_modifiers(an_expr_node_ptr old_node,
+                               an_expr_node_ptr new_node)
+/*
+If old_node has range modifiers, create copies of them in new_node.
+*/
+{
+  if (old_node->range_modifiers != NULL) {
+    an_expr_range_modifier_ptr orig_ermp;
+    an_expr_range_modifier_ptr last_ermp = NULL;
+    for (orig_ermp = old_node->range_modifiers; orig_ermp != NULL;
+         orig_ermp = orig_ermp->next) {
+      an_expr_range_modifier_ptr new_ermp =
+                                    alloc_expr_range_modifier(orig_ermp->kind);
+      new_ermp->range = orig_ermp->range;
+      if (last_ermp != NULL) {
+        last_ermp->next = new_ermp;
+      } else {
+        new_node->range_modifiers = new_ermp;
+      }  /* if */
+      last_ermp = new_ermp;
+    }  /* for */
+  }  /* if */
+}  /* copy_expr_range_modifiers */
+
+
+void f_copy_operand_position_to_expr(an_operand       *operand,
+                                     an_expr_node_ptr node)
+/*
+Copy the source position from an expression operand into an expression
+node.  If the node associated with the operand has range modifiers, use the
+position information and modifiers from that node; otherwise, use the
+position information from the operand itself.
+*/
+{
+  an_expr_node_ptr operand_node = expr_node_from_operand(operand);
+
+  if (operand_node != NULL &&
+      operand_node->range_modifiers != NULL) {
+    /* The operand's node has range modifiers, indicating that there were
+       additional syntactic components (indirection, address of, parentheses)
+       subsumed by the node in addition to the expression it directly
+       denotes.  We must clone that detailed position information in the new
+       node rather than just copying the operand source range. */
+    node->expr_range = operand_node->expr_range;
+    node->operator_position = operand_node->operator_position;
+    copy_expr_range_modifiers(operand_node, node);
+  } else {
+    /* The operand's node has no range modifiers, so the operand's position
+       information should accurately describe the source range of the
+       expression. */
+    node->expr_range.start = operand->position;
+    node->expr_range.end = operand->end_position;
+  }  /* if */
+}  /* f_copy_operand_position_to_expr */
+
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 
 
 #if DEBUG

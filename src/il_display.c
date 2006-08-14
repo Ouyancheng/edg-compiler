@@ -3795,6 +3795,18 @@ cleanup_state_common:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("expr_range", &ptr->expr_range);
   disp_source_position("operator_position", &ptr->operator_position);
+#if EXPR_RANGE_MODIFIERS_IN_IL
+  if (ptr->range_modifiers != NULL) {
+    an_expr_range_modifier_ptr ermp;
+    char                       buff[16];
+    (void)printf("range_modifiers\n");
+    for (ermp = ptr->range_modifiers; ermp != NULL; ermp = ermp->next) {
+      (void)sprintf(buff, "  %s",
+                    expr_range_modifier_kind_names[(int)ermp->kind]);
+      disp_source_range(buff, &ermp->range);
+    }  /* for */
+  }  /* if */
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_expr_node */
 
@@ -5887,6 +5899,9 @@ This routine is called during IL walking.
 #if MACRO_INVOCATION_TREE_IN_IL
     case iek_macro_invocation_record_block:
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+#if EXPR_RANGE_MODIFIERS_IN_IL
+    case iek_expr_range_modifier:
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
       break;
     default:
       (void)printf("\n");

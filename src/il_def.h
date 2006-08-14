@@ -557,6 +557,10 @@ typedef enum /*an_il_entry_kind*/ {
   iek_local_expr_node_ref,
 			/* a_local_expr_node_ref */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+#if EXPR_RANGE_MODIFIERS_IN_IL
+  iek_expr_range_modifier,
+			/* an_expr_range_modifier */
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -703,6 +707,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
 /* iek_local_expr_node_ref */		"local-expr-node-ref",
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+#if EXPR_RANGE_MODIFIERS_IN_IL
+/* iek_expr_range_modifier */		"expr-range-modifier",
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -9706,6 +9713,71 @@ typedef struct a_local_expr_node_ref {
 
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
+#if EXPR_RANGE_MODIFIERS_IN_IL
+/*
+Enumeration of kinds of modifiers for expression ranges.
+*/
+enum an_expr_range_modifier_kind_tag {
+  erm_parens,		/* parentheses */
+  erm_asterisk,		/* indirection */
+  erm_ampersand,	/* address of */
+  erm_last
+};
+typedef a_byte an_expr_range_modifier_kind;
+
+/*
+Names of expression range modifier kinds.  Used by il_display.c.
+*/
+
+EXTERN char *expr_range_modifier_kind_names[(int)erm_last + 1]
+#if VAR_INITIALIZERS
+= {
+  "erm_parens",
+  "erm_asterisk",
+  "erm_ampersand",
+  ""
+}
+#endif /* VAR_INITIALIZERS */
+;
+
+/*
+A modifier for an expression range.  Because syntactic elements of
+expressions such as unary asterisk and parentheses are not represented in
+the IL by separate expression nodes (an asterisk typically just changes its
+operand from a pointer rvalue to an lvalue, for instance), a given node
+could correspond to any of a number of source ranges.  For example, an
+expression like "*(p+i)" (represented by an eok_padd operation node) could
+legitimately be viewed as the three columns containing the "+" operator and
+its operands, as the five columns containing the parenthesized form, or as
+the six columns including the indirection operator (implicit in the node).
+
+When EXPR_RANGE_MODIFIERS_IN_IL is TRUE, the expr_range in the node covers
+only the operator and operands explicitly denoted by the node (or the
+variable reference in the case of an enk_variable, etc.).  (This is the
+normal state of affairs for indirection and parentheses but is a departure
+for the ampersand operator.)  Each additional syntactic element that is
+subsumed by the node is represented by one an_expr_range_modifier node in
+the linked list pointed to by the node's range_modifiers field; the head of
+the list represents the leftmost/outermost syntactic element associated
+with the node.  Each modifier describes the kind of syntactic element and
+the complete source range of that expression (i.e., extending at least
+through the source range of the node and any following range modifiers).
+*/
+typedef struct an_expr_range_modifier *an_expr_range_modifier_ptr;
+typedef struct an_expr_range_modifier {
+  an_expr_range_modifier_kind
+		kind;	/* The kind of syntactic construct this modifier
+			   represents. */
+  an_expr_range_modifier_ptr
+		next;	/* The next (or contained, for erm_parens) range
+			   modifier in the list, or NULL for the last
+			   one. */
+  a_source_range
+		range;	/* The source range represented by this
+			   modifier. */
+} an_expr_range_modifier;
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
+
 typedef struct an_expr_node {
   /* A single expression node. */
   a_type_ptr    type;
@@ -10107,6 +10179,16 @@ typedef struct an_expr_node {
 			/* When kind == enk_operation, the source position
 			   at which the operator appears in the source.
 			   Otherwise, null_source_position. */
+#if EXPR_RANGE_MODIFIERS_IN_IL
+  an_expr_range_modifier_ptr
+		range_modifiers;
+			/* If non-NULL, points to the head of a list of
+			   modifiers to the source range above, each
+			   reflecting syntactic elements for which there is
+			   no corresponding IL entry (unary *, parentheses,
+			   etc.).  The first entry in the list describes
+			   the leftmost/outermost syntactic element. */
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if RECORD_FORM_OF_NAME_REFERENCE
   a_name_reference_ptr
@@ -12797,6 +12879,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   sizeof(a_local_expr_node_ref),
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+#if EXPR_RANGE_MODIFIERS_IN_IL
+  sizeof(an_expr_range_modifier),
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */
