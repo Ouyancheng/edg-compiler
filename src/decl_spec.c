@@ -4039,6 +4039,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
   a_source_position            pos_explicit_base;
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr             attributes = NULL;
+  a_source_position            attr_pos;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_name_reference_ptr         name_ref = NULL;
@@ -4079,6 +4080,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && curr_token == tok_attribute) {
     /* Look for any attributes that apply to this type. */
+    attr_pos = pos_curr_token;
     attributes = scan_attributes();
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -4750,7 +4752,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
   } else {
     /* No brace-enclosed list follows. */
     if (attributes != NULL) {
-      pos_warning(ec_enum_attribute_ignored, &attributes->position);
+      pos_warning(ec_enum_attribute_ignored, &attr_pos);
       free_attribute_list(attributes);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
