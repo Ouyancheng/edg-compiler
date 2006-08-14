@@ -13,9 +13,9 @@ identifier.  For example:
 
 8/11/06  GNU compatibility: Enum attributes
 
-In GNU mode, the front end previously accepted GNU for enumeration types only
-when those attributes followed the type definition.  They can now also appear
-after the keyword "enum".  For example:
+In GNU mode, the front end previously accepted attributes on enumeration types
+only when those attributes followed the type definition.  They can now also
+appear after the keyword "enum".  For example:
 
   enum __attribute((packed)) E { e1, e2, e3 };  // Now accepted in GNU mode.
 
