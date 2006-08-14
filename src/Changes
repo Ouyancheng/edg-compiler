@@ -1,5 +1,11 @@
 Version 3.9
 
+8/14/06  Memory leak when using MAKE_FRONT_END_CALLABLE
+
+When the front end is built with MAKE_FRONT_END_CALLABLE == TRUE, memory used
+for memory allocation entries beyond the initial SIZE_MEMORY_ALLOCATION_TABLE
+entries were not freed properly.  This has been fixed.
+
 8/11/06  Remark for undefined preprocessing identifier
 
 The diagnostic issued when an undefined identifier is used in a

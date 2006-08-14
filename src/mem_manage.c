@@ -1805,7 +1805,7 @@ Free the general memory specified by *list.
   for (map = *list; map != NULL; map = next_map) {
     next_map = map->next;
     free((a_void_ptr)map->buffer);
-    if (map < &memory_allocation_table[0] &&
+    if (map < &memory_allocation_table[0] ||
         map >= &memory_allocation_table[SIZE_MEMORY_ALLOCATION_TABLE]) {
       /* This memory allocation entry is not part of the static memory
          allocation table.  Free it now. */
