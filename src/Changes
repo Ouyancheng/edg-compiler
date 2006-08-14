@@ -13,11 +13,16 @@ identifier.  For example:
 
 8/11/06  GNU compatibility: Enum attributes
 
-The front end previously accepted GNU attributes for enumeration types only
-when those attributes followed the type definition.  In GNU mode, they can now
-also appear after the keyword "enum".  For example:
+In GNU mode, the front end previously accepted GNU for enumeration types only
+when those attributes followed the type definition.  They can now also appear
+after the keyword "enum".  For example:
 
   enum __attribute((packed)) E { e1, e2, e3 };  // Now accepted in GNU mode.
+
+Such attributes are ignored (with a warning) if the enum declaration is not a
+definition:
+
+  enum __attribute((deprecated)) D;  // Attribute is ignored (with a warning).
 
 8/11/06  Microsoft compatibility: Secondary specifiers
 

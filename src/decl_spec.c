@@ -4077,10 +4077,10 @@ describes Microsoft attributes preceding the enum specifier (if any).
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && curr_token == tok_attribute) {
-      /* Look for any attributes that apply to this type. */
-      attributes = scan_attributes();
-    }  /* if */
+  if (gnu_mode && curr_token == tok_attribute) {
+    /* Look for any attributes that apply to this type. */
+    attributes = scan_attributes();
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* If there is an identifier next, it is a tag.  It can be the declaration
      of a new tag or a reference to an existing tag. */
@@ -4746,6 +4746,14 @@ describes Microsoft attributes preceding the enum specifier (if any).
        defined, they will have been recorded on a fixup list.  Go through
        the fixup list and complete the declarations. */
     check_dependent_type_fixup_list(tag_sym);
+#if GNU_EXTENSIONS_ALLOWED
+  } else {
+    /* No brace-enclosed list follows. */
+    if (attributes != NULL) {
+      pos_warning(ec_enum_attribute_ignored, &attributes->position);
+      free_attribute_list(attributes);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
