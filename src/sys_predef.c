@@ -497,7 +497,7 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_bit_count_funcs(_clz);
   enter_gnu_builtin_complex_math_funcs1(_conj);
   enter_gnu_builtin_vararg_func0(_constant_p, int);  /* Pseudo-function. */
-  enter_gnu_builtin_complex_math_funcs2(_copysign);
+  enter_gnu_builtin_real_math_funcs2(_copysign);
   enter_gnu_builtin_real_math_funcs1(_cos);
   enter_gnu_builtin_real_math_funcs1(_cosh);
   enter_gnu_builtin_complex_math_funcs2(_cpow);

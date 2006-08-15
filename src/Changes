@@ -1,5 +1,12 @@
 Version 3.9
 
+8/15/06  Erroneous type for __builtin_copysign (GNU mode)
+
+In GNU modes, the front end predeclared the function __builtin_copysign, but
+its parameter and return types were incorrectly recorded as being complex
+floating-point types (the same was true of __builtin_copysignf and
+builtin_copysignl).  This is now fixed.
+
 8/15/06  Invalid IL access for certain template-dependent enum definitions
 
 The front end sometimes accessed an incorrect variant field within a_constant
