@@ -7005,6 +7005,7 @@ Returns TRUE if there is an error in the specifiers.
                           &decl_specifiers_seen, register_id, &err);
           goto no_get_token;
         }  /* if */
+        break;
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
       case tok_thread:
         /* A storage specifier allowed in certain modes (can be combined with
@@ -7143,7 +7144,7 @@ Returns TRUE if there is an error in the specifiers.
         /* volatile type qualifier (3.5.3). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
-          /* E.g., "int i, double const j;". */
+          /* E.g., "int i, double volatile j;". */
           warning(ec_type_qualifier_ignored);
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7240,7 +7241,7 @@ Returns TRUE if there is an error in the specifiers.
         /* restrict type qualifier. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
-          /* E.g., "int i, double const j;". */
+          /* E.g., "int i, Ptr restrict j;". */
           warning(ec_type_qualifier_ignored);
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7266,11 +7267,9 @@ Returns TRUE if there is an error in the specifiers.
       case tok_unaligned:
         /* Microsoft __unaligned type qualifier. */
         if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
-          /* E.g., "int i, double const j;". */
+          /* E.g., "int i, double __unaligned *j;". */
           warning(ec_type_qualifier_ignored);
-        } else
-        /* Do not insert code here. */
-        if (qualifiers & TQ_UNALIGNED) {
+        } else if (qualifiers & TQ_UNALIGNED) {
           /* __unaligned may not appear more than once. */
           warning(ec_dupl_type_qualifier);
         } else {
@@ -8532,7 +8531,7 @@ See decl_specifiers(...) for the meaning of the parameters.
                         decl_pos_block, (a_upc_block_size*)NULL);
   /* Restore the primary cv-qualifiers: */
   state->qualifiers = saved_qualifiers;
-  add_type_qualifiers(type_ptr, state, UPC_BLOCK_SIZE_NONE);
+  (void)add_type_qualifiers(type_ptr, state, UPC_BLOCK_SIZE_NONE);
   /* Issue a warning in most cases, but if a class or enumeration type was
      defined make it an error. */
   pos_diagnostic((*output_flags & DSO_DEFINES_SOMETHING) ? es_error
