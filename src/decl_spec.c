@@ -4475,7 +4475,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
                                 (a_constant_repr_kind)ck_template_param) {
             /* We are doing a prototype instantiation and we have a case like
                this:
-                 template <int N> class A { enum e { e1 = N }; };
+                 template <int N> class A { enum e { e1 = 2*N }; };
             */
             template_param = TRUE;
           } else if (enum_types_can_be_larger_than_int) {
@@ -4529,6 +4529,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
               /* The previous value was template-dependent.  So we need to
                  create a distinct template-dependent value for this one. */
               increment_template_dependent_enum_constant(&constant);
+              template_param = TRUE;
             } else if (is_max_value_for_integer_kind(&constant,
                                                      largest_enum_int_kind)) {
               /* The incremented value would be out of range (3.5.2.2,

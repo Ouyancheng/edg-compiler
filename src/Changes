@@ -1,5 +1,16 @@
 Version 3.9
 
+8/15/06  Invalid IL access for certain template-dependent enum definitions
+
+The front end sometimes accessed an incorrect variant field within a_constant
+entries when processing a template-dependent enum definition.  For example:
+
+  template<int I> struct S {
+    enum E { e1 = I, e2 };  // Caused ck_template_param constants to be
+  };                        // accessed as ck_integer constants.
+
+This is now fixed.
+
 8/14/06  Source range for expressions involving parentheses and unary & and *
 
 Because lvalues are represented in the EDG IL as pointers, the unary

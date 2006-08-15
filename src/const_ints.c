@@ -399,6 +399,8 @@ the same constant.
   a_boolean min_con_signed, max_con_signed;
   a_boolean ikind_signed = int_kind_is_signed[ikind];
 
+  check_assertion(min_con->kind == (a_constant_repr_kind)ck_integer &&
+                  max_con->kind == (a_constant_repr_kind)ck_integer);
   min_con_signed = int_constant_is_signed(min_con);
   if (cmp_integer_values(&min_con->variant.integer_value,
                          min_con_signed,
