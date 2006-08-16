@@ -7,7 +7,7 @@ bugs mode when parsing a member-using declaration that found a typedef for a
 non-member class type.  For example:
 
   struct B { typedef B T; };
-  struct D { using B::T; };  // Bad IL for the using-declaration.
+  struct D: B { using B::T; };  // Bad IL for the using-declaration.
 
 The C++-generating back end would abort when trying to render the bad IL.
 This is now fixed.
