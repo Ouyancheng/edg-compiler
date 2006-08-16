@@ -1,5 +1,17 @@
 Version 3.9
 
+8/16/06  Abort or bad IL with member using-declaration in Microsoft bugs mode
+
+A change in version 3.7 caused the front end to generate bad IL in Microsoft
+bugs mode when parsing a member-using declaration that found a typedef for a
+non-member class type.  For example:
+
+  struct B { typedef B T; };
+  struct D { using B::T; };  // Bad IL for the using-declaration.
+
+The C++-generating back end would abort when trying to render the bad IL.
+This is now fixed.
+
 8/15/06  C++-generating back end: enumerators with dependent values with
          PROTOTYPE_INSTANTIATIONS_IN_IL
 

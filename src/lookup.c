@@ -3754,10 +3754,12 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
       /* We reached the end of the list.  If there is a tag symbol, or
          type tag symbol saved within the loop, use it. */
       if (type_tag_symbol != NULL) {
-        if (microsoft_bugs) {
+        if (microsoft_bugs && must_be_tag && !direct_class_members_only) {
           /* MSVC++ allows an elaborated-type-specifier with a qualified-id
              to refer to a typedef for a tagged type.  Return the symbol
-             for the tagged type. */
+             for the tagged type.  (If direct_class_members_only is TRUE,
+             the typeref should not be skipped since that may result in a
+             nonmember type.) */
           sym = (a_symbol_ptr)skip_typerefs(type_tag_symbol->
                                   variant.type.ptr)->source_corresp.assoc_info;
         } else {
