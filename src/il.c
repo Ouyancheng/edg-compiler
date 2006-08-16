@@ -12668,6 +12668,8 @@ a constant that is the previous value incremented by one.
                            make_operator_node((an_expr_operator_kind)eok_iadd,
                                               con->type,
                                               operands);
+  con->variant.template_param.variant.expr->
+                                   variant.operation.compiler_generated = TRUE;
 }  /* increment_template_dependent_enum_constant */
 
 

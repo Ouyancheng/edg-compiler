@@ -4266,6 +4266,7 @@ is the one associated with the definition of the enum.
 {
   a_constant_ptr enum_con;
   a_constant     next_enum_value;
+  a_boolean      explicit_enum_expr;
 
   check_assertion_str(type->kind == (a_type_kind)tk_enum &&
                       type->variant.integer.enum_type,
@@ -4307,8 +4308,10 @@ is the one associated with the definition of the enum.
     /* Output the enumeration constants. */
     /* Start with an expected value of 0 next. */
     next_enum_value = *enum_con;
-    set_integer_value(&next_enum_value.variant.integer_value,
-                      (a_host_large_integer)0);
+    if (enum_con->kind == (a_constant_repr_kind)ck_integer) {
+      set_integer_value(&next_enum_value.variant.integer_value,
+                        (a_host_large_integer)0);
+    }  /* if */
     for (;;) {
       /* Process macros, etc. */
       (void)process_preprocessing_directives();
@@ -4324,7 +4327,46 @@ is the one associated with the definition of the enum.
       /* Output the constant's name. */
       gen_unqualified_name(&enum_con->source_corresp, iek_constant);
       /* Output the value if it's not the next value in sequence. */
-      if (cmp_integer_constants(enum_con, &next_enum_value) != 0) {
+      if (enum_con->kind == (a_constant_repr_kind)ck_integer) {
+        /* This is an integral constant. */
+        if (next_enum_value.kind == (a_constant_repr_kind)ck_integer) {
+          /* The previous constant was also integral, so we only need an
+             explicit expression if this constant does not have the
+             expected value, i.e., one more than the previous one. */
+          explicit_enum_expr =
+                      (cmp_integer_constants(enum_con, &next_enum_value) != 0);
+        } else {
+          /* The previous constant involved a template parameter, so an
+             explicit expression is needed for this integral constant. */
+          explicit_enum_expr = TRUE;
+        }  /* if */
+      } else {
+        /* This constant involves a template parameter. */
+        check_assertion(enum_con->kind ==
+                                      (a_constant_repr_kind)ck_template_param);
+        if (enum_con->variant.template_param.kind ==
+                                   (a_template_param_constant_kind)tpck_cast &&
+            enum_con->variant.template_param.variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param &&
+            enum_con->variant.template_param.variant.constant->
+                                                 variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression &&
+            is_operation_node(enum_con->variant.template_param.
+                      variant.constant->variant.template_param.variant.expr) &&
+            enum_con->variant.template_param.variant.constant->
+                                          variant.template_param.variant.expr->
+                                        variant.operation.compiler_generated) {
+          /* The constant is a compiler-generated expression, which only
+             occurs if it is the incremented value of the preceding
+             constant; no explicit expression is needed. */
+          explicit_enum_expr = FALSE;
+        } else {
+          /* Any other kind of constant must involve an explicit
+             expression. */
+          explicit_enum_expr = TRUE;
+        }  /* if */
+      }  /* if */
+      if (explicit_enum_expr) {
         write_tok_str(" = ");
         if (enum_con->kind == (a_constant_repr_kind)ck_integer) {
           /* We use form_integer_constant because we want to handle the
@@ -4343,7 +4385,9 @@ is the one associated with the definition of the enum.
       if (enum_con == NULL) break;
       /* Not the end of the list, so output a separator and keep looping. */
       write_tok_str(", ");
-      incr_integer_value(&next_enum_value.variant.integer_value);
+      if (next_enum_value.kind == (a_constant_repr_kind)ck_integer) {
+        incr_integer_value(&next_enum_value.variant.integer_value);
+      }  /* if */
     }  /* for */
   }  /* if */
   /* Process macros, etc. */

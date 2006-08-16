@@ -1,5 +1,18 @@
 Version 3.9
 
+8/15/06  C++-generating back end: enumerators with dependent values with
+         PROTOTYPE_INSTANTIATIONS_IN_IL
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+C++-generating back end generated every enumerator of an enumeration inside
+a template with an explicit expression if its value depended on a template
+parameter, even when the expression was implicit in the source.  This is
+now fixed.  For example:
+
+  template <int I> struct S {
+    enum E { e0 = I, e1 };     // Previously generated as "e1 = (I + 1)"
+  };
+
 8/15/06  Erroneous type for __builtin_copysign (GNU mode)
 
 In GNU modes, the front end predeclared the function __builtin_copysign, but
