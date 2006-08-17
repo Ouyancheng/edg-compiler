@@ -1,5 +1,20 @@
 Version 3.9
 
+8/17/06  Microsoft compatibility: [export] and inhibiting attribute processing
+
+The [export] attribute was previously erroneously treated as not applying to
+Microsoft interface types.  Now that attribute is accepted on interface types
+(but no longer on class types, which corresponds to the Microsoft behavior).
+For example:
+
+  [export] __interface I {};  // Now accepted in Microsoft mode.
+  [export] class C {};        // Now an error in Microsoft mode.
+
+Also, the configuration option SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING failed
+to fully disable the processing of Microsoft attributes (e.g., the example
+above elicited an error even when the macro was configured to TRUE).  This is
+now fixed.
+
 8/16/06  Abort or bad IL with member using-declaration in Microsoft bugs mode
 
 A change in version 3.7 caused the front end to generate bad IL in Microsoft

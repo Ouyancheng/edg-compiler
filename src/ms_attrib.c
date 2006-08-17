@@ -220,10 +220,11 @@ when specifying the parameters associated with an attribute.
     /* When scanning all attributes as unrecognized, override the specified
        kind and use the unrecognized kind instead. */
     msakdp->kind = (an_ms_attribute_kind)msak_unrecognized;
+    msakdp->target = MSAT_ANY;
   } else {
     msakdp->kind = kind;
+    msakdp->target = target;
   }  /* if */
-  msakdp->target = target;
   if (name != NULL) {
     /* If this is not an unnamed attribute, create a lookup table entry. */
     add_attribute_lookup_table_entry(msakdp, name);
@@ -482,7 +483,9 @@ are accepted.
                           "decorate", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [export] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "export", MSAT_ANY_TYPE);
+			     "export",
+                             MSAT_INTERFACE | MSAT_STRUCT | MSAT_UNION |
+                             MSAT_ENUM | MSAT_TYPEDEF);
   /* [first_is] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "first_is",
