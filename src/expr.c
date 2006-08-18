@@ -431,9 +431,11 @@ modifiers and set the modifier's range to the specified positions.
   an_expr_node_ptr expr = expr_node_from_operand(result);
 
   if (expr != NULL &&
-      /* Ignore compiler-generated operations. */
+      /* Ignore a compiler-generated operation unless it is an
+         operator-notation call node. */
       (!is_operation_node(expr) ||
-       !expr->variant.operation.compiler_generated)) {
+       !expr->variant.operation.compiler_generated ||
+       expr->variant.operation.call_uses_operator_syntax)) {
     an_expr_range_modifier_ptr ermp = alloc_expr_range_modifier(kind);
     ermp->range.start = *start;
     ermp->range.end = *end;
