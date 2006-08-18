@@ -10477,7 +10477,7 @@ Return a pointer to the variable that is declared.
   a_symbol_locator             locator;
   a_source_position            decl_pos;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
-  a_boolean                    incomplete_type_error_reported;
+  a_boolean                    incomplete_type_error_reported = FALSE;
   a_boolean                    missing_declarator = FALSE;
   a_symbol_reference_kind      srk_flags;
   a_decl_pos_block             decl_pos_block;
@@ -10523,15 +10523,11 @@ Return a pointer to the variable that is declared.
   }  /* if */
   check_pending_qualifiers_used(&state);
   complete_type_is_needed(type_ptr);
-  if (is_incomplete_type(type_ptr)) {
-    /* Incomplete type is not allowed. */
-    pos_error(ec_incomplete_type_not_allowed, &decl_pos);
-    type_ptr = error_type();
-  } else if (is_function_type(type_ptr)) {
+  if (is_function_type(type_ptr)) {
     /* Function type is disallowed. */
     pos_error(ec_function_type_not_allowed, &decl_pos);
     type_ptr = error_type();
-  } else if (is_array_type(type_ptr)) {
+  } else if (is_array_type(type_ptr) && !microsoft_mode) {
     /* Array type is disallowed. */
     pos_error(ec_array_type_not_allowed, &decl_pos);
     type_ptr = error_type();
@@ -10582,6 +10578,15 @@ Return a pointer to the variable that is declared.
     }  /* if */
     /* Reset the error position to the source position of the declarator. */
     error_position = locator.source_position;
+  }  /* if */
+  if (is_incomplete_type(vp->type)) {
+    /* Incomplete type is not allowed.  (This test is delayed until after
+       having seen the initializer so we can handle the Microsoft extension
+       that permits "if (char s[] = "x") ...".) */
+    if (!incomplete_type_error_reported) {
+      pos_error(ec_incomplete_type_not_allowed, &decl_pos);
+    }  /* if */
+    vp->type = error_type();
   }  /* if */
   /* Both in the error and normal case consider the variable set.  Don't
      do this earlier so we can catch "if (int x = x);". */

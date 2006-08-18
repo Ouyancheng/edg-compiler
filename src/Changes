@@ -1,5 +1,14 @@
 Version 3.9
 
+8/18/06  Microsoft compatibility: Array variables in condition declarations
+
+In Microsoft mode, the front end now accepts condition declarations that
+declare array variables.  For example:
+
+  void f() {
+    if (char s[] = "x");  // Now accepted in Microsoft C++ mode.
+  }
+
 8/18/06  Mutable reference members
 
 The front end now issues an error in strict mode when attempting to declare a
