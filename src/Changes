@@ -1,5 +1,22 @@
 Version 3.9
 
+8/17/06  Expression range for operator-syntax call nodes
+
+In configurations with EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE, the source
+position information is suppressed in operation expression nodes that are
+marked as compiler-generated.  An exception has been made for call nodes
+resulting from operator-notation calls to overloaded operator functions;
+these will now show the expr_range and operator_position of the overloaded
+operator and its operands.  For example:
+
+  struct S {
+    bool operator!();
+  };
+  bool f(S& s) {
+    return !s;    // eok_call node now has expr_range indicating "!s" and
+                  // operator_position indicating "!"
+  }
+
 8/17/06  Source range in call of static member function
 
 In configurations with EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE, the ending
