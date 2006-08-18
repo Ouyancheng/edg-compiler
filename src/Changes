@@ -1,5 +1,19 @@
 Version 3.9
 
+8/17/06  Source range in call of static member function
+
+In configurations with EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE, the ending
+position of the expr_range in the enk_routine_address node was left as the
+null_source_position in calls to static member functions using the member
+selection syntax ("." or "->").  This is now fixed.  For example:
+
+  struct S {
+    static void f();
+  };
+  void g(S* p) {
+    p->f();    // End position formerly omitted in enk_routine_address node
+  }
+
 8/17/06  Microsoft compatibility: [export] and inhibiting attribute processing
 
 The [export] attribute was previously erroneously treated as not applying to
