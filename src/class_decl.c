@@ -9998,12 +9998,12 @@ respectively.
     }  /* if */
   }  /* if */
   if (!is_error_type(field_type)) {
+    a_boolean  is_ref = is_reference_type(field_type);
     if (is_abstract_class_type(field_type)) {
       /* Abstract class objects are prohibited (ARM 10.3). */
       report_abstract_class_error(ec_abstract_class_object_not_allowed,
                                   field_type, &locator->source_position);
-    } else if (strict_ansi_mode && is_union_type(class_type) &&
-               is_reference_type(field_type)) {
+    } else if (strict_ansi_mode && is_union_type(class_type) && is_ref) {
       /* Unions are not allowed to have members of reference type. */
       pos_diagnostic(strict_ansi_error_severity, ec_ref_not_allowed_in_union,
                      &decl_info->decl_start_pos);
@@ -10016,6 +10016,9 @@ respectively.
                 &locator->source_position);
       field_type = type_without_named_address_space_qualifiers(field_type);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+    }  /* if */
+    if (is_ref && strict_ansi_mode && (decl_info->dso_flags & DSO_MUTABLE)) {
+      pos_error(ec_reference_declared_mutable, &decl_info->decl_start_pos);
     }  /* if */
   }  /* if */
   if (curr_token == tok_colon) {
@@ -10253,14 +10256,6 @@ non-NULL, *p_ms_attributes is returned NULL.
     pos_sy_error(ec_bad_member_template_sym, &locator->source_position,
                  member_sym);
   }  /* if */
-  if (C_dialect == C_dialect_cplusplus) {
-    field->source_corresp.access = class_state->access;
-    if (decl_info->dso_flags & DSO_MUTABLE) {
-      /* The member is declared "mutable". */
-      field->is_mutable = TRUE;
-      class_type->variant.class_struct_union.any_mutable_member = TRUE;
-    }  /* if */
-  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (decl_info->decl_modifiers.get_property_name != NULL ||
       decl_info->decl_modifiers.put_property_name != NULL) {
@@ -10322,6 +10317,12 @@ non-NULL, *p_ms_attributes is returned NULL.
   }  /* if */
   class_state->end_of_field_list = field;
   if (C_dialect == C_dialect_cplusplus) {
+    field->source_corresp.access = class_state->access;
+    if (decl_info->dso_flags & DSO_MUTABLE) {
+      /* The member is declared "mutable". */
+      field->is_mutable = TRUE;
+      class_type->variant.class_struct_union.any_mutable_member = TRUE;
+    }  /* if */
     /* In C++ we need to keep track of whether any members have reference
        type. */
     cssp = symbol_supplement_for_class(class_type);

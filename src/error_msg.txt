@@ -1619,6 +1619,7 @@ ec_struct_declspec_ignored_in_C_mode;;"__declspec(%s) ignored (it has no meaning
 ec_nonstandard_secondary_decl_specifiers;;"specifiers after comma between declarations are nonstandard"
 ec_secondary_specifier_ignored;;"nonstandard specifier ignored"
 ec_enum_attribute_ignored;;"attributes are ignored on an enum declaration that is not also a definition"
+ec_reference_declared_mutable;;"a reference cannot be declared with \"mutable\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
