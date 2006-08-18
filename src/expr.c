@@ -3259,6 +3259,13 @@ nonstatic_member_function:
                                              &member_position,
                                              rep,
                                              result);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+            /* The end position must be set now rather than waiting until
+               the end, because combine_unneeded_selector_with_operand
+               will create a node that needs the end position for its
+               expr_range. */
+            result->end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             set_operand_name_reference_from_locator_for_curr_id(result);
             combine_unneeded_selector_with_operand(operand_1,
                                                    is_arrow_operator,
