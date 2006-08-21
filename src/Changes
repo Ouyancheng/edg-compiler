@@ -1,5 +1,15 @@
 Version 3.9
 
+8/21/06  GNU compatibility: Extended asm 'p' constraint
+
+The "simple constraint" encoded by the letter 'p' in GNU extended asm syntax
+is now accepted.  For example:
+
+  void f() {
+    char *d = "0123456789";
+    asm("add%Q0 $9, %k0\n" : "+p" (d)); // "p" constraint previously triggered
+  }                                     // an error.
+
 8/18/06  Microsoft compatibility: Array variables in condition declarations
 
 In Microsoft mode, the front end now accepts condition declarations that

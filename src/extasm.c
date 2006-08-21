@@ -425,19 +425,22 @@ done_with_modifiers:
         break;
       /* Memory */
       case 'm': 
-        ck = (an_asm_operand_constraint_kind)aoc_mem_any;       
+        ck = (an_asm_operand_constraint_kind)aoc_mem_any;
+        break;
+      case 'p': 
+        ck = (an_asm_operand_constraint_kind)aoc_mem_load;
         break;
       case 'o': 
-        ck = (an_asm_operand_constraint_kind)aoc_mem_offset;    
+        ck = (an_asm_operand_constraint_kind)aoc_mem_offset;
         break;
       case 'V': 
-        ck = (an_asm_operand_constraint_kind)aoc_mem_nonoffset; 
+        ck = (an_asm_operand_constraint_kind)aoc_mem_nonoffset;
         break;
       case '<': 
-        ck = (an_asm_operand_constraint_kind)aoc_mem_autoinc;   
+        ck = (an_asm_operand_constraint_kind)aoc_mem_autoinc;
         break;
       case '>': 
-        ck = (an_asm_operand_constraint_kind)aoc_mem_autodec;   
+        ck = (an_asm_operand_constraint_kind)aoc_mem_autodec;
         break;
       /* Immediates */
       case 'i':

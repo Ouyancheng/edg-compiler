@@ -2921,6 +2921,8 @@ enum an_asm_operand_constraint_kind_tag {
   aoc_reg_float,        /* f: any float register */
   /* memory */
   aoc_mem_any,          /* m: any memory location */
+  aoc_mem_load,         /* p: any memory location that is valid for a load/
+                              push operation */
   aoc_mem_offset,       /* o: memory location, if (val + sizeof(object))
                            is also acceptable in this context */
   aoc_mem_nonoffset,    /* V: m but not o */
@@ -2987,6 +2989,7 @@ EXTERN char asm_operand_constraint_letters[(int)aoc_last + 1]
   /* aoc_reg_integer */         'r',
   /* aoc_reg_float */           'f',
   /* aoc_mem_any */             'm',
+  /* aoc_mem_load */            'p',
   /* aoc_mem_offset */          'o',
   /* aoc_mem_nonoffset */       'V',
   /* aoc_mem_autoinc */         '>',
