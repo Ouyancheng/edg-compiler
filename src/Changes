@@ -1,5 +1,13 @@
 Version 3.9
 
+8/22/06  GNU compatibility: Extended asm 'Z' constraint
+
+In configurations with GNU_X86_ASM_EXTENSIONS_ALLOWED set to TRUE, the front
+end recognizes the "i386 family machine constraint" encoded by the letter 'Z'
+in GNU extended asm syntax.  However, it previously erroneously recorded the
+constraint using the lower case letter 'z' instead of the upper case 'Z'.
+This is now fixed.
+
 8/21/06  GNU compatibility: Extended asm 'p' constraint
 
 The "simple constraint" encoded by the letter 'p' in GNU extended asm syntax

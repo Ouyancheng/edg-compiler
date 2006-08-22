@@ -3023,7 +3023,7 @@ EXTERN char asm_operand_constraint_letters[(int)aoc_last + 1]
   /* aoc_imm_80387 */           'G',
   /* aoc_imm_sse */             'H',
   /* aoc_imm_sext32 */          'e',
-  /* aoc_imm_zext32 */          'z',
+  /* aoc_imm_zext32 */          'Z',
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   /* aoc_last */                '~'
 }
