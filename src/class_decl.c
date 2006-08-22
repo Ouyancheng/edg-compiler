@@ -14456,10 +14456,11 @@ next_declaration:
       } while (curr_token != tok_rbrace && curr_token != tok_end_of_source);
       /* Check that a non-empty struct/union in C mode has at least one
          named field. */
-      if (C_mode() && strict_ansi_mode && !class_state.any_named_fields) {
+      if (C_mode() && !class_state.any_named_fields) {
         /* Something like "struct S { int:1; };", which has undefined behavior
-           according to the C standard.  Issue a warning. */
-        warning(ec_no_named_fields);
+           according to the C standard.  Issue a diagnostic. */
+        diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
+                   ec_no_named_fields);
       }  /* if */
     }  /* if */
     if (is_template_instantiation && delayed_nested_class_def) {

@@ -318,8 +318,8 @@ a definition.
   check_assertion(is_immediate_class_type(tp));
   ctsp = tp->variant.class_struct_union.extra_info;
   has_body = (tp->variant.class_struct_union.field_list != NULL ||
-              (ctsp != NULL && ctsp->assoc_scope != NULL) ||
-              (gcc_mode && tp->variant.class_struct_union.is_empty_class));
+              tp->variant.class_struct_union.is_empty_class ||
+              (ctsp != NULL && ctsp->assoc_scope != NULL));
   return has_body;
 }  /* class_type_has_body */
 

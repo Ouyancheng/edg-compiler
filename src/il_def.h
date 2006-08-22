@@ -5960,9 +5960,10 @@ typedef struct a_type {
 		is_empty_class:1;
 			/* TRUE if this class has no nonstatic data members,
 			   virtual functions, virtual base classes or bases
-			   (direct or indirect) with such things.  Computed in
-			   do_class_layout.  In GNU C mode, this is TRUE for
-			   zero-sized classes. */
+			   (direct or indirect) with such things.  (In C mode,
+			   that reduces to structs and unions with no fields.)
+			   Computed in do_class_layout.  In GNU C mode, this
+			   is also TRUE for zero-sized classes. */
       a_bit_field
 		has_zero_init_component:1;
 			/* TRUE if an object of this type has no nontrivial

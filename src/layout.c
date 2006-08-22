@@ -4548,41 +4548,40 @@ static void compute_empty_class_bit(a_type_ptr  type)
 /*
 Determine whether the given class type is empty---i.e., has no nonstatic
 data members, virtual functions, virtual base classes or base classes with
-such things---and record the outcome in the type.  Note that GNU C mode also
-has an empty class concept: struct or unions with no fields or with no fields
-of nonzero size (such classes actually have size zero).
+such things---and record the outcome in the type.  In C mode, this normally
+reduces to structs with no fields.  Note that GNU C mode also has an empty
+class concept: struct or unions with no fields or with no fields of nonzero
+size (such classes actually have size zero).
 */
 {
   a_boolean        result = TRUE;
   a_base_class_ptr bcp;
-#if IA64_ABI || GNU_EXTENSIONS_ALLOWED
-  a_field_ptr     field;
-#endif /* IA64_ABI || GNU_EXTENSIONS_ALLOWED */
+  a_field_ptr     field = type->variant.class_struct_union.field_list;
 
+  if (C_mode()) {
+    if (!gcc_mode) {
+      /* Simply return whether the struct has any fields. */
+      result = (field == NULL);
 #if GNU_EXTENSIONS_ALLOWED
-  if (gcc_mode) {
-    /* In GNU C mode, structs and unions can be "empty" either because they
-       have no fields, or because all their fields have size zero.  Such
-       class types have size zero (without being incomplete). */
-    for (field = type->variant.class_struct_union.field_list;
-         field != NULL; 
-         field = field->next) {
-      if (skip_typerefs(field->type)->size != 0 &&
-          (!field->is_bit_field || field->bit_size != 0)) {
-        result = FALSE;
-        break;
-      }  /* if */
-    }  /* for */
-  } else
+    } else {
+      /* In GNU C mode, structs and unions can be "empty" either because they
+         have no fields, or because all their fields have size zero.  Such
+         class types have size zero (without being incomplete). */
+      for (; field != NULL; field = field->next) {
+        if (skip_typerefs(field->type)->size != 0 &&
+            (!field->is_bit_field || field->bit_size != 0)) {
+          result = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  {
+    }  /* if */
+  } else {
+    /* C++ mode. */
 #if IA64_ABI
     /* In the IA64 ABI, a zero-width bit field does not make a class 
        non-empty. */
-    for (field = type->variant.class_struct_union.field_list;
-         field != NULL; 
-         field = field->next) {
+    for (; field != NULL; field = field->next) {
 #if GNU_EXTENSIONS_ALLOWED
       if (gpp_mode) {
         /* Zero-length array fields do not make a GNU C++ class non-empty. */
@@ -4600,27 +4599,24 @@ of nonzero size (such classes actually have size zero).
     }  /* for */
 #else /* !IA64_ABI */
     /* In the Cfront-like ABI, any field makes the class non-empty. */
-    if (type->variant.class_struct_union.field_list != NULL) {
+    if (field != NULL) {
       result = FALSE;
     }  /* if */
 #endif /* IA64_ABI */
-    if (!result) {
-      /* The class is already known to be non-empty. */
+    if (!result || C_mode()) {
+      /* The result is already fully determined. */
     } else if (type->variant.class_struct_union.any_virtual_base_classes ||
                type->variant.class_struct_union.any_virtual_functions) {
       result = FALSE;
     } else {
-      /* Also check that every base class is similarly empty
-         (except in C mode, where there is no class type supplement): */
-      result = TRUE;
-      if (!C_mode()) {
-        for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
-          if (!bcp->type->variant.class_struct_union.is_empty_class) {
-            result = FALSE;
-            break;
-          }  /* if */
-        }  /* for */
-      }  /* if */
+      /* So far, the class appears to be empty (result is still TRUE).
+         Also check that every base class is similarly empty: */
+      for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
+        if (!bcp->type->variant.class_struct_union.is_empty_class) {
+          result = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
     }  /* if */
   }  /* if */
   type->variant.class_struct_union.is_empty_class = result;
@@ -4778,9 +4774,7 @@ for handling virtual bases and functions.
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   clear_layout_block(&lob, class_type);
-  if (C_dialect == C_dialect_cplusplus || gcc_mode) {
-    compute_empty_class_bit(class_type);
-  }  /* if */
+  compute_empty_class_bit(class_type);
   if (C_dialect == C_dialect_cplusplus) {
 #if IA64_ABI
     a_base_class_ptr            bcp;

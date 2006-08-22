@@ -1,5 +1,24 @@
 Version 3.9
 
+8/22/06  Empty structs and unions in C mode
+
+In default C mode, the front end now emits a warning when defining a struct or
+union type that only contains declarations that are not field declarations (in
+addition to the warnings already issued on the members that do not declare a
+field).  For example:
+
+  struct S {
+    struct N;  // Already triggered a diagnostic in C mode because nothing
+               // is really declared here.
+  };           // Now triggers a warning in default C mode (an error in
+               // strict mode) because S has no named fields.
+
+In strict C mode, this warning was already issued, but its severity is now
+raised to be a discretionary error (except in strict warnings mode).
+
+In addition, C-mode structs with no fields now have the flag is_empty_class
+set to TRUE in their IL entries (this is an IL CHANGE).
+
 8/22/06  GNU compatibility: Extended asm 'Z' constraint
 
 In configurations with GNU_X86_ASM_EXTENSIONS_ALLOWED set to TRUE, the front
