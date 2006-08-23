@@ -14459,7 +14459,8 @@ next_declaration:
       if (C_mode() && !class_state.any_named_fields) {
         /* Something like "struct S { int:1; };", which has undefined behavior
            according to the C standard.  Issue a diagnostic. */
-        diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
+        diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
+                                    : es_warning,
                    ec_no_named_fields);
       }  /* if */
     }  /* if */

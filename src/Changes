@@ -19,10 +19,10 @@ SRC_SEQ_ENTRIES_FOR_DECL_STMTS to FALSE.
 
 8/22/06  Empty structs and unions in C mode
 
-In default C mode, the front end now emits a warning when defining a struct or
-union type that only contains declarations that are not field declarations (in
-addition to the warnings already issued on the members that do not declare a
-field).  For example:
+In default C mode, the front end now emits a warning for definitions of struct
+or union types that only contain declarations that are not field declarations
+(in addition to the warnings already issued on the members that do not declare
+a field).  For example:
 
   struct S {
     struct N;  // Already triggered a diagnostic in C mode because nothing
