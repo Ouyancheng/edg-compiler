@@ -9302,6 +9302,9 @@ Generate code for the indicated "for" statement.
       /* Anything other than a declaration, e.g., all C cases. */
       gen_statement(init_stmt);
     } else {
+#if SRC_SEQ_ENTRIES_FOR_DECL_STMTS
+      check_for_and_take_source_seq_entry(init_stmt->source_sequence_entry);
+#endif /* SRC_SEQ_ENTRIES_FOR_DECL_STMTS */
       /* Process the declaration/initialization.  If there are several, they
          must be put out as a comma-separated list.  A loop is necessary
          in case a tag is declared in the specifiers list. */
@@ -11123,6 +11126,9 @@ statement unless suppress_trailing_space is TRUE.
         /* Note that there will always be at least an end-of-construct entry
            for the closing brace of the function, so we won't run off the
            end of the list. */
+#if SRC_SEQ_ENTRIES_FOR_DECL_STMTS
+        check_for_and_take_source_seq_entry(statement->source_sequence_entry);
+#endif /* SRC_SEQ_ENTRIES_FOR_DECL_STMTS */
         while (curr_source_sequence_entry != stop_on_decl &&
                ((void)process_preprocessing_directives(),
                 curr_src_seq_entry_is_decl())) {

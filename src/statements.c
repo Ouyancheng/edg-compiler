@@ -1912,6 +1912,15 @@ the __extension__ keyword was scanned just before the upcoming declaration.
          the stmk_decl pseudo statement and update the structured statement
          stack. */
       sp = add_statement((a_statement_kind)stmk_decl);
+#if SRC_SEQ_ENTRIES_FOR_DECL_STMTS
+      /* Introduce a source sequence entry for the stmk_decl statement.  This
+         is not strictly needed (when SRC_SEQ_ENTRIES_FOR_DECL_STMTS is FALSE,
+         we have the statement point to the source sequence entry for the
+         first declaration in the associated sequence; see below), but it
+         simplifies the code needed to collect the declarations associated
+         with a stmk_decl statement. */
+      add_to_source_sequence_list((char*)sp, (an_il_entry_kind)iek_statement);
+#endif /* SRC_SEQ_ENTRIES_FOR_DECL_STMTS */
       sssep->curr_decl_statement = sp;
       /* Remember the most recently entered source sequence entry on the list
          for the current function.  It will be used to find the source

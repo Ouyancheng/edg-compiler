@@ -1,5 +1,22 @@
 Version 3.9
 
+8/22/06  Source sequence entries for stmk_decl statements
+
+When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, the front end generates stmk_decl
+statements to indicate the position of declarations in statement sequences.
+Previously, such statements pointed to the source sequence entry for the first
+declarative entity associated with the stmk_decl statement.  However, that
+complicates the code needed to find all those declarations since the first
+declarative entity may be on a source sequence sublist while subsequent
+entities may appear on the main list.  To simplify this, a new configuration
+macro SRC_SEQ_ENTRIES_FOR_DECL_STMTS has been introduced: When TRUE (which
+is the default when GENERATE_SOURCE_SEQUENCE_LISTS is TRUE), stmk_decl entries
+point to their own source sequence entry and that entry is always on the main
+source sequence entries list (the source sequence entries for the associated
+declarations then follow the entry for the stmk_decl statement).  This is an
+IL CHANGE; the previous approach can be restored by setting 
+SRC_SEQ_ENTRIES_FOR_DECL_STMTS to FALSE.
+
 8/22/06  Empty structs and unions in C mode
 
 In default C mode, the front end now emits a warning when defining a struct or
