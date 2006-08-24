@@ -355,6 +355,7 @@ extern int fileno(FILE *);
 /*lint -esym(765,traverse_statement_list)*/
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(769,an_ms_attribute_kind_tag::msak_last)*/
+/*lint -esym(755,MSAT_ANY_TYPE)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !FIXED_POINT_ALLOWED
 /*lint -esym(759,fixed_point_enabled)*/
