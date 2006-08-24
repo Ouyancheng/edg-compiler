@@ -81,6 +81,8 @@ declare array variables.  For example:
     if (char s[] = "x");  // Now accepted in Microsoft C++ mode.
   }
 
+Such conditions are always true.
+
 8/18/06  Mutable reference members
 
 The front end now issues a discretionary error in strict mode or a warning in

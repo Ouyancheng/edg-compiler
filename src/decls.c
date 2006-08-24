@@ -10509,7 +10509,7 @@ Return a pointer to the variable that is declared.
   }  /* if */
   if (is_declarator_start()) {
     /* Scan the declarator, which is not allowed to specify a function or an
-       array. */
+       array (although Microsoft mode does allow arrays). */
     declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, &state, type_ptr,
                /*member_parent_type=*/(a_type_ptr)NULL, &locator, &type_ptr,
                &declarator_ssep, (a_func_info_block_ptr)NULL, &decl_pos_block,
@@ -10527,10 +10527,14 @@ Return a pointer to the variable that is declared.
     /* Function type is disallowed. */
     pos_error(ec_function_type_not_allowed, &decl_pos);
     type_ptr = error_type();
-  } else if (is_array_type(type_ptr) && !microsoft_mode) {
-    /* Array type is disallowed. */
-    pos_error(ec_array_type_not_allowed, &decl_pos);
-    type_ptr = error_type();
+  } else if (is_array_type(type_ptr)) {
+    /* Array type is disallowed, except in Microsoft mode. */
+    if (microsoft_mode) {
+      pos_warning(ec_array_condition_always_true, &decl_pos);
+    } else {
+      pos_error(ec_array_type_not_allowed, &decl_pos);
+      type_ptr = error_type();
+    }  /* if */
   }  /* if */
   /* Enter the symbol in the current scope, which should be an sck_condition
      scope. */

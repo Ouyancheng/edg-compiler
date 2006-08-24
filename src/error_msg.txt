@@ -1620,6 +1620,7 @@ ec_nonstandard_secondary_decl_specifiers;;"specifiers after comma between declar
 ec_secondary_specifier_ignored;;"nonstandard specifier ignored"
 ec_enum_attribute_ignored;;"attributes are ignored on an enum declaration that is not also a definition"
 ec_reference_declared_mutable;;"declaring a reference with \"mutable\" is nonstandard"
+ec_array_condition_always_true;;"a condition declaration for an array is always true"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
