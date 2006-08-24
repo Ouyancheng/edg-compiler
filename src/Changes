@@ -1,5 +1,23 @@
 Version 3.9
 
+8/23/06  Invalid explicit padding by C-generating back end
+
+The C-generating back end usually adds a dummy "padding" field to C struct
+types whose size is larger than the offset of the last byte of its last
+declared field.  However, doing so could lead to invalid C code when the
+last declared field is a flexible array member (because such members must
+usually be the last member of their enclosing type).  For example (assuming
+common 32-bit int configurations):
+
+  struct P {
+    int i;
+    short s;
+    char x[];  // Previously, the C-generating back end added padding
+  };           // after this field. The result was invalid C code.
+
+This is now fixed: No padding is added when the last field is a flexible
+array member, or when it is a zero-length array member (a GNU extension).
+
 8/22/06  Source sequence entries for stmk_decl statements
 
 When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, the front end generates stmk_decl

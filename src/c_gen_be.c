@@ -2879,6 +2879,13 @@ final semicolon if output_final_semi is TRUE.
       a_targ_size_t padding;
       if (last_field == NULL) {
         padding = type->size;
+      } else if (type->kind != (a_type_kind)tk_union &&
+                 is_array_type(last_field->type) &&
+                 skip_typerefs(last_field->type)->size == 0) {
+        /* A struct ending in a flexible array member or a zero-length array:
+           Don't add padding in such cases since it is not generally valid to
+           do so. */
+        padding = 0;
       } else {
         a_targ_size_t  offset_after_fields = offset_after_field(last_field);
         check_assertion(offset_after_fields <= type->size);
