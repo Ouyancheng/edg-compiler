@@ -10017,8 +10017,10 @@ respectively.
       field_type = type_without_named_address_space_qualifiers(field_type);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
     }  /* if */
-    if (is_ref && strict_ansi_mode && (decl_info->dso_flags & DSO_MUTABLE)) {
-      pos_error(ec_reference_declared_mutable, &decl_info->decl_start_pos);
+    if (is_ref && (decl_info->dso_flags & DSO_MUTABLE)) {
+      pos_diagnostic(
+          strict_ansi_mode ?  strict_ansi_discretionary_severity : es_warning,
+          ec_reference_declared_mutable, &decl_info->decl_start_pos);
     }  /* if */
   }  /* if */
   if (curr_token == tok_colon) {

@@ -83,12 +83,13 @@ declare array variables.  For example:
 
 8/18/06  Mutable reference members
 
-The front end now issues an error in strict mode when attempting to declare a
-reference member with the mutable specifier.  For example:
+The front end now issues a discretionary error in strict mode or a warning in
+nonstrict modes when attempting to declare a reference member with the mutable
+specifier.  For example:
 
   struct S {
     S();
-    mutable int &r;  // Now an error.
+    mutable int &r;  // Now triggers a diagnostic.
   };
 
 8/17/06  Expression range for operator-syntax call nodes
