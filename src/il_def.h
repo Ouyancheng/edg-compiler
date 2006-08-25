@@ -561,6 +561,10 @@ typedef enum /*an_il_entry_kind*/ {
   iek_expr_range_modifier,
 			/* an_expr_range_modifier */
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  iek_static_assertion,
+			/* a_static_assertion */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -710,6 +714,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if EXPR_RANGE_MODIFIERS_IN_IL
 /* iek_expr_range_modifier */		"expr-range-modifier",
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+/* iek_static_assertion */		"static-assertion",
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -1043,11 +1050,10 @@ typedef struct an_instantiation_directive {
 		do_not_instantiate;
 			/* TRUE if the instantiation directive was used to
 			   indicate that the entity named should not be
-			   instantiated.  This is used in Microsoft mode,
-			   in which the "template" keyword in an instantiation
-			   directive may be prefixed with "extern" to indicate
-			   that the instantiation of an entity should be
-			   suppressed. */
+			   instantiated.  This is used in modes in which the
+			   "template" keyword in an instantiation directive
+			   may be prefixed with "extern" to indicate that the
+			   instantiation of an entity should be suppressed. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_decl_position_supplement_ptr
 		decl_pos_info;
@@ -1056,6 +1062,27 @@ typedef struct an_instantiation_directive {
 			   directive.  May be NULL. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } an_instantiation_directive;
+
+
+/*
+Data structure describing a static_assert construct.  Only pointed to from
+source sequence entries.
+*/
+typedef struct a_static_assertion *a_static_assertion_ptr;
+typedef struct a_static_assertion {
+  a_constant_ptr
+		condition;
+			/* A constant representing the condition asserted to
+			   be true. */
+  a_constant_ptr
+		string_literal;
+			/* A constant representing the string literal to be
+			   emitted if the assertion fails. */
+  a_source_position
+		position;
+			/* The source position of the start of the
+			   construct. */
+} a_static_assertion;
 
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 
@@ -12886,6 +12913,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if EXPR_RANGE_MODIFIERS_IN_IL
   sizeof(an_expr_range_modifier),
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  sizeof(a_static_assertion),
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

@@ -215,6 +215,9 @@ extern a_src_seq_end_of_construct_ptr alloc_src_seq_end_of_construct(void);
 extern a_src_seq_sublist_ptr alloc_src_seq_sublist(void);
 
 extern an_instantiation_directive_ptr alloc_instantiation_directive(void);
+
+extern a_static_assertion_ptr alloc_static_assertion(void);
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if RECORD_HIDDEN_NAMES_IN_IL

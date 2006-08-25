@@ -1,5 +1,26 @@
 Version 3.9
 
+8/25/06  C++0x mode: static_assert
+
+In C++0x mode, the front end now accepts static_assert declarations of the
+following form:
+
+	static_assert( <integral-constant> , <string-literal> );
+
+If the given integral constant is zero/false, an error is emitted containing
+the given string literal (characters not in the basic source character set are
+rendered as question marks).  For example:
+
+  template<class T> struct S {
+    static_assert(sizeof(T)>4, "Type too small");
+  };
+  S<char> s1;  // Will trigger an error when the static_assert declaration
+               // is instantiated.
+
+This extension was voted into the C++ committee's working paper for the next
+standard in April 2005 (meeting in Lillehammer, through proposal numbered
+N1720).
+
 8/23/06  Invalid explicit padding by C-generating back end
 
 The C-generating back end usually adds a dummy "padding" field to C struct

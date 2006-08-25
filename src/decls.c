@@ -25,6 +25,7 @@ decls.c -- Scanning of declarations.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#include "folding.h"
 #include "statements.h"
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
@@ -282,6 +283,9 @@ of declarations that are permitted.
     /* A storage-class-specifier. */
     is_start = TRUE;
   } else if (curr_token == tok_template || curr_token == tok_export) {
+    /* Probably an error. */
+    is_start = TRUE;
+  } else if (curr_token == tok_static_assert) {
     /* Probably an error. */
     is_start = TRUE;
   } else if (is_type_start(expr_context)) {
@@ -10601,6 +10605,105 @@ Return a pointer to the variable that is declared.
 }  /* condition_declaration */
 
 
+static char* make_static_assert_string_for_output(sizeof_t  *p_msg_len)
+/*
+Create a character string from the string constant entry associated with the
+current token.  The string constant entry may represent a wide-character
+literal, but the output will be restricted to the basic source character
+set -- other characters are replaced by a '?'.  The generated string (which
+is meant to be used in a diagnostic) is returned, and *p_msg_len is set to
+the number of bytes allocated for it.
+*/
+{
+  a_constant_ptr  con = &const_for_curr_token;
+  unsigned int    char_size;
+  char            *msg, *ptr;
+  a_targ_size_t    con_byte_len, msg_len, k;
+
+  check_assertion(con->kind == (a_constant_repr_kind)ck_string);
+  char_size = (unsigned long)character_size[con->character_kind];
+  /* Allocate the number of characters needed (plus one in case the constant
+     doesn't include a trailing NULL). */
+  con_byte_len = con->variant.string.length;
+  msg_len = con_byte_len/char_size;
+  msg = alloc_general(msg_len+1);
+  *p_msg_len = msg_len+1;
+  /* Extract the characters from the constant. */
+  ptr = con->variant.string.value;
+  for (k = 0; k < msg_len; ++k, ptr += char_size) {
+    unsigned long  char_val = extract_character_from_string(ptr, char_size);
+    if (char_val == 0) {
+      break;
+    } else if (char_val > 255 || is_nonstandard_character((char)char_val)) {
+      msg[k] = '?';
+    } else {
+      msg[k] = (char)char_val;
+    }  /* if */
+  }  /* for */
+  /* Append a null character. */
+  msg[k] = '\0';
+  return msg;
+}  /* make_static_assert_string_for_output */
+
+
+void static_assert_declaration(void)
+/*
+Parse a construct of the form
+	static_assert ( <constant-expression> , <string-literal> ) ;
+Issue an error incorporating the string literal if the constant-expression
+is "false".
+*/
+{
+  a_constant         assert_con;
+  a_source_position  pos;
+
+  cannot_bind_to_curr_construct();
+  /* Record the construct's position and verify the introductory tokens. */
+  pos = pos_curr_token;
+  check_assertion(curr_token == tok_static_assert);
+  (void)get_token();
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  /* Scan the first argument, which must be an integral constant expression. */
+  add_stop_token(tok_semicolon);
+  add_stop_token(tok_rparen);
+  add_stop_token(tok_comma);
+  scan_integral_constant_expression(&assert_con);
+  /* Scan the second argument, which must be a string literal. */
+  remove_stop_token(tok_comma);
+  (void)required_token(tok_comma, ec_exp_comma);
+  if (curr_token != tok_string_literal) {
+    syntax_error(ec_exp_string_literal);
+  } else {
+    /* We've seen enough of the construct to evaluate it (if it is
+       nondependent), and (in some configurations) record it. */
+    if (assert_con.kind != (a_constant_repr_kind)ck_template_param &&
+        is_false_constant(&assert_con)) {
+      /* The assertion failed: Issue an error. */
+      sizeof_t  msg_len;
+      char      *msg = make_static_assert_string_for_output(&msg_len);
+      pos_st_error(ec_static_assert, &pos, msg);
+      free_general((a_void_ptr)msg, msg_len);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    } else {
+      /* Record the assertion in the IL. */
+      a_static_assertion_ptr  entry = alloc_static_assertion();
+      entry->condition = alloc_shareable_constant(&assert_con);
+      entry->string_literal = alloc_shareable_constant(&const_for_curr_token);
+      entry->position = pos;
+      add_to_source_sequence_list((char*)entry,
+                                  (an_il_entry_kind)iek_static_assertion);  
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
+    (void)get_token();
+  }  /* if */
+  /* Verify the closing tokens. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_stop_token(tok_rparen);
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
+  remove_stop_token(tok_semicolon);
+}  /* static_assert_declaration */
+
+
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- attributes is not used in this case. */
 #endif /* !GNU_EXTENSIONS_ALLOWED */
@@ -12293,6 +12396,10 @@ of local variables (and types, etc.) of functions and in blocks.
          declaration. */
       cannot_bind_to_curr_construct();
       goto check_for_semicolon;
+    }  /* if */
+    if (curr_token == tok_static_assert) {
+      static_assert_declaration();
+      goto return_point;
     }  /* if */
   }  /* if */
   add_stop_token(tok_semicolon);

@@ -10451,6 +10451,28 @@ Generate code for an instantiation directive.
   }  /* if */
 }  /* gen_instantiation_directive */
 
+
+static void gen_static_assertion(void)
+/*
+Generate code for a static_assert declaration.  The general form is:
+	static_assert(<condition>, <string-literal>);
+*/
+{
+  a_static_assertion_ptr  entry = ss_entry_ptr(curr_source_sequence_entry,
+                                               a_static_assertion_ptr);
+
+  /* Advanced past the source sequence entry representing the assertion. */
+  adv_curr_source_sequence_entry();
+  /* Update the output position if needed and generate the construct from the
+     recorded entry. */
+  set_output_position(&entry->position);
+  write_tok_str("static_assert(");
+  gen_constant(entry->condition, /*need_parens=*/FALSE);
+  write_tok_str(", ");
+  gen_constant(entry->string_literal, /*need_parens=*/FALSE);
+  write_tok_str(");");
+}  /* gen_static_assertion */
+
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 
 static void gen_ms_if_exists(void)
@@ -12941,6 +12963,9 @@ that case) and old-style parameter declarations.
         break;
       case iek_instantiation_directive:
         gen_instantiation_directive();
+        break;
+      case iek_static_assertion:
+        gen_static_assertion();
         break;
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
       case iek_ms_if_exists:

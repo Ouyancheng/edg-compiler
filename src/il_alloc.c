@@ -101,7 +101,8 @@ static unsigned long
 		num_src_seq_secondary_decls_allocated,
 		num_src_seq_end_of_constructs_allocated,
 		num_src_seq_sublists_allocated,
-		num_instantiation_directives_allocated;
+		num_instantiation_directives_allocated,
+		num_static_assertions;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED
 static unsigned long
@@ -3604,6 +3605,28 @@ a pointer to it.
 
   return idp;
 }  /* alloc_instantiation_directive */
+
+
+a_static_assertion_ptr alloc_static_assertion(void)
+/*
+Allocate a static assertion entry, initializer its fields, and return a
+pointer to it.
+*/
+{
+  a_static_assertion_ptr  entry;
+
+  db_enter(5, "alloc_static_assertion");
+  entry = (a_static_assertion_ptr)alloc_cil(sizeof(a_static_assertion));
+#if DEBUG
+  num_static_assertions++;
+#endif /* DEBUG */
+  entry->condition = NULL;
+  entry->string_literal = NULL;
+  entry->position = null_source_position;
+  db_exit();
+  return entry;
+}  /* alloc_static_assertion */
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_HIDDEN_NAMES_IN_IL
 
@@ -4151,6 +4174,7 @@ Display and return the amount of space used for various IL tables.
   db_space_used("instantiation_directive",
                 num_instantiation_directives_allocated,
                 an_instantiation_directive);
+  db_space_used("static-assertion", num_static_assertions, a_static_assertion);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_HIDDEN_NAMES_IN_IL
   db_space_used("hidden names", num_hidden_names_allocated, a_hidden_name);
@@ -4438,6 +4462,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_src_seq_end_of_constructs_allocated),
       pch_saved_var_array_elem(num_src_seq_sublists_allocated),
       pch_saved_var_array_elem(num_instantiation_directives_allocated),
+      pch_saved_var_array_elem(num_static_assertions),
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       pch_saved_var_array_elem(num_trans_unit_copy_address_pointers_allocated),
 #if ORPHAN_PROCESSING_NEEDED
@@ -4616,6 +4641,7 @@ initializations that are done for each compilation.
                                          = 0;
   num_src_seq_sublists_allocated         = 0;
   num_instantiation_directives_allocated = 0;
+  num_static_assertions                  = 0;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   num_trans_unit_copy_address_pointers_allocated = 0;
 #if ORPHAN_PROCESSING_NEEDED

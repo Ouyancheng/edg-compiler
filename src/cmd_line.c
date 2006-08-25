@@ -2192,6 +2192,7 @@ the next standard).
   long_long_is_standard = TRUE;
   long_long_promotion_allowed = TRUE;
   variadic_macros_allowed = TRUE;
+  static_assert_enabled = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -5301,6 +5302,7 @@ variables declared in cmd_line.h.
   right_shift_can_be_angle_brackets = FALSE;
   extended_friends_enabled = FALSE;
   mixed_string_concat_enabled = FALSE;
+  static_assert_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

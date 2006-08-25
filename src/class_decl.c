@@ -14373,9 +14373,12 @@ classes.
             (void)required_token(tok_semicolon, ec_exp_semicolon);
             goto next_declaration;
           }  /* if */
-          /* Check for a using declaration. */
+          /* Check for a using declaration or static_assert declaration. */
           if (curr_token == tok_using) {
             member_using_declaration(class_type, class_state.access);
+            goto next_declaration;
+          } else if (curr_token == tok_static_assert) {
+            static_assert_declaration();
             goto next_declaration;
           }  /* if */
           /* Check for an access adjustment declaration. */

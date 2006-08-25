@@ -2978,7 +2978,8 @@ after_entry_from_class:
         if (kind == iek_type ||
             kind == iek_src_seq_secondary_decl ||
             kind == iek_src_seq_end_of_construct ||
-            kind == iek_instantiation_directive) {
+            kind == iek_instantiation_directive ||
+            kind == iek_static_assertion) {
           walk_ptr(ptr->entity.ptr, a_char_ptr, kind);
         } else {
           remap_ptr(ptr->entity.ptr, a_char_ptr, kind);
@@ -3049,6 +3050,13 @@ after_entry_from_class:
         walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
                  iek_decl_position_supplement);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      }
+      break;
+    case iek_static_assertion:
+      {
+        a_static_assertion_ptr ptr = (a_static_assertion_ptr)entry_ptr;
+        walk_ptr(ptr->condition, a_constant_ptr, iek_constant);
+        walk_ptr(ptr->string_literal, a_constant_ptr, iek_constant);
       }
       break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */

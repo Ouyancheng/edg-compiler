@@ -1845,6 +1845,10 @@ EXTERN a_boolean
 			   string literal (e.g., L"a" "b" is then accepted; so
 			   is "a" U"b" in modes that allow U-literals). */
 
+EXTERN a_boolean
+		static_assert_enabled;
+			/* When TRUE, the C++0x construct static_assert is
+			   supported. */
 /*
 Check that no mutually exclusive dialect emulations are simultaneously
 enabled.
