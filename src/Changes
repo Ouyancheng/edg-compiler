@@ -1,5 +1,10 @@
 Version 3.9
 
+8/30/06  GNU compatibility: Attribute aligned on function declarations
+
+In GNU mode, the front end now issues a discretionary error (instead of a
+warning) when attribute "aligned" is specified on a function declaration.
+
 8/30/06  IA-64 ABI: Invalid virtual call adjustment with some covariant returns
 
 The front end sometimes incorrectly determined the contents of virtual function

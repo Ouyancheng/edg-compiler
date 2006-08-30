@@ -1704,6 +1704,7 @@ messages about any invalid attributes.
   a_boolean         referenced = FALSE;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
+    an_error_severity  invalid_severity = es_warning;
     switch (ap->kind) {
       case ak_constructor:
         rp->is_initialization_routine = TRUE;
@@ -1964,11 +1965,13 @@ messages about any invalid attributes.
         rp->ELF_visibility = ap->variant.ELF_visibility;
         break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+      case ak_aligned:
+        invalid_severity = es_discretionary_error;
+        /*FALLTHROUGH*/
       default:
         /* An invalid attribute. */
-        pos_sy_warning(ec_attribute_does_not_apply,
-                       &ap->position,
-                       (a_symbol_ptr)rp->source_corresp.assoc_info);
+        pos_sy_diagnostic(invalid_severity, ec_attribute_does_not_apply,
+                          &ap->position, symbol_for(rp));
         break;
     }  /* switch */
   }  /* for */
