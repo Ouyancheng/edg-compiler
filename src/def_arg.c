@@ -47,7 +47,7 @@ entries, for debugging purposes.  Also return the total amount.
   db_space_used_lost("def arg expr fixups", avail_def_arg_expr_fixup,
                      num_def_arg_expr_fixups_allocated, a_def_arg_expr_fixup);
   return grand_total;
-}  /* db_show_routine_fixups_used */
+}  /* db_show_def_arg_expr_fixups_used */
 
 #endif /* DEBUG */
 

@@ -11796,6 +11796,9 @@ for space tracking purposes.
   grand_total = db_show_scope_stack_space_used(grand_total);
   grand_total = db_show_template_space_used(grand_total);
   grand_total = db_show_routine_fixups_used(grand_total);
+#if IA64_ABI
+  grand_total = db_show_covariant_overrides_used(grand_total);
+#endif /* IA64_ABI */
   grand_total = db_show_class_fixups_used(grand_total);
   grand_total = db_show_def_arg_expr_fixups_used(grand_total);
   grand_total = db_show_il_c_fe_space_used(grand_total);

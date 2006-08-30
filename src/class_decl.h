@@ -216,6 +216,11 @@ extern unsigned long db_show_routine_fixups_used(unsigned long grand_total);
 
 extern unsigned long db_show_class_fixups_used(unsigned long grand_total);
 
+#if IA64_ABI
+extern unsigned long db_show_covariant_overrides_used(
+                                                   unsigned long grand_total);
+#endif /* IA64_ABI */
+
 extern void db_path(a_derivation_step_ptr dsp,
                     a_boolean             show_offset);
 

@@ -1,5 +1,26 @@
 Version 3.9
 
+8/25/06  IA-64 ABI: Invalid virtual call adjustment with some covariant returns
+
+The front end sometimes incorrectly determined the contents of virtual function
+tables when an overriding virtual function in a derived class has a covariant
+return type that is a pointer or reference to its enclosing class or a base
+class thereof.  This resulted in invalid pointers or references being returned
+in such cases.  For example:
+
+  struct B1 { virtual ~B1() {} };
+  struct B2 { virtual B1* f() { return 0; } };
+  struct D: B2, B1 {
+    D* f() { return this; }  // Covariant return
+  } d;
+  #include <assert.h>
+  int main() {
+    D *p = &d;
+    assert(d->f() == &d);  // Assertion previously failed.
+  }
+
+The problem only occurred in IA-64 ABI configurations.  This is now fixed.
+
 8/25/06  C++0x mode: static_assert
 
 In C++0x mode, the front end now accepts static_assert declarations of the

@@ -587,6 +587,35 @@ Place a partial-override entry on the available list, so it can be reused.
 }  /* free_override_registry_entry */
 
 
+#if IA64_ABI
+/*
+Data structure to record covariant overriding virtual functions.
+*/
+typedef struct a_covariant_override *a_covariant_override_ptr;
+typedef struct a_covariant_override {
+  a_covariant_override_ptr
+		next;
+			/* Next in a linked list, or NULL when this is the
+			   last entry on the list. */
+  a_base_class_ptr
+		bcp;
+			/* The base class entry of the member function being
+			   overridden. */
+  a_base_class_ptr
+		adjustment_bcp;
+			/* The base class entry from which the return type
+			   adjustment is computed. */
+  a_routine_ptr
+		overridden;
+			/* The base class member function being overridden. */
+  a_routine_ptr
+		overriding;
+			/* The derived class member function that overrides
+			   the base class member function. */
+} a_covariant_override;
+
+#endif /* IA64_ABI */
+
 /*
 A class-definition-state block, which tracks properties of the class as its
 definition proceeds.
@@ -657,6 +686,12 @@ typedef struct a_class_def_state {
 			/* If the current class is a instance of a class
 			   template, a pointer to the symbol for the
 			   prototype instantiation of that template. */
+#if IA64_ABI
+  a_covariant_override_ptr
+		covariant_overrides, last_covariant_override;
+			/* A list keeping track of the virtual functions 
+			   overrides that involve a covariant return type. */
+#endif /* IA64_ABI */
 } a_class_def_state;
 
 
@@ -686,8 +721,75 @@ class being defined.
   cdsp->override_registry = NULL;
   cdsp->end_of_field_list = NULL;
   cdsp->corresp_prototype_tag_sym = NULL;
+#if IA64_ABI
+  cdsp->covariant_overrides = NULL;
+  cdsp->last_covariant_override = NULL;
+#endif /* IA64_ABI */
 }  /* initialize_class_def_state */
 
+#if IA64_ABI
+
+static a_covariant_override_ptr  avail_covariant_overrides;
+
+static void record_covariant_override(a_class_def_state_ptr  cdsp,
+                                      a_base_class_ptr       bcp,
+                                      a_base_class_ptr       adjustment_bcp,
+                                      a_routine_ptr          overridden,
+                                      a_routine_ptr          overriding)
+/*
+Allocate a covariant override record and append it to the end of the list
+pointed to by cdsp.  Initialize the record with the given information.
+*/
+{
+  a_covariant_override_ptr  cop;
+
+  if (avail_covariant_overrides != NULL) {
+    cop = avail_covariant_overrides;
+    avail_covariant_overrides = avail_covariant_overrides->next;
+  } else {
+    cop = (a_covariant_override_ptr)alloc_fe(sizeof(a_covariant_override));
+  }  /* if */
+  cop->bcp = bcp;
+  cop->adjustment_bcp = adjustment_bcp;
+  cop->overridden = overridden;
+  cop->overriding = overriding;
+  if (cdsp->covariant_overrides == NULL) {
+    cdsp->covariant_overrides = cop;
+  } else {
+    cdsp->covariant_overrides->next = cop;
+  }  /* if */
+  cdsp->last_covariant_override = cop;
+}  /* record_covariant_override */
+
+
+static void free_covariant_overrides(a_class_def_state_ptr  cdsp)
+/*
+Make the covariant override records pointed to by cdsp available for future
+use.
+*/
+{
+  if (cdsp->covariant_overrides != NULL) {
+    cdsp->last_covariant_override->next = avail_covariant_overrides;
+    avail_covariant_overrides = cdsp->covariant_overrides;
+    cdsp->covariant_overrides = NULL;
+    cdsp->last_covariant_override = NULL;
+  }  /* if */
+}  /* free_covariant_overrides */
+
+#if DEBUG
+
+unsigned long db_show_covariant_overrides_used(unsigned long grand_total)
+{
+  unsigned long             n_entries = 0, num, size, total;
+  a_covariant_override_ptr  cop = avail_covariant_overrides;
+
+  for (; cop != NULL; cop = cop->next) ++n_entries;
+  db_space_used("covariant overrides", n_entries, a_covariant_override);
+  return grand_total;
+}  /* db_show_covariant_overrides_used */
+
+#endif /* DEBUG */
+#endif /* IA64_ABI */
 
 /*
 A member-declaration-info block, for tracking information about a class member
@@ -2989,40 +3091,46 @@ static void update_virtual_function_number(
                                       a_routine_ptr             rp,
                                       a_virtual_function_number *number_ptr)
 /*
-Update the virtual function number of the virtual member function pointed to
-by rp.  number_ptr is the address of the field in a_class_type_supplement
-that tracks the highest number assigned thus far.
+If the given routine is virtual and has not yet been assigned a virtual
+function number, assign one now.  number_ptr is the address of the field in
+a_class_type_supplement that tracks the highest number assigned thus far.
 */
 {
-  if (*number_ptr == VIRTUAL_FUNCTION_NUMBER_NONE) {
-    /* No previous numbers, start at the first value. */
-    *number_ptr = FIRST_VIRTUAL_FUNCTION_NUMBER;
-  } else if (*number_ptr == MAX_VIRTUAL_FUNCTIONS_PER_CLASS) {
-    a_type_ptr  parent_class = rp->source_corresp.parent.class_type;
-    if (parent_class->variant.class_struct_union.is_nonreal_class) {
-      /* Don't issue an error, since the number may not be maintained
-         accurately for nonreal class instantiations. */
-    } else {
-      pos_error(ec_too_many_virtual_functions,
-                &rp->source_corresp.decl_position);
-    }  /* if */
-    /* Reset to the first number, to avoid more such messages. */
-    *number_ptr = FIRST_VIRTUAL_FUNCTION_NUMBER;
+  if (!rp->is_virtual ||
+      rp->virtual_function_number != VIRTUAL_FUNCTION_NUMBER_NONE) {
+    /* The given routine is either nonvirtual or it already has a virtual
+       function number assigned: Nothing to do. */
   } else {
-    /* Increment the number for the virtual functions declared so far in the
-       current class and enter it in the routine entry.  It is used by the
-       front end in managing virtual function override entries and can be used
-       by the back end for indexing into a virtual function table. */
-    ++(*number_ptr);
-  }  /* if */
-  rp->virtual_function_number = *number_ptr;
+    if (*number_ptr == VIRTUAL_FUNCTION_NUMBER_NONE) {
+      /* No previous numbers, start at the first value. */
+      *number_ptr = FIRST_VIRTUAL_FUNCTION_NUMBER;
+    } else if (*number_ptr == MAX_VIRTUAL_FUNCTIONS_PER_CLASS) {
+      a_type_ptr  parent_class = rp->source_corresp.parent.class_type;
+      if (parent_class->variant.class_struct_union.is_nonreal_class) {
+        /* Don't issue an error, since the number may not be maintained
+           accurately for nonreal class instantiations. */
+      } else {
+        pos_error(ec_too_many_virtual_functions,
+                  &rp->source_corresp.decl_position);
+      }  /* if */
+      /* Reset to the first number, to avoid more such messages. */
+      *number_ptr = FIRST_VIRTUAL_FUNCTION_NUMBER;
+    } else {
+      /* Increment the number for the virtual functions declared so far in the
+         current class and enter it in the routine entry.  It is used by the
+         front end in managing virtual function override entries and can be
+         used by the back end for indexing into a virtual function table. */
+      ++(*number_ptr);
+    }  /* if */
+    rp->virtual_function_number = *number_ptr;
 #if IA64_ABI
-  if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
-    /* There are two entries for destructors: one for the complete object
-       entry point and one for the deleting entry point. */
-    ++(*number_ptr);
-  }  /* if */
+    if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
+      /* There are two entries for destructors: one for the complete object
+         entry point and one for the deleting entry point. */
+      ++(*number_ptr);
+    }  /* if */
 #endif /* IA64_ABI */
+  }  /* if */
 }  /* update_virtual_function_number */
 
 
@@ -3082,19 +3190,16 @@ Any diagnostics are issued at the given position.
 */
 {
   a_boolean                       overloaded;
-  a_base_class_ptr                bcp;
+  a_base_class_ptr                bcp, return_adjustment_bcp;
   a_symbol_ptr                    symbol_list, sym, sym_next;
   a_symbol_ptr                    sym_for_override_registry;
   a_routine_ptr                   rout, rp;
   a_scope_ptr                     base_class_scope;
-  a_virtual_function_number       virtual_function_number 
-                                      = VIRTUAL_FUNCTION_NUMBER_NONE;
   a_boolean                       any_override_candidates = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                       override_modifier_okay = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_override_registry_entry_ptr  *registry_ptr;
-  a_base_class_ptr                return_adjustment_bcp;
 
   db_enter(4, "check_for_virtual_function");
   check_assertion(rout_sym->kind == (a_symbol_kind)sk_member_function);
@@ -3136,7 +3241,7 @@ Any diagnostics are issued at the given position.
             if (shares_virtual_function_info(class_type, bcp)) {
               /* The virtual function table is being shared, so we must use the
                  identical number. */
-              virtual_function_number = rp->virtual_function_number;
+              rout->virtual_function_number = rp->virtual_function_number;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -3287,19 +3392,18 @@ Any diagnostics are issued at the given position.
                    later. */
                 rout->covariant_return_virtual_override = TRUE;
 #if IA64_ABI
-                /* If the adjustment will always be trivial, reuse the
-                   virtual function slot from the base class. */
-                if (shares_virtual_function_info(class_type, bcp) &&
-                    return_adjustment_bcp->offset == 0 &&
-                    !any_virtual_steps_in_derivation(return_adjustment_bcp)) {
-                  virtual_function_number = rp->virtual_function_number;
-                }  /* if */
+                /* If the adjustment will always be trivial, we can reuse the
+                   virtual function slot from the base class.  However, we
+                   don't know that until the class layout algorithm has
+                   determined the base class offsets. */
+                record_covariant_override(class_state, bcp,
+                                          return_adjustment_bcp, rp, rout);
 #endif /* IA64_ABI */
               } else if (shares_virtual_function_info(class_type, bcp)) {
                 /* The virtual function table is being shared and there
                    is no base-class adjustment on the return type, so we
                    can use the same virtual function number. */
-                virtual_function_number = rp->virtual_function_number;
+                rout->virtual_function_number = rp->virtual_function_number;
               }  /* if */
               /* If this declaration amounts to an override of a member of an
                  overload set, record some information about it in the
@@ -3335,27 +3439,6 @@ done:
     class_type->variant.class_struct_union.any_virtual_functions = TRUE;
     class_type->variant.class_struct_union.
                  any_virtual_functions_including_in_base_classes = TRUE;
-    if (virtual_function_number != VIRTUAL_FUNCTION_NUMBER_NONE) {
-      /* The virtual function is being shared between the current class
-         and one of its base classes.  We reuse the existing number instead
-         of reserving a new slot in the table. */
-      rout->virtual_function_number = virtual_function_number;
-    } else {
-#if ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI
-      /* For more current ABIs the virtual function numbers are updated after
-         all routine declarations for the current class have been processed.
-         This way all the functions in an overload set can be grouped
-         together, providing better cfront object layout compatibility. */
-#else /* ABI_COMPATIBILITY_VERSION < 232 || IA64_ABI */
-      /* Don't try to do overload-set grouping -- use the declaration order
-         instead.  Update the routine entry with the next available virtual
-         function number. */
-      a_virtual_function_number  *number_ptr;
-      number_ptr = &class_type->variant.class_struct_union.extra_info->
-                                          highest_virtual_function_number;
-      update_virtual_function_number(rout, number_ptr);
-#endif /* ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI */
-    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (func_info->sealed || func_info->abstract) {
     pos_error(ec_function_modifier_requires_virtual_function, source_pos);
@@ -3380,38 +3463,32 @@ number assigned thus far.
 {
   a_routine_ptr  rp;
 
+  /* Skip over members that don't need a new virtual function number:
+     Member templates and projected members. */
   for (; sym != NULL; sym = sym->next) {
-    if (sym->kind == (a_symbol_kind)sk_member_function) {
-      rp = sym->variant.routine.ptr;
-      if (rp->is_virtual) {
-        if (rp->virtual_function_number != VIRTUAL_FUNCTION_NUMBER_NONE) {
-          /* The routine already has a virtual function number assigned.
-             This occurs when the virtual base class is being shared between
-             the current class and one of its base classes. */
-        } else {
-          /* If there are additional functions in the overload set, process
-             them first.  This is because the symbols on the list are in
-             the opposite order to that in which they were declared. */
-          set_virtual_function_numbers_for_overload_set(sym->next, number_ptr);
-          /* Update the routine entry with the next available virtual
-             function number. */
-          update_virtual_function_number(rp, number_ptr);
-        }  /* if */
-      }  /* if */
-    }  /* if */
+    if (sym->kind == (a_symbol_kind)sk_member_function) break;
   }  /* for */
+  if (sym->next != NULL) {
+    /* If there are additional functions in the overload set, process
+       them first.  This is because the symbols on the list are in
+       the opposite order to that in which they were declared. */
+    set_virtual_function_numbers_for_overload_set(sym->next, number_ptr);
+  }  /* if */
+  /* Update the routine entry with the next available virtual function
+     number. */
+  update_virtual_function_number(sym->variant.routine.ptr, number_ptr);
 }  /* set_virtual_function_numbers_for_overload_set */
 
+#endif /* ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI */
 
-static void set_virtual_function_numbers(a_type_ptr  class_type)
+static void set_virtual_function_numbers(a_class_def_state_ptr  cdsp)
 /*
-Traverse the scope-list of symbols for class_type, updating the virtual
-function numbers of the virtual functions.
+Update the virtual function numbers of the virtual function members of the
+class associated with cdsp.
 */
 {
+  a_type_ptr                 class_type = cdsp->class_type;
   a_virtual_function_number  *number_ptr;
-  a_symbol_ptr               sym;
-  a_routine_ptr              rp;
 
   if (class_type->variant.class_struct_union.any_virtual_functions) {
     /* We will pass in the address of the field that tracks the highest
@@ -3420,38 +3497,50 @@ function numbers of the virtual functions.
        with that of one of its base classes.) */
     number_ptr = &class_type->variant.class_struct_union.extra_info->
                                          highest_virtual_function_number;
+
+#if ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI
     /* Traverse the symbol list rather that the IL scope's function list.
        Both should reflect declaration order except in the handling of
        overloaded functions.  We do want to handle members of an overload set
        as a group. */
-    for (sym = symbol_supplement_for_class(class_type)->symbols;
-         sym != NULL;
-         sym = sym->next_in_scope) {
-      if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-        /* Examine each of the members of the overload set. */
-        set_virtual_function_numbers_for_overload_set(
-                                     sym->variant.overloaded_function.symbols, 
-                                     number_ptr);
-      } else if (sym->kind == (a_symbol_kind)sk_member_function) {
-        rp = sym->variant.routine.ptr;
-        if (rp->is_virtual) {
-          /* The member function is virtual. */
-          if (rp->virtual_function_number != VIRTUAL_FUNCTION_NUMBER_NONE) {
-            /* The routine already has a virtual-function number assigned.
-               This occurs when the virtual base class is being shared between
-               the current class and one of its base classes. */
-          } else {
-            /* Update the routine entry with the next available virtual
-               function number. */
-            update_virtual_function_number(rp, number_ptr);
-          }  /* if */
+    { a_symbol_ptr  sym = symbol_supplement_for_class(class_type)->symbols;
+      for (; sym != NULL; sym = sym->next_in_scope) {
+        if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          /* Examine each of the members of the overload set. */
+          set_virtual_function_numbers_for_overload_set(
+                         sym->variant.overloaded_function.symbols, number_ptr);
+        } else if (sym->kind == (a_symbol_kind)sk_member_function) {
+          update_virtual_function_number(sym->variant.routine.ptr, number_ptr);
         }  /* if */
-      }  /* if */
-    }  /* for */
+      }  /* for */
+    }
+#else /* ABI_COMPATIBILITY_VERSION < 232 || IA64_ABI */
+#if IA64_ABI
+    /* In the IA-64 ABI, covariant overriders share a virtual slot with the
+       overridden function when the covariant adjustment is zero. */
+    { a_covariant_override_ptr  cop = cdsp->covariant_overrides;
+      for (; cop != NULL; cop = cop->next) {
+        if (shares_virtual_function_info(class_type, cop->bcp) &&
+            cop->adjustment_bcp->offset == 0 &&
+            !any_virtual_steps_in_derivation(cop->adjustment_bcp)) {
+          cop->overriding->virtual_function_number =
+                                     cop->overridden->virtual_function_number;
+        }  /* if */
+      }  /* for */
+      free_covariant_overrides(cdsp);
+    }
+#endif /* IA64_ABI */
+    /* Traverse the routines list (which is in declaration order). */
+    { a_routine_ptr  rp = class_type->variant.class_struct_union.extra_info
+                                    ->assoc_scope->routines;
+      for (; rp != NULL; rp = rp->next) {
+        update_virtual_function_number(rp, number_ptr);
+      }  /* for */
+    }
+#endif /* ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI */
   }  /* if */
 }  /* set_virtual_function_numbers */
 
-#endif /* ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI */
 
 /* Previously allocated derivation-step entries available for reuse. */
 static a_derivation_step_ptr avail_derivation_steps;
@@ -4172,7 +4261,7 @@ path and access.
 
 
 static void set_shares_virtual_function_info_flag(a_type_ptr       class_type,
-                                                   a_base_class_ptr base_class)
+                                                  a_base_class_ptr base_class)
 /*
 Set the shares_virtual_function_info flag for certain base classes of
 class_type, if appropriate.  If base_class is NULL, then if class_type has
@@ -13851,13 +13940,6 @@ bits of information that were acquired while parsing.
          assignment operator was needed first. */
       cssp->is_POD = TRUE;
     }  /* if */
-#if ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI
-    /* Go though all the functions declared for this class and set the
-       virtual function number of virtual functions.  (Note: with less
-       current ABIs the numbers are updated on the fly as the member
-       function declaration is processed.) */
-    set_virtual_function_numbers(class_type);
-#endif /* ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI */
     /* Set shares_virtual_function_info for a base class of class_type, if
        appropriate. */
     set_shares_virtual_function_info_flag(class_type,
@@ -13867,6 +13949,10 @@ bits of information that were acquired while parsing.
      class. */
   do_class_layout(class_type);
   if (C_dialect == C_dialect_cplusplus) {
+    /* Go through all the functions declared for this class and set the
+       virtual function numbers of virtual functions (some may already have
+       a number assigned). */
+    set_virtual_function_numbers(class_state);
     if (!class_state->is_nonreal_instantiation) {
       /* Check for inherited conversion functions.  This must be done before
          rescanning inline function definitions. */
@@ -15323,6 +15409,9 @@ Initializations for class declaration processing.
   avail_routine_fixup = NULL;
   avail_class_fixup = NULL;
   avail_override_registry_entries = NULL;
+#if IA64_ABI
+  avail_covariant_overrides = NULL;
+#endif /* IA64_ABI */
 #if DEBUG
   num_routine_fixups_allocated = 0;
   num_class_fixups_allocated = 0;
