@@ -3461,8 +3461,6 @@ of the field in parent class's class-type-supplement that tracks the highest
 number assigned thus far.
 */
 {
-  a_routine_ptr  rp;
-
   /* Skip over members that don't need a new virtual function number:
      Member templates and projected members. */
   for (; sym != NULL; sym = sym->next) {
