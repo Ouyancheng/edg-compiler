@@ -8526,10 +8526,10 @@ See decl_specifiers(...) for the meaning of the parameters.
   input_flags &= ~(DSI_INLINE_ALLOWED | DSI_ASM_ALLOWED |
                    DSI_EMPTY_DECL_SPECIFIERS_ALLOWED);
   input_flags |= DSI_MICROSOFT_SECONDARY_SPECIFIERS;
-  (void)decl_specifiers(input_flags, output_flags, &storage_class, type_ptr,
-                        state, (an_attribute**)NULL, (an_ms_attribute**)NULL,
-                        &decl_modifiers, (a_named_register_id*)NULL,
-                        decl_pos_block, (a_upc_block_size*)NULL);
+  (void)decl_specifiers(
+          input_flags, output_flags, &storage_class, type_ptr, state,
+          (an_attribute_ptr*)NULL, (an_ms_attribute**)NULL, &decl_modifiers,
+          (a_named_register_id*)NULL, decl_pos_block, (a_upc_block_size*)NULL);
   /* Restore the primary cv-qualifiers: */
   state->qualifiers = saved_qualifiers;
   (void)add_type_qualifiers(type_ptr, state, UPC_BLOCK_SIZE_NONE);
