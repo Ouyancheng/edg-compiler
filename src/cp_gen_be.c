@@ -10992,13 +10992,13 @@ statement unless suppress_trailing_space is TRUE.
         write_tok_ch(';');
       }
       break;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
     case stmk_assigned_goto:
       write_tok_str("goto *");
       gen_expr_with_parens(statement->expr);
       write_tok_ch(';');
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
     case stmk_label:
       /* Label statement: generate "name:;".  Note that labels generated for
          "break" and "continue" were thrown away above and do not get here. */

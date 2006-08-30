@@ -1652,9 +1652,9 @@ end_sizeof:;
 #ifdef FFE
           case stmk_alt_return:
 #endif /* ifdef FFE */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
           case stmk_assigned_goto:
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
           case stmk_upc_notify:
           case stmk_upc_wait:

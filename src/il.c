@@ -2078,9 +2078,9 @@ Dump a statement kind, for debug purposes.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     case stmk_set_vla_size:    s = "set-vla-size";      break;
     case stmk_vla_decl:        s = "vla-decl";          break;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
     case stmk_assigned_goto:   s = "assigned goto";     break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
     case stmk_upc_notify:      s = "upc_notify";	break;
     case stmk_upc_wait:        s = "upc_wait";		break;
@@ -4262,7 +4262,7 @@ pointer to its first element is ignored in the determination.
   return is_exact_addr;
 }  /* con_is_exact_addr_of_variable */
 
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
 
 void set_label_address_constant(a_label_ptr label,
                                 a_constant  *con)
@@ -4280,7 +4280,7 @@ the indicated label.
   con->type = make_pointer_type(void_type());
 }  /* set_label_address_constant */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 
 void set_ptr_to_member_function_constant(a_routine_ptr routine,
                                          a_constant    *con)
