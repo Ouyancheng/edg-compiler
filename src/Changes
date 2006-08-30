@@ -1,6 +1,6 @@
 Version 3.9
 
-8/25/06  IA-64 ABI: Invalid virtual call adjustment with some covariant returns
+8/30/06  IA-64 ABI: Invalid virtual call adjustment with some covariant returns
 
 The front end sometimes incorrectly determined the contents of virtual function
 tables when an overriding virtual function in a derived class has a covariant
