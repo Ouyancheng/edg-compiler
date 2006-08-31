@@ -487,7 +487,7 @@ extern an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
 
 extern a_variable_ptr condition_declaration(void);
 
-extern void static_assert_declaration(void);
+extern void static_assert_declaration(a_boolean  leave_semicolon);
 
 extern void make_using_directive(a_namespace_ptr    nsp,
 				 a_scope_depth	    depth,
