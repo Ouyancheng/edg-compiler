@@ -3466,15 +3466,17 @@ number assigned thus far.
   for (; sym != NULL; sym = sym->next) {
     if (sym->kind == (a_symbol_kind)sk_member_function) break;
   }  /* for */
-  if (sym->next != NULL) {
-    /* If there are additional functions in the overload set, process
-       them first.  This is because the symbols on the list are in
-       the opposite order to that in which they were declared. */
-    set_virtual_function_numbers_for_overload_set(sym->next, number_ptr);
+  if (sym != NULL) {
+    if (sym->next != NULL) {
+      /* If there are additional functions in the overload set, process
+         them first.  This is because the symbols on the list are in
+         the opposite order to that in which they were declared. */
+      set_virtual_function_numbers_for_overload_set(sym->next, number_ptr);
+    }  /* if */
+    /* Update the routine entry with the next available virtual function
+       number. */
+    update_virtual_function_number(sym->variant.routine.ptr, number_ptr);
   }  /* if */
-  /* Update the routine entry with the next available virtual function
-     number. */
-  update_virtual_function_number(sym->variant.routine.ptr, number_ptr);
 }  /* set_virtual_function_numbers_for_overload_set */
 
 #endif /* ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI */
