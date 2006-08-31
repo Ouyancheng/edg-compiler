@@ -286,7 +286,7 @@ of declarations that are permitted.
     /* Probably an error. */
     is_start = TRUE;
   } else if (curr_token == tok_static_assert) {
-    /* Probably an error. */
+    /* static_assert is (syntactically) a declarative construct. */
     is_start = TRUE;
   } else if (is_type_start(expr_context)) {
     /* Is start of type. */
@@ -10621,7 +10621,7 @@ the number of bytes allocated for it.
   a_targ_size_t    con_byte_len, msg_len, k;
 
   check_assertion(con->kind == (a_constant_repr_kind)ck_string);
-  char_size = (unsigned long)character_size[con->character_kind];
+  char_size = (unsigned int)character_size[con->character_kind];
   /* Allocate the number of characters needed (plus one in case the constant
      doesn't include a trailing NULL). */
   con_byte_len = con->variant.string.length;
@@ -10634,7 +10634,8 @@ the number of bytes allocated for it.
     unsigned long  char_val = extract_character_from_string(ptr, char_size);
     if (char_val == 0) {
       break;
-    } else if (char_val > 255 || is_nonstandard_character((char)char_val)) {
+    } else if (char_val > CHAR_MAX ||
+               is_nonstandard_character((char)char_val)) {
       msg[k] = '?';
     } else {
       msg[k] = (char)char_val;
@@ -10646,12 +10647,12 @@ the number of bytes allocated for it.
 }  /* make_static_assert_string_for_output */
 
 
-void static_assert_declaration(void)
+void static_assert_declaration(a_boolean  leave_semicolon)
 /*
 Parse a construct of the form
 	static_assert ( <constant-expression> , <string-literal> ) ;
 Issue an error incorporating the string literal if the constant-expression
-is "false".
+is "false".  If leave_semicolon is TRUE, do not consume the final token.
 */
 {
   a_constant         assert_con;
@@ -10662,11 +10663,11 @@ is "false".
   pos = pos_curr_token;
   check_assertion(curr_token == tok_static_assert);
   (void)get_token();
-  (void)required_token(tok_lparen, ec_exp_lparen);
-  /* Scan the first argument, which must be an integral constant expression. */
   add_stop_token(tok_semicolon);
   add_stop_token(tok_rparen);
   add_stop_token(tok_comma);
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  /* Scan the first argument, which must be an integral constant expression. */
   scan_integral_constant_expression(&assert_con);
   /* Scan the second argument, which must be a string literal. */
   remove_stop_token(tok_comma);
@@ -10676,8 +10677,11 @@ is "false".
   } else {
     /* We've seen enough of the construct to evaluate it (if it is
        nondependent), and (in some configurations) record it. */
-    if (assert_con.kind != (a_constant_repr_kind)ck_template_param &&
-        is_false_constant(&assert_con)) {
+    if (is_error_constant(&assert_con)) {
+      /* An error should already have been issued. */
+      expect_error();
+    } else if (assert_con.kind != (a_constant_repr_kind)ck_template_param &&
+               is_false_constant(&assert_con)) {
       /* The assertion failed: Issue an error. */
       sizeof_t  msg_len;
       char      *msg = make_static_assert_string_for_output(&msg_len);
@@ -10699,7 +10703,9 @@ is "false".
   /* Verify the closing tokens. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
-  (void)required_token(tok_semicolon, ec_exp_semicolon);
+  if (!leave_semicolon) {
+    (void)required_token(tok_semicolon, ec_exp_semicolon);
+  }  /* if */
   remove_stop_token(tok_semicolon);
 }  /* static_assert_declaration */
 
@@ -12398,8 +12404,8 @@ of local variables (and types, etc.) of functions and in blocks.
       goto check_for_semicolon;
     }  /* if */
     if (curr_token == tok_static_assert) {
-      static_assert_declaration();
-      goto return_point;
+      static_assert_declaration(/*leave_semicolon=*/TRUE);
+      goto check_for_semicolon;
     }  /* if */
   }  /* if */
   add_stop_token(tok_semicolon);

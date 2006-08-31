@@ -10461,13 +10461,13 @@ Generate code for a static_assert declaration.  The general form is:
   a_static_assertion_ptr  entry = ss_entry_ptr(curr_source_sequence_entry,
                                                a_static_assertion_ptr);
 
-  /* Advanced past the source sequence entry representing the assertion. */
+  /* Advance past the source sequence entry representing the assertion. */
   adv_curr_source_sequence_entry();
   /* Update the output position if needed and generate the construct from the
      recorded entry. */
   set_output_position(&entry->position);
   write_tok_str("static_assert(");
-  gen_constant(entry->condition, /*need_parens=*/FALSE);
+  gen_constant(entry->condition, /*need_parens=*/TRUE);
   write_tok_str(", ");
   gen_constant(entry->string_literal, /*need_parens=*/FALSE);
   write_tok_str(");");

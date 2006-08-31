@@ -14464,7 +14464,7 @@ classes.
             member_using_declaration(class_type, class_state.access);
             goto next_declaration;
           } else if (curr_token == tok_static_assert) {
-            static_assert_declaration();
+            static_assert_declaration(/*leave_semicolon=*/FALSE);
             goto next_declaration;
           }  /* if */
           /* Check for an access adjustment declaration. */

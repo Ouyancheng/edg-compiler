@@ -3609,14 +3609,14 @@ a pointer to it.
 
 a_static_assertion_ptr alloc_static_assertion(void)
 /*
-Allocate a static assertion entry, initializer its fields, and return a
+Allocate a static assertion entry, initialize its fields, and return a
 pointer to it.
 */
 {
   a_static_assertion_ptr  entry;
 
   db_enter(5, "alloc_static_assertion");
-  entry = (a_static_assertion_ptr)alloc_cil(sizeof(a_static_assertion));
+  entry = alloc_cil_of_type(a_static_assertion);
 #if DEBUG
   num_static_assertions++;
 #endif /* DEBUG */

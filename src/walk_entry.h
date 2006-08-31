@@ -2971,10 +2971,11 @@ after_entry_from_class:
 #endif /* CHECKING */
         /* Types get walked instead of remapped because some types defined
            in prototype scopes in C (e.g., in a cast) get eliminated from the
-           IL.  Secondary declarations, end of construct entries, and
-           instantiation directives get walked because they are in effect
-           supplements to the source sequence entry rather than free-standing
-           IL entries; they aren't pointed to from elsewhere in the IL tree. */
+           IL.  Secondary declarations, end of construct entries, instantiation
+           directives, and static assertions get walked because they are in
+           effect supplements to the source sequence entry rather than free-
+           standing IL entries; they aren't pointed to from elsewhere in the IL
+           tree. */
         if (kind == iek_type ||
             kind == iek_src_seq_secondary_decl ||
             kind == iek_src_seq_end_of_construct ||

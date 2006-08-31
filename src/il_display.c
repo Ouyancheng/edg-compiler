@@ -5823,6 +5823,17 @@ Display the indicated instantiation-directive entry.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_instantiation_directive */
 
+
+static void disp_static_assertion(a_static_assertion_ptr sap)
+/*
+Display the indicated static assertion entry.
+*/
+{
+  disp_ptr("condition", (char*)sap->condition, iek_constant);
+  disp_ptr("string_literal", (char*)sap->string_literal, iek_constant);
+  disp_source_position("position", &sap->position);
+}  /* disp_static_assertion */
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
