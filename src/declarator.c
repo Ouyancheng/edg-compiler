@@ -830,6 +830,77 @@ fields).
 }  /* add_to_derived_type_list */
 
 
+static void scan_eh_spec_type(an_exception_specification_type_ptr
+                                                 estp,
+                              a_func_info_block  *func_info,
+                              a_boolean          ignoring_exception_spec,
+                              a_boolean          is_top_level_declarator,
+                              a_source_position  *diag_pos)
+/*
+Scan and check for validity a single type of an exception specification, and
+record it in *estp.  *func_info holds information about the function
+declarator being parsed.  If ignoring_exception_spec is TRUE, exception
+specifications are scanned and discarded.  is_top_level_declarator is TRUE if
+we are not parsing a nested declarator.  Diagnostics may be issued at the
+given position.
+*/
+{
+  type_name(&estp->type);
+  if (is_error_type(estp->type)) {
+    /* Nothing to be done. */
+  } else if (vla_enabled && is_variably_modified_type(estp->type)) {
+    pos_error(ec_vla_not_allowed, diag_pos);
+    estp->type = error_type();
+  }  else if (exceptions_enabled && !microsoft_mode &&
+              !ignoring_exception_spec) {
+    /* Check the type to be sure it's not an incomplete type or a pointer
+       to an incomplete type.  Microsoft compilers do not use the type
+       information at all: We perform no type checking in that case. */
+    a_type_ptr     tp = estp->type;
+    an_error_code  error_code = ec_no_error;
+    /* Issue a diagnostic if an incomplete type is indicated in the exception
+       specification.  According to the standard, this is always an error
+       (except that in a class definition, the class being defined is
+       considered complete for this purpose), but it really only makes a
+       difference on a function definition.  We don't know at this point
+       whether a top-level declarator belongs to a function definition or not,
+       so we defer issuing the diagnostic in that case. */
+    /* Force instantiation of template class. */
+    complete_type_is_needed(tp);
+    if (is_incomplete_type(tp) && !in_definition_of_class(tp)) {
+      /* Incomplete type (including possibly void type). */
+      error_code = ec_incomplete_type_not_allowed;
+    } else if (is_ptr_or_ref_type(tp)) {
+      tp = type_pointed_to(tp);
+      if (is_void_type(tp)) {
+        /* Pointer to cv-qualified void is okay. */
+      } else {
+        /* Force instantiation of template class. */
+        complete_type_is_needed(tp);
+        if (is_incomplete_type(tp) && !in_definition_of_class(tp)) {
+          error_code = ec_ptr_or_ref_to_incomplete_type;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (error_code != ec_no_error) {
+      /* Defer a diagnostic if this is a top-level declarator and the type is
+         something other than "void"; in strict mode or if the type is "void",
+         issue a diagnostic.  Otherwise, suppress the diagnostic -- that is,
+         silently allow a non-top-level declaration that throws an incomplete
+         type (or pointer thereto) */
+      if (is_top_level_declarator && !is_void_type(tp)) {
+        defer_exception_spec_error(func_info, error_code, diag_pos);
+      } else if (strict_ansi_mode) {
+        pos_diagnostic(strict_ansi_discretionary_severity, error_code,
+                       diag_pos);
+      } else if (is_void_type(tp)) {
+        pos_error(error_code, diag_pos);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* scan_eh_spec_type */
+
+
 static an_exception_specification_ptr scan_exception_specification(
                                   a_func_info_block  *func_info,
                                   a_boolean          exception_spec_allowed,
@@ -955,58 +1026,8 @@ specification is handled later (see check_exception_specification).
       flush_tokens();
       estp->type = error_type();
     } else {
-      type_name(&estp->type);
-      if (vla_enabled && is_variably_modified_type(estp->type)) {
-        pos_error(ec_vla_not_allowed, &type_pos);
-        estp->type = error_type();
-      }  /* if */
-      if (exceptions_enabled && !is_error_type(estp->type) &&
-          !microsoft_mode) {
-        /* Check the type to be sure it's not an incomplete type or a pointer
-           to an incomplete type.  Microsoft compilers do not use the type
-           information at all: We perform no type checking in that case. */
-        a_type_ptr     tp = estp->type;
-        an_error_code  error_code = ec_no_error;
-
-        /* Issue a diagnostic if an incomplete type is indicated in the
-           exception specification.  According to the standard, this is always
-           an error, but it really only makes a difference on a function
-           definition.  We don't know at this point whether a top-level
-           declarator belongs to a function definition or not, so we defer
-           issuing the diagnostic in that case. */
-        /* Force instantiation of template class. */
-        complete_type_is_needed(tp);
-        if (is_incomplete_type(tp)) {
-          /* Incomplete type (including possibly void type). */
-          error_code = ec_incomplete_type_not_allowed;
-        } else if (is_ptr_or_ref_type(tp)) {
-          tp = type_pointed_to(tp);
-          if (is_void_type(tp)) {
-            /* Pointer to cv-qualified void is okay. */
-          } else {
-            /* Force instantiation of template class. */
-            complete_type_is_needed(tp);
-            if (is_incomplete_type(tp)) {
-              error_code = ec_ptr_or_ref_to_incomplete_type;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        if (!ignoring_exception_spec && error_code != ec_no_error) {
-          /* Defer a diagnostic if this is a top-level declarator and the
-             type is something other than "void"; in strict mode or if the
-             type is "void", issue a diagnostic.  Otherwise, suppress the
-             diagnostic -- that is, silently allow a non-top-level declaration
-             that throws an incomplete type (or pointer thereto) */
-          if (is_top_level_declarator && !is_void_type(tp)) {
-            defer_exception_spec_error(func_info, error_code, &type_pos);
-          } else if (strict_ansi_mode) {
-            pos_diagnostic(strict_ansi_discretionary_severity, error_code,
-                           &type_pos);
-          } else if (is_void_type(tp)) {
-            pos_error(error_code, &type_pos);
-          }  /* if */
-        }  /* if */
-      }  /* if */
+      scan_eh_spec_type(estp, func_info, ignoring_exception_spec,
+                        is_top_level_declarator, &type_pos);
     }  /* if */
     if (esp != NULL) {
       /* Add estp to the list. */

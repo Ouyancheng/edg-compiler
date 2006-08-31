@@ -968,6 +968,8 @@ extern a_targ_size_t upc_local_type_size(a_type_ptr tp);
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+extern a_boolean in_definition_of_class(a_type_ptr  tp);
+
 extern void types_early_init(void);
 
 #endif /* ifndef TYPES_H */

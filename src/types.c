@@ -9081,6 +9081,57 @@ set explicitly, issue a warning for the given position.
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+a_boolean in_definition_of_class(a_type_ptr  tp)
+/*
+Return TRUE if the given type is a class type and we are currently inside
+that type's definition.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (num_classes_on_scope_stack != 0) {
+    tp = skip_typerefs(tp);
+    if (is_incomplete(tp) && is_immediate_class_type(tp) &&
+        symbol_supplement_for_class(tp)->member_decl_scope !=
+                                                            NO_SCOPE_NUMBER) {
+      /* tp describes a class type that is being defined, but we may be in the
+         midst of the instantiation of a template that's not inside the class.
+         Walk the scope stack and parent types to ensure that we are in fact
+         inside the definition of tp. */
+      a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+      a_type_ptr               enclosing_type = NULL;
+      while (ssep->kind != (a_scope_kind)sck_file &&
+             ssep->kind != (a_scope_kind)sck_namespace) {
+        if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
+          /* We're in a class scope.  Break out of this loop and examine if
+             it is the given type or a nested class thereof. */
+          enclosing_type = ssep->assoc_type;
+          break;
+        } else if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+          /* A template instantiation (presumably not of a class template,
+             since we would have encountered its scope otherwise).  We must
+             be lexically outside a class definition. */
+          break;
+        }  /* if */
+        --ssep;
+      }  /* while */
+      /* If we found an enclosing class scope, examine if it or one of its
+         parents corresponds to tp. */
+      while (enclosing_type != NULL) {
+        if (same_entities(enclosing_type, tp)) {
+          result = TRUE;
+          break;
+        } else if (!enclosing_type->source_corresp.is_class_member) {
+          break;
+        } else {
+          enclosing_type = enclosing_type->source_corresp.parent.class_type;
+        }  /* if */
+      }  /* while */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* in_definition_of_class */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void types_early_init(void)

@@ -1,5 +1,17 @@
 Version 3.9
 
+8/31/06  Completeness of exception specification types
+
+Inside the definition of a class being defined, that class is now considered
+to be complete for the purposes of checking the validity of a type in an
+exception specification.  For example:
+
+  struct S {
+    void f() throw(S) {}  // Previously an error because S is incomplete.
+  };                      // Now accepted.
+
+This implements the resolution of the C++ committee's Core issue 437).
+
 8/30/06  GNU compatibility: Attribute aligned on function declarations
 
 In GNU mode, the front end now issues a discretionary error (instead of a
