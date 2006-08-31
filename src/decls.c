@@ -10605,19 +10605,18 @@ Return a pointer to the variable that is declared.
 }  /* condition_declaration */
 
 
-static char* make_static_assert_string_for_output(sizeof_t  *p_msg_len)
+static void make_static_assert_string_for_output(void)
 /*
 Create a character string from the string constant entry associated with the
 current token.  The string constant entry may represent a wide-character
 literal, but the output will be restricted to the basic source character
 set -- other characters are replaced by a '?'.  The generated string (which
-is meant to be used in a diagnostic) is returned, and *p_msg_len is set to
-the number of bytes allocated for it.
+is meant to be used in a diagnostic) is stored in temp_text_buffer.
 */
 {
   a_constant_ptr  con = &const_for_curr_token;
   unsigned int    char_size;
-  char            *msg, *ptr;
+  char            *ptr;
   a_targ_size_t    con_byte_len, msg_len, k;
 
   check_assertion(con->kind == (a_constant_repr_kind)ck_string);
@@ -10626,8 +10625,7 @@ the number of bytes allocated for it.
      doesn't include a trailing NULL). */
   con_byte_len = con->variant.string.length;
   msg_len = con_byte_len/char_size;
-  msg = alloc_general(msg_len+1);
-  *p_msg_len = msg_len+1;
+  ensure_temp_text_buffer_space(msg_len+1);
   /* Extract the characters from the constant. */
   ptr = con->variant.string.value;
   for (k = 0; k < msg_len; ++k, ptr += char_size) {
@@ -10636,14 +10634,13 @@ the number of bytes allocated for it.
       break;
     } else if (char_val > CHAR_MAX ||
                is_nonstandard_character((char)char_val)) {
-      msg[k] = '?';
+      temp_text_buffer[k] = '?';
     } else {
-      msg[k] = (char)char_val;
+      temp_text_buffer[k] = (char)char_val;
     }  /* if */
   }  /* for */
   /* Append a null character. */
-  msg[k] = '\0';
-  return msg;
+  temp_text_buffer[k] = '\0';
 }  /* make_static_assert_string_for_output */
 
 
@@ -10683,10 +10680,8 @@ is "false".  If leave_semicolon is TRUE, do not consume the final token.
     } else if (assert_con.kind != (a_constant_repr_kind)ck_template_param &&
                is_false_constant(&assert_con)) {
       /* The assertion failed: Issue an error. */
-      sizeof_t  msg_len;
-      char      *msg = make_static_assert_string_for_output(&msg_len);
-      pos_st_error(ec_static_assert, &pos, msg);
-      free_general((a_void_ptr)msg, msg_len);
+      make_static_assert_string_for_output();
+      pos_st_error(ec_static_assert, &pos, temp_text_buffer);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     } else {
       /* Record the assertion in the IL. */
