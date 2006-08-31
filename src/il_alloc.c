@@ -2892,9 +2892,9 @@ fields to default values.
     case stmk_empty:
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
     case stmk_expr:
-#if GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED
     case stmk_assigned_goto:
-#endif /* GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
     case stmk_upc_notify:
     case stmk_upc_wait:

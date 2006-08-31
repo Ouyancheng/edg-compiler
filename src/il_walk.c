@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2006 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -277,6 +277,13 @@ That is what the remap function does.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   walk_list(il_header.nontag_types_used_in_exception_or_rtti,
             a_type_ptr, iek_type);
+#if MACRO_INVOCATION_TREE_IN_IL
+  if (il_header.root_macro_invocation_record_block != NULL) {
+    walk_entry_and_subtree((char *)
+                           il_header.root_macro_invocation_record_block,
+                           iek_macro_invocation_record_block);
+  }  /* if */
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
   /* Restore the state of global variables. */
   restore_il_walk_state(saved_state);
   db_exit();
@@ -1113,7 +1120,8 @@ flag.
        this, but doing it here reduces the possibility of error.  (In C++
        mode, extern inline functions may be lowered to static inline
        functions, in which case the definition may not be needed.) */
-    if (rout->storage_class == (a_storage_class)sc_unspecified) {
+    if (rout->storage_class == (a_storage_class)sc_unspecified &&
+        (C_mode() || !treat_as_static_inline(rout))) {
       set_routine_definition_needed(rout);
 #if GNU_EXTENSIONS_ALLOWED
     } else if (rout->is_initialization_routine ||
@@ -1767,6 +1775,11 @@ only the entries marked as "needed" are marked to keep in the IL.
        keep_in_il flags have been set. */
     set_keep_in_il_on_source_sequence_entries(scope);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MACRO_INVOCATION_TREE_IN_IL
+    walk_ptr(il_header.root_macro_invocation_record_block,
+             a_macro_invocation_record_block_ptr,
+             iek_macro_invocation_record_block);
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 #if DEBUG
     if (db_flag_is_set("needed_flags")) {
       fprintf(f_debug, "Ending file scope keep_in_il walk\n");
@@ -2068,8 +2081,10 @@ running them through the indicated remapping function.
      are not maintained on an orphan list.  String types at the file
      scope that are referenced from a function scope are written in that
      function scope region. */
-#ifdef FFE
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
   remap_orphan_entry_first(iek_internal_complex_value);
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FFE
   remap_orphan_entry_first(iek_bound_info_entry);
   remap_orphan_entry_first(iek_do_loop);
   remap_orphan_entry_first(iek_label_list_entry);
@@ -2177,8 +2192,10 @@ running them through the indicated remapping function.
      are not maintained on an orphan list.  String types at the file
      scope that are referenced from a function scope are written in that
      function scope region. */
-#ifdef FFE
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
   remap_orphan_entry_last(iek_internal_complex_value);
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FFE
   remap_orphan_entry_last(iek_bound_info_entry);
   remap_orphan_entry_last(iek_do_loop);
   remap_orphan_entry_last(iek_label_list_entry);
@@ -2536,6 +2553,7 @@ default values.
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   tblock->process_expressions_for_constants = FALSE;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  tblock->expr_is_lvalue = FALSE;
   tblock->set_unordered_on_dynamic_inits = FALSE;
   tblock->relink_dynamic_inits = FALSE;
   tblock->last_relinked_dynamic_init = NULL;
@@ -2613,7 +2631,7 @@ it's the initializer for an aggregate.
       break;
   }  /* switch */
 post_processing:
-  if (tblock->process_post_constant != NULL) {
+  if (tblock->process_post_constant != NULL && !tblock->terminate) {
     /* Call the user-provided (post-subtree) routine. */
     tblock->process_post_constant(constant, tblock);
   }  /* if */
@@ -2664,7 +2682,7 @@ routines as specified in the control block.
       unexpected_condition_str("traverse_dynamic_init: bad kind");
   }  /* switch */
 post_processing:
-  if (tblock->process_post_dynamic_init != NULL) {
+  if (tblock->process_post_dynamic_init != NULL && !tblock->terminate) {
     /* Call the user-provided (post-subtree) routine. */
     tblock->process_post_dynamic_init(dip, tblock);
   }  /* if */
@@ -2689,6 +2707,75 @@ as specified in the control block.
 }  /* traverse_expr_list */
 
 
+static void traverse_operand_list(
+                                 an_expr_node_ptr                    expr,
+                                 a_boolean                           is_lvalue,
+                                 an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Walk the operands of the given enk_operation expression node.  The expression
+is used as an lvalue if is_lvalue is TRUE.  Call user-provided routines as
+specified in the control block.  This differs from traverse_expr_list in
+that it tracks lvalue/rvalue for call arguments.
+*/
+{
+  a_boolean             saved_expr_is_lvalue = tblock->expr_is_lvalue;
+  an_expr_operator_kind op = expr->variant.operation.kind;
+  an_expr_node_ptr      operand = expr->variant.operation.operands;
+ 
+  if (op == (an_expr_operator_kind)eok_call ||
+      op == (an_expr_operator_kind)eok_virtual_call ||
+      op == (an_expr_operator_kind)eok_pm_call) {
+    /* A call.  Traverse specially to track whether the arguments are
+       lvalues. */
+    a_type_ptr       type;
+    a_param_type_ptr param;
+    /* Extract the called routine type. */
+    type = operand->type;
+    if (op == (an_expr_operator_kind)eok_pm_call) {
+      if (!is_ptr_to_member_type(type)) goto normal_traversal;
+      type = pm_member_type(type);
+    } else {
+      if (!is_pointer_type(type)) goto normal_traversal;
+      type = type_pointed_to(type);
+    }  /* if */
+    type = skip_typerefs(type);
+    if (type->kind != (a_type_kind)tk_routine) goto normal_traversal;
+    param = type->variant.routine.extra_info->param_type_list;
+    /* Traverse the expression that identifies the function. */
+    tblock->expr_is_lvalue = FALSE;
+    traverse_expr(operand, tblock);
+    if (tblock->terminate) goto end_of_routine;
+    operand = operand->next;
+    /* Traverse the argument expressions, tracking their correspondence to
+       the parameter list. */
+    for (; operand != NULL; operand = operand->next) {
+      tblock->expr_is_lvalue = FALSE;
+      if (param != NULL) {
+        tblock->expr_is_lvalue = is_reference_type(param->type);
+        param = param->next;
+      }  /* if */
+      traverse_expr(operand, tblock);
+      /* Terminate the walk if told to do so. */
+      if (tblock->terminate) break;
+    }  /* for */
+  } else {
+    unsigned int lvalue_mask;
+normal_traversal:
+    /* Normal operation (not a call). */
+    lvalue_mask = expr_lvalue_operand_mask(expr, is_lvalue);
+    for (; operand != NULL; operand = operand->next) {
+      tblock->expr_is_lvalue = (lvalue_mask & 1);
+      traverse_expr(operand, tblock);
+      /* Terminate the walk if told to do so. */
+      if (tblock->terminate) break;
+      lvalue_mask >>= 1;
+    }  /* for */
+  }  /* if */
+end_of_routine:
+  tblock->expr_is_lvalue = saved_expr_is_lvalue;
+}  /* traverse_operand_list */
+
+
 void traverse_expr(an_expr_node_ptr                    expr,
                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
@@ -2696,6 +2783,13 @@ Walk the tree of the given expression.  Call user-provided routines
 as specified in the control block.
 */
 {
+  a_boolean saved_expr_is_lvalue = tblock->expr_is_lvalue;
+  a_boolean internal_expr_is_lvalue = saved_expr_is_lvalue;
+
+  if (expr->void_expression_lvalue) {
+    /* This expression is explicitly marked as an lvalue. */
+    tblock->expr_is_lvalue = internal_expr_is_lvalue = TRUE;
+  }  /* if */
   if (tblock->process_expr != NULL) {
     /* Call the user-provided routine. */
     tblock->process_expr(expr, tblock);
@@ -2707,14 +2801,17 @@ as specified in the control block.
       goto post_processing;
     }  /* if */
   }  /* if */
+  /* Assume the expression is not an lvalue, and change later if it is. */
+  tblock->expr_is_lvalue = FALSE;
   switch (expr->kind) {
     case enk_error:
       break;
     case enk_operation:
-      traverse_expr_list(expr->variant.operation.operands, tblock);
+      traverse_operand_list(expr, internal_expr_is_lvalue, tblock);
       break;
     case enk_constant:
       if (tblock->process_non_dynamic_constants) {
+        tblock->expr_is_lvalue = internal_expr_is_lvalue;
         traverse_constant(expr->variant.constant, tblock);
       }  /* if */
       break;
@@ -2766,11 +2863,13 @@ as specified in the control block.
       break;
     case enk_typeid:
       if (expr->variant.typeid_info.expr != NULL) {
+        tblock->expr_is_lvalue = TRUE;
         traverse_expr(expr->variant.typeid_info.expr, tblock);
       }  /* if */
       break;
     case enk_runtime_sizeof:
       if (!expr->variant.runtime_sizeof.is_type) {
+        tblock->expr_is_lvalue = expr->variant.runtime_sizeof.is_lvalue;
         traverse_expr(expr->variant.runtime_sizeof.variant.expr, tblock);
       }  /* if */
       break;
@@ -2785,6 +2884,13 @@ as specified in the control block.
       break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     case enk_lowered_eh_construct:
+      if (expr->variant.lowered_eh.kind ==
+                              (a_lowered_eh_construct_kind)leck_internal_try) {
+        traverse_expr(expr->variant.lowered_eh.variant.internal_try.try_expr,
+                      tblock);
+        traverse_expr(expr->variant.lowered_eh.variant.internal_try.catch_expr,
+                      tblock);
+      }  /* if */
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
@@ -2797,15 +2903,22 @@ as specified in the control block.
     case enk_vla_dealloc:
       break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
+    case enk_type_operand:
+      break;
+    case enk_builtin_operation:
+      traverse_expr_list(expr->variant.builtin_operation.operands, tblock);
+      break;
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");
   }  /* switch */
 post_processing:
-  if (tblock->process_post_expr != NULL) {
+  if (tblock->process_post_expr != NULL && !tblock->terminate) {
+    tblock->expr_is_lvalue = internal_expr_is_lvalue;
     /* Call the user-provided (post-subtree) routine. */
     tblock->process_post_expr(expr, tblock);
   }  /* if */
-end_of_routine:;
+end_of_routine:
+  tblock->expr_is_lvalue = saved_expr_is_lvalue;
 }  /* traverse_expr */
 
 
@@ -2825,6 +2938,25 @@ as specified in the control block.
   }  /* for */
 }  /* traverse_statement_list */
 
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+
+static void traverse_local_expr_node_ref_list(
+                                  a_scope_ptr                          scope,
+                                  an_expr_or_stmt_traversal_block_ptr  tblock)
+/*
+The given scope must be a function scope (sck_function).  If it has a list of
+a_local_expr_node_ref entries, traverse the expressions referenced by that
+list.
+*/
+{
+  a_local_expr_node_ref_ptr  entry = scope->expr_node_refs;
+
+  for (; entry != NULL; entry = entry->next) {
+    traverse_expr(entry->expr, tblock);
+  }  /* for */
+}  /* traverse_local_expr_node_ref_list */
+
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 void traverse_statement(a_statement_ptr                     statement,
                         an_expr_or_stmt_traversal_block_ptr tblock)
@@ -2833,6 +2965,7 @@ Walk the tree of the given statement.  Call user-provided routines
 as specified in the control block.
 */
 {
+  tblock->expr_is_lvalue = FALSE;
   if (tblock->process_statement != NULL) {
     /* Call the user-provided routine. */
     tblock->process_statement(statement, tblock);
@@ -2880,11 +3013,26 @@ as specified in the control block.
       if (statement->variant.return_dynamic_init != NULL) {
         traverse_dynamic_init(statement->variant.return_dynamic_init, tblock);
       } else if (statement->expr != NULL) {
+        if (innermost_function_scope != NULL) {
+          a_routine_ptr curr_rout =
+                                 innermost_function_scope->variant.routine.ptr;
+          a_type_ptr    rout_type = skip_typerefs(curr_rout->type);
+          if (is_reference_type(rout_type->variant.routine.return_type)) {
+            /* A return of a reference treats the expression as an lvalue. */
+            tblock->expr_is_lvalue = TRUE;
+          }  /* if */
+        }  /* if */
         traverse_expr(statement->expr, tblock);
       }  /* if */
       break;
     case stmk_block:
       traverse_statement_list(statement->variant.block.statements, tblock);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      if (innermost_function_scope != NULL &&
+          innermost_function_scope->assoc_block == statement) {
+        traverse_local_expr_node_ref_list(innermost_function_scope, tblock);
+      }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       break;
     case stmk_for:
 #if UPC_EXTENSIONS_ALLOWED
@@ -2941,6 +3089,16 @@ as specified in the control block.
       traverse_dynamic_init(statement->variant.dynamic_init, tblock);
       break;
     case stmk_asm:
+#if GNU_EXTENSIONS_ALLOWED
+      { an_asm_entry_ptr   aep = statement->variant.asm_entry;
+        an_asm_operand_ptr aop;
+        for (aop = aep->operands; aop != NULL; aop = aop->next) {
+          tblock->expr_is_lvalue = (aop->modifiers & (int)aom_output) != 0;
+          traverse_expr(aop->expression, tblock);
+        }  /* for */
+        tblock->expr_is_lvalue = FALSE;
+      }
+#endif /* GNU_EXTENSIONS_ALLOWED */
       break;
 #if ASM_FUNCTION_ALLOWED
     case stmk_asm_func_body:
@@ -2994,12 +3152,12 @@ as specified in the control block.
     case stmk_upc_fence:
       break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED
     case stmk_assigned_goto:
       /* Used for GNU "goto *expr;". */
       traverse_expr(statement->expr, tblock);
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
     case stmk_empty:
       break;
@@ -3008,7 +3166,7 @@ as specified in the control block.
       unexpected_condition_str("traverse_statement: bad statement kind");
   }  /* if */
 post_processing:
-  if (tblock->process_post_statement != NULL) {
+  if (tblock->process_post_statement != NULL && !tblock->terminate) {
     /* Call the user-provided (post-subtree) routine. */
     tblock->process_post_statement(statement, tblock);
   }  /* if */
@@ -3022,6 +3180,6 @@ end_of_routine:;
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2005 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2006 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

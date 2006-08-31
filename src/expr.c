@@ -4554,11 +4554,11 @@ operation is a pointer-to-member (see ARM 5.3).
   db_exit();
 }  /* scan_ampersand_operator */
 
-#if GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED
 
 static void scan_address_of_label_expression(an_operand *result)
 /*
-Scan the GNU/Sun extended "&&label" expression, which evaluates to
+Scan the GNU extended "&&label" expression, which evaluates to
 the address (as a void *) of the label.  The "&&" operator is the
 current token on entry.
 */
@@ -4570,10 +4570,14 @@ current token on entry.
 
   db_enter(4, "scan_address_of_label_operator");
 
-  check_assertion(gnu_mode || sun_mode);
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
-  if (curr_expr_kind_is(ek_pp)) {
+
+  if (!gnu_mode) {
+    /* Address-of-label only recognized in GNU modes. */
+    pos_error(ec_nonstd_address_of_label, &start_position);
+    err = TRUE;
+  } else if (curr_expr_kind_is(ek_pp)) {
     /* Address-of-label not allowed in preprocessing expressions. */
     pos_error(ec_bad_pp_operator, &start_position);
     err = TRUE;
@@ -4585,6 +4589,10 @@ current token on entry.
     /* Address-of-label not allowed in a template argument expression. */
     pos_error(ec_bad_templ_arg_expr_operator, &start_position);
     err = TRUE;
+  } else if (strict_ansi_mode) {
+    pos_diagnostic(strict_ansi_error_severity, ec_nonstd_address_of_label,
+		   &start_position);
+    err = (strict_ansi_error_severity == es_error);
   }  /* if */
 
   /* Scan the operand.  This must be a single label.  */
@@ -4613,8 +4621,6 @@ current token on entry.
   db_exit();
 }  /* scan_address_of_label_expression */
 
-#endif /* GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
 
 an_expr_node_ptr scan_asm_operand_expression(a_boolean output)
 /*
@@ -17290,13 +17296,13 @@ see expr.h).
       scan_ampersand_operator(&local_result);
       break;
 
-#if GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED
     case tok_and_and:
-      if (!(gnu_mode || sun_mode) ||
+      if (!gnu_mode ||
           next_token() != tok_identifier) goto bad_start_of_primary;
       scan_address_of_label_expression(&local_result);
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
     case tok_star:
       scan_indirection_operator(&local_result);

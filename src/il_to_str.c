@@ -2773,7 +2773,7 @@ parentheses are not needed.
       }  /* if */
       break;
     case abk_label:
-      /* Address of a label (GNU/Sun extension). */
+      /* Address of a label (GNU C extension). */
       { a_label_ptr label = constant->variant.address.variant.label;
         if (!constant->implicit_cast) {
           type = type_pointed_to(constant->type);

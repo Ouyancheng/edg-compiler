@@ -1,19 +1,5 @@
 Version 3.9
 
-8/30/06  Sun compatibility: Computed goto
-
-In Sun mode (a C++ mode), the front end now accept "computed goto" constructs.
-The same extension was already accepted in GNU modes.  For example:
-
-  void f(int i) {
-    void  *targ;
-  start:
-      targ = i++<0 ? &&start : &&end;  // Address of label operations.
-      goto *targ;                      // Computed goto.
-  end:
-    return;
-  }
-
 8/30/06  GNU compatibility: Attribute aligned on function declarations
 
 In GNU mode, the front end now issues a discretionary error (instead of a

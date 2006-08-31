@@ -14424,11 +14424,11 @@ Do IL lowering of the indicated statement and everything under it.
         create_element_count_variable_for_vla(statement);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         break;
-#if GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED
       case stmk_assigned_goto:
         /* No processing required. */
         break;
-#endif /* GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition_str("lower_statement: bad kind");
     }  /* switch */

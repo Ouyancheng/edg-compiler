@@ -1475,9 +1475,9 @@ If not, *failed is set.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case stmk_set_vla_size:
       case stmk_vla_decl:
-#if GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED
       case stmk_assigned_goto:
-#endif /* GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       default:
 cannot_inline_ever:
         /* This statement cannot be inlined in any context. */

@@ -4197,7 +4197,7 @@ do_ido_fdo:
       (void)printf("stmk_computed_goto\n");
       goto do_label_list;
 #endif /* FFE */
-#if defined(FFE) || GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+#if defined(FFE) || GNU_EXTENSIONS_ALLOWED
     case stmk_assigned_goto:
       (void)printf("stmk_assigned_goto\n");
 #ifdef FFE
@@ -4206,7 +4206,7 @@ do_label_list:
                iek_label_list_entry);
 #endif /* ifdef FFE */
       break;
-#endif /* defined(FFE) || GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+#endif /* defined(FFE) || GNU_EXTENSIONS_ALLOWED */
 #ifdef FFE
     case stmk_alt_return:
       (void)printf("stmk_alt_return\n");

@@ -3382,9 +3382,9 @@ Do C99 lowering on the indicated statement.
     switch (statement->kind) {
       case stmk_goto:
       case stmk_label:
-#if GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED
       case stmk_assigned_goto:
-#endif /* GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       case stmk_return:
 #if ASM_FUNCTION_ALLOWED
       case stmk_asm_func_body:

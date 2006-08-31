@@ -7378,13 +7378,13 @@ statement expression, i.e., ({...}).
       dump_label_name(statement->variant.label.ptr);
       write_tok_ch(';');
       break;
-#if GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED
     case stmk_assigned_goto:
       write_tok_str("goto *");
       dump_expr_with_parens(statement->expr);
       write_tok_ch(';');
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case stmk_label:
       if (start_unreferenced_bracket(
                               &statement->variant.label.ptr->source_corresp)) {

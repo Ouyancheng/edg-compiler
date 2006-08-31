@@ -1635,7 +1635,7 @@ enum an_address_base_kind_tag {
   abk_uuidof,		/* Pointer to _GUID structure for Microsoft __uuidof
 			   operation. */
   abk_label             /* Pointer to a label.  This is used for the
-			   GNU/Sun address-of-label extension. */
+			   GNU address-of-label extension. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_address_base_kind;
@@ -8789,12 +8789,12 @@ typedef struct a_label {
 			/* TRUE if this is a compiler-generated label that
 			   is used for a fall-through from one case of a
 			   switch to the next. */
-#if defined(FIL) || GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+#if defined(FIL) || GNU_EXTENSIONS_ALLOWED
   a_bit_field	used_in_assign:1;
 			/* TRUE if this label appears in an ASSIGN
 			   statement (Fortran) or has its address
-			   taken (GNU/Sun-extended C). */
-#endif /* defined(FIL) || GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+			   taken (GNU-extended C). */
+#endif /* defined(FIL) || GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	locally_declared:1;
 			/* TRUE if this label was declared in a GNU C
@@ -10285,9 +10285,9 @@ enum a_statement_kind_tag {
   stmk_farith_if,	/* Floating-point arithmetic IF (three-way branch). */
   stmk_computed_goto,	/* Computed GOTO. */
 #endif /* ifdef FIL */
-#if defined(FIL) || GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+#if defined(FIL) || GNU_EXTENSIONS_ALLOWED
   stmk_assigned_goto,	/* Assigned GOTO. */
-#endif /* FIL || GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+#endif /* FIL || GNU_EXTENSIONS_ALLOWED */
 #ifdef FIL
   stmk_alt_return,	/* Alternate RETURN. */
   stmk_stop,		/* STOP. */
@@ -10868,7 +10868,7 @@ typedef struct a_statement {
                            logical expression.
                              The switch expression for stmk_switch.
                              The selector expression for stmk_assigned_goto,
-			     if GNU or Sun extensions are allowed. */
+			     if GNU extensions are allowed. */
 #endif /* ifdef CIL */
 #ifdef FIL
                         /* Also:
@@ -10896,9 +10896,9 @@ typedef struct a_statement {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Likewise when kind == stmk_decl. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED
     /* Likewise for stmk_assigned_goto in C/C++ IL. */
-#endif /* GNU_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
     /* Likewise when kind == stmk_upc_notify, stmk_upc_wait, stmk_upc_barrier,
        or stmk_upc_fence. */
