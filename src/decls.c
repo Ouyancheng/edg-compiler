@@ -2560,7 +2560,7 @@ processing should proceed in error mode.
        (although a diagnostic is still emitted for this conflict): This will
        cause the type of this declaration to prevail in this scope, and that
        of the previous declaration to be restored when this scope ends. */
-  }
+  }  /* if */
 }  /* recover_from_irreconcilable_external_symbol_types */
 
 
@@ -2656,7 +2656,10 @@ unique IL entry (needed because the normal symbol entries will not
 necessarily stay in scope for the entire compilation).  *position
 gives the source position to be used in case of error.
 An error about a type incompatibility should not be more severe than
-incompatible_severity.  Return FALSE if there is some error.
+incompatible_severity.  If FALSE is returned, an error was encountered.
+Occasionally, encountering an error still produces a TRUE return value,
+indicating that error recovery should proceed as if no error had occurred
+(see also recover_from_irreconcilable_external_symbol_types).
 */
 {
   an_extern_symbol_descr_ptr esdp;
