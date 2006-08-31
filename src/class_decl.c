@@ -729,7 +729,27 @@ class being defined.
 
 #if IA64_ABI
 
+/* Available list of covariant override entries. */
 static a_covariant_override_ptr  avail_covariant_overrides;
+
+#if DEBUG
+
+/*
+Counter to track total use of memory.
+*/
+static unsigned long
+		num_covariant_overrides_allocated;
+
+unsigned long db_show_covariant_overrides_used(unsigned long grand_total)
+{
+  unsigned long  num, size, total;
+
+  db_space_used_lost("covariant overrides", avail_covariant_overrides,
+                     num_covariant_overrides_allocated, a_covariant_override);
+  return grand_total;
+}  /* db_show_covariant_overrides_used */
+
+#endif /* DEBUG */
 
 static void record_covariant_override(a_class_def_state_ptr  cdsp,
                                       a_base_class_ptr       bcp,
@@ -748,7 +768,11 @@ pointed to by cdsp.  Initialize the record with the given information.
     avail_covariant_overrides = avail_covariant_overrides->next;
   } else {
     cop = (a_covariant_override_ptr)alloc_fe(sizeof(a_covariant_override));
+#if DEBUG
+    ++num_covariant_overrides_allocated;
+#endif /* DEBUG */
   }  /* if */
+  cop->next = NULL;
   cop->bcp = bcp;
   cop->adjustment_bcp = adjustment_bcp;
   cop->overridden = overridden;
@@ -776,19 +800,6 @@ use.
   }  /* if */
 }  /* free_covariant_overrides */
 
-#if DEBUG
-
-unsigned long db_show_covariant_overrides_used(unsigned long grand_total)
-{
-  unsigned long             n_entries = 0, num, size, total;
-  a_covariant_override_ptr  cop = avail_covariant_overrides;
-
-  for (; cop != NULL; cop = cop->next) ++n_entries;
-  db_space_used("covariant overrides", n_entries, a_covariant_override);
-  return grand_total;
-}  /* db_show_covariant_overrides_used */
-
-#endif /* DEBUG */
 #endif /* IA64_ABI */
 
 /*
@@ -15411,6 +15422,9 @@ Initializations for class declaration processing.
   avail_override_registry_entries = NULL;
 #if IA64_ABI
   avail_covariant_overrides = NULL;
+#if DEBUG
+  num_covariant_overrides_allocated = 0;
+#endif /* DEBUG */
 #endif /* IA64_ABI */
 #if DEBUG
   num_routine_fixups_allocated = 0;
