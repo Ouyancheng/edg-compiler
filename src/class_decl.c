@@ -780,7 +780,7 @@ pointed to by cdsp.  Initialize the record with the given information.
   if (cdsp->covariant_overrides == NULL) {
     cdsp->covariant_overrides = cop;
   } else {
-    cdsp->covariant_overrides->next = cop;
+    cdsp->last_covariant_override->next = cop;
   }  /* if */
   cdsp->last_covariant_override = cop;
 }  /* record_covariant_override */
