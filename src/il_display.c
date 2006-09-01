@@ -903,6 +903,11 @@ Display the indicated constant entry.
     disp_boolean("flexible_array_initializer", TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL && BACK_END_IS_CP_GEN_BE
+  if (ptr->suppress_expression_in_cp_gen_be) {
+    disp_boolean("suppress_expression_in_cp_gen_be", TRUE);
+  }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL && BACK_END_IS_CP_GEN_BE */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:

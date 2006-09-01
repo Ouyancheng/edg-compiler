@@ -833,6 +833,11 @@ and before the back end (if any) is executed.
        number translation process. */
     db_source_file_for_seq_info();
   }  /* if */
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+  /* Display information about any range_modifiers that were created but that
+     were not written to the IL file. */
+  display_lost_expr_range_modifiers();
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 #endif /* DEBUG */
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE

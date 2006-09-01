@@ -1821,6 +1821,12 @@ expression node.
         /* Create a constant node and copy the constant in the operand to the
            node. */
         node = alloc_node_for_constant(con);
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+        /* If there was an expression attached to the constant, it will not
+           be copied into the new constant created for this node; any
+           range modifiers in the abandoned expression must be ignored. */
+        forget_expr_range_modifiers_in_tree(con->expr, (an_expr_node_ptr)NULL);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
         node->is_operand_of_address_of = operand->is_operand_of_address_of;
         copy_operand_position_to_expr(operand, node);
       }  /* if */
@@ -1909,6 +1915,10 @@ This is only used in C++, for some strange cases.
        destructions from the object lifetime lists. */
     unlink_expr_destructions(operand->variant.expression);
   }  /* if */
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+  forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand),
+                                      (an_expr_node_ptr)NULL);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 }  /* discard_operand */
 
 
@@ -3090,6 +3100,13 @@ user-defined conversions.
                                &operand->position);
               error_threshold = saved_error_threshold;
             }  /* if */
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+          } else {
+            /* Ignore range modifiers in discarded expression. */
+            forget_expr_range_modifiers_in_tree(
+                                               expr_node_from_operand(operand),
+                                               (an_expr_node_ptr)NULL);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
           }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
           make_constant_operand(&local_constant, operand);
@@ -6299,6 +6316,14 @@ if possible.  operator_position indicates the operator position.
         check_assertion(is_expression_operand(&result_expr));
         result->variant.constant.expr = result_expr.variant.expression;
       }  /* if */
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+    } else {
+      /* Ignore range modifiers from discarded expressions. */
+      forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand_1),
+                                          (an_expr_node_ptr)NULL);
+      forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand_2),
+                                          (an_expr_node_ptr)NULL);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
   }  /* if */
@@ -6694,6 +6719,12 @@ indicates the operator position.
         an_operand  result_expr;
         build_unary_result_operand(operand, op, result_type, &result_expr);
         result_constant.expr = result_expr.variant.expression;
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+      } else {
+        /* Ignore range modifiers in discarded expression. */
+        forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand),
+                                            (an_expr_node_ptr)NULL);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
       }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       make_constant_operand(&result_constant, result);
@@ -6982,10 +7013,30 @@ still provided).
       /* The first operand is false; return the third operand as the result. */
       copy_operand(operand_3, result);
       other_operand = operand_2;
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+      if (!(is_constant_operand(result) &&
+            curr_expr_kind_is_one_in_which_const_exprs_are_recorded())) {
+        /* Ignore range modifiers from discarded expressions. */
+        forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand_1),
+                                            (an_expr_node_ptr)NULL);
+        forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand_2),
+                                            (an_expr_node_ptr)NULL);
+      }  /* if */
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
     } else {
       /* The first operand is true; return the second operand as the result. */
       copy_operand(operand_2, result);
       other_operand = operand_3;
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+      if (!(is_constant_operand(result) &&
+            curr_expr_kind_is_one_in_which_const_exprs_are_recorded())) {
+        /* Ignore range modifiers from discarded expressions. */
+        forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand_1),
+                                            (an_expr_node_ptr)NULL);
+        forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand_3),
+                                            (an_expr_node_ptr)NULL);
+      }  /* if */
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
     }  /* if */
     result->is_simple_string_literal = FALSE;
     result->is_cfront_null_pointer_constant = FALSE;
@@ -9237,6 +9288,11 @@ converted to an rvalue.
   if (!see_if_possible && possible) {
     node->type = make_pointer_type(node_type);
   }  /* if */
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+  /* If any nodes at the top of the tree were discarded, their range
+     modifiers must be ignored. */
+  forget_expr_range_modifiers_in_tree(*p_node, node);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   *p_node = node;
   *converted = possible;
   if (lvalue_type != NULL) *lvalue_type = node_type;
@@ -9577,6 +9633,11 @@ non-NULL return *con_value == NULL.
         node->operator_position = saved_operator_position;
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+    } else {
+      /* Ignore any range modifiers in the expression being discarded. */
+      forget_expr_range_modifiers_in_tree(node, (an_expr_node_ptr)NULL);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
     }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else if (optimized_case) {
@@ -9811,8 +9872,19 @@ cases so we don't do it here.
                Therefore, the rvalue is the value of the character at that
                position. */
             conv_lvalue_in_string_to_char_rvalue(operand, &optimized_case);
-            /* Suppress an error except in strict mode. */
-            if (optimized_case && !strict_ansi_mode) constant_case = TRUE;
+            if (optimized_case) {
+              if (!strict_ansi_mode) {
+                /* Suppress an error except in strict mode. */
+                constant_case = TRUE;
+              }  /* if */
+#if EXPR_RANGE_MODIFIERS_IN_IL
+              operand->variant.constant.expr = orig_node;
+#if BACK_END_IS_CP_GEN_BE
+              operand->variant.constant.suppress_expression_in_cp_gen_be =
+                                                                          TRUE;
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
+            }  /* if */
           }  /* if */
           if (!optimized_case) {
             /* Not a special optimizable case; add an indirection. */
@@ -10106,6 +10178,11 @@ position to be used for any errors.
         node_operator_is(node, eok_lvalue_cast)) {
       /* Remove an lvalue cast on top of the operand, since the new cast
          will supersede it. */
+#if EXPR_RANGE_MODIFIERS_IN_IL
+      /* Move any range modifiers from the node being discarded to its
+         operand. */
+      move_expr_range_modifiers(node, node->variant.operation.operands);
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
       node = node->variant.operation.operands;
     }  /* if */
     cast_node(&node, ptr_type,
@@ -11030,6 +11107,8 @@ position information from the operand itself.
 */
 {
   an_expr_node_ptr operand_node = expr_node_from_operand(operand);
+  an_expr_node_ptr opnd;
+  a_boolean        copy_modifiers = TRUE;
 
   if (operand_node != NULL &&
       operand_node->range_modifiers != NULL) {
@@ -11040,7 +11119,27 @@ position information from the operand itself.
        node rather than just copying the operand source range. */
     node->expr_range = operand_node->expr_range;
     node->operator_position = operand_node->operator_position;
-    copy_expr_range_modifiers(operand_node, node);
+    /* We should only copy the range modifiers themselves if the operand
+       node is not "below" the new node, i.e., one of the new node's
+       operands if it's an operator node or the expression of a constant
+       node. */
+    if (is_operation_node(node)) {
+      for (opnd = node->variant.operation.operands;
+           copy_modifiers && opnd != NULL; opnd = opnd->next) {
+        if (opnd = operand_node) {
+          copy_modifiers = FALSE;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    if (is_constant_node(node) &&
+        node->variant.constant->expr == operand_node) {
+      copy_modifiers = FALSE;
+    }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+    if (copy_modifiers) {
+      copy_expr_range_modifiers(operand_node, node);
+    }  /* if */
   } else {
     /* The operand's node has no range modifiers, so the operand's position
        information should accurately describe the source range of the

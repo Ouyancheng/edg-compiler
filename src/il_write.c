@@ -683,6 +683,11 @@ its length.
   }  /* if */
   /* Set the "entry written" flag. */
   epp->entry_written = TRUE;
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+  if (entry_kind == (an_il_entry_kind)iek_expr_range_modifier) {
+    remove_expr_range_modifier((an_expr_range_modifier_ptr)entry_ptr);
+  }  /* if */
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 end_of_routine:;
 }  /* write_entry */
 

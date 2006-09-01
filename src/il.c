@@ -1500,6 +1500,43 @@ Dump the contents of the indicated variable for debug purposes.
 }  /* db_variable */
 
 
+#if EXPR_RANGE_MODIFIERS_IN_IL
+static void db_expr_range_modifier(an_expr_range_modifier_ptr ermp,
+                                   int                        level)
+/*
+Dump the contents of the indicated range modifier for debug purposes.
+*/
+{
+  int i;
+  while (ermp != NULL) {
+    for (i = 0; i < level; ++i) {
+      (void)fputs(" ", f_debug);
+    }  /* while */
+    (void)fprintf(f_debug, "%s: %lu/%lu - %lu/%lu",
+                  expr_range_modifier_kind_names[(int)ermp->kind],
+                  (unsigned long)ermp->range.start.seq,
+                  (unsigned long)ermp->range.start.column,
+                  (unsigned long)ermp->range.end.seq,
+                  (unsigned long)ermp->range.end.column);
+#if FULLY_RESOLVED_MACRO_POSITIONS
+    if (ermp->range.start.seq != ermp->range.start.orig_seq ||
+        ermp->range.start.column != ermp->range.start.orig_column ||
+        ermp->range.end.seq != ermp->range.end.orig_seq ||
+        ermp->range.end.column != ermp->range.end.orig_column) {
+      (void)fprintf(f_debug, " [%lu/$lu - %lu/%lu]",
+                    (unsigned long)ermp->range.start.orig_seq,
+                    (unsigned long)ermp->range.start.orig_column,
+                    (unsigned long)ermp->range.end.orig_seq,
+                    (unsigned long)ermp->range.end.orig_column);
+    }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+    (void)fputs("\n", f_debug);
+    ermp = ermp->next;
+  }  /* while */
+}  /* db_expr_range_modifier */
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
+
+
 static void db_expr_node(an_expr_node_ptr node,
 		         int              level)
 /*
@@ -1523,6 +1560,11 @@ Dump the contents of the indicated expression node for debug purposes.
       fputs(", result type: ", f_debug);
       db_abbreviated_type(node->type);
       fputs("\n", f_debug);
+#if EXPR_RANGE_MODIFIERS_IN_IL
+      if (node->range_modifiers != NULL) {
+        db_expr_range_modifier(node->range_modifiers, level + 4);
+      }  /* if */
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
       operand = node->variant.operation.operands;
       while (operand != NULL) {
         db_expr_node(operand, level + 2);
@@ -1539,6 +1581,16 @@ Dump the contents of the indicated expression node for debug purposes.
       }  /* if */
       db_constant(const_ptr);
       fputs("\n", f_debug);
+#if EXPR_RANGE_MODIFIERS_IN_IL
+      if (node->range_modifiers != NULL) {
+        db_expr_range_modifier(node->range_modifiers, level + 4);
+      }  /* if */
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      if (const_ptr->expr != NULL) {
+        db_expr_node(const_ptr->expr, level + 2);
+      }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       break;
     case enk_variable_address:
       fputs("address of variable: ", f_debug);
@@ -1750,6 +1802,18 @@ Dump the contents of the indicated expression node for debug purposes.
     default:
       fputs("<bad expr kind>\n", f_debug);
   }  /* switch */
+#if EXPR_RANGE_MODIFIERS_IN_IL
+  if (node->kind != (an_expr_node_kind)enk_operation &&
+      node->kind != (an_expr_node_kind)enk_constant &&
+      node->range_modifiers != NULL) {
+    /* The range modifiers for enk_operation and enk_constant nodes were
+       dumped above, so they would precede the display of the operands or
+       (in case RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE) the expression
+       for a constant.  The range modifiers for all other nodes are
+       displayed here. */
+    db_expr_range_modifier(node->range_modifiers, level + 4);
+  }  /* if */
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 }  /* db_expr_node */
 
 
@@ -13057,6 +13121,11 @@ be called to start a copy.
             expr_copy->variant.runtime_sizeof.variant.type =
                                expr->variant.runtime_sizeof.variant.expr->type;
           }  /* if */
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+          /* The original expression is being abandoned, so we must ignore
+             any range modifiers associated with it. */
+          forget_expr_range_modifiers_in_tree(expr, (an_expr_node_ptr)NULL);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
         } else {
           expr_copy->variant.runtime_sizeof.variant.expr =
                     i_copy_expr_tree(expr->variant.runtime_sizeof.variant.expr,
