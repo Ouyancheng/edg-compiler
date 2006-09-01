@@ -398,7 +398,7 @@ Standard C++ allows unnamed class types to have a "name for linkage purposes"
 through typedef declarations.  For example:
 
   typedef class {} C;  // "C" is the name for linkage purposes of the
-                        // class type being defined.
+                       // class type being defined.
 
 In GNU C++ mode, this can now also be achieved by a typedef for a typeof
 construct.  For example:
