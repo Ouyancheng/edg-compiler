@@ -1,5 +1,22 @@
 Version 3.9
 
+9/1/06   GNU/Microsoft compatibility: Class-qualified lookup in templates
+
+While parsing a template in its generic form, looking up a name qualified with
+a template-dependent class type can generally not be done because the class
+template might be specialized later on to change the outcome of the lookup.
+In such cases, the lookup always succeeds and a placeholder entity is created.
+However, if the name looked up is qualified with a class template currently
+being defined, then the lookup should proceed as in the nontemplate case (as
+per the standard).  This treatment of class templates currently being defined
+(which is required by the C++ standard) is no longer present in GNU and
+Microsoft modes (the lookup therefore always succeeds with a placeholder
+result in those modes).  For example:
+
+  template<class T> struct S {
+    typename S::X *p;  // Normally an error because S::X does not exist, but
+  };                   // accepted in GNU and Microsoft modes.
+
 8/31/06  Completeness of exception specification types
 
 Inside the definition of a class being defined, that class is now considered
