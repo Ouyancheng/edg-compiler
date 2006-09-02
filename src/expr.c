@@ -621,12 +621,16 @@ modifiers and set the modifier's range to the specified positions.
 {
   an_expr_node_ptr expr = expr_node_from_operand(result);
 
-  if (expr != NULL &&
-      /* Ignore a compiler-generated operation unless it is an
-         operator-notation call node. */
-      (!is_operation_node(expr) ||
-       !expr->variant.operation.compiler_generated ||
-       expr->variant.operation.call_uses_operator_syntax)) {
+  /* Scan down through any compiler-generated nodes (except for those
+     resulting from operator-notation calls to overloaded operator
+     functions) to the node that has range information. */
+  while (expr != NULL &&
+         is_operation_node(expr) &&
+         expr->variant.operation.compiler_generated &&
+         !expr->variant.operation.call_uses_operator_syntax) {
+    expr = expr->variant.operation.operands;
+  }  /* while */
+  if (expr != NULL) {
     an_expr_range_modifier_ptr ermp = alloc_expr_range_modifier(kind);
     ermp->range.start = *start;
     ermp->range.end = *end;

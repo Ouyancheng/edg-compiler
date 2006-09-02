@@ -2823,6 +2823,12 @@ conversions.
                        is_reinterpret_cast, reinterpret_semantics, err_pos);
     } else {
       /* The operation was successfully folded to a constant. */
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+      /* This implicitly discards any expression for the old constant, so
+         any range modifiers in that constant must be ignored, too. */
+      forget_expr_range_modifiers_in_tree(node->variant.constant->expr,
+                                          (an_expr_node_ptr)NULL);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
       node->variant.constant = alloc_shareable_constant(&local_constant);
       node->variant.constant->is_reinterpret_cast = is_reinterpret_cast;
       node->type = new_type;
@@ -3100,6 +3106,10 @@ user-defined conversions.
                                &operand->position);
               error_threshold = saved_error_threshold;
             }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+            local_constant.suppress_expression_in_cp_gen_be =
+                    operand->variant.constant.suppress_expression_in_cp_gen_be;
+#endif /* BACK_END_IS_CP_GEN_BE */
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
           } else {
             /* Ignore range modifiers in discarded expression. */
