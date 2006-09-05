@@ -6994,6 +6994,15 @@ This is allowed in both Microsoft C and C++ modes.
                         /*unknown_dependent_function=*/FALSE,
                         (an_arg_operand_ptr *)NULL,
                         &end_position);
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+    /* The argument expressions will be discarded.  Scan through the argument
+       list (we can use arg_list itself for that purpose, as it won't be used
+       for anything else) and ignore any associated range modifiers. */
+    while (arg_list != NULL) {
+      forget_expr_range_modifiers_in_tree(arg_list, (an_expr_node_ptr)NULL);
+      arg_list = arg_list->next;
+    }  /* while */
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   }  /* if */
   /* The value of __noop is an int 0. */
   make_integer_constant_operand(result, (a_host_large_integer)0L);
