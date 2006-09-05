@@ -4120,7 +4120,7 @@ suppress_include.
             if (file_found) break;
             if (fsp->next != NULL) {
               /* Copy the original file name back into the buffer. */
-              reset_text_buffer(suffix_replacement_buffer);
+              reset_text_buffer(buffer);
               add_to_text_buffer(buffer, suffix_replacement_buffer->buffer,
                                  suffix_replacement_buffer->size);
             }  /* if */
