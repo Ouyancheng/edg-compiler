@@ -80,7 +80,7 @@ in such cases.  For example:
   #include <assert.h>
   int main() {
     D *p = &d;
-    assert(d->f() == &d);  // Assertion previously failed.
+    assert(p->f() == &d);  // Assertion previously failed.
   }
 
 The problem only occurred in IA-64 ABI configurations.  This is now fixed.
