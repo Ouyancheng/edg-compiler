@@ -1,5 +1,25 @@
 Version 3.9
 
+9/6/06   GNU C++ compatibility: incorrect lookup when deferring prototype
+         instantiations
+
+In g++ mode when gnu_version is >= 30400, function prototype instantiations
+are deferred until the first use of the template.  In such modes, friend
+functions declared in class templates were sometimes not visible when they
+should have been.  This could result in spurious errors or incorrect results.
+Now fixed.
+
+  template <class T> struct A {
+    friend bool operator!=(const A<T>&, const A<T>&);
+  };
+  template<class T> void f(A<int> a) {
+    a != a;  // spurious "no matching function" error
+  }
+  int main() {
+    A<int> a;
+    f<int>(a);
+  }
+
 9/1/06   GNU/Microsoft compatibility: Class-qualified lookup in templates
 
 While parsing a template in its generic form, looking up a name qualified with

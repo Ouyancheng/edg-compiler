@@ -2535,6 +2535,8 @@ might not be able to if the template itself has not yet been defined.
       /* We proceed with the instantiation. */
       a_class_symbol_supplement_ptr	prototype_cssp;
       a_class_type_supplement_ptr	ctsp;
+      a_decl_sequence_number		saved_decl_seq_counter;
+    
       prototype_cssp = cssp->corresp_prototype_sym->
                                          variant.class_struct_union.extra_info;
       if (prototype_cssp->routine_fixup_list != NULL) {
@@ -2644,6 +2646,15 @@ might not be able to if the template itself has not yet been defined.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       mark_defined(instance_sym, &instance_sym->decl_position);
+      if (defer_function_prototype_instantiations) {
+        /* When deferring function prototype instantiations, restore the
+           declaration sequence counter to its state when the class template
+           was defined.  This is done so that friend functions declared in
+           the class will be visible to the function prototype
+           instantiations. */
+        saved_decl_seq_counter = decl_seq_counter;
+        decl_seq_counter = body_cache->decl_info->decl_seq;
+      }  /* if */
       /* Scan the base specifiers list, if any, and the body of the class.
          The pending class definition counter is incremented while processing
          the instantiation.  This ensures that the fixup of the instantiation
@@ -2696,6 +2707,10 @@ might not be able to if the template itself has not yet been defined.
          established. */
       establish_class_instantiation_corresp(class_type);
       set_instantiation_required_for_template_class_members(class_type);
+      if (defer_function_prototype_instantiations) {
+        /* Restore the declaration sequence number if it was updated above. */
+        decl_seq_counter = saved_decl_seq_counter;
+      }  /* if */
       /* Do the class fixups for this instantiation. */
       process_deferred_class_fixups_and_instantiations();
       /* If the translation unit stack was pushed above, pop it now. */
