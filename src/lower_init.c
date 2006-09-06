@@ -7844,15 +7844,7 @@ tricks.
                                          (a_ctor_or_dtor_kind)cdk_deleting,
                                          /*define_now=*/FALSE);
   } else {
-    if (delete_routine == NULL) {
-      /* Get the default operator delete for the class. */
-      delete_routine = class_type->variant.class_struct_union.extra_info->
-                                                 assoc_operator_delete_routine;
-      /* The assoc_operator_delete_routine field can be NULL, e.g., for
-         an ambiguous class-specific operator delete, but if so the
-         front end should have issued an error on this delete operation. */
-      check_assertion(delete_routine != NULL);
-    }  /* if */
+    check_assertion(delete_routine != NULL);
     dtor_routine = alternate_entry_point(dtor_routine,
                                          (a_ctor_or_dtor_kind)cdk_complete,
                                          /*define_now=*/FALSE);

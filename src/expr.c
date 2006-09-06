@@ -9505,7 +9505,15 @@ As an anachronism, allow an expression inside the [ ].
     } else {
 #endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
-      if (dtor_routine != NULL) {
+      if (dtor_routine != NULL
+#if DO_IL_LOWERING && IA64_ABI
+          /* In the IA-64 ABI, deletion can be done by a deleting destructor.
+             However, we use that only if the class has a virtual destructor.
+             The IA-64 spec requires this unless one is willing to put out
+             a definition of the deleting destructor everywhere it is used. */
+          && dtor_routine->is_virtual
+#endif /* DO_IL_LOWERING && IA64_ABI */
+                                     ) {
         /* For a class with a destructor, see if the delete can be folded
            into the destructor. */
         a_type_ptr unqual_base_delete_type = skip_typerefs(base_delete_type);
