@@ -1,5 +1,27 @@
 Version 3.9
 
+9/6/06   Abort on selection of field of template declared by using-declaration
+
+The front end aborted in add_base_class_casts while processing a
+field selection in any mode that fully parses function templates
+(e.g., strict mode, or g++ mode >= 3.4) when the field selection
+is for a member of the current template that is brought in from
+a base class via a using-declaration.  Now fixed.
+
+  template<typename type> class A {
+    class B {
+      protected:
+        A* ptr;
+    };
+  public:
+    class C:B {
+      protected:
+        using B::ptr;
+      public:
+        A* getPointer() {return ptr;}  // Caused abort
+      };
+  };
+
 9/6/06   IA-64 ABI: class operator delete missing at link time
 
 With IL lowering and the IA-64 ABI, there were some cases where a

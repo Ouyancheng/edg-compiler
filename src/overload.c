@@ -5931,12 +5931,15 @@ source position of the member name reference.
     check_assertion(is_immediate_class_type(class_struct_union_type) ||
                     class_struct_union_type->kind ==
                                                (a_type_kind)tk_template_param);
-    if ((is_template_param_type(class_struct_union_type) ||
+    if (is_template_dependent_context() &&
+        (is_template_param_type(class_struct_union_type) ||
          class_struct_union_type->variant.class_struct_union.is_nonreal_class||
          desired_class->variant.class_struct_union.is_nonreal_class) &&
-        !same_entities(class_struct_union_type, desired_class) &&
-        (is_template_param_type(class_struct_union_type) ||
-         find_base_class_of(class_struct_union_type, desired_class) == NULL)) {
+        (projection_member_sym->kind == (a_symbol_kind)sk_projection ||
+         (!same_entities(class_struct_union_type, desired_class) &&
+          (is_template_param_type(class_struct_union_type) ||
+           find_base_class_of(class_struct_union_type,
+                              desired_class) == NULL)))) {
       /* Don't do any checking on nonreal classes in prototype
          instantiations, unless it does happen that there is a relationship. */
       prep_generic_operand(operand_1,
