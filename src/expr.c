@@ -4748,8 +4748,8 @@ operation is a pointer-to-member (see ARM 5.3).
              and a "*" operator cancel out, e.g., "&*x" is just "x".  This
              is significant when x is a pointer to void. */
 #if EXPR_RANGE_MODIFIERS_IN_IL
-          /* A range modifier for the indirection was (redundantly) added to the
-             indirection node.  Move it down to the operand node. */
+          /* A range modifier for the indirection was (redundantly) added to
+             the indirection node.  Move it down to the operand node. */
           move_expr_range_modifiers(expr, expr->variant.operation.operands);
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
           expr = expr->variant.operation.operands;
