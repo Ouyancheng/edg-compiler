@@ -689,7 +689,7 @@ typedef struct a_class_def_state {
 #if IA64_ABI
   a_covariant_override_ptr
 		covariant_overrides, last_covariant_override;
-			/* A list keeping track of the virtual functions 
+			/* A list keeping track of the virtual function
 			   overrides that involve a covariant return type. */
 #endif /* IA64_ABI */
 } a_class_def_state;
