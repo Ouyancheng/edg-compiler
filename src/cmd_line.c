@@ -2791,6 +2791,9 @@ some modes, like ANSI, exclude the Sun mode already.  Hence those are not
 checked again here.)
 */
 {
+  if (!option_kind_used[(int)optk_exception_handling]) {
+    exceptions_enabled = TRUE;
+  }  /* if */
   if (!(option_kind_used[(int)optk_guiding_decls])) {
     /* If guiding_decls_allowed was not set on the command line, turn it
        off now. */
