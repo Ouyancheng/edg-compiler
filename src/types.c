@@ -9113,7 +9113,7 @@ that type's definition.
              be lexically outside a class definition. */
           break;
         }  /* if */
-        --ssep;
+        ssep = &scope_stack[ssep->previous_scope];
       }  /* while */
       /* If we found an enclosing class scope, examine if it or one of its
          parents corresponds to tp. */
