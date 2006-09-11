@@ -8495,7 +8495,8 @@ NULL.
        typedef name will serve as the "name for linkage purposes" (WP 7.1.3
        [dcl.typedef]).  If so, set the name pointer in the type entry to
        point to the same name as the current typedef name. */
-    a_boolean  is_class_or_enum;
+    a_type_ptr  type_to_check = type_ptr;
+    a_boolean   is_class_or_enum;
 #if GNU_EXTENSIONS_ALLOWED
     if (gpp_mode) {
       /* Normally, a typedef imbues a name for linkage purposes only when it
@@ -8507,25 +8508,25 @@ NULL.
            typedef typeof(x) S;   // "S" is the name for linkage purposes.
            typedef typeof(x) S2;  // "S2" isn't the name for linkage purposes,
                                   // since once is established already. */
-      while (type_ptr->kind == (a_type_kind)tk_typeref &&
-             type_ptr->variant.typeref.is_typeof) {
-        type_ptr = type_ptr->variant.typeref.type;
+      while (type_to_check->kind == (a_type_kind)tk_typeref &&
+             type_to_check->variant.typeref.is_typeof) {
+        type_to_check = type_to_check->variant.typeref.type;
       }  /* while */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    is_class_or_enum = is_immediate_class_type(type_ptr) ||
-                       is_immediate_enum_type(type_ptr);
+    is_class_or_enum = is_immediate_class_type(type_to_check) ||
+                       is_immediate_enum_type(type_to_check);
     tp = NULL;
     if (is_class_or_enum) {
-      if (type_ptr->source_corresp.name == NULL) {
+      if (type_to_check->source_corresp.name == NULL) {
         /* A class/struct/union or enum type with no name. */
         a_symbol_ptr  tag_sym =
-                            (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
+                        (a_symbol_ptr)type_to_check->source_corresp.assoc_info;
         /* Through deduction templates are sometimes instantiated with
            unnamed enum or class types.  A typedef in such an instantiation
            should not affect the name of the type. */
         if (tag_sym->decl_scope == scope_stack[decl_scope_level].number) {
-          tp = type_ptr;
+          tp = type_to_check;
         }  /* if */
       }  /* if */
 #if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
@@ -8539,12 +8540,13 @@ NULL.
            typedef enum { ... } C;           // linkage name "C" (all modes)
            typedef const enum { ... } D;     // linkage name "D" (cfront mode)
       */
-      if (is_class_struct_union_type(type_ptr) || is_enum_type(type_ptr)) {
-        if (skip_typedefs(type_ptr) == type_ptr &&
-            skip_typerefs(type_ptr)->source_corresp.name == NULL) {
+      if (is_class_struct_union_type(type_to_check) ||
+          is_enum_type(type_to_check)) {
+        if (skip_typedefs(type_to_check) == type_to_check &&
+            skip_typerefs(type_to_check)->source_corresp.name == NULL) {
           /* A possibly qualified class or enum type with no name.  Get at the
              underlying type. */
-          tp = skip_typerefs(type_ptr);
+          tp = skip_typerefs(type_to_check);
         }  /* if */
       }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 230 && ... */
