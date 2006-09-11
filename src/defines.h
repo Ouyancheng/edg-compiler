@@ -525,6 +525,7 @@ Flags to be set when using the KAI inliner.
 #ifdef __CYGWIN32__
 
 /* Options for Windows/Cygwin version. */
+#define FIXED_POINT_ALLOWED 1
 #ifdef DEMO_VERSION
 /* Demo versions should support multiple translation units. */
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
