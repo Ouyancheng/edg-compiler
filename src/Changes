@@ -1,5 +1,10 @@
 Version 3.9
 
+9/11/06  Sun compatibility: Exception handling
+
+In Sun compatibility mode, support for exception handling is now enabled by
+default.
+
 9/6/06   Abort on selection of field of template declared by using-declaration
 
 The front end aborted in add_base_class_casts while processing a
