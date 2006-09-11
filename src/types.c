@@ -9092,8 +9092,7 @@ that type's definition.
   if (num_classes_on_scope_stack != 0) {
     tp = skip_typerefs(tp);
     if (is_incomplete(tp) && is_immediate_class_type(tp) &&
-        symbol_supplement_for_class(tp)->member_decl_scope !=
-                                                            NO_SCOPE_NUMBER) {
+        tp->variant.class_struct_union.extra_info->assoc_scope != NULL) {
       /* tp describes a class type that is being defined, but we may be in the
          midst of the instantiation of a template that's not inside the class.
          Walk the scope stack and parent types to ensure that we are in fact
