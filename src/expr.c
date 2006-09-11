@@ -445,18 +445,6 @@ Macro to test whether two range modifiers cover the same source range.
      (a)->range.end.column == (b)->range.end.column)
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
-/*
-List containing copies of all range modifiers added to expression nodes.
-This list is created by add_expr_range_modifier (i.e., it does not include
-duplicates resulting from copy_expr_range_modifiers) and is used to check
-for range modifiers that might be inadvertently discarded by various
-operand manipulations.  When the IL is written to a file, each range
-modifier that is written is removed from this list, and if any modifiers
-remain in the list after the IL file is completed, it's an indication of a
-missing modifier.
-*/
-static an_expr_range_modifier_ptr all_range_modifiers;
-
 
 static void remember_expr_range_modifier(an_expr_range_modifier_ptr ermp)
 /*
@@ -464,13 +452,18 @@ Keep a copy of all range modifiers so that we can check to make sure none
 were omitted from the IL file.
 */
 {
-  if (!remove_unneeded_entities && !is_prototype_instantiation_context()) {
+  if (!remove_unneeded_entities
+#if !PROTOTYPE_INSTANTIATIONS_IN_IL
+      && !is_prototype_instantiation_context()
+#endif /* !PROTOTYPE_INSTANTIATIONS_IL_IL */
+      ) {
     /* Only save a copy of the range modifier if we are not removing unneeded
        entities: the check for whether all range modifiers were written to
        the IL file is meaningless if entities can be removed.  We also don't
-       want to remember modifiers occurring in a prototype instantiation. */
+       want to remember modifiers occurring in a prototype instantiation that
+       will be discarded. */
     an_expr_range_modifier_ptr copy_ermp =
-          (an_expr_range_modifier_ptr)alloc_fe(sizeof(an_expr_range_modifier));
+                                      alloc_fe_of_type(an_expr_range_modifier);
     (void)memcpy((char *)copy_ermp, (char *)ermp,
                                                sizeof(an_expr_range_modifier));
     copy_ermp->next = all_range_modifiers;
@@ -6801,6 +6794,10 @@ Issue an error and return an error type if the type is not fixed-point.
       tp = error_type();
     }  /* if */
   }  /* if */
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+  forget_expr_range_modifiers_in_tree(expr_node_from_operand(&operand),
+                                      (an_expr_node_ptr)NULL);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   return tp;
 }  /* scan_fixed_point_type_generic_expression_and_return_type */
 

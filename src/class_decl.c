@@ -9767,6 +9767,9 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   scan_fs_integral_constant_expression(&constant);
 #if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
   field->bit_size_constant = alloc_shareable_constant(&constant);
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+  forget_expr_range_modifiers_in_tree(constant.expr, (an_expr_node_ptr)NULL);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 #endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
   if (is_error_constant(&constant)) {
     /* Use small value to avoid more errors, but not 1 which is special. */

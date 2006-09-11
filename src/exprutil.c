@@ -65,6 +65,21 @@ static unsigned long
 #endif /* DEBUG */
 
 
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+/*
+List containing copies of all range modifiers added to expression nodes.
+This list is created by add_expr_range_modifier (i.e., it does not include
+duplicates resulting from copy_expr_range_modifiers) and is used to check
+for range modifiers that might be inadvertently discarded by various
+operand manipulations.  When the IL is written to a file, each range
+modifier that is written is removed from this list, and if any modifiers
+remain in the list after the IL file is completed, it's an indication of a
+missing modifier.
+*/
+an_expr_range_modifier_ptr all_range_modifiers;
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
+
+
 static a_ref_entry_ptr alloc_ref_entry(a_symbol_ptr            sym_ptr,
                                        a_source_position       *pos)
 /*
@@ -4992,6 +5007,9 @@ for example, in something like "(short)i = 0").
                                   operand);
           operand->state = (an_operand_state)os_lvalue;
           restore_operand_details(operand, &orig_operand);
+#if EXPR_RANGE_MODIFIERS_IN_IL
+          move_expr_range_modifiers(expr, expr_node_from_operand(operand));
+#endif /* EXPR_RANGE_MODIFIER_IN_IL */
         } else {
           /* We failed to make an lvalue.  Keep the original operation
              and  relink the operands. */
@@ -10076,6 +10094,10 @@ subtree, some of which will no longer have array type.
                                          (an_expr_operator_kind)eok_indirect) {
     /* In cases like X().arr, where arr is a member of a base class of the
        class of X, the top operator is an indirection.  Remove it. */
+#if EXPR_RANGE_MODIFIERS_IN_IL
+    /* Move any range modifiers from the node we are discarding. */
+    move_expr_range_modifiers(expr, expr->variant.operation.operands);
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
     expr = expr->variant.operation.operands;
   } else {
     /* We should have worked our way up to a class rvalue, because the only
@@ -11252,6 +11274,9 @@ re-initialized for each translation unit.
 #if C99_IL_EXTENSIONS_SUPPORTED
   imaginary_unit = NULL;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+  all_range_modifiers = NULL;
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 }  /* expr_trans_unit_init */
 
 

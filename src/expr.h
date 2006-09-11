@@ -263,14 +263,14 @@ were discarded as a result of some transformation of expression operands).
 
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
 #if !EXPR_RANGE_MODIFIERS_IN_IL
-#error "CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS requires that "\
-       "EXPR_RANGE_MODIFIERS_IN_IL be TRUE."
+#error CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS requires that \
+       EXPR_RANGE_MODIFIERS_IN_IL be TRUE.
 #endif /* !EXPR_RANGE_MODIFIERS_IN_IL */
 #if !(IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT)
 /* Checking for loss of range modifiers is done during the IL walk done
    while writing the IL in the alternate file format. */
-#error "CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS requires that both " \
-       "IL_SHOULD_BE_WRITTEN_TO_FILE and ALTERNATE_IL_FILE_FORMAT be TRUE"
+#error CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS requires that both \
+       IL_SHOULD_BE_WRITTEN_TO_FILE and ALTERNATE_IL_FILE_FORMAT be TRUE
 #endif /* !(IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT) */
 
 extern void remove_expr_range_modifier(an_expr_range_modifier_ptr ermp);
