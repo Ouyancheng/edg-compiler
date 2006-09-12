@@ -286,6 +286,9 @@ typedef struct an_expr_or_stmt_traversal_block {
 			   the model is that the expression replaces the
 			   constant in the traversal. */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  a_boolean	process_template_parameter_constants_and_expressions;
+			/* If TRUE, constants and expressions that appear in
+			   ck_template_parameter constants are also walked. */
   a_boolean	expr_is_lvalue;
 			/* If TRUE, the expression currently being processed
 			   is an lvalue.  If FALSE, it's an rvalue. */

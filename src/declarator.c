@@ -2575,8 +2575,7 @@ constant.
             expr = NULL;
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
             /* Ignore range modifiers in the discarded expression. */
-            forget_expr_range_modifiers_in_tree(constant.expr,
-                                                (an_expr_node_ptr)NULL);
+            forget_expr_range_modifiers_in_constant(&constant);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
           } else {
             expr = copy_expr_tree(expr, CE_COPIED_CONSTANTS_MAY_BE_SHARED);

@@ -1840,7 +1840,7 @@ expression node.
         /* If there was an expression attached to the constant, it will not
            be copied into the new constant created for this node; any
            range modifiers in the abandoned expression must be ignored. */
-        forget_expr_range_modifiers_in_tree(con->expr, (an_expr_node_ptr)NULL);
+        forget_expr_range_modifiers_in_constant(con);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
         node->is_operand_of_address_of = operand->is_operand_of_address_of;
         copy_operand_position_to_expr(operand, node);
@@ -1931,8 +1931,7 @@ This is only used in C++, for some strange cases.
     unlink_expr_destructions(operand->variant.expression);
   }  /* if */
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-  forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand),
-                                      (an_expr_node_ptr)NULL);
+  forget_expr_range_modifiers_in_operand(operand);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 }  /* discard_operand */
 
@@ -2841,8 +2840,7 @@ conversions.
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
       /* This implicitly discards any expression for the old constant, so
          any range modifiers in that constant must be ignored, too. */
-      forget_expr_range_modifiers_in_tree(node->variant.constant->expr,
-                                          (an_expr_node_ptr)NULL);
+      forget_expr_range_modifiers_in_constant(node->variant.constant);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
       node->variant.constant = alloc_shareable_constant(&local_constant);
       node->variant.constant->is_reinterpret_cast = is_reinterpret_cast;
@@ -3128,9 +3126,7 @@ user-defined conversions.
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
           } else {
             /* Ignore range modifiers in discarded expression. */
-            forget_expr_range_modifiers_in_tree(
-                                               expr_node_from_operand(operand),
-                                               (an_expr_node_ptr)NULL);
+            forget_expr_range_modifiers_in_operand(operand);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
           }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -6347,10 +6343,8 @@ if possible.  operator_position indicates the operator position.
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
     } else {
       /* Ignore range modifiers from discarded expressions. */
-      forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand_1),
-                                          (an_expr_node_ptr)NULL);
-      forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand_2),
-                                          (an_expr_node_ptr)NULL);
+      forget_expr_range_modifiers_in_operand(operand_1);
+      forget_expr_range_modifiers_in_operand(operand_2);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
@@ -6750,8 +6744,7 @@ indicates the operator position.
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
       } else {
         /* Ignore range modifiers in discarded expression. */
-        forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand),
-                                            (an_expr_node_ptr)NULL);
+        forget_expr_range_modifiers_in_operand(operand);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
       }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -7045,10 +7038,8 @@ still provided).
       if (!(is_constant_operand(result) &&
             curr_expr_kind_is_one_in_which_const_exprs_are_recorded())) {
         /* Ignore range modifiers from discarded expressions. */
-        forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand_1),
-                                            (an_expr_node_ptr)NULL);
-        forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand_2),
-                                            (an_expr_node_ptr)NULL);
+        forget_expr_range_modifiers_in_operand(operand_1);
+        forget_expr_range_modifiers_in_operand(operand_2);
       }  /* if */
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
     } else {
@@ -7059,10 +7050,8 @@ still provided).
       if (!(is_constant_operand(result) &&
             curr_expr_kind_is_one_in_which_const_exprs_are_recorded())) {
         /* Ignore range modifiers from discarded expressions. */
-        forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand_1),
-                                            (an_expr_node_ptr)NULL);
-        forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand_3),
-                                            (an_expr_node_ptr)NULL);
+        forget_expr_range_modifiers_in_operand(operand_1);
+        forget_expr_range_modifiers_in_operand(operand_3);
       }  /* if */
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
     }  /* if */
@@ -10034,6 +10023,13 @@ cases so we don't do it here.
         curr_node->expr_range = orig_node->expr_range;
         curr_node->operator_position = orig_node->operator_position;
         copy_expr_range_modifiers(orig_node, curr_node);
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+      } else if (curr_node == NULL) {
+        /* The original node is being discarded; ignore any associated
+           range modifiers. */
+        forget_expr_range_modifiers_in_tree(orig_node,
+                                            (an_expr_node_ptr)NULL);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
       }  /* if */
     }  /* if */
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */

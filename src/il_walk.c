@@ -2553,6 +2553,7 @@ default values.
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   tblock->process_expressions_for_constants = FALSE;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  tblock->process_template_parameter_constants_and_expressions = FALSE;
   tblock->expr_is_lvalue = FALSE;
   tblock->set_unordered_on_dynamic_inits = FALSE;
   tblock->relink_dynamic_inits = FALSE;
@@ -2625,6 +2626,42 @@ it's the initializer for an aggregate.
           traverse_constant(constant->variant.address.variant.constant,
                             tblock);
         }  /* if */
+      }  /* if */
+      break;
+    case ck_template_param:
+      if (tblock->process_template_parameter_constants_and_expressions) {
+        switch (constant->variant.template_param.kind) {
+          case tpck_expression:
+            traverse_expr(constant->variant.template_param.variant.expr,
+                          tblock);
+            break;
+          case tpck_sizeof:
+          case tpck_alignof:
+          case tpck_uuidof:
+            traverse_expr(constant->
+                              variant.template_param.variant.templ_sizeof.expr,
+                          tblock);
+            break;
+          case tpck_cast:
+          case tpck_address:
+            traverse_constant(constant->
+                                       variant.template_param.variant.constant,
+                              tblock);
+            break;
+          case tpck_template_ref:
+            traverse_constant(constant->
+                               variant.template_param.variant.template_ref.con,
+                              tblock);
+            break;
+          case tpck_param:
+          case tpck_member:
+          case tpck_unknown_function:
+            /* No constants or expressions for these kinds. */
+            break;
+          default:
+            unexpected_condition_str(
+                            "traverse_constant: bad template parameter kind.");
+        }  /* switch */
       }  /* if */
       break;
     default:

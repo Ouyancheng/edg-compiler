@@ -276,6 +276,9 @@ were discarded as a result of some transformation of expression operands).
 extern void remove_expr_range_modifier(an_expr_range_modifier_ptr ermp);
 extern void forget_expr_range_modifiers_in_tree(an_expr_node_ptr top_expr,
                                                 an_expr_node_ptr end_expr);
+extern void forget_expr_range_modifiers_in_constant(a_constant_ptr con);
+typedef struct an_operand *an_operand_ptr;
+extern void forget_expr_range_modifiers_in_operand(an_operand_ptr operand);
 extern void display_lost_expr_range_modifiers(void);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 

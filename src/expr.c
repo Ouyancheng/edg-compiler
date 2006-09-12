@@ -559,10 +559,48 @@ removed from the IL (as a result of constant folding, for example).
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     tblock.process_expressions_for_constants = TRUE;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+    tblock.process_template_parameter_constants_and_expressions = TRUE;
     traversal_end = end_expr;
-    (void)traverse_expr(top_expr, &tblock);
+    traverse_expr(top_expr, &tblock);
   }  /* if */
 }  /* forget_expr_range_modifiers_in_tree */
+
+
+void forget_expr_range_modifiers_in_constant(a_constant_ptr con)
+/*
+Remove any range modifiers in all expressions reachable from con from the
+list of range modifiers.  This function is called when a constant is
+removed from the IL (as a result of constant folding, for example).
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = forget_expr_range_modifiers_in_node;
+  tblock.process_non_dynamic_constants = TRUE;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  tblock.process_expressions_for_constants = TRUE;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  tblock.process_template_parameter_constants_and_expressions = TRUE;
+  traversal_end = NULL;
+  traverse_constant(con, &tblock);
+}  /* forget_expr_range_modifiers_in_constant */
+
+
+void forget_expr_range_modifiers_in_operand(an_operand_ptr operand)
+/*
+Remove any range modifiers in all expressions reachable from operand from
+the list of range modifiers.  This function is called when an operand is
+discarded (as a result of constant folding, for example).
+*/
+{
+  if (operand->kind == (an_operand_kind)ok_expression) {
+    forget_expr_range_modifiers_in_tree(operand->variant.expression,
+                                        (an_expr_node_ptr)NULL);
+  } else if (operand->kind == (an_operand_kind)ok_constant) {
+    forget_expr_range_modifiers_in_constant(&operand->variant.constant);
+  }  /* if */
+}  /* forget_expr_range_modifiers_in_operand */
 
 
 void display_lost_expr_range_modifiers(void)
@@ -1838,8 +1876,7 @@ operand representing the entire pseudo-call.
      arguments. */
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
   /* Ignore any range modifiers in the expression that was scanned. */
-  forget_expr_range_modifiers_in_tree(expr_node_from_operand(&arg),
-                                      (an_expr_node_ptr)NULL);
+  forget_expr_range_modifiers_in_operand(&arg);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   (void)required_token(tok_rparen, ec_exp_rparen);
@@ -2700,8 +2737,7 @@ The result is placed in *result.
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
     } else {
       /* Ignore any range modifiers in the discarded expression. */
-      forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand_1),
-                                          (an_expr_node_ptr)NULL);
+      forget_expr_range_modifiers_in_operand(operand_1);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
@@ -5646,9 +5682,7 @@ Syntax:
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
             /* Forget about all range modifiers in the expression that's
                being abandoned, too. */
-            forget_expr_range_modifiers_in_tree(
-                                              expr_node_from_operand(&operand),
-                                              (an_expr_node_ptr)NULL);
+            forget_expr_range_modifiers_in_operand(&operand);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
           }  /* if */
           constant.expr = make_runtime_sizeof_expr(is_type, orig_sizeof_type,
@@ -5932,8 +5966,7 @@ implement <stdarg.h>, a standard feature.
     /* The expression was discarded. */
     undo_side_effects_for_discarded_unevaluated_expression();
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-    forget_expr_range_modifiers_in_tree(expr_node_from_operand(&operand),
-                                        (an_expr_node_ptr)NULL);
+    forget_expr_range_modifiers_in_operand(&operand);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -6445,8 +6478,7 @@ NULL, the end position in its specifiers_range is updated.
       /* The expression was discarded. */
       undo_side_effects_for_discarded_unevaluated_expression();
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-      forget_expr_range_modifiers_in_tree(expr_node_from_operand(&operand),
-                                          (an_expr_node_ptr)NULL);
+      forget_expr_range_modifiers_in_operand(&operand);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
     }  /* if */
     pop_expr_stack();
@@ -6795,8 +6827,7 @@ Issue an error and return an error type if the type is not fixed-point.
     }  /* if */
   }  /* if */
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-  forget_expr_range_modifiers_in_tree(expr_node_from_operand(&operand),
-                                      (an_expr_node_ptr)NULL);
+  forget_expr_range_modifiers_in_operand(&operand);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   return tp;
 }  /* scan_fixed_point_type_generic_expression_and_return_type */
@@ -7778,8 +7809,7 @@ which case it's the token after __uuidof.
       /* The expression was discarded. */
       undo_side_effects_for_discarded_unevaluated_expression();
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-      forget_expr_range_modifiers_in_tree(expr_node_from_operand(&operand),
-                                          (an_expr_node_ptr)NULL);
+      forget_expr_range_modifiers_in_operand(&operand);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
     }  /* if */
     pop_expr_stack();
@@ -8228,8 +8258,7 @@ because the feature is used to implement offsetof, a standard feature.
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
   /* Because we are abandoning the expression, we need also to "forget" any
      range modifiers created for it. */
-  forget_expr_range_modifiers_in_tree(expr_node_from_operand(result),
-                                      (an_expr_node_ptr)NULL);
+  forget_expr_range_modifiers_in_operand(result);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   result->variant.constant.expr = NULL;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -13616,10 +13645,8 @@ standard.
       } else {
         /* Ignore any range modifiers resulting from the two discarded
            expressions. */
-        forget_expr_range_modifiers_in_tree(expr_node_from_operand(operand_1),
-                                            (an_expr_node_ptr)NULL);
-        forget_expr_range_modifiers_in_tree(expr_node_from_operand(&operand_2),
-                                            (an_expr_node_ptr)NULL);
+        forget_expr_range_modifiers_in_operand(operand_1);
+        forget_expr_range_modifiers_in_operand(&operand_2);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
       }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -18131,8 +18158,7 @@ bad_start_of_primary:
         a_constant constant;
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
         /* Ignore any range modifiers in the discarded expression. */
-        forget_expr_range_modifiers_in_tree(expr_node_from_operand(result),
-                                            (an_expr_node_ptr)NULL);
+        forget_expr_range_modifiers_in_operand(result);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
         make_zero_of_proper_type(result->type, &constant);
         make_constant_operand(&constant, result);
