@@ -3635,19 +3635,24 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     class_type = proxy_class_for_template_param(class_type);
     is_proxy_or_nonreal_class_lookup = TRUE;
   } else {
-    /* Determine whether we are looking up a name in a nonreal class
-       that is not the prototype instantiation.  Nonreal lookups are
-       handled like proxy class lookups; any name looked up is found.
-       If the symbol does not exist one will be created.  The
-       assoc_scope check is used to exclude the prototype
-       instantiation from being considered nonreal for lookup
-       purposes. */
+    /* Determine whether we are looking up a name in a nonreal class.  Nonreal
+       lookups are handled like proxy class lookups; any name looked up is
+       found.  If the symbol does not exist one will be created.  The
+       assoc_scope check is used to exclude the prototype instantiation from
+       being considered nonreal for lookup purposes.  In GNU and Microsoft C++
+       modes, the prototype instantiation is treated like other nonreal
+       instantiations:
+         template<typename T> struct S {
+           typename S::X *p;  // Normally an error, but accepted in GNU and
+         };                   // Microsoft modes.
+     */
     if (class_type->variant.class_struct_union.is_nonreal_class) {
-      if (class_type->
-                  variant.class_struct_union.extra_info->assoc_scope == NULL) {
+      is_prototype_instantiation_lookup =
+        (class_type->
+                  variant.class_struct_union.extra_info->assoc_scope != NULL);
+      if (!is_prototype_instantiation_lookup ||
+          ((gpp_mode || microsoft_mode) && !direct_class_members_only)) {
         is_proxy_or_nonreal_class_lookup = TRUE;
-      } else {
-        is_prototype_instantiation_lookup = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
