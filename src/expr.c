@@ -631,9 +631,6 @@ modifier from the list as it is written, so any remaining in the list are
                     );
     }  /* for */
     check_assertion(all_range_modifiers == NULL);
-  } else {
-    /* Reinitialize for next translation unit, if any. */
-    all_range_modifiers = NULL;
   }  /* if */
 }  /* display_lost_expr_range_modifiers */
 
