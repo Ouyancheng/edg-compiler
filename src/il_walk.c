@@ -2638,9 +2638,12 @@ it's the initializer for an aggregate.
           case tpck_sizeof:
           case tpck_alignof:
           case tpck_uuidof:
-            traverse_expr(constant->
+            if (constant->variant.template_param.variant.templ_sizeof.expr !=
+                                                                        NULL) {
+              traverse_expr(constant->
                               variant.template_param.variant.templ_sizeof.expr,
-                          tblock);
+                            tblock);
+            }  /* if */
             break;
           case tpck_cast:
           case tpck_address:
