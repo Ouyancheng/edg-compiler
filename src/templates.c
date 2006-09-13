@@ -1623,6 +1623,18 @@ during wrapup processing by compare_function_templates.
                                        (a_source_position*)NULL)) {
           match = TRUE;
         }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+      } else {
+        /* A type parameter. */
+        if (gpp_mode) {
+          a_type_ptr  unqual_type = tap->variant.type;
+          if ((is_immediate_class_type(unqual_type) ||
+               is_immediate_enum_type(unqual_type)) &&
+              !has_name(unqual_type)) {
+            match = FALSE;
+          }  /* if */
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* for */
   }  /* if */

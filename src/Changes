@@ -1,5 +1,18 @@
 Version 3.9
 
+9/11/06  GNU C++ compatibility: Deducing unnamed class/enum types
+
+In GNU C++ mode, the front end now treats the substitution of a template
+parameter by an unnamed class or enum type as a deduction failure.
+For example:
+
+  struct { operator int() { return 0; } } x;
+  template<class T> int f(T) { return 1; }
+  int f(int) { return 2; }
+  int main() {
+    return f(x);  // Accepted in GNU C++ mode, and returns 2.
+  }               // (Error in default and strict modes.)
+
 9/11/06  Sun compatibility: Exception handling
 
 In Sun compatibility mode, support for exception handling is now enabled by
