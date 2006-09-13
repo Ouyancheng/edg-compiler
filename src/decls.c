@@ -8525,7 +8525,8 @@ NULL.
         /* Through deduction templates are sometimes instantiated with
            unnamed enum or class types.  A typedef in such an instantiation
            should not affect the name of the type. */
-        if (tag_sym->decl_scope == scope_stack[decl_scope_level].number) {
+        if (gpp_mode ||
+            tag_sym->decl_scope == scope_stack[decl_scope_level].number) {
           tp = type_to_check;
         }  /* if */
       }  /* if */
