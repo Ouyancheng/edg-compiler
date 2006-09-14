@@ -2799,8 +2799,18 @@ checked again here.)
        off now. */
     guiding_decls_allowed = FALSE;
   }  /* if */
+  /* Sun compilers use a template instantiation model close to that of Cfront:
+     No dependent name processing, no prototype instantiations, and "typename"
+     is implicit in many cases.  (What's more, their standard headers rely on
+     that behavior.) */
   if (!option_kind_used[(int)optk_dependent_name_processing]) {
     do_dependent_name_processing = FALSE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
+    nonclass_prototype_instantiations = FALSE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_implicit_typename]) {
+    implicit_typename_enabled = TRUE;
   }  /* if */
   if (!(option_kind_used[(int)optk_nonstandard_using_decl])) {
     /* If nonstandard using-decl was not explicitly set by a command line

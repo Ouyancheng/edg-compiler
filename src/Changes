@@ -5,7 +5,9 @@ Version 3.9
 In Sun C++ mode, dependent name processing is now turned off by default even
 when DEFAULT_DEPENDENT_NAME_PROCESSING is configured to TRUE (dependent name
 processing can still be enabled in combination with Sun mode using the
-command-line option --dep_name).
+command-line option --dep_name).  Similarly, nonclass prototype instantiations
+are now disabled by default, and the "implicit typename" rules are enabled by
+default in such configurations.
 
 9/13/06  Abort on complex deduction failures
 
