@@ -1,6 +1,25 @@
 Version 3.9
 
-9/11/06  GNU C++ compatibility: Deducing unnamed class/enum types
+9/13/06  Abort on complex deduction failures
+
+In some fairly rare cases involving failing template argument deduction for
+complex template or nontype template parameters, the front end entered a 
+corrupt internal state that ended up triggering internal errors.
+For example:
+
+  template<int I> struct A {};
+  template<typename T, T::N I, T::M J> void f(T (&)[I], A<J>) {}
+  struct S {
+    typedef double N;
+  } s[3];
+  int main() {
+    f(s, A<3>());  // Deduction failure because T::N is not an integral type,
+  }                // but front end aborted (in this case, in function
+                   // copy_template_param_con in il.c).
+
+This is now fixed.
+
+9/13/06  GNU C++ compatibility: Deducing unnamed class/enum types
 
 In GNU C++ mode, the front end now treats the substitution of a template
 parameter by an unnamed class or enum type as a deduction failure.
