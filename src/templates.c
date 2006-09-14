@@ -1548,7 +1548,7 @@ during wrapup processing by compare_function_templates.
   if (match) {
     tpp = templ_param_list;
     tap = templ_arg_list;
-    for (; tpp != NULL; tpp = tpp->next, tap = tap->next) {
+    for (; tpp != NULL && match; tpp = tpp->next, tap = tap->next) {
       a_type_ptr	constant_type;
       /* Some template arguments may not have values when
          is_partial_order_check is TRUE.  Skip such arguments. */
