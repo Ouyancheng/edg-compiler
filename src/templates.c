@@ -1586,7 +1586,7 @@ during wrapup processing by compare_function_templates.
              the type involves a template parameter. */
           check_assertion(tap->variant.constant != NULL);
           if (tpp->variant.constant.type_involves_template_param) {
-            match = identical_types(constant_type,
+            match = identical_types(skip_typerefs(constant_type),
                                     tap->variant.constant->type);
           }  /* if */
         }  /* if */

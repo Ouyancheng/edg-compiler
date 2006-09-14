@@ -1,5 +1,17 @@
 Version 3.9
 
+9/14/06  Template deduction problem with qualified nontype parameter
+
+If a nontype template parameter was declared with a cv-qualified dependent
+type (e.g., "const T") a spurious deduction failure could result.  Now fixed.
+
+  template <int I> struct A {};
+  template <class T, const T p> struct B {};
+  template <class T, const T p> void f(B<T,p>){}
+  int main() {
+    f(B<int,1>());
+  }
+
 9/13/06  Sun compatibility: Dependent name processing off by default
 
 In Sun C++ mode, dependent name processing is now turned off by default even
