@@ -2799,6 +2799,9 @@ checked again here.)
        off now. */
     guiding_decls_allowed = FALSE;
   }  /* if */
+  if (!option_kind_used[(int)optk_dependent_name_processing]) {
+    do_dependent_name_processing = FALSE;
+  }  /* if */
   if (!(option_kind_used[(int)optk_nonstandard_using_decl])) {
     /* If nonstandard using-decl was not explicitly set by a command line
        option, set it now. */

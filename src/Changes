@@ -1,5 +1,12 @@
 Version 3.9
 
+9/13/06  Sun compatibility: Dependent name processing off by default
+
+In Sun C++ mode, dependent name processing is now turned off by default even
+when DEFAULT_DEPENDENT_NAME_PROCESSING is configured to TRUE (dependent name
+processing can still be enabled in combination with Sun mode using the
+command-line option --dep_name).
+
 9/13/06  Abort on complex deduction failures
 
 In some fairly rare cases involving failing template argument deduction for
