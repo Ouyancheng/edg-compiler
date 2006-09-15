@@ -5760,8 +5760,8 @@ Display the indicated source sequence secondary declaration entry.
   }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  if (ptr->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified) {
-    disp_ELF_visibility_kind(ptr->ELF_visibility);
+  if (sssdp->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified) {
+    disp_ELF_visibility_kind(sssdp->ELF_visibility);
   }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   if (sssdp->autonomous_tag_decl) disp_boolean("autonomous_tag_decl", TRUE);
