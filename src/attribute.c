@@ -2416,7 +2416,10 @@ definition.
 
   sp->ELF_visibility = visibility;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (sp->kind == (a_scope_kind)sck_namespace) {
+  if (source_sequence_entries_disallowed) {
+    /* Possible in secondary translation units or when code for source
+       sequence lists and for IL lowering is configured in simultaneously. */
+  } else if (sp->kind == (a_scope_kind)sck_namespace) {
     /* The visibility associated with the primary definition is recorded in
        the namespace entry itself. */
     sp->assoc_namespace->ELF_visibility = visibility;
