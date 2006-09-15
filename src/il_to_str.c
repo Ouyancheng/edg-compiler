@@ -4330,7 +4330,7 @@ described by octl.
 
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
-static void form_ELF_visibility_attribute(
+void form_ELF_visibility_attribute(
                    an_ELF_visibility_kind                 visibility,
                    a_source_correspondence_ptr            scp,
                    a_boolean                              *need_leading_space,
@@ -4339,21 +4339,34 @@ static void form_ELF_visibility_attribute(
 Output the given visibility as an attribute specification (provided it is
 not evk_unspecified).  If *need_leading_space is TRUE, precede the attribute
 with a leading space.  If an attribute is output, set *need_leading_space to
-TRUE.  Do the output in the way described by octl.  If the attribute is for
-a variable or a routine, scp points to the source correspondence of the
-IL entry; otherwise, scp is NULL.
+TRUE.  Do the output in the way described by octl.  scp points to the source
+correspondence of the IL entry (and is used to avoid emitting the attribute
+if it is implicit in its parent class or namespace.
 */
 {
-  if (scp != NULL && scp->is_class_member && !octl->c_generating_back_end) {
-    a_class_type_supplement_ptr
-                            ctsp = scp->parent.class_type
-                                      ->variant.class_struct_union.extra_info;
-    if (ctsp != NULL && ctsp->ELF_visibility == visibility) {
+#if BACK_END_IS_CP_GEN_BE
+  if (scp != NULL && octl->gen_compilable_code) {
+    /* For routine and variable entries that are members of class or
+       namespaces, do not emit the visibility attribute if it is equivalent
+       to that implied by the surrounding scope. */
+    an_ELF_visibility_kind  default_visibility =
+                                      (an_ELF_visibility_kind)evk_unspecified;
+    if (scp->is_class_member) {
+      a_class_type_supplement_ptr
+                               ctsp = class_type_supp(scp->parent.class_type);
+      if (ctsp != NULL) {
+        default_visibility = ctsp->ELF_visibility;
+      }  /* if */
+    } else if (scp->parent.namespace_ptr != NULL) {
+      default_visibility = scp->parent.namespace_ptr->ELF_visibility;
+    }  /* if */
+    if (visibility == default_visibility) {
       /* The visibility is already implicitly set through an attribute on the
          enclosing class.  Do not emit it on the individual members. */
       visibility = (an_ELF_visibility_kind)evk_unspecified;
     }  /* if */
   }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
   switch (visibility) {
     case evk_unspecified:
       /* No visibility attribute. */
@@ -4468,11 +4481,10 @@ described by octl.
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (is_immediate_class_type(type) && !octl->c_generating_back_end) {
-      a_class_type_supplement_ptr
-                           ctsp = type->variant.class_struct_union.extra_info;
+      a_class_type_supplement_ptr  ctsp = class_type_supp(type);
       if (ctsp != NULL) {
         form_ELF_visibility_attribute(ctsp->ELF_visibility,
-                                      (a_source_correspondence_ptr)NULL,
+                                      &type->source_corresp,
                                       &need_leading_space, octl);
       }  /* if */
     }  /* if */

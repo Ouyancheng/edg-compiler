@@ -5097,6 +5097,11 @@ Display the indicated namespace entry.
   } else {
     disp_ptr("assoc_scope", (char *)ptr->variant.assoc_scope, iek_scope);
   }  /* if */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+  if (ptr->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified) {
+    disp_ELF_visibility_kind(ptr->ELF_visibility);
+  }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* disp_namespace */
 
 
@@ -5754,6 +5759,11 @@ Display the indicated source sequence secondary declaration entry.
              iek_name_reference);
   }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  if (ptr->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified) {
+    disp_ELF_visibility_kind(ptr->ELF_visibility);
+  }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   if (sssdp->autonomous_tag_decl) disp_boolean("autonomous_tag_decl", TRUE);
   if (sssdp->friend_decl) disp_boolean("friend_decl", TRUE);
   if (sssdp->implicit_decl) disp_boolean("implicit_decl", TRUE);

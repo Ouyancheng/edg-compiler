@@ -3559,16 +3559,28 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode && attributes != NULL) {
-    /* In GNU mode, attributes appearing between the class/struct/union
-       keyword and the type name are ignored if the elaborated name specifier
-       is not followed by a class type definition. */
-    if (is_class_definition) {
-      apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
-    } else {
-      pos_warning(ec_attribute_ignored_on_incomplete_class_decl, &attr_pos);
+  if (gnu_mode) {
+    if (attributes != NULL) {
+      /* In GNU mode, attributes appearing between the class/struct/union
+         keyword and the type name are ignored if the elaborated name specifier
+         is not followed by a class type definition. */
+      if (is_class_definition) {
+        apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
+      } else {
+        pos_warning(ec_attribute_ignored_on_incomplete_class_decl, &attr_pos);
+      }  /* if */
+      free_attribute_list(attributes);
     }  /* if */
-    free_attribute_list(attributes);
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    if (gpp_mode) {
+      /* If no ELF visibility was explicitly specified, use that of the
+         enclosing class or namespace (if any). */
+      a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
+      an_ELF_visibility_kind       visibility = ctsp->ELF_visibility;
+      update_for_default_ELF_visibility(&visibility);
+      ctsp->ELF_visibility = visibility;
+    }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (is_class_definition) {

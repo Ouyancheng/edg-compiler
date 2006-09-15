@@ -341,6 +341,14 @@ extern void form_mode_attribute(
                    a_type_mode_kind                       mode,
                    a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl);
+
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+void form_ELF_visibility_attribute(
+                   an_ELF_visibility_kind                 visibility,
+                   a_source_correspondence_ptr            scp,
+                   a_boolean                              *need_leading_space,
+                   an_il_to_str_output_control_block_ptr  octl);
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
 
 extern a_boolean form_variable_attributes(

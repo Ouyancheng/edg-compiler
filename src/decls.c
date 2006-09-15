@@ -5366,6 +5366,13 @@ declaration.
       record_asm_name_for_variable(variable_ptr, asm_name, is_register,
                                    asm_name_pos);
     }  /* if */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    /* Update the ELF visibility if applicable. */
+    { an_ELF_visibility_kind  visibility = variable_ptr->ELF_visibility;
+      update_for_default_ELF_visibility(&visibility);
+      variable_ptr->ELF_visibility = visibility;
+    }
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if NAMED_REGISTERS_ALLOWED
@@ -7080,6 +7087,13 @@ skip_overloading:;
     if (asm_name != NULL) {
       record_asm_name_for_routine(routine_ptr, asm_name, asm_name_pos);
     }  /* if */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    /* Update the ELF visibility if applicable. */
+    { an_ELF_visibility_kind  visibility = routine_ptr->ELF_visibility;
+      update_for_default_ELF_visibility(&visibility);
+      routine_ptr->ELF_visibility = visibility;
+    }
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -10801,7 +10815,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   a_namespace_ptr             nsp = NULL;
   a_symbol_ptr                ns_sym = NULL, sym;
   a_symbol_locator            locator;
-  a_boolean                   is_unnamed_namespace = FALSE;
+  a_boolean                   is_unnamed_namespace = TRUE;
   a_boolean                   is_namespace_alias = FALSE;
   a_scope_pointers_block_ptr  pointers_block;
   a_boolean                   err = FALSE;
@@ -10810,6 +10824,11 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   a_source_sequence_entry_ptr namespace_ssep = NULL;
   a_boolean		      namespace_scope_pushed = FALSE;
   a_boolean		      initial_decl_of_namespace_std = FALSE;
+  an_attribute_ptr            attributes = NULL;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  an_ELF_visibility_kind       enclosing_ELF_visibility =
+                                      (an_ELF_visibility_kind)evk_unspecified;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
   db_enter(3, "namespace_declaration");
   /* Save the source position of the declaration. */
@@ -10818,6 +10837,12 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   feature_is_not_part_of_embedded_cplusplus_subset(
                                           &pos_curr_token,
                                           ec_namespaces_in_embedded_cplusplus);
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  if (depth_innermost_namespace_scope != NO_SCOPE_DEPTH) {
+    enclosing_ELF_visibility =
+                  scope_stack[depth_innermost_namespace_scope].ELF_visibility;
+  }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   /* Bypass "namespace". */
   (void)get_token();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -10835,13 +10860,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     switch_back_to_original_region(region_to_switch_back_to);
   }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (curr_token == tok_lbrace) {
-    /* This must be an unnamed namespace definition. */
-    is_unnamed_namespace = TRUE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    identifier_end_pos = null_source_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  } else if (is_generalized_identifier_start(GID_NO_OPTIONS)) {
+  if (is_generalized_identifier_start(GID_NO_OPTIONS)) {
     /* Save the identifier's locator before bypassing it. */
     locator = locator_for_curr_id;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -10857,17 +10876,46 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       set_to_error_locator(locator);
       err = TRUE;
     }  /* if */
-    if (get_token() == tok_assign) {
-      /* This must be a namespace alias definition. */
-      is_namespace_alias = TRUE;
+    is_unnamed_namespace = FALSE;
+    (void)get_token();
+  }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (gpp_mode && gnu_version >= 40200 && curr_token == tok_attribute) {
+    attributes = scan_attributes();
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  if (curr_token == tok_lbrace) {
+    /* A namespace or namespace-extension definition. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (is_unnamed_namespace) {
+      identifier_end_pos = null_source_position;
     }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else if (curr_token == tok_assign && !is_unnamed_namespace) {
+    /* This must be a namespace alias definition. */
+    is_namespace_alias = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+    if (attributes != NULL) {
+      pos_error(ec_attribute_not_allowed, &attributes->position);
+      attributes = NULL;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else {
+    /* A syntax error */
     add_stop_token(tok_semicolon);
     add_stop_token(tok_lbrace);
-    (void)required_token(tok_identifier, ec_exp_identifier);
-    set_to_error_locator(locator);
-    remove_stop_token(tok_semicolon);
+    if (!is_unnamed_namespace || attributes != NULL) {
+      syntax_error(ec_exp_lbrace);
+    } else {
+      (void)required_token(tok_identifier, ec_exp_identifier);
+    }  /* if */
     remove_stop_token(tok_lbrace);
+    remove_stop_token(tok_semicolon);
+    set_to_error_locator(locator);
+#if GNU_EXTENSIONS_ALLOWED
+    /* Silently ignore any attributes. */
+    attributes = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   def_start_pos = pos_curr_token;
@@ -11146,6 +11194,21 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     }  /* if */
     record_symbol_declaration(srk_flags, ns_sym, &locator.source_position,
                               namespace_ssep);
+#if GNU_EXTENSIONS_ALLOWED
+    if (attributes != NULL) {
+      apply_attributes_to_current_namespace(attributes);
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      if (scope_stack_top().ELF_visibility ==
+                                    (an_ELF_visibility_kind)evk_unspecified &&
+          enclosing_ELF_visibility !=
+                                    (an_ELF_visibility_kind)evk_unspecified) {
+        /* If no visibility was specified explicitly, apply that of the
+           surrounding namespace (if any). */
+        apply_ELF_visibility_to_current_namespace(enclosing_ELF_visibility);
+      }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     if (!required_token(tok_lbrace, ec_exp_lbrace)) {
       discard_curr_construct_pragmas();
     } else {

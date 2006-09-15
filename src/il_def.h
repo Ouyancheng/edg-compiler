@@ -817,6 +817,35 @@ FALSE because the type appears in some function declarations.)
 */
 typedef struct a_name_reference *a_name_reference_ptr;
 
+#if GNU_EXTENSIONS_ALLOWED
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+
+/*
+The type of the integer values used to represent the priority of dynamic
+initialization using GNU attributes.
+*/
+typedef unsigned short a_gnu_init_priority;
+
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+
+/*
+ELF visibility kinds (for the GNU "visibility" attribute).
+*/
+enum an_ELF_visibility_kind_tag {
+  evk_unspecified,
+  evk_hidden,
+  evk_protected,
+  evk_internal,
+  evk_default
+};
+
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte an_ELF_visibility_kind;
+
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 /*
 The type "pointer-to-source-sequence-entry" is defined even if the
 underlying type is not, since interfaces will use it.
@@ -910,6 +939,15 @@ typedef struct a_src_seq_secondary_decl {
 			/* The form of the declarator used in the declaration
 			   referred to by this entry. */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  an_ELF_visibility_kind
+		ELF_visibility;
+			/* The ELF visibility indicated by a GNU visibility
+			   attribute (only applies to entries representing
+			   namespace-extension definitions; for the primary
+			   namespace definition, the default visibility is
+			   recorded in the a_namespace entry). */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   a_bit_field	autonomous_tag_decl:1;
 			/* If entity refers to a type entry representing a
 			   class, struct, union, or enum, this flag is TRUE if
@@ -1682,6 +1720,15 @@ typedef struct a_namespace {
 			   be an alias) for which this entry is an alias;
 			   should never be NULL. */
   } variant;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+  an_ELF_visibility_kind
+		ELF_visibility;
+			/* The ELF visibility indicated by a GNU visibility
+			   attribute (only applies to entries representing the
+			   primary namespace declarations; the visibility for
+			   a namespace-extension definition is recorded in a
+			   source sequence secondary declaration entry). */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_namespace;
 
 
@@ -6426,37 +6473,6 @@ typedef struct a_vla_dimension {
 } a_vla_dimension;
 
 #endif /* ifdef CIL */
-
-#if GNU_EXTENSIONS_ALLOWED
-
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-
-/*
-The type of the integer values used to represent the priority of dynamic
-initialization using GNU attributes.
-*/
-typedef unsigned short a_gnu_init_priority;
-
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-
-/*
-ELF visibility kinds (for the GNU C "visibility" attribute).
-*/
-enum an_ELF_visibility_kind_tag {
-  evk_unspecified,
-  evk_hidden,
-  evk_protected,
-  evk_internal,
-  evk_default
-};
-
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_ELF_visibility_kind;
-
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 typedef struct a_variable {
   /* Description of a variable, including formal parameters of functions. */

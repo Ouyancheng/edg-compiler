@@ -14339,7 +14339,13 @@ classes.
        region; pop_scope will switch back. */
     scope_ptr = push_scope((a_scope_kind)sck_class_struct_union,
                            NO_SCOPE_NUMBER, class_type, (a_routine_ptr)NULL);
-    scope_stack[depth_scope_stack].class_def_state = &class_state;
+    scope_stack_top().class_def_state = &class_state;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    if (gpp_mode) {
+      scope_stack_top().ELF_visibility =
+                                  class_type_supp(class_type)->ELF_visibility;
+    }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     /* Begin a new stop token state. */
     push_stop_token_stack();
     /* Advance past the left brace. */

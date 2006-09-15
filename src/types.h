@@ -130,6 +130,12 @@ Return TRUE is a type is a direct non-union class type.
    (tp)->kind == (a_type_kind)tk_struct)
 
 /*
+Return a pointer to the associated class type supplement.
+*/
+#define class_type_supp(tp)                                           \
+  ((tp)->variant.class_struct_union.extra_info)
+
+/*
 Return TRUE if a type is a direct error type (i.e., not a typeref on
 top of such a type).
 */

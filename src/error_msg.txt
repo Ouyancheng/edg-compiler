@@ -1622,6 +1622,7 @@ ec_enum_attribute_ignored;;"attributes are ignored on an enum declaration that i
 ec_reference_declared_mutable;;"declaring a reference with \"mutable\" is nonstandard"
 ec_array_condition_always_true;;"a condition declaration for an array is always true"
 ec_static_assert;;"static assertion failed with %sq"
+ec_gnu_visibility_conflict;;"visibility attribute ignored because it conflicts with a previous declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

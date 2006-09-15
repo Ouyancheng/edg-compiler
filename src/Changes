@@ -1,5 +1,22 @@
 Version 3.9
 
+9/15/06  GNU compatibilty: Attribute visibility
+
+In GNU C++ mode with gnu_version >= 40200, the front end now accepts the
+attribute "visibility" on namespace definitions (when the configuration macro
+GNU_VISIBILITY_ATTRIBUTE_ALLOWED is TRUE).  In addition, existing support for
+that attribute on class type definitions has been improved to correctly
+propagate to nested classes.  For example:
+
+  namespace __attribute((visibility("hidden"))) {
+    void f();  // Implicitly "hidden" in the ELF sense.
+  }
+  struct __attribute((visibility("hidden"))) S {
+    struct N {
+      void f();  // Implicitly "hidden" in the ELF sense.
+    };
+  };
+
 9/14/06  Template deduction problem with qualified nontype parameter
 
 If a nontype template parameter was declared with a cv-qualified dependent

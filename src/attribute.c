@@ -1598,12 +1598,17 @@ attributes were specified on a definition.
         break;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       case ak_visibility:
-        vp->ELF_visibility = ap->variant.ELF_visibility;
+        if (vp->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified &&
+            vp->ELF_visibility != ap->variant.ELF_visibility) {
+          pos_warning(ec_gnu_visibility_conflict, &ap->position);
+        } else {
+          vp->ELF_visibility = ap->variant.ELF_visibility;
+        }  /* if */
         break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
       case ak_init_priority:
-        if ((is_file_or_namespace_scope(&scope_stack[depth_scope_stack]) ||
+        if ((is_file_or_namespace_scope(&scope_stack_top()) ||
              vp->source_corresp.is_class_member) &&
             is_class_struct_union_type(vp->type) &&
             is_definition) {
@@ -1962,7 +1967,12 @@ messages about any invalid attributes.
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       case ak_visibility:
-        rp->ELF_visibility = ap->variant.ELF_visibility;
+        if (rp->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified &&
+            rp->ELF_visibility != ap->variant.ELF_visibility) {
+          pos_warning(ec_gnu_visibility_conflict, &ap->position);
+        } else {
+          rp->ELF_visibility = ap->variant.ELF_visibility;
+        }  /* if */
         break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       case ak_aligned:
@@ -2392,6 +2402,93 @@ Apply the given attributes to the indicated using-directive (if applicable).
     }  /* switch */
   }  /* for */
 }  /* apply_attributes_to_using_directive */
+
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+
+void apply_ELF_visibility_to_current_namespace(
+                                           an_ELF_visibility_kind  visibility)
+/*
+Record the given visibility for the current namespace or namespace-extension
+definition.
+*/
+{
+  a_scope_stack_entry_ptr  sp = &scope_stack_top();
+
+  sp->ELF_visibility = visibility;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (sp->kind == (a_scope_kind)sck_namespace) {
+    /* The visibility associated with the primary definition is recorded in
+       the namespace entry itself. */
+    sp->assoc_namespace->ELF_visibility = visibility;
+  } else {
+    /* The visibility associated with the primary definition is recorded in a
+       secondary declaration entry. */
+    a_source_sequence_entry_ptr   ssep;
+    ssep = scope_stack[sp->previous_scope].end_of_source_sequence_list;
+    check_assertion(ssep != NULL &&
+                    (an_il_entry_kind)ssep->entity.kind == 
+                                            iek_src_seq_secondary_decl);
+    ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)->ELF_visibility =
+                                                                   visibility;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* apply_ELF_visibility_to_current_namespace */
+
+
+void update_for_default_ELF_visibility(an_ELF_visibility_kind  *visibility)
+/*
+If the given ELF visibility is evk_unspecified, replace it by the default
+visibility implied by the enclosing scope (if any).
+*/
+{
+  if (*visibility == (an_ELF_visibility_kind)evk_unspecified) {
+    if (scope_stack_top().kind == (a_scope_kind)sck_class_struct_union) {
+      *visibility = scope_stack_top().ELF_visibility;
+    } else if (depth_innermost_namespace_scope != NO_SCOPE_DEPTH &&
+               depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+      /* Local declarations are not affected by the default ELF visibility
+         of the surrounding namespace scope. */
+      *visibility =
+                  scope_stack[depth_innermost_namespace_scope].ELF_visibility;
+    }  /* if */
+  }  /* if */
+}  /* check_for_default_ELF_visibility */
+
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+
+void apply_attributes_to_current_namespace(an_attribute_ptr  attributes)
+/*
+The top entry on the scope stack is a sck_namespace or sck_namespace_extension
+entry.  Apply the given list of attributes to the associated namespace and/or
+declarative region.  Currently, the only attribute applicable to namespaces
+really applies to the declarative region of a namespace definition; e.g.:
+	namespace N __attribute__((visibility("hidden"))) {
+	  // attribute applies to declarations here...
+	}
+	namespace N {
+	  // ... but not here.
+	}
+
+*/
+{
+  a_scope_stack_entry_ptr  sp = &scope_stack_top();
+  an_attribute_ptr         ap = attributes;
+
+  check_assertion(sp->kind == (a_scope_kind)sck_namespace ||
+                  sp->kind == (a_scope_kind)sck_namespace_extension);
+  for (; ap != NULL; ap = ap->next) {
+    switch (ap->kind) {
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      case ak_visibility:
+        apply_ELF_visibility_to_current_namespace(ap->variant.ELF_visibility);
+        break;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+      default:
+        pos_sy_warning(ec_attribute_does_not_apply, &ap->position,
+                       symbol_for(sp->assoc_namespace));
+    }  /* switch */
+  }  /* for */
+}  /* apply_attributes_to_current_namespace */
 
 
 void check_for_invalid_param_attributes(a_symbol_ptr     sym,

@@ -887,7 +887,21 @@ typedef struct a_scope_stack_entry {
 			   that has already been used as a string literal
 			   sequence number. */
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  an_ELF_visibility_kind
+		ELF_visibility;
+			/* The default ELF visibility for entities declared
+			   in this scope (only applies to sck_namespace,
+			   sck_namespace_extension, and sck_class_struct_union
+			   scopes). */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 } a_scope_stack_entry;
+
+/*
+Convenience macro to access the top of the scope stack.
+*/
+#define scope_stack_top()  (scope_stack[depth_scope_stack])
+
 
 /*
 Given a scope depth, return a pointer to the scope stack entry or

@@ -1920,6 +1920,9 @@ the scope being pushed.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   ssep->source_sequence_list     = NULL;
   ssep->end_of_source_sequence_list = NULL;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  ssep->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   if (kind == (a_scope_kind)sck_file && ssep->is_reactivation) {
     /* For a reactivation of the file scope, restore the source sequence list
        that was built up on the previous push/pop. */

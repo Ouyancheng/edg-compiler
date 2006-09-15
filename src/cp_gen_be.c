@@ -4908,7 +4908,9 @@ is the one associated with the definition of the class.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   /* Emit any attributes associated with the type. */
-  (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
+  if (form_type_attributes(type, /*need_leading_space=*/FALSE, &octl)) {
+    write_space();
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Write the name of the class. */
   if (ctsp != NULL &&
@@ -10083,12 +10085,21 @@ Generate code for a namespace definition or namespace alias declaration.
 {
   a_src_seq_secondary_decl_ptr sec_decl;
   a_namespace_ptr              nsp;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  an_ELF_visibility_kind       ELF_visibility, saved_ELF_visibility;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     nsp = ss_entry_ptr(sec_decl, a_namespace_ptr);
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    ELF_visibility = sec_decl->ELF_visibility;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   } else {
     nsp = ss_entry_ptr(curr_source_sequence_entry, a_namespace_ptr);
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    ELF_visibility = nsp->ELF_visibility;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   }  /* if */
   /* Advance past the source sequence entry for the namespace. */
   adv_curr_source_sequence_entry();
@@ -10100,6 +10111,20 @@ Generate code for a namespace definition or namespace alias declaration.
     /* Put out the name of the namespace. */
     gen_unqualified_name(&nsp->source_corresp, iek_namespace);
   }  /* if */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  /* Save the ELF visibility associated with the primary namespace definition,
+     and store the current visibility in the namespace entry.  Declarations
+     generated within this definition can then easily retrieve the relevant
+     ELF visibility. */
+  saved_ELF_visibility = nsp->ELF_visibility;
+  nsp->ELF_visibility = ELF_visibility;
+  if (gcc_is_generated_code_target) {
+    a_boolean need_leading_space = TRUE;
+    form_ELF_visibility_attribute(
+                            ELF_visibility, &nsp->source_corresp,
+                            &need_leading_space, &octl);
+  }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   if (nsp->is_namespace_alias) {
     /* A namespace alias declaration, e.g.,
          namespace alias_name = existing_name;
@@ -10133,6 +10158,11 @@ Generate code for a namespace definition or namespace alias declaration.
     pop_name_context();
     write_tok_ch('}');
   }  /* if */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  /* Restore the ELF visibility associated with the primary namespace
+     definition in this translation unit. */
+  nsp->ELF_visibility = saved_ELF_visibility;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 }  /* gen_namespace */
 
 

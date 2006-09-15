@@ -3304,6 +3304,9 @@ creating an entry for a local namespace alias).
   } else {
     nsp->variant.assoc_scope = NULL;
   }  /* if */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+  nsp->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
   return nsp;
 }  /* alloc_namespace */
@@ -3524,6 +3527,9 @@ and return a pointer to it.
 #if RECORD_FORM_OF_NAME_REFERENCE
   sssdp->name_reference              = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  sssdp->ELF_visibility              = (an_ELF_visibility_kind)evk_unspecified;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   sssdp->declared_type               = NULL;
   sssdp->autonomous_tag_decl         = FALSE;
   sssdp->friend_decl                 = FALSE;
