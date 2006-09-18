@@ -4330,6 +4330,9 @@ described by octl.
 
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
+#if !BACK_END_IS_CP_GEN_BE
+/*ARGSUSED*/ /* <-- scp not used in some configurations. */
+#endif /* !BACK_END_IS_CP_GEN_BE */
 void form_ELF_visibility_attribute(
                    an_ELF_visibility_kind                 visibility,
                    a_source_correspondence_ptr            scp,

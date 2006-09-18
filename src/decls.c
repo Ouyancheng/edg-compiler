@@ -10904,8 +10904,11 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     /* A syntax error */
     add_stop_token(tok_semicolon);
     add_stop_token(tok_lbrace);
+    /* A missing brace error will be issued below in most cases (and in
+       the remaining cases another error will be issued).  If we haven't
+       seen a name or attribute yet, we diagnose that at this point. */
     if (!is_unnamed_namespace || attributes != NULL) {
-      syntax_error(ec_exp_lbrace);
+      expect_error();
     } else {
       (void)required_token(tok_identifier, ec_exp_identifier);
     }  /* if */

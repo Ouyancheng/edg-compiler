@@ -210,6 +210,10 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(759,form_calling_convention)*/
 /*lint -esym(765,form_calling_convention)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+/*lint -esym(759,form_ELF_visibility_attribute)*/
+/*lint -esym(765,ELF_visibility_attribute)*/
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* !BACK_END_IS_CP_GEN_BE */
 #if !DEBUG
 /*lint -esym(749,pfs_last)*/
