@@ -1565,6 +1565,7 @@ during wrapup processing by compare_function_templates.
         } else {
           constant_type = tpp->variant.constant.ptr->type;
         }  /* if */
+        constant_type = skip_typerefs(constant_type);
         if (tap->is_array_bound_of_unknown_type) {
           /* The constant was deduced from an array bound and does not yet
              have a type.  Make sure the declared type is integral, then
@@ -1586,7 +1587,7 @@ during wrapup processing by compare_function_templates.
              the type involves a template parameter. */
           check_assertion(tap->variant.constant != NULL);
           if (tpp->variant.constant.type_involves_template_param) {
-            match = identical_types(f_skip_typerefs(constant_type),
+            match = identical_types(constant_type,
                                     tap->variant.constant->type);
           }  /* if */
         }  /* if */
