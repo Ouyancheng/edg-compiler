@@ -73,6 +73,7 @@ For example:
   template<typename T, T::N I, T::M J> void f(T (&)[I], A<J>) {}
   struct S {
     typedef double N;
+    typedef int M;
   } s[3];
   int main() {
     f(s, A<3>());  // Deduction failure because T::N is not an integral type,
