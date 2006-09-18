@@ -1,5 +1,17 @@
 Version 3.9
 
+9/18/06  GNU and Sun compatibility: linkage specification and "static"
+
+In Sun and GNU C++ modes, a linkage specification can now appear directly on
+a declaration with a "static" specifier.  Such cases are handled as though
+the linkage specification had been written with the brace-based syntax.
+For example:
+
+  extern "C" static void f();  // Same as extern "C" { static void f(); }
+
+This was already accepted in Microsoft C++ mode (see Changes entry of
+1/23/97).
+
 9/15/06  GNU compatibilty: Attribute visibility
 
 In GNU C++ mode with gnu_version >= 40200, the front end now accepts the

@@ -6651,11 +6651,13 @@ tokens are consumed by this routine.
              first_token != tok_static && first_token != tok_typedef) {
     pos_error(ec_bad_member_storage_class, &pos_first_token);
     *err = TRUE;
-  } else if (input_flags & DSI_IS_LINKAGE_SPEC_DECL &&
-             (first_token != tok_typedef && !microsoft_mode)) {
-    /* Except in Microsoft mode, we disallow
+  } else if ((input_flags & DSI_IS_LINKAGE_SPEC_DECL) &&
+             first_token != tok_typedef &&
+             !microsoft_mode && !gpp_mode && !sun_mode) {
+    /* We disallow
          extern "C" static void f();
-       but in order to support association between a name linkage and a
+       in our default and strict modes, but Microsoft, GNU, and Sun all allow
+       it.  In order to support association between a name linkage and a
        function type we do allow
          extern "C" typedef void FT();
     */
