@@ -1,5 +1,17 @@
 Version 3.9
 
+9/18/06  GNU C++ compatibility: va_start and reference types
+
+In GNU C++ modes that recognize the va_start operator (because the macros
+GCC_BUILTIN_VARARGS or DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE are
+TRUE), the front end now accepts a reference parameter for the second
+argument of va_start when gnu_version >= 30200.  For example:
+
+  void f(int &p, ...) {
+    __builtin_va_list ap;
+    __builtin_va_start(ap, p);  // Previously an error.  Now accepted in
+  }                             // many GNU C++ modes.
+
 9/18/06  GNU and Sun compatibility: linkage specification and "static"
 
 In Sun and GNU C++ modes, a linkage specification can now appear directly on

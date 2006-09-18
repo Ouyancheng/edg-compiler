@@ -7303,10 +7303,22 @@ When single_operand is TRUE, the <varargs.h> form is expected:
     scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
     do_operand_transformations(&operand,
                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-    /* The expression must be a parameter of the function. */
+    /* The expression must be a parameter of the function.  Note that the
+       is_parameter test below could be true for a case like the following:
+           void f(int i, ...) {
+             struct L {
+               void m(int j, ...) { va_list ap; va_start(ap, i); }
+             };
+           }
+       but in such cases an error will have been issued earlier about an
+       invalid reference to a variable of the enclosing function.
+       If the named parameter is a reference, we do not accept the code in
+       most modes (the standard makes it undefined behavior), but we do accept
+       it when emulating recent GNU C++ compilers. */
     if (is_an_lvalue(&operand) &&
         is_expression_operand(&operand) &&
-        is_variable_address_node(node2 = operand.variant.expression) &&
+        (is_variable_address_node(node2 = operand.variant.expression) ||
+         (gpp_mode && gnu_version >= 30200 && is_variable_node(node2))) &&
         node2->variant.variable->is_parameter) {
       /* Okay. */
 #if BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE
