@@ -346,7 +346,7 @@ EXTERN char	*pp_file_name;
 EXTERN a_boolean
 		list_included_files;
 			/* When TRUE, write the names of #included files to
-			   stdout. */
+			   the error output. */
 EXTERN a_boolean
 		list_makefile_dependencies;
 			/* When TRUE, write dependency lines for "make" to
