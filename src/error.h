@@ -436,7 +436,7 @@ extern DOES_NOT_RETURN pos_st_catastrophe(an_error_code     error_code,
 /*lint -sem(str_catastrophe, r_no)*/
 extern DOES_NOT_RETURN str_catastrophe(an_error_code error_code,
                                        char          *error_string);
-/*lint -sem(str_catastrophe, r_no)*/
+/*lint -sem(error_code_catastrophe, r_no)*/
 extern DOES_NOT_RETURN error_code_catastrophe(an_error_code error_code,
 					      an_error_code error_code2);
 
