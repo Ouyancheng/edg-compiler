@@ -2493,7 +2493,7 @@ In pcc mode, a field selection can refer to a field that is not in the
 struct or union indicated by the left operand.  This routine finds the
 symbol entry for any field of the same name as the current identifier.
 If there is none, or if there is more than one and they do not all have
-the same offset, NULL is returned.
+the same offset, an error is issued and NULL is returned.
 */
 {
   a_symbol_ptr other_field_sym, temp_field_sym;
@@ -2514,12 +2514,18 @@ the same offset, NULL is returned.
                 temp_field_sym->variant.field.ptr->offset_bit_remainder)) {
           /* Mismatch, so the field reference cannot be unambiguously
              resolved. */
+          pos_sy2_error(ec_pcc_field_ambiguity, &pos_curr_token,
+                        other_field_sym, temp_field_sym);
           other_field_sym = NULL;
           break;
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
+  if (temp_field_sym == NULL) {
+    /* No field was found. */
+    error(ec_exp_field_name);
+  }  /* if */
   return other_field_sym;
 }  /* other_field_with_same_name */
 
@@ -3031,35 +3037,34 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
     }  /* if */
     /* Check that the left operand is (a pointer to) a complete class,
        struct, or union, for either operator. */
-    if (!err) {
-      if (!pcc_mode_integral_pointer_case) {
-        if (is_template_param_type(orig_class_struct_union_type)) {
-          /* For a template parameter type, switch to the corresponding
-             proxy class.  Preserve cv-qualifiers on the type. */
-          a_type_qualifier_set qualifiers =
-                             get_type_qualifiers(orig_class_struct_union_type);
-          orig_class_struct_union_type =
-                                   skip_typerefs(orig_class_struct_union_type);
-          orig_class_struct_union_type =
-                  proxy_class_for_template_param(orig_class_struct_union_type);
-          orig_class_struct_union_type =
-                              make_qualified_type(orig_class_struct_union_type,
-                                                  qualifiers);
+    if (!err && !pcc_mode_integral_pointer_case) {
+      if (is_template_param_type(orig_class_struct_union_type)) {
+        /* For a template parameter type, switch to the corresponding
+           proxy class.  Preserve cv-qualifiers on the type. */
+        a_type_qualifier_set qualifiers =
+                           get_type_qualifiers(orig_class_struct_union_type);
+        orig_class_struct_union_type =
+                                 skip_typerefs(orig_class_struct_union_type);
+        orig_class_struct_union_type =
+                proxy_class_for_template_param(orig_class_struct_union_type);
+        orig_class_struct_union_type =
+                            make_qualified_type(orig_class_struct_union_type,
+                                                qualifiers);
 
-        }  /* if */
-        /* Drop any qualifiers or typedefs on the class/struct/union type. */
-        class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
-        if (is_class_struct_union_type(class_struct_union_type)) {
-          /* Instantiate the class if it is a template class. */
-          complete_class_type_is_needed(class_struct_union_type);
-          operand_1_is_complete_class =
-                                  !is_incomplete_type(class_struct_union_type);
-        }  /* if */
+      }  /* if */
+      /* Drop any qualifiers or typedefs on the class/struct/union type. */
+      class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
+      if (is_class_struct_union_type(class_struct_union_type)) {
+        /* Instantiate the class if it is a template class. */
+        complete_class_type_is_needed(class_struct_union_type);
+        operand_1_is_complete_class =
+                                !is_incomplete_type(class_struct_union_type);
       }  /* if */
       /* No error is issued yet if the first operand is not (a pointer to)
-         a class, because (a) pcc mode allows fields to be selected from
-         non-class pointers and integral values, (b) C++ allows
-         p->int::~int(), and (c) prototype instantiations. */
+         a class, because (a) C++ allows p->int::~int(), and (b) prototype
+         instantiations.  (pcc mode also allows fields to be selected from
+         non-class pointers and integral values, but that case doesn't get
+         here.) */
       need_operand_1_type_check = TRUE;
     }  /* if */
   }  /* if */
@@ -3221,15 +3226,17 @@ qualified_name_check:
       /* If the field was not found in pcc or SVR4 C mode, look for any field
          with that name.  If there's only one (or several with the same
          offsets), cast the left-side variable to the right struct/union type
-         and do the selection with the found field. */
+         and do the selection with the found field (otherwise, an error can be
+         issued at this point). */
       if (member_sym == NULL &&
           (C_dialect == C_dialect_pcc || SVR4_C_mode) &&
           /* Avoid the "rvalue . field" case. */
           (is_arrow_operator || is_an_lvalue(operand_1))) {
-        a_symbol_ptr other_field_sym = other_field_with_same_name();
-        if (other_field_sym != NULL) {
+        member_sym = other_field_with_same_name();
+        if (member_sym == NULL) {
+          /* An error has been issued by other_field_with_same_name. */
+        } else {
           /* We found a field we can use. */
-          member_sym = other_field_sym;
           make_locator_for_symbol(member_sym, &locator_for_curr_id);
           locator_for_curr_id.source_position = member_position;
           if (is_arrow_operator) {
@@ -3261,11 +3268,14 @@ qualified_name_check:
         /* The identifier is not a member of the operand_1 class, struct,
            or union. */
         err = TRUE;
+        expect_error();
         if (!operand_1_is_complete_class) {
           /* An error will be produced below because the first operand is
              not (a pointer to) a class, so do not issue an error here. */
         } else if (is_error_locator(locator_for_curr_id)) {
           /* An error was previously issued. */
+        } else if (pcc_mode_integral_pointer_case) {
+          /* An error was issued by other_field_with_same_name. */
         } else {
           pos_stsy_error(C_mode() ? ec_not_a_field : ec_not_a_member,
                          &error_position,

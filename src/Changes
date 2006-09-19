@@ -1,5 +1,22 @@
 Version 3.9
 
+9/19/06  K&R/pcc mode: Abort on invalid field access with integral pointers
+
+In K&R/pcc mode, the front accepts field access operator on objects of integer
+type (with a warning).  For example:
+
+  struct S1 { int f; };
+  int f1(int i) { return i.f; };  /* Accepted in K&R/pcc mode. */
+
+However, similar cases where the field name either could not be found or
+resolved to multiple fields with conflicting offsets, the front end previously
+aborted.  For example:
+
+  struct S2 { int m; };
+  int f2(int i) { return i.f; };  /* Previously aborted in K&R/pcc mode. */
+
+This is now fixed: An error is issued in such cases.
+
 9/18/06  GNU C++ compatibility: va_start and reference types
 
 In GNU C++ modes that recognize the va_start operator (because the macros
