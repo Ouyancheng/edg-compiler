@@ -1628,6 +1628,9 @@ during wrapup processing by compare_function_templates.
       } else {
         /* A type parameter. */
         if (gpp_mode) {
+          /* In GNU C++ mode, attempts to bind a template parameter to a class
+             type or enumeration type with no name for linkage purposes is
+             treated as a deduction failure rather than an outright error. */
           a_type_ptr  unqual_type = tap->variant.type;
           if ((is_immediate_class_type(unqual_type) ||
                is_immediate_enum_type(unqual_type)) &&

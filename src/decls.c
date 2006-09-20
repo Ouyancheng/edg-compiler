@@ -8537,8 +8537,12 @@ NULL.
         a_symbol_ptr  tag_sym =
                         (a_symbol_ptr)type_to_check->source_corresp.assoc_info;
         /* Through deduction templates are sometimes instantiated with
-           unnamed enum or class types.  A typedef in such an instantiation
-           should not affect the name of the type. */
+           unnamed enum or class types: In such cases, the unnamed type (which
+           is a template argument) will be in a scope that's outside that of
+           the current scope (which is created for the template instantiation
+           after the template arguments have been determined).  A typedef in
+           such an instantiation should not affect the name of the type, except
+           in GNU C++ mode. */
         if (gpp_mode ||
             tag_sym->decl_scope == scope_stack[decl_scope_level].number) {
           tp = type_to_check;
