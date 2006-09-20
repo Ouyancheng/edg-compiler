@@ -2522,7 +2522,7 @@ the same offset, an error is issued and NULL is returned.
       }  /* if */
     }  /* if */
   }  /* for */
-  if (temp_field_sym == NULL) {
+  if (temp_field_sym == NULL && other_field_sym == NULL) {
     /* No field was found. */
     error(ec_exp_field_name);
   }  /* if */
