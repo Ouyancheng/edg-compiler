@@ -1617,12 +1617,12 @@ during wrapup processing by compare_function_templates.
         arg_template = template_supplement_for_template(
                                                        tap->variant.templ.ptr);
         param_list_for_arg = arg_template->cache.decl_info->parameters;
-        if (equiv_template_param_lists(param_list_for_param,
-                                       param_list_for_arg,
-                                       /*issue_errors=*/FALSE,
-				       ETP_NO_OPTIONS,
-                                       (a_source_position*)NULL)) {
-          match = TRUE;
+        if (!equiv_template_param_lists(param_list_for_param,
+                                        param_list_for_arg,
+                                        /*issue_errors=*/FALSE,
+				        ETP_NO_OPTIONS,
+                                        (a_source_position*)NULL)) {
+          match = FALSE;
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
       } else {
