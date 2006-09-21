@@ -1,5 +1,13 @@
 Version 3.9
 
+9/20/06  expect_error() assertion triggers spuriously
+
+The front end code occasionally invokes the expect_error() macro to assert
+that an error either has been issued or will be issued before the end of the
+compilation.  In configurations with COMPILE_MULTIPLE_SOURCE_FILES set to
+TRUE, this could cause spurious internal errors when a source file containing
+(unusual) errors was followed by one not containing any errors.  Now fixed.
+
 9/19/06  K&R/pcc mode: Abort on invalid field access with integral pointers
 
 In K&R/pcc mode, the front accepts field access operator on objects of integer

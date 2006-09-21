@@ -3022,6 +3022,8 @@ expected_error.
                      expected_error_record.string1,
                      expected_error_record.string2);
   }  /* if */
+  /* Reset the expected error record in case we will compile other sources. */
+  expected_error_record.filename = NULL;
 }  /* check_expected_errors */
 
 #endif /* CHECKING */
