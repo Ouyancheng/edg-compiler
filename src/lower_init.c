@@ -3622,6 +3622,20 @@ routine will be the same as the one passed in.
            routine. */
         new_routine->is_alias_entry = TRUE;
       }  /* if */
+      /* Copy various Microsoft and GNU attributes that can affect constructors
+         and/or destructors, and which naturally carry over to their alternate
+         entry points. */
+#if GNU_EXTENSIONS_ALLOWED
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      new_routine->ELF_visibility = routine->ELF_visibility;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+      new_routine->is_weak = routine->is_weak;
+      new_routine->is_weakref = routine->is_weakref;
+      new_routine->section = routine->section;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if DECL_MODIFIERS_IN_USE && MICROSOFT_EXTENSIONS_ALLOWED
+      new_routine->decl_modifiers = (routine->decl_modifiers & DM_DLLFLAGS);
+#endif /* DECL_MODIFIERS_IN_USE && MICROSOFT_EXTENSIONS_ALLOWED */
       /* Add new_routine to the list of alternate entry points for 
          routine. */
       rlep = alloc_list_entry_for_routine();

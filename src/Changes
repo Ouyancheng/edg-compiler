@@ -1,5 +1,14 @@
 Version 3.9
 
+9/22/06  IA-64 ABI: Attributes of alternative entry points
+
+IL lowering with an IA-64 ABI configuration can create additional routine
+entries representing alternative entry points of constructors and constructors.
+Now, any attributes of the primary routine entry that naturally apply to the
+secondary entry points are copied to the routine entries for the secondary
+entry points.  These attributes include ELF visibility and DLL import/export
+status.
+
 9/20/06  expect_error() assertion triggers spuriously
 
 The front end code occasionally invokes the expect_error() macro to assert
