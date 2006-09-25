@@ -4344,12 +4344,13 @@ not evk_unspecified).  If *need_leading_space is TRUE, precede the attribute
 with a leading space.  If an attribute is output, set *need_leading_space to
 TRUE.  Do the output in the way described by octl.  scp points to the source
 correspondence of the IL entry (and is used to avoid emitting the attribute
-if it is implicit in its parent class or namespace.
+if it is implicit in its parent class or namespace).
 */
 {
 #if BACK_END_IS_CP_GEN_BE
-  if (scp != NULL && octl->gen_compilable_code) {
-    /* For routine and variable entries that are members of class or
+  check_assertion(scp != NULL);
+  if (octl->gen_compilable_code) {
+    /* For routine and variable entries that are members of classes or
        namespaces, do not emit the visibility attribute if it is equivalent
        to that implied by the surrounding scope. */
     an_ELF_visibility_kind  default_visibility =
