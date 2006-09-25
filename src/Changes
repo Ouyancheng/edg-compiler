@@ -1,5 +1,41 @@
 Version 3.9
 
+9/25/06  Stack overflow on multiple uses of const member expression in template
+
+In some complicated templates, the front end sometimes looped internally,
+eventually overflowing the stack.  The problem cases involved a const
+member given an intitial value that is an expression (e.g., sr>0 in
+the example below), and uses of the value of that member at more than
+one place and moe than one level in expression operands that are not
+the final ones (e.g., fixed_size is used twice in "?" operators below).
+Actual examples of this failure are quite hard to generate.  Now fixed.
+
+  template<class T> struct SimdSize { static const unsigned res = 1; };
+  template<int static_size=-1> class Vec;
+  template<int size=-1> struct Sym {};
+  template<int size=-1> struct Herm {};
+  template<unsigned alignment> struct MatElem;
+  template<class Structure> class Mat;
+  
+  template<int sr>
+  struct Mat<Sym<sr> > {
+      static const bool fixed_size = sr>0;
+      static const int static_data_size = ( fixed_size ? sr : -1 );
+      typedef Vec<static_data_size> TV;
+      typedef typename TV::template SubType<0>::T T;
+      static const unsigned alignment = ( fixed_size ? 1 : SimdSize<T>::res);
+      typedef MatElem<alignment> RetOp;
+  };
+  template<int sr>
+  struct Mat<Herm<sr> > {
+      static const bool fixed_size = sr>0;
+      static const int static_data_size = (fixed_size ? sr : -1 );
+      typedef Vec<static_data_size> TV;
+      typedef typename TV::template SubType<0>::T T;
+      static const unsigned alignment = ( fixed_size ? 1 : SimdSize<T>::res);
+      typedef MatElem<alignment> RetOp;
+  };
+
 9/22/06  IA-64 ABI: Attributes of alternate entry points
 
 IL lowering with an IA-64 ABI configuration can create additional routine

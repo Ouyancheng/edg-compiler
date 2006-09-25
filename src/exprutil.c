@@ -1830,8 +1830,13 @@ expression node.
           con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression) {
         /* For a ck_template_param case that represents an expression,
-           return the expression. */
-        node = con->variant.template_param.variant.expr;
+           return a copy of the expression. */
+        an_expr_copy_options_set options = CE_COPIED_CONSTANTS_MAY_BE_SHARED;
+        if (!curr_expr_is_potentially_evaluated()) {
+          options |= CE_COPY_NOT_EVALUATED;
+        }  /* if */
+        node = copy_expr_tree(con->variant.template_param.variant.expr,
+                              options);
       } else {
         /* Create a constant node and copy the constant in the operand to the
            node. */
