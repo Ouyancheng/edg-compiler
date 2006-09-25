@@ -3022,8 +3022,6 @@ expected_error.
                      expected_error_record.string1,
                      expected_error_record.string2);
   }  /* if */
-  /* Reset the expected error record in case we will compile other sources. */
-  expected_error_record.filename = NULL;
 }  /* check_expected_errors */
 
 #endif /* CHECKING */
@@ -5177,6 +5175,12 @@ of each compilation.
 #if !STANDALONE_UTILITY_PROGRAM
   clear_file_index_list();
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#if CHECKING
+  expected_error_record.filename = NULL;
+  expected_error_record.line_number = 0;
+  expected_error_record.string1 = NULL;
+  expected_error_record.string2 = NULL;
+#endif /* CHECKING */
 }  /* error_init */
 
 #if !STANDALONE_UTILITY_PROGRAM
