@@ -3235,6 +3235,9 @@ qualified_name_check:
         member_sym = other_field_with_same_name();
         if (member_sym == NULL) {
           /* An error has been issued by other_field_with_same_name. */
+          err = TRUE;
+          /* Avoid issuing a second error below. */
+          need_member_sym_check = FALSE;
         } else {
           /* We found a field we can use. */
           make_locator_for_symbol(member_sym, &locator_for_curr_id);
@@ -3274,8 +3277,6 @@ qualified_name_check:
              not (a pointer to) a class, so do not issue an error here. */
         } else if (is_error_locator(locator_for_curr_id)) {
           /* An error was previously issued. */
-        } else if (pcc_mode_integral_pointer_case) {
-          /* An error was issued by other_field_with_same_name. */
         } else {
           pos_stsy_error(C_mode() ? ec_not_a_field : ec_not_a_member,
                          &error_position,
