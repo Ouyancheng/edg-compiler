@@ -1705,8 +1705,6 @@ Do one-time initialization of variables related to the mem_manage routines.
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   index_for_il_file = NULL;
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-  mem_region_table = NULL;
-  size_of_mem_region_table = 0;
   il_header.region_scope_entry = NULL;
 }  /* mem_manage_one_time_init */
 
@@ -1742,6 +1740,8 @@ This is done before command line processing.
   memory_allocation_list = NULL;
   resizable_memory_allocation_list = NULL;
   text_buffer_list = NULL;
+  mem_region_table = NULL;
+  size_of_mem_region_table = 0;
 }  /* mem_manage_early_init */
 
 
@@ -1823,7 +1823,7 @@ Free all memory used by the compilation.  This must be called at the
 very end of processing.
 */
 {
-  free_all_memory_regions();
+  if (mem_region_table != NULL) free_all_memory_regions();
 #if !STANDALONE_UTILITY_PROGRAM
 #if USE_MMAP_FOR_MEMORY_REGIONS
   if (mmap_initialized) {

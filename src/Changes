@@ -1,5 +1,11 @@
 Version 3.9
 
+9/26/06  Abort on command-line error when using MAKE_FRONT_END_CALLABLE
+
+Version 3.8 introduced an abort (in free_memory_region) when the front end
+is built with MAKE_FRONT_END_CALLABLE == TRUE and a compilation terminates
+via a command-line error.  Now fixed.
+
 9/25/06  Stack overflow on multiple uses of const member expression in template
 
 In some complicated templates, the front end sometimes looped internally,
