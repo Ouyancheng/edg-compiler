@@ -2489,11 +2489,11 @@ done:
 
 static a_symbol_ptr other_field_with_same_name(void)
 /*
-In pcc mode, a field selection can refer to a field that is not in the
-struct or union indicated by the left operand.  This routine finds the
-symbol entry for any field of the same name as the current identifier.
-If there is none, or if there is more than one and they do not all have
-the same offset, an error is issued and NULL is returned.
+In pcc and SVR4 modes, a field selection can refer to a field that is not in
+the struct or union indicated by the left operand.  This routine finds the
+symbol entry for any field of the same name as the current identifier.  If
+there is none, or if there is more than one and they do not all have the
+same offset, an error is issued and NULL is returned.
 */
 {
   a_symbol_ptr other_field_sym, temp_field_sym;
@@ -2524,7 +2524,8 @@ the same offset, an error is issued and NULL is returned.
   }  /* for */
   if (temp_field_sym == NULL && other_field_sym == NULL) {
     /* No field was found. */
-    error(ec_exp_field_name);
+    str_error(ec_not_a_field_name,
+              locator_for_curr_id.symbol_header->identifier);
   }  /* if */
   return other_field_sym;
 }  /* other_field_with_same_name */

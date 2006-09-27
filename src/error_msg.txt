@@ -1623,7 +1623,8 @@ ec_reference_declared_mutable;;"declaring a reference with \"mutable\" is nonsta
 ec_array_condition_always_true;;"a condition declaration for an array is always true"
 ec_static_assert;;"static assertion failed with %sq"
 ec_gnu_visibility_conflict;;"visibility attribute ignored because it conflicts with a previous declaration"
-ec_pcc_field_ambiguity;;"field name resolves to more than one offset (see %nod1 and %nod2)"
+ec_pcc_field_ambiguity;;"field name resolves to more than one offset -- see %nod1 and %nod2"
+ec_not_a_field_name;;"%sq is not a field name"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
