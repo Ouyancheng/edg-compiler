@@ -12,7 +12,7 @@ In some complicated templates, the front end sometimes looped internally,
 eventually overflowing the stack.  The problem cases involved a const
 member given an intitial value that is an expression (e.g., sr>0 in
 the example below), and uses of the value of that member at more than
-one place and moe than one level in expression operands that are not
+one place and more than one level in expression operands that are not
 the final ones (e.g., fixed_size is used twice in "?" operators below).
 Actual examples of this failure are quite hard to generate.  Now fixed.
 
