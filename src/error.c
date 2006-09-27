@@ -2982,7 +2982,7 @@ static struct {
   int  line_number;
   char *string1;
   char *string2;
-} expected_error_record = { NULL, 0, NULL, NULL };
+} expected_error_record;
 
   
 void record_expected_error(char *filename,
