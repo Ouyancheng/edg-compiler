@@ -11965,10 +11965,13 @@ Also scans GNU statement expressions:
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
           is_constant_operand(result) &&
+          !is_template_param_expression_constant_operand(result) &&
           result->variant.constant.expr == NULL) {
         /* Record an expression for a constant so that we have the position
            of the constant and also the position of the constant surrounded
-           by parentheses. */
+           by parentheses.  (We don't set constant.expr for a tpck_expression
+           constant because there is already an expression in such a
+           constant.) */
         result->variant.constant.expr = make_node_from_operand(result);
       }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */

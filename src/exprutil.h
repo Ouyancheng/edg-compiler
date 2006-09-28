@@ -436,15 +436,19 @@ the address of null_source_position.
 
 
 /*
-Get the expression node, if any, associated with an expression operand.
+Get the expression node, if any, associated with an operand.
 */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
 #define expr_node_from_operand(operand)                                    \
   (is_expression_operand(operand) ? (operand)->variant.expression :        \
+   is_template_param_expression_constant_operand(operand) ?                \
+         (operand)->variant.constant.variant.template_param.variant.expr : \
    is_constant_operand(operand) ? (operand)->variant.constant.expr : NULL)
 #else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #define expr_node_from_operand(operand)                                    \
-  (is_expression_operand(operand) ? (operand)->variant.expression : NULL)
+  (is_expression_operand(operand) ? (operand)->variant.expression :        \
+   is_template_param_expression_constant_operand(operand) ?                \
+   (operand)->variant.constant.variant.template_param.variant.expr : NULL)
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 
@@ -745,6 +749,15 @@ Macro that is TRUE if the operand is a ck_template_param constant operand.
 	(is_constant_operand(operand) &&                                \
 	 (operand)->variant.constant.kind ==                            \
                                 (a_constant_repr_kind)ck_template_param)
+
+/*
+Macro that is TRUE if the operand is a tpck_expression ck_template_param
+constant operand.
+*/
+#define is_template_param_expression_constant_operand(operand)          \
+        (is_template_param_constant_operand(operand) &&                 \
+         (operand)->variant.constant.variant.template_param.kind ==     \
+                        (a_template_param_constant_kind)tpck_expression)
 
 /*
 Macro that is TRUE if the operand is an indefinite function operand.
