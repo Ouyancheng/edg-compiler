@@ -8541,8 +8541,12 @@ NULL.
            is a template argument) will be in a scope that's outside that of
            the current scope (which is created for the template instantiation
            after the template arguments have been determined).  A typedef in
-           such an instantiation should not affect the name of the type, except
-           in GNU C++ mode. */
+           such an instantiation should not affect the name of the type.  In
+           GNU C++ mode, the scope comparison check cannot be done because
+           a typeof construct can bring in an unnamed type from another scope
+           to give it a name for linkage purposes.  Fortunately, in GNU C++
+           mode unnamed template arguments also cause deduction failures and
+           we never get here with the otherwise problematic cases. */
         if (gpp_mode ||
             tag_sym->decl_scope == scope_stack[decl_scope_level].number) {
           tp = type_to_check;
