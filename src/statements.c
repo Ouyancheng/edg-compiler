@@ -5723,10 +5723,10 @@ Otherwise, if a conflict is found, it is diagnosed at the given position and
       if (prev_range_begin->source_corresp.decl_position.seq == 0) {
         /* This only happens with GNU case ranges in configurations that don't
            record switch case entries. */
+        pos_error(ec_case_label_appears_more_than_once, diag_pos);
 #if RECORD_SWITCH_CASE_ENTRIES
         unexpected_condition();
 #endif /* RECORD_SWITCH_CASE_ENTRIES */
-        pos_error(ec_case_label_appears_more_than_once, diag_pos);
       } else {
         pos2_diagnostic(es_error, ec_case_label_conflict, diag_pos,
                         &prev_range_begin->source_corresp.decl_position);
@@ -6459,7 +6459,6 @@ GNU also allows the "case range" form:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position             case_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_source_position             ellipsis_position;
   a_boolean                     already_diagnosed = FALSE;
 
   db_enter(4, "case_label");
@@ -6488,7 +6487,6 @@ GNU also allows the "case range" form:
   if (gnu_mode && curr_token == tok_ellipsis) {
     /* This is a GNU C case range. E.g.: case 'a' ... 'z': */
     /* Skip the ellipsis. */
-    ellipsis_position = pos_curr_token;
     (void)get_token();
     range_end = scan_case_label_constant(sssep);
     /* Check that *range_end > *constant_ptr. */
