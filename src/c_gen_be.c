@@ -6990,7 +6990,6 @@ Generate the code for a switch statement.
 */
 {
   a_statement_ptr     body_statement, statement_list;
-  a_constant_ptr      constant;
   a_switch_clause_ptr switch_clause;
   /* curr_scope is saved here because dump_block_declarations may change it. */
   a_scope_ptr         saved_curr_scope = curr_scope;
@@ -7044,19 +7043,46 @@ Generate the code for a switch statement.
        switch_clause = switch_clause->next) {
     /* Indent for the case label. */
     indent += 2;
-    constant = switch_clause->constant_list;
-    if (constant == NULL) {
+#if RECORD_SWITCH_CASE_ENTRIES
+    if (switch_clause->default_case) {
       /* This is the default case. */
       set_output_position_for_stmt(&switch_clause->default_position);
       write_tok_str("default:");
     } else {
-      do {
-        set_output_position(&constant->source_corresp.decl_position);
+      /* Regular (non-default) cases and/or GNU case ranges. */
+      a_switch_case_entry_ptr  sce = switch_clause->cases;
+      for (; sce != NULL; sce = sce->next) {
+        set_output_position(&sce->constant->source_corresp.decl_position);
         write_tok_str("case ");
-        dump_constant(constant);
+        dump_constant(sce->constant);
+#if GNU_EXTENSIONS_ALLOWED
+        if (sce->range_end != NULL) {
+          /* A GNU case range. */
+          write_tok_str(" ... ");
+          dump_constant(sce->range_end);
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         write_tok_ch(':');
-      } while ((constant = constant->next) != NULL);
+      }  /* for */
     }  /* if */
+#else /* !RECORD_SWITCH_CASE_ENTRIES */
+    { a_constant_ptr  constant = switch_clause->constant_list;
+      if (constant == NULL) {
+        /* This is the default case. */
+        set_output_position_for_stmt(&switch_clause->default_position);
+        write_tok_str("default:");
+      } else {
+        /* Regular (non-default) cases (GNU case ranges are represented by
+           a list of individual cases in this configuration). */
+        do {
+          set_output_position(&constant->source_corresp.decl_position);
+          write_tok_str("case ");
+          dump_constant(constant);
+          write_tok_ch(':');
+        } while ((constant = constant->next) != NULL);
+      }  /* if */
+    }
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
 #if VLA_ALLOWED && !LOWER_VARIABLE_LENGTH_ARRAYS
     /* If we're in a function with VLAs, there is a chance that the
        next statement to output will be a VLA definition.  In C99 that is

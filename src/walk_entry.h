@@ -1550,24 +1550,31 @@ end_sizeof:;
       {
         a_switch_clause_ptr ptr = (a_switch_clause_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_switch_clause_ptr, iek_switch_clause);
-        walk_list(ptr->constant_list, a_constant_ptr, iek_constant);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        walk_list(ptr->case_positions, a_switch_case_entry_ptr,
+#if RECORD_SWITCH_CASE_ENTRIES
+        walk_list(ptr->cases, a_switch_case_entry_ptr, iek_switch_case_entry);
+        walk_list(ptr->cases_by_value, a_switch_case_entry_ptr,
                   iek_switch_case_entry);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#else /* !RECORD_SWITCH_CASE_ENTRIES */
+        walk_list(ptr->constant_list, a_constant_ptr, iek_constant);
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
         walk_list(ptr->statements, a_statement_ptr, iek_statement);
       }
       break;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
+#if RECORD_SWITCH_CASE_ENTRIES
     case iek_switch_case_entry:
       {
         a_switch_case_entry_ptr ptr = (a_switch_case_entry_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_switch_case_entry_ptr,
                        iek_switch_case_entry);
+        remap_next_ptr(ptr->next_by_value, a_switch_case_entry_ptr,
+                       iek_switch_case_entry);
         walk_ptr(ptr->constant, a_constant_ptr, iek_constant);
+#if GNU_EXTENSIONS_ALLOWED
+        walk_ptr(ptr->range_end, a_constant_ptr, iek_constant);
+#endif /* GNU_EXTENSIONS_ALLOWED */
       }
       break;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
     case iek_handler:
       {
         a_handler_ptr ptr = (a_handler_ptr)entry_ptr;

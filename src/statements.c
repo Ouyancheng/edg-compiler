@@ -2822,11 +2822,18 @@ statement is the top block of a GNU statement expression ({ ... }).
   if (depth_stmt_stack > 0 && (sssep-1)->inside_statement_expr) {
     sssep->inside_statement_expr = TRUE;
   }  /* if */
-  sssep->after_break_in_switch= FALSE;
-  sssep->statement            = sp;
-  sssep->curr_switch_clause   = NULL;
-  sssep->discarded_case_label_constants
-                              = NULL;
+  sssep->after_break_in_switch = FALSE;
+  sssep->statement             = sp;
+  sssep->curr_switch_clause    = NULL;
+  sssep->last_switch_clause    = NULL;
+  sssep->switch_max_case_value = NULL;
+#if RECORD_SWITCH_CASE_ENTRIES
+  sssep->last_switch_case_entry    = NULL;
+  sssep->last_switch_case_by_value = NULL;
+#else /* !RECORD_SWITCH_CASE_ENTRIES */
+  sssep->last_const_in_last_switch_clause = NULL;
+  sssep->discarded_case_label_constants   = NULL;
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
   sssep->extra_block          = NULL;
   sssep->last_dep_statement   = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -2848,9 +2855,6 @@ statement is the top block of a GNU statement expression ({ ... }).
   }  /* if */
   if (kind == ssk_microsoft_try) sssep->num_microsoft_trys_inside_of++;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  sssep->last_switch_clause    = NULL;
-  sssep->last_const_in_last_switch_clause = NULL;
-  sssep->switch_max_case_value = NULL;
 #if DEBUG
   if (db_flag_is_set("dump_control_flow")) {
     db_ssse_with_indentation(kind, "pushing ");
@@ -5675,43 +5679,390 @@ See also 3.6.6.4.
   db_exit();
 }  /* return_statement */
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
 
-#if !GNU_EXTENSIONS_ALLOWED
-/* ARGSUSED */ /* <-- range_end not always used. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-static void record_switch_case_entry(a_switch_clause_ptr  clause,
-                                     a_constant_ptr       constant,
-                                     a_constant_ptr       range_end,
-                                     a_source_position    *keyword_position,
-                                     a_source_position    *colon_position)
+static a_boolean check_switch_case_conflict(
+                                        a_constant_ptr     new_range_begin,
+                                        a_constant_ptr     new_range_end,
+                                        a_constant_ptr     prev_range_begin,
+                                        a_constant_ptr     prev_range_end,
+                                        a_source_position  *diag_pos,
+                                        a_boolean          *already_diagnosed)
 /*
-Record the details of a switch case entry in a switch clause.  constant is the
-constant selected by the case (NULL for the default case).  keyword_position
-is the position of the "case" or "default" position, and colon_position is the
-position of the colon.
+A new switch case described by new_range_begin and new_range_end has been
+encountered.  Return TRUE if it conflicts with the previously encountered
+switch case entry described by prev_range_begin and prev_range_end.
+The default case is described by two NULL pointers, normal cases have a
+null "end" pointer, and GNU case ranges have both pointers non-NULL.
+If *already_diagnosed is TRUE, no additional diagnostic is emitted.
+Otherwise, if a conflict is found, it is diagnosed at the given position and
+*already_diagnosed is set to TRUE.
 */
 {
-  a_switch_case_entry_ptr  pos_info = alloc_switch_case_entry();
+  a_boolean  result = FALSE;
 
-  pos_info->constant = constant;
+  if (prev_range_begin == NULL) {
+    /* The previous case was "default". */
+    if (new_range_begin == NULL) {
+      /* A conflict. */
+      result = TRUE;
+      if (!*already_diagnosed) {
+        pos_error(ec_default_label_appears_more_than_once, diag_pos);
+        *already_diagnosed = TRUE;
+      }  /* if */
+    }  /* if */
+  } else if (new_range_begin != NULL) {
+    /* Compare two ranges.  [a, b] and [c, d] don't conflict only if b < c
+       or a > d.  In common cases, the ranges degenerate to single elements. */
+    a_constant_ptr  a = prev_range_begin, b = prev_range_end,
+                    c = new_range_begin, d = new_range_end;
+    if (b == NULL) b = a;
+    if (d == NULL) d = c;
+    result = !(cmp_integer_constants(b, c) < 0 ||
+               cmp_integer_constants(a, d) > 0);
+    if (result && !*already_diagnosed) {
+      if (prev_range_begin->source_corresp.decl_position.seq == 0) {
+        /* This only happens with GNU case ranges in configurations that don't
+           record switch case entries. */
+#if RECORD_SWITCH_CASE_ENTRIES
+        unexpected_condition();
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
+        pos_error(ec_case_label_appears_more_than_once, diag_pos);
+      } else {
+        pos2_diagnostic(es_error, ec_case_label_conflict, diag_pos,
+                        &prev_range_begin->source_corresp.decl_position);
+      }  /* if */
+      *already_diagnosed = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* check_switch_case_conflict */
+
+#if RECORD_SWITCH_CASE_ENTRIES
+
+static a_boolean unique_switch_case(
+                            a_constant_ptr                 range_begin,
+                            a_constant_ptr                 range_end,
+                            a_struct_stmt_stack_entry_ptr  sssep,
+                            a_boolean                      *already_diagnosed,
+                            a_source_position              *diag_pos)
+/*
+Return TRUE if the switch case represented by range_begin and range_end is
+"unique" within the current switch statement, which is described by sssep
+(i.e., no value is represented by two case labels).  If *already_diagnosed is
+TRUE, no new diagnostics are issued.  Otherwise, conflicts with previous cases
+are diagnosed at the given position (and *already_diagnosed is set to TRUE in
+such cases).
+*/
+{
+  a_boolean            result = TRUE;
+  a_switch_clause_ptr  scp = sssep->statement->variant.switch_stmt.clause_list;
+
+  for (; scp != NULL && result; scp = scp->next) {
+    a_switch_case_entry_ptr  sce = scp->cases;
+    for (; sce != NULL && result; sce = sce->next) {
+      a_constant_ptr  prev_begin = sce->constant, prev_end = NULL;
+      if (prev_begin != NULL &&
+          (is_error_constant(prev_begin) ||
+           prev_begin->kind == (a_constant_repr_kind)ck_template_param)) {
+        /* Don't attempt to check for conflicts with error constants and
+           template-dependent constants. */
+        continue;
+      }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  pos_info->range_end = range_end;
+      prev_end = sce->range_end;
+      if (prev_end != NULL &&
+          (is_error_constant(prev_end) ||
+           prev_end->kind == (a_constant_repr_kind)ck_template_param)) {
+        /* Don't attempt to check for conflicts with error constants and
+           template-dependent constants. */
+        continue;
+      }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  pos_info->keyword_position = *keyword_position;
-  pos_info->colon_position = *colon_position;
-  if (clause->case_positions == NULL) {
+      result = !check_switch_case_conflict(
+                                range_begin, range_end, prev_begin, prev_end,
+                                diag_pos, already_diagnosed);
+    }  /* for */
+  }  /* for */
+  return result;
+}  /* unique_switch_case */
+
+
+#if !GNU_EXTENSIONS_ALLOWED || !EXTRA_SOURCE_POSITIONS_IN_IL
+/* ARGSUSED */ /* <-- range_end and some positions not always used. */
+#endif /* !GNU_EXTENSIONS_ALLOWED || !EXTRA_SOURCE_POSITIONS_IN_IL */
+static void record_switch_case_entry(
+                                  a_struct_stmt_stack_entry_ptr  sssep,
+                                  a_switch_clause_ptr            scp,
+                                  a_constant_ptr                 range_begin,
+                                  a_constant_ptr                 range_end,
+                                  a_boolean                      new_largest,
+                                  a_source_position              *keyword_pos,
+                                  a_source_position              *colon_pos,
+                                  a_source_position              *label_pos)
+/*
+Record the details of a switch case entry in a switch clause (scp).  sssep
+refers to the current switch statement.  range_begin and range_end describe
+the values covered by the switch case: The default case is represented by two
+NULL pointers, normal cases have range_end set to NULL, and GNU case ranges
+result in both pointers being non-NULL.  keyword_pos is the position of the
+"case" or "default" keyword, and colon_pos is the position of the colon.
+label_pos is the position of the case label (or that of the keyword for the
+"default" case).
+*/
+{
+  /* Allocate a new switch case entry and set its fields. */
+  a_switch_case_entry_ptr  entry = alloc_switch_case_entry();
+
+  entry->constant = range_begin;
+#if GNU_EXTENSIONS_ALLOWED
+  entry->range_end = range_end;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  entry->keyword_position = *keyword_pos;
+  entry->colon_position = *colon_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Append the entry to the clause's source order list. */
+  if (scp->cases == NULL) {
     /* First (perhaps only) case in this clause. */
-    clause->case_positions = pos_info;
+    scp->cases = entry;
   } else {
     /* Append at the end of the list. */
-    a_switch_case_entry_ptr  last = clause->case_positions;
-    while (last->next != NULL) { last = last->next; }
-    last->next = pos_info;
+    sssep->last_switch_case_entry->next = entry;
+  }  /* if */
+  sssep->last_switch_case_entry = entry;
+  /* For is the default case, record some additional information in *scp. */
+  if (range_begin == NULL) {
+    /* The "default" case. */
+    scp->default_case = TRUE;
+    set_stmt_source_position(scp->default_position, *label_pos);
+  }  /* if */
+  /* The remainder of this function maintains the cases_by_value list. */
+  if (scp->cases_by_value == NULL) {
+    /* The first element on the list. */
+    scp->cases_by_value = entry;
+  } else if (range_begin == NULL) {
+    /* The "default case" is always first on the cases_by_value list. */
+    entry->next_by_value = scp->cases_by_value;
+    scp->cases_by_value = entry;
+  } else if (range_begin->kind == (a_constant_repr_kind)ck_template_param ||
+             is_error_constant(range_begin)) {
+    /* A template dependent constant (or range) or an error entry.  Insert it
+       at the beginning of the list, but after any "default case" entry. */
+    if (scp->cases_by_value->constant == NULL) {
+      /* This clause has a leading "default case" entry; keep it that way. */
+      entry->next_by_value = scp->cases_by_value->next_by_value;
+      scp->cases_by_value->next_by_value = entry;
+    } else {
+      /* No "default case" entry: Insert the template-dependent entry at the
+         start of the list. */
+      entry->next_by_value = scp->cases_by_value;
+      scp->cases_by_value = entry;
+    }  /* if */
+  } else if (new_largest) {
+    /* If this is the largest entry seen so far in this clause, append it at
+       the end of the cases_by_value list. */
+    sssep->last_switch_case_by_value->next_by_value = entry;
+  } else {
+    /* A "known-value" case (or a range starting at a known value): Insert the
+       entry at the right location by searching the ordered list. */
+    /* Skip over the default case (if any). */
+    a_switch_case_entry_ptr  *ptr = (scp->cases_by_value->constant == NULL) ?
+                   &scp->cases_by_value->next_by_value : &scp->cases_by_value;
+    /* Skip over dependent cases (if any). */
+    while (*ptr != NULL &&
+           ((*ptr)->constant->kind ==
+                                    (a_constant_repr_kind)ck_template_param ||
+            is_error_constant((*ptr)->constant))) {
+      ptr = &(*ptr)->next_by_value;
+    }  /* while */
+    /* Skip over smaller value cases (if any). */
+    while (*ptr != NULL) {
+      check_assertion((*ptr)->constant->kind ==
+                                            (a_constant_repr_kind)ck_integer);
+      if (cmp_integer_constants(range_begin, (*ptr)->constant) < 0) break;
+      ptr = &(*ptr)->next_by_value;
+    }  /* while */
+    entry->next = *ptr;
+    *ptr = entry;
+  }  /* if */
+  if (entry->next_by_value == NULL) {
+    /* The newly added entry is the last one on the cases_by_value list. */
+    sssep->last_switch_case_by_value = entry;
   }  /* if */
 }  /* record_switch_case_entry */
 
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#else /* !RECORD_SWITCH_CASE_ENTRIES */
+
+static a_boolean unique_switch_case(
+                            a_constant_ptr                 range_begin,
+                            a_constant_ptr                 range_end,
+                            a_struct_stmt_stack_entry_ptr  sssep,
+                            a_boolean                      *already_diagnosed,
+                            a_source_position              *diag_pos)
+/*
+Return TRUE if the switch case represented by range_begin and range_end is
+"unique" within the current switch statement, which is described by sssep
+(i.e., no value is represented by two case labels).  If *already_diagnosed is
+TRUE, no new diagnostics are issued.  Otherwise, conflicts with previous cases
+are diagnosed at the given position (and *already_diagnosed is set to TRUE in
+such cases).
+*/
+{
+  a_boolean            result = TRUE;
+  a_switch_clause_ptr  scp = sssep->statement->variant.switch_stmt.clause_list;
+
+  for (; scp != NULL && result; scp = scp->next) {
+    if (range_begin == NULL) {
+      /* The "default" case. */
+      check_assertion(range_end == NULL);
+      result = !check_switch_case_conflict(
+                   range_begin, range_end,
+                   scp->constant_list, scp->constant_list,
+                   diag_pos, already_diagnosed);
+    } else {
+      /* Check the list of constants in this clause to see if the new constant
+         appears on it. */
+      a_constant_ptr  cp = scp->constant_list;
+      if (cp == NULL) {
+        /* This case clause includes a default label.  If any other values were
+           explicitly specified, they were discarded, so find them on another
+           list. */
+        cp = sssep->discarded_case_label_constants;
+      }  /* if */
+      for (; cp != NULL; cp = cp->next) {
+        if (!is_error_constant(cp) &&
+            cp->kind != (a_constant_repr_kind)ck_template_param) {
+          check_assertion(cp->kind == (a_constant_repr_kind)ck_integer);
+          result = !check_switch_case_conflict(range_begin, range_end, cp, cp,
+                                               diag_pos, already_diagnosed);
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* unique_switch_case */
+
+
+static void add_constant_to_switch_clause(
+                                  a_struct_stmt_stack_entry_ptr  sssep,
+                                  a_switch_clause_ptr            scp,
+                                  a_boolean                      new_clause,
+                                  a_constant_ptr                 constant_ptr,
+                                  a_constant_ptr                 range_end,
+                                  a_boolean                      new_largest,
+                                  a_source_position              *label_pos)
+/*
+Add the new constant (or constants, in the case of a GNU case range) to the
+given switch clause.  For the default case, this just means setting the
+constant_list to NULL; for valued cases, it means inserting the value (or
+values) at the right spot on the list.  For GNU case ranges, range_end is
+non-NULL and represents the upper bound of the range: Constant between the
+two bounds will also be recorded for the clause .The current switch statement
+is described by sssep.  If constant_ptr represents a constant larger than any
+case value recorded so far for scp, new_largest is TRUE.  label_pos indicates
+the position of the label represented by the constant.
+*/
+{
+  if (constant_ptr == NULL) {
+    /* The current label is "default".  Any other constants that have already
+       been specified for the current clause, if any, are redundant and are
+       discarded from the IL; however, they are saved in order to report
+       errors. */
+    if (scp->constant_list != NULL) {
+      check_assertion(sssep->discarded_case_label_constants == NULL);
+      sssep->discarded_case_label_constants = scp->constant_list;
+      /* Set the constant pointer to NULL in the switch clause entry to
+         indicate that the clause includes a default label. */
+      scp->constant_list = NULL;
+    }  /* if */
+    set_stmt_source_position(scp->default_position, *label_pos);
+  } else if (!new_clause && scp->constant_list == NULL) {
+    /* The clause includes the default case (since constant_list is NULL), so
+       specifying any other case-labels following "default" is redundant.  Put
+       the constant onto the discarded constants list. */
+    constant_ptr->next = sssep->discarded_case_label_constants;
+    sssep->discarded_case_label_constants = constant_ptr;
+  } else {
+    /* Add a case value at the right spot on the list of constants. */
+    /* Add at the end if this constant is the biggest seen so far. */
+    a_boolean       add_at_end = new_largest;
+    a_constant_ptr  cp, prev_cp;
+    if (is_error_constant(constant_ptr)) {
+      /* Add an error constant at the end of the list. */
+      add_at_end = TRUE;
+    } else {
+      check_assertion(
+          constant_ptr->kind == (a_constant_repr_kind)ck_integer ||
+          constant_ptr->kind == (a_constant_repr_kind)ck_template_param);
+    }  /* if */
+    if (add_at_end) {
+      /* Add at the end of the existing list. */
+      prev_cp = sssep->last_const_in_last_switch_clause;
+      cp = NULL;
+    } else if (constant_ptr->kind == (a_constant_repr_kind)ck_template_param) {
+      /* A template dependent constant: accumulate them at the start of the
+         list.  (Their mutual ordering does not matter.) */
+      prev_cp = NULL;
+      cp = scp->constant_list;
+    } else {
+      /* Find the right spot for insertion. */
+      for (prev_cp = NULL, cp = scp->constant_list;
+           cp != NULL;
+           prev_cp = cp, cp = cp->next) {
+        /* Stop when an error constant is seen (they are accumulated at the
+           end of the list) or when the value exceeds that of the constant
+           being added.  (Skip any template dependent constants that might
+           have been accumulated at the start of the list.) */
+        if (cp->kind != (a_constant_repr_kind)ck_template_param &&
+            (is_error_constant(cp) ||
+             cmp_integer_constants(cp, constant_ptr) > 0)) break;
+      }  /* for */
+    }  /* if */
+    /* Insert after prev_cp (in front of the constant that stopped the
+       loop). */
+    if (prev_cp == NULL) {
+      scp->constant_list = constant_ptr;
+    } else {
+      prev_cp->next = constant_ptr;
+    }  /* if */
+    constant_ptr->next = cp;
+    if (cp == NULL) {
+      /* Remember the last constant on the list. */
+      sssep->last_const_in_last_switch_clause = constant_ptr;
+    }  /* if */
+  }  /* if */
+  if (range_end != NULL) {
+    /* A GNU case range. */
+    check_assertion(gnu_mode && constant_ptr != NULL);
+    if (constant_ptr->kind == (a_constant_repr_kind)ck_integer &&
+        range_end->kind == (a_constant_repr_kind)ck_integer) {
+      a_constant_ptr  *append_point = &constant_ptr->next;
+      a_constant      in_between;
+      /* The range is delimited by known integers: Fill in the values in
+         between the provided values. */
+      check_assertion(cmp_integer_constants(constant_ptr, range_end) <= 0);
+      copy_constant(constant_ptr, &in_between);
+      /* The filled-in values are given null source positions to indicate that
+         they are compiler-generated.  This is relied upon by the C++-
+         generating back end to re-create the case range syntax. */
+      in_between.source_corresp.decl_position = null_source_position;
+      for (;;) {
+        a_constant_ptr  new_entry;
+        incr_integer_value(&in_between.variant.integer_value);
+        if (cmp_integer_constants(&in_between, range_end) >= 0) break;
+        new_entry = alloc_unshared_constant(&in_between);
+        new_entry->next = *append_point;
+        *append_point = new_entry;
+        append_point = &new_entry->next;
+      }  /* if */
+      /* Add the end-of-range constant. */
+      range_end->next = *append_point;
+      *append_point = range_end;
+    }  /* if */
+  }  /* if */
+}  /* add_constant_to_switch_clause */
+
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* <-- range_end, keyword_position and colon_position not
@@ -5738,7 +6089,6 @@ redundant diagnostics in case ranges (GNU C mode only).
 */
 {
   a_switch_clause_ptr scp;
-  a_constant_ptr      cp, prev_cp;
   a_boolean           can_add_to_curr_clause, new_largest_case;
   a_boolean           label_directly_in_switch;
   a_statement_ptr     clause_stmts;
@@ -5767,7 +6117,12 @@ redundant diagnostics in case ranges (GNU C mode only).
           cmp_integer_constants(constant_ptr,
                                 sssep->switch_max_case_value) > 0) {
         /* New maximum value, no check for duplicate needed. */
-        sssep->switch_max_case_value = constant_ptr;
+        if (range_end == NULL ||
+            range_end->kind == (a_constant_repr_kind)ck_template_param) {
+          sssep->switch_max_case_value = constant_ptr;
+        } else {
+          sssep->switch_max_case_value = range_end;
+        }  /* if */
         new_largest_case = TRUE;
       }  /* if */
     }  /* if */
@@ -5776,49 +6131,8 @@ redundant diagnostics in case ranges (GNU C mode only).
        is known to be larger than all constants that have appeared
        previously. */
     if (!new_largest_case) {
-      a_boolean err = FALSE;
-      for (scp = sssep->statement->variant.switch_stmt.clause_list;
-           scp != NULL;
-           scp = scp->next) {
-        if (constant_ptr == NULL) {
-          if (scp->constant_list == NULL) {
-            /* "default" appears more than once. */
-            if (!*already_diagnosed) {
-              pos_error(ec_default_label_appears_more_than_once,
-                        label_position);
-              *already_diagnosed = TRUE;
-            }  /* if */
-            err = TRUE;
-            break;
-          }  /* if */
-        } else {
-          /* Check the list of constants in this clause to see if the new
-             constant appears on it. */
-          cp = scp->constant_list;
-          if (cp == NULL) {
-            /* This case clause includes a default label.  If any other
-               values were explicitly specified, they were discarded, so find
-               them on another list. */
-            cp = sssep->discarded_case_label_constants;
-          }  /* if */
-          for (; cp != NULL; cp = cp->next) {
-            if (!is_error_constant(cp) &&
-                cp->kind != (a_constant_repr_kind)ck_template_param) {
-              check_assertion(cp->kind == (a_constant_repr_kind)ck_integer);
-              if (eq_constants(cp, constant_ptr)) {
-                if (!*already_diagnosed) {
-                  pos_error(ec_case_label_appears_more_than_once,
-                            label_position);
-                  *already_diagnosed = TRUE;
-                }  /* if */
-                err = TRUE;
-                break;
-              }  /* if */
-            }  /* if */
-          }  /* for */
-        }  /* if */
-      }  /* for */
-      if (err) {
+      if (!unique_switch_case(constant_ptr, range_end, sssep,
+                              already_diagnosed, label_position)) {
         /* An error case; use an error constant instead. */
         constant_ptr = alloc_constant((a_constant_repr_kind)ck_error);
         set_error_constant(constant_ptr);
@@ -5920,93 +6234,27 @@ redundant diagnostics in case ranges (GNU C mode only).
        the end of the clause (e.g., a "break"), but last_switch_clause does
        not. */
     sssep->last_switch_clause = scp;
+#if RECORD_SWITCH_CASE_ENTRIES
+    sssep->last_switch_case_entry = NULL;
+    sssep->last_switch_case_by_value = NULL;
+#else /* !RECORD_SWITCH_CASE_ENTRIES */
     sssep->last_const_in_last_switch_clause = NULL;
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry for the switch clause. */
     add_to_source_sequence_list((char *)scp,
                                 (an_il_entry_kind)iek_switch_clause);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
-  /* Add the new value to the (new?) current switch clause.  For the
-     default case, this just means setting the constant_list to NULL;
-     for valued cases, it means inserting the value at the right spot
-     on the list. */
-  if (constant_ptr == NULL) {
-    /* The current label is "default".  Any other constants that have already
-       been specified for the current clause, if any, are redundant and are
-       discarded from the IL; however, they are saved in order to report
-       errors. */
-    if (scp->constant_list != NULL) {
-      check_assertion(sssep->discarded_case_label_constants == NULL);
-      sssep->discarded_case_label_constants = scp->constant_list;
-      /* Set the constant pointer to NULL in the switch clause entry to
-         indicate that the clause includes a default label. */
-      scp->constant_list = NULL;
-    }  /* if */
-    set_stmt_source_position(scp->default_position, *label_position);
-  } else if (can_add_to_curr_clause && scp->constant_list == NULL) {
-    /* The clause includes the default case (since constant_list is
-       NULL), so specifying any other case-labels following "default" is
-       redundant.  Put the constant onto the discarded constants list. */
-    constant_ptr->next = sssep->discarded_case_label_constants;
-    sssep->discarded_case_label_constants = constant_ptr;
-  } else {
-    /* Add a case value at the right spot on the list of constants. */
-    /* Add at the end if this constant is the biggest seen so far. */
-    a_boolean add_at_end = new_largest_case;
-    if (is_error_constant(constant_ptr)) {
-      /* Add an error constant at the end of the list. */
-      add_at_end = TRUE;
-    } else {
-      check_assertion(
-          constant_ptr->kind == (a_constant_repr_kind)ck_integer ||
-          constant_ptr->kind == (a_constant_repr_kind)ck_template_param);
-    }  /* if */
-    if (add_at_end) {
-      /* Add at the end of the existing list. */
-      prev_cp = sssep->last_const_in_last_switch_clause;
-      cp = NULL;
-    } else if (constant_ptr->kind == (a_constant_repr_kind)ck_template_param) {
-      /* A template dependent constant: accumulate them at the start of the
-         list.  (Their mutual ordering does not matter.) */
-      prev_cp = NULL;
-      cp = scp->constant_list;
-    } else {
-      /* Find the right spot for insertion. */
-      for (prev_cp = NULL, cp = scp->constant_list;
-           cp != NULL;
-           prev_cp = cp, cp = cp->next) {
-        /* Stop when an error constant is seen (they are accumulated at the
-           end of the list) or when the value exceeds that of the constant
-           being added.  (Skip any template dependent constants that might
-           have been accumulated at the start of the list.) */
-        if (cp->kind != (a_constant_repr_kind)ck_template_param &&
-            (is_error_constant(cp) ||
-             cmp_integer_constants(cp, constant_ptr) > 0)) break;
-      }  /* for */
-    }  /* if */
-    /* Insert after prev_cp (in front of the constant that stopped the
-       loop). */
-    if (prev_cp == NULL) {
-      scp->constant_list = constant_ptr;
-    } else {
-      prev_cp->next = constant_ptr;
-    }  /* if */
-    constant_ptr->next = cp;
-    if (cp == NULL) {
-      /* Remember the last constant on the list. */
-      sssep->last_const_in_last_switch_clause = constant_ptr;
-    }  /* if */
-  }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (keyword_position != NULL) {
-    /* Record extra info about the position of the case and default labels.
-       Unlike the constants themselves, this information is recorded in the
-       order of source positions. */
-    record_switch_case_entry(scp, constant_ptr, range_end,
-                             keyword_position, colon_position);
-  }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_SWITCH_CASE_ENTRIES
+  record_switch_case_entry(
+                        sssep, scp, constant_ptr, range_end, new_largest_case,
+                        label_position, keyword_position, colon_position);
+#else /* !RECORD_SWITCH_CASE_ENTRIES */
+  add_constant_to_switch_clause(sssep, scp, !can_add_to_curr_clause,
+                                constant_ptr, range_end, new_largest_case,
+                                label_position);
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
   if (can_add_to_curr_clause) {
     /* For the case where the value could be added to the current clause, we
        have nothing further to do. */
@@ -6198,9 +6446,11 @@ static void case_label(void)
 /*
 Scan a case label definition.  The syntax is:
 
-3.6.1  labeled_statement
+3.6.1  labeled_statement:
 		case constant-expression : statement
 
+GNU also allows the "case range" form:
+	case constant-lower-bound ... constant-upper-bound : statement
 */
 {
   a_struct_stmt_stack_entry_ptr sssep;
@@ -6243,6 +6493,8 @@ Scan a case label definition.  The syntax is:
     range_end = scan_case_label_constant(sssep);
     /* Check that *range_end > *constant_ptr. */
     if (range_end != NULL &&
+        constant_ptr->kind == (a_constant_repr_kind)ck_integer &&
+        range_end->kind == (a_constant_repr_kind)ck_integer &&
         cmp_integer_constants(constant_ptr, range_end) > 0) {
       error(ec_invalid_case_range);
       range_end = NULL;
@@ -6257,36 +6509,12 @@ Scan a case label definition.  The syntax is:
                         &constant_ptr->source_corresp.decl_position,
                         &already_diagnosed);
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-      add_switch_clause(sssep, constant_ptr, (a_constant_ptr)NULL,
+      add_switch_clause(sssep, constant_ptr, range_end,
                         (a_source_position_ptr)NULL,
                         (a_source_position_ptr)NULL,
                         &constant_ptr->source_corresp.decl_position,
                         &already_diagnosed);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      if (range_end != NULL &&
-          cmp_integer_constants(constant_ptr, range_end) < 0) {
-        /* Add clauses for each integer constant value between *constant_ptr
-           and *range_end. */
-        a_constant  in_between;
-        copy_constant(constant_ptr, &in_between);
-        in_between.source_corresp.decl_position = null_source_position;
-        incr_integer_value(&in_between.variant.integer_value);
-        while (cmp_integer_constants(&in_between, range_end) < 0) {
-          add_switch_clause(sssep, alloc_unshared_constant(&in_between),
-                            (a_constant_ptr)NULL,
-                            (a_source_position_ptr)NULL,
-                            (a_source_position_ptr)NULL,
-                            &ellipsis_position,
-                            &already_diagnosed);
-          incr_integer_value(&in_between.variant.integer_value);
-        }  /* while */
-        range_end->source_corresp.decl_position = null_source_position;
-        add_switch_clause(sssep, range_end, (a_constant_ptr)NULL,
-                          (a_source_position_ptr)NULL,
-                          (a_source_position_ptr)NULL,
-                          &range_end->source_corresp.decl_position,
-                          &already_diagnosed);
-      }  /* if */
     } else {
       /* Make code reachable if the switch is reachable for the error case. */
       start_stmt_clause(sssep);

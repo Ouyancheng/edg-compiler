@@ -3342,6 +3342,27 @@ Do C99 lowering on a constant list.
   }  /* if */
 }  /* lower_c99_constant_list */
 
+#if RECORD_SWITCH_CASE_ENTRIES
+
+static void lower_c99_switch_case_constants(a_switch_case_entry_ptr  cases)
+/*
+Do C99 lowering on the constants pointed to by the given list of switch case
+entries.
+*/
+{
+  for (; cases != NULL; cases = cases->next) {
+    if (cases->constant != NULL) {
+      lower_c99_constant(cases->constant);
+#if GNU_EXTENSIONS_ALLOWED
+      if (cases->range_end != NULL) {
+        lower_c99_constant(cases->range_end);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    }  /* if */
+  }  /* for */
+}  /* lower_c99_switch_case_constants */
+
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
 
 static void lower_c99_statement_list(a_statement_ptr statement_list)
 /*
@@ -3446,7 +3467,11 @@ Do C99 lowering on the indicated statement.
           for (scp = statement->variant.switch_stmt.clause_list;
                scp != NULL;
                scp = scp->next) {
+#if RECORD_SWITCH_CASE_ENTRIES
+            lower_c99_switch_case_constants(scp->cases);
+#else /* !RECORD_SWITCH_CASE_ENTRIES */
             lower_c99_constant_list(scp->constant_list);
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
             lower_c99_statement_list(scp->statements);
           }  /* for */
         }

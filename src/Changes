@@ -1,5 +1,59 @@
 Version 3.9
 
+10/3/06  Switch case labels (IL CHANGE)
+
+Previously, switch case labels were primarily represented using a simple list
+of constants pointed to by the constant_list field of a_switch_clause entries.
+A clause containing the "default" label, resulted in an empty list.  When
+EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, additional information was recorded in
+switch case entries (type a_switch_case_entry).
+Now, switch case entries are recorded when the new configuration macro
+RECORD_SWITCH_CASE_ENTRIES is set to TRUE (which is the default).  In such
+configurations, a_switch_clause entries no longer define a constant_list
+field, but the switch case entries maintain both the source code order (via
+their "next" pointer) and the "by value order" (via their "next_by_value"
+pointer) of case labels.  This new representation is particularly useful
+when dealing with large GNU case ranges, which previously required the
+allocation of many a_constant entries (resulting in performance problems,
+and occasionally memory exhaustion).  For example:
+
+  void f1(int i) {
+    switch (i) { case 1 ... 10000000: break; }
+     // Previously triggered the allocation of ten million a_constant entries.
+     // Now, when RECORD_SWITCH_CASE_ENTRIES is TRUE, a more efficient
+  }  // representation is used
+
+The constant_list representation can be re-enabled by setting the macro
+RECORD_SWITCH_CASE_ENTRIES to FALSE, but that precludes recording addition
+information in switch case entries (even when EXTRA_SOURCE_POSITIONS_IN_IL
+is TRUE).
+
+Previously, in GNU C++ modes case ranges with a template-dependent bound
+could result in an abort due to memory exhaustion (in a long-running loop)
+during prototype instantiation.  The conditions for this to occur were
+quasi-random.  For example:
+
+  template<int I, int J> void f2(int i) {
+    switch (i) {
+      case 1 ... I: break;
+      case J ... 100: break;
+    }  // In some configurations, this could run out of memory during.
+  }    // prototype instantiation.
+
+That problem is now fixed.
+
+Finally, the diagnostic for case label conflicts now specifies the location
+of the conflicting earlier case label (except in many cases of conflicting
+GNU case ranges when RECORD_SWITCH_CASE_ENTRIES is FALSE).  For example:
+
+  void f3(int i) {
+    switch (i) {
+      case 5:  // Line 3.
+      case 5:  // Error: Diagnostic will mention "line 3".
+        break;
+    }
+  }
+
 9/26/06  Abort on command-line error when using MAKE_FRONT_END_CALLABLE
 
 Version 3.8 introduced an abort (in free_memory_region) when the front end

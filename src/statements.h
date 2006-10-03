@@ -314,12 +314,40 @@ typedef struct a_struct_stmt_stack_entry {
 			   it contains case labels, this points to the case
 			   clause for the case label most recently encountered;
 			   otherwise, it is NULL. */
+  a_switch_clause_ptr
+		last_switch_clause;
+			/* If non-NULL, points to the last switch clause for
+			   the current switch statement.  This is usually
+			   the same as curr_switch_clause, but when the
+			   latter is cleared at a "break" last_switch_clause
+			   remains set. */
+  a_constant_ptr
+		switch_max_case_value;
+			/* If non-NULL, points to the constant with the
+			   maximum value so far in a switch statement case
+			   label. */
+#if RECORD_SWITCH_CASE_ENTRIES
+  a_switch_case_entry_ptr
+		last_switch_case_entry;
+			/* Points to the last switch case entry (if any)
+			   pointed to by curr_switch_clause. */
+  a_switch_case_entry_ptr
+		last_switch_case_by_value;
+			/* Points to the last entry on the "cases_by_value"
+			   list pointed to by curr_switch_clause. */
+#else /* !RECORD_SWITCH_CASE_ENTRIES */
+  a_constant_ptr
+		last_const_in_last_switch_clause;
+			/* Points to the last (i.e., maximum) constant in the
+			   switch clause indicated by last_switch_clause.
+			   NULL if that switch clause is empty so far. */
   a_constant_ptr
 		discarded_case_label_constants;
 			/* When kind == stmk_switch, this points to a list
 			   constant entries that were discarded because they
 			   belonged to the same switch-clause as a default
 			   label; NULL otherwise. */
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
   a_statement_ptr
 		extra_block;
 			/* If non-NULL, points to an stmk_block statement
@@ -390,23 +418,6 @@ typedef struct a_struct_stmt_stack_entry {
 			/* Number of Microsoft try-finally or try-except
 			   statements currently on the stack. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_switch_clause_ptr
-		last_switch_clause;
-			/* If non-NULL, points to the last switch clause for
-			   the current switch statement.  This is usually
-			   the same as curr_switch_clause, but when the
-			   latter is cleared at a "break" last_switch_clause
-			   remains set. */
-  a_constant_ptr
-		last_const_in_last_switch_clause;
-			/* Points to the last (i.e., maximum) constant in the
-			   switch clause indicated by last_switch_clause.
-			   NULL if that switch clause is empty so far. */
-  a_constant_ptr
-		switch_max_case_value;
-			/* If non-NULL, points to the constant with the
-			   maximum value so far in a switch statement case
-			   label. */
 } a_struct_stmt_stack_entry;
 
 EXTERN a_struct_stmt_stack_entry_ptr

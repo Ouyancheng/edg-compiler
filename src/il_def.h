@@ -530,9 +530,11 @@ typedef enum /*an_il_entry_kind*/ {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   iek_decl_position_supplement,
 			/* a_decl_position_supplement */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_SWITCH_CASE_ENTRIES
   iek_switch_case_entry,
 			/* a_switch_case_entry */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
   iek_template_decl,	/* a_template_decl */
   iek_template_parameter,
 			/* a_template_parameter */
@@ -689,8 +691,10 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 /* iek_decl_position_supplement */	"decl-position-supplement",
-/* iek_switch_case_entry */		"switch-case-entry",
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_SWITCH_CASE_ENTRIES
+/* iek_switch_case_entry */		"switch-case-entry",
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
 /* iek_template_decl */			"template-decl",
 /* iek_template_parameter */		"template-parameter",
 #if RECORD_FORM_OF_NAME_REFERENCE
@@ -10330,15 +10334,25 @@ enum a_statement_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte  a_statement_kind;
 
-#ifdef CIL
-#if EXTRA_SOURCE_POSITIONS_IN_IL
+#if RECORD_SWITCH_CASE_ENTRIES
+
 typedef struct a_switch_case_entry *a_switch_case_entry_ptr;
 typedef struct a_switch_case_entry {
   /* Description of the positions of the "case" and "default" keyword(s) and
      corresponding colon tokens in a switch statement. */
   a_switch_case_entry_ptr
 		next;
-			/* Next case in this clause (NULL if none). */
+			/* Next case in this clause (NULL if none) -- this
+			   reflects the source code order. */
+  a_switch_case_entry_ptr
+		next_by_value;
+			/* Next cases on the "cases_by_value" list: The default
+			   case (if any) comes first, followed by any template-
+			   dependent cases (in unspecified order; a range is
+			   dependent if its lower bound is dependent), followed
+			   by "known-value" cases in numerically increasing
+			   order (the lower bound of cases ranges is used for
+			   ordering purposes). */
   a_constant_ptr
 		constant;
 			/* The case label constant with which the positions
@@ -10349,14 +10363,17 @@ typedef struct a_switch_case_entry {
 			/* The constant representing the end of the range if
 			   this was a GNU C case range (NULL otherwise). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		keyword_position;
 			/* The position of the "case" or "default" keyword. */
   a_source_position
 		colon_position;
 			/* The position of the colon. */
-} a_switch_case_entry;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+} a_switch_case_entry;
+
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
 
 typedef struct a_switch_clause *a_switch_clause_ptr;
 typedef struct a_switch_clause {
@@ -10367,22 +10384,31 @@ typedef struct a_switch_clause {
 		next;
 			/* Pointer to the next switch clause, or NULL if
 			   this is the last. */
+#if RECORD_SWITCH_CASE_ENTRIES
+  a_switch_case_entry_ptr
+		cases;
+			/* Descriptions of the case labels associated with
+			   this clause (including possibly the default
+			   case), in declaration order. */
+  a_switch_case_entry_ptr
+		cases_by_value;
+			/* Pointer to the first switch case entry on the list
+			   created by the "next_larger_value" pointers.  (If
+			   there is a default case, that entry is the first
+			   on that list.) */
+#else /* !RECORD_SWITCH_CASE_ENTRIES */
   a_constant_ptr
 		constant_list;
 			/* Values of the switch expression for which this
-			   clause applies.  A list of integer constants,
-			   in ascending order.	NULL if this is the
-			   default clause.  The source positions in the
-			   constants indicate the source positions of the
-			   corresponding case labels. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_switch_case_entry_ptr
-		case_positions;
-			/* Extra information recording the position of the
-			   "case" keywords and the colons for each constant
-			   in constant_list (but in source position order).
-			   The "default" case is also recorded. */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+			   clause applies.  A list of integer constants, in
+			   ascending order.  NULL if this is the default
+			   clause.  The source positions in the constants
+			   indicate the source positions of the corresponding
+			   case labels.  GNU case ranges are represented by a
+			   list representing all the constants in the range;
+			   constants between the range bounds have a null
+			   source position. */
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
   a_statement_ptr
 		statements;
 			/* The dependent statement sequence.  If
@@ -10392,6 +10418,13 @@ typedef struct a_switch_clause {
 			   action other than the "implied break" is
 			   represented by an explicit goto as the last
 			   statement. */
+#if RECORD_SWITCH_CASE_ENTRIES
+  a_byte_boolean
+		default_case;
+			/* TRUE if this clause includes the default case (in
+			   that case, the first switch case entries will have
+			   a NULL "constant" pointer). */
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
   a_byte_boolean
 		implied_break_at_end;
 			/* TRUE if the clause ends with an "implied break"
@@ -10414,11 +10447,11 @@ typedef struct a_switch_clause {
   a_stmt_source_position
 		default_position;
 			/* If the clause contains a default label (i.e.,
-			   constant_list == NULL), this gives its source
-			   position. */
+			   constant_list == NULL or default_case is TRUE),
+			   this gives its source position. */
 } a_switch_clause;
 
-#endif /* ifdef CIL */
+
 /* Extra information about a statement of kind stmk_block (block statement). */
 typedef struct a_block *a_block_ptr;
 typedef struct a_block {
@@ -12915,8 +12948,10 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   sizeof(a_decl_position_supplement),
-  sizeof(a_switch_case_entry),
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_SWITCH_CASE_ENTRIES
+  sizeof(a_switch_case_entry),
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
   sizeof(a_template_decl),
   sizeof(a_template_parameter),
 #if RECORD_FORM_OF_NAME_REFERENCE

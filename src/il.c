@@ -2311,8 +2311,12 @@ the dump (this one counts as the first).
                  scp != NULL;
                  scp = scp->next) {
               for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
+#if RECORD_SWITCH_CASE_ENTRIES
+              fputs(scp->default_case ? "default\n" : "case\n", f_debug);
+#else /* !RECORD_SWITCH_CASE_ENTRIES */
               fputs(scp->constant_list == NULL ? "default\n" : "case\n",
                     f_debug);
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
               db_statement_list(scp->statements, indent+4, "", how_deep-1);
               if (scp->implied_break_at_end) {
                 a_seq_number  seq =
@@ -15151,7 +15155,11 @@ about it).
       }  /* if */
     } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_switch_clause) {
       a_constant_ptr  cp;
+#if RECORD_SWITCH_CASE_ENTRIES
+      cp = ((a_switch_clause_ptr)olp->entity.ptr)->cases->constant;
+#else /* !RECORD_SWITCH_CASE_ENTRIES */
       cp = ((a_switch_clause_ptr)olp->entity.ptr)->constant_list;
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
       if (cp != NULL) {
         fputs("case ", f_debug);
         db_constant(cp);

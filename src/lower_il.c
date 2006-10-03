@@ -12735,6 +12735,27 @@ the last statement.
   }  /* if */
 }  /* reset_cleanup_state_at_transfer_of_control */
 
+#if RECORD_SWITCH_CASE_ENTRIES
+
+static void lower_switch_case_constants(a_switch_case_entry_ptr  cases)
+/*
+Do lowering on the constants pointed to by the given list of switch case
+entries.
+*/
+{
+  for (; cases != NULL; cases = cases->next) {
+    if (cases->constant != NULL) {
+      lower_constant(cases->constant);
+#if GNU_EXTENSIONS_ALLOWED
+      if (cases->range_end != NULL) {
+        lower_constant(cases->range_end);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    }  /* if */
+  }  /* for */
+}  /* lower_switch_case_constants */
+
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
 
 static void lower_switch_clause_list(
                                     a_switch_clause_ptr    clause_list,
@@ -12767,7 +12788,11 @@ between clauses of the switch.  They are processed at the proper points.
   for (clause = clause_list; clause != NULL; clause = clause->next) {
     /* Lower the case label constants. */
     /* They have their own source positions. */
+#if RECORD_SWITCH_CASE_ENTRIES
+    lower_switch_case_constants(clause->cases);
+#else /* !RECORD_SWITCH_CASE_ENTRIES */
     lower_constant_list(clause->constant_list);
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
     /* If the switch clause contains a statement, get a source position from
        that and use it as the position for any code created. */
     if (clause->statements != NULL) {

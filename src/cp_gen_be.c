@@ -9360,12 +9360,10 @@ Generate code for the indicated "for" statement.
 
 static void gen_case_label(a_switch_clause_ptr scp)
 /*
-Generate the case label(s) or default label for the indicated switch clause.
-The current function source sequence entry is for that switch clause.
+Generate the case label(s) and/or default label for the indicated switch
+clause.  The current function source sequence entry is for that switch clause.
 */
 {
-  a_constant_ptr con;
-
   /* Check for the presence of the source sequence entry for the switch
      clause. */
   check_assertion_str(curr_source_sequence_entry != NULL &&
@@ -9377,34 +9375,60 @@ The current function source sequence entry is for that switch clause.
                       "gen_case_label: wrong switch clause");
   /* Advance past the source sequence entry for the switch clause. */
   adv_curr_source_sequence_entry();
-  con = scp->constant_list;
-  if (con == NULL) {
+  /* Generate the appropriate source code.  The underlying IL representation
+     depends on RECORD_SWITCH_CASE_ENTRIES. */
+#if RECORD_SWITCH_CASE_ENTRIES
+  { a_switch_case_entry_ptr  sce = scp->cases;
+    for (; sce != NULL; sce = sce->next) {
+      if (sce->constant == NULL) {
+        /* The default case. */
+        set_output_position_for_stmt(&scp->default_position);
+        write_tok_str("default: ");
+      } else {
+        /* Regular (non-default) case and/or GNU case range. */
+        set_output_position(&sce->constant->source_corresp.decl_position);
+        write_tok_str("case ");
+        gen_constant(sce->constant, /*need_parens=*/FALSE);
+        if (sce->range_end != NULL) {
+          /* A GNU case range. */
+          write_tok_str(" ... ");
+          gen_constant(sce->range_end, /*need_parens=*/FALSE);
+        }  /* if */
+        write_tok_str(": ");
+      }  /* if */
+    }  /* for */
+  }
+#else /* !RECORD_SWITCH_CASE_ENTRIES */
+  if (scp->constant_list == NULL) {
     /* An empty list identifies the default clause. */
     set_output_position_for_stmt(&scp->default_position);
     write_tok_str("default: ");
   } else {
     /* Put out a list of case labels. */
+    a_constant_ptr  con = scp->constant_list;
     while (con != NULL) {
       set_output_position(&con->source_corresp.decl_position);
       write_tok_str("case ");
       gen_constant(con, /*need_parens=*/FALSE);
       con = con->next;
       if (con != NULL && con->source_corresp.decl_position.seq == 0) {
-        a_constant_ptr  last = con;
-        /* A GNU C case range.  Skip to the last constant with a null
-           position. */
+        /* A GNU case range.  Skip to the last constant with a null position.
+           In this configuration, a GNU case range of the form "case a ...  b:"
+           is represented by a list of individual cases, with the values from
+           a+1 to b-1 (if any) having a null source position. */
         write_tok_str(" ... ");
-        for (; last->next != NULL; last = last->next) {
-          if (last->next->source_corresp.decl_position.seq != 0) {
+        for (; con != NULL; con = con->next) {
+          if (con->source_corresp.decl_position.seq != 0) {
             break;
           }  /* if */
         }  /* for */
-        gen_constant(last, /*need_parens=*/FALSE);
-        con = last->next;
+        gen_constant(con, /*need_parens=*/FALSE);
+        con = con->next;
       }  /* if */
       write_tok_str(": ");
     }  /* while */
   }  /* if */
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
 }  /* gen_case_label */
 
 

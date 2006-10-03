@@ -3836,11 +3836,14 @@ Display the indicated switch clause.
 */
 {
   disp_ptr("next", (char *)ptr->next, iek_switch_clause);
-  disp_ptr("constant_list", (char *)ptr->constant_list, iek_constant);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  disp_ptr("case_positions", (char*)ptr->case_positions,
+#if RECORD_SWITCH_CASE_ENTRIES
+  disp_ptr("cases", (char*)ptr->cases, iek_switch_case_entry);
+  disp_ptr("cases_by_value", (char*)ptr->cases_by_value,
            iek_switch_case_entry);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  disp_boolean("default_case", (a_boolean)ptr->default_case);
+#else /* !RECORD_SWITCH_CASE_ENTRIES */
+  disp_ptr("constant_list", (char *)ptr->constant_list, iek_constant);
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
   disp_ptr("statements", (char *)ptr->statements, iek_statement);
   disp_boolean("implied_break_at_end", (a_boolean)ptr->implied_break_at_end);
   disp_stmt_source_position("break_position", ptr->break_position);
@@ -3850,20 +3853,23 @@ Display the indicated switch clause.
   disp_stmt_source_position("default_position", ptr->default_position);
 }  /* disp_switch_clause */
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
+#if RECORD_SWITCH_CASE_ENTRIES
 
 static void disp_switch_case_entry(a_switch_case_entry_ptr ptr)
 {
   disp_ptr("next", (char *)ptr->next, iek_switch_case_entry);
+  disp_ptr("next_by_value", (char *)ptr->next, iek_switch_case_entry);
   disp_ptr("constant", (char *)ptr->constant, iek_constant);
 #if GNU_EXTENSIONS_ALLOWED
   disp_ptr("range_end", (char *)ptr->range_end, iek_constant);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("keyword_position", &ptr->keyword_position);
   disp_source_position("colon_position", &ptr->colon_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_switch_case_entry */
 
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
 
 static void disp_exception_specification_type(
                                   an_exception_specification_type_ptr ptr)

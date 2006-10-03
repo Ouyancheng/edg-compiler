@@ -2997,6 +2997,31 @@ list.
 }  /* traverse_local_expr_node_ref_list */
 
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+#if RECORD_SWITCH_CASE_ENTRIES
+
+static void traverse_switch_case_entry_constants(
+                                    a_switch_case_entry_ptr             cases,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Walk the constants in the given list of switch case entries.  Call user-
+provided routines as specified in the control block.
+*/
+{
+  for (; cases != NULL; cases = cases->next) {
+    if (cases->constant != NULL) {
+      traverse_constant(cases->constant, tblock);
+      if (tblock->terminate) break;
+#if GNU_EXTENSIONS_ALLOWED
+      if (cases->range_end != NULL) {
+        traverse_constant(cases->range_end, tblock);
+        if (tblock->terminate) break;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    }  /* if */
+  }  /* for */
+}  /* traverse_switch_case_entry_constants */
+
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
 
 void traverse_statement(a_statement_ptr                     statement,
                         an_expr_or_stmt_traversal_block_ptr tblock)
@@ -3117,7 +3142,11 @@ as specified in the control block.
              scp != NULL;
              scp = scp->next) {
           if (tblock->process_non_dynamic_constants) {
+#if RECORD_SWITCH_CASE_ENTRIES
+            traverse_switch_case_entry_constants(scp->cases, tblock);
+#else /* !RECORD_SWITCH_CASE_ENTRIES */
             traverse_constant_list(scp->constant_list, tblock);
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
             if (tblock->terminate) goto end_of_routine;
           }  /* if */
           traverse_statement_list(scp->statements, tblock);
