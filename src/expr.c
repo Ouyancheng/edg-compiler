@@ -18722,7 +18722,7 @@ required_type will be void if the expression should have void type
       dip_expr = (*dip)->variant.expression;
     } else if ((*dip)->kind == (a_dynamic_init_kind)dik_constructor) {
       dip_expr = (*dip)->variant.constructor.args;
-    } else if ((*dip)->kind == dik_constant) {
+    } else if ((*dip)->kind == (a_dynamic_init_kind)dik_constant) {
       dip_expr = (*dip)->variant.constant->expr;
     } else {
       dip_expr = NULL;

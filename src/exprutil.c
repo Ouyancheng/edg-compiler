@@ -11159,7 +11159,7 @@ position information from the operand itself.
     if (is_operation_node(node)) {
       for (opnd = node->variant.operation.operands;
            copy_modifiers && opnd != NULL; opnd = opnd->next) {
-        if (opnd = operand_node) {
+        if (opnd == operand_node) {
           copy_modifiers = FALSE;
         }  /* if */
       }  /* for */
