@@ -3956,21 +3956,6 @@ Report the indicated diagnostic at the indicated position.
 }  /* pos_diagnostic */
 
 
-void pos2_diagnostic(an_error_severity  error_severity,
-                     an_error_code      error_code,
-                     a_source_position  *error_pos,
-                     a_source_position  *other_pos)
-/*
-Report the indicated diagnostic at the indicated position.  A second position
-is also provided.
-*/
-{
-  init_error_params();
-  error_msg_positions[1] = other_pos;
-  diag_message(error_code, error_pos, error_severity, dck_standalone);
-}  /* pos2_diagnostic */
-
-
 void diagnostic(an_error_severity    error_severity,
                 an_error_code        error_code)
 /*
@@ -4040,6 +4025,21 @@ indicated position.
   error_msg_syms[1] = symbol;
   diag_message(error_code, error_pos, error_severity, dck_standalone);
 }  /* pos_sy_diagnostic */
+
+
+void pos2_diagnostic(an_error_severity  error_severity,
+                     an_error_code      error_code,
+                     a_source_position  *error_pos,
+                     a_source_position  *other_pos)
+/*
+Report the indicated diagnostic at the indicated position.  A second position
+is also provided.
+*/
+{
+  init_error_params();
+  error_msg_positions[1] = other_pos;
+  diag_message(error_code, error_pos, error_severity, dck_standalone);
+}  /* pos2_diagnostic */
 
 
 void pos2_sy_diagnostic(an_error_severity  error_severity,

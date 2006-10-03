@@ -271,10 +271,6 @@ extern void pos_st_diagnostic(an_error_severity error_severity,
 extern void pos_diagnostic(an_error_severity  error_severity,
                            an_error_code      error_code,
                            a_source_position  *error_pos);
-extern void pos2_diagnostic(an_error_severity  error_severity,
-                            an_error_code      error_code,
-                            a_source_position  *error_pos,
-                            a_source_position  *other_pos);
 extern void diagnostic(an_error_severity  error_severity,
                        an_error_code      error_code);
 extern void pos_ty_diagnostic(an_error_severity  error_severity,
@@ -294,6 +290,10 @@ extern void pos_sy_diagnostic(an_error_severity  error_severity,
                               an_error_code      error_code,
                               a_source_position  *error_pos,
                               struct a_symbol    *symbol);
+extern void pos2_diagnostic(an_error_severity  error_severity,
+                            an_error_code      error_code,
+                            a_source_position  *error_pos,
+                            a_source_position  *other_pos);
 extern void pos2_sy_diagnostic(an_error_severity  error_severity,
                                an_error_code      error_code,
                                a_source_position  *error_pos,
