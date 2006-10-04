@@ -1,5 +1,15 @@
 Version 3.9
 
+10/4/06  GNU C++ compatibility: Explicit specialization a storage class
+
+In GNU C++ mode, an explicit function template specialization can now specify
+an "extern" or "static" storage class specifier.  Such a specifier, overrides
+any linkage implied by the template being specialized.  For example:
+
+  template<typename T> static void f() {}
+  template<> extern void f<int>() {}  // Accepted in GNU C++ mode, and f<int>
+                                      // has external linkage.
+
 10/3/06  Switch case labels (IL CHANGE)
 
 Previously, switch case labels were primarily represented using a simple list

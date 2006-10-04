@@ -15875,7 +15875,7 @@ that follows.
   a_storage_class               storage_class;
   a_type_ptr                    type;
   a_symbol_locator              locator;
-  a_decl_flag_set               do_flags, dso_flags, di_flags;
+  a_decl_flag_set               do_flags, dso_flags, di_flags, dsi_flags;
   a_decl_parse_state            state;
   a_decl_modifiers_block        decl_modifiers;
   a_source_sequence_entry_ptr   declarator_ssep = NULL;
@@ -15914,23 +15914,29 @@ that follows.
     /* Recognize GNU attributes while scanning the decl-specifiers. */
     p_attributes = &attributes;
   }  /* if */
-  (void)decl_specifiers((DSI_IS_SPECIALIZATION |
-                         DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
-                         DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER |
-                         DSI_TYPE_SPECIFIER_ALLOWED |
-                         DSI_INLINE_ALLOWED |
-                         (decl_state->is_member_decl
-                                  ? DSI_IS_MEMBER_DECLARATION |
-				    DSI_STORAGE_CLASS_SPECIFIER_ALLOWED
-                                  : DSI_NO_INPUT_FLAGS)),
-                        &dso_flags, &storage_class, &type, &state,
+  dsi_flags = DSI_IS_SPECIALIZATION | DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
+              DSI_INLINE_ALLOWED    | DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER |
+              DSI_TYPE_SPECIFIER_ALLOWED;
+  if (decl_state->is_member_decl) {
+    dsi_flags |= DSI_IS_MEMBER_DECLARATION;
+    if (microsoft_mode) {
+      /* Microsoft C++ allows storage-class specifiers on in-class
+         specializations. */
+      dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+    }  /* if */
+  } else if (gpp_mode) {
+    /* GNU C++ allows storage class specifiers on nonmember specializations. */
+    dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+  }  /* if */
+  (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type, &state,
                         p_attributes, (an_ms_attribute_ptr*)NULL, 
                         &decl_modifiers, (a_named_register_id*)NULL,
                         &decl_pos_block, (a_upc_block_size*)NULL);
-  /* A storage class is not permitted on an explicit specialization,
-     except for Microsoft in-class specializations. */
+  /* A storage class is not permitted on an explicit specialization, except
+     in GNU C++ mode and for Microsoft in-class specializations. */
   check_assertion(storage_class == (a_storage_class)sc_unspecified ||
-		  decl_state->is_member_decl);
+		  (microsoft_mode && decl_state->is_member_decl) ||
+                  (gpp_mode && !decl_state->is_member_decl));
   /* Issue a diagnostic if there are any unapplied pragmas at this point. */
   cannot_bind_to_curr_construct();
   if (is_error_type(type) && !is_declarator_start()) {
@@ -16415,8 +16421,15 @@ that follows.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         rp->is_specialized = TRUE;
         set_inline_flag(rp, (a_boolean)func_info.is_inline);
+        if (!gpp_mode || storage_class == (a_storage_class)sc_unspecified) {
+          /* Usually, an explicitly specified storage class is disallowed.
+             In Microsoft mode, it is allowed on in-class declarations but it
+             doesn't affect linkage.  In GNU mode, it overrides the linkage
+             implied by the template. */
+          storage_class = rp->storage_class;
+        }  /* if */
         if ((func_info.is_inline && !extern_inline_allowed) ||
-            rp->storage_class == (a_storage_class)sc_static) {
+            storage_class == (a_storage_class)sc_static) {
           /* Function was declared "static" or it was declared "inline" and
              inline functions have internal linkage by default. */
           rp->storage_class = (a_storage_class)sc_static;

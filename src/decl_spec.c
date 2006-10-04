@@ -6641,7 +6641,7 @@ tokens are consumed by this routine.
     pos_error(ec_storage_class_in_friend_decl, &pos_first_token);
     *err = TRUE;
   } else if ((input_flags & DSI_IS_SPECIALIZATION) &&
-             first_token != tok_static) {
+             first_token != tok_static && first_token != tok_extern) {
     pos_error(first_token == tok_typedef ?
                 ec_typedef_not_allowed : ec_storage_class_not_allowed,
               &pos_first_token);
