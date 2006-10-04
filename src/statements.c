@@ -5700,7 +5700,17 @@ Otherwise, if a conflict is found, it is diagnosed at the given position and
 {
   a_boolean  result = FALSE;
 
-  if (prev_range_begin == NULL) {
+  if ((new_range_begin != NULL &&
+       new_range_begin->kind != (a_constant_repr_kind)ck_integer) ||
+      (new_range_end != NULL &&
+       new_range_end->kind != (a_constant_repr_kind)ck_integer) ||
+      (prev_range_begin != NULL &&
+       prev_range_begin->kind != (a_constant_repr_kind)ck_integer) ||
+      (prev_range_end != NULL &&
+       prev_range_end->kind != (a_constant_repr_kind)ck_integer)) {
+    /* We don't attempt to find conflicts with template-dependent cases or
+       with error cases. */
+  } else if (prev_range_begin == NULL) {
     /* The previous case was "default". */
     if (new_range_begin == NULL) {
       /* A conflict. */
@@ -5761,22 +5771,8 @@ such cases).
     a_switch_case_entry_ptr  sce = scp->cases;
     for (; sce != NULL && result; sce = sce->next) {
       a_constant_ptr  prev_begin = sce->constant, prev_end = NULL;
-      if (prev_begin != NULL &&
-          (is_error_constant(prev_begin) ||
-           prev_begin->kind == (a_constant_repr_kind)ck_template_param)) {
-        /* Don't attempt to check for conflicts with error constants and
-           template-dependent constants. */
-        continue;
-      }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
       prev_end = sce->range_end;
-      if (prev_end != NULL &&
-          (is_error_constant(prev_end) ||
-           prev_end->kind == (a_constant_repr_kind)ck_template_param)) {
-        /* Don't attempt to check for conflicts with error constants and
-           template-dependent constants. */
-        continue;
-      }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       result = !check_switch_case_conflict(
                                 range_begin, range_end, prev_begin, prev_end,
@@ -5929,13 +5925,9 @@ such cases).
            list. */
         cp = sssep->discarded_case_label_constants;
       }  /* if */
-      for (; cp != NULL; cp = cp->next) {
-        if (!is_error_constant(cp) &&
-            cp->kind != (a_constant_repr_kind)ck_template_param) {
-          check_assertion(cp->kind == (a_constant_repr_kind)ck_integer);
-          result = !check_switch_case_conflict(range_begin, range_end, cp, cp,
-                                               diag_pos, already_diagnosed);
-        }  /* if */
+      for (; cp != NULL && result; cp = cp->next) {
+        result = !check_switch_case_conflict(range_begin, range_end, cp, cp,
+                                             diag_pos, already_diagnosed);
       }  /* for */
     }  /* if */
   }  /* for */
