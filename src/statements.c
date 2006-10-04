@@ -5882,7 +5882,7 @@ label_pos is the position of the case label (or that of the keyword for the
       if (cmp_integer_constants(range_begin, (*ptr)->constant) < 0) break;
       ptr = &(*ptr)->next_by_value;
     }  /* while */
-    entry->next = *ptr;
+    entry->next_by_value = *ptr;
     *ptr = entry;
   }  /* if */
   if (entry->next_by_value == NULL) {
