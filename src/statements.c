@@ -6249,7 +6249,7 @@ redundant diagnostics in case ranges (GNU C mode only).
 #if RECORD_SWITCH_CASE_ENTRIES
   record_switch_case_entry(
                         sssep, scp, constant_ptr, range_end, new_largest_case,
-                        label_position, keyword_position, colon_position);
+                        keyword_position, colon_position, label_position);
 #else /* !RECORD_SWITCH_CASE_ENTRIES */
   add_constant_to_switch_clause(sssep, scp, !can_add_to_curr_clause,
                                 constant_ptr, range_end, new_largest_case,
