@@ -5979,11 +5979,11 @@ This routine is called during IL walking.
         case iek_switch_clause:
           disp_switch_clause((a_switch_clause_ptr)entry_ptr);
           break;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
+#if RECORD_SWITCH_CASE_ENTRIES
         case iek_switch_case_entry:
           disp_switch_case_entry((a_switch_case_entry_ptr)entry_ptr);
           break;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* RECORD_SWITCH_CASE_ENTRIES */
         case iek_handler:
           disp_handler((a_handler_ptr)entry_ptr);
           break;
