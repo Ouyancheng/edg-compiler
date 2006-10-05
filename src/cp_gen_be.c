@@ -453,6 +453,19 @@ static void gen_expr(an_expr_node_ptr expr,
 #define gen_expression(expr)       gen_expr(expr, /*need_parens=*/FALSE)
 static void gen_boolean_controlling_expression(an_expr_node_ptr expr);
 
+/*
+Macro that returns TRUE for a cast (eok_cast, eok_base_class_cast, etc.) if
+the type being cast to and the type of the operand are pointer types that
+are not the same and the operand is a user-defined conversion (UDC).
+*/
+#define is_cast_of_UDC_to_different_pointer_type(dest_type, operand)          \
+  (is_operation_node(operand) &&                                              \
+   (operand)->variant.operation.is_conversion_call &&                         \
+   is_pointer_type(dest_type) &&                                              \
+   is_pointer_type((operand)->type) &&                                        \
+   !same_entities(f_skip_typerefs(dest_type),                                 \
+                  f_skip_typerefs((operand)->type)))
+
 
 static void alloc_hidden_name_fixup(a_tagged_pointer entity)
 /*
@@ -6939,6 +6952,10 @@ flag is TRUE.
     type_copy = *dest_type;
     type_copy.variant.pointer.is_reference = TRUE;
     dest_type = &type_copy;
+  } else if (is_cast_of_UDC_to_different_pointer_type(dest_type, expr)) {
+    /* Ensure that a class object is not explicitly cast to a pointer type
+       different from that of its conversion operator. */
+    expr->variant.operation.keep_cast_for_cp_gen_be = TRUE;
   }  /* if */
   if (is_reinterpret_cast) {
     write_tok_str("reinterpret_cast< ");
@@ -7410,7 +7427,8 @@ call in the normal way.
                      skip_typerefs(routine->type)->variant.routine.return_type;
     a_type_ptr    bare_return_type = skip_typerefs(return_type);
     /* This is a call of a conversion function. */
-    if (expr->variant.operation.compiler_generated) {
+    if (expr->variant.operation.compiler_generated &&
+        !expr->variant.operation.keep_cast_for_cp_gen_be) {
       /* This is an implicit conversion.  Put out just the operand. */
       gen_lvalue(operand_2);
       handled = TRUE;
@@ -8360,6 +8378,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
               operand_1 = operand_1->variant.operation.operands;
             }  /* while */
             gen_cast(expr->type);
+            if (is_cast_of_UDC_to_different_pointer_type(expr->type,
+                                                         operand_1)) {
+              /* Ensure a class object is not explicitly cast to a pointer
+                 type that is different from that of its conversion
+                 operator. */
+              operand_1->variant.operation.keep_cast_for_cp_gen_be = TRUE;
+            }  /* if */
             gen_expr_with_parens(operand_1);
           }  /* if */
           goto done_with_operation;

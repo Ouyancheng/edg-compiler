@@ -1,5 +1,24 @@
 Version 3.9
 
+10/5/06  C++-generating back end: explicit casts to pointer types that
+         differ from the types of user-defined conversion functions
+
+The C++-generating back end formerly suppressed implicit calls to
+user-defined conversion functions, even when the call is the operand of a
+cast to a pointer type that is different from that returned by the
+conversion function; the resulting code was incorrect because it attempted
+to cast a class object to a type for which there is no direct conversion.
+This problem has been fixed by generating a cast to represent the call of
+the conversion function in such cases.  For example:
+
+  struct S {
+    operator unsigned*();
+  } s;
+
+  int* f() {
+    return (int*)&*s;   // Previously generated as "(int *)s",
+  }                     // now generated as "(int *)((unsigned *)s)"
+
 10/4/06  GNU and Microsoft compatibility: Explicit storage class on explicit
          template specialization
 
