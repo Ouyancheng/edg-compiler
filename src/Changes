@@ -1,14 +1,21 @@
 Version 3.9
 
-10/4/06  GNU C++ compatibility: Explicit specialization a storage class
+10/4/06  GNU and Microsoft compatibility: Explicit storage class on explicit
+         template specialization
 
-In GNU C++ mode, an explicit function template specialization can now specify
-an "extern" or "static" storage class specifier.  Such a specifier, overrides
-any linkage implied by the template being specialized.  For example:
+In GNU and Microsoft C++ modes, an explicit function template specialization
+can now specify an explicit "extern" or "static" storage class specifier.
+For specializations that are nonmember functions, such a specifier overrides
+any linkage implied by the template.  For example:
 
   template<typename T> static void f() {}
-  template<> extern void f<int>() {}  // Accepted in GNU C++ mode, and f<int>
-                                      // has external linkage.
+  template<> extern void f<int>() {}  // Accepted in GNU and Microsoft C++
+                                      // modes, and f<int> has external
+                                      // linkage.
+
+For the explicit specialization of member functions, the "extern" specifier
+has no effect, and the "static" specifier is ignored with a diagnostic: An
+error in GNU mode and a warning in Microsoft mode.
 
 10/3/06  Switch case labels (IL CHANGE)
 

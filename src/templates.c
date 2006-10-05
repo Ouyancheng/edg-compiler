@@ -15924,8 +15924,9 @@ that follows.
          specializations. */
       dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
     }  /* if */
-  } else if (gpp_mode) {
-    /* GNU C++ allows storage class specifiers on nonmember specializations. */
+  } else if (gpp_mode || microsoft_mode) {
+    /* GNU and Microsoft allow storage class specifiers on nonmember
+       specializations. */
     dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
   }  /* if */
   (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type, &state,
@@ -15933,10 +15934,9 @@ that follows.
                         &decl_modifiers, (a_named_register_id*)NULL,
                         &decl_pos_block, (a_upc_block_size*)NULL);
   /* A storage class is not permitted on an explicit specialization, except
-     in GNU C++ mode and for Microsoft in-class specializations. */
+     in GNU and Microsoft modes. */
   check_assertion(storage_class == (a_storage_class)sc_unspecified ||
-		  (microsoft_mode && decl_state->is_member_decl) ||
-                  (gpp_mode && !decl_state->is_member_decl));
+		  microsoft_mode || (gpp_mode && !decl_state->is_member_decl));
   /* Issue a diagnostic if there are any unapplied pragmas at this point. */
   cannot_bind_to_curr_construct();
   if (is_error_type(type) && !is_declarator_start()) {
@@ -16421,12 +16421,29 @@ that follows.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         rp->is_specialized = TRUE;
         set_inline_flag(rp, (a_boolean)func_info.is_inline);
-        if (!gpp_mode || storage_class == (a_storage_class)sc_unspecified) {
-          /* Usually, an explicitly specified storage class is disallowed.
-             In Microsoft mode, it is allowed on in-class declarations but it
-             doesn't affect linkage.  In GNU mode, it overrides the linkage
-             implied by the template. */
+        /* Except in Microsoft and GNU modes, an explicitly specified storage
+           class is disallowed.  In Microsoft mode, it is allowed on in-class
+           declarations but it doesn't affect linkage.  Microsoft ignores the
+           storage class when in appears on an out-of-class specialization of
+           a member function, but GNU compilers diagnose that case if the
+           storage class is static.  For the specialization of nonmember
+           function templates, the explicitly specified storage class (i.e.,
+           linkage) is retained. */
+        if (storage_class == (a_storage_class)sc_unspecified ||
+            decl_state->is_member_decl) {
           storage_class = rp->storage_class;
+        } else {
+          check_assertion(gpp_mode || microsoft_mode);
+          /* Retain the explicitly specified storage class, except when
+             specializing a member. */
+          if (rp->source_corresp.is_class_member) {
+            if (storage_class == (a_storage_class)sc_static) {
+              pos_diagnostic(microsoft_mode ? es_warning : es_error,
+                             ec_member_cannot_have_internal_linkage,
+                             &decl_start_pos);
+            }  /* if */
+            storage_class = rp->storage_class;
+          }  /* if */
         }  /* if */
         if ((func_info.is_inline && !extern_inline_allowed) ||
             storage_class == (a_storage_class)sc_static) {
