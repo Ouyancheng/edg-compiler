@@ -6056,10 +6056,10 @@ the position of the label represented by the constant.
 
 #endif /* RECORD_SWITCH_CASE_ENTRIES */
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED
+#if !RECORD_SWITCH_CASE_ENTRIES || !GNU_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* <-- range_end, keyword_position and colon_position not
                   always used. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED */
+#endif /* !RECORD_SWITCH_CASE_ENTRIES || !GNU_EXTENSIONS_ALLOWED */
 static void add_switch_clause(a_struct_stmt_stack_entry_ptr sssep,
                               a_constant_ptr                constant_ptr,
                               a_constant_ptr                range_end,
