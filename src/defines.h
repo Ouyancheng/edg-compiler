@@ -43,6 +43,9 @@ Set the test version flags to FALSE for demo versions.
 #endif /* ifndef __CYGWIN32__ */
 #endif /* ifdef DEMO_VERSION */
 
+/* Temporary setting for overnight testing on 10/5/2006: */
+#define RECORD_SWITCH_CASE_ENTRIES 0
+
 #define ENABLE_TRANS_UNIT_TEST_MODE 1
 #define DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED 1
 
