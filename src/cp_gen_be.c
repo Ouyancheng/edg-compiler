@@ -11872,10 +11872,14 @@ declaration following this one is such a continuation.
       /* A declaration of a variable. */
       /* The variable is not defined (here), so use "extern" instead of no
          storage class.  Also use "extern" for nonlocal static variables
-         declared extern. */
+         declared extern (except for file-scope declarations in C mode,
+         where the storage class stays "static" to accommodate C's
+         "tentative definition" rules). */
       if (storage_class == (a_storage_class)sc_unspecified ||
           (storage_class == (a_storage_class)sc_static &&
-           !var->source_corresp.is_local_to_function)) {
+           !var->source_corresp.is_local_to_function &&
+           !(C_mode() && curr_name_context->assoc_scope->kind ==
+                                                    (a_scope_kind)sck_file))) {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
     }  /* if */

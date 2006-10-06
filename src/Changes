@@ -1,5 +1,15 @@
 Version 3.9
 
+10/6/06  C++-generating back end: internal-linkage tentative definitions
+
+The C++-generating back end failed to allow for tentative definitions in C
+code when emitting non-definition declarations of internal-linkage
+variables, assuming that the C++ rules applied.  Now fixed.  For example:
+
+  static int i;      /* Tentative definition in C; formerly generated as
+                        "extern int i;" */
+  static int i = 5;  /* Definition. */
+
 10/5/06  Microsoft compatibility: Nested classes and __declspec
 
 In Microsoft mode, the front end incorrectly treated nondefining declarations
