@@ -6902,6 +6902,7 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean                  is_member_decl =
                                     (input_flags & DSI_IS_MEMBER_DECLARATION);
   a_boolean                  vacuous_decl_allowed;
+  a_boolean                  specifier_allows_vacuous_decl = FALSE;
   a_boolean                  declares_something = FALSE;
   a_boolean                  defines_something = FALSE;
   a_boolean                  type_specifier_allowed;
@@ -6965,6 +6966,9 @@ Returns TRUE if there is an error in the specifiers.
   /* Loop for each declaration specifier. */
   for (;;) {
     switch (curr_token) {
+      case tok_typedef:
+        specifier_allows_vacuous_decl = !strict_ansi_mode;
+        goto storage_class_specifier;
       case tok_extern:
         if (C_dialect == C_dialect_cplusplus &&
             next_token() == tok_string_literal) {
@@ -7005,12 +7009,12 @@ Returns TRUE if there is an error in the specifiers.
           break;
         }  /* if */
         /* Otherwise drop through for normal storage class processing. */
-      case tok_typedef:
       case tok_static:
       case tok_auto:
       case tok_register:
       case tok_mutable:
         /* A storage class specifier (3.5.1). */
+storage_class_specifier:
         if ((input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS)) {
           warning(ec_secondary_specifier_ignored);
         } else {
@@ -7077,6 +7081,11 @@ Returns TRUE if there is an error in the specifiers.
                                              &decl_specifiers_seen,
                                              decl_modifiers,
                                              &no_remaining_token, &err);
+          if ((*output_flags & DSO_INLINE) == 0) {
+            /* Only a __declspec was scanned, and that may precede a vacuous
+               declaration. */
+            specifier_allows_vacuous_decl = TRUE;
+          }  /* if */
           if (no_remaining_token) goto no_get_token;
         }
         break;
@@ -7700,14 +7709,6 @@ process_class_specifier:
         } else {
           if (basic_type == bt_none) {
             a_boolean  microsoft_elaborated_ctor = FALSE;
-            if (any_decl_specifiers_seen &&
-                (strict_ansi_mode ||
-                 *storage_class != (a_storage_class)sc_typedef)) {
-              /* We allow things like "typedef struct X {};" in various modes.
-                 So do not disallow vacuous declarations in typedefs unless
-                 we're in strict mode. */
-              vacuous_decl_allowed = FALSE;
-            }  /* if */
             if (microsoft_mode && is_member_decl && !err) {
               /* In Microsoft mode, "struct S { struct S(); }; is accepted.
                  Access checks are disabled during this processing. */
@@ -7768,14 +7769,6 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            if (any_decl_specifiers_seen &&
-                (strict_ansi_mode ||
-                 *storage_class != (a_storage_class)sc_typedef)) {
-              /* We allow things like "typedef struct X {};" in various modes.
-                 So do not disallow vacuous declarations in typedefs unless
-                 we're in strict mode. */
-              vacuous_decl_allowed = FALSE;
-            }  /* if */
             enum_specifier(vacuous_decl_allowed, type_ptr, p_ms_attributes,
                            &declares_something, &defines_something,
                            decl_pos_block);
@@ -8282,6 +8275,13 @@ something_unexpected:
     (void)get_token();
 no_get_token:
     any_decl_specifiers_seen = TRUE;
+    /* Vacuous declarations (like "class C;" cannot be combined with most
+       other specifiers, but there are a few exceptions (like __declspec). */
+    if (specifier_allows_vacuous_decl) {
+      specifier_allows_vacuous_decl = FALSE;
+    } else {
+      vacuous_decl_allowed = FALSE;
+    }  /* if */
     /* Check for special conditions that will cause this loop to terminate. */
     if (input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) {
       /* We are only interested in scanning type qualifiers in a
