@@ -9286,10 +9286,16 @@ nonstandard anonymous unions is_nonstd is TRUE.
 #endif /* DEBUG */
       /* Creation of a new symbol is only implemented for fields, because it
          can only happen in C mode or with C++ classes that have no C++
-         features.  (A compiler-generated assignment operator is fine.) */
-      check_assertion(sym->kind == (a_symbol_kind)sk_field ||
-                      (sym->kind == (a_symbol_kind)sk_member_function &&
-                       sym->variant.routine.ptr->compiler_generated));
+         features.  (A compiler-generated assignment operator is fine.  If
+         "near" and "far" qualifiers are enabled, that operator may be an
+         overload set; see check_special_member_functions.) */
+      check_assertion_str(
+        sym->kind == (a_symbol_kind)sk_field ||
+        (sym->kind == (a_symbol_kind)sk_member_function &&
+         sym->variant.routine.ptr->compiler_generated) ||
+        (near_and_far_enabled() && sym->is_class_member &&
+         sym->kind == (a_symbol_kind)sk_overloaded_function),
+        "check_anonymous_union_symbols: unexpected symbol kind");
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     }  /* if */
     /* Private and protected members are not allowed in an anonymous union

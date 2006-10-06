@@ -1,5 +1,18 @@
 Version 3.9
 
+10/6/06  Abort on nonstandard anonymous unions when near/far support enabled
+
+In modes supporting the "near" and "far" qualifiers (like 16-bit Microsoft
+mode), the front end aborted in check_anonymous_union_symbols (class_decl.c)
+with an internal error when processing the definition of a nonstandard
+anonymous union.  For example:
+
+  typedef struct { int m; } S;
+  struct { S; } x;  // Aborted in 16-bit Microsoft mode (and other modes
+                    // that allow "near" and "far" qualifiers.
+
+This is now fixed.
+
 10/6/06  C++-generating back end: internal-linkage tentative definitions
 
 The C++-generating back end failed to allow for tentative definitions in C
