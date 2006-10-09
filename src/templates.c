@@ -16424,7 +16424,7 @@ that follows.
         /* Except in Microsoft and GNU modes, an explicitly specified storage
            class is disallowed.  In Microsoft mode, it is allowed on in-class
            declarations but it doesn't affect linkage.  Microsoft ignores the
-           storage class when in appears on an out-of-class specialization of
+           storage class when it appears on an out-of-class specialization of
            a member function, but GNU compilers diagnose that case if the
            storage class is static.  For the specialization of nonmember
            function templates, the explicitly specified storage class (i.e.,
