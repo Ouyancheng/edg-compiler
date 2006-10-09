@@ -1,5 +1,13 @@
 Version 3.9
 
+10/9/06  Name mangling for &__uuidof(T) with IA-64 ABI
+
+The name mangling produced for the Microsoft extension __uuidof in
+an expression like &__uuidof(T) was not properly formed when the
+IA-64 ABI is used.  The actual mangling is somewhat arbitrary, since
+the IA-64 ABI isn't used by Microsoft, but it should be well-formed
+according to the ABI spec and acceptable to the demangler.  Now, it is.
+
 10/6/06  Abort on nonstandard anonymous unions when near/far support enabled
 
 In modes supporting the "near" and "far" qualifiers (like 16-bit Microsoft

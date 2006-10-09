@@ -1876,8 +1876,8 @@ template classes.
        completely different mangling scheme, so compatibility is a moot
        point here. */
 #if IA64_ABI
-    /* Add a length to make this into an identifier. */
-    add_str_to_mangled_name("38", mctl);
+    /* Add encoding to make this into an identifier. */
+    add_str_to_mangled_name("_Z38", mctl);
 #endif /* IA64_ABI */
     add_str_to_mangled_name("__UUID", mctl);
     uuid_type = con->variant.address.variant.type;
