@@ -8275,9 +8275,12 @@ something_unexpected:
     (void)get_token();
 no_get_token:
     any_decl_specifiers_seen = TRUE;
-    /* Vacuous declarations (like "class C;" cannot be combined with most
+    /* Vacuous declarations (like "class C;") cannot be combined with most
        other specifiers, but there are a few exceptions (like __declspec). */
     if (specifier_allows_vacuous_decl) {
+      /* The specifier just scanned is allowed in a vacuous declaration: Don't
+         clear vacuous_decl_allowed, but reset specifier_allows_vacuous_decl
+         for the next specifier (if any). */
       specifier_allows_vacuous_decl = FALSE;
     } else {
       vacuous_decl_allowed = FALSE;

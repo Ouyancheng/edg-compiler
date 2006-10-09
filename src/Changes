@@ -33,7 +33,7 @@ enclosing namespace scope.  For example:
   S::N *p;  // Previously an error because struct N was considered a
             // member of the global scope.
 
-In templates, a similar problem also occured with nested class definitions.
+In templates, a similar problem also occurred with nested class definitions.
 This is now fixed.
 
 10/5/06  C++-generating back end: explicit casts to pointer types that
