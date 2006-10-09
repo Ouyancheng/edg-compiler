@@ -4262,7 +4262,7 @@ Return a pointer to the character position following what was demangled.
 The syntax is:
 
   <expr-primary> ::= L <type> <value number> E  # integer literal
-                 ::= L <type <value float> E    # floating literal
+                 ::= L <type> <value float> E   # floating literal
                  ::= L_Z <encoding> E           # external name
 
 */
@@ -4330,7 +4330,7 @@ The syntax is:
                ::= <expr-primary>
 
   <expr-primary> ::= L <type> <value number> E  # integer literal
-                 ::= L <type <value float> E    # floating literal
+                 ::= L <type> <value float> E   # floating literal
                  ::= L <mangled-name> E         # external name
 
 */
