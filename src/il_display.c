@@ -6123,6 +6123,9 @@ This routine is called during IL walking.
           disp_instantiation_directive(
                                    (an_instantiation_directive_ptr)entry_ptr);
           break;
+        case iek_static_assertion:
+          disp_static_assertion((a_static_assertion_ptr)entry_ptr);
+          break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
         case iek_scope_orphaned_list_header:
