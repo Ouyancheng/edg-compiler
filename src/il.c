@@ -2312,7 +2312,8 @@ the dump (this one counts as the first).
                  scp = scp->next) {
               for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
 #if RECORD_SWITCH_CASE_ENTRIES
-              fputs(scp->default_case ? "default\n" : "case\n", f_debug);
+              fputs(scp->includes_default_case ? "default\n" : "case\n",
+                    f_debug);
 #else /* !RECORD_SWITCH_CASE_ENTRIES */
               fputs(scp->constant_list == NULL ? "default\n" : "case\n",
                     f_debug);

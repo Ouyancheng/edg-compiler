@@ -9437,15 +9437,13 @@ clause.  The current function source sequence entry is for that switch clause.
       gen_constant(con, /*need_parens=*/FALSE);
       con = con->next;
       if (con != NULL && con->source_corresp.decl_position.seq == 0) {
-        /* A GNU case range.  Skip to the last constant with a null position.
+        /* A GNU case range.  Skip past the last constant with a null position.
            In this configuration, a GNU case range of the form "case a ...  b:"
            is represented by a list of individual cases, with the values from
            a+1 to b-1 (if any) having a null source position. */
         write_tok_str(" ... ");
-        for (; con != NULL; con = con->next) {
-          if (con->source_corresp.decl_position.seq != 0) {
-            break;
-          }  /* if */
+        for (; con->source_corresp.decl_position.seq == 0; con = con->next) {
+          check_assertion(con->next != NULL);
         }  /* for */
         gen_constant(con, /*need_parens=*/FALSE);
         con = con->next;

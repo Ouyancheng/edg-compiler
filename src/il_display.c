@@ -3840,7 +3840,7 @@ Display the indicated switch clause.
   disp_ptr("cases", (char*)ptr->cases, iek_switch_case_entry);
   disp_ptr("cases_by_value", (char*)ptr->cases_by_value,
            iek_switch_case_entry);
-  disp_boolean("default_case", (a_boolean)ptr->default_case);
+  disp_boolean("includes_default_case", (a_boolean)ptr->includes_default_case);
 #else /* !RECORD_SWITCH_CASE_ENTRIES */
   disp_ptr("constant_list", (char *)ptr->constant_list, iek_constant);
 #endif /* RECORD_SWITCH_CASE_ENTRIES */

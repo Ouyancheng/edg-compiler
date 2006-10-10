@@ -5800,10 +5800,11 @@ Record the details of a switch case entry in a switch clause (scp).  sssep
 refers to the current switch statement.  range_begin and range_end describe
 the values covered by the switch case: The default case is represented by two
 NULL pointers, normal cases have range_end set to NULL, and GNU case ranges
-result in both pointers being non-NULL.  keyword_pos is the position of the
-"case" or "default" keyword, and colon_pos is the position of the colon.
-label_pos is the position of the case label (or that of the keyword for the
-"default" case).
+result in both pointers being non-NULL.  new_largest is TRUE if range_begin
+points to a known constant larger than any previously encountered for this
+clause.  keyword_pos is the position of the "case" or "default" keyword, and
+colon_pos is the position of the colon.  label_pos is the position of the case
+label (or that of the keyword for the "default" case).
 */
 {
   /* Allocate a new switch case entry and set its fields. */
@@ -5826,10 +5827,10 @@ label_pos is the position of the case label (or that of the keyword for the
     sssep->last_switch_case_entry->next = entry;
   }  /* if */
   sssep->last_switch_case_entry = entry;
-  /* For is the default case, record some additional information in *scp. */
+  /* For the default case, record some additional information in *scp. */
   if (range_begin == NULL) {
     /* The "default" case. */
-    scp->default_case = TRUE;
+    scp->includes_default_case = TRUE;
     set_stmt_source_position(scp->default_position, *label_pos);
   }  /* if */
   /* The remainder of this function maintains the cases_by_value list. */
@@ -5945,14 +5946,16 @@ static void add_constant_to_switch_clause(
                                   a_source_position              *label_pos)
 /*
 Add the new constant (or constants, in the case of a GNU case range) to the
-given switch clause.  For the default case, this just means setting the
-constant_list to NULL; for valued cases, it means inserting the value (or
-values) at the right spot on the list.  For GNU case ranges, range_end is
-non-NULL and represents the upper bound of the range: Constant between the
-two bounds will also be recorded for the clause .The current switch statement
-is described by sssep.  If constant_ptr represents a constant larger than any
-case value recorded so far for scp, new_largest is TRUE.  label_pos indicates
-the position of the label represented by the constant.
+given switch clause.  For the default case (constant_ptr is NULL), this just
+means setting the constant_list to NULL; for valued cases, it means inserting
+the value (or values) at the right spot on the list.  For GNU case ranges,
+range_end is non-NULL and represents the upper bound of the range: Constants
+between the two bounds will also be recorded for the clause.  The current
+switch statement is described by sssep.  If constant_ptr represents a constant
+larger than any case value recorded so far for scp, new_largest is TRUE.  
+label_pos indicates the position of the label represented by the constant.
+new_clause is TRUE when this routine is called for the first label in this
+clause.
 */
 {
   if (constant_ptr == NULL) {
@@ -6110,7 +6113,9 @@ redundant diagnostics in case ranges (GNU C mode only).
                                 sssep->switch_max_case_value) > 0) {
         /* New maximum value, no check for duplicate needed. */
         if (range_end == NULL ||
-            range_end->kind == (a_constant_repr_kind)ck_template_param) {
+            range_end->kind != (a_constant_repr_kind)ck_integer) {
+          /* A normal (single-valued) case, or a range whose upper bound is
+             a template-dependent constant or an error constant. */
           sssep->switch_max_case_value = constant_ptr;
         } else {
           sssep->switch_max_case_value = range_end;

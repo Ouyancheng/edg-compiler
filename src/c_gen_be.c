@@ -7044,7 +7044,7 @@ Generate the code for a switch statement.
     /* Indent for the case label. */
     indent += 2;
 #if RECORD_SWITCH_CASE_ENTRIES
-    if (switch_clause->default_case) {
+    if (switch_clause->includes_default_case) {
       /* This is the default case. */
       set_output_position_for_stmt(&switch_clause->default_position);
       write_tok_str("default:");

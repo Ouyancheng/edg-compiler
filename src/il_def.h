@@ -10351,13 +10351,14 @@ typedef struct a_switch_case_entry {
 			   reflects the source code order. */
   a_switch_case_entry_ptr
 		next_by_value;
-			/* Next cases on the "cases_by_value" list: The default
-			   case (if any) comes first, followed by any template-
-			   dependent cases (in unspecified order; a range is
-			   dependent if its lower bound is dependent), followed
-			   by "known-value" cases in numerically increasing
-			   order (the lower bound of cases ranges is used for
-			   ordering purposes). */
+			/* Next case on the "cases_by_value" list: On the
+			   overall list, the default case (if any) comes
+			   first, followed by any template-dependent cases (in
+			   unspecified order; a range is dependent if its
+			   lower bound is dependent), followed by "known-
+			   value" cases in numerically increasing order (the
+			   lower bound of case ranges is used for ordering
+			   purposes). */
   a_constant_ptr
 		constant;
 			/* The case label constant with which the positions
@@ -10400,7 +10401,11 @@ typedef struct a_switch_clause {
 			/* Pointer to the first switch case entry on the list
 			   created by the "next_larger_value" pointers.  (If
 			   there is a default case, that entry is the first
-			   on that list.) */
+			   on that list.  Next are template-dependent entries
+			   (if any and in no particular order).  Finally,
+			   known-value cases appear in value order.  Case
+			   ranges -- a GNU extension -- are ordered according
+			   to their lower bound.) */
 #else /* !RECORD_SWITCH_CASE_ENTRIES */
   a_constant_ptr
 		constant_list;
@@ -10409,10 +10414,10 @@ typedef struct a_switch_clause {
 			   ascending order.  NULL if this is the default
 			   clause.  The source positions in the constants
 			   indicate the source positions of the corresponding
-			   case labels.  GNU case ranges are represented by a
-			   list representing all the constants in the range;
-			   constants between the range bounds have a null
-			   source position. */
+			   case labels.  For GNU case ranges, every constant
+			   in the range appears explicitly on the list
+			   (constants between the range bounds have a null
+			   source position). */
 #endif /* RECORD_SWITCH_CASE_ENTRIES */
   a_statement_ptr
 		statements;
@@ -10425,9 +10430,9 @@ typedef struct a_switch_clause {
 			   statement. */
 #if RECORD_SWITCH_CASE_ENTRIES
   a_byte_boolean
-		default_case;
+		includes_default_case;
 			/* TRUE if this clause includes the default case (in
-			   that case, the first switch case entries will have
+			   that case, the first switch case entry will have
 			   a NULL "constant" pointer). */
 #endif /* RECORD_SWITCH_CASE_ENTRIES */
   a_byte_boolean
@@ -10452,8 +10457,8 @@ typedef struct a_switch_clause {
   a_stmt_source_position
 		default_position;
 			/* If the clause contains a default label (i.e.,
-			   constant_list == NULL or default_case is TRUE),
-			   this gives its source position. */
+			   constant_list == NULL or includes_default_case is
+			   TRUE), this gives its source position. */
 } a_switch_clause;
 
 

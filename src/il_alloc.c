@@ -2792,16 +2792,16 @@ to it.
 #if DEBUG
   num_switch_clauses_allocated++;
 #endif /* DEBUG */
-  scp->next                 = NULL;
+  scp->next                  = NULL;
 #if RECORD_SWITCH_CASE_ENTRIES
-  scp->cases                = NULL;
-  scp->cases_by_value       = NULL;
-  scp->default_case         = FALSE;
+  scp->cases                 = NULL;
+  scp->cases_by_value        = NULL;
+  scp->includes_default_case = FALSE;
 #else /* !RECORD_SWITCH_CASE_ENTRIES */
-  scp->constant_list        = NULL;
+  scp->constant_list         = NULL;
 #endif /* RECORD_SWITCH_CASE_ENTRIES */
-  scp->statements           = NULL;
-  scp->implied_break_at_end = FALSE;
+  scp->statements            = NULL;
+  scp->implied_break_at_end  = FALSE;
   clear_stmt_source_position(scp->break_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   clear_stmt_source_position(scp->break_end_position);
