@@ -397,6 +397,8 @@ This is done before command line processing.
                             TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT;
   targ_unnamed_bit_field_affects_struct_alignment =
                                TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT;
+  targ_bit_field_affects_union_alignment =
+                                        TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT;
   targ_user_control_of_struct_packing_affects_bit_fields =
                         TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS;
   targ_pad_bit_fields_larger_than_base_type =

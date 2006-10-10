@@ -291,6 +291,11 @@ EXTERN int	targ_unnamed_bit_field_affects_struct_alignment;
 			   of the struct as well as the alignment of the next
 			   field. */
 
+EXTERN a_boolean
+		targ_bit_field_affects_union_alignment;
+			/* TRUE if a bit field in a union type affects its
+			   alignment. */
+
 EXTERN int	targ_user_control_of_struct_packing_affects_bit_fields;
 			/* TRUE if "#pragma pack(n)" and the command-line
 			   option "--pack_alignment=n" affect the alignment of

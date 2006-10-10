@@ -1411,6 +1411,21 @@ targ_nonnegative_enum_bit_field_is_unsigned.
 #endif /* ifndef TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT */
 
 /*
+Flag that is TRUE if bit fields (specifically, their container types) can
+affect the alignment of a union type.  When this FLAG is FALSE, the container
+type still affects the union's size, but not its alignment (this reflects the
+behavior of Microsoft compilers).  This is the initial value of
+targ_bit_field_affects_union_alignment.
+*/
+#ifndef TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT
+#if TARG_MICROSOFT_BIT_FIELD_ALLOCATION
+#define TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT FALSE
+#else /* !TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
+#define TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT TRUE
+#endif /* TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
+#endif /* ifndef TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT */
+
+/*
 Flag that is TRUE if "#pragma pack(n)" and the command-line option
 "--pack_alignment=n", when supported, affect the container boundary/alignment
 of bit fields.  FALSE indicates that TARG_BIT_FIELD_CONTAINER_SIZE controls
