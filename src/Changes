@@ -1,5 +1,20 @@
 Version 3.9
 
+10/10/06  Alignment of unions with bit fields
+
+A new configuration macro TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT determines
+whether a union should be given an alignment that's a multiple of the
+alignment of any bit field member of that union (until now, that was always
+the case).  The macro is TRUE by default, except when
+TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE because Microsoft compilers
+ignore bit fields when determining the alignment (but not the size) of unions.
+For example, assuming a common 32-bit int type:
+
+  union U {
+    int a: 2;
+  };  // U has size 4, but alignment 1 if TARG_MICROSOFT_BIT_FIELD_ALLOCATION
+      // is FALSE.  Otherwise, U has size and alignment 4.
+
 10/9/06  Name mangling for &__uuidof(T) with IA-64 ABI
 
 The name mangling produced for the Microsoft extension __uuidof in
