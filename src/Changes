@@ -119,7 +119,7 @@ and occasionally memory exhaustion).  For example:
   }  // representation is used
 
 The constant_list representation can be re-enabled by setting the macro
-RECORD_SWITCH_CASE_ENTRIES to FALSE, but that precludes recording addition
+RECORD_SWITCH_CASE_ENTRIES to FALSE, but that precludes recording additional
 information in switch case entries (even when EXTRA_SOURCE_POSITIONS_IN_IL
 is TRUE).
 
@@ -132,7 +132,7 @@ quasi-random.  For example:
     switch (i) {
       case 1 ... I: break;
       case J ... 100: break;
-    }  // In some configurations, this could run out of memory during.
+    }  // In some configurations, this could run out of memory during
   }    // prototype instantiation.
 
 That problem is now fixed.
