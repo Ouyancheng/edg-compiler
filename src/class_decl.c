@@ -14297,7 +14297,7 @@ classes.
     } else if (delayed_nested_class_def && !is_template_instantiation) {
       /* This is a definition of a C++ nested class that appears outside the
          scope of the parent class definition itself.  Reactivate the
-         lexical context.  Note that this is done before  the base specifiers
+         lexical context.  Note that this is done before the base specifiers
          are scanned so that symbols from the enclosing class are visible.
          For template instantiations, this is done when the template
          instantiation scope is pushed.  Note that this is not done when

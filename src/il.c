@@ -17127,6 +17127,8 @@ entry into one representing a nondefining declaration.
   class_type->variant.class_struct_union.
                        nested_class_defined_outside_of_parent = FALSE;
   class_type->variant.class_struct_union.is_empty_class = FALSE;
+  /* The type is now incomplete. */
+  class_type->incomplete = TRUE;
   db_exit();
 }  /* turn_class_definition_into_declaration */
 
@@ -17142,11 +17144,10 @@ of the class.
 */
 {
   db_enter(4, "eliminate_unneeded_class_definitions");
-  /* Eliminate the class definition if appropriate.  Note that we check
-     the class size rather than the assoc_scope, since in C mode there
-     is no assoc_scope even when the class has a definition. */
-  if (!class_type->variant.class_struct_union.keep_definition_in_il &&
-      class_type->size > 0) {
+  /* Eliminate the class definition if appropriate. */
+  if (class_type->incomplete) {
+    /* There is no definition to eliminate. */
+  } else if (!class_type->variant.class_struct_union.keep_definition_in_il) {
     turn_class_definition_into_declaration(class_type);
   } else {
     /* The class definition is to be kept.  Process nested classes. */
@@ -17154,6 +17155,8 @@ of the class.
       a_class_type_supplement_ptr  ctsp;
 
       ctsp = class_type->variant.class_struct_union.extra_info;
+      /* Note that even though class_type is complete, it may not have an
+         associated scope (e.g., in the case of nonreal classes). */
       if (ctsp->assoc_scope != NULL) {
         a_type_ptr  tp = ctsp->assoc_scope->types;
         for (; tp != NULL; tp = tp->next) {

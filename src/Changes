@@ -1,5 +1,21 @@
 Version 3.9
 
+10/11/06 Invalid IL for prototype instantiations in GNU C++ mode
+
+In GNU C++ mode, elimination of unused IL entries could lead to invalid IL for
+prototype instantiations of class template.  The problem could manifest itself
+as an internal error reporting an IL write-read difference for nonreal class
+types.  PROTOTYPE_INSTANTIATIONS_IN_IL and MAINTAIN_NEEDED_FLAGS had to be
+TRUE, and BACK_END_IS_CP_GEN_BE had to be FALSE, for the problem to occur (a
+somewhat unusual combination).  In affected configurations, the following
+simple example triggered the problem when compiled in GNU C++ mode with
+elimination of unneeded entities enabled:
+
+  template<typename T> struct B {};
+  template<typename T> struct D: B<T> {};  
+
+This problem is now fixed.
+
 10/11/06 C++-generating back end: broken strings in __declspec(deprecated)
          attributes
 
