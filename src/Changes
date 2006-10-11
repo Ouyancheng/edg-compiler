@@ -1,5 +1,12 @@
 Version 3.9
 
+10/11/06 C++-generating back end: broken strings in __declspec(deprecated)
+         attributes
+
+When generating the string form of the __declspec(deprecated) Microsoft
+attribute (see the entry of 11/9/05), the C++-generating back end sometimes
+inserted a line break into the string literal.  This is now fixed.
+
 10/10/06  Alignment of unions with bit fields
 
 A new configuration macro TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT determines

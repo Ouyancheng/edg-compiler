@@ -3340,10 +3340,13 @@ put out a "__declspec(deprecated)" specifier.
 {
   if (microsoft_dialect_is_generated_code_target && scp->is_deprecated) {
 #if DEPRECATION_STRING_IN_IL
-    if (deprecation_string_for(scp)) {
-      write_tok_str("__declspec(deprecated(\"");
-      write_tok_str(deprecation_string_for(scp));
-      write_tok_str("\")) ");
+    if (deprecation_string_for(scp) != NULL) {
+      write_tok_str("__declspec(deprecated(");
+      ensure_enough_room_on_line(strlen(deprecation_string_for(scp)) + 2);
+      m_write_ch('"');
+      m_write_str(deprecation_string_for(scp));
+      m_write_ch_no_pending_check('"');
+      write_tok_str(")) ");
     } else
 #endif /* DEPRECATION_STRING_IN_IL */
     {
