@@ -2532,7 +2532,7 @@ there's no overflow TRUE is returned.
     if (field->is_bit_field) {
       /* Do any necessary alignment for a bit-field. */
       if (class_type->kind == (a_type_kind)tk_union &&
-          !targ_unnamed_bit_field_affects_struct_alignment) {
+          !targ_bit_field_affects_union_alignment) {
         /* A bit field in a union in a configuration that ignores such bit
            fields for alignment purposes: No alignment to perform. */
 #if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
