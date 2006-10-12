@@ -11530,10 +11530,11 @@ static void import_any_hidden_tags(a_symbol_ptr      other_decl,
 /*
 A name that is imported by a using-declaration can refer to both tag names and
 non-tag names.  In those cases, ordinary namespace-qualified lookup will only
-find the non-tag, and this routine is used to also import the tag.  nsp is the
-namespace from which to import the hidden tag.  *prev_udp is set to the using-
-declaration structure that is created (if any).  *redecl_error is TRUE if and
-only if a redeclaration error is issued.
+find the non-tag, and this routine is used to also import the tag.  other_decl
+is a symbol representing a declaration already found in the current scope.
+nsp is the namespace from which to import the hidden tag.  *prev_udp is set to
+the using-declaration structure that is created (if any).  *redecl_error is
+TRUE if and only if a redeclaration error is issued.
 */
 {
   /* Check if we missed a tag symbol; it should be imported too. */
@@ -11560,7 +11561,16 @@ only if a redeclaration error is issued.
   if (tag_sym != NULL && !is_tag_symbol(tag_sym)) tag_sym = NULL;
   if (tag_sym != NULL) {
     a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
-    clear_specific_symbol(locator);
+    if (other_decl != NULL && !is_type_symbol(other_decl)) {
+      /* The current scope already contains a homonym for the imported tag,
+         but if it's a nontype, it won't conflict.  However, such a nontype
+         entity may be hiding another tag of the same name: Look it up and
+         update other_decl accordingly. */
+      clear_specific_symbol(locator);
+      (void)curr_scope_id_lookup(&locator, IDL_MUST_BE_TAG |
+                                           IDL_PROJ_SYMBOL_ALLOWED);
+      other_decl = locator.specific_symbol;
+    }  /* if */
     if (!is_class_template_symbol(tag_sym) &&
         !(other_decl != NULL && is_file_or_namespace_scope(ssep) &&
           symbols_are_lookup_equivalent(fundamental_symbol_of(tag_sym),
@@ -11572,6 +11582,7 @@ only if a redeclaration error is issued.
                                          other_decl, nsp, (a_type_ptr)NULL,
                                          prev_udp, /*is_list=*/FALSE,
                                          /*suppress_redecl_error=*/FALSE);
+      clear_specific_symbol(locator);
       *redecl_error = (curr_scope_id_lookup(
                           &locator, IDL_MUST_BE_TAG | IDL_PROJ_SYMBOL_ALLOWED)
                          != NULL);

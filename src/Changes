@@ -1,5 +1,20 @@
 Version 3.9
 
+10/12/06 Spurious error on duplicate using-directive for tag name
+
+The front end previously disallowed duplicate using-directives that referred
+to a tag name masked by a non-tag name, even in scopes (such as namespaces)
+where such a redeclaration is valid.  For example:
+
+  namespace N {
+    struct X;
+    void X();
+  }
+  using N::X;
+  using N::X;  // Previously an error.  Now accepted.
+
+This is now fixed.
+
 10/11/06 Result type of loop test in generated assignment operator
 
 If a class has an array member whose element type is a class with a
