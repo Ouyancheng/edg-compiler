@@ -1,5 +1,29 @@
 Version 3.9
 
+10/11/06 Result type of loop test in generated assignment operator
+
+If a class has an array member whose element type is a class with a
+non-trivial copy assignment operator, the generated operator= for the
+containing class will have a loop that copies the array elements.  The result
+type of the loop termination test (comparing the index against the number of
+elements in the array) was formerly "int"; it is now "bool" if the bool type
+is available and "int" otherwise.  For example:
+
+  struct M {
+    M& operator=(const M&);
+  };
+  struct S {
+    M arr[2];
+  };
+
+  void f(S& s1, S& s2) {
+    s1 = s2;
+  }
+
+Here, the generated S::operator=(const S&) will contain a loop copying the
+elements of S::arr; the loop test ("__temp < 2U") formerly had type "int"
+and now has type "bool" in dialects where "bool" is a keyword.
+
 10/11/06 Invalid IL for prototype instantiations in GNU C++ mode
 
 In GNU C++ mode, elimination of unused IL entries could lead to invalid IL for

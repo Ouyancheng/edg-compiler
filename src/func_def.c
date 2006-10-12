@@ -2219,7 +2219,7 @@ operator routine or do bitwise assignment.
                         (a_host_large_integer)num_elems, targ_size_t_int_kind);
               compare_node =
                       make_operator_node((an_expr_operator_kind)eok_ilt,
-                                         integer_type((an_integer_kind)ik_int),
+                                         boolean_result_type(),
                                          temp_incr_node);
               /* Make the do-while statement. */
               sp = sp->next = alloc_statement(
