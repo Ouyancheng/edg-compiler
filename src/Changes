@@ -1,5 +1,17 @@
 Version 3.9
 
+10/18/06 C++-generating back end: GNU attributes for pure virtual functions
+
+The C++-generating back end previously generated a GNU attribute
+specifier for a pure virtual function at the end of the declaration,
+following the "= 0", but g++ does not accept this syntax.  Any attribute
+specifier is now generated before the "= 0", as required by g++.  For
+example:
+
+  struct S {
+    virtual void f() __attribute((__stdcall__)) = 0;
+  };
+
 10/12/06 Spurious error on duplicate using-directive for tag name
 
 The front end previously disallowed duplicate using-directives that referred

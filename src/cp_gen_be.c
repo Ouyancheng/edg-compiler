@@ -12871,16 +12871,16 @@ TRUE if the declaration following this one is such a continuation.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!is_definition) {
     /* A declaration of the routine. */
-    /* For a pure virtual function, add "= 0".  (If the "abstract" function
-       modifier has been generated already do not output the "= 0" since it
-       would be redundant.) */
-    if (rout->pure_virtual && !abstract_generated) write_tok_str(" = 0");
 #if GNU_EXTENSIONS_ALLOWED
-    /* Emit any user-specified assembly symbol for this variable. */
+    /* Emit any user-specified assembly symbol for this routine. */
     form_asm_name(rout->asm_name, &octl);
     /* Emit attributes associated with the routine. */
     (void)form_routine_attributes(rout, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    /* For a pure virtual function, add "= 0".  (If the "abstract" function
+       modifier has been generated already do not output the "= 0" since it
+       would be redundant.) */
+    if (rout->pure_virtual && !abstract_generated) write_tok_str(" = 0");
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list =
              another_declaration_in_comma_list_follows(rout_type,
