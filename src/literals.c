@@ -24,6 +24,7 @@ literals.c -- Literal constant conversion to and from internal form.
 
 /* Additional header files. */
 #include "literals.h"
+#include "preproc.h"
 
 
 void conv_integer_literal(int           radix,
@@ -214,6 +215,20 @@ constants).  The number may have a "u" or "l" suffix, or both.
 #if LONG_LONG_ALLOWED
   /* Likewise for "ll". */
 #endif /* LONG_LONG_ALLOWED */
+  if (in_pp_if_expression && (c99_mode || gnu_mode)) {
+    /* C99 was amended with DR 265 to the effect that the conversion of an
+       integer literal in a #if control expression should treat all integer
+       types as having the same representation as intmax_t or uintmax_t
+       (depending on their signedness). */
+    if (has_u_suffix ||
+        !le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                      targ_intmax_kind)) {
+      kind = targ_uintmax_kind;
+    } else {
+      kind = targ_intmax_kind;
+    }  /* if */
+    goto kind_established;
+  }  /* if */
   if (C_dialect == C_dialect_pcc && !has_u_suffix
 #if LONG_LONG_ALLOWED
       && !has_ll_suffix
