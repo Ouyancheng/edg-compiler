@@ -3633,7 +3633,8 @@ a_boolean calling_conventions_are_compatible(a_type_ptr type1,
 /*
 Return TRUE if the calling conventions of the two given function types
 are compatible.  That means they are identical or one is cc_default and
-the other matches default_calling_convention.
+the other matches default_calling_convention (or cc_thiscall in the case
+of member functions).
 */
 {
   a_calling_convention          cc1, cc2;
@@ -3646,12 +3647,22 @@ the other matches default_calling_convention.
   type2 = skip_typerefs(type2);
   rtsp2 = type2->variant.routine.extra_info;
   cc2 = rtsp2->calling_convention;
-  if (cc1 == cc2 ||
-      (cc1 == (a_calling_convention)cc_default &&
-       cc2 == default_calling_convention) ||
-      (cc2 == (a_calling_convention)cc_default &&
-       cc1 == default_calling_convention)) {
+  if (cc1 == cc2) {
     compatible = TRUE;
+  } else if (cc1 == (a_calling_convention)cc_default) {
+    if (rtsp1->this_class != NULL) {
+      /* The default calling convention for member functions is cc_thiscall. */
+      compatible = (cc2 == (a_calling_convention)cc_thiscall);
+    } else {
+      compatible = (cc2 ==  default_calling_convention);
+    }  /* if */
+  } else if (cc2 == (a_calling_convention)cc_default) {
+    if (rtsp2->this_class != NULL) {
+      /* The default calling convention for member functions is cc_thiscall. */
+      compatible = (cc1 == (a_calling_convention)cc_thiscall);
+    } else {
+      compatible = (cc1 ==  default_calling_convention);
+    }  /* if */
   }  /* if */
   return compatible;
 }  /* calling_conventions_are_compatible */

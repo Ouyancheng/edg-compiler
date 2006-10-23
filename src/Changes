@@ -1,5 +1,20 @@
 Version 3.9
 
+10/23/06 Microsoft compatibility: Calling convention of pointer-to-member
+         function
+
+In Microsoft mode, the front end previously treated a pointer-to-member
+function as implying the __cdecl calling convention by default.  Now, the
+default calling convention for a pointer-to-member function is __thiscall.
+For example:
+
+  struct S {};
+  void f(void (S::*pm)()) {}
+  void f(void (__cdecl S::*pm)()) {}  // Previously a duplicate definition;
+                                      // now accepted.
+
+(See also the Changes entry of 11/29/05.)
+
 10/18/06 C++-generating back end: GNU attributes for pure virtual functions
 
 The C++-generating back end previously generated a GNU attribute
