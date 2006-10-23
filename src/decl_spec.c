@@ -3572,7 +3572,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
       free_attribute_list(attributes);
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    if (gpp_mode) {
+    if (gpp_mode && is_immediate_class_type(class_type)) {
       /* If no ELF visibility was explicitly specified, use that of the
          enclosing class or namespace (if any). */
       a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
