@@ -20,8 +20,8 @@ fixed.  For example:
 10/23/06 Integer types in #if control expressions (C99 and GNU modes)
 
 In its DR#265 the C committee has issued a correction that gives all integer
-integer types the same representation as intmax_t or uintmax_t (depending on
-their signedness) when converting integer literals appearing in #if control
+types the same representation as intmax_t or uintmax_t (depending on their
+signedness) when converting integer literals appearing in #if control
 expressions.  We now follow that requirement in C99 mode, as well as in GNU
 C and C++ modes (to match the behavior of GNU compilers).  For example:
 
