@@ -207,28 +207,33 @@ constants).  The number may have a "u" or "l" suffix, or both.
     }  /* for */
   }  /* if */
   /* Determine the type based on the value and the suffixes.  See standard,
-     3.1.3.2.  In pcc compatibility mode, overflow is ignored, and
-     the constant is either int or long (see K&R, reference manual section,
-     2.4.1 and 2.4.2). */
-  /* Since the "u" suffix does not exist in pcc C, treat constants with
-     that suffix according to the ANSI rules. */
-#if LONG_LONG_ALLOWED
-  /* Likewise for "ll". */
-#endif /* LONG_LONG_ALLOWED */
+     3.1.3.2 (for C89). */
   if (in_pp_if_expression && (c99_mode || gnu_mode)) {
     /* C99 was amended with DR 265 to the effect that the conversion of an
        integer literal in a #if control expression should treat all integer
        types as having the same representation as intmax_t or uintmax_t
        (depending on their signedness). */
-    if (has_u_suffix ||
-        !le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
-                                      targ_intmax_kind)) {
+    if (has_u_suffix) {
+      /* A "u" suffix is always mapped onto an unsigned type. */
       kind = targ_uintmax_kind;
-    } else {
+    } else if (radix == 10 ||
+               le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                      targ_intmax_kind)) {
+      /* Decimal literals without a "u" suffix are always signed.  Nondecimal
+         literals are signed if they can be represented by the signed type. */
       kind = targ_intmax_kind;
+    } else {
+      kind = targ_uintmax_kind;
     }  /* if */
     goto kind_established;
   }  /* if */
+  /* In pcc compatibility mode, overflow is ignored, and the constant is
+     either int or long (see K&R, reference manual section, 2.4.1 and 2.4.2).
+     Since the "u" suffix does not exist in pcc C, treat constants with that
+     suffix according to the ANSI rules. */
+#if LONG_LONG_ALLOWED
+  /* Likewise for "ll". */
+#endif /* LONG_LONG_ALLOWED */
   if (C_dialect == C_dialect_pcc && !has_u_suffix
 #if LONG_LONG_ALLOWED
       && !has_ll_suffix
