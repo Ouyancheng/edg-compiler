@@ -329,6 +329,9 @@ extern void unmap_template_param(a_template_param_coordinate_ptr  coord);
 
 #endif /* BACK_END_IS_CP_GEN_BE */
 
+extern a_source_correspondence_ptr source_corresp_for_template_param(
+                                        a_template_param_coordinate_ptr coord);
+
 #if GNU_EXTENSIONS_ALLOWED
 
 extern a_boolean form_type_attributes(

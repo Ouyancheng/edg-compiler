@@ -1468,6 +1468,9 @@ to default values.
 #if USER_CONTROL_OF_STRUCT_PACKING
       pte->variant.class_struct_union.max_member_alignment = 0;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      pte->variant.class_struct_union.template_parameter_type = NULL;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       /* The class type supplement is only allocated in C++ mode. */
       if (C_mode()) {
         pte->variant.class_struct_union.extra_info = NULL;

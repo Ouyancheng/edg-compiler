@@ -1,5 +1,22 @@
 Version 3.9
 
+10/24/06 C++-generating back end: names used for template parameters
+
+In configurations in which the C++-generating back end generates the
+definition for a template from its prototype instantiation rather than
+using its recorded string (i.e., with PROTOTYPE_INSTANTIATIONS_IN_IL set to
+TRUE), the generated output sometimes used the name of a template parameter
+from an earlier template definition in a dependent reference.  This is now
+fixed.  For example:
+
+  template <class T> struct A {};
+  template <class T> struct B {
+    A<typename T::z> y;
+  };
+  template <class X> struct C {
+    A<typename X::z> x;       // Formerly generated as A<typename T::z>
+  };   
+
 10/23/06 Integer types in #if control expressions (C99 and GNU modes)
 
 In its DR#265 the C committee has issued a correction that gives all integer

@@ -1770,6 +1770,14 @@ do_struct_union:
                                                         max_member_alignment);
       }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      if (ptr->variant.class_struct_union.template_parameter_type != NULL) {
+        disp_ptr("template_parameter_type",
+                 (char *)ptr->
+                            variant.class_struct_union.template_parameter_type,
+                 iek_type);
+      }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       break;
     case tk_typeref:
       (void)printf("tk_typeref\n");

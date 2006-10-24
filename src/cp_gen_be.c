@@ -2016,6 +2016,26 @@ for the meaning of need_closing_paren.
     gen_temp_name((char *)class_type);
     write_tok_str("::");
   } else {
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (class_type->variant.class_struct_union.template_parameter_type !=
+                                                                        NULL) {
+      /* This qualifier represents a template parameter.  The name of the
+         parameter may be different at this point in the code, so use the
+         template coordinates to get the correct spelling. */
+      a_source_correspondence_ptr scp;
+      a_type_ptr                  template_param_type =
+                class_type->variant.class_struct_union.template_parameter_type;
+      check_assertion(template_param_type->kind ==
+                                              (a_type_kind)tk_template_param &&
+                      template_param_type->variant.template_param.kind ==
+                                       (a_template_param_type_kind)tptk_param);
+      scp = source_corresp_for_template_param(&template_param_type->
+                               variant.template_param.extra_info->coordinates);
+      check_assertion(scp != NULL);
+      gen_bare_name(scp, iek_template_parameter);
+    } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+    /* Do not insert code here. */
     if (msvc_is_generated_code_target && msvc_target_version_number <= 1200 &&
         (options & GN_BOUND_MEMBER) &&
         class_type->source_corresp.is_class_member &&

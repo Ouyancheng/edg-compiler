@@ -6103,6 +6103,14 @@ typedef struct a_type {
 			   nonstatic data member's alignment is based solely
 			   on its type.) */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      a_type_ptr
+		template_parameter_type;
+			/* For nonreal classes that directly represent a
+			   template parameter (i.e., proxy classes), this
+			   points to the type entry for that parameter;
+			   otherwise, NULL. */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     } class_struct_union;
     /* When kind == tk_typeref: */
     struct {
