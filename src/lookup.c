@@ -535,8 +535,13 @@ as the class type, and use as a base class.
     cssp->template_param_for_proxy_class = templ_param_type;
     type->variant.class_struct_union.is_nonreal_class = TRUE;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-    type->variant.class_struct_union.template_parameter_type =
+    if (templ_param_type->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_param) {
+      /* Allow users of the proxy class to find the associated template
+         parameter type. */
+      type->variant.class_struct_union.template_parameter_type =
                                                               templ_param_type;
+    }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     if (prototype_instantiations_in_il) {
       /* When prototype instantiations are included in the IL, add the proxy
