@@ -1,5 +1,12 @@
 Version 3.9
 
+10/25/06 alignment_of_variable
+
+A new utility function "alignment_of_variable" is now available (defined in
+il.c) to find alignment needed for a variable.  The function takes into
+account any attributes specified on the variable declaration (significant
+in Microsoft and GNU modes).
+
 10/24/06 C++-generating back end: names used for template parameters
 
 In configurations in which the C++-generating back end generates the

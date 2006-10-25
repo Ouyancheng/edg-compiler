@@ -18260,6 +18260,31 @@ with the given source position.
   add_to_types_list(predeclared_type, scope_depth);
 }  /* enter_predeclared_class */
 
+
+a_targ_alignment alignment_of_variable(a_variable_ptr  vp)
+/*
+Return the alignment of the given variable.  In GNU and Microsoft modes, this
+may be affected by attributes specified on the variable declaration.  In some
+rare cases (e.g., in GNU 3.0 compatibility mode), the result may be different
+from that implied by the alignof operator applied to the variable (see
+scan_alignof_operator for details).
+*/
+{
+  a_targ_alignment  result;
+
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  if (vp->alignment != 0) {
+    /* Alignment was specified explicitly on the variable declaration. */
+    result = vp->alignment;
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    result = alignment_of_type(vp->type);
+  }  /* if */
+  return result;
+}  /* alignment_of_variable */
+
 #if DEBUG
 
 unsigned long db_show_il_c_fe_space_used(unsigned long grand_total)

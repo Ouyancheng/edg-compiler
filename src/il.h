@@ -1634,6 +1634,8 @@ extern void enter_predeclared_class(a_type_ptr         predeclared_type,
                                     a_scope_depth      scope_depth,
                                     a_source_position  *pos);
 
+extern a_targ_alignment alignment_of_variable(a_variable_ptr  vp);
+
 /*
 Type used as a hash value of a constant entry.
 */
