@@ -485,6 +485,9 @@ extern int fileno(FILE *);
 /*lint -esym(759, lower_c99_constant_expr)*/
 /*lint -esym(765, lower_c99_constant_expr)*/
 #endif /* !(GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX) */
+/*lint -esym(759,alignment_of_variable)*/
+/*lint -esym(765,alignment_of_variable)*/
+/*lint -esym(714,alignment_of_variable)*/
 
 /******************************************************************************
 *                                                             \  ___  /       *
