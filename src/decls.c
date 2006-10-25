@@ -5804,10 +5804,11 @@ is_function_def is TRUE if the redeclaration is a definition.
       rp->type = new_type;
     }  /* if */
   } else if (microsoft_mode && C_mode() &&
-             identical_types(old_return_type, new_return_type)) {
-    /* In Microsoft C mode "anything goes" as far as function
-       redeclarations are concerned, provided the return types
-       are identical. */
+             interchangeable_types(old_return_type, new_return_type)) {
+    /* In Microsoft C mode "anything goes" as far as function redeclarations
+       are concerned, provided the return types are "interchangeable" (the
+       Microsoft C compiler allows even stronger incompatibilities, but we
+       don't emulate those). */
     pos_sy_warning(ec_not_compatible_with_previous_decl, diag_pos, linked_sym);
     *old_type = rp->type;
     if (is_function_def || !old_decl_has_body) {

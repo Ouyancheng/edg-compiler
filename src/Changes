@@ -1,5 +1,15 @@
 Version 3.9
 
+10/25/06 Microsoft C compatibility: Incompatible function redeclarations
+
+In Microsoft C mode, a function can now be redeclared with a return type that
+is incompatible with the return type specified on the original declaration,
+provided that return type is "similar" to the original type (e.g., a signed or
+unsigned variant).  A warning is issued in such cases.  For example:
+
+  unsigned int f();  
+  int f();  // Now accepted (with a warning) in Microsoft C mode.
+
 10/25/06 alignment_of_variable
 
 A new utility function "alignment_of_variable" is now available (defined in
