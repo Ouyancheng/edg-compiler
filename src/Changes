@@ -1,5 +1,17 @@
 Version 3.9
 
+10/26/06 C++-generating back end: casting to reference types
+
+The C++-generating back end previously rendered many casts of lvalues to
+reference types using pointer types, adding indirection or taking addresses
+as needed for the semantics of the expression.  It has now been modified
+to use reference types for most expressions where the source used a
+reference type.  For example:
+
+  unsigned i;
+  int *r = &reinterpret_cast<int&>(u);  // Previously generated as
+                                        // reinterpret_cast<int*>(&u)
+
 10/25/06 Spurious warning for variables in specific registers (GNU modes)
 
 In GNU modes, it is possible to map a variable onto a specific register.  If

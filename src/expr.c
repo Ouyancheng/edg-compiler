@@ -10609,6 +10609,36 @@ address.
 }  /* is_cast_of_nonconstant_address_to_smaller_integer */
 
 
+static a_boolean cast_expr_was_added(an_expr_node_ptr orig_operand_expr,
+                                     an_operand       *operand)
+/*
+Return TRUE if there is an expression node associated with operand, it is
+some form of cast expression or an enk_temp_init, and it is not the same as
+orig_operand_expr (which may be NULL) -- i.e., it was added to operand by
+processing that occurred after orig_operand_expr was captured.
+*/
+{
+  an_expr_node_ptr curr_operand_expr = expr_node_from_operand(operand);
+  a_boolean        operand_has_added_cast_expr = FALSE;
+
+  if (curr_operand_expr != NULL &&
+      curr_operand_expr != orig_operand_expr &&
+      (curr_operand_expr->kind == (an_expr_node_kind)enk_temp_init ||
+       (is_operation_node(curr_operand_expr) &&
+        (node_operator_is(curr_operand_expr, eok_cast) ||
+         node_operator_is(curr_operand_expr, eok_base_class_cast) ||
+         node_operator_is(curr_operand_expr, eok_derived_class_cast) ||
+         node_operator_is(curr_operand_expr, eok_pm_base_class_cast) ||
+         node_operator_is(curr_operand_expr, eok_pm_derived_class_cast) ||
+         node_operator_is(curr_operand_expr, eok_lvalue_cast) ||
+         node_operator_is(curr_operand_expr, eok_bool_cast) ||
+         node_operator_is(curr_operand_expr, eok_static_cast))))) {
+    operand_has_added_cast_expr = TRUE;
+  }  /* if */
+  return operand_has_added_cast_expr;
+}  /* cast_expr_was_added */
+
+
 static void do_cast(a_type_ptr               type_cast_to,
                     an_operand               *operand,
                     an_operand               *bound_function_selector,
@@ -10633,6 +10663,8 @@ C-style casts and C++ functional-notation type conversions.
   a_boolean     allow_rvalue_on_rewrite = FALSE;
   a_ruled_out_expr_kind_set
                 ruled_out_expr_kinds = ROEK_NONE;
+  an_expr_node_ptr
+                operand_expression = NULL;
 
   /* The bound function test is done first to make sure bound functions
      cannot wander into the rest of the cases. */
@@ -10650,6 +10682,7 @@ C-style casts and C++ functional-notation type conversions.
     if (!C_mode()) {
       /* See if we're casting to a reference type. */
       cast_to_reference = is_reference_type(type_cast_to);
+      operand_expression = expr_node_from_operand(operand);
       check_user_defined_conversions_for_cast(type_cast_to, operand,
                                               &allow_rvalue_on_rewrite,
                                               &processed, &err);
@@ -10875,7 +10908,18 @@ C-style casts and C++ functional-notation type conversions.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (err) conv_to_error_operand(operand);
+  if (err) {
+    conv_to_error_operand(operand);
+  } else if (cast_to_reference &&
+             cast_expr_was_added(operand_expression, operand)) {
+    an_expr_node_ptr result_expression = expr_node_from_operand(operand);
+    if (is_operation_node(result_expression)) {
+      /* A node was created that can carry the information that this was a
+         cast to a reference type: mark it accordingly. */
+      result_expression->implicit_reference_indirection = TRUE;
+      result_expression->variant.operation.is_reference_cast = TRUE;
+    }  /* if */
+  }  /* if */
   operand->position = *start_position;
   rule_out_expr_kinds(ruled_out_expr_kinds, operand);
 }  /* do_cast */
@@ -11093,6 +11137,7 @@ Syntax:
   a_type_ptr        type_cast_to, orig_type_cast_to, source_type;
   a_boolean         err = FALSE, processed = FALSE, ignored = FALSE;
   a_boolean         allow_rvalue_on_rewrite = FALSE;
+  a_boolean         cast_to_reference = FALSE;
   an_error_code     warning_suggested;
   a_ruled_out_expr_kind_set
                     ruled_out_expr_kinds = ROEK_NONE;
@@ -11119,9 +11164,9 @@ Syntax:
                            result)) {
     err = TRUE;
   } else {
-    a_boolean cast_to_reference = is_reference_type(type_cast_to);
     a_boolean cast_to_void      = is_void_type(type_cast_to);
 
+    cast_to_reference = is_reference_type(type_cast_to);
     orig_type_cast_to = type_cast_to;
     operand_expression = expr_node_from_operand(result);
     /* Check for user-defined conversions and casts to reference type. */
@@ -11285,23 +11330,14 @@ Syntax:
   }  /* if */
   if (err) {
     conv_to_error_operand(result);
-  } else if (!ignored) {
+  } else if (!ignored && cast_expr_was_added(operand_expression, result)) {
+    /* An expression node was created that represents this static_cast:
+       mark it as resulting from a static_cast operation. */
     an_expr_node_ptr result_expression = expr_node_from_operand(result);
-    if (result_expression != NULL &&
-        result_expression != operand_expression &&
-        (result_expression->kind == (an_expr_node_kind)enk_temp_init ||
-         (is_operation_node(result_expression) &&
-          (node_operator_is(result_expression, eok_cast) ||
-           node_operator_is(result_expression, eok_base_class_cast) ||
-           node_operator_is(result_expression, eok_derived_class_cast) ||
-           node_operator_is(result_expression, eok_pm_base_class_cast) ||
-           node_operator_is(result_expression, eok_pm_derived_class_cast) ||
-           node_operator_is(result_expression, eok_lvalue_cast) ||
-           node_operator_is(result_expression, eok_bool_cast) ||
-           node_operator_is(result_expression, eok_static_cast))))) {
-      /* An expression node was created that represents this static_cast:
-         mark it as resulting from a static_cast operation. */
-      result_expression->is_static_cast = TRUE;
+    result_expression->is_static_cast = TRUE;
+    if (cast_to_reference && is_operation_node(result_expression)) {
+      result_expression->implicit_reference_indirection = TRUE;
+      result_expression->variant.operation.is_reference_cast = TRUE;
     }  /* if */
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
@@ -11329,6 +11365,7 @@ Syntax:
   a_boolean         is_const_string_literal_in_microsoft_mode = FALSE;
   a_ruled_out_expr_kind_set
                     ruled_out_expr_kinds = ROEK_NONE;
+  an_expr_node_ptr  operand_expression = NULL;
 
   db_enter(4, "scan_reinterpret_cast_operator");
   /* Save the position of the reinterpret_cast keyword. */
@@ -11352,6 +11389,7 @@ Syntax:
     err = TRUE;
   } else {
     orig_type_cast_to = type_cast_to;
+    operand_expression = expr_node_from_operand(result);
     if (microsoft_bugs &&
         is_pointer_type(type_cast_to) &&
         identical_types(result->type, type_cast_to)) {
@@ -11461,7 +11499,18 @@ Syntax:
       }  /* if */
     }  /* if */
   }  /* if */
-  if (err) conv_to_error_operand(result);
+  if (err) {
+    conv_to_error_operand(result);
+  } else if (cast_to_reference &&
+             cast_expr_was_added(operand_expression, result)) {
+    an_expr_node_ptr result_expression = expr_node_from_operand(result);
+    if (is_operation_node(result_expression)) {
+      /* A node was created that can carry the information that this was a
+         cast to a reference type: mark it accordingly. */
+      result_expression->implicit_reference_indirection = TRUE;
+      result_expression->variant.operation.is_reference_cast = TRUE;
+    }  /* if */
+  }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   rule_out_expr_kinds(ruled_out_expr_kinds, result);

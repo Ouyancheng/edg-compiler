@@ -9953,9 +9953,7 @@ typedef struct an_expr_node {
 		is_reference_cast:1;
 			/* TRUE for a cast that was, in source form, a
 			   cast to a reference type (and is rendered as
-			   a cast to a pointer type).  At the moment, set
-			   only for generic casts in prototype
-			   instantiations. */
+			   a cast to a pointer type). */
       a_bit_field
 		is_conversion_call:1;
 			/* TRUE for a call that does an explicit or implicit

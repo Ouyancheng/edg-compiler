@@ -437,7 +437,6 @@ static void gen_statement_list(a_statement_ptr stmt_list,
 static void gen_cast(a_type_ptr type);
 static void gen_full_cast(a_type_ptr            dest_type,
                           an_expr_node_ptr      expr,
-                          a_boolean             is_lvalue,
                           a_boolean             is_reference_cast,
                           a_boolean             is_reinterpret_cast,
                           a_boolean             is_static_cast);
@@ -6361,10 +6360,8 @@ Output a new-style cast.
   }  /* if */
   gen_type(type);
   write_tok_str(">(");
-  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_dynamic_cast&&
-      is_reference_type(expr->type)) {
-    /* For the eok_dynamic_cast operator, the operand is an lvalue if
-       the type is a reference type. */
+  if (is_reference_type(expr->type)) {
+    /* The operand is an lvalue if the type is a reference type. */
     gen_lvalue_no_parens(expr->variant.operation.operands);
   } else {
     gen_expression(expr->variant.operation.operands);
@@ -6706,7 +6703,7 @@ temporary expressions).
               if (is_reference_cast) {
                 /* Generate a cast to a reference type. */
                 if (need_parens) write_tok_ch('(');
-                gen_full_cast(node->type, operand_1, /*is_lvalue=*/TRUE,
+                gen_full_cast(node->type, operand_1,
                               /*is_reference_cast=*/TRUE,
                               node->variant.operation.is_reinterpret_cast,
                               node->is_static_cast);
@@ -6953,16 +6950,14 @@ Generate a cast to the indicated type.
 
 static void gen_full_cast(a_type_ptr            dest_type,
                           an_expr_node_ptr      expr,
-                          a_boolean             is_lvalue,
                           a_boolean             is_reference_cast,
                           a_boolean             is_reinterpret_cast,
                           a_boolean             is_static_cast)
 /*
-Generate a cast of expr to the type dest_type.  expr is an lvalue if
-is_lvalue is TRUE.  The original cast was a cast to a reference type
-if is_reference_cast is TRUE.  Usually, the output is an old-style cast,
-but a reinterpret_cast or a static_cast is put out when the corresponding
-flag is TRUE.
+Generate a cast of expr to the type dest_type.  The original cast was a
+cast to a reference type if is_reference_cast is TRUE.  Usually, the output
+is an old-style cast, but a reinterpret_cast or a static_cast is put out
+when the corresponding flag is TRUE.
 */
 {
   a_type type_copy;
@@ -6991,7 +6986,7 @@ flag is TRUE.
   } else {
     gen_cast(dest_type);
   }  /* if */
-  if (is_lvalue) {
+  if (is_reference_cast) {
     gen_lvalue(expr);
   } else {
     gen_expr_with_parens(expr);
@@ -8378,7 +8373,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                                    saved_suppress_cast_on_short_integral_const;
             }  /* if */
           } else {
-            gen_full_cast(expr->type, operand_1, /*is_lvalue=*/FALSE,
+            gen_full_cast(expr->type, operand_1,
                           expr->variant.operation.is_reference_cast,
                           expr->variant.operation.is_reinterpret_cast,
                           expr->is_static_cast);
@@ -8400,15 +8395,21 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                                               implicit_step_of_explicit_cast) {
               operand_1 = operand_1->variant.operation.operands;
             }  /* while */
-            gen_cast(expr->type);
-            if (is_cast_of_UDC_to_different_pointer_type(expr->type,
-                                                         operand_1)) {
-              /* Ensure a class object is not explicitly cast to a pointer
-                 type that is different from that of its conversion
-                 operator. */
-              operand_1->variant.operation.keep_cast_for_cp_gen_be = TRUE;
+            if (expr->variant.operation.is_reference_cast) {
+              gen_full_cast(expr->type, operand_1, /*is_reference_cast=*/TRUE,
+                            expr->variant.operation.is_reinterpret_cast,
+                            expr->is_static_cast);
+            } else {
+              gen_cast(expr->type);
+              if (is_cast_of_UDC_to_different_pointer_type(expr->type,
+                                                           operand_1)) {
+                /* Ensure a class object is not explicitly cast to a pointer
+                   type that is different from that of its conversion
+                   operator. */
+                operand_1->variant.operation.keep_cast_for_cp_gen_be = TRUE;
+              }  /* if */
+              gen_expr_with_parens(operand_1);
             }  /* if */
-            gen_expr_with_parens(operand_1);
           }  /* if */
           goto done_with_operation;
         case eok_lvalue_cast:
