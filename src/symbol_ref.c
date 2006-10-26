@@ -2088,8 +2088,11 @@ check_label_decl_seq:
           if (!suppress_warning) {
             /* Variables mapped onto registers may have been initialized
                through some mechanism outside the language. */
-            if (gnu_mode && !vp->asm_name_is_valid &&
-                !vp->has_named_register_storage_class) {
+            if (gnu_mode &&
+#if NAMED_REGISTERS_ALLOWED
+                !vp->has_named_register_storage_class &&
+#endif /* NAMED_REGISTERS_ALLOWED */
+                !vp->asm_name_is_valid) {
               suppress_warning = TRUE;
             }  /* if */
           }  /* if */
