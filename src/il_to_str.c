@@ -153,6 +153,11 @@ Output an unsigned number in hexadecimal form, as indicated by octl.
 
 #endif /* DEBUG */
 
+#if !PROTOTYPE_INSTANTIATIONS_IN_IL
+static a_source_correspondence_ptr source_corresp_for_template_param(
+                                        a_template_param_coordinate_ptr coord);
+#endif /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
+
 static void form_template(a_template_ptr	tp,
                           an_il_to_str_output_control_block_ptr octl)
 
