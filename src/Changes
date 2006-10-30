@@ -1,5 +1,17 @@
 Version 3.9
 
+10/30/06 Incorrect type for char16_t literals
+
+When both U-literals (see Changes entry of 2/14/06) and multibyte source
+characters (see Changes entry of 2/19/97) are accepted, the front end often
+assigned too large of an array type to char16_t literals.  For example:
+
+  unsigned short const *str = u"123";
+    // The literal previously was a 7-element array instead of a 4-element
+    // array.
+
+This is now fixed.
+
 10/26/06 C++-generating back end: casting to reference types
 
 The C++-generating back end previously rendered many casts of lvalues to

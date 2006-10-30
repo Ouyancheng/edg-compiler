@@ -1246,9 +1246,10 @@ smaller) than the number of characters needed to represent the string.
   unsigned short    char16_t_vals[MAX_CHAR16_T_ENCODING_LENGTH];
 
   /* The number of array elements is one more than the number of characters,
-     to leave space for the terminating null. */
+     to leave space for the terminating null.  (For char16_t strings, this
+     may need to be adjusted below.) */
   num_elems = (a_targ_size_t)num_chars + 1;
-  temp_ptr = start_of_curr_token+1;
+  temp_ptr = start_of_curr_token + 1;
   /* See if this is a wide string literal. */
   switch (*start_of_curr_token) {
     case '"':
@@ -1295,8 +1296,9 @@ smaller) than the number of characters needed to represent the string.
       centity_mask |= (centity_mask << targ_char_bit);
     }  /* for */
   }  /* if */
-  /* Allocate enough space to hold the final string, including the null
-     added to it. */
+  /* Allocate enough space to hold the final string, including the null added
+     to it.  (This may be more than strictly needed in the case of char16_t
+     strings.) */
   str_start = pstr = alloc_text_of_string_literal(constant_size);
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Initialize for scanning multibyte characters in the string. */
@@ -1344,9 +1346,10 @@ smaller) than the number of characters needed to represent the string.
       break;
     case chk_char16_t:
       /* The allocated number of bytes may be too large due to a conservative
-         estimate for encoding length.  Update the size to reflect the actual
-         encoding. */
-      constant_size = pstr - (str_start) + char_size;
+         estimate for encoding length.  Update the size and character count to
+         reflect the actual encoding. */
+      constant_size = (pstr - str_start) + char_size;
+      num_elems = constant_size / char_size;
       /*FALLTHROUGH*/
     case chk_wchar_t:
     case chk_char32_t:
