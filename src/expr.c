@@ -7956,6 +7956,7 @@ Syntax:
   a_boolean         template_param_case = FALSE;
   a_base_class_ptr  bcp;
   an_expr_node_ptr  expr;
+  an_expr_node_ptr  operand_expression = NULL;
 
   db_enter(4, "scan_dynamic_cast_operator");
   /* Save the position of the dynamic_cast keyword. */
@@ -7982,6 +7983,8 @@ Syntax:
                            &cast_type, &type_position, &end_position,
                            &operand)) {
     err = TRUE;
+  } else {
+    operand_expression = expr_node_from_operand(&operand);
   }  /* if */
   if (!err) {
     /* The type cast to must be a pointer or reference to a complete class
@@ -8151,10 +8154,6 @@ Syntax:
       expr = make_operator_node((an_expr_operator_kind)eok_dynamic_cast,
                                 cast_type, /* sic: want reference type. */
                                 make_node_from_operand(&operand));
-      if (reference_case) {
-        expr->implicit_reference_indirection = TRUE;
-        expr->variant.operation.is_reference_cast = TRUE;
-      }  /* if */
       make_expression_operand(expr, expr->type, result);
       set_used_in_exception_or_rtti_flag(operand_type);
       set_used_in_exception_or_rtti_flag(operation_type);
@@ -8164,8 +8163,15 @@ Syntax:
     /* Some error, previously issued. */
     make_error_operand(result);
   } else {
-    /* For a dynamic cast to a reference type, the result is an lvalue. */
     if (reference_case) {
+      if (cast_expr_was_added(operand_expression, result)) {
+        an_expr_node_ptr result_expression = expr_node_from_operand(result);
+        /* A node was created that can carry the information that this was a
+           cast to a reference type: mark it accordingly. */
+        result_expression->implicit_reference_indirection = TRUE;
+        result_expression->variant.operation.is_reference_cast = TRUE;
+      }  /* if */
+      /* For a dynamic cast to a reference type, the result is an lvalue. */
       conv_object_pointer_to_lvalue(result);
     }  /* if */
   }  /* if */
@@ -10624,15 +10630,7 @@ processing that occurred after orig_operand_expr was captured.
   if (curr_operand_expr != NULL &&
       curr_operand_expr != orig_operand_expr &&
       (curr_operand_expr->kind == (an_expr_node_kind)enk_temp_init ||
-       (is_operation_node(curr_operand_expr) &&
-        (node_operator_is(curr_operand_expr, eok_cast) ||
-         node_operator_is(curr_operand_expr, eok_base_class_cast) ||
-         node_operator_is(curr_operand_expr, eok_derived_class_cast) ||
-         node_operator_is(curr_operand_expr, eok_pm_base_class_cast) ||
-         node_operator_is(curr_operand_expr, eok_pm_derived_class_cast) ||
-         node_operator_is(curr_operand_expr, eok_lvalue_cast) ||
-         node_operator_is(curr_operand_expr, eok_bool_cast) ||
-         node_operator_is(curr_operand_expr, eok_static_cast))))) {
+       is_cast_operation_node(curr_operand_expr))) {
     operand_has_added_cast_expr = TRUE;
   }  /* if */
   return operand_has_added_cast_expr;

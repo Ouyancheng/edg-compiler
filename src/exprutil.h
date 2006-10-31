@@ -1418,6 +1418,8 @@ extern an_expr_range_modifier_ptr all_range_modifiers;
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 
+extern a_boolean is_cast_operation_node(an_expr_node_ptr expr);
+
 #if DEBUG
 extern unsigned long show_expr_space_used(void);
 #endif /* DEBUG */
