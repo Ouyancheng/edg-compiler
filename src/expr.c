@@ -7937,6 +7937,28 @@ the type defines something); FALSE is returned if there is an error.
 }  /* scan_new_style_cast */
 
 
+static a_boolean cast_expr_was_added(an_expr_node_ptr orig_operand_expr,
+                                     an_operand       *operand)
+/*
+Return TRUE if there is an expression node associated with operand, it is
+some form of cast expression or an enk_temp_init, and it is not the same as
+orig_operand_expr (which may be NULL) -- i.e., it was added to operand by
+processing that occurred after orig_operand_expr was captured.
+*/
+{
+  an_expr_node_ptr curr_operand_expr = expr_node_from_operand(operand);
+  a_boolean        operand_has_added_cast_expr = FALSE;
+
+  if (curr_operand_expr != NULL &&
+      curr_operand_expr != orig_operand_expr &&
+      (curr_operand_expr->kind == (an_expr_node_kind)enk_temp_init ||
+       is_cast_operation_node(curr_operand_expr))) {
+    operand_has_added_cast_expr = TRUE;
+  }  /* if */
+  return operand_has_added_cast_expr;
+}  /* cast_expr_was_added */
+
+
 static void scan_dynamic_cast_operator(an_operand *result)
 /*
 Scan the C++ dynamic_cast operator.  See [expr.dynamic.cast].
@@ -10613,28 +10635,6 @@ address.
   }  /* if */
   return result;
 }  /* is_cast_of_nonconstant_address_to_smaller_integer */
-
-
-static a_boolean cast_expr_was_added(an_expr_node_ptr orig_operand_expr,
-                                     an_operand       *operand)
-/*
-Return TRUE if there is an expression node associated with operand, it is
-some form of cast expression or an enk_temp_init, and it is not the same as
-orig_operand_expr (which may be NULL) -- i.e., it was added to operand by
-processing that occurred after orig_operand_expr was captured.
-*/
-{
-  an_expr_node_ptr curr_operand_expr = expr_node_from_operand(operand);
-  a_boolean        operand_has_added_cast_expr = FALSE;
-
-  if (curr_operand_expr != NULL &&
-      curr_operand_expr != orig_operand_expr &&
-      (curr_operand_expr->kind == (an_expr_node_kind)enk_temp_init ||
-       is_cast_operation_node(curr_operand_expr))) {
-    operand_has_added_cast_expr = TRUE;
-  }  /* if */
-  return operand_has_added_cast_expr;
-}  /* cast_expr_was_added */
 
 
 static void do_cast(a_type_ptr               type_cast_to,
