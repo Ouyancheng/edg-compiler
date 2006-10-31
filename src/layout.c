@@ -1059,10 +1059,10 @@ field is a bit field allocated in a container with the given alignment.  Adjust
 the alignment of the class being laid out (as recorded in lob) as needed.
 */
 {
-  a_boolean  do_update = TRUE;
+  a_boolean  do_update = TRUE, union_case = is_union_type(lob->class_type);
 
 #if IA64_ABI
-  if (emulate_gnu_abi_bugs && is_union_type(lob->class_type)) {
+  if (emulate_gnu_abi_bugs && union_case) {
     /* In the GNU implementation of the IA-64 ABI, bit fields seem to affect
        the alignment of unions, but usually not that of classes and structs. */
 #if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
@@ -1074,14 +1074,19 @@ the alignment of the class being laid out (as recorded in lob) as needed.
   } else
 #endif /* IA64_ABI */
   /* Do not insert code here. */
-  if (
-      ((field->bit_size == 0 &&
-        !targ_zero_width_bit_field_affects_struct_alignment) ||
-       (!targ_unnamed_bit_field_affects_struct_alignment &&
-        field->source_corresp.assoc_info == (char *)unnamed_field_symbol()))) {
-    /* This is a zero-width bit field or an unnamed bit field, but the
-       alignment it forces should not affect the alignment of the struct as
-       a whole. */
+  if ((field->bit_size == 0 &&
+       !targ_zero_width_bit_field_affects_struct_alignment) ||
+      (union_case && !targ_bit_field_affects_union_alignment) ||
+      (!targ_unnamed_bit_field_affects_struct_alignment &&
+       field->source_corresp.assoc_info == (char *)unnamed_field_symbol())) {
+    /* Various cases where the bit field does not affect the alignment of the
+       parent type:
+         - zero-length bit fields when
+           targ_zero_width_bit_field_affects_struct_alignment is FALSE;
+         - bit fields in unions when targ_bit_field_affects_union_alignment
+           is FALSE;
+         - unnamed bit fields when
+           targ_unnamed_bit_field_affects_struct_alignment is FALSE. */
     do_update = FALSE;
   }  /* if */
   if (do_update) {
@@ -1091,8 +1096,7 @@ the alignment of the class being laid out (as recorded in lob) as needed.
       /* In the GNU implementation of the IA-64 ABI, zero-length bit fields
          seem  to affect the alignment of unions.  The resulting alignment is
          at least the alignment of an int. */
-      if (emulate_gnu_abi_bugs &&
-          is_union_type(lob->class_type) && field->bit_size == 0 &&
+      if (emulate_gnu_abi_bugs && union_case && field->bit_size == 0 &&
           alignment < targ_alignof_int) {
         alignment = targ_alignof_int;
       }  /* if */
@@ -2531,19 +2535,15 @@ there's no overflow TRUE is returned.
     /* Check for a bit-field. */
     if (field->is_bit_field) {
       /* Do any necessary alignment for a bit-field. */
-      if (class_type->kind == (a_type_kind)tk_union &&
-          !targ_bit_field_affects_union_alignment) {
-        /* A bit field in a union in a configuration that ignores such bit
-           fields for alignment purposes: No alignment to perform. */
 #if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
-      } else if (curr_max_member_alignment == 0 &&
-                 ((field->is_packed && field->alignment == 0)
+      if (curr_max_member_alignment == 0 &&
+          ((field->is_packed && field->alignment == 0)
 #if ABI_COMPATIBILITY_VERSION >= 307
-                 || (class_type->variant.class_struct_union.is_packed &&
+           || (class_type->variant.class_struct_union.is_packed &&
 #if IA64_ABI
-                     !(emulate_gnu_abi_bugs && gnu_abi_version < 30300) &&
+               !(emulate_gnu_abi_bugs && gnu_abi_version < 30300) &&
 #endif /*IA64_ABI */
-                     field->alignment == 0)
+               field->alignment == 0)
 #endif /* ABI_COMPATIBILITY_VERSION >= 307 */
                                      )) {
         /* No alignment to perform: Either the field is marked as "packed",
@@ -2552,8 +2552,9 @@ there's no overflow TRUE is returned.
            the "packed" attribute applied to a class type for the purpose of
            laying out bit fields. If a bit field is both marked as "packed"
            and explicitly aligned, the alignment is performed. */
+      } else
 #endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
-      } else {
+      {
         overflow = !align_offsets_for_bit_field(field, lob);
       }  /* if */
     } else {
