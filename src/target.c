@@ -621,6 +621,8 @@ initialization and must be done after command-line processing.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   init_microsoft_sized_int_types();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  always_fold_calls_to_builtin_constant_p =
+                              DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P;
 }  /* target_init */
 
 

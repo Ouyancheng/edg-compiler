@@ -2597,6 +2597,23 @@ generate code for a GNU compiler (gcc or g++).
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 
+/*
+Flag that is TRUE if uses of __builtin_constant_p should always be folded in
+the front end.  In GNU compilers this is not always the case: Instead some
+calls are folded by the back end (and the result may depend on the
+optimization level).  If FALSE, a back end should be prepared to recognize
+calls to the (pseudo-)function.  This is the initial value of the global
+variable always_fold_calls_to_builtin_constant_p.
+*/
+#ifndef DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P
+#if GCC_IS_GENERATED_CODE_TARGET && \
+    (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE)
+#define DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P FALSE
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && ...) */
+#define DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P TRUE
+#endif /* GCC_IS_GENERATED_CODE_TARGET && ... */
+#endif /* ifndef DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P */
+
 #if BACK_END_IS_CP_GEN_BE
 /*
 If CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT is TRUE, the C++-generating back

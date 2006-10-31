@@ -813,10 +813,15 @@ EXTERN int
 
 EXTERN int
 		microsoft_dialect_is_generated_code_target;
-			/* True if code is being generated for a compiler
+			/* TRUE if code is being generated for a compiler
 			   accepting Microsoft extensions. */
 
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+
+EXTERN a_boolean
+		always_fold_calls_to_builtin_constant_p;
+			/* TRUE if calls to __builtin_constant_p should always
+			   be folded in the front end. */
 
 #if BACK_END_IS_CP_GEN_BE
 

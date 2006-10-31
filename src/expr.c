@@ -1791,9 +1791,9 @@ static void scan_gnu_builtin_pseudo_call(an_operand  *operand,
                                          an_operand  *result_op)
 /*
 Operand represents a GNU built-in function that needs special treatment when
-called (e.g., the arguments cannot be evaluated).  This function parses and
-evaluates a pseudo-call to the built-in function.  *result_op is set to an
-operand representing the entire pseudo-call.
+called (e.g., the arguments cannot be evaluated).  This function parses and --
+when appropriate -- evaluates a pseudo-call to the built-in function.
+*result_op is set to an operand representing the entire pseudo-call.
 */
 {
   an_operand               arg;
@@ -1812,8 +1812,11 @@ operand representing the entire pseudo-call.
   if  (bfk == (a_builtin_function_kind)bfk_choose_expr) {
     scan_and_process_builtin_choose_expr_args(result_op);
   } else {
-    /* Simple cases involving just one unevaluated argument (i.e., the
-       argument is parsed "as if" for a sizeof operator. */
+    /* Simple cases involving just one unevaluated argument (i.e., the argument
+       is parsed "as if" for a sizeof operator).  The expression stack cannot
+       be popped until after the argument has been transformed; so we record
+       whether we are in a constant-expression prior to updating the stack. */
+    a_boolean  in_constant_expression = curr_expr_kind_is_const();
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
@@ -1829,11 +1832,19 @@ operand representing the entire pseudo-call.
     switch (rp->variant.builtin_function_kind) {
       case bfk_constant_p:
         /* Lvalue-to-rvalue transformation is needed to ensure that a global
-           variable lvalue (which is represented as an address constant) is
-           not treated as a constant by is_constant_operand.  Except for string
-           literals, GNU compilers do not treat address constants as
-           constants.  (Note that operand_is_string_literal only works prior
-           to applying the lvalue-to-rvalue transformation.) */
+           variable lvalue (which is represented as an address constant) is not
+           treated as a constant by is_constant_operand.  Except for string
+           literals, GNU compilers do not treat address constants as constants.
+           (Note that operand_is_string_literal only works prior to applying
+           the lvalue-to-rvalue transformation.)  The GNU compiler front ends
+           only fold the call when the argument is a constant-expression, or
+           when the calls appears in a namespace scope initializer; otherwise,
+           the call is folded in the back end, and the result may depend on the
+           optimization level.  DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P
+           determines whether we always fold the call in the front end by
+           default (setting it to FALSE matches the GNU compiler more closely,
+           but requires support in the back end or in a run-time support
+           library). */
         {
           a_boolean  result_value = operand_is_string_literal(&arg);
           do_operand_transformations(&arg, TOPT_NO_OPTIONS);
@@ -1842,8 +1853,27 @@ operand representing the entire pseudo-call.
                            arg.variant.constant.kind !=
                                               (a_constant_repr_kind)ck_address;
           }  /* if */
-          set_integer_constant(&result, (a_host_large_integer)result_value,
-                               result_type->variant.integer.int_kind);
+          if (result_value || innermost_function_scope == NULL ||
+              always_fold_calls_to_builtin_constant_p) {
+            set_integer_constant(&result, (a_host_large_integer)result_value,
+                                 result_type->variant.integer.int_kind);
+            make_constant_operand(&result, result_op);
+          } else if (in_constant_expression) {
+            /* The call was not be folded, but a constant-expression is
+               required: Issue an error. */
+            pos_error(ec_bad_constant_function_call, &operand->position);
+            make_error_operand(result_op);
+          } else {
+            /* Leave an actual call in the IL. */
+            assemble_function_call(operand, (an_operand*)NULL,
+                                   make_node_from_operand(&arg),
+                                   /*compiler_generated=*/FALSE,
+                                   /*is_conversion=*/FALSE,
+                                   /*arg_dep_lookup_suppressed=*/FALSE,
+                                   /*found_through_adl=*/FALSE,
+                                   /*uses_operator_syntax=*/FALSE,
+                                   &operand->position, result_op);
+          }  /* if */
         }
         break;
       case bfk_classify_type:
@@ -1856,11 +1886,11 @@ operand representing the entire pseudo-call.
                              (a_host_large_integer)
                                              gnu_type_class_for_type(arg.type),
                              result_type->variant.integer.int_kind);
+        make_constant_operand(&result, result_op);
         break;
       default:
         unexpected_condition();
     }  /* switch */
-    make_constant_operand(&result, result_op);
     pop_expr_stack();
   }  /* if */
   result_op->position = operand->position;
@@ -1979,10 +2009,10 @@ Syntax:
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && !curr_expr_kind_is(ek_pp)) {
-    /* Some GNU built-in functions are treated as constant expressions.  Among
-       these folded built-ins, are some whose argument processing is different
-       from that done for function calls.  Such pseudo-calls are fully handled
-       by the call to scan_gnu_builtin_pseudo_call. */
+    /* Some GNU built-in functions may be treated as constant expressions.
+       Among these folded built-ins, are some whose argument processing is
+       different from that done for function calls.  Such pseudo-calls are
+       fully handled by the call to scan_gnu_builtin_pseudo_call. */
     a_boolean  pseudo_call;
     call_may_be_folded = is_foldable_gnu_builtin_function_operand(
                                                         operand, &pseudo_call);
