@@ -1053,6 +1053,11 @@ for the template parameter to be used.
 
 #endif /* BACK_END_IS_CP_GEN_BE */
 
+#if !PROTOTYPE_INSTANTIATIONS_IN_IL
+/* This routine is used outside il_to_str.c only with prototype
+   instantiations. */
+static
+#endif /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
 a_source_correspondence_ptr source_corresp_for_template_param(
                                         a_template_param_coordinate_ptr coord)
 /*
