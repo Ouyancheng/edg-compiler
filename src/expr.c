@@ -1817,7 +1817,6 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
        be popped until after the argument has been transformed; so we record
        whether we are in a constant-expression prior to updating the stack. */
     a_boolean  in_constant_expression = curr_expr_kind_is_const();
-    a_boolean  folded = TRUE;
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
@@ -1875,7 +1874,6 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
             /* Leave an actual call in the IL.  (The usual transformations --
                including promotion -- are needed.) */
             an_operand  dummy_bound_function_selector;
-            folded = FALSE;
             do_operand_transformations(
                         operand, TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
             change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
