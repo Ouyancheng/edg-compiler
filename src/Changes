@@ -7,9 +7,9 @@ However, GNU compilers appear to only fold such a call in the front end if the
 argument is a constant-expression, or if the call appears in an initializer
 outside a function scope.  That behavior is now closely emulated when the new
 configuration macro DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P is set to
-FALSE (doing so, however, requires support from the back end or from a run-
-time support library).  If neither the C- nor the C++-generating back end is
-used, the behavior is unchanged by default.
+FALSE (doing so, however, requires support from the back end).  If neither the
+C- nor the C++-generating back end is used, the behavior is unchanged by
+default.
 
 10/30/06 Incorrect type for char16_t literals
 

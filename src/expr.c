@@ -1817,9 +1817,18 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
        be popped until after the argument has been transformed; so we record
        whether we are in a constant-expression prior to updating the stack. */
     a_boolean  in_constant_expression = curr_expr_kind_is_const();
+    a_boolean  folded = TRUE;
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
+    if (bfk == (a_builtin_function_kind)bfk_constant_p &&
+        !always_fold_calls_to_builtin_constant_p &&
+        innermost_function_scope != NULL) {
+      /* Inside function scopes, __builtin_constant_p is only folded if its
+         argument is a constant-expression.  In such cases, the argument
+         must therefore be treated as "potentially evaluated". */
+      expr_stack->potentially_evaluated = TRUE;
+    }  /* if */
     /* Parse the pseudo-call argument.  GNU compilers accept multiple arguments
        and no argument, but that does not seem a useful thing to emulate.  So
        we'll issue a syntax error in those cases. */
@@ -1829,7 +1838,7 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
     result_type = return_type_of(rp->type);
     result_type = skip_typerefs(result_type);
     check_assertion(is_integral_type(result_type));
-    switch (rp->variant.builtin_function_kind) {
+    switch (bfk) {
       case bfk_constant_p:
         /* Lvalue-to-rvalue transformation is needed to ensure that a global
            variable lvalue (which is represented as an address constant) is not
@@ -1843,8 +1852,7 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
            optimization level.  DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P
            determines whether we always fold the call in the front end by
            default (setting it to FALSE matches the GNU compiler more closely,
-           but requires support in the back end or in a run-time support
-           library). */
+           but requires support in the back end). */
         {
           a_boolean  result_value = operand_is_string_literal(&arg);
           do_operand_transformations(&arg, TOPT_NO_OPTIONS);
@@ -1864,8 +1872,16 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
             pos_error(ec_bad_constant_function_call, &operand->position);
             make_error_operand(result_op);
           } else {
-            /* Leave an actual call in the IL. */
-            assemble_function_call(operand, (an_operand*)NULL,
+            /* Leave an actual call in the IL.  (The usual transformations --
+               including promotion -- are needed.) */
+            an_operand  dummy_bound_function_selector;
+            folded = FALSE;
+            do_operand_transformations(
+                        operand, TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+            change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
+                                  SRK_REFERENCE);
+            arg_default_promote_operand(&arg, /*is_ellipsis=*/TRUE);
+            assemble_function_call(operand, &dummy_bound_function_selector,
                                    make_node_from_operand(&arg),
                                    /*compiler_generated=*/FALSE,
                                    /*is_conversion=*/FALSE,
