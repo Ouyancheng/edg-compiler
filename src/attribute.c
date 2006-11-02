@@ -2419,20 +2419,19 @@ definition.
   if (source_sequence_entries_disallowed) {
     /* Possible in secondary translation units or when code for source
        sequence lists and for IL lowering is configured in simultaneously. */
-  } else if (sp->kind == (a_scope_kind)sck_namespace) {
-    /* The visibility associated with the primary definition is recorded in
-       the namespace entry itself. */
-    sp->assoc_namespace->ELF_visibility = visibility;
   } else {
-    /* The visibility associated with the primary definition is recorded in a
-       secondary declaration entry. */
     a_source_sequence_entry_ptr   ssep;
+    check_assertion(sp->kind == (a_scope_kind)sck_namespace ||
+                    sp->kind == (a_scope_kind)sck_namespace_extension);
     ssep = scope_stack[sp->previous_scope].end_of_source_sequence_list;
-    check_assertion(ssep != NULL &&
-                    (an_il_entry_kind)ssep->entity.kind == 
-                                            iek_src_seq_secondary_decl);
-    ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)->ELF_visibility =
+    check_assertion(ssep != NULL);
+    if ((an_il_entry_kind)ssep->entity.kind == iek_src_seq_secondary_decl) {
+      ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)->ELF_visibility =
                                                                    visibility;
+    } else {
+      check_assertion((an_il_entry_kind)ssep->entity.kind == iek_namespace);
+      sp->assoc_namespace->ELF_visibility = visibility;
+    }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* apply_ELF_visibility_to_current_namespace */
