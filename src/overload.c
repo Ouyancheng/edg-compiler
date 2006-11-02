@@ -27,6 +27,14 @@ overload.c -- Expression processing overload resolution.
 #include "trans_corresp.h"
 
 /* Forward declarations required because of out-of-order references. */
+static void try_conversion_function_match(
+                            an_operand               *source_operand,
+                            a_type_ptr               dest_type,
+                            a_builtin_type_kind_set  builtin_types_allowed,
+                            a_boolean                need_lvalue_result,
+                            a_boolean                is_copy_initialization,
+                            a_boolean                is_reference_binding,
+                            a_candidate_function_ptr *candidate_functions);
 static void prep_conversion_operand(
                                  an_operand        *source_operand,
                                  a_type_ptr        dest_type,
@@ -852,6 +860,7 @@ the actual arguments we have match the function's formal parameters.
 #endif /* DEBUG */
 }  /* add_function_to_candidate_functions_list */
 
+
 static void add_surrogate_function_to_candidate_functions_list(
                                  a_symbol_ptr             conv_function_symbol,
                                  an_arg_match_summary_ptr arg_matches,
@@ -1448,6 +1457,53 @@ must free that list.
                                           conversion,
                                           ambiguous,
                                           ambiguity_list);
+    if (okay && microsoft_bugs && microsoft_version >= 1310 &&
+        is_const_qualified_type(base_dest_type)) {
+      /* MSVC++ (up to version 8.0, at least) has some confusion on
+         doing a conversion to bind a reference.  Instead of doing one
+         overload resolution for the direct binding case and one later
+         for the bind-to-converted-temp-rvalue case, it does just one overload
+         resolution and concludes that the conversion is ambiguous
+         if it gets more than one conversion function.  Simulate that
+         by doing the overload resolution one would do later and seeing
+         what it returns. */
+      a_boolean    local_ambiguous;
+      a_conv_descr local_conversion;
+      if (conversion_from_class_possible(source_operand,
+                                         base_dest_type,
+                                         (a_builtin_type_kind_set)BTK_NONE,
+                                         /*need_lvalue_result=*/FALSE,
+                                         /*is_copy_initialization=*/TRUE,
+                                         /*is_reference_binding=*/FALSE,
+                                         &local_conversion,
+                                         &local_ambiguous,
+                                         (a_candidate_function_ptr *)NULL)) {
+        if (local_conversion.routine != conversion->routine) {
+          /* The second overload resolution would get a different conversion
+             function. */
+          local_ambiguous = TRUE;
+        }  /* if */
+      }  /* if */
+      if (local_ambiguous) {
+        /* MSVC++ would consider the conversion ambiguous. */
+        okay = FALSE;
+        *ambiguous = TRUE;
+        if (ambiguity_list != NULL) {
+          /* Try the conversion again to get the candidate functions set
+             for the ambiguity list (containing all the functions, not just
+             the one that might have won on the second overload resolution). */
+          try_conversion_function_match(source_operand,
+                                        base_dest_type,
+                                        (a_builtin_type_kind_set)BTK_NONE,
+                                        /*need_lvalue_result=*/FALSE,
+                                        /*is_copy_initialization=*/FALSE,
+                                        /*is_reference_binding=*/FALSE,
+                                        ambiguity_list);
+          check_assertion(*ambiguity_list != NULL &&
+                          (*ambiguity_list)->next != NULL);
+        }  /* if */
+      }  /* if */
+    }  /* if */
     /* The flag here is deliberately not set when *ambiguous is TRUE. */
     if (okay) conversion->conversion_for_direct_reference_binding = TRUE;
   }  /* if */
@@ -1853,8 +1909,15 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       /* The parameter is a reference, and there exists a conversion function
          that can convert the argument to an lvalue that the reference can
          bind to directly. */
-      set_arg_summary_for_user_conversion(arg_summary, &conversion,
-                                          orig_param_type, param_is_reference);
+      if (microsoft_bugs && ambiguous) {
+        /* On cases that are ambiguous, MSVC++ considers the function
+           non-viable. */
+        arg_summary->match_level = aml_none;
+      } else {
+        set_arg_summary_for_user_conversion(arg_summary, &conversion,
+                                            orig_param_type,
+                                            param_is_reference);
+      }  /* if */
       goto have_level;
     } else if (ref_qualifiers_dropped_related_type) {
       /* This is a case where cv-qualifiers are dropped in a reference

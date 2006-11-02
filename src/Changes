@@ -1,5 +1,30 @@
 Version 3.9
 
+11/2/06  Microsoft compatibility: conversion for direct reference binding
+
+Overload resolution has been tweaked to better emulate MSVC++ in
+cases where a conversion is done to try to directly bind a reference.
+The standard requires one overload resolution to see whether a conversion
+can be done to something that will allow a direct reference binding,
+and then, if that is not possible, another overload resolution to
+see whether a conversion can be done to create a temporary that the
+reference will bind to.  MSVC++ seems to do a single overload resolution
+for such cases, and therefore gets an ambiguity if one conversion
+function would satisfy the direct-binding case and another would allow
+the bind-to-reference case.
+
+  struct B {};
+  struct D: private B {};
+  struct H {
+    operator B const volatile *const &() const { return 0; }
+    operator D const volatile *() { return 0; }
+  };
+  void check_sig(B const volatile *const &) {
+  }
+  int main() {
+    check_sig(H());  // MSVC++ thinks this is ambiguous
+  }
+
 11/2/06  IL display of "default" ELF visibility
 
 The IL display utility previously reported an error value for entities with
