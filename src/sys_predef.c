@@ -313,10 +313,7 @@ Enter the standard predeclared functions for GCC.
                                       (an_integer_kind)ik_unsigned_long_long);
 #endif /* LONG_LONG_ALLOWED */
   intmax_type = integer_type(targ_intmax_kind);
-  /* wint_t is an integral type that can represent all the wchar_t code
-     points and one additional value.  So far, it appears to always be
-     "unsigned" for GNU compilers. */
-  wint_t_type = integer_type((an_integer_kind)ik_unsigned_int);
+  wint_t_type = integer_type(targ_wint_t_int_kind);
 #if TARG_ALL_POINTERS_SAME_SIZE
   pmode_type = get_type_with_mode(int_type, targ_pointer_mode, 
 				  &error_position);

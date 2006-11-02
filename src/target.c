@@ -355,6 +355,7 @@ This is done before command line processing.
   targ_char_constant_first_char_most_significant =
                                 TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT;
   targ_wchar_t_int_kind = TARG_WCHAR_T_INT_KIND;
+  targ_wint_t_int_kind = TARG_WINT_T_INT_KIND;
   targ_char16_t_int_kind = TARG_CHAR16_T_INT_KIND;
   targ_char32_t_int_kind = TARG_CHAR32_T_INT_KIND;
   targ_bool_int_kind = TARG_BOOL_INT_KIND;

@@ -1,5 +1,15 @@
 Version 3.9
 
+11/1/06  Configuration of wint_t
+
+A new macro TARG_WINT_T_INT_KIND allows the configuration of type wint_t (which
+the C99 standard defines to be an integer type sufficient to represent all the
+characters in the extended character set, plus at least one additional value to
+represent an end-of-file marker).  The new macro initializes the new global
+variable targ_wint_t_int_kind.  This is now used when checking the "%lc" printf
+conversion specifier (previously, wchar_t was used instead) and when defining
+certain GNU builtin functions (previously, unsigned int was assumed).
+
 10/31/06 GNU compatibility: __builtin_constant_p
 
 The front end previously always constant-folded calls to __builtin_constant_p.

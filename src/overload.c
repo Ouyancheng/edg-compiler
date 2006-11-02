@@ -6702,7 +6702,11 @@ after_precision:;
       case 'c':
         /* Character conversion. */
         if (l_size) {
-          required_type = eff_wchar_t_type();
+          if (is_scanf) {
+            required_type = eff_wchar_t_type();
+          } else {
+            required_type = integer_type(targ_wint_t_int_kind);
+          }  /* if */
         } else {
           required_type = integer_type(plain_char_int_kind);
         }  /* if */

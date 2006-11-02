@@ -71,10 +71,16 @@ EXTERN an_integer_kind
 		targ_wchar_t_int_kind;
 			/* Integer kind associated with wchar_t.  Initialized
 			   to the default value but reconfigurable. */
+
 EXTERN a_targ_size_t
 		targ_sizeof_wchar_t;
 			/* Size of a wchar_t entity.  Initialized to the
 			   default value but reconfigurable. */
+
+EXTERN an_integer_kind
+		targ_wint_t_int_kind;
+			/* Integer kind associated with wint_t.  Initialized
+			   to the default value but reconfigurable. */
 
 EXTERN an_integer_kind
 		targ_char16_t_int_kind;
@@ -859,6 +865,7 @@ EXTERN a_boolean
 #undef TARG_HAS_SIGNED_CHARS
 #undef TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT
 #undef TARG_WCHAR_T_INT_KIND
+#undef TARG_WINT_T_INT_KIND
 #undef TARG_CHAR16_T_INT_KIND
 #undef TARG_CHAR32_T_INT_KIND
 #undef TARG_BOOL_INT_KIND
@@ -962,6 +969,7 @@ EXTERN a_boolean
 #define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT                   \
                         targ_char_constant_first_char_most_significant
 #define TARG_WCHAR_T_INT_KIND targ_wchar_t_int_kind
+#define TARG_WINT_T_INT_KIND targ_wint_t_int_kind
 #define TARG_CHAR16_T_INT_KIND targ_char16_t_int_kind
 #define TARG_CHAR32_T_INT_KIND targ_char32_t_int_kind
 #define TARG_SIZEOF_SHORT targ_sizeof_short
