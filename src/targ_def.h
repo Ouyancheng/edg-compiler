@@ -1465,7 +1465,8 @@ Wide character constant type (wchar_t, see stddef.h and stdlib.h).
 /*
 wint_t is a standard C99 typedef describing an integer type that can represent
 all the members of the extended character set, plus at least one extra value
-(for the WEOF macro).
+(for the WEOF macro).  See subsection 7.24.1 in the C99 standard (ISO/IEC
+9899:1999).
 */
 #ifndef TARG_WINT_T_INT_KIND
 #define TARG_WINT_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
