@@ -2024,7 +2024,7 @@ Syntax:
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && !curr_expr_kind_is(ek_pp)) {
     /* Some GNU built-in functions may be treated as constant expressions.
-       Among these folded built-ins, are some whose argument processing is
+       Among these folded built-ins are some whose argument processing is
        different from that done for function calls.  Such pseudo-calls are
        fully handled by the call to scan_gnu_builtin_pseudo_call. */
     a_boolean  pseudo_call;
