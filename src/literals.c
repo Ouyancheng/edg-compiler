@@ -1414,7 +1414,7 @@ literal.
   con->variant.string.value = alloc_text_of_string_literal(
                                         (sizeof_t)con->variant.string.length);
   widening_copy(narrow_str, con->variant.string.value,
-                con->variant.string.length, (a_character_kind)chk_wchar_t);
+                narrow_str_len, (a_character_kind)chk_wchar_t);
 }  /* widen_string_literal */
 
 
@@ -1509,20 +1509,17 @@ mix of the given kind and chk_char.
       con = ctp->variant.constant;
       /* Determine the length of this string literal. */
       str_len = con->variant.string.length;
-      if (con->character_kind != character_kind) {
-        /* This string will need widening. */
-        str_len *= null_len;
-      }  /* if */
       /* Except on the last constant, subtract out the space for the
          final null in the string. */
-      if (ctp->next != NULL) str_len -= null_len;
+      if (ctp->next != NULL) str_len -= character_size[con->character_kind];
       /* Copy the string text (including the final null, if that's
          appropriate). */
       if (con->character_kind != character_kind) {
         /* A string like "xyz" in L"abc" "xyz" needs widening. */
         check_assertion(con->character_kind == (a_character_kind)chk_char);
         widening_copy(con->variant.string.value, new_str+total_len, 
-                      total_len, character_kind);
+                      str_len, character_kind);
+        str_len *= null_len;
       } else {
         (void)memcpy(new_str+total_len, con->variant.string.value,
                      size_t_arg(str_len));

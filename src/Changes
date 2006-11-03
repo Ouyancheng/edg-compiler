@@ -1,5 +1,15 @@
 Version 3.9
 
+11/2/06  Widening of character literals
+
+In cases where a narrow-character string literal is converted to a
+wide-character string literal, the number of characters to be copied was
+incorrectly calculated and could lead to memory corruption.  Now fixed.
+Examples where a narrow-character string is widened include:
+
+  void* p = "abc" L"xyz";  /* C99 or C++0x narrow/wide string concatenation */
+  void* q = __LPREFIX("abc");  /* Microsoft wide-character string */  
+
 11/2/06  Microsoft compatibility: conversion for direct reference binding
 
 Overload resolution has been tweaked to better emulate MSVC++ in
