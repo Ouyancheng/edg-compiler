@@ -1866,8 +1866,8 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
                                  result_type->variant.integer.int_kind);
             make_constant_operand(&result, result_op);
           } else if (in_constant_expression) {
-            /* The call was not be folded, but a constant-expression is
-               required: Issue an error. */
+            /* The call was not folded, but a constant-expression is required:
+               Issue an error. */
             pos_error(ec_bad_constant_function_call, &operand->position);
             make_error_operand(result_op);
           } else {
