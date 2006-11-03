@@ -1641,7 +1641,10 @@ messages about any invalid attributes.
   for (ap = attributes; ap != NULL; ap = ap->next) {
     switch (ap->kind) {
       case ak_mode:
-        /* This attribute was already handled in
+      case ak_noreturn:
+      case ak_volatile:
+      case ak_const:
+        /* These attributes were handled in
            apply_attributes_to_variable_type. */
         break;
       case ak_deprecated:

@@ -1,5 +1,20 @@
 Version 3.9
 
+11/3/06  Incorrect processing of some GNU field attributes
+
+The front end previously issued a spurious warning on the GNU attributes
+"const", "volatile", and "noreturn" when they appeared on a field.  For
+example:
+
+  struct S {
+    int (*f)(int) __attribute((const));  // Previously triggered a warning.
+  };
+
+Despite the warning, the attribute was correctly recorded in the IL.  However,
+the C- and C++-generating back end also failed to render these attributes for
+field declarations, as well as the "mode" attribute on field declarations.
+These problems are now fixed.
+
 11/2/06  Widening of character literals
 
 In cases where a narrow-character string literal is converted to a

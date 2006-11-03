@@ -4675,6 +4675,12 @@ Do the output in the way described by octl.
                                        &need_leading_space, octl);
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+    if (is_pointer_type(field->type) &&
+        is_function_type(type_pointed_to(field->type))) {
+      form_routine_type_attributes(
+                                f_skip_typerefs(type_pointed_to(field->type)),
+                                &need_leading_space, octl);
+    }  /* if */
   }  /* if */
   return need_leading_space;
 }  /* form_field_attributes */
