@@ -1469,10 +1469,10 @@ all the members of the extended character set, plus at least one extra value
 9899:1999).
 */
 #ifndef TARG_WINT_T_INT_KIND
-#define TARG_WINT_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
+#define TARG_WINT_T_INT_KIND TARG_WCHAR_T_INT_KIND
 			/* Default value, used to initialize global variable
 			   targ_wint_t_int_kind. */
-#endif /* TARG_WINT_T_INT_KIND */
+#endif /* !defined(TARG_WINT_T_INT_KIND) */
 
 /*
 Configuration of char16_t and char32_t (C extensions introduced by TR 19769).

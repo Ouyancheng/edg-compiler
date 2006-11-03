@@ -77,6 +77,12 @@ The USE_x86_64
 #define TARG_LONG_LONG_FIELD_ALIGNMENT 4
 #endif /* USE_X86_64 */
 
+/*
+wint_t has a different signedness from wchar_t with both 32-bit and 64-bit
+Linux.
+*/
+#define TARG_WINT_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
+
 #define TARG_ALIGNOF_DOUBLE 8
 #define TARG_ALIGNOF_LONG_LONG 8
 
