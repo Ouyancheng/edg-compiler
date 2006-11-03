@@ -2457,7 +2457,7 @@ visibility implied by the enclosing scope (if any).
                   scope_stack[depth_innermost_namespace_scope].ELF_visibility;
     }  /* if */
   }  /* if */
-}  /* check_for_default_ELF_visibility */
+}  /* update_for_default_ELF_visibility */
 
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
