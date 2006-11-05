@@ -656,6 +656,16 @@ definition of the routine is needed, and not just the declaration.
                                 overriding_function_for_covariant_return_type);
     }  /* if */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if DO_IL_LOWERING && IA64_ABI
+    if (rout->primary_ctor_or_dtor != NULL) {
+      /* For a secondary entry point for a constructor or destructor,
+         mark the primary routine definition as needed.  Generally this would
+         happen automatically because the entry point calls the primary
+         routine, but it doesn't happen when the entry point body is
+         inlined. */
+      set_routine_definition_needed(rout->primary_ctor_or_dtor);
+    }  /* if */
+#endif /* DO_IL_LOWERING && IA64_ABI */
     /* For a routine that has linkage, mark the associated canonical entry
        to have its definition kept too, since that's the one that will be
        copied to the primary IL. */
@@ -1461,6 +1471,16 @@ declaration.
                                 overriding_function_for_covariant_return_type);
     }  /* if */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if DO_IL_LOWERING && IA64_ABI
+    if (rout->primary_ctor_or_dtor != NULL) {
+      /* For a secondary entry point for a constructor or destructor,
+         mark the primary routine definition as needed.  Generally this would
+         happen automatically because the entry point calls the primary
+         routine, but it doesn't happen when the entry point body is
+         inlined. */
+      set_routine_keep_definition_in_il(rout->primary_ctor_or_dtor);
+    }  /* if */
+#endif /* DO_IL_LOWERING && IA64_ABI */
     /* For a routine that has linkage, mark the associated canonical entry
        to have its definition kept too, since that's the one that will be
        copied to the primary IL. */
