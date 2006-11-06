@@ -1,5 +1,18 @@
 Version 3.9
 
+11/5/06  Needed-flag processing and prototype instantiations
+
+Prototype instantiations are now considered "needed" for the needed-flag
+processing in configurations with PROTOTYPE_INSTANTIATIONS_IN_IL
+set to TRUE.  Prototype instantiations are never referenced from
+other code, so if they aren't marked as needed they would always
+be removed, which defeats the purpose of PROTOTYPE_INSTANTIATIONS_IN_IL.
+This problem was usually not visible because when BACK_END_IS_CP_GEN_BE
+is TRUE removal of unneeded entities is suppressed in any translation
+unit that contains templates, which means in such configurations the
+prototype instantiations were always preserved in spite of not being
+marked as "needed."
+
 11/5/06  IA-64 ABI, needed-flag processing, and entry points
 
 The needed-flag processing has been changed so that when an IA-64

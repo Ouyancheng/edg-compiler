@@ -37,9 +37,9 @@ templates.c -- Support for C++ templates.
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
-#if INSTANTIATE_EXTERN_INLINE && MAINTAIN_NEEDED_FLAGS
+#if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
-#endif /* INSTANTIATE_EXTERN_INLINE && MAINTAIN_NEEDED_FLAGS */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #ifdef lint
 /* Include the definition of an_arg_operand to suppress lint errors. */
 #include "exprutil.h"
@@ -10648,6 +10648,14 @@ initially used when processing the declaration of a partial specialization.
        instantiation. */
     record_instantiation(prototype_sym, tssp);
   }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+  if (prototype_instantiations_in_il) {
+    /* Make sure we keep the prototype instantiations in the IL even
+       though no one will be referring to them. */
+    mark_as_needed((char *)prototype_type, (an_il_entry_kind)iek_type);
+    set_class_definition_needed(prototype_type);
+  }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* create_prototype_type */
 
 
