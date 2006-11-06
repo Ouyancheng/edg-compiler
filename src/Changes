@@ -16,15 +16,15 @@ marked as "needed."
 11/5/06  IA-64 ABI, needed-flag processing, and entry points
 
 The needed-flag processing has been changed so that when an IA-64
-alternate entry point for a constructor is marked as definition-needed,
-the primary routine is also.  This makes sense since we intend that
-it be possible to make the alternate entry truly an entry point
-to the other routine definition.  This problem was generally invisible,
-because the alternate entry point usually calls the primary routine,
-and therefore the primary routine gets marked as needed if the entry
-point is needed.  However, that does not happen when the body of
-the alternate entry point is inlined, which became possible with
-the optimizations described by the change of 1/24/06.
+alternate entry point for a constructor or destructor is marked as
+definition-needed, the primary routine is also.  This makes sense
+since we intend that it be possible to make the alternate entry truly
+an entry point to the other routine definition.  This problem was
+generally invisible, because the alternate entry point usually calls
+the primary routine, and therefore the primary routine gets marked as
+needed if the entry point is needed.  However, that does not happen
+when the body of the alternate entry point is inlined, which became
+possible with the optimizations described by the change of 1/24/06.
 
 11/3/06  Incorrect processing of some GNU field attributes
 
