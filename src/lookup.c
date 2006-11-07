@@ -2385,15 +2385,16 @@ that do normal id lookup processing.
       }  /* if */
     }  /* if */
   } else {
-    if (lookup_state->check_for_nonreal_bases &&
-        !lookup_state->any_nonreal_bases) {
+    if (lookup_state->check_for_nonreal_bases) {
       /* No projection symbol was found.  If the class has any
          nonreal base classes record this information for possible
-         later use. */
-      lookup_state->class_with_nonreal_base = ssep->assoc_type;
-      lookup_state->any_nonreal_bases =
-                              symbol_supplement_for_class(ssep->assoc_type)->
-                                                      any_nonreal_base_classes;
+         later use.  This is repeated for each enclosing class that has
+         nonreal bases so that the outermost such class will be used. */
+      if (symbol_supplement_for_class(ssep->assoc_type)->
+                                                    any_nonreal_base_classes) {
+        lookup_state->class_with_nonreal_base = ssep->assoc_type;
+        lookup_state->any_nonreal_bases = TRUE;
+      }  /* if */
     }  /* if */
     if (gpp_dependent_name_lookup &&
         !lookup_state->look_in_dependent_bases &&

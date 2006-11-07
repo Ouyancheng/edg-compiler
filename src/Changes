@@ -1,5 +1,23 @@
 Version 3.9
 
+11/6/06  Internal error on reference to member of dependent base from nested
+         class of class template
+
+An internal error could occur in create_nonreal_progenitor_symbol in modes
+in which undefined names referenced from templates with dependent base classes
+are assumed to name members of a dependent base.  Typically, this is
+all modes except for strict mode and g++ mode when gnu_version is >= 30400.
+This has been fixed.
+
+  template <class T> struct A {};
+  template <class T> class B { struct C; };
+  template <class T> class D : public B<T> {
+    class E {};
+    class F : public E {
+      typedef C my_C;
+    };
+  };
+
 11/5/06  Needed-flag processing and prototype instantiations
 
 Prototype instantiations are now considered "needed" for the needed-flag
