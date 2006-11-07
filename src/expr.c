@@ -1874,11 +1874,14 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
             /* Leave an actual call in the IL.  (The usual transformations --
                including promotion -- are needed.) */
             an_operand  dummy_bound_function_selector;
-            do_operand_transformations(
-                        operand, TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+            do_operand_transformations(operand, TOPT_NO_OPTIONS);
             change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
                                   SRK_REFERENCE);
             arg_default_promote_operand(&arg, /*is_ellipsis=*/TRUE);
+#ifdef _lint
+            /* We pass dummy_bound_function_selector rather than a null pointer
+               constant to avoid a spurious diagnostic by Gimpel lint. */
+#endif /* ifdef _lint */
             assemble_function_call(operand, &dummy_bound_function_selector,
                                    make_node_from_operand(&arg),
                                    /*compiler_generated=*/FALSE,
