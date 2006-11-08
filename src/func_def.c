@@ -717,6 +717,7 @@ and for the instantiation of template functions.
   a_scope_number                 scope_number;
   a_param_id_ptr                 param_id;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_param_id_ptr                 orig_param_id = NULL;
   a_boolean                      is_real_instantiation;
   a_param_type_ptr               orig_ptp;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -954,6 +955,9 @@ and for the instantiation of template functions.
       orig_ptp = skip_typerefs(func_info->declared_type)
                                 ->variant.routine.extra_info->param_type_list;
     }  /* if */
+    /* In C mode, the declared type of parameters is not available from the
+       function type for old-style definitions. */
+    orig_param_id = func_info->param_id_list;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Be sure param-id and param-type lists are in sync. */
     if ((param_id == NULL) != (ptp == NULL)) {
@@ -967,8 +971,16 @@ and for the instantiation of template functions.
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      decl_parameter(param_id, orig_ptp->type, ptp, is_instantiation);
-      orig_ptp = orig_ptp->next;
+      a_type_ptr  declared_param_type;
+      if (orig_ptp != NULL) {
+        declared_param_type = orig_ptp->type;
+        orig_ptp = orig_ptp->next;
+      } else {
+        check_assertion(orig_param_id != NULL);
+        declared_param_type = orig_param_id->declared_type;
+        orig_param_id = orig_param_id->next;
+      }  /* if */
+      decl_parameter(param_id, declared_param_type, ptp, is_instantiation);
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
       decl_parameter(param_id, (a_type_ptr)NULL, ptp, is_instantiation);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
