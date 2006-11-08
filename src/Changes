@@ -1,5 +1,23 @@
 Version 3.9
 
+11/8/06  Abort on instantiation of member function declared with a typedef
+
+In configurations with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE, the front
+end aborted with an internal error on cases where a member function of a class
+template first declared using a typedef type was later defined and
+instantiated.  For example:
+
+  template<typename T> struct S {
+    typedef void F(T);
+    F f;  // Member function declared through typedef type.
+  };
+  template<typename T> inline void S<T>::f(T) {}
+  int main() {
+        S<int>().f(2);  // Instantiation triggered an internal error.
+  }
+
+This is now fixed.
+
 11/8/06  GNU compatibility: static initialization using compound literal
          lvalues
 

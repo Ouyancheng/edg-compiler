@@ -717,9 +717,8 @@ and for the instantiation of template functions.
   a_scope_number                 scope_number;
   a_param_id_ptr                 param_id;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_param_id_ptr                 orig_param_id = NULL;
-  a_boolean                      instantiate_param_declared_type = FALSE;
   a_boolean                      is_real_instantiation;
+  a_param_type_ptr               orig_ptp;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_scope_ptr                    scope_ptr;
   a_struct_stmt_stack_state      saved_sss_state;
@@ -940,28 +939,20 @@ and for the instantiation of template functions.
     param_id = func_info->param_id_list;
     ptp = rtsp->param_type_list;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (is_real_instantiation && param_id != NULL) {
-      /* When source sequence list generation is enabled, we save the param-id
-         list of the instantiation.  This allows a meaningful record of the
-         declared_type information later on.  If that record is unneeded, the
-         param-id list of the template suffices.  If a guiding template
-         declaration preceded the template declaration, we may not have
-         rescanned the substituted template, and hence the declared_type must
-         be instantiated separately. */
-      a_symbol_ptr  rout_sym =
-                            (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
+    /* Retrieve the declared type of the function to extract the declared type
+       of the parameters. */
+    if (is_real_instantiation) {
+      /* An instantiation of a function template does not involve rescanning
+         its declaration (only its body).  That means that the declared type
+         is not recorded in *func_info; instead, it has been reconstructed in
+         the associated a_template_instance entity. */
+      a_symbol_ptr             rout_sym = symbol_for(rout_ptr);
       a_template_instance_ptr  tip = rout_sym->variant.routine.instance_ptr;
-      if (tip->param_id_list != NULL) {
-        orig_param_id = tip->param_id_list;
-      } else {
-        /* We only have the declared parameter types of the template, not the
-           instance.  We'll instantiate each type later on. */
-        check_assertion(tip->is_guiding_decl || total_errors != 0);
-        orig_param_id = func_info->param_id_list;
-        instantiate_param_declared_type = TRUE;
-      }  /* if */
+      orig_ptp = skip_typerefs(tip->declared_type)
+                                ->variant.routine.extra_info->param_type_list;
     } else {
-      orig_param_id = func_info->param_id_list;
+      orig_ptp = skip_typerefs(func_info->declared_type)
+                                ->variant.routine.extra_info->param_type_list;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Be sure param-id and param-type lists are in sync. */
@@ -976,13 +967,8 @@ and for the instantiation of template functions.
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      a_type_ptr  declared_param_type = orig_param_id->declared_type;
-      if (instantiate_param_declared_type) {
-        declared_param_type = instantiate_type_for_template_function(
-                                               declared_param_type, rout_ptr);
-      }  /* if */
-      decl_parameter(param_id, declared_param_type, ptp, is_instantiation);
-      orig_param_id = orig_param_id->next;
+      decl_parameter(param_id, orig_ptp->type, ptp, is_instantiation);
+      orig_ptp = orig_ptp->next;
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
       decl_parameter(param_id, (a_type_ptr)NULL, ptp, is_instantiation);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
