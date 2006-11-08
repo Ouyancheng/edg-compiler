@@ -7318,6 +7318,9 @@ if is_lvalue is TRUE.  Return NULL if the expression cannot be generated.
          reference const-valued local variables. */
       check_assertion(curr_expr_kind_is_const() ||
                       curr_expr_kind_is(ek_sizeof));
+    } else if (variable->is_compound_literal) {
+      /* The constant for this variable is the variable's initializer, so
+         avoid a circular reference by recording no expression. */
     } else {
       expr = is_lvalue ? var_lvalue_expr(variable) : var_rvalue_expr(variable);
     }  /* if */
@@ -7523,14 +7526,21 @@ considered to have no initial value.  Also, a variable with an address-
 constant initial value is treated as having a nonconstant initial value.
 */
 {
-  a_constant_ptr con_val = NULL;
+  a_constant_ptr     con_val = NULL;
+  an_init_kind       init_kind;
+  an_initializer_ptr initializer;
 
   /* See if the variable has a known constant value. */
-  if (C_dialect == C_dialect_cplusplus &&
+  if (gnu_mode && var->is_compound_literal) {
+    /* In GNU C and C++, a variable representing an lvalue for a compound
+       literal can result from an expression like "*&(S){{0}}".  Treat this
+       as a constant. */
+    get_variable_initializer(var, (a_scope_ptr)NULL, &init_kind, &initializer);
+    check_assertion(init_kind == (an_init_kind)initk_static);
+    con_val = initializer->constant;
+  } else if (C_dialect == C_dialect_cplusplus &&
       is_const_variable(var) &&
       !is_volatile_qualified_type(var->type)) {
-    an_init_kind       init_kind;
-    an_initializer_ptr initializer;
     /* initk_function_local initialization can come up with local static
        variables when RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE (the
        expression is function-local, and that forces the initializer

@@ -1,5 +1,19 @@
 Version 3.9
 
+11/8/06  GNU compatibility: static initialization using compound literal
+         lvalues
+
+The gcc compiler treats lvalues referring to compound literals as constants
+and thus suitable for use as initializers of objects with static storage
+duration.  The front end previously rejected such constructs as non-constant,
+but this has now been changed.  For example:
+
+  typedef struct {
+    int i[1];
+  } S;
+
+  S s = *&(S){{0}};    /* No longer an error in --gcc mode */
+
 11/6/06  Internal error on reference to member of dependent base from nested
          class of class template
 
