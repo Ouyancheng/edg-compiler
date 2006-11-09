@@ -719,7 +719,7 @@ and for the instantiation of template functions.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_param_id_ptr                 orig_param_id = NULL;
   a_boolean                      is_real_instantiation;
-  a_param_type_ptr               orig_ptp;
+  a_param_type_ptr               orig_ptp = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_scope_ptr                    scope_ptr;
   a_struct_stmt_stack_state      saved_sss_state;
@@ -946,10 +946,7 @@ and for the instantiation of template functions.
        etc.).  Depending on the situation we may have to iterate over an
        a_param_type list or an a_param_id list. */
     if (param_id != NULL) {
-      if (func_info->declared_type != NULL) {
-        orig_ptp = skip_typerefs(func_info->declared_type)
-                                ->variant.routine.extra_info->param_type_list;
-      } else {
+      if (is_real_instantiation) {
         /* An instantiation of a function template does not always involve
            rescanning its declaration (only its body).  That means that the
            declared type is not recorded in *func_info; instead, may have been
@@ -961,6 +958,9 @@ and for the instantiation of template functions.
           orig_ptp = skip_typerefs(tip->declared_type)
                                 ->variant.routine.extra_info->param_type_list;
         }  /* if */
+      } else {
+        orig_ptp = skip_typerefs(func_info->declared_type)
+                                ->variant.routine.extra_info->param_type_list;
       }  /* if */
       if (orig_ptp == NULL) {
         /* The declared parameter types are not available from the routine's
