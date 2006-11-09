@@ -7539,8 +7539,8 @@ constant initial value is treated as having a nonconstant initial value.
     check_assertion(init_kind == (an_init_kind)initk_static);
     con_val = initializer->constant;
   } else if (C_dialect == C_dialect_cplusplus &&
-      is_const_variable(var) &&
-      !is_volatile_qualified_type(var->type)) {
+             is_const_variable(var) &&
+             !is_volatile_qualified_type(var->type)) {
     /* initk_function_local initialization can come up with local static
        variables when RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE (the
        expression is function-local, and that forces the initializer
