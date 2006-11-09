@@ -1,5 +1,20 @@
 Version 3.9
 
+11/9/06  Invalid code rendering for GNU attribute "alias"
+
+A routine declaration with the GNU attribute "alias" caused all declarations
+of that routine to be rendered by the C++-generating back end with that
+attribute.  However, GNU compilers do not accept multiple alias declarations
+for the same alias.  For example:
+
+  void f() __attribute((alias("f_impl")));
+  void f();  // Previously rendered by the C++-generating back end with the
+             // alias attribute.
+  void f_impl() {}
+
+This is now fixed: The attribute "alias" is only emitted when it appeared on
+the corresponding declaration in the input.
+
 11/8/06  Abort on instantiation of member function declared with a typedef
 
 In configurations with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE, the front

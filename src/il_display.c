@@ -5801,6 +5801,9 @@ Display the indicated source sequence secondary declaration entry.
   if (sssdp->marked_as_gnu_extension) {
     disp_boolean("marked_as_gnu_extension", TRUE);
   }  /* if */
+  if (sssdp->has_alias_attribute) {
+    disp_boolean("has_alias_attribute", TRUE);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* disp_src_seq_secondary_decl */
 

@@ -5730,6 +5730,24 @@ detected, issue a diagnostic at the given position.
   }  /* if */
 }  /* record_asm_name_for_routine */
 
+
+static a_boolean attributes_include_alias(an_attribute_ptr  attributes)
+/*
+Return TRUE if the given list of attributes includes one representing the
+"alias" attribute.
+*/
+{
+  a_boolean  result = FALSE;
+
+  for (; attributes != NULL; attributes = attributes->next) {
+    if (attributes->kind == (an_attribute_kind)ak_alias) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* attributes_include_alias */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void check_incompatible_routine_redecl(
@@ -5962,6 +5980,9 @@ declaration.
   a_name_reference_ptr     name_ref = NULL;
   a_boolean                saved_sses_disallowed =
                                            source_sequence_entries_disallowed;
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean                routine_alias_decl = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_id_linkage_block      idlb;
   a_boolean                suppress_inline_body = FALSE;
@@ -7082,6 +7103,7 @@ skip_overloading:;
   if (gnu_mode) {
     /* Apply the attributes to the routine. */
     if (attributes != NULL) {
+      routine_alias_decl = attributes_include_alias(attributes);
       apply_attributes_to_routine(attributes, routine_ptr);
     }  /* if */
     /* Record the assembly name. */
@@ -7177,6 +7199,9 @@ skip_overloading:;
 #if GNU_EXTENSIONS_ALLOWED
     if (decl_modifiers->marked_as_gnu_extension) {
       flags |= SSSD_MARKED_AS_GNU_EXTENSION;
+    }  /* if */
+    if (routine_alias_decl) {
+      flags |= SSSD_HAS_ALIAS_ATTRIBUTE;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     (void)update_src_seq_secondary_decl((char *)routine_ptr, declared_type,

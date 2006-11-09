@@ -161,6 +161,11 @@ typedef unsigned int an_sssd_flag_set;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
 #define SSSD_MARKED_AS_GNU_EXTENSION ((an_sssd_flag_set)0x80)
+			/* This this bit it set, set marked_as_gnu_extension
+			   in the secondary-decl entry. */
+#define SSSD_HAS_ALIAS_ATTRIBUTE ((an_sssd_flag_set)0x100)
+			/* This this bit it set, set has_alias_attribute in
+			   the secondary-decl entry. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_fields(

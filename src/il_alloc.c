@@ -3552,6 +3552,7 @@ and return a pointer to it.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
   sssdp->marked_as_gnu_extension     = FALSE;
+  sssdp->has_alias_attribute         = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING
   sssdp->avoid_codecenter_warnings = 0;

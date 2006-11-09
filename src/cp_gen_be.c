@@ -12893,10 +12893,21 @@ TRUE if the declaration following this one is such a continuation.
   if (!is_definition) {
     /* A declaration of the routine. */
 #if GNU_EXTENSIONS_ALLOWED
-    /* Emit any user-specified assembly symbol for this routine. */
-    form_asm_name(rout->asm_name, &octl);
-    /* Emit attributes associated with the routine. */
-    (void)form_routine_attributes(rout, /*need_leading_space=*/TRUE, &octl);
+    {
+      a_routine_ptr  aliased_routine = NULL;
+      if (!sec_decl->has_alias_attribute) {
+        /* Temporarily disable the "alias" attribute if the current source
+           sequence entry does not correspond to a declaration with such an
+           attribute. */
+        aliased_routine = rout->aliased_routine;
+        rout->aliased_routine = NULL;
+      }  /* if */
+      /* Emit any user-specified assembly symbol for this routine. */
+      form_asm_name(rout->asm_name, &octl);
+      /* Emit attributes associated with the routine. */
+      (void)form_routine_attributes(rout, /*need_leading_space=*/TRUE, &octl);
+      rout->aliased_routine = aliased_routine;
+    }
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* For a pure virtual function, add "= 0".  (If the "abstract" function
        modifier has been generated already do not output the "= 0" since it
