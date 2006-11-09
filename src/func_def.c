@@ -940,24 +940,36 @@ and for the instantiation of template functions.
     param_id = func_info->param_id_list;
     ptp = rtsp->param_type_list;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Retrieve the declared type of the function to extract the declared type
-       of the parameters. */
-    if (is_real_instantiation) {
-      /* An instantiation of a function template does not involve rescanning
-         its declaration (only its body).  That means that the declared type
-         is not recorded in *func_info; instead, it has been reconstructed in
-         the associated a_template_instance entity. */
-      a_symbol_ptr             rout_sym = symbol_for(rout_ptr);
-      a_template_instance_ptr  tip = rout_sym->variant.routine.instance_ptr;
-      orig_ptp = skip_typerefs(tip->declared_type)
+    /* The declared type of parameters is recorded in a different locations
+       depending on the nature of the function (template or nontemplate) and
+       the way it was declared (through or typedef, using old-style C syntax,
+       etc.).  Depending on the situation we may have to iterate over an
+       a_param_type list or an a_param_id list. */
+    if (param_id != NULL) {
+      if (func_info->declared_type != NULL) {
+        orig_ptp = skip_typerefs(func_info->declared_type)
                                 ->variant.routine.extra_info->param_type_list;
-    } else {
-      orig_ptp = skip_typerefs(func_info->declared_type)
+      } else {
+        /* An instantiation of a function template does not always involve
+           rescanning its declaration (only its body).  That means that the
+           declared type is not recorded in *func_info; instead, may have been
+           reconstructed in the associated a_template_instance it entity. */
+        a_symbol_ptr             rout_sym = symbol_for(rout_ptr);
+        a_template_instance_ptr  tip = rout_sym->variant.routine.instance_ptr;
+        check_assertion(tip != NULL);
+        if (tip->declared_type != NULL) {
+          orig_ptp = skip_typerefs(tip->declared_type)
                                 ->variant.routine.extra_info->param_type_list;
+        }  /* if */
+      }  /* if */
+      if (orig_ptp == NULL) {
+        /* The declared parameter types are not available from the routine's
+           declared_type entry (e.g., when dealing with old-style C function
+           definitions. */
+        orig_param_id = func_info->param_id_list;
+        check_assertion(orig_param_id != NULL);
+      }  /* if */
     }  /* if */
-    /* In C mode, the declared type of parameters is not available from the
-       function type for old-style definitions. */
-    orig_param_id = func_info->param_id_list;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Be sure param-id and param-type lists are in sync. */
     if ((param_id == NULL) != (ptp == NULL)) {
@@ -976,7 +988,6 @@ and for the instantiation of template functions.
         declared_param_type = orig_ptp->type;
         orig_ptp = orig_ptp->next;
       } else {
-        check_assertion(orig_param_id != NULL);
         declared_param_type = orig_param_id->declared_type;
         orig_param_id = orig_param_id->next;
       }  /* if */
