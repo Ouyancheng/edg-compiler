@@ -12030,7 +12030,7 @@ declaration following this one is such a continuation.
   }  /* if */
   {
     a_variable_ptr  aliased_variable = NULL;
-    if (!is_definition && !sec_decl->has_alias_attribute) {
+    if (sec_decl != NULL && !sec_decl->has_alias_attribute) {
       /* Temporarily disable the "alias" attribute if the current source
          sequence entry does not correspond to a declaration with such an
          attribute. */
@@ -12908,7 +12908,7 @@ TRUE if the declaration following this one is such a continuation.
     form_asm_name(rout->asm_name, &octl);
     {
       a_routine_ptr  aliased_routine = NULL;
-      if (!sec_decl->has_alias_attribute) {
+      if (sec_decl != NULL && !sec_decl->has_alias_attribute) {
         /* Temporarily disable the "alias" attribute if the current source
            sequence entry does not correspond to a declaration with such an
            attribute. */
