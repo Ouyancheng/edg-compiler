@@ -4912,6 +4912,24 @@ detected, issue a diagnostic at the given position.
   }  /* if */
 }  /* record_asm_name_for_variable */
 
+
+static a_boolean attributes_include_alias(an_attribute_ptr  attributes)
+/*
+Return TRUE if the given list of attributes includes one representing the
+"alias" attribute.
+*/
+{
+  a_boolean  result = FALSE;
+
+  for (; attributes != NULL; attributes = attributes->next) {
+    if (attributes->kind == (an_attribute_kind)ak_alias) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* attributes_include_alias */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED || !GNU_EXTENSIONS_ALLOWED || \
@@ -4975,6 +4993,9 @@ declaration.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr               declared_type;
   a_name_reference_ptr     name_ref = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean                variable_alias_decl = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_id_linkage_block      idlb;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -5359,6 +5380,9 @@ declaration.
   if (gnu_mode) {
     if (attributes != NULL) {
       /* Apply the attributes to the variable declaration. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      variable_alias_decl = attributes_include_alias(attributes);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       apply_attributes_to_variable(attributes, variable_ptr, is_variable_def);
     }  /* if */
     /* Record the assembly name. */
@@ -5455,6 +5479,9 @@ declaration.
 #if GNU_EXTENSIONS_ALLOWED
     if (decl_modifiers->marked_as_gnu_extension) {
       flags |= SSSD_MARKED_AS_GNU_EXTENSION;
+    }  /* if */
+    if (variable_alias_decl) {
+      flags |= SSSD_HAS_ALIAS_ATTRIBUTE;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     (void)update_src_seq_secondary_decl((char *)variable_ptr, declared_type,
@@ -5729,24 +5756,6 @@ detected, issue a diagnostic at the given position.
     pos_warning(ec_asm_name_conflict, diag_pos);
   }  /* if */
 }  /* record_asm_name_for_routine */
-
-
-static a_boolean attributes_include_alias(an_attribute_ptr  attributes)
-/*
-Return TRUE if the given list of attributes includes one representing the
-"alias" attribute.
-*/
-{
-  a_boolean  result = FALSE;
-
-  for (; attributes != NULL; attributes = attributes->next) {
-    if (attributes->kind == (an_attribute_kind)ak_alias) {
-      result = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  return result;
-}  /* attributes_include_alias */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -7103,7 +7112,9 @@ skip_overloading:;
   if (gnu_mode) {
     /* Apply the attributes to the routine. */
     if (attributes != NULL) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
       routine_alias_decl = attributes_include_alias(attributes);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       apply_attributes_to_routine(attributes, routine_ptr);
     }  /* if */
     /* Record the assembly name. */
