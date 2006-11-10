@@ -958,7 +958,7 @@ and for the instantiation of template functions.
           orig_ptp = skip_typerefs(tip->declared_type)
                                 ->variant.routine.extra_info->param_type_list;
         }  /* if */
-      } else {
+      } else if (func_info->declared_type != NULL) {
         orig_ptp = skip_typerefs(func_info->declared_type)
                                 ->variant.routine.extra_info->param_type_list;
       }  /* if */
