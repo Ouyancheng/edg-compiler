@@ -3827,6 +3827,34 @@ in one-instantiation-per-object mode.
 }  /* set_routine_instantiation_needed_bit_number */
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+static a_type_ptr instantiate_type_for_template_function(
+                                                       a_type_ptr     type,
+                                                       a_routine_ptr  routine)
+/*
+Given a parameterized type, return the instantiation of that type for the
+template arguments with which the template function routine was instantiated.
+*/
+{
+  a_symbol_ptr  rout_sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
+  a_template_instance_ptr
+                tip = rout_sym->variant.routine.instance_ptr;
+  a_template_symbol_supplement_ptr
+                tssp = tip->template_sym->variant.template_info;
+  a_template_param_ptr
+                templ_param_list = tssp->cache.decl_info->parameters;
+  a_boolean     copy_error = FALSE;
+
+  return copy_type_with_substitution(
+                             type,
+                             routine->template_arg_list,
+                             templ_param_list,
+                             &tip->template_sym->decl_position,
+                             CTWS_NO_OPTIONS, &copy_error);
+}  /* instantiate_type_for_template_function */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 static void instantiate_template_function(a_template_instance_ptr  tip)
 /*
@@ -7359,33 +7387,6 @@ make_new_type:
   db_exit();
   return new_type;
 }  /* copy_type_with_substitution */
-
-
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-a_type_ptr instantiate_type_for_template_function(a_type_ptr     type,
-                                                  a_routine_ptr  routine)
-/*
-Given a parameterized type, return the instantiation of that type for the
-template arguments with which the template function routine was instantiated.
-*/
-{
-  a_symbol_ptr  rout_sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
-  a_template_instance_ptr
-                tip = rout_sym->variant.routine.instance_ptr;
-  a_template_symbol_supplement_ptr
-                tssp = tip->template_sym->variant.template_info;
-  a_template_param_ptr
-                templ_param_list = tssp->cache.decl_info->parameters;
-  a_boolean     copy_error = FALSE;
-
-  return copy_type_with_substitution(
-                             type,
-                             routine->template_arg_list,
-                             templ_param_list,
-                             &tip->template_sym->decl_position,
-                             CTWS_NO_OPTIONS, &copy_error);
-}  /* instantiate_type_for_template_function */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 
 static a_boolean equiv_substituted_templ_param_lists(

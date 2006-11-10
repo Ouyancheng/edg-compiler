@@ -509,12 +509,6 @@ extern a_type_ptr copy_type_with_substitution(
 			a_ctws_options_set		options,
 			a_boolean			*copy_error);
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-extern a_type_ptr instantiate_type_for_template_function(
-                                                      a_type_ptr     type,
-                                                      a_routine_ptr  routine);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-
 extern a_boolean equiv_template_arg_lists(
 				a_template_arg_ptr list1,
 				a_template_arg_ptr list2,
