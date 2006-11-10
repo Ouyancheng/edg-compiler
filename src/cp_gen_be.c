@@ -12028,8 +12028,19 @@ declaration following this one is such a continuation.
   } else {
     form_var_reg_name(var->asm_name_or_reg.reg, &octl);
   }  /* if */
-  /* Emit attributes associated with this variable. */
-  (void)form_variable_attributes(var, /*need_leading_space=*/TRUE, &octl);
+  {
+    a_variable_ptr  aliased_variable = NULL;
+    if (!is_definition && !sec_decl->has_alias_attribute) {
+      /* Temporarily disable the "alias" attribute if the current source
+         sequence entry does not correspond to a declaration with such an
+         attribute. */
+      aliased_variable = var->aliased_variable;
+      var->aliased_variable = NULL;
+    }  /* if */
+    /* Emit attributes associated with this variable. */
+    (void)form_variable_attributes(var, /*need_leading_space=*/TRUE, &octl);
+    var->aliased_variable = aliased_variable;
+  }
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Output the initializer, if any, but only if this is a definition.
      For member constants (static data members initialized within the
@@ -12893,6 +12904,8 @@ TRUE if the declaration following this one is such a continuation.
   if (!is_definition) {
     /* A declaration of the routine. */
 #if GNU_EXTENSIONS_ALLOWED
+    /* Emit any user-specified assembly symbol for this routine. */
+    form_asm_name(rout->asm_name, &octl);
     {
       a_routine_ptr  aliased_routine = NULL;
       if (!sec_decl->has_alias_attribute) {
@@ -12902,8 +12915,6 @@ TRUE if the declaration following this one is such a continuation.
         aliased_routine = rout->aliased_routine;
         rout->aliased_routine = NULL;
       }  /* if */
-      /* Emit any user-specified assembly symbol for this routine. */
-      form_asm_name(rout->asm_name, &octl);
       /* Emit attributes associated with the routine. */
       (void)form_routine_attributes(rout, /*need_leading_space=*/TRUE, &octl);
       rout->aliased_routine = aliased_routine;
