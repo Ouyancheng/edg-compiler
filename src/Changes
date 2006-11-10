@@ -12,8 +12,9 @@ for the same alias.  For example:
              // alias attribute.
   void f_impl() {}
 
-This is now fixed: The attribute "alias" is only emitted when it appeared on
-the corresponding declaration in the input.
+The same applies to variable declarations.  This is now fixed: The attribute
+"alias" is only emitted when it appeared on the corresponding declaration in
+the input.
 
 11/8/06  Abort on instantiation of member function declared with a typedef
 
