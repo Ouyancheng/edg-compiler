@@ -1004,8 +1004,8 @@ typedef struct a_src_seq_secondary_decl {
   a_bit_field	has_alias_attribute:1;
 			/* TRUE if the entry represents the particular
 			   declaration on which an alias attribute appeared
-			   (two declarations the same routine cannot both have
-			   an alias attribute). */
+			   (two declarations of the same entity cannot both
+			   have an alias attribute). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;

@@ -12029,12 +12029,11 @@ declaration following this one is such a continuation.
     form_var_reg_name(var->asm_name_or_reg.reg, &octl);
   }  /* if */
   {
-    a_variable_ptr  aliased_variable = NULL;
+    a_variable_ptr  aliased_variable = var->aliased_variable;
     if (sec_decl != NULL && !sec_decl->has_alias_attribute) {
       /* Temporarily disable the "alias" attribute if the current source
          sequence entry does not correspond to a declaration with such an
          attribute. */
-      aliased_variable = var->aliased_variable;
       var->aliased_variable = NULL;
     }  /* if */
     /* Emit attributes associated with this variable. */
@@ -12907,12 +12906,11 @@ TRUE if the declaration following this one is such a continuation.
     /* Emit any user-specified assembly symbol for this routine. */
     form_asm_name(rout->asm_name, &octl);
     {
-      a_routine_ptr  aliased_routine = NULL;
+      a_routine_ptr  aliased_routine = rout->aliased_routine;
       if (sec_decl != NULL && !sec_decl->has_alias_attribute) {
         /* Temporarily disable the "alias" attribute if the current source
            sequence entry does not correspond to a declaration with such an
            attribute. */
-        aliased_routine = rout->aliased_routine;
         rout->aliased_routine = NULL;
       }  /* if */
       /* Emit attributes associated with the routine. */
