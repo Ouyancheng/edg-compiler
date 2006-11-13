@@ -1,5 +1,23 @@
 Version 3.9
 
+11/13/06 Invalid code rendering for __builtin_offsetof with nonstandard
+         anonymous unions
+
+In GNU C mode, when rendering a __builtin_offsetof construct whose second
+operand involves a member of a nonstandard anonymous union, the C++-generating
+back end emitted a reference to an undeclared (i.e., internally generated)
+field.  For example:
+
+  struct S {
+    union {
+      int m;
+    };
+  };
+  unsigned long x = __builtin_offsetof(struct S, m);
+    // Rendered with "m" replaced by something like "__T136893532.m".
+
+This is now fixed.
+
 11/9/06  Invalid code rendering for GNU attribute "alias"
 
 A routine declaration with the GNU attribute "alias" caused all declarations

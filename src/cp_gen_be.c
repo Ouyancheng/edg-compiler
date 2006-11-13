@@ -7769,6 +7769,9 @@ handled through recursion.
   switch (expr->variant.operation.kind) {
     case eok_field:
     case eok_lvalue_dot_static:
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+      arg1 = remove_nonstandard_anonymous_union_field_selections(arg1);
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
       if (!is_constant_node(arg1)) {
         /* This is not the bottom-most operation (which is applied to a null
            pointer constant that is just a placeholder).  Render the
