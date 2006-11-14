@@ -4912,6 +4912,7 @@ detected, issue a diagnostic at the given position.
   }  /* if */
 }  /* record_asm_name_for_variable */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 
 static a_boolean attributes_include_alias(an_attribute_ptr  attributes)
 /*
@@ -4930,6 +4931,7 @@ Return TRUE if the given list of attributes includes one representing the
   return result;
 }  /* attributes_include_alias */
 
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED || !GNU_EXTENSIONS_ALLOWED || \
