@@ -12073,6 +12073,9 @@ Check that this is a valid type and if so make member_type a friend.
              class_type->variant.class_struct_union.is_interface) {
     pos_error(ec_interface_cannot_have_friend, &decl_info->decl_start_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if ((decl_info->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0) {
+    /* No type was specified at all; e.g. "friend;". */
+    pos_error(ec_bad_friend_decl, &decl_info->decl_start_pos);
   } else if ((((is_class_struct_union_type(member_type) ||
                 is_template_param_type(member_type)) &&
                !is_top_level_qualified_type(member_type)) ||

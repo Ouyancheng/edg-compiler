@@ -1,5 +1,18 @@
 Version 3.9
 
+11/15/06 Missing diagnostic on invalid friend class declarations
+
+In some C++ modes (including default C++ mode) the front end failed to
+diagnose certain invalid friend class declarations.  Such declarations
+were ignored.  For example:
+
+  class C {
+    friend;  // Previously not diagnosed in some C++ modes (and treated.
+  };         // like "friend int;").
+
+This is a regression introduced in version 3.8 by the changes to allow
+extended friend types (see Changes entry of 5/10/06).  It is now fixed.
+
 11/15/06 Microsoft compatibility: String initializers with unspecified bound
 
 In Microsoft C++ mode, the front end now accepts a parenthesized initializer
