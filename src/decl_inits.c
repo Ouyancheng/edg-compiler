@@ -3286,6 +3286,19 @@ returned set to TRUE.
                                             /*suppress_object_lifetime=*/FALSE,
                                             /*is_copy_initialization=*/FALSE,
                                             vp_type, &init_dip);
+      if (microsoft_mode && init_con != NULL && vp != NULL &&
+          init_con->kind == (a_constant_repr_kind)ck_string &&
+          is_incomplete_type(vp_type) && is_string_type(vp_type)) {
+        /* Microsoft compilers accept code like
+             char s[]("xx");
+           Update the variable type to reflect the string size.  Note that if
+           we get here, the initialization is valid and the (second) call to
+           check_string_constant_initializer will not issue a diagnostic
+           (which would otherwise be a duplicate). */
+        check_string_constant_initializer(&vp_type, init_con);
+        put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
+                                    vp_type);
+      }  /* if */
       /* The closing right paren will not have been consumed, as it is
          the arg list for a constructor call is scanned, so bypass it
          explicitly. */
