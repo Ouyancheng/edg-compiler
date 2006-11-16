@@ -4903,6 +4903,7 @@ detected, issue a diagnostic at the given position.
       /* This is the first declaration of this variable with an "asm name"
          construct. */
       variable->asm_name_or_reg.name = asm_name;
+      record_asm_name_for_lookup(symbol_for(variable));
     } else if (strcmp(variable->asm_name_or_reg.name, asm_name) != 0) {
       /* The current declaration has an "asm name" that is different from
          one specified on a previous declaration.  Issue a warning and
@@ -5751,6 +5752,7 @@ detected, issue a diagnostic at the given position.
     /* This is the first declaration of this routine with an "asm name"
        construct. */
     routine->asm_name = asm_name;
+    record_asm_name_for_lookup(symbol_for(routine));
   } else if (strcmp(routine->asm_name, asm_name) != 0) {
     /* The current declaration has an "asm name" that is different from
        one specified on a previous declaration.  Issue a warning and

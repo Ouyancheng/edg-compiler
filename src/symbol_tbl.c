@@ -11701,6 +11701,22 @@ appropriate user-defined entry.
 }  /* hash_find */
 
 
+a_hash_value hash_source_string(a_void_ptr  key)
+/*
+Produce a hash value for the given pointer (it points to a string of source
+characters).
+*/
+{
+  a_hash_value  value = 0;
+  char          *name = (char*)key;
+
+  for (; *name != '\0'; name++) {
+    value = (value << 5) + value + *name;
+  }  /* for */
+  return value;
+}  /* hash_source_string */
+
+
 #if DEBUG
 unsigned long show_symbol_space_used(void)
 /*

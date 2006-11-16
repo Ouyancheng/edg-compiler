@@ -3857,19 +3857,6 @@ return a pointer to it.
 }  /* alloc_include_search_result */
 
 
-static a_hash_value hash_file_name(char *name)
-/*
-Compute a hash value for the file name "name".
-*/
-{
-  a_hash_value value = 0;
-  for (; *name != '\0'; name++) {
-    value = (value << 5) + value + *name;
-  }  /* for */
-  return value;
-}  /* hash_file_name */
-
-
 static a_hash_value hash_include_search_result(a_void_ptr	key)
 /*
 Produce a hash value for an include search result entry.  The key is
@@ -3880,7 +3867,8 @@ an_include_search_result_ptr.
   an_include_search_result_ptr	isrp;
 
   isrp = (an_include_search_result_ptr)key;
-  value = hash_file_name(isrp->dir_name) + hash_file_name(isrp->file_name);
+  value = hash_source_string((a_void_ptr)isrp->dir_name) +
+          hash_source_string((a_void_ptr)isrp->file_name);
   return value;
 }  /* hash_include_search_result */
 

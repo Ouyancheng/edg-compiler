@@ -36,6 +36,8 @@ extern void attribute_init(void);
 
 #if GNU_EXTENSIONS_ALLOWED
 
+extern void record_asm_name_for_lookup(a_symbol_ptr  sym);
+
 /*
 Enumeration of attributes that are accepted.
 */
@@ -328,6 +330,8 @@ extern void copy_class_attributes_to_routine(a_type_ptr     class_type,
                                              a_routine_ptr  routine);
 
 extern void attribute_one_time_init(void);
+
+extern void attribute_trans_unit_init(void);
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 

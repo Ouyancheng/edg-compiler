@@ -4626,9 +4626,15 @@ Do the output in the way described by octl.
     if (var->aliased_variable != NULL) {
       char  *attr_str = var->is_weakref ? (char*)"__weakref__"
                                         : (char*)"__alias__";
+      /* If the aliased variable has an asm name, reference that from the
+         alias. */
+      char  *alias_name = NULL;
+      if (var->asm_name_is_valid) alias_name = var->asm_name_or_reg.name;
+      if (alias_name == NULL) {
+        alias_name = var->aliased_variable->source_corresp.name;
+      }  /* if */
       form_string_argument_attribute(
-                      attr_str, var->aliased_variable->source_corresp.name,
-                      &need_leading_space, octl);
+                             attr_str, alias_name, &need_leading_space, octl);
     } else if (var->is_weakref) {
       form_simple_attribute("__weakref__", &need_leading_space, octl);
     }  /* if */
@@ -4758,9 +4764,14 @@ Do the output in the way described by octl.
     if (rout->aliased_routine != NULL) {
       char  *attr_str = rout->is_weakref ? (char*)"__weakref__"
                                          : (char*)"__alias__";
+      /* If the aliased routine has an asm name, reference that from the
+         alias. */
+      char  *alias_name = rout->aliased_routine->asm_name;
+      if (alias_name == NULL) {
+        alias_name = rout->aliased_routine->source_corresp.name;
+      }  /* if */
       form_string_argument_attribute(
-                      attr_str, rout->aliased_routine->source_corresp.name,
-                      &need_leading_space, octl);
+                             attr_str, alias_name, &need_leading_space, octl);
     } else if (rout->is_weakref) {
       form_simple_attribute("__weakref__", &need_leading_space, octl);
     }  /* if */

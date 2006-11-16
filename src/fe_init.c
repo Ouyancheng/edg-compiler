@@ -1206,6 +1206,9 @@ when it is a secondary file.
   pos_curr_token.column = SP_COL_UNKNOWN;
   set_err_pos_to_curr_token();
 
+#if GNU_EXTENSIONS_ALLOWED
+  attribute_trans_unit_init();
+#endif /* GNU_EXTENSIONS_ALLOWED */
   mem_manage_trans_unit_init();
   host_envir_trans_unit_init();
   error_trans_unit_init();

@@ -1,5 +1,22 @@
 Version 3.9
 
+11/16/06 GNU compatibility: asm names and "alias" attribute
+
+In GNU modes, the front end now considers GNU asm names when looking up the
+name specified by an "alias" attribute.  For example:
+
+  extern "C" {
+    static void f() __asm("g");
+    static void f() {}
+    void h() __attribute((alias("g")));  // h() now aliased to f().
+  }
+  int main() { h(); }
+
+In the example above, the alias name for h() was previously not found.  This
+caused warnings to be emitted, and a linker error to be issued for a function
+"g".  Now the alias for h() is found to be f() and the program compiles and
+links correctly.
+
 11/15/06 Missing diagnostic on invalid friend class declarations
 
 In some C++ modes (including default C++ mode) the front end failed to

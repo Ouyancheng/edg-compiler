@@ -32,6 +32,72 @@ attribute.c -- Processing of attributes, a GCC extension.
 #include "layout.h"
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+/* Pointer to a hash table mapping explicit asm names (a GNU extension) to
+   symbols corresponding to the entities declared with the explicit asm
+   names.  This is used when looking up alias names (which should find asm
+   names). */
+static a_hash_table_ptr
+	asm_name_map;
+
+
+static a_boolean compare_for_asm_name_map(a_void_ptr  entry,
+                                          a_void_ptr  key)
+/*
+Compare the asm name associated with entry (entry is a symbol pointer) to the
+given key (key is a pointer to a character string).  Return TRUE if they are
+equal.
+*/
+{
+  a_symbol_ptr  sym = (a_symbol_ptr)entry;
+  char          *str;
+
+  switch (sym->kind) {
+    case sk_variable:
+      check_assertion(sym->variant.variable.ptr->asm_name_is_valid);
+      str = sym->variant.variable.ptr->asm_name_or_reg.name;
+      break;
+    case sk_routine:
+      str = sym->variant.routine.ptr->asm_name;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return strcmp(str, (char*)key) == 0;
+}  /* compare_for_asm_name_map */
+
+
+void record_asm_name_for_lookup(a_symbol_ptr  sym)
+/*
+The given symbol represents a variable or a routine with a GNU asm name.
+Record that name-symbol pair for easy lookup later on (in case a GNU alias
+attribute refers to that name).
+*/
+{
+  a_symbol_ptr  *p_sym;
+  char          *str;
+
+  switch (sym->kind) {
+    case sk_variable:
+      check_assertion(sym->variant.variable.ptr->asm_name_is_valid);
+      str = sym->variant.variable.ptr->asm_name_or_reg.name;
+      break;
+    case sk_routine:
+      str = sym->variant.routine.ptr->asm_name;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  check_assertion(str != NULL);
+  p_sym = (a_symbol_ptr*)hash_find(asm_name_map, (a_void_ptr)str,
+                                   /*create=*/TRUE);
+  /* If multiple entities are declated with the same asm name, the last one
+     will be the one recorded. */
+  *p_sym = sym;
+}  /* record_asm_name_for_lookup */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 /*
 The "alias" and "weakref" attributes can refer to entities that are declared
@@ -170,6 +236,7 @@ Traverse the list of alias fixups and set the alias fields as needed.
 
   alias_fixup_list = NULL;
   while (entries != NULL) {
+    aliased_sym = NULL;
     entry = entries;
     entries = entries->next;
     if (entry->alias == NULL) {
@@ -177,6 +244,7 @@ Traverse the list of alias fixups and set the alias fields as needed.
       pos = &entry->alias_position;
 #if GNU_EXTENSIONS_ALLOWED
     } else {
+      a_symbol_ptr  *p_sym;
       pos = &entry->alias->decl_position;
       if (entry->alias->defined &&
           !(entry->alias->kind == (a_symbol_kind)sk_variable &&
@@ -189,12 +257,18 @@ Traverse the list of alias fixups and set the alias fields as needed.
            variables: They are defined, but they cannot have an initializer. */
         pos_error(ec_alias_cannot_have_definition, pos);
       }  /* if */
+      p_sym = (a_symbol_ptr*)hash_find(asm_name_map,
+                                       (a_void_ptr)entry->aliased_name,
+                                       /*create=*/FALSE);
+      if (p_sym != NULL) aliased_sym = *p_sym;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
-    clear_locator(&locator, pos);
-    (void)find_symbol(entry->aliased_name,
-                      (sizeof_t)strlen(entry->aliased_name), &locator);
-    aliased_sym = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
+    if (aliased_sym == NULL) {
+      clear_locator(&locator, pos);
+      (void)find_symbol(entry->aliased_name,
+                        (sizeof_t)strlen(entry->aliased_name), &locator);
+      aliased_sym = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
+    }  /* if */
     if (entry->alias == NULL) {
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
       /* This entry corresponds to a redefine_extname pragma directive. */
@@ -2681,7 +2755,20 @@ attributes.
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  register_trans_unit_variable(asm_name_map);
 }  /* attribute_one_time_init */
+
+
+void attribute_trans_unit_init(void)
+/*
+Initialize variables related to GNU attributes that are specific to a given
+translation unit.
+*/
+{
+  asm_name_map = alloc_hash_table(FRONT_END_REGION_NUMBER,
+                                  (a_hash_table_size)1000, hash_source_string,
+                                  compare_for_asm_name_map);
+}  /* attribute_trans_unit_init */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
