@@ -9441,11 +9441,13 @@ clause.  The current function source sequence entry is for that switch clause.
         set_output_position(&sce->constant->source_corresp.decl_position);
         write_tok_str("case ");
         gen_constant(sce->constant, /*need_parens=*/FALSE);
+#if GNU_EXTENSIONS_ALLOWED
         if (sce->range_end != NULL) {
           /* A GNU case range. */
           write_tok_str(" ... ");
           gen_constant(sce->range_end, /*need_parens=*/FALSE);
         }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         write_tok_str(": ");
       }  /* if */
     }  /* for */
