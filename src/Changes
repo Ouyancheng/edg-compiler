@@ -1,5 +1,12 @@
 Version 3.9
 
+11/17/06 Optimized usage of <windows.h> in Windows-hosted builds
+
+host_envir.c now defines a number of macros before including the
+<windows.h> header.  These macro definitions suppress unneeded features and
+services declared in <windows.h>, allowing faster compilation, smaller
+debugging symbol tables, etc.
+
 11/16/06 GNU compatibility: asm names and "alias" attribute
 
 In GNU modes, the front end now considers GNU asm names when looking up the
