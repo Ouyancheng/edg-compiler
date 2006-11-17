@@ -954,7 +954,7 @@ static a_constant_ptr scan_initializer_of_simple_object(
                                   a_boolean           force_object_lifetime,
                                   a_boolean           suppress_object_lifetime,
                                   a_boolean           is_copy_initialization,
-                                  a_type_ptr          type,
+                                  a_type_ptr          *p_type,
                                   a_dynamic_init_ptr  *dip_ptr)
 /*
 Scan a nonaggregate initializer (i.e., not a brace-enclosed expression list).
@@ -968,8 +968,9 @@ expression temporaries even if long_lifetime_temps is TRUE.  Conversely,
 suppress_object_lifetime is TRUE when no object lifetime entry should be
 generated (used when parsing compound literals in C++ mode).
 If is_copy_initialization is TRUE, this is copy-initialization ("="-form);
-otherwise, it's direct-initialization ("()"-form).  type is the data type of
-the object being initialized.
+otherwise, it's direct-initialization ("()"-form).  *p_type is the data type
+of the object being initialized.  It may be updated if it an incomplete
+string type and the initializer is a string constant.
 dip_ptr is a pointer to a dynamic init pointer; if the latter is NULL,
 a dynamic init entry may be allocated and returned, but if *dip_ptr is
 non-NULL, build the initialization information into the object it
@@ -987,8 +988,8 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
   a_constant       constant, *cp = NULL;
 
   if (process_string_constant_initializer(
-                                  &type, &cp, (an_aggregate_init_info_ptr)NULL,
-                                  (an_aggregate_init_context_ptr)NULL)) {
+                                 p_type, &cp, (an_aggregate_init_info_ptr)NULL,
+                                 (an_aggregate_init_context_ptr)NULL)) {
     /* The object being initialized has type pointer to (narrow or wide)
        characters, and is being initialized with a string. */
     is_constant = TRUE;
@@ -996,13 +997,13 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
     /* Scan a potentially non-constant initializer expression.  The result
        of the scan is a constant if the expression is constant, and an
        expression node if not. */
-    scan_initializer_expression(type, static_lifetime, force_object_lifetime,
-                                suppress_object_lifetime,
-                                is_copy_initialization,
-                                &is_constant, &expression, &constant);
+    scan_initializer_expression(
+                             *p_type, static_lifetime, force_object_lifetime,
+                             suppress_object_lifetime, is_copy_initialization,
+                             &is_constant, &expression, &constant);
   } else {
     /* Non-constant is not allowed. */
-    scan_constant_initializer_expression(type, &constant);
+    scan_constant_initializer_expression(*p_type, &constant);
     is_constant = TRUE;
   }  /* if */
   /* See if the scanned expression was constant or not. */
@@ -1900,7 +1901,7 @@ accepted.  The function returns a pointer to an IL a_constant entity.
                                      /*force_object_lifetime=*/FALSE,
                                      (a_boolean)init_info->compound_literal,
                                      /*is_copy_initialization=*/TRUE,
-                                     required_type, &dip);
+                                     &required_type, &dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     init_info->init_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -2963,7 +2964,7 @@ the type of that entity.
                                             /*force_object_lifetime=*/FALSE,
                                             /*suppress_object_lifetime=*/FALSE,
                                             /*is_copy_initialization=*/TRUE,
-                                            vp_type, init_dip);
+                                            &vp_type, init_dip);
   if (microsoft_bugs && microsoft_version < 1310) {
     /* Earlier microsoft compilers accept things like "int x = { f(), { 3 } }".
        The last value replace previous ones (though side-effects take place),
@@ -3285,29 +3286,26 @@ returned set to TRUE.
                                             /*force_object_lifetime=*/FALSE,
                                             /*suppress_object_lifetime=*/FALSE,
                                             /*is_copy_initialization=*/FALSE,
-                                            vp_type, &init_dip);
-      if (microsoft_mode && init_con != NULL && vp != NULL &&
+                                            &vp_type, &init_dip);
+      if (init_con != NULL && vp != NULL &&
           init_con->kind == (a_constant_repr_kind)ck_string &&
-          is_incomplete_type(vp_type) && is_string_type(vp_type)) {
-        /* Microsoft compilers accept code like
+          is_incomplete_type(vp->type) && is_string_type(vp->type)) {
+        /* Handle something like:
              char s[]("xx");
-           Update the variable type to reflect the string size.  Note that if
-           we get here, the initialization is valid and the (second) call to
-           check_string_constant_initializer will not issue a diagnostic
-           (which would otherwise be a duplicate). */
-        check_string_constant_initializer(&vp_type, init_con);
+           Update the variable type to reflect the string size. */
+        check_assertion(!is_incomplete_type(vp_type));
         put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
                                     vp_type);
       }  /* if */
       /* The closing right paren will not have been consumed, as it is
          the arg list for a constructor call is scanned, so bypass it
          explicitly. */
-      remove_stop_token(tok_rparen);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (curr_token == tok_rparen && decl_pos_block != NULL) {
         decl_pos_block->var_init_range.end = pos_curr_token;
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      remove_stop_token(tok_rparen);
       check_closing_paren_after_expr_list();
       /* Although the entity has no constructor, it may have a destructor that
          needs to be recorded in the dynamic init entry (if any). */
@@ -4706,7 +4704,7 @@ scan_paren:
                                             /*force_object_lifetime=*/TRUE,
                                             /*suppress_object_lifetime=*/FALSE,
                                             /*is_copy_initialization=*/FALSE,
-                                            init_type, &dip);
+                                            &init_type, &dip);
                 /* If the initializer produced an object lifetime for the full
                    expression, remove it temporarily from the object lifetime
                    tree and restore it in the correct position later. */

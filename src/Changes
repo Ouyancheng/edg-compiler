@@ -66,14 +66,13 @@ were ignored.  For example:
 This is a regression introduced in version 3.8 by the changes to allow
 extended friend types (see Changes entry of 5/10/06).  It is now fixed.
 
-11/15/06 Microsoft compatibility: String initializers with unspecified bound
+11/15/06 Parenthesized string initializers for arrays with unspecified bound
 
-In Microsoft C++ mode, the front end now accepts a parenthesized initializer
-containing a string literal for a character array with an unspecified bound.
-The bound is then determined by the size of the string literal.  For example:
+The front end now accepts a parenthesized initializer containing a string
+literal for a character array with an unspecified bound.  The bound is then
+determined by the size of the string literal.  For example:
 
-  char s[]("Okay");  // Now accepted in Microsoft mode and treated as:
-                     //   char s[] = "Okay";
+  char s[]("Okay");  // Now accepted and treated as: char s[] = "Okay";
 
 11/13/06 Invalid code rendering for __builtin_offsetof with nonstandard
          anonymous unions
