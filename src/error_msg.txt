@@ -1627,6 +1627,8 @@ ec_pcc_field_ambiguity;;"field name resolves to more than one offset -- see %nod
 ec_not_a_field_name;;"%sq is not a field name"
 ec_case_label_conflict;;"case label value has already appeared in this switch %p"
 ec_member_cannot_have_internal_linkage;;"a member function cannot have internal linkage"
+ec_builtin_function_hidden;;"declaration hides built-in %n"
+ec_builtin_function_overloaded;;"declaration overloads built-in %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

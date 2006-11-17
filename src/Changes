@@ -1,5 +1,18 @@
 Version 3.9
 
+11/17/06 Redeclarations of built-in functions
+
+When GNU_EXTENSIONS_ALLOWED is true, the front end previously issued an error
+when redeclaring a GNU built-in function with an incompatible type.  Now a
+warning is issued and the built-in function is hidden.  Furthermore, in C++
+mode, a warning is also issued if a declaration overloads a GNU built-in
+function.  For example:
+
+  int __builtin_sin(int);  // Now a warning in GNU modes.  In C mode, the
+                           // declaration hides the predeclared function; in
+                           // C++ mode (as was the case previously) it
+                           // overloads it.
+
 11/17/06 Optimized usage of <windows.h> in Windows-hosted builds
 
 host_envir.c now defines a number of macros before including the

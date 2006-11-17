@@ -5821,6 +5821,15 @@ is_function_def is TRUE if the redeclaration is a definition.
                                 ->old_style_params_scanned = TRUE;
       }  /* if */
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (rp->special_kind == (a_special_function_kind)sfk_none &&
+             rp->variant.builtin_function_kind !=
+                                          (a_builtin_function_kind)bfk_none) {
+    /* This is a redeclaration of a predeclared function.  Hide (but do not
+       remove) the old declaration by setting linked_redecl_error to TRUE. */
+    pos_sy_warning(ec_builtin_function_hidden, diag_pos, linked_sym);
+    *linked_redecl_error = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (SVR4_C_mode &&
              incompatible_types_are_SVR4_compatible(new_type, rp->type)) {
     /* The routine types are incompatible, but in SVR4 mode this is
@@ -5913,6 +5922,62 @@ to point to a routine entry attached to an existing compatible external symbol
   }  /* if */
   return result;
 }  /* create_external_symbol_for_routine */
+
+
+static a_symbol_ptr record_overload(a_symbol_locator  *locator,
+                                    a_boolean         is_template,
+                                    a_symbol_ptr      homonym_symbol,
+                                    a_symbol_ptr      *overload_set,
+                                    a_boolean         invisible,
+                                    a_boolean         is_friend)
+/*
+locator represents a new function (or function template, if is_template is
+TRUE) declaration that overloads one or more existing declarations represented
+by homonym_symbol.  Return a symbol for the new entity and update *overload_set
+to represent the resulting overload set.  invisible is TRUE if the new
+declaration is invisible during normal name lookup (e.g., because the
+declaration is a non-injected friend declaration).  is_friend is TRUE if the
+new declaration is a friend declaration.
+*/
+{
+  a_symbol_ptr   sym;
+  a_symbol_kind  sym_kind = (a_symbol_kind)sk_routine;
+  a_boolean      overload_set_is_invisible = FALSE;
+
+  if (is_template) {
+    sym_kind = (a_symbol_kind)sk_function_template;
+  }  /* if */
+  if (invisible && homonym_symbol->is_invisible) {
+    /* If both the previous declaration(s) and the new declaration are
+       invisible, the resulting set is invisible too. */
+    overload_set_is_invisible = TRUE;
+  }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (homonym_symbol->kind == (a_symbol_kind)sk_routine) {
+    a_routine_ptr  rp = homonym_symbol->variant.routine.ptr;
+    if (rp->special_kind == (a_special_function_kind)sfk_none &&
+        rp->variant.builtin_function_kind !=
+                                          (a_builtin_function_kind)bfk_none) {
+      /* This declaration overloads a predeclared function: Issue a warning. */
+      pos_sy_warning(ec_builtin_function_overloaded, &locator->source_position,
+                     homonym_symbol);
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  sym = enter_overloaded_symbol(sym_kind, locator, /*is_constructor=*/FALSE,
+                                homonym_symbol, overload_set);
+  /* Update the visibility of the new symbol and of the overload set it
+     belongs to. */
+  if (invisible) {
+    sym->is_invisible = TRUE;
+    if (overload_set_is_invisible) {
+      (*overload_set)->is_invisible = TRUE;
+    }  /* if */
+  } else if (!is_friend) {
+    (*overload_set)->is_invisible = FALSE;
+  }  /* if */
+  return sym;
+}  /* record_overload */
 
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED || !GNU_EXTENSIONS_ALLOWED || \
@@ -6633,22 +6698,9 @@ declaration.
     } else if (symbol_for_overloading != NULL) {
       /* Overloaded function.  Create the new symbol, which will be on the
          list of functions connected to an sk_overloaded symbol. */
-      a_boolean  overload_set_is_invisible = FALSE;
-
-      if (set_invisible && symbol_for_overloading->is_invisible) {
-        overload_set_is_invisible = TRUE;
-      }  /* if */
-      sym = enter_overloaded_symbol((a_symbol_kind)sk_routine, locator,
-                                    /*is_constructor=*/FALSE,
-                                    symbol_for_overloading, &overload_symbol);
-      if (set_invisible) {
-        sym->is_invisible = TRUE;
-        if (overload_set_is_invisible) {
-          overload_symbol->is_invisible = TRUE;
-        }  /* if */
-      } else if (!is_friend_decl) {
-        overload_symbol->is_invisible = FALSE;
-      }  /* if */
+      sym = record_overload(locator, /*is_template=*/FALSE,
+                            symbol_for_overloading, &overload_symbol,
+                            set_invisible, idlb.is_friend_decl);
     }  /* if */
 skip_overloading:;
   }  /* if */
@@ -7589,25 +7641,12 @@ definition of a member function of a class template.
         /* Another function with the same name has been declared already.  It
            may or may not be a function template.  In any case, create a new
            symbol and add it to an overload list. */
-        a_boolean  overload_set_is_invisible = FALSE;
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
         check_assertion(!microsoft_mode || !invalid_scope_for_new_or_delete);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (set_invisible && homonym_symbol->is_invisible) {
-          overload_set_is_invisible = TRUE;
-        }  /* if */
-        sym = enter_overloaded_symbol((a_symbol_kind)sk_function_template,
-                                      locator, /*is_constructor=*/FALSE,
-                                      homonym_symbol, &overload_symbol);
-        if (set_invisible) {
-          sym->is_invisible = TRUE;
-          if (overload_set_is_invisible) {
-            overload_symbol->is_invisible = TRUE;
-          }  /* if */
-        } else if (!idlb.is_friend_decl) {
-          overload_symbol->is_invisible = FALSE;
-        }  /* if */
+        sym = record_overload(locator, /*is_template=*/TRUE, homonym_symbol,
+                              &overload_symbol, set_invisible,
+                              idlb.is_friend_decl);
       } else {
         /* No overloading.  Simply create a new symbol. */
         sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
