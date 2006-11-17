@@ -2711,12 +2711,16 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
     check_assertion(!vacuous_decl_allowed || !is_friend_decl);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
     if (((gpp_mode && gnu_version < 30400) || (microsoft_mode && !C_mode())) &&
-        innermost_function_scope == NULL && !is_explicit_instantiation) {
+        innermost_function_scope == NULL && !is_explicit_instantiation &&
+        !scope_stack[curr_deferred_access_scope].defer_access_checks) {
       /* In GNU and Microsoft modes, the possibility of delayed nested class
          definitions in class scopes requires us to delay access checking
-         until we know whether the tag name is part of such a definition. */
-      begin_deferral_of_access_checks();
+         until we know whether the tag name is part of such a definition.
+         If we are already deferring access checks, do not set the following
+         flag since that would cause the deferred checks to be checked too
+         early. */
       tag_name_access_checks_deferred = TRUE;
+      begin_deferral_of_access_checks();
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
     tag_sym = scan_tag_name(tag_kind, &locator, &is_friend_decl,

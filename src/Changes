@@ -1,5 +1,21 @@
 Version 3.9
 
+11/17/06 Spurious access error on static data member definition in GNU C++ mode
+
+In GNU C++ mode with gnu_version < 30400, the front end issued a spurious
+access error on out-of-class member definitions that start with an elaborated
+class type specifier.  This is a regression introduced by version 3.8 of the
+front end (specifically, by the changes for the entry of 1/26/06 to allow
+delayed nested class definitions in class scopes).  For example:
+
+  class S {
+    struct N {};
+    static N s;
+  };
+  struct S::N S::s;  // Previously a spurious access error in some GNU modes.
+
+This is now fixed.
+
 11/17/06 Redeclarations of built-in functions
 
 When GNU_EXTENSIONS_ALLOWED is true, the front end previously issued an error
