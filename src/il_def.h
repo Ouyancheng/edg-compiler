@@ -1295,6 +1295,10 @@ typedef struct a_name_reference {
 			/* Points to a description of the class or namespace
 			   qualifier portion of the name.  NULL if there is
 			   such no qualifier. */
+  sizeof_t	num_template_arguments;
+			/* If is_template_id is TRUE, this is the number of
+			   template arguments used in the last component of
+			   the name; UINT_MAX otherwise. */
   a_bit_field	is_global_qualified_name:1;
 			/* TRUE if the name begins with a unary "::"
 			   (e.g., ::y or ::A::x). */

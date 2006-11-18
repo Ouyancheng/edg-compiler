@@ -12247,6 +12247,14 @@ is allocated.
   nrp->is_global_qualified_name = locator->is_global_qualified_name;
   nrp->is_template_id = locator->is_template_id;
   nrp->is_super_qualified = locator->is_super_qualified;
+  if (locator->is_template_id) {
+    /* Set the number of template arguments appearing in the reference. */
+    a_template_arg_ptr argp;
+    nrp->num_template_arguments = 0;
+    for (argp = locator->template_arg_list; argp != NULL; argp = argp->next) {
+      ++nrp->num_template_arguments;
+    }  /* for */
+  }  /* for */
 }  /* make_name_reference_from_locator */
 
 
@@ -12273,6 +12281,7 @@ a previously created entry that can be reused.
      information in the locator. */
   for (nrp = scp->name_references; nrp != NULL; nrp = nrp->next) {
     if (nrp->qualifier == entry_to_copy->qualifier &&
+        nrp->num_template_arguments == entry_to_copy->num_template_arguments &&
         nrp->is_global_qualified_name ==
                                      entry_to_copy->is_global_qualified_name &&
         nrp->is_template_id == entry_to_copy->is_template_id &&
@@ -12285,6 +12294,7 @@ a previously created entry that can be reused.
     /* No match was found -- create a new entry. */
     nrp = alloc_name_reference();
     nrp->qualifier = entry_to_copy->qualifier;
+    nrp->num_template_arguments = entry_to_copy->num_template_arguments;
     nrp->is_global_qualified_name = entry_to_copy->is_global_qualified_name;
     nrp->is_template_id = entry_to_copy->is_template_id;
     nrp->is_super_qualified = entry_to_copy->is_super_qualified;

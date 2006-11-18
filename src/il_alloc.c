@@ -3893,6 +3893,7 @@ Initialize the fields of a name reference entry.
 {
   nrp->next = NULL;
   nrp->qualifier = NULL;
+  nrp->num_template_arguments = (sizeof_t)UINT_MAX;
   nrp->is_global_qualified_name = FALSE;
   nrp->is_template_id = FALSE;
   nrp->is_super_qualified = FALSE;

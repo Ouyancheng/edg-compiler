@@ -1,5 +1,26 @@
 Version 3.9
 
+11/18/06 C++-generating back end: number of arguments in a template-id
+
+When a template-id is used to refer to a function, trailing template
+arguments can be omitted if they can be deduced from the function call.
+The C++-generating back end, however, always generated a complete argument
+list in such template-ids, sometimes resulting in erroneous code.  In
+configurations in which RECORD_FORM_OF_NAME_REFERENCE is TRUE, template-ids
+referring to functions are now generated with the same number of template
+arguments used in the source.  For example:
+
+  template <typename T> struct S: T { };
+
+  template <typename T> void f(S<T>) { }
+  template <typename T> void f(T) { }
+
+  void g() {
+    f<>(1);    // Previously generated as "f< int>(1)" (which will produce
+               // an instantiation error for S<int> instead of deduction
+               // failure for f(S<T>) as in the original).
+  }
+
 11/17/06 Spurious access error on static data member definition in GNU C++ mode
 
 In GNU C++ mode with gnu_version < 30400, the front end issued a spurious

@@ -1919,9 +1919,11 @@ a class template.
 
 
 static void gen_template_arguments(a_source_correspondence *scp,
-                                   an_il_entry_kind        entry_kind)
+                                   an_il_entry_kind        entry_kind,
+                                   sizeof_t                num_arguments)
 /*
-Output the template arguments of the entity associated with scp.
+Output the first num_arguments template arguments of the entity associated
+with scp.
 */
 {
   a_boolean          insert_space;
@@ -1941,9 +1943,29 @@ Output the template arguments of the entity associated with scp.
     }  /* if */
     if (insert_space) write_space();
     /* Put out the template argument list, e.g., "<int, float>". */
-    in_template_argument_list = TRUE;
-    form_template_args(tap, &octl);
-    in_template_argument_list = saved_in_template_argument_list;
+    if (num_arguments == 0) {
+      /* Just output the angle brackets. */
+      write_tok_str("<>");
+    } else {
+      /* Write only the first num_arguments template arguments.  In order to
+         do that, we scan through the list and temporarily assign NULL to
+         the "next" pointer of the last argument to be printed. */
+      a_template_arg_ptr argp;
+      a_template_arg_ptr saved_next;
+      sizeof_t           i;
+      for (argp = tap, i = 0; argp != NULL && i < num_arguments;
+           argp = argp->next, ++i) {}
+      if (argp != NULL) {
+        saved_next = argp->next;
+        argp->next = NULL;
+      }  /* if */
+      in_template_argument_list = TRUE;
+      form_template_args(tap, &octl);
+      in_template_argument_list = saved_in_template_argument_list;
+      if (argp != NULL) {
+        argp->next = saved_next;
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* gen_template_arguments */
 
@@ -1960,7 +1982,7 @@ entity is a template class, add the template arguments.
   /* The bare name is the unqualified name without the template arguments: */
   gen_bare_name(scp, entry_kind);
   if (il_header.source_language == sl_Cplusplus) {
-    gen_template_arguments(scp, entry_kind);
+    gen_template_arguments(scp, entry_kind, (sizeof_t)UINT_MAX);
   }  /* if */
 }  /* gen_unqualified_name */
 
@@ -2653,7 +2675,7 @@ to indicate that the name reference was successfully emitted.
            whether to include template arguments. */
         gen_bare_name(scp, entry_kind);
         if (nrp->is_template_id) {
-          gen_template_arguments(scp, entry_kind);
+          gen_template_arguments(scp, entry_kind, nrp->num_template_arguments);
         }  /* if */
       } else {
         /* Not a routine name. */
@@ -2949,7 +2971,7 @@ declaration.
        */
     gen_bare_name(scp, iek_routine);
     if (!omit_template_args) {
-      gen_template_arguments(scp, iek_routine);
+      gen_template_arguments(scp, iek_routine, (sizeof_t)UINT_MAX);
     }  /* if */
   } else {
     gen_name(scp, iek_routine,
