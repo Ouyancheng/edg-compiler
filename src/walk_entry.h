@@ -1158,6 +1158,30 @@ the file scope, do not process it (but record an orphan in the latter case).
           rout_type = skip_typerefs(rout_type);
           definition_needed_if_class(rout_type->variant.routine.return_type);
         }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+        if (microsoft_mode && !C_mode() &&
+            ptr->special_kind == (a_special_function_kind)sfk_conversion) {
+          /* In Microsoft mode, a conversion function returning a
+             pointer to a class requires that the class be complete so
+             it can be compared against the return type of other conversion
+             functions in the same class.  This is an issue in Microsoft mode
+             because of an odd way of handling ambiguities (by throwing them
+             away, which means that conversion functions that don't get called
+             can affect the outcome of overload resolution; see x5949.C).
+             The problem is only relevant in source-to-source applications,
+             where overload resolution gets done again on the output of
+             the front end. */
+          a_type_ptr return_type =
+                         skip_typerefs(ptr->type)->variant.routine.return_type;
+          if (is_pointer_type(return_type)) {
+            return_type = type_pointed_to(return_type);
+            if (is_class_struct_union_type(return_type)) {
+              return_type = skip_typerefs(return_type);
+              set_proper_definition_needed_flag(return_type);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 #if IA64_ABI && DO_IL_LOWERING
         if (ptr->special_kind == (a_special_function_kind)sfk_constructor ||
