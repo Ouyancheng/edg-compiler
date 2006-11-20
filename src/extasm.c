@@ -61,6 +61,14 @@ static struct name_to_reg extra_reg_names[] = {
   { "esp", (a_named_register)anr_sp },
 
   /* x86-64 additional integer registers, other possible names... */
+  { "rax", (a_named_register)anr_a  },
+  { "rbx", (a_named_register)anr_b  },
+  { "rcx", (a_named_register)anr_c  },
+  { "rdx", (a_named_register)anr_d  },
+  { "rsi", (a_named_register)anr_si },
+  { "rdi", (a_named_register)anr_di },
+  { "rbp", (a_named_register)anr_bp },
+  { "rsp", (a_named_register)anr_sp },
   { "sil", (a_named_register)anr_si },
   { "dil", (a_named_register)anr_di },
   { "bpl", (a_named_register)anr_bp },
