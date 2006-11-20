@@ -1,5 +1,24 @@
 Version 3.9
 
+11/20/06 GNU asm register names lost during inlining
+
+In GNU mode (in configurations with MINIMAL_INLINING set to TRUE), the front
+end did not apply a GNU asm register specified on a local variable of an
+inlining function to the corresponding variable in the inline expansion.
+For example:
+
+  inline void *sp() {
+    register void *r asm("%sp");
+    return r;
+  }
+  int main() {
+    void *s = sp();  // "r" (from sp(), above) was previously remapped to a
+  }                  //  local variable not associated with a specific
+                     // register by front end inlining (with unpredictable
+                     // consequences).
+
+This is now fixed.
+
 11/20/06 GNU compatibility: Alternative x86-64 register names
 
 In configurations that set GNU_X86_ASM_EXTENSIONS_ALLOWED to TRUE, the front

@@ -190,10 +190,25 @@ variable.
   a_variable_ptr             orig_var = vrip->orig_variable;
   a_variable_ptr             temp_var = NULL;
   a_temporary_list_entry_ptr tlep = NULL;
+  a_boolean                  is_register_mapped = FALSE;
 
+  /* Only automatic variables should get here: Such variables cannot have a
+     Embedded C (ISO/IEC TR 18037) named register storage class.  Similarly,
+     they cannot have a GNU asm name.  However, they may have an associated
+     GNU asm register. */ 
+#if NAMED_REGISTERS_ALLOWED
+  check_assertion(!orig_var->has_named_register_storage_class);
+#endif /* NAMED_REGISTERS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  if (orig_var->asm_name_is_valid) {
+    check_assertion(orig_var->asm_name_or_reg.name == NULL);
+  } else {
+    is_register_mapped = TRUE;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Try to reuse an existing local temporary.  Don't do that, though,
      if the variable being remapped has special attributes. */
-  if (expr_temp && !orig_var->address_taken) {
+  if (expr_temp && !orig_var->address_taken && !is_register_mapped) {
     vrip->local_temporary_okay = TRUE;
     do {
       temp_var = find_reusable_temporary(orig_var->type, &tlep);
@@ -222,6 +237,14 @@ variable.
                                     is_temp_for_constructor_this_inlined_param;
   temp_var->is_temp_for_unmodified_inlined_param =
                                     is_temp_for_unmodified_inlined_param;
+#if GNU_EXTENSIONS_ALLOWED
+  if (is_register_mapped) {
+    /* The remapped temporary should be associated with the same register as
+       the original. */
+    temp_var->asm_name_is_valid = FALSE;
+    temp_var->asm_name_or_reg.reg = orig_var->asm_name_or_reg.reg;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* make_remapping_temporary */
 
 
