@@ -942,15 +942,15 @@ and for the instantiation of template functions.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* The declared type of parameters is recorded in a different locations
        depending on the nature of the function (template or nontemplate) and
-       the way it was declared (through or typedef, using old-style C syntax,
+       the way it was declared (through a typedef, using old-style C syntax,
        etc.).  Depending on the situation we may have to iterate over an
        a_param_type list or an a_param_id list. */
     if (param_id != NULL) {
       if (is_real_instantiation) {
         /* An instantiation of a function template does not always involve
            rescanning its declaration (only its body).  That means that the
-           declared type is not recorded in *func_info; instead, may have been
-           reconstructed in the associated a_template_instance it entity. */
+           declared type is not recorded in *func_info; instead, it may have
+           been reconstructed in the associated a_template_instance entity. */
         a_symbol_ptr             rout_sym = symbol_for(rout_ptr);
         a_template_instance_ptr  tip = rout_sym->variant.routine.instance_ptr;
         check_assertion(tip != NULL);
@@ -965,7 +965,7 @@ and for the instantiation of template functions.
       if (orig_ptp == NULL) {
         /* The declared parameter types are not available from the routine's
            declared_type entry (e.g., when dealing with old-style C function
-           definitions. */
+           definitions). */
         orig_param_id = func_info->param_id_list;
         check_assertion(orig_param_id != NULL);
       }  /* if */
