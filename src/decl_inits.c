@@ -969,7 +969,7 @@ suppress_object_lifetime is TRUE when no object lifetime entry should be
 generated (used when parsing compound literals in C++ mode).
 If is_copy_initialization is TRUE, this is copy-initialization ("="-form);
 otherwise, it's direct-initialization ("()"-form).  *p_type is the data type
-of the object being initialized.  It may be updated if it an incomplete
+of the object being initialized.  It may be updated if it is an incomplete
 string type and the initializer is a string constant.
 dip_ptr is a pointer to a dynamic init pointer; if the latter is NULL,
 a dynamic init entry may be allocated and returned, but if *dip_ptr is
