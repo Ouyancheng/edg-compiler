@@ -3,9 +3,9 @@ Version 3.9
 11/20/06 GNU compatibility: Alternative x86-64 register names
 
 In configurations that set GNU_X86_ASM_EXTENSIONS_ALLOWED to TRUE, the front
-end defined some alternative names for x86-64 register names, but left out
-some of the most common ones: rax, rbx, rcx, rdx, rsi, rdi, rbp, and rsp.
-These are now also recognized.
+end defined some alternative names for x86-64 register names (in GNU modes),
+but left out some of the most common ones: rax, rbx, rcx, rdx, rsi, rdi, rbp,
+and rsp.  These are now also recognized.
 
 11/18/06 C++-generating back end: number of arguments in a template-id
 
