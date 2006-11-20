@@ -1920,10 +1920,11 @@ a class template.
 
 static void gen_template_arguments(a_source_correspondence *scp,
                                    an_il_entry_kind        entry_kind,
-                                   sizeof_t                num_arguments)
+                                   long                    num_arguments)
 /*
 Output the first num_arguments template arguments of the entity associated
-with scp.
+with scp.  If num_arguments is negative, all the arguments are to be
+output.
 */
 {
   a_boolean          insert_space;
@@ -1947,15 +1948,16 @@ with scp.
       /* Just output the angle brackets. */
       write_tok_str("<>");
     } else {
-      /* Write only the first num_arguments template arguments.  In order to
-         do that, we scan through the list and temporarily assign NULL to
-         the "next" pointer of the last argument to be printed. */
-      a_template_arg_ptr argp;
+      a_template_arg_ptr argp = NULL;
       a_template_arg_ptr saved_next;
-      sizeof_t           i;
-      for (argp = tap, i = 0; argp != NULL && i < num_arguments;
-           argp = argp->next, ++i) {}
+      long               i;
+      if (num_arguments > 0) {
+        /* Find the last argument to be output. */
+        for (argp = tap, i = 1; argp != NULL && i < num_arguments;
+             argp = argp->next, ++i) {}
+      }  /* if */
       if (argp != NULL) {
+        /* Temporarily truncate the list. */
         saved_next = argp->next;
         argp->next = NULL;
       }  /* if */
@@ -1963,6 +1965,7 @@ with scp.
       form_template_args(tap, &octl);
       in_template_argument_list = saved_in_template_argument_list;
       if (argp != NULL) {
+        /* Restore the full argument list. */
         argp->next = saved_next;
       }  /* if */
     }  /* if */
@@ -1982,7 +1985,7 @@ entity is a template class, add the template arguments.
   /* The bare name is the unqualified name without the template arguments: */
   gen_bare_name(scp, entry_kind);
   if (il_header.source_language == sl_Cplusplus) {
-    gen_template_arguments(scp, entry_kind, (sizeof_t)UINT_MAX);
+    gen_template_arguments(scp, entry_kind, -1L);
   }  /* if */
 }  /* gen_unqualified_name */
 
@@ -2971,7 +2974,7 @@ declaration.
        */
     gen_bare_name(scp, iek_routine);
     if (!omit_template_args) {
-      gen_template_arguments(scp, iek_routine, (sizeof_t)UINT_MAX);
+      gen_template_arguments(scp, iek_routine, -1L);
     }  /* if */
   } else {
     gen_name(scp, iek_routine,
