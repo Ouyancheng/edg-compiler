@@ -1,5 +1,10 @@
 Version 3.9
 
+11/21/06 GNU compatibility: Alternative name for flags register
+
+In GNU modes, with GNU_X86_ASM_EXTENSIONS_ALLOWED set to TRUE, the front end
+now recognizes the alternative name "cc" for the flags register.
+
 11/20/06 GNU asm register names lost during inlining
 
 In GNU mode (in configurations with MINIMAL_INLINING set to TRUE), the front
