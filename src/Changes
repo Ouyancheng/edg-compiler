@@ -8,8 +8,8 @@ now recognizes the alternative name "cc" for the flags register.
 11/20/06 GNU asm register names lost during inlining
 
 In GNU mode (in configurations with MINIMAL_INLINING set to TRUE), the front
-end did not apply a GNU asm register specified on a local variable of an
-inlining function to the corresponding variable in the inline expansion.
+end did not associate a GNU asm register specified on a local variable of an
+inline function with the corresponding variable in the inline expansion.
 For example:
 
   inline void *sp() {
@@ -17,8 +17,8 @@ For example:
     return r;
   }
   int main() {
-    void *s = sp();  // "r" (from sp(), above) was previously remapped to a
-  }                  //  local variable not associated with a specific
+    void *s = sp();  // "r" (from sp(), above) was previously remapped to
+  }                  // a local variable not associated with a specific
                      // register by front end inlining (with unpredictable
                      // consequences).
 
