@@ -1,5 +1,17 @@
 Version 3.9
 
+11/22/06 Statement positions in inline call expansions
+
+The source positions in the expansions of inline function calls that
+appear at the statement level in the source code now have the
+positions of the original statements in the inline function, rather
+than the position of the line of the call.  (When the call is not at
+the statement level, the expansion is an expression rather than a
+statement, so there are no statements whose position might be at
+issue.)  Also, in C modes that allow inlining (GNU C or C99), the
+positions are now set; formerly, they were null source positions,
+which incorrectly suggested that the code was compiler-generated.
+
 11/22/06 C++-generating back end: internal-linkage tentative definitions
 
 As a result of the change described in the 10/6/06 entry, the

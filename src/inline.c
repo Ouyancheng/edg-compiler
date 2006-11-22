@@ -1091,7 +1091,7 @@ return a pointer to the copy.
   a_statement_ptr new_statement = alloc_statement(statement->kind);
 
   copy_statement(statement, new_statement);
-  set_stmt_pos_to_code_pos_for_lowering(new_statement);
+  /* Note that we keep the original source position. */
   new_statement->has_associated_pragma = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   new_statement->source_sequence_entry = NULL;

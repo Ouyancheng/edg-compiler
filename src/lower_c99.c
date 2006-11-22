@@ -3386,14 +3386,15 @@ Do C99 lowering on the indicated statement.
 {
   if (statement != NULL) {
     a_statement_ptr   saved_temp_init_statements = temp_init_statements;
-    a_source_position saved_error_position;
+    a_source_position saved_error_position, saved_code_pos;
 
     temp_init_statements = NULL;
-    /* Set the error position to the statement position, in case there is
-       an error in lowering. */
-    saved_error_position = error_position;
-    set_position_from_stmt_source_position(error_position,
+    /* Track the source position. */
+    saved_code_pos = code_pos_for_lowering;
+    set_position_from_stmt_source_position(code_pos_for_lowering,
                                            statement->position);
+    saved_error_position = error_position;
+    error_position = code_pos_for_lowering;
     if (statement->expr != NULL &&
         statement->kind != (a_statement_kind)stmk_expr) {
       /* Lower the expression.  For an expression statement, that's done
@@ -3510,6 +3511,7 @@ Do C99 lowering on the indicated statement.
     insert_temp_init_statements(statement);
     temp_init_statements = saved_temp_init_statements;
     error_position = saved_error_position;
+    code_pos_for_lowering = saved_code_pos;
   }  /* if */
 }  /* lower_c99_statement */
 
@@ -4197,6 +4199,7 @@ Initialize static variables related to C99 IL lowering that must be
 initialized for each compilation.
 */
 {
+  code_pos_for_lowering = null_source_position;
 #if LOWER_VARIABLE_LENGTH_ARRAYS
   /* The code to lower C VLAs assumes that the deallocation points have been
      marked using enk_vla_dealloc expression nodes. */
