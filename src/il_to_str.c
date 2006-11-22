@@ -4626,11 +4626,12 @@ Do the output in the way described by octl.
     if (var->aliased_variable != NULL) {
       char  *attr_str = var->is_weakref ? (char*)"__weakref__"
                                         : (char*)"__alias__";
-      /* If the aliased variable has an asm name, reference that from the
-         alias. */
-      char  *alias_name = NULL;
-      if (var->asm_name_is_valid) alias_name = var->asm_name_or_reg.name;
-      if (alias_name == NULL) {
+      char  *alias_name;
+      if (var->aliased_variable->asm_name_is_valid) {
+        /* If the aliased variable has an asm name, reference that from the
+           alias. */
+        alias_name = var->aliased_variable->asm_name_or_reg.name;
+      } else {
         alias_name = var->aliased_variable->source_corresp.name;
       }  /* if */
       form_string_argument_attribute(

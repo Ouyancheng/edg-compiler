@@ -1,5 +1,17 @@
 Version 3.9
 
+11/21/06 C++-generating back end, GNU compatibility: asm names and "alias"
+         attributes for variables
+
+The change supporting alias references to asm names (11/16/06) caused the
+C++-generating back end to produce incorrect code for some variables
+declared using this feature.  Now fixed.  For example:
+
+  extern int A __asm__("B");
+  extern int C __asm__("D")
+               __attribute__((alias("B")));  /* Formerly generated as
+                                                'alias("D")'. */
+
 11/21/06 GNU compatibility: Alternative name for flags register
 
 In GNU modes, with GNU_X86_ASM_EXTENSIONS_ALLOWED set to TRUE, the front end
