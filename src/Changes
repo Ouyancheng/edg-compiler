@@ -1,5 +1,19 @@
 Version 3.9
 
+11/22/06 C++-generating back end: internal-linkage tentative definitions
+
+As a result of the change described in the 10/6/06 entry, the
+C++-generating back end used the "static" storage class specifier on all
+C-language file-scope declarations of a variable with internal linkage.
+The Microsoft C compiler, however, has a bug such that it rejects
+declarations with the "static" specifier that occur after the definition of
+the variable.  The C++-generating back end has now been changed back to
+using the "extern" specifier for declarations that follow the variable's
+definition.  For instance:
+
+  static int i = 5;    /* definition */
+  extern int i;        /* previously generated as "static int i;" */
+
 11/21/06 C++-generating back end, GNU compatibility: asm names and "alias"
          attributes for variables
 

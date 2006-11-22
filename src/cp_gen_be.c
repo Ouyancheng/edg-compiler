@@ -11834,6 +11834,7 @@ declaration following this one is such a continuation.
       var = ss_entry_ptr(curr_source_sequence_entry, a_variable_ptr);
     }  /* if */
     is_definition = TRUE;
+    var->definition_has_been_put_out = TRUE;
     var_type = var->declared_type;
 #if GNU_EXTENSIONS_ALLOWED
     marked_as_gnu_extension = var->source_corresp.marked_as_gnu_extension;
@@ -11924,14 +11925,20 @@ declaration following this one is such a continuation.
       /* A declaration of a variable. */
       /* The variable is not defined (here), so use "extern" instead of no
          storage class.  Also use "extern" for nonlocal static variables
-         declared extern (except for file-scope declarations in C mode,
-         where the storage class stays "static" to accommodate C's
-         "tentative definition" rules). */
+         declared extern.  C requires special treatment because of its
+         "tentative definition" rules -- the first declaration of a
+         variable need not be a definition, and declaring it "extern" first
+         and later defining it as "static" is an error.  Microsoft C (at
+         least through version 8.0) has a bug that does not allow
+         declarations that follow a static variable definition to be
+         declared "static," so we only use "static" until the definition
+         has been seen. */
       if (storage_class == (a_storage_class)sc_unspecified ||
           (storage_class == (a_storage_class)sc_static &&
            !var->source_corresp.is_local_to_function &&
            !(C_mode() && curr_name_context->assoc_scope->kind ==
-                                                    (a_scope_kind)sck_file))) {
+                                                      (a_scope_kind)sck_file &&
+             !var->definition_has_been_put_out))) {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
     }  /* if */

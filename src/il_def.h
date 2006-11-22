@@ -6819,6 +6819,13 @@ typedef struct a_variable {
 			   that what is indicated by its type's size. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
+#if BACK_END_IS_CP_GEN_BE
+  a_bit_field	definition_has_been_put_out:1;
+			/* Used in the C++-generating back end to control
+			   the storage class specifier used with a C
+			   non-definition declaration, to work around a
+			   Microsoft bug. */
+#endif /* BACK_END_IS_CP_GEN_BE */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */
 #ifdef CIL
