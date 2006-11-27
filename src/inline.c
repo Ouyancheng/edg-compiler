@@ -1233,7 +1233,7 @@ If not, *failed is set.
                 stmt_expr = add_cast(stmt_expr, void_type());
               }  /* if */
               stmt = insert_expr_statement(stmt_expr, insert_location);
-              set_stmt_pos_to_code_pos_for_lowering(stmt);
+              stmt->position = statement->position;
             }  /* if */
           }  /* if */
           break;
@@ -1359,7 +1359,7 @@ If not, *failed is set.
              copy_statement because that doesn't clone the block
              supplement. */
           new_statement = alloc_statement((a_statement_kind)stmk_block);
-          set_stmt_pos_to_code_pos_for_lowering(new_statement);
+          new_statement->position = statement->position;
           insert_statement(new_statement, insert_location);
           /* Copies of the statements in the block will be inserted under the
              copy of the block statement. */
@@ -1426,7 +1426,7 @@ If not, *failed is set.
                                     f_skip_typerefs(var->type),
                                     var_expr);
           stmt = insert_expr_statement(expr, insert_location);
-          set_stmt_pos_to_code_pos_for_lowering(stmt);
+          stmt->position = statement->position;
           var->initialization_rewritten_as_assignment = TRUE;
         }
         break;
@@ -1477,7 +1477,7 @@ If not, *failed is set.
              copy_inlined_statement because it needs to copy the for loop
              supplement. */
           new_statement = alloc_statement((a_statement_kind)stmk_for);
-          set_stmt_pos_to_code_pos_for_lowering(new_statement);
+          new_statement->position = statement->position;
           insert_statement(new_statement, insert_location);
           new_statement->expr = stmt_expr;
           new_statement->variant.for_loop.statement = stmt;
