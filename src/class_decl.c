@@ -9530,15 +9530,22 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
     /* Skip the typedefs but not cv qualifiers. */
     a_type_ptr  tp = member_type;
     if (tp->kind == (a_type_kind)tk_typeref) {
-      if ((microsoft_mode || gnu_mode)) {
+      a_boolean  typedef_used = skip_typerefs_not_typedefs(tp)->kind ==
+                                                    (a_type_kind)tk_typeref;
+      if (typedef_used && !C_mode()) {
+        /* The anonymous-union-like construct was expressed through a typedef.
+           E.g.:  typedef union { int i; } U;
+                  struct S { U; };
+           That form is not allowed in C++ modes (GNU and Microsoft compilers
+           don't accept it; disallowing this in C++ also simplifies lowering
+           later on). */
+      } else if ((microsoft_mode || gnu_mode)) {
         /* In Microsoft C mode, cv-qualifiers are allowed on all anonymous-
-           union-like constructs.  In Microsoft C++ mode, and in GNU modes
-           that is true only for such constructs that aren't expressed via
-           a typedef. */
-        if (C_mode() && microsoft_mode) {
+           union-like constructs.  In GNU mode that is true only for such
+           constructs that aren't expressed via a typedef. */
+        if (microsoft_mode) {
           tp = skip_typerefs(tp);
-        } else if (skip_typerefs_not_typedefs(tp)->kind !=
-                                                    (a_type_kind)tk_typeref) {
+        } else if (!typedef_used) {
           /* member_type is a qualified immediate class type (i.e., there is
              no typedef involved). */
           tp = skip_typerefs(tp);
@@ -9551,9 +9558,10 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
     }  /* if */
     if (tp->kind == (a_type_kind)tk_typeref) {
       /* This must be a cv qualifier on top of what we already know to be a
-         class, struct, or union type.  The qualifier disqualifies it from
-         being treated as an anonymous-union-like construct (except in
-         Microsoft and GNU C++ modes). */
+         class, struct, or union type, or a typedef in C++ mode.  Either way,
+         it is disqualified from being treated as an anonymous-union-like
+         construct (except sometimes in Microsoft and GNU C++ modes; in those
+         cases tp will have been adjusted above). */
     } else {
       if (C_mode()) {
         /* In C mode that's all we need to know. */
