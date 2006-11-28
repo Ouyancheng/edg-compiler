@@ -7381,7 +7381,7 @@ was.  The caller is responsible for issuing error messages.
   /* Scan through the characters of the string looking for the closing quoting
      character. */
   while ((ch = *curr_char_loc) != quoting_char) {
-    if (ch == '\\' && !is_header_name) {
+    if (ch == '\\' && !is_header_name && !ignore_escape_sequences) {
       /* Backslash, escapes the next character.  If followed by "0" or
          "x", an octal or hexadecimal value must be scanned.  We recognize
          those digits so we can accurately count characters, but we do
@@ -15676,6 +15676,7 @@ Initialize variables that are specific to a given translation unit.
   curr_stop_token_stack_entry = NULL;
   push_stop_token_stack();
   clear_stop_tokens();
+  ignore_escape_sequences = FALSE;
 }  /* lexical_trans_unit_init */
 
 

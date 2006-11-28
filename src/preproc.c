@@ -1536,13 +1536,14 @@ being scanned is a Microsoft __pragma operator.
     }  /* if */
   } else {
     /* Cache the tokens that make up the pragma directive. */
-    if (pkdp->read_string_as_header_name) {
-      /* The pragma may have a string in which escape sequences are to be
-         ignored (e.g., a Windows-style path name with backslashes as the
-         directory separator).  Scan such strings as header names. */
-      exp_header_name = TRUE;
+    if (pkdp->ignore_escape_seqs_in_string) {
+      /* The pragma may have a string in which apparent escape sequences
+         really are not (e.g., a Windows-style path name with backslashes
+         as the directory separator).  Suppress escape sequence
+         recognition. */
+      ignore_escape_sequences = TRUE;
       cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
-      exp_header_name = FALSE;
+      ignore_escape_sequences = FALSE;
     } else {
       cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
     }  /* if */
@@ -2254,7 +2255,7 @@ of this pragma extends to the next occurrence of #pragma stop_map_region.
   }  /* if */
   add_stop_token(tok_rparen);
   /* Scan the string literal that specifies the identifier. */
-  if (curr_token != tok_header_name) {
+  if (curr_token != tok_string_literal) {
     if (!err) {
       warning(ec_exp_string_literal);
       err = TRUE;

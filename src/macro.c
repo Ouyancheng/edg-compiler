@@ -3590,7 +3590,10 @@ end_scan_for_macro_modifs:;
         for (temp_ptr = file_name; *temp_ptr != '\0'; temp_ptr++) {
           char ch = *temp_ptr;
           if (isprint((unsigned char)ch)) {
-            if (!exp_header_name && (ch == '"' || ch == '\\')) repl_text_len++;
+            if ((ch == '"' && !exp_header_name) ||
+                (ch == '\\' && !exp_header_name && !ignore_escape_sequences)) {
+              repl_text_len++;
+            }  /* if */
             repl_text_len++;
           } else if (ch == '\n') {
             /* Newline is put out as \n. */
@@ -3609,7 +3612,8 @@ end_scan_for_macro_modifs:;
         for (temp_ptr = file_name; *temp_ptr != '\0'; temp_ptr++) {
           char ch = *temp_ptr;
           if (isprint((unsigned char)ch)) {
-            if (!exp_header_name && (ch == '"' || ch == '\\')) {
+            if ((ch == '"' && !exp_header_name) ||
+                (ch == '\\' && !exp_header_name && !ignore_escape_sequences)) {
               *text_loc++ = '\\';
             }  /* if */
             *text_loc++ = ch;
