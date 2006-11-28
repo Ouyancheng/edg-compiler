@@ -1,5 +1,20 @@
 Version 3.9
 
+11/28/06 GNU C++ compatibility: template nesting depth mismatch on full
+         specialization
+
+The diagnostic issued when an incorrect number of "template <>" clauses is
+specified on full specialization (i.e., one with no remaining template
+parameters) has been reduced to a warning in g++ mode.
+
+  template <class T> struct A {
+    template <class U> struct B { };
+  };
+  template <> struct A<int>{
+    template <class U> struct B {};
+  };
+  template <> template <> struct A<int>::B<double> {};  // warning in g++ mode
+
 11/27/06 Microsoft compatibility: #pragma start_map_region("filename")
 
 The front end previously issued spurious diagnostics for the filename

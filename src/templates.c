@@ -15811,9 +15811,13 @@ issued, and TRUE is returned.
   if (depth != decl_state->number_of_template_param_clauses &&
       !decl_state->decl_scope_err) {
     /* The depths do not match, issue a diagnostic.  Don't set decl_scope_err
-       in case this discretionary error is reduced in severity. */
-    pos_sy_diagnostic(es_discretionary_error,
-                      ec_template_depth_mismatch, pos, sym);
+       because the message can be issued as a warning in g++ mode or the
+       severity can be reduced by the diagnostic control facilities. */
+    an_error_severity	severity = es_discretionary_error;
+    /* In g++ mode, reduce the message to a warning for a full
+       specialization. */
+    if (gpp_mode && decl_state->is_full_specialization) severity = es_warning;
+    pos_sy_diagnostic(severity, ec_template_depth_mismatch, pos, sym);
     decl_state->nesting_depth_err = TRUE;
   }  /* if */
   return result;
