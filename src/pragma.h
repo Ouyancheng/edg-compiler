@@ -197,6 +197,11 @@ typedef struct a_pragma_kind_description {
 			   needed for pragmas saved as token caches, which
 			   otherwise are not permitted to be passed in the
 			   IL. */
+  a_bit_field	read_string_as_header_name:1;
+			/* TRUE if strings in the pragma text should be
+			   read as header names rather than as ordinary
+			   character strings, suppressing expansion of what
+			   would otherwise appear to be escape sequences. */
   an_error_severity
 		error_severity;
 			/* For pbk_other pragmas, the severity of the

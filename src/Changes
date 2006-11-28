@@ -1,5 +1,18 @@
 Version 3.9
 
+11/27/06 Microsoft compatibility: #pragma start_map_region("filename")
+
+The front end previously issued spurious diagnostics for the filename
+argument of a start_map_region pragma (see the entry of 4/10/06) if the
+initial characters of a name following a backslash directory separator
+did not form a recognized escape sequence.  This string is now read like
+a header name, suppressing attempts to recognize escape sequences.  For
+example,
+
+  #pragma start_map_region("d:\union\c.cpp")  // no longer reports an error
+                                              // for an incorrectly-formed
+                                              // universal character name
+
 11/22/06 Statement positions in inline call expansions
 
 The source positions in the expansions of inline function calls that

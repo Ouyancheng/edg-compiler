@@ -1536,7 +1536,16 @@ being scanned is a Microsoft __pragma operator.
     }  /* if */
   } else {
     /* Cache the tokens that make up the pragma directive. */
-    cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
+    if (pkdp->read_string_as_header_name) {
+      /* The pragma may have a string in which escape sequences are to be
+         ignored (e.g., a Windows-style path name with backslashes as the
+         directory separator).  Scan such strings as header names. */
+      exp_header_name = TRUE;
+      cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
+      exp_header_name = FALSE;
+    } else {
+      cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
+    }  /* if */
     if (pkdp->record_pragma_text) {
       /*  The character string representation is usually used for pragmas that
           are to be passed to the C or C++ generating back end, but may be
@@ -2245,7 +2254,7 @@ of this pragma extends to the next occurrence of #pragma stop_map_region.
   }  /* if */
   add_stop_token(tok_rparen);
   /* Scan the string literal that specifies the identifier. */
-  if (curr_token != tok_string_literal) {
+  if (curr_token != tok_header_name) {
     if (!err) {
       warning(ec_exp_string_literal);
       err = TRUE;

@@ -94,6 +94,7 @@ static a_pragma_kind_description_ptr add_pragma_kind_description
 		       a_boolean	     p_fetch_pp_tokens,
 		       a_boolean	     ignore_in_back_end,
 		       a_boolean	     il_info_is_complete,
+		       a_boolean	     read_string_as_header_name,
 		       an_error_severity     error_severity)
 /*
 Allocate a pragma description entry, initialize its fields, and add it
@@ -181,6 +182,7 @@ but cannot be referenced by name in a pragma directive.
   pkdp->ignore_in_back_end = ignore_in_back_end;
   pkdp->is_pseudo_pragma = is_pseudo_pragma;
   pkdp->il_info_is_complete = il_info_is_complete;
+  pkdp->read_string_as_header_name = read_string_as_header_name;
   pkdp->error_severity = error_severity;
   if (is_pseudo_pragma) {
     /* This is a pseudo-pragma (such as a lint comment) that cannot
@@ -210,6 +212,7 @@ static a_pragma_kind_description_ptr add_next_construct_pragma_kind_description
 		       a_boolean	     p_fetch_pp_tokens,
 		       a_boolean	     ignore_in_back_end,
 		       a_boolean	     il_info_is_complete,
+		       a_boolean	     read_string_as_header_name,
 		       an_error_severity     error_severity)
 /*
 This is an interface to the general add_pragma_kind_description that is
@@ -228,7 +231,7 @@ used for creating pbk_next_construct pragmas.
 	    /*global=*/FALSE, automatically_include_in_il,
             record_pragma_text, p_expand_macros, processing_C_code,
             p_fetch_pp_tokens, ignore_in_back_end, il_info_is_complete,
-            error_severity);
+            read_string_as_header_name, error_severity);
 }  /* add_next_construct_pragma_kind_description */
 
 
@@ -245,6 +248,7 @@ static a_pragma_kind_description_ptr add_immediate_pragma_kind_description
 		       a_boolean	     p_fetch_pp_tokens,
 		       a_boolean	     ignore_in_back_end,
 		       a_boolean	     il_info_is_complete,
+		       a_boolean	     read_string_as_header_name,
 		       an_error_severity     error_severity)
 /*
 This is an interface to the general add_pragma_kind_description that is
@@ -258,7 +262,7 @@ used for creating pbk_immediate pragmas.
             /*may_bind_to_expr=*/FALSE, global, automatically_include_in_il,
             record_pragma_text, p_expand_macros, processing_C_code,
             p_fetch_pp_tokens, ignore_in_back_end, il_info_is_complete,
-            error_severity);
+            read_string_as_header_name, error_severity);
 }  /* add_immediate_pragma_kind_description */
 
 
@@ -275,6 +279,7 @@ static a_pragma_kind_description_ptr add_other_pragma_kind_description
 		       a_boolean	     p_fetch_pp_tokens,
 		       a_boolean	     ignore_in_back_end,
 		       a_boolean	     il_info_is_complete,
+		       a_boolean	     read_string_as_header_name,
 		       an_error_severity     error_severity)
 /*
 This is an interface to the general add_pragma_kind_description that is
@@ -288,7 +293,7 @@ used for creating pbk_other pragmas.
             /*may_bind_to_expr=*/FALSE, global, automatically_include_in_il,
             record_pragma_text, p_expand_macros, processing_C_code,
             p_fetch_pp_tokens, ignore_in_back_end, il_info_is_complete,
-            error_severity);
+            read_string_as_header_name, error_severity);
 }  /* add_other_pragma_kind_description */
 
 
@@ -300,7 +305,8 @@ a_pragma_kind_description_ptr add_preproc_immediate_pragma_kind_description(
 		       a_boolean		  record_pragma_text,
 		       a_boolean		  il_info_is_complete,
                        a_boolean                  automatically_include_in_il,
-		       a_boolean		  ignore_in_back_end)
+		       a_boolean		  ignore_in_back_end,
+		       a_boolean		  read_string_as_header_name)
 /*
 This is an interface to the general add_pragma_kind_description that is
 used for creating pbk_preproc_immediate pragmas.
@@ -314,7 +320,8 @@ used for creating pbk_preproc_immediate pragmas.
             automatically_include_in_il, record_pragma_text,
             /*expand_macros=*/FALSE, /*processing_C_code=*/FALSE,
             /*fetch_pp_tokens=*/TRUE, ignore_in_back_end,
-            il_info_is_complete, /*error_severity=*/es_none);
+            il_info_is_complete, read_string_as_header_name,
+            /*error_severity=*/es_none);
 }  /* add_preproc_immediate_pragma_kind_description */
 
 
@@ -1513,6 +1520,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_warning);
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_scanf_args,
@@ -1527,6 +1535,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_warning);
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_lint_argsused,
@@ -1541,6 +1550,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_none);
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_lint_varargs_count,
@@ -1555,6 +1565,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_none);
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_lint_notreached,
@@ -1569,6 +1580,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_none);
   if (!C_mode()) {
     (void)add_immediate_pragma_kind_description
@@ -1583,6 +1595,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
     (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_do_not_instantiate,
@@ -1596,6 +1609,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
     (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_can_instantiate,
@@ -1609,6 +1623,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
 		 es_error);
   }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -1624,6 +1639,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
@@ -1639,6 +1655,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if PRAGMA_WEAK_ALLOWED
@@ -1654,6 +1671,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
 #endif /* PRAGMA_WEAK_ALLOWED */
   (void)add_preproc_immediate_pragma_kind_description
@@ -1661,19 +1679,22 @@ Initialize the pragma description table.
                  /*record_pragma_text=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
-		 /*ignore_in_back_end=*/FALSE);
+		 /*ignore_in_back_end=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE);
   (void)add_preproc_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_hdrstop, hdrstop_or_no_pch_pragma,
                  /*record_pragma_text=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
-		 /*il_info_is_complete=*/FALSE);
+		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE);
   (void)add_preproc_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_no_pch, hdrstop_or_no_pch_pragma,
                  /*record_pragma_text=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
-		 /*il_info_is_complete=*/FALSE);
+		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE);
   if (!C_mode()) {
     (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_define_type_info,
@@ -1688,6 +1709,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/!BACK_END_IS_CP_GEN_BE, /*lint !e506*/
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   }  /* if */
   if (c99_mode || fixed_point_enabled) {
@@ -1703,6 +1725,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/TRUE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
@@ -1719,6 +1742,7 @@ Initialize the pragma description table.
 			                 /*fetch_pp_tokens=*/FALSE,
                                          /*ignore_in_back_end=*/FALSE,
                                          /*il_info_is_complete=*/TRUE,
+                                         /*read_string_as_header_name=*/FALSE,
                                          es_error);
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
@@ -1735,6 +1759,7 @@ Initialize the pragma description table.
 			                 /*fetch_pp_tokens=*/FALSE,
                                          /*ignore_in_back_end=*/FALSE,
                                          /*il_info_is_complete=*/TRUE,
+                                         /*read_string_as_header_name=*/FALSE,
                                          es_error);
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if SUN_EXTENSIONS_ALLOWED
@@ -1745,14 +1770,16 @@ Initialize the pragma description table.
 		                        /*record_pragma_text=*/TRUE,
                                         /*il_info_is_complete=*/TRUE,
                                         /*automatically_include_in_il=*/TRUE,
-					/*ignore_in_back_end=*/FALSE);
+					/*ignore_in_back_end=*/FALSE,
+                                        /*read_string_as_header_name=*/FALSE);
     (void)add_preproc_immediate_pragma_kind_description(
                                         (a_pragma_kind)pk_disable_ldscope,
                                         ldscope_pragma,
 		                        /*record_pragma_text=*/TRUE,
                                         /*il_info_is_complete=*/TRUE,
                                         /*automatically_include_in_il=*/TRUE,
-					/*ignore_in_back_end=*/FALSE);
+					/*ignore_in_back_end=*/FALSE,
+                                        /*read_string_as_header_name=*/FALSE);
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
   (void)add_immediate_pragma_kind_description
@@ -1767,6 +1794,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_remark,
@@ -1780,6 +1808,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_warning,
@@ -1793,6 +1822,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_error,
@@ -1806,6 +1836,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_once,
@@ -1819,6 +1850,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_default,
@@ -1832,6 +1864,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
 #if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description
@@ -1847,6 +1880,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   (void)add_next_construct_pragma_kind_description
  		((a_pragma_kind)pk_test_next_statement,
@@ -1861,6 +1895,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_test_immediate,
@@ -1874,6 +1909,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_test_immediate_text,
@@ -1887,6 +1923,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_test_immediate_pp_text,
@@ -1900,6 +1937,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   (void)add_other_pragma_kind_description
 		((a_pragma_kind)pk_test_other,
@@ -1913,6 +1951,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_warning);
   (void)add_next_construct_pragma_kind_description
  		((a_pragma_kind)pk_test_bind_next_pass,
@@ -1927,6 +1966,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
 #if EXPENSIVE_CHECKING
@@ -1943,6 +1983,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_none);
 #endif /* EXPENSIVE_CHECKING */
 #if DEBUG
@@ -1958,6 +1999,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_db_name,
@@ -1971,6 +2013,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
 #endif /* DEBUG */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
@@ -1987,6 +2030,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   }  /* if */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
@@ -1998,14 +2042,16 @@ Initialize the pragma description table.
                  /*record_pragma_text=*/FALSE,
 		 /*il_info_is_complete=*/TRUE,
                  /*automatically_include_in_il=*/TRUE,
-		 /*ignore_in_back_end=*/TRUE);
+		 /*ignore_in_back_end=*/TRUE,
+		 /*read_string_as_header_name=*/FALSE);
     (void)add_preproc_immediate_pragma_kind_description
 		((a_pragma_kind)pk_pop_macro,
                  pop_macro_pragma,
                  /*record_pragma_text=*/FALSE,
 		 /*il_info_is_complete=*/TRUE,
                  /*automatically_include_in_il=*/TRUE,
-		 /*ignore_in_back_end=*/TRUE);
+		 /*ignore_in_back_end=*/TRUE,
+		 /*read_string_as_header_name=*/FALSE);
     (void)add_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_start_map_region,
                  microsoft_start_map_region_pragma,
@@ -2018,6 +2064,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/TRUE,
                  es_warning);
     (void)add_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_stop_map_region,
@@ -2031,6 +2078,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/FALSE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_warning);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2062,6 +2110,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_warning);
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
   /* When source sequence lists are not being generated, unrecognized pragmas
@@ -2089,6 +2138,7 @@ Initialize the pragma description table.
                  /*fetch_pp_tokens=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
                  es_warning);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
