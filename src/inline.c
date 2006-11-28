@@ -1360,6 +1360,8 @@ If not, *failed is set.
              supplement. */
           new_statement = alloc_statement((a_statement_kind)stmk_block);
           new_statement->position = statement->position;
+          new_statement->variant.block.extra_info->final_position =
+              statement->variant.block.extra_info->final_position;
           insert_statement(new_statement, insert_location);
           /* Copies of the statements in the block will be inserted under the
              copy of the block statement. */
@@ -1628,6 +1630,9 @@ statement).
              statement of the function will be a block) because assignments
              to initialize parameter temporaries may be inserted. */
           block_stmt = alloc_statement((a_statement_kind)stmk_block);
+          block_stmt->position = statement->position;
+          block_stmt->variant.block.extra_info->final_position =
+                                                           statement->position;
           set_block_start_insert_location(block_stmt, &insert_location);
         } else {
           block_stmt = NULL;
