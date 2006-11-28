@@ -1630,9 +1630,6 @@ statement).
              statement of the function will be a block) because assignments
              to initialize parameter temporaries may be inserted. */
           block_stmt = alloc_statement((a_statement_kind)stmk_block);
-          block_stmt->position = statement->position;
-          block_stmt->variant.block.extra_info->final_position =
-                                                           statement->position;
           set_block_start_insert_location(block_stmt, &insert_location);
         } else {
           block_stmt = NULL;
@@ -1675,8 +1672,14 @@ statement).
               }  /* if */
             }  /* for */
             /* Replace the original call statement by overwriting it with
-               the block statement containing the inlined code. */
-            copy_statement(block_stmt, statement);
+               the block statement containing the inlined code.  But keep
+               the original statement source position. */
+            { a_stmt_source_position saved_position = statement->position;
+              copy_statement(block_stmt, statement);
+              statement->position = saved_position;
+              statement->variant.block.extra_info->final_position =
+                                                                saved_position;
+            }
           } else {
             an_expr_node_ptr inlined_call_expr = insert_location.variant.expr;
             check_assertion(inlined_call_expr != NULL);
