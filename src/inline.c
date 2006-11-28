@@ -1428,7 +1428,7 @@ If not, *failed is set.
                                     f_skip_typerefs(var->type),
                                     var_expr);
           stmt = insert_expr_statement(expr, insert_location);
-          stmt->position = statement->position;
+          if (stmt != NULL) stmt->position = statement->position;
           var->initialization_rewritten_as_assignment = TRUE;
         }
         break;
