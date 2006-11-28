@@ -1,5 +1,18 @@
 Version 3.9
 
+11/28/06 Abort on GNU statement expression when VLA in scope
+
+In GNU mode, a statement expression containing a return statement triggered an
+internal error in statements.c if a variable-length array (VLA) was declared
+in a scope surrounding the statement expression.  For example:
+
+  void f(int n) {
+    int a[n];
+    ({ return; });  // Previously aborted with an internal error in
+  }                 // statements.c.
+
+This is now fixed.
+
 11/28/06 GNU C++ compatibility: template nesting depth mismatch on full
          specialization
 

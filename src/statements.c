@@ -579,6 +579,7 @@ to it.
       cfdp->variant.init.statement = NULL;
       cfdp->variant.init.variable = NULL;
       cfdp->variant.init.is_vla_variable = FALSE;
+      cfdp->variant.init.in_statement_expression = FALSE;
       break;
     case cfdk_goto:
       cfdp->variant.goto_statement.ptr = NULL;
@@ -1868,6 +1869,7 @@ declarations.
     cfdp->variant.init.variable = sp->variant.vla.variant.variable;
     cfdp->variant.init.is_vla_variable = TRUE;
   }  /* if */
+  cfdp->variant.init.in_statement_expression = inside_statement_expression();
   add_to_control_flow_descr_list(cfdp);
 }  /* update_init_statement_control_flow */
 
@@ -2206,7 +2208,7 @@ by traversing the control-flow list backwards from *start to *end.
           if (cfdp->variant.init.is_vla_variable) {
             /* The declaration of a VLA variable has been located.  Create a
                new statement to represent its deallocation. */
-            if (inside_statement_expression()) {
+            if (cfdp->variant.init.in_statement_expression) {
               /* Variable-length arrays are not accepted in GNU statement
                  expressions.  Since a deallocation statement may displace the
                  actual "last statement", it could also trigger additional

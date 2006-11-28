@@ -188,11 +188,15 @@ typedef struct a_control_flow_descr {
 			   NULL when the statement pointer refers to an
 			   stmk_set_vla_size statement. */
       a_bit_field
-		is_vla_variable;
+		is_vla_variable:1;
 			/* TRUE if the statement is an stmk_vla_decl
 			   statement that represents the declaration of a
 			   VLA variable, i.e., a variable that will require
 			   allocation at runtime. */
+      a_bit_field
+		in_statement_expression:1;
+			/* TRUE if the initialization appeared inside a GNU
+			   statement expression. */
     } init;
     /* When kind == cfdk_goto: */
     struct {
