@@ -17,7 +17,7 @@ This is now fixed.
          specialization
 
 The diagnostic issued when an incorrect number of "template <>" clauses is
-specified on full specialization (i.e., one with no remaining template
+specified on a full specialization (i.e., one with no remaining template
 parameters) has been reduced to a warning in g++ mode.
 
   template <class T> struct A {
