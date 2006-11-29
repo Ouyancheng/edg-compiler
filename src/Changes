@@ -30,11 +30,11 @@ parameters) has been reduced to a warning in g++ mode.
 
 11/27/06 Microsoft compatibility: #pragma start_map_region("filename")
 
-The front end previously issued spurious diagnostics for the filename
-argument of a start_map_region pragma (see the entry of 4/10/06) if the
-initial characters of a name following a backslash directory separator
-did not form a recognized escape sequence.  This string is now read without
-attempting to recognize escape sequences.  For example,
+While scanning the filename argument of a start_map_region pragma (see the
+entry of 4/10/06), the front end issued an error or warning if the initial
+characters of a name following a backslash directory separator did not form
+a valid escape sequence.  This string is now read without attempting to
+recognize escape sequences.  For example,
 
   #pragma start_map_region("d:\union\c.cpp")  // no longer reports an error
                                               // for an incorrectly-formed
