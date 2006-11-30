@@ -6265,18 +6265,16 @@ white_space_loop:
             /* In Microsoft mode, a // comment delimiter can appear in a macro:
                  #define startcomment() /##/
                  startcomment() This is ignored
-               Work outward to the primary source line.
             */
+            if (macro_depth > 0) {
+              /* We only want to treat this as the start of a comment if we
+                 have finished expanding the macro in which it appears. */
+              curr_char_loc = comment_start_loc;
+              goto end_skip;
+            }  /* if */
+            /* Work outward to the primary source line. */
             do {
               slmp = assoc_source_line_modif(curr_char_loc);
-              /* If the comment delimiter appears in the expansion of a
-                 macro argument, don't consider it the start of a comment.
-                 (We have problems with ordering of source line modifications
-                 later if we allow that.) */
-              if (slmp->is_isolated_text) {
-                curr_char_loc = comment_start_loc;
-                goto end_skip;
-              }  /* if */
               leave_insertion(slmp, curr_char_loc);
             } while (!within_curr_source_line(curr_char_loc));
             if (need_to_delete_comment()) {

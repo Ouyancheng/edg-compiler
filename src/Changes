@@ -1,5 +1,20 @@
 Version 3.9
 
+11/29/06 Microsoft compatibility: comments created via macro expansion
+
+The Microsoft compiler treats the character sequence "//", created by
+concatenation during macro expansion, as the start of a comment.  There
+was a bug in the front end's emulation of this behavior when the macro
+performing the concatenation was invoked from the expansion of another
+macro; the result was that the comment delimiter was ignored and the rest
+of the line was not commented out.  This is now fixed.  For example:
+
+  #define IGNORE COMMENT
+  #define COMMENT /##/
+  void f() {
+    IGNORE x;    // No longer a reference to an undeclared variable
+  }
+
 11/28/06 Abort on GNU statement expression when VLA in scope
 
 In GNU mode, a statement expression containing a return statement triggered an
