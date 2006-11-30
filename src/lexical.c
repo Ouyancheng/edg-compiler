@@ -7379,7 +7379,7 @@ was.  The caller is responsible for issuing error messages.
   /* Scan through the characters of the string looking for the closing quoting
      character. */
   while ((ch = *curr_char_loc) != quoting_char) {
-    if (ch == '\\' && !is_header_name && !ignore_escape_sequences) {
+    if (ch == '\\' && !is_header_name) {
       /* Backslash, escapes the next character.  If followed by "0" or
          "x", an octal or hexadecimal value must be scanned.  We recognize
          those digits so we can accurately count characters, but we do
@@ -7722,11 +7722,6 @@ Scan a header name token, return the token kind or tok_error.
     /* Advance past closing quote. */
     check_assertion(*curr_char_loc == quoting_char);
     curr_char_loc++;
-    /* Header names may not be zero length. */
-    if (num_chars == 0) {
-      ctoken = tok_error;
-      err_code_for_error_token = ec_zero_length_string;
-    }  /* if */
   }  /* else */
   if (!fetch_pp_tokens && ctoken == tok_error) {
     error_at_line_pos(err_code_for_error_token, start_of_curr_token);
@@ -15674,7 +15669,6 @@ Initialize variables that are specific to a given translation unit.
   curr_stop_token_stack_entry = NULL;
   push_stop_token_stack();
   clear_stop_tokens();
-  ignore_escape_sequences = FALSE;
 }  /* lexical_trans_unit_init */
 
 

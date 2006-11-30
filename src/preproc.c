@@ -785,6 +785,9 @@ end_of_header_name:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_pos_curr_token = saved_end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else if (curr_token == tok_header_name && len_of_curr_token == 2) {
+    /* Header names cannot be empty. */
+    curr_token = tok_error;
   }  /* if */
   return (curr_token == tok_header_name);
 }  /* get_header_name */
@@ -1536,14 +1539,13 @@ being scanned is a Microsoft __pragma operator.
     }  /* if */
   } else {
     /* Cache the tokens that make up the pragma directive. */
-    if (pkdp->ignore_escape_seqs_in_string) {
-      /* The pragma may have a string in which apparent escape sequences
-         really are not (e.g., a Windows-style path name with backslashes
-         as the directory separator).  Suppress escape sequence
-         recognition. */
-      ignore_escape_sequences = TRUE;
+    if (pkdp->read_string_as_header_name) {
+      /* The pragma may have a string in which escape sequences are to be
+         ignored (e.g., a Windows-style path name with backslash as the
+         directory separator).  Scan such strings as header names. */
+      exp_header_name = TRUE;
       cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
-      ignore_escape_sequences = FALSE;
+      exp_header_name = FALSE;
     } else {
       cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
     }  /* if */
@@ -2254,8 +2256,12 @@ of this pragma extends to the next occurrence of #pragma stop_map_region.
     err = TRUE;
   }  /* if */
   add_stop_token(tok_rparen);
-  /* Scan the string literal that specifies the identifier. */
-  if (curr_token != tok_string_literal) {
+  /* Scan the string literal that specifies the identifier.  (Note that the
+     "string literal" is actually scanned as a tok_header_name; the reason
+     for this is to ensure that a backslash directory separator is not
+     interpreted as the start of an escape sequence, which could lead to
+     spurious errors and warnings.) */
+  if (curr_token != tok_header_name) {
     if (!err) {
       warning(ec_exp_string_literal);
       err = TRUE;

@@ -773,7 +773,7 @@ get_another:
        decrement the count of remaining characters. */
     lptr++;
     (*remaining_mbc_char_count)--;
-  } else if (targ_ch != '\\' || ignore_escape_sequences) {
+  } else if (targ_ch != '\\') {
     /* Normal character (not escaped). */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
     if (multibyte_chars_in_source_enabled) {

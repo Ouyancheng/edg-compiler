@@ -2482,14 +2482,6 @@ extern void f_check_for_if_exists_pragmas(void);
 extern void check_for_unclosed_if_exists_blocks(void);
 #endif /* !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
-EXTERN a_boolean
-		ignore_escape_sequences;
-			/* TRUE if escape sequences (sequences beginning
-			   with a backslash) are to be ignored (i.e.,
-			   read as ordinary characters, without attaching
-			   any special meaning) when scanning a string
-			   literal. */
-
 #endif /* ifndef LEXICAL_H */
 
 /******************************************************************************
