@@ -1684,16 +1684,16 @@ Initialize the pragma description table.
   (void)add_preproc_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_hdrstop, hdrstop_or_no_pch_pragma,
                  /*record_pragma_text=*/TRUE,
-		 /*ignore_in_back_end=*/FALSE,
-                 /*automatically_include_in_il=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
 		 /*read_string_as_header_name=*/FALSE);
   (void)add_preproc_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_no_pch, hdrstop_or_no_pch_pragma,
                  /*record_pragma_text=*/TRUE,
-		 /*ignore_in_back_end=*/FALSE,
-                 /*automatically_include_in_il=*/FALSE,
 		 /*il_info_is_complete=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
 		 /*read_string_as_header_name=*/FALSE);
   if (!C_mode()) {
     (void)add_next_construct_pragma_kind_description
