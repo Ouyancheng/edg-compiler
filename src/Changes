@@ -1,5 +1,15 @@
 Version 3.9
 
+12/1/06  Listing all macro definitions
+
+The front end now accepts a new command line option, --list_macros.  When
+this option is specified, the definition of every macro (predefined,
+command line, and #defined) is echoed to the file specified by -o/--output
+or to stdout if no output file is given.  The source file is only
+preprocessed, not compiled, and the --list_macros option supersedes the
+-E/--preprocess and -P/--no_line_commands options (i.e., no preprocessed
+text will be output, only macro definitions).
+
 11/29/06 Microsoft compatibility: comments created via macro expansion
 
 The Microsoft compiler treats the character sequence "//", created by

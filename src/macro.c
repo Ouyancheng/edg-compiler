@@ -4975,7 +4975,6 @@ section, if there is one, or a new text section will be begun if necessary.
 #define put_text_to_macro_buffer(str, length)                         \
 { put_raw_text(str, length, &curr_text_section); }
 
-#if RECORD_MACROS_IN_IL
 
 static char *macro_param_name(sizeof_t        number,
                               a_macro_def_ptr mdp)
@@ -4990,24 +4989,18 @@ parameter of the indicated macro (1-origined).
 }  /* macro_param_name */
 
 
-static a_macro_ptr make_il_macro_entry(a_symbol_ptr          macro_sym,
-                                       a_source_position_ptr macro_pos)
+static void make_definition_string(a_symbol_ptr macro_sym)
 /*
-Create an IL entry for the macro described by macro_sym.  The macro has
-source position *macro_pos.  The IL entry contains a string version of
-the macro definition.  The return value is a pointer to the newly-created
-IL entry.
+Create a string in the temp_text_buffer representing the definition of the
+macro described by macro_sym.
 */
 {
   a_macro_def_ptr      mdp = macro_sym->variant.macro_def;
-  a_macro_ptr          mp;
   a_macro_param_ptr    pp;
   a_repl_text_seq_kind rts_kind;
   sizeof_t             rts_number;
   char                 *ptr;
 
-  /* Make a string for the macro in temp_text_buffer, then copy it into
-     the file-scope IL. */
   pos_in_temp_text_buffer = 0;
   if (mdp->repl_text == NULL) {
     /* Predefined macros, like __LINE__ and __FILE__, whose replacement text
@@ -5094,6 +5087,25 @@ IL entry.
       }  /* switch */
     }  /* for */
   }  /* if */
+}  /* make_definition_string */
+
+#if RECORD_MACROS_IN_IL
+
+static a_macro_ptr make_il_macro_entry(a_symbol_ptr          macro_sym,
+                                       a_source_position_ptr macro_pos)
+/*
+Create an IL entry for the macro described by macro_sym.  The macro has
+source position *macro_pos.  The IL entry contains a string version of
+the macro definition.  The return value is a pointer to the newly-created
+IL entry.
+*/
+{
+  a_macro_def_ptr      mdp = macro_sym->variant.macro_def;
+  a_macro_ptr          mp;
+  char                 *ptr;
+
+  /* Make a string for the macro in temp_text_buffer. */
+  make_definition_string(macro_sym);
   /* Allocate an IL area of the right size and copy the string into it. */
   ptr = alloc_il((sizeof_t)(pos_in_temp_text_buffer + 1));
   (void)memcpy(ptr, temp_text_buffer, size_t_arg(pos_in_temp_text_buffer));
@@ -5830,6 +5842,13 @@ Scan and process a #define directive.
     }  /* if */
 def_done:;
     if (assoc_symbol != NULL) {
+      if (list_macro_definitions) {
+        /* Create a string version of the macro and display it to the
+           preprocessing output file. */
+        make_definition_string(assoc_symbol);
+        put_ch_to_temp_text_buffer('\0');
+        fprintf(f_pp_output, "%s\n", temp_text_buffer);
+      }  /* if */
 #if RECORD_MACROS_IN_IL
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       /* Make an IL entry for the macro and record the start and end
@@ -6483,6 +6502,15 @@ symbol entry is returned.
     mdp->ref_suppresses_pch_file = ref_suppresses_pch_file;
     mdp->param_list  = NULL;
     mdp->repl_text   = repl_text;
+    if (list_macro_definitions && repl_text != NULL &&
+        strcmp(macro_name, "__DATE__") != 0 &&
+        strcmp(macro_name, "__TIME__") != 0) {
+      /* Create a string version of the macro and display it to the
+         preprocessing output file. */
+      make_definition_string(sym_ptr);
+      put_ch_to_temp_text_buffer('\0');
+      fprintf(f_pp_output, "%s\n", temp_text_buffer);
+    }  /* if */
 #if RECORD_MACROS_IN_IL
     /* Insert predefined macros into the macro list.  Predefined macros that
        have a varying replacement list (like __LINE__ and __FILE__) will have

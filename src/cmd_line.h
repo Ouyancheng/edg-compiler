@@ -253,6 +253,7 @@ typedef enum /*an_option_kind*/ {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_type_traits_helpers,
   optk_cpp0x_mode,
+  optk_list_macros,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -351,6 +352,10 @@ EXTERN a_boolean
 		list_makefile_dependencies;
 			/* When TRUE, write dependency lines for "make" to
 			   stdout (for #include files encountered). */
+EXTERN a_boolean
+		list_macro_definitions;
+			/* When TRUE, write macro definition lines to
+			   stdout. */
 EXTERN FILE	*f_raw_listing;
 			/* If non-NULL (-L option), raw source lines and
 			   context information are written to this file.

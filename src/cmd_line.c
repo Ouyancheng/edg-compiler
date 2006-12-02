@@ -1159,6 +1159,8 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_cpp0x_mode, "no_c++0x", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_list_macros, "list_macros", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE, pchek_none);
 }  /* initialize_option_descriptions */
 
 
@@ -3473,7 +3475,9 @@ Process the arguments on the command line that invoked the compiler.
         /* Do preprocessing only, output to stdout, with #line information. */
         check_assertion(opt_value == TRUE);
         do_preprocessing_only = TRUE;
-        generate_pp_output = TRUE;
+        /* When used by itself, -E displays the preprocessed file; with
+           --list_macros, only macro definitions are displayed. */
+        generate_pp_output = !option_kind_used[(int)optk_list_macros];
         gen_line_info_in_pp_output = TRUE;
         break;
       case optk_preprocess_only_no_line_dirs:
@@ -3481,7 +3485,9 @@ Process the arguments on the command line that invoked the compiler.
            without #line information. */
         check_assertion(opt_value == TRUE);
         do_preprocessing_only = TRUE;
-        generate_pp_output = TRUE;
+        /* When used by itself, -P displays the preprocessed file; with
+           --list_macros, only macro definitions are displayed. */
+        generate_pp_output = !option_kind_used[(int)optk_list_macros];
         gen_line_info_in_pp_output = FALSE;
         break;
       case optk_keep_comments_in_pp_output:
@@ -4456,6 +4462,14 @@ enable_microsoft_mode:
         cpp0x_mode = opt_value;
         C_dialect = C_dialect_cplusplus;
         break;
+      case optk_list_macros:
+        /* Do preprocessing only; list all macro definitions to stdout or
+           the preprocessor output file. */
+        check_assertion(opt_value = TRUE);
+        do_preprocessing_only = TRUE;
+        generate_pp_output = FALSE;
+        list_macro_definitions = TRUE;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -5012,6 +5026,7 @@ variables declared in cmd_line.h.
   pp_file_name = NULL;
   list_included_files = FALSE;
   list_makefile_dependencies = FALSE;
+  list_macro_definitions = FALSE;
   f_raw_listing = NULL;
   f_xref_info = NULL;
   suppress_back_end = FALSE;
