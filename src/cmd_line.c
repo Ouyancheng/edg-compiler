@@ -4465,7 +4465,7 @@ enable_microsoft_mode:
       case optk_list_macros:
         /* Do preprocessing only; list all macro definitions to stdout or
            the preprocessor output file. */
-        check_assertion(opt_value = TRUE);
+        check_assertion(opt_value == TRUE);
         do_preprocessing_only = TRUE;
         generate_pp_output = FALSE;
         list_macro_definitions = TRUE;
