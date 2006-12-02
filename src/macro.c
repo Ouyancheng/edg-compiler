@@ -5089,6 +5089,30 @@ macro described by macro_sym.
   }  /* if */
 }  /* make_definition_string */
 
+
+void gen_pp_output_for_macro_definitions(a_symbol_ptr symbols)
+/*
+Traverse the list of symbols and write a definition line for each macro to
+the preprocessing output file.
+*/
+{
+  a_symbol_ptr sym;
+
+  for (sym = symbols; sym != NULL; sym = sym->next_in_scope) {
+    if (sym->kind == (a_symbol_kind)sk_macro &&
+        sym->variant.macro_def->repl_text != NULL &&
+        !sym->variant.macro_def->ref_suppresses_pch_file &&
+        sym != line_macro_symbol && sym != file_macro_symbol &&
+        sym != base_file_macro_symbol) {
+      /* Create a string version of the macro and display it to the
+         preprocessing output file. */
+      make_definition_string(sym);
+      put_ch_to_temp_text_buffer('\0');
+      fprintf(f_pp_output, "%s\n", temp_text_buffer);
+    }  /* if */
+  }  /* for */
+}  /* gen_pp_output_for_macro_definitions */
+
 #if RECORD_MACROS_IN_IL
 
 static a_macro_ptr make_il_macro_entry(a_symbol_ptr          macro_sym,
@@ -5842,13 +5866,6 @@ Scan and process a #define directive.
     }  /* if */
 def_done:;
     if (assoc_symbol != NULL) {
-      if (list_macro_definitions) {
-        /* Create a string version of the macro and display it to the
-           preprocessing output file. */
-        make_definition_string(assoc_symbol);
-        put_ch_to_temp_text_buffer('\0');
-        fprintf(f_pp_output, "%s\n", temp_text_buffer);
-      }  /* if */
 #if RECORD_MACROS_IN_IL
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       /* Make an IL entry for the macro and record the start and end
@@ -6502,15 +6519,6 @@ symbol entry is returned.
     mdp->ref_suppresses_pch_file = ref_suppresses_pch_file;
     mdp->param_list  = NULL;
     mdp->repl_text   = repl_text;
-    if (list_macro_definitions && repl_text != NULL &&
-        strcmp(macro_name, "__DATE__") != 0 &&
-        strcmp(macro_name, "__TIME__") != 0) {
-      /* Create a string version of the macro and display it to the
-         preprocessing output file. */
-      make_definition_string(sym_ptr);
-      put_ch_to_temp_text_buffer('\0');
-      fprintf(f_pp_output, "%s\n", temp_text_buffer);
-    }  /* if */
 #if RECORD_MACROS_IN_IL
     /* Insert predefined macros into the macro list.  Predefined macros that
        have a varying replacement list (like __LINE__ and __FILE__) will have

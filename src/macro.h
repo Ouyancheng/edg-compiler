@@ -141,6 +141,8 @@ extern void init_predefined_macros(char  curr_date_time[26]);
 
 extern void clear_macro_def(a_macro_def_ptr mdp);
 
+extern void gen_pp_output_for_macro_definitions(a_symbol_ptr symbols);
+
 #if DEBUG
 /* Show and return the amount of space used by macro entries. */
 extern unsigned long show_macro_space_used(void);

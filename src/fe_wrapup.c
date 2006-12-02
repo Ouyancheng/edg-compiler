@@ -814,6 +814,16 @@ and before the back end (if any) is executed.
     template_and_inline_function_wrapup();
   }  /* if */
 
+  if (list_macro_definitions) {
+    /* Write definition lines for all macros; predefined and command-line
+       macros are in the symbols_with_no_scope list, and the rest are in
+       the file scope. */
+    a_scope_pointers_block_ptr pointers_block =
+                    assoc_pointers_block_of(&scope_stack[DEPTH_OF_FILE_SCOPE]);
+    gen_pp_output_for_macro_definitions(symbols_with_no_scope);
+    gen_pp_output_for_macro_definitions(pointers_block->symbols);
+  }  /* if */
+    
 #if MACRO_INVOCATION_TREE_IN_IL
   /* Transform the macro invocation tree from its front-end (list) form into
      the IL (binary tree) form and set the related fields in il_header. */
