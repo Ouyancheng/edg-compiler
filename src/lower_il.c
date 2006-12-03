@@ -1898,24 +1898,39 @@ an_expr_node_ptr au_field_lvalue_selection_expr(an_expr_node_ptr node,
 /*
 Make an expression for an lvalue reference to field "field" of "node" and
 return a pointer to it.  Differs from field_lvalue_selection_expr in that
-it will deal with fields of anonymous unions (both standard ones and the
-nonstandard Microsoft anonymous structs) by adding the necessary
+it will deal with fields of anonymous unions by adding the necessary
 intermediate field selections.
 */
 {
   node = field_lvalue_selection_expr(node, field);
+  if (!C_mode()) {
+    /* In C++ mode, add in selections for anonymous union parent objects,
+       for both standard and nonstandard cases.  The IL coming out of the
+       front end had the nonstandard cases in and the standard cases
+       out/implied, but code in lower_dynamic_init_aggregate_constant has
+       removed the nonstandard cases too, because ctor-inits have no way
+       to express any anonymous union intermediate selections, and it's
+       easiest to start with all cases equal (i.e., having no extra
+       field selections) and add them back in as needed.
+       In C mode, there are only nonstandard cases, which the front end
+       has explicitly put into the IL, so no adjustment is needed.  We
+       don't remove anything and we don't add anything.  This is good,
+       because C mode has the cases where more than one field symbol can
+       point to a given IL field, which makes it much harder to put
+       in the missing field selections if all you have is the IL. */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-  { a_symbol_ptr field_sym = (a_symbol_ptr)field->source_corresp.assoc_info;
-    /* Avoid problems with the anonymous parent fields themselves, as
-       opposed to their members. */
-    if (field_sym != NULL) {
-      adjust_nonstandard_anonymous_object_field_references(node, field_sym,
-                                                           /*std_also=*/TRUE);
-    }  /* if */
-  }
+    { a_symbol_ptr field_sym = (a_symbol_ptr)field->source_corresp.assoc_info;
+      /* Avoid problems with the anonymous parent fields themselves, as
+         opposed to their members. */
+      if (field_sym != NULL) {
+        adjust_nonstandard_anonymous_object_field_references(node, field_sym,
+                                                            /*std_also=*/TRUE);
+      }  /* if */
+    }
 #else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-  adjust_field_selection_for_anonymous_union_references(node);
+   adjust_field_selection_for_anonymous_union_references(node);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  }  /* if */
   return node;
 }  /* au_field_lvalue_selection_expr */
 

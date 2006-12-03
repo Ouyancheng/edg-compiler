@@ -1,5 +1,43 @@
 Version 3.9
 
+12/3/06  Invalid IL with nonstandard anonymous unions in C mode
+
+IL lowering generated invalid IL for certain kinds of nonstandard
+anonymous unions in C mode.  Such anonymous unions are allowed when
+ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE, e.g., in Microsoft and
+GNU modes.  Incorrect IL was generated for uses of fields of
+nonstandard unions/structs used in aggregate initializers in C mode,
+and that could result in aborts later in back ends (in the
+C-generating back end, for example, the abort was in
+dump_field_from_second_operand: "wrong field class").  Now fixed.
+
+  struct S1 {
+    int f1;
+    void * p;
+  };
+  struct S2 {
+    struct S1;  // Nonstandard anonymous struct
+    int f2;
+  };
+  void f(void) {
+    int v;
+    struct S2 s2 = {1, &v, 2};  // Use in aggregate initializer
+  }
+
+As part of this change, cases like the above have now been disallowed
+in C++ mode.  Specifically, naming a typedef to insert a nonstandard
+anonymous union or struct into another class is no longer allowed.
+(Neither Microsoft nor GNU allows such cases.)
+
+  typedef struct {
+    int f1;
+    void * p;
+  } S1;
+  struct S2 {
+    S1;        // No longer allowed in C++ mode
+    int f2;
+  };
+
 12/1/06  Listing all macro definitions
 
 The front end now accepts a new command line option, --list_macros.  When

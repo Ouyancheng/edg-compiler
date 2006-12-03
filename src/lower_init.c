@@ -4164,22 +4164,15 @@ aggregate, set *keep_constant to TRUE.
   aggr_type = skip_typerefs(aggr_type);
   /* Start a new level in the init_pos_modifier chain. */
   ipd = *ipdp;
-  /* If the modifier up one level is a field selection of an anonymous
-     parent object (standard or nonstandard), remove the parent object
-     from the modifiers list.  This is done so the anonymous union level
-     does not appear in the modifiers list.  The anonymous union
-     levels are restored when the field selections are generated
-     (see au_field_lvalue_selection_expr).  This seems a bit
-     roundabout, and it is, but it's needed to get ctor-inits
-     of anonymous union fields to work right.  In that case it's
-     not convenient to add additional modifiers to represent each
-     anonymous union level, because the modifier structures are local
-     variables and there's no opportunity to do recursion to
-     get the extra modifier entries on the list. */
-  ipmp = ipd.modifiers;
-  if (ipmp != NULL && ipmp->curr_field != NULL &&
-      ipmp->curr_field->is_anonymous_parent_object) {
-    ipd.modifiers = ipmp->next;
+  if (!C_mode()) {
+    /* In C++ mode, remove field selections for anonymous union parent
+       objects.  They will be put back in later.  See the comment in
+       au_field_lvalue_selection_expr for an explanation. */
+    ipmp = ipd.modifiers;
+    if (ipmp != NULL && ipmp->curr_field != NULL &&
+        ipmp->curr_field->is_anonymous_parent_object) {
+      ipd.modifiers = ipmp->next;
+    }  /* if */
   }  /* if */
   ipmp = &ipm;
   add_init_pos_modifier(ipmp, &ipd);
