@@ -3444,6 +3444,23 @@ all references to them use the same copy.
  #error -- extern inline functions cannot be instantiated when they are lowered
 #endif /* !(LOWER_EXTERN_INLINE && INSTANTIATE_EXTERN_INLINE) */
 
+#if MINIMAL_INLINING
+/*
+This switch controls an aspect of the minimal inlining built in to IL
+lowering.  When it is TRUE, statements inserted at a call site to expand
+an inline function call will have the source position of the call site.
+When it is FALSE, such statements will have their original source positions,
+i.e., their positions in the source code of the called inline function.
+When an inline call is expanded at other than the top level of a
+statement, this switch has no effect (as the expansion is done
+completely at the expression level, and therefore there are no inserted
+statements whose source position would need to be set).
+*/
+#ifndef STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION
+#define STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION TRUE
+#endif /* STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
+#endif /* MINIMAL_INLINING */
+
 /*
 This switch controls whether the unary plus operator is generated in the
 IL.  When it is FALSE, +expr will be rendered simply as expr.  Note that

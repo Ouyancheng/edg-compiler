@@ -1091,7 +1091,9 @@ return a pointer to the copy.
   a_statement_ptr new_statement = alloc_statement(statement->kind);
 
   copy_statement(statement, new_statement);
-  /* Note that we keep the original source position. */
+#if STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION
+  set_stmt_pos_to_code_pos_for_lowering(new_statement);
+#endif /* STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
   new_statement->has_associated_pragma = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   new_statement->source_sequence_entry = NULL;
@@ -1233,7 +1235,11 @@ If not, *failed is set.
                 stmt_expr = add_cast(stmt_expr, void_type());
               }  /* if */
               stmt = insert_expr_statement(stmt_expr, insert_location);
+#if STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION
+              set_stmt_pos_to_code_pos_for_lowering(stmt);
+#else /* !STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
               stmt->position = statement->position;
+#endif /* STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
             }  /* if */
           }  /* if */
           break;
@@ -1359,9 +1365,13 @@ If not, *failed is set.
              copy_statement because that doesn't clone the block
              supplement. */
           new_statement = alloc_statement((a_statement_kind)stmk_block);
+#if STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION
+          set_stmt_pos_to_code_pos_for_lowering(new_statement);
+#else /* !STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
           new_statement->position = statement->position;
           new_statement->variant.block.extra_info->final_position =
               statement->variant.block.extra_info->final_position;
+#endif /* STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
           insert_statement(new_statement, insert_location);
           /* Copies of the statements in the block will be inserted under the
              copy of the block statement. */
@@ -1428,7 +1438,11 @@ If not, *failed is set.
                                     f_skip_typerefs(var->type),
                                     var_expr);
           stmt = insert_expr_statement(expr, insert_location);
+#if STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION
+          set_stmt_pos_to_code_pos_for_lowering(stmt);
+#else /* !STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
           if (stmt != NULL) stmt->position = statement->position;
+#endif /* STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
           var->initialization_rewritten_as_assignment = TRUE;
         }
         break;
@@ -1479,7 +1493,11 @@ If not, *failed is set.
              copy_inlined_statement because it needs to copy the for loop
              supplement. */
           new_statement = alloc_statement((a_statement_kind)stmk_for);
+#if STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION
+          set_stmt_pos_to_code_pos_for_lowering(new_statement);
+#else /* !STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
           new_statement->position = statement->position;
+#endif /* STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
           insert_statement(new_statement, insert_location);
           new_statement->expr = stmt_expr;
           new_statement->variant.for_loop.statement = stmt;

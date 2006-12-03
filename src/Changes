@@ -108,12 +108,15 @@ name, suppressing attempts to recognize escape sequences.  For example,
 The source positions in the expansions of inline function calls that
 appear at the statement level in the source code now have the
 positions of the original statements in the inline function, rather
-than the position of the line of the call.  (When the call is not at
-the statement level, the expansion is an expression rather than a
-statement, so there are no statements whose position might be at
-issue.)  Also, in C modes that allow inlining (GNU C or C99), the
-positions are now set; formerly, they were null source positions,
-which incorrectly suggested that the code was compiler-generated.
+than the position of the line of the call, if the new switch
+STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION is set
+to FALSE (default is TRUE, which gives the traditional behavior).
+When the call is not at the statement level, the expansion is an
+expression rather than a statement, so there are no statements whose
+position might be at issue.  Also, in C modes that allow inlining
+(GNU C or C99), the positions are now set; formerly, they were null
+source positions, which incorrectly suggested that the code was
+compiler-generated.
 
 11/22/06 C++-generating back end: internal-linkage tentative definitions
 
