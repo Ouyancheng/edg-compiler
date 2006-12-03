@@ -113,10 +113,10 @@ STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION is set
 to FALSE (default is TRUE, which gives the traditional behavior).
 When the call is not at the statement level, the expansion is an
 expression rather than a statement, so there are no statements whose
-position might be at issue.  Also, in C modes that allow inlining
-(GNU C or C99), the positions are now set; formerly, they were null
-source positions, which incorrectly suggested that the code was
-compiler-generated.
+position might be at issue.  Also, regardless of the setting of
+this switch, in C modes that allow inlining (GNU C or C99) the
+positions are now set; formerly, they were null source positions,
+which incorrectly suggested that the code was compiler-generated.
 
 11/22/06 C++-generating back end: internal-linkage tentative definitions
 
