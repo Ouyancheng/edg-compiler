@@ -9540,16 +9540,21 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
            don't accept it; disallowing this in C++ also simplifies lowering
            later on). */
       } else if ((microsoft_mode || gnu_mode)) {
-        /* In Microsoft C mode, cv-qualifiers are allowed on all anonymous-
-           union-like constructs.  In GNU mode that is true only for such
-           constructs that aren't expressed via a typedef. */
+        /* In Microsoft and GNU modes, cv-qualifiers are allowed are allowed on
+           anonymous-union-like constructs not expressed through a typedef.  In
+           Microsoft C mode, cv-qualifiers are also allowed on anonymous-union-
+           like constructs expressed through a typedef (the C++-mode case was
+           already handled above). */
         if (microsoft_mode) {
           tp = skip_typerefs(tp);
         } else if (!typedef_used) {
-          /* member_type is a qualified immediate class type (i.e., there is
-             no typedef involved). */
+          /* GNU mode and member_type is a qualified immediate class type
+             (i.e., there is no typedef involved). */
           tp = skip_typerefs(tp);
         } else {
+          /* GNU C mode nonstandard anonymous union expressed through a
+             typedef: Ignore the typedef, but not any cv-qualifiers.  */
+          check_assertion(C_mode());
           tp = skip_typedefs(tp);
         }  /* if */
       } else {
