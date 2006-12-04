@@ -15262,6 +15262,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_pod:
     case tok_is_polymorphic:
     case tok_is_union:
+    case tok_super:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
     case tok_upc_localsizeof:

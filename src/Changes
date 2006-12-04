@@ -1,5 +1,18 @@
 Version 3.9
 
+12/4/06  Microsoft compatibility: incorrect disambiguation of __super
+
+An old-style cast followed by an expression that starts with the Microsoft
+__super keyword was not handled properly in disambiguation, resulting in
+spurious errors.  Now fixed.
+
+  struct A { 
+    int f();
+  };
+  struct B : public A {
+    int f() { return (int) __super::f(); } 
+  };
+
 12/3/06  Invalid IL with nonstandard anonymous unions in C mode
 
 IL lowering generated invalid IL for certain kinds of nonstandard
