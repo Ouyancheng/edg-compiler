@@ -1392,9 +1392,14 @@ attributes.  */
       case ak_noreturn:
       case ak_volatile:
       case ak_const:
-        /* GCC allows "noreturn" and "const" to apply to variables
-           with pointer-to-function type.  GCC does not accept "pure"
-           in this context, even though it is conceptually similar. */
+#if GNU_X86_ATTRIBUTES_ALLOWED
+      case ak_cdecl:
+      case ak_stdcall:
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+        /* GCC allows "noreturn", "volatile", "const", "cdecl", and "stdcall"
+           to apply to variables with pointer-to-function type.  GCC does not
+           accept "pure" in this context, even though it is conceptually
+           similar. */
         if (!is_pointer_type(type) ||
             !is_function_type(type_pointed_to(type))) {
           pos_ty_warning(ec_attr_requires_func_type, &ap->position, type);
@@ -1608,6 +1613,10 @@ attributes were specified on a definition.
       case ak_noreturn:
       case ak_volatile:
       case ak_const:
+#if GNU_X86_ATTRIBUTES_ALLOWED
+      case ak_cdecl:
+      case ak_stdcall:
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
         /* These attributes were handled in
            apply_attributes_to_variable_type. */
         break;

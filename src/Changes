@@ -1,5 +1,15 @@
 Version 3.9
 
+12/4/06  GNU compatibility: stdcall and cdecl attributes on variables
+
+In GNU modes, the front end now accepts the attributes "stdcall" and "cdecl"
+on declarations of variables with pointer-to-function types.  For example:
+
+  void (*p)() __attribute((stdcall));  // Now accepted in GNU modes.
+
+(These attributes have an effect only in configurations with
+GNU_X86_ATTRIBUTES_ALLOWED.) 
+
 12/4/06  Microsoft compatibility: incorrect disambiguation of __super
 
 An old-style cast followed by an expression that starts with the Microsoft
