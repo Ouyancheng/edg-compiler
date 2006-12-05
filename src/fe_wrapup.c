@@ -815,13 +815,8 @@ and before the back end (if any) is executed.
   }  /* if */
 
   if (list_macro_definitions) {
-    /* Write definition lines for all macros; predefined and command-line
-       macros are in the symbols_with_no_scope list, and the rest are in
-       the file scope. */
-    a_scope_pointers_block_ptr pointers_block =
-                    assoc_pointers_block_of(&scope_stack[DEPTH_OF_FILE_SCOPE]);
-    gen_pp_output_for_macro_definitions(symbols_with_no_scope);
-    gen_pp_output_for_macro_definitions(pointers_block->symbols);
+    /* Write definition lines for all macros. */
+    gen_pp_output_for_macro_definitions();
   }  /* if */
     
 #if MACRO_INVOCATION_TREE_IN_IL

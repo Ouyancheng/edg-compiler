@@ -3475,9 +3475,7 @@ Process the arguments on the command line that invoked the compiler.
         /* Do preprocessing only, output to stdout, with #line information. */
         check_assertion(opt_value == TRUE);
         do_preprocessing_only = TRUE;
-        /* When used by itself, -E displays the preprocessed file; with
-           --list_macros, only macro definitions are displayed. */
-        generate_pp_output = !option_kind_used[(int)optk_list_macros];
+        generate_pp_output = TRUE;
         gen_line_info_in_pp_output = TRUE;
         break;
       case optk_preprocess_only_no_line_dirs:
@@ -3485,9 +3483,7 @@ Process the arguments on the command line that invoked the compiler.
            without #line information. */
         check_assertion(opt_value == TRUE);
         do_preprocessing_only = TRUE;
-        /* When used by itself, -P displays the preprocessed file; with
-           --list_macros, only macro definitions are displayed. */
-        generate_pp_output = !option_kind_used[(int)optk_list_macros];
+        generate_pp_output = TRUE;
         gen_line_info_in_pp_output = FALSE;
         break;
       case optk_keep_comments_in_pp_output:
@@ -4793,6 +4789,10 @@ enable_microsoft_mode:
       command_line_error(
           ec_cl_list_make_dependencies_incompatible_with_multiple_trans_units);
     }  /* if */
+    if (list_macro_definitions) {
+      command_line_error(
+                     ec_cl_list_macros_incompatible_with_multiple_trans_units);
+    }  /* if */
     if (generate_pp_output) {
       command_line_error(
                        ec_cl_pp_output_incompatible_with_multiple_trans_units);
@@ -4840,6 +4840,10 @@ enable_microsoft_mode:
     }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   }  /* if */
+  if (list_macro_definitions) {
+    /* --list_macros supersedes -E/-P. */
+    generate_pp_output = FALSE;
+  }  /* if */
   if (do_preprocessing_only && suppress_do_preprocessing_only) {
     /* The implicit setting of do_preprocessing_only can be overridden
        by the --no_preproc_only command line option.  Note that this is tested
@@ -4857,11 +4861,12 @@ enable_microsoft_mode:
 #if DO_IL_LOWERING
     suppress_il_lowering = TRUE;
 #endif /* DO_IL_LOWERING */
-    if ((list_makefile_dependencies || list_included_files) &&
+    if ((list_makefile_dependencies || list_included_files ||
+         list_macro_definitions) &&
         error_threshold == es_warning &&
         do_preprocessing_only) {
-      /* When preprocessing only to list makefile dependencies or
-         included files, suppress warnings. */
+      /* When preprocessing only to list makefile dependencies,
+         included files, or macros, suppress warnings. */
       error_threshold = es_discretionary_error;
     }  /* if */
   }  /* if */

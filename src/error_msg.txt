@@ -1629,6 +1629,7 @@ ec_case_label_conflict;;"case label value has already appeared in this switch %p
 ec_member_cannot_have_internal_linkage;;"a member function cannot have internal linkage"
 ec_builtin_function_hidden;;"declaration hides built-in %n"
 ec_builtin_function_overloaded;;"declaration overloads built-in %n"
+ec_cl_list_macros_incompatible_with_multiple_trans_units;;"the option to list macro definitions may not be specified when compiling more than one translation unit"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

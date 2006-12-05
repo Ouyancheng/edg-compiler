@@ -4992,7 +4992,7 @@ parameter of the indicated macro (1-origined).
 static void make_definition_string(a_symbol_ptr macro_sym)
 /*
 Create a string in the temp_text_buffer representing the definition of the
-macro described by macro_sym.
+macro described by macro_sym, i.e., "#define <name> <replacement>".
 */
 {
   a_macro_def_ptr      mdp = macro_sym->variant.macro_def;
@@ -5087,18 +5087,24 @@ macro described by macro_sym.
       }  /* switch */
     }  /* for */
   }  /* if */
+  /* Terminate the string. */
+  put_ch_to_temp_text_buffer('\0');
 }  /* make_definition_string */
 
 
-void gen_pp_output_for_macro_definitions(a_symbol_ptr symbols)
+void gen_pp_output_for_macro_definitions(void)
 /*
-Traverse the list of symbols and write a definition line for each macro to
-the preprocessing output file.
+Write a definition line for each currently-defined macro to the
+preprocessing output file.
 */
 {
-  a_symbol_ptr sym;
+  a_scope_pointers_block_ptr file_scope_pointers =
+                    assoc_pointers_block_of(&scope_stack[DEPTH_OF_FILE_SCOPE]);
+  a_symbol_ptr               sym;
 
-  for (sym = symbols; sym != NULL; sym = sym->next_in_scope) {
+  /* Display the predefined and command-line macros, which are in the list
+     of symbols with no scope. */
+  for (sym = symbols_with_no_scope; sym != NULL; sym = sym->next_in_scope) {
     if (sym->kind == (a_symbol_kind)sk_macro &&
         sym->variant.macro_def->repl_text != NULL &&
         !sym->variant.macro_def->ref_suppresses_pch_file &&
@@ -5107,7 +5113,17 @@ the preprocessing output file.
       /* Create a string version of the macro and display it to the
          preprocessing output file. */
       make_definition_string(sym);
-      put_ch_to_temp_text_buffer('\0');
+      fprintf(f_pp_output, "%s\n", temp_text_buffer);
+    }  /* if */
+  }  /* for */
+  /* Display the macros created via #define, which are in the file scope
+     list. */
+  for (sym = file_scope_pointers->symbols; sym != NULL;
+       sym = sym->next_in_scope) {
+    if (sym->kind == (a_symbol_kind)sk_macro) {
+      /* Create a string version of the macro and display it to the
+         preprocessing output file. */
+      make_definition_string(sym);
       fprintf(f_pp_output, "%s\n", temp_text_buffer);
     }  /* if */
   }  /* for */
@@ -5131,10 +5147,8 @@ IL entry.
   /* Make a string for the macro in temp_text_buffer. */
   make_definition_string(macro_sym);
   /* Allocate an IL area of the right size and copy the string into it. */
-  ptr = alloc_il((sizeof_t)(pos_in_temp_text_buffer + 1));
-  (void)memcpy(ptr, temp_text_buffer, size_t_arg(pos_in_temp_text_buffer));
-  /* Add a terminating null. */
-  ptr[pos_in_temp_text_buffer] = '\0';
+  ptr = alloc_il((sizeof_t)(pos_in_temp_text_buffer));
+  (void)strcpy(ptr, temp_text_buffer);
   /* Allocate and fill in the IL macro entry. */
   mp = alloc_macro();
   mp->text = ptr;
