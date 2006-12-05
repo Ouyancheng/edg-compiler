@@ -616,6 +616,7 @@ check_abbreviation()
 --late_tiebreaker
 --library_directory
 --list
+--list_macros
 --list_object_files
 --long_lifetime_temps
 --long_long
@@ -1515,7 +1516,8 @@ process_option()
     -E | --preprocess | \
     -H | --trace_includes | \
     -M | --dependencies | \
-    -P | --no_line_commands)
+    -P | --no_line_commands | \
+    --list_macros)
       preprocessor_only=1
       feoptions=$feoptions" $curr_arg";
       ;;
