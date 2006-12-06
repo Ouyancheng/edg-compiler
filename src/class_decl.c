@@ -12699,13 +12699,13 @@ passed via template_decl.
                                  (a_scope_kind)sck_template_instantiation);
   /* Set the flags to control the calls to decl_specifiers. */
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
-              DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
+              DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER |
+              DSI_IS_MEMBER_DECLARATION;
 #if ASM_FUNCTION_ALLOWED
   dsi_flags |= DSI_ASM_ALLOWED;
 #endif /* ASM_FUNCTION_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
-    dsi_flags |= (DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
-                  DSI_IS_MEMBER_DECLARATION | DSI_INLINE_ALLOWED |
+    dsi_flags |= (DSI_STORAGE_CLASS_SPECIFIER_ALLOWED | DSI_INLINE_ALLOWED |
                   DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                   DSI_VACUOUS_TAG_DECL_ALLOWED);
     if (is_member_template) {

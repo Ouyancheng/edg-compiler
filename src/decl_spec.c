@@ -6296,11 +6296,13 @@ of an error.
   }  /* switch */
   if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED) &&
       !(input_flags & (DSI_IS_EXPLICIT_INSTANTIATION |
-                       DSI_IS_SPECIALIZATION))) {
-    /* Unless the declaration is an explicit instantiation or an
-       explicit specialization, a diagnostic is issued when
-       DSI_STORAGE_CLASS_SPECIFIER_ALLOWED is not set.  The Microsoft
-       compiler allows (and ignores) __declspec in many places. */
+                       DSI_IS_SPECIALIZATION)) &&
+      !(is_declspec && is_member_decl)) {
+    /* When DSI_STORAGE_CLASS_SPECIFIER_ALLOWED, a diagnostic is often emitted.
+       Exceptions are explicit instantiations and explicit specializations, as
+       well as __declspec specifiers on class members (e.g., to specify their
+       alignment).  The Microsoft compiler allows (and ignores) __declspec in
+       many other places. */
     pos_diagnostic((an_error_severity)(microsoft_bugs ? es_warning
                                                       : es_error),
                    ec_storage_class_not_allowed, &specifier_start_pos);
@@ -6442,9 +6444,10 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
 {
   a_boolean  result = FALSE;
   a_boolean  identifier_names_address_space = FALSE;
-  a_boolean  is_member_decl = (input_flags & DSI_IS_MEMBER_DECLARATION);
+  a_boolean  is_member_decl = !C_mode() &&
+                              (input_flags & DSI_IS_MEMBER_DECLARATION);
 
-  if (C_dialect == C_dialect_cplusplus) {
+  if (!C_mode()) {
     an_identifier_options_set  options = GID_NO_OPTIONS;
 
     /* In case the identifier has not yet been coalesced, do it now. */
@@ -6552,6 +6555,7 @@ tokens are consumed by this routine.
 {
   a_boolean          is_parameter = (input_flags & DSI_IS_PARAMETER);
   a_boolean          is_member_decl =
+                                    !C_mode() &&
                                     (input_flags & DSI_IS_MEMBER_DECLARATION);
   a_boolean          is_named_register = FALSE;
   a_token_kind       first_token = curr_token;
@@ -6577,7 +6581,6 @@ tokens are consumed by this routine.
     }  /* if */
   }  /* if */
 #endif /* NAMED_REGISTERS_ALLOWED */
-
   if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED)) {
     pos_error((!C_mode() && first_token == tok_typedef) ?
                        ec_typedef_not_allowed : ec_storage_class_not_allowed,
@@ -6593,8 +6596,7 @@ tokens are consumed by this routine.
     pos_error(ec_mult_storage_classes, &pos_first_token);
     *err = TRUE;
   } else if (is_parameter && first_token != tok_register &&
-             (C_dialect != C_dialect_cplusplus ||
-              first_token != tok_auto)) {
+             (C_mode() || first_token != tok_auto)) {
     /* For parameters, the only allowed storage class specifiers are
        "register" and (in C++ only) "auto". */
     if (first_token == tok_typedef) {
@@ -6904,6 +6906,7 @@ Returns TRUE if there is an error in the specifiers.
   a_source_position          start_pos;
   a_boolean                  is_parameter = (input_flags & DSI_IS_PARAMETER);
   a_boolean                  is_member_decl =
+                                    !C_mode() &&
                                     (input_flags & DSI_IS_MEMBER_DECLARATION);
   a_boolean                  vacuous_decl_allowed;
   a_boolean                  specifier_allows_vacuous_decl;

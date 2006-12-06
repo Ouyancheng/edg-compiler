@@ -1,5 +1,18 @@
 Version 3.9
 
+12/5/06  Microsoft C compatibility: __declspec on struct fields
+
+In Microsoft C mode, the front end now accepts some __declspec specifiers on
+struct field declarations.  For example:
+
+  struct S { __declspec(align(8)) char c; };
+    /* Now accepted in Microsoft C mode.  sizeof(struct S) == 8 in most
+       configurations. */
+
+Previously, the __declspec specifier was ignored with a warning in Microsoft
+C mode when Microsoft bugs were enabled and an error was issued when Microsoft
+bugs were disabled.
+
 12/4/06  GNU compatibility: stdcall and cdecl attributes on variables
 
 In GNU modes, the front end now accepts the attributes "stdcall" and "cdecl"
