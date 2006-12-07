@@ -6444,12 +6444,11 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
 {
   a_boolean  result = FALSE;
   a_boolean  identifier_names_address_space = FALSE;
-  a_boolean  is_member_decl = !C_mode() &&
-                              (input_flags & DSI_IS_MEMBER_DECLARATION);
 
   if (!C_mode()) {
-    an_identifier_options_set  options = GID_NO_OPTIONS;
-
+    a_boolean  is_member_decl = (input_flags & DSI_IS_MEMBER_DECLARATION);
+    an_identifier_options_set
+               options = GID_NO_OPTIONS;
     /* In case the identifier has not yet been coalesced, do it now. */
     if (input_flags & DSI_IS_NEW_TYPE_NAME) {
       options |= GID_IS_NEW_TYPE_NAME;
@@ -6555,7 +6554,6 @@ tokens are consumed by this routine.
 {
   a_boolean          is_parameter = (input_flags & DSI_IS_PARAMETER);
   a_boolean          is_member_decl =
-                                    !C_mode() &&
                                     (input_flags & DSI_IS_MEMBER_DECLARATION);
   a_boolean          is_named_register = FALSE;
   a_token_kind       first_token = curr_token;
@@ -6906,7 +6904,6 @@ Returns TRUE if there is an error in the specifiers.
   a_source_position          start_pos;
   a_boolean                  is_parameter = (input_flags & DSI_IS_PARAMETER);
   a_boolean                  is_member_decl =
-                                    !C_mode() &&
                                     (input_flags & DSI_IS_MEMBER_DECLARATION);
   a_boolean                  vacuous_decl_allowed;
   a_boolean                  specifier_allows_vacuous_decl;
@@ -6981,8 +6978,7 @@ Returns TRUE if there is an error in the specifiers.
         specifier_allows_vacuous_decl = !strict_ansi_mode;
         goto storage_class_specifier;
       case tok_extern:
-        if (C_dialect == C_dialect_cplusplus &&
-            next_token() == tok_string_literal) {
+        if (!C_mode() && next_token() == tok_string_literal) {
           /* This is a C++ linkage specification, which is usually recognized
              and ignored in this context -- except for the error that's put
              out. */
@@ -7720,7 +7716,7 @@ process_class_specifier:
         } else {
           if (basic_type == bt_none) {
             a_boolean  microsoft_elaborated_ctor = FALSE;
-            if (microsoft_mode && is_member_decl && !err) {
+            if (microsoft_mode && !C_mode() && is_member_decl && !err) {
               /* In Microsoft mode, "struct S { struct S(); }; is accepted.
                  Access checks are disabled during this processing. */
               begin_deferral_of_access_checks();
@@ -7950,8 +7946,9 @@ process_class_specifier:
         curr_token_type_symbol =
                     curr_type_symbol((input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                                      /*in_prescan=*/FALSE);
-        if (is_member_decl && (decl_specifiers_seen & DS_TYPE) == 0 &&
-            curr_token_type_symbol != NULL && !C_mode() &&
+        if (!C_mode() && is_member_decl &&
+            (decl_specifiers_seen & DS_TYPE) == 0 &&
+            curr_token_type_symbol != NULL &&
             !locator_for_curr_id.is_qualified_name &&
             is_template_param_type_symbol(curr_token_type_symbol) &&
             skip_typerefs(curr_token_type_symbol->variant.type.ptr)
@@ -8244,7 +8241,7 @@ operator_or_conversion_name:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_compl:
 destructor_name:
-        if (is_member_decl) {
+        if (!C_mode() && is_member_decl) {
           if (!any_decl_specifiers_seen) {
             *output_flags |= DSO_NO_DECL_SPECIFIERS;
           }  /* if */
@@ -8346,7 +8343,7 @@ exit_loop:
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   state->qualifiers = qualifiers;
-  if ((microsoft_mode || sun_mode) &&
+  if (!C_mode() && (microsoft_mode || sun_mode) &&
       (decl_specifiers_seen & DS_STORAGE_CLASS)) {
     /* Certain Microsoft-mode diagnostics involving storage class specifiers
        are put off until all the specifiers have been collected.  The same is
