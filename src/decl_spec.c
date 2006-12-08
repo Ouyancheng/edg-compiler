@@ -6653,6 +6653,8 @@ tokens are consumed by this routine.
   } else if (is_member_decl && !microsoft_mode &&
              !(*decl_specifiers_seen & DS_FRIEND) &&
              first_token != tok_static && first_token != tok_typedef) {
+    /* A declaration like "extern int i;" in a C++ class definition. */
+    check_assertion(!C_mode());
     pos_error(ec_bad_member_storage_class, &pos_first_token);
     *err = TRUE;
   } else if ((input_flags & DSI_IS_LINKAGE_SPEC_DECL) &&
