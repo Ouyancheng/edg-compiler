@@ -140,7 +140,8 @@ extern void decl_spec_one_time_init(void);
 			   include a type specifier. */
 #define DSI_IS_MEMBER_DECLARATION ((a_decl_flag_set)0x4)
 			/* If this bit is set the declaration is that of a
-			   class member, inside the class. */
+			   class member, inside the class (this includes field
+			   declarations in C mode). */
 #define DSI_IS_PARAMETER ((a_decl_flag_set)0x8)
 			/* If this bit is set the declaration specifiers are
 			   part of the declaration of a parameter. */
