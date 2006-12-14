@@ -1,5 +1,19 @@
 Version 3.9
 
+12/14/06 Abort with IA-64 ABI, --no_extern_inline, inline added outside class
+
+When the IA-64 ABI is used with IL lowering, and --no_extern_inline
+is specified, an abort could occur in lower_il.c (in function
+virtual_function_table_should_be_defined_here) on processing of
+the virtual function table for a class whose decider function
+is declared "inline" in the definition outside the class.
+Now fixed.
+
+  struct A {
+    virtual void f();
+  };
+  inline void A::f() {}
+
 12/5/06  Microsoft C compatibility: __declspec on struct fields
 
 In Microsoft C mode, the front end now accepts some __declspec specifiers on

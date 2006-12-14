@@ -5126,10 +5126,13 @@ not to put out the definition; otherwise, it's set to NULL.
         *first_virtual = routine;
         defined_here = (routine->assoc_scope != NULL_region_number);
         /* If the routine is local because of the -tlocal instantiation
-           mode, make the vtable local too. */
+           mode, or because of --no_extern_inline in IA-64 mode and a
+           function declared inline on an out-of-class definition, make
+           the vtable local too. */
         if (routine->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal) {
-          check_assertion(instantiation_mode == tim_local);
+          check_assertion(instantiation_mode == tim_local ||
+                          !extern_inline_allowed);
           *force_static = TRUE;
         }  /* if */
       } else {
