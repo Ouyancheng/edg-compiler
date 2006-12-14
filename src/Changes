@@ -1,5 +1,21 @@
 Version 3.9
 
+12/14/06  Sun C++ compatibility: allow nonconst ref anachronism in sun mode
+
+In Sun compatibility mode, initializing a reference to a nonconst is now
+allowed by default.  The Sun compiler (through version 5.8) continues to
+allow this anachronism.  Use the --no_nonconst_ref_anachronism command line
+argument to override this default behavior. For example:
+
+  struct A {
+    A(int);
+    A operator=(A&);
+  };
+  main () {
+    A b(1);
+    b = A(1);     // Allowed with a warning in Sun compatibility mode.
+  }
+
 12/14/06 Address of function template with target type of "void *"
 
 The change of 4/13/06 to deal with addresses of function templates

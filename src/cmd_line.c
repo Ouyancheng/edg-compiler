@@ -2856,6 +2856,11 @@ checked again here.)
   if (!option_kind_used[(int)optk_const_string_literals]) {
     string_literals_are_const = TRUE;
   }  /* if */
+  if (!(option_kind_used[(int)optk_nonconst_ref_anachronism])) {
+    /* Versions 5.3, 5.5 and 5.8 (at least) of the Sun compiler allow this
+       particular anachronism. */
+    allow_nonconst_ref_anachronism = TRUE;
+  }  /* if */
 }  /* check_and_set_sun_mode_options */
 
 
