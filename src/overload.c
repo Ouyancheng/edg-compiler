@@ -315,6 +315,13 @@ cast.
                                                        template_arg_list,
                                                        &new_template_arg_list);
           }  /* if */
+          if (routine_type == NULL) {
+            /* The template could be converted to "void *", but that would
+               always be ambiguous. */
+            if (is_ptr && is_void_type(dest_underlying_type)) {
+              goto is_ambiguous;
+            }  /* if */
+          }  /* if */
         } else if (is_template_id) {
           /* There is an explicit template argument list, so do not consider
              non-templates. */
@@ -384,6 +391,7 @@ cast.
       }  /* if */
     }  /* if */
     if (number_of_matches > 1) {
+is_ambiguous:
       /* Ambiguous case. */
       *ambiguous = TRUE;
       match_sym = NULL;

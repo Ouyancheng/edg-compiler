@@ -1,5 +1,21 @@
 Version 3.9
 
+12/14/06 Address of function template with target type of "void *"
+
+The change of 4/13/06 to deal with addresses of function templates
+introduced a bug for contexts where the destination type is "void *":
+a function template in such a case was considered not to match at all,
+rather than being a source of infinitely many matches and therefore
+of ambiguity.  This makes a difference when there is another non-template
+function in the overload set:
+
+  void f(int) { }
+  template <class T> int f(T) { return 0; }
+  template <> int f(int) {
+      void *p = (void *)&f; // Should be ambiguous, but chose the non-template
+      return 0;
+  }
+
 12/14/06 Abort with IA-64 ABI, --no_extern_inline, inline added outside class
 
 When the IA-64 ABI is used with IL lowering, and --no_extern_inline
