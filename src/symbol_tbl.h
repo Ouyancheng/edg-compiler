@@ -3815,7 +3815,7 @@ extern void free_param_id_list(a_param_id_ptr *pidlist);
 extern void clear_func_info(a_func_info_block *func_info);
 
 #define done_with_func_info(func_info)                                 \
-  free_param_id_list(&(func_info.param_id_list))
+  free_param_id_list(&((func_info).param_id_list))
 
 extern void clear_decl_modifiers_block(a_decl_modifiers_block *decl_modifiers);
 

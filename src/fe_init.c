@@ -864,6 +864,7 @@ after the command-line processing has been done.
   host_envir_one_time_init();
   class_decl_one_time_init();
   decl_spec_one_time_init();
+  decls_one_time_init();
   def_arg_one_time_init();
   error_one_time_init();
   expr_one_time_init();

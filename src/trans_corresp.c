@@ -330,9 +330,9 @@ a source correspondence).
   conv_seq_to_file_and_line(scp->decl_position.seq, &file_name,
                             &full_name, &line, &at_end_of_source);
   if (line != 0) {
-    fprintf(f_debug, " in file %s (line %ld)", file_name, line);
+    fprintf(f_debug, " in file %s (line %ld)\n", file_name, line);
   } else {
-    fprintf(f_debug, " (built-in; line %ld)", line);
+    fprintf(f_debug, " (built-in; line %ld)\n", line);
   }  /* if */
 }  /* db_scp */
 

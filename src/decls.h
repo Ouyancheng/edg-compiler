@@ -210,6 +210,13 @@ function parameter and return types.
 }  /* promote_float_to_double */
 
 
+/* Bit vector used to pass flags into declarator and into and out of
+   declaration routines.  Each bit represents a flag.  (Note that several of
+   the bit sets described with this type have more than 16 flags; "unsigned
+   long" is used to assure that there is no overflow problem in environments
+   where "unsigned int" would be too small.) */
+typedef unsigned long a_decl_flag_set;
+
 /*
 Forward declaration of a structure used to pass around information about a
 template being declared.
@@ -220,6 +227,25 @@ typedef struct a_tmpl_decl_state *a_tmpl_decl_state_ptr;
 A structure to carry state information through the declaration parsing process.
 */
 typedef struct a_decl_parse_state {
+  a_decl_flag_set
+		dso_flags;
+			/* The flags returned by the call to
+			   decl_specifiers. */
+  a_decl_flag_set
+		do_flags;
+			/* The flags returned by the call to declarator. */
+  a_source_position
+		start_pos;
+			/* The first position of the current declaration. */
+  a_source_position
+		declarator_start_pos;
+			/* The position of the current token when "declarator"
+			   is called, or the null position if there is no
+			   declarator. */
+  a_source_position
+		declarator_pos;
+			/* The position of the declarator-id if there is one.
+			   Otherwise, same as declarator_start_pos. */
   a_type_qualifier_set
 		qualifiers;
 			/* Type qualifiers that have been scanned as part of
@@ -243,10 +269,127 @@ typedef struct a_decl_parse_state {
 			/* TRUE if there are pending qualifiers that have
 			   not had an effect on the current declaration.
 			   ("An effect" may be a diagnostic.) */
+  a_bit_field
+		is_asm_function:1;
+			/* TRUE if the current declaration is for an asm
+			   function.  (An extension available only when
+			   ASM_FUNCTION_ALLOWED is TRUE.) */
+  a_bit_field
+		function_definition_allowed:1;
+			/* TRUE if the declaration context allows a function
+			   definition. */
+  a_bit_field
+		is_old_style_param_decl:1;
+			/* TRUE if the current declaration is an old-style C
+			   parameter declaration. */
+  a_bit_field
+		is_top_level_declaration:1;
+			/* TRUE if the current declaration appears at file
+			   scope and is not part of any other declarative
+			   structure.  (This is significant for precompiled-
+			   header processing.) */
+  a_bit_field
+		is_linkage_spec_decl:1;
+			/* TRUE if the current declaration has a linkage
+			   specifier (like extern "C") attached directly to
+			   it (as opposed to just being inside a linkage
+			   block). */
+  a_bit_field
+		marked_as_gnu_extension:1;
+			/* TRUE if this declaration started with the GNU
+			   keyword __extension__. */
+  a_bit_field
+		has_explicit_type_specifier:1;
+			/* TRUE if at least one type specifier was seen in
+			   the current declaration. */
+  a_bit_field
+		decl_specifiers_omitted:1;
+			/* TRUE if the current declaration omits neither
+			   linkage specifiers nor decl-specifiers. */
+  a_bit_field
+		decl_specifiers_error:1;
+			/* The return value of the call to decl_specifiers. */
+  a_bit_field
+		need_semicolon_remove_stop_token:1;
+			/* tok_semicolon is a stop token that still needs to be
+			   removed from the stop token set. */
+  a_bit_field
+		need_comma_remove_stop_token:1;
+			/* tok_comma is a stop token that still needs to be
+			   removed from the stop token set. */
+  a_bit_field
+		need_assign_remove_stop_token:1;
+			/* tok_assign is a stop token that still needs to be
+			   removed from the stop token set. */
+  a_bit_field
+		need_lbrace_remove_stop_token:1;
+			/* tok_lbrace is a stop token that still needs to be
+			   removed from the stop token set. */
+  a_bit_field
+		restore_name_linkage:1;
+			/* TRUE if pop_name_linkage must be called at the end
+			   of the processing for this declaration. */
+  a_decl_modifiers_block
+		decl_modifiers;
+			/* Extended declaration information (most of it
+			  related to Microsoft extensions). */
+  an_ms_attribute_ptr 
+		ms_attributes;
+			/* A list of Microsoft attributes scanned for the
+			   current declaration. */
+  char
+		*asm_name;
+			/* The string specified by a GNU asm name construct. */
+  a_source_position
+		asm_name_pos;
+  an_attribute_ptr
+		attributes;
+			/* A list of GNU attributes scanned for the current
+			   declaration. */
+  a_named_register_id
+		register_id;
+			/* An integer representing a named register storage
+			   class (zero if no named register was specified). */
+  a_storage_class
+		declared_storage_class;
+			/* The storage class as it appears in the source. */
+  a_storage_class
+		storage_class;
+			/* The storage class as adjusted for the nature of the
+			   declaration (including possible error recovery
+			   decisions). */
+  a_type_ptr
+		specifiers_type;
+			/* The type returned by the call to decl_specifiers. */
+  a_type_ptr
+		declared_type;
+			/* The type returned by the call to declarator. */
+  a_type_ptr
+		type;
+			/* The type of the entity being declared. */
+  a_source_sequence_entry_ptr
+		source_sequence_entry;
+			/* The source sequence entry created for the declarator
+			   (if any). */
+  a_param_id_ptr
+		param_id;
+			/* A description of the parameter declared using an
+			   old-style C parameter definition.  May be NULL even
+			   when is_old_style_param_decl is TRUE in error
+			   cases. */
 } a_decl_parse_state;
 
 
-extern void init_decl_parse_state(a_decl_parse_state  *ps);
+EXTERN a_decl_parse_state
+		null_decl_parse_state;
+			/* Null "parse state".  Used for initialization by the
+			   macro init_decl_parse_state macro. */
+
+/*
+Macro to initialize the "declaration parsing state" pointed to by the
+argument.
+*/
+#define init_decl_parse_state(ps) { *(ps) = null_decl_parse_state; }
 
 extern void f_check_pending_qualifiers_used(a_decl_parse_state  *ps);
 
@@ -495,13 +638,6 @@ extern void make_using_directive(a_namespace_ptr    nsp,
 		   	         a_boolean	    compiler_generated,
 				 an_attribute_ptr   attributes); 
 
-/* Bit vector used to pass flags into declarator and into and out of
-   declaration routines.  Each bit represents a flag.  (Note that several of
-   the bit sets described with this type have more than 16 flags; "unsigned
-   long" is used to assure that there is no overflow problem in environments
-   where "unsigned int" would be too small.) */
-typedef unsigned long a_decl_flag_set;
-
 #if DECL_MODIFIERS_IN_USE
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void update_dll_info_for_routine(a_routine_ptr         routine,
@@ -540,6 +676,8 @@ void update_variable_decl_modifiers(a_variable_ptr              variable,
 
 extern void check_default_args_for_param_type(a_param_type_ptr  ptp,
                                               a_source_position *pos);
+
+extern void decls_one_time_init(void);
 
 #endif /* DECLS_H */
 

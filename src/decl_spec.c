@@ -8516,11 +8516,9 @@ exit_loop:
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void scan_microsoft_secondary_decl_specifiers(
-                                 a_decl_flag_set            input_flags,
-                                 a_decl_flag_set            *output_flags,
-                                 a_type_ptr                 *type_ptr,
-                                 a_decl_parse_state         *state,
-                                 a_decl_pos_block_ptr       decl_pos_block)
+                                         a_decl_flag_set       input_flags,
+                                         a_decl_parse_state    *state,
+                                         a_decl_pos_block_ptr  decl_pos_block)
 /*
 This is a wrapper function for decl_specifiers(...), to handle the scanning
 of Microsoft C++ mode decl-specifiers appearing after a comma separating
@@ -8549,16 +8547,18 @@ See decl_specifiers(...) for the meaning of the parameters.
                    DSI_EMPTY_DECL_SPECIFIERS_ALLOWED);
   input_flags |= DSI_MICROSOFT_SECONDARY_SPECIFIERS;
   (void)decl_specifiers(
-          input_flags, output_flags, &storage_class, type_ptr, state,
-          (an_attribute_ptr*)NULL, (an_ms_attribute**)NULL, &decl_modifiers,
-          (a_named_register_id*)NULL, decl_pos_block, (a_upc_block_size*)NULL);
+          input_flags, &state->dso_flags, &storage_class,
+          &state->specifiers_type, state, (an_attribute_ptr*)NULL,
+          (an_ms_attribute**)NULL, &decl_modifiers, (a_named_register_id*)NULL,
+          decl_pos_block, (a_upc_block_size*)NULL);
   /* Restore the primary cv-qualifiers: */
   state->qualifiers = saved_qualifiers;
-  (void)add_type_qualifiers(type_ptr, state, UPC_BLOCK_SIZE_NONE);
+  (void)add_type_qualifiers(&state->specifiers_type, state,
+                            UPC_BLOCK_SIZE_NONE);
   /* Issue a warning in most cases, but if a class or enumeration type was
      defined make it an error. */
-  pos_diagnostic((*output_flags & DSO_DEFINES_SOMETHING) ? es_error
-                                                         : es_warning,
+  pos_diagnostic((state->dso_flags & DSO_DEFINES_SOMETHING) ? es_error
+                                                            : es_warning,
                  ec_nonstandard_secondary_decl_specifiers, &pos);
 }  /* scan_microsoft_secondary_decl_specifiers */
 

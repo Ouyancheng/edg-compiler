@@ -119,8 +119,6 @@ extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void scan_microsoft_secondary_decl_specifiers(
                                  a_decl_flag_set            input_flags,
-                                 a_decl_flag_set            *output_flags,
-                                 a_type_ptr                 *type_ptr,
                                  a_decl_parse_state         *state,
                                  a_decl_pos_block_ptr       decl_pos_block);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

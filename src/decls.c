@@ -87,19 +87,53 @@ specifier.
    curr_token == tok_explicit)
 
 
-void init_decl_parse_state(a_decl_parse_state  *ps)
+static void init_null_decl_parse_state(void)
 /*
-Initialize the given a_decl_parse_state structure in preparation of parsing
-an upcoming declaration.
+Create a "null" sample of a variable of type a_decl_parse_state for convenient
+and efficient initialization.
 */
 {
+  a_decl_parse_state  *ps = &null_decl_parse_state;
+
+  ps->dso_flags = 0;
+  ps->do_flags = 0;
+  ps->start_pos = null_source_position;
+  ps->declarator_start_pos = null_source_position;
+  ps->declarator_pos = null_source_position;
   ps->qualifiers = TQ_NONE;
   ps->qualifiers_pos = null_source_position;
   ps->restrict_pos = null_source_position;
   ps->inline_pos = null_source_position;
   ps->virtual_pos = null_source_position;
   ps->unused_qualifiers = FALSE;
-}  /* init_decl_parse_state */
+  ps->is_asm_function = FALSE;
+  ps->function_definition_allowed = FALSE;
+  ps->is_old_style_param_decl = FALSE;
+  ps->is_top_level_declaration = FALSE;
+  ps->is_linkage_spec_decl = FALSE;
+  ps->marked_as_gnu_extension = FALSE;
+  ps->has_explicit_type_specifier = FALSE;
+  ps->decl_specifiers_omitted = FALSE;
+  ps->decl_specifiers_error = FALSE;
+  ps->need_semicolon_remove_stop_token = FALSE;
+  ps->need_comma_remove_stop_token = FALSE;
+  ps->need_assign_remove_stop_token = FALSE;
+  ps->need_lbrace_remove_stop_token = FALSE;
+  ps->restore_name_linkage = FALSE;
+  clear_decl_modifiers_block(&ps->decl_modifiers);
+  ps->ms_attributes = NULL;
+  ps->asm_name = NULL;
+  ps->asm_name_pos = null_source_position;
+  ps->attributes = NULL;
+  ps->register_id = 0;
+  ps->declared_storage_class = (a_storage_class)sc_unspecified;
+  ps->storage_class = (a_storage_class)sc_unspecified;
+  ps->specifiers_type = NULL;
+  ps->declared_type = NULL;
+  ps->type = NULL;
+  ps->source_sequence_entry = NULL;
+  ps->param_id = NULL;
+}  /* init_null_decl_parse_state */
 
 
 void f_check_pending_qualifiers_used(a_decl_parse_state  *state)
@@ -463,35 +497,26 @@ points to a list of GNU C attributes, if applicable.
 }  /* adjust_parameter_type */
 
 
-static void check_type_qualifiers(a_type_ptr         *type_ptr,
-                                  a_source_position  *error_pos)
+static void report_qualifiers_as_useless(a_type_ptr         *type_ptr,
+                                         a_source_position  *error_pos)
 /*
 An parameter, variable, or function is about to be declared with the given
-type.  Check to see if any type qualifiers that are specified are meaningful.
+type.  If it is a qualified type, the qualification is useless: Issue a
+warning.
 */
 {
-  db_enter(4, "check_type_qualifiers");
   if (get_type_qualifiers(*type_ptr)
 #if NEAR_AND_FAR_ALLOWED
                                      & ~(TQ_NEAR|TQ_FAR)
 #endif /* NEAR_AND_FAR_ALLOWED */
                                                         ) {
     /* The type has type qualifiers. */
-    if ((is_function_type(*type_ptr) && C_dialect != C_dialect_cplusplus) ||
-        is_void_type(*type_ptr)) {
-      /* Type qualifiers on void types are useless.  On function types they
-         are undefined (3.5.3).  This can happen with something like
-           typedef int F();
-           const F g;
-         -- we mark them as useless. */
-      pos_warning(ec_useless_type_qualifiers, error_pos);
-      /* The useless qualifiers could be removed by the statement
-      *type_ptr = make_unqualified_type(*type_ptr);
-	 but they are kept in case the back end assigns any meaning to them. */
-    }  /* if */
+    pos_warning(ec_useless_type_qualifiers, error_pos);
+    /* The useless qualifiers could be removed by the statement
+         *type_ptr = make_unqualified_type(*type_ptr);
+       but they are kept in case the back end assigns any meaning to them. */
   }  /* if */
-  db_exit();
-}  /* check_type_qualifiers */
+}  /* report_qualifiers_as_useless */
 
 
 static void check_ptr_or_ref_to_unspecified_bound_array(
@@ -587,9 +612,6 @@ list of GNU C attributes, if applicable.
       pos_error(ec_named_address_space_for_parameter, error_pos);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
     } else {
-      /* See if any type qualifiers were specified, and if they are
-         okay. */
-      check_type_qualifiers(type_ptr, error_pos);
       if (!C_mode() && !(ptr_to_unknown_bound_array_allowed_in_param_type &&
                          ref_to_unknown_bound_array_allowed_in_param_type)) {
         /* In C++ disallow a parameter type that includes a pointer or
@@ -8341,14 +8363,14 @@ end up being compatible during an actual instantiation.
 #if DECL_MODIFIERS_IN_USE
 
 static void diagnose_decl_modifiers_on_type_declaration(
-                                    a_decl_modifiers_block_ptr  decl_modifiers,
-                                    a_source_position           *pos)
+                                                   a_decl_parse_state  *state) 
 /*
 At least one extended declaration modifier appeared on a type declaration.
 Issue a diagnostic if the modifier is invalid.
 */
 {
-  a_decl_modifier  flags = decl_modifiers->flags;
+  a_decl_modifier    flags = state->decl_modifiers.flags;
+  a_source_position  *pos = &state->start_pos;
   
 #if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   if (flags & DM_THREAD) {
@@ -11879,49 +11901,33 @@ current scope.
 }  /* nonmember_using_declaration */
 
 
-static a_boolean check_for_missing_declarator(
-                                  a_decl_flag_set      dso_flags,
-                                  a_type_ptr           type_ptr,
-                                  a_storage_class      storage_class,
-                                  a_named_register_id  register_id,
-                                  a_boolean            is_old_style_param_decl,
-                                  a_boolean            is_linkage_spec_decl,
-                                  a_source_position    *decl_start_pos,
-                                  a_boolean            decl_spec_err)
+static a_boolean check_for_missing_declarator(a_decl_parse_state  *state)
 /*
 The decl-specifiers have been scanned.  Check for the case in which a
 declarator is missing, in which case return TRUE after issuing appropriate
 diagnostics.  (It is not always an error -- for example, an "autonomous"
 class definition like "struct S { int i; };".)
 
-Four of the parameters relay information returned from decl_specifiers:
-dso_flags is a vector of flags, type_ptr is the type that was specified,
-storage_class is the storage class specified, and register_id is the
-named-register specified by any Embedded C named-register storage class.
-is_old_style_param_decl is TRUE if a parameter declaration from a non-
-prototyped parameter list is being scanned.  is_linkage_spec_decl is TRUE
-if the declaration is part of a linkage-specification declaration.
-decl_start_pos indicates the source position of the first token of the
-current declaration.  decl_spec_err is TRUE if an error was reported while
-the decl-specifiers were scanned.
+state describes the declaration parsed so far.
 */
 {
+  a_decl_flag_set    dso_flags = state->dso_flags;
   a_boolean          declarator_omitted = FALSE;
   a_boolean          declares_something;
   a_boolean          defines_something;
   a_boolean          inline_specified;
   an_error_severity  severity;
+  a_type_ptr         type_ptr = state->specifiers_type;
   a_type_ptr         tp = skip_typerefs(type_ptr);
 
   declares_something = ((dso_flags & DSO_DECLARES_SOMETHING) != 0);
   if (curr_token == tok_semicolon) {
     defines_something = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
     inline_specified = ((dso_flags & DSO_INLINE) != 0);
-
     declarator_omitted = TRUE;
-    if (decl_spec_err) {
+    if (state->decl_specifiers_error) {
       /* Don't issue further errors on this declaration. */
-    } else if (is_old_style_param_decl &&
+    } else if (state->is_old_style_param_decl &&
                (declares_something || defines_something)) {
       /* ANSI C does not allow freestanding declarations (as of structs)
          within an old-style parameter list.  pcc, on the other hand,
@@ -11949,7 +11955,7 @@ the decl-specifiers were scanned.
                (type_ptr->kind == (a_type_kind)tk_union ||
                 ((gpp_mode || microsoft_mode) &&
                  tp->kind == (a_type_kind)tk_union)) &&
-               storage_class != (a_storage_class)sc_typedef) {
+               state->declared_storage_class != (a_storage_class)sc_typedef) {
       /* Special C++ case:  the declaration of an anonymous union.   Do the
          required error checking and special processing, including creation
          of a variable which will represent the anonymous union and with
@@ -11961,26 +11967,25 @@ the decl-specifiers were scanned.
              but recent GNU compilers no longer apply the qualifiers to the
              implied variable. */
           anon_var_type = tp;
-          pos_warning(ec_anonymous_union_qualifier_ignored,
-                      decl_start_pos);
+          pos_warning(ec_anonymous_union_qualifier_ignored, &state->start_pos);
         } else {
           pos_warning(ec_nonstandard_anonymous_union_qualifier,
-                      decl_start_pos);
+                      &state->start_pos);
         }  /* if */
       }  /* if */
       check_assertion(is_unnamed_tag_symbol(
                               (a_symbol_ptr)(tp->source_corresp.assoc_info)));
-      make_anonymous_union_variable(anon_var_type, storage_class);
+      make_anonymous_union_variable(anon_var_type, state->declared_storage_class);
       /* The anonymous union variable is marked as referenced, as are all
          unnamed entities.  So its type is also marked referenced. */
       tp->source_corresp.referenced = TRUE;
-    } else if (is_linkage_spec_decl && is_immediate_enum_type(tp)) {
+    } else if (state->is_linkage_spec_decl && is_immediate_enum_type(tp)) {
       /* This is a declaration like
                       extern "C" enum E { e1, e2, e3 };
          which is not allowed (inference from ARM 7.4). */
-      pos_error(ec_enum_not_allowed, decl_start_pos);
+      pos_error(ec_enum_not_allowed, &state->start_pos);
     } else {
-      if (storage_class == (a_storage_class)sc_typedef) {
+      if (state->declared_storage_class == (a_storage_class)sc_typedef) {
         /* Typedef declaration with no declarator. */
         severity = es_warning;
         if (declares_something ||
@@ -12003,7 +12008,7 @@ the decl-specifiers were scanned.
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ASM_FUNCTION_ALLOWED
-      } else if (storage_class == (a_storage_class)sc_asm) {
+      } else if (state->declared_storage_class == (a_storage_class)sc_asm) {
         pos_error(ec_bad_asm_function_def, &pos_curr_token);
 #endif /* ASM_FUNCTION_ALLOWED */
       } else {
@@ -12025,8 +12030,8 @@ the decl-specifiers were scanned.
         /* A storage class can only be specified for an object or a function
            (ARM 7.1.1).  For Embedded C we also issue a strict error if a
            named-register storage class was specified. */
-        if (storage_class != (a_storage_class)sc_unspecified) {
-          severity = ((C_mode() && register_id == 0) ||
+        if (state->declared_storage_class != (a_storage_class)sc_unspecified) {
+          severity = ((C_mode() && state->register_id == 0) ||
                       any_cfront_mode() || microsoft_mode) ?
                                            es_warning : es_discretionary_error;
           diagnostic(severity, ec_storage_class_requires_function_or_variable);
@@ -12038,13 +12043,13 @@ the decl-specifiers were scanned.
           severity = (C_dialect == C_dialect_cplusplus && strict_ansi_mode) ?
                        strict_ansi_error_severity : es_warning;
           pos_diagnostic(severity, ec_useless_type_qualifiers,
-                         decl_start_pos);
+                         &state->start_pos);
         }  /* if */
         /* Inline can only be specified for a function (ARM 7.1.2). */
         if (inline_specified) {
           /* GNU C (but not GNU C++) allows this. */
           pos_diagnostic(gcc_mode ? es_warning : es_error,
-                         ec_inline_and_nonfunction, decl_start_pos);
+                         ec_inline_and_nonfunction, &state->start_pos);
         }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (defines_something || declares_something) {
@@ -12073,13 +12078,13 @@ the decl-specifiers were scanned.
        identifier-but-not-declarator-id case -- which occurs when a
        template-id appears where a declarator was expected. */
     declarator_omitted = TRUE;
-    if (decl_spec_err) {
+    if (state->decl_specifiers_error) {
       /* Don't issue further errors on this declaration. */
     } else if (declares_something) {
-      if (is_old_style_param_decl) {
+      if (state->is_old_style_param_decl) {
         /* An old style param declaration that introduces a named struct or
            enum type but has no declarator for the parameter. */
-        pos_error(ec_decl_should_be_of_param, decl_start_pos);
+        pos_error(ec_decl_should_be_of_param, &state->start_pos);
       } else {
         /* Maybe something "struct A { ... } int i;", where the declaration
            is okay and the problem is that a semicolon is missing. */
@@ -12097,18 +12102,18 @@ the decl-specifiers were scanned.
 }  /* check_for_missing_declarator */
 
 
-static void report_member_function_redeclaration(
-                                        a_symbol_locator       *locator,
-                                        a_type_ptr             type,
-                                        a_source_position_ptr  declarator_pos)
+static void report_member_function_redeclaration(a_symbol_locator    *locator,
+                                                 a_decl_parse_state  *state)
 /*
 A declaration of a class member function that is not also a definition
 can not appear outside the class.  Upon entering this routine we already know
-we encountered such a declaration: issue the appropriate diagnostic (except
-for some situations in Microsoft and GNU C++ modes).
+we encountered such a declaration: Issue the appropriate diagnostic (except
+for some situations in Microsoft and GNU C++ modes).  locator and state
+describe the current declaration.
 */
 {
   a_symbol_ptr  sym = locator->specific_symbol;
+  a_source_position_ptr  pos = &state->declarator_pos;
 
   if (is_member_function_symbol(locator->specific_symbol)) {
     /* If this is a member function, but one with a type that doesn't
@@ -12116,9 +12121,9 @@ for some situations in Microsoft and GNU C++ modes).
        instance of a member template.  If it does, assume that it is
        an attempt to declare a specialization with the incorrect
        old-style specialization syntax. */
-    a_boolean     is_member_redecl;
-    a_boolean     is_template_instance;
-
+    a_boolean   is_member_redecl;
+    a_boolean   is_template_instance;
+    a_type_ptr  type = state->type;
     is_member_redecl = member_function_redecl_sym(
                                sym, type, (a_template_param_ptr)NULL) != NULL;
     is_template_instance = has_matching_template_instance(
@@ -12128,40 +12133,37 @@ for some situations in Microsoft and GNU C++ modes).
                    &locator->source_position, sym);
       set_to_error_locator(*locator);
     } else {
-      pos_sy_error(ec_member_function_redecl_outside_class,
-                   declarator_pos, sym);
+      pos_sy_error(ec_member_function_redecl_outside_class, pos, sym);
       set_to_error_locator(*locator);
     }  /* if */
   } else {
-    pos_sy_error(ec_not_compatible_with_previous_decl, declarator_pos, sym);
+    pos_sy_error(ec_not_compatible_with_previous_decl, pos, sym);
     set_to_error_locator(*locator);
   }  /* if */
 }  /* report_member_function_redeclaration */
 
 
+static void remove_all_local_stop_tokens(a_decl_parse_state  *state)
 /*
-Local macro for the routine "declaration".  Does any remove_stop_token
-calls that have not yet been done.  Useful in ensuring that all the stop
-tokens get removed, especially when the internal flow is complicated by
-error cases.
+Remove stop tokens as suggested by *state (and clear the associated flags).
 */
-#define remove_all_local_stop_tokens()                                \
-{ if (need_semicolon_remove_stop_token) {                             \
-    remove_stop_token(tok_semicolon);                                 \
-    need_semicolon_remove_stop_token = FALSE;                         \
-  }  /* if */                                                         \
-  if (need_comma_remove_stop_token) {                                 \
-    remove_stop_token(tok_comma);                                     \
-    need_comma_remove_stop_token = FALSE;                             \
-  }  /* if */                                                         \
-  if (need_assign_remove_stop_token) {                                \
-    remove_stop_token(tok_assign);                                    \
-    need_assign_remove_stop_token = FALSE;                            \
-  }  /* if */                                                         \
-  if (need_lbrace_remove_stop_token) {                                \
-    remove_stop_token(tok_lbrace);                                    \
-    need_lbrace_remove_stop_token = FALSE;                            \
-  }  /* if */                                                         \
+{
+  if (state->need_semicolon_remove_stop_token) {
+    remove_stop_token(tok_semicolon);
+    state->need_semicolon_remove_stop_token = FALSE;
+  }  /* if */
+  if (state->need_comma_remove_stop_token) {
+    remove_stop_token(tok_comma);
+    state->need_comma_remove_stop_token = FALSE;
+  }  /* if */
+  if (state->need_assign_remove_stop_token) {
+    remove_stop_token(tok_assign);
+    state->need_assign_remove_stop_token = FALSE;
+  }  /* if */
+  if (state->need_lbrace_remove_stop_token) {
+    remove_stop_token(tok_lbrace);
+    state->need_lbrace_remove_stop_token = FALSE;
+  }  /* if */
 }  /* remove_all_local_stop_tokens */
 
 
@@ -12354,6 +12356,1355 @@ variable was declared with these modifiers.
 }  /* check_variable_decl_modifiers */
 
 #endif /* DECL_MODIFIERS_IN_USE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+/* If the given declaration state includes a record of __declspec(dllimport),
+   make the associated storage class sc_extern (if no storage class was
+   explicitly specified). */ \
+#define update_dll_import_storage_class(state) \
+  if ((state->decl_modifiers.flags & DM_DLLIMPORT) && \
+      state->storage_class == (a_storage_class)sc_unspecified) { \
+    state->storage_class = (a_storage_class)sc_extern; \
+  }  /* if */
+
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+
+#define update_dll_import_storage_class(state)  /* Nothing. */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+typedef enum an_end_of_decl_action {
+  /* An enumeration type to represent the final steps in parsing a declaration.
+     Used for a switch-statement in declaration(...). */
+  eoda_not_at_end,	/* The end of the declaration hasn't been reached. */
+  eoda_deferred_actions,
+			/* Before scanning the final declaration token (a
+			   semicolon), some deferred actions are needed in
+			   Microsoft bugs mode (e.g., processing of in-class
+			   member function definitions). */
+  eoda_check_semicolon,	/* Check that the last token is a semicolon and
+			   consume it. */
+  eoda_skip_final_token,
+			/* Consume the last token (without checking it). */
+  eoda_done		/* The declaration is fully parsed. */
+} an_end_of_decl_action;
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+static void promote_prototype_scope_ss_list(a_func_info_block  *func_info)
+/*
+Move the source sequence list (if any) that had been entered into the function
+prototype scope associated with func_info to the current scope.
+*/
+{
+  if (func_info->prototype_scope_ss_list != NULL) {
+    a_source_sequence_entry_ptr  head, tail;
+    /* Identify the head and tail of the list that is pointed to from the
+       func_info block. */
+    head = func_info->prototype_scope_ss_list;
+    for (tail = head;; tail = tail->next) {
+      if (tail->next == NULL) break;
+    }  /* for */
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+      fputs("declaration: moving ss list from func info to curr scope\n",
+            f_debug);
+    }  /* if */
+#endif /* DEBUG */
+    /* Append the list to the list for the current scope. */
+    insert_src_seq_list(head, tail, depth_scope_stack,
+                        (a_source_sequence_entry_ptr)NULL);
+    /* Just to be neat. */
+    func_info->prototype_scope_ss_list = NULL;
+  }  /* if */
+}  /* promote_prototype_scope_ss_list */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+static void prep_old_style_param_decl(a_decl_parse_state  *state,
+                                      a_func_info_block   *func_info,
+                                      a_param_id_ptr      param_id_list,
+                                      a_symbol_locator    *locator)
+/*
+The current declaration -- described by state, func_info, and locator -- is
+(apparently) an old-style C parameter declaration.  Perform various checks
+and updates prior to handling it as a variable declaration in the
+"variable_declaration()" function (or as a typedef declaration in some error
+cases).  param_id_list describes the parameter names that were scanned in the
+preceding function declarator.
+*/
+{
+  a_param_id_ptr  param_id;
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  promote_prototype_scope_ss_list(func_info);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (state->declared_storage_class == (a_storage_class)sc_typedef) {
+    /* Instead of a parameter declaration, we found a typedef declaration:
+       Issue a diagnostic.  By setting param_id to NULL, we ensure that it
+       will be treated as a function-scope typedef declaration. */
+    if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
+      pos_error(ec_decl_should_be_of_param, &state->start_pos);
+      set_to_error_locator(*locator);
+    } else {
+      pos_warning(ec_decl_should_be_of_param, &state->start_pos);
+    }  /* if */
+    param_id = NULL;
+  } else {
+    /* Check that the name declared was mentioned in the parameter list. */
+    param_id = param_id_on_list(locator, param_id_list);
+    if (param_id == NULL) {
+      /* The identifier was not found on the list.  Issue an error.  Leaving
+         param_id set to NULL, ensures the declaration will be treated as a
+         function-scope variable declaration for error-recovery purposes. */
+      error(ec_decl_should_be_of_param);
+    } else if (param_id->type != NULL) {
+      /* Parameter has already been declared. */
+      str_error(ec_id_already_declared, locator->symbol_header->identifier);
+    } else {
+      /* When the parameter name was listed (but not yet actually declared) the
+         sk_parameter symbol was created but not entered in the symbol table.
+         Now that it is explicitly declared, add it to the function prototype
+         scope; it will later be moved to the function scope. */
+      reenter_symbol(param_id->symbol, decl_scope_level,
+                     /*suppress_error=*/FALSE);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      param_id->source_sequence_entry = state->source_sequence_entry;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      /* Set the declared_type field in the param_id entry before the type is
+         adjusted (e.g., decays from array to pointer). */
+      param_id->declared_type = state->declared_type;
+#if GNU_EXTENSIONS_ALLOWED
+      /* We need a copy of the attribute list so that we can apply the
+         attributes when we create the variable corresponding to this
+         parameter. */
+      param_id->attributes = copy_attribute_list(state->attributes);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    }  /* if */
+    /* Check that the type is legal, and do required adjustments. */
+    check_and_adjust_parameter_type(&state->type, &state->start_pos,
+                                    state->attributes);
+    /* For pcc compatibility, promote float parameters to double. */
+    if (C_dialect == C_dialect_pcc) {
+      promote_float_to_double(state->type);
+    }  /* if */
+  }  /* if */
+  state->param_id = param_id;
+}  /* prep_old_style_param_decl */
+
+
+static void check_for_definition_in_return_type(a_decl_parse_state  *state)
+/*
+Defining a type in a function return type is normally not allowed in C++ (the
+exception is Microsoft C++ mode).  This is taken to apply to pointer-to-
+function type declarations as well to the function declarations.  Issue an
+error if an inappropriate definition was encountered.  state describes the
+declaration being parsed.
+*/
+{
+  if (C_dialect == C_dialect_cplusplus &&
+      !microsoft_mode && (state->dso_flags & DSO_DEFINES_SOMETHING) != 0) {
+    a_type_ptr  tp = state->declared_type;
+    for (;;) {
+      tp = skip_typerefs(tp);
+      switch (tp->kind) {
+        case tk_routine:
+          /* The error case we are checking for: Issue an error. */
+          pos_error(ec_type_def_not_allowed_in_func_type_decl,
+                    &state->start_pos);
+          goto done;
+        case tk_pointer:
+          /* Get type pointed to and continue. */
+          tp = type_pointed_to(tp);
+          break;
+        case tk_ptr_to_member:
+          /* Get member type and continue. */
+          tp = pm_member_type(tp);
+          break;
+        default:
+          /* No function type can be involved.  Stop looping. */
+          goto done;
+      }  /* switch */
+    }  /* for */
+done:;
+  }  /* if */
+}  /* check_for_definition_in_return_type */
+
+
+static void check_missing_type_specifiers_in_decl(
+                                               a_decl_parse_state  *state,
+                                               a_func_info_block   *func_info,
+                                               a_symbol_locator    *locator)
+/*
+state, func_info, and locator describe a declaration being scanned by the
+function "declaration".  This declaration (which is not a function definition)
+has no explicit type specifier.  Issue a diagnostic if appropriate.  func_info
+is non-NULL only if this is called for a function declaration.
+*/
+{
+  if (!(state->do_flags & (DO_IS_CONSTRUCTOR|DO_IS_DESTRUCTOR)) &&
+#if GNU_EXTENSIONS_ALLOWED
+      /* "typedef foo = 3;" is an old GNU C extension, not a use of implicit
+         int (this extension is not present in the GNU C++ compiler, nor in
+         newer GNU C compilers). */
+      !(gcc_mode && gnu_version < 30100 && curr_token == tok_assign && 
+        state->storage_class == (a_storage_class)sc_typedef) &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      !locator->is_error && !locator->is_conversion_name) {
+    a_boolean  is_main_function = (func_info != NULL &&
+                                   func_info->is_main_function);
+    report_missing_type_specifier(&state->declarator_start_pos, state->type,
+                                  (func_info != NULL),
+                                  /*is_function_def=*/FALSE, is_main_function,
+                                  !state->decl_specifiers_omitted);
+  }  /* if */
+}  /* check_missing_type_specifiers_in_decl */
+
+
+static an_end_of_decl_action function_declaration(
+                                          a_decl_parse_state  *state,
+                                          a_func_info_block   *func_info,
+                                          a_symbol_locator    *locator,
+                                          a_decl_pos_block    *decl_pos_block,
+                                          a_token_kind        *final_token)
+/*
+Process a function declaration not directly appearing in a class scope (i.e.,
+ordinary namespace scope declarations, local variable declarations, block-
+extern declarations, and out-of- class definitions of member functions).  The
+declaration is described by state, func_info, locator, and decl_pos_block.
+*final_token (which should be set to tok_semicolon by the caller) may be set
+to tok_rbrace in a function definition is encountered.  This function is
+called from "declaration" and its return value indicates how processing should
+proceed after the call.
+*/
+{
+  an_end_of_decl_action
+                end_of_decl_action = eoda_not_at_end;
+  a_symbol_ptr  sym = NULL, ext_sym;
+  a_type_ptr    type = state->type, prev_type = NULL;
+  a_boolean     inline_specified = ((state->dso_flags & DSO_INLINE) != 0);
+  a_boolean     out_of_class_redecl = FALSE;
+  an_id_linkage_kind  linkage = idl_none;
+
+  if (C_mode() && is_function_type(type)) {
+    /* Issue a warning on something like "typedef int F(); F const g;" in C
+       mode.  (This is undefined behavior according to the C standard.) */
+    report_qualifiers_as_useless(&type, &state->declarator_pos);
+  }  /* if */
+  if (!is_error_locator(*locator) &&
+      locator->symbol_header->identifier != NULL &&
+      (strcmp(locator->symbol_header->identifier, "main") == 0)) {
+    a_boolean  is_main_function = FALSE;
+    /* Recognizing a declaration of function "main" is more than checking
+       the identifier. */
+    if (C_mode()) {
+      if (state->declared_storage_class == (a_storage_class)sc_unspecified ||
+          state->declared_storage_class == (a_storage_class)sc_extern) {
+        /* Not a static function named "main".  This is not an option
+           in C++ (ARM 3.4). */
+        func_info->is_main_function = is_main_function = TRUE;
+      }  /* if */
+    } else {
+      /* C++ mode. */
+      if (locator->is_qualified_name ?
+            !locator->is_file_scope_qualified_name :
+            depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+        /* A declaration that's a qualified name (except ::main), or one
+           that's unqualified but in a namespace scope, can't refer to
+           global main. */
+      } else {
+        check_assertion(locator->specific_symbol == NULL ||
+                        (!locator->specific_symbol->is_class_member &&
+                         locator->specific_symbol->
+                                      parent.namespace_ptr == NULL));
+        func_info->is_main_function = is_main_function = TRUE;
+      }  /* if */
+    }  /* if */
+    if (is_main_function) {
+      check_main_function(func_info, type, &state->declared_storage_class,
+                          &inline_specified, &locator->source_position);
+    }  /* if */
+  }  /* if */
+#if ASM_FUNCTION_ALLOWED
+  if (state->declared_storage_class == (a_storage_class)sc_asm) {
+    func_info->is_asm_function = TRUE;
+    /* Issue a diagnostic about using a nonstandard feature. */
+    if (strict_ansi_mode) {
+      pos_diagnostic(strict_ansi_error_severity, ec_nonstd_asm_function,
+                     &state->start_pos);
+    }  /* if */
+  } else
+#endif /* ASM_FUNCTION_ALLOWED */
+  /* Do not insert code here. */
+  {
+    if ((state->storage_class != (a_storage_class)sc_unspecified &&
+         state->storage_class != (a_storage_class)sc_extern &&
+         state->storage_class != (a_storage_class)sc_static) ||
+        state->register_id != 0) {
+      /* The storage class of a function must be extern or static. */
+      pos_error(ec_bad_function_storage_class,
+                &decl_pos_block->storage_class_pos);
+      state->storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
+    if (locator->specific_symbol != NULL &&
+        locator->specific_symbol->is_class_member) {
+      /* This is the definition of a static member function.  No storage
+         class specifier (not even "static") is permitted. */
+      if (state->storage_class != (a_storage_class)sc_unspecified) {
+        an_error_severity  severity = es_error;
+        if (!extern_inline_allowed && inline_specified &&
+            state->storage_class == (a_storage_class)sc_static) {
+          /* Just give a warning on this.  The storage class designation
+             is taken to be redundant, since all "inline" member functions
+             (both static and nonstatic, in the sense applied to member
+             functions) are "static" (in the sense of having internal
+             linkage). */
+          severity = es_warning;
+        }  /* if */
+        pos_diagnostic(severity, ec_storage_class_not_allowed,
+                       &decl_pos_block->storage_class_pos);
+      }  /* if */
+      /* Set the storage class to sc_unspecified for now.  It will be
+         checked and reset if necessary in define_member_function. */
+      state->storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
+  }  /* if */
+  func_info->is_inline = inline_specified;
+  /* If except for type qualifiers the specifiers type and the declared type
+     are both function types, then the function type must have come from a
+     typedef.  E.g., "typedef int F(); F g;". */
+  func_info->function_type_from_typedef =
+        (skip_typerefs(state->type) == skip_typerefs(state->specifiers_type));
+  /* If the current token looks like it could be part of a function
+     definition, go scan that.  A very special case are Microsoft out-of-class
+     member redeclarations (that are not definitions); they are handled by the
+     code for out-of-class definitions (even though no actual definition is
+     involved).  Early GNU C++ versions have a similar construct for
+     specializations. */
+  if (locator->is_class_member && curr_token == tok_semicolon) {
+    if (microsoft_mode) {
+      out_of_class_redecl = TRUE;
+    } else if (gpp_mode && gnu_version < 30400) {
+      a_type_ptr  pt = locator->parent.class_type;
+      if (pt->variant.class_struct_union.is_template_class &&
+          !pt->variant.class_struct_union.is_nonreal_class &&
+          !pt->variant.class_struct_union.is_specialized) {
+        out_of_class_redecl = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (state->function_definition_allowed || out_of_class_redecl) {
+    if ((curr_token != tok_semicolon || out_of_class_redecl) &&
+        curr_token != tok_comma &&
+        curr_token != tok_assign &&
+#if GNU_EXTENSIONS_ALLOWED
+        /* Attributes and asm names are only allowed on function
+           declarations, not on function definitions. */
+        curr_token != tok_attribute &&
+        curr_token != tok_asm &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        curr_token != tok_end_of_source) {
+      a_boolean  is_function_try_block = curr_token == tok_try;
+      if (!state->has_explicit_type_specifier) {
+        /* Function with no explicitly specified return type.  Issue a
+           remark (except in pcc mode and except for C++ constructors,
+           destructors, and conversion operators). */
+        if (C_dialect != C_dialect_pcc &&
+            !(state->do_flags & (DO_IS_CONSTRUCTOR|DO_IS_DESTRUCTOR)) &&
+            !locator->is_conversion_name &&
+            !(locator->is_error && looks_like_ctor_or_dtor(locator))) {
+          report_missing_type_specifier(&state->declarator_start_pos,
+                                        state->type,
+                                        /*is_function=*/TRUE,
+                                        /*is_function_def=*/TRUE,
+                                        func_info->is_main_function,
+                                        !state->decl_specifiers_omitted);
+        }  /* if */
+      }  /* if */
+      remove_all_local_stop_tokens(state);
+      func_info->is_definition = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      func_info->declarator_ssep = state->source_sequence_entry;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if USER_CONTROL_OF_STRUCT_PACKING
+      /* Recored the current setting of the maximum alignment for local
+         class members (an adjustment may be required for packing). */
+      func_info->max_member_alignment =
+                         current_max_alignment_for_class_members();
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      if (!C_mode()) {
+        /* Issue diagnostic on an incomplete-type in an exception
+           specification.  (It wasn't done when the exception
+           specification was scanned because definitions and declarations
+           are treated differently. */
+        report_exception_spec_errors(func_info);
+      }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+      /* GCC does not allow "void f() __attribute((...)) {}".  It
+         does, however, allow "void __attribute((...)) f() {}". */
+      if (state->do_flags & DO_POSTFIX_ATTRIBUTES) {
+        pos_error(ec_attributes_in_rout_defn, &locator->source_position); 
+      }  /* if */
+      /* GNU C doesn't allow "void f() asm("bar") {}". */
+      if (state->asm_name != NULL) {
+        pos_error(ec_asm_name_in_rout_defn, &state->asm_name_pos);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      /* Do processing required for a function definition, including
+         scanning the function body.  Note that the closing '}' will not
+         been consumed -- that will be done by the caller. */
+      (void)function_definition(locator, state->type, func_info,
+                                state->storage_class,
+                                state->has_explicit_type_specifier,
+                                &state->decl_modifiers, &state->ms_attributes,
+                                state->attributes, decl_pos_block);
+      done_with_func_info(*func_info);
+      if (is_function_try_block) {
+        /* Checking for the closing brace will already have been done. */
+        end_of_decl_action = eoda_done;
+        goto done;
+      }  /* if */
+      check_assertion(curr_token == tok_rbrace ||
+                      curr_token == tok_end_of_source ||
+                      out_of_class_redecl ||
+                      total_errors != 0);
+      /* Right brace is expected, except for the Microsoft extension that
+         allows a nondefining out-of-class member declaration. */
+      *final_token = out_of_class_redecl ? tok_semicolon : tok_rbrace;
+      end_of_decl_action = eoda_skip_final_token;
+      goto done;
+#if ASM_FUNCTION_ALLOWED
+    } else if (state->declared_storage_class == (a_storage_class)sc_asm) {
+      /* Not a function definition. */
+      pos_error(ec_bad_asm_function_def, &pos_curr_token);
+      state->storage_class = (a_storage_class)sc_unspecified;
+      set_to_named_error_locator(*locator);
+#endif /* ASM_FUNCTION_ALLOWED */
+    }  /* if */
+  }  /* if */
+  /* After a declaration has been scanned, it is no longer possible that the
+     next thing is a function definition. */
+  state->function_definition_allowed = FALSE;
+  if (locator->specific_symbol != NULL &&
+      locator->specific_symbol->is_class_member) {
+    /* A qualified name that identifies a function is allowed only when the
+       function body is present (or for some special Microsoft and GNU cases
+       handled like function definitions). */
+    report_member_function_redeclaration(locator, state);
+  }  /* if */
+  if (!C_mode()) {
+    /* Issue diagnostic on an incomplete-type in an exception specification.
+       (It wasn't done when the exception specification was scanned because
+       definitions and declarations are treated differently. */
+    report_exception_spec_errors(func_info);
+  }  /* if */
+  if (!state->has_explicit_type_specifier) {
+    check_missing_type_specifiers_in_decl(state, func_info, locator);
+  }  /* if */
+  if (!func_info->function_type_from_typedef) {
+    if (func_info->param_id_list != NULL) {
+      /* If the function has a non-empty old-style identifier list of
+         parameters, a body should have been present. */
+      if (!skip_typerefs(state->type)
+                                   ->variant.routine.extra_info->prototyped) {
+        if (microsoft_mode && C_mode()) {
+          /* No diagnostic in Microsoft C mode. */
+        } else {
+          diagnostic(gcc_mode ? es_warning : es_error,
+                     ec_param_id_list_needs_function_def);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Update xref info on param ids.  Do this even if there are no parameters
+       because some source sequence entries might have been created (e.g., for
+       pragmas inside the empty parameter list). */
+    record_param_id_list_declarations(func_info);
+#if GNU_EXTENSIONS_ALLOWED
+    /* Verify any parameter attributes.  Some might not be valid when
+       the function is not being defined. */
+    check_function_param_attributes(func_info);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
+  update_dll_import_storage_class(state);
+  /* A function with block scope (i.e., within an sck_function or sck_block
+     scope) can only have an explicit storage class of extern (3.5.1). */
+  if ((scope_stack[decl_scope_level].kind == (a_scope_kind)sck_function ||
+       scope_stack[decl_scope_level].kind == (a_scope_kind)sck_block) &&
+      state->storage_class != (a_storage_class)sc_unspecified &&
+      state->storage_class != (a_storage_class)sc_extern) {
+    /* Allow "static" in all C modes except strict ANSI.  The function will be
+       entered at the file scope as static.  This is an extension to ANSI C.
+       Do not allow at all in C++ mode. */
+    if (state->storage_class == (a_storage_class)sc_static) {
+      an_error_severity  severity;
+      if (C_mode()) {
+        /* This is an extension to ANSI C so produce a diagnostic in strict
+           ANSI C mode. */
+        severity = strict_ansi_mode ? strict_ansi_error_severity : es_none;
+      } else { /* C++ mode */
+        /* The downstream call to id_linkage doesn't expect block level
+           statics in C++ mode. */
+        severity = es_error;
+        state->storage_class = (a_storage_class)sc_extern;
+      }  /* if */
+      if (severity != es_none) {
+        pos_diagnostic(severity, ec_block_scope_function_must_be_extern,
+                       &decl_pos_block->storage_class_pos);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (vla_enabled) {
+    if (func_info->vla_fixup_list != NULL) {
+      /* Throw away VLA info created for the function prototype.  By doing
+         this we discard the details of the VLAs' dimension expressions.  The
+         type of those VLAs is then "as if" they had been declared with "[*]".
+         (Had this been a definition, we would have kept a record of the
+         expressions through a call to process_vla_parameters.) */
+      check_assertion(C_mode() || total_errors != 0);
+      free_vla_fixup_list(func_info->vla_fixup_list);
+      func_info->vla_fixup_list = NULL;
+    }  /* if */
+    if (is_variably_modified_type(state->type)) {
+      /* This can only occur when a block-extern function declaration
+         has a variably-modified return type. */
+      pos_error(ec_variably_modified_type_not_allowed,
+                &locator->source_position);
+    }  /* if */
+  }  /* if */          
+  decl_routine(locator, state->storage_class, state->type, func_info,
+               state->source_sequence_entry, SRK_DECLARATION,
+               &state->decl_modifiers, &state->ms_attributes,
+               state->attributes, state->asm_name, &state->asm_name_pos, &sym,
+               &linkage, &prev_type, &ext_sym, decl_pos_block);
+  if (curr_token == tok_assign && !is_error_locator(*locator)) {
+    pos_sy_error(ec_cannot_initialize, &pos_curr_token, sym);
+    flush_tokens();
+  }  /* if */
+done:
+  return end_of_decl_action;
+}  /* function_declaration */
+
+
+static void check_nonfunction_declaration_errors(a_decl_parse_state  *state,
+                                                 a_symbol_locator    *locator)
+/*
+Check for function declaration features incorrectly used in variable or
+typedef declarations.  state and locator describe the declaration.
+*/
+{
+  /* The "inline" specifier should only appear on function declarations. */
+  if (state->dso_flags & DSO_INLINE) {
+    pos_diagnostic(gcc_mode ? es_warning : es_error, ec_inline_and_nonfunction,
+                   &state->inline_pos);
+  }  /* if */
+  if (!state->has_explicit_type_specifier) {
+    check_missing_type_specifiers_in_decl(state, (a_func_info_block*)NULL,
+                                          locator);
+  }  /* if */
+}  /* check_nonfunction_declaration_errors */
+
+
+static void variable_declaration(a_decl_parse_state  *state,
+                                 a_symbol_locator    *locator,
+                                 a_decl_pos_block    *decl_pos_block)
+/*
+Process a variable declaration not directly appearing in a class scope (i.e.,
+ordinary namespace scope declarations, block-extern declarations, and out-of-
+class definitions of static data members).  The declaration is described by
+state, func_info, and locator.  This routine also processes an initializer
+if one is present.
+*/
+{
+  a_variable_ptr      var_ptr = NULL;
+  a_symbol_ptr        sym = NULL, ext_sym;
+  a_type_ptr          type = state->type, prev_type = NULL;
+  a_boolean           is_static_data_member = FALSE;
+  a_boolean           has_initializer = FALSE;
+  a_boolean           is_variable_def = FALSE, is_tentative_def = FALSE;
+  a_boolean           has_parenthesized_initializer =
+                       ((state->do_flags & DO_PARENTHESIZED_INITIALIZER) != 0);
+  a_boolean           incomplete_type_error_reported = FALSE;
+  an_id_linkage_kind  linkage = idl_none;
+
+  if (is_void_type(type)) {
+    /* Issue a warning on something like "extern void const x;": The qualifier
+       is useless in such cases. */
+    report_qualifiers_as_useless(&type, &state->declarator_pos);
+  }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+  if (upc_mode && (state->dso_flags & DSO_UPC_SHARED_LAYOUT) &&
+      is_pointer_type(type) && is_void_type(state->specifiers_type)) {
+  /* A layout qualifier cannot be used to qualify the target type of a
+     pointer to shared void. */
+    error(ec_bad_upc_shared_void_pointer_layout_qualifier);
+  } /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
+#if ASM_FUNCTION_ALLOWED
+  if (state->declared_storage_class == (a_storage_class)sc_asm) {
+    /* This use of "asm" is reserved for function declarations.  Issue an
+       error. */
+    pos_error(ec_bad_asm_function_def, &state->declarator_pos);
+    state->storage_class = (a_storage_class)sc_unspecified;
+    set_to_named_error_locator(*locator);
+  }  /* if */
+#endif /* ASM_FUNCTION_ALLOWED */
+  check_nonfunction_declaration_errors(state, locator);
+  if (locator->specific_symbol != NULL &&
+      locator->specific_symbol->is_class_member) {
+    is_static_data_member = TRUE;
+  }  /* if */
+  /* auto and register may not appear in a file-scope level declaration. */
+  if (decl_scope_level == depth_innermost_namespace_scope &&
+      (state->storage_class == (a_storage_class)sc_auto ||
+       (
+#if GNU_EXTENSIONS_ALLOWED
+        /* The register keyword is allowed if there is an explicit register
+           name for a variable (but that is not possible for static data
+           members). */
+        (state->asm_name == NULL || is_static_data_member) &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        state->storage_class == (a_storage_class)sc_register))) {
+    pos_error(ec_bad_file_scope_storage_class,
+              &decl_pos_block->storage_class_pos);
+    state->storage_class = (a_storage_class)sc_unspecified;
+  }  /* if */
+  update_dll_import_storage_class(state);
+  if (!is_static_data_member &&
+      state->storage_class == (a_storage_class)sc_unspecified) {
+    /* For ordinary variables and parameters (but not for static data members
+       or variable declarations erroneously using a qualified-id), not
+       specifying a storage class implies "auto" storage. */
+    if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
+        state->param_id != NULL) {
+      /* We are inside a function body or this is an old-style parameter
+         declaration, so an unspecified storage class means "auto". */
+      state->storage_class = (a_storage_class)sc_auto;
+    } else if (state->is_linkage_spec_decl) {
+      /* This must be part of an linkage specification declaration.  An
+         "extern" storage class is implied (ARM 7.4, comment on p. 118). */
+      state->storage_class = (a_storage_class)sc_extern;
+    }  /* if */
+  }  /* if */
+  if (has_parenthesized_initializer) {
+    has_initializer = TRUE;
+  } else if (curr_token == tok_assign) {
+    has_initializer = TRUE;
+    decl_pos_block->var_init_range.start = pos_curr_token;
+#if C_ANACHRONISMS_ALLOWED
+  } else if (C_dialect == C_dialect_pcc && is_initializer_start()) {
+    /* In pcc mode, the "=" may be omitted (K&R first edition, Appendix A,
+       section 17 (Anachronisms)). */
+    has_initializer = TRUE;
+    warning(ec_old_fashioned_initializer);
+#endif /* C_ANACHRONISMS_ALLOWED */
+  }  /* if */
+  if (state->param_id != NULL) {
+    a_param_id_ptr  param_id = state->param_id;
+    sym = param_id->symbol;
+    copy_source_position(locator->source_position, sym->decl_position);
+    param_id->type = state->type;
+    copy_source_position(state->start_pos, param_id->type_pos);
+    param_id->storage_class = state->storage_class;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* Update extra source position information in the param-id entry so
+       that it can be transferred to the variable entry later. */
+    param_id->specifiers_range = decl_pos_block->specifiers_range;
+    param_id->declarator_range = decl_pos_block->declarator_range;
+    param_id->identifier_range = decl_pos_block->identifier_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* Note that the creation of the parameter variable, etc., is done
+       in decl_parameter, called when the function body is scanned. */
+  } else if (is_static_data_member) {
+    /* A static data member definition. */
+    define_static_data_member(locator, state->storage_class, state->type,
+                              has_initializer, state->source_sequence_entry,
+                              &sym, &linkage, state->attributes,
+                              decl_pos_block);
+    var_ptr = sym->variant.static_data_member.variable;
+    /* Fetch the type of the symbol again, since it might have been
+       changed when reconciled with the original declaration. */
+    state->type = var_ptr->type;
+    /* All static data member declarations that pass through this
+       code are definitions. */
+    is_variable_def = TRUE;
+#if DECL_MODIFIERS_IN_USE
+    /* Copy the decl-modifiers into the variable entry. */
+    update_variable_decl_modifiers(
+                 var_ptr, &state->decl_modifiers, &locator->source_position,
+                 /*is_redecl=*/TRUE, /*is_definition=*/TRUE);
+#endif /* DECL_MODIFIERS_IN_USE */
+  } else {
+    /* An ordinary variable declaration. */
+    a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
+    if (vla_enabled && !state->function_definition_allowed) {
+      /* Local declaration. */
+      if (state->storage_class == (a_storage_class)sc_extern ||
+          state->storage_class == (a_storage_class)sc_static) {
+        if (is_vla_type(state->type)) {
+          /* An object with static storage duration cannot be a VLA. */
+          pos_error(ec_vla_is_not_auto, &locator->source_position);
+        } else if (state->storage_class == (a_storage_class)sc_extern &&
+                   is_variably_modified_type(state->type)) {
+          /* An entity with linkage cannot have a variably modified
+             type. */
+          pos_error(ec_variably_modified_type_not_allowed,
+                    &locator->source_position);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Set a flag marking this as a defining declaration, if that's
+       appropriate. */
+    if (state->is_old_style_param_decl) {
+      /* This flag is TRUE when state->param_id is NULL in the error case
+         where a name appears in an old-style param declaration but for which
+         no corresponding param-id was created.  For example:
+           void f(i,j) int i, j, k; { }      // Error on "k"
+         Treat this as a definition. */
+      is_variable_def = TRUE;
+    } else if (has_initializer) {
+      /* A variable declaration involving an initializer is usually considered
+         to be a definition.  An exception is when the initialization is ill-
+         formed -- e.g., when it appears on a block-extern declaration. */
+      if (decl_scope_level == depth_innermost_namespace_scope ||
+          state->storage_class != (a_storage_class)sc_extern) {
+        is_variable_def = TRUE;
+      }  /* if */
+      srk_flags |= SRK_INITIALIZATION;
+    } else if (C_dialect == C_dialect_cplusplus) {
+      /* Variable declaration in C++ mode with no explicit initializer. */
+      if (microsoft_mode &&
+          state->storage_class == (a_storage_class)sc_unspecified &&
+          is_incomplete_array_type(state->type) &&
+          !is_const_qualified_type(state->type)) {
+        /* In Microsoft C++ mode, a non-const variable at file scope
+           that is a zero-length array is treated like a C-mode tentative
+           definition. */
+        is_tentative_def = TRUE;
+        srk_flags |= SRK_TENTATIVE_DEF;
+      } else if (state->storage_class != (a_storage_class)sc_extern) {
+        /* In C++ all other variable declarations are definitions, except
+           those with a storage class of extern. */
+        is_variable_def = TRUE;
+        /* Even without an explicit initializer this is an initializing
+           declaration if the variable is nontrivially constructible
+           -- i.e., if it is a class object (or array of class) and the
+           class has a nontrivial default constructor (which must be a
+           user-declared default constructor if the variable's type is
+           const qualified -- WP 7.1.5.1 [dcl.type.cv]). */
+        if (is_const_qualified_type(state->type) ?
+              type_has_user_declared_default_constructor(state->type) :
+              type_has_nontrivial_default_constructor(state->type)) {
+          srk_flags |= SRK_INITIALIZATION;
+        }  /* if */
+      }  /* if */
+    } else {
+      /* C mode. */
+      if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
+        if (state->storage_class == (a_storage_class)sc_unspecified ||
+#if NAMED_REGISTERS_ALLOWED
+            (state->storage_class == (a_storage_class)sc_extern &&
+             state->register_id != 0) ||
+#endif /* NAMED_REGISTERS_ALLOWED */
+            state->storage_class == (a_storage_class)sc_static) {
+          /* In C a file scope variable declaration with no storage class
+             or static storage class is called a tentative definition.
+             Variables declared in file scope with a named-register storage
+             class specifier (an Embedded C extension) are also treated as
+             tentative definitions. */
+          is_tentative_def = TRUE;
+          srk_flags |= SRK_TENTATIVE_DEF | SRK_DEFINITION;
+        }  /* if */
+      } else {
+        /* In C all local variable declarations are definitions. */
+        if (state->storage_class != (a_storage_class)sc_extern) {
+          is_variable_def = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (is_variable_def) srk_flags |= SRK_DEFINITION;
+    decl_variable(locator, state->storage_class, state->register_id,
+                  state->type, state->source_sequence_entry, srk_flags,
+                  &state->decl_modifiers, &state->ms_attributes,
+                  state->attributes, state->asm_name, &state->asm_name_pos,
+                  &sym, &linkage, &prev_type, &ext_sym, decl_pos_block);
+    var_ptr = sym->variant.variable.ptr;
+    /* Fetch the type of the symbol again, since it might have been
+       changed when reconciled with the original declaration. */
+    state->type = var_ptr->type;
+    state->storage_class = (a_storage_class)var_ptr->storage_class;
+    if (is_variable_def) {
+      /* The "declared_storage_class" field is updated only for variable
+         definitions. */
+      var_ptr->declared_storage_class = state->declared_storage_class;
+    }  /* if */
+    if (state->is_old_style_param_decl) {
+      /* Error case (described above).  Mark the symbol referenced, to
+         suppress subsequent "declared and not referenced" warnings. */
+      mark_symbol_to_suppress_warnings(sym);
+    }  /* if */
+  }  /* if */
+  if (is_variable_def || is_tentative_def) {
+    /* In C++ mode, check whether a template class type needs to be
+       instantiated.  If appropriate, record that a complete type is required
+       in this context (both C and C++).  This test may already have been done
+       for certain variable declarations. */
+    complete_type_is_needed(state->type);
+  }  /* if */
+  if (!C_mode() && var_ptr != NULL && is_abstract_class_type(state->type)) {
+    /* Abstract class objects are prohibited (ARM 10.3). */
+    report_abstract_class_error(ec_abstract_class_object_not_allowed,
+                                state->type, &locator->source_position);
+  }  /* if */
+  /* Set the error position to the start of the initializer (that is, to
+     the "=" if there is one) or to where the initializer should be in
+     case there ought to be one. */
+  set_err_pos_to_curr_token();
+  if (has_initializer) {
+    /* In some Microsoft and GNU modes, the name of the variable being
+       initialized is not visible while parsing a parenthesized initializer.
+       (Unless it had been previously declared, which is the case for static
+       data members or when prev_type is set).  To emulate this, we
+       temporarily mark the associated symbol as invisible.*/
+    a_boolean  decl_invisible_to_initializer =
+                  has_parenthesized_initializer && !is_static_data_member &&
+                  (microsoft_bugs || (gpp_mode && gnu_version < 30400)) &&
+                  prev_type == NULL;
+    if (decl_invisible_to_initializer && !sym->is_error) {
+      sym->is_invisible = TRUE;
+    }  /* if */
+    /* Advance past the "=". */
+    if (curr_token == tok_assign) (void)get_token();
+    if (sym->kind == (a_symbol_kind)sk_variable &&
+        !state->is_old_style_param_decl) {
+      /* Set the storage class of a file-scope initialized variable to
+         unspecified (meaning external) or static (meaning internal). */
+      if (decl_scope_level == depth_innermost_namespace_scope) {
+        if (var_ptr->storage_class == (a_storage_class)sc_extern) {
+          var_ptr->storage_class = (a_storage_class)sc_unspecified;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Now scan the initializer. */
+    /* If the symbol is a parameter, the subroutine will generate the error.
+       This is done rather than flagging the error here because the subroutine
+       can scan over the initializer expression neatly. */
+    initializer(sym, &locator->source_position, linkage,
+                has_parenthesized_initializer, state->is_old_style_param_decl,
+                &incomplete_type_error_reported, decl_pos_block);
+    if (decl_invisible_to_initializer && !sym->is_error) {
+      /* Mark the symbol as visible now that the initializer is complete. */
+      sym->is_invisible = FALSE;
+    }  /* if */
+    if (var_ptr != NULL) {
+#if GNU_EXTENSIONS_ALLOWED
+      if (gpp_mode && has_parenthesized_initializer &&
+          curr_token == tok_attribute) {
+        gnu_attributes_after_parenthesized_initializer(var_ptr);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      if (sym->kind == (a_symbol_kind)sk_variable) {
+        /* All initialized variables are considered defined.  This flag may
+           have already been set based on storage class and scope level.  Be
+           sure to check this after the initializer is scanned, so that
+           "int x = x;" can be caught. */
+        mark_variable_value_set(sym);
+      }  /* if */
+      /* Fetch the type of the symbol again, since it might have been changed
+         if it was an incomplete array and was initialized. */
+      state->type = var_ptr->type;
+    }  /* if */
+  } else if (state->is_old_style_param_decl) {
+    /* Don't worry about a missing initializer. */
+  } else if (is_variable_def && !is_error_locator(*locator) &&
+             var_ptr->init_kind == (an_init_kind)initk_none) {
+    /* An uninitialized variable or static data member is being defined, but
+       no explicit initializer was provided.  Do default initialization if
+       appropriate (e.g., if a default constructor exists).  In g++ mode, the
+       variable being initialized should not be visible during the generation
+       of the default initializer.  In particular, the variable should not be
+       visible to any instantiations that might result from the processing of
+       the initializer. */
+    a_boolean	def_init_okay, sym_invisible = sym->is_invisible;
+    if (gpp_mode) sym->is_invisible = TRUE;
+    def_init_okay = def_initializer(sym, &locator->source_position);
+    if (gpp_mode) sym->is_invisible = sym_invisible;
+    if (def_init_okay) {
+      /* Default initialization was successful. */
+      if (sym->kind == (a_symbol_kind)sk_variable) {
+        /* Unless this variable has non-static storage duration and is
+           default-initialized by a trivial default constructor (which is a
+           no-op), mark it as having a value. */
+        if (has_static_storage_duration(var_ptr->storage_class)) {
+          /* Objects with static storage duration are zero-initialized, so
+             they always have some value. */
+          mark_variable_value_set(sym);
+        } else {
+          a_type_ptr  tp = skip_typerefs(var_ptr->type);
+          if (is_array_type(tp)) {
+            tp = underlying_array_element_type(tp);
+            tp = skip_typerefs(tp);
+          }  /* if */
+          if (is_immediate_class_type(tp) &&
+              symbol_supplement_for_class(tp)->
+                            trivial_default_constructor != NULL) {
+            /* Must have been initialized by a trivial default constructor.
+               Since such constructors would do nothing even if they were
+               actually called, don't regard them as setting the value of
+               the variable. */
+          } else {
+            mark_variable_value_set(sym);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    } else if (sym->kind == (a_symbol_kind)sk_variable ||
+               sym->kind == (a_symbol_kind)sk_static_data_member) {
+      /* No default initialization, so do some additional checking. */
+      check_for_missing_initializer(sym, state->type);
+      if (sym->kind == (a_symbol_kind)sk_variable &&
+          (!var_ptr->source_corresp.is_local_to_function ||
+           var_ptr->storage_class == (a_storage_class)sc_static)) {
+        mark_variable_value_set(sym);
+      }  /* if */
+    }  /* if */
+  } else if (sym->kind == (a_symbol_kind)sk_variable &&
+             (state->storage_class == (a_storage_class)sc_extern ||
+              is_tentative_def)) {
+    /* Either:  This is not a definition of a variable but rather an extern
+       declaration.  Such a variable may be assumed to be initialized at the
+       point of definition, so flag it as "set" (even if it is not actually
+       set at the current declaration). */
+    /* Or else:  This is a tentative definition, which should be treated as
+       though it were a definition. */
+    mark_variable_value_set(sym);
+  }  /* if */
+#if DECL_MODIFIERS_IN_USE
+  if (var_ptr != NULL) {
+    check_variable_decl_modifiers(var_ptr, locator, &state->decl_modifiers);
+  }  /* if */
+#endif /* DECL_MODIFIERS_IN_USE */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+#if DEBUG
+  if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {
+    if (is_variable_def && is_static_data_member) {
+      fprintf(f_debug, "decl-pos info for static data member def\n");
+      db_decl_pos_info(sym);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  copy_source_position(locator->source_position, error_position);
+  if (var_ptr != NULL && !is_error_locator(*locator) &&
+      is_incomplete_type(state->type)) {
+    /* Issue an error on a variable for which this is the defining declaration
+       but whose type is incomplete.  Also, in C mode, issue an error on a
+       static variable with incomplete type (6.7.2 para 3) or an externally
+       linked variable with a tentative definition but an uncompletable type
+       (a case like "void i;" at file scope).  And in C++ mode, since no
+       object may be of void type, issue the error for cases like
+       "extern void i;" even though it is not a defining declaration. */
+    if (is_variable_def ||
+        (!C_mode() && is_void_type(state->type)) ||
+        (is_tentative_def && is_void_type(state->type))) {
+      if (!incomplete_type_error_reported) {
+        pos_error(ec_incomplete_type_not_allowed,
+                  &locator->source_position);
+      }  /* if */
+      var_ptr->type = error_type();
+    } else if (strict_ansi_mode && is_tentative_def && 
+               state->storage_class == (a_storage_class)sc_static) {
+      /* The C standard prohibits tentative declarations with incomplete type
+         and internal linkage in 6.7.2 para 3, but a reading of 6.1.2.5 may
+         lead to the conclusion that the prohibition does not exist: issue a
+         discretionary error instead of a "hard" error. */
+      if (!incomplete_type_error_reported) {
+        pos_diagnostic(strict_ansi_discretionary_severity,
+                       ec_incomplete_type_not_allowed,
+                       &locator->source_position);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* variable_declaration */
+
+
+static void typedef_declaration(a_decl_parse_state  *state,
+                                a_symbol_locator    *locator,
+                                a_decl_pos_block    *decl_pos_block)
+/*
+Process a typedef declaration in function/block scope, namespace scope, or
+file scope.  The declaration is described by state, locator, and
+decl_pos_block.
+*/
+{
+  a_symbol_ptr  sym = NULL;
+
+  if (state->do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
+    /* This looked like a cfront-style member function typedef.  Be sure
+       the type was a function type. */
+    if (is_function_type(state->type)) {
+      /* Issue a warning on the extension. */
+      pos_warning(ec_ptr_to_member_typedef, &locator->source_position);
+    } else {
+      /* No function type, so what looked like a qualified name really
+         was -- but they aren't allowed. */
+      pos_error(ec_qualified_name_not_allowed, &locator->source_position);
+      set_to_error_locator(*locator);
+    }  /* if */
+  }  /* if */
+  check_nonfunction_declaration_errors(state, locator);
+  decl_typedef(locator, state->type, (a_type_ptr)NULL, state->attributes,
+               &state->ms_attributes, &state->decl_modifiers, &sym,
+               state->source_sequence_entry, decl_pos_block);
+#if GNU_EXTENSIONS_ALLOWED
+  if (curr_token == tok_assign && gcc_mode && gnu_version < 30100 &&
+      !state->has_explicit_type_specifier) {
+    /* In early versions of GNU C (but not in GNU C++) a typedef can be
+       defined with
+           typedef <type_name> = <expr> ;
+       where the type of the given expression becomes the type of the given
+       type name.  (GNU C 3.1 and GNU C 3.2 crash on such constructs and later
+       versions report a normal error: We therefore only emulate this feature
+       when gnu_version < 30100.) */
+    set_err_pos_to_curr_token();
+    (void)get_token();
+    typedef_initializer(sym);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_pos_block->var_init_range.end = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+}  /* typedef_declaration */
+
+
+static an_end_of_decl_action
+             check_special_declaration_form(a_decl_parse_state  *state,
+                                            a_param_id_ptr      param_id_list,
+                                            a_token_kind        *final_token)
+/*
+A helper routine for "declaration(...)" (see below) that handles various forms
+of declarations (like templates, namespaces, etc.) that do not start with a
+decl-specifier or a declarator.  The declaration is described by state.
+param_id_list describes the names of parameters listed in the preceding
+function declarator if the current declaration looks like an old-style C
+parameter list.  *final_token (which should be set to tok_semicolon by the
+caller) may be set to a different token if a form not ending with a semicolon
+is processed.  This function is called from "declaration" and its return value
+indicates how processing should proceed after the call.
+*/
+{
+  an_end_of_decl_action  end_of_decl_action = eoda_not_at_end;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && curr_token == tok_lbracket) {
+    /* A Microsoft attribute of the form "[ ... ]". */
+    state->ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+    if (curr_token == tok_semicolon) {
+      /* This is a standalone attribute block.  Make sure all of the specified
+         attributes are standalone attributes.  This also sets ms_attributes
+         to NULL. */
+      verify_standalone_attributes(&state->ms_attributes);
+      cannot_bind_to_curr_construct();
+      end_of_decl_action = eoda_skip_final_token;
+      goto done;
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (C_dialect == C_dialect_cplusplus) {
+    if (curr_token == tok_extern && next_token() == tok_string_literal) {
+      /* This looks like a C++ linkage specification, which is "extern"
+         followed by a string literal (e.g., "C++" or "C"). */
+      linkage_specification(state->function_definition_allowed,
+                            state->is_old_style_param_decl,
+                            state->is_top_level_declaration, param_id_list);
+      end_of_decl_action = eoda_done;
+    } else if (curr_token == tok_template ||
+               curr_token == tok_export ||
+               ((microsoft_mode || gpp_mode) && curr_token == tok_extern &&
+                next_token() == tok_template)) {
+      /* Do the processing required for a template declaration.  If this is
+         a top level declaration, the subroutine should not advance past the
+         final token of the declaration. */
+      a_template_decl_options_set  td_flags = TDO_NO_OPTIONS;
+      if (curr_token == tok_extern) {
+        /* In Microsoft and GNU modes "extern template ..." is permitted. */
+        (void)get_token();
+        td_flags = TDO_EXTERN;
+      }  /* if */
+      template_directive_or_declaration(final_token, td_flags);
+      /* The terminating token will be either a semicolon or a right
+         brace.  The latter has already been checked for, but the former
+         has not. */
+      if (*final_token == tok_semicolon) {
+        (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
+      }  /* if */
+      /* Swallow the current token if it is the same as *final_token, then
+         return. */
+      end_of_decl_action = eoda_skip_final_token;
+    } else if (curr_token == tok_namespace) {
+      /* Process a namespace definition or a namespace alias declaration. */
+      namespace_declaration(final_token);
+      /* Swallow the current token if it is the same as *final_token, then
+         return. */
+      end_of_decl_action = eoda_skip_final_token;
+    } else if (curr_token == tok_using) {
+      /* A using-directive (which has the form "using namespace N;") or a
+         using-declaration ("using N::x;" or "using ::x;"); */
+      if (next_token() == tok_namespace) {
+        using_directive();
+      } else {
+        nonmember_using_declaration();
+      }  /* if */
+      cannot_bind_to_curr_construct();
+      end_of_decl_action = eoda_check_semicolon;
+    } else if (check_for_overload_anachronism()) {
+      /* We check for and discard declarations of the form "overload f;" --
+         issue diagnostics on pragmas that are trying to bind to an overload
+         declaration. */
+      cannot_bind_to_curr_construct();
+      end_of_decl_action = eoda_check_semicolon;
+    }  else if (curr_token == tok_static_assert) {
+      static_assert_declaration(/*leave_semicolon=*/TRUE);
+      end_of_decl_action = eoda_check_semicolon;
+    }  /* if */
+  }  /* if */
+  if (end_of_decl_action != eoda_not_at_end) {
+    /* Nothing more to do in this routine. */
+  } else if (curr_token == tok_asm || curr_token == tok_microsoft_asm) {
+    if (curr_token != tok_microsoft_asm &&
+        state->function_definition_allowed && next_token() != tok_lparen) {
+      /* Not "asm (...)", so assume we have an asm function declaration --
+         something like "asm void f(void) { ... }". */
+      state->is_asm_function = TRUE;
+    } else {
+      /* Scan the asm declaration. */
+      add_stop_token(tok_semicolon);
+      (void)asm_declaration(!state->is_old_style_param_decl,
+                            /*is_asm_statement=*/FALSE);
+      remove_stop_token(tok_semicolon);
+      end_of_decl_action = eoda_done;
+    }  /* if */
+  } else if (!is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
+    /* Consider potential error cases. */
+    if (state->function_definition_allowed && is_declarator_start()) {
+      /* At file or namespace scope, a declarator with no decl-specifiers,
+         apparently.  In C mode this could be a legal function definition.
+         In C++ mode a diagnostic will be issued (usually just a warning). */
+    } else {
+      /* Look for some cases that are obviously not the start of a declaration,
+         and give a more specific "Expected a declaration" message. */
+      if (curr_token == tok_semicolon) {
+        if (state->is_linkage_spec_decl) {
+          /* Something like: ``extern "C";'' -- Issue an error. */
+          diagnostic(es_discretionary_error, ec_exp_declaration);
+        } else if (strict_ansi_mode) {
+          /* An empty declaration is ignored (as an extension in ANSI mode). */
+          diagnostic(strict_ansi_discretionary_severity, ec_extra_semicolon);
+        } else {
+          remark(ec_extra_semicolon);
+        }  /* if */
+        cannot_bind_to_curr_construct();
+      } else if (curr_token == tok_lbrace) {
+        /* Special error recovery on encountering an open brace: it
+           may be the start of a routine. */
+        add_stop_token(tok_semicolon);
+        error(ec_exp_declaration);
+        flush_until_matching_token();
+        remove_stop_token(tok_semicolon);
+        if (curr_token == tok_rbrace) (void)get_token();
+        if (is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
+          goto done;
+        }  /* if */
+      } else {
+        add_stop_token(tok_semicolon);
+        syntax_error(ec_exp_declaration);
+        discard_curr_construct_pragmas();
+        remove_stop_token(tok_semicolon);
+      }  /* if */
+      /* Give up on scanning a declaration (assume we're at the end of one). */
+      end_of_decl_action = eoda_skip_final_token;
+    }  /* if */
+  }  /* if */
+done:
+  return end_of_decl_action;
+}  /* check_special_declaration_form */
+
+
+static a_decl_flag_set get_decl_specifiers_flags(a_decl_parse_state  *state)
+/*
+Return the appropriate "input_flags" value for a call to "decl_specifiers"
+based on the current mode and the given declaration parsing state.
+*/
+{
+  a_decl_flag_set  dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED;
+
+  if (!state->is_asm_function) {
+    dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+    dsi_flags |= DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
+    /* Within a non-block linkage specification no storage class (except
+       typedef?) is allowed (inferred from ARM 7.4). */
+    if (state->is_linkage_spec_decl) {
+      dsi_flags |= DSI_IS_LINKAGE_SPEC_DECL;
+    }  /* if */
+  }  /* if */
+  if (state->is_old_style_param_decl) {
+    dsi_flags |= DSI_IS_PARAMETER;
+    dsi_flags |= DSI_IS_OLD_STYLE_PARAM_DECL;
+  } else {
+    /* A "vacuous declaration" of a class, struct, or union is allowed, but
+       only has an effect when not at file scope. */
+    dsi_flags |= DSI_VACUOUS_TAG_DECL_ALLOWED;
+    /* In C++, "inline" is normally allowed only on function declarations in
+       nonlocal scopes.  In C99 and GNU C modes, it is allowed on all function
+        declarations.  We also accept the inline specifier on block-extern
+        function declarations in Microsoft bugs mode. */
+    if (state->function_definition_allowed) {
+      dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
+      dsi_flags |= DSI_INLINE_ALLOWED;
+#if ASM_FUNCTION_ALLOWED
+      /* "asm" is allowed only on function definitions at file scope. */
+      dsi_flags |= DSI_ASM_ALLOWED;
+#endif /* ASM_FUNCTION_ALLOWED */
+    } else if (c99_mode || microsoft_bugs) {
+      dsi_flags |= DSI_INLINE_ALLOWED;
+    }  /* if */
+  }  /* if */
+  if (state->marked_as_gnu_extension) {
+    dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
+  }  /* if */
+  return dsi_flags;
+}  /* get_decl_specifiers_flags */
+
+
+static an_end_of_decl_action prep_for_declarator(
+                                    a_decl_parse_state  *state,
+                                    a_decl_flag_set     *p_di_flags)
+/*
+A helper routine for "declaration" (see below) that determines whether to scan
+declarators.  If they are to be scanned, set up the initial value for the
+input flags (pointed to by p_di_flags) in the call to "declarator".  state
+describes the declaration being processed.  This function is called from
+"declaration" and its return value indicates how processing should proceed
+after the call.
+*/
+{
+  an_end_of_decl_action   end_of_decl_action = eoda_not_at_end;
+  a_decl_flag_set         dso_flags = state->dso_flags;
+  a_decl_flag_set         di_flags = DI_NO_INPUT_FLAGS;
+  a_boolean               declarator_omitted = FALSE;
+
+  state->has_explicit_type_specifier =
+                         ((dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0);
+  if (dso_flags & DSO_LINKAGE_SPEC_DECL) {
+    /* A linkage-specifier will be found among the decl_specifiers only in
+       Microsoft mode -- e.g., for a case like this:
+         extern "C" __declspec(dllexport) void f();
+       Moreover, it is allowed only if this is not already a linkage-specifier
+       declaration -- i.e., an error should have been issued on
+         extern "C" __declspec(dllexport) extern "C" void f();
+    */
+    check_assertion(microsoft_mode && !state->is_linkage_spec_decl);
+    /* Set a flag to treat this as a normal linkage-specification
+       declaration. */
+    state->is_linkage_spec_decl = TRUE;
+    /* push_name_linkage was called in decl_specifiers, and the corresponding
+       pop must be done before exiting this routine. */
+    state->restore_name_linkage = TRUE;
+  } else if (state->is_linkage_spec_decl) {
+    /* Record the fact that this declaration has a linkage specifier attached
+       directly to it (as opposed to just being inside a linkage block). */
+    state->decl_modifiers.direct_linkage_specifier = TRUE;
+  }  /* if */
+  if ((dso_flags & DSO_NO_DECL_SPECIFIERS) && !state->is_linkage_spec_decl) {
+    /* Note that for the purposes of diagnostic, something like
+       ``extern "C" f();'' is treated as having a decl-specifier (hence
+       the test for !state->is_linkage_spec_decl). */
+    state->decl_specifiers_omitted = TRUE;
+  } else {
+    /* Check for cases without a declarator and issue a diagnostic if it's
+       invalid. */
+    declarator_omitted = check_for_missing_declarator(state);
+  }  /* if */
+#if DECL_MODIFIERS_IN_USE
+  if (declarator_omitted ||
+      state->declared_storage_class == (a_storage_class)sc_typedef) {
+    /* A class type or typedef declaration. */
+    if (state->decl_modifiers.flags != 0) {
+      /* Most declaration modifiers are not valid on type declarations. */
+      diagnose_decl_modifiers_on_type_declaration(state);
+    }  /* if */
+  }  /* if */
+#endif /* DECL_MODIFIERS_IN_USE */
+  /* The declaration can end at this point (";" is next). */
+  if (!state->decl_specifiers_omitted && declarator_omitted) {
+    if (curr_token != tok_semicolon) {
+      /* This must be a "dangling type specifier", and an error has already
+         been issued on the missing semicolon.  required_token is not called
+         because it would flush what is assumed to be the next declaration. */
+      end_of_decl_action = eoda_skip_final_token;
+    } else {
+      end_of_decl_action = eoda_deferred_actions;
+    }  /* if */
+  } else if (curr_token == tok_void && C_dialect == C_dialect_pcc && 
+             state->declared_storage_class == (a_storage_class)sc_typedef &&
+             next_token() == tok_semicolon) {
+    /* "typedef <something> void;" in pcc mode.  Usually "typedef int void;".
+       Shows up in old pre-void-keyword code.  Ignored in pcc mode. */
+    set_err_pos_to_curr_token();
+    warning(ec_decl_of_void_ignored);
+    cannot_bind_to_curr_construct();
+    /* Advance past "void" to the semicolon. */
+    (void)get_token();
+    end_of_decl_action = eoda_skip_final_token;
+  } else {
+    /* Set the various flags for declarator processing. */
+    di_flags = DI_REAL_DECLARATOR_ALLOWED;
+    if (C_dialect == C_dialect_cplusplus) {
+      di_flags |= DI_PARENTHESIZED_INITIALIZER_ALLOWED;
+      di_flags |= DI_OPERATOR_NAME_ALLOWED;
+      if (state->declared_storage_class != (a_storage_class)sc_typedef &&
+          (decl_scope_level == depth_innermost_namespace_scope ||
+           (microsoft_mode &&
+            depth_innermost_namespace_scope != NO_SCOPE_DEPTH))) {
+        di_flags |= DI_QUALIFIED_NAME_ALLOWED;
+      }  /* if */
+    }  /* if */
+    if (state->declared_storage_class == (a_storage_class)sc_typedef) {
+      di_flags |= DI_IS_TYPEDEF_DECLARATION;
+    }  /* if */
+    if (state->is_old_style_param_decl) {
+      di_flags |= DI_IS_PARAMETER_DECL;
+      /* A variable length array declaration is permitted in an old-style
+         parameter declaration. */
+      if (vla_enabled) di_flags |= DI_VLA_ALLOWED;
+    } else if (vla_enabled) {
+      if (!state->function_definition_allowed &&
+          state->declared_storage_class != (a_storage_class)sc_asm) {
+        /* Not at file scope, so a VLA may appear on some declarations. */
+        di_flags |= DI_VARIABLY_MODIFIED_DECL_ALLOWED;
+        if (!strict_ansi_mode ||
+            (state->declared_storage_class != (a_storage_class)sc_static &&
+             state->declared_storage_class != (a_storage_class)sc_extern)) {
+            /* When allowing VLAs in nonstrict modes, we first assume a non-
+               constant array bound is allowed on any declaration, and later
+               verify that the scanned expression was in fact constant if the
+               array did not have automatic storage duration.  Doing so,
+               however, causes us to e.g. accept "(int)(3.0+4.0)" as a bound
+               for a local static array.  However, in strict mode, that bound
+               is not a valid integral constant-expression (even though it is
+               "constant").  To diagnose those cases in strict mode, we must
+               therefore force the scanning of integral constant-expression
+               bounds by a priori excluding VLAs. */
+          di_flags |= DI_VLA_ALLOWED;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (!state->has_explicit_type_specifier && state->qualifiers == TQ_NONE) {
+      di_flags |= DI_NO_TYPE_SPECIFIERS;
+    }  /* if */
+  }  /* if */
+  *p_di_flags = di_flags;
+  return end_of_decl_action;
+}  /* prep_for_declarator */
+
 
 void declaration(a_boolean       function_definition_allowed,
                  a_boolean       is_old_style_param_decl,
@@ -12362,94 +13713,59 @@ void declaration(a_boolean       function_definition_allowed,
                  a_param_id_ptr  param_id_list,
                  a_source_range  *linkage_spec_range_ptr)
 /*
-Scan a declaration (standard, 3.5).  If function_definition_allowed is TRUE,
-alternatively scan a function-definition (3.7.1).  With that flag TRUE, this
-routine also corresponds to an external-declaration (3.7).  param_id_list
-is non-NULL if this declaration is for an old-style function parameter; in 
-that case, the identifier declared must be on the list.
-is_top_level_declaration is TRUE when a declaration appears at file scope
-and is not part of any other declarative structure; it is used for
-precompiled-header processing.  linkage_spec_range_ptr is non-NULL when this
-declaration includes an explicit linkage specification, but is otherwise
-NULL, even when it is part of a block of declarations governed by a linkage
-specification (i.e., it is non-NULL for `extern "C" void f()' and NULL for
-`extern "C" { void f() }'); when it is non-NULL, it indicates the source
-range of the linkage specifier.
+This routine scans declarations in the following scope kinds: file scope,
+namespace scope, function scope, and block scope.  It is also used to scan
+old-style C parameter declarations (in which case is_old_style_param_decl is
+TRUE and param_id_list will list the parameter names in the associated
+function declarator).  Declarations in class scope are handled by the similar
+routine "class_member_declaration".  Ordinary (as opposed to old-style)
+function parameter declarations are scanned by function_declarator, and
+template parameters are scanned by scan_a_template_parameter_declaration.
 
-Syntax:
+function_definition_allowed is TRUE if a function definition may be parsed
+(i.e., in file and namespace scopes).  is_top_level_declaration is TRUE when
+a declaration appears at file scope and is not part of any other declarative
+structure; it is used for precompiled-header processing.
+linkage_spec_range_ptr is non-NULL when this declaration includes an explicit
+linkage specification, but is otherwise NULL, even when it is part of a block
+of declarations governed by a linkage specification (i.e., it is non-NULL for
+`extern "C" void f()' and NULL for `extern "C" { void f() }'); when it is
+non-NULL, it indicates the source range of the linkage specifier.
+marked_as_gnu_extension indicates that the called already scanned the GNU
+keyword __extension__.
 
-3.7    external-declaration:
-		function-definition
-		declaration
-3.7.1  function-definition:
-		declaration-specifiers    declarator declaration-list
-                                      opt                            opt
-		    compound-statement
-3.5    declaration:
-		declaration-specifiers init-declarator-list    ;
-                                                           opt
-3.5    init-declarator-list:
-		init-declarator
-		init-declarator-list , init-declarator
-3.5    init-declarator:
-		declarator
-		declarator = initializer
-
-This routine is used in scanning file-scope declarations (of types,
-variables, and functions), old-style parameter declarations, and declarations
-of local variables (and types, etc.) of functions and in blocks.
+Broadly speaking, three kinds of declarations are handled here:
+  1. Declarations consisting of "declarators" optionally preceded by some
+     "specifiers".  This includes declarations of variables, functions, and
+     typedefs, as well as out-of-class definitions of member functions and
+     static data members.
+     A single declaration may sometimes introduce multiple comma-separated
+     declarators: This is handled by the main do-while loop containing a
+     call to "declarator"; the loop is preceded by a call to "decl_specifiers"
+     which scans the specifiers (if any).
+  2. Declarations that consist only of "specifiers".  (Normally, these are
+     declarations of class types or enumeration types, but various error cases
+     also follow this path.)
+  3. Declarations that do not fall in the previous two categories.  Examples
+     include namespace declarations, using-declarations, template declarations,
+     static_assert constructs, and so forth.  These cases are treated by the
+     call to "check_special_declaration_form".
 */
 {
-  a_boolean                    local_is_old_style_param_decl;
-  a_storage_class              declared_storage_class, local_storage_class;
-  a_type_ptr                   type_ptr, old_type = NULL;
-  a_type_ptr                   local_type_ptr;
-  a_boolean                    has_explicit_type_specifier;
-  a_boolean                    defines_something;
-  a_decl_flag_set              dso_flags, do_flags;
-  a_decl_modifiers_block       decl_modifiers, local_decl_modifiers;
   a_decl_flag_set              dsi_flags, di_flags;
-  a_symbol_ptr                 symbol_ptr = NULL, ext_sym;
-  a_boolean                    decl_specifiers_omitted = FALSE;
-  a_boolean                    declarator_omitted = FALSE;
-  a_boolean                    is_function, is_main_function;
-  a_boolean                    is_static_data_member;
+  a_boolean                    is_function;
   a_symbol_locator             locator;
-  a_param_id_ptr               param_id;
   a_func_info_block            func_info;
-  a_boolean                    top_declarator_type_is_function;
-  an_id_linkage_kind           linkage;
-  a_boolean                    has_initializer;
-  a_boolean                    has_parenthesized_initializer;
-  a_boolean                    err = FALSE;
-  a_boolean                    inline_specified;
-  a_source_position            decl_start_pos, declarator_pos;
-  a_source_position            declarator_start_pos;
-  a_boolean                    need_semicolon_remove_stop_token = FALSE;
-  a_boolean                    need_comma_remove_stop_token     = FALSE;
-  a_boolean                    need_assign_remove_stop_token    = FALSE;
-  a_boolean                    need_lbrace_remove_stop_token    = FALSE;
-  a_boolean                    is_variable_def, incomplete_type_error_reported;
-  a_boolean                    is_tentative_definition;
-  a_variable_ptr               var_ptr;
-  a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_boolean                    first_declarator = TRUE;
-  a_named_register_id          register_id = 0;
-  char                         *asm_name = NULL;
-  a_source_position            asm_name_pos;
   an_attribute_ptr             specifier_attributes = NULL;
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr             *last_specifier_attribute;
   a_boolean                    has_postfix_attributes = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  an_ms_attribute_ptr          ms_attributes = NULL;
   a_boolean                    access_checks_deferred = FALSE;
   a_token_kind                 final_token = tok_semicolon;
-  a_boolean                    is_linkage_spec_decl = FALSE;
-  a_boolean                    restore_name_linkage = FALSE;
   a_decl_parse_state           state;
   a_decl_pos_block             decl_pos_block;
-  a_boolean                    out_of_class_redecl = FALSE;
 
   db_enter(3, "declaration");
 
@@ -12461,8 +13777,11 @@ of local variables (and types, etc.) of functions and in blocks.
   set_err_pos_to_curr_token();
   /* Initialize structures to hold information about the declaration to be
      parsed. */
-  copy_source_position(pos_curr_token, decl_start_pos);
   init_decl_parse_state(&state);
+  copy_source_position(pos_curr_token, state.start_pos);
+  state.function_definition_allowed = function_definition_allowed;
+  state.is_old_style_param_decl = is_old_style_param_decl;
+  state.is_top_level_declaration = is_top_level_declaration;
   clear_decl_pos_block(&decl_pos_block);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -12478,12 +13797,19 @@ of local variables (and types, etc.) of functions and in blocks.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (linkage_spec_range_ptr != NULL) {
     /* The caller has already scanned the linkage specifier. */
-    is_linkage_spec_decl = TRUE;
-    restore_name_linkage = TRUE;
-  }  /* if */
-  if (is_linkage_spec_decl) {
+    state.is_linkage_spec_decl = TRUE;
+    state.restore_name_linkage = TRUE;
     /* Called in the midst of an ``extern "C"'' declaration, so
        select_curr_construct_pragmas has already been called. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* Adjust the specifiers-range to reflect the fact that there is a linkage
+       specification (which was scanned by the caller; in Microsoft mode, the
+       linkage specification may be scanned by the call to decl_specifiers
+       below).  The specifiers_range.end component will be updated if more
+       specifiers follow. */
+    decl_pos_block.specifiers_range.start = linkage_spec_range_ptr->start;
+    decl_pos_block.specifiers_range.end = linkage_spec_range_ptr->end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else if (!function_definition_allowed) {
     /* Called while processing a routine -- select_curr_construct_pragmas
        will already have been called. */
@@ -12500,1338 +13826,176 @@ of local variables (and types, etc.) of functions and in blocks.
     begin_deferral_of_access_checks();
     access_checks_deferred = TRUE;
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && curr_token == tok_lbracket) {
-    /* A Microsoft attribute of the form "[ ... ]". */
-    ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
-    if (curr_token == tok_semicolon) {
-      /* This is a standalone attribute block.  Make sure all of the specified
-         attributes are standalone attributes.  This also sets ms_attributes
-         to NULL. */
-      verify_standalone_attributes(&ms_attributes);
-      cannot_bind_to_curr_construct();
-      goto advance_past_final_token;
-    }  /* if */
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (C_dialect == C_dialect_cplusplus) {
-    if (curr_token == tok_extern && next_token() == tok_string_literal) {
-      /* This looks like a C++ linkage specification, which is "extern"
-         followed by a string literal (e.g., "C++" or "C"). */
-      linkage_specification(function_definition_allowed,
-                            is_old_style_param_decl,
-                            is_top_level_declaration, param_id_list);
-      goto return_point;
-    } else if (curr_token == tok_template ||
-               curr_token == tok_export ||
-               ((microsoft_mode || gpp_mode) && curr_token == tok_extern &&
-                next_token() == tok_template)) {
-      /* Do the processing required for a template declaration.  If this is
-         a top level declaration, the subroutine should not advance past the
-         final token of the declaration. */
-      a_template_decl_options_set td_flags = TDO_NO_OPTIONS;
-
-      if (curr_token == tok_extern) {
-        /* In Microsoft and GNU modes "extern template ..." is permitted. */
-        (void)get_token();
-        td_flags = TDO_EXTERN;
-      }  /* if */
-      template_directive_or_declaration(&final_token, td_flags);
-      /* The terminating token will be either a semicolon or a right
-         brace.  The latter has already been checked for, but the former
-         has not. */
-      if (final_token == tok_semicolon) {
-        (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
-      }  /* if */
-      /* Swallow the current token if it is the same as final_token, then
-         return. */
-      goto advance_past_final_token;
-    } else if (curr_token == tok_namespace) {
-      /* Process a namespace definition or a namespace alias declaration. */
-      namespace_declaration(&final_token);
-      /* Swallow the current token if it is the same as final_token, then
-         return. */
-      goto advance_past_final_token;
-    } else if (curr_token == tok_using) {
-      /* A using-directive (which has the form "using namespace N;") or a
-         using-declaration ("using N::x;" or "using ::x;"); */
-      if (next_token() == tok_namespace) {
-        using_directive();
-      } else {
-        nonmember_using_declaration();
-      }  /* if */
-      cannot_bind_to_curr_construct();
-      goto check_for_semicolon;
-    } else if (check_for_overload_anachronism()) {
-      /* We check for and discard declarations of the form "overload f;" --
-         issue diagnostics on pragmas that are trying to bind to an overload
-         declaration. */
-      cannot_bind_to_curr_construct();
-      goto check_for_semicolon;
-    }  /* if */
-    if (curr_token == tok_static_assert) {
-      static_assert_declaration(/*leave_semicolon=*/TRUE);
-      goto check_for_semicolon;
-    }  /* if */
-  }  /* if */
+  /* Handle any cases that don't start with a decl-specifier or a
+     declarator. */
+  switch (check_special_declaration_form(&state, param_id_list,
+          &final_token)) {
+    case eoda_not_at_end:        break;
+    case eoda_done:              goto return_point;
+    case eoda_skip_final_token:  goto advance_past_final_token;
+    case eoda_check_semicolon:   goto check_for_semicolon;
+    default:                     unexpected_condition();
+  }  /* switch */
   add_stop_token(tok_semicolon);
-  need_semicolon_remove_stop_token = TRUE;
+  state.need_semicolon_remove_stop_token = TRUE;
   /* Set the flags for calling decl_specifiers. */
-  dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED;
-  if (curr_token == tok_asm || curr_token == tok_microsoft_asm) {
-#if ASM_FUNCTION_ALLOWED
-    if (curr_token == tok_microsoft_asm ||
-        !function_definition_allowed || next_token() == tok_lparen) {
-#endif /* ASM_FUNCTION_ALLOWED */
-      /* Scan the asm declaration. */
-      (void)asm_declaration(/*asm_decl_allowed=*/!is_old_style_param_decl,
-                            /*is_asm_statement=*/FALSE);
-      goto return_point;
-#if ASM_FUNCTION_ALLOWED
-    }  /* if */
-    /* Not "asm (...)", so assume we have an asm function declaration --
-       something like "asm void f(void) { ... }".  Note: we leave
-       DSI_STORAGE_CLASS_SPECIFIER_ALLOWED unset when asm is the first
-       specifier. */
-#endif /* ASM_FUNCTION_ALLOWED */
-  } else {
-    dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
-    dsi_flags |= DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
-    /* Within a non-block linkage specification no storage class (except
-       typedef?) is allowed (inferred from ARM 7.4). */
-    if (is_linkage_spec_decl) {
-      dsi_flags |= DSI_IS_LINKAGE_SPEC_DECL;
-    }  /* if */
-  }  /* if */
-  if (is_old_style_param_decl) {
-    dsi_flags |= DSI_IS_PARAMETER;
-    dsi_flags |= DSI_IS_OLD_STYLE_PARAM_DECL;
-  } else {
-    /* A "vacuous declaration" of a class, struct, or union is allowed, but
-       only has an effect when not at file scope. */
-    dsi_flags |= DSI_VACUOUS_TAG_DECL_ALLOWED;
-    /* In C++, "inline" is normally allowed only on function declarations in
-       nonlocal scopes.  In C99 and GNU C modes, it is allowed on all function
-        declarations.  We also accept the inline specifier on block-extern
-        function declarations in Microsoft bugs mode. */
-    if (function_definition_allowed) {
-      dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
-      dsi_flags |= DSI_INLINE_ALLOWED;
-#if ASM_FUNCTION_ALLOWED
-      /* "asm" is allowed only on function definitions at file scope. */
-      dsi_flags |= DSI_ASM_ALLOWED;
-#endif /* ASM_FUNCTION_ALLOWED */
-    } else if (c99_mode || microsoft_bugs) {
-      dsi_flags |= DSI_INLINE_ALLOWED;
-    }  /* if */
-  }  /* if */
+  dsi_flags = get_decl_specifiers_flags(&state);
   /* Scan the initial declaration specifiers (including storage class,
      type specifiers, and type qualifiers).  For a function definition,
      the specifiers can be omitted entirely. */
-  if (!is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
-    if (function_definition_allowed && is_declarator_start()) {
-      /* At file or namespace scope, a declarator with no decl-specifiers,
-         apparently.  In C mode this could be a legal function definition.
-         In C++ mode a diagnostic will be issued (usually just a warning). */
-#if ASM_FUNCTION_ALLOWED
-    } else if (curr_token == tok_asm) {
-      /* The start of an asm function declaration.  ("asm" is not checked
-         for by is_decl_start since it starts a declaration only in a
-         restricted context.) */
-#endif /* ASM_FUNCTION_ALLOWED */
-    } else {
-      /* Look for some cases that are obviously not the start of a declaration,
-         and give a more specific "Expected a declaration" message. */
-      if (curr_token == tok_semicolon) {
-        if (is_linkage_spec_decl) {
-          /* Something like: ``extern "C";'' -- Issue an error. */
-          diagnostic(es_discretionary_error, ec_exp_declaration);
-        } else if (strict_ansi_mode) {
-          /* An empty declaration is ignored (as an extension in ANSI mode). */
-          diagnostic(strict_ansi_discretionary_severity, ec_extra_semicolon);
-        } else {
-          remark(ec_extra_semicolon);
-        }  /* if */
-        cannot_bind_to_curr_construct();
-      } else if (curr_token == tok_lbrace) {
-        /* Special error recovery on encountering an open brace: it
-           may be the start of a routine. */
-        error(ec_exp_declaration);
-        flush_until_matching_token();
-        if (curr_token == tok_rbrace) (void)get_token();
-        if (is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
-          goto continue_with_declaration;
-        }  /* if */
-      } else {
-        syntax_error(ec_exp_declaration);
-        discard_curr_construct_pragmas();
-      }  /* if */
-      /* Give up on scanning a declaration (assume we're at the end of one). */
-      goto advance_past_final_token;
-    }  /* if */
-  }  /* if */
-continue_with_declaration:
-  if (marked_as_gnu_extension) {
-    dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
-  }  /* if */
-  /* Scan the specifiers. */
-  err = decl_specifiers(dsi_flags, &dso_flags, &declared_storage_class,
-                        &type_ptr, &state, &specifier_attributes,
-                        &ms_attributes, &decl_modifiers, &register_id,
-                        &decl_pos_block, (a_upc_block_size*)NULL);
+  state.decl_specifiers_error =
+    decl_specifiers(dsi_flags, &state.dso_flags, &state.declared_storage_class,
+                    &state.specifiers_type, &state, &specifier_attributes,
+                    &state.ms_attributes, &state.decl_modifiers,
+                    &state.register_id, &decl_pos_block,
+                    (a_upc_block_size*)NULL);
 #if GNU_EXTENSIONS_ALLOWED
   /* Find the last prefix_attribute. */
   last_specifier_attribute = last_attribute_link(&specifier_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  has_explicit_type_specifier =
-                      ((dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0);
-  if (dso_flags & DSO_LINKAGE_SPEC_DECL) {
-    /* A linkage-specifier will be found among the decl_specifiers only in
-       Microsoft mode -- e.g., for a case like this:
-         extern "C" __declspec(dllexport) void f();
-       Moreover, it is allowed only if this is not already a linkage-specifier
-       declaration -- i.e., an error should have been issued on
-         extern "C" __declspec(dllexport) extern "C" void f();
-    */
-    check_assertion(microsoft_mode && !is_linkage_spec_decl);
-    /* Set a flag to treat this as a normal linkage-specification
-       declaration. */
-    is_linkage_spec_decl = TRUE;
-    /* push_name_linkage was called in decl_specifiers, and the corresponding
-       pop must be done before exiting this routine. */
-    restore_name_linkage = TRUE;
-  } else if (is_linkage_spec_decl) {
-    /* Record the fact that this declaration has a linkage specifier attached
-       directly to it (as opposed to just being inside a linkage block). */
-    decl_modifiers.direct_linkage_specifier = TRUE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    /* Adjust the specifiers-range to reflect the fact that there is a
-       linkage specification (which was scanned not by decl_specifiers but
-       by the caller). */
-    decl_pos_block.specifiers_range.start = linkage_spec_range_ptr->start;
-    if (dso_flags & DSO_NO_DECL_SPECIFIERS) {
-      decl_pos_block.specifiers_range.end = linkage_spec_range_ptr->end;
-    }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  }  /* if */
-  if ((dso_flags & DSO_NO_DECL_SPECIFIERS) && !is_linkage_spec_decl) {
-    /* Note that for the purposes of diagnostic, something like
-       ``extern "C" f();'' is treated as having a decl-specifier (hence
-       the test for !is_linkage_spec_decl). */
-    decl_specifiers_omitted = TRUE;
-  } else {
-    /* Check for cases without a declarator and issue a diagnostic if it's
-       invalid. */
-    declarator_omitted = check_for_missing_declarator(
-                                  dso_flags, type_ptr, declared_storage_class,
-                                  register_id, is_old_style_param_decl,
-                                  is_linkage_spec_decl,
-                                  &decl_start_pos, err);
-  }  /* if */
-#if DECL_MODIFIERS_IN_USE
-  if (declarator_omitted ||
-      declared_storage_class == (a_storage_class)sc_typedef) {
-    /* A class type or typedef declaration. */
-    if (decl_modifiers.flags != 0) {
-      /* Most declaration modifiers are not valid on type declarations. */
-      diagnose_decl_modifiers_on_type_declaration(&decl_modifiers,
-                                                  &decl_start_pos);
-    }  /* if */
-  }  /* if */
-#endif /* DECL_MODIFIERS_IN_USE */
-  /* The declaration can end at this point (";" is next). */
-  if (!decl_specifiers_omitted && declarator_omitted) {
-    if (curr_token != tok_semicolon) {
-      /* This must be a "dangling type specifier", and an error has already
-         been issued on the missing semicolon.  required_token is not called
-         because it would flush what is assumed to be the next declaration. */
-      goto advance_past_final_token;
-    }  /* if */
-  } else if (curr_token == tok_void && C_dialect == C_dialect_pcc && 
-             declared_storage_class == (a_storage_class)sc_typedef &&
-             next_token() == tok_semicolon) {
-    /* "typedef <something> void;" in pcc mode.  Usually "typedef int void;".
-       Shows up in old pre-void-keyword code.  Ignored in pcc mode. */
-    set_err_pos_to_curr_token();
-    warning(ec_decl_of_void_ignored);
-    cannot_bind_to_curr_construct();
-    /* Advance past "void" to the semicolon. */
-    (void)get_token();
-    goto advance_past_final_token;
-  } else {
-    a_boolean is_constructor_or_destructor;
-
-    inline_specified = ((dso_flags & DSO_INLINE) != 0);
-    defines_something = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
-    /* Set the various flags for declarator processing. */
-    di_flags = DI_REAL_DECLARATOR_ALLOWED;
-    if (C_dialect == C_dialect_cplusplus) {
-      di_flags |= DI_PARENTHESIZED_INITIALIZER_ALLOWED;
-      di_flags |= DI_OPERATOR_NAME_ALLOWED;
-      if (declared_storage_class != (a_storage_class)sc_typedef &&
-          (decl_scope_level == depth_innermost_namespace_scope ||
-           (microsoft_mode &&
-            depth_innermost_namespace_scope != NO_SCOPE_DEPTH))) {
-        di_flags |= DI_QUALIFIED_NAME_ALLOWED;
-      }  /* if */
-    }  /* if */
-    if (declared_storage_class == (a_storage_class)sc_typedef) {
-      di_flags |= DI_IS_TYPEDEF_DECLARATION;
-    }  /* if */
-    if (is_old_style_param_decl) {
-      di_flags |= DI_IS_PARAMETER_DECL;
-      /* A variable length array declaration is permitted in an old-style
-         parameter declaration. */
-      if (vla_enabled) di_flags |= DI_VLA_ALLOWED;
-    } else if (vla_enabled) {
-      if (!function_definition_allowed &&
-          declared_storage_class != (a_storage_class)sc_asm) {
-        /* Not at file scope, so a VLA may appear on some declarations. */
-        di_flags |= DI_VARIABLY_MODIFIED_DECL_ALLOWED;
-        if (!strict_ansi_mode ||
-            (declared_storage_class != (a_storage_class)sc_static &&
-             declared_storage_class != (a_storage_class)sc_extern)) {
-            /* When allowing VLAs in nonstrict modes, we first assume a non-
-               constant array bound is allowed on any declaration, and later
-               verify that the scanned expression was in fact constant if the
-               array did not have automatic storage duration.  Doing so,
-               however, causes us to e.g. accept "(int)(3.0+4.0)" as a bound
-               for a local static array.  However, in strict mode, that bound
-               is not a valid integral constant-expression (even though it is
-               "constant").  To diagnose those cases in strict mode, we must
-               therefore force the scanning of integral constant-expression
-               bounds by a priori excluding VLAs. */
-          di_flags |= DI_VLA_ALLOWED;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    if (!has_explicit_type_specifier && state.qualifiers == TQ_NONE) {
-      di_flags |= DI_NO_TYPE_SPECIFIERS;
-    }  /* if */
-    /* Scan the declarator list. */
-    do {
-      an_attribute_ptr  declarator_attributes = NULL;
-      an_attribute_ptr  attributes = NULL;
-      if (!first_declarator) {
-        /* We've just skipped a comma separating two declarators. */
+  switch (prep_for_declarator(&state, &di_flags)) {
+    case eoda_not_at_end:        break;
+    case eoda_skip_final_token:  goto advance_past_final_token;
+    case eoda_deferred_actions:  goto deferred_fixups;
+    default:                     unexpected_condition();
+  }  /* switch */
+  /* Scan the declarator list. */
+  do {
+    an_attribute_ptr  declarator_attributes = NULL;
+    state.attributes = NULL;
+    if (!first_declarator) {
+      /* We've just skipped a comma separating two declarators. */
+      /* Re-initialize state.is_old_style_param_decl for every declarator,
+         because it might have been modified during the processing of the prior
+         declarator (e.g., as an error recovery strategy). */
+      state.is_old_style_param_decl = is_old_style_param_decl;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode && !C_mode() && microsoft_version >= 1000 &&
-            !is_abstract_or_real_declarator_start() &&
-            is_decl_start(IDS_MS_ATTRIB_NOT_ALLOWED)) {
-          /* Microsoft C++ compilers allow decl-specifiers to appear after the
-             comma separating two declarators.  E.g.: "int i, char *s;" */
-          scan_microsoft_secondary_decl_specifiers(dsi_flags, &dso_flags,
-                                                   &type_ptr, &state,
-                                                   &decl_pos_block);
-        }  /* if */
+      if (microsoft_mode && !C_mode() && microsoft_version >= 1000 &&
+          !is_abstract_or_real_declarator_start() &&
+          is_decl_start(IDS_MS_ATTRIB_NOT_ALLOWED)) {
+        /* Microsoft C++ compilers allow decl-specifiers to appear after the
+           comma separating two declarators.  E.g.: "int i, char *s;" */
+        scan_microsoft_secondary_decl_specifiers(dsi_flags, &state,
+                                                 &decl_pos_block);
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-        if (depth_scope_stack == depth_innermost_namespace_scope) {
-          /* This is a declaration at file scope, and not the first declarator
-             in the declarator list.  As for the start of the declaration, set
-             the source-sequence insert point for instantiations to NULL. */
-          reset_ss_list_instantiation_insert_point();
-        }  /* if */
+      if (depth_scope_stack == depth_innermost_namespace_scope) {
+        /* This is a declaration at file scope, and not the first declarator
+           in the declarator list.  As for the start of the declaration, set
+           the source-sequence insert point for instantiations to NULL. */
+        reset_ss_list_instantiation_insert_point();
+      }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      }  /* if */
-      add_stop_token(tok_comma);
-      need_comma_remove_stop_token = TRUE;
-      add_stop_token(tok_assign);
-      need_assign_remove_stop_token = TRUE;
-      if (function_definition_allowed) {
-        add_stop_token(tok_lbrace);
-        need_lbrace_remove_stop_token = TRUE;
-      }  /* if */
-      clear_func_info(&func_info);
+    }  /* if */
+    add_stop_token(tok_comma);
+    state.need_comma_remove_stop_token = TRUE;
+    add_stop_token(tok_assign);
+    state.need_assign_remove_stop_token = TRUE;
+    if (function_definition_allowed) {
+      add_stop_token(tok_lbrace);
+      state.need_lbrace_remove_stop_token = TRUE;
+    }  /* if */
+    clear_func_info(&func_info);
 #if ASM_FUNCTION_ALLOWED
-      if (declared_storage_class == (a_storage_class)sc_asm) {
-        func_info.is_asm_function = TRUE;
-      }  /* if */
+    if (state.declared_storage_class == (a_storage_class)sc_asm) {
+      func_info.is_asm_function = TRUE;
+    }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-      /* Scan prefix declarator attributes.  Note that those can only
-         appear after a comma separating two declarators.  Any attributes
-         prefixing a leading declarator will have been parsed as part of
-         the specifier attributes.  GNU versions prior to 3.1 treated all
-         prefix attributes as specifier attributes; we emulate the more
-         recent (GNU C/C++ 3.1 and later) behavior. */
-      scan_gnu_declarator_attributes((char**)NULL, &asm_name_pos,
-                                     &declarator_attributes,
-                                     (a_boolean*)NULL,
-                                     declared_storage_class,
-                                     /*is_function=*/FALSE);
+    /* Scan prefix declarator attributes.  Note that those can only
+       appear after a comma separating two declarators.  Any attributes
+       prefixing a leading declarator will have been parsed as part of
+       the specifier attributes.  GNU versions prior to 3.1 treated all
+       prefix attributes as specifier attributes; we emulate the more
+       recent (GNU C/C++ 3.1 and later) behavior. */
+    scan_gnu_declarator_attributes((char**)NULL, &state.asm_name_pos,
+                                   &declarator_attributes,
+                                   (a_boolean*)NULL,
+                                   state.declared_storage_class,
+                                   /*is_function=*/FALSE);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      /* Save the source position of the first token of the declarator. */
-      declarator_start_pos = pos_curr_token;
-      declarator(di_flags, &do_flags, &state, type_ptr, 
-                 /*member_parent_type=*/(a_type_ptr)NULL, &locator,
-                 &local_type_ptr, &declarator_ssep, &func_info,
-                 &decl_pos_block, &declarator_attributes);
-      is_function = (declared_storage_class != (a_storage_class)sc_typedef &&
-                     is_function_type(local_type_ptr));
+    /* Save the source position of the first token of the declarator. */
+    state.declarator_start_pos = pos_curr_token;
+    declarator(di_flags, &state.do_flags, &state, state.specifiers_type, 
+               /*member_parent_type=*/(a_type_ptr)NULL, &locator,
+               &state.declared_type, &state.source_sequence_entry, &func_info,
+               &decl_pos_block, &declarator_attributes);
+    /* declarator will have set error_position to the position of the
+       declarator-id if this is a real declarator and the first token of
+       the whole declarator if it is an abstract declarator. */
+    state.declarator_pos = error_position;
+    state.type = state.declared_type;
+    is_function = (state.declared_storage_class !=
+                                                (a_storage_class)sc_typedef &&
+                   !is_old_style_param_decl &&
+                   is_function_type(state.type));
 #if GNU_EXTENSIONS_ALLOWED
-      has_postfix_attributes = (do_flags & DO_POSTFIX_ATTRIBUTES) != 0;
-      scan_gnu_declarator_attributes(&asm_name, &asm_name_pos,
-                                     &declarator_attributes,
-                                     &has_postfix_attributes,
-                                     declared_storage_class, is_function);
-      /* Combine the specifier and declarator attributes (they are separated
-         again at the end of the loop). */
-      *last_specifier_attribute = declarator_attributes;
-      attributes = specifier_attributes;
+    has_postfix_attributes = (state.do_flags & DO_POSTFIX_ATTRIBUTES) != 0;
+    scan_gnu_declarator_attributes(&state.asm_name, &state.asm_name_pos,
+                                   &declarator_attributes,
+                                   &has_postfix_attributes,
+                                   state.declared_storage_class, is_function);
+    /* Combine the specifier and declarator attributes (they are separated
+       again at the end of the loop). */
+    *last_specifier_attribute = declarator_attributes;
+    state.attributes = specifier_attributes;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if UPC_EXTENSIONS_ALLOWED
-      if (upc_mode && (dso_flags & DSO_UPC_SHARED_LAYOUT) &&
-          is_pointer_type(local_type_ptr) && is_void_type(type_ptr)) {
-      /* A layout qualifier cannot be used to qualify the target type of a
-         pointer to shared void. */
-        error(ec_bad_upc_shared_void_pointer_layout_qualifier);
-      } /* if */
-#endif /* UPC_EXTENSIONS_ALLOWED */
-      /* If a parenthesized constructor declarator is scanned, di_flags would
-         not have DI_IS_CONSTRUCTOR set, but do_flags would have
-         DO_IS_CONSTRUCTOR turned on. Similarly for destructors. Update the
-         local state with that information: */
-      is_constructor_or_destructor =
-                    ((do_flags & (DO_IS_CONSTRUCTOR | DO_IS_DESTRUCTOR)) != 0);
-      /* declarator will have set error_position to the position of the
-         declarator-id if this is a real declarator and the first token of
-         the whole declarator if it is an abstract declarator. */
-      declarator_pos = error_position;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (is_old_style_param_decl &&
-          func_info.prototype_scope_ss_list != NULL) {
-        /* Move the source sequence list that had been entered into the
-           function prototype scope to the current scope. */
-        a_source_sequence_entry_ptr  head, tail;
-
-        /* Identify the head and tail of the list that is pointed to from
-           func info block. */
-        head = func_info.prototype_scope_ss_list;
-        for (tail = head;; tail = tail->next) {
-          if (tail->next == NULL) break;
-        }  /* for */
-#if DEBUG
-        if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-          fputs("declaration: moving ss list from func info to curr scope\n",
-                f_debug);
-        }  /* if */
-#endif /* DEBUG */
-        /* Append the list to the list for the current scope. */
-        insert_src_seq_list(head, tail, depth_scope_stack,
-                            (a_source_sequence_entry_ptr)NULL);
-        /* Just to be neat. */
-        func_info.prototype_scope_ss_list = NULL;
+    if (is_old_style_param_decl) {
+      prep_old_style_param_decl(&state, &func_info, param_id_list, &locator);
+    }  /* if */
+    check_for_definition_in_return_type(&state);
+    if (is_function && any_cfront_mode()) {
+      /* Check for the declaration with a "member function typedef" type -- it
+         is only supposed to be used for pointer-to-member declarations (only
+         in cfront compatibility mode). */
+      if (check_member_function_typedef(state.type, &state.start_pos)) {
+        is_function = FALSE;
+        state.type = state.specifiers_type = error_type();
       }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      is_main_function = FALSE;
-      if (is_function && !is_error_locator(locator) &&
-          locator.symbol_header->identifier != NULL &&
-          (strcmp(locator.symbol_header->identifier, "main") == 0)) {
-        /* Recognizing a declaration of function "main" is more than checking
-           the identifier. */
-        if (C_dialect == C_dialect_cplusplus) {
-          if (locator.is_qualified_name ?
-                !locator.is_file_scope_qualified_name :
-                depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
-            /* A declaration that's a qualified name (except ::main), or one
-               that's unqualified but in a namespace scope, can't refer to
-               global main. */
-          } else {
-            check_assertion(locator.specific_symbol == NULL ||
-                            (!locator.specific_symbol->is_class_member &&
-                             locator.specific_symbol->
-                                          parent.namespace_ptr == NULL));
-            func_info.is_main_function = is_main_function = TRUE;
-          }  /* if */
-        } else {
-          /* C mode. */
-          if (declared_storage_class == (a_storage_class)sc_unspecified ||
-              declared_storage_class == (a_storage_class)sc_extern) {
-            /* Not a static function named "main".  This is not an option
-               in C++ (ARM 3.4). */
-            func_info.is_main_function = is_main_function = TRUE;
-          }  /* if */
-        }  /* if */
-        if (is_main_function) {
-          check_main_function(&func_info, local_type_ptr,
-                              &declared_storage_class, &inline_specified,
-                              &locator.source_position);
-        }  /* if */
-      } else if (declared_storage_class == (a_storage_class)sc_typedef &&
-                 (do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF)) {
-        /* This looked like a cfront-style member function typedef.  Be sure
-           the type was a function type. */
-        if (is_function_type(local_type_ptr)) {
-          /* Issue a warning on the extension. */
-          pos_warning(ec_ptr_to_member_typedef, &locator.source_position);
-        } else {
-          /* No function type, so what looked like a qualified name really
-             was -- but they aren't allowed. */
-          pos_error(ec_qualified_name_not_allowed, &locator.source_position);
-          set_to_error_locator(locator);
-        }  /* if */
-      }  /* if */
-      has_parenthesized_initializer =
-                          ((do_flags & DO_PARENTHESIZED_INITIALIZER) != 0);
-      if (is_function && any_cfront_mode()) {
-        /* Check for the declaration with a "member function typedef" type --
-           it is only  supposed to be used for pointer-to-member declarations
-           (only in cfront compatibility mode). */
-        if (check_member_function_typedef(local_type_ptr, &decl_start_pos)) {
-          is_function = FALSE;
-          local_type_ptr = type_ptr = error_type();
-        }  /* if */
-      }  /* if */
-      /* top_declarator_type_is_function is TRUE if the fact that this is a
-         function is derived from the declarator and not from a typedef.  It
-         is sufficient that the result type is a function type and a
-         declarator was scanned (but watch out for type qualifiers). */
-      top_declarator_type_is_function = (is_function &&
-				         skip_typerefs(local_type_ptr) !=
-                                                      skip_typerefs(type_ptr));
-      if (C_dialect == C_dialect_cplusplus &&
-          !microsoft_mode && defines_something) {
-        /* The ARM (8.2.5) explicitly prohibits defining a type in a
-           function return type.  This is taken to apply to pointer-to-function
-           type declarations as well to the function declarations.  Microsoft
-           compilers accept this however. */
-        a_boolean  is_function_type_decl = is_function;
-        if (!is_function_type_decl) {
-          a_type_ptr  tp = local_type_ptr;
-          for (;;) {
-            if (is_ptr_or_ref_type(tp)) {
-              /* Get type pointed to and continue. */
-              tp = type_pointed_to(tp);
-            } else if (is_ptr_to_member_type(tp)) {
-              /* Get member type and continue. */
-              tp = pm_member_type(tp);
-            } else {
-              /* No function type can be involved.  Stop looping. */
-              break;
-            }  /* if */
-          }  /* for */
-          is_function_type_decl = is_function_type(tp);
-        }  /* if */
-        if (is_function_type_decl) {
-          pos_error(ec_type_def_not_allowed_in_func_type_decl,
-                    &decl_start_pos);
-        }  /* if */
-      }  /* if */
-      local_storage_class = declared_storage_class;
-      local_is_old_style_param_decl = is_old_style_param_decl;
-      /* If this is a parameter (old-style), make sure it appears on
-         the param_id_list.  Also adjust the type if necessary
-         (for example, "array of x" becomes "pointer to x"). */
-      if (local_is_old_style_param_decl) {
-        if (local_storage_class == (a_storage_class)sc_typedef) {
-          if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
-            pos_error(ec_decl_should_be_of_param, &decl_start_pos);
-            set_to_error_locator(locator);
-          } else {
-            pos_warning(ec_decl_should_be_of_param, &decl_start_pos);
-          }  /* if */
-          local_is_old_style_param_decl = FALSE;
-        } else {
-          param_id = param_id_on_list(&locator, param_id_list);
-          if (param_id == NULL) {
-            /* The identifier was not found on the list. */
-            error(ec_decl_should_be_of_param);
-            /* Enter the declared object as a variable rather than as a
-               parameter.  */
-            local_is_old_style_param_decl = FALSE;
-          } else if (param_id->type != NULL) {
-            /* Parameter has already been declared. */
-            str_error(ec_id_already_declared,
-                      locator.symbol_header->identifier);
-          } else {
-            /* When the parameter name was listed (but not yet actually
-               declared) the sk_parameter symbol was created but not entered
-               in the symbol table.  Now that it is explicitly declared, add
-               it to the function prototype scope; it will later be moved
-               to the function scope. */
-            reenter_symbol(param_id->symbol, decl_scope_level,
-                           /*suppress_error=*/FALSE);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-            param_id->source_sequence_entry = declarator_ssep;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-            /* Set the declared_type field in the param_id entry before the
-               type is adjusted (e.g., decays from array to pointer). */
-            param_id->declared_type = local_type_ptr;
+    }  /* if */
+    state.storage_class = state.declared_storage_class;
+    if (state.need_lbrace_remove_stop_token) {
+      remove_stop_token(tok_lbrace);
+      state.need_lbrace_remove_stop_token = FALSE;
+    }  /* if */
+    remove_stop_token(tok_assign);
+    state.need_assign_remove_stop_token = FALSE;
+    if (is_function) {
+      switch (function_declaration(&state, &func_info, &locator,
+                                   &decl_pos_block, &final_token)) {
+        case eoda_not_at_end:        break;
+        case eoda_skip_final_token:  goto advance_past_final_token;
+        case eoda_done:              goto return_point;
+        default:                     unexpected_condition();
+      }  /* switch */
+    } else if (state.declared_storage_class != (a_storage_class)sc_typedef) {
+      variable_declaration(&state, &locator, &decl_pos_block);
+    } else {
+      typedef_declaration(&state, &locator, &decl_pos_block);
+    }  /* if */
+    done_with_func_info(func_info);
+    remove_stop_token(tok_comma);
+    state.need_comma_remove_stop_token = FALSE;
+    first_declarator = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
-            /* We need a copy of the attribute list so that we can
-               apply the attributes when we create the variable
-               corresponding to this parameter. */
-            param_id->attributes = copy_attribute_list(attributes);
-#endif /* GNU_EXTENSIONS_ALLOWED */
-          }  /* if */
-          /* Check that the type is legal, and do required adjustments. */
-          check_and_adjust_parameter_type(&local_type_ptr, &decl_start_pos,
-                                          attributes);
-          is_function = top_declarator_type_is_function = FALSE;
-          /* For pcc compatibility, promote float parameters to double. */
-          if (C_dialect == C_dialect_pcc) {
-            promote_float_to_double(local_type_ptr);
-          }  /* if */
-        }  /* if */
-      } else if (local_storage_class != (a_storage_class)sc_typedef) {
-        /* See if any type qualifiers were specified, and if they are okay. */
-        check_type_qualifiers(&local_type_ptr, &declarator_pos);
-      }  /* if */
-      if (need_lbrace_remove_stop_token) {
-        remove_stop_token(tok_lbrace);
-        need_lbrace_remove_stop_token = FALSE;
-      }  /* if */
-#if ASM_FUNCTION_ALLOWED
-      if (declared_storage_class == (a_storage_class)sc_asm) {
-        if (!is_function) {
-          /* Not a function definition. */
-          pos_error(ec_bad_asm_function_def, &declarator_pos);
-          local_storage_class = (a_storage_class)sc_unspecified;
-          set_to_named_error_locator(locator);
-        } else {
-          func_info.is_asm_function = TRUE;
-          /* Issue a diagnostic about using a nonstandard feature. */
-          if (strict_ansi_mode) {
-            pos_diagnostic(strict_ansi_error_severity, ec_nonstd_asm_function,
-                           &decl_start_pos);
-          }  /* if */
-        }  /* if */
-      } else
-#endif /* ASM_FUNCTION_ALLOWED */
-      if (is_function && local_storage_class != (a_storage_class)sc_typedef) {
-        if ((local_storage_class != (a_storage_class)sc_unspecified &&
-             local_storage_class != (a_storage_class)sc_extern &&
-             local_storage_class != (a_storage_class)sc_static) ||
-            register_id != 0) {
-          /* The storage class of a function must be extern or static. */
-          pos_error(ec_bad_function_storage_class,
-                    &decl_pos_block.storage_class_pos);
-          local_storage_class = (a_storage_class)sc_unspecified;
-        }  /* if */
-        if (locator.specific_symbol != NULL &&
-            locator.specific_symbol->is_class_member) {
-          /* This is the definition of a static member function.  No storage
-             class specifier (not even "static") is permitted. */
-          if (local_storage_class != (a_storage_class)sc_unspecified) {
-            an_error_severity  severity = es_error;
-            if (!extern_inline_allowed && inline_specified &&
-                local_storage_class == (a_storage_class)sc_static) {
-              /* Just give a warning on this.  The storage class designation
-                 is taken to be redundant, since all "inline" member functions
-                 (both static and nonstatic, in the sense applied to member
-                 functions) are "static" (in the sense of having internal
-                 linkage). */
-              severity = es_warning;
-            }  /* if */
-            pos_diagnostic(severity, ec_storage_class_not_allowed,
-                           &decl_pos_block.storage_class_pos);
-          }  /* if */
-          /* Set the storage class to sc_unspecified for now.  It will be
-             checked and reset if necessary in define_member_function. */
-          local_storage_class = (a_storage_class)sc_unspecified;
-        }  /* if */
-      }  /* if */
-      /* Check for restrictions on use of the "inline" specifier. */
-      if (inline_specified) {
-        if (!is_function) {
-          /* Not a function declaration.  GNU C (but not GNU C++) allows
-             this. */
-          pos_diagnostic(gcc_mode ? es_warning : es_error,
-                         ec_inline_and_nonfunction, &state.inline_pos);
-        } else {
-          func_info.is_inline = TRUE;
-        }  /* if */
-      }  /* if */
-      /* Indicate whether the function type is based on a typedef. */
-      func_info.function_type_from_typedef = !top_declarator_type_is_function;
-      /* If the thing declared is a function, and if the token following looks
-         like it could be part of a function-definition, go scan that.
-         A very special case are Microsoft out-of-class member redeclarations
-         (that are not definitions); they are handled by the code for out-of-
-         class definitions.  Early GNU C++ versions have a similar construct
-         for specializations. */
-      if (locator.is_class_member && curr_token == tok_semicolon) {
-        if (microsoft_mode) {
-          out_of_class_redecl = TRUE;
-        } else if (gpp_mode && gnu_version < 30400) {
-          a_type_ptr  pt = locator.parent.class_type;
-          if (pt->variant.class_struct_union.is_template_class &&
-              !pt->variant.class_struct_union.is_nonreal_class &&
-              !pt->variant.class_struct_union.is_specialized) {
-            out_of_class_redecl = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      if ((function_definition_allowed || out_of_class_redecl) &&
-          is_function) {
-        if (local_storage_class != (a_storage_class)sc_typedef &&
-            (curr_token != tok_semicolon || out_of_class_redecl) &&
-            curr_token != tok_comma &&
-            curr_token != tok_assign &&
-#if GNU_EXTENSIONS_ALLOWED
-            /* Attributes and asm names are only allowed on function
-               declarations, not on function definitions. */
-            curr_token != tok_attribute &&
-            curr_token != tok_asm &&
-#endif /* GNU_EXTENSIONS_ALLOWED */
-            curr_token != tok_end_of_source) {
-          a_boolean  is_function_try_block = curr_token == tok_try;
-          if (!has_explicit_type_specifier) {
-            /* Function with no explicitly specified return type.  Issue a
-               remark (except in pcc mode and except for C++ constructors,
-               destructors, and conversion operators). */
-            if (C_dialect != C_dialect_pcc && !is_constructor_or_destructor &&
-                !locator.is_conversion_name &&
-                !(locator.is_error && looks_like_ctor_or_dtor(&locator))) {
-              report_missing_type_specifier(&declarator_start_pos,
-                                            local_type_ptr,
-                                            /*is_function=*/TRUE,
-                                            /*is_function_def=*/TRUE,
-                                            is_main_function,
-                                            !decl_specifiers_omitted);
-            }  /* if */
-          }  /* if */
-          remove_all_local_stop_tokens();  /*lint !e774*/
-          func_info.is_definition = TRUE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-          func_info.declarator_ssep = declarator_ssep;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if USER_CONTROL_OF_STRUCT_PACKING
-          /* Recored the current setting of the maximum alignment for local
-             class members (an adjustment may be required for packing). */
-          func_info.max_member_alignment =
-                             current_max_alignment_for_class_members();
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-          if (!C_mode()) {
-            /* Issue diagnostic on an incomplete-type in an exception
-               specification.  (It wasn't done when the exception
-               specification was scanned because definitions and declarations
-               are treated differently. */
-            report_exception_spec_errors(&func_info);
-          }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-          /* GCC does not allow "void f() __attribute((...)) {}".  It
-             does, however, allow "void __attribute((...)) f() {}". */
-          if (has_postfix_attributes) {
-            pos_error(ec_attributes_in_rout_defn, &locator.source_position); 
-          }  /* if */
-          /* GNU C doesn't allow "void f() asm("bar") {}". */
-          if (asm_name != NULL) {
-            pos_error(ec_asm_name_in_rout_defn, &asm_name_pos);
-          }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-          /* Do processing required for a function definition, including
-             scanning the function body.  Note that the closing '}' will not
-             been consumed -- that will be done by the caller. */
-          (void)function_definition(&locator, local_type_ptr,
-                                    &func_info, local_storage_class,
-                                    has_explicit_type_specifier,
-                                    &decl_modifiers, &ms_attributes,
-                                    attributes, &decl_pos_block);
-          done_with_func_info(func_info);
-          if (is_function_try_block) {
-            /* Checking for the closing brace will already have been done. */
-            goto return_point;
-          }  /* if */
-          check_assertion(curr_token == tok_rbrace ||
-                          curr_token == tok_end_of_source ||
-                          out_of_class_redecl ||
-                          total_errors != 0);
-          /* Right brace is expected, except for the Microsoft extension that
-             allows a nondefining out-of-class member declaration. */
-          final_token = out_of_class_redecl ? tok_semicolon : tok_rbrace;
-          goto advance_past_final_token;
-#if ASM_FUNCTION_ALLOWED
-        } else if (declared_storage_class == (a_storage_class)sc_asm) {
-          /* Not a function definition. */
-          pos_error(ec_bad_asm_function_def, &pos_curr_token);
-          local_storage_class = (a_storage_class)sc_unspecified;
-          set_to_named_error_locator(locator);
-#endif /* ASM_FUNCTION_ALLOWED */
-        }  /* if */
-      }  /* if */
-      /* Not a function definition, must be a declaration. */
-      /* After a declaration has been scanned, it is no longer possible
-         that the next thing is a function definition. */
-      function_definition_allowed = FALSE;
-      is_static_data_member = FALSE;
-      if (locator.specific_symbol != NULL &&
-          locator.specific_symbol->is_class_member) {
-        if (is_function) {
-          /* A qualified name that identifies a function is allowed only when
-             the function body is present. */
-          report_member_function_redeclaration(&locator, local_type_ptr,
-                                               &declarator_pos);
-        } else {
-          /* Assume that qualified names that are not functions refer to static
-             data members. */
-          is_static_data_member = TRUE;
-        }  /* if */
-      }  /* if */
-      if (is_function && !C_mode()) {
-        /* Issue diagnostic on an incomplete-type in an exception
-           specification.  (It wasn't done when the exception specification
-           was scanned because definitions and declarations are treated
-           differently. */
-        report_exception_spec_errors(&func_info);
-      }  /* if */
-      /* Issue diagnostics on missing type specifiers, etc. */
-      if (!has_explicit_type_specifier && !is_constructor_or_destructor &&
-#if GNU_EXTENSIONS_ALLOWED
-          /* "typedef foo = 3;" is an old GNU C extension, not a use of
-             implicit int (this extension is not present in the GNU C++
-             compiler, nor in newer GNU C compilers). */
-          !(gcc_mode && gnu_version < 30100 && curr_token == tok_assign && 
-            local_storage_class == (a_storage_class)sc_typedef) &&
-#endif /* GNU_EXTENSIONS_ALLOWED */
-          !locator.is_error &&
-          !locator.is_conversion_name) {
-        report_missing_type_specifier(&declarator_start_pos,
-                                      local_type_ptr,
-                                      is_function,
-                                      /*is_function_def=*/FALSE,
-                                      is_main_function,
-                                      !decl_specifiers_omitted);
-      }  /* if */
-      if (top_declarator_type_is_function) {
-        if (func_info.param_id_list != NULL) {
-          /* If the function has a non-empty old-style identifier list of
-             parameters, a body should have been present. */
-          if (!skip_typerefs(local_type_ptr)->
-                                  variant.routine.extra_info->prototyped) {
-            if (microsoft_mode && C_mode()) {
-              /* No diagnostic in Microsoft C mode. */
-            } else {
-              diagnostic(gcc_mode ? es_warning : es_error,
-                         ec_param_id_list_needs_function_def);
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        /* Update xref info on param ids.  Do this even if there are no
-           parameters because some source sequence entries might have been
-           created (e.g., for pragmas inside the empty parameter list). */
-        record_param_id_list_declarations(&func_info);
-#if GNU_EXTENSIONS_ALLOWED
-        /* Verify any parameter attributes.  Some might not be valid when
-           the function is not being defined. */
-        check_function_param_attributes(&func_info);
-#endif /* GNU_EXTENSIONS_ALLOWED */
-      }  /* if */
-      /* Do some checking of storage classes, but not for typedefs. */
-      if (local_storage_class != (a_storage_class)sc_typedef) {
-        /* auto and register may not appear in a file-scope level
-           declaration (3.7, constraints). */
-        if (decl_scope_level == depth_innermost_namespace_scope &&
-            (local_storage_class == (a_storage_class)sc_auto ||
-             (
-#if GNU_EXTENSIONS_ALLOWED
-              /* The register keyword is allowed if there is an
-                 explicit register name for a variable. */
-              (asm_name == NULL || is_function || is_static_data_member) &&
-#endif /* GNU_EXTENSIONS_ALLOWED */
-              local_storage_class == (a_storage_class)sc_register))) {
-          pos_error(ec_bad_file_scope_storage_class,
-                    &decl_pos_block.storage_class_pos);
-          local_storage_class = (a_storage_class)sc_unspecified;
-        }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if ((decl_modifiers.flags & DM_DLLIMPORT) &&
-            local_storage_class == (a_storage_class)sc_unspecified) {
-          /* __declspec(dllimport) implies extern. */
-          local_storage_class = (a_storage_class)sc_extern;
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (is_function) {
-          /* A function with block scope (i.e., within an sck_function or
-             sck_block scope) can only have an explicit storage class of
-             extern (3.5.1). */
-          if ((scope_stack[decl_scope_level].kind ==
-                                           (a_scope_kind)sck_function ||
-               scope_stack[decl_scope_level].kind ==
-                                           (a_scope_kind)sck_block) &&
-              local_storage_class != (a_storage_class)sc_unspecified &&
-              local_storage_class != (a_storage_class)sc_extern) {
-            /* Allow "static" in all C modes except strict ANSI. The function
-               will be entered at the file scope as static.  This is an
-               extension to ANSI C.  Do not allow at all in C++ mode. */
-            if (local_storage_class == (a_storage_class)sc_static) {
-              an_error_severity  severity;
-              if (C_dialect == C_dialect_cplusplus) {
-                /* id_linkage doesn't expect block level statics in
-                   C++ mode. */
-                severity = es_error;
-                local_storage_class = (a_storage_class)sc_extern;
-              } else {  /* a C dialect */
-                /* This is an extension to ANSI C so produce a diagnostic
-                   in strict ANSI C mode. */
-                severity = strict_ansi_mode ?
-                              strict_ansi_error_severity : es_none;
-              }  /* if */
-              if (severity != es_none) {
-                pos_diagnostic(severity,
-                               ec_block_scope_function_must_be_extern,
-                               &decl_pos_block.storage_class_pos);
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        } else {
-          if (is_static_data_member) {
-            /* A static data member (or, illegally, a qualified name referring
-               to another kind of member).  Leave the storage class set to
-               sc_unspecified even if we are not at file scope. */
-          } else {
-            /* Not a function, not a typedef, therefore a variable or 
-               parameter.  If the storage class is unspecified, and
-               we are not at file scope, use a storage class of auto. */
-            if (local_storage_class == (a_storage_class)sc_unspecified) {
-              if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
-                  local_is_old_style_param_decl) {
-                /* We are inside a function body or this is an old-style
-                   parameter declaration, so an unspecified storage class
-                   means auto. */
-                local_storage_class = (a_storage_class)sc_auto;
-              } else if (is_linkage_spec_decl) {
-                /* This must be part of an linkage specification declaration.
-                   An "extern" storage class is implied (ARM 7.4, comment on
-                   p. 118). */
-                local_storage_class = (a_storage_class)sc_extern;
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      /* Enter the symbol with the proper type. */
-      linkage = idl_none;
-      var_ptr = NULL;
-      /* Look for optional initializer. */
-      remove_stop_token(tok_assign);
-      need_assign_remove_stop_token = FALSE;
-      if (has_parenthesized_initializer) {
-        has_initializer = TRUE;
-      } else if (curr_token == tok_assign) {
-        has_initializer = TRUE;
-        decl_pos_block.var_init_range.start = pos_curr_token;
-#if C_ANACHRONISMS_ALLOWED
-      } else if (C_dialect == C_dialect_pcc && is_initializer_start()) {
-        /* In pcc mode, the "=" may be omitted (K&R first edition, Appendix A,
-           section 17 (Anachronisms)). */
-        has_initializer = TRUE;
-        warning(ec_old_fashioned_initializer);
-#endif /* C_ANACHRONISMS_ALLOWED */
-      } else {
-        has_initializer = FALSE;
-      }  /* if */
-      local_decl_modifiers = decl_modifiers;
-      is_variable_def = FALSE;
-      is_tentative_definition = FALSE;
-      if (local_is_old_style_param_decl) {
-        symbol_ptr = param_id->symbol;
-        copy_source_position(locator.source_position,
-                             symbol_ptr->decl_position);
-        param_id->type = local_type_ptr;
-        copy_source_position(decl_start_pos, param_id->type_pos);
-        param_id->storage_class = local_storage_class;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        /* Update extra source position information in the param-id entry so
-           that it can be transferred to the variable entry later. */
-        param_id->specifiers_range = decl_pos_block.specifiers_range;
-        param_id->declarator_range = decl_pos_block.declarator_range;
-        param_id->identifier_range = decl_pos_block.identifier_range;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        /* Note that the creation of the parameter variable, etc., is done
-           in decl_parameter, called when the function body is scanned. */
-      } else if (local_storage_class == (a_storage_class)sc_typedef) {
-        /* A typedef declaration. */
-        decl_typedef(&locator, local_type_ptr, (a_type_ptr)NULL, attributes,
-                     &ms_attributes, &decl_modifiers, &symbol_ptr,
-                     declarator_ssep, &decl_pos_block);
-      } else if (is_static_data_member) {
-        /* A static data member definition. */
-        define_static_data_member(&locator, local_storage_class,
-                                  local_type_ptr, has_initializer,
-                                  declarator_ssep, &symbol_ptr, &linkage,
-                                  attributes, &decl_pos_block);
-        var_ptr = symbol_ptr->variant.static_data_member.variable;
-        /* Fetch the type of the symbol again, since it might have been
-           changed when reconciled with the original declaration. */
-        local_type_ptr = var_ptr->type;
-        /* All static data member declarations that pass through this
-           code are definitions. */
-        is_variable_def = TRUE;
-#if DECL_MODIFIERS_IN_USE
-        /* Copy the decl-modifiers into the variable entry. */
-        update_variable_decl_modifiers(
-                     var_ptr, &local_decl_modifiers, &locator.source_position,
-                     /*is_redecl=*/TRUE, /*is_definition=*/TRUE);
-#endif /* DECL_MODIFIERS_IN_USE */
-      } else if (is_function) {
-        /* A function declaration with no body. */
-        if (vla_enabled) {
-          if (func_info.vla_fixup_list != NULL) {
-            /* Throw away VLA info created for the function prototype.  By
-               doing this we discard the details of the VLAs' dimension
-               expressions.  The type of those VLAs is then "as if" they had
-               been declared with "[*]".  (Had this been a definition, we
-               would have kept a record of the expressions through a call to
-               process_vla_parameters.) */
-            check_assertion(C_mode() || total_errors != 0);
-            free_vla_fixup_list(func_info.vla_fixup_list);
-            func_info.vla_fixup_list = NULL;
-          }  /* if */
-          if (is_variably_modified_type(local_type_ptr)) {
-            /* This can only occur when a block-extern function declaration
-               has a variably-modified return type. */
-            pos_error(ec_variably_modified_type_not_allowed,
-                      &locator.source_position);
-          }  /* if */
-        }  /* if */          
-        decl_routine(&locator, local_storage_class, local_type_ptr,
-                     &func_info, declarator_ssep, SRK_DECLARATION,
-                     &local_decl_modifiers, &ms_attributes, attributes,
-                     asm_name, &asm_name_pos, &symbol_ptr, &linkage,
-                     &old_type, &ext_sym, &decl_pos_block);
-      } else {
-        /* A variable declaration. */
-        a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
-
-        if (vla_enabled && !function_definition_allowed) {
-          /* Local declaration. */
-          if (local_storage_class == (a_storage_class)sc_extern ||
-              local_storage_class == (a_storage_class)sc_static) {
-            if (is_vla_type(local_type_ptr)) {
-              /* An object with static storage duration cannot be a VLA. */
-              pos_error(ec_vla_is_not_auto, &locator.source_position);
-            } else if (local_storage_class == (a_storage_class)sc_extern &&
-                       is_variably_modified_type(local_type_ptr)) {
-              /* An entity with linkage cannot have a variably modified
-                 type. */
-              pos_error(ec_variably_modified_type_not_allowed,
-                        &locator.source_position);
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        /* Set a flag marking this as a defining declaration, if that's
-           appropriate. */
-        if (is_old_style_param_decl) {
-          /* This flag is TRUE when local_is_old_style_param_decl is FALSE
-             in the error case where a name appears in an old-style param
-             declaration but for which no corresponding param-id was created.
-               void f(i,j) int i, j, k; { }      // Error on "k"
-             Treat this as a definition. */
-          is_variable_def = TRUE;
-        } else if (has_initializer) {
-          /* A variable declaration involving an initializer is usually
-             considered to be a definition.  An exception is when the
-             initialization is ill-formed -- e.g., when it appears on a
-             block-extern variable declaration. */
-          if (decl_scope_level == depth_innermost_namespace_scope ||
-              local_storage_class != (a_storage_class)sc_extern) {
-            is_variable_def = TRUE;
-          }  /* if */
-          srk_flags |= SRK_INITIALIZATION;
-        } else if (C_dialect == C_dialect_cplusplus) {
-          /* Variable declaration in C++ mode with no explicit initializer. */
-          if (microsoft_mode &&
-              local_storage_class == (a_storage_class)sc_unspecified &&
-              is_incomplete_array_type(local_type_ptr) &&
-              !is_const_qualified_type(local_type_ptr)) {
-            /* In Microsoft C++ mode, a non-const variable at file scope
-               that is a zero-length array is treated like a C-mode tentative
-               definition. */
-            is_tentative_definition = TRUE;
-            srk_flags |= SRK_TENTATIVE_DEF;
-          } else if (local_storage_class != (a_storage_class)sc_extern) {
-            /* In C++ all other variable declarations are definitions, except
-               those with a storage class of extern. */
-            is_variable_def = TRUE;
-            /* Even without an explicit initializer this is an initializing
-               declaration if the variable is nontrivially constructible
-               -- i.e., if it is a class object (or array of class) and the
-               class has a nontrivial default constructor (which must be a
-               user-declared default constructor if the variable's type is
-               const qualified -- WP 7.1.5.1 [dcl.type.cv]). */
-            if (is_const_qualified_type(local_type_ptr) ?
-                  type_has_user_declared_default_constructor(local_type_ptr) :
-                  type_has_nontrivial_default_constructor(local_type_ptr)) {
-              srk_flags |= SRK_INITIALIZATION;
-            }  /* if */
-          }  /* if */
-        } else {
-          /* C mode. */
-          if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
-            if (local_storage_class == (a_storage_class)sc_unspecified ||
-#if NAMED_REGISTERS_ALLOWED
-                (local_storage_class == (a_storage_class)sc_extern &&
-                 register_id != 0) ||
-#endif /* NAMED_REGISTERS_ALLOWED */
-                local_storage_class == (a_storage_class)sc_static) {
-              /* In C a file scope variable declaration with no storage class
-                 or static storage class is called a tentative definition.
-                 Variables declared in file scope with a named-register storage
-                 class specifier (an Embedded C extension) are also treated as
-                 tentative definitions. */
-              is_tentative_definition = TRUE;
-              srk_flags |= SRK_TENTATIVE_DEF | SRK_DEFINITION;
-            }  /* if */
-          } else {
-            /* In C all local variable declarations are definitions. */
-            if (local_storage_class != (a_storage_class)sc_extern) {
-              is_variable_def = TRUE;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        if (is_variable_def) srk_flags |= SRK_DEFINITION;
-        decl_variable(&locator, local_storage_class, register_id,
-                      local_type_ptr, declarator_ssep, srk_flags,
-                      &local_decl_modifiers, &ms_attributes, attributes,
-                      asm_name, &asm_name_pos, &symbol_ptr, &linkage,
-                      &old_type, &ext_sym, &decl_pos_block);
-        var_ptr = symbol_ptr->variant.variable.ptr;
-        /* Fetch the type of the symbol again, since it might have been
-           changed when reconciled with the original declaration. */
-        local_type_ptr = var_ptr->type;
-        local_storage_class = (a_storage_class)var_ptr->storage_class;
-        if (is_variable_def) {
-          /* The "declared_storage_class" field is updated only for variable
-             definitions. */
-          var_ptr->declared_storage_class = declared_storage_class;
-        }  /* if */
-        if (is_old_style_param_decl) {
-          /* Error case (described above).  Mark the symbol referenced, to
-             suppress subsequent "declared and not referenced" warnings. */
-          mark_symbol_to_suppress_warnings(symbol_ptr);
-        }  /* if */
-      }  /* if */
-      if (is_variable_def || is_tentative_definition) {
-        /* In C++ mode, check whether a template class type needs to be
-           instantiated.  If appropriate, record that a complete type is
-           required in this context (both C and C++).  This test may
-           already have been done for certain variable declarations. */
-        complete_type_is_needed(local_type_ptr);
-      }  /* if */
-      incomplete_type_error_reported = FALSE;
-      if (!C_mode() && var_ptr != NULL) {
-        if (is_abstract_class_type(local_type_ptr)) {
-          /* Abstract class objects are prohibited (ARM 10.3). */
-          report_abstract_class_error(ec_abstract_class_object_not_allowed,
-                                      local_type_ptr,
-                                      &locator.source_position);
-        }  /* if */
-      }  /* if */
-      /* Set the error position to the start of the initializer (that is, to
-         the "=" if there is one) or to where the initializer should be in
-         case there ought to be one. */
-      set_err_pos_to_curr_token();
-      if (has_initializer) {
-        /* If the variable had already been declared previously, old_type
-           would be set, except for a static data member of a class.  The
-           is_class_member test is used to identify static data members. */
-        a_boolean  decl_invisible_to_initializer =
-                      !symbol_ptr->is_class_member &&
-                      ((microsoft_bugs || (gpp_mode && gnu_version < 30400)) &&
-                       has_parenthesized_initializer && old_type == NULL);
-        /* Advance past the "=". */
-        if (curr_token == tok_assign) (void)get_token();
-        /* Now scan the initializer. */
-        if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
-            !is_old_style_param_decl) {
-          /* Set the storage class of a file-scope initialized variable to
-             unspecified (meaning external) or static (meaning internal).
-             See 3.7.2. */
-          if (decl_scope_level == depth_innermost_namespace_scope) {
-            if (var_ptr->storage_class == (a_storage_class)sc_extern) {
-              var_ptr->storage_class = (a_storage_class)sc_unspecified;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        if (decl_invisible_to_initializer && !symbol_ptr->is_error) {
-          /* For parenthesized initializers in Microsoft bugs mode and early
-             GNU C++ modes, the declared variable is not visible until after
-             the initializer has been parsed.  To emulate this, we temporarily
-             mark the symbol as invisible. */
-          symbol_ptr->is_invisible = TRUE;
-        }  /* if */
-        /* If the symbol is a parameter, the subroutine will generate the
-           error.  This is done rather than flagging the error here because
-           the subroutine can scan over the initializer expression neatly. */
-#if GNU_EXTENSIONS_ALLOWED
-        if (gcc_mode && gnu_version < 30100 && !has_explicit_type_specifier &&
-            local_storage_class == (a_storage_class)sc_typedef) {
-          /* In early versions of GNU C (but not in GNU C++) a typedef can be
-             defined with
-                 typedef <type_name> = <expr> ;
-             where the type of the given expression becomes the type of
-             the given type name.  (GNU C 3.1 and GNU C 3.2 crash on such
-             constructs and later versions report a normal error: We therefore
-             only emulate this feature when gnu_version < 30100.) */
-          typedef_initializer(symbol_ptr);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-          decl_pos_block.var_init_range.end = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
-        {
-          initializer(symbol_ptr, &locator.source_position, linkage,
-                      has_parenthesized_initializer, is_old_style_param_decl,
-                      &incomplete_type_error_reported, &decl_pos_block);
-        }  /* if */
-        if (decl_invisible_to_initializer && !symbol_ptr->is_error) {
-          /* Mark the symbol as visible now that the initializer is
-             complete. */
-          symbol_ptr->is_invisible = FALSE;
-        }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-        if (gpp_mode && has_parenthesized_initializer &&
-            curr_token == tok_attribute) {
-          gnu_attributes_after_parenthesized_initializer(var_ptr);
-        }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-        if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
-            !is_old_style_param_decl) {
-          /* All initialized variables are considered defined.  This flag
-             may have already been set based on storage class and scope
-             level.  Be sure to check this after the initializer is scanned,
-             so that "int x = x;" can be caught. */
-          mark_variable_value_set(symbol_ptr);
-        }  /* if */
-        /* Fetch the type of the symbol again, since it might have been
-           changed if it was an incomplete array and was initialized. */
-        if (var_ptr != NULL) local_type_ptr = var_ptr->type;
-      } else if (is_old_style_param_decl) {
-        /* Don't worry about missing initializer. */
-      } else if (is_variable_def && !is_error_locator(locator) &&
-                 var_ptr->init_kind == (an_init_kind)initk_none) {
-        /* Uninitialized variable or static data member is being defined, but
-           no explicit initializer was provided.  Do default initialization
-           if appropriate (e.g., if a default constructor exists).  In
-           g++ mode, the variable being initialized should not be visible
-           during the generation of the default initializer.  In particular,
-           the variable should not be visible to any instantiations that
-           might result from the processing of the initializer. */
-        a_boolean	def_init_okay;
-        if (gpp_mode) symbol_ptr->is_invisible = TRUE;
-        def_init_okay = def_initializer(symbol_ptr, &locator.source_position);
-        if (gpp_mode) symbol_ptr->is_invisible = FALSE;
-        if (def_init_okay) {
-          /* Default initialization was successful. */
-          if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
-            /* Unless this variable has non-static storage duration and
-               is default-initialized by a trivial default constructor (which
-               is a no-op), mark it as having a value. */
-            if (has_static_storage_duration(var_ptr->storage_class)) {
-              /* Objects with static storage duration are zero-initialized,
-                 so they always have some value. */
-              mark_variable_value_set(symbol_ptr);
-            } else {
-              a_type_ptr  tp = skip_typerefs(var_ptr->type);
-              if (is_array_type(tp)) {
-                tp = underlying_array_element_type(tp);
-                tp = skip_typerefs(tp);
-              }  /* if */
-              if (is_immediate_class_type(tp) &&
-                  symbol_supplement_for_class(tp)->
-                                trivial_default_constructor != NULL) {
-                /* Must have been initialized by a trivial default constructor.
-                   Since such constructors would do nothing even if they were
-                   actually called, don't regard them as setting the value of
-                   the variable. */
-              } else {
-                mark_variable_value_set(symbol_ptr);
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable ||
-                   symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
-          /* No default initialization, so do some additional checking. */
-          check_for_missing_initializer(symbol_ptr, local_type_ptr);
-          if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
-              (!var_ptr->source_corresp.is_local_to_function ||
-               var_ptr->storage_class == (a_storage_class)sc_static)) {
-            mark_variable_value_set(symbol_ptr);
-          }  /* if */
-        }  /* if */
-      } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
-                 (local_storage_class == (a_storage_class)sc_extern ||
-                  is_tentative_definition)) {
-        /* Either:  This is not a definition of a variable but rather an extern
-           declaration.  Such a variable may be assumed to be initialized
-           at the point of definition, so flag it as "set" (even if it is not
-           actually set at the current declaration). */
-        /* Or else:  This is a tentative definition, which should be treated
-           as though it were a definition. */
-        mark_variable_value_set(symbol_ptr);
-      }  /* if */
-#if DECL_MODIFIERS_IN_USE
-      if (var_ptr != NULL) {
-        check_variable_decl_modifiers(var_ptr, &locator, &decl_modifiers);
-      }  /* if */
-#endif /* DECL_MODIFIERS_IN_USE */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-#if DEBUG
-      if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {
-        if (is_variable_def && is_static_data_member) {
-          fprintf(f_debug, "decl-pos info for static data member def\n");
-          db_decl_pos_info(symbol_ptr);
-        }  /* if */
-      }  /* if */
-#endif /* DEBUG */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      copy_source_position(locator.source_position, error_position);
-      if (var_ptr != NULL && !is_error_locator(locator) &&
-          is_incomplete_type(local_type_ptr)) {
-        /* Issue an error on a variable for which this is the defining
-           declaration but whose type is incomplete.  Also, in C mode, issue
-           an error on a static variable with incomplete type (6.7.2 para 3)
-           or an externally linked variable with a tentative definition but an
-           uncompletable type (a case like "void i;" at file scope).  And in
-           C++ mode, since no object may be of void type, issue the error for
-           cases like "extern void i;" even though it is not a defining
-           declaration. */
-        if (is_variable_def ||
-            (!C_mode() && is_void_type(local_type_ptr)) ||
-            (is_tentative_definition && is_void_type(local_type_ptr))) {
-          if (!incomplete_type_error_reported) {
-            pos_error(ec_incomplete_type_not_allowed,
-                      &locator.source_position);
-          }  /* if */
-          var_ptr->type = error_type();
-        } else if (strict_ansi_mode && is_tentative_definition && 
-                   local_storage_class == (a_storage_class)sc_static) {
-          /* The C standard prohibits tentative declarations with incomplete
-             type and internal linkage in 6.7.2 para 3, but a reading of
-             6.1.2.5 may lead to the conclusion that the prohibition does not
-             exist: issue a discretionary error instead of a "hard" error. */
-          if (!incomplete_type_error_reported) {
-            pos_diagnostic(strict_ansi_discretionary_severity,
-                           ec_incomplete_type_not_allowed,
-                           &locator.source_position);
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      done_with_func_info(func_info);
-      remove_stop_token(tok_comma);
-      need_comma_remove_stop_token = FALSE;
-      first_declarator = FALSE;
-#if GNU_EXTENSIONS_ALLOWED
-      /* We are done with the declarator attributes. */
-      *last_specifier_attribute = NULL;
-      free_attribute_list(declarator_attributes);
+    /* We are done with the declarator attributes. */
+    *last_specifier_attribute = NULL;
+    free_attribute_list(declarator_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (ms_attributes != NULL) {
-        /* Microsoft attributes were specified, but they were not applicable
-           to this declaration.  Issue an error and clean up as needed. */
-        dispose_of_unapplied_attributes(&ms_attributes,
-                                        ec_ms_attr_not_allowed);
-      }  /* if */
+    if (state.ms_attributes != NULL) {
+      /* Microsoft attributes were specified, but they were not applicable
+         to this declaration.  Issue an error and clean up as needed. */
+      dispose_of_unapplied_attributes(&state.ms_attributes,
+                                      ec_ms_attr_not_allowed);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Keep scanning the list of declarators. */
-    } while (loop_token(tok_comma));
-  }  /* if */
+    /* Keep scanning the list of declarators. */
+  } while (loop_token(tok_comma));
+deferred_fixups:
   if (microsoft_bugs) {
     /* In Microsoft bugs mode, the typedef is processed before member function
        bodies etc. are rescanned.  This makes e.g. the following legal:
@@ -13863,9 +14027,9 @@ advance_past_final_token:
       end_deferral_of_access_checks();
       access_checks_deferred = FALSE;
     }  /* if */
-    if (is_linkage_spec_decl) {
+    if (state.is_linkage_spec_decl) {
       pop_name_linkage();
-      restore_name_linkage = FALSE;
+      state.restore_name_linkage = FALSE;
     }  /* if */
     if (curr_token == final_token) {
       /* Advance past the final token of the declaration (which should be a
@@ -13886,16 +14050,17 @@ return_point:
        remain, do them now. */
     end_deferral_of_access_checks();
   }  /* if */
-  if (is_linkage_spec_decl) {
+  if (state.is_linkage_spec_decl) {
     /* Unless restore_name_linkage is TRUE, pop_name_linkage will already
        have been called. */
-    if (restore_name_linkage) pop_name_linkage();
+    if (state.restore_name_linkage) pop_name_linkage();
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ms_attributes != NULL) {
+  if (state.ms_attributes != NULL) {
     /* Microsoft attributes were specified, but they were not applicable
        to this declaration.  Issue an error and clean up as needed. */
-    dispose_of_unapplied_attributes(&ms_attributes, ec_ms_attr_not_allowed);
+    dispose_of_unapplied_attributes(&state.ms_attributes,
+                                    ec_ms_attr_not_allowed);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -13903,7 +14068,7 @@ return_point:
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Do necessary remove_stop_tokens.  Even when there is no error, this
      does the remove_stop_token for tok_semicolon. */
-  remove_all_local_stop_tokens();
+  remove_all_local_stop_tokens(&state);
   db_exit();
   return;
 }  /* declaration */
@@ -14014,6 +14179,15 @@ scanning a translation-unit, except there's no diagnostic on the empty file.
   process_pragmas_at_end_of_source();
 }  /* scan_implicitly_included_template_definition_file */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+
+
+void decls_one_time_init(void)
+/*
+*/
+{
+  init_null_decl_parse_state();
+}  /* decls_one_time_init */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *
