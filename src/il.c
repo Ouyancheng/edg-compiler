@@ -11186,6 +11186,10 @@ a template argument, i.e., it is not integral or enum.
 
   if (is_integral_or_enum_type(type)) {
     is_bad_type = FALSE;
+  } else if (is_template_param_type(type)) {
+    /* This comes up in the deduction done to determine if one function
+       is more specialized than another. */
+    is_bad_type = FALSE;
   } else if (is_error_type(type)) {
     is_bad_type = FALSE;
   } else {
