@@ -11975,7 +11975,8 @@ state describes the declaration parsed so far.
       }  /* if */
       check_assertion(is_unnamed_tag_symbol(
                               (a_symbol_ptr)(tp->source_corresp.assoc_info)));
-      make_anonymous_union_variable(anon_var_type, state->declared_storage_class);
+      make_anonymous_union_variable(anon_var_type,
+                                    state->declared_storage_class);
       /* The anonymous union variable is marked as referenced, as are all
          unnamed entities.  So its type is also marked referenced. */
       tp->source_corresp.referenced = TRUE;
