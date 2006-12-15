@@ -12360,11 +12360,11 @@ variable was declared with these modifiers.
 
 /* If the given declaration state includes a record of __declspec(dllimport),
    make the associated storage class sc_extern (if no storage class was
-   explicitly specified). */ \
-#define update_dll_import_storage_class(state) \
-  if ((state->decl_modifiers.flags & DM_DLLIMPORT) && \
-      state->storage_class == (a_storage_class)sc_unspecified) { \
-    state->storage_class = (a_storage_class)sc_extern; \
+   explicitly specified). */
+#define update_dll_import_storage_class(state)                               \
+  if ((state->decl_modifiers.flags & DM_DLLIMPORT) &&                        \
+      state->storage_class == (a_storage_class)sc_unspecified) {             \
+    state->storage_class = (a_storage_class)sc_extern;                       \
   }  /* if */
 
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
