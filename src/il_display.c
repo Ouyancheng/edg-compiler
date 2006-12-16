@@ -5412,6 +5412,9 @@ Display the indicated base class entry.
            iek_base_class);
 #endif /* IA64_ABI */
   disp_ptr("type", (char *)ptr->type, iek_type);
+  if (ptr->orig_type != ptr->type) {
+    disp_ptr("orig_type", (char *)ptr->orig_type, iek_type);
+  }  /* if */
   disp_ptr("derived_class", (char *)ptr->derived_class, iek_type);
   disp_source_position("decl_position", &ptr->decl_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL

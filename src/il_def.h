@@ -4612,6 +4612,10 @@ typedef struct a_base_class {
 			/* Pointer to the tk_class or tk_struct type entry
 			   representing a base class of the current derived
 			   class.  (Unions may not be used as base classes.) */
+  a_type_ptr	orig_type;
+			/* Pointer to the type specified in the base specifier
+			   list, which might be the same as type or might be
+			   a typedef. */
   a_type_ptr	derived_class;
 			/* The class derived (directly or indirectly) from
 			   this base class on whose base_classes list it

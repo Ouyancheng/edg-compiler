@@ -1108,6 +1108,7 @@ to it.
   bcp->primary_base_class              = NULL;
 #endif /* IA64_ABI */
   bcp->type                            = NULL;
+  bcp->orig_type                       = NULL;
   bcp->derived_class                   = NULL;
   bcp->trans_unit_corresp              = NULL;
   bcp->decl_position                   = null_source_position;

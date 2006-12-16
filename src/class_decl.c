@@ -5089,6 +5089,7 @@ or struct definition.  The syntax is
   char                          *default_access_str;
   a_symbol_ptr                  sym;
   a_type_ptr                    base_class_type;
+  a_type_ptr                    orig_base_class_type;
   a_boolean                     ambiguous;
   a_class_symbol_supplement_ptr cssp, bcp_cssp;
   a_boolean                     any_base_class_fixup_required;
@@ -5197,6 +5198,7 @@ or struct definition.  The syntax is
                  base class. */
               cssp->any_nonreal_base_classes = TRUE;
               base_class_type = proxy_class_for_template_param(tp);
+              orig_base_class_type = base_class_type;
               bcp_cssp = symbol_supplement_for_class(base_class_type);
             } else {
               /* Error case.  Ignore the specifier. */
@@ -5236,6 +5238,7 @@ or struct definition.  The syntax is
           /* The type of the base class is invalid (e.g., incomplete). */
           goto skip_base_class;
         }  /* if */
+        orig_base_class_type = base_class_type;
         base_class_type = skip_typerefs(base_class_type);
         if (base_class_type
                        ->variant.class_struct_union.has_zero_init_component) {
@@ -5276,6 +5279,7 @@ or struct definition.  The syntax is
             (void)update_base_class_derivation(bcp,
                                                (a_derivation_step_ptr)NULL,
                                                access);
+            bcp->orig_type = orig_base_class_type;
             bcp->direct = TRUE;
             bcp->direct_base_number = direct_base_number;
             bcp->decl_position = base_class_decl_pos;
@@ -5356,6 +5360,7 @@ or struct definition.  The syntax is
          base classes list. */
       new_direct_bcp = alloc_base_class();
       new_direct_bcp->type = base_class_type;
+      new_direct_bcp->orig_type = orig_base_class_type;
       new_direct_bcp->derived_class = type_ptr;
       new_direct_bcp->decl_position = base_class_decl_pos;
       new_direct_bcp->direct = TRUE;

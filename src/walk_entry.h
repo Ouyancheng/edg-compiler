@@ -2650,6 +2650,7 @@ end_sizeof:;
                              iek_base_class);
 #endif /* IA64_ABI */
         remap_ptr(ptr->type, a_type_ptr, iek_type);
+        remap_ptr(ptr->orig_type, a_type_ptr, iek_type);
         set_proper_definition_needed_flag(ptr->type);
         remap_ptr(ptr->derived_class, a_type_ptr, iek_type);
         set_proper_definition_needed_flag(ptr->derived_class);

@@ -4883,7 +4883,7 @@ Put out the list of direct base classes of the class associated with ctsp
       /* Display the derivation access. */
       gen_access_specifier(bcdp->access);
       write_space();
-      gen_name(&bcp->type->source_corresp, iek_type, GN_BASE_SPECIFIER,
+      gen_name(&bcp->orig_type->source_corresp, iek_type, GN_BASE_SPECIFIER,
                (a_boolean *)NULL);
     }  /* if */
   }  /* for */

@@ -1,5 +1,21 @@
 Version 3.9
 
+12/15/06 C++-generating back end: typedefs used as base specifiers
+
+When a typedef appeared in the source as a base specifier in a class
+definition, the output of the C++-generating back end used the underlying
+type of the typedef in its place.  This substitution resulted in errors
+when the underlying type was an inaccessible class.  The C++-generating back
+end now preserves typedefs used as base specifiers.  For example:
+
+  class O {
+    struct S { };        // private
+  public:
+    typedef S T;
+  };
+
+  struct D: O::T { };    // Previously generated as O::S
+
 12/15/06  Failure of "more specialized" test on template functions
 
 The test done after overload resolution to determine whether one
