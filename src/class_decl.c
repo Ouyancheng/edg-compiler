@@ -5240,6 +5240,45 @@ or struct definition.  The syntax is
         }  /* if */
         orig_base_class_type = base_class_type;
         base_class_type = skip_typerefs(base_class_type);
+#if BACK_END_IS_CP_GEN_BE && \
+    CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+        if (scope_stack[depth_scope_stack].kind ==
+                                   (a_scope_kind)sck_template_instantiation &&
+            orig_base_class_type->source_corresp.is_class_member &&
+            type_is_typedef(orig_base_class_type)) {
+          /* The C++-generating back end will generate an explicit
+             specialization for this class definition.  This can cause
+             problems for examples like the following:
+
+               template <typename T> struct X: T { };
+               struct A { };
+               struct Y {
+                 typedef A x;
+                 X<x> xx;
+               };
+
+             The explicit specialization of X<A> will appear before the
+             definition of Y, so we must take care not to use the typedef
+             Y::x as the base specifier for X<A>.  We do that by scanning
+             the scope stack to see if the parent class of the typedef is
+             on the stack; if it is, we use the underlying type instead of
+             the typedef as the "original" type. */
+          a_scope_depth depth;
+
+          for (depth = depth_scope_stack - 1; depth != DEPTH_OF_FILE_SCOPE;
+               --depth) {
+            a_scope_stack_entry_ptr ssep = scope_stack_entry_for(depth);
+            if ((ssep->kind == (a_scope_kind)sck_class_struct_union ||
+                 ssep->kind == (a_scope_kind)sck_class_reactivation) &&
+                same_entities(ssep->assoc_type, orig_base_class_type->
+                                           source_corresp.parent.class_type)) {
+              /* Use the underlying type. */
+              orig_base_class_type = base_class_type;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE && ... */
         if (base_class_type
                        ->variant.class_struct_union.has_zero_init_component) {
           /* At least a part of this base class must be zero initialized when
