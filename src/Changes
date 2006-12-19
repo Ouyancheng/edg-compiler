@@ -1,5 +1,27 @@
 Version 3.9
 
+12/19/06 IA-64 ABI name mangling for nested local class names
+
+The IA-64 ABI name mangling for classes that are nested inside
+of classes declared local to a function sometimes produced mangled
+names that began with "__" and therefore could not be demangled.  Now
+fixed (those names now begin with "_Z").
+
+  int main(){
+    struct AA {
+      void f() {}
+      struct BB { int i; };  // Name of BB was mangled wrong
+    } x;
+    AA::BB y = { 1000 };
+  }
+
+The C-generating back end has also been updated because it
+mangles some local class names in cases where IL lowering does
+not promote such classes out of the surrounding function.
+The code there now works the same as the similar code in
+IL lowering.  (The test case for that issue is the test case
+above with the line for function "f" removed.)
+
 12/15/06 C++-generating back end: typedefs used as base specifiers
 
 When a typedef appeared in the source as a base specifier in a class

@@ -3608,7 +3608,6 @@ with partial specialization arguments.
   return has_partial_spec_args;
 } /* parents_have_partial_spec_args */
   
-#endif /* !IA64_ABI */
 
 /*
 The prefix put on the front of the type encoding for a nested type to get
@@ -3617,6 +3616,7 @@ template argument lists, and types promoted out of functions.
 */
 #define PREFIX_ON_NESTED_TYPE_NAME "__"
 
+#endif /* !IA64_ABI */
 
 /* Return TRUE if the indicated type needs a parent (class or namespace)
    qualifier. */
@@ -5771,7 +5771,11 @@ is what mangled_type_name generates, plus a prefix.
         type->variant.class_struct_union.extra_info->
                                                 template_arg_list != NULL))) {
     start_mangling(&mctl);
+#if IA64_ABI
+    add_str_to_mangled_name("_Z", &mctl);
+#else /*!IA64_ABI */
     add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
+#endif /* IA64_ABI */
     mangled_type_name(type, &mctl);
     /* Note final=FALSE to prevent compression and truncation at this
        time, so that the name can be reused.  final_entity_name_mangling

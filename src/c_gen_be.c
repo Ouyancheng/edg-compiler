@@ -3043,20 +3043,15 @@ with a routine.
                           strlen(buffer);
 #else /* IA64_ABI */
     /* IA-64 ABI encoding:
-         __ Z function-mangled-name E name-with-length _ discriminator
+         _Z Z function-mangled-name E name-with-length _ discriminator
        We don't have an accurate discriminator value, so we use the
        scope number for that.  The routine name already has the "_Z"
        at the front, unless the routine is extern "C". */
-    /* Starting with "__" instead of "_Z" matches PREFIX_ON_NESTED_TYPE_NAME
-       in lower_name.c.  The name here is not an external name, so it's not
-       dictated by the IA-64 ABI, so we generate a name in the style
-       of the IA-64 ABI but without the prefix that might make it
-       appear to be a mandated name. */
-    /* buffer0 will contain the __Z and anything else that needs to be
+    /* buffer0 will contain the _ZZ and anything else that needs to be
        added at the front of the routine name.  buffer will contain the
        "E" and the length for the entity name.  buffer2 will contain the
        "_" and the discriminator number. */
-    (void)strcpy(buffer0, "__Z");
+    (void)strcpy(buffer0, "_ZZ");
     if (routine_name == NULL) {
       /* For an unnamed routine, we put out no name.  That doesn't produce
          a valid mangled name but it may be the best we can do. */
