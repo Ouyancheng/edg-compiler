@@ -12562,6 +12562,43 @@ is non-NULL only if this is called for a function declaration.
 }  /* check_missing_type_specifiers_in_decl */
 
 
+static void diagnose_initializer_on_function(a_boolean          paren_form,
+                                             a_symbol_ptr       sym,
+                                             a_source_position  *init_pos)
+/*
+Report what seems to be an attempt to specify an initializer (at the given
+position) on the declaration of a function described by sym.  If the
+initializer started with an assignment token ("="), it is natural to issue
+the diagnostic in terms of an invalid initialization.  If a parenthesized
+initializer was found paren_form will be TRUE: That is more likely a
+consequence of an error in declarator syntax than an actual attempt to
+initialize a function.  In such cases, we issue the diagnostic in terms of
+the encountered token and do not attempt to fully parse an initializer.
+*/
+{
+  if (paren_form) {
+    /* The parenthesis was already consumed during parsing of the declarator,
+       but init_pos points to its position. */
+    pos_sy_error(ec_lparen_after_function, init_pos, sym);
+    flush_to_closing_paren();
+    (void)get_token();
+  } else {
+    a_boolean         is_constant;
+    an_expr_node_ptr  expression;
+    a_constant        constant;
+    pos_sy_error(ec_cannot_initialize, init_pos, sym);
+    /* Skip the assignment operator. */
+    required_token(tok_assign, ec_exp_assign);
+    /* Scan (and discard) the expression that follows. */
+    scan_initializer_expression(error_type(), innermost_function_scope != NULL,
+                                /*force_object_lifetime=*/FALSE,
+                                /*suppress_object_lifetime=*/TRUE,
+                                /*is_copy_initialization=*/TRUE,
+                                &is_constant, &expression, &constant);
+  }  /* if */
+}  /* diagnose_initializer_on_function */
+
+
 static an_end_of_decl_action function_declaration(
                                           a_decl_parse_state  *state,
                                           a_func_info_block   *func_info,
@@ -12585,7 +12622,11 @@ proceed after the call.
   a_type_ptr    type = state->type, prev_type = NULL;
   a_boolean     inline_specified = ((state->dso_flags & DSO_INLINE) != 0);
   a_boolean     out_of_class_redecl = FALSE;
-  an_id_linkage_kind  linkage = idl_none;
+  an_id_linkage_kind
+                linkage = idl_none;
+  a_boolean     has_initializer =
+                      (curr_token == tok_assign ||
+                       (state->do_flags & DO_PARENTHESIZED_INITIALIZER) != 0);
 
   if (C_mode() && is_function_type(type)) {
     /* Issue a warning on something like "typedef int F(); F const g;" in C
@@ -12696,15 +12737,14 @@ proceed after the call.
   }  /* if */
   if (state->function_definition_allowed || out_of_class_redecl) {
     if ((curr_token != tok_semicolon || out_of_class_redecl) &&
-        curr_token != tok_comma &&
-        curr_token != tok_assign &&
+        curr_token != tok_comma && curr_token != tok_assign &&
 #if GNU_EXTENSIONS_ALLOWED
         /* Attributes and asm names are only allowed on function
            declarations, not on function definitions. */
-        curr_token != tok_attribute &&
-        curr_token != tok_asm &&
+        curr_token != tok_attribute && curr_token != tok_asm &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
-        curr_token != tok_end_of_source) {
+        curr_token != tok_end_of_source &&
+        !has_initializer) {
       a_boolean  is_function_try_block = curr_token == tok_try;
       if (!state->has_explicit_type_specifier) {
         /* Function with no explicitly specified return type.  Issue a
@@ -12877,9 +12917,14 @@ proceed after the call.
                &state->decl_modifiers, &state->ms_attributes,
                state->attributes, state->asm_name, &state->asm_name_pos, &sym,
                &linkage, &prev_type, &ext_sym, decl_pos_block);
-  if (curr_token == tok_assign && !is_error_locator(*locator)) {
-    pos_sy_error(ec_cannot_initialize, &pos_curr_token, sym);
-    flush_tokens();
+  /* Diagnose attempts to initialize a function entity. */
+  if (has_initializer) {
+    a_boolean  paren_form =
+                        (state->do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
+    a_source_position
+               *init_pos = paren_form ? &decl_pos_block->var_init_range.start
+                                      : &pos_curr_token;
+    diagnose_initializer_on_function(paren_form, sym, init_pos);
   }  /* if */
 done:
   return end_of_decl_action;
@@ -13659,13 +13704,14 @@ after the call.
     /* Set the various flags for declarator processing. */
     di_flags = DI_REAL_DECLARATOR_ALLOWED;
     if (C_dialect == C_dialect_cplusplus) {
-      di_flags |= DI_PARENTHESIZED_INITIALIZER_ALLOWED;
       di_flags |= DI_OPERATOR_NAME_ALLOWED;
-      if (state->declared_storage_class != (a_storage_class)sc_typedef &&
-          (decl_scope_level == depth_innermost_namespace_scope ||
-           (microsoft_mode &&
-            depth_innermost_namespace_scope != NO_SCOPE_DEPTH))) {
-        di_flags |= DI_QUALIFIED_NAME_ALLOWED;
+      if (state->declared_storage_class != (a_storage_class)sc_typedef) {
+        di_flags |= DI_PARENTHESIZED_INITIALIZER_ALLOWED;
+        if (decl_scope_level == depth_innermost_namespace_scope ||
+            (microsoft_mode &&
+             depth_innermost_namespace_scope != NO_SCOPE_DEPTH)) {
+          di_flags |= DI_QUALIFIED_NAME_ALLOWED;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (state->declared_storage_class == (a_storage_class)sc_typedef) {
