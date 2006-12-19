@@ -12588,7 +12588,7 @@ the encountered token and do not attempt to fully parse an initializer.
     a_constant        constant;
     pos_sy_error(ec_cannot_initialize, init_pos, sym);
     /* Skip the assignment operator. */
-    required_token(tok_assign, ec_exp_assign);
+    (void)required_token(tok_assign, ec_exp_assign);
     /* Scan (and discard) the expression that follows. */
     scan_initializer_expression(error_type(), innermost_function_scope != NULL,
                                 /*force_object_lifetime=*/FALSE,
