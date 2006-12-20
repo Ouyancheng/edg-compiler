@@ -10426,7 +10426,7 @@ case a generic cast using the operator cast_op is generated.
   } else if (is_a_function_designator(operand)) {
     conv_function_designator_to_ptr_to_function(operand,
                                                 /*allow_ctor=*/FALSE);
-  } else if ((allow_rvalue || any_cfront_mode() || sun_mode ||
+  } else if ((allow_rvalue || any_cfront_mode() || 
               allow_nonconst_ref_anachronism) &&
              is_class_struct_union_type(operand->type)) {
     /* Allow a cast of a class rvalue to a reference type, when appropriate
