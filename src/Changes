@@ -69,14 +69,13 @@ some calls were mistakenly diagnosed as ambiguous.  Now fixed.
 
 In Sun compatibility mode, initializing a reference to a nonconst is now
 allowed by default.  The Sun compiler (through version 5.8) continues to
-allow this anachronism.  Use the --no_nonconst_ref_anachronism command line
-argument to override this default behavior. For example:
+allow this anachronism.  For example:
 
   struct A {
     A(int);
     A operator=(A&);
   };
-  main () {
+  int main () {
     A b(1);
     b = A(1);     // Allowed with a warning in Sun compatibility mode.
   }
