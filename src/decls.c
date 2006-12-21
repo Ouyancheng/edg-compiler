@@ -12663,7 +12663,7 @@ proceed after the call.
       }  /* if */
     }  /* if */
     if (is_main_function) {
-      check_main_function(func_info, type, &state->declared_storage_class,
+      check_main_function(func_info, type, &state->storage_class,
                           &inline_specified, &locator->source_position);
     }  /* if */
   }  /* if */
