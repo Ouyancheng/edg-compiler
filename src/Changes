@@ -1,5 +1,18 @@
 Version 3.9
 
+12/22/06 C++-generating back end: references to tagged types
+
+The C++-generating back end failed to use an elaborated-type-specifier to
+refer to a type in some cases where that was necessary.  This situation
+arose when an inline member function definition contained the first
+reference to a type that was also used later in the class definition.  This
+is now fixed.  For example:
+
+  struct S {
+    unsigned f() { return sizeof(struct Bar *); }
+    struct Bar *p;    // Previously omitted "struct"
+  };
+
 12/19/06 IA-64 ABI name mangling for nested local class names
 
 The IA-64 ABI name mangling for classes that are nested inside

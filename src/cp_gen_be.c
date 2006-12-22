@@ -3527,7 +3527,30 @@ declaration ("struct S;") or GN_NO_OPTIONS for other kinds of reference.
       {
         gen_unqualified_name(&type->source_corresp, iek_type);
       }  /* if */
-      type->has_been_declared = TRUE;
+      if (curr_name_context != NULL &&
+          (curr_name_context->assoc_scope->kind == (a_scope_kind)sck_block ||
+           curr_name_context->assoc_scope->kind ==
+                                                 (a_scope_kind)sck_function) &&
+          !type->source_corresp.is_local_to_function) {
+        /* The first reference to the type is inside a function, but the
+           type does not belong to the function's scope.  This can occur
+           because of the deferred processing of class member functions
+           that are defined inside the class definition, for example:
+
+             struct S {
+               unsigned f() { return sizeof(struct X *); }
+               struct X *p;
+             };
+
+           Even though the reference inside S::f() appears first in the
+           source, it is the use as the type of S::p that is processed
+           first, causing X to belong to the global scope.  In such cases,
+           we must not set has_been_declared to TRUE when generating the
+           body of S::f so that the elaborated-type-specifier will not be
+           suppressed when generating the declaration of S::p. */
+      } else {
+        type->has_been_declared = TRUE;
+      }  /* if */
     } else {
       /* References after the initial declaration can use a qualified name. */
       if (type_is_prototype_instantiation(type)) {
