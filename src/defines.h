@@ -20,6 +20,53 @@ the release should contain no defines.
 */
 
 /*
+High level EDG macros used solely in this file for easy configuration:
+
+  DEMO_VERSION          Used to compile a demo version.
+                        Sets SUN_TEST_VERSION, LINUX_TEST_VERSION,
+                        MACOSX_TEST_VERSION (as appropriate for the host) to 0.
+
+  OPTIMIZED_VERSION     Create an optimized version (smaller, faster, fewer
+                        features).
+
+  SUN_TEST_VERSION      Define a set of 'standard' language features for
+                        a Sun hosted compiler.  Defined to 1 by default when
+                        'sun' is defined.  Most run_tests were recorded
+                        with this set of language features defined.
+
+  LINUX_TEST_VERSION    Define a set of 'standard' language features for
+                        a Linux hosted compiler.  Defined to 1 by default when
+                        '__linux__' is defined.
+
+  MACOSX_TEST_VERSION   Define a set of 'standard' language features for
+                        a Mac OS X hosted compiler.  Defined to 1 by default
+                        when '__APPLE__' and '__MACH__' are defined.
+
+  EDG_TEST_VERSION      Define a set of 'standard' language features that
+                        can be used on a variety of hosts.  This set is
+                        meant to include many of the major language features.
+                        Originally based on the set of SUN_TEST_VERSION
+                        features so that many of the run_tests will continue to 
+                        work properly.
+
+  CP_GEN_BE_VERSION     Flags to be set for any version that uses the 
+                        C++ generating back end.
+
+  SSI_VERSION           Generating instantiations in source sequence lists.
+                        Only valid when CP_GEN_BE_VERSION is defined.
+
+  SELFCOMP_VERSION      Self-compiled version.  Currently used only on
+                        Sun and HP-UX platforms.
+
+The macros SUN_TEST_VERSION, LINUX_TEST_VERSION, MACOSX_TEST_VERSION are
+defined and used only within this file.  EDG_TEST_VERSION is defined
+when SUN_TEST_VERSION is defined and may also be defined externally to this
+file to cause inclusion of a standard set of language features, regardless
+of the host system.
+
+*/
+
+/*
 Set the test version flags to FALSE for demo versions.
 */
 #ifdef DEMO_VERSION
@@ -77,16 +124,6 @@ Flags to be set for any version that uses the C++ generating back end.
 #define AUTOMATIC_TEMPLATE_INSTANTIATION 0
 #endif /* ifdef SSI_VERSION */
 #endif /* ifdef CP_GEN_BE_VERSION */
-
-/*
-Flags to be set when using the KAI inliner.
-*/
-#ifdef INLINER_VERSION
-#define USING_KAI_INLINER 1
-#define ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C 1
-#define IL_SHOULD_BE_WRITTEN_TO_FILE 0
-#define SVR4_TRAP_NULL_POINTER_REFERENCES 0
-#endif /* ifdef INLINER_VERSION */
 
 #ifdef sun
 
@@ -150,19 +187,20 @@ Flags to be set when using the KAI inliner.
 
 #if SUN_TEST_VERSION
 
+/* Specify a language feature set by defining EDG_TEST_VERSION.  Add or
+   override any additional settings here, as well as any host specific 
+   options. */
+#define EDG_TEST_VERSION 1
+
 /* Options common to Sun-hosted versions. */
 
-#ifndef COMPILE_MULTIPLE_TRANSLATION_UNITS
-#define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
-#endif /* ifndef COMPILE_MULTIPLE_TRANSLATION_UNITS */
-#define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED 1
-#define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 1
-#define C99_IL_EXTENSIONS_SUPPORTED 1
-#ifndef SUNOS
 #ifndef INSTANTIATE_EXTERN_INLINE
+#ifdef SUNOS
+#define INSTANTIATE_EXTERN_INLINE 0
+#else /* !defined(SUNOS) */
 #define INSTANTIATE_EXTERN_INLINE 1
+#endif /* ifdef SUNOS */
 #endif /* INSTANTIATE_EXTERN_INLINE */
-#endif /* ifndef SUNOS */
 #ifdef SELFCOMP_VERSION
 /* Self-compiled version. */
 #define ALTERNATE_IL_FILE_FORMAT 0
@@ -181,21 +219,8 @@ Flags to be set when using the KAI inliner.
 #endif /* SOLARIS */
 #define GCC_IS_GENERATED_CODE_TARGET 1
 #endif /* SELFCOMP_VERSION */
-#ifndef MAINTAIN_NEEDED_FLAGS
-#define MAINTAIN_NEEDED_FLAGS 1
-#endif /* ifndef MAINTAIN_NEEDED_FLAGS */
-#ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES
-#if MAINTAIN_NEEDED_FLAGS
-#define DEFAULT_REMOVE_UNNEEDED_ENTITIES 1
-#endif /* MAINTAIN_NEEDED_FLAGS */
-#endif /* ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES */
 #define DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS TRUE
 #define DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS TRUE
-#define EMBEDDED_C_ALLOWED 1
-#define DEFAULT_EMBEDDED_C_ENABLED 0
-#define INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES 1
-#define INCLUDE_EDG_TEST_NAMED_REGISTERS 1
-#define THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED 1
 
 #ifdef SOLARIS
 #ifdef __SUNPRO_C
@@ -215,43 +240,19 @@ Flags to be set when using the KAI inliner.
 #endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
 #endif /* ifdef SOLARIS */
 
-#ifdef OPTIMIZED_VERSION
-
-/* Options for Sun optimized version. */
-#ifndef CHECKING
-#define CHECKING 1
-#endif /* ifndef CHECKING */
-#ifndef DEBUG
-#define DEBUG 0
-#endif /* ifndef DEBUG */
-
-#else /* !defined(OPTIMIZED_VERSION) */
-
+#ifndef OPTIMIZED_VERSION
 /* Options for Sun test version. */
-#ifndef IL_SHOULD_BE_WRITTEN_TO_FILE
-#define IL_SHOULD_BE_WRITTEN_TO_FILE 1
-#endif /* ifndef IL_SHOULD_BE_WRITTEN_TO_FILE */
 #define GENERATE_SOURCE_SEQUENCE_LISTS 1
 #define ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING 1
-#define INCLUDE_EDG_TEST_PRAGMAS 1
-#define INCLUDE_EDG_TEST_ATTRIBUTES 1
 #define RECORD_HIDDEN_NAMES_IN_IL 1
 #define ALLOW_HIDDEN_NAMES_IN_IL_WITH_IL_LOWERING 1
 #define RECORD_TEMPLATE_STRINGS 1
 #define RECORD_MACROS_IN_IL 1
-#define RECORD_NAME_IN_PARAM_TYPE_ENTRY 1
 #define KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED 1
 #define DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE 1
-#define MICROSOFT_EXTENSIONS_ALLOWED 1
-#define TARG_MICROSOFT_BIT_FIELD_ALLOCATION 0
-#define USER_CONTROL_OF_STRUCT_PACKING 1
-#define DEFAULT_MICROSOFT_MODE 0
-#define UPC_EXTENSIONS_ALLOWED 1
 #ifdef SOLARIS
 #define ASM_FUNCTION_ALLOWED 1
 #endif /* ifdef SOLARIS */
-#define REPRESENT_EMPTY_STATEMENTS_IN_IL 1
-#define EXTRA_SOURCE_POSITIONS_IN_IL 1
 /* Use 1 for mmap PCH, 0 for non-mmap PCH. */
 #if 1
 #define USE_FIXED_ADDRESS_FOR_MMAP 1
@@ -260,12 +261,8 @@ Flags to be set when using the KAI inliner.
 #else /* !1 */
 #define USE_MMAP_FOR_MEMORY_REGIONS 0
 #endif /* 1 */
-#define DEFAULT_SVR4_C_MODE 0
-#define PRAGMA_WEAK_ALLOWED 1
-#define VLA_ALLOWED 1
-#define DEFAULT_VLA_ENABLED 0
 
-#endif /* !defined(OPTIMIZED_VERSION) */
+#endif /* ifndef OPTIMIZED_VERSION */
 
 #endif /* SUN_TEST_VERSION */
 #define SUN_EXTENSIONS_ALLOWED 1
@@ -400,7 +397,7 @@ Flags to be set when using the KAI inliner.
 #ifndef _lint
 /* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
-#endif
+#endif /* ifndef _lint */
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
 #define HOST_ALIGNMENT_REQUIRED 4
@@ -635,7 +632,7 @@ Flags to be set when using the KAI inliner.
 #ifndef _lint
 /* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_SHORT
-#endif
+#endif /* ifndef _lint */
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
 #define HOST_ALIGNMENT_REQUIRED 8
@@ -671,7 +668,7 @@ Flags to be set when using the KAI inliner.
 #ifndef _lint
 /* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
-#endif
+#endif /* ifndef _lint */
 #define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED 1
 #define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 0
 #define PRAGMA_WEAK_ALLOWED 1
@@ -709,6 +706,131 @@ Flags to be set when using the KAI inliner.
 #endif /* ifdef __linux__ */
 #endif /* defined(_WIN32) */
 #endif /* defined(sun) */
+
+#if EDG_TEST_VERSION
+
+/* Define a full-featured set of language features. */
+
+#ifndef COMPILE_MULTIPLE_TRANSLATION_UNITS
+#define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
+#endif /* ifndef COMPILE_MULTIPLE_TRANSLATION_UNITS */
+#ifndef MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED 1
+#endif /* ifndef MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+#ifndef USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
+#define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 1
+#endif /* ifndef USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+#ifndef C99_IL_EXTENSIONS_SUPPORTED
+#define C99_IL_EXTENSIONS_SUPPORTED 1
+#endif /* ifndef C99_IL_EXTENSIONS_SUPPORTED */
+#ifndef INSTANTIATE_EXTERN_INLINE
+#define INSTANTIATE_EXTERN_INLINE 1
+#endif /* ifndef INSTANTIATE_EXTERN_INLINE */
+#ifndef MAINTAIN_NEEDED_FLAGS
+#define MAINTAIN_NEEDED_FLAGS 1
+#endif /* ifndef MAINTAIN_NEEDED_FLAGS */
+#ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES
+#if MAINTAIN_NEEDED_FLAGS
+#define DEFAULT_REMOVE_UNNEEDED_ENTITIES 1
+#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES */
+#ifndef EMBEDDED_C_ALLOWED
+#define EMBEDDED_C_ALLOWED 1
+#endif /* ifndef EMBEDDED_C_ALLOWED */
+#ifndef DEFAULT_EMBEDDED_C_ENABLED
+#define DEFAULT_EMBEDDED_C_ENABLED 0
+#endif /* ifndef DEFAULT_EMBEDDED_C_ENABLED */
+#ifndef INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES
+#define INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES 1
+#endif /* ifndef INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES */
+#ifndef INCLUDE_EDG_TEST_NAMED_REGISTERS
+#define INCLUDE_EDG_TEST_NAMED_REGISTERS 1
+#endif /* ifndef INCLUDE_EDG_TEST_NAMED_REGISTERS */
+#ifndef THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+#define THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED 1
+#endif /* ifndef THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+
+#ifndef REDEFINE_EXTNAME_PRAGMA_ENABLED
+#define REDEFINE_EXTNAME_PRAGMA_ENABLED 1
+#endif /* ifndef REDEFINE_EXTNAME_PRAGMA_ENABLED */
+
+#ifdef OPTIMIZED_VERSION
+
+/* Options for optimized version. */
+#ifndef CHECKING
+#define CHECKING 1
+#endif /* ifndef CHECKING */
+#ifndef DEBUG
+#define DEBUG 0
+#endif /* ifndef DEBUG */
+
+#else /* !defined(OPTIMIZED_VERSION) */
+
+/* Options for full featured test version. */
+#ifndef IL_SHOULD_BE_WRITTEN_TO_FILE
+#define IL_SHOULD_BE_WRITTEN_TO_FILE 1
+#endif /* ifndef IL_SHOULD_BE_WRITTEN_TO_FILE */
+#ifndef INCLUDE_EDG_TEST_PRAGMAS
+#define INCLUDE_EDG_TEST_PRAGMAS 1
+#endif /* ifndef INCLUDE_EDG_TEST_PRAGMAS */
+#ifndef INCLUDE_EDG_TEST_ATTRIBUTES
+#define INCLUDE_EDG_TEST_ATTRIBUTES 1
+#endif /* ifndef INCLUDE_EDG_TEST_ATTRIBUTES */
+#ifndef RECORD_NAME_IN_PARAM_TYPE_ENTRY
+#define RECORD_NAME_IN_PARAM_TYPE_ENTRY 1
+#endif /* ifndef RECORD_NAME_IN_PARAM_TYPE_ENTRY */
+#ifndef MICROSOFT_EXTENSIONS_ALLOWED
+#define MICROSOFT_EXTENSIONS_ALLOWED 1
+#endif /* ifndef MICROSOFT_EXTENSIONS_ALLOWED */
+#ifndef TARG_MICROSOFT_BIT_FIELD_ALLOCATION
+#define TARG_MICROSOFT_BIT_FIELD_ALLOCATION 0
+#endif /* ifndef TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
+#ifndef USER_CONTROL_OF_STRUCT_PACKING
+#define USER_CONTROL_OF_STRUCT_PACKING 1
+#endif /* ifndef USER_CONTROL_OF_STRUCT_PACKING */
+#ifndef DEFAULT_MICROSOFT_MODE
+#define DEFAULT_MICROSOFT_MODE 0
+#endif /* ifndef DEFAULT_MICROSOFT_MODE */
+#ifndef UPC_EXTENSIONS_ALLOWED
+#define UPC_EXTENSIONS_ALLOWED 1
+#endif /* ifndef UPC_EXTENSIONS_ALLOWED */
+#ifndef ASM_FUNCTION_ALLOWED
+#define ASM_FUNCTION_ALLOWED 1
+#endif /* ifdef ASM_FUNCTION_ALLOWED */
+#ifndef REPRESENT_EMPTY_STATEMENTS_IN_IL
+#define REPRESENT_EMPTY_STATEMENTS_IN_IL 1
+#endif /* ifndef REPRESENT_EMPTY_STATEMENTS_IN_IL */
+#ifndef EXTRA_SOURCE_POSITIONS_IN_IL
+#define EXTRA_SOURCE_POSITIONS_IN_IL 1
+#endif /* ifndef EXTRA_SOURCE_POSITIONS_IN_IL */
+#ifndef DEFAULT_SVR4_C_MODE
+#define DEFAULT_SVR4_C_MODE 0
+#endif /* ifndef DEFAULT_SVR4_C_MODE */
+#ifndef PRAGMA_WEAK_ALLOWED
+#define PRAGMA_WEAK_ALLOWED 1
+#endif /* ifndef PRAGMA_WEAK_ALLOWED */
+#ifndef VLA_ALLOWED
+#define VLA_ALLOWED 1
+#endif /* ifndef VLA_ALLOWED */
+#ifndef DEFAULT_VLA_ENABLED
+#define DEFAULT_VLA_ENABLED 0
+#endif /* ifndef DEFAULT_VLA_ENABLED */
+#ifndef SUN_EXTENSIONS_ALLOWED
+#define SUN_EXTENSIONS_ALLOWED 1
+#endif /* ifndef SUN_EXTENSIONS_ALLOWED */
+#ifndef DEFAULT_SUN_COMPATIBILITY
+#define DEFAULT_SUN_COMPATIBILITY 0
+#endif /* ifndef DEFAULT_SUN_COMPATIBILITY */
+#ifndef GNU_EXTENSIONS_ALLOWED
+#define GNU_EXTENSIONS_ALLOWED 1
+#endif /* ifndef GNU_EXTENSIONS_ALLOWED */
+#ifndef DEFAULT_GNU_COMPATIBILITY
+#define DEFAULT_GNU_COMPATIBILITY 0
+#endif /* ifndef DEFAULT_GNU_COMPATIBILITY */
+
+#endif /* !defined(OPTIMIZED_VERSION) */
+
+#endif /* EDG_TEST_VERSION */
 
 /*
 Enable recognition of Microsoft attributes for internal versions.
