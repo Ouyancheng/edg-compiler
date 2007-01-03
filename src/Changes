@@ -1,5 +1,22 @@
 Version 3.9
 
+1/3/07   C++-generating back end: __builtin_va_list in template arguments
+
+When GCC_BUILTIN_VARARGS is TRUE, in GNU emulation modes the front end
+predefines the type __builtin_va_list as a typedef to void *.  If this type
+is used in a template argument, the C++-generating back end put out the
+underlying type rather than the typedef name.  However, on some platforms
+the GNU compilers define __builtin_va_list as a type other than void *,
+leading to errors when the generated code was compiled.  This is now fixed.
+For example:
+
+  typedef __builtin_va_list VL;
+  void f(void (*)(VL));
+  template <typename T> void tf(T);
+  void g() {
+    f(tf<VL>);    // Now generates tf<__builtin_va_list>, not tf<void *>
+  }
+
 12/22/06 C++-generating back end: references to tagged types
 
 The C++-generating back end failed to use an elaborated-type-specifier to

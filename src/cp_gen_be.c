@@ -2255,7 +2255,11 @@ is called.
       invisible = TRUE;
     }  /* if */
   }  /* if */
-  if (in_template_argument_list && !invisible) {
+  if (in_template_argument_list && !invisible
+#if GCC_BUILTIN_VARARGS
+      && !type->is_builtin_va_list
+#endif /* GCC_BUILTIN_VARARGS */
+      ) {
     /* We would like to treat typedefs in template arguments as invisible,
        so that we generate "X<int>" instead of "X<Y<...>::_Type>" -- it's
        shorter and it's less confusing for cases where the source actually
