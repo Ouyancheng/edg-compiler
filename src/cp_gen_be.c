@@ -3532,6 +3532,7 @@ declaration ("struct S;") or GN_NO_OPTIONS for other kinds of reference.
         gen_unqualified_name(&type->source_corresp, iek_type);
       }  /* if */
       if (curr_name_context != NULL &&
+          curr_name_context->assoc_scope != NULL &&
           (curr_name_context->assoc_scope->kind == (a_scope_kind)sck_block ||
            curr_name_context->assoc_scope->kind ==
                                                  (a_scope_kind)sck_function) &&
