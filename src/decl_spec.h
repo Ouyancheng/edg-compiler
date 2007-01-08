@@ -104,17 +104,9 @@ extern void typename_specifier(a_type_ptr            *type_ptr,
 
 extern a_boolean is_constructor_decl(a_type_ptr  class_type);
 
-extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
-                                 a_decl_flag_set             *output_flags,
-                                 a_storage_class             *storage_class,
-                                 a_type_ptr                  *type_ptr,
-                                 a_decl_parse_state          *state,
-                                 an_attribute_ptr            *attributes,
-                                 an_ms_attribute_ptr         *p_ms_attributes,
-                                 a_decl_modifiers_block_ptr  decl_modifiers,
-                                 a_named_register_id         *register_id,
-                                 a_decl_pos_block_ptr        decl_pos_block,
-                                 a_upc_block_size            *upc_block_size);
+extern void decl_specifiers(a_decl_flag_set             input_flags,
+                            a_decl_parse_state          *state,
+                            a_decl_pos_block_ptr        decl_pos_block);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void scan_microsoft_secondary_decl_specifiers(
@@ -211,7 +203,16 @@ extern void decl_spec_one_time_init(void);
 #define DSI_MICROSOFT_SECONDARY_SPECIFIERS ((a_decl_flag_set)0x200000)
 			/* If this bit is set, secondary specifiers (a
 			   Microsoft extension/bug) are scanned. */
-#define DSI_LAST DSI_MICROSOFT_SECONDARY_SPECIFIERS
+#define DSI_MICROSOFT_ATTRIBUTES_ALLOWED ((a_decl_flag_set)0x400000)
+			/* If this bit is set, Microsoft attributes are valid
+			   declaration specifiers. */
+#define DSI_GNU_ATTRIBUTES_ALLOWED ((a_decl_flag_set)0x800000)
+			/* If this bit is set, GNU attributes are valid
+			   declaration specifiers. */
+#define DSI_REGISTER_ID_ALLOWED ((a_decl_flag_set)0x1000000)
+			/* If this bit is set, Embedded C register names are
+			   valid declaration specifiers. */
+#define DSI_LAST DSI_REGISTER_ID_ALLOWED
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DSI_LAST)*/
 

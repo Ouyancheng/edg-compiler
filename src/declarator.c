@@ -111,10 +111,7 @@ token is a qualifier).  If a UPC shared qualifier is seen, the associated
 block size is returned through upc_block_size (when non-NULL).
 */
 {
-  a_decl_flag_set         dsi_flags, dso_flags;
-  a_storage_class         dummy_storage_class;
-  a_type_ptr              dummy_type_ptr;
-  a_decl_modifiers_block  dummy_decl_modifiers;
+  a_decl_flag_set         dsi_flags;
   a_decl_parse_state      state;
   a_decl_pos_block        local_decl_pos_block;
 
@@ -122,11 +119,12 @@ block size is returned through upc_block_size (when non-NULL).
   clear_decl_pos_block(&local_decl_pos_block);
   dsi_flags = DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS;
   if (microsoft_mode) { dsi_flags |= DSI_INLINE_ALLOWED; }
-  (void)decl_specifiers(dsi_flags, &dso_flags, &dummy_storage_class,
-                        &dummy_type_ptr, &state, (an_attribute_ptr*)NULL,
-                        (an_ms_attribute_ptr*)NULL, &dummy_decl_modifiers,
-                        (a_named_register_id*)NULL, &local_decl_pos_block,
-                        upc_block_size);
+  decl_specifiers(dsi_flags, &state, &local_decl_pos_block);
+#if UPC_EXTENSIONS_ALLOWED
+  if (upc_block_size != NULL) {
+    *upc_block_size = state.upc_block_size;
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     check_assertion(local_decl_pos_block.specifiers_range.end.seq != 0);
@@ -1430,7 +1428,6 @@ if this is the function declarator in a friend function declaration.
   a_storage_class         param_storage_class;
   a_type_ptr              param_type_ptr, declared_type, tp;
   a_decl_flag_set         dso_flags;
-  a_decl_modifiers_block  decl_modifiers;
   a_param_type_ptr        last_param_type;
   a_param_id_ptr          last_param_id;
   a_source_sequence_entry_ptr
@@ -1607,14 +1604,10 @@ if this is the function declarator in a friend function declaration.
       do {
         a_decl_parse_state   param_state;
         a_decl_pos_block     local_decl_pos_block;
-        an_ms_attribute_ptr  ms_attributes = NULL;
-        an_attribute_ptr     attributes = NULL;
-        an_attribute_ptr     *last_attribute = &attributes;
-#if GNU_EXTENSIONS_ALLOWED
-        an_attribute_ptr     ap;
-#endif /* GNU_EXTENSIONS_ALLOWED */
         a_decl_flag_set      dsi_flags = DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
                                          DSI_TYPE_SPECIFIER_ALLOWED |
+                                         DSI_GNU_ATTRIBUTES_ALLOWED |
+                                         DSI_MICROSOFT_ATTRIBUTES_ALLOWED |
                                          DSI_IS_PARAMETER |
                                          DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
         if (func_info == NULL) dsi_flags |= DSI_IN_ABSTRACT_FUNC_DECLARATOR;
@@ -1630,17 +1623,10 @@ if this is the function declarator in a friend function declaration.
         copy_source_position(pos_curr_token, param_type_pos);
         clear_decl_pos_block(&local_decl_pos_block);
         /* Scan a parameter-declaration. */
-        (void)decl_specifiers(dsi_flags, &dso_flags, &param_storage_class,
-                              &param_type_ptr, &param_state, &attributes,
-                              &ms_attributes, &decl_modifiers,
-                              (a_named_register_id*)NULL,
-                              &local_decl_pos_block, (a_upc_block_size *)NULL);
-#if GNU_EXTENSIONS_ALLOWED
-        /* Find the end of the current attribute list. */
-        while (*last_attribute != NULL) {
-          last_attribute = &(*last_attribute)->next;
-        }  /* while */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+        decl_specifiers(dsi_flags, &param_state, &local_decl_pos_block);
+        dso_flags = param_state.dso_flags;
+        param_storage_class = param_state.declared_storage_class;
+        param_type_ptr = param_state.specifiers_type;
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         if (last_param_type == NULL && curr_token == tok_rparen) {
@@ -1677,7 +1663,7 @@ if this is the function declarator in a friend function declaration.
           param_type_ptr = error_type();
         } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
           /* No type specifier (aside from const or volatile) appeared among
-             the decl_specifiers.  Issue a diagnostic. */
+             the declaration specifiers.  Issue a diagnostic. */
           report_implicit_int(&pos_curr_token, param_type_ptr);
         } else {
           /* Mark the type as referenced.  This is important for a
@@ -1698,7 +1684,6 @@ if this is the function declarator in a friend function declaration.
         if (!dangling_type_specifier &&
             is_abstract_or_real_declarator_start()) {
           a_decl_flag_set  do_flags, di_flags;
-
           di_flags = DI_IS_PARAMETER_DECL |
                      DI_REAL_DECLARATOR_ALLOWED |
                      DI_ABSTRACT_DECLARATOR_ALLOWED;
@@ -1719,7 +1704,7 @@ if this is the function declarator in a friend function declaration.
                      /*member_parent_type=*/(a_type_ptr)NULL,
                      &param_locator, &param_type_ptr, &param_ssep,
                      (a_func_info_block_ptr)NULL, &local_decl_pos_block,
-                     last_attribute);
+                     param_state.p_last_specifier_attribute);
 #if RECORD_HIDDEN_NAMES_IN_IL
           if (!C_mode() && param_locator.symbol_header != NULL) {
             /* In C++, parameter names may hide names from surrounding
@@ -1727,12 +1712,6 @@ if this is the function declarator in a friend function declaration.
             check_name_hiding_by_parameter(&param_locator);
           }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if GNU_EXTENSIONS_ALLOWED
-          /* Find the end of the current attribute list. */
-          while (*last_attribute != NULL) {
-            last_attribute = &(*last_attribute)->next;
-          }  /* while */
-#endif /* GNU_EXTENSIONS_ALLOWED */
         } else {
           /* No declarator. */
           set_to_error_locator(param_locator);
@@ -1740,9 +1719,11 @@ if this is the function declarator in a friend function declaration.
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
         if (gnu_mode) {
-          /* Scan any attributes that apply to the function
-             parameter. */
-          *last_attribute = scan_attributes();
+          /* Scan any postfix attributes that apply to the function parameter
+             and append them to the (possibly empty) list of attributes already
+             scanned. */
+          *last_attribute_link(param_state.p_last_specifier_attribute) =
+                                                            scan_attributes();
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         /* Save a pointer to the type as it was declared (i.e., before the
@@ -1750,7 +1731,7 @@ if this is the function declarator in a friend function declaration.
         declared_type = param_type_ptr;
         /* Check that the type is legal, and do required adjustments. */
         check_and_adjust_parameter_type(&param_type_ptr, &param_type_pos,
-                                        attributes);
+                                        param_state.attributes);
         /* Standardize the storage class: unspecified becomes auto. */
         if (param_storage_class == (a_storage_class)sc_unspecified) {
           param_storage_class = (a_storage_class)sc_auto;
@@ -1796,7 +1777,7 @@ if this is the function declarator in a friend function declaration.
            the param-id list. */
         add_to_param_id_list(&param_locator, param_type_ptr,
                              &param_type_pos, param_storage_class,
-                             attributes, func_info, param_ssep,
+                             param_state.attributes, func_info, param_ssep,
                              &last_param_id);
         last_param_id->declared_type = declared_type;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -1812,7 +1793,7 @@ if this is the function declarator in a friend function declaration.
            type) are only allowed on top-level declarators. */
         if (!is_top_level_declarator) {
           check_for_invalid_param_attributes(last_param_id->symbol,
-                                             attributes);
+                                             param_state.attributes);
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         if (remove_qualifiers_from_param_types) {
@@ -1830,17 +1811,19 @@ if this is the function declarator in a friend function declaration.
         ptp = make_param_type(param_type_ptr, &param_type_pos);
         ptp->declared_type = declared_type;
 #if GNU_EXTENSIONS_ALLOWED
-        /* See if there is a mode attribute.  If so, save it; it is
-           conceptually part of the declared_type. */
-        for (ap = attributes; ap != NULL; ap = ap->next) {
-          if (ap->kind == (an_attribute_kind)ak_mode) {
-            ptp->mode = ap->variant.mode;
-          }  /* if */
-        }  /* for */
+        { /* See if there is a mode attribute.  If so, save it; it is
+             conceptually part of the declared_type. */
+          an_attribute_ptr  ap;
+          for (ap = param_state.attributes; ap != NULL; ap = ap->next) {
+            if (ap->kind == (an_attribute_kind)ak_mode) {
+              ptp->mode = ap->variant.mode;
+            }  /* if */
+          }  /* for */
+        }
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (ms_attributes != NULL) {
-          apply_microsoft_attributes(&ms_attributes, (char*)ptp,
+        if (param_state.ms_attributes != NULL) {
+          apply_microsoft_attributes(&param_state.ms_attributes, (char*)ptp,
                                      iek_param_type, MSAT_PARAMETER);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4948,10 +4931,10 @@ function_lparen:
   if (attributes != NULL && gnu_mode && curr_token == tok_attribute) {
     check_assertion(last_attribute_ptr != NULL);
     *last_attribute_ptr = scan_attributes();
-    if (*attributes == NULL) {
-      *attributes = *last_attribute_ptr;
-    }  /* if */
     if (*last_attribute_ptr != NULL) {
+      if (*attributes == NULL) {
+        *attributes = *last_attribute_ptr;
+      }  /* if */
       *output_flags |= DO_POSTFIX_ATTRIBUTES;
       /* Advance to the end of the list. */
       last_attribute_ptr = last_attribute_link(last_attribute_ptr);
@@ -5173,14 +5156,13 @@ the parameters.
 {
   a_type_ptr         bottom_derived_type = NULL;
   a_boolean          is_constructor = FALSE, is_destructor = FALSE;
-  a_source_position  start_pos;
 
   is_constructor = (input_flags & DI_IS_CONSTRUCTOR) != 0;
   /* If DI_IS_CONSTRUCTOR is set, the parent class should be provided. */
   check_assertion_str(!is_constructor || member_parent_type != NULL ||
                       (input_flags & DI_IS_FRIEND_DECL),
                       "declarator: parent class is NULL for ctor");
-  start_pos = pos_curr_token;
+  state->declarator_start_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     decl_pos_block->declarator_range.start = pos_curr_token;
@@ -5200,7 +5182,8 @@ the parameters.
     *output_flags |= DO_IS_DESTRUCTOR;
   }  /* if */
   if (*output_flags & DO_HAS_PTR_TO_MEMBER_COMPONENT) {
-    (void)check_for_vla_in_pointer_to_member(*p_complete_type, &start_pos);
+    (void)check_for_vla_in_pointer_to_member(*p_complete_type,
+                                             &state->declarator_start_pos);
   }  /* if */
   check_pending_qualifiers_used(state);
 }  /* declarator */

@@ -808,32 +808,13 @@ declaration as it appears.
 */  
 typedef struct a_member_decl_info *a_member_decl_info_ptr;
 typedef struct a_member_decl_info {
-  a_source_position
-		decl_start_pos;
-			/* Source position of the first token of the
-			   declaration. */
-  a_decl_flag_set
-		dso_flags;
-			/* Bit vector comprising flags returned from
-			   decl_specifiers. */
-  a_decl_flag_set
-		do_flags;
-			/* Bit vector comprising flags returned from
-			   declarator. */
-  a_type_qualifier_set
-		qualifiers;
-			/* Type qualifiers returned from decl_specifiers. */
-  a_decl_modifiers_block
-		decl_modifiers;
-			/* Decl-modifiers returned from decl_specifiers
-			   (Microsoft and Sun compatibility modes only). */
+  a_decl_parse_state
+		decl_state;
+			/* General declaration information. */
   a_decl_pos_block
 		decl_pos_block;
 			/* Additional source position information on the
 			   declaration. */
-  a_storage_class
-		storage_class;
-			/* Storage class returned from decl_specifiers. */
   a_bit_field	is_first_in_declarator_list:1;
 			/* TRUE for the first declarator in a declarator list,
 			   FALSE thereafter. */
@@ -869,8 +850,6 @@ typedef struct a_member_decl_info {
 			   than one declarator). */
   a_bit_field	is_member_template:1;
 			/* TRUE if the declaration is of a member template. */
-  a_source_sequence_entry_ptr
-		declarator_ssep;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 			/* Pointer to the source-sequence entry for the
 			   declarator. */
@@ -890,13 +869,9 @@ Initialize a member-declaration-info block, used to track information about
 a class member declaration as it appears.
 */
 {
-  mdip->decl_start_pos = *pos;
-  mdip->dso_flags = DSO_NO_OUTPUT_FLAGS;
-  mdip->do_flags = DO_NO_OUTPUT_FLAGS;
-  mdip->qualifiers = TQ_NONE;
-  clear_decl_modifiers_block(&mdip->decl_modifiers);
+  init_decl_parse_state(&mdip->decl_state);
+  mdip->decl_state.start_pos = *pos;
   clear_decl_pos_block(&mdip->decl_pos_block);
-  mdip->storage_class = (a_storage_class)sc_unspecified;
   mdip->is_first_in_declarator_list = TRUE;
   mdip->is_constructor = FALSE;
   mdip->is_trivial_default_constructor = FALSE;
@@ -907,7 +882,6 @@ a class member declaration as it appears.
   mdip->is_nonstd_anonymous_union = FALSE;
   mdip->return_type_def_err = FALSE;
   mdip->is_member_template = FALSE;
-  mdip->declarator_ssep = NULL;
   mdip->member_sym = NULL;
 }  /* initialize_member_decl_info */
 
@@ -6118,6 +6092,7 @@ overloading into account.  For nonmember functions, this could be the initial
 declaration of the function, and again overloading is a possibility.
 */
 {
+  a_decl_parse_state           *state = &decl_info->decl_state;
   a_type_ptr                   class_type = class_state->class_type;
   a_symbol_ptr                 sym, ext_sym;
   an_id_linkage_kind           linkage;
@@ -6139,7 +6114,7 @@ declaration of the function, and again overloading is a possibility.
     /* Friend declarations cannot appear in interface types. */
     if (microsoft_mode &&
         class_type->variant.class_struct_union.is_interface) {
-      pos_error(ec_interface_cannot_have_friend, &decl_info->decl_start_pos);
+      pos_error(ec_interface_cannot_have_friend, &state->start_pos);
     }  /* if */
     /* Microsoft Visual C++ 7.0 and earlier do not seem to instantiate the
        body of a friend function definition as part of a class template
@@ -6217,9 +6192,8 @@ declaration of the function, and again overloading is a possibility.
         a_boolean  is_inline = func_info->is_inline;
 
         func_info->is_main_function = TRUE;
-        check_main_function(func_info, function_type,
-                            &decl_info->storage_class, &is_inline,
-                            &locator->source_position);
+        check_main_function(func_info, function_type, &state->storage_class,
+                            &is_inline, &locator->source_position);
         func_info->is_inline = is_inline;
       } else if (func_info->is_definition) {
         if (class_type->source_corresp.is_local_to_function) {
@@ -6267,7 +6241,7 @@ declaration of the function, and again overloading is a possibility.
           set_to_named_error_locator(*locator);
         }  /* if */          
       }  /* if */
-      storage_class = decl_info->storage_class;
+      storage_class = state->storage_class;
       if (microsoft_mode &&
           storage_class != (a_storage_class)sc_unspecified) {
         /* In Microsoft mode "extern" and "static" are permitted on a
@@ -6275,13 +6249,12 @@ declaration of the function, and again overloading is a possibility.
         if (storage_class != (a_storage_class)sc_static &&
             storage_class != (a_storage_class)sc_extern) {
           /* The storage class of a function has to be extern or static. */
-          pos_warning(ec_bad_function_storage_class,
-                      &decl_info->decl_start_pos);
+          pos_warning(ec_bad_function_storage_class, &state->start_pos);
           storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
       }  /* if */
       decl_routine(locator, storage_class, function_type, func_info,
-                   declarator_ssep, srk_flags, &decl_info->decl_modifiers,
+                   declarator_ssep, srk_flags, &state->decl_modifiers,
                    (an_ms_attribute_ptr*)NULL, (an_attribute_ptr)NULL,
                    (char *)NULL, (a_source_position*)NULL, &sym, &linkage,
                    &old_type, &ext_sym, &decl_info->decl_pos_block);
@@ -6314,9 +6287,9 @@ declaration of the function, and again overloading is a possibility.
                    ec_self_friendship);
       }  /* if */
       if (microsoft_mode &&
-          decl_info->storage_class != (a_storage_class)sc_unspecified) {
+          state->storage_class != (a_storage_class)sc_unspecified) {
         /* Member function -- storage class is not allowed. */
-        pos_warning(ec_storage_class_not_allowed, &decl_info->decl_start_pos);
+        pos_warning(ec_storage_class_not_allowed, &state->start_pos);
       }  /* if */
       /* It's a member function.  Find the right type signature for this
          member function name.  This could potentially be an instance of
@@ -6408,12 +6381,11 @@ declaration of the function, and again overloading is a possibility.
     if (strict_ansi_mode && func_info->any_default_args) {
       if (sym->is_class_member) {
         pos_diagnostic(strict_ansi_error_severity,
-                       ec_default_arg_on_member_friend,
-                       &decl_info->decl_start_pos);
+                       ec_default_arg_on_member_friend, &state->start_pos);
       } else if (!func_info->is_definition) {
         pos_diagnostic(strict_ansi_error_severity,
                        ec_default_arg_requires_friend_to_be_definition,
-                       &decl_info->decl_start_pos);
+                       &state->start_pos);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -7220,13 +7192,13 @@ is TRUE when this is called for a member function definition.
      novtable). */
   class_decl_modifiers &= DM_DLLFLAGS;
   if (class_decl_modifiers != DM_NONE) {
-    decl_modifiers = decl_info->decl_modifiers.flags;
+    decl_modifiers = decl_info->decl_state.decl_modifiers.flags;
     if (decl_modifiers & DM_DLLFLAGS) {
       /* If there are dll modifiers on the class, they cannot appear on the
          member declaration, too. */
       pos_diagnostic(es_discretionary_error,
                      ec_class_and_member_have_dll_interface,
-                     &decl_info->decl_start_pos);
+                     &decl_info->decl_state.start_pos);
       decl_modifiers &= ~(a_decl_modifier)DM_DLLFLAGS;
     }  /* if */
     if (is_definition && (class_decl_modifiers & DM_DLLIMPORT)) {
@@ -7235,7 +7207,7 @@ is TRUE when this is called for a member function definition.
       /* Merge the sets of flags. */
       decl_modifiers |= class_decl_modifiers;
     }  /* if */
-    decl_info->decl_modifiers.flags = decl_modifiers;
+    decl_info->decl_state.decl_modifiers.flags = decl_modifiers;
   }  /* if */
 }  /* merge_decl_modifiers */
 
@@ -7494,6 +7466,7 @@ applied to this declaration.  If p_ms_attributes is non-NULL, *p_ms_attributes
 is set to NULL by this function.
 */
 {
+  a_decl_parse_state            *decl_state = &decl_info->decl_state;
   a_symbol_ptr                  sym, overload_sym;
   a_routine_ptr                 rtn;
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
@@ -7505,7 +7478,7 @@ is set to NULL by this function.
 
   db_enter(3, "decl_member_function");
   rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
-  if (decl_info->storage_class == (a_storage_class)sc_static) {
+  if (decl_state->storage_class == (a_storage_class)sc_static) {
     /* A static member function. */
     /* Check if we are attempting to declare a static member function through a
        qualified function type typedef. E.g.,
@@ -7520,7 +7493,7 @@ is set to NULL by this function.
       if (class_type->variant.class_struct_union.is_interface) {
         /* Static member functions cannot appear in interface types. */
         pos_error(ec_interface_cannot_have_static_members,
-                  &decl_info->decl_start_pos);
+                  &decl_state->start_pos);
       }  /* if */
       if (skip_typerefs(member_type)->variant.routine.extra_info
                                     ->calling_convention ==
@@ -7528,7 +7501,7 @@ is set to NULL by this function.
         /* Static member functions cannot have the __thiscall calling
            convention. */
         pos_error(ec_thiscall_requires_nonstatic_member,
-                  &decl_info->decl_start_pos);
+                  &decl_state->start_pos);
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7650,7 +7623,7 @@ is set to NULL by this function.
                            (a_boolean)func_info->is_definition);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    update_routine_decl_modifiers(rtn, &decl_info->decl_modifiers,
+    update_routine_decl_modifiers(rtn, &decl_state->decl_modifiers,
                                   &locator->source_position,
                                   /*is_redecl=*/FALSE,
                                   (a_boolean)func_info->is_definition,
@@ -8000,7 +7973,7 @@ is set to NULL by this function.
          virtual.  Even if it wasn't, its virtualness can be inherited.  In
          either case record the relationship between the current routine and
          its appearance in the base classes of the current class. */
-      a_boolean  is_virtual = ((decl_info->dso_flags & DSO_VIRTUAL) &&
+      a_boolean  is_virtual = ((decl_state->dso_flags & DSO_VIRTUAL) &&
                                !decl_info->invalid_virtual_specifier);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (class_type->variant.class_struct_union.is_interface &&
@@ -8302,7 +8275,7 @@ in-class member function declarations.)
         cssp->constructor = overload_sym;
       }  /* if */
     }  /* if */
-    update_routine_decl_modifiers(rtn, &decl_info->decl_modifiers,
+    update_routine_decl_modifiers(rtn, &decl_info->decl_state.decl_modifiers,
                                   &locator->source_position,
                                   /*is_redecl=*/FALSE,
                                   (a_boolean)func_info->is_definition,
@@ -8456,7 +8429,7 @@ respectively.
   cp->source_corresp.access = class_state->access;
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position,
-                            decl_info->declarator_ssep);
+                            decl_info->decl_state.source_sequence_entry);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   update_decl_pos_info(&cp->source_corresp, &decl_info->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -8495,20 +8468,14 @@ static void decl_static_data_member(a_symbol_locator        *locator,
                                     a_type_ptr              class_type,
                                     a_type_ptr              member_type,
                                     a_class_def_state_ptr   class_state,
-                                    a_member_decl_info_ptr  decl_info,
-                                    an_attribute_ptr        attributes,
-                                    char                    *asm_name,
-                                    an_ms_attribute_ptr     *p_ms_attributes)
+                                    a_member_decl_info_ptr  decl_info)
 /*
 Do processing for a static data member, including entering it in the symbol
 table.  *locator is the symbol-locator for the current declaration, class_type
 is the class of which it is a member, and *p_member_type is the type with
 which the member was declared.  *class_state and *decl_info track general
 information about the class definition and specific information about the
-member declaration, respectively.  attributes and asm_name describe the GNU
-attributes and GNU asm-name specified on the member declaration (if any;
-otherwise these are NULL).  p_ms_attributes describes Microsoft attributes;
-if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
+member declaration, respectively.
 */
 {
   a_symbol_ptr          sym, prototype_tag_sym;
@@ -8516,6 +8483,8 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_name_reference_ptr  name_ref = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_decl_parse_state    *decl_state = &decl_info->decl_state;
+  a_source_position     *start_pos = &decl_state->start_pos;
 
   db_enter(3, "decl_static_data_member");
   if (is_void_type(member_type)) {
@@ -8526,8 +8495,9 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
     report_abstract_class_error(ec_abstract_class_object_not_allowed,
                                 member_type, &locator->source_position);
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (attributes != NULL) {
-    member_type = apply_attributes_to_variable_type(attributes, member_type);
+  } else if (decl_state->attributes != NULL) {
+    member_type = apply_attributes_to_variable_type(decl_state->attributes,
+                                                    member_type);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   /* The Microsoft compiler instantiates a template class used as the type
@@ -8535,7 +8505,7 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
   if (microsoft_bugs) complete_type_is_needed(member_type);
   if (class_state->is_local_class) {
     /* Static data members are not allowed in local classes. */
-    pos_error(ec_static_data_member_not_allowed, &decl_info->decl_start_pos);
+    pos_error(ec_static_data_member_not_allowed, start_pos);
     /* Set the type for this invalid static member to error type. This will
        assure "proper" (or unobtrusive) behavior later, if a definition is
        encountered.  It also eliminates semi-spurious error messages if there
@@ -8543,7 +8513,7 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
     member_type = error_type();
   } else if (is_union_type(class_type)) {
     /* Unions are not allowed to have static data members. */
-    pos_error(ec_static_data_member_not_allowed, &decl_info->decl_start_pos);
+    pos_error(ec_static_data_member_not_allowed, start_pos);
   } else if (!any_cfront_mode() && !microsoft_mode && !gpp_mode &&
              is_or_is_nested_within_unnamed_class(class_type)) {
     /* Except for cfront, Microsoft, and GNU compatibility, static data members
@@ -8551,8 +8521,7 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
        unnamed class (9.4.2 [class.static.data]). However, permit this with a
        warning if anachronisms are enabled. */
     pos_diagnostic(anachronism_error_severity,
-                   ec_static_data_member_not_allowed,
-                   &decl_info->decl_start_pos);
+                   ec_static_data_member_not_allowed, start_pos);
   }  /* if */
   if (decl_info->is_member_template) set_to_named_error_locator(*locator);
   /* Create the variable entry for the static data member. */
@@ -8629,7 +8598,7 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
   /* This is entered as a declaration rather than a definition, since the
      definition must appear outside the class definition. */
   record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
-                            decl_info->declarator_ssep);
+                            decl_state->source_sequence_entry);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   update_decl_pos_info(&var->source_corresp, &decl_info->decl_pos_block);
   if (var->is_member_constant) {
@@ -8697,7 +8666,7 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
      check for consistency and use the union of the two. */
   merge_decl_modifiers(class_type, decl_info, /*is_definition=*/FALSE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  update_variable_decl_modifiers(var, &decl_info->decl_modifiers,
+  update_variable_decl_modifiers(var, &decl_state->decl_modifiers,
                                  &locator->source_position,
                                  /*is_redecl=*/FALSE, /*is_definition=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -8705,23 +8674,24 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
   if (microsoft_mode && class_type->variant.class_struct_union.is_interface) {
     pos_error(ec_interface_cannot_have_data_member, &locator->source_position);
   }  /* if */
-  if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
-    apply_microsoft_attributes(p_ms_attributes, (char*)var, iek_variable,
-                               MSAT_DATA_MEMBER);
+  if (decl_state->ms_attributes != NULL) {
+    apply_microsoft_attributes(&decl_state->ms_attributes, (char*)var,
+                               iek_variable, MSAT_DATA_MEMBER);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode) {
-    if (attributes != NULL) {
+    if (decl_state->attributes != NULL) {
       /* Apply the attributes to the variable declaration. */
-      apply_attributes_to_variable(attributes, var, /*is_definition=*/FALSE);
+      apply_attributes_to_variable(decl_state->attributes, var,
+                                   /*is_definition=*/FALSE);
     }  /* if */
     /* Propagate any class attributes that also apply to its static data
        members. */
     copy_class_attributes_to_variable(class_type, var);
     /* If applicable, record the asm-name. */
-    if (asm_name != NULL) {
-      var->asm_name_or_reg.name = asm_name;
+    if (decl_state->asm_name != NULL) {
+      var->asm_name_or_reg.name = decl_state->asm_name;
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -9544,13 +9514,15 @@ is TRUE and this is not a standard C++ anonymous union, return TRUE and
 also set the is_nonstd_anonymous_union flag in the member-decl-info block.
 */
 {
+  a_decl_flag_set  dso_flags = decl_info->decl_state.dso_flags;
+
   if (!C_mode() &&
       member_type->kind == (a_type_kind)tk_union) {
     if (member_type->source_corresp.name != NULL ||
-        !(decl_info->dso_flags & DSO_DEFINES_SOMETHING)) {
+        !(dso_flags & DSO_DEFINES_SOMETHING)) {
       /* This union was named and/or is a reference to a previously defined
          type -- in any case, it's not an anonymous union. */
-    } else if (decl_info->dso_flags & (DSO_DECLARES_SOMETHING | DSO_FRIEND)) {
+    } else if (dso_flags & (DSO_DECLARES_SOMETHING | DSO_FRIEND)) {
       /* This cannot be a standard or a nonstandard anonymous union in C++. */
     } else {
       decl_info->is_anonymous_union = TRUE;
@@ -9563,7 +9535,7 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
     /* Not a pseudo-anonymous-union -- it's not a class, struct,
        or union type. */
   } else if ((!C_mode() || (gcc_mode && gnu_version >= 30300)) &&
-             ((decl_info->dso_flags & (DSO_DECLARES_SOMETHING | DSO_FRIEND)) ||
+             ((dso_flags & (DSO_DECLARES_SOMETHING | DSO_FRIEND)) ||
               !(skip_typerefs(member_type))->
                             variant.class_struct_union.originally_unnamed)) {
     /* Not a pseudo-anonymous-union -- either a tag appeared on the current
@@ -9996,8 +9968,9 @@ definition and specific information about the member declaration,
 respectively.
 */
 {
-  a_type_ptr  field_type = *member_type;
-  a_type_ptr  class_type = class_state->class_type;
+  a_decl_parse_state  *decl_state = &decl_info->decl_state;
+  a_type_ptr          field_type = *member_type;
+  a_type_ptr          class_type = class_state->class_type;
 
   /* First check whether there was a preceding field of incomplete array type
      for which an error should now be issued. */
@@ -10038,7 +10011,7 @@ respectively.
   /* The type specified must be complete. */
   complete_type_is_needed(field_type);
   if (C_mode() && is_function_type(field_type) &&
-      decl_info->storage_class != (a_storage_class)sc_typedef) {
+      decl_state->storage_class != (a_storage_class)sc_typedef) {
     pos_error(ec_function_type_not_allowed, &locator->source_position);
     field_type = error_type();
   } else if (vla_enabled && is_variably_modified_type(field_type)) {
@@ -10089,8 +10062,8 @@ respectively.
             class_state->last_field_is_incomplete_array = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (microsoft_mode &&
-                (decl_info->decl_modifiers.get_property_name != NULL ||
-                 decl_info->decl_modifiers.put_property_name != NULL)) {
+                (decl_state->decl_modifiers.get_property_name != NULL ||
+                 decl_state->decl_modifiers.put_property_name != NULL)) {
               /* This is a property field: no need to guard against
                  additionally appended fields. */
               class_state->last_field_is_incomplete_array = FALSE;
@@ -10117,8 +10090,8 @@ respectively.
          prototype instantiation. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode &&
-               (decl_info->decl_modifiers.get_property_name != NULL ||
-                decl_info->decl_modifiers.put_property_name != NULL)) {
+               (decl_state->decl_modifiers.get_property_name != NULL ||
+                decl_state->decl_modifiers.put_property_name != NULL)) {
       /* A property field doesn't need to have a complete type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
@@ -10172,7 +10145,7 @@ respectively.
     } else if (strict_ansi_mode && is_union_type(class_type) && is_ref) {
       /* Unions are not allowed to have members of reference type. */
       pos_diagnostic(strict_ansi_error_severity, ec_ref_not_allowed_in_union,
-                     &decl_info->decl_start_pos);
+                     &decl_state->start_pos);
       if ((int)strict_ansi_error_severity > (int)es_warning) {
         field_type = error_type();
       } /* if */
@@ -10183,10 +10156,10 @@ respectively.
       field_type = type_without_named_address_space_qualifiers(field_type);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
     }  /* if */
-    if (is_ref && (decl_info->dso_flags & DSO_MUTABLE)) {
+    if (is_ref && (decl_state->dso_flags & DSO_MUTABLE)) {
       pos_diagnostic(
           strict_ansi_mode ?  strict_ansi_discretionary_severity : es_warning,
-          ec_reference_declared_mutable, &decl_info->decl_start_pos);
+          ec_reference_declared_mutable, &decl_state->start_pos);
     }  /* if */
   }  /* if */
   if (curr_token == tok_colon) {
@@ -10200,7 +10173,7 @@ respectively.
         /* We're in a prototype instantiation -- don't issue an error. */
       } else {
         /* Invalid type. */
-        pos_error(ec_bad_bit_field_type, &decl_info->decl_start_pos);
+        pos_error(ec_bad_bit_field_type, &decl_state->start_pos);
         field_type = error_type();
       }  /* if */
     } else {
@@ -10216,7 +10189,7 @@ respectively.
                     unqual_type->variant.integer.int_kind !=
                                         (an_integer_kind)ik_unsigned_int)) {
           pos_diagnostic(strict_ansi_error_severity, ec_nonstd_bit_field_type,
-                         &decl_info->decl_start_pos);
+                         &decl_state->start_pos);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -10242,11 +10215,11 @@ the position indicated by the given locator.
 */
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_decl_modifier  flags = decl_info->decl_modifiers.flags;
+  a_decl_modifier  flags = decl_info->decl_state.decl_modifiers.flags;
 
   flags &= (DM_DLLFLAGS | DM_NAKED | DM_SELECTANY |
             DM_NOTHROW | DM_NOVTABLE | DM_NORETURN | DM_NOINLINE);
-  if (decl_info->decl_modifiers.allocate_segname != NULL) {
+  if (decl_info->decl_state.decl_modifiers.allocate_segname != NULL) {
     /* Only allowed for variables with static storage duration. */
     pos_error(ec_declspec_allocate_not_allowed, &locator->source_position);
   }  /* if */
@@ -10282,7 +10255,7 @@ the position indicated by the given locator.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
-  if (decl_info->decl_modifiers.flags & DM_THREAD) {
+  if (decl_info->decl_state.decl_modifiers.flags & DM_THREAD) {
     pos_error(ec_cannot_use_thread_local_storage, &locator->source_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
@@ -10298,8 +10271,6 @@ static void decl_nonstatic_data_member(
                                      a_symbol_locator        *locator,
                                      a_type_ptr              class_type,
                                      a_type_ptr              member_type,
-                                     an_attribute_ptr        attributes,
-                                     an_ms_attribute_ptr     *p_ms_attributes,
                                      a_class_def_state_ptr   class_state,
                                      a_member_decl_info_ptr  decl_info)
 /*
@@ -10309,12 +10280,10 @@ for it if it has a name.  class_type is a pointer to the tk_class,
 tk_struct, or tk_union type entry for the entity of which the member is a
 member.  *locator is the symbol locator for the declaration.  *class_state
 and *decl_info track general information about the class definition and
-specific information about the member declaration, respectively.  attributes
-describes GNU attributes specified for this member declaration.
-p_ms_attributes describes Microsoft attributes.  If p_ms_attributes is
-non-NULL, *p_ms_attributes is returned NULL.
+specific information about the member declaration, respectively.
 */
 {
+  a_decl_parse_state             *decl_state = &decl_info->decl_state;
   a_field_ptr                    field;
   a_symbol_ptr                   member_sym = NULL;
   a_type_ptr                     member_element_type;
@@ -10365,11 +10334,12 @@ non-NULL, *p_ms_attributes is returned NULL.
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* Find the last attribute. */
-    last_attribute = last_attribute_link(&attributes);
+    last_attribute = last_attribute_link(&decl_state->attributes);
     /* Scan the attributes that follow the declarator. */
     *last_attribute = scan_attributes();
     /* Apply the attributes to the field. */
-    member_type = apply_attributes_to_variable_type(attributes, member_type);
+    member_type = apply_attributes_to_variable_type(decl_state->attributes,
+                                                    member_type);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Copy the type (which may have been changed by scan_bit_field_size) into
@@ -10394,20 +10364,19 @@ non-NULL, *p_ms_attributes is returned NULL.
        from record_symbol_declaration).  An exception is made for unnamed
        fields; call the subroutine directly. */
     update_source_sequence_list((char *)field, (an_il_entry_kind)iek_field,
-                                decl_info->declarator_ssep);
+                                decl_state->source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (decl_info->is_member_template) {
-      pos_error(ec_bad_member_template_decl, &decl_info->decl_start_pos);
+      pos_error(ec_bad_member_template_decl, &decl_state->start_pos);
     }  /* if */
   } else {
     /* Create the field symbol. */
     if (decl_info->is_anonymous_union) {
       member_sym = make_anonymous_parent_object_symbol(
-                                       (a_symbol_kind)sk_field,
-                                       &decl_info->decl_start_pos,
-                                       scope_stack[depth_scope_stack].number);
+                              (a_symbol_kind)sk_field, &decl_state->start_pos,
+                              scope_stack[depth_scope_stack].number);
       field->is_anonymous_parent_object = TRUE;
-      field->source_corresp.decl_position = decl_info->decl_start_pos;
+      field->source_corresp.decl_position = decl_state->start_pos;
     } else {
       member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
                                       depth_scope_stack,
@@ -10425,26 +10394,27 @@ non-NULL, *p_ms_attributes is returned NULL.
                  member_sym);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (decl_info->decl_modifiers.get_property_name != NULL ||
-      decl_info->decl_modifiers.put_property_name != NULL) {
+  if (decl_state->decl_modifiers.get_property_name != NULL ||
+      decl_state->decl_modifiers.put_property_name != NULL) {
     /* The field for a property doesn't really exist, so pragmas cannot be
        bound to it. */
     cannot_bind_to_curr_construct();
   }  /* if */
-  if (decl_info->decl_modifiers.is_deprecated) {
-    update_deprecation_info(&field->source_corresp, &decl_info->decl_modifiers,
+  if (decl_state->decl_modifiers.is_deprecated) {
+    update_deprecation_info(&field->source_corresp,
+                            &decl_state->decl_modifiers,
                             &locator->source_position);
   }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
-  if (decl_info->decl_modifiers.alignment != 0) {
-    field->alignment = decl_info->decl_modifiers.alignment;
+  if (decl_state->decl_modifiers.alignment != 0) {
+    field->alignment = decl_state->decl_modifiers.alignment;
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (member_sym != NULL && !decl_info->is_anonymous_union) {
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
                               &locator->source_position,
-                              decl_info->declarator_ssep);
+                              decl_state->source_sequence_entry);
     /* Do processing required for any pragmas that are bound to the current
        declaration. */
     process_curr_construct_pragmas(member_sym, (a_statement_ptr)NULL);
@@ -10461,7 +10431,7 @@ non-NULL, *p_ms_attributes is returned NULL.
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* Apply the attributes to the field. */
-    apply_attributes_to_field(attributes, field);
+    apply_attributes_to_field(decl_state->attributes, field);
     /* Check if a deprecated type was involved in this declaration.
        Unlike other similar cases, the warning is issued even when the field
        itself is marked as deprecated. */
@@ -10472,9 +10442,9 @@ non-NULL, *p_ms_attributes is returned NULL.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
-    apply_microsoft_attributes(p_ms_attributes, (char*)field, iek_field,
-                               MSAT_DATA_MEMBER);
+  if (decl_state->ms_attributes != NULL) {
+    apply_microsoft_attributes(&decl_state->ms_attributes, (char*)field,
+                               iek_field, MSAT_DATA_MEMBER);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Add the field to the temporary list for this class/struct/union. */
@@ -10486,7 +10456,7 @@ non-NULL, *p_ms_attributes is returned NULL.
   class_state->end_of_field_list = field;
   if (C_dialect == C_dialect_cplusplus) {
     field->source_corresp.access = class_state->access;
-    if (decl_info->dso_flags & DSO_MUTABLE) {
+    if (decl_state->dso_flags & DSO_MUTABLE) {
       /* The member is declared "mutable". */
       field->is_mutable = TRUE;
       class_type->variant.class_struct_union.any_mutable_member = TRUE;
@@ -10508,8 +10478,8 @@ non-NULL, *p_ms_attributes is returned NULL.
       cssp->any_template_dependent_fields = TRUE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (decl_info->decl_modifiers.get_property_name != NULL ||
-        decl_info->decl_modifiers.put_property_name != NULL) {
+    if (decl_state->decl_modifiers.get_property_name != NULL ||
+        decl_state->decl_modifiers.put_property_name != NULL) {
       /* This declaration includes __declspec(property(...)).  This is
          valid only on nonstatic data members that are not bit fields. */
       if (field->is_bit_field) {
@@ -10517,8 +10487,10 @@ non-NULL, *p_ms_attributes is returned NULL.
                        ec_declspec_property_not_allowed,
                        &locator->source_position);
       } else {
-        field->get_property_name = decl_info->decl_modifiers.get_property_name;
-        field->put_property_name = decl_info->decl_modifiers.put_property_name;
+        field->get_property_name =
+                                 decl_state->decl_modifiers.get_property_name;
+        field->put_property_name =
+                                 decl_state->decl_modifiers.put_property_name;
       }  /* if */
     } else if (microsoft_mode &&
                class_type->variant.class_struct_union.is_interface) {
@@ -10670,6 +10642,11 @@ non-NULL, *p_ms_attributes is returned NULL.
     }  /* if */
   }  /* if */
   class_state->is_first_field = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+  if (decl_state->asm_name != NULL) {
+    pos_error(ec_field_with_asm_name_not_allowed, &decl_state->asm_name_pos);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (debug_level >= 3) {
     if (member_sym != NULL) {
@@ -12123,21 +12100,22 @@ Check that this is a valid type and if so make member_type a friend.
 *decl_info contains some additional information about the declaration.
 */
 {
+  a_decl_parse_state  *state = &decl_info->decl_state;
+
   if (is_error_type(member_type)) {
     /* An error was already issued. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode &&
              class_type->variant.class_struct_union.is_interface) {
-    pos_error(ec_interface_cannot_have_friend, &decl_info->decl_start_pos);
+    pos_error(ec_interface_cannot_have_friend, &state->start_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if ((decl_info->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0) {
+  } else if ((state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0) {
     /* No type was specified at all; e.g. "friend;". */
-    pos_error(ec_bad_friend_decl, &decl_info->decl_start_pos);
+    pos_error(ec_bad_friend_decl, &state->start_pos);
   } else if ((((is_class_struct_union_type(member_type) ||
                 is_template_param_type(member_type)) &&
                !is_top_level_qualified_type(member_type)) ||
-              (extended_friends_enabled &&
-               decl_info->qualifiers == TQ_NONE)) &&
+              (extended_friends_enabled && state->qualifiers == TQ_NONE)) &&
              depth_template_declaration_scope == NO_SCOPE_DEPTH) {
     /* This is a friend class declaration.  Normally, only the form
            friend class A;  // or "struct" or "union" instead of "class"
@@ -12153,10 +12131,9 @@ Check that this is a valid type and if so make member_type a friend.
                                (!extended_friends_enabled ||  /* For speed. */
                                 is_class_struct_union_type(member_type) ||
                                 is_template_param_type(member_type));
-    if ((decl_info->dso_flags & DSO_TYPENAME) && !extended_friends_enabled) {
+    if ((state->dso_flags & DSO_TYPENAME) && !extended_friends_enabled) {
       /* "friend typename ..." is not allowed in many modes. */
-      pos_error(ec_no_typename_in_friend_class_decl,
-                &decl_info->decl_start_pos);
+      pos_error(ec_no_typename_in_friend_class_decl, &state->start_pos);
     } else {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       a_boolean  generated_real_instance =
@@ -12165,10 +12142,10 @@ Check that this is a valid type and if so make member_type a friend.
                      ->variant.class_struct_union.is_prototype_instantiation &&
                   !class_type->variant.class_struct_union.is_specialized);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      if (decl_info->dso_flags & (DSO_INLINE | DSO_VIRTUAL)) {
+      if (state->dso_flags & (DSO_INLINE | DSO_VIRTUAL)) {
         /* A friend class declaration cannot contain inline or virtual
            specifiers. */
-        pos_error(ec_bad_friend_decl, &decl_info->decl_start_pos);
+        pos_error(ec_bad_friend_decl, &state->start_pos);
       } else if (!normal_friend_type) {
         /* This is a friend declaration that names neither a class type nor a
            template-dependent type.  For example, "friend int;".  Such friend
@@ -12190,12 +12167,12 @@ Check that this is a valid type and if so make member_type a friend.
                                (char*)member_type, (an_il_entry_kind)iek_type,
                                (a_type_ptr)NULL);
           sssdp->friend_decl = TRUE;
-          sssdp->decl_position = decl_info->decl_start_pos;
+          sssdp->decl_position = state->start_pos;
           ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
           ssep->entity.ptr  = (char *)sssdp;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      } else if (!(decl_info->dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
+      } else if (!(state->dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
         member_type = skip_typerefs(member_type);
         if (!extended_friends_enabled) {
           char  *class_key_string;
@@ -12262,7 +12239,7 @@ done_with_sse_for_nonstandard_friend:;
     }  /* if */
   } else {
     /* Invalid friend declaration. */
-    pos_error(ec_bad_friend_decl, &decl_info->decl_start_pos);
+    pos_error(ec_bad_friend_decl, &state->start_pos);
   }  /* if */
 }  /* check_friend_class_decl */
 
@@ -12281,9 +12258,9 @@ other information about the declaration as it has been scanned thus far;
 moreover, several fields of *decl_info may be updated by this routine.
 */
 {
-  a_source_position  *err_pos = &decl_info->decl_start_pos;
-  a_decl_flag_set    dso_flags = decl_info->dso_flags;
-  a_storage_class    storage_class = decl_info->storage_class;
+  a_source_position  *err_pos = &decl_info->decl_state.start_pos;
+  a_decl_flag_set    dso_flags = decl_info->decl_state.dso_flags;
+  a_storage_class    storage_class = decl_info->decl_state.storage_class;
 
   /* Check first whether this is an anonymous union declaration. */
   if (storage_class == (a_storage_class)sc_unspecified &&
@@ -12456,7 +12433,9 @@ and declarator. locator points to the symbol locator for the member.
 tracks information about the current declaration.
 */
 {
-  if (decl_info->storage_class != (a_storage_class)sc_typedef) {
+  a_decl_parse_state  *decl_state = &decl_info->decl_state;
+
+  if (decl_state->storage_class != (a_storage_class)sc_typedef) {
     if (any_cfront_mode() &&
         check_member_function_typedef(*type, &locator->source_position)) {
       /* This is declaration using a member function typedef.  A typedef has
@@ -12475,7 +12454,7 @@ tracks information about the current declaration.
       *type = error_type();
     }  /* if */
   }  /* if */
-  if ((decl_info->dso_flags & DSO_DEFINES_SOMETHING) && !microsoft_mode) {
+  if ((decl_state->dso_flags & DSO_DEFINES_SOMETHING) && !microsoft_mode) {
     /* A class or enum definition was scanned as part of this declaration.
        However, it is explicitly prohibited to define a type in a function
        return type.  This is taken to apply to pointer-to-function type
@@ -12490,7 +12469,7 @@ tracks information about the current declaration.
           /* Function type in which the return type involves a
              definition. */
           pos_error(ec_type_def_not_allowed_in_func_type_decl,
-                    &decl_info->decl_start_pos);
+                    &decl_state->start_pos);
           decl_info->return_type_def_err = TRUE;
           break;
         } else if (is_ptr_or_ref_type(tp)) {
@@ -12577,12 +12556,13 @@ tracks information about the current declaration and is updated if an error
 is found.
 */
 {
-  an_error_code      error_code = ec_no_error;
-  an_error_severity  severity = es_error;
+  an_error_code       error_code = ec_no_error;
+  an_error_severity   severity = es_error;
+  a_decl_parse_state  *decl_state = &decl_info->decl_state;
 
   if (decl_info->invalid_virtual_specifier) {
     /* An error has already been issued on a previous declarator. */
-  } else if (decl_info->dso_flags & DSO_FRIEND) {
+  } else if (decl_state->dso_flags & DSO_FRIEND) {
     /* A friend function may not be declared virtual. */
     error_code = ec_virtual_not_allowed;
     if (microsoft_mode) {
@@ -12592,7 +12572,7 @@ is found.
     /* Constructors may not be virtual functions (WP 12.1 [class.ctor]) and
        unions may not have them (WP 9.5 [class.union]). */
     error_code = ec_virtual_not_allowed;
-  } else if (decl_info->storage_class == (a_storage_class)sc_static ||
+  } else if (decl_state->storage_class == (a_storage_class)sc_static ||
              (locator->is_operator_name &&
               (is_new_operator(locator->variant.opname) ||
                is_delete_operator(locator->variant.opname)))) {
@@ -12603,7 +12583,7 @@ is found.
   if (error_code != ec_no_error) {
     pos_diagnostic(severity, error_code,
                    decl_info->is_first_in_declarator_list ?
-                                                  &decl_info->decl_start_pos :
+                                                  &decl_state->start_pos :
                                                   &locator->source_position);
     decl_info->invalid_virtual_specifier = TRUE;
   }  /* if */
@@ -12714,14 +12694,15 @@ passed via template_decl.
   a_source_position    decl_start_pos;
   a_decl_flag_set      dsi_flags;
   a_decl_flag_set      dso_flags;
-  a_decl_parse_state   state;
   a_type_ptr           member_type;
+  a_boolean            is_typedef;
   a_boolean            no_decl_specifiers;
   a_boolean            friend_specified;
   a_boolean            type_explicitly_specified, inline_specified;
   a_boolean            mutable_specified;
   a_symbol_ptr         rout_sym;
   a_member_decl_info   decl_info;
+  a_decl_parse_state   *decl_state = &decl_info.decl_state;
   a_boolean            is_member_template_rescan;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
@@ -12729,15 +12710,12 @@ passed via template_decl.
   char                 *asm_name = NULL;
   an_attribute_ptr     specifier_attributes = NULL;
 #if GNU_EXTENSIONS_ALLOWED
-  a_source_position    asm_name_pos;
   an_attribute_ptr     *last_specifier_attribute;
-  a_boolean            has_postfix_attributes = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
   decl_start_pos = pos_curr_token;
-  init_decl_parse_state(&state);
   initialize_member_decl_info(&decl_info, &decl_start_pos);
   is_member_template_rescan = (scope_stack[depth_scope_stack].kind ==
                                  (a_scope_kind)sck_template_instantiation);
@@ -12769,11 +12747,9 @@ passed via template_decl.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   add_stop_token(tok_colon);
-  (void)decl_specifiers(dsi_flags, &dso_flags, &decl_info.storage_class,
-                        &member_type, &state, &specifier_attributes,
-                        &ms_attributes, &decl_info.decl_modifiers,
-                        (a_named_register_id*)NULL, &decl_info.decl_pos_block,
-                        (a_upc_block_size *)NULL);
+  decl_specifiers(dsi_flags, decl_state, &decl_info.decl_pos_block);
+  dso_flags = decl_state->dso_flags;
+  member_type = decl_state->specifiers_type;
   no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
   type_explicitly_specified =
                            (dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0;
@@ -12783,8 +12759,8 @@ passed via template_decl.
   decl_info.is_constructor = (dso_flags & DSO_CONSTRUCTOR) != 0;
   decl_info.is_destructor = (dso_flags & DSO_DESTRUCTOR) != 0;
   mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
-  decl_info.dso_flags = dso_flags;
-  decl_info.qualifiers = state.qualifiers;
+  is_typedef =
+            decl_state->declared_storage_class == (a_storage_class)sc_typedef;
   remove_stop_token(tok_colon);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
@@ -12802,17 +12778,16 @@ passed via template_decl.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
-    if (ms_attributes != NULL &&
-        (is_member_template || is_member_template_rescan ||
-         is_template_context() ||
-         class_type->source_corresp.is_local_to_function)) {
+  if (microsoft_mode && decl_state->ms_attributes != NULL) {
+    if (is_member_template || is_member_template_rescan ||
+        is_template_context() ||
+        class_type->source_corresp.is_local_to_function) {
       /* Microsoft attributes cannot be specified on templates, nor on members
          of local class types.  When rescanning member templates, there is no
          need to repeat the diagnostic.*/
       an_error_code  ec = is_member_template_rescan ? ec_no_error
                                                     : ec_ms_attr_not_allowed;
-      dispose_of_unapplied_attributes(&ms_attributes, ec);
+      dispose_of_unapplied_attributes(&decl_state->ms_attributes, ec);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12827,8 +12802,7 @@ passed via template_decl.
     a_symbol_ptr  sym = (a_symbol_ptr)(tp->source_corresp.assoc_info);
 
     if (is_member_template) {
-      if (curr_token == tok_semicolon &&
-          decl_info.storage_class != (a_storage_class)sc_typedef) {
+      if (curr_token == tok_semicolon && !is_typedef) {
         /* Issue an error later, based on the symbol. */
         decl_info.member_sym = sym;
       }  /* if */
@@ -12895,6 +12869,7 @@ passed via template_decl.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* A declarator list should be present.  Scan it. */
   do {
+    a_decl_flag_set                   do_flags;
     a_symbol_locator                  locator;
     a_type_ptr                        local_type;
     a_func_info_block                 func_info;
@@ -12907,7 +12882,6 @@ passed via template_decl.
     a_boolean                         is_nonstatic_data_member = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     an_attribute_ptr                  declarator_attributes = NULL;
-    an_attribute_ptr                  attributes = NULL;
     a_boolean                         is_function = FALSE;
 
     declarator_start_pos = pos_curr_token;
@@ -12915,10 +12889,11 @@ passed via template_decl.
     add_stop_token(tok_colon);
     add_stop_token(tok_try);
     clear_func_info(&func_info);
-    /* Clear certain decl_info fields each time through the loop. */
-    decl_info.do_flags = DO_NO_OUTPUT_FLAGS;
+    /* Initialize certain decl_info fields each time through the loop. */
+    decl_state->storage_class = decl_state->declared_storage_class;
+    decl_state->do_flags = DO_NO_OUTPUT_FLAGS;
     decl_info.is_unnamed_field = FALSE;
-    decl_info.declarator_ssep = NULL;
+    decl_state->source_sequence_entry = NULL;
     decl_info.member_sym = NULL;
     if (!decl_info.is_first_in_declarator_list &&
         (dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR))) {
@@ -12946,7 +12921,7 @@ passed via template_decl.
     if (decl_info.is_unnamed_field || decl_info.is_anonymous_union) {
       local_type = member_type;
       set_to_error_locator(locator);
-      check_pending_qualifiers_used(&state);
+      check_pending_qualifiers_used(decl_state);
     } else if (no_decl_specifiers && !decl_info.is_constructor &&
                !decl_info.is_destructor && !is_declarator_start()) {
       remove_stop_token(tok_comma);
@@ -12994,13 +12969,13 @@ passed via template_decl.
         add_stop_token(tok_lbrace);
         /* Set the various flags for declarator processing (C++ only). */
         di_flags |= DI_OPERATOR_NAME_ALLOWED;
-        if (!type_explicitly_specified && state.qualifiers == TQ_NONE) {
+        if (!type_explicitly_specified && decl_state->qualifiers == TQ_NONE) {
           di_flags |= DI_NO_TYPE_SPECIFIERS;
         }  /* if */
         if (decl_info.is_constructor) di_flags |= DI_IS_CONSTRUCTOR;
-        if (decl_info.storage_class == (a_storage_class)sc_typedef) {
+        if (is_typedef) {
           di_flags |= DI_IS_TYPEDEF_DECLARATION;
-        } else if (decl_info.storage_class != (a_storage_class)sc_static &&
+        } else if (decl_state->storage_class != (a_storage_class)sc_static &&
                    !friend_specified) {
           /* The storage class "static" was not specified and it is not a
              typedef declaration.   Therefore, if this turns out to be a member
@@ -13023,8 +12998,8 @@ passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* While scanning the declarator it will be useful to know whether we're
          dealing with the declaration of a Microsoft property field. */
-      if (decl_info.decl_modifiers.get_property_name != NULL ||
-          decl_info.decl_modifiers.put_property_name != NULL) {
+      if (decl_state->decl_modifiers.get_property_name != NULL ||
+          decl_state->decl_modifiers.put_property_name != NULL) {
         di_flags |= DI_IS_MICROSOFT_PROPERTY;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13039,17 +13014,20 @@ passed via template_decl.
         di_flags |= DI_QUALIFIED_NAME_ALLOWED;
       }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-      /* Look for optional attributes, which are added to the specifier
-         attributes.  Note that the draft GNU C manual for version 3.1
-         says that in the future, these attributes may apply only to
-         the next declarator, but that they presently apply to all
-         declarators. */
       if (gnu_mode) {
-        /* Scan the attributes and add them to the specifier attributes. */
-        *last_specifier_attribute = scan_attributes();
-        /* Compute what's now the end of the specifier attributes. */
-        last_specifier_attribute =
-                                last_attribute_link(last_specifier_attribute);
+        /* Scan prefix declarator attributes.  Note that those can only
+           appear after a comma separating two declarators.  Any attributes
+           prefixing a leading declarator will have been parsed as part of
+           the specifier attributes.  The GNU documentation says that such
+           attributes apply to the entity associated with the subsequent
+           declarator only.  However, in reality, the GNU compiler appears
+           to ignore these prefix declarator attributes altogether when they
+           appear on class members.  We implement the documented behavior. */
+        scan_gnu_declarator_attributes((char**)NULL, &decl_state->asm_name_pos,
+                                       &declarator_attributes,
+                                       (a_boolean*)NULL,
+                                       decl_state->declared_storage_class,
+                                       /*is_function=*/FALSE);
         if (gcc_mode && depth_innermost_function_scope != NO_SCOPE_DEPTH) {
           /* GNU C allows VLA fields in local classes.  We will scan such
              fields in GNU C mode, but issue a warning that the field will
@@ -13063,41 +13041,43 @@ passed via template_decl.
          implicit "this" parameter type to be created. (Static member
          functions do not have an implicit "this" pointer. The class pointer
          will be ignored for data members.) */
-      declarator(di_flags, &decl_info.do_flags, &state, member_type,
+      declarator(di_flags, &decl_state->do_flags, decl_state, member_type,
                  friend_specified ? (a_type_ptr)NULL : class_type,
-                 &locator, &local_type, &decl_info.declarator_ssep, &func_info,
-                 &decl_info.decl_pos_block, &declarator_attributes);
+                 &locator, &local_type, &decl_state->source_sequence_entry,
+                 &func_info, &decl_info.decl_pos_block,
+                 &declarator_attributes);
+      do_flags = decl_state->do_flags;
       if (!C_mode()) {
         remove_stop_token(tok_lbrace);
         check_completed_member_type(&local_type, &locator, class_state,
                                     &decl_info);
         if (is_member_template_rescan) {
-          if (decl_info.storage_class != (a_storage_class)sc_unspecified &&
-              decl_info.storage_class != (a_storage_class)sc_static) {
+          if (decl_state->storage_class != (a_storage_class)sc_unspecified &&
+              decl_state->storage_class != (a_storage_class)sc_static) {
             /* An error will already have been issued on, e.g.,
                  struct A { template <class T> typedef A (T) { } };
             */
-            decl_info.storage_class = (a_storage_class)sc_unspecified;
+            decl_state->storage_class = (a_storage_class)sc_unspecified;
+            is_typedef = FALSE;
           }  /* if */
         }  /* if */
-        decl_info.is_constructor = 
-                                 (decl_info.do_flags & DO_IS_CONSTRUCTOR) != 0;
+        decl_info.is_constructor = (do_flags & DO_IS_CONSTRUCTOR) != 0;
         decl_info.is_destructor = locator.is_destructor_name ||
-                                  (decl_info.do_flags & DO_IS_DESTRUCTOR) != 0;
+                                  (do_flags & DO_IS_DESTRUCTOR) != 0;
       }  /* if */
-      is_function = (decl_info.storage_class != (a_storage_class)sc_typedef &&
-                     is_function_type(local_type));
+      is_function = (!is_typedef && is_function_type(local_type));
 #if GNU_EXTENSIONS_ALLOWED
-      has_postfix_attributes =
-                            (decl_info.do_flags & DO_POSTFIX_ATTRIBUTES) != 0;
-      scan_gnu_declarator_attributes(&asm_name, &asm_name_pos,
-                                     &declarator_attributes,
-                                     &has_postfix_attributes,
-                                     decl_info.storage_class, is_function);
-      /* Combine the specifier and declarator attributes (they are separated
-         again at the end of the loop). */
-      *last_specifier_attribute = declarator_attributes;
-      attributes = specifier_attributes;
+      { a_boolean  has_postfix_attributes =
+                                      (do_flags & DO_POSTFIX_ATTRIBUTES) != 0;
+        scan_gnu_declarator_attributes(&decl_state->asm_name,
+                                       &decl_state->asm_name_pos,
+                                       &declarator_attributes,
+                                       &has_postfix_attributes,
+                                       decl_state->storage_class, is_function);
+        /* Combine the specifier and declarator attributes (they are separated
+           again at the end of the loop). */
+        *decl_state->p_last_specifier_attribute = declarator_attributes;
+      }
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     remove_stop_token(tok_colon);
@@ -13174,28 +13154,28 @@ passed via template_decl.
            function type. */
         func_info.function_type_from_typedef = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        func_info.declarator_ssep = decl_info.declarator_ssep;
+        func_info.declarator_ssep = decl_state->source_sequence_entry;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         /* Such typedef function types are shared and so are unsuited to be
            the type of a defined function. */
         check_typedef_function_type(&local_type, &locator.source_position,
                                     function_def_present, class_type,
                                     (!friend_specified &&
-                                     decl_info.storage_class !=
+                                     decl_state->storage_class !=
                                           (a_storage_class)sc_static));
       }  /* if */
-      if (decl_info.dso_flags & DSO_VIRTUAL) {
+      if (dso_flags & DSO_VIRTUAL) {
         check_for_invalid_use_of_virtual(&locator, class_type, &decl_info);
       }  /* if */
       if (!friend_specified) {
         if ((decl_info.is_constructor || decl_info.is_destructor) &&
-            decl_info.storage_class == (a_storage_class)sc_static) {
+            decl_state->storage_class == (a_storage_class)sc_static) {
           /* Constructors and destructors may not be declared "static"
              (ARM 12.1, 12.4). */
           pos_error(ec_static_not_allowed, &decl_start_pos);
-          decl_info.storage_class = (a_storage_class)sc_unspecified;
+          decl_state->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
-        if (decl_info.is_constructor || decl_info.dso_flags & DSO_VIRTUAL) {
+        if (decl_info.is_constructor || dso_flags & DSO_VIRTUAL) {
           /* A class with a user-defined constructor or a virtual function
              cannot be an "aggregate" (8.5.1). */
           class_state->class_aggregate_ruled_out = TRUE;
@@ -13229,9 +13209,9 @@ passed via template_decl.
                                       templ_param_list, &func_info,
                                       class_state, &decl_info);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        if (decl_info.declarator_ssep != NULL) {
-          remove_from_src_seq_list(decl_info.declarator_ssep);
-          decl_info.declarator_ssep = NULL;
+        if (decl_state->source_sequence_entry != NULL) {
+          remove_from_src_seq_list(decl_state->source_sequence_entry);
+          decl_state->source_sequence_entry = NULL;
         }  /* if */
         if (!func_info.is_definition && !source_sequence_entries_disallowed) {
           /* Turn the source sequence entry for the a_template entry into a
@@ -13257,8 +13237,9 @@ passed via template_decl.
         /* Create a symbol for the member function. */
         decl_member_function(&locator, class_type, local_type, &func_info,
                              class_state, &decl_info,
-                             /*compiler_generated=*/FALSE, attributes,
-                             asm_name, &ms_attributes);
+                             /*compiler_generated=*/FALSE,
+                             decl_state->attributes,
+                             asm_name, &decl_state->ms_attributes);
         rout_sym = decl_info.member_sym;
         if (class_state->is_nonreal_instantiation &&
             !class_type->
@@ -13477,14 +13458,14 @@ passed via template_decl.
       remove_stop_token(tok_comma);
       discard_curr_construct_pragmas();
       break;
-    } else if (decl_info.dso_flags & (DSO_FRIEND | DSO_VIRTUAL | DSO_INLINE)) {
-      if (decl_info.dso_flags & DSO_FRIEND) {
+    } else if (dso_flags & (DSO_FRIEND | DSO_VIRTUAL | DSO_INLINE)) {
+      if (dso_flags & DSO_FRIEND) {
         pos_error(ec_bad_friend_decl, &decl_start_pos);
       }  /* if */            
-      if (decl_info.dso_flags & DSO_VIRTUAL) {
+      if (dso_flags & DSO_VIRTUAL) {
         pos_error(ec_virtual_not_allowed, &decl_start_pos);
       }  /* if */            
-      if (decl_info.dso_flags & DSO_INLINE) {
+      if (dso_flags & DSO_INLINE) {
         pos_error(ec_inline_and_nonfunction, &decl_start_pos);
       }  /* if */            
       remove_stop_token(tok_comma);
@@ -13494,9 +13475,9 @@ passed via template_decl.
       /* Error has already been issued if it wasn't processed as a
          function. */
       discard_curr_construct_pragmas();
-    } else if (decl_info.storage_class == (a_storage_class)sc_typedef) {
+    } else if (is_typedef) {
       check_assertion(C_dialect == C_dialect_cplusplus);
-      if (decl_info.do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
+      if (do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
         /* This looked like a cfront-style member function typedef.  Be sure
            the type was a function type. */
         if (is_function_type(local_type)) {
@@ -13519,9 +13500,9 @@ passed via template_decl.
                                       !no_decl_specifiers);
       }  /* if */
       /* Typedef declaration. */
-      decl_typedef(&locator, local_type, class_type, attributes,
-                   &ms_attributes, &decl_info.decl_modifiers,
-                   &decl_info.member_sym, decl_info.declarator_ssep,
+      decl_typedef(&locator, local_type, class_type, decl_state->attributes,
+                   &decl_state->ms_attributes, &decl_state->decl_modifiers,
+                   &decl_info.member_sym, decl_state->source_sequence_entry,
                    &decl_info.decl_pos_block);
       /* Note: access will have been set in decl_typedef. */
       if (curr_routine_fixup != NULL &&
@@ -13546,7 +13527,7 @@ passed via template_decl.
                ((is_scalar_type(local_type) && !mutable_specified &&
                  (get_type_qualifiers(local_type) == TQ_CONST)) ||
                 is_or_contains_template_param(local_type)) &&
-               decl_info.storage_class == (a_storage_class)sc_unspecified) {
+               decl_state->storage_class == (a_storage_class)sc_unspecified) {
       /* Provide support for the nonstandard declaration of a member constant
          of scalar type -- e.g., "const int I = 2;". */
       if (in_expression_context()) {
@@ -13571,7 +13552,7 @@ passed via template_decl.
                                       !no_decl_specifiers);
       }  /* if */
       if (!(missing_declarator || decl_info.is_unnamed_field) &&
-          !(decl_info.do_flags & DO_REAL_DECLARATOR_SCANNED) &&
+          !(do_flags & DO_REAL_DECLARATOR_SCANNED) &&
           is_error_locator(locator)) {
         /* Some problem occurred while parsing the declarator.  To avoid
            strange error recovery problems, we do not add a member to the
@@ -13580,21 +13561,14 @@ passed via template_decl.
            set to an error locator even though there could not possibly be
            a declarator-parsing error.) */
         check_assertion(total_errors != 0);
-      } else if (decl_info.storage_class == (a_storage_class)sc_static) {
+      } else if (decl_state->storage_class == (a_storage_class)sc_static) {
         /* Static data member. */
-        decl_static_data_member(&locator, class_type, local_type,
-                                class_state, &decl_info, attributes, asm_name,
-                                &ms_attributes);
+        decl_static_data_member(&locator, class_type, local_type, class_state,
+                                &decl_info);
       } else {
         /* Non-static data member (= field). */
         decl_nonstatic_data_member(&locator, class_type, local_type,
-                                   attributes, &ms_attributes, class_state,
-                                   &decl_info);
-#if GNU_EXTENSIONS_ALLOWED
-        if (asm_name != NULL) {
-          pos_error(ec_field_with_asm_name_not_allowed, &asm_name_pos);
-        }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+                                   class_state, &decl_info);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         is_nonstatic_data_member = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13613,22 +13587,23 @@ passed via template_decl.
     if (!is_nonstatic_data_member) {
       any_decl_other_than_nonstatic_data_member = TRUE;
     }  /* if */
-    if (ms_attributes != NULL) {
-      dispose_of_unapplied_attributes(&ms_attributes, ec_ms_attr_not_allowed);
+    if (decl_state->ms_attributes != NULL) {
+      dispose_of_unapplied_attributes(&decl_state->ms_attributes,
+                                      ec_ms_attr_not_allowed);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     remove_stop_token(tok_comma);
     decl_info.is_first_in_declarator_list = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
     /* We are done with the declarator attributes. */
-    *last_specifier_attribute = NULL;
+    *decl_state->p_last_specifier_attribute = NULL;
     free_attribute_list(declarator_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Loop for additional declarators. */
   } while (loop_token(tok_comma));
 next_declaration:;
   if ((dso_flags & DSO_EXPLICIT) && 
-       (!decl_info.is_constructor || (decl_info.dso_flags & DSO_FRIEND)) &&
+       (!decl_info.is_constructor || (dso_flags & DSO_FRIEND)) &&
       !(microsoft_mode && missing_declarator)) {
     /* The keyword "explicit" is allowed only on a constructor declaration,
        and in Microsoft mode on free standing class/enum declarations.  Note
@@ -13640,8 +13615,8 @@ next_declaration:;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     if (any_decl_other_than_nonstatic_data_member &&
-        (decl_info.decl_modifiers.get_property_name != NULL ||
-         decl_info.decl_modifiers.put_property_name != NULL)) {
+        (decl_state->decl_modifiers.get_property_name != NULL ||
+         decl_state->decl_modifiers.put_property_name != NULL)) {
         /* __declspec(property(...)) is allowed only on nonstatic data
            members. */
       pos_diagnostic(es_discretionary_error, ec_declspec_property_not_allowed,
@@ -13650,14 +13625,14 @@ next_declaration:;
     /* Restore the default name linkage if a linkage specification appeared
        among the decl-specifiers. */
     if (dso_flags & DSO_LINKAGE_SPEC_DECL) pop_name_linkage();
-    if (ms_attributes != NULL) {
+    if (decl_state->ms_attributes != NULL) {
       dispose_of_unapplied_attributes(&ms_attributes, ec_ms_attr_not_allowed);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   /* We are done with the prefix attributes. */
-  free_attribute_list( specifier_attributes);
+  free_attribute_list(specifier_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (decl_pos_block_ptr != NULL) {
     /* Return to the caller the extra source position information collected

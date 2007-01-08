@@ -8076,6 +8076,8 @@ information.
   dsi_flags = DSI_INLINE_ALLOWED |
               DSI_TYPE_SPECIFIER_ALLOWED |
               DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
+              DSI_GNU_ATTRIBUTES_ALLOWED |
+              DSI_MICROSOFT_ATTRIBUTES_ALLOWED |
               DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
   di_flags = DI_REAL_DECLARATOR_ALLOWED |
              DI_QUALIFIED_NAME_ALLOWED |
@@ -8104,10 +8106,12 @@ information.
   }  /* if */
   init_decl_parse_state(&state);
   decl_start_pos = pos_curr_token;
-  (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type, &state,
-                        attributes, (an_ms_attribute_ptr*)NULL, decl_modifiers,
-                        (a_named_register_id*)NULL, decl_pos_block,
-                        (a_upc_block_size *)NULL);
+  decl_specifiers(dsi_flags, &state, decl_pos_block);
+  *dso_flags = state.dso_flags;
+  state.storage_class = state.declared_storage_class;
+  *type = state.specifiers_type;
+  *attributes = state.attributes;
+  *decl_modifiers = state.decl_modifiers;
   if (is_error_type(*type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(*locator);
@@ -8117,7 +8121,7 @@ information.
     if (friend_specified) {
       di_flags |= DI_IS_FRIEND_DECL;
     }  /* if */
-    if (*storage_class != (a_storage_class)sc_static &&
+    if (state.storage_class != (a_storage_class)sc_static &&
         !friend_specified && parent_class != NULL) {
       /* The storage class "static" was not specified and this is a member
          declaration that is not a friend declaration, therefore, if this
@@ -8166,9 +8170,9 @@ information.
         /* This is a member template declaration outside the class definition,
            so a storage class may not be specified (as in the nontemplate
            case). */
-        if (*storage_class != (a_storage_class)sc_unspecified) {
+        if (state.storage_class != (a_storage_class)sc_unspecified) {
           pos_error(ec_storage_class_not_allowed, &decl_start_pos);
-          *storage_class = (a_storage_class)sc_unspecified;
+          state.storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
       }  /* if */
       /* Issue diagnostic on an incomplete-type in an exception
@@ -8213,6 +8217,7 @@ information.
        If necessary, keep flushing until end-of-source is found. */
     flush_past_token_cache_terminator();
   }  /* if */
+  *storage_class = state.storage_class;
 }  /* scan_template_declaration */
 
 
@@ -12388,8 +12393,6 @@ depends on a template parameter type, return TRUE in *template_dependent
   a_decl_flag_set              do_flags;
   a_decl_flag_set              dso_flags;
   a_decl_parse_state           state;
-  a_decl_modifiers_block       decl_modifiers;
-  a_storage_class              param_storage_class;
   a_source_position            param_pos;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_type_ptr                   tp;
@@ -12399,16 +12402,14 @@ depends on a template parameter type, return TRUE in *template_dependent
   param_pos = pos_curr_token;
   clear_decl_pos_block(&decl_pos_block);
   init_decl_parse_state(&state);
-  (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
-                         DSI_IS_TEMPLATE_PARAMETER),
-                        &dso_flags, &param_storage_class, param_type_ptr,
-                        &state, (an_attribute_ptr *)NULL,
-                        (an_ms_attribute_ptr*)NULL, &decl_modifiers,
-                        (a_named_register_id*)NULL, &decl_pos_block,
-                        (a_upc_block_size *)NULL);
+  decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_TEMPLATE_PARAMETER),
+                  &state, &decl_pos_block);
+  dso_flags = state.dso_flags;
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     pos_error(ec_type_definition_not_allowed, &param_pos);
     *param_type_ptr = error_type();
+  } else {
+    *param_type_ptr = state.specifiers_type;
   }  /* if */
   if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
@@ -15890,7 +15891,6 @@ that follows.
   a_symbol_locator              locator;
   a_decl_flag_set               do_flags, dso_flags, di_flags, dsi_flags;
   a_decl_parse_state            state;
-  a_decl_modifiers_block        decl_modifiers;
   a_source_sequence_entry_ptr   declarator_ssep = NULL;
   a_symbol_ptr		        sym;
   a_func_info_block             func_info;
@@ -15912,7 +15912,6 @@ that follows.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean			microsoft_nonstd_specialization = FALSE;
   an_attribute_ptr              *p_attributes = NULL;
-  an_attribute_ptr              attributes = NULL;
   a_boolean                     already_specialized = FALSE;
 
   db_enter(3, "full_specialization");
@@ -15923,13 +15922,13 @@ that follows.
      Reactivate them now. */
   reactivate_curr_construct_pragmas(decl_state->pragmas_bound_to_template);
   /* First scan the decl-specifiers. */
-  if (gpp_mode) {
-    /* Recognize GNU attributes while scanning the decl-specifiers. */
-    p_attributes = &attributes;
-  }  /* if */
   dsi_flags = DSI_IS_SPECIALIZATION | DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
               DSI_INLINE_ALLOWED    | DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER |
               DSI_TYPE_SPECIFIER_ALLOWED;
+  if (gpp_mode) {
+    /* Recognize GNU attributes while scanning the decl-specifiers. */
+    dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
+  }  /* if */
   if (decl_state->is_member_decl) {
     dsi_flags |= DSI_IS_MEMBER_DECLARATION;
     if (microsoft_mode) {
@@ -15942,10 +15941,11 @@ that follows.
        specializations. */
     dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
   }  /* if */
-  (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type, &state,
-                        p_attributes, (an_ms_attribute_ptr*)NULL, 
-                        &decl_modifiers, (a_named_register_id*)NULL,
-                        &decl_pos_block, (a_upc_block_size*)NULL);
+  decl_specifiers(dsi_flags, &state, &decl_pos_block);
+  dso_flags = state.dso_flags;
+  storage_class = state.declared_storage_class;
+  type = state.specifiers_type;
+  p_attributes = &state.attributes;
   /* A storage class is not permitted on an explicit specialization, except
      in GNU and Microsoft modes. */
   check_assertion(storage_class == (a_storage_class)sc_unspecified ||
@@ -16023,7 +16023,7 @@ that follows.
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-    if (attributes != NULL) {
+    if (state.attributes != NULL) {
       /* Append any declarator attributes to the attributes provided in the
          decl-specifier. */
       p_attributes = last_attribute_link(p_attributes);
@@ -16303,8 +16303,8 @@ that follows.
           pos_error(ec_inline_and_nonfunction, &decl_start_pos);
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-        if (attributes != NULL) {
-          apply_attributes_to_variable(attributes, vp, is_definition);
+        if (state.attributes != NULL) {
+          apply_attributes_to_variable(state.attributes, vp, is_definition);
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         /* Deal with initializer. */
@@ -16365,7 +16365,7 @@ that follows.
           a_source_position  saved_sym_pos;
           saved_sym_pos = sym->decl_position;
           sym->decl_position = prev_sym_pos;
-          update_variable_decl_modifiers(vp, &decl_modifiers,
+          update_variable_decl_modifiers(vp, &state.decl_modifiers,
                                          &locator.source_position,
                                          already_specialized, is_definition);
           sym->decl_position = saved_sym_pos;
@@ -16476,9 +16476,9 @@ that follows.
           type = skip_typerefs(type);
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-        if (attributes != NULL) {
+        if (state.attributes != NULL) {
           /* Apply the attributes to the routine. */
-          apply_attributes_to_routine(attributes, rp);
+          apply_attributes_to_routine(state.attributes, rp);
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE
@@ -16491,7 +16491,7 @@ that follows.
           a_source_position  saved_sym_pos;
           saved_sym_pos = sym->decl_position;
           sym->decl_position = prev_sym_pos;
-          update_routine_decl_modifiers(rp, &decl_modifiers,
+          update_routine_decl_modifiers(rp, &state.decl_modifiers,
                                         &locator.source_position,
                                         already_specialized, is_definition,
                                         (a_boolean)rp->is_inline);
@@ -21008,7 +21008,6 @@ instantiation.
   a_decl_flag_set              do_flags = DO_NO_OUTPUT_FLAGS;
   a_decl_flag_set              dso_flags, dsi_flags, di_flags;
   a_decl_parse_state           state;
-  a_decl_modifiers_block       decl_modifiers;
   a_symbol_ptr                 new_sym;
   a_source_sequence_entry_ptr  declarator_ssep;
   a_symbol_ptr                 sym;
@@ -21087,12 +21086,12 @@ instantiation.
        instantiations. */
     dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
   }  /* if */
-  (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type, &state,
-                        (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
-                        &decl_modifiers, (a_named_register_id*)NULL,
-                        &decl_pos_block, (a_upc_block_size*)NULL);
+  decl_specifiers(dsi_flags, &state, &decl_pos_block);
+  dso_flags = state.dso_flags;
+  storage_class = state.declared_storage_class;
+  type = state.specifiers_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED && DECL_MODIFIERS_IN_USE
-  if (microsoft_mode && (decl_modifiers.flags & DM_DLLIMPORT) != 0) {
+  if (microsoft_mode && (state.decl_modifiers.flags & DM_DLLIMPORT) != 0) {
     /* Microsoft compilers treat __declspec(dllimport) in an explicit
        instantiation directive as if the directive was "extern template";
        i.e., a "do not instantiate" directive. */
@@ -21133,7 +21132,7 @@ instantiation.
       }  /* if */
     }  /* if */
 #if SUN_EXTENSIONS_ALLOWED
-    if (sun_mode && (decl_modifiers.flags & DM_ANY_SUN_LINK_SCOPE)) {
+    if (sun_mode && (state.decl_modifiers.flags & DM_ANY_SUN_LINK_SCOPE)) {
       error(ec_invalid_link_scope);
     }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
@@ -21271,11 +21270,10 @@ instantiation.
         /* In Microsoft mode __declspec(...) modifiers are accepted -- e.g.,
            dllimport on an "extern template" declaration. */
         update_routine_decl_modifiers(
-                             new_sym->variant.routine.ptr, &decl_modifiers,
-                             &locator.source_position, /*is_redecl=*/FALSE,
-                             (kind != (a_pragma_kind)pk_do_not_instantiate),
-                             (a_boolean)new_sym->
-                                          variant.routine.ptr->is_inline);
+                          new_sym->variant.routine.ptr, &state.decl_modifiers,
+                          &locator.source_position, /*is_redecl=*/FALSE,
+                          (kind != (a_pragma_kind)pk_do_not_instantiate),
+                          (a_boolean)new_sym-> variant.routine.ptr->is_inline);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (!is_pragma) {
           make_instantiation_directive(kind, new_sym, ssep,

@@ -308,7 +308,8 @@ typedef struct a_decl_parse_state {
 			   linkage specifiers nor decl-specifiers. */
   a_bit_field
 		decl_specifiers_error:1;
-			/* The return value of the call to decl_specifiers. */
+			/* TRUE if an error occurred during the call to
+			   "decl_specifiers". */
   a_bit_field
 		need_semicolon_remove_stop_token:1;
 			/* tok_semicolon is a stop token that still needs to be
@@ -346,10 +347,21 @@ typedef struct a_decl_parse_state {
 		attributes;
 			/* A list of GNU attributes scanned for the current
 			   declaration. */
+  an_attribute_ptr
+		*p_last_specifier_attribute;
+			/* This points to the attribute pointer in the
+                           "attributes" list that points to the last
+			   attribute scanned by a call to decl_specifiers.
+			   If there are no such attributes, this points to
+			   the "attributes" field itself. */
   a_named_register_id
 		register_id;
 			/* An integer representing a named register storage
 			   class (zero if no named register was specified). */
+  a_source_position
+		storage_class_pos;
+			/* The position of any explicitly specified storage
+			   class. */
   a_storage_class
 		declared_storage_class;
 			/* The storage class as it appears in the source. */
@@ -377,6 +389,11 @@ typedef struct a_decl_parse_state {
 			   old-style C parameter definition.  May be NULL even
 			   when is_old_style_param_decl is TRUE in error
 			   cases. */
+  a_upc_block_size
+		upc_block_size;
+			/* The UPC block size associated with any UPC shared
+			   qualifier (or UPC_BLOCK_SIZE_NONE if there is no
+			   such qualifier). */
 } a_decl_parse_state;
 
 
@@ -389,7 +406,10 @@ EXTERN a_decl_parse_state
 Macro to initialize the "declaration parsing state" pointed to by the
 argument.
 */
-#define init_decl_parse_state(ps) { *(ps) = null_decl_parse_state; }
+#define init_decl_parse_state(ps) {                                          \
+  *(ps) = null_decl_parse_state;                                             \
+  (ps)->p_last_specifier_attribute = &(ps)->attributes;                      \
+}
 
 extern void f_check_pending_qualifiers_used(a_decl_parse_state  *ps);
 

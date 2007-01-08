@@ -495,8 +495,7 @@ declaration of a class member.
           pos_st_warning(ec_struct_declspec_ignored_in_C_mode,
                          &pos_curr_token, modifier);
         } else if (decl_modifiers->flags & DM_DLLIMPORT) {
-          /* The dllimport and dllexport attributes are mutually
-             exclusive. */
+          /* The dllimport and dllexport attributes are mutually exclusive. */
           warning(ec_bad_combination_of_dll_attributes);
         } else {
           decl_modifiers->flags |= DM_DLLEXPORT;
@@ -6530,26 +6529,17 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
 #endif /* !NAMED_REGISTERS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED */
 static void process_storage_class_specifier(
                                   a_decl_flag_set        input_flags,
-                                  a_decl_flag_set        *output_flags,
-                                  a_storage_class        *storage_class,
-                                  an_ms_attribute_ptr    *p_ms_attributes,
+                                  a_decl_parse_state     *state,
                                   a_decl_pos_block_ptr   decl_pos_block,
-				  a_source_position      *storage_class_pos,
                                   a_decl_specifiers_set  *decl_specifiers_seen,
-                                  a_named_register_id    *register_id,
                                   a_boolean              *err)
 /*
 This is a helper function for decl_specifiers(...) called when the current
 token is a storage class specifier (or "mutable", which is syntactically
-similar). input_flags, output_flags, storage_class, p_ms_attributes, and
-decl_pos_block are parameters forwarded from decl_specifiers.
-*storage_class_pos is set to the position of the specifier (except for error
-cases).  *decl_specifiers_seen is updated with an indication of the specifiers
-that were consumed.  If a named-register storage class specifier (an Embedded
-C extension) is seen, the associated register id is stored in *register_id.
-If register_id is NULL, named-register storage specifiers are not considered.
-*err is set to TRUE if an error is issued.  All the storage class specifier
-tokens are consumed by this routine.
+similar). input_flags, state, and decl_pos_block are parameters forwarded from
+decl_specifiers.  *decl_specifiers_seen is updated with an indication of the
+specifiers that were consumed.  *err is set to TRUE if an error is issued.
+All the storage class specifier tokens are consumed by this routine.
 */
 {
   a_boolean          is_parameter = (input_flags & DSI_IS_PARAMETER);
@@ -6567,13 +6557,13 @@ tokens are consumed by this routine.
     a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
     if (sym != NULL && sym->kind == (a_symbol_kind)sk_named_register) {
       is_named_register = TRUE;
-      if (register_id == NULL ||
+      if (!(input_flags & DSI_REGISTER_ID_ALLOWED) ||
           (input_flags & (DSI_IS_MEMBER_DECLARATION |
                           DSI_IS_PARAMETER |
                           DSI_IS_CONDITION_DECL))) {
         pos_error(ec_named_register_not_allowed, &pos_curr_token);
       } else {
-        *register_id = sym->variant.named_register.id;
+        state->register_id = sym->variant.named_register.id;
       }  /* if */
       (void)get_token();
     }  /* if */
@@ -6585,7 +6575,7 @@ tokens are consumed by this routine.
                &pos_first_token);
     *err = TRUE;
 #if ASM_FUNCTION_ALLOWED
-  } else if (*storage_class == (a_storage_class)sc_asm) {
+  } else if (state->declared_storage_class == (a_storage_class)sc_asm) {
     pos_error(ec_storage_class_not_allowed, &pos_first_token);
     *err = TRUE;
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -6600,7 +6590,7 @@ tokens are consumed by this routine.
     if (first_token == tok_typedef) {
       if (input_flags & DSI_IS_OLD_STYLE_PARAM_DECL) {
         /* Error will be handled by caller. */
-        *storage_class = (a_storage_class)sc_typedef;
+        state->declared_storage_class = (a_storage_class)sc_typedef;
         *decl_specifiers_seen |= DS_STORAGE_CLASS;
       } else {
         pos_error(ec_typedef_not_allowed, &pos_first_token);
@@ -6635,8 +6625,8 @@ tokens are consumed by this routine.
          be issued on mutable until the declarator has been scanned.
          Just return a flag to the caller. */
       *decl_specifiers_seen |= DS_MUTABLE;
-      *output_flags |= DSO_MUTABLE;
-      *storage_class_pos = pos_first_token;
+      state->dso_flags |= DSO_MUTABLE;
+      state->storage_class_pos = pos_first_token;
     }  /* if */
   } else if ((*decl_specifiers_seen & DS_FRIEND) &&
              !microsoft_mode && !sun_mode) {
@@ -6695,7 +6685,7 @@ tokens are consumed by this routine.
     /* Issue a diagnostic for the specification of a storage class on
        a condition declaration.  Ignore auto and register except in
        strict mode.  Only set *err if an error is issued.  Do not
-       set *storage_class. */
+       set state->declared_storage_class. */
     an_error_severity  es;
     if (first_token == tok_auto || first_token == tok_register) {
       es = strict_ansi_mode ? strict_ansi_error_severity : es_none;
@@ -6736,7 +6726,7 @@ tokens are consumed by this routine.
       }  /* if */
     }  /* if */
     *decl_specifiers_seen |= DS_STORAGE_CLASS;
-    *storage_class_pos = pos_first_token;
+    state->storage_class_pos = pos_first_token;
     if (decl_pos_block != NULL) {
       /* Set the source position of the storage class for use by the
          caller in issuing diagnostics. */
@@ -6744,20 +6734,21 @@ tokens are consumed by this routine.
     }  /* if */
     switch (first_token) {
       case tok_typedef:
-        *storage_class = (a_storage_class)sc_typedef;  break;
+        state->declared_storage_class = (a_storage_class)sc_typedef;  break;
       case tok_extern:
-        *storage_class = (a_storage_class)sc_extern;   break;
+        state->declared_storage_class = (a_storage_class)sc_extern;   break;
       case tok_static:
-        *storage_class = (a_storage_class)sc_static;   break;
+        state->declared_storage_class = (a_storage_class)sc_static;   break;
       case tok_auto:
-        *storage_class = (a_storage_class)sc_auto;     break;
+        state->declared_storage_class = (a_storage_class)sc_auto;     break;
       case tok_register:
         /* The storage class depends on whether this was a classic (unnamed)
            register storage specifier, or a named-register storage specifier
            (the latter is an Embedded C extension). */
         /* coverity[dead_error_condition] */
-        *storage_class = is_named_register ? (a_storage_class)sc_extern
-                                           : (a_storage_class)sc_register;
+        state->declared_storage_class =
+                             is_named_register ? (a_storage_class)sc_extern
+                                               : (a_storage_class)sc_register;
         break;
 #if CHECKING
       default:
@@ -6769,29 +6760,16 @@ tokens are consumed by this routine.
   if (microsoft_mode && first_token == tok_typedef &&
       curr_token == tok_lbracket) {
     /* Microsoft attributes can follow the typedef keyword. */
-    scan_and_append_microsoft_attributes(p_ms_attributes,
+    scan_and_append_microsoft_attributes(&state->ms_attributes,
                                          /*is_parameter=*/FALSE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* process_storage_class_specifier */
 
 
-#if !GNU_EXTENSIONS_ALLOWED || !UPC_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- attributes is only used when GNU extension are allowed.
-                    upc_block_size is only used when UPC extensions are
-                    allowed. */
-#endif /* !GNU_EXTENSIONS_ALLOWED || !UPC_EXTENSIONS_ALLOWED */
-a_boolean decl_specifiers(a_decl_flag_set            input_flags,
-                          a_decl_flag_set            *output_flags,
-                          a_storage_class            *storage_class,
-                          a_type_ptr                 *type_ptr,
-                          a_decl_parse_state         *state,
-                          an_attribute_ptr           *attributes,
-                          an_ms_attribute_ptr        *p_ms_attributes,
-                          a_decl_modifiers_block_ptr decl_modifiers,
-                          a_named_register_id        *register_id,
-                          a_decl_pos_block_ptr       decl_pos_block,
-                          a_upc_block_size           *upc_block_size)
+void decl_specifiers(a_decl_flag_set            input_flags,
+                     a_decl_parse_state         *state,
+                     a_decl_pos_block_ptr       decl_pos_block)
 /*
 Scan a list of declaration specifiers.  Specifically, scan a
 declaration-specifiers (3.5), a specifier_qualifier_list (3.5.2.1), or
@@ -6924,7 +6902,6 @@ Returns TRUE if there is an error in the specifiers.
   a_type_size                size = size_none;
   a_complex_attribute        complex_attr = cxa_none;
   a_boolean                  saturating_fixed_point = FALSE;
-  a_source_position          storage_class_pos;
   a_boolean                  bad_type_name_error;
   a_decl_specifiers_set      decl_specifiers_seen;
   a_boolean                  any_decl_specifiers_seen = FALSE;
@@ -6941,19 +6918,14 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_named_address_space_id   named_address_space;
   a_type_qualifier_set       qualifiers = TQ_NONE;
+  a_storage_class            *storage_class = &state->declared_storage_class;
+  a_type_ptr                 *type_ptr = &state->specifiers_type;
+  a_decl_flag_set            *output_flags = &state->dso_flags;
  
   db_enter(3, "decl_specifiers");
-  *output_flags = DSO_NO_OUTPUT_FLAGS;
-  *storage_class = (a_storage_class)sc_unspecified;
-  *type_ptr = NULL;
-  clear_decl_modifiers_block(decl_modifiers);
-#if UPC_EXTENSIONS_ALLOWED
-  if (upc_block_size != NULL) *upc_block_size = 0;
-#endif /* UPC_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  if (attributes != NULL) *attributes = NULL;
   if (marked_as_gnu_extension) {
-    decl_modifiers->marked_as_gnu_extension = TRUE;
+    state->decl_modifiers.marked_as_gnu_extension = TRUE;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   decl_specifiers_seen = DS_NONE;
@@ -6992,14 +6964,13 @@ Returns TRUE if there is an error in the specifiers.
                before a linkage specification.  No other decl-modifiers are
                allowed to precede a linkage specification. */
             a_name_linkage_kind  kind;
-
             /* The Microsoft compiler appears simply to ignore the
                decl-modifiers that precede the linkage specifier:
                  __declspec(dllexport) extern "C" void f();
                  extern "C" void f();      // MSVC++ issues no error
                Therefore, we throw away any decl-modifiers that were
                accumulated to this point. */
-            clear_decl_modifiers_block(decl_modifiers);
+            clear_decl_modifiers_block(&state->decl_modifiers);
             warning(ec_decl_modifiers_ignored);
             /* Advance to the string token. */
             (void)get_token();
@@ -7027,10 +6998,8 @@ storage_class_specifier:
         if ((input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS)) {
           warning(ec_secondary_specifier_ignored);
         } else {
-          process_storage_class_specifier(
-                          input_flags, output_flags, storage_class,
-                          p_ms_attributes, decl_pos_block, &storage_class_pos,
-                          &decl_specifiers_seen, register_id, &err);
+          process_storage_class_specifier(input_flags, state, decl_pos_block, 
+                                          &decl_specifiers_seen, &err);
           goto no_get_token;
         }  /* if */
         break;
@@ -7038,7 +7007,8 @@ storage_class_specifier:
       case tok_thread:
         /* A storage specifier allowed in certain modes (can be combined with
            "extern" or "static". */
-        scan_thread_local_storage_specifier(input_flags, decl_modifiers);
+        scan_thread_local_storage_specifier(input_flags,
+                                            &state->decl_modifiers);
         break;
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 #if ASM_FUNCTION_ALLOWED
@@ -7070,7 +7040,7 @@ storage_class_specifier:
       case tok_hidden_link_scope:
         /* A Sun-specific storage class allowed only on function and variable
            declarations with external linkage. */
-        scan_link_scope_specifier(input_flags, decl_modifiers);
+        scan_link_scope_specifier(input_flags, &state->decl_modifiers);
         break;
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -7088,7 +7058,7 @@ storage_class_specifier:
           }  /* if */
           microsoft_specific_decl_specifiers(input_flags, output_flags,
                                              &decl_specifiers_seen,
-                                             decl_modifiers,
+                                             &state->decl_modifiers,
                                              &no_remaining_token, &err);
           if ((*output_flags & DSO_INLINE) == 0) {
             /* Only a __declspec was scanned, and that may precede a vacuous
@@ -7101,7 +7071,7 @@ storage_class_specifier:
       case tok_lbracket:
         if (any_decl_specifiers_seen || !microsoft_mode || C_mode() ||
             (input_flags & DSI_IN_ABSTRACT_FUNC_DECLARATOR) != 0 ||
-             p_ms_attributes == NULL) {
+            (input_flags & DSI_MICROSOFT_ATTRIBUTES_ALLOWED) == 0) {
           /* Microsoft attributes have to precede any specifiers.  They are
              only recognized in Microsoft C++ mode.  Attributes are not
              allowed on parameters of abstract declarators. */
@@ -7110,7 +7080,7 @@ storage_class_specifier:
           /* Microsoft attributes are valid here.  Append them to any
              attributes that we might have seen before. */
           scan_and_append_microsoft_attributes(
-                      p_ms_attributes, (input_flags & DSI_IS_PARAMETER) != 0);
+                 &state->ms_attributes, (input_flags & DSI_IS_PARAMETER) != 0);
           goto no_get_token;
         }  /* if */
         /*NOTREACHED*/
@@ -7118,18 +7088,14 @@ storage_class_specifier:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
       case tok_attribute:
-        if (attributes != NULL) {
+        if ((input_flags & DSI_GNU_ATTRIBUTES_ALLOWED) != 0) {
           /* Scan the attributes. */
-          *attributes = scan_attributes();
-          /* Advance the pointer to the end of the list so that if we
-             encounter more attributes later they will be added to the
-             end of the list. */
-          while (*attributes != NULL) {
-            attributes = &(*attributes)->next;
-          }  /* while */
+          *state->p_last_specifier_attribute = scan_attributes();
+          state->p_last_specifier_attribute =
+                       last_attribute_link(state->p_last_specifier_attribute);
         } else {
-          /* Attributes are not allowed here.  Scan them anyhow, and
-             then throw them away. */
+          /* Attributes are not allowed here.  Scan them anyhow, and then
+             throw them away. */
           error(ec_attribute_not_allowed);
           free_attribute_list(scan_attributes());
         }  /* if */
@@ -7381,7 +7347,7 @@ storage_class_specifier:
               *storage_class = (a_storage_class)sc_unspecified;
               decl_specifiers_seen &= ~(DS_STORAGE_CLASS);
             } else if (decl_specifiers_seen & DS_MUTABLE) {
-              pos_error(ec_mutable_not_allowed, &storage_class_pos);
+              pos_error(ec_mutable_not_allowed, &state->storage_class_pos);
               err = TRUE;
               decl_specifiers_seen &= ~(DS_MUTABLE);
               *output_flags &= ~DSO_MUTABLE;
@@ -7741,8 +7707,8 @@ process_class_specifier:
                           (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
-                          marked_as_gnu_extension, decl_modifiers,
-                          p_ms_attributes, type_ptr, &declares_something,
+                          marked_as_gnu_extension, &state->decl_modifiers,
+                          &state->ms_attributes, type_ptr, &declares_something,
                           &defines_something, decl_pos_block)) {
                 err = TRUE;
               }  /* if */
@@ -7763,7 +7729,7 @@ process_class_specifier:
                           (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
-                          marked_as_gnu_extension, decl_modifiers,
+                          marked_as_gnu_extension, &state->decl_modifiers,
                           (an_ms_attribute_ptr*)NULL, &dummy_type, &dummy_flag,
                           &dummy_flag, decl_pos_block);
           }  /* if */
@@ -7778,7 +7744,8 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            enum_specifier(vacuous_decl_allowed, type_ptr, p_ms_attributes,
+            enum_specifier(vacuous_decl_allowed, type_ptr,
+                           &state->ms_attributes,
                            &declares_something, &defines_something,
                            decl_pos_block);
             if (is_error_type(*type_ptr)) {
@@ -8356,7 +8323,8 @@ exit_loop:
          with a warning. */
       if (*storage_class != (a_storage_class)sc_extern &&
           *storage_class != (a_storage_class)sc_static) {
-        pos_warning(ec_storage_class_in_friend_decl, &storage_class_pos);
+        pos_warning(ec_storage_class_in_friend_decl,
+                    &state->storage_class_pos);
         *storage_class = (a_storage_class)sc_unspecified;
         decl_specifiers_seen &= ~DS_STORAGE_CLASS;
       }  /* if */
@@ -8366,7 +8334,7 @@ exit_loop:
          declaration. */
       if (*storage_class != (a_storage_class)sc_typedef &&
           *storage_class != (a_storage_class)sc_static) {
-        pos_error(ec_bad_member_storage_class, &storage_class_pos);
+        pos_error(ec_bad_member_storage_class, &state->storage_class_pos);
         *storage_class = (a_storage_class)sc_unspecified;
         decl_specifiers_seen &= ~DS_STORAGE_CLASS;
       }  /* if */
@@ -8478,11 +8446,9 @@ exit_loop:
 #if UPC_EXTENSIONS_ALLOWED
   } else if (upc_mode && !err) {
     if (qualifiers & TQ_UPC_SHARED) {
-    /* A shared type qualifier was correctly parsed.  Pass the associated
-       block size back to the caller if needed. */
-      if (upc_block_size != NULL) {
-        *upc_block_size = block_size;
-      }  /* if */
+      /* A shared type qualifier was correctly parsed.  Pass the associated
+         block size back to the caller if needed. */
+      state->upc_block_size = block_size;
     } else if (!err) {
       /* The UPC strict and relaxed qualifiers can only appear combined with
          the shared qualifier. */
@@ -8508,10 +8474,10 @@ exit_loop:
     (void)fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
+  state->storage_class = state->declared_storage_class;
+  state->decl_specifiers_error = err;
   db_exit();
-  return(err);
 }  /* decl_specifiers */
-
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -8536,8 +8502,6 @@ This Microsoft extension/bug is sometimes used in "for" statements:
 See decl_specifiers(...) for the meaning of the parameters.
 */
 {
-  a_storage_class         storage_class;
-  a_decl_modifiers_block  decl_modifiers;
   a_type_qualifier_set    saved_qualifiers = state->qualifiers;
   a_source_position       pos;
 
@@ -8546,11 +8510,7 @@ See decl_specifiers(...) for the meaning of the parameters.
   input_flags &= ~(DSI_INLINE_ALLOWED | DSI_ASM_ALLOWED |
                    DSI_EMPTY_DECL_SPECIFIERS_ALLOWED);
   input_flags |= DSI_MICROSOFT_SECONDARY_SPECIFIERS;
-  (void)decl_specifiers(
-          input_flags, &state->dso_flags, &storage_class,
-          &state->specifiers_type, state, (an_attribute_ptr*)NULL,
-          (an_ms_attribute**)NULL, &decl_modifiers, (a_named_register_id*)NULL,
-          decl_pos_block, (a_upc_block_size*)NULL);
+  decl_specifiers(input_flags, state, decl_pos_block);
   /* Restore the primary cv-qualifiers: */
   state->qualifiers = saved_qualifiers;
   (void)add_type_qualifiers(&state->specifiers_type, state,
