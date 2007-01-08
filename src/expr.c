@@ -14832,6 +14832,7 @@ See section 3.3.16 of the standard.
   an_expr_node_ptr      temp_init_expr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean             imaginary_arithmetic = FALSE;
+  an_error_code         err_code;
 
   db_enter(4, "scan_compound_assignment_operator");
 
@@ -15129,6 +15130,26 @@ See section 3.3.16 of the standard.
           /* In C++, assignment operators return lvalues. */
           change_assignment_result_to_lvalue(result, operand_1,
                                              orig_result_type);
+        }  /* if */
+        if ((save_token == tok_divide_assign || 
+             save_token == tok_remainder_assign) &&
+            curr_expr_is_evaluated() && op_is_zero_constant(&operand_2)) {
+          /* Warn on a division or mod by zero. */
+          pos_warning((save_token == tok_divide_assign) ? ec_divide_by_zero :
+                                                          ec_mod_by_zero,
+                      &operand_2.position);
+        }  /* if */
+        if ((save_token == tok_shift_left_assign ||
+             save_token == tok_shift_right_assign) &&
+            curr_expr_is_evaluated() && is_constant_operand(&operand_2) &&
+            operand_2.variant.constant.kind == 
+                                           (a_constant_repr_kind)ck_integer) {
+          /* Check the shift count for invalid values. */
+          check_shift_count(&operand_2.variant.constant, operand_1->type,
+                            &err_code);
+          if (err_code != ec_no_error) {
+            pos_warning(err_code, &operand_2.position);
+          } /* if */
         }  /* if */
       }  /* if */
     }  /* if */
