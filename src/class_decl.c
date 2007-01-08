@@ -12708,7 +12708,6 @@ passed via template_decl.
   a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   char                 *asm_name = NULL;
-  an_attribute_ptr     specifier_attributes = NULL;
 
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
@@ -13625,7 +13624,7 @@ next_declaration:;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   /* We are done with the prefix attributes. */
-  free_attribute_list(specifier_attributes);
+  free_attribute_list(decl_state->attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (decl_pos_block_ptr != NULL) {
     /* Return to the caller the extra source position information collected

@@ -13775,7 +13775,6 @@ Broadly speaking, three kinds of declarations are handled here:
   a_symbol_locator             locator;
   a_func_info_block            func_info;
   a_boolean                    first_declarator = TRUE;
-  an_attribute_ptr             specifier_attributes = NULL;
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean                    has_postfix_attributes = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -14069,7 +14068,7 @@ return_point:
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  free_attribute_list(specifier_attributes);
+  free_attribute_list(state.attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Do necessary remove_stop_tokens.  Even when there is no error, this
      does the remove_stop_token for tok_semicolon. */
