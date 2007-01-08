@@ -12731,17 +12731,18 @@ passed via template_decl.
       decl_info.is_member_template = TRUE;
     }  /* if */
   }  /* if */
-  /* First scan the declaration specifiers.  In C++ the specifiers may be
-     omitted, e.g., for a function member with implicit type. */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
-    dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
+    dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
+                 DSI_GNU_ATTRIBUTES_ALLOWED;
     if (curr_token == tok_extension) {
       dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
       (void)get_token();
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  /* First scan the declaration specifiers.  In C++ the specifiers may be
+     omitted, e.g., for a function member with implicit type. */
   add_stop_token(tok_colon);
   decl_specifiers(dsi_flags, decl_state, &decl_info.decl_pos_block);
   dso_flags = decl_state->dso_flags;
