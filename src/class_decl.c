@@ -12709,9 +12709,6 @@ passed via template_decl.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   char                 *asm_name = NULL;
   an_attribute_ptr     specifier_attributes = NULL;
-#if GNU_EXTENSIONS_ALLOWED
-  an_attribute_ptr     *last_specifier_attribute;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
@@ -12791,10 +12788,6 @@ passed via template_decl.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-  /* Find the last prefix_attribute. */
-  last_specifier_attribute = last_attribute_link(&specifier_attributes);
-#endif /* GNU_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {
     /* Should be a class, struct, union, or enum definition. */
