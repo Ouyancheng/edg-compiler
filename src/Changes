@@ -32,12 +32,17 @@ For example:
 1/3/07   C++-generating back end: __builtin_va_list in template arguments
 
 When GCC_BUILTIN_VARARGS is TRUE, in GNU emulation modes the front end
-predefines the type __builtin_va_list as a typedef to void *.  If this type
-is used in a template argument, the C++-generating back end put out the
-underlying type rather than the typedef name.  However, on some platforms
-the GNU compilers define __builtin_va_list as a type other than void *,
-leading to errors when the generated code was compiled.  This is now fixed.
-For example:
+predefines the type __builtin_va_list as a typedef for void *.  Although on
+some platforms the GNU compilers use a type other than void * for
+__builtin_va_list, the fact that both the front end and source code
+generally treat __builtin_va_list as an opaque type avoids most
+difficulties resulting from the mismatch.  Because of the change of
+11/10/04, however, the C++-generating back end put out the underlying type
+instead of the typedef name when __builtin_va_list was used as a template
+argument, which could cause errors if the generated code was compiled on
+platforms that do not use void * for this type.  This has now been fixed by
+retaining the __builtin_va_list typedef in the generated code.  For
+example:
 
   typedef __builtin_va_list VL;
   void f(void (*)(VL));
