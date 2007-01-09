@@ -6877,7 +6877,7 @@ variable can be diagnosed.
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   } else if (!var->has_named_register_storage_class &&
-      (!var->asm_name_is_valid || var->asm_name_or_reg.name != NULL)) {
+             (!var->asm_name_is_valid || var->asm_name_or_reg.name != NULL)) {
     /* The variable was already mapped using a GNU construct or a Sun
        pragma. */
     pos_error(ec_aliased_variable_cannot_have_register_storage_class, pos);

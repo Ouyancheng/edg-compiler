@@ -519,6 +519,10 @@ extern void set_constant_address_constant(a_constant_ptr constant,
 #if GNU_EXTENSIONS_ALLOWED
 extern void set_label_address_constant(a_label_ptr label,
                                        a_constant  *con);
+
+#define var_is_gnu_named_register(var)                                     \
+  (!var_has_named_register_storage_class((var)) &&                         \
+   !(var)->asm_name_is_valid)
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern void set_ptr_to_member_function_constant(a_routine_ptr routine,
@@ -541,6 +545,11 @@ extern void record_named_register_storage_class(
                                              a_named_register_id  register_id,
                                              a_boolean            is_redecl,
                                              a_source_position    *pos);
+
+#define var_has_named_register_storage_class(var)                            \
+  ((var)->has_named_register_storage_class)
+#else /* !NAMED_REGISTERS_ALLOWED */
+#define var_has_named_register_storage_class(var)  FALSE
 #endif /* NAMED_REGISTERS_ALLOWED */
 
 extern a_boolean may_be_added_to_types_list(a_type_ptr     type_ptr,

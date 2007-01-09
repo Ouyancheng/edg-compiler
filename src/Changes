@@ -1,5 +1,16 @@
 Version 3.9
 
+1/8/07   Global variables with GNU-style register mapping
+
+In GNU modes, global variables mapped onto specific registers using the "asm"
+construct are no longer removed from the IL when removing unneeded entities
+(even when they are not used).  This reflects the fact that the declaration
+of such a variable reserves the associated register for that variable (within
+the entire program).  For example:
+
+  register int x asm("r4");  // a_variable entry for variable x will not be
+                             // removed from the IL.
+
 1/8/07   Warn when compound assignment operands have invalid values
 
 A warning is now emitted when the constant operand of a /= or %= compound

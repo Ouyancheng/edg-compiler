@@ -6343,7 +6343,7 @@ parameters.
 #if GNU_EXTENSIONS_ALLOWED
       /* A variable assigned to a specific register must always be put
          out with the "register" keyword. */
-      if (!variable->asm_name_is_valid) {
+      if (var_is_gnu_named_register(variable)) {
         storage_class = (a_storage_class)sc_register;
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

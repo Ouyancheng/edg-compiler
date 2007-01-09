@@ -3167,7 +3167,7 @@ returned set to TRUE.
       }  /* if */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && static_lifetime && !vp->asm_name_is_valid &&
+    if (gnu_mode && static_lifetime && var_is_gnu_named_register(vp) &&
         vp->asm_name_or_reg.reg != (a_named_register)anr_invalid) {
       /* A variable with static lifetime declared to map onto a specific
          register (using the GNU asm("register-name") construct) cannot have
