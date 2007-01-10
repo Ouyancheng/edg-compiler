@@ -369,10 +369,11 @@ init_info and init_context are pointers to blocks of information tracking this
 initialization; otherwise, these pointers are NULL.
 */
 {
-  a_boolean      is_string_init = FALSE;
-  a_boolean      paren_flag = FALSE;
-  a_boolean      using_pending_init_con = FALSE;
-  a_constant_ptr cp;
+  a_boolean          is_string_init = FALSE;
+  a_boolean          is_parenthesized = FALSE, paren_flag = FALSE;
+  a_source_position  lparen_pos;
+  a_boolean          using_pending_init_con = FALSE;
+  a_constant_ptr     cp;
 
   if (is_string_type(*type_ptr) ||
       (is_template_dependent_type(*type_ptr) && is_array_type(*type_ptr))) {
@@ -387,6 +388,8 @@ initialization; otherwise, these pointers are NULL.
            a string literal cast to "char*" (processed like a string literal
            in Microsoft mode), or something else altogether. */
         a_constant_ptr  error_cp = NULL;
+        is_parenthesized = TRUE;
+        lparen_pos = pos_curr_token;
         (void)tentative_aggregate_init(init_info, init_context, &error_cp);
         if (error_cp != NULL) {
           /* An initializer expression was parsed, but an error prevented it
@@ -419,6 +422,8 @@ initialization; otherwise, these pointers are NULL.
     } else if (curr_token == tok_string_literal) {
       is_string_init = TRUE;
     } else if (curr_token == tok_lparen) {
+      is_parenthesized = TRUE;
+      lparen_pos = pos_curr_token;
       if ((any_cfront_mode() || C_dialect == C_dialect_pcc ||
            microsoft_mode) &&
           next_token() == tok_string_literal) {
@@ -481,6 +486,13 @@ initialization; otherwise, these pointers are NULL.
                                                  > cp->variant.string.length) {
           init_info->any_uninitialized_member = TRUE;
         }  /* if */
+      }  /* if */
+      if (is_parenthesized && strict_ansi_mode) {
+        /* Parenthesizing a string initializer is nonstandard, but most
+           compilers appear to silently accept such constructs. */
+        pos_diagnostic(strict_ansi_discretionary_severity,
+                       ec_nonstandard_parenthesized_string_initializer,
+                       &lparen_pos);
       }  /* if */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4155,8 +4167,7 @@ initialized.  These are addressed in the course of the processing.
       add_stop_token(tok_comma);
       /* Unless this is an old style base class initializer, a base class
          name or a member name is expected. */
-      if (curr_token != tok_lparen &&
-          !is_decl_qualified_name_start()) {
+      if (curr_token != tok_lparen && !is_decl_qualified_name_start()) {
         /* Either an identifier or "::" is expected here. */
         syntax_error(ec_exp_identifier);
       } else {

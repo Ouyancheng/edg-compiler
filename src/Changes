@@ -1,5 +1,17 @@
 Version 3.9
 
+1/9/07   Parenthesized string initializers
+
+Parenthesized string initializers are a nonstandard construct accepted by many
+C and C++ compilers.  For example:
+
+  char s[] = ("abc");  // Nonstandard but accepted by many compilers.
+
+Prior to version 3.7, the front diagnosed such cases with an error in strict
+and default modes.  Version 3.7 inadvertently dropped the diagnostic in all
+cases.  Now a discretionary error is issued in strict mode, but the construct
+is silently accepted in all other modes.
+
 1/8/07   Global variables with GNU-style register mapping
 
 In GNU modes, global variables mapped onto specific registers using the "asm"
