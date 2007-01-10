@@ -520,6 +520,10 @@ extern void set_constant_address_constant(a_constant_ptr constant,
 extern void set_label_address_constant(a_label_ptr label,
                                        a_constant  *con);
 
+/*
+Macro to determine whether the argument variable was mapped on a specific
+register using the GNU "asm(...)" extension.
+*/
 #define var_is_gnu_named_register(var)                                     \
   (!var_has_named_register_storage_class((var)) &&                         \
    !(var)->asm_name_is_valid)
@@ -546,6 +550,12 @@ extern void record_named_register_storage_class(
                                              a_boolean            is_redecl,
                                              a_source_position    *pos);
 
+/*
+Macro to determine if the given variable was declared with a named-register
+storage class (an Embedded C extension).  The macro can be used in
+configurations that don't allow named-register storage classes (in that case
+the macro expands to FALSE).
+*/
 #define var_has_named_register_storage_class(var)                            \
   ((var)->has_named_register_storage_class)
 #else /* !NAMED_REGISTERS_ALLOWED */
