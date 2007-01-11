@@ -18972,7 +18972,7 @@ and [expr.const] in the ISO C++98 standard.
   db_enter(3, "scan_integral_constant_expression");
 
   if (gcc_mode ||
-      (gpp_mode && gnu_version <= 30300) ||
+      (gpp_mode && gnu_version < 40000) ||
       microsoft_mode) {
     /* GNU and Microsoft C and C++ allow more than the standard allows. */
     scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
