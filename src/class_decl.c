@@ -13378,6 +13378,12 @@ passed via template_decl.
             tcsp->last_token_number = last_token_number;
             tcsp->is_friend = TRUE;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+          } else if (rout_sym->variant.routine.instance_ptr == NULL) {
+            /* Normally, rout_sym->variant.routine.instance_ptr should be non-
+               NULL since we're apparently dealing with a member function of a
+               nonreal class.  However, severely ill-formed cases may get here
+               nonetheless. */
+            expect_error();
           } else {
             /* A member function of a nonreal class serves as a template, and
                since this is the definition the template_info associated with

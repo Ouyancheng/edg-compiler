@@ -1,5 +1,18 @@
 Version 3.9
 
+1/10/07  Abort caused by severely ill-formed template specialization
+
+In some unusual (and severely ill-formed) cases involving the "template<>"
+specialization syntax appearing in a class template declaration, the front
+end aborted (due to a null pointer indirection) in class_member_declaration.
+(The problem first appeared in version 3.5 of the front end.)  For example:
+
+  template <class T> class A {
+    template <> struct {
+      f( {  // Triggered abort in class_member_declaration.
+
+This is now fixed.
+
 1/10/07  Lvalues in gcc asm output operands
 
 Two changes have been made to the processing of asm output operands in
