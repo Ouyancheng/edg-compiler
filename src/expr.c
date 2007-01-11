@@ -4999,10 +4999,13 @@ output operands.
        that are known to be accepted on at least one version. */
     a_type_ptr         type = result.type;
     an_error_severity  sev = es_none;
-    revert_gcc_rvalue_to_lvalue_if_possible(&result, /*ignore_casts=*/TRUE);
+    revert_gcc_rvalue_to_lvalue_if_possible_full(&result,
+                                                 /*ignore_casts=*/TRUE,
+                                                /*drop_same_size_casts=*/TRUE);
     complete_type_is_needed(type);
     if (!is_an_lvalue(&result)) {
       sev = es_error;
+      conv_to_error_operand(&result);
     } else if (is_void_type(type)) {
       sev = gcc_mode ? es_warning : es_error;
     } else if (is_incomplete_type(type)) {
@@ -5016,7 +5019,7 @@ output operands.
     if (sev != es_none) {
       pos_diagnostic(sev, ec_expr_not_a_modifiable_lvalue, &result.position);
     }  /* if */
-    if (sev != es_error) {
+    if ((int)sev <= (int)es_warning) {
       modifying_lvalue(&result, /*value_used=*/FALSE);
     }  /* if */
   }  /* if */

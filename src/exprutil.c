@@ -4929,14 +4929,18 @@ returning a class by value).
 }  /* revert_class_rvalue_to_lvalue_if_possible */
 
 
-void revert_gcc_rvalue_to_lvalue_if_possible(an_operand *operand,
-                                             a_boolean  ignore_casts)
+void revert_gcc_rvalue_to_lvalue_if_possible_full(
+                                               an_operand *operand,
+                                               a_boolean  ignore_casts,
+                                               a_boolean  drop_same_size_casts)
 /*
 Called only in gcc or g++ mode in a context where an lvalue is required.
 If operand is an rvalue that can be turned back into an lvalue, do
 the transformation.  If ignore_casts is TRUE, casts on an lvalue do
 not interfere with turning it back into an lvalue (this is true,
-for example, in something like "(short)i = 0").
+for example, in something like "(short)i = 0").  If drop_same_size_casts
+is TRUE, integral casts to same-sized types are dropped even
+when gnu_version would ordinarily indicate they should not be.
 */
 {
   an_operand orig_operand;
@@ -4948,7 +4952,8 @@ for example, in something like "(short)i = 0").
       a_boolean             casts_removed = FALSE;
       a_type_ptr            type_cast_to = NULL, type_before_cast = NULL;
       an_expr_node_ptr      expr = operand->variant.expression;
-      an_expr_operator_kind op;
+      an_expr_operator_kind op = (an_expr_operator_kind)eok_last;
+      a_boolean             same_size_cast_case = FALSE;
       if (gpp_mode && gnu_version < 40000 &&
           is_operation_node(expr) &&
           expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
@@ -4961,8 +4966,22 @@ for example, in something like "(short)i = 0").
           expr = expr->variant.operation.operands;
         }  /* if */
       }  /* if */
+      if (drop_same_size_casts &&
+          is_operation_node(expr) &&
+          expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
+        /* See whether the top operation is a same-sized cast that should
+           be dropped. */
+        type_cast_to = expr->type;
+        type_before_cast = expr->variant.operation.operands->type;
+        if (is_integral_or_enum_type(type_before_cast) &&
+            is_integral_or_enum_type(type_cast_to) &&
+            f_skip_typerefs(type_before_cast)->size ==
+                                         f_skip_typerefs(type_cast_to)->size) {
+          same_size_cast_case = TRUE;
+        }  /* if */
+      }  /* if */
       if (is_operation_node(expr)) op = expr->variant.operation.kind;
-      if (gnu_version < 40000 &&
+      if ((gnu_version < 40000 || same_size_cast_case) &&
           is_operation_node(expr) &&
           (op == (an_expr_operator_kind)eok_cast ||
            (gcc_mode &&
@@ -5038,14 +5057,16 @@ for example, in something like "(short)i = 0").
                if it needs an lvalue. */
             cast_type = type_cast_to;
           }  /* if */
-          if (gpp_mode &&
-              (gnu_version >= 30400 ||
-               !((is_integral_type(type_cast_to) &&
-                  is_integral_type(type_before_cast)) ||
-                 (is_pointer_type(type_cast_to) &&
-                  is_pointer_type(type_before_cast)) ||
-                 (is_floating_type(type_cast_to) &&
-                  is_floating_type(type_before_cast))))) {
+          if (same_size_cast_case) {
+            /* No diagnostic. */
+          } else if (gpp_mode &&
+                     (gnu_version >= 30400 ||
+                      !((is_integral_type(type_cast_to) &&
+                         is_integral_type(type_before_cast)) ||
+                        (is_pointer_type(type_cast_to) &&
+                         is_pointer_type(type_before_cast)) ||
+                        (is_floating_type(type_cast_to) &&
+                         is_floating_type(type_before_cast))))) {
             /* g++ 3.4 made this into an error.  g++ versions before that gave
                errors on mixed cases. */
             error_in_operand(ec_gcc_use_of_cast_as_lvalue, operand);
@@ -5108,6 +5129,20 @@ for example, in something like "(short)i = 0").
       }  /* if */
     }  /* if */
   }  /* if */
+}  /* revert_gcc_rvalue_to_lvalue_if_possible_full */
+
+
+void revert_gcc_rvalue_to_lvalue_if_possible(an_operand *operand,
+                                             a_boolean  ignore_casts)
+/*
+Called only in gcc or g++ mode in a context where an lvalue is required.
+If operand is an rvalue that can be turned back into an lvalue, do
+the transformation.  See revert_gcc_rvalue_to_lvalue_if_possible_full
+for parameters.
+*/
+{
+  revert_gcc_rvalue_to_lvalue_if_possible_full(operand, ignore_casts,
+                                               /*drop_same_size_casts=*/FALSE);
 }  /* revert_gcc_rvalue_to_lvalue_if_possible */
 
 

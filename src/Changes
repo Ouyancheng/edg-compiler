@@ -1,5 +1,14 @@
 Version 3.9
 
+1/10/07  Lvalues in gcc asm output operands
+
+Two changes have been made to the processing of asm output operands in
+the GNU asm statement.  First, in error cases where the operand is not
+an lvalue, the IL now contains an error node.  Second, an integral
+cast to a same-size type on top of an output operand is now ignored
+(and the underlying lvalue recovered and used) even when gnu_version
+is greater than 40000.
+
 1/9/07   Parenthesized string initializers
 
 Parenthesized string initializers are a nonstandard construct accepted by many
