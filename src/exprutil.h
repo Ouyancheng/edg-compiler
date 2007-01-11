@@ -699,7 +699,8 @@ template arguments.
 #endif /* RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL */
 #endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
 #endif /* RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL && ... */
-
+#else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() FALSE
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 /*

@@ -9944,13 +9944,13 @@ cases so we don't do it here.
                 /* Suppress an error except in strict mode. */
                 constant_case = TRUE;
               }  /* if */
-#if EXPR_RANGE_MODIFIERS_IN_IL
+#if EXPR_RANGE_MODIFIERS_IN_IL && RECORD_CONSTANT_EXPRESSIONS_IN_IL
               operand->variant.constant.expr = orig_node;
 #if BACK_END_IS_CP_GEN_BE
               operand->variant.constant.suppress_expression_in_cp_gen_be =
                                                                           TRUE;
 #endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL && RECORD_CONSTANT_EXPRESSIONS_IN_IL */
             }  /* if */
           }  /* if */
           if (!optimized_case) {
