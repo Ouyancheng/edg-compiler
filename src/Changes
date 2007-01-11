@@ -1,5 +1,22 @@
 Version 3.9
 
+1/11/07   Sun compatibility: extended integral constants
+
+Sun compatibility mode now accepts some additional nonstandard
+kinds of expressions as integral constant expressions.  For example:
+
+  struct K {
+    enum E {a, b};
+    static const int c = 5;
+  };
+  void f(K* pk) {
+    int i = 0;
+    switch (i) {
+      case pk->b:; // b is an enumeration, allow in Sun compatibility mode
+      case pk->c:; // c is const static member, allow in Sun compatibility mode
+    };
+  }
+
 1/10/07  Abort caused by severely ill-formed template specialization
 
 In some unusual (and severely ill-formed) cases involving the "template<>"

@@ -2978,9 +2978,10 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
              curr_expr_kind_is(ek_template_arg)) {
     /* Field selection is not allowed in integral constant expressions
        or template argument expressions. */
-    if (any_cfront_mode() || (microsoft_mode && !C_mode()) ||
-        (gpp_mode && gnu_version < 30300)) {
-      /* ... except in cfront, Microsoft, or GNU C++ mode, where something like
+    if (any_cfront_mode() || (microsoft_mode && !C_mode()) || sun_mode ||
+        (gpp_mode && gnu_version <= 30300)) {
+      /* ... except in cfront, Microsoft, Sun, or GNU C++ mode, where
+         something like
            struct A { enum { e1 = 1 }; } a;
            int x[a.e1];
          is allowed.  The constant check is done at the end. */
@@ -2996,10 +2997,11 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
     }  /* if */
   } else if (curr_expr_kind_is(ek_init_constant) &&
              !C_mode() && is_arrow_operator &&
-             (microsoft_mode || (gpp_mode && gnu_version <= 30300)) &&
+             (microsoft_mode || sun_mode || 
+              (gpp_mode && gnu_version <= 30300)) &&
              (is_an_lvalue(operand_1) ||
               (is_an_rvalue(operand_1) && !is_constant_operand(operand_1)))) {
-    /* In Microsoft and GNU C++, a->e1 can be used as a constant if e1
+    /* In Microsoft, Sun and GNU C++, a->e1 can be used as a constant if e1
        is a constant member (like an enumerator).  The "a" expression
        requires a dereference (test just done), so this selection will
        get an error in the normal processing.  Suppress the dereference
@@ -8274,7 +8276,7 @@ level to be used in scanning the expression.  The constant returned
 might be an error constant or a template parameter constant.  This
 routine exists mainly to allow the sorts of constant expressions used
 in the implementation of offsetof, but it also deals with the fact that
-some dialects (GNU, Microsoft) allow extended forms of integer constants.
+some dialects (GNU, Microsoft, Sun) allow extended forms of integer constants.
 */
 {
   an_expr_stack_entry expr_stack_entry;
@@ -15831,7 +15833,7 @@ to constants.  For example,
 {
   a_boolean allows_folding = FALSE;
 
-  if ((any_cfront_mode() ||
+  if ((any_cfront_mode() || sun_mode ||
        (microsoft_mode && !C_mode()) ||
        (gpp_mode && gnu_version <= 30300)) &&
       (curr_expr_kind_is(ek_integral_constant) ||
@@ -17550,10 +17552,10 @@ see expr.h).
         /* We're not inside a function. */
         error_and_make_error_operand(ec_this_used_incorrectly, &local_result);
       } else if (curr_expr_kind_is_const() &&
-                 /* cfront, Microsoft, and g++ allow this->k, where k is a
+                 /* cfront, Microsoft, Sun, and g++ allow this->k, where k is a
                     constant, in a constant expression. */
                  !((any_cfront_mode() || (microsoft_mode && !C_mode()) ||
-                    (gpp_mode && gnu_version <= 30300)) &&
+                    (gpp_mode && gnu_version <= 30300) || sun_mode) &&
                    next_token() == tok_arrow &&
                    (curr_expr_kind_is(ek_integral_constant) ||
                     curr_expr_kind_is(ek_template_arg) ||
@@ -18973,8 +18975,9 @@ and [expr.const] in the ISO C++98 standard.
 
   if (gcc_mode ||
       (gpp_mode && gnu_version < 40000) ||
+      sun_mode ||
       microsoft_mode) {
-    /* GNU and Microsoft C and C++ allow more than the standard allows. */
+    /* Sun, GNU and Microsoft C and C++ allow more than the standard allows. */
     scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
                                                /*will_cast=*/FALSE,
                                                PREC_LOWEST,
@@ -19424,8 +19427,8 @@ copy-initialization ("="-form).
 
   db_enter(3, "scan_member_constant_initializer_expression");
 
-  if (gpp_mode || microsoft_mode) {
-    /* GNU and Microsoft C++ allow more than the standard allows. */
+  if (gpp_mode || microsoft_mode || sun_mode) {
+    /* Sun, GNU and Microsoft C++ allow more than the standard allows. */
     /* Note than g++ did start disallowing some extensions in version 3.4,
        but it continues to allow float constants, so we continue to
        use the slightly-too-broad extended version. */
