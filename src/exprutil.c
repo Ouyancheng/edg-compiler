@@ -4952,7 +4952,7 @@ when gnu_version would ordinarily indicate they should not be.
       a_boolean             casts_removed = FALSE;
       a_type_ptr            type_cast_to = NULL, type_before_cast = NULL;
       an_expr_node_ptr      expr = operand->variant.expression;
-      an_expr_operator_kind op = (an_expr_operator_kind)eok_last;
+      an_expr_operator_kind op;
       a_boolean             same_size_cast_case = FALSE;
       if (gpp_mode && gnu_version < 40000 &&
           is_operation_node(expr) &&
