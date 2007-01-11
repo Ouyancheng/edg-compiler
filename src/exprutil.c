@@ -5057,16 +5057,14 @@ when gnu_version would ordinarily indicate they should not be.
                if it needs an lvalue. */
             cast_type = type_cast_to;
           }  /* if */
-          if (same_size_cast_case) {
-            /* No diagnostic. */
-          } else if (gpp_mode &&
-                     (gnu_version >= 30400 ||
-                      !((is_integral_type(type_cast_to) &&
-                         is_integral_type(type_before_cast)) ||
-                        (is_pointer_type(type_cast_to) &&
-                         is_pointer_type(type_before_cast)) ||
-                        (is_floating_type(type_cast_to) &&
-                         is_floating_type(type_before_cast))))) {
+          if (gpp_mode && !same_size_cast_case &&
+              (gnu_version >= 30400 ||
+               !((is_integral_type(type_cast_to) &&
+                  is_integral_type(type_before_cast)) ||
+                 (is_pointer_type(type_cast_to) &&
+                  is_pointer_type(type_before_cast)) ||
+                 (is_floating_type(type_cast_to) &&
+                  is_floating_type(type_before_cast))))) {
             /* g++ 3.4 made this into an error.  g++ versions before that gave
                errors on mixed cases. */
             error_in_operand(ec_gcc_use_of_cast_as_lvalue, operand);
