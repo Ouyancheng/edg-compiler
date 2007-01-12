@@ -700,7 +700,9 @@ template arguments.
 #endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
 #endif /* RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL && ... */
 #else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
 #define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() FALSE
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 /*
