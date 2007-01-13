@@ -6146,6 +6146,12 @@ C99 mode for the same reason.
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (ctor_init != NULL && ctor_init->ctor_init_range.start.seq != 0) {
+    /* Track the source position. */
+    code_pos_for_lowering = error_position = ctor_init->ctor_init_range.start;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (constant_to_keep != NULL) *constant_to_keep = NULL;
   variable = dip->variable;
   if (dip->master_entry != NULL) {

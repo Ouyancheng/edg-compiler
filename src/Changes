@@ -1,5 +1,20 @@
 Version 3.9
 
+1/13/07  Source positions of constructor initializers after IL lowering
+
+When base class and member initializers in a constructor definition were
+lowered, the resulting expression statements were given the source position
+of the opening brace of the constructor's body.  Now, in configurations in
+which EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the source position of the
+lowered initializers will be preserved.  For example:
+
+  struct S {
+    S()
+      : i(0)    // Previously positioned to line 4, now to line 3
+      { }
+    int i;
+  };
+
 1/11/07   Sun compatibility: extended integral constants
 
 Sun compatibility mode now accepts some additional nonstandard
