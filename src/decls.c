@@ -5036,9 +5036,10 @@ declaration.
   *old_type = NULL;
 #if GNU_EXTENSIONS_ALLOWED
   is_register = storage_class == (a_storage_class)sc_register;
-  /* A global variable declared with "register" is effectively "static". */
-  if (is_register && decl_scope_level == depth_innermost_namespace_scope) {
-    storage_class = (a_storage_class)sc_static;
+  /* Declaring a variable with a mapping onto a specific register makes it
+     effectively an "extern" declaration. */
+  if (is_register && asm_name != NULL) {
+    storage_class = (a_storage_class)sc_extern;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   check_assertion(storage_class != (a_storage_class)sc_typedef);

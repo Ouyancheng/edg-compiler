@@ -6341,9 +6341,12 @@ parameters.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
       }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-      /* A variable assigned to a specific register must always be put
-         out with the "register" keyword. */
-      if (var_is_gnu_named_register(variable)) {
+      /* A variable assigned to a specific register must always be put out
+         with the "register" keyword.  (When not targetting GNU, don't put out
+         the keyword since that would result in invalid code in nonlocal
+         scopes.) */
+      if (gcc_is_generated_code_target &&
+          var_is_gnu_named_register(variable)) {
         storage_class = (a_storage_class)sc_register;
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

@@ -5133,10 +5133,6 @@ it is an external definition).
       is_needed = TRUE;
     } else if (var->aliased_variable != NULL) {
       is_needed = variable_needed_even_if_unreferenced(var->aliased_variable);
-    } else if (var_is_gnu_named_register(var)) {
-      /* Declaring a variable with a specific register mapping reserves that
-         register: The variable may therefore not be discarded. */
-      is_needed = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   } else {

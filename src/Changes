@@ -1,5 +1,24 @@
 Version 3.9
 
+1/15/07  Variables with GNU-style register mapping
+
+In GNU modes, variables mapped onto specific registers (using the GNU "asm"
+construct) are now treated as "extern" variables.  Previously, such variables
+were treated like automatic variables when they appeared in function
+definition, and as "static" variables otherwise.  One consequence of this
+change is that such variables are no longer removed from the IL when unneeded
+entities are removed (even when they are not used).  This reflects the fact
+that the declaration of such a variable reserves the associated register for
+that variable (within the entire program).  For example:
+
+  register int x asm("r4");  // a_variable entry for variable x will not be
+                             // removed from the IL.
+
+Another consequence of this change is that global variables of this kind now
+render as ordinary extern variables in the C- and C++-generating back end
+when GCC_IS_GENERATED_CODE_TARGET is FALSE (previously, an altogether invalid
+declaration was generated instead).
+
 1/13/07  Source positions of constructor initializers after IL lowering
 
 When base class and member initializers in a constructor definition were
@@ -65,17 +84,6 @@ Prior to version 3.7, the front diagnosed such cases with an error in strict
 and default modes.  Version 3.7 inadvertently dropped the diagnostic in all
 cases.  Now a discretionary error is issued in strict mode, but the construct
 is silently accepted in all other modes.
-
-1/8/07   Global variables with GNU-style register mapping
-
-In GNU modes, global variables mapped onto specific registers using the "asm"
-construct are no longer removed from the IL when unneeded entities are removed
-(even when they are not used).  This reflects the fact that the declaration
-of such a variable reserves the associated register for that variable (within
-the entire program).  For example:
-
-  register int x asm("r4");  // a_variable entry for variable x will not be
-                             // removed from the IL.
 
 1/8/07   Warn when compound assignment operands have invalid values
 

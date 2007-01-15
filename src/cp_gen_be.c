@@ -11972,9 +11972,10 @@ declaration following this one is such a continuation.
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  /* A variable assigned to a specific register must always be put
-     out with the "register" keyword. */
-  if (var_is_gnu_named_register(var)) {
+  /* A variable assigned to a specific register must always be put out with
+     the "register" keyword.  (When not targeting GNU, don't put out the
+     keyword since that would result in invalid code in nonlocal scopes.) */
+  if (gcc_is_generated_code_target && var_is_gnu_named_register(var)) {
     storage_class = (a_storage_class)sc_register;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

@@ -2084,15 +2084,6 @@ check_label_decl_seq:
               }  /* if */
             }  /* for */
           }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-          if (!suppress_warning) {
-            /* Variables mapped onto registers may have been initialized
-               through some mechanism outside the language. */
-            if (gnu_mode && var_is_gnu_named_register(vp)) {
-              suppress_warning = TRUE;
-            }  /* if */
-          }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
           if (!suppress_warning) {
             pos_sy_warning(ec_used_before_set, source_position, sym_ptr);
           }  /* if */
