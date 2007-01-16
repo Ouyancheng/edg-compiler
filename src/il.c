@@ -18317,7 +18317,6 @@ in il_init.)
 */
 {
 #if CHECKING
-#if IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT
   /* Variable in il_file.h: */
   /* Check that the table of IL-entry sizes is correctly initialized, i.e.,
      that the enumeration an_il_entry_kind and the array sizeof_il_entry
@@ -18325,7 +18324,6 @@ in il_init.)
   if (sizeof_il_entry[(int)iek_last] != IEK_LAST_CHECK_SIZE) {
     internal_error("il_one_time_init: bad initialization of sizeof_il_entry");
   }  /* if */
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT */
 #if NEED_IL_DISPLAY || DEBUG
   /* Variable in il_def.h: */
   /* Check that the table of IL entry names is correctly initialized.
