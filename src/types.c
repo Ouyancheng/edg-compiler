@@ -6090,14 +6090,13 @@ well as C++ mode.
     /* Cannot cast to an incomplete type. */
     /* okay = FALSE; -- already set. */
   } else if (is_pointer(source_type) && is_integral(dest_type) &&
-             (C_mode() || microsoft_mode || gpp_mode || sun_mode ||
+             (C_mode() || microsoft_mode || gpp_mode ||
               dest_of_ptr_cast_big_enough(source_type, dest_type))) {
     /* Pointer --> integral is okay
          -- In C mode, always (size of destination is not an issue; see
             6.3.4 in the ISO C89 standard)
          -- In C++ mode, if (a) the integer is big enough or (b) it's
-            not big enough but we're compiling in Sun, Microsoft or 
-            GNU mode. */
+            not big enough but we're compiling in Microsoft or GNU mode. */
     okay = TRUE;
     if (!dest_of_ptr_cast_big_enough(source_type, dest_type)) {
       /* The destination is not large enough to hold all of the bits
