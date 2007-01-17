@@ -41,6 +41,16 @@ lowered initializers will be preserved.  For example:
     int i;
   };
 
+1/11/07   Allow extended integral constants in g++ 3.4 compatibility mode
+
+Support for some non-standard integral constant expressions had inadvertently
+been dropped in Version 3.8 in the g++ 3.4 compatibility mode.  This has
+been rectified such that expressions such as the one below are now accepted
+in this mode (they continue to be accepted in g++ versions earlier than 3.4
+as well):
+
+  int p[((char *)0 - (char *)0)];
+
 1/11/07   Sun compatibility: extended integral constants
 
 Sun compatibility mode now accepts some additional nonstandard
