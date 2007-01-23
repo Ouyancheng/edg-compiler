@@ -1,5 +1,17 @@
 Version 3.9
 
+1/23/07  IL walk problem with RECORD_FORM_OF_NAME_REFERENCE
+
+In configurations with RECORD_FORM_OF_NAME_REFERENCE set to TRUE
+(e.g., most C++-generating back end configurations), a use of a
+named constant (e.g., an enumerator constant) in an initializer
+in a translation unit that references the constant somewhere else
+using a qualified name produced IL with two constant entries
+pointing to the same name references list, which could cause
+difficulties (such as IL write/read errors like the internal error
+"ptr_remap_function: address not in any mem block") in later
+processing.  Now fixed.
+
 1/23/07  C++-generating back end: qualified friend declarations
 
 When a class in an enclosing namespace is declared to be a friend of a class
