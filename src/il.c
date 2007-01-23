@@ -4056,6 +4056,9 @@ are tied to a particular source occurrence.
 #if ONE_INSTANTIATION_PER_OBJECT
   sc->per_instantiation_needed_flags = NULL;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  sc->name_references = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 }  /* break_source_corresp */
 
 
