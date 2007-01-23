@@ -12226,16 +12226,11 @@ void make_name_reference_from_locator(
 				a_name_reference_ptr	nrp)
 /*
 Create a name reference entry in the location specified by "nrp" that
-describes the name specified by "locator".  If "nrp" is NULL, a new entry
-is allocated.
+describes the name specified by "locator".
 */
 {
   check_assertion(!C_mode());
-  if (nrp == NULL) {
-    nrp = alloc_name_reference();
-  } else {
-    clear_name_reference(nrp);
-  }  /* if */
+  clear_name_reference(nrp);
   nrp->qualifier = locator->name_qualifier;
   nrp->is_global_qualified_name = locator->is_global_qualified_name;
   nrp->is_template_id = locator->is_template_id;
