@@ -1,5 +1,20 @@
 Version 3.9
 
+1/23/07  C++-generating back end: qualified friend declarations
+
+When a class in an enclosing namespace is declared to be a friend of a class
+in a nested namespace, the name of the befriended class must be qualified;
+otherwise, the friend declaration is taken to declare a new class in the
+inner namespace.  The C++-generating back end failed to generate a qualified
+name in such friend declarations.  This is now fixed.  For example:
+
+  struct S;
+  namespace N {
+    class C {
+      friend struct ::S;    // Previously generated as "friend struct S;"
+    };
+  }
+
 1/16/07  sizeof_il_entry consistency checking
 
 The code checking for consistent initialization of the sizeof_il_entry array

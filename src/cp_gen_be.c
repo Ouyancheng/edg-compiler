@@ -2510,14 +2510,14 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                                 options & GN_PARENS_IF_GLOBAL_QUALIFIER,
                                 need_closing_paren);
       }  /* if */
-    } else if (scp->qualification_needed ||
+    } else if (scp->qualification_needed || force_qualified_name ||
                /* MSVC++ 7.0 does not always correctly parse "class S<x>::N{}",
                   but the problem goes away with a leading global qualifier. */
                (msvc_is_generated_code_target &&
                 force_qualifier_for_msvc(scp, entry_kind, options))) {
       /* This is a reference to a file-scope entity from within a class
          or function, so add a leading "::". */
-      if (options & GN_DECLARATION) {
+      if ((options & GN_DECLARATION) && !force_qualified_name) {
         /* Don't do this on the declaration of a name. */
       } else if (msvc_is_generated_code_target &&
                  msvc_target_version_number <= 1200 &&
@@ -5618,9 +5618,26 @@ this one is such a continuation.
          that is never defined, generate a reference to the type instead
          of a definition. */
       a_boolean saved_has_been_declared;
+      a_gen_name_options_set options = GN_NO_OPTIONS;
       adv_curr_source_sequence_entry();
       /* For a friend, put out the "friend" prefix. */
-      if (friend_decl) write_tok_str("friend ");
+      if (friend_decl) {
+        a_type_ptr enclosing_class = curr_name_context->class_type;
+        if (!type->source_corresp.is_class_member &&
+            enclosing_class != NULL &&
+            !enclosing_class->source_corresp.is_local_to_function &&
+            type->source_corresp.parent.namespace_ptr !=
+             innermost_namespace_parent_of(&enclosing_class->source_corresp)) {
+          /* Because a class that is first declared in a friend declaration is
+             a member of the innermost enclosing namespace scope, and because
+             the lookup to determine whether the class has been previously
+             declared is limited to that scope, if the type being declared
+             here is not a member of that namespace, the name must be
+             qualified. */
+          options = GN_FORCE_QUALIFIED_NAME;
+        }  /* if */
+        write_tok_str("friend ");
+      }  /* if */
       if (is_immediate_class_type(type) &&
           type->variant.class_struct_union.extra_info != NULL &&
           type->variant.class_struct_union.extra_info->template_arg_list !=
@@ -5631,7 +5648,7 @@ this one is such a continuation.
         type->has_been_declared = TRUE;
       }  /* if */
       saved_has_been_declared = type->has_been_declared;
-      gen_tag_reference(type, (a_gen_name_options_set)GN_DECLARATION);
+      gen_tag_reference(type, options | GN_DECLARATION);
       if (friend_decl) {
         /* Don't set type->has_been_declared for a friend declaration: it will
            not be visible until it is really declared and so will require an
