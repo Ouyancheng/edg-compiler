@@ -5635,7 +5635,8 @@ this one is such a continuation.
       /* For a friend, put out the "friend" prefix. */
       if (friend_decl) {
         a_type_ptr enclosing_class = curr_name_context->class_type;
-        if (!type->source_corresp.is_class_member &&
+        if (!type->variant.class_struct_union.is_nonreal_class &&
+            !type->source_corresp.is_class_member &&
             enclosing_class != NULL &&
             !enclosing_class->source_corresp.is_local_to_function &&
             type->source_corresp.parent.namespace_ptr !=
