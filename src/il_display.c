@@ -1059,9 +1059,11 @@ display_constant_value:
                iek_constant);
       disp_host_large_unsigned(
                "count", (a_host_large_unsigned)ptr->variant.init_repeat.count);
-      disp_boolean("multidimensional_aggr_tail_not_repeated",
-                   (a_boolean)ptr->variant.init_repeat.
+      if (ptr->variant.init_repeat.multidimensional_aggr_tail_not_repeated) {
+        disp_boolean("multidimensional_aggr_tail_not_repeated",
+                     (a_boolean)ptr->variant.init_repeat.
                                       multidimensional_aggr_tail_not_repeated);
+      }  /* if */
       break;
     case ck_designator:
       (void)printf("ck_designator\n");

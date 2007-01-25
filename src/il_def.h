@@ -2610,12 +2610,18 @@ typedef struct a_constant {
 			   with the storage allocation". */
       a_byte_boolean
 		multidimensional_aggr_tail_not_repeated;
-			/* When this flag is set only the first initializer
-			   of the aggregate repeated constant is repeated the
-			   first (count-1) times.  On the final iteration, 
-                           the entire constant is repeated.  This is used to 
-                           mimic the gcc initializer layout in multi-dimensional
-                           arrays. */
+			/* This flag is used to indicate that the repeated
+			   constant contains at least one ck_aggregate (without
+			   braces) whose first constant is a ck_designator
+			   and contains more than one constant in the
+			   aggregate.  This situation arises from the use
+			   of GNU range extended designators in initializers.
+			   When this flag is set only the first constant
+			   on the list of the aggregate constant is repeated
+			   the first (count-1) times.  On the final iteration, 
+			   the entire list of constants in the aggregate is
+			   repeated.  This is used to mimic the gcc initializer
+			   layout in multi-dimensional arrays. */
     } init_repeat;
 #ifdef CIL
     /* When kind == ck_template_param (C++ front end only, except when

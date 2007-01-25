@@ -8851,16 +8851,16 @@ directly.  *con_pos will be set to indicate the simple constant.
            repeated constant tree, traverse the copy finding any aggregate
            (without brace) entries whose first_constant is a designator and
            pruning all but this first constant.  The final case is handled
-           when the ck_init_repeat constant is simply removed when it's count
+           when the ck_init_repeat constant is simply removed when its count
            would become 1, leaving the entire aggregate in place. */
         a_constant_ptr pruned_con = copy_unshared_constant(rep_con);
         a_constant_ptr const_ptr = pruned_con;
         while (const_ptr != NULL) {
-          if (const_ptr->kind == ck_aggregate &&
+          if (const_ptr->kind == (a_constant_repr_kind)ck_aggregate &&
               !const_ptr->explicit_braces_on_aggregate &&
               const_ptr->variant.aggregate.first_constant != NULL &&
               const_ptr->variant.aggregate.first_constant->kind ==
-                                                               ck_designator) {
+                                         (a_constant_repr_kind)ck_designator) {
             a_constant_ptr desig_con = 
                                    const_ptr->variant.aggregate.first_constant;
             check_assertion(desig_con != NULL && desig_con->next != NULL);
@@ -8869,20 +8869,20 @@ directly.  *con_pos will be set to indicate the simple constant.
                  this designator. */
               desig_con->next->next = NULL;
               const_ptr->variant.aggregate.last_constant = desig_con->next;
-            } /* if */
+            }  /* if */
             const_ptr = const_ptr->variant.aggregate.first_constant;
-          } else if (const_ptr->kind == ck_init_repeat) {
+          } else if (const_ptr->kind == (a_constant_repr_kind)ck_init_repeat) {
             const_ptr = const_ptr->variant.init_repeat.constant;
-          } else if (const_ptr->kind == ck_designator) {
+          } else if (const_ptr->kind == (a_constant_repr_kind)ck_designator) {
             const_ptr = const_ptr->next;
           } else {
             break;
-          } /* if */
-        } /* while */
+          }  /* if */
+        }  /* while */
         copy_constant(pruned_con, con);
       } else {
         copy_constant(rep_con, con);
-      } /* if */
+      }  /* if */
 #if DEBUG
       if (db_flag_is_set("designators")) {
         (void)fprintf(f_debug,

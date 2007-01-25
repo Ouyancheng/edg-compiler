@@ -2293,13 +2293,13 @@ this function points to a tree that includes a dynamic-init entry.
                For example: int X[3][3] = { [0 ... 2][0] = 4, 5, 6 }; */
             a_constant_ptr const_ptr = member_con;
             while (const_ptr != NULL) {
-              if (const_ptr->kind == ck_aggregate) {
+              if (const_ptr->kind == (a_constant_repr_kind)ck_aggregate) {
                 if (const_ptr->explicit_braces_on_aggregate) {
                   break;
                 } else if (const_ptr->variant.aggregate.first_constant != 
                                                                         NULL &&
                            const_ptr->variant.aggregate.first_constant->kind
-                                                            == ck_designator) {
+                                      == (a_constant_repr_kind)ck_designator) {
                   a_constant_ptr desig_con = 
                                  const_ptr->variant.aggregate.first_constant;
                   check_assertion(desig_con != NULL && 
@@ -2308,17 +2308,19 @@ this function points to a tree that includes a dynamic-init entry.
                     context.repeat->variant.init_repeat.
                                 multidimensional_aggr_tail_not_repeated = TRUE;
                     break;
-                  } /* if */
-                } /* if */
+                  }  /* if */
+                }  /* if */
                 const_ptr = const_ptr->variant.aggregate.first_constant;
-              } else if (const_ptr->kind == ck_init_repeat) {
+              } else if (const_ptr->kind == 
+                                        (a_constant_repr_kind)ck_init_repeat) {
                 const_ptr = const_ptr->variant.init_repeat.constant;
-              } else if (const_ptr->kind == ck_designator) {
+              } else if (const_ptr->kind == 
+                                         (a_constant_repr_kind)ck_designator) {
                 const_ptr = const_ptr->next;
               } else {
                 break;
-              } /* if */
-            } /* while */
+              }  /* if */
+            }  /* while */
             context.repeat->variant.init_repeat.constant = member_con;
             member_con = context.repeat;
             context.repeat = NULL;
