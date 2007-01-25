@@ -8809,6 +8809,9 @@ directly.  *con_pos will be set to indicate the simple constant.
     a_constant_ptr simple_con, next_con;
     a_targ_size_t  first_count = (count - con_pos->repeat_count);
     a_targ_size_t  second_count = con_pos->repeat_count - 1;
+    a_boolean      save_multidimensional_aggr_tail_not_repeated = 
+                        con->variant.init_repeat.
+                                       multidimensional_aggr_tail_not_repeated;
 
     next_con = con->next;
     if (first_count != 0) {
@@ -8836,7 +8839,50 @@ directly.  *con_pos will be set to indicate the simple constant.
          original ck_init_repeat constant with the value of the underlying
          constant (thus making the first repetition). */
       simple_con = con;
-      copy_constant(rep_con, con);
+      if (con->variant.init_repeat.multidimensional_aggr_tail_not_repeated) {
+        /* We're splitting a repeated multi-dimensional array designated
+           constant, as in:
+             int X[3][3] = { [0 ... 2][0] = 4, 5, 6 };
+           In order to match the order of initialization used by GNU compilers,
+           the repeated aggregate constant '{[0] = 4, 5, 6}' should
+           only repeat the first initializer of the aggregate on the first
+           (count-1) iterations and use the full value of the aggregate on the
+           final iteration.  To implement this, we create a new copy of the
+           repeated constant tree, traverse the copy finding any aggregate
+           (without brace) entries whose first_constant is a designator and
+           pruning all but this first constant.  The final case is handled
+           when the ck_init_repeat constant is simply removed when it's count
+           would become 1, leaving the entire aggregate in place. */
+        a_constant_ptr pruned_con = copy_unshared_constant(rep_con);
+        a_constant_ptr const_ptr = pruned_con;
+        while (const_ptr != NULL) {
+          if (const_ptr->kind == ck_aggregate &&
+              !const_ptr->explicit_braces_on_aggregate &&
+              const_ptr->variant.aggregate.first_constant != NULL &&
+              const_ptr->variant.aggregate.first_constant->kind ==
+                                                               ck_designator) {
+            a_constant_ptr desig_con = 
+                                   const_ptr->variant.aggregate.first_constant;
+            check_assertion(desig_con != NULL && desig_con->next != NULL);
+            if (desig_con->next->next != NULL) {
+              /* Unlink from the aggregate anything past the first constant in
+                 this designator. */
+              desig_con->next->next = NULL;
+              const_ptr->variant.aggregate.last_constant = desig_con->next;
+            } /* if */
+            const_ptr = const_ptr->variant.aggregate.first_constant;
+          } else if (const_ptr->kind == ck_init_repeat) {
+            const_ptr = const_ptr->variant.init_repeat.constant;
+          } else if (const_ptr->kind == ck_designator) {
+            const_ptr = const_ptr->next;
+          } else {
+            break;
+          } /* if */
+        } /* while */
+        copy_constant(pruned_con, con);
+      } else {
+        copy_constant(rep_con, con);
+      } /* if */
 #if DEBUG
       if (db_flag_is_set("designators")) {
         (void)fprintf(f_debug,
@@ -8859,6 +8905,11 @@ directly.  *con_pos will be set to indicate the simple constant.
                           alloc_constant((a_constant_repr_kind)ck_init_repeat);
         second_repeat_con->variant.init_repeat.count = second_count;
         second_repeat_con->variant.init_repeat.constant = rep_con_copy;
+        /* Preserve the setting of the multidimensional_aggr_tail_not_repeated
+           field. */
+        second_repeat_con->variant.init_repeat.
+                                     multidimensional_aggr_tail_not_repeated = 
+                                  save_multidimensional_aggr_tail_not_repeated;
       }  /* if */
       simple_con->next = second_repeat_con;
       second_repeat_con->next = next_con;

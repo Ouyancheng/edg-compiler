@@ -756,6 +756,7 @@ fields to default values.
     case ck_init_repeat:
       cp->variant.init_repeat.constant = NULL;
       cp->variant.init_repeat.count = 0;
+      cp->variant.init_repeat.multidimensional_aggr_tail_not_repeated = FALSE;
       break;
     case ck_template_param:
       set_template_param_constant_kind(cp, 

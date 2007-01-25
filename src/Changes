@@ -1,5 +1,32 @@
 Version 3.9
 
+1/25/07  Change the values assigned by GNU extended designator initializers
+
+The assignment of initializers when using multi-dimensional range
+extended designators has been changed to match the order produced by gcc.
+A new field, "variant.init_repeat.multidimensional_aggr_tail_not_repeated",
+has been added to a_constant to indicate when IL lowering or the back end
+needs to effect this change (IL CHANGE).  For example, in the following
+declaration:
+
+  int X[3][3] = { [1 ... 2][0] = 4, 5, 6 };
+
+The non-zero array values after initialization are now:
+
+  X[1][0]=4
+  X[2][0]=4
+  X[2][1]=5
+  X[2][2]=6
+
+Previously they had been:
+
+  X[1][0]=4
+  X[1][1]=5
+  X[1][2]=6
+  X[2][0]=4
+  X[2][1]=5
+  X[2][2]=6
+
 1/23/07  IL walk problem with RECORD_FORM_OF_NAME_REFERENCE
 
 In configurations with RECORD_FORM_OF_NAME_REFERENCE set to TRUE

@@ -2594,7 +2594,7 @@ typedef struct a_constant {
     /* A ck_init_repeat constant is used only in initialization.  As such, it
        is always an unshared constant. */
 #ifdef CIL
-    /* Only used in C++.  Used to initialize an array of class objects with
+    /* Used in C++ to initialize an array of class objects with
        constructor initialization; the constant entry is a ck_dynamic_init
        constant that identifies the default constructor. */
 #endif /* ifdef CIL */
@@ -2608,6 +2608,14 @@ typedef struct a_constant {
 			   zero is used for new and delete of an array, and
 			   means "use the number of elements recorded along
 			   with the storage allocation". */
+      a_byte_boolean
+		multidimensional_aggr_tail_not_repeated;
+			/* When this flag is set only the first initializer
+			   of the aggregate repeated constant is repeated the
+			   first (count-1) times.  On the final iteration, 
+                           the entire constant is repeated.  This is used to 
+                           mimic the gcc initializer layout in multi-dimensional
+                           arrays. */
     } init_repeat;
 #ifdef CIL
     /* When kind == ck_template_param (C++ front end only, except when

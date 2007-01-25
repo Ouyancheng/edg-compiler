@@ -2285,6 +2285,40 @@ this function points to a tree that includes a dynamic-init entry.
                to initializers with a dynamic component. */
             error(ec_no_range_designator_with_dynamic_init);
           } else {
+            /* If the constant we're going to repeat contains an aggregate
+               (without braces) designated initializer and there is more than
+               a single initializer in that aggregate, set the
+               multidimensional_aggr_tail_not_repeated flag so the layout for
+               this initializer will be handled correctly in lowering.  
+               For example: int X[3][3] = { [0 ... 2][0] = 4, 5, 6 }; */
+            a_constant_ptr const_ptr = member_con;
+            while (const_ptr != NULL) {
+              if (const_ptr->kind == ck_aggregate) {
+                if (const_ptr->explicit_braces_on_aggregate) {
+                  break;
+                } else if (const_ptr->variant.aggregate.first_constant != 
+                                                                        NULL &&
+                           const_ptr->variant.aggregate.first_constant->kind
+                                                            == ck_designator) {
+                  a_constant_ptr desig_con = 
+                                 const_ptr->variant.aggregate.first_constant;
+                  check_assertion(desig_con != NULL && 
+                                  desig_con->next != NULL);
+                  if (desig_con->next->next != NULL) {
+                    context.repeat->variant.init_repeat.
+                                multidimensional_aggr_tail_not_repeated = TRUE;
+                    break;
+                  } /* if */
+                } /* if */
+                const_ptr = const_ptr->variant.aggregate.first_constant;
+              } else if (const_ptr->kind == ck_init_repeat) {
+                const_ptr = const_ptr->variant.init_repeat.constant;
+              } else if (const_ptr->kind == ck_designator) {
+                const_ptr = const_ptr->next;
+              } else {
+                break;
+              } /* if */
+            } /* while */
             context.repeat->variant.init_repeat.constant = member_con;
             member_con = context.repeat;
             context.repeat = NULL;
