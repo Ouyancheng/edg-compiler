@@ -3656,9 +3656,15 @@ Routine to be called by the il_to_str routines to output a name.
     gen_variable_name((a_variable_ptr)entry);
   } else {
     a_gen_name_options_set options = GN_NO_OPTIONS;
-    if (octl.force_qualified_name) options |= GN_FORCE_QUALIFIED_NAME;
+    a_boolean              saved_force_qualified_name =
+                                                     octl.force_qualified_name;
+    if (octl.force_qualified_name) {
+      options |= GN_FORCE_QUALIFIED_NAME;
+      octl.force_qualified_name = FALSE;
+    }  /* if */
     gen_name((a_source_correspondence *)entry, kind, options,
              (a_boolean *)NULL);
+    octl.force_qualified_name = saved_force_qualified_name;
   }  /* if */
 }  /* gen_name_reference */
 
@@ -3671,10 +3677,16 @@ template.
 */
 {
   a_gen_name_options_set options = GN_NO_OPTIONS;
+  a_boolean              saved_force_qualified_name =
+                                                     octl.force_qualified_name;
   options = GN_TEMPLATE;
-  if (octl.force_qualified_name) options |= GN_FORCE_QUALIFIED_NAME;
+  if (octl.force_qualified_name) {
+    options |= GN_FORCE_QUALIFIED_NAME;
+    octl.force_qualified_name = FALSE;
+  }  /* if */
   gen_name((a_source_correspondence *)entry, kind, options,
            (a_boolean *)NULL);
+  octl.force_qualified_name = saved_force_qualified_name;
 }  /* gen_template_name */
 
 
