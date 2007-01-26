@@ -1,5 +1,17 @@
 Version 3.9
 
+1/26/05  C++-generating back end: Microsoft compatibility for default
+         arguments of member functions
+
+As noted in the 4/13/05 entry, MSVC++ 6.0 has a bug affecting default
+arguments in member functions where the default argument is a temporary of
+the form N::T<x,y>().  The workaround added to the C++-generating back end
+at that time inadvertently failed to handle cases in which N::T had a
+destructor (with no destructor, the enk_temp_init node is at the top level
+in the default argument expression, while with a destructor, it is under an
+enk_object_lifetime node).  The workaround now handles the destructor case
+as well.
+
 1/25/07  Change the values assigned by GNU extended designator initializers
 
 The assignment of initializers when using multi-dimensional range

@@ -6940,6 +6940,36 @@ try_again:
 }  /* skip_implicit_ptr_type_qualifier_adjustment_cast */
 
 
+/*
+Variable set by the following traverse_expr processing routine.
+*/
+static an_expr_node_ptr temp_init_node;
+
+
+static void find_temp_init(an_expr_node_ptr                    expr,
+                           an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called by traverse_expr in a top-down traversal of an
+expression tree rooted in an enk_object_lifetime node.  If the expression
+associated with the object lifetime is an enk_temp_init (possibly under one
+or more compiler-generated nodes), set temp_init_node to point to the
+enk_temp_init node and terminate the traversal; encountering any other
+expression node terminates the traversal leaving temp_init_node unchanged.
+*/
+{
+  if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+    temp_init_node = expr;
+    tblock->terminate = TRUE;
+  } else if (expr->kind == (an_expr_node_kind)enk_object_lifetime ||
+             (is_operation_node(expr) &&
+              expr->variant.operation.compiler_generated)) {
+    /* Continue the traversal. */
+  } else {
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* find_temp_init */
+
+
 static void gen_initializer_expr(an_expr_node_ptr expr,
                                  a_type_ptr       type,
                                  a_boolean        need_parens,
@@ -6970,34 +7000,51 @@ obscure Microsoft bug).
     if (mbr_fcn_default_arg_expr &&
         msvc_is_generated_code_target &&
         msvc_target_version_number == 1200 &&
-        expr->kind == (an_expr_node_kind)enk_temp_init &&
-        (expr->variant.init.dynamic_init->kind == 
+        (expr->kind == (an_expr_node_kind)enk_temp_init ||
+         expr->kind == (an_expr_node_kind)enk_object_lifetime)) {
+      if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+        temp_init_node = expr;
+      } else {
+        /* See if the enk_object_lifetime node sits directly (ignoring
+           compiler-generated cast nodes) on top of an enk_temp_init node. */
+        an_expr_or_stmt_traversal_block tblock;
+        clear_expr_or_stmt_traversal_block(&tblock);
+        tblock.process_expr = find_temp_init;
+        temp_init_node = NULL;
+        traverse_expr(expr, &tblock);
+      }  /* if */
+      if (temp_init_node != NULL &&
+          (temp_init_node->variant.init.dynamic_init->kind == 
                                         (a_dynamic_init_kind)dik_constructor ||
-         expr->variant.init.dynamic_init->kind ==
+           temp_init_node->variant.init.dynamic_init->kind ==
                                               (a_dynamic_init_kind)dik_zero) &&
-        is_pointer_type(expr->type)) {
-      a_type_ptr base_type = f_skip_typerefs(type_pointed_to(expr->type));
-      if (is_class_type_kind(base_type->kind) &&
-          base_type->variant.class_struct_union.extra_info->template_arg_list
+          is_pointer_type(expr->type)) {
+        /* See if the type of the temporary being created is a template-id
+           that's namespace-qualified and has more than one
+           template-argument. */
+        a_type_ptr base_type =
+                        f_skip_typerefs(type_pointed_to(temp_init_node->type));
+        if (is_class_type_kind(base_type->kind) &&
+            base_type->variant.class_struct_union.extra_info->template_arg_list
                                                                      != NULL &&
-          base_type->variant.class_struct_union.extra_info->
+            base_type->variant.class_struct_union.extra_info->
                                              template_arg_list->next != NULL &&
-          !base_type->source_corresp.is_class_member &&
-          base_type->source_corresp.parent.namespace_ptr != NULL &&
-          !scope_is_in_name_context_stack(base_type->
+            !base_type->source_corresp.is_class_member &&
+            base_type->source_corresp.parent.namespace_ptr != NULL &&
+            !scope_is_in_name_context_stack(base_type->
                    source_corresp.parent.namespace_ptr->variant.assoc_scope)) {
-        /* Work around a bug in the Microsoft version 6.0 compiler: in a
-           default argument of a class member function of the form
+          /* Work around a bug in the Microsoft version 6.0 compiler: in a
+             default argument of a class member function of the form
 
-               f(const T<x,y>& = T<x,y>())
+                 f(const N::T<x,y>& = N::T<x,y>())
 
-           where T is a member of a namespace that is not on the scope stack,
-           the "," in the template argument list is mistakenly treated as
-           a function argument separator, leading to spurious syntax errors.
-           The problem does not occur if the argument is enclosed in
-           parentheses. */
-        write_tok_ch('(');
-        close_paren_needed = TRUE;
+             the "," in the template argument list is mistakenly treated as
+             a function argument separator, leading to spurious syntax errors.
+             The problem does not occur if the argument is enclosed in
+             parentheses. */
+          write_tok_ch('(');
+          close_paren_needed = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     /* Put the expression out as an lvalue to remove a level of indirection. */
