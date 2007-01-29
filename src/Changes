@@ -1,6 +1,6 @@
 Version 3.9
 
-1/26/05  C++-generating back end: Microsoft compatibility for default
+1/26/07  C++-generating back end: Microsoft compatibility for default
          arguments of member functions
 
 As noted in the 4/13/05 entry, MSVC++ 6.0 has a bug affecting default
