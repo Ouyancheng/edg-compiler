@@ -6861,7 +6861,7 @@ are recorded in the file scope.
 {
   db_enter(5, "make_predeclared_bool_symbol");
   check_assertion(microsoft_mode);
-  make_predeclared_typedef(bool_type(), "bool");
+  (void)make_predeclared_typedef(bool_type(), "bool");
   db_exit();
 }  /* make_predeclared_bool_symbol */
 
