@@ -17,12 +17,9 @@ templates.h -- Declarations relating to templates.c (template support)
 #ifndef TEMPLATES_H
 #define TEMPLATES_H 1
 
-#ifndef IL_H
-#include "il.h"
-#endif /* ifndef IL_H */
-#ifndef SYMBOL_TBL_H
-#include "symbol_tbl.h"
-#endif /* ifndef SYMBOL_TBL_H */
+#ifndef DECLS_H
+#include "decls.h"
+#endif /* ifndef DECLS_H */
 
 /*
 Flags used to specify options to the template declaration processing routines.
@@ -40,6 +37,9 @@ between the routines used to implement the processing of template
 declarations.
 */
 typedef struct a_tmpl_decl_state {
+  a_decl_parse_state
+		decl_parse;
+			/* General declaration information. */
   a_boolean	is_template_friend;
 			/* TRUE if this is a friend declaration. */
   a_boolean	is_member_decl;
@@ -128,10 +128,6 @@ typedef struct a_tmpl_decl_state {
 			/* When the template definition appears in a class
 			   scope, this points to the class type of the
 			   enclosing class, otherwise contains NULL. */
-  a_source_position
-		start_pos;
-			/* Source position of the first token of the
-			   template declaration. */
   a_token_cache	param_list_cache;
 			/* Token cache containing the template parameter
 			   list(s). */

@@ -1426,12 +1426,10 @@ if this is the function declarator in a friend function declaration.
 {
   a_param_type_ptr        ptp;
   a_storage_class         param_storage_class;
-  a_type_ptr              param_type_ptr, declared_type, tp;
+  a_type_ptr              tp;
   a_decl_flag_set         dso_flags;
   a_param_type_ptr        last_param_type;
   a_param_id_ptr          last_param_id;
-  a_source_sequence_entry_ptr
-                          param_ssep;
   a_symbol_locator        param_locator;
   a_boolean               done;
   a_boolean               any_params;
@@ -1626,7 +1624,6 @@ if this is the function declarator in a friend function declaration.
         decl_specifiers(dsi_flags, &param_state, &local_decl_pos_block);
         dso_flags = param_state.dso_flags;
         param_storage_class = param_state.declared_storage_class;
-        param_type_ptr = param_state.specifiers_type;
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         if (last_param_type == NULL && curr_token == tok_rparen) {
@@ -1635,9 +1632,9 @@ if this is the function declarator in a friend function declaration.
                has a special meaning (no parameters).  (3.5.4.3)  */
             remove_stop_token(tok_comma);
             break;
-          } else if (is_void_type(param_type_ptr) &&
-                     param_type_ptr->kind == (a_type_kind)tk_typeref &&
-                     !is_qualified_type(param_type_ptr) &&
+          } else if (is_void_type(param_state.type) &&
+                     param_state.type->kind == (a_type_kind)tk_typeref &&
+                     !is_qualified_type(param_state.type) &&
                      param_storage_class == (a_storage_class)sc_unspecified) {
             /* A type name is bound to void type -- this construct is treated
                as a (possibly nonstandard) way of signifying an empty param
@@ -1660,11 +1657,11 @@ if this is the function declarator in a friend function declaration.
         }  /* if */
         if (defines_something && C_dialect == C_dialect_cplusplus) {
           pos_error(ec_type_definition_not_allowed, &param_type_pos);
-          param_type_ptr = error_type();
+          param_state.type = error_type();
         } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
           /* No type specifier (aside from const or volatile) appeared among
              the declaration specifiers.  Issue a diagnostic. */
-          report_implicit_int(&pos_curr_token, param_type_ptr);
+          report_implicit_int(&pos_curr_token, param_state.type);
         } else {
           /* Mark the type as referenced.  This is important for a
              parameter declaration like "struct s {int a;} p;" --
@@ -1674,19 +1671,17 @@ if this is the function declarator in a friend function declaration.
              referenced in declarator.  But if declarator is not called,
              we still consider this use of the type as a reference, since
              it is incorporated into the definition of the function. */
-          (skip_typerefs(param_type_ptr))->source_corresp.referenced = TRUE;
+          (skip_typerefs(param_state.type))->source_corresp.referenced = TRUE;
         }  /* if */
         /* Scan an optional declarator or abstract declarator.  Don't bother
            looking for a declarator when decl_specifiers has found a badly
            formed type specifier.  If an error is to be put out, that's done
            later. */
-        param_ssep = NULL;
         if (!dangling_type_specifier &&
             is_abstract_or_real_declarator_start()) {
-          a_decl_flag_set  do_flags, di_flags;
-          di_flags = DI_IS_PARAMETER_DECL |
-                     DI_REAL_DECLARATOR_ALLOWED |
-                     DI_ABSTRACT_DECLARATOR_ALLOWED;
+          a_decl_flag_set  di_flags = DI_IS_PARAMETER_DECL |
+                                      DI_REAL_DECLARATOR_ALLOWED |
+                                      DI_ABSTRACT_DECLARATOR_ALLOWED;
           if (is_typedef_decl) {
             /* At the top level this is a typedef declaration. */
             di_flags |= DI_IS_TYPEDEF_DECLARATION;
@@ -1700,11 +1695,10 @@ if this is the function declarator in a friend function declaration.
                accepting VLAs). */
             di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
           }  /* if */
-          declarator(di_flags, &do_flags, &param_state, param_type_ptr,
-                     /*member_parent_type=*/(a_type_ptr)NULL,
-                     &param_locator, &param_type_ptr, &param_ssep,
+          declarator(di_flags, &param_state, 
+                     /*member_parent_type=*/(a_type_ptr)NULL, &param_locator,
                      (a_func_info_block_ptr)NULL, &local_decl_pos_block,
-                     param_state.p_last_specifier_attribute);
+                     param_state.p_declarator_attributes);
 #if RECORD_HIDDEN_NAMES_IN_IL
           if (!C_mode() && param_locator.symbol_header != NULL) {
             /* In C++, parameter names may hide names from surrounding
@@ -1722,15 +1716,12 @@ if this is the function declarator in a friend function declaration.
           /* Scan any postfix attributes that apply to the function parameter
              and append them to the (possibly empty) list of attributes already
              scanned. */
-          *last_attribute_link(param_state.p_last_specifier_attribute) =
+          *last_attribute_link(param_state.p_declarator_attributes) =
                                                             scan_attributes();
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-        /* Save a pointer to the type as it was declared (i.e., before the
-           array-to-pointer adjustment, if any). */
-        declared_type = param_type_ptr;
         /* Check that the type is legal, and do required adjustments. */
-        check_and_adjust_parameter_type(&param_type_ptr, &param_type_pos,
+        check_and_adjust_parameter_type(&param_state.type, &param_type_pos,
                                         param_state.attributes);
         /* Standardize the storage class: unspecified becomes auto. */
         if (param_storage_class == (a_storage_class)sc_unspecified) {
@@ -1747,15 +1738,12 @@ if this is the function declarator in a friend function declaration.
              the function body won't be scanned at this time, the source
              sequence entry for the param id should be eliminated in that
              case, too. */
-          if (param_ssep != NULL) {
-            remove_from_src_seq_list(param_ssep);
-            param_ssep = NULL;
-          }  /* if */
-        } else if (param_ssep == NULL) {
-          /* Declarator was not called or param_ssep was not created for some
-             some other reason.  Still, if this turns out to be a function
-             definition, it will be needed (in C++ unnamed parameters are
-             allowed). */
+          remove_declarator_sse(&param_state);
+        } else if (param_state.source_sequence_entry == NULL) {
+          /* Declarator was not called or a source sequence entry was not
+             created for some some other reason.  Still, if this turns out to
+             be a function definition, it will be needed (in C++ unnamed
+             parameters are allowed). */
 #if DEBUG
           if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
             if (!is_error_locator(param_locator)) {
@@ -1765,7 +1753,8 @@ if this is the function declarator in a friend function declaration.
             }  /* if */
           }  /* if */
 #endif /* DEBUG */
-          param_ssep = add_empty_source_sequence_entry();
+          param_state.source_sequence_entry =
+                                            add_empty_source_sequence_entry();
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         if (is_error_locator(param_locator)) {
@@ -1775,11 +1764,12 @@ if this is the function declarator in a friend function declaration.
         /* Add an entry to record the parameter name and other information
            associated with the parameter declaration.  These go on to the
            the param-id list. */
-        add_to_param_id_list(&param_locator, param_type_ptr,
+        add_to_param_id_list(&param_locator, param_state.type,
                              &param_type_pos, param_storage_class,
-                             param_state.attributes, func_info, param_ssep,
+                             param_state.attributes, func_info,
+                             param_state.source_sequence_entry,
                              &last_param_id);
-        last_param_id->declared_type = declared_type;
+        last_param_id->declared_type = param_state.declared_type;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         last_param_id->specifiers_range =
                             local_decl_pos_block.specifiers_range;
@@ -1804,12 +1794,12 @@ if this is the function declarator in a friend function declaration.
           /* Note: whether to remove top-level qualifiers is sensitive to the
              ABI version because qualifiers are reflected in mangled names. */
           check_assertion(!C_mode());
-          param_type_ptr = make_unqualified_type(param_type_ptr);
+          param_state.type = make_unqualified_type(param_state.type);
         }  /* if */
         /* Create a param-type entry and add it to the list of param-types
            associated with the routine type. */
-        ptp = make_param_type(param_type_ptr, &param_type_pos);
-        ptp->declared_type = declared_type;
+        ptp = make_param_type(param_state.type, &param_type_pos);
+        ptp->declared_type = param_state.declared_type;
 #if GNU_EXTENSIONS_ALLOWED
         { /* See if there is a mode attribute.  If so, save it; it is
              conceptually part of the declared_type. */
@@ -2069,7 +2059,7 @@ if this is the function declarator in a friend function declaration.
              complicated.  (See ARM 12.1.) */
           if (extra_info->param_type_list->next == NULL) {
             /* This is the first item on the list. */
-            tp = skip_typerefs(param_type_ptr);
+            tp = skip_typerefs(param_state.type);
             if (identical_types(parent_type, tp)) {
               /* Type of the first parameter is identical to the type of the
                  parent class. */
@@ -2092,8 +2082,8 @@ if this is the function declarator in a friend function declaration.
             } else if (!done) {
               /* We're looking at the first parameter.  See if this may be a
                  copy constructor.  This will help find cases 3 and 4. */
-              if (is_reference_type(param_type_ptr)) {
-                tp = type_pointed_to(param_type_ptr);
+              if (is_reference_type(param_state.type)) {
+                tp = type_pointed_to(param_state.type);
                 tp = skip_typerefs(tp);
                 if (identical_types(parent_type, tp)) {
                   /* Depending on whether the next parameter has a default
@@ -5137,13 +5127,9 @@ function_lparen:
 
 
 void declarator(a_decl_flag_set             input_flags,
-                a_decl_flag_set             *output_flags,
                 a_decl_parse_state          *state,
-                a_type_ptr                  specifiers_type,
                 a_type_ptr                  member_parent_type,
                 a_symbol_locator            *locator,
-                a_type_ptr                  *p_complete_type,
-                a_source_sequence_entry_ptr *declarator_ssep,
                 a_func_info_block           *func_info,
                 a_decl_pos_block_ptr        decl_pos_block,
                 an_attribute_ptr            *attributes)
@@ -5169,23 +5155,48 @@ the parameters.
     decl_pos_block->declarator_range.end = end_pos_curr_token;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  r_declarator(input_flags, output_flags, state, specifiers_type,
-               member_parent_type, locator, p_complete_type,
+  if (state->declared_storage_class == (a_storage_class)sc_typedef) {
+    input_flags |= DI_IS_TYPEDEF_DECLARATION;
+  } else if (member_parent_type != NULL) {
+    /* The declarator appears in a class definition. */
+    if ((state->dso_flags & DSO_FRIEND) != 0) {
+      /* Friend declarations aren't really member declarations. */
+      member_parent_type = NULL;
+      input_flags |= DI_IS_FRIEND_DECL;
+    } else if (!C_mode() &&
+               state->declared_storage_class != (a_storage_class)sc_static) {
+      /* The storage class "static" was not specified and this is a member
+         declaration that is not a friend declaration, therefore, if this
+         is a member function declaration, it will be a nonstatic member
+         function.  This is important because when the routine type
+         is created, function_declarator needs to know whether to
+         add a this class to the type. */
+      input_flags |= DI_NONSTATIC_MEMBER;
+    }  /* if */
+  }  /* if */
+  r_declarator(input_flags, &state->do_flags, state, state->type,
+               member_parent_type, locator, &state->declared_type,
                &bottom_derived_type, &is_constructor, &is_destructor,
                (a_call_conv_descr_ptr)NULL, (a_call_conv_descr_ptr)NULL,
                (a_type_qualifier_set *)NULL, (a_type_qualifier_set *)NULL,
-               declarator_ssep, func_info, decl_pos_block, attributes);
+               &state->source_sequence_entry, func_info, decl_pos_block,
+               attributes);
   if (is_constructor) {
-    *output_flags |= DO_IS_CONSTRUCTOR;
+    state->do_flags |= DO_IS_CONSTRUCTOR;
   }  /* if */
   if (is_destructor) {
-    *output_flags |= DO_IS_DESTRUCTOR;
+    state->do_flags |= DO_IS_DESTRUCTOR;
   }  /* if */
-  if (*output_flags & DO_HAS_PTR_TO_MEMBER_COMPONENT) {
-    (void)check_for_vla_in_pointer_to_member(*p_complete_type,
+  if (state->do_flags & DO_HAS_PTR_TO_MEMBER_COMPONENT) {
+    (void)check_for_vla_in_pointer_to_member(state->declared_type,
                                              &state->declarator_start_pos);
   }  /* if */
   check_pending_qualifiers_used(state);
+  /* r_declarator will have set error_position to the position of the
+     declarator-id if this is a real declarator and the first token of the
+     whole declarator if it is an abstract declarator. */
+  state->declarator_pos = error_position;
+  state->type = state->declared_type;
 }  /* declarator */
 
 

@@ -98,6 +98,7 @@ and efficient initialization.
   ps->dso_flags = 0;
   ps->do_flags = 0;
   ps->start_pos = null_source_position;
+  ps->specifiers_pos = null_source_position;
   ps->declarator_start_pos = null_source_position;
   ps->declarator_pos = null_source_position;
   ps->qualifiers = TQ_NONE;
@@ -125,7 +126,7 @@ and efficient initialization.
   ps->asm_name = NULL;
   ps->asm_name_pos = null_source_position;
   ps->attributes = NULL;
-  ps->p_last_specifier_attribute = NULL;
+  ps->p_declarator_attributes = NULL;
   ps->register_id = 0;
   ps->storage_class_pos = null_source_position;
   ps->declared_storage_class = (a_storage_class)sc_unspecified;
@@ -7339,33 +7340,25 @@ skip_overloading:;
 }  /* decl_routine */
 
 
-#if !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED
-/* ARGSUSED */ /* decl_modifiers and attributes are not used in some
-                  configurations. */
-#endif /* !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED */
 void decl_function_template(a_symbol_locator            *locator,
-                            a_type_ptr                  type_ptr,
                             a_func_info_block           *func_info,
                             a_symbol_ptr                *symbol_ptr,
-                            a_storage_class             storage_class,
-                            a_decl_modifiers_block_ptr  decl_modifiers,
-                            a_tmpl_decl_state_ptr       decl_state,
-                            an_attribute_ptr            attributes)
+                            a_tmpl_decl_state_ptr       decl_state)
 /*
 Roughly speaking, this routine does for function templates what decl_routine
 does for ordinary functions.  Look up and reuse or else create a function
 template symbol; for new symbols also create a routine entry (though one that
 is not added to the IL).  *locator represents the name specified in the
-declarator, type_ptr is the function type, func_info holds some function
-properties, storage_class is the storage class, if any, specified in the
-declaration.  decl_modifiers and attributes hold additional attributes
-available in some (mainly Microsoft and GNU) modes.  decl_state points to
+declarator.  func_info holds some function properties.  decl_state points to
 a block of information describing the current state of processing for the
 template.  The function template may be part of an overload set, it may have
 been previously declared (but not defined), and it may be an out-of-line
 definition of a member function of a class template.
 */
 {
+  a_decl_parse_state                *dps = &decl_state->decl_parse;
+  a_type_ptr                        type_ptr = dps->type;
+  a_storage_class                   storage_class = dps->storage_class;
   a_symbol_ptr                      sym = NULL;
   a_symbol_ptr                      overload_symbol = NULL;
   a_symbol_ptr                      homonym_symbol = NULL;
@@ -7865,7 +7858,7 @@ definition of a member function of a class template.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } /* if */
-  update_routine_decl_modifiers(rout_ptr, decl_modifiers,
+  update_routine_decl_modifiers(rout_ptr, &dps->decl_modifiers,
                                 &locator->source_position, redeclaration,
                                 (a_boolean)func_info->is_definition,
                                 (a_boolean)func_info->is_inline);
@@ -7988,8 +7981,8 @@ definition of a member function of a class template.
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* Apply the attributes to the routine. */
-    if (attributes != NULL) {
-      apply_attributes_to_routine(attributes, rout_ptr);
+    if (dps->attributes != NULL) {
+      apply_attributes_to_routine(dps->attributes, rout_ptr);
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -8397,34 +8390,24 @@ Issue a diagnostic if the modifier is invalid.
 
 #endif /* DECL_MODIFIERS_IN_USE */
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL || !MICROSOFT_EXTENSIONS_ALLOWED || \
-    !GNU_EXTENSIONS_ALLOWED
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL.  attributes
-                is not used unless GNU extensions are supported.
-                decl_modifiers is only used with Microsoft extensions. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !MICROSOFT_EXTENSIONS... */
+                information is being recorded in the IL. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 void decl_typedef(a_symbol_locator             *locator,
-                  a_type_ptr                   type_ptr,
+                  a_decl_parse_state           *state,
                   a_type_ptr                   class_type,
-                  an_attribute_ptr             attributes,
-                  an_ms_attribute_ptr          *p_ms_attributes,
-                  a_decl_modifiers_block_ptr   decl_modifiers,
                   a_symbol_ptr                 *symbol_ptr,
-                  a_source_sequence_entry_ptr  declarator_ssep,
                   a_decl_pos_block_ptr         decl_pos_block)
 /*
 Enter the declaration of an identifier for a typedef.  *locator gives the
-symbol locator (and thus its name and its declaration position).  type_ptr
-gives the type.  If this is a member typedef, class_type identifies the
-class of which it is a member.  Create and enter a symbol entry, and
-return a pointer to it in *symbol_ptr.  attributes describes GNU attributes
-specified for this typedef declaration.  p_ms_attributes describes Microsoft
-attributes.  If p_ms_attributes is non-NULL, *p_ms_attributes is returned
-NULL.
+symbol locator (and thus its name and its declaration position).  *state
+describes various properties of the declaration.  If this is a member typedef,
+class_type identifies the class of which it is a member.  Create and enter a
+symbol entry, and return a pointer to it in *symbol_ptr.
 */
 {
-  a_type_ptr               tp;
+  a_type_ptr               tp, type_ptr = state->type;
   a_symbol_ptr             sym = NULL;
   a_boolean                is_redecl = FALSE;
   a_boolean                suppress_redecl_error = FALSE;
@@ -8433,6 +8416,7 @@ NULL.
   a_namespace_ptr          nsp;
   a_symbol_ptr             loc_sym;
 #if GNU_EXTENSIONS_ALLOWED
+  an_attribute_ptr         attributes = state->attributes;
   a_boolean                linkage_name = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -8579,7 +8563,7 @@ NULL.
                            &locator->source_position);
           }  /* if */
           record_symbol_declaration(ref_kind, sym, &locator->source_position,
-                                    declarator_ssep);
+                                    state->source_sequence_entry);
           if (!(ref_kind & SRK_DEFINITION)) {  /*lint !e774*/
 #if GENERATE_SOURCE_SEQUENCE_LISTS
             (void)update_src_seq_secondary_decl(
@@ -8765,7 +8749,8 @@ NULL.
       }  /* if */
     }  /* if */
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
-                              &locator->source_position, declarator_ssep);
+                              &locator->source_position,
+                              state->source_sequence_entry);
 #if IA64_ABI && NEED_NAME_MANGLING
     if (tp->source_corresp.is_local_to_function &&
         !tp->source_corresp.is_class_member) {
@@ -8836,32 +8821,30 @@ NULL.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && !is_error_type(type_ptr)) {
-    if (decl_modifiers != NULL) {
-      if (is_redecl) {
-        /* __declspec(deprecated) is ignored on redeclarations. */
-      } else if (decl_modifiers->is_deprecated) {
-        update_deprecation_info(&tp->source_corresp, decl_modifiers,
-                                &locator->source_position);
-      } else {
-        /* Check if a deprecated type was involved in this declaration. */
-        warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
-      }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
-      if (decl_modifiers != NULL && decl_modifiers->alignment != 0) {
-        if (decl_modifiers->alignment < type_ptr->alignment) {
-          /* Microsoft compilers ignore __declspec(align(...)) constructs that
-             attempt to reduce the alignment of the underlying type. */
-          pos_warning(ec_declspec_align_reduction_ignored,
-                      &locator->source_position);
-        } else {
-          set_declspec_align(tp, decl_modifiers->alignment,
-                             &locator->source_position);
-        }  /* if */
-      }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+    if (is_redecl) {
+      /* __declspec(deprecated) is ignored on redeclarations. */
+    } else if (state->decl_modifiers.is_deprecated) {
+      update_deprecation_info(&tp->source_corresp, &state->decl_modifiers,
+                              &locator->source_position);
+    } else {
+      /* Check if a deprecated type was involved in this declaration. */
+      warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
     }  /* if */
-    if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
-      apply_microsoft_attributes(p_ms_attributes, (char*)tp, iek_type,
+#if USER_CONTROL_OF_STRUCT_PACKING
+    if (state->decl_modifiers.alignment != 0) {
+      if (state->decl_modifiers.alignment < type_ptr->alignment) {
+        /* Microsoft compilers ignore __declspec(align(...)) constructs that
+           attempt to reduce the alignment of the underlying type. */
+        pos_warning(ec_declspec_align_reduction_ignored,
+                    &locator->source_position);
+      } else {
+        set_declspec_align(tp, state->decl_modifiers.alignment,
+                           &locator->source_position);
+      }  /* if */
+    }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+    if (state->ms_attributes != NULL) {
+      apply_microsoft_attributes(&state->ms_attributes, (char*)tp, iek_type,
                                  MSAT_TYPEDEF);
     }  /* if */
   }  /* if */
@@ -9285,8 +9268,7 @@ this is an error, but a diagnostic is only issued when type_defined is NULL
 needed).
 */
 {
-  a_decl_flag_set              dsi_flags, do_flags, di_flags;
-  a_source_sequence_entry_ptr  declarator_ssep = NULL;
+  a_decl_flag_set              dsi_flags, di_flags;
   a_decl_parse_state           state;
 
   db_enter(3, "type_name_full");
@@ -9295,13 +9277,11 @@ needed).
   copy_source_position(pos_curr_token, state.start_pos);
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR;
   decl_specifiers(dsi_flags, &state, (a_decl_pos_block_ptr)NULL);
-  *type_ptr = state.specifiers_type;
   if (type_defined != NULL) {
     *type_defined = (state.dso_flags & DSO_DEFINES_SOMETHING) != 0;
   }  /* if */
   if (state.dso_flags & DSO_DEFINES_SOMETHING) {
-    if (type_defined == NULL &&
-        C_dialect == C_dialect_cplusplus &&
+    if (type_defined == NULL && !C_mode() &&
         (!gpp_mode || gnu_version >= 30400)) {
       /* Definition of a class, struct, union, or enum type is not allowed
          in non-GNU C++ mode.  Older GNU C++ compilers did allow such
@@ -9311,10 +9291,10 @@ needed).
     }  /* if */
   } else if (!(state.dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
-    report_implicit_int(&state.start_pos, *type_ptr);
+    report_implicit_int(&state.start_pos, state.specifiers_type);
   }  /* if */
-  if (*type_ptr != NULL) {
-    (skip_typerefs(*type_ptr))->source_corresp.referenced = TRUE;
+  if (state.specifiers_type != NULL) {
+    (skip_typerefs(state.specifiers_type))->source_corresp.referenced = TRUE;
   }  /* if */
   /* Note -- the check for dangling_type_specifier is not relevant here. */
   if (is_abstract_declarator_start()) {
@@ -9326,19 +9306,17 @@ needed).
          once the scan has been completed. */
       di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
     }  /* if */
-    declarator(di_flags, &do_flags, &state, *type_ptr,
-               /*member_parent_type=*/(a_type_ptr)NULL,
-               (a_symbol_locator *)NULL, type_ptr,
-               &declarator_ssep, (a_func_info_block_ptr)NULL,
+    declarator(di_flags, &state, /*member_parent_type=*/(a_type_ptr)NULL,
+               (a_symbol_locator *)NULL, (a_func_info_block_ptr)NULL,
                (a_decl_pos_block_ptr)NULL, (an_attribute_ptr *)NULL);
     if (explicit_cv_qualifiers != NULL) {
       /* Explicit qualifiers might have been introduced in the declarator: */
-      *explicit_cv_qualifiers = is_top_level_qualified_type(*type_ptr);
+      *explicit_cv_qualifiers = is_top_level_qualified_type(state.type);
     }  /* if */
     if (di_flags & DI_VLA_ALLOWED) {
       /* VLA checking was done. */
-      if (is_array_type(*type_ptr) &&
-          is_or_contains_vla_type_with_unspecified_bound(*type_ptr)) {
+      if (is_array_type(state.type) &&
+          is_or_contains_vla_type_with_unspecified_bound(state.type)) {
         /* This is an array in which the variable bound is unspecified in
            one of its dimensions. */
         pos_error(ec_vla_with_unspecified_bound_not_allowed, &state.start_pos);
@@ -9349,16 +9327,17 @@ needed).
                                !state.unused_qualifiers);
   }  /* if */
   if ((any_cfront_mode() &&
-       check_member_function_typedef(*type_ptr, &state.start_pos)) ||
-      is_unknown_type(*type_ptr)) {
+       check_member_function_typedef(state.type, &state.start_pos)) ||
+      is_unknown_type(state.type)) {
     /* If the type is of the unknown kind, presumably an error occurred and
        hence an error type should be returned.  If the type is a cfront-style
        member function typedef -- it is an error to use it anywhere but in a
        pointer-to-member declaration. */
-    *type_ptr = error_type();
+    state.type = error_type();
   }  /* if */
   check_pending_qualifiers_used(&state);
   copy_source_position(state.start_pos, error_position);
+  *type_ptr = state.type;
   db_exit();
 }  /* type_name_full */
 
@@ -9395,8 +9374,7 @@ within this routine if is_parenthesized comes in FALSE.
 {
   a_type_ptr                  complete_type, new_type_ptr;
   a_type_ptr                  derived_type, bottom_derived_type;
-  a_decl_flag_set             dsi_flags, do_flags = DO_NO_OUTPUT_FLAGS;
-  a_source_sequence_entry_ptr declarator_ssep = NULL;
+  a_decl_flag_set             dsi_flags;
   a_decl_pos_block            decl_pos_block;
   a_boolean                   rparen_in_new_declarator = FALSE;
   a_decl_parse_state          state;
@@ -9415,16 +9393,15 @@ within this routine if is_parenthesized comes in FALSE.
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME |
               DSI_NO_REAL_DECLARATOR;
   decl_specifiers(dsi_flags, &state, &decl_pos_block);
-  *type_ptr = state.specifiers_type;
   if (state.dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &state.start_pos);
   } else if (!(state.dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
-    report_implicit_int(&error_position, *type_ptr);
+    report_implicit_int(&error_position, state.specifiers_type);
   }  /* if */
-  if (*type_ptr != NULL) {
-    (skip_typerefs(*type_ptr))->source_corresp.referenced = TRUE;
+  if (state.type != NULL) {
+    (skip_typerefs(state.type))->source_corresp.referenced = TRUE;
   }  /* if */
   if (gpp_mode && gnu_version < 30400 &&
       curr_token == tok_rparen && next_token() == tok_lbracket) {
@@ -9444,13 +9421,11 @@ within this routine if is_parenthesized comes in FALSE.
       declarator(DI_ABSTRACT_DECLARATOR_ALLOWED |
                     DI_QUALIFIED_NAME_ALLOWED |
                     DI_DIMENSION_EXPRESSION_ALLOWED,
-                 &do_flags, &state, *type_ptr,
-                 /*member_parent_type=*/(a_type_ptr)NULL,
-                 (a_symbol_locator *)NULL, type_ptr,
-                 &declarator_ssep, (a_func_info_block_ptr)NULL,
+                 &state, /*member_parent_type=*/(a_type_ptr)NULL,
+                 (a_symbol_locator *)NULL, (a_func_info_block_ptr)NULL,
                  &decl_pos_block, (an_attribute_ptr *)NULL);
     }  /* if */
-    if (do_flags & DO_RPAREN_IN_NEW_DECLARATOR) {
+    if (state.do_flags & DO_RPAREN_IN_NEW_DECLARATOR) {
       /* We parsed something like "new (int[n])[3]" in a GNU C++ mode.  The
          right parenthesis was consumed as part of declarator processing. */
       check_assertion(gpp_mode && gnu_version < 30400);
@@ -9463,7 +9438,7 @@ within this routine if is_parenthesized comes in FALSE.
        allowed. */
     a_boolean  ptr_to_member_scanned;
     /* Scan pointer declarators. */
-    complete_type = pointer_declarator(*type_ptr, &state,
+    complete_type = pointer_declarator(state.type, &state,
                                        /*reference_allowed=*/FALSE,
 				       (a_call_conv_descr_ptr)NULL,
 				       (a_call_conv_descr_ptr)NULL,
@@ -9529,7 +9504,7 @@ within this routine if is_parenthesized comes in FALSE.
          modified type, which is an error. */
       complete_type = error_type();
     }  /* if */
-    *type_ptr = complete_type;
+    state.type = complete_type;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block.declarator_range.end.seq != 0) {
@@ -9540,11 +9515,12 @@ within this routine if is_parenthesized comes in FALSE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   check_pending_qualifiers_used(&state);
   if (any_cfront_mode() &&
-      check_member_function_typedef(*type_ptr, &state.start_pos)) {
+      check_member_function_typedef(state.type, &state.start_pos)) {
     /* The type is a cfront-style member function typedef -- it is an error
        to use it anywhere but in a pointer-to-member declaration. */
-    *type_ptr = error_type();
+    state.type = error_type();
   }  /* if */
+  *type_ptr = state.type;
   db_exit();
 }  /* new_type_name */
 
@@ -10108,14 +10084,12 @@ a normal try.
 {
   a_handler_ptr                handler, prev_handler;
   a_type_ptr                   type_ptr = NULL;
-  a_decl_flag_set              do_flags;
   a_symbol_ptr                 sym;
   a_symbol_locator             locator;
   a_source_position            decl_pos;
   a_routine_ptr                cctor, dtor;
   a_param_type_ptr             ptp;
   a_dynamic_init_ptr           dip;
-  a_source_sequence_entry_ptr  declarator_ssep = NULL;
 
   db_enter(3, "handler_declaration");
   /* Push the scope for the handler before processing the exception
@@ -10158,7 +10132,6 @@ a normal try.
         decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_EMPTY_DECL_SPECIFIERS_ALLOWED),
                         &state, &decl_pos_block);
-        type_ptr = state.specifiers_type;
         if (state.dso_flags & DSO_DEFINES_SOMETHING) {
           /* Definition of a class, struct, union, or enum type is not
              allowed. */
@@ -10166,10 +10139,10 @@ a normal try.
         } else if (state.dso_flags & DSO_NO_DECL_SPECIFIERS) {
           /* Missing type specifier. */
           pos_error(ec_missing_exception_declaration, &decl_pos);
-          type_ptr = error_type();
+          state.type = error_type();
         } else if (!(state.dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
           /* Implicit int. */
-          report_implicit_int(&pos_curr_token, type_ptr);
+          report_implicit_int(&pos_curr_token, state.specifiers_type);
         }  /* if */
         sym = NULL;
         if (is_abstract_or_real_declarator_start()) {
@@ -10178,12 +10151,10 @@ a normal try.
           if (vla_enabled) {
             di_flags |= DI_VLA_ALLOWED;
           }  /* if */
-          declarator(di_flags, &do_flags, &state, type_ptr,
-                     /*member_parent_type=*/(a_type_ptr)NULL,
-                     &locator, &type_ptr, &declarator_ssep,
-                     (a_func_info_block_ptr)NULL, &decl_pos_block,
+          declarator(di_flags, &state, /*member_parent_type=*/(a_type_ptr)NULL,
+                     &locator, (a_func_info_block_ptr)NULL, &decl_pos_block,
                      (an_attribute_ptr *)NULL);
-          if (do_flags & DO_REAL_DECLARATOR_SCANNED) {
+          if (state.do_flags & DO_REAL_DECLARATOR_SCANNED) {
             sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
                                decl_scope_level,
                                /*suppress_redecl_error=*/FALSE);
@@ -10192,24 +10163,25 @@ a normal try.
         check_pending_qualifiers_used(&state);
         if (!exceptions_enabled) {
           /* Don't bother with the semantic checks on the handler type.  Set
-             type to error type to avoid inappropriate errors downstream. */
-          type_ptr = error_type();
-        } else if (!is_error_type(type_ptr)) {
+             state.type to error type to avoid inappropriate errors
+             downstream. */
+          state.type = error_type();
+        } else if (!is_error_type(state.type)) {
           /* Force instantiation of template class. */
-          complete_type_is_needed(type_ptr);
-          /* Adjust the type if necessary (for example, "array of x"
-             becomes "pointer to x"). */
-          adjust_parameter_type(&type_ptr, (an_attribute_ptr)NULL);
-          if (is_invalid_catch_type(type_ptr, &decl_pos)) {
+          complete_type_is_needed(state.type);
+          /* Adjust the type if necessary (for example, "array of x" becomes
+             "pointer to x"). */
+          adjust_parameter_type(&state.type, (an_attribute_ptr)NULL);
+          if (is_invalid_catch_type(state.type, &decl_pos)) {
             /* An appropriate error message will have been issued by
                invalid_catch_type. */
-            type_ptr = error_type();
+            state.type = error_type();
           } else {
             /* Mark the type as having been used in an exception.  (Also,
                if it "contains" any classes, they are marked as requiring
                external linkage.) */
-            set_used_in_exception_or_rtti_flag(type_ptr);
-            if (is_or_contains_local_type(type_ptr)) {
+            set_used_in_exception_or_rtti_flag(state.type);
+            if (is_or_contains_local_type(state.type)) {
               /* Exception types, if they have linkage at all, must have
                  external linkage; however, it is possible to write a useful
                  program in which a local type is thrown and caught -- e.g.,
@@ -10227,15 +10199,16 @@ a normal try.
         }  /* if */
         /* Create a variable for the handler parameter, even if there's no
            explicit name. */
-        handler->parameter = make_handler_parameter(type_ptr);
+        handler->parameter = make_handler_parameter(state.type);
         /* Update the symbol, if there is one. */
         if (sym != NULL) {
           sym->variant.variable.ptr = handler->parameter;
           set_source_corresp(&(handler->parameter->source_corresp), sym);
           record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
-                                    &sym->decl_position, declarator_ssep);
+                                    &sym->decl_position,
+                                    state.source_sequence_entry);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-          sym->variant.variable.ptr->declared_type = type_ptr;
+          sym->variant.variable.ptr->declared_type = state.declared_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           mark_variable_value_set(sym);
         }  /* if */
@@ -10259,7 +10232,7 @@ a normal try.
         /* A handler parameter is initialized by the run-time when the
            handler is invoked.  Create the dynamic init entry to represent
            the initialization. */
-        if (is_class_struct_union_type(type_ptr)) {
+        if (is_class_struct_union_type(state.type)) {
           /* Classes may require the use of a copy constructor. */
           a_boolean          bitwise_copy;
           a_source_position  pos;
@@ -10274,10 +10247,10 @@ a normal try.
              (However, the Microsoft compiler doesn't enforce accessibility of
              copy constructors; see
                                 reference_to_implicitly_invoked_function). */
-          cctor = select_copy_constructor(type_ptr,
+          cctor = select_copy_constructor(state.type,
                                           (a_type_qualifier_set)TQ_NONE,
                                           /*source_is_rvalue=*/FALSE,
-                                          &pos, type_ptr, &bitwise_copy,
+                                          &pos, state.type, &bitwise_copy,
                                           /*record_ref=*/TRUE,
                                           /*evaluated=*/TRUE);
           /* Only an implicit copy constructor (cctor == NULL) can correspond
@@ -10285,7 +10258,7 @@ a normal try.
              copy constructor was ambiguous. */
           check_assertion((cctor == NULL) == bitwise_copy ||
                           total_errors != 0);
-          dtor = select_destructor(type_ptr, type_ptr, &pos,
+          dtor = select_destructor(state.type, state.type, &pos,
                                    /*honor_virtual=*/FALSE,
                                    /*evaluated=*/TRUE,
                                    /*instantiate=*/TRUE);
@@ -10322,6 +10295,7 @@ a normal try.
         record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
                                            /*block_lifetime=*/TRUE);
         handler->dynamic_init = dip;
+        type_ptr = state.type;
       }  /* if */
     }  /* if */
     prev_handler = try_block_stmt->variant.try_block->handlers;
@@ -10576,13 +10550,10 @@ Scan a condition declaration.  Syntax:
 Return a pointer to the variable that is declared.
 */
 {
-  a_storage_class              storage_class;
-  a_type_ptr                   type_ptr = NULL;
-  a_decl_flag_set              dsi_flags, do_flags;
+  a_decl_flag_set              dsi_flags;
   a_symbol_ptr                 sym;
   a_variable_ptr               vp;
   a_symbol_locator             locator;
-  a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_boolean                    incomplete_type_error_reported = FALSE;
   a_boolean                    missing_declarator = FALSE;
   a_symbol_reference_kind      srk_flags;
@@ -10599,24 +10570,22 @@ Return a pointer to the variable that is declared.
   state.start_pos = pos_curr_token;
   clear_decl_pos_block(&decl_pos_block);
   decl_specifiers(dsi_flags, &state, &decl_pos_block);
-  type_ptr = state.specifiers_type;
-  storage_class = state.declared_storage_class;
   if (state.dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &state.start_pos);
   } else if (!(state.dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Implicit int. */
-    report_implicit_int(&pos_curr_token, type_ptr);
+    report_implicit_int(&pos_curr_token, state.specifiers_type);
   }  /* if */
-  if (storage_class == (a_storage_class)sc_unspecified) {
-    storage_class = (a_storage_class)sc_auto;
+  if (state.storage_class == (a_storage_class)sc_unspecified) {
+    state.storage_class = (a_storage_class)sc_auto;
   }  /* if */
   if (is_declarator_start()) {
     /* Scan the declarator, which is not allowed to specify a function or an
        array (although Microsoft mode does allow arrays). */
-    declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, &state, type_ptr,
-               /*member_parent_type=*/(a_type_ptr)NULL, &locator, &type_ptr,
-               &declarator_ssep, (a_func_info_block_ptr)NULL, &decl_pos_block,
+    declarator(DI_REAL_DECLARATOR_ALLOWED, &state,
+               /*member_parent_type=*/(a_type_ptr)NULL, &locator,
+               (a_func_info_block_ptr)NULL, &decl_pos_block,
                (an_attribute_ptr *)NULL);
   } else {
     /* No declarator.  Issue a single diagnostic on this malformed
@@ -10626,18 +10595,18 @@ Return a pointer to the variable that is declared.
     error_position = pos_curr_token;
   }  /* if */
   check_pending_qualifiers_used(&state);
-  complete_type_is_needed(type_ptr);
-  if (is_function_type(type_ptr)) {
+  complete_type_is_needed(state.type);
+  if (is_function_type(state.type)) {
     /* Function type is disallowed. */
     pos_error(ec_function_type_not_allowed, &state.start_pos);
-    type_ptr = error_type();
-  } else if (is_array_type(type_ptr)) {
+    state.type = error_type();
+  } else if (is_array_type(state.type)) {
     /* Array type is disallowed, except in Microsoft mode. */
     if (microsoft_mode) {
       pos_warning(ec_array_condition_always_true, &state.start_pos);
     } else {
       pos_error(ec_array_type_not_allowed, &state.start_pos);
-      type_ptr = error_type();
+      state.type = error_type();
     }  /* if */
   }  /* if */
   /* Enter the symbol in the current scope, which should be an sck_condition
@@ -10645,7 +10614,7 @@ Return a pointer to the variable that is declared.
   sym = enter_symbol((a_symbol_kind)sk_variable, &locator, decl_scope_level,
                      /*suppress_redecl_error=*/FALSE);
   /* Allocate the variable and bind the symbol to it. */
-  vp = make_variable(type_ptr, storage_class, decl_scope_level);
+  vp = make_variable(state.type, state.storage_class, decl_scope_level);
   sym->variant.variable.ptr = vp;
   set_source_corresp(&vp->source_corresp, sym);
   /* Copy the decl-modifiers into the variable entry. */
@@ -10653,14 +10622,14 @@ Return a pointer to the variable that is declared.
                           vp, &state.decl_modifiers, &locator.source_position,
                           /*is_redecl=*/FALSE, /*is_definition=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  sym->variant.variable.ptr->declared_type = type_ptr;
+  sym->variant.variable.ptr->declared_type = state.type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   srk_flags = SRK_DECLARATION | SRK_DEFINITION;
   if (!missing_declarator && curr_token == tok_assign) {
     srk_flags |= SRK_INITIALIZATION;
   }  /* if */
   record_symbol_declaration(srk_flags, sym, &sym->decl_position,
-                            declarator_ssep);
+                            state.source_sequence_entry);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   update_decl_pos_info(&sym->variant.variable.ptr->source_corresp,
                        &decl_pos_block);
@@ -13368,9 +13337,7 @@ decl_pos_block.
     }  /* if */
   }  /* if */
   check_nonfunction_declaration_errors(state, locator);
-  decl_typedef(locator, state->type, (a_type_ptr)NULL, state->attributes,
-               &state->ms_attributes, &state->decl_modifiers, &sym,
-               state->source_sequence_entry, decl_pos_block);
+  decl_typedef(locator, state, (a_type_ptr)NULL, &sym, decl_pos_block);
 #if GNU_EXTENSIONS_ALLOWED
   if (curr_token == tok_assign && gcc_mode && gnu_version < 30100 &&
       !state->has_explicit_type_specifier) {
@@ -13687,9 +13654,6 @@ after the call.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (state->declared_storage_class == (a_storage_class)sc_typedef) {
-      di_flags |= DI_IS_TYPEDEF_DECLARATION;
-    }  /* if */
     if (state->is_old_style_param_decl) {
       di_flags |= DI_IS_PARAMETER_DECL;
       /* A variable length array declaration is permitted in an old-style
@@ -13724,6 +13688,25 @@ after the call.
   *p_di_flags = di_flags;
   return end_of_decl_action;
 }  /* prep_for_declarator */
+
+
+void start_secondary_declarator(a_decl_parse_state  *ps)
+/*
+*ps describes specifiers and a declarator from a declaration that contains
+multiple declarators (like "int i, *p;").  Initializer various declarator-
+related-fields in prior to scanning the next declarator.
+*/
+{
+  ps->do_flags = DO_NO_OUTPUT_FLAGS;
+  ps->declarator_start_pos = null_source_position;
+  ps->declarator_pos = null_source_position;
+  ps->asm_name = NULL;
+  ps->asm_name_pos = null_source_position;
+  ps->storage_class = ps->declared_storage_class;
+  ps->declared_type = ps->specifiers_type;
+  ps->type = ps->specifiers_type;
+  ps->source_sequence_entry = NULL;
+}  /* start_secondary_declarator */
 
 
 void declaration(a_boolean       function_definition_allowed,
@@ -13873,6 +13856,7 @@ Broadly speaking, three kinds of declarations are handled here:
     an_attribute_ptr  declarator_attributes = NULL;
     if (!first_declarator) {
       /* We've just skipped a comma separating two declarators. */
+      start_secondary_declarator(&state);
       /* Re-initialize state.is_old_style_param_decl for every declarator,
          because it might have been modified during the processing of the prior
          declarator (e.g., as an error recovery strategy). */
@@ -13905,8 +13889,7 @@ Broadly speaking, three kinds of declarations are handled here:
          prefix attributes as specifier attributes; we emulate the more
          recent (GNU C/C++ 3.1 and later) behavior. */
       scan_gnu_declarator_attributes((char**)NULL, &state.asm_name_pos,
-                                     &declarator_attributes,
-                                     (a_boolean*)NULL,
+                                     &declarator_attributes, (a_boolean*)NULL,
                                      state.declared_storage_class,
                                      /*is_function=*/FALSE);
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -13926,15 +13909,8 @@ Broadly speaking, three kinds of declarations are handled here:
     }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
     /* Save the source position of the first token of the declarator. */
-    declarator(di_flags, &state.do_flags, &state, state.specifiers_type, 
-               /*member_parent_type=*/(a_type_ptr)NULL, &locator,
-               &state.declared_type, &state.source_sequence_entry, &func_info,
-               &decl_pos_block, &declarator_attributes);
-    /* declarator will have set error_position to the position of the
-       declarator-id if this is a real declarator and the first token of
-       the whole declarator if it is an abstract declarator. */
-    state.declarator_pos = error_position;
-    state.type = state.declared_type;
+    declarator(di_flags, &state, /*member_parent_type=*/(a_type_ptr)NULL,
+               &locator, &func_info, &decl_pos_block, &declarator_attributes);
     is_function = (state.declared_storage_class !=
                                                 (a_storage_class)sc_typedef &&
                    !is_old_style_param_decl &&
@@ -13947,7 +13923,7 @@ Broadly speaking, three kinds of declarations are handled here:
                                    state.declared_storage_class, is_function);
     /* Combine the specifier and declarator attributes (they are separated
        again at the end of the loop). */
-    *state.p_last_specifier_attribute = declarator_attributes;
+    *state.p_declarator_attributes = declarator_attributes;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (is_old_style_param_decl) {
       prep_old_style_param_decl(&state, &func_info, param_id_list, &locator);
@@ -13988,7 +13964,7 @@ Broadly speaking, three kinds of declarations are handled here:
     first_declarator = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
     /* We are done with the declarator attributes. */
-    *state.p_last_specifier_attribute = NULL;
+    *state.p_declarator_attributes = NULL;
     free_attribute_list(declarator_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED

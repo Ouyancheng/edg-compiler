@@ -238,6 +238,10 @@ typedef struct a_decl_parse_state {
 		start_pos;
 			/* The first position of the current declaration. */
   a_source_position
+		specifiers_pos;
+			/* The position of the current token when
+			   decl_specifiers is called. */
+  a_source_position
 		declarator_start_pos;
 			/* The position of the current token when "declarator"
 			   is called, or the null position if there is no
@@ -348,12 +352,11 @@ typedef struct a_decl_parse_state {
 			/* A list of GNU attributes scanned for the current
 			   declaration. */
   an_attribute_ptr
-		*p_last_specifier_attribute;
-			/* This points to the attribute pointer in the
-                           "attributes" list that points to the last
-			   attribute scanned by a call to decl_specifiers.
-			   If there are no such attributes, this points to
-			   the "attributes" field itself. */
+		*p_declarator_attributes;
+			/* A pointer to the pointer in the attributes list
+			   that points to the declarator attributes.
+			   (If there are only declarator attributes, this
+			   points to the "attributes" field itself.) */
   a_named_register_id
 		register_id;
 			/* An integer representing a named register storage
@@ -375,7 +378,8 @@ typedef struct a_decl_parse_state {
 			/* The type returned by the call to decl_specifiers. */
   a_type_ptr
 		declared_type;
-			/* The type returned by the call to declarator. */
+			/* The type as it appears in the source (updated by
+			   calls to decl_specifier and declarator). */
   a_type_ptr
 		type;
 			/* The type of the entity being declared. */
@@ -408,8 +412,29 @@ argument.
 */
 #define init_decl_parse_state(ps) {                                          \
   *(ps) = null_decl_parse_state;                                             \
-  (ps)->p_last_specifier_attribute = &(ps)->attributes;                      \
+  (ps)->p_declarator_attributes = &(ps)->attributes;                         \
 }
+
+extern void start_secondary_declarator(a_decl_parse_state  *ps);
+
+/*
+Macro to discard the source sequence entry associated with the declarator.
+(The argument is a pointer to the current a_decl_parse_state block.)
+*/
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+#define remove_declarator_sse(dps)                                           \
+  if ((dps)->source_sequence_entry != NULL) {                                \
+    f_remove_from_src_seq_list((dps)->source_sequence_entry,                 \
+                               decl_scope_level);                            \
+    (dps)->source_sequence_entry = NULL;                                     \
+  }  /* if */
+
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+
+#define remove_declarator_sse(dps)  /* Nothing */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 extern void f_check_pending_qualifiers_used(a_decl_parse_state  *ps);
 
@@ -555,13 +580,9 @@ extern a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
                                        a_boolean        suppress_redecl_error);
 
 extern void decl_typedef(a_symbol_locator             *locator,
-                         a_type_ptr                   type_ptr,
+                         a_decl_parse_state           *state,
                          a_type_ptr                   class_type,
-                         an_attribute_ptr             attributes,
-                         an_ms_attribute_ptr          *p_ms_attributes,
-                         a_decl_modifiers_block_ptr   decl_modifiers,
                          a_symbol_ptr                 *symbol_ptr,
-                         a_source_sequence_entry_ptr  declarator_ssep,
                          a_decl_pos_block_ptr         decl_pos_block);
 
 extern void record_lint_argsused_and_varargs_state(a_symbol_ptr  rout_sym);
@@ -631,15 +652,10 @@ void decl_variable(a_symbol_locator             *locator,
                    a_symbol_ptr                 *ext_sym,
                    a_decl_pos_block_ptr         decl_pos_block);
 
-extern
-void decl_function_template(a_symbol_locator            *locator,
-                            a_type_ptr                  type_ptr,
-                            a_func_info_block           *func_info,
-                            a_symbol_ptr                *symbol_ptr,
-                            a_storage_class             storage_class,
-                            a_decl_modifiers_block_ptr  decl_modifiers,
-                            a_tmpl_decl_state_ptr       decl_state,
-                            an_attribute_ptr            attributes);
+extern void decl_function_template(a_symbol_locator            *locator,
+                                   a_func_info_block           *func_info,
+                                   a_symbol_ptr                *symbol_ptr,
+                                   a_tmpl_decl_state_ptr       decl_state);
 
 extern void handler_declaration(a_statement_ptr     sp,
                                 a_source_position*  catch_pos,

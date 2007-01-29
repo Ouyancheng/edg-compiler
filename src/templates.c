@@ -440,6 +440,7 @@ static void init_templ_decl_state(a_tmpl_decl_state_ptr	tdsp)
 Initialize a template declaration state block.
 */
 {
+  init_decl_parse_state(&tdsp->decl_parse);
   tdsp->is_template_friend = FALSE;
   tdsp->is_member_decl = FALSE;
   tdsp->is_specialization = FALSE;
@@ -463,7 +464,6 @@ Initialize a template declaration state block.
   tdsp->number_of_template_param_clauses = 0;
   tdsp->enclosing_scope = NULL;
   tdsp->class_declared_in = NULL;
-  tdsp->start_pos = null_source_position;
   clear_token_cache(&tdsp->param_list_cache, /*reusable=*/TRUE);
   clear_token_cache(&tdsp->decl_token_cache, /*reusable=*/TRUE);
   tdsp->decl_token_cache_used = FALSE;
@@ -633,7 +633,7 @@ may be a friend template.
 
   db_enter(3, "make_il_template_entry");
   tp = alloc_template();
-  tp->source_corresp.decl_position = decl_state->start_pos;
+  tp->source_corresp.decl_position = decl_state->decl_parse.start_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tp->export_position = decl_state->export_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -7930,67 +7930,39 @@ the diagnostic is suppressed.
 }  /* check_for_invalid_instantiation */
 
 
-static a_decl_flag_set merge_declarator_flags(a_decl_flag_set dso_flags,
-                                              a_decl_flag_set do_flags)
+static void check_for_declaration_errors(a_decl_parse_state  *state,
+                                         a_symbol_locator    *locator)
 /*
-Some flags normally set by decl_specifiers cannot be determined until
-declarator has run.  For example, a parenthesized constructor declarator is
-not recognized as such until the declarator has been scanned.
-
-dso_flags are the flags produced by decl_specifier and do_flags those
-produced by declarator. The relevant bits of the latter are merged into the
-former and the resulting value is returned.
-*/
-{
-  a_decl_flag_set result = dso_flags;
-
-  if (do_flags & DO_IS_CONSTRUCTOR) {
-    result |= DSO_CONSTRUCTOR;
-  }  /* if */
-  if (do_flags & DO_IS_DESTRUCTOR) {
-    result |= DSO_DESTRUCTOR;
-  }  /* if */
-  return result;
-}  /* merge_declarator_flags */
-
-
-static void check_for_declaration_errors(a_decl_flag_set   dso_flags,
-                                         a_type_ptr        type,
-                                         a_symbol_locator  *locator,
-                                         a_source_position *pos)
-/*
-This routine is used to detect certain kinds of errors related to
-the processing of a declaration in a function template declaration,
-explicit instantiation or specialization.  
-
-dso_flags is a set of flags produced by decl_specifiers; type is produced by
-declarator. pos is the position to be used if a diagnostic is issued.
+This routine is used to detect certain kinds of errors related to the
+processing of a declaration in a function template declaration, explicit
+instantiation or specialization.  *state and *locator describe the
+declaration that must be checked.
 */
 {
   /* Make sure the lookup was not ambiguous. */
   check_for_ambiguity(locator);
   if (!is_error_locator(*locator)) {
-    a_boolean	is_function;
-    is_function = is_function_type(type);
-    if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
-      if (is_function_type(type) &&
-          (((dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR)) != 0) ||
+    a_boolean	is_function = is_function_type(state->type);
+    if (!(state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+      if (is_function_type(state->type) &&
+          (((state->dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR)) != 0) ||
+           ((state->do_flags & (DO_IS_CONSTRUCTOR | DO_IS_DESTRUCTOR)) != 0) ||
            locator->is_conversion_name)) {
         /* No type specifier is required. */
       } else {
         /* Error on omitted type specifier. */
         a_boolean  any_decl_specifiers =
-                                 (dso_flags & DSO_NO_DECL_SPECIFIERS) == 0;
-        report_missing_type_specifier(pos, type, is_function,
-                                      /*is_function_def=*/FALSE,
+                             (state->dso_flags & DSO_NO_DECL_SPECIFIERS) == 0;
+        report_missing_type_specifier(&state->specifiers_pos, state->type,
+                                      is_function, /*is_function_def=*/FALSE,
                                       /*is_main_function=*/FALSE,
                                       any_decl_specifiers);
       }  /* if */
     }  /* if */
-    if (dso_flags & DSO_DEFINES_SOMETHING) {
+    if (state->dso_flags & DSO_DEFINES_SOMETHING) {
       /* The type specifiers included a type definition, which is not allowed
          in this context. */
-      pos_error(ec_type_definition_not_allowed, pos);
+      pos_error(ec_type_definition_not_allowed, &state->specifiers_pos);
     }  /* if */
   }  /* if */
 }  /* check_for_declaration_errors */
@@ -8038,21 +8010,16 @@ declared and before the partial instantiation of the function was done.
 
 
 static void scan_template_declaration(
+                                a_decl_parse_state         *state,
                                 a_boolean                  is_initial_decl,
                                 a_boolean                  is_member_decl,
                                 a_type_ptr                 parent_class,
                                 a_boolean                  decl_scope_err,
                                 a_boolean                  is_specialization,
-                                a_decl_flag_set            *dso_flags,
-                                a_decl_flag_set            *do_flags,
                                 a_symbol_locator           *locator,
-                                a_type_ptr                 *type,
                                 a_func_info_block          *func_info,
-                                a_storage_class            *storage_class,
-                                a_decl_modifiers_block_ptr decl_modifiers,
                                 a_routine_ptr              templ_rout,
                                 a_template_instance_ptr    tip,
-                                an_attribute_ptr           *attributes,
                                 a_decl_pos_block_ptr       decl_pos_block)
 /*
 Calls decl_specifiers and declarator to scan a template declaration of
@@ -8067,26 +8034,15 @@ decl_pos_block points to entry used to record detailed source position
 information.
 */
 {
-  a_decl_flag_set              dsi_flags;
-  a_decl_flag_set              di_flags;
-  a_source_sequence_entry_ptr  declarator_ssep = NULL;
-  a_decl_parse_state           state;
-  a_source_position            decl_start_pos;
+  a_decl_flag_set     dsi_flags = DSI_INLINE_ALLOWED |
+                                  DSI_TYPE_SPECIFIER_ALLOWED |
+                                  DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
+                                  DSI_GNU_ATTRIBUTES_ALLOWED |
+                                  DSI_MICROSOFT_ATTRIBUTES_ALLOWED |
+                                  DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
 
-  dsi_flags = DSI_INLINE_ALLOWED |
-              DSI_TYPE_SPECIFIER_ALLOWED |
-              DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
-              DSI_GNU_ATTRIBUTES_ALLOWED |
-              DSI_MICROSOFT_ATTRIBUTES_ALLOWED |
-              DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
-  di_flags = DI_REAL_DECLARATOR_ALLOWED |
-             DI_QUALIFIED_NAME_ALLOWED |
-             DI_PARENTHESIZED_INITIALIZER_ALLOWED |
-             DI_OPERATOR_NAME_ALLOWED;
   if (is_initial_decl) {
     dsi_flags |= DSI_IS_TEMPLATE_DECLARATION;
-    di_flags |= DI_IS_TEMPLATE_DECLARATION;
-    if (is_specialization) di_flags |= DI_IS_SPECIALIZATION;
     /* An end-of-source marker is not present when the initial declaration
        is scanned. */
     add_stop_token(tok_lbrace);
@@ -8104,75 +8060,53 @@ information.
     /* This is a declaration inside a class definition. */
     dsi_flags |= DSI_IS_MEMBER_DECLARATION;
   }  /* if */
-  init_decl_parse_state(&state);
-  decl_start_pos = pos_curr_token;
-  decl_specifiers(dsi_flags, &state, decl_pos_block);
-  *dso_flags = state.dso_flags;
-  state.storage_class = state.declared_storage_class;
-  *type = state.specifiers_type;
-  *attributes = state.attributes;
-  *decl_modifiers = state.decl_modifiers;
-  if (is_error_type(*type) && !is_declarator_start()) {
+  state->start_pos = pos_curr_token;
+  decl_specifiers(dsi_flags, state, decl_pos_block);
+  if (is_error_type(state->specifiers_type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(*locator);
-    *do_flags = 0;
+    state->do_flags = 0;
   } else {
-    a_boolean	friend_specified = (*dso_flags & DSO_FRIEND) != 0;
-    if (friend_specified) {
-      di_flags |= DI_IS_FRIEND_DECL;
+    a_decl_flag_set  di_flags = DI_REAL_DECLARATOR_ALLOWED |
+                                DI_QUALIFIED_NAME_ALLOWED |
+                                DI_PARENTHESIZED_INITIALIZER_ALLOWED |
+                                DI_OPERATOR_NAME_ALLOWED;
+    if (is_initial_decl) {
+      di_flags |= DI_IS_TEMPLATE_DECLARATION;
+      if (is_specialization) di_flags |= DI_IS_SPECIALIZATION;
     }  /* if */
-    if (state.storage_class != (a_storage_class)sc_static &&
-        !friend_specified && parent_class != NULL) {
-      /* The storage class "static" was not specified and this is a member
-         declaration that is not a friend declaration, therefore, if this
-         is a member function declaration, it will be a nonstatic member
-         function.  This is important because when the routine type
-         is created, function_declarator needs to know whether to
-         add a this class to the type. */
-      di_flags |= DI_NONSTATIC_MEMBER;
-    }  /* if */
-    if (is_member_decl && (*dso_flags & DSO_CONSTRUCTOR) != 0) {
+    if (is_member_decl && (state->dso_flags & DSO_CONSTRUCTOR) != 0) {
       di_flags |= DI_IS_CONSTRUCTOR;
     }  /* if */
-    if (!(*dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
-        state.qualifiers == TQ_NONE) {
+    if (!(state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
+        state->qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
-    declarator(di_flags, do_flags, &state, *type,
-               !friend_specified ? parent_class : (a_type_ptr)NULL,
-               locator, type,
-               &declarator_ssep, func_info, decl_pos_block,
-               attributes);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (declarator_ssep != NULL) {
-      remove_from_src_seq_list(declarator_ssep);
-      declarator_ssep = NULL;
-    }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    declarator(di_flags, state, parent_class, locator, func_info,
+               decl_pos_block, &state->attributes);
+    remove_declarator_sse(state);
     if (decl_scope_err) {
       /* Just to be sure a template symbol doesn't get added to a scope that
          is not equipped to handle it, create an error locator based on the
          previously reported error. */
       set_to_named_error_locator(*locator);
     }  /* if */
-    check_for_declaration_errors(
-                             merge_declarator_flags(*dso_flags, *do_flags),
-                             *type, locator, &decl_start_pos);
-    func_info->is_inline = ((*dso_flags & DSO_INLINE) != 0);
+    check_for_declaration_errors(state, locator);
+    func_info->is_inline = ((state->dso_flags & DSO_INLINE) != 0);
     /* Note whether this is a function type that comes from a typedef.  The
        setting is checked later if this turns out to be a function template
        definition. */
-    if (is_function_type(*type)) {
-      if ((*type)->kind == (a_type_kind)tk_typeref) {
+    if (is_function_type(state->type)) {
+      if (state->type->kind == (a_type_kind)tk_typeref) {
         func_info->function_type_from_typedef = TRUE;
       }  /* if */
       if (parent_class == NULL && locator->is_class_member) {
         /* This is a member template declaration outside the class definition,
            so a storage class may not be specified (as in the nontemplate
            case). */
-        if (state.storage_class != (a_storage_class)sc_unspecified) {
-          pos_error(ec_storage_class_not_allowed, &decl_start_pos);
-          state.storage_class = (a_storage_class)sc_unspecified;
+        if (state->storage_class != (a_storage_class)sc_unspecified) {
+          pos_error(ec_storage_class_not_allowed, &state->start_pos);
+          state->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
       }  /* if */
       /* Issue diagnostic on an incomplete-type in an exception
@@ -8208,7 +8142,7 @@ information.
       /* The rescan of the declaration should have produced a routine
          type.  If not all of the tokens were used, or if the type created
        is not a function type, issue a diagnostic. */
-      check_for_invalid_instantiation(type, templ_rout,
+      check_for_invalid_instantiation(&state->type, templ_rout,
                                       (a_boolean)is_error_locator(*locator),
                                       (a_type_ptr)NULL, tip);
     }  /* if */
@@ -8217,7 +8151,6 @@ information.
        If necessary, keep flushing until end-of-source is found. */
     flush_past_token_cache_terminator();
   }  /* if */
-  *storage_class = state.storage_class;
 }  /* scan_template_declaration */
 
 
@@ -8232,27 +8165,20 @@ where the class declared an incomplete array type.
 */
 {
   a_func_info_block		func_info;
-  a_storage_class		storage_class;
   a_symbol_locator		locator;
-  a_decl_modifiers_block	decl_modifiers;
   a_decl_pos_block		decl_pos_block;
-  a_type_ptr			type;
-  an_attribute_ptr		attributes = NULL;
-  a_decl_flag_set		dso_flags;
-  a_decl_flag_set		do_flags;
+  a_decl_parse_state		state;
 
   clear_func_info(&func_info);
   clear_decl_pos_block(&decl_pos_block);
+  init_decl_parse_state(&state);
   rescan_reusable_cache(&tssp->variant.static_data_member.decl_cache.tokens);
-  scan_template_declaration(/*is_initial_decl=*/FALSE,
+  scan_template_declaration(&state, /*is_initial_decl=*/FALSE,
                             /*is_member_decl=*/FALSE, (a_type_ptr)NULL,
                             /*decl_scope_err=*/FALSE,
-                            /*is_specialization=*/FALSE, &dso_flags,
-                            &do_flags, &locator, &type, &func_info,
-                            &storage_class, &decl_modifiers,
-                            (a_routine_ptr)NULL, tip, &attributes,
-			    &decl_pos_block);
-  (void)reconcile_static_data_member_types(sym, type,
+                            /*is_specialization=*/FALSE, &locator, &func_info,
+                            (a_routine_ptr)NULL, tip, &decl_pos_block);
+  (void)reconcile_static_data_member_types(sym, state.type,
                                            &locator.source_position);
 }  /* rescan_static_data_member_declaration */
 
@@ -8370,7 +8296,6 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   a_template_instance_ptr           tip;
   a_routine_ptr                     templ_rout, rp;
   a_type_ptr			    rout_type = NULL;
-  a_decl_flag_set		    dso_flags;
   a_boolean			    is_member_decl;
   a_type_ptr	      		    parent_class = NULL;
   a_boolean			    trans_unit_pushed;
@@ -8480,23 +8405,20 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       /* Note that locator_position is not updated in this case. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
-      a_decl_flag_set	      do_flags;
-      a_func_info_block	      func_info;
-      a_storage_class         storage_class;
-      a_symbol_locator	      locator;
-      a_decl_modifiers_block  decl_modifiers;
-      a_decl_pos_block        decl_pos_block;
+      a_decl_parse_state  state;
+      a_func_info_block	  func_info;
+      a_symbol_locator	  locator;
+      a_decl_pos_block    decl_pos_block;
 
       clear_func_info(&func_info);
       clear_decl_pos_block(&decl_pos_block);
-      scan_template_declaration(/*is_initial_decl=*/FALSE,
+      init_decl_parse_state(&state);
+      scan_template_declaration(&state, /*is_initial_decl=*/FALSE,
                                 is_member_decl, parent_class,
   			        /*decl_scope_err=*/FALSE,
-				/*is_specialization=*/FALSE,
-                                &dso_flags, &do_flags, &locator,
-                                &rout_type, &func_info, &storage_class,
-                                &decl_modifiers, templ_rout, tip,
-                                &attributes, &decl_pos_block);
+				/*is_specialization=*/FALSE, &locator,
+                                &func_info, templ_rout, tip, &decl_pos_block);
+      rout_type = state.type;
       /* Save the prototype scope symbols in the instance pointer. */
       tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -12390,100 +12312,82 @@ depends on a template parameter type, return TRUE in *template_dependent
 (if it is not NULL).
 */
 {
-  a_decl_flag_set              do_flags;
-  a_decl_flag_set              dso_flags;
   a_decl_parse_state           state;
-  a_source_position            param_pos;
-  a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_type_ptr                   tp;
   a_decl_pos_block             decl_pos_block;
 
   /* Scan the declaration specifiers. */
-  param_pos = pos_curr_token;
   clear_decl_pos_block(&decl_pos_block);
   init_decl_parse_state(&state);
+  state.start_pos = pos_curr_token;
   decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_TEMPLATE_PARAMETER),
                   &state, &decl_pos_block);
-  dso_flags = state.dso_flags;
-  if (dso_flags & DSO_DEFINES_SOMETHING) {
-    pos_error(ec_type_definition_not_allowed, &param_pos);
-    *param_type_ptr = error_type();
-  } else {
-    *param_type_ptr = state.specifiers_type;
+  if (state.dso_flags & DSO_DEFINES_SOMETHING) {
+    pos_error(ec_type_definition_not_allowed, &state.start_pos);
+    state.type = error_type();
   }  /* if */
-  if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+  if (!(state.dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
-    a_boolean	no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
-    report_missing_type_specifier(&error_position,
-                                  *param_type_ptr,
-                                  /*is_function=*/FALSE,
-                                  /*function_def_present=*/FALSE,
-                                  /*is_main_function=*/FALSE,
-                                  !no_decl_specifiers);
+    report_missing_type_specifier(
+        &error_position, state.type, /*is_function=*/FALSE,
+        /*function_def_present=*/FALSE, /*is_main_function=*/FALSE,
+        (state.dso_flags & DSO_NO_DECL_SPECIFIERS) == 0);
   }  /* if */
   /* Scan the declarator. */
   declarator((DI_REAL_DECLARATOR_ALLOWED |
               DI_ABSTRACT_DECLARATOR_ALLOWED |
               DI_IS_TEMPLATE_PARAM_DECL),
-             &do_flags, &state, *param_type_ptr,
-             /*member_parent_type=*/(a_type_ptr)NULL, param_locator,
-             param_type_ptr, &declarator_ssep,
+             &state, /*member_parent_type=*/(a_type_ptr)NULL, param_locator,
              (a_func_info_block_ptr)NULL, &decl_pos_block,
              (an_attribute_ptr *)NULL);
   if (is_unnamed != NULL) {
     /* Return a flag indicating whether the parameter is unnamed. */
-    *is_unnamed = (do_flags & DO_REAL_DECLARATOR_SCANNED) == 0;
+    *is_unnamed = (state.do_flags & DO_REAL_DECLARATOR_SCANNED) == 0;
   }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (declarator_ssep != NULL) {
-    /* Declarators appearing in template parameter list need not be recorded
-       in the source sequence entry lists. */
-    remove_from_src_seq_list(declarator_ssep);
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  remove_declarator_sse(&state);
   if (template_dependent != NULL) {
     /* Check whether the type depends on a template parameter.  This is
        done before the parameter type is adjusted below because certain
        dependencies could be eliminated. */
-    *template_dependent = is_or_contains_template_param(*param_type_ptr);
+    *template_dependent = is_or_contains_template_param(state.type);
   }  /* if */
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
-  adjust_parameter_type(param_type_ptr, (an_attribute_ptr)NULL);
+  adjust_parameter_type(&state.type, (an_attribute_ptr)NULL);
   /* Check for illegal nontype parameter types.  Template parameters of
      void type, class type, and floating point type are not permitted
      by the standard.  Floating point template parameters are still
      accepted when floating_point_template_parameters_allowed is TRUE.
      Template parameters of array type are permitted even though there
      is no way to make use of them. */
-  tp = skip_typerefs(*param_type_ptr);
+  tp = skip_typerefs(state.type);
   if (is_void_type(tp)) {
     /* A parameter type of void is not allowed. */
-    pos_error(ec_void_template_parameter, &param_pos);
-    *param_type_ptr = error_type();
+    pos_error(ec_void_template_parameter, &state.start_pos);
     /* Change the parameter type to an error type.  This is done to prevent
        template parameters from having unexpected types. */
-    *param_type_ptr = error_type();
+    state.type = error_type();
   } else if (is_class_struct_union_type(tp)) {
     /* A template parameter cannot have class type. */
-    pos_error(ec_template_parameter_has_class_type, &param_pos);
+    pos_error(ec_template_parameter_has_class_type, &state.start_pos);
     /* Change the parameter type to an error type.  This is done to prevent
        template parameters from having unexpected types.  In particular,
        nontype parameters with incomplete class types are problematic. */
-    *param_type_ptr = error_type();
+    state.type = error_type();
   } else if (tp->kind == (a_type_kind)tk_float) {
     if (!floating_point_template_parameters_allowed) {
       /* A floating-point template parameter type is no longer allowed
          as of 3/94. */
-      pos_error(ec_float_template_parameter, &param_pos);
+      pos_error(ec_float_template_parameter, &state.start_pos);
     }  /* if */
 #if FIXED_POINT_ALLOWED
   } else if (tp->kind == (a_type_kind)tk_fixed_point) {
     /* A template parameter cannot have a fixed point type, if enabled in
        C++ mode. */
-    pos_error(ec_fixed_template_parameter, &param_pos);
+    pos_error(ec_fixed_template_parameter, &state.start_pos);
 #endif /* FIXED_POINT_ALLOWED */
   }  /* if */
+  *param_type_ptr = state.type;
 }  /* scan_a_template_parameter_declaration */
 
 
@@ -14000,21 +13904,14 @@ it in the IL template entry.
 
 
 static a_symbol_ptr template_static_data_member_declaration(
-                     a_tmpl_decl_state_ptr            decl_state,
-                     a_symbol_locator                 *locator,
-		     a_storage_class		      storage_class,
-		     a_decl_flag_set                  do_flags,
-		     a_type_ptr                       type,
-		     a_template_symbol_supplement_ptr *p_tssp)
+                                  a_tmpl_decl_state_ptr            decl_state,
+                                  a_symbol_locator                 *locator,
+                                  a_template_symbol_supplement_ptr *p_tssp)
 /*
-Scan a template static data member declaration.  locator identifies
-the static data member being declared.  storage_class is the storage class
-specified in the declaration, if any.  do_flags contains the
-declaration flags returned by declarator.  type is the type pointer
-returned by declarator.  template_param_list points to the parameter
-list for this template declaration.  p_tssp points to the location in
-which the template symbol supplement for this template should be
-returned to the caller.
+Scan a template static data member declaration.  locator identifies the static
+data member being declared.  template_param_list points to the parameter list
+for this template declaration.  p_tssp points to the location in which the
+template symbol supplement for this template should be returned to the caller.
 */
 {
   /* Name is a member of a class template (or a class nested within a class
@@ -14027,11 +13924,12 @@ returned to the caller.
   a_symbol_ptr                     sym;
   a_boolean                        has_parenthesized_initializer = FALSE;
   a_template_symbol_supplement_ptr tssp = NULL;
+  a_decl_parse_state               *decl_parse = &decl_state->decl_parse;
 
   db_enter(4, "template_static_data_member_declaration");
   sym = locator->specific_symbol;
   has_parenthesized_initializer = 
-                              (do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
+                   (decl_parse->do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
   if (is_error_locator(*locator)) {
     /* An error occurred while scanning the declarator of what we assume
        is a static data member.  We make this assumption because the
@@ -14060,9 +13958,9 @@ returned to the caller.
     /* Prior definition. */
     pos_sy_error(ec_already_defined, &locator->source_position, sym);
     err = TRUE;
-  } else if (!types_are_redecl_compatible(type,
-                                          sym->variant.static_data_member.
-                                                            variable->type)) {
+  } else if (!types_are_redecl_compatible(
+                            decl_parse->type,
+                            sym->variant.static_data_member.variable->type)) {
     /* The type of the static data member definition does not match
        the declaration in the class. */
     pos_sy_error(ec_not_compatible_with_previous_decl,
@@ -14071,6 +13969,7 @@ returned to the caller.
   } else {
     /* This is a template definition of a static data member of a
        class template. */
+    a_type_ptr  type = decl_parse->type;
 #if CHECKING
     if (sym->variant.static_data_member.instance_ptr->template_sym != sym) {
       internal_error("template_declaration: bad instance for static mem");
@@ -14092,7 +13991,7 @@ returned to the caller.
     }  /* if */
     /* A storage class of sc_unspecified means "no storage class explicitly
        specified" -- anything else is an error. */
-    if (storage_class != (a_storage_class)sc_unspecified) {
+    if (decl_parse->storage_class != (a_storage_class)sc_unspecified) {
       pos_error(ec_storage_class_not_allowed, &locator->source_position);
     }  /* if */
   }  /* if */
@@ -14799,27 +14698,23 @@ caller.
 
 
 static a_symbol_ptr function_template_declaration(
-                               a_tmpl_decl_state_ptr	   decl_state,
-                               a_symbol_locator            *locator,
-                               a_func_info_block           *func_info,
-                               a_storage_class             storage_class,
-                               a_decl_modifiers_block_ptr  decl_modifiers,
-                               a_type_ptr                  type,
-                               an_attribute_ptr            attributes)
+                                            a_tmpl_decl_state_ptr  decl_state,
+                                            a_symbol_locator       *locator,
+                                            a_func_info_block      *func_info)
 /*
 Scan a function template declaration or the declaration of a member function
 of a class template.  locator identifies the function template being
 declared.  func_info points to the block of information for the current
-function declaration.  storage_class, decl_modifiers, and type indicate
-information returned from decl_specifiers and declarator.
+function declaration.
 */
 {
-  a_symbol_ptr         sym = NULL;
+  a_decl_parse_state  *dps = &decl_state->decl_parse;
+  a_symbol_ptr        sym = NULL;
 
   db_enter(4, "function_template_declaration");  
   /* Set a flag in each param type entry whose associated type is or
      contains a template parameter. */
-  set_type_involves_deduced_template_param(type);
+  set_type_involves_deduced_template_param(dps->type);
   if (decl_state->is_template_friend) {
     if (curr_token != tok_lbrace) {
       /* A friend declaration that is not a definition cannot specify default
@@ -14839,8 +14734,7 @@ information returned from decl_specifiers and declarator.
   }  /* if */
   decl_state->prototype_scope_symbols = func_info->prototype_scope_symbols;
   /* Process a function template declaration. */
-  decl_function_template(locator, type, func_info, &sym, storage_class,
-                         decl_modifiers, decl_state, attributes);
+  decl_function_template(locator, func_info, &sym, decl_state);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!func_info->is_definition && !source_sequence_entries_disallowed) {
     /* Turn the source sequence entry for the a_template entry into a
@@ -15254,7 +15148,6 @@ any non-empty template parameter lists that were scanned.
   a_boolean			    is_class_template = FALSE;
   a_cached_token_ptr		    ctp;
   a_boolean			    invalid_decl = FALSE;
-  an_attribute_ptr                  attributes = NULL;
 
   db_enter(3, "template_declaration");
   /* Now that we know where the template declaration begins (and the template
@@ -15326,25 +15219,19 @@ any non-empty template parameter lists that were scanned.
         if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
       } /* if */
     } else {
-      a_type_ptr              type;
-      a_symbol_locator        locator;
-      a_decl_flag_set         do_flags;
-      a_decl_flag_set         dso_flags;
-      a_func_info_block       func_info;
-      a_storage_class         storage_class;
-      a_decl_modifiers_block  decl_modifiers;
+      a_symbol_locator    locator;
+      a_func_info_block   func_info;
+      a_decl_parse_state  *dps = &decl_state->decl_parse;
 
       /* Scan the decl. specifiers and the declaration. */
       clear_func_info(&func_info);
-      scan_template_declaration(/*is_initial_decl=*/TRUE,
+      scan_template_declaration(dps, /*is_initial_decl=*/TRUE,
                                 decl_state->is_member_decl,
                                 decl_state->class_declared_in,
                                 decl_state->decl_scope_err,
                                 decl_state->is_specialization,
-                                &dso_flags, &do_flags, &locator, &type,
-                                &func_info, &storage_class, &decl_modifiers,
-                                (a_routine_ptr)NULL,
-                                (a_template_instance_ptr)NULL, &attributes,
+                                &locator, &func_info, (a_routine_ptr)NULL,
+                                (a_template_instance_ptr)NULL,
                                 &decl_state->decl_pos_block);
       /* If an error occurred scanning the declarator, set the flag to
          suppress subsequent errors. */
@@ -15363,24 +15250,20 @@ any non-empty template parameter lists that were scanned.
       if (decl_state->decl_scope_err) {
         set_to_named_error_locator(locator);
       }  /* if */
-      if (!is_function_type(type) && 
-          locator.specific_symbol != NULL) {
+      if (!is_function_type(dps->type) && locator.specific_symbol != NULL) {
         sym = template_static_data_member_declaration(
-                                 decl_state, &locator, storage_class,
-                                 do_flags, type, &tssp);
+                                                 decl_state, &locator, &tssp);
         /* Save a pointer to the token cache for the initializer.  tssp
            may be NULL in error cases.  For GNU modes also save any
            attributes that will need to be applied during instantiation. */
         if (tssp != NULL) {
           p_template_body_cache = &tssp->cache.tokens;
 #if GNU_EXTENSIONS_ALLOWED
-          tssp->attributes = attributes;
+          tssp->attributes = dps->attributes;
 #endif /* GNU_EXTENSIONS_ALLOWED */
         }  /* if */
-      } else if (is_function_type(type)) {
-        sym = function_template_declaration(
-                 decl_state, &locator, &func_info, storage_class,
-                 &decl_modifiers, type, attributes);
+      } else if (is_function_type(dps->type)) {
+        sym = function_template_declaration(decl_state, &locator, &func_info);
         complete_function_template_decl(decl_state, sym, &func_info,
                                         &tssp, &locator.source_position);
         if (decl_state->defines_something) {
@@ -15509,7 +15392,8 @@ any non-empty template parameter lists that were scanned.
       }  /* if */
     } else {
       check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
-      static_data_member_prototype_instantiation(sym, attributes);
+      static_data_member_prototype_instantiation(
+                                      sym, decl_state->decl_parse.attributes);
     }  /* if */
   }  /* if */
   /* Save the declaration sequence number at the end of this template
@@ -15886,17 +15770,13 @@ scanned, and this routine handles the specialization of the template instance
 that follows.
 */
 {
-  a_storage_class               storage_class;
-  a_type_ptr                    type;
   a_symbol_locator              locator;
   a_decl_flag_set               do_flags, dso_flags, di_flags, dsi_flags;
-  a_decl_parse_state            state;
-  a_source_sequence_entry_ptr   declarator_ssep = NULL;
+  a_decl_parse_state            *dps = &decl_state->decl_parse;
   a_symbol_ptr		        sym;
   a_func_info_block             func_info;
   a_boolean			keep_func_info = FALSE;
   a_symbol_reference_kind       srk_flags = SRK_DECLARATION;
-  a_source_position             decl_start_pos, id_pos;
 #if DECL_MODIFIERS_IN_USE
   a_source_position             prev_sym_pos;
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -15911,12 +15791,9 @@ that follows.
   a_boolean                     first_decl = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean			microsoft_nonstd_specialization = FALSE;
-  an_attribute_ptr              *p_attributes = NULL;
   a_boolean                     already_specialized = FALSE;
 
   db_enter(3, "full_specialization");
-  decl_start_pos = pos_curr_token;
-  init_decl_parse_state(&state);
   clear_decl_pos_block(&decl_pos_block);
   /* The pragmas were extracted before the "template <>" was scanned.
      Reactivate them now. */
@@ -15941,29 +15818,27 @@ that follows.
        specializations. */
     dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
   }  /* if */
-  decl_specifiers(dsi_flags, &state, &decl_pos_block);
-  dso_flags = state.dso_flags;
-  storage_class = state.declared_storage_class;
-  type = state.specifiers_type;
-  p_attributes = &state.attributes;
+  decl_specifiers(dsi_flags, dps, &decl_pos_block);
+  dso_flags = dps->dso_flags;
   /* A storage class is not permitted on an explicit specialization, except
      in GNU and Microsoft modes. */
-  check_assertion(storage_class == (a_storage_class)sc_unspecified ||
+  check_assertion(dps->storage_class == (a_storage_class)sc_unspecified ||
 		  microsoft_mode || (gpp_mode && !decl_state->is_member_decl));
   /* Issue a diagnostic if there are any unapplied pragmas at this point. */
   cannot_bind_to_curr_construct();
-  if (is_error_type(type) && !is_declarator_start()) {
+  if (is_error_type(dps->type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(locator);
   } else if ((dso_flags & (DSO_DEFINES_SOMETHING |
                            DSO_DECLARES_SOMETHING |
                            DSO_ELABORATED_TYPE_SPECIFIER)) &&
-             is_immediate_class_type(type) && curr_token == tok_semicolon) {
+             is_immediate_class_type(dps->type) &&
+             curr_token == tok_semicolon) {
     /* The argument is something like class A<int>.  Note that this also
        permits the class to be a nested class within a template class.  All
        of the remaining processing is done in class_specifier. */
-    check_pending_qualifiers_used(&state);
-    sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+    check_pending_qualifiers_used(dps);
+    sym = symbol_for(dps->type);
     check_assertion(sym != NULL);
     if (!is_any_template_instance_class_symbol(sym)) {
       /* Not a template instance. */
@@ -15971,18 +15846,19 @@ that follows.
     } else {
       /* Make sure that this declaration has the correct number of
          "template <>" clauses. */
-      (void)check_template_nesting_depth(sym, &decl_start_pos, decl_state);
-      type->variant.class_struct_union.is_specialized = TRUE;
+      (void)check_template_nesting_depth(sym, &dps->specifiers_pos,
+                                         decl_state);
+      dps->type->variant.class_struct_union.is_specialized = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       { a_boolean	decl_is_definition;
         /* The specialization should be marked as an autonomous declaration. */
         decl_is_definition = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
         if (decl_is_definition) {
-          type->autonomous_primary_tag_decl = TRUE;
+          dps->type->autonomous_primary_tag_decl = TRUE;
         } else {
           an_sssd_flag_set  flags = SSSD_AUTONOMOUS_TAG_DECL |
                                     SSSD_SPECIALIZED_WITH_NEW_SYNTAX;
-          (void)update_src_seq_secondary_decl((char *)type, type,
+          (void)update_src_seq_secondary_decl((char *)dps->type, dps->type,
                                               (a_name_reference_ptr)NULL,
                                               flags, &decl_pos_block);
         }  /* if */
@@ -16011,7 +15887,7 @@ that follows.
            flag into declarator.  This flag can only be set when a parent class
            type is provided to declarator. */
         di_flags |= DI_IS_CONSTRUCTOR;
-      } else if (storage_class != (a_storage_class)sc_static &&
+      } else if (dps->storage_class != (a_storage_class)sc_static &&
                  (dso_flags & DSO_FRIEND) == 0) {
         /* A Microsoft in-class specialization should be considered a
            nonstatic member so that qualifiers will be accepted. */
@@ -16019,31 +15895,22 @@ that follows.
       }  /* if */
     }  /* if */
     if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
-        state.qualifiers == TQ_NONE) {
+        dps->qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-    if (state.attributes != NULL) {
-      /* Append any declarator attributes to the attributes provided in the
-         decl-specifier. */
-      p_attributes = last_attribute_link(p_attributes);
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    declarator(di_flags, &do_flags, &state, type,
-               decl_state->class_declared_in, &locator, &type,
-               &declarator_ssep, &func_info, &decl_pos_block, p_attributes);
+    declarator(di_flags, dps, decl_state->class_declared_in, &locator,
+               &func_info, &decl_pos_block, dps->p_declarator_attributes);
+    do_flags = dps->do_flags;
     sym = NULL;
     has_parenthesized_initializer =
                               (do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
     if (!is_error_locator(locator)) {
-      id_pos = locator.source_position;
       sym = locator.specific_symbol;
       if (sym == NULL) {
         sym = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
       }  /* if */
     }  /* if */
-    check_for_declaration_errors(merge_declarator_flags(dso_flags, do_flags),
-                                 type, &locator, &decl_start_pos);
+    check_for_declaration_errors(dps, &locator);
     /* Issue diagnostic on an incomplete-type in an exception specification. */
     report_exception_spec_errors(&func_info);
     if (is_error_locator(locator)) {
@@ -16066,9 +15933,9 @@ that follows.
         pos_error(ec_inherited_member_not_allowed, &locator.source_position);
         reduce_projection_symbol_to_fundamental_symbol(sym);
       }  /* if */
-      if (is_function_type(type) && is_function_or_template_symbol(sym)) {
+      if (is_function_type(dps->type) && is_function_or_template_symbol(sym)) {
         sym = find_matching_template_instance(
-                        sym, type, locator.template_arg_list,
+                        sym, dps->type, locator.template_arg_list,
                         (a_boolean)locator.is_template_id,
 		        /*in_class_specialization=*/decl_state->is_member_decl,
 			es_error);
@@ -16088,7 +15955,7 @@ that follows.
         }  /* if */
       } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
                  sym->variant.static_data_member.instance_ptr != NULL) {
-        if (!types_are_redecl_compatible(type,
+        if (!types_are_redecl_compatible(dps->type,
                                          sym->variant.static_data_member.
                                                             variable->type)) {
           /* The type of the static data member definition does not match
@@ -16143,7 +16010,7 @@ that follows.
         /* Update the variable type if needed: The specialization may have
            more detailed type information than the in-class declaration (e.g.,
            an array bound). */
-        vp->type = composite_type(vp->type, type);
+        vp->type = composite_type(vp->type, dps->type);
         /* The Microsoft compiler treats a static data member specialization
            declaration as a definition. */
         is_definition = (microsoft_bugs || curr_token == tok_assign ||
@@ -16200,14 +16067,11 @@ that follows.
           /* Microsoft Visual C++ 6.0 accepts and discards redefinitions of
              explicit specializations.  The symbol and routine entry must be
              replaced by new ones while scanning the duplicate definition
-             (which will be discarded in the end).  The should be no source
+             (which will be discarded in the end).  There should be no source
              sequence entries for the temporary IL entry. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           source_sequence_entries_disallowed = TRUE;
-          if (declarator_ssep != NULL) {
-            f_remove_from_src_seq_list(declarator_ssep, decl_scope_level);
-            declarator_ssep = NULL;
-          }  /* if */
+          remove_declarator_sse(dps);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           pos_sy_warning(ec_already_defined, &locator.source_position, sym);
           replace_entry_for_duplicate_specialization(&sym);
@@ -16218,7 +16082,7 @@ that follows.
           sym = NULL;
         }  /* if */
       } else if (!already_specialized) {
-        scp->decl_position = id_pos;
+        scp->decl_position = dps->declarator_pos;
       }  /* if */
     }  /* if */
     if (sym == NULL) {
@@ -16242,7 +16106,7 @@ that follows.
 #if DECL_MODIFIERS_IN_USE
       prev_sym_pos = sym->decl_position;
 #endif /* DECL_MODIFIERS_IN_USE */
-      sym->decl_position = id_pos;
+      sym->decl_position = dps->declarator_pos;
       if (is_definition) {
         srk_flags |= SRK_DEFINITION;
         if (sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -16258,7 +16122,7 @@ that follows.
       process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
       /* Update cross reference info, etc. */
       record_symbol_declaration(srk_flags, sym, &locator.source_position,
-                                declarator_ssep);
+                                dps->source_sequence_entry);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (is_definition || first_decl) {
         update_decl_pos_info(scp, &decl_pos_block);
@@ -16281,7 +16145,7 @@ that follows.
           name_ref = qualifiable_name_reference(&locator, scp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
           if (first_decl) flags |= SSSD_FIRST_DECLARATION;
-          (void)update_src_seq_secondary_decl((char *)vp, type, name_ref,
+          (void)update_src_seq_secondary_decl((char *)vp, dps->type, name_ref,
                                               flags, &decl_pos_block);
         } else {
           /* The defining declaration of the variable.  Record the type and
@@ -16293,26 +16157,26 @@ that follows.
           }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
           check_assertion(vp != NULL);  /* For Coverity. */
-          if (vp->declared_type == NULL) vp->declared_type = type;
+          if (vp->declared_type == NULL) vp->declared_type = dps->type;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         check_assertion(vp != NULL);
         vp->is_specialized = TRUE;
         if (dso_flags & DSO_INLINE) {
           /* Inline may not be specified. */
-          pos_error(ec_inline_and_nonfunction, &decl_start_pos);
+          pos_error(ec_inline_and_nonfunction, &dps->specifiers_pos);
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-        if (state.attributes != NULL) {
-          apply_attributes_to_variable(state.attributes, vp, is_definition);
+        if (dps->attributes != NULL) {
+          apply_attributes_to_variable(dps->attributes, vp, is_definition);
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         /* Deal with initializer. */
         if (is_definition) {
           a_boolean  incomplete_type_error_reported = FALSE;
 
-          sym->variant.static_data_member.variable->
-                           storage_class = (a_storage_class)sc_unspecified;
+          sym->variant.static_data_member.variable->storage_class =
+                                              (a_storage_class)sc_unspecified;
           /* Make sure that the type of the static data member is complete.
              If the type cannot be completed, an error will be issued by
              initializer.  Note that a static data member specialization
@@ -16365,7 +16229,7 @@ that follows.
           a_source_position  saved_sym_pos;
           saved_sym_pos = sym->decl_position;
           sym->decl_position = prev_sym_pos;
-          update_variable_decl_modifiers(vp, &state.decl_modifiers,
+          update_variable_decl_modifiers(vp, &dps->decl_modifiers,
                                          &locator.source_position,
                                          already_specialized, is_definition);
           sym->decl_position = saved_sym_pos;
@@ -16377,8 +16241,8 @@ that follows.
           /* Issue an error if the exception specification on the instance does
              not match that of the template.  (GNU C++ compilers do not perform
              this check. */
-          check_exception_specification(type, sym, &func_info.throw_position,
-                                        /*is_redecl=*/FALSE);
+          check_exception_specification(
+               dps->type, sym, &func_info.throw_position, /*is_redecl=*/FALSE);
         }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Do fixup on the source sequence entry that was just created to
@@ -16387,7 +16251,7 @@ that follows.
           an_sssd_flag_set      flags = SSSD_SPECIALIZED_WITH_NEW_SYNTAX;
           a_name_reference_ptr  name_ref = NULL;
 
-          declared_type = form_declared_type(type, &func_info);
+          declared_type = form_declared_type(dps->type, &func_info);
 #if RECORD_FORM_OF_NAME_REFERENCE
           name_ref = qualifiable_name_reference(&locator, scp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -16442,24 +16306,24 @@ that follows.
            storage class is static.  For the specialization of nonmember
            function templates, the explicitly specified storage class (i.e.,
            linkage) is retained. */
-        if (storage_class == (a_storage_class)sc_unspecified ||
+        if (dps->storage_class == (a_storage_class)sc_unspecified ||
             decl_state->is_member_decl) {
-          storage_class = rp->storage_class;
+          dps->storage_class = rp->storage_class;
         } else {
           check_assertion(gpp_mode || microsoft_mode);
           /* Retain the explicitly specified storage class, except when
              specializing a member. */
           if (rp->source_corresp.is_class_member) {
-            if (storage_class == (a_storage_class)sc_static) {
+            if (dps->storage_class == (a_storage_class)sc_static) {
               pos_diagnostic(microsoft_mode ? es_warning : es_error,
                              ec_member_cannot_have_internal_linkage,
-                             &decl_start_pos);
+                             &dps->specifiers_pos);
             }  /* if */
-            storage_class = rp->storage_class;
+            dps->storage_class = rp->storage_class;
           }  /* if */
         }  /* if */
         if ((func_info.is_inline && !extern_inline_allowed) ||
-            storage_class == (a_storage_class)sc_static) {
+            dps->storage_class == (a_storage_class)sc_static) {
           /* Function was declared "static" or it was declared "inline" and
              inline functions have internal linkage by default. */
           rp->storage_class = (a_storage_class)sc_static;
@@ -16471,14 +16335,14 @@ that follows.
           rp->source_corresp.name_linkage =
                                  (a_name_linkage_kind)nlk_cplusplus_external;
         }  /* if */
-        if (type->kind == (a_type_kind)tk_typeref) {
+        if (dps->type->kind == (a_type_kind)tk_typeref) {
           func_info.function_type_from_typedef = TRUE;
-          type = skip_typerefs(type);
+          dps->type = skip_typerefs(dps->type);
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-        if (state.attributes != NULL) {
+        if (dps->attributes != NULL) {
           /* Apply the attributes to the routine. */
-          apply_attributes_to_routine(state.attributes, rp);
+          apply_attributes_to_routine(dps->attributes, rp);
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE
@@ -16491,7 +16355,7 @@ that follows.
           a_source_position  saved_sym_pos;
           saved_sym_pos = sym->decl_position;
           sym->decl_position = prev_sym_pos;
-          update_routine_decl_modifiers(rp, &state.decl_modifiers,
+          update_routine_decl_modifiers(rp, &dps->decl_modifiers,
                                         &locator.source_position,
                                         already_specialized, is_definition,
                                         (a_boolean)rp->is_inline);
@@ -16525,7 +16389,8 @@ that follows.
             a_param_type_ptr  ptp, decl_ptp;
 
             for (ptp = rp->type->variant.routine.extra_info->param_type_list,
-                 decl_ptp = type->variant.routine.extra_info->param_type_list;
+                 decl_ptp = dps->type->variant.routine.extra_info
+                                     ->param_type_list;
                  ptp != NULL && decl_ptp != NULL;
                  ptp = ptp->next, decl_ptp = decl_ptp->next) {
               ptp->qualifiers = decl_ptp->qualifiers;
@@ -16696,7 +16561,7 @@ keyword.
   decl_state.export_position = *export_pos;
   saved_curr_default_args = curr_default_args;
   curr_default_args = NULL;
-  decl_state.start_pos = pos_curr_token;
+  decl_state.decl_parse.start_pos = pos_curr_token;
   decl_state.in_prototype_instantiation =
                     scope_stack[depth_scope_stack].in_prototype_instantiation;
   decl_state.final_token_ptr = final_token;
@@ -16720,7 +16585,8 @@ keyword.
   /* Make sure that this template declaration is permitted in the current
      scope. */
   if (decl_state.effective_decl_level == NO_SCOPE_DEPTH) {
-    pos_error(ec_bad_template_declaration_scope, &decl_state.start_pos);
+    pos_error(ec_bad_template_declaration_scope,
+              &decl_state.decl_parse.start_pos);
     decl_state.decl_scope_err = TRUE;
     /* Set the effective declaration level to a valid value for the remainder
        of the processing. */
@@ -16732,7 +16598,7 @@ keyword.
                                   ->variant.class_struct_union.is_interface) {
     /* Member templates should not appear in interface definitions. */
     pos_error(ec_interface_cannot_have_member_templates,
-              &decl_state.start_pos);
+              &decl_state.decl_parse.start_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (export_present) {
@@ -16769,7 +16635,7 @@ keyword.
     } else {
       if (!decl_state.decl_scope_err) {
         pos_error(ec_explicit_specialization_not_in_namespace_scope,
-                  &decl_state.start_pos);
+                  &decl_state.decl_parse.start_pos);
         decl_state.decl_scope_err = TRUE;
       }  /* if */
     }  /* if */
@@ -21002,36 +20868,31 @@ is_pragma is TRUE if this is a pragma and FALSE if it is an explicit
 instantiation.
 */
 {
-  a_storage_class              storage_class = (a_storage_class)sc_unspecified;
-  a_type_ptr                   type;
   a_symbol_locator             locator;
-  a_decl_flag_set              do_flags = DO_NO_OUTPUT_FLAGS;
-  a_decl_flag_set              dso_flags, dsi_flags, di_flags;
+  a_decl_flag_set              dsi_flags, di_flags;
   a_decl_parse_state           state;
   a_symbol_ptr                 new_sym;
-  a_source_sequence_entry_ptr  declarator_ssep;
   a_symbol_ptr                 sym;
   a_token_kind                 end_of_statement_token;
   a_func_info_block            func_info;
   a_decl_pos_block             decl_pos_block;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr  ssep;
-  a_source_position            template_keyword_pos;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_error_severity            severity_if_not_found = es_error;
   a_boolean                    accept_static = FALSE, accept_extern = FALSE;
 
   db_enter(3, "instantiation_directive");
+  init_decl_parse_state(&state);
+  state.start_pos = *start_pos;
   if (!is_pragma) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     ssep = add_empty_source_sequence_entry();
-    template_keyword_pos = *start_pos;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* By pass "template". */
     (void)get_token();
     *start_pos = pos_curr_token;
   }  /* if */    
-  init_decl_parse_state(&state);
   clear_decl_pos_block(&decl_pos_block);
   /* If this is a pragma it will end with a tok_end_of_source, if not
      it will end with a semicolon. */
@@ -21063,7 +20924,7 @@ instantiation.
         decl_pos_block.identifier_range.start = *start_pos;
         decl_pos_block.identifier_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        make_instantiation_directive(kind, sym, ssep, &template_keyword_pos,
+        make_instantiation_directive(kind, sym, ssep, &state.start_pos,
                                      &decl_pos_block);
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -21087,9 +20948,6 @@ instantiation.
     dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
   }  /* if */
   decl_specifiers(dsi_flags, &state, &decl_pos_block);
-  dso_flags = state.dso_flags;
-  storage_class = state.declared_storage_class;
-  type = state.specifiers_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED && DECL_MODIFIERS_IN_USE
   if (microsoft_mode && (state.decl_modifiers.flags & DM_DLLIMPORT) != 0) {
     /* Microsoft compilers treat __declspec(dllimport) in an explicit
@@ -21098,16 +20956,16 @@ instantiation.
     kind = (a_pragma_kind)pk_do_not_instantiate;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && DECL_MODIFIERS_IN_USE */
-  if (is_error_type(type) && !is_declarator_start()) {
+  if (is_error_type(state.type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(locator);
   } else if (curr_token == end_of_statement_token &&
-             (dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
+             (state.dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
     /* The argument is something like class A<int> -- instantiate all the
        members of the class.  Note that this also permits the class to
        be a nested class within a template class. */
     check_pending_qualifiers_used(&state);
-    sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+    sym = symbol_for(state.type);
     check_assertion(sym != NULL);
     if (is_template_instance_class_symbol(sym) &&
         !is_template_instance_specific_def_symbol(sym)) {
@@ -21117,7 +20975,7 @@ instantiation.
                                            /*is_dll_directive=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (!is_pragma) {
-        make_instantiation_directive(kind, sym, ssep, &template_keyword_pos,
+        make_instantiation_directive(kind, sym, ssep, &state.start_pos,
                                      &decl_pos_block);
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -21143,23 +21001,17 @@ instantiation.
                DI_QUALIFIED_NAME_ALLOWED |
                DI_IS_EXPLICIT_INSTANTIATION |
                DI_OPERATOR_NAME_ALLOWED;
-    if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
+    if (!(state.dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
         state.qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
-    declarator(di_flags, &do_flags, &state, type, (a_type_ptr)NULL, &locator,
-               &type, &declarator_ssep, &func_info, &decl_pos_block,
-               (an_attribute_ptr *)NULL);
+    declarator(di_flags, &state, (a_type_ptr)NULL, &locator, &func_info,
+               &decl_pos_block, (an_attribute_ptr *)NULL);
     record_param_id_list_declarations(&func_info);
     /* Issue diagnostic on an incomplete-type in an exception specification. */
     report_exception_spec_errors(&func_info);
     done_with_func_info(func_info);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (declarator_ssep != NULL) {
-      remove_from_src_seq_list(declarator_ssep);
-      declarator_ssep = NULL;
-    }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    remove_declarator_sse(&state);
   }  /* if */
      /* The Microsoft compiler silently ignores cases in which no matching
         template is found for an explicit instantiation or an "extern
@@ -21177,14 +21029,13 @@ instantiation.
   if (sym == NULL) {
     sym = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
   }  /* if */
-  check_for_declaration_errors(merge_declarator_flags(dso_flags, do_flags),
-                               type, &locator, start_pos);
+  check_for_declaration_errors(&state, &locator);
   if (sym == NULL) {
     /* No symbol was found.  If the declarator has a function type
        then say that the name is undefined.  If it was not a function
        type then say it is an invalid pragma argument. */
     if (is_error_locator(locator) ||
-        (type != NULL && !is_function_type(type))) {
+        (state.type != NULL && !is_function_type(state.type))) {
       pos_error(ec_invalid_instantiation_argument, start_pos);
     } else {
       pos_st_diagnostic(severity_if_not_found, ec_not_a_template_name,
@@ -21202,7 +21053,7 @@ instantiation.
     if (sym->kind == (a_symbol_kind)sk_static_data_member) {
       if (sym->variant.static_data_member.instance_ptr != NULL) {
         /* A static data member -- set the instantiation flags. */
-        if (!types_are_redecl_compatible(type,
+        if (!types_are_redecl_compatible(state.type,
                                          sym->variant.static_data_member.
                                                             variable->type)) {
           /* The type of the static data member definition does not match
@@ -21216,7 +21067,7 @@ instantiation.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!is_pragma) {
             make_instantiation_directive(kind, sym, ssep,
-                                         &template_keyword_pos,
+                                         &state.start_pos,
                                          &decl_pos_block);
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -21229,7 +21080,7 @@ instantiation.
     } else if (!is_function_or_template_symbol(sym)) {
       /* Not a function symbol -- issue an error. */
       pos_error(ec_invalid_instantiation_argument, start_pos);
-    } else if (!is_function_type(type)) {
+    } else if (!is_function_type(state.type)) {
       /* The symbol represents a function but the type is not a routine
          type.  This can occur if a declaration contains the name of a
          function but the declaration is not a function declarator. */
@@ -21249,10 +21100,10 @@ instantiation.
                                               : (an_error_severity)es_warning;
       }  /* if */
       new_sym = find_matching_template_instance(
-                                          sym, type, locator.template_arg_list,
-                                          (a_boolean)locator.is_template_id,
-					  /*in_class_specialization=*/FALSE,
-                                          severity_if_not_found);
+                                   sym, state.type, locator.template_arg_list,
+                                   (a_boolean)locator.is_template_id,
+                                   /*in_class_specialization=*/FALSE,
+                                   severity_if_not_found);
       if (new_sym != NULL) {
         /* Update the flags for the symbol found. */
         update_instantiation_flags(new_sym, kind, start_pos,
@@ -21261,9 +21112,9 @@ instantiation.
         /* If a throw specification was mentioned in the instantiation
            directive, check that it matches up with that of the instantiated
            routine. */
-        if (type->variant.routine.extra_info->exception_specification !=
+        if (state.type->variant.routine.extra_info->exception_specification !=
                                                                        NULL) {
-          check_exception_specification(type, new_sym,
+          check_exception_specification(state.type, new_sym,
                                         &func_info.throw_position,
                                         /*is_redecl=*/TRUE);
         }  /* if */
@@ -21277,7 +21128,7 @@ instantiation.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (!is_pragma) {
           make_instantiation_directive(kind, new_sym, ssep,
-                                       &template_keyword_pos, &decl_pos_block);
+                                       &state.start_pos, &decl_pos_block);
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         accept_extern = gpp_mode;
@@ -21286,17 +21137,18 @@ instantiation.
     }  /* if */
   }  /* if */
 final_check:;
-  if (storage_class != (a_storage_class)sc_unspecified) {
+  if (state.declared_storage_class != (a_storage_class)sc_unspecified) {
     /* GNU C++ only accepts storage class specifiers on function template
        specializations. */
+    a_storage_class  storage_class = state.declared_storage_class;
     check_assertion(gpp_mode);
     if ((accept_extern && storage_class == (a_storage_class)sc_extern) ||
         (accept_static && storage_class == (a_storage_class)sc_static)) {
-      pos_warning(ec_storage_specifier_ignored, start_pos);
+      pos_warning(ec_storage_specifier_ignored, &state.storage_class_pos);
     } else {
       pos_error((storage_class == (a_storage_class)sc_typedef) ?
                   ec_typedef_not_allowed : ec_storage_class_not_allowed,
-                start_pos);
+                &state.storage_class_pos);
     }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS

@@ -5661,12 +5661,10 @@ modifier _Sat was specified.
 
 
 static a_boolean add_type_qualifiers(a_type_ptr            *type_ptr,
-                                     a_decl_parse_state    *state,
-                                     a_upc_block_size      upc_block_size)
+                                     a_decl_parse_state    *state)
 /*
 Add the type qualifiers specified by state->qualifiers to the type specified
-by *type_ptr (upc_block_size is the block size associated with any UPC shared
-qualifier).  This function is called from decl_specifiers only.
+by *type_ptr.  This function is called from decl_specifiers only.
 */
 {
   a_boolean             err = FALSE;
@@ -5817,7 +5815,7 @@ qualifier).  This function is called from decl_specifiers only.
       /* Disallow duplicate shared if the block sizes do not match. */
       if ((qualifiers & TQ_UPC_SHARED &
            f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE)) != 0 &&
-          upc_block_size !=
+          state->upc_block_size !=
                         f_get_upc_block_size(*type_ptr, /*top_level=*/FALSE)) {
         error(ec_mismatched_shared_block_size);
         err = TRUE;
@@ -5830,7 +5828,8 @@ qualifier).  This function is called from decl_specifiers only.
       }  /* if */
       /* Add the qualifiers if necessary.  make_qualified_type understands
          the strange array case too. */
-      *type_ptr = f_make_qualified_type(*type_ptr, qualifiers, upc_block_size);
+      *type_ptr = f_make_qualified_type(*type_ptr, qualifiers,
+                                        state->upc_block_size);
     }  /* if */
     if (err) {
       /* Some qualifiers were dropped due to errors.  Ignore those from now
@@ -6023,16 +6022,15 @@ Returns NULL in case of error.
 
 #if UPC_EXTENSIONS_ALLOWED
 
-static a_upc_block_size scan_upc_block_size_if_any(
-                                         a_basic_type          basic_type,
-                                         a_decl_flag_set       *output_flags,
-                                         a_decl_pos_block_ptr  decl_pos_block,
-                                         a_boolean             *err)
+static void scan_upc_block_size_if_any(a_decl_parse_state    *state,
+                                       a_basic_type          basic_type,
+                                       a_decl_pos_block_ptr  decl_pos_block,
+                                       a_boolean             *err)
 /*
-Scan and return the (constant) integer block size specified on a UPC shared
-type qualifier.  This routine also scans the enclosing brackets.  E.g.,
+Scan the constant integer block size specified on a UPC shared type qualifier.
+This routine also scans the enclosing brackets.  E.g.,
 	shared[100] int a[35];  // Block size 100
-If a block size was actually specified, the fact is recorded in *output_flags.
+If a block size was actually specified, the fact is recorded in *state.
 The current token must be "shared."  decl_pos_block is updated with the
 final position of the construct (whether or not a block size was specified).
 */
@@ -6052,7 +6050,7 @@ final position of the construct (whether or not a block size was specified).
   (void)get_token();
   if (curr_token == tok_lbracket) {
     /* A shared block specifier. */
-    *output_flags |= DSO_UPC_SHARED_LAYOUT;
+    state->dso_flags |= DSO_UPC_SHARED_LAYOUT;
     if (basic_type != bt_none) {
       /* Usually one would write "shared [N] int ...", but "int shared [N] ..."
          is possible too.  In the latter case, the brackets are still treated
@@ -6130,7 +6128,7 @@ final position of the construct (whether or not a block size was specified).
       }  /* while */
     }  /* if */
   }  /* if */
-  return block_size;
+  state->upc_block_size = block_size;
 }  /* scan_upc_block_size_if_any */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
@@ -6767,121 +6765,30 @@ All the storage class specifier tokens are consumed by this routine.
 }  /* process_storage_class_specifier */
 
 
-void decl_specifiers(a_decl_flag_set            input_flags,
-                     a_decl_parse_state         *state,
-                     a_decl_pos_block_ptr       decl_pos_block)
+void decl_specifiers(a_decl_flag_set       input_flags,
+                     a_decl_parse_state    *state,
+                     a_decl_pos_block_ptr  decl_pos_block)
 /*
-Scan a list of declaration specifiers.  Specifically, scan a
-declaration-specifiers (3.5), a specifier_qualifier_list (3.5.2.1), or
-a type_qualifier_list (3.5.4).  These are all made up of storage class
-specifiers (3.5.1; allowed only if the input_flags bit
-DSI_STORAGE_CLASS_SPECIFIER_ALLOWED is set), type specifiers (3.5.2;
-allowed only if DSI_TYPE_SPECIFIER_ALLOWED is set), and type
-qualifiers (3.5.3; always allowed).  The list must always include at
-least one specifier.  The ANSI C syntax is as follows:
+Scan a list of declaration specifiers (e.g., the nonterminal grammar token
+declaration-specifiers in the C standard or the similar decl-specifier-seq in
+the C++ standard) according to options passed through input_flags.  The
+results of the scan are summarized in *state, with some additional position
+information stored in *decl_pos_block.
 
-3.5    declaration-specifiers:
-		storage-class-specifier declaration-specifiers
-                                                              opt
-		type-specifier declaration-specifiers
-                                                     opt
-		type-qualifier declaration-specifiers
-                                                     opt
-3.5.2.1
-       specifier-qualifier-list:
-		type-specifier specifier-qualifier-list
-                                                       opt
-		type-qualifier specifier-qualifier-list
-						       opt
-3.5.4  type-qualifier-list:
-		type-qualifier
-		type-qualifier-list type-qualifier
-3.5.1  storage-class-specifier:
-		typedef
-		extern
-		static
-		auto
-		register
-3.5.2  type-specifier:
-		void
-		char
-		short
-		int
-		long
-		float
-		double
-		signed
-		unsigned
-		struct-or-union-specifier
-		enum-specifier
-		typedef-name
-3.5.3  type-qualifier:
-		const
-		volatile
+The concept of "declaration specifiers" includes standard constructs such as
+those corresponding to the nonterminal grammar token declaration-specifiers
+in the C standard or the similar decl-specifier-seq in the C++ standard, but
+also various nonstandard constructs (e.g., the Microsoft __declspec(...)
+mechanism).  For GNU and Microsoft extensions, we generally implement actual
+behavior rather than documented behavior whenever the two differ.
 
-When Microsoft keywords are recognized, the syntax is amended as follows
-(see comments below regarding recognition of the modified syntax):
-
-        storage-class-specifier:
-		__declspec ( extended-decl-modifier-seq )
-		__inline
-                __forceinline
-
-	extended-decl-modifier-seq:
-		extended-decl_modifier
-		                      opt
-		extended-decl-modifier-seq extended-decl-modifier
-
-	extended-decl_modifier:
-		thread
-		naked
-		dllimport
-		dllexport
-
-The DSI_IS_PARAMETER bit of input_flags is set if these specifiers are
-part of the declaration of a parameter, and, for C++, the
-DSI_VIRTUAL_OR_FRIEND_ALLOWED bit is set when a declaration appears within
-a class declaration, to permit recognition of "virtual" and "friend"
-keywords.
-
-The syntax for the Microsoft extensions does not exactly match the syntax
-described in the Microsoft documentation.  It does, however, match the
-observed behavior of the Microsoft compiler.  The additional type
-qualifiers are only recognized when MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
-The additional storage class specifiers are recognized anywhere that
-storage classes are normally allowed.
-
-Returns *storage_class set to the storage class scanned (or sc_unspecified
-if none was scanned), *type_ptr pointing to the type scanned (including
-qualifiers, if any), and any of various flags in *output_flags:
-DSO_HAS_EXPLICIT_TYPE_SPECIFIER is set if there was at least one type
-specifier; DSO_DECLARES_SOMETHING is set if the specifiers declare something
-(a tag or enumeration members); DSO_JUST_VOID is set if the specifiers are
-simply the one keyword "void".  For C++ specifically, DSO_VIRTUAL, DSO_INLINE,
-and DSO_FRIEND are set to report that a "virtual", "inline", or "friend"
-keyword was scanned.  It also returns a name linkage specifier to signal when,
-for instance, ``extern "C"'' was encountered (C++ only).  If
-DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER is true, then
-DSO_DANGLING_TYPE_SPECIFIER may be set for cases that are recognized as an
-omitted semi-colon or comma after a class or enum definition (e.g.,
-"typedef int T; struct A { ... } T x;").  *state describes various bits of
-information about the declaration currently being parsed (e.g., type
-qualifiers that are part of the declaration-specifiers sequence).
-
-When supporting GNU extensions, returns *attributes indicating any
-attributes that were present in the specifiers.  If attributes is
-NULL, then attributes are not allowed.  p_ms_attributes is used similarly
-for the Microsoft attribute construct.  When upc_block_size is non-NULL,
-the block size associated with a UPC shared qualifier is passed back to
-the caller through that pointer.
-
-Returns TRUE if there is an error in the specifiers.
+Descriptions of the various input_flag options follow the definition of the
+macro DSI_NO_INPUT_FLAGS.
 */
 {
   a_symbol_ptr               curr_token_type_symbol;
   a_boolean                  err = FALSE;
   a_boolean                  bad_combination_of_type_specifiers = FALSE;
-  a_source_position          start_pos;
   a_boolean                  is_parameter = (input_flags & DSI_IS_PARAMETER);
   a_boolean                  is_member_decl =
                                     (input_flags & DSI_IS_MEMBER_DECLARATION);
@@ -6907,7 +6814,6 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean                  any_decl_specifiers_seen = FALSE;
   a_boolean                  marked_as_gnu_extension =
                                   (input_flags & DSI_MARKED_AS_GNU_EXTENSION);
-  a_upc_block_size           block_size = UPC_BLOCK_SIZE_NONE;
 #if UPC_EXTENSIONS_ALLOWED
   a_upc_block_size           saved_block_size;
   a_boolean                  multiple_shared_seen = FALSE;
@@ -6932,13 +6838,13 @@ Returns TRUE if there is an error in the specifiers.
   type_specifier_allowed = (input_flags & DSI_TYPE_SPECIFIER_ALLOWED);
   vacuous_decl_allowed = (input_flags & DSI_VACUOUS_TAG_DECL_ALLOWED) != 0;
   set_err_pos_to_curr_token();
-  copy_source_position(pos_curr_token, start_pos);
+  copy_source_position(pos_curr_token, state->specifiers_pos);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     /* Assume the current source position is the starting position of the
        decl-specifiers.   If it turns out there are no decl-specifiers, the
        field will be reset to null_source_position. */
-    decl_pos_block->specifiers_range.start = start_pos;
+    decl_pos_block->specifiers_range.start = state->specifiers_pos;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Loop for each declaration specifier. */
@@ -7090,9 +6996,9 @@ storage_class_specifier:
       case tok_attribute:
         if ((input_flags & DSI_GNU_ATTRIBUTES_ALLOWED) != 0) {
           /* Scan the attributes. */
-          *state->p_last_specifier_attribute = scan_attributes();
-          state->p_last_specifier_attribute =
-                       last_attribute_link(state->p_last_specifier_attribute);
+          *state->p_declarator_attributes = scan_attributes();
+          state->p_declarator_attributes =
+                          last_attribute_link(state->p_declarator_attributes);
         } else {
           /* Attributes are not allowed here.  Scan them anyhow, and then
              throw them away. */
@@ -7213,20 +7119,19 @@ storage_class_specifier:
           /* Save information to compare the block sizes.  If the block
              sizes do not match, the type will be rejected. */
           multiple_shared_seen = TRUE;
-          saved_block_size = block_size;
+          saved_block_size = state->upc_block_size;
         } else {
           state->qualifiers_pos = pos_curr_token;
           qualifiers |= TQ_UPC_SHARED;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
         /* Go past "shared" to see if a block size is specified. */
-        block_size = scan_upc_block_size_if_any(basic_type, output_flags,
-                                                decl_pos_block, &err);
+        scan_upc_block_size_if_any(state, basic_type, decl_pos_block, &err);
         if (multiple_shared_seen) {
           /* We've seen multiple UPC shared qualifiers.  Sometimes this
              is accepted with a warning, but if the block sizes are
              different, an error must be issued (no matter what mode). */
-          if (es == es_warning && block_size != saved_block_size) {
+          if (es == es_warning && state->upc_block_size != saved_block_size) {
             error(ec_mismatched_shared_block_size);
             err = TRUE;
           } else {
@@ -8366,8 +8271,7 @@ exit_loop:
 
   /* Return the position of the first specifier as the position of the
      overall list of specifiers for error purposes. */
-  copy_source_position(start_pos, error_position);
-
+  copy_source_position(state->specifiers_pos, error_position);
   if (type_specifier_allowed) {
     if ((basic_type != bt_none && basic_type != bt_no_type) ||
         sign != sign_none || size != size_none) {
@@ -8434,7 +8338,7 @@ exit_loop:
         err = TRUE;
       } else {
         /* Add any type qualifiers (const or volatile) to the type. */
-        if (!add_type_qualifiers(type_ptr, state, block_size)) {
+        if (!add_type_qualifiers(type_ptr, state)) {
           err = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_w64_seen) {
@@ -8445,17 +8349,11 @@ exit_loop:
     }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   } else if (upc_mode && !err) {
-    if (qualifiers & TQ_UPC_SHARED) {
-      /* A shared type qualifier was correctly parsed.  Pass the associated
-         block size back to the caller if needed. */
-      state->upc_block_size = block_size;
-    } else if (!err) {
-      /* The UPC strict and relaxed qualifiers can only appear combined with
-         the shared qualifier. */
-      if (qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) {
-        error(ec_nonshared_strict_relaxed);
-        err = TRUE;
-      }  /* if */
+    /* The UPC strict and relaxed qualifiers can only appear combined with
+       the shared qualifier. */
+    if (qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) {
+      error(ec_nonshared_strict_relaxed);
+      err = TRUE;
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -8476,6 +8374,10 @@ exit_loop:
 #endif /* DEBUG */
   state->storage_class = state->declared_storage_class;
   state->decl_specifiers_error = err;
+  /* state->type and state->declared_type may get updated by a subsequent call
+     to declarator(...) or by other adjustments (e.g., decay of array types to
+     pointer types). */
+  state->type = state->declared_type = state->specifiers_type;
   db_exit();
 }  /* decl_specifiers */
 
@@ -8513,8 +8415,8 @@ See decl_specifiers(...) for the meaning of the parameters.
   decl_specifiers(input_flags, state, decl_pos_block);
   /* Restore the primary cv-qualifiers: */
   state->qualifiers = saved_qualifiers;
-  (void)add_type_qualifiers(&state->specifiers_type, state,
-                            UPC_BLOCK_SIZE_NONE);
+  (void)add_type_qualifiers(&state->specifiers_type, state);
+  state->type = state->specifiers_type;
   /* Issue a warning in most cases, but if a class or enumeration type was
      defined make it an error. */
   pos_diagnostic((state->dso_flags & DSO_DEFINES_SOMETHING) ? es_error

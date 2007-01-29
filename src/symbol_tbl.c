@@ -6814,6 +6814,27 @@ C compatibility mode).
 }  /* make_predeclared_alloca_symbol */
 
 
+static a_symbol_ptr make_predeclared_typedef(a_type_ptr    tp,
+                                             char          *name)
+/*
+Create a typedef of the given name for the given type and return the
+associated symbol.
+*/
+{
+  a_symbol_locator    locator;
+  a_decl_parse_state  state;
+  a_symbol_ptr        sym;
+
+  init_decl_parse_state(&state);
+  state.type = tp;
+  clear_locator(&locator, &null_source_position);
+  (void)find_symbol(name, strlen(name), &locator);
+  decl_typedef(&locator, &state, (a_type_ptr)NULL, &sym,
+               (a_decl_pos_block_ptr)NULL);
+  return sym;
+}  /* make_predeclared_typedef */
+
+
 void make_predeclared_size_t_symbol(void)
 /*
 Create a symbol and type entry for size_t (only in Microsoft mode).
@@ -6821,18 +6842,10 @@ C++ note: for Microsoft compatibility, the entries are recorded in the file
 scope, not in namespace std.
 */
 {
-  a_symbol_locator  locator;
-  a_type_ptr        tp;
-
   db_enter(5, "make_predeclared_size_t_symbol");
   check_assertion(microsoft_mode);
-  clear_locator(&locator, &null_source_position);
-  (void)find_symbol("size_t", (sizeof_t)6, &locator);
-  tp = integer_type(targ_size_t_int_kind);
-  decl_typedef(&locator, tp, (a_type_ptr)NULL, (an_attribute_ptr)NULL,
-               (an_ms_attribute_ptr*)NULL, (a_decl_modifiers_block_ptr)NULL,
-               &predeclared_size_t_symbol, (a_source_sequence_entry_ptr)NULL,
-               (a_decl_pos_block_ptr)NULL);
+  predeclared_size_t_symbol = make_predeclared_typedef(
+                                integer_type(targ_size_t_int_kind), "size_t");
   /* Setting the defined flag to FALSE indicates there is (as yet) no explicit
      definition in the source program. */
   predeclared_size_t_symbol->defined = FALSE;
@@ -6846,17 +6859,9 @@ Create a symbol and type entry for bool (only in Microsoft mode); the entries
 are recorded in the file scope.
 */
 {
-  a_symbol_locator  locator;
-  a_symbol_ptr      sym;
-
   db_enter(5, "make_predeclared_bool_symbol");
   check_assertion(microsoft_mode);
-  clear_locator(&locator, &null_source_position);
-  (void)find_symbol("bool", (sizeof_t)4, &locator);
-  decl_typedef(&locator, bool_type(), (a_type_ptr)NULL, (an_attribute_ptr)NULL,
-               (an_ms_attribute_ptr*)NULL, (a_decl_modifiers_block_ptr)NULL,
-               &sym, (a_source_sequence_entry_ptr)NULL,
-               (a_decl_pos_block_ptr)NULL);
+  make_predeclared_typedef(bool_type(), "bool");
   db_exit();
 }  /* make_predeclared_bool_symbol */
 

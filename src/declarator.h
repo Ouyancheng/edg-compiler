@@ -275,13 +275,9 @@ Clear a calling convention description.
 
 extern
 void declarator(a_decl_flag_set             input_flags,
-                a_decl_flag_set             *output_flags,
                 a_decl_parse_state          *state,
-                a_type_ptr                  specifiers_type,
                 a_type_ptr                  member_parent_type,
                 a_symbol_locator            *locator,
-                a_type_ptr                  *p_complete_type,
-                a_source_sequence_entry_ptr *declarator_ssep,
                 a_func_info_block           *func_info,
                 a_decl_pos_block_ptr        decl_pos_block,
 		an_attribute_ptr            *attributes);
