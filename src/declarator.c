@@ -1738,7 +1738,7 @@ if this is the function declarator in a friend function declaration.
              the function body won't be scanned at this time, the source
              sequence entry for the param id should be eliminated in that
              case, too. */
-          remove_declarator_sse(&param_state);
+          remove_declarator_sse(&param_state, depth_scope_stack);
         } else if (param_state.source_sequence_entry == NULL) {
           /* Declarator was not called or a source sequence entry was not
              created for some some other reason.  Still, if this turns out to

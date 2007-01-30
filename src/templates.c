@@ -8084,7 +8084,7 @@ information.
     }  /* if */
     declarator(di_flags, state, parent_class, locator, func_info,
                decl_pos_block, &state->attributes);
-    remove_declarator_sse(state);
+    remove_declarator_sse(state, depth_scope_stack);
     if (decl_scope_err) {
       /* Just to be sure a template symbol doesn't get added to a scope that
          is not equipped to handle it, create an error locator based on the
@@ -12344,7 +12344,7 @@ depends on a template parameter type, return TRUE in *template_dependent
     /* Return a flag indicating whether the parameter is unnamed. */
     *is_unnamed = (state.do_flags & DO_REAL_DECLARATOR_SCANNED) == 0;
   }  /* if */
-  remove_declarator_sse(&state);
+  remove_declarator_sse(&state, depth_scope_stack);
   if (template_dependent != NULL) {
     /* Check whether the type depends on a template parameter.  This is
        done before the parameter type is adjusted below because certain
@@ -16071,7 +16071,7 @@ that follows.
              sequence entries for the temporary IL entry. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           source_sequence_entries_disallowed = TRUE;
-          remove_declarator_sse(dps);
+          remove_declarator_sse(dps, decl_scope_level);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           pos_sy_warning(ec_already_defined, &locator.source_position, sym);
           replace_entry_for_duplicate_specialization(&sym);
@@ -21011,7 +21011,7 @@ instantiation.
     /* Issue diagnostic on an incomplete-type in an exception specification. */
     report_exception_spec_errors(&func_info);
     done_with_func_info(func_info);
-    remove_declarator_sse(&state);
+    remove_declarator_sse(&state, depth_scope_stack);
   }  /* if */
      /* The Microsoft compiler silently ignores cases in which no matching
         template is found for an explicit instantiation or an "extern

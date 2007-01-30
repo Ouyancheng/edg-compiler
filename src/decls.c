@@ -136,6 +136,7 @@ and efficient initialization.
   ps->type = NULL;
   ps->source_sequence_entry = NULL;
   ps->param_id = NULL;
+  ps->upc_block_size = UPC_BLOCK_SIZE_NONE;
 }  /* init_null_decl_parse_state */
 
 

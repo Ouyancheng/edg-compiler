@@ -419,14 +419,15 @@ extern void start_secondary_declarator(a_decl_parse_state  *ps);
 
 /*
 Macro to discard the source sequence entry associated with the declarator.
-(The argument is a pointer to the current a_decl_parse_state block.)
+(The first argument is a pointer to the current a_decl_parse_state block and
+the second argument determines the scope stack entry associated with the
+source sequence entry.)
 */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
-#define remove_declarator_sse(dps)                                           \
+#define remove_declarator_sse(dps, scope_level)                              \
   if ((dps)->source_sequence_entry != NULL) {                                \
-    f_remove_from_src_seq_list((dps)->source_sequence_entry,                 \
-                               decl_scope_level);                            \
+    f_remove_from_src_seq_list((dps)->source_sequence_entry, scope_level);   \
     (dps)->source_sequence_entry = NULL;                                     \
   }  /* if */
 

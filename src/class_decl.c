@@ -13148,7 +13148,7 @@ passed via template_decl.
         decl_member_function_template(&locator, templ_param_list, &func_info,
                                       class_state, &decl_info);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        remove_declarator_sse(decl_state);
+        remove_declarator_sse(decl_state, depth_scope_stack);
         if (!func_info.is_definition && !source_sequence_entries_disallowed) {
           /* Turn the source sequence entry for the a_template entry into a
              secondary source sequence entry. */
