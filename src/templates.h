@@ -31,6 +31,7 @@ typedef int a_template_decl_options_set;
 			/* TRUE if the "extern" keyword was specified
 			   before the "template" keyword. */
 
+#if !STANDALONE_UTILITY_PROGRAM
 /*
 Structure used to pass information about the current template declaration
 between the routines used to implement the processing of template
@@ -166,6 +167,9 @@ typedef struct a_tmpl_decl_state {
 			/* IL representation of the template parameterization
 			   of the entity being declared. */
 } a_tmpl_decl_state;
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
 
 /*
 Flags used to specify options to equiv_template_arg_lists.
