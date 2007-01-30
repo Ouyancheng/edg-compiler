@@ -25,7 +25,7 @@ decls.h -- Declarations related to decls.c (having to do with scanning
 #include "symbol_tbl.h"
 #endif /* SYMBOL_TBL_H */
 
-#if !STANDALONE_UTILITY_PROGRAM
+
 /*
 Kinds of linkage, meaning whether or not an identifier declared in
 a certain way is linked to (the same as) some other liked-named identifier
@@ -714,8 +714,6 @@ extern void check_default_args_for_param_type(a_param_type_ptr  ptp,
                                               a_source_position *pos);
 
 extern void decls_one_time_init(void);
-
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #endif /* DECLS_H */
 
