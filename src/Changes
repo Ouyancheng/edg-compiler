@@ -88,19 +88,19 @@ Now, the code is enabled in all configurations with CHECKING set to TRUE.
 
 1/15/07  Variables with GNU-style register mapping
 
-In GNU modes, variables mapped onto specific registers (using the GNU "asm"
-construct) are now treated as "extern" variables.  Previously, such variables
-were treated like automatic variables when they appeared in function
-definition, and as "static" variables otherwise.  One consequence of this
-change is that such variables are no longer removed from the IL when unneeded
-entities are removed (even when they are not used).  This reflects the fact
-that the declaration of such a variable reserves the associated register for
-that variable (within the entire program).  For example:
+In GNU modes, global and namespace-scope variables mapped onto specific
+registers (using the GNU "asm" construct) are now treated as "extern"
+variables.  Previously, such variables were treated like "static" variables.
+One consequence of this change is that such variables are no longer removed
+from the IL when unneeded entities are removed (even when they are not used).
+This reflects the fact that the declaration of such a variable reserves the
+associated register for that variable (within the entire program).  
+For example:
 
   register int x asm("r4");  // a_variable entry for variable x will not be
                              // removed from the IL.
 
-Another consequence of this change is that global variables of this kind now
+Another consequence of this change is that variables of this kind now are
 render as ordinary extern variables in the C- and C++-generating back end
 when GCC_IS_GENERATED_CODE_TARGET is FALSE (previously, an altogether invalid
 declaration was generated instead).
