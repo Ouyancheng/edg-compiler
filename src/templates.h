@@ -17,9 +17,17 @@ templates.h -- Declarations relating to templates.c (template support)
 #ifndef TEMPLATES_H
 #define TEMPLATES_H 1
 
+#ifndef IL_H
+#include "il.h"
+#endif /* ifndef IL_H */
+#ifndef SYMBOL_TBL_H
+#include "symbol_tbl.h"
+#endif /* ifndef SYMBOL_TBL_H */
+#if !STANDALONE_UTILITY_PROGRAM
 #ifndef DECLS_H
 #include "decls.h"
 #endif /* ifndef DECLS_H */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /*
 Flags used to specify options to the template declaration processing routines.
