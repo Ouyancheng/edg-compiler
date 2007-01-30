@@ -433,7 +433,7 @@ source sequence entry.)
 
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 
-#define remove_declarator_sse(dps)  /* Nothing */
+#define remove_declarator_sse(dps, scope_level)  /* Nothing */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
