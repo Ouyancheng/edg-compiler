@@ -3403,9 +3403,10 @@ associated global variables will also have been set).
     /* There are no live references into the macro text map, so we can
        truncate it and start over, to save space. */
     macro_text_map.num_entries = 0;
-    /* There shouldn't be any leftover text map position trackers at this
-       point. */
-    check_assertion(active_text_map_position_trackers == NULL);
+    /* If this is a top-level macro expansion, there shouldn't be any
+       leftover text map position trackers at this point. */
+    check_assertion(active_text_map_position_trackers == NULL ||
+                    macro_depth > 0);
   }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 end_scan_for_macro_modifs:;

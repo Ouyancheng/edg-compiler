@@ -1,5 +1,18 @@
 Version 3.9
 
+1/30/07  Abort with #if inside macro argument list with
+         FULLY_RESOLVED_MACRO_POSITIONS
+
+In configurations in which FULLY_RESOLVED_MACRO_POSITIONS is TRUE, code like
+the following caused an assertion failure; this is now fixed.
+
+  #define X(x) x
+  X(y
+  #if defined(Y)
+    z
+  #endif
+  )
+
 1/26/07  C++-generating back end: Microsoft compatibility for default
          arguments of member functions
 
