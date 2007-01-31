@@ -1,5 +1,22 @@
 Version 3.9
 
+1/31/07  GNU compatibility: Attribute "aligned" on typedefs
+
+When determining the alignment of a field with a typedef type, the front end
+previously considered an attribute "aligned" directly applied to the typedef
+type but not any attributes applied to an underlying typedef types.  For
+example:
+
+  typedef int __attribute((aligned(16))) I16;
+  typedef I16 J16;
+  struct S { J16 s; int t; };
+    // Previously the attribute was always ignored when laying out S.
+
+This corresponds to the behavior of gcc/g++ 3.3.x, but all other versions of
+the GNU compiler supporting this feature appear to take attributes on
+underlying typedefs into account.  We now emulate the more common GNU behavior
+when gnu_version/100 != 303.
+
 1/31/07  address_taken field set on anonymous union if field address is used
 
 If the address of a field in an anonymous union is taken, the address_taken

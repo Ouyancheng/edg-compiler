@@ -230,6 +230,11 @@ Return the field alignment for the given type.
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       if (type->alignment_set_explicitly) {
         result = type->alignment;
+      } else if (gnu_mode && gnu_version/100 != 303) {
+        /* In a chain of typedefs, the last one with attribute "aligned"
+           normally determines the alignment.  However, gcc/g++ 3.3.x appears
+           to ignore any "intermediate" typedefs. */
+        result = field_alignment_for(type->variant.typeref.type);
       } else
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
