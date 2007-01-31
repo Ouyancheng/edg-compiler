@@ -1,5 +1,29 @@
 Version 3.9
 
+1/30/07  Stack overflow with rvalue ? inside template prototype instantiation
+
+The processing for class rvalue "?" operators inside of templates,
+where at least one operand of the operation is based on a template
+parameter, in modes that parse templates (e.g, strict mode), was
+flawed in a way that could cause a recursion loop within the front end
+that eventually leads to a stack overflow abort.  Now fixed.  The
+following, for example, aborted in strict mode and in g++ 3.4 mode:
+
+  template<typename _Tp> struct allocator {
+    allocator();
+    allocator(const allocator&);
+  };
+  template<typename _Alloc = allocator<char> > struct basic_string;
+  typedef basic_string< allocator<char> >    string;
+  template<typename _Alloc> struct basic_string {
+    _Alloc    A;
+  };
+  void retrieveInput(const string&);
+  template<int i> void foo() {
+    retrieveInput( (i == 1)?  string(): string()); // problem here
+  };
+  template void foo<0>();
+
 1/30/07  Abort with #if inside macro argument list with
          FULLY_RESOLVED_MACRO_POSITIONS
 
