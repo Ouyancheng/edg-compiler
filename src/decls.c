@@ -10452,12 +10452,11 @@ instruction's operands.
          const elicit an error. */
       a_source_position     cv_pos;
       a_decl_pos_block      ext_cv_pos;
-      a_upc_block_size      block_size = 0;
       a_type_qualifier_set  qualifiers;
 
       cv_pos = pos_curr_token;
-      qualifiers = collect_type_qualifiers(&ext_cv_pos, &block_size);
-      check_assertion(block_size == 0);
+      qualifiers = collect_type_qualifiers(&ext_cv_pos,
+                                           (a_upc_block_size *)NULL);
       if (qualifiers & ~(TQ_CONST | TQ_VOLATILE)) {
         /* Other qualifiers (e.g., "restrict") should be rejected. */
         pos_error(ec_invalid_asm_qualifiers, &cv_pos);
