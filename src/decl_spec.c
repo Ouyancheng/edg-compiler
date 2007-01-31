@@ -8337,7 +8337,7 @@ exit_loop:
                                    complex_attr, saturating_fixed_point)) {
         err = TRUE;
       } else {
-        /* Add any type qualifiers (const or volatile) to the type. */
+        /* Add any type qualifiers (const, volatile, etc.) to the type. */
         if (!add_type_qualifiers(type_ptr, state)) {
           err = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -8351,7 +8351,8 @@ exit_loop:
   } else if (upc_mode && !err) {
     /* The UPC strict and relaxed qualifiers can only appear combined with
        the shared qualifier. */
-    if (qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) {
+    if ((qualifiers & (TQ_UPC_STRICT | TQ_UPC_RELAXED)) != 0 &&
+        (qualifiers & TQ_UPC_SHARED) == 0) {
       error(ec_nonshared_strict_relaxed);
       err = TRUE;
     }  /* if */
