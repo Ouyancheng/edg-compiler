@@ -1972,7 +1972,9 @@ projection symbol.
     }  /* if */
   }  /* if */
   if (update_il_entry && (kind & SRK_ADDRESS_TAKEN)) {
-    /* Set the address_taken flag in variables and routines. */
+    /* Set the address_taken flag in variables and routines.  Also set the
+       address_taken flag when referencing a static data member or a field in
+       an anonymous union. */
     if (sym_kind == (a_symbol_kind)sk_variable) {
       set_variable_address_taken(sym_ptr->variant.variable.ptr);
     } else if (sym_kind == (a_symbol_kind)sk_static_data_member) {
@@ -1980,6 +1982,19 @@ projection symbol.
     } else if (sym_kind == (a_symbol_kind)sk_routine ||
                sym_kind == (a_symbol_kind)sk_member_function) {
       sym_ptr->variant.routine.ptr->address_taken = TRUE;
+    } else if (sym_kind == (a_symbol_kind)sk_field) {
+      /* Walk up the list of potentially nested anonymous unions to find the
+         parent variable. */
+      a_symbol_ptr sym_apo = sym_ptr->variant.field.anonymous_parent_object;
+      while (sym_apo != NULL) {
+        if (sym_apo->kind == (a_symbol_kind)sk_variable) {
+          set_variable_address_taken(sym_apo->variant.variable.ptr);
+          break;
+        } else if (sym_apo->kind != (a_symbol_kind)sk_field) {
+          break;
+        }  /* if */
+        sym_apo = sym_apo->variant.field.anonymous_parent_object;
+      }  /* while */
     }  /* if */
   }  /* if */
   if (sym_kind == (a_symbol_kind)sk_variable) {

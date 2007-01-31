@@ -390,6 +390,20 @@ address taken, and if not issue an error.
         on static data members here.  This can be removed.  See comments
         above. */
     set_variable_address_taken(sym->variant.static_data_member.variable);
+  } else if (sym->kind == (a_symbol_kind)sk_field) {
+    /* For anonymous union fields, set address_taken on unnamed anonymous
+       parent object.  Walk up the list of anonymous_parent_objects until
+       we get to a variable.  This can be removed.  See comments above. */
+    a_symbol_ptr sym_apo = sym->variant.field.anonymous_parent_object;
+    while (sym_apo != NULL) {
+      if (sym_apo->kind == (a_symbol_kind)sk_variable) {
+        set_variable_address_taken(sym_apo->variant.variable.ptr);
+        break;
+      } else if (sym_apo->kind != (a_symbol_kind)sk_field) {
+        break;
+      }  /* if */
+      sym_apo = sym_apo->variant.field.anonymous_parent_object;
+    }  /* while */
   }  /* if */
 }  /* f_check_address_taken_ref */
 

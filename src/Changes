@@ -1,5 +1,10 @@
 Version 3.9
 
+1/31/07  address_taken field set on anonymous union if field address is used
+
+If the address of a field in an anonymous union is taken, the address_taken
+field in the IL is now properly set for the anonymous union.
+
 1/30/07  Stack overflow with rvalue ? inside template prototype instantiation
 
 The processing for class rvalue "?" operators inside of templates,
