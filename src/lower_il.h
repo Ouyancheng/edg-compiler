@@ -534,13 +534,23 @@ EXTERN a_source_position
 
 /*
 Put the current code_pos_for_lowering into a statement, if the statement
-pointer is non-NULL.
+pointer is non-NULL.  Set ending position as well if
+EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.
 */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+#define set_stmt_pos_to_code_pos_for_lowering(stmt)                       \
+{ if ((stmt) != NULL) {                                                   \
+    set_stmt_source_position((stmt)->position, code_pos_for_lowering);    \
+    set_stmt_source_position((stmt)->end_position, code_pos_for_lowering);\
+  }  /* if */                                                             \
+}  /* set_stmt_pos_to_code_pos_for_lowering */
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 #define set_stmt_pos_to_code_pos_for_lowering(stmt)                   \
 { if ((stmt) != NULL) {                                               \
     set_stmt_source_position((stmt)->position, code_pos_for_lowering);\
   }  /* if */                                                         \
 }  /* set_stmt_pos_to_code_pos_for_lowering */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 

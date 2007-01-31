@@ -1,5 +1,14 @@
 Version 3.9
 
+1/31/07  Set end source position on inlined statements
+
+The end source position (end_position) is now set on statements that are
+inlined when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.  The value of the end
+source position is the source position of the call site when
+STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION is TRUE or the
+end position of the original statement when 
+STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION is FALSE.
+
 1/31/07  GNU compatibility: Attribute "aligned" on typedefs
 
 When determining the alignment of a field with a typedef type, the front end
