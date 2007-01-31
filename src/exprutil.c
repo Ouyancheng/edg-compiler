@@ -7211,7 +7211,10 @@ still provided).
       if (!C_mode() &&
           (is_template_param_constant_operand(operand_1) ||
            is_template_param_constant_operand(operand_2) ||
-           is_template_param_constant_operand(operand_3))) {
+           is_template_param_constant_operand(operand_3)) &&
+          (is_constant_operand(operand_1) &&
+           is_constant_operand(operand_2) &&
+           is_constant_operand(operand_3))) {
         /* For an expression based on a template parameter, scanned
            during the prototype instantiation, make a ck_template_param
            constant for the result. */

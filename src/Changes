@@ -21,7 +21,7 @@ following, for example, aborted in strict mode and in g++ 3.4 mode:
   void retrieveInput(const string&);
   template<int i> void foo() {
     retrieveInput( (i == 1)?  string(): string()); // problem here
-  };
+  }
   template void foo<0>();
 
 1/30/07  Abort with #if inside macro argument list with
