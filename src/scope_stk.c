@@ -5133,6 +5133,12 @@ it is an external definition).
       is_needed = TRUE;
     } else if (var->aliased_variable != NULL) {
       is_needed = variable_needed_even_if_unreferenced(var->aliased_variable);
+    } else if (var_is_gnu_named_register(var)) {
+      /* The declaration of a namespace-scope variable mapped on a specific
+         register using the GNU "asm(...)" construct must be preserved even
+         if the variable is unused, because such a declaration reserves the
+         associated register throughout the program. */
+      is_needed = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   } else {

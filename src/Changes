@@ -120,19 +120,17 @@ Now, the code is enabled in all configurations with CHECKING set to TRUE.
 In GNU modes, global and namespace-scope variables mapped onto specific
 registers (using the GNU "asm" construct) are now treated as "extern"
 variables.  Previously, such variables were treated like "static" variables.
-One consequence of this change is that such variables are no longer removed
-from the IL when unneeded entities are removed (even when they are not used).
-This reflects the fact that the declaration of such a variable reserves the
-associated register for that variable (within the entire program).  
-For example:
+A consequence of this change is that variables of this kind now are rendered
+as ordinary extern variables in the C- and C++-generating back end when
+GCC_IS_GENERATED_CODE_TARGET is FALSE (previously, an altogether invalid
+declaration was generated instead).  Additionally, the declaration of such a
+variable is preserved in the IL even if the variable is otherwise unused.
+This reflects the fact that such a declaration reserves the associated
+register for that variable (within the entire program).  For example:
 
   register int x asm("r4");  // a_variable entry for variable x will not be
                              // removed from the IL.
 
-Another consequence of this change is that variables of this kind now are
-render as ordinary extern variables in the C- and C++-generating back end
-when GCC_IS_GENERATED_CODE_TARGET is FALSE (previously, an altogether invalid
-declaration was generated instead).
 
 1/13/07  Source positions of constructor initializers after IL lowering
 
