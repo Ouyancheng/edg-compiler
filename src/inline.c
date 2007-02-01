@@ -64,6 +64,9 @@ Interface macro to copy_expr_tree.
 #define copy_expr_tree_for_inlining(expr) \
   copy_expr_tree((expr), CE_DOING_INLINING_OF_FUNCTION_CALL)
 
+#if STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION
+/*ARGSUSED*/
+#endif /* STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
 static void set_inline_statement_positions(a_statement_ptr  statement,
                                            a_statement_ptr  original_statement)
 /*
