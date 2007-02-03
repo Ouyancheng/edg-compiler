@@ -1,5 +1,26 @@
 Version 3.9
 
+2/3/07   Argument deduction for conversion function templates
+
+The front end formerly added a spurious "const" qualifier when deducing the
+type of a conversion function template when the target type is a class with
+a bitwise copy constructor.  This is now fixed.  For example:
+
+  struct A {
+    void f();
+  };
+
+  struct B {
+    template <typename T> operator T();
+  };
+
+  void g() {
+    A a;
+    B b;
+    a = (A)b;   // Now uses B::operator A(), not B::operator const A()
+    A(b).f();   // No longer a cv-qualification mismatch error
+  }
+
 1/31/07  Set end source position on inlined statements
 
 The end source position (end_position) is now set on statements that are

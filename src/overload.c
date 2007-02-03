@@ -30,6 +30,7 @@ overload.c -- Expression processing overload resolution.
 static void try_conversion_function_match(
                             an_operand               *source_operand,
                             a_type_ptr               dest_type,
+                            a_type_ptr               requested_type,
                             a_builtin_type_kind_set  builtin_types_allowed,
                             a_boolean                need_lvalue_result,
                             a_boolean                is_copy_initialization,
@@ -1501,6 +1502,7 @@ must free that list.
              for the ambiguity list (containing all the functions, not just
              the one that might have won on the second overload resolution). */
           try_conversion_function_match(source_operand,
+                                        base_dest_type,
                                         base_dest_type,
                                         (a_builtin_type_kind_set)BTK_NONE,
                                         /*need_lvalue_result=*/FALSE,
@@ -7953,6 +7955,7 @@ Instantiate the underlying type if necessary to make it a complete type.
 static void try_conversion_function_match(
                             an_operand               *source_operand,
                             a_type_ptr               dest_type,
+                            a_type_ptr               requested_type,
                             a_builtin_type_kind_set  builtin_types_allowed,
                             a_boolean                need_lvalue_result,
                             a_boolean                is_copy_initialization,
@@ -7970,6 +7973,12 @@ to either
     (b) takes precedence, and dest_type is used only to guide the
     selection of template conversion functions and to establish the
     cost of any conversion needed after the conversion function).
+
+In the case of a bitwise copy constructor, dest_type reflects the parameter
+type of the constructor, which can be different from the type actually
+specified in a cast; requested_type gives the original type and is used to
+ensure that argument deduction for a conversion function template will use
+the type actually specified rather than the constructor's parameter type.
 
 If a conversion function to do that conversion exists, evaluate how
 well it matches the arguments and add it to the candidate_functions list,
@@ -8007,12 +8016,12 @@ This routine is only used in C++ mode.
   if (builtin_types_allowed == BTK_BOOL) {
     /* There's only one type in the BTK_BOOL category, so make this a
        conversion to a specific type so that templates can be used. */
-    dest_type = bool_type();
+    dest_type = requested_type = bool_type();
     builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
   } else if (builtin_types_allowed == BTK_PTRDIFF_T) {
     /* There's only one type in the BTK_PTRDIFF_T category, so make this a
        conversion to a specific type so that templates can be used. */
-    dest_type = integer_type(targ_ptrdiff_t_int_kind);
+    dest_type = requested_type = integer_type(targ_ptrdiff_t_int_kind);
     builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
   }  /* if */
   source_type = source_operand->type;
@@ -8070,13 +8079,13 @@ This routine is only used in C++ mode.
       conversion_routine = base_conversion_symbol->variant.routine.ptr;
       conv_routine_type = conversion_routine->type;
     } else {
-      a_type_ptr eff_dest_type = dest_type;
+      a_type_ptr eff_dest_type = requested_type;
       /* The symbol is a function template. */
-      check_assertion(dest_type != NULL);  /* For Coverity. */
+      check_assertion(eff_dest_type != NULL);  /* For Coverity. */
       /* Don't do type deduction if that would produce a conversion
          function that returns an abstract class type (which would be
          invalid). */
-      if (is_abstract_class_type(dest_type)) goto reject_function;
+      if (is_abstract_class_type(eff_dest_type)) goto reject_function;
       /* Do type deduction on the return type. */
       tssp = base_conversion_symbol->variant.template_info;
       conversion_routine = tssp->variant.function.routine;
@@ -8086,7 +8095,8 @@ This routine is only used in C++ mode.
          conversion template.  If normal deduction fails, check whether a
          qualification conversion can be used to obtain the desired type. */
       if (matches_template_type(is_reference_binding ?
-                                          dest_type : skip_typerefs(dest_type),
+                                                  eff_dest_type :
+                                                  skip_typerefs(eff_dest_type),
                                 return_type,
                                 &template_arg_list,
                                 tssp->variant.function.decl_cache.
@@ -8094,7 +8104,7 @@ This routine is only used in C++ mode.
                                 MTT_NO_FLAGS)) {
         /* Match. */
       } else if (matches_template_type_with_qualification_conversion(
-                                 dest_type,
+                                 eff_dest_type,
                                  return_type,
                                  &template_arg_list,
                                  tssp->variant.function.decl_cache.
@@ -10777,6 +10787,7 @@ mode.
           eff_is_reference_binding = TRUE;
         }  /* if */
         try_conversion_function_match(source_operand, eff_dest_type,
+                                      dest_type,
                                       (a_builtin_type_kind_set)BTK_NONE,
                                       /*need_lvalue_result=*/FALSE,
                                       eff_is_copy_initialization,
@@ -10946,7 +10957,7 @@ C++ mode.
     candidate_functions = NULL;
     /* Find any viable conversion functions. */
     /* coverity[deref_ptr_in_call] */  /* Coverity bug. */
-    try_conversion_function_match(source_operand, dest_type,
+    try_conversion_function_match(source_operand, dest_type, dest_type,
                                   builtin_types_allowed, need_lvalue_result,
                                   is_copy_initialization,
                                   is_reference_binding,
