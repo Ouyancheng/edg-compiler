@@ -7979,6 +7979,7 @@ type of the constructor, which can be different from the type actually
 specified in a cast; requested_type gives the original type and is used to
 ensure that argument deduction for a conversion function template will use
 the type actually specified rather than the constructor's parameter type.
+(In all other cases, dest_type and requested_type should be the same.)
 
 If a conversion function to do that conversion exists, evaluate how
 well it matches the arguments and add it to the candidate_functions list,
