@@ -64,7 +64,7 @@ STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION is FALSE.
 
 When determining the alignment of a field with a typedef type, the front end
 previously considered an attribute "aligned" directly applied to the typedef
-type but not any attributes applied to an underlying typedef types.  For
+type but not any attributes applied to an underlying typedef type.  For
 example:
 
   typedef int __attribute((aligned(16))) I16;
