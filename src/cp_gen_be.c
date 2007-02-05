@@ -12697,6 +12697,7 @@ TRUE if the declaration following this one is such a continuation.
     } else {
       rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
     }  /* if */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 handle_as_definition:
     if (rout->has_been_defined) {
       /* The definition has already been generated; don't redefine it. */
@@ -12704,6 +12705,7 @@ handle_as_definition:
     } else {
       rout->has_been_defined = TRUE;
     }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     rout_type = rout->declared_type;
     is_definition = TRUE;
     friend_decl = rout->defined_in_friend_decl;
