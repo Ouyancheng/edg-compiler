@@ -1,5 +1,35 @@
 Version 3.9
 
+2/4/07   C++-generating back end, Microsoft compatibility: explicit
+         specializations of inline conversion function templates
+
+In configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the
+C++-generating back end generated a non-defining declaration of an explicit
+specialization of an inline conversion function template before the
+conversion function is used and then generated the definition of the
+explicit specialization at a later point.  MSVC++ has a bug that causes it
+to report an error when it encounters a non-defining declaration of such
+an explicit specialization.  The C++-generating back end has been changed
+to avoid this MSVC++ bug by generating the definition at the point at which
+the declaration was previously generated when msvc_is_generated_code_target
+is TRUE.  For example:
+
+  struct A {
+    template <typename T> operator T() { return T(); }
+  };
+  // Previously generated here:
+  //   template<> inline A::operator int();
+  // Now generated here:
+  //   template<> inline A::operator int() { return (int)0; }
+  int f() {
+    A a;
+    return int(a);
+  }
+  // Previously generated here:
+  //   template<> inline A::operator int() { return (int)0; }
+  // Now nothing generated here.
+
 2/3/07   Argument deduction for conversion function templates
 
 The front end formerly added a spurious "const" qualifier when deducing the

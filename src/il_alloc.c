@@ -2237,6 +2237,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->abstract                    = FALSE;
   rp->override                    = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  rp->has_been_defined            = FALSE;
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if INSTANTIATE_EXTERN_INLINE
   rp->inline_instance_required    = FALSE;

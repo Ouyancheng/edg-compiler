@@ -12633,13 +12633,25 @@ TRUE if the declaration following this one is such a continuation.
     rout_type = sec_decl->declared_type;
     friend_decl = sec_decl->friend_decl;
     is_specialization = sec_decl->specialized_with_new_syntax;
-    if (is_specialization && !rout->is_specialized && rout->is_inline &&
-        rout->assoc_scope == NULL_region_number) {
-      /* A generated specialization for an inline function, for which
-         there is no full instantiation.  Suppress this declaration because
-         it will get an error if it's used (inline referenced but
-         not defined). */
-      discard_declaration = TRUE;
+    if (is_specialization && !rout->is_specialized && rout->is_inline) {
+      if (rout->assoc_scope == NULL_region_number) {
+        /* A generated specialization for an inline function, for which
+           there is no full instantiation.  Suppress this declaration because
+           it will get an error if it's used (inline referenced but
+           not defined). */
+        discard_declaration = TRUE;
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      } else if (rout->special_kind ==
+                                     (a_special_function_kind)sfk_conversion &&
+                 msvc_is_generated_code_target) {
+        /* The Microsoft compiler has a bug that does not allow a
+           non-definition declaration of an explicit specialization of a
+           conversion function template.  Generate the definition here,
+           even though it would ordinarily be only a declaration, and mark
+           the routine entry so it won't be defined a second time. */
+        goto handle_as_definition;
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+      }  /* if */
     }  /* if */
     if (rout->source_corresp.is_class_member &&
         !curr_name_context_is_a_class()) {
@@ -12684,6 +12696,13 @@ TRUE if the declaration following this one is such a continuation.
       rout = assoc_template->prototype_instantiation.routine;
     } else {
       rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
+    }  /* if */
+handle_as_definition:
+    if (rout->has_been_defined) {
+      /* The definition has already been generated; don't redefine it. */
+      discard_declaration = TRUE;
+    } else {
+      rout->has_been_defined = TRUE;
     }  /* if */
     rout_type = rout->declared_type;
     is_definition = TRUE;

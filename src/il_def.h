@@ -8520,6 +8520,14 @@ typedef struct a_routine {
 			/* TRUE for a virtual member function that was
 			   declared with the function-modifier "override". */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_bit_field	has_been_defined:1;
+			/* TRUE if the definition for this function has been
+			   emitted.  This is used to work around a Microsoft
+			   bug that does not allow an explicit specialization
+			   for a conversion function template to be declared
+			   but not defined. */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if INSTANTIATE_EXTERN_INLINE
   a_bit_field	inline_instance_required:1;
