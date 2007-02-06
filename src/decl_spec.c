@@ -2002,21 +2002,6 @@ caution when modifying this routine.
                             &locator->source_position,
                             name_of_symbol_kind(tag_kind), tag_sym);
         if (tag_err) tag_sym = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (microsoft_mode &&
-                 tag_sym->kind == (a_symbol_kind)sk_class_or_struct_tag) {
-        /* Both the current declaration and the previous must match wrt. to
-           the use of __interface. */
-        a_type_ptr  class_type = type_symbol_type(tag_sym);
-        if (is_interface !=
-                        class_type->variant.class_struct_union.is_interface) {
-          pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
-                         &locator->source_position,
-                         name_of_symbol_kind(tag_kind), tag_sym);
-          tag_sym = NULL;
-          tag_err = TRUE;
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2494,6 +2479,63 @@ it returns FALSE.
 }  /* delayed_nested_class_allowed_in_class */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void check_interface_redeclaration(a_symbol_ptr       prev_decl,
+                                          a_symbol_kind      tag_kind,
+                                          a_boolean          *is_interface,
+                                          a_boolean          is_definition,
+                                          a_source_position  *tag_pos)
+/*
+Verify that previous declarations of a class (represented by prev_decl) are
+consistent in their use of the Microsoft keyword "__interface".  Issue a
+diagnostic otherwise.  tag_kind, *is_interface, is_definition, and *tag_pos
+describe properties of the current declaration.  *is_interface is set to FALSE
+if the type should not be treated as an interface.
+*/
+{
+  a_type_ptr  class_type = prev_decl->variant.class_struct_union.type;
+
+  if (*is_interface != class_type->variant.class_struct_union.is_interface) {
+    /* Only the first declaration and the definition of an interface must use
+       the __interface keyword.  Other declarations can use "struct" or "class"
+       (but not "union").  Furthermore, if the first declaration uses
+       "__interface" and the definition does not, the code is accepted but the
+       type is not an interface type. */
+    an_error_severity  sev = es_warning;
+    a_boolean          no_interface = FALSE;
+    if (tag_kind == (a_symbol_kind)sk_union_tag ||
+        class_type->kind == (a_type_kind)tk_union) {
+      sev = es_error;
+      no_interface = TRUE;
+    } else if (is_definition) {
+      if (*is_interface) {
+        /* The current declaration is a definition using the "__interface"
+           keyword but the first declaration did not use that keyword:
+           Microsoft compilers diagnose this.  We do too, and proceed with an
+           interface type. */
+        sev = es_error;
+        class_type->kind = (a_type_kind)tk_struct;
+        class_type->variant.class_struct_union.is_interface = TRUE;
+        class_type->variant.class_struct_union.abstract = TRUE;
+      } else {
+        /* The definition does not use the "__interface" keyword: Don't
+           treat the type as an interface. */
+        no_interface = TRUE;
+      }  /* if */
+    }  /* if */
+    pos_stsy_diagnostic(sev, ec_tag_kind_incompatible_with_declaration,
+                        tag_pos, name_of_symbol_kind(tag_kind), prev_decl);
+    if (no_interface) {
+      class_type->variant.class_struct_union.is_interface = FALSE;
+      class_type->variant.class_struct_union.abstract = FALSE;
+      *is_interface = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* check_interface_redeclaration */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED || \
     !MICROSOFT_EXTENSIONS_ALLOWED
@@ -3185,6 +3227,16 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
        allocated in the file scope memory region, though local types will be
        added to the function scope's types list. */
     class_type = alloc_type(type_kind);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_interface) {
+      if (is_local_class) {
+        pos_error(ec_interface_cannot_be_local, &decl_start_pos);
+      } else {
+        class_type->variant.class_struct_union.is_interface = TRUE;
+        class_type->variant.class_struct_union.abstract = TRUE;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (scope_stack[effective_decl_level].kind ==
                                            (a_scope_kind)sck_func_prototype) {
       /* A type is actually declared in a function prototype scope only in
@@ -3239,18 +3291,6 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
       class_type->variant.class_struct_union.originally_unnamed = TRUE;
     }  /* if */
     if (C_dialect == C_dialect_cplusplus) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      /* Check various scoping constraints on interface types. */
-      if (!microsoft_mode) {
-        /* Nothing to be checked. */
-      } else if (is_interface) {
-        if (is_local_class) {
-          pos_error(ec_interface_cannot_be_local, &decl_start_pos);
-        }  /* if */
-        class_type->variant.class_struct_union.is_interface = TRUE;
-        class_type->variant.class_struct_union.abstract = TRUE;
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (is_class_definition && is_friend_decl) {
         /* Issuing the diagnostic was deferred till now. */
         pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
@@ -3385,6 +3425,13 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
     a_class_type_supplement_ptr  ctsp;
     /* Using an existing type.  Fetch the type pointer from it. */
     class_type = tag_sym->variant.class_struct_union.type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_interface != class_type->variant.class_struct_union.is_interface) {
+      /* Diagnose inconsistent use of the "__interface" keyword. */
+      check_interface_redeclaration(tag_sym, tag_kind, &is_interface,
+                                    is_class_definition, &tag_position);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     ctsp = class_type->variant.class_struct_union.extra_info;
     if (!is_template_specific_decl || !(*declares_something)) {
       is_redeclaration = TRUE;

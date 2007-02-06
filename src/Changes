@@ -1,5 +1,26 @@
 Version 3.9
 
+2/6/07   Microsoft compatibility: __interface redeclarations
+
+The front end now more closely emulates Microsoft compilers when handling
+redeclarations of "__interface" types.  Specifically, declarations of an
+interface type that are neither the first declaration nor the definition can
+use the keywords "class" or "struct" instead of "__interface" (a warning is
+issued).  For example:
+
+  __interface X;
+  struct X;     // Now accepted in Microsoft mode.
+
+If the first declaration of a class type uses the keyword "__interface" and it
+is followed by a definition not using that keyword, the declared type is
+treated according to the definition (i.e., not as an __interface type).
+For example:
+
+  __interface Y;
+  struct X {
+    static int i;  // Okay because X is not considered to be an interface.
+  };
+
 2/5/07   New configuration flag for disabling return value optimization
 
 A new switch, DO_RETURN_VALUE_OPTIMIZATION, has been introduced to allow
