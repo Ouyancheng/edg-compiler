@@ -1,5 +1,14 @@
 Version 3.9
 
+2/5/07   New configuration flag for disabling return value optimization
+
+A new switch, DO_RETURN_VALUE_OPTIMIZATION, has been introduced to allow
+customers to selectively disable the return value optimization.  Setting
+this flag to TRUE (the default setting) continues to enable the detecting
+and lowering of cases where the return value optimization is applicable.
+Setting the switch to FALSE will disable all return value optimization
+detection and lowering.
+
 2/4/07   C++-generating back end, Microsoft compatibility: explicit
          specializations of inline conversion function templates
 

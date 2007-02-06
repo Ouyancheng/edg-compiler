@@ -809,6 +809,7 @@ and for the instantiation of template functions.
      type entry. */
   rout_ptr->assoc_scope = curr_il_region_number;
   rtsp->assoc_routine = rout_ptr;
+#if DO_RETURN_VALUE_OPTIMIZATION
   /* If return value optimization may be possible (i.e., if the routine
      returns a class value via a copy constructor) set the flag to TRUE.
      (It is also required that all the return statements return a single local
@@ -817,6 +818,7 @@ and for the instantiation of template functions.
   if (rtsp->value_returned_by_cctor) {
     scope_stack[depth_scope_stack].return_value_optimization_possible = TRUE;
   }  /* if */
+#endif /* DO_RETURN_VALUE_OPTIMIZATION */
   if (class_type != NULL && rtsp->this_class != NULL) {
     scope_ptr->variant.routine.this_param_variable =
                                  make_implicit_this_param_variable(rout_type);

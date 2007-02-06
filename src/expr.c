@@ -18640,6 +18640,7 @@ are marked as actually referenced.
 }  /* fix_up_dynamic_init_dtors */
 
 
+#if DO_RETURN_VALUE_OPTIMIZATION
 static void check_return_value_optimization(an_operand *operand)
 /*
 A return statement is returning the indicated operand in a function that
@@ -18727,6 +18728,7 @@ lowering or a back end to do the rewriting.
     }  /* if */
   }  /* if */
 }  /* check_return_value_optimization */
+#endif /* DO_RETURN_VALUE_OPTIMIZATION */
 
 
 static void check_for_return_of_address_of_local_variable(
@@ -18824,7 +18826,9 @@ required_type will be void if the expression should have void type
     an_expr_node_ptr operand_expr;
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
     /* Check for the possibility of the return value optimization. */
+#if DO_RETURN_VALUE_OPTIMIZATION
     check_return_value_optimization(&result);
+#endif /* DO_RETURN_VALUE_OPTIMIZATION */
     /* Build a dynamic initialization entry for the return statement. */
     prep_elision_initializer_operand(&result, required_type,
                                      /*initializing_return_value=*/TRUE,

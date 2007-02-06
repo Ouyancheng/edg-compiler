@@ -3820,6 +3820,20 @@ of the disallowed optimization.
 #endif /* ifndef DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED */
 
 /*
+Return value optimization is possible when all return statements in a function
+return the same nonstatic local variable; the optimization is to rewrite all
+references to the local variable as references to the return-value address
+passed by the caller, thus avoiding a copy constructor call on exit.  When this
+switch is TRUE, the front end notes that the optimization is possible; it is
+left to IL lowering or a back end to do the rewriting.  IL lowering also uses
+the value of this switch to control whether the optimization is performed
+during lowering.
+*/
+#ifndef DO_RETURN_VALUE_OPTIMIZATION
+#define DO_RETURN_VALUE_OPTIMIZATION TRUE
+#endif /* ifndef DO_RETURN_VALUE_OPTIMIZATION */
+
+/*
 Integer kind to use for an offset into a class.  This is used for delta
 fields in pointers to member functions, etc., but not for pointers to
 data members.  If you change this, you will need to change

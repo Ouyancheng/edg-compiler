@@ -1860,7 +1860,9 @@ the scope being pushed.
   ssep->template_param_decl_scope= FALSE;
   ssep->is_loop_scope            = FALSE;
   ssep->slow_lookup_required     = FALSE;
+#if DO_RETURN_VALUE_OPTIMIZATION
   ssep->return_value_optimization_possible = FALSE;
+#endif /* DO_RETURN_VALUE_OPTIMIZATION */
   ssep->in_prototype_instantiation = FALSE;
   ssep->in_nonreal_instantiation = FALSE;
   ssep->in_class_specialization  = FALSE;

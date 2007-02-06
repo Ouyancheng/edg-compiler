@@ -8433,9 +8433,11 @@ Generate code for a stmk_init (dynamic initialization) statement.
     /* Initialization of a local static variable cannot be dynamic in C.
        Code must be used to do the initialization. */
     non_C_case = TRUE;
+#if DO_RETURN_VALUE_OPTIMIZATION
   } else if (var_is_return_value_variable(var)) {
     /* Initialization of the return value variable is a C++ case. */
     non_C_case = TRUE;
+#endif /* DO_RETURN_VALUE_OPTIMIZATION */
   } else if (var->is_vla) {
     /* Variable-length arrays (VLAs) require deallocation (treated as a
        kind of destruction). */
@@ -8480,6 +8482,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
     an_init_pos_descr  ipd;
 
     set_insert_location(statement, &insert_location);
+#if DO_RETURN_VALUE_OPTIMIZATION
     if (var_is_return_value_variable(var)) {
       /* The variable being initialized is the return value optimization
          variable for the function.  Initialize the space provided by the
@@ -8490,7 +8493,10 @@ Generate code for a stmk_init (dynamic initialization) statement.
          optimized class rvalue "?" that sets the return value directly.
          The front end proper is supposed to rule this out. */
       check_assertion(!dip->is_optimized_class_rvalue_question_mark);
-    } else {
+    } else 
+#endif /* DO_RETURN_VALUE_OPTIMIZATION */
+    /* Do not insert code here; this is the "else" of an "if". */
+    {
       /* Normal case (not the return value optimization variable). */
       set_var_init_pos_descr(var, &ipd);
     }  /* if */

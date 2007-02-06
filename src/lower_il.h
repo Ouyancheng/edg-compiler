@@ -514,6 +514,7 @@ EXTERN a_variable_ptr
 			   at which the result will be stored; NULL
 			   otherwise. */
 
+#if DO_RETURN_VALUE_OPTIMIZATION
 /*
 Return TRUE if the indicated variable is the return value optimization
 variable for the current function.
@@ -521,6 +522,7 @@ variable for the current function.
 #define var_is_return_value_variable(var)                             \
   (innermost_function_scope != NULL &&                                \
    innermost_function_scope->variant.routine.return_value_variable == (var))
+#endif /* DO_RETURN_VALUE_OPTIMIZATION */
 
 EXTERN a_local_static_variable_init_ptr
                 promoted_local_static_variable_inits;
