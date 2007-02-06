@@ -4053,6 +4053,7 @@ statement.  Its form is
                                              /*is_catch_clause=*/FALSE,
                                              /*is_statement_expr=*/FALSE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  set_stmt_source_position(sp->end_position, curr_construct_end_position);
   /* The current token should be "__except" or "__finally": */
   sp->variant.microsoft_try->except_or_finally_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

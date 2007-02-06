@@ -1,5 +1,13 @@
 Version 3.9
 
+2/6/07   stmk_microsoft_try statements have end_position set
+
+The end source position on stmk_microsoft_try statements are now
+properly set when EXTRA_SOURCE_POSITIONS_IN_IL is defined.  Also, the end
+source position on stmk_ifs generated while lowering catch statements
+(assuming DO_FULL_PORTABLE_EH_LOWERING and DO_IL_LOWERING are TRUE)
+are also set properly.
+
 2/6/07   Microsoft compatibility: __interface redeclarations
 
 The front end now more closely emulates Microsoft compilers when handling

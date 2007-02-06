@@ -5169,6 +5169,9 @@ be passed down.
                                         catch_clause_number_node);
       if_stmt = alloc_statement((a_statement_kind)stmk_if);
       if_stmt->position = handler->catch_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if_stmt->end_position = handler->catch_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       if_stmt->expr = compare_node;
       if_stmt->variant.if_stmt.then_statement = dep_statement;
       prev_if_stmt->variant.if_stmt.else_statement = if_stmt;
