@@ -1,5 +1,19 @@
 Version 3.9
 
+2/7/07   GNU C++ compatibility: injected class lookup in g++ 3.4
+
+Versions of g++ before version 3.4 found the injected class name instead of
+the constructor name when scanning a nested declarator such as the one in the
+constructor definition below, resulting in a compilation error.  We emulate
+the behavior in g++ mode.  Versions 3.4 and higher correctly find the
+constructor name in such cases.  We now emulate this new behavior when
+gnu_version >= 30400.
+
+  struct C {
+    (C)();
+  };
+  (C::C)() {}  // error when gnu_version < 30400
+
 2/6/07   GNU compatibility: Additional built-in functions
 
 In GNU modes, the following additional built-in functions are now predeclared:

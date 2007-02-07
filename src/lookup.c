@@ -3610,11 +3610,16 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
    when doing a class-or-namespace or tag lookup, because such a lookup
    could never find the constructor.  An injected class name is also
    accepted in g++ mode, but not in prototype instantiation contexts to
-   avoid a problem with names like A<T>::A<T>. */
+   avoid a problem with names like A<T>::A<T>.  Starting with g++ 3.4,
+   injected class names are returned in fewer contexts.  We emulate this
+   by returning them only for tentative type lookups. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((sym)->is_class_member &&					      \
    (!is_injected_class_symbol(sym) ||				      \
-    (gpp_mode  && !is_prototype_instantiation_lookup) ||	      \
+    (gpp_mode && !is_prototype_instantiation_lookup &&		      \
+       (gnu_version < 30400 ||               			      \
+        (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0 ||	              \
+        (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0)) ||	      \
     is_field_selection_operand ||				      \
     must_be_class_or_namespace ||				      \
     must_be_class ||						      \
