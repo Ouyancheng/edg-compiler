@@ -5043,6 +5043,7 @@ declaration.
   if (gnu_mode && is_register && asm_name != NULL &&
       decl_scope_level == depth_innermost_namespace_scope) {
     storage_class = (a_storage_class)sc_extern;
+    srk_flags &= ~SRK_DEFINITION;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   check_assertion(storage_class != (a_storage_class)sc_typedef);
