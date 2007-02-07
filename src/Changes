@@ -1,5 +1,14 @@
 Version 3.9
 
+2/6/07   GNU compatibility: Additional built-in functions
+
+In GNU modes, the following additional built-in functions are now predeclared:
+__builtin___memcpy_chk, __builtin___memmove_chk, __builtin___mempcpy_chk,
+__builtin___memset_chk, __builtin___snprintf_chk, __builtin___sprintf_chk,
+__builtin___stpcpy_chk, __builtin___strcat_chk, __builtin___strcpy_chk,
+__builtin___strncat_chk, __builtin___vsnprintf_chk, __builtin___vsprintf_chk,
+__builtin_bcopy, __builtin_memmove, and __builtin_object_size.
+
 2/6/07   stmk_microsoft_try statements have end_position set
 
 The end source position on stmk_microsoft_try statements are now

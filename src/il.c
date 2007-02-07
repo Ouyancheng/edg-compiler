@@ -6459,6 +6459,63 @@ to it.  *decl_position is used for issuing diagnostics.
   return ptp;
 }  /* make_param_type */
 
+
+a_type_ptr make_routine_type(a_type_ptr        return_type,
+                             a_type_ptr        param1_type,
+                             a_type_ptr        param2_type,
+                             a_type_ptr        param3_type,
+                             a_type_ptr        param4_type)
+/*
+Create a routine type with the given return type (which cannot be NULL) and
+the given parameter types (which may be NULL).
+*/
+{
+  a_type_ptr         rout_type = alloc_type((a_type_kind)tk_routine);
+  a_routine_type_supplement_ptr
+                     extra_info = rout_type->variant.routine.extra_info;
+  a_source_position  *np = &null_source_position;
+
+  /* Return type. */
+  rout_type->variant.routine.return_type = return_type;
+  if (param1_type != NULL) {
+    /* Set the first parameter. */
+    extra_info->param_type_list = make_param_type(param1_type, np);
+    /* Set the first parameter, if any. */
+    if (param2_type != NULL) {
+      a_param_type_ptr  ptp = extra_info->param_type_list;
+      ptp->next = make_param_type(param2_type, np);
+      /* Set the third parameter, if any. */
+      if (param3_type != NULL) {
+        ptp = ptp->next;
+        ptp->next = make_param_type(param3_type, np);
+	/* Set the fourth parameter, if any. */
+	if (param4_type != NULL) {
+	  ptp = ptp->next;
+	  ptp->next = make_param_type(param4_type, np);
+	}  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  extra_info->prototyped = TRUE;
+  set_routine_calling_method_flag(rout_type, np);
+  return rout_type;
+}  /* make_routine_type */
+
+
+a_type_ptr add_param_type(a_type_ptr  rout_type,
+                          a_type_ptr  param_type)
+/*
+Append a parameter of type param_type to the parameter list of rout_type.
+*/
+{
+  a_param_type_ptr  *p_ptp = &rout_type->variant.routine.extra_info
+                                       ->param_type_list;
+
+  while (*p_ptp != NULL) p_ptp = &(*p_ptp)->next;
+  *p_ptp = make_param_type(param_type, &null_source_position);
+  return rout_type;
+}  /* add_param_type */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_base_class_derivation_ptr preferred_virtual_derivation_of(

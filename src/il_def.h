@@ -7199,6 +7199,18 @@ An enumeration of the different builtin functions.
 */
 enum a_builtin_function_kind_tag {
   bfk_none,
+  bfk___memcpy_chk,             /* "__builtin___memcpy_chk" */
+  bfk___memmove_chk,            /* "__builtin___memmove_chk" */
+  bfk___mempcpy_chk,            /* "__builtin___mempcpy_chk" */
+  bfk___memset_chk,             /* "__builtin___memset_chk" */
+  bfk___snprintf_chk,           /* "__builtin___snprintf_chk" */
+  bfk___sprintf_chk,            /* "__builtin___sprintf_chk" */
+  bfk___stpcpy_chk,             /* "__builtin___stpcpy_chk" */
+  bfk___strcat_chk,             /* "__builtin___strcat_chk" */
+  bfk___strcpy_chk,             /* "__builtin___strcpy_chk" */
+  bfk___strncat_chk,            /* "__builtin___strncat_chk" */
+  bfk___vsnprintf_chk,          /* "__builtin___vsnprintf_chk" */
+  bfk___vsprintf_chk,           /* "__builtin___vsprintf_chk" */
   bfk_abort,                    /* "__builtin_abort" */
   bfk_abs,                      /* "__builtin_abs" */
   bfk_acos,                     /* "__builtin_acos" */
@@ -7229,6 +7241,7 @@ enum a_builtin_function_kind_tag {
   bfk_atanhl,                   /* "__builtin_atanhl" */
   bfk_atanl,                    /* "__builtin_atanl" */
   bfk_bcmp,                     /* "__builtin_bcmp" */
+  bfk_bcopy,                    /* "__builtin_bcopy" */
   bfk_bzero,                    /* "__builtin_bzero" */
   bfk_cabs,                     /* "__builtin_cabs" */
   bfk_cabsf,                    /* "__builtin_cabsf" */
@@ -7498,6 +7511,7 @@ enum a_builtin_function_kind_tag {
   bfk_malloc,                   /* "__builtin_malloc" */
   bfk_memcmp,                   /* "__builtin_memcmp" */
   bfk_memcpy,                   /* "__builtin_memcpy" */
+  bfk_memmove,                  /* "__builtin_memmove" */
   bfk_mempcpy,                  /* "__builtin_mempcpy" */
   bfk_memset,                   /* "__builtin_memset" */
   bfk_modf,                     /* "__builtin_modf" */
@@ -7519,6 +7533,7 @@ enum a_builtin_function_kind_tag {
   bfk_nexttoward,               /* "__builtin_nexttoward" */
   bfk_nexttowardf,              /* "__builtin_nexttowardf" */
   bfk_nexttowardl,              /* "__builtin_nexttowardl" */
+  bfk_object_size,              /* "__builtin_object_size" */
   bfk_parity,                   /* "__builtin_parity" */
   bfk_parityl,                  /* "__builtin_parityl" */
 #if LONG_LONG_ALLOWED
@@ -7658,6 +7673,18 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
 #if VAR_INITIALIZERS
 = {
   /* bfk_none */                     NULL,
+  /* bfk___memcpy_chk */             "__builtin___memcpy_chk",
+  /* bfk___memmove_chk */            "__builtin___memmove_chk",
+  /* bfk___mempcpy_chk */            "__builtin___mempcpy_chk",
+  /* bfk___memset_chk */             "__builtin___memset_chk",
+  /* bfk___snprintf_chk */           "__builtin___snprintf_chk",
+  /* bfk___sprintf_chk */            "__builtin___sprintf_chk",
+  /* bfk___stpcpy_chk */             "__builtin___stpcpy_chk",
+  /* bfk___strcat_chk */             "__builtin___strcat_chk",
+  /* bfk___strcpy_chk */             "__builtin___strcpy_chk",
+  /* bfk___strncat_chk */            "__builtin___strncat_chk",
+  /* bfk___vsnprintf_chk */          "__builtin___vsnprintf_chk",
+  /* bfk___vsprintf_chk */           "__builtin___vsprintf_chk",
   /* bfk_abort */                    "__builtin_abort",
   /* bfk_abs */                      "__builtin_abs",
   /* bfk_acos */                     "__builtin_acos",
@@ -7688,6 +7715,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_atanhl */                   "__builtin_atanhl",
   /* bfk_atanl */                    "__builtin_atanl",
   /* bfk_bcmp */                     "__builtin_bcmp",
+  /* bfk_bcopy */                    "__builtin_bcopy",
   /* bfk_bzero */                    "__builtin_bzero",
   /* bfk_cabs */                     "__builtin_cabs",
   /* bfk_cabsf */                    "__builtin_cabsf",
@@ -7957,6 +7985,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_malloc */                   "__builtin_malloc",
   /* bfk_memcmp */                   "__builtin_memcmp",
   /* bfk_memcpy */                   "__builtin_memcpy",
+  /* bfk_memmove */                  "__builtin_memmove",
   /* bfk_mempcpy */                  "__builtin_mempcpy",
   /* bfk_memset */                   "__builtin_memset",
   /* bfk_modf */                     "__builtin_modf",
@@ -7978,6 +8007,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_nexttoward */               "__builtin_nexttoward",
   /* bfk_nexttowardf */              "__builtin_nexttowardf",
   /* bfk_nexttowardl */              "__builtin_nexttowardl",
+  /* bfk_object_size */              "__builtin_object_size",
   /* bfk_parity */                   "__builtin_parity",
   /* bfk_parityl */                  "__builtin_parityl",
 #if LONG_LONG_ALLOWED

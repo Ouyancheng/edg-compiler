@@ -3464,11 +3464,7 @@ extern a_symbol_ptr find_corresponding_operator_delete_sym(
 
 extern a_symbol_ptr make_predeclared_function_symbol(
                                               a_symbol_locator  *locator,
-                                              a_type_ptr        return_type,
-                                              a_type_ptr        param1_type,
-                                              a_type_ptr        param2_type,
-                                              a_type_ptr        param3_type,
-					      a_type_ptr        param4_type);
+                                              a_type_ptr        rout_type);
 
 extern void make_global_operator_new_or_delete_symbol(an_opname_kind  opname);
 

@@ -6665,51 +6665,20 @@ next_delete_symbol:;
 
 
 a_symbol_ptr make_predeclared_function_symbol(a_symbol_locator  *locator,
-                                              a_type_ptr        return_type,
-                                              a_type_ptr        param1_type,
-                                              a_type_ptr        param2_type,
-                                              a_type_ptr        param3_type,
-					      a_type_ptr        param4_type)
+                                              a_type_ptr        rout_type)
 /*
 Create a symbol and routine entry for a predeclared function.  locator points
-to a symbol locator created to represent the entity's name.  return_type
-(which must be non-NULL) and the parameter types (which may be NULL) indicate
-how to form the function's signature.
+to a symbol locator created to represent the entity's name.  rout_type is the
+associated function type.
 */
 {
   a_symbol_ptr                   sym = NULL, ext_sym;
-  a_type_ptr                     rout_type, old_type;
+  a_type_ptr                     old_type;
   a_routine_type_supplement_ptr  extra_info;
   an_id_linkage_kind             linkage;
   a_func_info_block              func_info;
   a_decl_modifiers_block         decl_modifiers;
 
-  /* Create a routine type. */
-  rout_type = alloc_type((a_type_kind)tk_routine);
-  extra_info = rout_type->variant.routine.extra_info;
-  /* Return type. */
-  rout_type->variant.routine.return_type = return_type;
-  if (param1_type != NULL) {
-    /* Set the first parameter. */
-    extra_info->param_type_list = alloc_param_type(param1_type);
-    /* Set the first parameter, if any. */
-    if (param2_type != NULL) {
-      a_param_type_ptr  ptp = extra_info->param_type_list;
-      ptp->next = alloc_param_type(param2_type);
-      /* Set the third parameter, if any. */
-      if (param3_type != NULL) {
-        ptp = ptp->next;
-        ptp->next = alloc_param_type(param3_type);
-	/* Set the fourth parameter, if any. */
-	if (param4_type != NULL) {
-	  ptp = ptp->next;
-	  ptp->next = alloc_param_type(param4_type);
-	}  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  extra_info->prototyped = TRUE;
-  set_routine_calling_method_flag(rout_type, &null_source_position);
   clear_func_info(&func_info);
   clear_decl_modifiers_block(&decl_modifiers);
   /* Create the symbol and routine entry.  Note that the routine entry
@@ -6767,9 +6736,10 @@ cleared.
     /* Type of the one parameter for operator delete is void *. */
     param1_type = make_pointer_type(void_type());
   }  /* if */
-  sym = make_predeclared_function_symbol(&locator, return_type, param1_type,
-					 (a_type_ptr)NULL, (a_type_ptr)NULL,
-					 (a_type_ptr)NULL);
+  sym = make_predeclared_function_symbol(
+            &locator,
+            make_routine_type(return_type, param1_type, (a_type_ptr)NULL,
+                              (a_type_ptr)NULL, (a_type_ptr)NULL));
   if (exceptions_enabled && !microsoft_mode) {
     /* Add exception specifications (except in Microsoft mode, where exception
        specifications are usually discarded). */
@@ -6807,9 +6777,10 @@ C compatibility mode).
   return_type = make_pointer_type(void_type());
   /* One parameter -- the size. */
   param1_type = integer_type(targ_size_t_int_kind);
-  (void)make_predeclared_function_symbol(&locator, return_type, param1_type,
-                                         (a_type_ptr)NULL, (a_type_ptr)NULL,
-					 (a_type_ptr)NULL);
+  (void)make_predeclared_function_symbol(
+            &locator,
+            make_routine_type(return_type, param1_type, (a_type_ptr)NULL,
+                              (a_type_ptr)NULL, (a_type_ptr)NULL));
   db_exit();
 }  /* make_predeclared_alloca_symbol */
 

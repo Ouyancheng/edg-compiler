@@ -540,6 +540,14 @@ extern void set_arg_transfer_method_flag(a_param_type_ptr   ptp,
 
 extern a_param_type_ptr make_param_type(a_type_ptr         tp,
                                         a_source_position  *decl_pos);
+extern a_type_ptr make_routine_type(a_type_ptr        return_type,
+                                    a_type_ptr        param1_type,
+                                    a_type_ptr        param2_type,
+                                    a_type_ptr        param3_type,
+                                    a_type_ptr        param4_type);
+
+extern a_type_ptr add_param_type(a_type_ptr  rout_type,
+                                 a_type_ptr  param_type);
 
 extern void add_placeholder_for_class_instantiation(a_type_ptr  type_ptr);
 

@@ -194,23 +194,23 @@ the function takes a variable number of arguments.  Return the
 symbol for the function.
 */
 {
+  a_type_ptr                     rout_type;
   a_routine_type_supplement_ptr  rtsp;
   a_symbol_ptr                   sym;
-  a_routine_ptr                  rout;
   a_symbol_locator               loc;
 
-  clear_locator(&loc, &null_source_position);
-  (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
-  sym = make_predeclared_function_symbol(&loc, return_type, param1_type,
-					 param2_type, param3_type,
-					 param4_type);
-  rout = sym->variant.routine.ptr;
-  rtsp = rout->type->variant.routine.extra_info;
+  rout_type = make_routine_type(return_type, param1_type, param2_type,
+                                param3_type, param4_type);
+  rtsp = rout_type->variant.routine.extra_info;
   if (is_varargs) {
     rtsp->has_ellipsis = TRUE;
   }  /* if */
+  clear_locator(&loc, &null_source_position);
+  (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
+  sym = make_predeclared_function_symbol(&loc, rout_type);
   /* Builtin functions have extern "C" name linkage by default. */
-  rout->source_corresp.name_linkage = (a_name_linkage_kind)nlk_external;
+  sym->variant.routine.ptr->source_corresp.name_linkage =
+                                             (a_name_linkage_kind)nlk_external;
   rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_external;
   sym->explicit_linkage_specifier = !C_mode();
   return sym;
@@ -226,6 +226,8 @@ static void enter_gnu_builtin_function(
 				   a_type_ptr               param2_type,
 				   a_type_ptr 		    param3_type,
 				   a_type_ptr               param4_type,
+				   a_type_ptr               param5_type,
+				   a_type_ptr               param6_type,
 				   a_boolean                is_varargs)
 /*
 Enter the GNU builtin function indicated by bfk.  The return_type
@@ -242,6 +244,12 @@ the function takes a variable number of arguments.
   sym = enter_builtin_function(name, return_type, param1_type, param2_type,
                                param3_type, param4_type, is_varargs);
   rout = sym->variant.routine.ptr;
+  if (param5_type != NULL) {
+    rout->type = add_param_type(rout->type, param5_type);
+    if (param6_type != NULL) {
+      rout->type = add_param_type(rout->type, param6_type);
+    }  /* if */
+  }  /* if */
   rout->variant.builtin_function_kind = bfk;
 }  /* enter_gnu_builtin_function */
 
@@ -360,47 +368,76 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_function(bfk_prefix(name),                               \
                              edg_concat(rtp,_type), (a_type_ptr)NULL,        \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
+                             (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/FALSE);
 #define enter_gnu_builtin_vararg_func0(name, rtp)                            \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
                              edg_concat(rtp,_type), (a_type_ptr)NULL,        \
+                             (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/TRUE);
 #define enter_gnu_builtin_func1(name, rtp, a1tp)                             \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
                              edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
+                             (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/FALSE);
 #define enter_gnu_builtin_vararg_func1(name, rtp, a1tp)                      \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
                              edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
+                             (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/TRUE);
 #define enter_gnu_builtin_func2(name, rtp, a1tp, a2tp)                       \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
                              edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
                              edg_concat(a2tp,_type), (a_type_ptr)NULL,       \
+                             (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/FALSE);
 #define enter_gnu_builtin_vararg_func2(name, rtp, a1tp, a2tp)                \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
                              edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
                              edg_concat(a2tp,_type), (a_type_ptr)NULL,       \
+                             (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/TRUE);
 #define enter_gnu_builtin_func3(name, rtp, a1tp, a2tp, a3tp)                 \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
                              edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
                              edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
+                             (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/FALSE);
 #define enter_gnu_builtin_vararg_func3(name, rtp, a1tp, a2tp, a3tp)          \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
                              edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
                              edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
+                             (a_type_ptr)NULL, (a_type_ptr)NULL,             \
                              (a_type_ptr)NULL, /*is_varargs=*/TRUE);
 #define enter_gnu_builtin_func4(name, rtp, a1tp, a2tp, a3tp, a4tp)           \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
                              edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
                              edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
-                             edg_concat(a4tp,_type), /*is_varargs=*/FALSE);
+                             edg_concat(a4tp,_type), (a_type_ptr)NULL,       \
+                             (a_type_ptr)NULL, /*is_varargs=*/FALSE);
+#define enter_gnu_builtin_vararg_func4(name, rtp, a1tp, a2tp, a3tp, a4tp)    \
+  enter_gnu_builtin_function(bfk_prefix(name),                               \
+                             edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
+                             edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
+                             edg_concat(a4tp,_type), (a_type_ptr)NULL,       \
+                             (a_type_ptr)NULL, /*is_varargs=*/TRUE);
+#define enter_gnu_builtin_vararg_func5(name, rtp, a1tp, a2tp, a3tp, a4tp,    \
+                                       a5tp)                                 \
+  enter_gnu_builtin_function(bfk_prefix(name),                               \
+                             edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
+                             edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
+                             edg_concat(a4tp,_type), edg_concat(a5tp,_type), \
+                             (a_type_ptr)NULL, /*is_varargs=*/TRUE);
+#define enter_gnu_builtin_vararg_func6(name, rtp, a1tp, a2tp, a3tp, a4tp,    \
+                                       a5tp, a6tp)                           \
+  enter_gnu_builtin_function(bfk_prefix(name),                               \
+                             edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
+                             edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
+                             edg_concat(a4tp,_type), edg_concat(a5tp,_type), \
+                             edg_concat(a6tp,_type), /*is_varargs=*/TRUE);
 #define enter_gnu_builtin_real_math_funcs0(name)                             \
   enter_gnu_builtin_func0(name, double);                                     \
   enter_gnu_builtin_func0(edg_concat(name,f), floating);                     \
@@ -451,6 +488,33 @@ Enter the standard predeclared functions for GCC.
      spurious warning for names that are standard macros (e.g., "isalpha";
      the macros shouldn't get expanded because the standard macro should
      be a function-like macro, but some tools issue warnings nonetheless). */
+  enter_gnu_builtin_func4(___memcpy_chk, void_star,
+                          void_star, const_void_star, size_t, size_t);
+  enter_gnu_builtin_func4(___memmove_chk, void_star,
+                          void_star, const_void_star, size_t, size_t);
+  enter_gnu_builtin_func4(___mempcpy_chk, void_star,
+                          void_star, const_void_star, size_t, size_t);
+  enter_gnu_builtin_func4(___memset_chk, void_star,
+                          void_star, int, size_t, size_t);
+  enter_gnu_builtin_vararg_func5(___snprintf_chk, int,
+                                 char_star, size_t, int, size_t,
+                                 const_char_star)
+  enter_gnu_builtin_vararg_func4(___sprintf_chk, int,
+                                 char_star, int, size_t, const_char_star)
+  enter_gnu_builtin_func3(___stpcpy_chk, char_star,
+                          char_star, const_char_star, size_t);
+  enter_gnu_builtin_func3(___strcat_chk, char_star,
+                          char_star, const_char_star, size_t);
+  enter_gnu_builtin_func3(___strcpy_chk, char_star,
+                          char_star, const_char_star, size_t);
+  enter_gnu_builtin_func4(___strncat_chk, char_star,
+                          char_star, const_char_star, size_t, size_t);
+  enter_gnu_builtin_vararg_func6(___vsnprintf_chk, int,
+                                 char_star, size_t, int, size_t,
+                                 const_char_star, char_star)
+  enter_gnu_builtin_vararg_func5(___vsprintf_chk, int,
+                                 char_star, int, size_t, const_char_star,
+                                 char_star)
   enter_gnu_builtin_func0(_abort, no_return);
   enter_gnu_builtin_func1(_abs, int, int);
   enter_gnu_builtin_real_math_funcs1(_acos);
@@ -468,6 +532,8 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_real_math_funcs1(_atanh);
   enter_gnu_builtin_func3(_bcmp, int,
                           const_void_star, const_void_star, size_t);
+  enter_gnu_builtin_func3(_bcopy, no_return,
+                          const_void_star, void_star, size_t);
   enter_gnu_builtin_func2(_bzero, no_return, void_star, size_t);
   enter_gnu_builtin_complex_to_real_funcs(_cabs);
   enter_gnu_builtin_complex_math_funcs1(_cacos);
@@ -634,6 +700,8 @@ Enter the standard predeclared functions for GCC.
                           const_void_star, const_void_star, size_t);
   enter_gnu_builtin_func3(_memcpy, void_star,
                           void_star, const_void_star, size_t);
+  enter_gnu_builtin_func3(_memmove, void_star,
+                          void_star, const_void_star, size_t);
   enter_gnu_builtin_func3(_mempcpy, void_star,
                           void_star, const_void_star, size_t);
   enter_gnu_builtin_func3(_memset, void_star, void_star, int, size_t);
@@ -652,6 +720,7 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func2(_nexttoward, double, double, long_double);
   enter_gnu_builtin_func2(_nexttowardf, floating, floating, long_double);
   enter_gnu_builtin_func2(_nexttowardl, long_double, long_double, long_double);
+  enter_gnu_builtin_func2(_object_size, size_t, const_void_star, int);
   enter_gnu_builtin_bit_count_funcs(_parity);
   enter_gnu_builtin_bit_count_funcs(_popcount);
   enter_gnu_builtin_real_math_funcs2(_pow);
