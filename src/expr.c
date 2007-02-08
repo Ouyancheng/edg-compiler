@@ -8425,7 +8425,7 @@ when determining whether or not special handling is required.
   if (is_class_struct_union_type(type) &&
       /* Avoid problem with struct for lowered pointer to member in
          IL Lowering. */
-      type->source_corresp.assoc_info != NULL) {
+      skip_typerefs(type)->source_corresp.assoc_info != NULL) {
     /* Classes with a constructor or destructor require special handling. */
     a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
     if ((check_constructor && cssp->constructor != NULL) ||

@@ -1,5 +1,17 @@
 Version 3.9
 
+2/7/07   Incorrect padding for arrays when using new [] and delete []
+         with IA-64 ABI on types with typerefs
+
+When computing the amount of padding to allow for before an array
+being operated on by new [] or delete [], if the type of the array element
+has type qualifiers, the amount of padding may have been miscalculated.  
+This affects only lowering performed when IA64_ABI is TRUE.  This has been
+fixed.  In this example, the const qualifier would have caused such an error:
+
+  struct A { ~A(); };
+  void f(const A *p) { delete [] p; }
+  
 2/7/07   GNU C++ compatibility: injected class lookup in g++ 3.4
 
 Versions of g++ before version 3.4 found the injected class name instead of
