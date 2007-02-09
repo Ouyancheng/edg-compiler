@@ -6674,7 +6674,6 @@ associated function type.
 {
   a_symbol_ptr                   sym = NULL, ext_sym;
   a_type_ptr                     old_type;
-  a_routine_type_supplement_ptr  extra_info;
   an_id_linkage_kind             linkage;
   a_func_info_block              func_info;
   a_decl_modifiers_block         decl_modifiers;
@@ -6696,7 +6695,8 @@ associated function type.
     /* Predeclared functions should use __cdecl calling convention.  If that's
        not the default for the compilation, set it now. */
     if (default_calling_convention != (a_calling_convention)cc_cdecl) {
-      extra_info->calling_convention = (a_calling_convention)cc_cdecl;
+      rout_type->variant.routine.extra_info->calling_convention =
+                                               (a_calling_convention)cc_cdecl;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
