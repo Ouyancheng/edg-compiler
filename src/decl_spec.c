@@ -1351,7 +1351,6 @@ static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_symbol_locator  *locator,
                                   a_boolean         *is_friend_decl,
                                   a_boolean         *check_for_vacuous_decl,
-                                  a_boolean         is_interface,
                                   a_boolean         is_ref_within_new_expr,
                                   a_scope_depth     *effective_decl_level,
                                   a_boolean         *tag_resolution,
@@ -1371,8 +1370,7 @@ name of a template).
 "friend class X;"; if it turns out that no semicolon follows the identifier,
 however, the flag will be reset to FALSE and a normal lookup will be done.
 *check_for_vacuous_decl is TRUE when the context permits a declaration like
-"struct x;".  is_interface is TRUE if we're scanning the identifier for an
-interface.  is_ref_within_new_expr is TRUE when the declaration appears
+"struct x;".  is_ref_within_new_expr is TRUE when the declaration appears
 inside a new expression.  *effective_decl_level will have been initialized
 to decl_scope_level by the caller; it may be changed in C++ for a forward
 reference to a tag within a function prototype or a class definition -- the
@@ -2765,10 +2763,9 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
     tag_sym = scan_tag_name(tag_kind, &locator, &is_friend_decl,
-                            &vacuous_decl_allowed, is_interface,
-                            is_ref_within_new_expr, &effective_decl_level,
-                            &tag_resolution, &is_predeclared_type_decl,
-                            &local_decl_pos_block);
+                            &vacuous_decl_allowed, is_ref_within_new_expr,
+                            &effective_decl_level, &tag_resolution,
+                            &is_predeclared_type_decl, &local_decl_pos_block);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
     if (tag_name_access_checks_deferred) {
       end_deferral_of_access_checks();
@@ -4163,7 +4160,6 @@ describes Microsoft attributes preceding the enum specifier (if any).
     tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
                             &is_friend_decl, &vacuous_decl_allowed,
                             /*is_ref_within_new_expr=*/FALSE,
-                            /*is_interface=*/FALSE,
                             &effective_decl_level, &tag_resolution,
                             &is_predeclared_type_decl, &local_decl_pos_block);
     if (curr_token == tok_lbrace) {
