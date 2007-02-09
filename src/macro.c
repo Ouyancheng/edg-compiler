@@ -7144,11 +7144,14 @@ that occurred.
   /* Find the end of the name. */
   for (end_pos = ptr;
        *end_pos != ' ' && *end_pos != '\t' && *end_pos != '\0'; end_pos++) {}
-  /* Replace the delimiter with a null. */
-  *end_pos = '\0';
-  ptr = end_pos + 1;
-  /* Skip any whitespace to find the macro name. */
+  ptr = end_pos;
+  /* Skip any whitespace to find the macro value.  Note that this is done
+     before terminating the name string so we can catch the case of a macro
+     with no value, i.e., where the name-ending delimiter is already a
+     null. */
   skip_blanks();
+  /* Replace the name-ending delimiter with a null. */
+  *end_pos = '\0';
   macro_value = ptr;
   if (mode_value) {
     /* The macro should be defined based on the mode parameters. */

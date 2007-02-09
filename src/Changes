@@ -1,5 +1,18 @@
 Version 3.9
 
+2/9/07   Predefined macros with no replacement text
+
+If a macro was defined in the predefined_macros.txt file as having no
+value, i.e., the line ended with the last character of the macro's name,
+that macro was defined as if its value were the part of the preceding line
+that extended past the terminator of the current line.  For example, a
+predefined_macros.txt file that contained the following two lines formerly
+had the effect of defining macro X with the value "C def".  This is now
+fixed, giving macro X an empty replacement text.
+
+  gnu no ABC def
+  gnu no X
+
 2/7/07   Incorrect padding for arrays when using new [] and delete []
          with IA-64 ABI on types with typerefs
 
