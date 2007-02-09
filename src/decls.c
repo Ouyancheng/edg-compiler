@@ -4963,11 +4963,6 @@ Return TRUE if the given list of attributes includes one representing the
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED || !GNU_EXTENSIONS_ALLOWED || \
-    !NAMED_REGISTERS_ALLOWED
-/* ARGSUSED */ /* decl_modifiers, p_ms_attributes, attributes, and/or asm_name
-                  are not used in some configurations. */
-#endif /* !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED || !NAMED_REG... */
 void decl_variable(a_symbol_locator             *locator,
                    a_decl_parse_state           *dps,
                    a_symbol_reference_kind      srk_flags,
@@ -4976,27 +4971,20 @@ void decl_variable(a_symbol_locator             *locator,
                    a_decl_pos_block_ptr         decl_pos_block)
 /*
 Enter the declaration of an identifier for a variable.  *locator gives the
-symbol locator (and thus its name and its declaration position).  type_ptr,
-storage_class, register_id, decl_modifiers, *p_ms_attributes, attributes, and
-asm_name give the type, storage class, named-register storage class,
-declaration modifier flags, attributes (both Microsoft- and GNU-style), and
-assembly symbol name.  When an asm_name is specified, asm_name_pos is its
-position.
-Create and enter a symbol entry, and return a pointer to it in *symbol_ptr.
+symbol locator (and thus its name and its declaration position).  *dps
+describes various properties of the declaration (including its type and
+storage class).
+Create and enter a symbol entry, and return a pointer to it in dps->sym.
 Also allocate any associated IL construct, and attach it to the symbol.  If
 the identifier has linkage and there is an existing symbol or IL entry, it
 will be re-used.  Return in *linkage_ptr the linkage of the identifier.
-Return in *old_type any previously-known type for this identifier from a
+Return in *dps->prev_type any previously-known type for this identifier from a
 linked identifier in the same scope, or NULL if there was no previously-known
 type.  If the identifier has linkage, return in *ext_sym a pointer to the
-external symbol entry; otherwise, set *ext_sym to NULL.  declarator_ssep
-(non-NULL only if source sequence entries are being generated) is a pointer to
-the empty source sequence entry already created for the declarator and added
-to the appropriate list; its kind and entity pointer are updated.  srk_flags
-contain specific information about the kind of declaration (whether it's a
-definition, a tentative definition (C only), and so forth); this information
-is passed on for use in generating cross-reference output describing this
-declaration.
+external symbol entry; otherwise, set *ext_sym to NULL.  srk_flags contain
+specific information about the kind of declaration (whether it's a definition,
+a tentative definition (C only), and so forth); this information is passed on
+for use in generating cross-reference output describing this declaration.
 */
 {
   a_symbol_ptr             sym = NULL, linked_symbol;
