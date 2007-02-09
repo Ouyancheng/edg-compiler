@@ -1037,33 +1037,28 @@ and there is an external symbol (created by some other scope) that
 should be used to satisfy the lookup.
 */
 {
-  an_id_linkage_kind     linkage;
-  a_type_ptr             var_type, old_type;
-  a_symbol_ptr           ext_sym;
-  a_symbol_ptr           sym;
-  a_decl_modifiers_block decl_modifiers;
+  a_decl_parse_state  dps;
+  an_id_linkage_kind  linkage;
+  a_symbol_ptr        ext_sym;
 
   /* This routine must only be called in ANSI C mode. */
   check_assertion(C_dialect == C_dialect_ANSI);
-  clear_decl_modifiers_block(&decl_modifiers);
+  init_decl_parse_state(&dps);
   /* Create a local declaration of the external variable.  Use the type
      from the sk_extern_variable symbol. */
-  var_type = extern_sym->variant.extern_symbol_descr->type;
-  decl_variable(locator, (a_storage_class)sc_extern, /*register_id=*/0,
-                var_type, (a_source_sequence_entry_ptr)NULL,
-                (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers, 
-                (an_ms_attribute_ptr*)NULL, (an_attribute_ptr)NULL,
-                (char *)NULL, (a_source_position_ptr)NULL, &sym, &linkage,
-                &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL); 
+  dps.type = extern_sym->variant.extern_symbol_descr->type;
+  dps.storage_class = (a_storage_class)sc_extern;
+  decl_variable(locator, &dps, (SRK_DECLARATION | SRK_IMPLICIT), &linkage,
+                &ext_sym, (a_decl_pos_block_ptr)NULL); 
   /* Set the referenced flag on the variable entry.  The implicit declaration
      is also an immediate reference. */
-  sym->variant.variable.ptr->source_corresp.referenced = TRUE;
+  dps.sym->variant.variable.ptr->source_corresp.referenced = TRUE;
 #if DEBUG
   if (debug_level >= 3) {
-    db_symbol(sym, "", 4);
+    db_symbol(dps.sym, "", 4);
   }  /* if */
 #endif /* DEBUG */
-  return sym;
+  return dps.sym;
 }  /* enter_sym_for_out_of_scope_variable */
 
 

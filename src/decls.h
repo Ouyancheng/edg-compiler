@@ -18,14 +18,6 @@ decls.h -- Declarations related to decls.c (having to do with scanning
 #ifndef DECLS_H
 #define DECLS_H 1
 
-#ifndef IL_H
-#include "il.h"
-#endif /* ifndef IL_H */
-#ifndef SYMBOL_TBL_H
-#include "symbol_tbl.h"
-#endif /* SYMBOL_TBL_H */
-
-
 /*
 Kinds of linkage, meaning whether or not an identifier declared in
 a certain way is linked to (the same as) some other liked-named identifier
@@ -227,6 +219,9 @@ typedef struct a_tmpl_decl_state *a_tmpl_decl_state_ptr;
 A structure to carry state information through the declaration parsing process.
 */
 typedef struct a_decl_parse_state {
+  a_symbol_ptr
+		sym;
+			/* A symbol representing the entity being declared. */
   a_decl_flag_set
 		dso_flags;
 			/* The flags returned by the call to
@@ -383,6 +378,11 @@ typedef struct a_decl_parse_state {
   a_type_ptr
 		type;
 			/* The type of the entity being declared. */
+  a_type_ptr
+		prev_type;
+			/* If the current declaration is a redeclaration, the
+			   type previously recorded for the declared entity
+			   (currently only set for variable declarations). */
   a_source_sequence_entry_ptr
 		source_sequence_entry;
 			/* The source sequence entry created for the declarator
@@ -583,7 +583,6 @@ extern a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
 extern void decl_typedef(a_symbol_locator             *locator,
                          a_decl_parse_state           *state,
                          a_type_ptr                   class_type,
-                         a_symbol_ptr                 *symbol_ptr,
                          a_decl_pos_block_ptr         decl_pos_block);
 
 extern void record_lint_argsused_and_varargs_state(a_symbol_ptr  rout_sym);
@@ -637,19 +636,9 @@ extern void decl_routine(a_symbol_locator             *locator,
                          a_decl_pos_block_ptr         decl_pos_block);
 
 void decl_variable(a_symbol_locator             *locator,
-                   a_storage_class              storage_class,
-                   a_named_register_id          register_id,
-                   a_type_ptr                   type_ptr,
-                   a_source_sequence_entry_ptr  declarator_ssep,
+                   a_decl_parse_state           *dps,
                    a_symbol_reference_kind      srk_flags,
-                   a_decl_modifiers_block_ptr   decl_modifiers,
-                   an_ms_attribute_ptr          *p_ms_attributes,
-                   an_attribute_ptr             attributes,
-                   char                         *asm_name,
-                   a_source_position_ptr	asm_name_pos,
-                   a_symbol_ptr                 *symbol_ptr,
                    an_id_linkage_kind           *linkage_ptr,
-                   a_type_ptr                   *old_type,
                    a_symbol_ptr                 *ext_sym,
                    a_decl_pos_block_ptr         decl_pos_block);
 

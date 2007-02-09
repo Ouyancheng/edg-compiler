@@ -6794,15 +6794,13 @@ associated symbol.
 {
   a_symbol_locator    locator;
   a_decl_parse_state  state;
-  a_symbol_ptr        sym;
 
   init_decl_parse_state(&state);
   state.type = tp;
   clear_locator(&locator, &null_source_position);
   (void)find_symbol(name, strlen(name), &locator);
-  decl_typedef(&locator, &state, (a_type_ptr)NULL, &sym,
-               (a_decl_pos_block_ptr)NULL);
-  return sym;
+  decl_typedef(&locator, &state, (a_type_ptr)NULL, (a_decl_pos_block_ptr)NULL);
+  return state.sym;
 }  /* make_predeclared_typedef */
 
 

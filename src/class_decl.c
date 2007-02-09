@@ -856,9 +856,6 @@ typedef struct a_member_decl_info {
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 			/* Always NULL. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_symbol_ptr	member_sym;
-			/* Pointer to the symbol entry created to represent
-			   the current member; may be NULL. */
 } a_member_decl_info;
 
 
@@ -882,7 +879,6 @@ a class member declaration as it appears.
   mdip->is_nonstd_anonymous_union = FALSE;
   mdip->return_type_def_err = FALSE;
   mdip->is_member_template = FALSE;
-  mdip->member_sym = NULL;
 }  /* initialize_member_decl_info */
 
 
@@ -7521,7 +7517,7 @@ implicitly declared member functions.
     sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
                              decl_scope_level, /*suppress_redecl_error=*/TRUE);
   }  /* if */
-  decl_info->member_sym = sym;
+  decl_info->decl_state.sym = sym;
   /* Create the routine entry for the member function. */
   /* The routine is allocated in the current memory region, as indicated
      by curr_il_region_number -- i.e., in the memory region of the scope in
@@ -8269,7 +8265,7 @@ declarations.)
                                   (a_boolean)func_info->is_definition,
                                   (a_boolean)func_info->is_inline);
   }  /* if */
-  decl_info->member_sym = sym;
+  decl_info->decl_state.sym = sym;
   db_exit();
 }  /* decl_member_function_template */
 
@@ -8413,7 +8409,7 @@ respectively.
   sym->variant.constant = cp;
   set_source_corresp(&(cp->source_corresp), sym);
   set_class_membership(sym, &cp->source_corresp, class_type);
-  decl_info->member_sym = sym;
+  decl_info->decl_state.sym = sym;
   cp->source_corresp.access = class_state->access;
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position,
@@ -8523,7 +8519,7 @@ specific information about the member declaration, respectively.
   set_source_corresp(&var->source_corresp, sym);
   sym->variant.static_data_member.variable = var;
   set_class_membership(sym, &var->source_corresp, class_type);
-  decl_info->member_sym = sym;
+  decl_info->decl_state.sym = sym;
   if (decl_info->is_member_template && locator->symbol_header != NULL) {
     pos_sy_error(ec_bad_member_template_sym, &locator->source_position, sym);
   }  /* if */
@@ -10357,7 +10353,7 @@ definition and specific information about the member declaration, respectively.
       set_source_corresp(&(field->source_corresp), member_sym);
     }  /* if */
     member_sym->variant.field.ptr = field;
-    decl_info->member_sym = member_sym;
+    decl_info->decl_state.sym = member_sym;
   }  /* if */
   /* Set the parent class in the field and (unless member_sym is NULL) in the
      symbol. */
@@ -10712,13 +10708,14 @@ operator should be created.  No routine body is generated at this time.
      be safe. */
   (symbol_supplement_for_class(class_type))->symbols =
             assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
-  check_assertion(decl_info->member_sym != NULL);
-  routine = decl_info->member_sym->variant.routine.ptr;
+  check_assertion(decl_info->decl_state.sym != NULL);
+  routine = decl_info->decl_state.sym->variant.routine.ptr;
   if (instantiate_extern_inline && !routine->is_prototype_instantiation) {
     /* When inline functions are instantiated like templates, add the function
        to the list of inline functions if it is inline.  (Members of prototype
        instantiations don't need to be treated that way, of course.) */
-    add_to_inline_function_list(decl_info->member_sym->variant.routine.ptr);
+    add_to_inline_function_list(
+                              decl_info->decl_state.sym->variant.routine.ptr);
   }  /* if */
   db_exit();
 }  /* generate_special_function */
@@ -12278,7 +12275,7 @@ routine.
     if (dso_flags & DSO_FRIEND) {
       check_friend_class_decl(class_type, decl_info);
     } else if (decl_info->is_member_template) {
-      if (decl_info->member_sym != NULL) {
+      if (decl_info->decl_state.sym != NULL) {
         /* Diagnostic will be issued later. */
       } else {
         /* Function declarator is missing on a member template declaration. */
@@ -12765,7 +12762,7 @@ passed via template_decl.
     if (is_member_template) {
       if (curr_token == tok_semicolon && !is_typedef) {
         /* Issue an error later, based on the symbol. */
-        decl_info.member_sym = sym;
+        decl_info.decl_state.sym = sym;
       }  /* if */
 #if CHECKING
     } else if (!sym->is_error) {
@@ -12854,7 +12851,7 @@ passed via template_decl.
     /* Initialize certain decl_info fields each time through the loop. */
     start_secondary_declarator(decl_state);
     decl_info.is_unnamed_field = FALSE;
-    decl_info.member_sym = NULL;
+    decl_info.decl_state.sym = NULL;
     if (!decl_info.is_first_in_declarator_list &&
         (dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR))) {
       /* This section of code is entered when there is a comma-list of
@@ -13156,12 +13153,12 @@ passed via template_decl.
                             secondary_src_seq_for_template(il_template_entry);
           sssdp->declared_type = func_info.declared_type;
         } else if (func_info.is_definition) {
-          template_supplement_for_symbol(decl_info.member_sym)->
+          template_supplement_for_symbol(decl_info.decl_state.sym)->
                               variant.function.routine->declared_type =
                                                       func_info.declared_type;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        rout_sym = decl_info.member_sym;
+        rout_sym = decl_info.decl_state.sym;
         if (decl_info.is_constructor && (dso_flags & DSO_EXPLICIT)) {
           tssp = rout_sym->variant.template_info;
           tssp->variant.function.routine->is_explicit_constructor = TRUE;
@@ -13173,7 +13170,7 @@ passed via template_decl.
         /* Create a symbol for the member function. */
         decl_member_function(&locator, &func_info, class_state, &decl_info,
                              /*compiler_generated=*/FALSE);
-        rout_sym = decl_info.member_sym;
+        rout_sym = decl_info.decl_state.sym;
         if (class_state->is_nonreal_instantiation &&
             !class_type->
                        variant.class_struct_union.is_in_class_specialization) {
@@ -13440,7 +13437,7 @@ passed via template_decl.
                                       !no_decl_specifiers);
       }  /* if */
       /* Typedef declaration. */
-      decl_typedef(&locator, decl_state, class_type, &decl_info.member_sym,
+      decl_typedef(&locator, decl_state, class_type, 
                    &decl_info.decl_pos_block);
       /* Note: access will have been set in decl_typedef. */
       if (curr_routine_fixup != NULL &&
@@ -13448,7 +13445,7 @@ passed via template_decl.
         /* Update the symbol pointer in the fixup entry -- it's needed when
            the default args are scanned (once the entire class has been
            scanned). */
-        curr_routine_fixup->symbol = decl_info.member_sym;
+        curr_routine_fixup->symbol = decl_info.decl_state.sym;
       }  /* if */
       if (microsoft_bugs) {
         /* In Microsoft bugs mode, the typedef is processed before member
@@ -13574,7 +13571,7 @@ next_declaration:;
     *decl_pos_block_ptr = decl_info.decl_pos_block;
   }  /* if */
   db_exit();
-  return decl_info.member_sym;
+  return decl_info.decl_state.sym;
 }  /* class_member_declaration */
 
 

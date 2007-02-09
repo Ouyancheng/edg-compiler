@@ -95,6 +95,7 @@ and efficient initialization.
 {
   a_decl_parse_state  *ps = &null_decl_parse_state;
 
+  ps->sym = NULL;
   ps->dso_flags = 0;
   ps->do_flags = 0;
   ps->start_pos = null_source_position;
@@ -134,6 +135,7 @@ and efficient initialization.
   ps->specifiers_type = NULL;
   ps->declared_type = NULL;
   ps->type = NULL;
+  ps->prev_type = NULL;
   ps->source_sequence_entry = NULL;
   ps->param_id = NULL;
   ps->upc_block_size = UPC_BLOCK_SIZE_NONE;
@@ -4967,19 +4969,9 @@ Return TRUE if the given list of attributes includes one representing the
                   are not used in some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED || !NAMED_REG... */
 void decl_variable(a_symbol_locator             *locator,
-                   a_storage_class              storage_class,
-                   a_named_register_id          register_id,
-                   a_type_ptr                   type_ptr,
-                   a_source_sequence_entry_ptr  declarator_ssep,
+                   a_decl_parse_state           *dps,
                    a_symbol_reference_kind      srk_flags,
-                   a_decl_modifiers_block_ptr   decl_modifiers,
-                   an_ms_attribute_ptr          *p_ms_attributes,
-                   an_attribute_ptr             attributes,
-                   char                         *asm_name,
-                   a_source_position_ptr        asm_name_pos,
-                   a_symbol_ptr                 *symbol_ptr,
                    an_id_linkage_kind           *linkage_ptr,
-                   a_type_ptr                   *old_type,
                    a_symbol_ptr                 *ext_sym,
                    a_decl_pos_block_ptr         decl_pos_block)
 /*
@@ -5007,9 +4999,11 @@ is passed on for use in generating cross-reference output describing this
 declaration.
 */
 {
-  a_symbol_ptr             sym = NULL;
+  a_symbol_ptr             sym = NULL, linked_symbol;
+  a_type_ptr               type_ptr = dps->type;
+  a_storage_class          storage_class = dps->storage_class;
+  an_id_linkage_block      idlb;
   a_boolean                alloc_at_file_scope;
-  a_symbol_ptr             linked_symbol;
   a_boolean                redecl_error_already_issued = FALSE;
   a_boolean                linked_redecl_error = FALSE;
   a_boolean                redeclaration = FALSE;
@@ -5026,7 +5020,6 @@ declaration.
   a_boolean                variable_alias_decl = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  an_id_linkage_block      idlb;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_boolean                linked_to_previous_variable = FALSE;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -5035,12 +5028,11 @@ declaration.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "decl_variable");
-  *old_type = NULL;
 #if GNU_EXTENSIONS_ALLOWED
   is_register = storage_class == (a_storage_class)sc_register;
   /* Declaring a global variable with a mapping onto a specific register makes
      it effectively an "extern" declaration. */
-  if (gnu_mode && is_register && asm_name != NULL &&
+  if (gnu_mode && is_register && dps->asm_name != NULL &&
       decl_scope_level == depth_innermost_namespace_scope) {
     storage_class = (a_storage_class)sc_extern;
     srk_flags &= ~SRK_DEFINITION;
@@ -5057,10 +5049,10 @@ declaration.
     set_to_error_locator(*locator);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (attributes != NULL) {
-    /* Allow the attributes specified to modify the type with which the
+  if (dps->attributes != NULL) {
+    /* Allow the specified GNU attributes to modify the type with which the
        variable was declared. */
-    type_ptr = apply_attributes_to_variable_type(attributes, type_ptr);
+    type_ptr = apply_attributes_to_variable_type(dps->attributes, type_ptr);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
@@ -5077,7 +5069,7 @@ declaration.
   idlb.type = type_ptr;
   idlb.is_definition = is_variable_def;
   idlb.storage_class = storage_class;
-  idlb.direct_linkage_specifier = decl_modifiers->direct_linkage_specifier;
+  idlb.direct_linkage_specifier = dps->decl_modifiers.direct_linkage_specifier;
   set_linkage_environment(&idlb, decl_scope_level);
   if (!C_mode() && locator->specific_symbol != NULL &&
       (qualifier_namespace_ptr(*locator) != NULL ||
@@ -5153,10 +5145,10 @@ declaration.
         sym = linked_symbol;
         variable_ptr = linked_symbol->variant.variable.ptr;
         check_assertion(variable_ptr != NULL);
-        *old_type = variable_ptr->type;
-        if (!types_are_redecl_compatible(type_ptr, *old_type)) {
+        dps->prev_type = variable_ptr->type;
+        if (!types_are_redecl_compatible(type_ptr, dps->prev_type)) {
           an_error_severity  severity = es_none;
-          a_type_ptr         orig_type = skip_typerefs(*old_type);
+          a_type_ptr         orig_type = skip_typerefs(dps->prev_type);
           a_type_ptr         redecl_type = skip_typerefs(type_ptr);
 
           if (gcc_mode && gnu_version < 30000) {
@@ -5165,12 +5157,14 @@ declaration.
                  redeclarations of variables that only differ in
                  cv-qualification (with a warning). */
               severity = es_warning;
-              type_ptr = make_qualified_type(redecl_type,
-                                             get_type_qualifiers(type_ptr) |
-                                             get_type_qualifiers(*old_type));
-              *old_type = make_qualified_type(orig_type,
-                                              get_type_qualifiers(type_ptr) |
-                                              get_type_qualifiers(*old_type));
+              type_ptr = make_qualified_type(
+                                         redecl_type,
+                                         get_type_qualifiers(type_ptr) |
+                                         get_type_qualifiers(dps->prev_type));
+              dps->prev_type = make_qualified_type(
+                                         orig_type,
+                                         get_type_qualifiers(type_ptr) |
+                                         get_type_qualifiers(dps->prev_type));
             }  /* if */
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5181,7 +5175,7 @@ declaration.
             /* Just issue a warning in Microsoft C mode.  MSVC uses the first
                declaration, so adjust type_ptr. */
             severity = es_warning;
-            type_ptr = *old_type;
+            type_ptr = dps->prev_type;
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
@@ -5196,7 +5190,8 @@ declaration.
         if (!linked_redecl_error) {
           /* The type of the variable should be the composite of the two
              types. */
-          variable_ptr->type = type_ptr = composite_type(type_ptr, *old_type);
+          variable_ptr->type = type_ptr = composite_type(type_ptr,
+                                                         dps->prev_type);
         }  /* if */
       }  /* if */
     } else {
@@ -5213,7 +5208,7 @@ declaration.
     sym = NULL;
     linked_symbol = NULL;
     variable_ptr = NULL;
-    *old_type = NULL;
+    dps->prev_type = NULL;
     redeclaration = FALSE;
   }  /* if */
   if (sym == NULL) {
@@ -5410,17 +5405,18 @@ declaration.
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
-    if (attributes != NULL) {
+    if (dps->attributes != NULL) {
       /* Apply the attributes to the variable declaration. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      variable_alias_decl = attributes_include_alias(attributes);
+      variable_alias_decl = attributes_include_alias(dps->attributes);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      apply_attributes_to_variable(attributes, variable_ptr, is_variable_def);
+      apply_attributes_to_variable(dps->attributes, variable_ptr,
+                                   is_variable_def);
     }  /* if */
     /* Record the assembly name. */
-    if (asm_name != NULL) {
-      record_asm_name_for_variable(variable_ptr, asm_name, is_register,
-                                   asm_name_pos);
+    if (dps->asm_name != NULL) {
+      record_asm_name_for_variable(variable_ptr, dps->asm_name, is_register,
+                                   &dps->asm_name_pos);
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     /* Update the ELF visibility if applicable. */
@@ -5443,17 +5439,16 @@ declaration.
     } else {
       diag_pos = &locator->source_position;
     }  /* if */
-    record_named_register_storage_class(variable_ptr, register_id,
+    record_named_register_storage_class(variable_ptr, dps->register_id,
                                         redeclaration, diag_pos);
   }  /* if */
 #endif /* NAMED_REGISTERS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (p_ms_attributes != NULL && *p_ms_attributes != NULL &&
-      !idlb.is_block_extern_decl) {
+  if (dps->ms_attributes != NULL && !idlb.is_block_extern_decl) {
     /* Microsoft attributes don't normally apply to variables, but some
        attributes that apply to "any" entity are also accepted on variable
        declarations. */
-    apply_microsoft_attributes(p_ms_attributes, (char*)variable_ptr,
+    apply_microsoft_attributes(&dps->ms_attributes, (char*)variable_ptr,
                                (an_il_entry_kind)iek_variable, MSAT_NONE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5472,7 +5467,7 @@ declaration.
   set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
   /* Copy the decl-modifiers into the variable entry. */
-  update_variable_decl_modifiers(variable_ptr, decl_modifiers,
+  update_variable_decl_modifiers(variable_ptr, &dps->decl_modifiers,
                                  &locator->source_position, redeclaration,
                                  is_variable_def);
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -5482,10 +5477,10 @@ declaration.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   /* If cross-reference information is being issued, update the output.  If
-     source sequence entries are being generated, update the declarator_ssep
-     entry. */
+     source sequence entries are being generated, update the source sequence
+     entry for this declaration. */
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
-                            declarator_ssep);
+                            dps->source_sequence_entry);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (is_variable_def || (!redeclaration && !linked_to_previous_variable)) {
     /* The position corresponds to that of the first declaration, or to that
@@ -5509,7 +5504,7 @@ declaration.
   if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
     an_sssd_flag_set  flags = SSSD_NO_FLAGS;
 #if GNU_EXTENSIONS_ALLOWED
-    if (decl_modifiers->marked_as_gnu_extension) {
+    if (dps->decl_modifiers.marked_as_gnu_extension) {
       flags |= SSSD_MARKED_AS_GNU_EXTENSION;
     }  /* if */
     if (variable_alias_decl) {
@@ -5530,7 +5525,7 @@ declaration.
       variable_ptr->declared_type = declared_type;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-    if (decl_modifiers->marked_as_gnu_extension) {
+    if (dps->decl_modifiers.marked_as_gnu_extension) {
       variable_ptr->source_corresp.marked_as_gnu_extension = TRUE;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -5605,8 +5600,9 @@ declaration.
   }  /* if */
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
   /* Return symbol and linkage pointers. */
-  *symbol_ptr = sym;
+  dps->sym = sym;
   *linkage_ptr = linkage;
+  dps->storage_class = storage_class;
 
 #if DEBUG
   if (debug_level >= 3) {
@@ -8089,31 +8085,26 @@ the reconciliation process.
 }  /* reconcile_static_data_member_types */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL.  Similarly,
-                attributes is only used in configurations supporting GNU
-                extensions. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED */
-static void define_static_data_member(a_symbol_locator   *locator,
-                                      a_storage_class    storage_class,
-                                      a_type_ptr         type_ptr,
-                                      a_boolean          has_initializer,
-                                      a_source_sequence_entry_ptr  ssep,
-                                      a_symbol_ptr       *symbol_ptr,
-                                      an_id_linkage_kind *linkage_ptr,
-                                      an_attribute_ptr   attributes,
-                                      a_decl_pos_block   *decl_pos_block)
+                information is being recorded in the IL. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+static void define_static_data_member(a_symbol_locator    *locator,
+                                      a_decl_parse_state  *dps,
+                                      a_boolean           has_initializer,
+                                      an_id_linkage_kind  *linkage_ptr,
+                                      a_decl_pos_block    *decl_pos_block)
 /*
 Enter the definition of a static data member.  *locator gives the symbol
-locator (and thus its name and its declaration position).  storage_class and
-type_ptr give the storage class and type of the current definition.
+locator (and thus its name and its declaration position).  *dps describes
+various properties of the declaration (including type and storage class).
 Note that static data members must already have been declared within the
 class (or struct or union) of which they are members.  The type must be
 compatible with the original declaration, and there must be no explicit
 storage class on the current definition.  The storage class of defined
 static members should be changed to sc_unspecified.  Return a pointer to
-the symbol and its linkage (which is always "none").
+the symbol through dps->sym and its linkage (which is always "none") through
+*linkage_ptr.
 */
 {
   a_variable_ptr           var;
@@ -8128,7 +8119,7 @@ the symbol and its linkage (which is always "none").
   sym = locator->specific_symbol;
   /* A storage class of sc_unspecified means "no storage class explicitly
      specified" -- anything else is an error. */
-  if (storage_class != (a_storage_class)sc_unspecified) {
+  if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {
     pos_error(ec_storage_class_not_allowed, &locator->source_position);
   }  /* if */
   if (microsoft_mode && sym->kind == (a_symbol_kind)sk_projection) {
@@ -8152,7 +8143,7 @@ the symbol and its linkage (which is always "none").
       /* Verify that the type supplied on this declaration matches the one
          from the class.  Some differences are allowed.  Create a composite
          type if necessary. */
-      err = reconcile_static_data_member_types(sym, type_ptr,
+      err = reconcile_static_data_member_types(sym, dps->type,
                                                &locator->source_position);
     }  /* if */
     if (!err) {
@@ -8187,10 +8178,11 @@ the symbol and its linkage (which is always "none").
         srk_flags |= SRK_INITIALIZATION;
       }  /* if */
       record_symbol_declaration(srk_flags, sym, &locator->source_position,
-                                ssep);
+                                dps->source_sequence_entry);
 #if GNU_EXTENSIONS_ALLOWED
-      if (attributes != NULL) {
-        apply_attributes_to_variable(attributes, var, /*is_definition=*/TRUE);
+      if (dps->attributes != NULL) {
+        apply_attributes_to_variable(dps->attributes, var,
+                                     /*is_definition=*/TRUE);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -8230,7 +8222,7 @@ the symbol and its linkage (which is always "none").
        though there was an error.  This will make it show up on a cross
        reference listing. */
     record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
-                              ssep);
+                              dps->source_sequence_entry);
     /* "Enter" the symbol using an error locator -- this means a symbol
        entry will be created but it will not be added to any lists.  Then
        we'll restore the header to the new symbol, so that the correct name
@@ -8251,7 +8243,7 @@ the symbol and its linkage (which is always "none").
      declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   *linkage_ptr = idl_none;
-  *symbol_ptr = sym;
+  dps->sym = sym;
 #if DEBUG
   if (debug_level >= 3) {
     db_symbol(sym, "", 4);
@@ -8399,14 +8391,13 @@ Issue a diagnostic if the modifier is invalid.
 void decl_typedef(a_symbol_locator             *locator,
                   a_decl_parse_state           *state,
                   a_type_ptr                   class_type,
-                  a_symbol_ptr                 *symbol_ptr,
                   a_decl_pos_block_ptr         decl_pos_block)
 /*
 Enter the declaration of an identifier for a typedef.  *locator gives the
 symbol locator (and thus its name and its declaration position).  *state
 describes various properties of the declaration.  If this is a member typedef,
 class_type identifies the class of which it is a member.  Create and enter a
-symbol entry, and return a pointer to it in *symbol_ptr.
+symbol entry, and return a pointer to it in state->sym.
 */
 {
   a_type_ptr               tp, type_ptr = state->type;
@@ -8855,10 +8846,10 @@ symbol entry, and return a pointer to it in *symbol_ptr.
      declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   /* Return the type name symbol to the caller. */
-  *symbol_ptr = sym;
+  state->sym = sym;
 #if DEBUG
   if (debug_level >= 3) {
-    db_symbol(*symbol_ptr, "", 4);
+    db_symbol(state->sym, "", 4);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
@@ -12559,7 +12550,7 @@ proceed after the call.
 {
   an_end_of_decl_action
                 end_of_decl_action = eoda_not_at_end;
-  a_symbol_ptr  sym = NULL, ext_sym;
+  a_symbol_ptr  ext_sym;
   a_type_ptr    type = state->type, prev_type = NULL;
   a_boolean     inline_specified = ((state->dso_flags & DSO_INLINE) != 0);
   a_boolean     out_of_class_redecl = FALSE;
@@ -12856,8 +12847,8 @@ proceed after the call.
   decl_routine(locator, state->storage_class, state->type, func_info,
                state->source_sequence_entry, SRK_DECLARATION,
                &state->decl_modifiers, &state->ms_attributes,
-               state->attributes, state->asm_name, &state->asm_name_pos, &sym,
-               &linkage, &prev_type, &ext_sym, decl_pos_block);
+               state->attributes, state->asm_name, &state->asm_name_pos,
+               &state->sym, &linkage, &prev_type, &ext_sym, decl_pos_block);
   /* Diagnose attempts to initialize a function entity. */
   if (has_initializer) {
     a_boolean  paren_form =
@@ -12865,7 +12856,7 @@ proceed after the call.
     a_source_position
                *init_pos = paren_form ? &decl_pos_block->var_init_range.start
                                       : &pos_curr_token;
-    diagnose_initializer_on_function(paren_form, sym, init_pos);
+    diagnose_initializer_on_function(paren_form, state->sym, init_pos);
   }  /* if */
 done:
   return end_of_decl_action;
@@ -12903,7 +12894,7 @@ if one is present.
 */
 {
   a_variable_ptr      var_ptr = NULL;
-  a_symbol_ptr        sym = NULL, ext_sym;
+  a_symbol_ptr        ext_sym;
   a_type_ptr          type = state->type, prev_type = NULL;
   a_boolean           is_static_data_member = FALSE;
   a_boolean           has_initializer = FALSE;
@@ -12987,8 +12978,8 @@ if one is present.
   }  /* if */
   if (state->param_id != NULL) {
     a_param_id_ptr  param_id = state->param_id;
-    sym = param_id->symbol;
-    copy_source_position(locator->source_position, sym->decl_position);
+    state->sym = param_id->symbol;
+    copy_source_position(locator->source_position, state->sym->decl_position);
     param_id->type = state->type;
     copy_source_position(state->start_pos, param_id->type_pos);
     param_id->storage_class = state->storage_class;
@@ -13003,11 +12994,9 @@ if one is present.
        in decl_parameter, called when the function body is scanned. */
   } else if (is_static_data_member) {
     /* A static data member definition. */
-    define_static_data_member(locator, state->storage_class, state->type,
-                              has_initializer, state->source_sequence_entry,
-                              &sym, &linkage, state->attributes,
+    define_static_data_member(locator, state, has_initializer, &linkage,
                               decl_pos_block);
-    var_ptr = sym->variant.static_data_member.variable;
+    var_ptr = state->sym->variant.static_data_member.variable;
     /* Fetch the type of the symbol again, since it might have been
        changed when reconciled with the original declaration. */
     state->type = var_ptr->type;
@@ -13109,12 +13098,9 @@ if one is present.
       }  /* if */
     }  /* if */
     if (is_variable_def) srk_flags |= SRK_DEFINITION;
-    decl_variable(locator, state->storage_class, state->register_id,
-                  state->type, state->source_sequence_entry, srk_flags,
-                  &state->decl_modifiers, &state->ms_attributes,
-                  state->attributes, state->asm_name, &state->asm_name_pos,
-                  &sym, &linkage, &prev_type, &ext_sym, decl_pos_block);
-    var_ptr = sym->variant.variable.ptr;
+    decl_variable(locator, state, srk_flags, &linkage, &ext_sym,
+                  decl_pos_block);
+    var_ptr = state->sym->variant.variable.ptr;
     /* Fetch the type of the symbol again, since it might have been
        changed when reconciled with the original declaration. */
     state->type = var_ptr->type;
@@ -13127,7 +13113,7 @@ if one is present.
     if (state->is_old_style_param_decl) {
       /* Error case (described above).  Mark the symbol referenced, to
          suppress subsequent "declared and not referenced" warnings. */
-      mark_symbol_to_suppress_warnings(sym);
+      mark_symbol_to_suppress_warnings(state->sym);
     }  /* if */
   }  /* if */
   if (is_variable_def || is_tentative_def) {
@@ -13156,12 +13142,12 @@ if one is present.
                   has_parenthesized_initializer && !is_static_data_member &&
                   (microsoft_bugs || (gpp_mode && gnu_version < 30400)) &&
                   prev_type == NULL;
-    if (decl_invisible_to_initializer && !sym->is_error) {
-      sym->is_invisible = TRUE;
+    if (decl_invisible_to_initializer && !state->sym->is_error) {
+      state->sym->is_invisible = TRUE;
     }  /* if */
     /* Advance past the "=". */
     if (curr_token == tok_assign) (void)get_token();
-    if (sym->kind == (a_symbol_kind)sk_variable &&
+    if (state->sym->kind == (a_symbol_kind)sk_variable &&
         !state->is_old_style_param_decl) {
       /* Set the storage class of a file-scope initialized variable to
          unspecified (meaning external) or static (meaning internal). */
@@ -13175,12 +13161,12 @@ if one is present.
     /* If the symbol is a parameter, the subroutine will generate the error.
        This is done rather than flagging the error here because the subroutine
        can scan over the initializer expression neatly. */
-    initializer(sym, &locator->source_position, linkage,
+    initializer(state->sym, &locator->source_position, linkage,
                 has_parenthesized_initializer, state->is_old_style_param_decl,
                 &incomplete_type_error_reported, decl_pos_block);
-    if (decl_invisible_to_initializer && !sym->is_error) {
+    if (decl_invisible_to_initializer && !state->sym->is_error) {
       /* Mark the symbol as visible now that the initializer is complete. */
-      sym->is_invisible = FALSE;
+      state->sym->is_invisible = FALSE;
     }  /* if */
     if (var_ptr != NULL) {
 #if GNU_EXTENSIONS_ALLOWED
@@ -13189,12 +13175,12 @@ if one is present.
         gnu_attributes_after_parenthesized_initializer(var_ptr);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      if (sym->kind == (a_symbol_kind)sk_variable) {
+      if (state->sym->kind == (a_symbol_kind)sk_variable) {
         /* All initialized variables are considered defined.  This flag may
            have already been set based on storage class and scope level.  Be
            sure to check this after the initializer is scanned, so that
            "int x = x;" can be caught. */
-        mark_variable_value_set(sym);
+        mark_variable_value_set(state->sym);
       }  /* if */
       /* Fetch the type of the symbol again, since it might have been changed
          if it was an incomplete array and was initialized. */
@@ -13211,20 +13197,20 @@ if one is present.
        of the default initializer.  In particular, the variable should not be
        visible to any instantiations that might result from the processing of
        the initializer. */
-    a_boolean	def_init_okay, sym_invisible = sym->is_invisible;
-    if (gpp_mode) sym->is_invisible = TRUE;
-    def_init_okay = def_initializer(sym, &locator->source_position);
-    if (gpp_mode) sym->is_invisible = sym_invisible;
+    a_boolean	def_init_okay, sym_invisible = state->sym->is_invisible;
+    if (gpp_mode) state->sym->is_invisible = TRUE;
+    def_init_okay = def_initializer(state->sym, &locator->source_position);
+    if (gpp_mode) state->sym->is_invisible = sym_invisible;
     if (def_init_okay) {
       /* Default initialization was successful. */
-      if (sym->kind == (a_symbol_kind)sk_variable) {
+      if (state->sym->kind == (a_symbol_kind)sk_variable) {
         /* Unless this variable has non-static storage duration and is
            default-initialized by a trivial default constructor (which is a
            no-op), mark it as having a value. */
         if (has_static_storage_duration(var_ptr->storage_class)) {
           /* Objects with static storage duration are zero-initialized, so
              they always have some value. */
-          mark_variable_value_set(sym);
+          mark_variable_value_set(state->sym);
         } else {
           a_type_ptr  tp = skip_typerefs(var_ptr->type);
           if (is_array_type(tp)) {
@@ -13239,21 +13225,21 @@ if one is present.
                actually called, don't regard them as setting the value of
                the variable. */
           } else {
-            mark_variable_value_set(sym);
+            mark_variable_value_set(state->sym);
           }  /* if */
         }  /* if */
       }  /* if */
-    } else if (sym->kind == (a_symbol_kind)sk_variable ||
-               sym->kind == (a_symbol_kind)sk_static_data_member) {
+    } else if (state->sym->kind == (a_symbol_kind)sk_variable ||
+               state->sym->kind == (a_symbol_kind)sk_static_data_member) {
       /* No default initialization, so do some additional checking. */
-      check_for_missing_initializer(sym, state->type);
-      if (sym->kind == (a_symbol_kind)sk_variable &&
+      check_for_missing_initializer(state->sym, state->type);
+      if (state->sym->kind == (a_symbol_kind)sk_variable &&
           (!var_ptr->source_corresp.is_local_to_function ||
            var_ptr->storage_class == (a_storage_class)sc_static)) {
-        mark_variable_value_set(sym);
+        mark_variable_value_set(state->sym);
       }  /* if */
     }  /* if */
-  } else if (sym->kind == (a_symbol_kind)sk_variable &&
+  } else if (state->sym->kind == (a_symbol_kind)sk_variable &&
              (state->storage_class == (a_storage_class)sc_extern ||
               is_tentative_def)) {
     /* Either:  This is not a definition of a variable but rather an extern
@@ -13262,7 +13248,7 @@ if one is present.
        set at the current declaration). */
     /* Or else:  This is a tentative definition, which should be treated as
        though it were a definition. */
-    mark_variable_value_set(sym);
+    mark_variable_value_set(state->sym);
   }  /* if */
 #if DECL_MODIFIERS_IN_USE
   if (var_ptr != NULL) {
@@ -13274,7 +13260,7 @@ if one is present.
   if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {
     if (is_variable_def && is_static_data_member) {
       fprintf(f_debug, "decl-pos info for static data member def\n");
-      db_decl_pos_info(sym);
+      db_decl_pos_info(state->sym);
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -13322,8 +13308,6 @@ file scope.  The declaration is described by state, locator, and
 decl_pos_block.
 */
 {
-  a_symbol_ptr  sym = NULL;
-
   if (state->do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
     /* This looked like a cfront-style member function typedef.  Be sure
        the type was a function type. */
@@ -13338,7 +13322,7 @@ decl_pos_block.
     }  /* if */
   }  /* if */
   check_nonfunction_declaration_errors(state, locator);
-  decl_typedef(locator, state, (a_type_ptr)NULL, &sym, decl_pos_block);
+  decl_typedef(locator, state, (a_type_ptr)NULL, decl_pos_block);
 #if GNU_EXTENSIONS_ALLOWED
   if (curr_token == tok_assign && gcc_mode && gnu_version < 30100 &&
       !state->has_explicit_type_specifier) {
@@ -13351,7 +13335,7 @@ decl_pos_block.
        when gnu_version < 30100.) */
     set_err_pos_to_curr_token();
     (void)get_token();
-    typedef_initializer(sym);
+    typedef_initializer(state->sym);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_pos_block->var_init_range.end = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
