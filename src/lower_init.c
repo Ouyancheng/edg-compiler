@@ -2226,10 +2226,11 @@ for the IA-64 ABI (see "Array operator new cookies", section 2.7).
     /* The variant cookie is a struct containing two size_t fields. */
     padding_size *= 2;
 #endif /* IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
-    a_targ_alignment  alignment = alignment_of_type(type);
-    if (alignment > padding_size) {
-      padding_size = alignment;
-    }  /* if */
+    { a_targ_alignment  alignment = alignment_of_type(type);
+      if (alignment > padding_size) {
+        padding_size = alignment;
+      }  /* if */
+    }
   } /* if */
   if (padding_size != 0 || even_if_zero) {
     /* Make the expression. */
