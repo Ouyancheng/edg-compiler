@@ -8106,8 +8106,9 @@ the symbol through dps->sym and its linkage (which is always "none") through
      be the name of a nonstatic data member or a member function.) */
   sym = locator->specific_symbol;
   /* A storage class of sc_unspecified means "no storage class explicitly
-     specified" -- anything else is an error. */
-  if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {
+     specified" -- anything else is an error.  (Some cases -- like "auto" --
+     were already checked by the caller.) */
+  if (dps->storage_class != (a_storage_class)sc_unspecified) {
     pos_error(ec_storage_class_not_allowed, &locator->source_position);
   }  /* if */
   if (microsoft_mode && sym->kind == (a_symbol_kind)sk_projection) {
