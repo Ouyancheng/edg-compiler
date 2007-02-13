@@ -509,6 +509,8 @@ Enter the standard predeclared functions for GCC.
                           char_star, const_char_star, size_t);
   enter_gnu_builtin_func4(___strncat_chk, char_star,
                           char_star, const_char_star, size_t, size_t);
+  enter_gnu_builtin_func4(___strncpy_chk, char_star,
+                          char_star, const_char_star, size_t, size_t);
   enter_gnu_builtin_vararg_func6(___vsnprintf_chk, int,
                                  char_star, size_t, int, size_t,
                                  const_char_star, char_star)

@@ -7209,6 +7209,7 @@ enum a_builtin_function_kind_tag {
   bfk___strcat_chk,             /* "__builtin___strcat_chk" */
   bfk___strcpy_chk,             /* "__builtin___strcpy_chk" */
   bfk___strncat_chk,            /* "__builtin___strncat_chk" */
+  bfk___strncpy_chk,            /* "__builtin___strncpy_chk" */
   bfk___vsnprintf_chk,          /* "__builtin___vsnprintf_chk" */
   bfk___vsprintf_chk,           /* "__builtin___vsprintf_chk" */
   bfk_abort,                    /* "__builtin_abort" */
@@ -7683,6 +7684,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk___strcat_chk */             "__builtin___strcat_chk",
   /* bfk___strcpy_chk */             "__builtin___strcpy_chk",
   /* bfk___strncat_chk */            "__builtin___strncat_chk",
+  /* bfk___strncpy_chk */            "__builtin___strncpy_chk",
   /* bfk___vsnprintf_chk */          "__builtin___vsnprintf_chk",
   /* bfk___vsprintf_chk */           "__builtin___vsprintf_chk",
   /* bfk_abort */                    "__builtin_abort",
