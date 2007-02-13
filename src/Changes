@@ -183,10 +183,11 @@ the GNU compiler supporting this feature appear to take attributes on
 underlying typedefs into account.  We now emulate the more common GNU behavior
 when gnu_version/100 != 303.
 
-1/31/07  address_taken field set on anonymous union if field address is used
+1/31/07  address_taken field set on anonymous union variable if field address
+         is used
 
-If the address of a field in an anonymous union is taken, the address_taken
-field in the IL is now properly set for the anonymous union.
+If the address of a field in an anonymous union variable is taken, the
+address_taken field in the IL is now properly set for the variable.
 
 1/30/07  Stack overflow with rvalue ? inside template prototype instantiation
 

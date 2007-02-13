@@ -1983,8 +1983,8 @@ projection symbol.
                sym_kind == (a_symbol_kind)sk_member_function) {
       sym_ptr->variant.routine.ptr->address_taken = TRUE;
     } else if (sym_kind == (a_symbol_kind)sk_field) {
-      /* Walk up the list of potentially nested anonymous unions to find the
-         parent variable. */
+      /* Walk up the list of potentially nested anonymous unions to find an
+         anonymous union parent variable, if any. Only in C++. */
       a_symbol_ptr sym_apo = sym_ptr->variant.field.anonymous_parent_object;
       while (sym_apo != NULL) {
         if (sym_apo->kind == (a_symbol_kind)sk_variable) {

@@ -387,13 +387,15 @@ address taken, and if not issue an error.
     set_variable_address_taken(var);
   } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     /* For simple interpretation of address_taken, set address_taken
-        on static data members here.  This can be removed.  See comments
-        above. */
+       on static data members here.  This can be removed.  See comments
+       above. */
     set_variable_address_taken(sym->variant.static_data_member.variable);
   } else if (sym->kind == (a_symbol_kind)sk_field) {
-    /* For anonymous union fields, set address_taken on unnamed anonymous
-       parent object.  Walk up the list of anonymous_parent_objects until
-       we get to a variable.  This can be removed.  See comments above. */
+    /* For anonymous union fields, if the field belongs to an unnamed
+       anonymous union variable, set the address_taken field on that
+       variable.  Walk up the list of anonymous_parent_objects until we
+       get to a variable, if any.  Only in C++.  This can be removed.
+       See comments above. */
     a_symbol_ptr sym_apo = sym->variant.field.anonymous_parent_object;
     while (sym_apo != NULL) {
       if (sym_apo->kind == (a_symbol_kind)sk_variable) {
