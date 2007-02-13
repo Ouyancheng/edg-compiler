@@ -70,7 +70,7 @@ Interface macro to copy_expr_tree.
 static void set_inline_statement_positions(a_statement_ptr  statement,
                                            a_statement_ptr  original_statement)
 /*
-Set source positions for an inline statement.  Statements being inlined at a
+Set source positions for an inlined statement.  Statements being inlined at a
 call site will have the source position of the call site when 
 STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION is TRUE.  When FALSE,
 the statements will have their original source positions.  Both position and
@@ -79,18 +79,16 @@ original_statement points to the original statement whose source positions may
 be copied; it may be NULL if there is no corresponding original statement.
 */
 {
-  if (statement != NULL) {
 #if STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION
-    set_stmt_pos_to_code_pos_for_lowering(statement);
+  set_stmt_pos_to_code_pos_for_lowering(statement);
 #else /* !STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
-    if (original_statement != NULL) {
-      statement->position = original_statement->position;
+  if (original_statement != NULL) {
+    statement->position = original_statement->position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      statement->end_position = original_statement->end_position;
+    statement->end_position = original_statement->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    }  /* if */
-#endif /* STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
   }  /* if */
+#endif /* STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
 }  /* set_inline_statement_positions */
 
 static a_variable_remapping_for_inlining_ptr
@@ -1261,7 +1259,7 @@ If not, *failed is set.
                 stmt_expr = add_cast(stmt_expr, void_type());
               }  /* if */
               stmt = insert_expr_statement(stmt_expr, insert_location);
-              set_inline_statement_positions(stmt, NULL);
+              set_inline_statement_positions(stmt, statement);
             }  /* if */
           }  /* if */
           break;
@@ -1705,10 +1703,14 @@ statement).
                the block statement containing the inlined code.  But keep
                the original statement source position. */
             { a_stmt_source_position saved_position = statement->position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+              a_stmt_source_position saved_end_position = 
+                                                       statement->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
               copy_statement(block_stmt, statement);
               statement->position = saved_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-              statement->end_position = saved_position;
+              statement->end_position = saved_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
               statement->variant.block.extra_info->final_position =
                                                                 saved_position;
