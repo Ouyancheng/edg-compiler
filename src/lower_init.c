@@ -6884,9 +6884,14 @@ appears.
      static storage duration initialized with constant-expressions is
      initialized before its block is first entered."  Non-POD type
      variables can also be initialized early in some cases.
-     So we put the assignment at the start of the block in which the
-     variable is declared. */
-  set_block_start_insert_location(scope->assoc_block, &insert_location);
+     In some cases, the start of the block in which the variable is declared
+     isn't reachable (for example in a switch statement), so insert the
+     additional executable statements at the beginning of the block associated
+     with the function scope (the variable has already been promoted to
+     file scope). */
+  check_assertion(innermost_function_scope->assoc_block != NULL);
+  set_block_start_insert_location(innermost_function_scope->assoc_block,
+                                                             &insert_location);
   /* Put a first-time test around the initialization. */
   add_first_time_test(variable, &insert_location, &insert_location,
                       &block_stmt, &test_var);

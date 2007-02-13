@@ -1,5 +1,25 @@
 Version 3.9
 
+2/13/07  Initialization of local static variables in extern inline functions
+
+In the non IA-64 ABI case, when lowering is performed on a constant
+initialization of a local static variable in an extern inline function,
+executable code is inserted with a temporary guard variable at the beginning
+of the block in which the declaration occurs.  If, however, the beginning of
+the block is unreachable (as is the case with the dependent block of a switch
+statement), the executable code will never be executed.  To remedy this
+situation, the executable initialization is now placed at the start of the
+block associated with the function scope.  For example:
+
+  inline int f(int n)
+  {
+    switch(n) {
+      default:
+        static int x = 99;
+        return(x);          // Had returned 0, now returns 99
+    }
+  }
+
 2/9/07   Predefined macros with no replacement text
 
 If a macro was defined in the predefined_macros.txt file as having no
