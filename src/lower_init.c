@@ -6889,7 +6889,8 @@ appears.
      additional executable statements at the beginning of the block associated
      with the function scope (the variable has already been promoted to
      file scope). */
-  check_assertion(innermost_function_scope->assoc_block != NULL);
+  check_assertion(innermost_function_scope != NULL &&
+                  innermost_function_scope->assoc_block != NULL);
   set_block_start_insert_location(innermost_function_scope->assoc_block,
                                                              &insert_location);
   /* Put a first-time test around the initialization. */
