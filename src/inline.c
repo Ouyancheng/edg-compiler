@@ -77,18 +77,21 @@ the statements will have their original source positions.  Both position and
 end_position (when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE) are set in statement.
 original_statement points to the original statement whose source positions may
 be copied; it may be NULL if there is no corresponding original statement.
+If statement is NULL, no assignments are performed.
 */
 {
+  if (statement != NULL) {
 #if STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION
-  set_stmt_pos_to_code_pos_for_lowering(statement);
+    set_stmt_pos_to_code_pos_for_lowering(statement);
 #else /* !STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
-  if (original_statement != NULL) {
-    statement->position = original_statement->position;
+    if (original_statement != NULL) {
+      statement->position = original_statement->position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    statement->end_position = original_statement->end_position;
+      statement->end_position = original_statement->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  }  /* if */
+    }  /* if */
 #endif /* STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
+  }  /* if */
 }  /* set_inline_statement_positions */
 
 static a_variable_remapping_for_inlining_ptr
