@@ -110,8 +110,7 @@ extern void init_conditional_flag_var(
 extern void rewrite_class_assignment_if_necessary(an_expr_node_ptr expr);
 
 extern void lower_constant_init_of_static_in_extern_inline(
-                                                    a_variable_ptr variable,
-                                                    a_scope_ptr    scope);
+                                                    a_variable_ptr variable);
 
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 extern void build_construction_vtbls_pointer(

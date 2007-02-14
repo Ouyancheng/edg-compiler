@@ -15574,8 +15574,7 @@ is the innermost scope that has an associated block -- scopes for
              to a constant.  Rewrite the initialization as executable code
              because we want the variable to be a tentative definition
              (and therefore it cannot be statically initialized). */
-          lower_constant_init_of_static_in_extern_inline(variable,
-                                                         scope_with_block);
+          lower_constant_init_of_static_in_extern_inline(variable);
         }  /* if */
         break;
       case initk_dynamic:
@@ -15598,8 +15597,7 @@ is the innermost scope that has an associated block -- scopes for
        to a constant.  Rewrite the initialization as executable code
        because we want the variable to be a tentative definition
        (and therefore it cannot be statically initialized). */
-    lower_constant_init_of_static_in_extern_inline(variable,
-                                                   scope_with_block);
+    lower_constant_init_of_static_in_extern_inline(variable);
   }  /* if */
 }  /* promote_static_variable_out_of_function */
 

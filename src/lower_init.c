@@ -6830,15 +6830,14 @@ do_assignment:;
 }  /* lower_dynamic_init */
 
 
-void lower_constant_init_of_static_in_extern_inline(a_variable_ptr variable,
-                                                    a_scope_ptr    scope)
+void lower_constant_init_of_static_in_extern_inline(a_variable_ptr variable)
 /*
 The given variable is a local static variable of an extern inline function
 (or a template instantiated wherever used) that is initialized to a constant.
 Rewrite its initialization as executable code so that the variable (already
 promoted to the file scope and made external) can be a tentative definition
-(i.e., uninitialized). scope is the scope in which the variable's definition
-appears.
+(i.e., uninitialized).  The executable code is placed at the beginning of
+the block associated with the innermost function scope.
 */
 {
   a_constant_ptr        constant;
