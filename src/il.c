@@ -6477,8 +6477,8 @@ the given parameter types (which may be NULL).
 
   /* Return type. */
   rout_type->variant.routine.return_type = return_type;
+  /* Set the first parameter, if any. */
   if (param1_type != NULL) {
-    /* Set the first parameter, if any. */
     extra_info->param_type_list = make_param_type(param1_type, np);
     /* Set the second parameter, if any. */
     if (param2_type != NULL) {
