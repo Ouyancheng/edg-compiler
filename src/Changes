@@ -69,7 +69,7 @@ __builtin___strncat_chk, __builtin___strncpy_chk, __builtin___vsnprintf_chk,
 __builtin___vsprintf_chk, __builtin_bcopy, __builtin_memmove, and
 __builtin_object_size.
 
-2/6/07   stmk_microsoft_try statements have end_position set
+2/6/07   end_position not set on stmk_microsoft_try statements
 
 The end source position on stmk_microsoft_try statements are now
 properly set when EXTRA_SOURCE_POSITIONS_IN_IL is defined.  Also, the end
