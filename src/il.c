@@ -6478,9 +6478,9 @@ the given parameter types (which may be NULL).
   /* Return type. */
   rout_type->variant.routine.return_type = return_type;
   if (param1_type != NULL) {
-    /* Set the first parameter. */
-    extra_info->param_type_list = make_param_type(param1_type, np);
     /* Set the first parameter, if any. */
+    extra_info->param_type_list = make_param_type(param1_type, np);
+    /* Set the second parameter, if any. */
     if (param2_type != NULL) {
       a_param_type_ptr  ptp = extra_info->param_type_list;
       ptp->next = make_param_type(param2_type, np);
@@ -6488,11 +6488,11 @@ the given parameter types (which may be NULL).
       if (param3_type != NULL) {
         ptp = ptp->next;
         ptp->next = make_param_type(param3_type, np);
-	/* Set the fourth parameter, if any. */
-	if (param4_type != NULL) {
-	  ptp = ptp->next;
-	  ptp->next = make_param_type(param4_type, np);
-	}  /* if */
+        /* Set the fourth parameter, if any. */
+        if (param4_type != NULL) {
+          ptp = ptp->next;
+          ptp->next = make_param_type(param4_type, np);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6506,6 +6506,7 @@ a_type_ptr add_param_type(a_type_ptr  rout_type,
                           a_type_ptr  param_type)
 /*
 Append a parameter of type param_type to the parameter list of rout_type.
+The updated routine type is returned.
 */
 {
   a_param_type_ptr  *p_ptp = &rout_type->variant.routine.extra_info

@@ -179,39 +179,45 @@ Enter some predefined macros for a MacOS X (Apple) system.
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_symbol_ptr enter_builtin_function(char       *name,
-                                           a_type_ptr return_type,
-                                           a_type_ptr param1_type,
-                                           a_type_ptr param2_type,
-                                           a_type_ptr param3_type,
-                                           a_type_ptr param4_type,
-                                           a_boolean  is_varargs)
+static a_type_ptr make_C_linkage_routine_type(a_type_ptr        return_type,
+                                              a_type_ptr        param1_type,
+                                              a_type_ptr        param2_type,
+                                              a_type_ptr        param3_type,
+                                              a_type_ptr        param4_type)
 /*
-Enter a builtin function with the given name.  The return_type
-(which must be non-NULL) and the parameter types (which may be NULL)
-indicate how to form the function signature.  If is_varargs is TRUE,
-the function takes a variable number of arguments.  Return the
-symbol for the function.
+Create a routine type with the given return type (which cannot be NULL) and
+the given parameter types (which may be NULL).  Set the type's language
+linkage to "C".
 */
 {
-  a_type_ptr                     rout_type;
-  a_routine_type_supplement_ptr  rtsp;
-  a_symbol_ptr                   sym;
-  a_symbol_locator               loc;
+  a_type_ptr  rout_type = make_routine_type(return_type,
+                                            param1_type, param2_type,
+                                            param3_type, param4_type);
 
-  rout_type = make_routine_type(return_type, param1_type, param2_type,
-                                param3_type, param4_type);
-  rtsp = rout_type->variant.routine.extra_info;
-  if (is_varargs) {
-    rtsp->has_ellipsis = TRUE;
-  }  /* if */
+  rout_type->variant.routine.extra_info
+           ->routine_name_linkage = (a_name_linkage_kind)nlk_external;
+  return rout_type;
+}  /* make_C_linkage_routine_type */
+
+
+static a_symbol_ptr enter_builtin_function(char        *name,
+                                           a_type_ptr  rout_type)
+/*
+Enter a builtin function with the given name and type (which must be a
+tk_routine type; not a tk_typeref).  Return the symbol for the function.
+*/
+{
+  a_symbol_ptr      sym;
+  a_symbol_locator  loc;
+
   clear_locator(&loc, &null_source_position);
   (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
   sym = make_predeclared_function_symbol(&loc, rout_type);
   /* Builtin functions have extern "C" name linkage by default. */
+  check_assertion(rout_type->variant.routine.extra_info->routine_name_linkage
+                                         == (a_name_linkage_kind)nlk_external);
   sym->variant.routine.ptr->source_corresp.name_linkage =
                                              (a_name_linkage_kind)nlk_external;
-  rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_external;
   sym->explicit_linkage_specifier = !C_mode();
   return sym;
 }  /* enter_builtin_function */
@@ -236,21 +242,26 @@ indicate how to form the function signature.  If is_varargs is TRUE,
 the function takes a variable number of arguments.
 */
 {
-  a_symbol_ptr  sym;
-  a_routine_ptr rout;
-  char          *name;
+  a_symbol_ptr                   sym;
+  a_type_ptr                     rout_type;
+  a_routine_type_supplement_ptr  rtsp;
 
-  name = builtin_function_kind_names[(int)bfk];
-  sym = enter_builtin_function(name, return_type, param1_type, param2_type,
-                               param3_type, param4_type, is_varargs);
-  rout = sym->variant.routine.ptr;
+  rout_type = make_C_linkage_routine_type(return_type, param1_type,
+                                          param2_type, param3_type,
+                                          param4_type);
   if (param5_type != NULL) {
-    rout->type = add_param_type(rout->type, param5_type);
+    rout_type = add_param_type(rout_type, param5_type);
     if (param6_type != NULL) {
-      rout->type = add_param_type(rout->type, param6_type);
+      rout_type = add_param_type(rout_type, param6_type);
     }  /* if */
   }  /* if */
-  rout->variant.builtin_function_kind = bfk;
+  rtsp = rout_type->variant.routine.extra_info;
+  if (is_varargs) {
+    rtsp->has_ellipsis = TRUE;
+  }  /* if */
+  sym = enter_builtin_function(builtin_function_kind_names[(int)bfk],
+                               rout_type);
+  sym->variant.routine.ptr->variant.builtin_function_kind = bfk;
 }  /* enter_gnu_builtin_function */
 
 
@@ -882,13 +893,12 @@ Enter the predeclared functions for Microsoft mode.
 */
 {
   if (microsoft_version >= 1300) {
-    (void)enter_builtin_function("__debugbreak",
-                                 void_type(),
-                                 (a_type_ptr)NULL,
-                                 (a_type_ptr)NULL,
-                                 (a_type_ptr)NULL,
-                                 (a_type_ptr)NULL,
-                                 /*is_varargs=*/FALSE);
+    (void)enter_builtin_function(
+                "__debugbreak", make_C_linkage_routine_type(void_type(),
+                                                            (a_type_ptr)NULL,
+                                                            (a_type_ptr)NULL,
+                                                            (a_type_ptr)NULL,
+                                                            (a_type_ptr)NULL));
   }  /* if */
 }  /* enter_microsoft_predeclared_functions */
 
@@ -984,6 +994,7 @@ Enter predeclared symbols as required by the implementation.
   if (!C_mode()) {
     a_symbol_locator  loc;
     a_type_ptr        return_type, param1_type, param2_type, param3_type;
+    a_type_ptr        rout_type;
   
     if (namespaces_enabled) {
       /* This routine should not be called before
@@ -998,11 +1009,11 @@ Enter predeclared symbols as required by the implementation.
                                                variant.namespace_info.ptr);
     }  /* if */
     /* For each function to be entered, clear the locator, call find_symbol
-       to create the symbol header, create type entries for the return type
-       and the param types, and then call make_predeclared_function_symbol
-       to do the rest of the work.  The following creates a routine entry and
-       a symbol for std::memcpy, adds the routine to the routines list of
-       namespace std, and adds the symbol to the symbol table. */
+       to create the symbol header, create a routine type, and then call
+       make_predeclared_function_symbol to do the rest of the work.
+       The following creates a routine entry and a symbol for std::memcpy,
+       adds the routine to the routines list of namespace std, and adds the
+       symbol to the symbol table. */
     /* Note: even though std::memcpy is added to the symbol table, it cannot
        be called directly in user code with that name until namespace std is
        explicitly declared, because the latter was predeclared without
@@ -1012,15 +1023,15 @@ Enter predeclared symbols as required by the implementation.
     /* Create a symbol header with the required name. */
     clear_locator(&loc, &null_source_position);
     (void)find_symbol("memcpy", (sizeof_t)6, &loc);
-    /* Create the return type and parameter types. */
+    /* Create the routine type. */
     return_type = void_type();
     param1_type = param2_type =
                     make_pointer_type(integer_type((an_integer_kind)ik_char));
     param3_type = integer_type((an_integer_kind)ik_int);
+    rout_type = make_routine_type(return_type, param1_type, param2_type,
+                                  param3_type, (a_type_ptr)NULL);
     /* Create the routine entry and the symbol. */
-    (void)make_predeclared_function_symbol(&loc, return_type, param1_type,
-                                           param2_type, param3_type,
-					   (a_type_ptr)NULL);
+    (void)make_predeclared_function_symbol(&loc, rout_type);
     /* Repeat these steps for additional predeclared functions. */
     if (namespaces_enabled) {
       /* After all the functions have been entered, pop the scope for

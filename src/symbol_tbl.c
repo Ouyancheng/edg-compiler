@@ -6669,7 +6669,7 @@ a_symbol_ptr make_predeclared_function_symbol(a_symbol_locator  *locator,
 /*
 Create a symbol and routine entry for a predeclared function.  locator points
 to a symbol locator created to represent the entity's name.  rout_type is the
-associated function type.
+associated function type and must be a tk_routine entry (i.e., not a typeref).
 */
 {
   a_symbol_ptr                   sym = NULL, ext_sym;
@@ -6678,6 +6678,7 @@ associated function type.
   a_func_info_block              func_info;
   a_decl_modifiers_block         decl_modifiers;
 
+  check_assertion(rout_type->kind == (a_type_kind)tk_routine);
   clear_func_info(&func_info);
   clear_decl_modifiers_block(&decl_modifiers);
   /* Create the symbol and routine entry.  Note that the routine entry
