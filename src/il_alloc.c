@@ -3390,9 +3390,7 @@ Initialize the variable fields of the scope entry pointed to by sp.
       sp->variant.routine.constructor_inits             = NULL;
       sp->variant.routine.lifetime_of_local_static_vars = NULL;
       sp->variant.routine.this_param_variable           = NULL;
-#if DO_RETURN_VALUE_OPTIMIZATION
       sp->variant.routine.return_value_variable         = NULL;
-#endif /* DO_RETURN_VALUE_OPTIMIZATION */
 #ifdef FIL
       sp->variant.routine.function_result_var = NULL;
 #endif /* ifdef FIL */

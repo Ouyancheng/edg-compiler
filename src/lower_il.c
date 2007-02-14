@@ -7939,7 +7939,7 @@ Do IL lowering of the indicated variable and everything under it.
 #endif /* MAINTAIN_NEEDED_FLAGS */
       variable->source_corresp.referenced = TRUE;
     }  /* if */
-#if DO_RETURN_VALUE_OPTIMIZATION
+#if DO_LOWERING_OF_RETURN_VALUE_OPTIMIZATION
     if (var_is_return_value_variable(variable)) {
       /* The variable is the return value optimization variable for the
          function.  All references to it will be rewritten to refer instead
@@ -7952,7 +7952,7 @@ Do IL lowering of the indicated variable and everything under it.
       variable->init_kind = (an_init_kind)initk_none;
       variable->modified_within_try_block = FALSE;
     }  /* if */
-#endif /* DO_RETURN_VALUE_OPTIMIZATION */
+#endif /* DO_LOWERING_OF_RETURN_VALUE_OPTIMIZATION */
     /* Lower the initializer if any. */
     lower_initializer(variable, &variable->init_kind, &variable->initializer,
                       (an_insert_location *)NULL);
@@ -11401,7 +11401,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
              The type in the enk_variable node must be changed. */
           var_value->type = make_pointer_type(var_value->type);
         }  /* if */
-#if DO_RETURN_VALUE_OPTIMIZATION
+#if DO_LOWERING_OF_RETURN_VALUE_OPTIMIZATION
       } else if (var_is_return_value_variable(var)) {
         /* The variable is the return value optimization variable for the
            current function, so rewrite it as a reference to the implicit
@@ -11420,7 +11420,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           change_node_to_operation(expr, (an_expr_operator_kind)eok_indirect,
                                    expr->type, operand_node);
         }  /* if */
-#endif /* DO_RETURN_VALUE_OPTIMIZATION */
+#endif /* DO_LOWERING_OF_RETURN_VALUE_OPTIMIZATION */
       }  /* if */
       break;
     case enk_operation:
@@ -13776,7 +13776,7 @@ Lower an stmk_return statement.
      optimization applies, just skip the copy constructor call
      altogether. */
   if (dip != NULL) {
-#if DO_RETURN_VALUE_OPTIMIZATION
+#if DO_LOWERING_OF_RETURN_VALUE_OPTIMIZATION
     if (innermost_function_scope->variant.routine.
                                                return_value_variable != NULL) {
       /* Return value optimization was done. */
@@ -13784,7 +13784,7 @@ Lower an stmk_return statement.
         unbind_object_lifetime(dip->init_expr_lifetime);
       }  /* if */
     } else 
-#endif /* DO_RETURN_VALUE_OPTIMIZATION */
+#endif /* DO_LOWERING_OF_RETURN_VALUE_OPTIMIZATION */
       /* Do not insert code here; this is the "else" of an "if". */
     {
       /* This routine returns its value via a copy constructor.

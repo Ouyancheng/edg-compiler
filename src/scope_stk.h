@@ -289,14 +289,12 @@ typedef struct a_scope_stack_entry {
 			   is required because the scope stack contains a
 			   scope in which certain symbols on the active list
 			   must not be visible. */
-#if DO_RETURN_VALUE_OPTIMIZATION
   a_bit_field	return_value_optimization_possible:1;
 			/* TRUE if this scope is a function scope and return
 			   value optimization is possible for the routine.
 			   That is, the routine returns a class value via
 			   a copy constructor, and all return statements
 			   return a single local variable. */
-#endif /* DO_RETURN_VALUE_OPTIMIZATION */
   a_bit_field	in_prototype_instantiation:1;
 			/* TRUE if kind is sck_template_instantiation and
 			   what is being instantiated is the prototype for a

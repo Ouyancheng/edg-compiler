@@ -3823,15 +3823,14 @@ of the disallowed optimization.
 Return value optimization is possible when all return statements in a function
 return the same nonstatic local variable; the optimization is to rewrite all
 references to the local variable as references to the return-value address
-passed by the caller, thus avoiding a copy constructor call on exit.  When this
-switch is TRUE, the front end notes that the optimization is possible; it is
-left to IL lowering or a back end to do the rewriting.  IL lowering also uses
-the value of this switch to control whether the optimization is performed
-during lowering.
+passed by the caller, thus avoiding a copy constructor call on exit.  
+Detecting cases where the return value optimization is possible is performed
+by the front end in all cases.  This macro controls whether these cases
+are lowered (TRUE) or not (FALSE).
 */
-#ifndef DO_RETURN_VALUE_OPTIMIZATION
-#define DO_RETURN_VALUE_OPTIMIZATION TRUE
-#endif /* ifndef DO_RETURN_VALUE_OPTIMIZATION */
+#ifndef DO_LOWERING_OF_RETURN_VALUE_OPTIMIZATION
+#define DO_LOWERING_OF_RETURN_VALUE_OPTIMIZATION TRUE
+#endif /* ifndef DO_LOWERING_OF_RETURN_VALUE_OPTIMIZATION */
 
 /*
 Integer kind to use for an offset into a class.  This is used for delta

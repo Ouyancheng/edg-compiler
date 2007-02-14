@@ -2150,10 +2150,8 @@ end_sizeof:;
                      an_object_lifetime_ptr, iek_object_lifetime);
             walk_ptr(ptr->variant.routine.this_param_variable, a_variable_ptr,
                      iek_variable);
-#if DO_RETURN_VALUE_OPTIMIZATION
             remap_ptr_not_needed(ptr->variant.routine.return_value_variable,
                                  a_variable_ptr, iek_variable);
-#endif /* DO_RETURN_VALUE_OPTIMIZATION */
 #endif  /* ifdef CFE */
 #ifdef FFE
             walk_ptr(ptr->variant.routine.function_result_var, a_variable_ptr,

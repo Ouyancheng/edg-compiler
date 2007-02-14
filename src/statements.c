@@ -5371,14 +5371,12 @@ in which such a return is undefined.
   an_error_severity no_returned_value_severity;
 
   *return_expr = NULL;
-#if DO_RETURN_VALUE_OPTIMIZATION
   /* Disable return value optimization in a function that contains a void
      return statement. */
   { a_scope_stack_entry_ptr ssep= &scope_stack[depth_innermost_function_scope];
     ssep->return_value_optimization_possible = FALSE;
     ssep->il_scope->variant.routine.return_value_variable = NULL;
   }
-#endif /* DO_RETURN_VALUE_OPTIMIZATION */
   /* Get a pointer to the current routine entry. */
   rout = current_routine_entry();
   if (rout->special_kind == (a_special_function_kind)sfk_constructor ||

@@ -4756,13 +4756,11 @@ do_assoc_type:
                  (char *)ptr->variant.routine.this_param_variable,
                  iek_variable);
       }  /* if */
-#if DO_RETURN_VALUE_OPTIMIZATION
       if (ptr->variant.routine.return_value_variable != NULL) {
         disp_ptr("return_value_variable",
                  (char *)ptr->variant.routine.return_value_variable,
                  iek_variable);
       }  /* if */
-#endif /* DO_RETURN_VALUE_OPTIMIZATION */
 #endif /* ifdef CIL */
 #ifdef FFE
       disp_ptr("function_result_var",

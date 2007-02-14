@@ -98,14 +98,16 @@ For example:
     static int i;  // Okay because X is not considered to be an interface.
   };
 
-2/5/07   New configuration flag for disabling return value optimization
+2/5/07   New configuration flag for disabling lowering of return value
+         optimization
 
-A new switch, DO_RETURN_VALUE_OPTIMIZATION, has been introduced to allow
-customers to selectively disable the return value optimization.  Setting
-this flag to TRUE (the default setting) continues to enable the detecting
-and lowering of cases where the return value optimization is applicable.
-Setting the switch to FALSE will disable all return value optimization
-detection and lowering.
+A new switch, DO_LOWERING_OF_RETURN_VALUE_OPTIMIZATION, has been introduced to
+allow customers to selectively disable lowering of the return value
+optimization.  Setting this flag to TRUE (the default setting) continues to
+enable lowering of cases where the return value optimization is applicable.
+Setting the switch to FALSE will disable return value optimization lowering.
+Detection of cases where the return value optimization is applicable is
+performed by the front end regardless of the value of this switch.
 
 2/4/07   C++-generating back end, Microsoft compatibility: explicit
          specializations of inline conversion function templates

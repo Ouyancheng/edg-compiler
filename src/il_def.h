@@ -12325,7 +12325,6 @@ typedef struct a_scope {
 			/* If the scope is for a C++ nonstatic member
 			   function, this field points to the implicit "this"
 			   parameter.  It is NULL in all other cases. */
-#if DO_RETURN_VALUE_OPTIMIZATION
       a_variable_ptr
 		return_value_variable;
 			/* If non-NULL, return value optimization is possible
@@ -12335,7 +12334,6 @@ typedef struct a_scope {
 			   namely the variable pointed to by this field.
 			   Note that the variable is also on the local
 			   variables list of this scope. */
-#endif /* DO_RETURN_VALUE_OPTIMIZATION */
 #endif /* ifdef CIL */
 #ifdef FIL
       a_variable_ptr
