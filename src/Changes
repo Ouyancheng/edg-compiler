@@ -16,7 +16,7 @@ block associated with the function scope.  For example:
     switch(n) {
       default:
         static int x = 99;
-        return(x);          // Had returned 0, now returns 99
+        return x;          // Had returned 0, now returns 99
     }
   }
 

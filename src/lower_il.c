@@ -387,7 +387,6 @@ static void do_scope_namespace_member_promotion(a_scope_ptr scope);
 static void promote_static_variable_out_of_function(
                                                a_variable_ptr variable,
                                                a_scope_ptr    scope,
-                                               a_scope_ptr    scope_with_block,
                                                a_routine_ptr  routine);
 
 
@@ -3842,7 +3841,6 @@ in extern inline functions).
     /* Promote the variable out of the function, and make it external
        if that's appropriate. */
     promote_static_variable_out_of_function(assoc_var,
-                                            innermost_function_scope,
                                             innermost_function_scope,
                                             routine);
     switch_back_to_original_region(region_to_switch_back_to);
@@ -15478,14 +15476,11 @@ is instantiated in more than one translation unit.
 static void promote_static_variable_out_of_function(
                                                a_variable_ptr variable,
                                                a_scope_ptr    scope,
-                                               a_scope_ptr    scope_with_block,
                                                a_routine_ptr  routine)
 /*
 Promote the indicated local static variable out of indicated routine.
 scope is the scope of the variable (though the variable has already
-been removed from the scope variables list) and scope_with_block
-is the innermost scope that has an associated block -- scopes for
-"for" init blocks do not have one.
+been removed from the scope variables list).
 */
 {
 #if DEBUG
@@ -15604,13 +15599,10 @@ is the innermost scope that has an associated block -- scopes for
 
 static void promote_static_variables_out_of_function(
                                                 a_scope_ptr   scope,
-                                                a_scope_ptr   scope_with_block,
                                                 a_routine_ptr routine)
 /*
 Promote the static variables in the indicated scope (a function or block
 scope that is part of the indicated routine) to the file scope.
-scope_with_block gives the innermost scope that has an associated
-block -- scopes for "for" init blocks do not have one.
 */
 {
   a_variable_ptr variable;
@@ -15623,7 +15615,7 @@ block -- scopes for "for" init blocks do not have one.
       /* Remove the variable from the scope list. */
       scope->variables = variable->next;
       promote_static_variable_out_of_function(variable,
-                                              scope, scope_with_block,
+                                              scope,
                                               routine);
     }  /* while */
     /* Clear the scope stack pointer to the last static variable now that
@@ -15666,7 +15658,7 @@ block -- scopes for "for" init blocks do not have one.
           "r_promote_local_entities_to_file_scope: do_type_promotion is TRUE");
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
   /* Promote static variables from this scope. */
-  promote_static_variables_out_of_function(scope, scope_with_block, routine);
+  promote_static_variables_out_of_function(scope, routine);
   /* Note that any pragmas associated with promoted entities are already on
      the file scope list, so they do not need to be moved. */
 #if CHECKING
