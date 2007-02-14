@@ -1,5 +1,33 @@
 Version 3.9
 
+2/14/07  g++ overload resolution, partially-ordered template conversion
+         functions
+
+The change of 12/22/04 to change overload resolution with regard to where
+the template-specific rules for comparing two candidate functions are
+done did not correctly model g++, in that the rule for differentiating
+between two template functions should not be done early in the list of rules
+even though the template/non-template distinction rule is.  We've
+moved the partial ordering rule back to the last position in the list
+regardless of the setting of late_template_ovl_res_tiebreaker.  This
+affects only g++ mode, since that is the only one that has that switch
+set to FALSE.  See core issue 495 for more detail.
+
+  int i = 0;
+  struct B {
+    template <class T> operator T*() { i = 1; return 0;}
+  };
+  struct D : B {
+    template <class T> operator T**() { i = 2; return 0;}
+  };
+  D d;
+  extern "C" int printf(const char *, ...);
+  int main() {
+    (void *) d;
+    if (i != 1) { printf("FAIL\n"); return 1; }
+    return 0;
+  }
+
 2/13/07  Initialization of local static variables in extern inline functions
 
 In the non IA-64 ABI case, when lowering is performed on a constant
