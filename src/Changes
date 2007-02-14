@@ -36,11 +36,11 @@ fixed, giving macro X an empty replacement text.
 2/7/07   Incorrect padding for arrays when using new [] and delete []
          with IA-64 ABI on types with typerefs
 
-When computing the amount of padding to allow for before an array
-being operated on by new [] or delete [], if the type of the array element
-has type qualifiers, the amount of padding may have been miscalculated.  
-This affects only lowering performed when IA64_ABI is TRUE.  This has been
-fixed.  In this example, the const qualifier would have caused such an error:
+The amount of padding to allow before an array being operated on by new []
+or delete [] may have been miscalculated if the type of the array element
+had type qualifiers.  This only affects lowering performed when IA64_ABI is
+TRUE.  This has been fixed.  In this example, the const qualifier would
+have caused such an error:
 
   struct A { ~A(); };
   void f(const A *p) { delete [] p; }
