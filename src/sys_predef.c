@@ -179,50 +179,31 @@ Enter some predefined macros for a MacOS X (Apple) system.
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_type_ptr make_C_linkage_routine_type(a_type_ptr        return_type,
-                                              a_type_ptr        param1_type,
-                                              a_type_ptr        param2_type,
-                                              a_type_ptr        param3_type,
-                                              a_type_ptr        param4_type)
-/*
-Create a routine type with the given return type (which cannot be NULL) and
-the given parameter types (which may be NULL).  Set the type's language
-linkage to "C".
-*/
-{
-  a_type_ptr  rout_type = make_routine_type(return_type,
-                                            param1_type, param2_type,
-                                            param3_type, param4_type);
-
-  rout_type->variant.routine.extra_info
-           ->routine_name_linkage = (a_name_linkage_kind)nlk_external;
-  return rout_type;
-}  /* make_C_linkage_routine_type */
-
-
 static a_symbol_ptr enter_builtin_function(char        *name,
                                            a_type_ptr  rout_type)
 /*
 Enter a builtin function with the given name and type (which must be a
-tk_routine type; not a tk_typeref).  Return the symbol for the function.
+tk_routine type; not a tk_typeref).  The routine is given C name linkage (and
+the routine type is updated accordingly).  Return the symbol for the function.
 */
 {
   a_symbol_ptr      sym;
   a_symbol_locator  loc;
+  a_name_linkage_kind  saved_name_linkage =
+                           scope_stack[decl_scope_level].default_name_linkage;
 
   clear_locator(&loc, &null_source_position);
   (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
-  sym = make_predeclared_function_symbol(&loc, rout_type);
   /* Builtin functions have extern "C" name linkage by default. */
-#if /*FIXME*/0
+  scope_stack[decl_scope_level].default_name_linkage =
+                                            (a_name_linkage_kind)nlk_external;
+  sym = make_predeclared_function_symbol(&loc, rout_type);
+  check_assertion(sym->variant.routine.ptr->source_corresp.name_linkage
+                                         == (a_name_linkage_kind)nlk_external);
   check_assertion(rout_type->variant.routine.extra_info->routine_name_linkage
                                          == (a_name_linkage_kind)nlk_external);
-#else
-  rout_type->variant.routine.extra_info->routine_name_linkage
-                                         = (a_name_linkage_kind)nlk_external;
-#endif
-  sym->variant.routine.ptr->source_corresp.name_linkage =
-                                             (a_name_linkage_kind)nlk_external;
+  /* Restore the previous default name linkage. */
+  scope_stack[decl_scope_level].default_name_linkage = saved_name_linkage;
   sym->explicit_linkage_specifier = !C_mode();
   return sym;
 }  /* enter_builtin_function */
@@ -251,9 +232,8 @@ the function takes a variable number of arguments.
   a_type_ptr                     rout_type;
   a_routine_type_supplement_ptr  rtsp;
 
-  rout_type = make_C_linkage_routine_type(return_type, param1_type,
-                                          param2_type, param3_type,
-                                          param4_type);
+  rout_type = make_routine_type(return_type, param1_type, param2_type,
+                                param3_type, param4_type);
   if (param5_type != NULL) {
     rout_type = add_param_type(rout_type, param5_type);
     if (param6_type != NULL) {
@@ -898,12 +878,12 @@ Enter the predeclared functions for Microsoft mode.
 */
 {
   if (microsoft_version >= 1300) {
-    (void)enter_builtin_function(
-                "__debugbreak", make_C_linkage_routine_type(void_type(),
-                                                            (a_type_ptr)NULL,
-                                                            (a_type_ptr)NULL,
-                                                            (a_type_ptr)NULL,
-                                                            (a_type_ptr)NULL));
+    (void)enter_builtin_function("__debugbreak",
+                                 make_routine_type(void_type(),
+                                                   (a_type_ptr)NULL,
+                                                   (a_type_ptr)NULL,
+                                                   (a_type_ptr)NULL,
+                                                   (a_type_ptr)NULL));
   }  /* if */
 }  /* enter_microsoft_predeclared_functions */
 
