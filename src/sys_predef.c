@@ -214,8 +214,13 @@ tk_routine type; not a tk_typeref).  Return the symbol for the function.
   (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
   sym = make_predeclared_function_symbol(&loc, rout_type);
   /* Builtin functions have extern "C" name linkage by default. */
+#if /*FIXME*/0
   check_assertion(rout_type->variant.routine.extra_info->routine_name_linkage
                                          == (a_name_linkage_kind)nlk_external);
+#else
+  rout_type->variant.routine.extra_info->routine_name_linkage
+                                         = (a_name_linkage_kind)nlk_external;
+#endif
   sym->variant.routine.ptr->source_corresp.name_linkage =
                                              (a_name_linkage_kind)nlk_external;
   sym->explicit_linkage_specifier = !C_mode();
