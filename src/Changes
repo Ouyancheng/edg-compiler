@@ -94,7 +94,7 @@ treated according to the definition (i.e., not as an __interface type).
 For example:
 
   __interface Y;
-  struct X {
+  struct Y {
     static int i;  // Okay because X is not considered to be an interface.
   };
 
