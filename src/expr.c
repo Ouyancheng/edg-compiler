@@ -19164,6 +19164,32 @@ FALSE and a pointer to the expression tree in *expression.
 }  /* scan_nonconstant_dimension_expression */
 
 
+static void extract_constant_from_operand_with_fs_fixup(an_operand *operand,
+                                                        a_constant *constant)
+/*
+Extract a constant from the given operand and return it in *constant.
+The constant is or will be allocated in the file scope memory region,
+so do any required adjustment to make that possible.
+*/
+{
+  extract_constant_from_operand(operand, constant);
+  if (has_non_file_scope_ref(constant)) {
+    /* The constant has some function-scope parts, so copy its tree.
+       This should only come up in constant expressions where no automatic
+       variables can be referenced anyway, so the file-scope parts should
+       just be expression nodes and should be gone in the copy. */
+    a_constant old_constant;
+    check_assertion(curr_expr_kind_is_const());
+    copy_constant(constant, &old_constant);
+    (void)copy_constant_full(&old_constant, constant,
+                             CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+    check_assertion_str2(!has_non_file_scope_ref(constant),
+                         "extract_constant_from_operand_with_fs_fixup:",
+                         "copied constant still has func scope ref");
+  }  /* if */
+}  /* extract_constant_from_operand_with_fs_fixup */
+
+
 static void prep_nontype_template_argument_initializer(an_operand *operand,
                                                        a_type_ptr param_type,
                                                        a_constant *constant)
@@ -19182,7 +19208,7 @@ for the converted result in *constant.  Do various error checks.
        as the actual argument for a nontype template parameter of type
        pointer to X.  Fixed in MSVC++ 7.1. */
     /* Make a constant from the operand. */
-    extract_constant_from_operand(operand, constant);
+    extract_constant_from_operand_with_fs_fixup(operand, constant);
     constant->type = make_reference_type(param_type);
   } else {
     /* Convert to the required type if necessary.  Do not use user-defined
@@ -19197,7 +19223,7 @@ for the converted result in *constant.  Do various error checks.
                              /*nontype_template_arg=*/TRUE,
                              ec_bad_nontype_template_arg);
     /* Make a constant from the operand. */
-    extract_constant_from_operand(operand, constant);
+    extract_constant_from_operand_with_fs_fixup(operand, constant);
     /* If the template parameter has a reference type, give the constant
        a reference type (instead of the pointer type it has). */
     if (is_reference_type(param_type) && !is_error_operand(operand) &&
@@ -19256,7 +19282,7 @@ parameter type is not known.
         conv_sym_for_member_operand_to_ptr_to_member(&result);
       }  /* if */
     }  /* if */
-    extract_constant_from_operand(&result, constant);
+    extract_constant_from_operand_with_fs_fixup(&result, constant);
   }  /* if */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   check_assertion(constant->expr == NULL ||

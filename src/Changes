@@ -1,5 +1,13 @@
 Version 3.9
 
+2/15/07  Memory region problem with const local variable as template argument
+         in prototype instantiation
+
+In cases where an initialized const local variable is used as a constant
+in a nontype template argument in a prototype instantiation, sometimes the
+IL constructed included a file-scope constant with a pointer to a
+function-scope expression, which could cause aborts later on.  Now fixed.
+
 2/14/07  Internal error in conv_class_operand_to_object_pointer during
          prototype instantiation when casting class object to same type
 
