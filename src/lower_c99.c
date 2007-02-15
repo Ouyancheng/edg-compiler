@@ -42,6 +42,8 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 /* Forward declarations (needed because of mutual recursion situations). */
 static void lower_c99_constant_list(a_constant_ptr constant_list);
 static void lower_c99_statement(a_statement_ptr statement);
+static void lower_c99_boolean_controlling_expr(an_expr_node_ptr expr,
+                                               a_boolean        is_full_expr);
 #if LOWER_FIXED_POINT
 static void lower_c99_fixed_point_constant(a_constant_ptr constant);
 static void lower_c99_fixed_point_operation(an_expr_node_ptr expr);
@@ -3090,21 +3092,29 @@ in C99 mode to represent a compound literal.
 }  /* lower_c99_temp_init */
 
 
-static void lower_c99_expr_list(an_expr_node_ptr  list,
-                                unsigned int      lvalue_mask)
+static void lower_c99_expr_list(an_expr_node_ptr list,
+                                unsigned int     is_lvalue_mask,
+                                unsigned int     is_bool_controlling_expr_mask)
 /*
 Lower the given (short) list of expressions (normally, the operands of an
-operator).  lvalue_mask is a bit set indicating which of these expressions
+operator).  is_lvalue_mask is a bit set indicating which of these expressions
 are used as lvalues (the least significant bit corresponds to the first
-expression).
+expression).  is_bool_controlling_expr_mask is a similar bit mask indicating
+operands that are boolean controlling expressions.
+
 */
 {
   an_expr_node_ptr  expr;
 
   for (expr = list; expr != NULL; expr = expr->next) {
-    a_boolean  used_as_lvalue = (lvalue_mask & 1);
-    lower_c99_expr(expr, used_as_lvalue);
-    lvalue_mask >>= 1;
+    if (is_bool_controlling_expr_mask & 1) {
+      lower_c99_boolean_controlling_expr(expr, /*is_full_expr=*/FALSE);
+    } else {
+      a_boolean used_as_lvalue = (is_lvalue_mask & 1);
+      lower_c99_expr(expr, used_as_lvalue);
+    }  /* if */
+    is_lvalue_mask >>= 1;
+    is_bool_controlling_expr_mask >>= 1;
   }  /* if */
 }  /* lower_c99_expr_list */
 
@@ -3122,14 +3132,17 @@ statement "statement".  See lower_c99_expr for an interface without the
 second parameter.
 */
 {
-  unsigned int lvalue_mask;
+  unsigned int lvalue_mask, bool_controlling_expr_mask;
 
   switch (expr->kind) {
     case enk_operation:
       /* First lower all the operands (if any). */
-      /* Determine which operands if any are lvalues. */
+      /* Determine which operands if any are lvalues or boolean controlling
+         expressions. */
       lvalue_mask = expr_lvalue_operand_mask(expr, used_as_lvalue);
-      lower_c99_expr_list(expr->variant.operation.operands, lvalue_mask);
+      bool_controlling_expr_mask = expr_boolean_controlling_expr_mask(expr);
+      lower_c99_expr_list(expr->variant.operation.operands, lvalue_mask,
+                          bool_controlling_expr_mask);
       /* Then transform the current operator if needed. */
       lower_c99_operator(expr);
 #if LOWER_LVALUE_RETURNING_OPERATIONS
@@ -3240,6 +3253,25 @@ one not contained inside another expression.
   end_of_c99_full_expr();
 }  /* lower_c99_full_expr */
 
+static void lower_c99_boolean_controlling_expr(an_expr_node_ptr expr,
+                                               a_boolean        is_full_expr)
+/*
+Lower a boolean controlling expression, e.g., the expression in an "if"
+statement.  The expression is not an lvalue.  The expression is a full
+expression (i.e., not an expression inside some other expression) if
+is_full_expr is TRUE.
+*/
+{
+  if (is_full_expr) {
+    lower_c99_full_expr(expr);
+  } else {
+    lower_c99_expr(expr, /*is_lvalue=*/FALSE);
+  }  /* if */
+  /* This expression is supposed to have something on top that guarantees
+     a 0/1 value.  If the rewriting has disturbed that, add a "!= 0" test. */
+  normalize_lowered_boolean_controlling_expression(expr);
+}  /* lower_boolean_controlling_expr */
+
 
 static void lower_c99_stmk_init(a_statement_ptr statement)
 /*
@@ -3321,6 +3353,9 @@ Do C99 lowering on an stmk_for statement.
       reinsert_for_loop_initialization(init_stmt, &insert_location);
     }  /* if */
   }  /* if */
+  if (for_stmt->expr != NULL) {
+    lower_c99_boolean_controlling_expr(for_stmt->expr, /*is_full_expr=*/TRUE);
+  }  /* if */
   if (flp->increment != NULL) {
     lower_c99_full_expr(flp->increment);
   }  /* if */
@@ -3395,11 +3430,20 @@ Do C99 lowering on the indicated statement.
                                            statement->position);
     saved_error_position = error_position;
     error_position = code_pos_for_lowering;
-    if (statement->expr != NULL &&
-        statement->kind != (a_statement_kind)stmk_expr) {
-      /* Lower the expression.  For an expression statement, that's done
-         in a special way below. */
-      lower_c99_full_expr(statement->expr);
+    if (statement->expr != NULL) {
+      /* Lower the expression of the statement. */
+      switch (statement->kind) {
+        case stmk_expr:
+        case stmk_if:
+        case stmk_while:
+        case stmk_end_test_while:
+        case stmk_for:
+          /* These cases are handled below in some special way. */
+          break;
+        default:
+          lower_c99_full_expr(statement->expr);
+          break;
+      }  /* switch */
     }  /* if */
     switch (statement->kind) {
       case stmk_goto:
@@ -3436,6 +3480,8 @@ Do C99 lowering on the indicated statement.
         end_of_c99_full_expr();
         break;
       case stmk_if:
+        lower_c99_boolean_controlling_expr(statement->expr,
+                                           /*is_full_expr=*/TRUE);
         lower_c99_statement(statement->variant.if_stmt.then_statement);
         if (statement->variant.if_stmt.else_statement != NULL) {
           lower_c99_statement(statement->variant.if_stmt.else_statement);
@@ -3443,6 +3489,8 @@ Do C99 lowering on the indicated statement.
         break;
       case stmk_while:
       case stmk_end_test_while:
+        lower_c99_boolean_controlling_expr(statement->expr,
+                                           /*is_full_expr=*/TRUE);
         lower_c99_statement(statement->variant.loop_statement);
         break;
       case stmk_for:

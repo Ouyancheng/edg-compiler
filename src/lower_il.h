@@ -1008,6 +1008,8 @@ extern void lower_expr_list(an_expr_node_ptr expr_list,
                             unsigned int     is_lvalue_mask,
                             unsigned int     is_bool_controlling_expr_mask);
 
+extern unsigned int expr_boolean_controlling_expr_mask(an_expr_node_ptr expr);
+
 extern void lower_reuse_value_expr(an_expr_node_ptr expr);
 
 extern void lower_expr(an_expr_node_ptr expr,
@@ -1018,6 +1020,9 @@ extern void release_reusable_temporaries(void);
 extern void lower_full_expr(an_expr_node_ptr expr,
                             a_boolean        is_lvalue,
                             a_statement_ptr  statement);
+
+extern
+void normalize_lowered_boolean_controlling_expression(an_expr_node_ptr expr);
 
 extern a_param_type_ptr unlowered_param_type_list_for_routine(
                                                   a_routine_ptr routine);

@@ -1,5 +1,17 @@
 Version 3.9
 
+2/15/07  Missing "!= 0" above lowered code for complex == or !=
+
+The IL enforces the rule that expressions that appear in boolean
+controlling expression contexts (e.g., the expression tested in an
+"if" statement) always have a 0/1 value, whether from a constant or
+from an operator that is guaranteed to return 0/1.  A "!= 0" is added
+in cases where that rule is not already satisfied.  In C lowering
+(lower_c99.c), the code generated for complex equality tests when
+LOWER_COMPLEX is TRUE is a runtime routine call, and when such calls
+appear in a boolean controlling expression context they should have
+a "!= 0" above them, but they didn't.  Now, they do.
+
 2/15/07  Memory region problem with const local variable as template argument
          in prototype instantiation
 

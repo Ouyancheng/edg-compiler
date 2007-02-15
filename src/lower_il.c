@@ -11284,7 +11284,7 @@ to the enk_temp_init node and return TRUE.  Otherwise, return FALSE.
 }  /* is_optimizable_temp_init_indirection */
 
 
-static unsigned int expr_boolean_controlling_expr_mask(an_expr_node_ptr expr)
+unsigned int expr_boolean_controlling_expr_mask(an_expr_node_ptr expr)
 /*
 Given the expression node expr (of kind enk_operation), this routine
 returns a bit mask indicating whether its operands are used as boolean
@@ -12120,36 +12120,13 @@ with an enk_object_lifetime node on top.
 }  /* adjust_bool_operation_types */
 
 
-static void lower_boolean_controlling_expr(an_expr_node_ptr expr,
-                                           a_boolean        is_full_expr)
+void normalize_lowered_boolean_controlling_expression(an_expr_node_ptr expr)
 /*
-Lower a boolean controlling expression, e.g., the expression in an "if"
-statement.  The expression is not an lvalue.  The expression is a full
-expression (i.e., not an expression inside some other expression) if
-is_full_expr is TRUE.
+expr is a boolean controlling expression that has been lowered.
+It is supposed to have something on top that guarantees a 0/1 value.
+If that has been disturbed by lowering, add a "!= 0" test or the like.
 */
 {
-  if (bool_is_keyword) {
-    /* When bool is enabled, adjust the result type of top-level
-       bool-returning operations to be int. */
-    a_boolean adjusted;
-    adjust_bool_operation_types(expr, &adjusted, /*see_if_possible=*/FALSE);
-  }  /* if */
-  if (is_full_expr) {
-    lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
-  } else {
-    lower_expr(expr, /*is_lvalue=*/FALSE);
-  }  /* if */
-  /* This expression is supposed to have something on top that guarantees
-     a 0/1 value.  If the rewriting has disturbed that, add a "!= 0" test.
-     When bool is enabled, this transformation is necessary even if no
-     rewriting has occurred, for things like "if (bool_var) ...". */
-  if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
-    check_assertion_str(is_full_expr,
-         "lower_boolean_controlling_expr: enk_object_lifetime not at top (2)");
-    /* If an enk_object_lifetime node is (still) on top, look under that. */
-    expr = expr->variant.object_lifetime.expr;
-  }  /* if */
   check_assertion(is_integral_or_enum_type(expr->type));
   if (is_operation_node(expr) &&
       is_operator_returning_bool(expr->variant.operation.kind)) {
@@ -12186,6 +12163,40 @@ is_full_expr is TRUE.
                              integer_type((an_integer_kind)ik_int),
                              copy_expr);
   }  /* if */
+}  /* normalize_lowered_boolean_controlling_expression */
+
+
+static void lower_boolean_controlling_expr(an_expr_node_ptr expr,
+                                           a_boolean        is_full_expr)
+/*
+Lower a boolean controlling expression, e.g., the expression in an "if"
+statement.  The expression is not an lvalue.  The expression is a full
+expression (i.e., not an expression inside some other expression) if
+is_full_expr is TRUE.
+*/
+{
+  if (bool_is_keyword) {
+    /* When bool is enabled, adjust the result type of top-level
+       bool-returning operations to be int. */
+    a_boolean adjusted;
+    adjust_bool_operation_types(expr, &adjusted, /*see_if_possible=*/FALSE);
+  }  /* if */
+  if (is_full_expr) {
+    lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
+  } else {
+    lower_expr(expr, /*is_lvalue=*/FALSE);
+  }  /* if */
+  /* This expression is supposed to have something on top that guarantees
+     a 0/1 value.  If the rewriting has disturbed that, add a "!= 0" test.
+     When bool is enabled, this transformation is necessary even if no
+     rewriting has occurred, for things like "if (bool_var) ...". */
+  if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+    check_assertion_str(is_full_expr,
+         "lower_boolean_controlling_expr: enk_object_lifetime not at top (2)");
+    /* If an enk_object_lifetime node is (still) on top, look under that. */
+    expr = expr->variant.object_lifetime.expr;
+  }  /* if */
+  normalize_lowered_boolean_controlling_expression(expr);
 }  /* lower_boolean_controlling_expr */
 
 
