@@ -9432,7 +9432,11 @@ address of the temporary is returned.  This routine is only used in C++ mode.
            would have to be used, since in that case we would need the
            address of this rvalue to be able to call the copy constructor. */
         /* Ignore template parameter cases. */
-        if (is_class_struct_union_type(operand->type)) {
+        /* Also ignore cases where we're in a prototype instantiation with
+           a non-real class. */
+        if (is_class_struct_union_type(operand->type) &&
+            !(is_template_dependent_context() &&
+              operand->type->variant.class_struct_union.is_nonreal_class)) {
           a_class_symbol_supplement_ptr cssp =
                                     symbol_supplement_for_class(operand->type);
           if (!cssp->construction_by_bitwise_copy_allowed) {

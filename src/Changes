@@ -1,5 +1,20 @@
 Version 3.9
 
+2/14/07  Internal error in conv_class_operand_to_object_pointer during
+         prototype instantiation when casting class object to same type
+
+If a class operand was cast to the same type as the class operand during
+prototype instantiation, an internal error resulted.  This is now fixed.
+For example:
+
+  template<int N>
+  struct A {
+    A(A<N> & a);
+    void bar();
+    void foo(A<N> a) 
+      { ((A<N>) a).bar(); }   // Caused an internal error.
+  };
+
 2/14/07  g++ overload resolution, partially-ordered template conversion
          functions
 
