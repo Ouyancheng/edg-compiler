@@ -3825,12 +3825,12 @@ return the same nonstatic local variable; the optimization is to rewrite all
 references to the local variable as references to the return-value address
 passed by the caller, thus avoiding a copy constructor call on exit.  
 Detecting cases where the return value optimization is possible is performed
-by the front end in all cases.  This macro controls whether these cases
-are lowered (TRUE) or not (FALSE).
+by the front end in all cases.  This macro controls whether the return
+value optimization is performed during lowering.
 */
-#ifndef DO_LOWERING_OF_RETURN_VALUE_OPTIMIZATION
-#define DO_LOWERING_OF_RETURN_VALUE_OPTIMIZATION TRUE
-#endif /* ifndef DO_LOWERING_OF_RETURN_VALUE_OPTIMIZATION */
+#ifndef DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
+#define DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING TRUE
+#endif /* ifndef DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
 
 /*
 Integer kind to use for an offset into a class.  This is used for delta
