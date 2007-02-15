@@ -155,10 +155,11 @@ For example:
 A new switch, DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING, has been introduced to
 allow customers to selectively disable lowering of the return value
 optimization.  Setting this flag to TRUE (the default setting) continues to
-enable lowering of cases where the return value optimization is applicable.
-Setting the switch to FALSE will disable return value optimization lowering.
-Detection of cases where the return value optimization is applicable is
-performed by the front end regardless of the value of this switch.
+enable this optimization during lowering in cases where the return value
+optimization is applicable.  Setting the switch to FALSE will disable
+return value optimization during lowering.  Detection of cases where the return
+value optimization is applicable is performed by the front end regardless
+of the value of this switch.
 
 2/4/07   C++-generating back end, Microsoft compatibility: explicit
          specializations of inline conversion function templates
