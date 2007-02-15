@@ -9436,7 +9436,8 @@ address of the temporary is returned.  This routine is only used in C++ mode.
            a non-real class. */
         if (is_class_struct_union_type(operand->type) &&
             !(is_template_dependent_context() &&
-              operand->type->variant.class_struct_union.is_nonreal_class)) {
+              skip_typerefs(operand->type)->
+                                variant.class_struct_union.is_nonreal_class)) {
           a_class_symbol_supplement_ptr cssp =
                                     symbol_supplement_for_class(operand->type);
           if (!cssp->construction_by_bitwise_copy_allowed) {
