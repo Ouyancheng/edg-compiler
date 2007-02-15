@@ -1,5 +1,11 @@
 Version 3.9
 
+2/15/07  Microsoft compatibility: extended variadic macros
+
+Version 8.0 of the Microsoft compiler supports extended variadic macros.
+The front end now accepts them by default in Microsoft mode when
+microsoft_version is 1400 or greater.
+
 2/15/07  Missing "!= 0" above lowered code for complex == or !=
 
 The IL enforces the rule that expressions that appear in boolean

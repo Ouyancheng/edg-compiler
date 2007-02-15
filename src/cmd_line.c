@@ -1773,6 +1773,17 @@ by a command line option.
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   create_microsoft_if_exists_entries = TRUE;
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+  if (microsoft_version >= 1400) {
+    if (!option_kind_used[(int)optk_variadic_macros]) {
+      /* Variadic macros are supported in version 8.0 and later. */
+      variadic_macros_allowed = TRUE;
+    }  /* if */
+    if (variadic_macros_allowed &&
+        !option_kind_used[(int)optk_extended_variadic_macros]) {
+      /* Version 8.0 accepts the extended version of variadic macros. */
+      extended_variadic_macros_allowed = TRUE;
+    }  /* if */
+  }  /* if */
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
