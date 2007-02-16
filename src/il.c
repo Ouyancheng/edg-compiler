@@ -4818,20 +4818,48 @@ to start a copy.
       }  /* if */
     }  /* if */
   } else if (new_constant->kind == (a_constant_repr_kind)ck_template_param) {
-    if (new_constant->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_expression) {
-      new_constant->variant.template_param.variant.expr =
+    switch (new_constant->variant.template_param.kind) {
+      case tpck_param:
+      case tpck_member:
+      case tpck_unknown_function:
+        /* No subtree to copy. */
+        break;
+      case tpck_expression:
+        new_constant->variant.template_param.variant.expr =
             i_copy_expr_tree(old_constant->variant.template_param.variant.expr,
                              options, cblock);
-    } else if (new_constant->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_cast ||
-               new_constant->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_address) {
-      new_constant->variant.template_param.variant.constant =
+        break;
+      case tpck_cast:
+      case tpck_address:
+        new_constant->variant.template_param.variant.constant =
                i_copy_constant_full(
                          old_constant->variant.template_param.variant.constant,
                          (a_constant *)NULL,
                          options, cblock);
+        break;
+      case tpck_sizeof:
+      case tpck_alignof:
+      case tpck_uuidof:
+        if (new_constant->variant.template_param.variant.templ_sizeof.expr !=
+                                                                        NULL) {
+          new_constant->variant.template_param.variant.templ_sizeof.expr =
+              i_copy_expr_tree(old_constant->variant.template_param.variant.
+                                                             templ_sizeof.expr,
+                               options, cblock);
+        }  /* if */
+        break;
+      case tpck_template_ref:
+        new_constant->variant.template_param.variant.template_ref.con =
+            i_copy_constant_full(
+                 old_constant->variant.template_param.variant.template_ref.con,
+                 (a_constant *)NULL,
+                 options, cblock);
+        new_constant->variant.template_param.variant.template_ref.arg_list =
+            copy_template_arg_list(old_constant->variant.template_param.
+                                                variant.template_ref.arg_list);
+        break;
+      default:
+        unexpected_condition_str("i_copy_constant_full: bad templ param kind");
     }  /* if */
   }  /* if */
   if (may_be_shared) {
