@@ -3699,17 +3699,17 @@ nonstatic_member_function:
     /* If we are allowing field selection in a constant expression
        as an extension, check now that the result is constant and has
        an appropriate type. */
-    a_boolean err = TRUE;
+    a_boolean bad = TRUE;
     if (is_constant_operand(result)) {
       if (is_integral_or_enum_type(result->type)) {
-        err = FALSE;
+        bad = FALSE;
       } else if ((curr_expr_kind_is(ek_init_constant) ||
                   curr_expr_kind_is(ek_template_arg)) &&
                  is_an_lvalue(result)) {
-        err = FALSE;
+        bad = FALSE;
       }  /* if */
     }  /* if */
-    if (err) {
+    if (bad) {
       if (!is_error_operand(result)) {
         error_in_operand(ec_expr_not_constant, result);
       }  /* if */
