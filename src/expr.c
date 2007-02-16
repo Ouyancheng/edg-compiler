@@ -2979,7 +2979,7 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
     /* Field selection is not allowed in integral constant expressions
        or template argument expressions. */
     if (any_cfront_mode() || (microsoft_mode && !C_mode()) || sun_mode ||
-        (gpp_mode && gnu_version <= 30300)) {
+        (gpp_mode && gnu_version < 30400)) {
       /* ... except in cfront, Microsoft, Sun, or GNU C++ mode, where
          something like
            struct A { enum { e1 = 1 }; } a;
@@ -2998,7 +2998,7 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
   } else if (curr_expr_kind_is(ek_init_constant) &&
              !C_mode() && is_arrow_operator &&
              (microsoft_mode || sun_mode || 
-              (gpp_mode && gnu_version <= 30300)) &&
+              (gpp_mode && gnu_version < 30400)) &&
              (is_an_lvalue(operand_1) ||
               (is_an_rvalue(operand_1) && !is_constant_operand(operand_1)))) {
     /* In Microsoft, Sun and GNU C++, a->e1 can be used as a constant if e1
@@ -10196,12 +10196,12 @@ expressions allow only certain limited casts).
                             f_skip_typerefs(type_pointed_to(operand->type)))) {
       /* A cast that strips qualifiers from a pointer type.  Allow as an
          extension in Microsoft mode. */
-    } else if (microsoft_bugs &&
+    } else if ((microsoft_bugs || (gpp_mode && gnu_version < 30400)) &&
                is_pointer_type(dest_type) &&
                (is_pointer_type(operand->type) ||
                 is_integral_type(operand->type))) {
       /* A more controversial cast to pointer type.  Allow in Microsoft bugs
-         mode. */
+         and some g++ modes. */
     } else if (is_template_param_type(dest_type)) {
       /* Casting to an unknown template parameter type is okay. */
     } else {
