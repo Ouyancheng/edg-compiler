@@ -2625,8 +2625,8 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   a_boolean               tag_id_present;
   a_type_ptr              class_type;
   a_boolean               is_local_class = FALSE;
-  a_boolean               is_interface = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean               is_interface = FALSE;
   a_boolean               is_abstract = FALSE, is_sealed = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean               is_template_class_instantiation = FALSE;
