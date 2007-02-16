@@ -867,7 +867,8 @@ EXTERN a_boolean
 EXTERN a_boolean
 		gnu_restrict_keyword_enabled;
 			/* TRUE if the GNU __restrict variant of the restrict
-			   keyword is recognized. */
+			   keyword is recognized (this is also TRUE in some
+			   Microsoft modes). */
 
 EXTERN a_boolean
 		long_lifetime_temps;
