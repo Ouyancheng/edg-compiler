@@ -1,5 +1,20 @@
 Version 3.9
 
+2/15/07  Microsoft/GNU compatibility: non-integral &a.b as template argument
+
+The Microsoft and GNU C++ emulation modes previously allowed
+expressions of the form &a.b as nontype template arguments only if the
+type of "b" is integral.  Now, such constructs are allowed as nontype
+template arguments regardless of the type of "b" (an error is issued
+if the expression type does not match the template parameter type).
+
+  typedef struct { int a; } A;
+  struct B { A w; };
+  extern B t;
+  template <const A *x> class foo { };
+  A x;
+  foo<&t.w> y;  // Now allowed in Microsoft and GNU modes
+
 2/15/07  Microsoft compatibility: extended variadic macros
 
 Version 8.0 of the Microsoft compiler supports extended variadic macros.

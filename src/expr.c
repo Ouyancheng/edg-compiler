@@ -2942,7 +2942,7 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
   a_boolean             err = FALSE, found_id = FALSE;
   a_boolean             operand_1_is_complete_class = FALSE, local_err;
   a_boolean             need_operand_1_type_check = FALSE;
-  a_boolean             allow_integral_constant_selection = FALSE;
+  a_boolean             allow_constant_selection = FALSE;
   a_boolean             need_member_sym_check;
   a_ref_entry_ptr       rep;
   a_type_ptr            routine_type;
@@ -2985,7 +2985,7 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
            struct A { enum { e1 = 1 }; } a;
            int x[a.e1];
          is allowed.  The constant check is done at the end. */
-      allow_integral_constant_selection = TRUE;
+      allow_constant_selection = TRUE;
     } else if (curr_expr_kind_is(ek_integral_constant)) {
       /* Field selection not allowed in integral constant expression. */
       pos_error(ec_bad_integral_operator, &pos_curr_token);
@@ -3008,7 +3008,7 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
        of the first operand in exchange for a requirement that the result
        is a constant (in which case the left operand would not have to be
        evaluated). */
-    allow_integral_constant_selection = TRUE;
+    allow_constant_selection = TRUE;
   }  /* if */
   if (err) {
     /* Operation is not allowed in this kind of expression. */
@@ -3022,7 +3022,7 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
                                         (an_operator_arrow_block_ptr)NULL);
     }  /* if */
     { an_expression_kind saved_expr_kind = expr_stack->expression_kind;
-      if (allow_integral_constant_selection) {
+      if (allow_constant_selection) {
         /* For the cfront or Microsoft case that allows p->k in a constant
            expression, treat the "p" momentarily as part of a non-constant
            expression to get no error on the lvalue-to-rvalue conversion. */
@@ -3695,12 +3695,21 @@ nonstatic_member_function:
                          &operator_position);
   }  /* if */
 
-  if (allow_integral_constant_selection) {
-    /* If we are allowing field selection in an integral constant expression
+  if (allow_constant_selection) {
+    /* If we are allowing field selection in a constant expression
        as an extension, check now that the result is constant and has
-       integral type. */
-    if (!is_constant_operand(result) ||
-        !is_integral_or_enum_type(result->type)) {
+       an appropriate type. */
+    a_boolean err = TRUE;
+    if (is_constant_operand(result)) {
+      if (is_integral_or_enum_type(result->type)) {
+        err = FALSE;
+      } else if ((curr_expr_kind_is(ek_init_constant) ||
+                  curr_expr_kind_is(ek_template_arg)) &&
+                 is_an_lvalue(result)) {
+        err = FALSE;
+      }  /* if */
+    }  /* if */
+    if (err) {
       if (!is_error_operand(result)) {
         error_in_operand(ec_expr_not_constant, result);
       }  /* if */
