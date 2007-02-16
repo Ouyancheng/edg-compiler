@@ -1783,6 +1783,11 @@ by a command line option.
       /* Version 8.0 accepts the extended version of variadic macros. */
       extended_variadic_macros_allowed = TRUE;
     }  /* if */
+    if (!(option_kind_used[(int)optk_restrict])) {
+      /* The keyword "__restrict" (i.e., the GNU variant of the C99 keyword
+         "restrict") is enabled in version 8.0. */
+      gnu_restrict_keyword_enabled = TRUE;
+    }  /* if */
   }  /* if */
 }  /* set_microsoft_mode_flags */
 

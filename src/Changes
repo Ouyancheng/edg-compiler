@@ -1,5 +1,13 @@
 Version 3.9
 
+2/15/07  Microsoft compatibility: __restrict
+
+In Microsoft C and C++ modes with microsoft_version >= 1400 the front end now
+accepts the "__restrict" qualifier.  It has the same meaning as the "restrict"
+qualifier in C99.  In Microsoft C++ mode, "__restrict" is also accepted on
+reference types (even though the Microsoft compiler ignores such uses with a
+warning).
+
 2/15/07  Microsoft/GNU compatibility: non-integral &a.b as template argument
 
 The Microsoft and GNU C++ emulation modes previously allowed
