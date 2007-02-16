@@ -429,7 +429,12 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_restrict, "restrict");
   }  /* if */
   if (gnu_restrict_keyword_enabled) {
-    enter_gnu_keyword((a_token_kind)tok_restrict, "__restrict");
+    if (microsoft_mode) {
+      /* Microsoft compilers accept "__restrict" but not "__restrict__". */
+      enter_keyword((a_token_kind)tok_restrict, "__restrict");
+    } else {
+      enter_gnu_keyword((a_token_kind)tok_restrict, "__restrict");
+    }  /* if */
   }  /* if */
   if (c99_mode || gnu_mode) {
     enter_keyword((a_token_kind)tok_func_name, "__func__");
