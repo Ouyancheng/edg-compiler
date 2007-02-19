@@ -1093,6 +1093,9 @@ Examples where a narrow-character string is widened include:
   void* p = "abc" L"xyz";  /* C99 or C++0x narrow/wide string concatenation */
   void* q = __LPREFIX("abc");  /* Microsoft wide-character string */  
 
+This problem is a regression introduced by the introduction of support for
+U-literals (see Changes entry of 2/14/06).
+
 11/2/06  Microsoft compatibility: conversion for direct reference binding
 
 Overload resolution has been tweaked to better emulate MSVC++ in
