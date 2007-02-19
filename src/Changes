@@ -2927,7 +2927,7 @@ member, the special processing is suppressed.
 5/22/06  Typedef redeclarations in C mode
 
 In C modes, duplicate typedef declarations with incompatible underlying types
-are now diagnosed in the same was as in C++ mode.  In particular, the error
+are now diagnosed in the same way as in C++ mode.  In particular, the error
 now indicates where the earlier typedef declaration occurred.  For example:
 
   typedef int S;    // Line 1.
