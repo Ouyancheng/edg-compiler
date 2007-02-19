@@ -4749,6 +4749,7 @@ to start a copy.
   if (new_constant != NULL) {
     /* The caller has passed in the address for the copy. */
     copy_constant(old_constant, new_constant);
+    may_be_shared = FALSE;
   } else if (may_be_shared) {
     /* For the shareable constant case, build up the constant locally and
        do the allocation at the end of this routine. */
@@ -4840,12 +4841,30 @@ to start a copy.
       case tpck_sizeof:
       case tpck_alignof:
       case tpck_uuidof:
-        if (new_constant->variant.template_param.variant.templ_sizeof.expr !=
-                                                                        NULL) {
-          new_constant->variant.template_param.variant.templ_sizeof.expr =
-              i_copy_expr_tree(old_constant->variant.template_param.variant.
-                                                             templ_sizeof.expr,
-                               options, cblock);
+        { an_expr_node_ptr old_expr, new_expr;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+          new_constant->variant.template_param.variant.templ_sizeof.
+                                                        local_expr_ref = FALSE;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+          old_expr = old_constant->variant.template_param.variant.
+                                                             templ_sizeof.expr;
+          if (old_expr != NULL) {
+            if (!in_file_scope(old_expr) &&
+                curr_il_region_number == file_scope_region_number) {
+              /* There's a memory region problem, so drop the expression
+                 (we still have the type).  If the expression turned out to
+                 be needed (PROTOTYPE_INSTANTIATIONS_IN_IL versions),
+                 the code here could set new_expr to old_expr, and
+                 fix_memory_region_problems_in_copied_constant would call
+                 make_local_expr_node_ref. */
+              new_expr = NULL;
+            } else {
+              /* Make a copy of the expression tree. */
+              new_expr = i_copy_expr_tree(old_expr, options, cblock);
+            }  /* if */
+            new_constant->variant.template_param.variant.templ_sizeof.expr =
+                                                                      new_expr;
+          }  /* if */
         }  /* if */
         break;
       case tpck_template_ref:
@@ -4864,6 +4883,8 @@ to start a copy.
   }  /* if */
   if (may_be_shared) {
     new_constant = alloc_shareable_constant(new_constant);
+  } else {
+    fix_memory_region_problems_in_copied_constant(new_constant);
   }  /* if */
   return new_constant; /*lint !e809*/
 }  /* i_copy_constant_full */
