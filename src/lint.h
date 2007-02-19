@@ -481,6 +481,7 @@ extern int fileno(FILE *);
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(769,ec_cl_unrecognized_calling_convention)*/
 /*lint -esym(769,ec_cl_calling_convention_list)*/
+/*lint -esym(769,ec_microsoft_interface)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !(GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX)
 /*lint -esym(759, lower_c99_constant_expr)*/

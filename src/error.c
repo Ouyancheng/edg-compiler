@@ -962,10 +962,15 @@ declaration position to eliminate redundant file names in a diagnostic.
         } else {
           if (fund_sym->kind == (a_symbol_kind)sk_union_tag) {
             entity_kind = ec_union;
-          } else if (C_dialect == C_dialect_cplusplus) {
-            entity_kind = ec_class;
-          } else {
+          } else if (C_mode()) {
             entity_kind = ec_struct;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (fund_sym->variant.type.ptr
+                             ->variant.class_struct_union.is_interface) {
+            entity_kind = ec_microsoft_interface;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          } else {
+            entity_kind = ec_class;
           }  /* if */
           if (distinct_template_signatures &&
               seg_ptr->variant.symbol.force_template_name_output) {

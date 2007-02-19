@@ -1632,6 +1632,7 @@ ec_builtin_function_overloaded;;"declaration overloads built-in %n"
 ec_cl_list_macros_incompatible_with_multiple_trans_units;;"the option to list macro definitions may not be specified when compiling more than one translation unit"
 ec_lparen_after_function;;"unexpected parenthesis after declaration of %n (malformed parameter list or invalid initializer?)"
 ec_nonstandard_parenthesized_string_initializer;;"parentheses around a string initializer are nonstandard"
+ec_microsoft_interface;INTERNAL;"__interface"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
