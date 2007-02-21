@@ -152,7 +152,7 @@ for each call to prescan_initializer_for_auto_type_deduction).
        the prescan. */
     check_assertion(curr_expr_kind_is_const() ==
                                           (dps->prescanned_lifetime == NULL));
-    pop_object_lifetime();
+    (void)pop_object_lifetime();
     curr_object_lifetime = expr_stack->lifetime = dps->prescanned_lifetime;
   }  /* if */
   /* Return the prescanned operand in one of two ways. */

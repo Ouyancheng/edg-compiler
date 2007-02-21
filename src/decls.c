@@ -13730,7 +13730,7 @@ a diagnostic if that isn't the case.
 */
 {
   if (dps->prev_type != NULL) {
-    check_variable_redecl_compatible(dps);
+    (void)check_variable_redecl_compatible(dps);
   }  /* if */
 }  /* check_deduced_auto_type */
 
