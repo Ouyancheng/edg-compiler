@@ -263,11 +263,29 @@ typedef struct a_decl_parse_state {
   a_source_position
 		virtual_pos;
 			/* The position of the "virtual" specifier (if any). */
+  a_source_position
+		auto_pos;
+			/* The position of the "auto" specifier (if any). */
+  a_bit_field
+		in_class_scope:1;
+			/* TRUE if the current declaration appears in class
+			   scope. */
+  a_bit_field
+		for_new_expr_type:1;
+			/* TRUE if this information block describes the parsing
+			   of a type for a "new-expression". */
   a_bit_field
 		unused_qualifiers:1;
 			/* TRUE if there are pending qualifiers that have
 			   not had an effect on the current declaration.
 			   ("An effect" may be a diagnostic.) */
+  a_bit_field
+		auto_type_allowed:1;
+			/* TRUE in a declarative context in which "auto" may
+			   appear as a type specifier. */
+  a_bit_field
+		auto_type_specifier_seen:1;
+			/* TRUE if "auto" appeared as a type specifier. */
   a_bit_field
 		is_asm_function:1;
 			/* TRUE if the current declaration is for an asm
@@ -383,6 +401,24 @@ typedef struct a_decl_parse_state {
 			/* If the current declaration is a redeclaration, the
 			   type previously recorded for the declared entity
 			   (currently only set for variable declarations). */
+  a_type_ptr
+		auto_type;
+			/* The tk_template_param type used to represent the
+			   "auto" type specifier (if any). */
+  a_type_ptr
+		deduced_auto_type;
+			/* The type that "auto" was deduced to after scanning
+			   the initializer. */
+  an_arg_operand_ptr
+		prescanned_auto_initializer;
+			/* A pointer to an expression operand scanned early
+			   to deduce the type of the "auto" type specifier.
+			   This field is set and read only by the expression
+			   processing routines. */
+  an_object_lifetime_ptr
+		prescanned_lifetime;
+			/* A pointer to the lifetime associated with a
+			   prescanned initializer. */
   a_source_sequence_entry_ptr
 		source_sequence_entry;
 			/* The source sequence entry created for the declarator
@@ -417,6 +453,18 @@ argument.
 
 extern void start_secondary_declarator(a_decl_parse_state  *ps);
 
+extern void check_deduced_auto_type(a_decl_parse_state  *dps);
+
+extern void f_check_use_of_auto_type(a_decl_parse_state  *dps);
+
+/*
+Check that if the "auto" type specifier was used, an initializer was present
+to enable type deduction.
+*/
+#define check_use_of_auto_type(dps)                                          \
+  if ((dps)->auto_type != NULL && (dps)->deduced_auto_type == NULL) {        \
+    f_check_use_of_auto_type((dps));                                         \
+  }  /* if */
 /*
 Macro to discard the source sequence entry associated with the declarator.
 (The first argument is a pointer to the current a_decl_parse_state block and
@@ -487,8 +535,8 @@ cv-qualifiers.
   type_name_full(/*disallow_variably_modified_type=*/FALSE,          \
                  type_ptr, (a_boolean*)NULL, (a_boolean*)NULL)
 
-extern void new_type_name(a_boolean         is_parenthesized,
-                          a_type_ptr        *type_ptr);
+extern void new_type_name(a_decl_parse_state  *state,
+                          a_boolean           is_parenthesized);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_type_ptr simple_type_specifier_sequence(void);

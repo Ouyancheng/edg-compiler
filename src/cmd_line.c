@@ -2206,6 +2206,7 @@ the next standard).
   long_long_promotion_allowed = TRUE;
   variadic_macros_allowed = TRUE;
   static_assert_enabled = TRUE;
+  auto_type_specifier_enabled = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -5355,6 +5356,7 @@ variables declared in cmd_line.h.
   extended_friends_enabled = FALSE;
   mixed_string_concat_enabled = FALSE;
   static_assert_enabled = FALSE;
+  auto_type_specifier_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

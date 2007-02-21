@@ -961,6 +961,7 @@ This routine is called in C++ mode only.
 
 
 static a_constant_ptr scan_initializer_of_simple_object(
+                                  a_decl_parse_state  *dps,
                                   a_boolean           nonconst_allowed,
                                   a_boolean           static_lifetime,
                                   a_boolean           force_object_lifetime,
@@ -971,7 +972,9 @@ static a_constant_ptr scan_initializer_of_simple_object(
 /*
 Scan a nonaggregate initializer (i.e., not a brace-enclosed expression list).
 If nonconst_allowed is TRUE (always the case in C++, sometimes otherwise) a
-nonconstant expression is allowed; if not, a constant is required.
+nonconstant expression is allowed; if not, a constant is required.  *dps
+describes the declaration directly associated with this initializer (if any;
+dps is NULL for ctor-initializers and for aggregate initializer elements).
 If static_lifetime is TRUE, the underlying entity has static storage duration.
 force_object_lifetime is TRUE only in C++ mode and only when this function is
 called in scanning a entry in a ctor initializer list; it is passed on to
@@ -1010,9 +1013,9 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
        of the scan is a constant if the expression is constant, and an
        expression node if not. */
     scan_initializer_expression(
-                             *p_type, static_lifetime, force_object_lifetime,
-                             suppress_object_lifetime, is_copy_initialization,
-                             &is_constant, &expression, &constant);
+                         *p_type, dps, static_lifetime, force_object_lifetime,
+                         suppress_object_lifetime, is_copy_initialization,
+                         &is_constant, &expression, &constant);
   } else {
     /* Non-constant is not allowed. */
     scan_constant_initializer_expression(*p_type, &constant);
@@ -1908,6 +1911,7 @@ accepted.  The function returns a pointer to an IL a_constant entity.
       microsoft_enum_case = TRUE;
     }  /* if */
     constant = scan_initializer_of_simple_object(
+                                     (a_decl_parse_state*)NULL,
                                      nonconst_allowed,
                                      (a_boolean)init_info->static_lifetime,
                                      /*force_object_lifetime=*/FALSE,
@@ -2989,14 +2993,15 @@ is not needed.
 }  /* pop_object_lifetime_for_local_static_init */
 
 
-static a_constant_ptr simple_initializer(a_boolean             static_lifetime,
+static a_constant_ptr simple_initializer(a_decl_parse_state    *dps,
+                                         a_boolean             static_lifetime,
                                          a_type_ptr            vp_type,
                                          a_dynamic_init_ptr    *init_dip,
                                          a_decl_pos_block_ptr  decl_pos_block)
 /*
-Scan a simple nonaggregate, nonparenthesized initializer.  static_lifetime is
-TRUE is the entity being initialized has static storage duration; vp_type is
-the type of that entity.
+Scan a simple nonaggregate, nonparenthesized initializer for a declaration
+described by *dps.  static_lifetime is TRUE is the entity being initialized
+has static storage duration; vp_type is the type of that entity.
 */
 {
   a_constant_ptr constant; /* result of this function */
@@ -3007,7 +3012,7 @@ the type of that entity.
   /* Scan the initializer.  Either a constant pointer is returned or else
      a dynamic init entry representing an expression. */
   constant =
-          scan_initializer_of_simple_object(nonconstant_allowed,
+          scan_initializer_of_simple_object(dps, nonconstant_allowed,
                                             static_lifetime,
                                             /*force_object_lifetime=*/FALSE,
                                             /*suppress_object_lifetime=*/FALSE,
@@ -3023,8 +3028,8 @@ the type of that entity.
       a_constant_ptr     next_constant;
       a_dynamic_init_ptr next_dip = NULL;
       (void)get_token();
-      next_constant = simple_initializer(static_lifetime, vp_type, &next_dip,
-                                         decl_pos_block);
+      next_constant = simple_initializer(dps, static_lifetime, vp_type,
+                                         &next_dip, decl_pos_block);
       if (static_lifetime && constant != NULL && next_constant != NULL) {
         /* Approximately emulate the Microsoft behavior that if only true
            constants are involved, the first value is kept for variables
@@ -3069,18 +3074,17 @@ the type of that entity.
 }  /* simple_initializer */
 
 
-void initializer(a_symbol_ptr          symbol_ptr,
-                 a_source_position     *source_pos,
-                 an_id_linkage_kind    linkage,
-                 a_boolean             parenthesized_initializer,
-                 a_boolean             is_parameter,
-                 a_boolean             *incomplete_type_error_reported,
-                 a_decl_pos_block_ptr  decl_pos_block)
+void initializer(a_decl_parse_state  *dps,
+                 a_source_position   *source_pos,
+                 an_id_linkage_kind  linkage,
+                 a_boolean           parenthesized_initializer,
+                 a_boolean           *incomplete_type_error_reported,
+                 a_decl_pos_block    *decl_pos_block)
 /*
-Scan an initializer (3.5.7) for the symbol pointed to by symbol_ptr
-(with linkage as given by linkage; a parameter if is_parameter is TRUE).
-The source position of the symbol (which may differ from the decl_position
-in symbol_ptr if this is a second declaration) is given by *source_pos.
+Scan an initializer for the declaration described by *dps (dps->sym points
+to an sk_variable or sk_static_data_member symbol).  The linkage of the
+initialized entity is given by linkage.  *source_pos is the declaration's
+position for diagnostic purposes.
 The C-mode syntax is:
 
 3.5.7  initializer:
@@ -3105,10 +3109,13 @@ an error on an incomplete type, *incomplete_type_error_reported will be
 returned set to TRUE.
 */
 {
+  a_symbol_ptr                      symbol_ptr = dps->sym;
   a_variable_ptr                    vp = NULL;
   a_type_ptr                        vp_type = NULL;
   a_boolean                         var_err, init_err;
   a_boolean                         static_lifetime;
+  a_boolean                         is_parameter =
+                                                 dps->is_old_style_param_decl;
   a_constant_ptr                    init_con = NULL;
   a_dynamic_init_ptr                init_dip = NULL;
   a_class_symbol_supplement_ptr     cssp = NULL;
@@ -3268,8 +3275,7 @@ returned set to TRUE.
      variable will be an error constant (or a dynamic initializer pointing
      to an error constant. */
   init_err = FALSE;
-  if (C_dialect == C_dialect_cplusplus &&
-      is_class_struct_union_type(vp_type)) {
+  if (!C_mode() && is_class_struct_union_type(vp_type)) {
     cssp = symbol_supplement_for_class(vp_type);
     if (curr_token == tok_lbrace &&
         !(cssp->is_class_aggregate ||
@@ -3285,6 +3291,17 @@ returned set to TRUE.
       cssp = NULL;
     }  /* if */
   }  /* if */
+  if (dps->auto_type_specifier_seen && !is_error_type(vp_type)) {
+    /* An initializer for a variable declared with the "auto" type specifier.*/
+    if (curr_token == tok_lbrace) {
+      error(ec_auto_brace_initialization_not_allowed);
+      dps->type = vp_type = error_type();
+    } else {
+      prescan_initializer_for_auto_type_deduction(dps);
+      vp_type = dps->type;
+    }  /* if */
+  }  /* if */
+  dps->type = vp_type;
   /* Now process the initializer.  There are three cases:  parenthesized
      initializer (C++ only), brace-enclosed initializer list, and simple
      initializer.  These are handled in turn. */
@@ -3304,11 +3321,9 @@ returned set to TRUE.
       /* Use the source position of the first argument as the call position. */
       pos = pos_curr_token;
       if (dependent_class_type) {
-        scan_dependent_type_parenthesized_initializer(
-                                  /*force_object_lifetime=*/FALSE, &init_dip);
+        scan_dependent_type_parenthesized_initializer(dps, &init_dip);
       } else {
-        scan_class_parenthesized_initializer(vp_type, vp_type,
-                                             /*force_object_lifetime=*/FALSE,
+        scan_class_parenthesized_initializer(vp_type, vp_type, dps,
                                              &pos, /*fill_in_dtor=*/TRUE,
                                              &init_dip);
       }  /* if */
@@ -3329,7 +3344,7 @@ returned set to TRUE.
          a dynamic init entry representing an expression. */
       nonconstant_allowed = (!C_mode() || !static_lifetime);
       init_con =
-          scan_initializer_of_simple_object(nonconstant_allowed,
+          scan_initializer_of_simple_object(dps, nonconstant_allowed,
                                             static_lifetime,
                                             /*force_object_lifetime=*/FALSE,
                                             /*suppress_object_lifetime=*/FALSE,
@@ -3380,7 +3395,7 @@ returned set to TRUE.
       /* In ordinary C a struct or union variable may be initialized by an
          object of the same type as long as dynamic initialization is
          otherwise allowed. */
-      if (scan_class_initializer_expression(vp_type, &init_dip)) {
+      if (scan_class_initializer_expression(dps, &init_dip)) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         if (decl_pos_block != NULL) {
           decl_pos_block->var_init_range.end = curr_construct_end_position;
@@ -3453,9 +3468,11 @@ returned set to TRUE.
     /* A non-aggregate object is being initialized.  Braces are permitted
        but not required.  A constant or non-constant expression may be
        permitted as the initializer. */
-    init_con = simple_initializer(static_lifetime, vp_type, &init_dip,
+    init_con = simple_initializer(dps, static_lifetime, vp_type, &init_dip,
                                   decl_pos_block);
   }  /* if */
+  /* Verify that any prescanned operand was consumed. */
+  check_assertion(dps->prescanned_auto_initializer == NULL);
   if (!var_err) {
     /* There was no error that precludes initialization, so update the
        variable entry with the initializer. */
@@ -4607,7 +4624,7 @@ scan_paren:
                like any scalar. */
             if (dependent_class_init) {
               scan_dependent_type_parenthesized_initializer(
-                                        /*force_object_lifetime=*/TRUE, &dip);
+                                             (a_decl_parse_state*)NULL, &dip);
             } else {
               a_type_ptr  object_class_type;
               /* If it is a base class, the object being constructed is the
@@ -4627,7 +4644,7 @@ scan_paren:
                  finds no constructor for which the arguments match. */
               scan_class_parenthesized_initializer(
                                            init_type, object_class_type,
-                                           /*force_object_lifetime=*/TRUE,
+                                           (a_decl_parse_state*)NULL,
                                            &lparen_pos,
                                            /*fill_in_dtor=*/exceptions_enabled,
                                            &dip);
@@ -4746,6 +4763,7 @@ scan_paren:
                    dik_none for now.  It will be adjusted after the scan. */
                 dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
                 (void)scan_initializer_of_simple_object(
+                                            (a_decl_parse_state*)NULL,
                                             /*nonconst_allowed=*/TRUE,
                                             /*static_lifetime=*/FALSE,
                                             /*force_object_lifetime=*/TRUE,

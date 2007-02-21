@@ -4508,9 +4508,7 @@ The syntax is:
                        is_or_contains_error_type(complete_type)));
       parenthesized_initializer_allowed = FALSE;
     } else {
-      /* Real (non-abstract) declarator.  Reset declarator_pos to correspond
-         to the position of the declarator-id. */
-      declarator_pos = pos_curr_token;
+      /* Real (non-abstract) declarator. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
@@ -4529,6 +4527,11 @@ The syntax is:
                               &parenthesized_initializer_allowed,
                               &not_a_function_declarator,
                               &member_parent_type, decl_pos_block);
+      /* Reset declarator_pos to correspond to the position of the
+         declarator-id.  Doing this after the call to scan_real_declarator_id
+         ensures the position is that of the main identifier (and not e.g.
+         a qualifier). */
+     declarator_pos = locator->source_position;
     }  /* if */
   }  /* if */
   consume_any_stray_microsoft_rparen();
@@ -5126,6 +5129,31 @@ function_lparen:
 }  /* r_declarator */
 
 
+static void check_type_with_auto_specifier(a_decl_parse_state  *state)
+/*
+*state describes a declaration parsing state involving a complete declarator
+that builds a type on top of an "auto" type specifier.  Check that the
+resulting type is neither an array type nor a function type.
+*/
+{
+  a_boolean  err = FALSE;
+
+  check_assertion(state->auto_type_specifier_seen);
+  if (is_array_type(state->declared_type)) {
+    pos_error(ec_auto_type_in_array_type, &state->auto_pos);
+    err = TRUE;
+  } else if (is_function_type(state->declared_type)) {
+    pos_error(ec_auto_type_in_function_type, &state->auto_pos);
+    err = TRUE;
+  }  /* if */
+  if (err) {
+    *state->auto_type = *error_type();
+    state->auto_type = NULL;
+    state->auto_type_specifier_seen = FALSE;
+  }  /* if */
+}  /* check_type_with_auto_specifier */
+
+
 void declarator(a_decl_flag_set             input_flags,
                 a_decl_parse_state          *state,
                 a_type_ptr                  member_parent_type,
@@ -5192,6 +5220,9 @@ the parameters.
                                              &state->declarator_start_pos);
   }  /* if */
   check_pending_qualifiers_used(state);
+  if (state->auto_type_specifier_seen) {
+    check_type_with_auto_specifier(state);
+  }  /* if */
   /* r_declarator will have set error_position to the position of the
      declarator-id if this is a real declarator and the first token of the
      whole declarator if it is an abstract declarator. */

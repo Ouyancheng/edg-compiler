@@ -867,6 +867,8 @@ a class member declaration as it appears.
 */
 {
   init_decl_parse_state(&mdip->decl_state);
+  mdip->decl_state.auto_type_allowed = TRUE;
+  mdip->decl_state.in_class_scope = TRUE;
   mdip->decl_state.start_pos = *pos;
   clear_decl_pos_block(&mdip->decl_pos_block);
   mdip->is_first_in_declarator_list = TRUE;
@@ -8502,6 +8504,7 @@ specific information about the member declaration, respectively.
     pos_diagnostic(anachronism_error_severity,
                    ec_static_data_member_not_allowed, start_pos);
   }  /* if */
+  decl_state->type = member_type;
   if (decl_info->is_member_template) set_to_named_error_locator(*locator);
   /* Create the variable entry for the static data member. */
   /* All static data member variables are allocated in the file scope memory
@@ -8543,6 +8546,15 @@ specific information about the member declaration, respectively.
   }  /* if */
   var->source_corresp.access = class_state->access;
   if (curr_token == tok_assign) {
+    a_constant         constant;
+    a_source_position  init_pos;
+    init_pos = pos_curr_token;
+    /* Advance past the "=". */
+    (void)get_token();
+    if (decl_state->auto_type_specifier_seen && !is_error_type(member_type)) {
+      prescan_initializer_for_auto_type_deduction(decl_state);
+      member_type = decl_state->type;
+    }  /* if */
     if ((is_const_qualified_type(member_type) &&
          (is_integral_or_enum_type(member_type) ||
           (gpp_mode &&
@@ -8556,12 +8568,9 @@ specific information about the member declaration, respectively.
          an initializer but it is not yet considered defined.  GNU compilers
          allow floating-point in-class initializers, and some versions even
          allow pointers to be initialized in this way. */
-      a_constant constant;
-      decl_info->decl_pos_block.var_init_range.start = pos_curr_token;
-      /* Advance past the "=". */
-      (void)get_token();
+      decl_info->decl_pos_block.var_init_range.start = init_pos;
       /* Scan the constant expression. */
-      scan_member_constant_initializer_expression(member_type, &constant);
+      scan_member_constant_initializer_expression(decl_state, &constant);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       decl_info->decl_pos_block.var_init_range.end =
                                             curr_construct_end_position;
@@ -8572,6 +8581,12 @@ specific information about the member declaration, respectively.
          an initializer for this variable entry, it has not necessarily been
          defined. */
       var->is_member_constant = TRUE;
+    } else {
+      /* Issue a diagnostic for an invalid member constant type. */
+      if (!is_error_type(member_type)) {
+        pos_ty_error(ec_invalid_member_constant_type, &init_pos, member_type);
+      }  /* if */
+      scan_and_discard_initializer_expression(decl_state);
     }  /* if */
   }  /* if */
   /* This is entered as a declaration rather than a definition, since the
@@ -13530,6 +13545,7 @@ passed via template_decl.
     *decl_state->p_declarator_attributes = NULL;
     free_attribute_list(declarator_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    check_use_of_auto_type(decl_state);
     /* Loop for additional declarators. */
   } while (loop_token(tok_comma));
 next_declaration:;
@@ -13543,6 +13559,7 @@ next_declaration:;
        then. */
     pos_error(ec_explicit_not_allowed, &decl_start_pos);
   }  /* if */
+  check_use_of_auto_type(decl_state);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     if (any_decl_other_than_nonstatic_data_member &&

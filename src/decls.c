@@ -107,7 +107,12 @@ and efficient initialization.
   ps->restrict_pos = null_source_position;
   ps->inline_pos = null_source_position;
   ps->virtual_pos = null_source_position;
+  ps->auto_pos = null_source_position;
   ps->unused_qualifiers = FALSE;
+  ps->in_class_scope = FALSE;
+  ps->for_new_expr_type = FALSE;
+  ps->auto_type_allowed = FALSE;
+  ps->auto_type_specifier_seen = FALSE;
   ps->is_asm_function = FALSE;
   ps->function_definition_allowed = FALSE;
   ps->is_old_style_param_decl = FALSE;
@@ -136,6 +141,10 @@ and efficient initialization.
   ps->declared_type = NULL;
   ps->type = NULL;
   ps->prev_type = NULL;
+  ps->auto_type = NULL;
+  ps->deduced_auto_type = NULL;
+  ps->prescanned_auto_initializer = NULL;
+  ps->prescanned_lifetime = NULL;
   ps->source_sequence_entry = NULL;
   ps->param_id = NULL;
   ps->upc_block_size = UPC_BLOCK_SIZE_NONE;
@@ -4963,6 +4972,72 @@ Return TRUE if the given list of attributes includes one representing the
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+static a_boolean check_variable_redecl_compatible(a_decl_parse_state  *dps)
+/*
+*dps represents a variable declaration with type dps->type, but previously
+declared with type dps->prev_type.  Return TRUE if the two types are compatible
+and set dps->type to the composite type if needed.  Otherwise, return FALSE and
+emit an error.
+*/
+{
+  a_boolean  redecl_okay = TRUE;
+
+  /* If necessary, check that throw-specifications match. */
+  if (!C_mode() && ((is_ptr_or_ref_type(dps->type) &&
+                     is_function_type(type_pointed_to(dps->type))) ||
+                    (is_ptr_to_member_type(dps->type) &&
+                     is_function_type(pm_member_type(dps->type))))) {
+     check_exception_specification(dps->type, dps->sym, &dps->declarator_pos,
+                                   /*is_redecl=*/TRUE);
+  }  /* if */
+  if (!types_are_redecl_compatible(dps->type, dps->prev_type)) {
+    an_error_severity  severity = es_none;
+    a_type_ptr         orig_type = skip_typerefs(dps->prev_type);
+    a_type_ptr         redecl_type = skip_typerefs(dps->type);
+
+    if (gcc_mode && gnu_version < 30000) {
+      if (types_are_redecl_compatible(redecl_type, orig_type)) {
+        /* Earlier versions of GNU C (but not GNU C++) accept
+           redeclarations of variables that only differ in
+           cv-qualification (with a warning). */
+        severity = es_warning;
+        dps->type = make_qualified_type(redecl_type,
+                                        (get_type_qualifiers(dps->type) |
+                                         get_type_qualifiers(dps->prev_type)));
+        dps->prev_type =
+                    make_qualified_type(orig_type,
+                                        (get_type_qualifiers(dps->type) |
+                                         get_type_qualifiers(dps->prev_type)));
+      }  /* if */
+    }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (C_mode() && microsoft_mode &&
+        is_integral_type(redecl_type) && is_integral_type(orig_type) &&
+        redecl_type->size == orig_type->size &&
+        redecl_type->alignment == orig_type->alignment) {
+      /* Just issue a warning in Microsoft C mode.  MSVC uses the first
+         declaration, so adjust dps->type. */
+      severity = es_warning;
+      dps->type = dps->prev_type;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    if (severity == es_none) {
+      severity = es_error;      
+      redecl_okay = FALSE;
+    }  /* if */
+    pos_sy_diagnostic(severity, ec_not_compatible_with_previous_decl,
+                      &dps->declarator_pos, dps->sym);
+  }  /* if */
+  if (redecl_okay) {
+    /* The type of the variable should be the composite of the two types. */
+    dps->sym->variant.variable.ptr->type = dps->type =
+                                    composite_type(dps->type, dps->prev_type);
+  }  /* if */
+  return redecl_okay;
+}  /* check_variable_redecl_compatible */
+
+
 void decl_variable(a_symbol_locator             *locator,
                    a_decl_parse_state           *dps,
                    a_symbol_reference_kind      srk_flags,
@@ -5089,16 +5164,6 @@ for use in generating cross-reference output describing this declaration.
       linked_symbol = fundamental_symbol_of(linked_symbol);
     }  /* if */
     if (linked_symbol->kind == (a_symbol_kind)sk_variable) {
-      /* If necessary, check that throw-specifications match. */
-      if (!C_mode() &&
-          ((is_ptr_or_ref_type(type_ptr) &&
-            is_function_type(type_pointed_to(type_ptr))) ||
-           (is_ptr_to_member_type(type_ptr) &&
-            is_function_type(pm_member_type(type_ptr))))) {
-        check_exception_specification(type_ptr, linked_symbol,
-                                      &locator->source_position,
-                                      /*is_redecl=*/TRUE);
-      }  /* if */
       if (C_mode() || (microsoft_mode && (srk_flags & SRK_TENTATIVE_DEF))) {
         if (linked_symbol->defined &&
             linked_symbol->variant.variable.ptr->init_kind !=
@@ -5130,56 +5195,22 @@ for use in generating cross-reference output describing this declaration.
       } else {
         /* Linked symbol and new symbol are both variables.  See if they
            are compatible. */
-        sym = linked_symbol;
+        sym = dps->sym = linked_symbol;
         variable_ptr = linked_symbol->variant.variable.ptr;
         check_assertion(variable_ptr != NULL);
         dps->prev_type = variable_ptr->type;
-        if (!types_are_redecl_compatible(type_ptr, dps->prev_type)) {
-          an_error_severity  severity = es_none;
-          a_type_ptr         orig_type = skip_typerefs(dps->prev_type);
-          a_type_ptr         redecl_type = skip_typerefs(type_ptr);
-
-          if (gcc_mode && gnu_version < 30000) {
-            if (types_are_redecl_compatible(redecl_type, orig_type)) {
-              /* Earlier versions of GNU C (but not GNU C++) accept
-                 redeclarations of variables that only differ in
-                 cv-qualification (with a warning). */
-              severity = es_warning;
-              type_ptr = make_qualified_type(
-                                         redecl_type,
-                                         get_type_qualifiers(type_ptr) |
-                                         get_type_qualifiers(dps->prev_type));
-              dps->prev_type = make_qualified_type(
-                                         orig_type,
-                                         get_type_qualifiers(type_ptr) |
-                                         get_type_qualifiers(dps->prev_type));
-            }  /* if */
-          }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (C_mode() && microsoft_mode &&
-              is_integral_type(redecl_type) && is_integral_type(orig_type) &&
-              redecl_type->size == orig_type->size &&
-              redecl_type->alignment == orig_type->alignment) {
-            /* Just issue a warning in Microsoft C mode.  MSVC uses the first
-               declaration, so adjust type_ptr. */
-            severity = es_warning;
-            type_ptr = dps->prev_type;
-          } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          /* Do not insert code here. */
-          if (severity == es_none) {
-            severity = es_error;      
+        /* Check that the type of the new declaration is compatible with that
+           of the previous declaration(s), and create the composite type if
+           necessary.  If the current declaration involves the "auto" type
+           specifier, do not perform the check now -- it will be done later
+           when the actual type is known. */
+        if (!dps->auto_type_specifier_seen) {
+          dps->type = type_ptr;
+          if (!check_variable_redecl_compatible(dps)) {
             redecl_error_already_issued = TRUE;
             linked_redecl_error = TRUE;
           }  /* if */
-          pos_sy_diagnostic(severity, ec_not_compatible_with_previous_decl,
-                            &locator->source_position, linked_symbol);
-        }  /* if */
-        if (!linked_redecl_error) {
-          /* The type of the variable should be the composite of the two
-             types. */
-          variable_ptr->type = type_ptr = composite_type(type_ptr,
-                                                         dps->prev_type);
+          type_ptr = dps->type;
         }  /* if */
       }  /* if */
     } else {
@@ -9324,11 +9355,13 @@ needed).
 }  /* type_name_full */
 
 
-void new_type_name(a_boolean         is_parenthesized,
-                   a_type_ptr        *type_ptr)
+void new_type_name(a_decl_parse_state  *state,
+                   a_boolean           is_parenthesized)
 /*
 Scan a C++ new-type-name or a parenthesized type-name that may appear in a
-"new" expression (ARM 5.3.3), and return a pointer to the type in *type_ptr.
+"new" expression (ARM 5.3.3), and return a pointer to the type through
+state->type.  *state also records various aspects of the type name parsing
+process (in particular, information about any use of the "auto" specifier).
 The syntax is:
 
    new-type-name:
@@ -9359,7 +9392,6 @@ within this routine if is_parenthesized comes in FALSE.
   a_decl_flag_set             dsi_flags;
   a_decl_pos_block            decl_pos_block;
   a_boolean                   rparen_in_new_declarator = FALSE;
-  a_decl_parse_state          state;
 
   db_enter(3, "new_type_name");
   /* Check for the parenthesized form. */
@@ -9369,21 +9401,20 @@ within this routine if is_parenthesized comes in FALSE.
   }  /* if */
   if (is_parenthesized) add_stop_token(tok_rparen);
   set_err_pos_to_curr_token();
-  init_decl_parse_state(&state);
   clear_decl_pos_block(&decl_pos_block);
-  copy_source_position(pos_curr_token, state.start_pos);
+  copy_source_position(pos_curr_token, state->start_pos);
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME |
               DSI_NO_REAL_DECLARATOR;
-  decl_specifiers(dsi_flags, &state, &decl_pos_block);
-  if (state.dso_flags & DSO_DEFINES_SOMETHING) {
+  decl_specifiers(dsi_flags, state, &decl_pos_block);
+  if (state->dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
-    pos_error(ec_type_definition_not_allowed, &state.start_pos);
-  } else if (!(state.dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+    pos_error(ec_type_definition_not_allowed, &state->start_pos);
+  } else if (!(state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
-    report_implicit_int(&error_position, state.specifiers_type);
+    report_implicit_int(&error_position, state->specifiers_type);
   }  /* if */
-  if (state.type != NULL) {
-    (skip_typerefs(state.type))->source_corresp.referenced = TRUE;
+  if (state->type != NULL) {
+    (skip_typerefs(state->type))->source_corresp.referenced = TRUE;
   }  /* if */
   if (gpp_mode && gnu_version < 30400 &&
       curr_token == tok_rparen && next_token() == tok_lbracket) {
@@ -9403,11 +9434,11 @@ within this routine if is_parenthesized comes in FALSE.
       declarator(DI_ABSTRACT_DECLARATOR_ALLOWED |
                     DI_QUALIFIED_NAME_ALLOWED |
                     DI_DIMENSION_EXPRESSION_ALLOWED,
-                 &state, /*member_parent_type=*/(a_type_ptr)NULL,
+                 state, /*member_parent_type=*/(a_type_ptr)NULL,
                  (a_symbol_locator *)NULL, (a_func_info_block_ptr)NULL,
                  &decl_pos_block, (an_attribute_ptr *)NULL);
     }  /* if */
-    if (state.do_flags & DO_RPAREN_IN_NEW_DECLARATOR) {
+    if (state->do_flags & DO_RPAREN_IN_NEW_DECLARATOR) {
       /* We parsed something like "new (int[n])[3]" in a GNU C++ mode.  The
          right parenthesis was consumed as part of declarator processing. */
       check_assertion(gpp_mode && gnu_version < 30400);
@@ -9420,7 +9451,7 @@ within this routine if is_parenthesized comes in FALSE.
        allowed. */
     a_boolean  ptr_to_member_scanned;
     /* Scan pointer declarators. */
-    complete_type = pointer_declarator(state.type, &state,
+    complete_type = pointer_declarator(state->type, state,
                                        /*reference_allowed=*/FALSE,
 				       (a_call_conv_descr_ptr)NULL,
 				       (a_call_conv_descr_ptr)NULL,
@@ -9481,12 +9512,12 @@ within this routine if is_parenthesized comes in FALSE.
     }  /* if */
     remove_stop_token(tok_lbracket);
     if (ptr_to_member_scanned &&
-        check_for_vla_in_pointer_to_member(complete_type, &state.start_pos)) {
+        check_for_vla_in_pointer_to_member(complete_type, &state->start_pos)) {
       /* Complete type is or contains a pointer-to-member to a variably
          modified type, which is an error. */
       complete_type = error_type();
     }  /* if */
-    state.type = complete_type;
+    state->type = complete_type;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block.declarator_range.end.seq != 0) {
@@ -9495,14 +9526,13 @@ within this routine if is_parenthesized comes in FALSE.
     curr_construct_end_position = decl_pos_block.specifiers_range.end;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  check_pending_qualifiers_used(&state);
+  check_pending_qualifiers_used(state);
   if (any_cfront_mode() &&
-      check_member_function_typedef(state.type, &state.start_pos)) {
+      check_member_function_typedef(state->type, &state->start_pos)) {
     /* The type is a cfront-style member function typedef -- it is an error
        to use it anywhere but in a pointer-to-member declaration. */
-    state.type = error_type();
+    state->type = error_type();
   }  /* if */
-  *type_ptr = state.type;
   db_exit();
 }  /* new_type_name */
 
@@ -10549,6 +10579,7 @@ Return a pointer to the variable that is declared.
               DSI_IS_CONDITION_DECL;
   init_decl_parse_state(&state);
   state.start_pos = pos_curr_token;
+  state.auto_type_allowed = auto_type_specifier_enabled;
   clear_decl_pos_block(&decl_pos_block);
   decl_specifiers(dsi_flags, &state, &decl_pos_block);
   if (state.dso_flags & DSO_DEFINES_SOMETHING) {
@@ -10594,6 +10625,7 @@ Return a pointer to the variable that is declared.
      scope. */
   sym = enter_symbol((a_symbol_kind)sk_variable, &locator, decl_scope_level,
                      /*suppress_redecl_error=*/FALSE);
+  state.sym = sym;
   /* Allocate the variable and bind the symbol to it. */
   vp = make_variable(state.type, state.storage_class, decl_scope_level);
   sym->variant.variable.ptr = vp;
@@ -10631,8 +10663,8 @@ Return a pointer to the variable that is declared.
       error_position = pos_curr_token;
       syntax_error(ec_exp_primary_expr);
     } else {
-      initializer(sym, &locator.source_position, (an_id_linkage_kind)idl_none,
-                  /*parenthesized_initializer=*/FALSE, /*is_parameter=*/FALSE,
+      initializer(&state, &locator.source_position, idl_none,
+                  /*parenthesized_initializer=*/FALSE,
                   &incomplete_type_error_reported, &decl_pos_block);
     }  /* if */
     /* Reset the error position to the source position of the declarator. */
@@ -12504,18 +12536,11 @@ the encountered token and do not attempt to fully parse an initializer.
     flush_to_closing_paren();
     (void)get_token();
   } else {
-    a_boolean         is_constant;
-    an_expr_node_ptr  expression;
-    a_constant        constant;
     pos_sy_error(ec_cannot_initialize, init_pos, sym);
     /* Skip the assignment operator. */
     (void)required_token(tok_assign, ec_exp_assign);
     /* Scan (and discard) the expression that follows. */
-    scan_initializer_expression(error_type(), innermost_function_scope != NULL,
-                                /*force_object_lifetime=*/FALSE,
-                                /*suppress_object_lifetime=*/TRUE,
-                                /*is_copy_initialization=*/TRUE,
-                                &is_constant, &expression, &constant);
+    scan_and_discard_initializer_expression((a_decl_parse_state*)NULL);
   }  /* if */
 }  /* diagnose_initializer_on_function */
 
@@ -13105,6 +13130,9 @@ if one is present.
       mark_symbol_to_suppress_warnings(state->sym);
     }  /* if */
   }  /* if */
+  if (state->auto_type_specifier_seen && var_ptr != NULL) {
+    var_ptr->declared_with_auto_type_specifier = TRUE;
+  }  /* if */
   if (is_variable_def || is_tentative_def) {
     /* In C++ mode, check whether a template class type needs to be
        instantiated.  If appropriate, record that a complete type is required
@@ -13150,9 +13178,9 @@ if one is present.
     /* If the symbol is a parameter, the subroutine will generate the error.
        This is done rather than flagging the error here because the subroutine
        can scan over the initializer expression neatly. */
-    initializer(state->sym, &locator->source_position, linkage,
-                has_parenthesized_initializer, state->is_old_style_param_decl,
-                &incomplete_type_error_reported, decl_pos_block);
+    initializer(state, &locator->source_position, linkage,
+                has_parenthesized_initializer, &incomplete_type_error_reported,
+                decl_pos_block);
     if (decl_invisible_to_initializer && !state->sym->is_error) {
       /* Mark the symbol as visible now that the initializer is complete. */
       state->sym->is_invisible = FALSE;
@@ -13171,9 +13199,16 @@ if one is present.
            "int x = x;" can be caught. */
         mark_variable_value_set(state->sym);
       }  /* if */
-      /* Fetch the type of the symbol again, since it might have been changed
-         if it was an incomplete array and was initialized. */
-      state->type = var_ptr->type;
+      if (!is_error_type(state->type)) {
+        /* Fetch the type of the symbol again, since it might have been changed
+           if it was an incomplete array and was initialized. */
+        state->type = var_ptr->type;
+      } else {
+        /* Some error may have occurred during initialization: Propagate the
+           error type.  (E.g., we may get here when trying to use a brace-
+           enclosed initializer with an "auto" type specifier.) */
+        var_ptr->type = state->type;
+      }  /* if */
     }  /* if */
   } else if (state->is_old_style_param_decl) {
     /* Don't worry about a missing initializer. */
@@ -13285,6 +13320,7 @@ if one is present.
       }  /* if */
     }  /* if */
   }  /* if */
+  check_use_of_auto_type(state);
 }  /* variable_declaration */
 
 
@@ -13679,8 +13715,46 @@ related-fields in prior to scanning the next declarator.
   ps->storage_class = ps->declared_storage_class;
   ps->declared_type = ps->specifiers_type;
   ps->type = ps->specifiers_type;
+  ps->prescanned_auto_initializer = NULL;
+  ps->prescanned_lifetime = NULL;
   ps->source_sequence_entry = NULL;
 }  /* start_secondary_declarator */
+
+
+void check_deduced_auto_type(a_decl_parse_state  *dps)
+/*
+*dps describes a declaration involving an "auto" type specifier and the type
+of the declaration has already been deduced from the initializer.  Check that
+this type is consistent with any previous declarations of the entity, and emit
+a diagnostic if that isn't the case.
+*/
+{
+  if (dps->prev_type != NULL) {
+    check_variable_redecl_compatible(dps);
+  }  /* if */
+}  /* check_deduced_auto_type */
+
+
+void f_check_use_of_auto_type(a_decl_parse_state  *dps)
+/*
+Check that if the "auto" type specifier was used in the current declaration,
+an initializer enabled the deduction of an actual type.  Issue an error if
+that was not the case and set dps->specifiers_type to an error type to avoid
+repeating the diagnostic if additional declarators follow.
+This routine should be called through the macro check_use_of_auto_type for
+efficiency.
+*/
+{
+  if (dps->auto_type_specifier_seen && dps->deduced_auto_type == NULL &&
+      !(dps->type != NULL && is_error_type(dps->type))) {
+    /* The "auto" type specifier was seen, but we never performed deduction
+       and no other error was recorded in the declaration's type.*/
+    pos_error(ec_auto_type_requires_initializer, &dps->auto_pos);
+    dps->auto_type_specifier_seen = FALSE;
+    dps->auto_type = NULL;
+    dps->specifiers_type = dps->type = error_type();
+  }  /* if */
+}  /* f_check_use_of_auto_type */
 
 
 void declaration(a_boolean       function_definition_allowed,
@@ -13753,6 +13827,7 @@ Broadly speaking, three kinds of declarations are handled here:
   /* Initialize structures to hold information about the declaration to be
      parsed. */
   init_decl_parse_state(&state);
+  state.auto_type_allowed = auto_type_specifier_enabled;
   copy_source_position(pos_curr_token, state.start_pos);
   state.function_definition_allowed = function_definition_allowed;
   state.is_old_style_param_decl = is_old_style_param_decl;
@@ -13841,6 +13916,7 @@ Broadly speaking, three kinds of declarations are handled here:
           is_decl_start(IDS_MS_ATTRIB_NOT_ALLOWED)) {
         /* Microsoft C++ compilers allow decl-specifiers to appear after the
            comma separating two declarators.  E.g.: "int i, char *s;" */
+        state.auto_type_allowed = FALSE;
         scan_microsoft_secondary_decl_specifiers(dsi_flags, &state,
                                                  &decl_pos_block);
       }  /* if */

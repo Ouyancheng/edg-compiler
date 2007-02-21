@@ -1213,8 +1213,14 @@ by octl.
       break;
     case tk_template_param:
       {
-#if GNU_EXTENSIONS_ALLOWED
         if (type->variant.template_param.kind ==
+                                     (a_template_param_type_kind)tptk_param &&
+            type->variant.template_param.extra_info->coordinates.depth ==
+                                                    AUTO_TYPE_NESTING_DEPTH) {
+          /* A type entry representing the "auto" type specifier. */
+          octl->output_str("auto");
+#if GNU_EXTENSIONS_ALLOWED
+        } else if (type->variant.template_param.kind ==
                                     (a_template_param_type_kind)tptk_typeof) {
           an_expr_node_ptr  expr = type->variant.template_param.extra_info
                                         ->expr;
@@ -1241,10 +1247,8 @@ by octl.
             octl->output_str("<expr>");
           }  /* if */
           octl->output_str(")");
-        } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
-        {
+        } else {
           a_source_correspondence_ptr scp = &type->source_corresp;
           an_il_entry_kind            scp_kind = iek_type;
           /* See whether the template parameter name is remapped in the

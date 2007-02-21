@@ -1,5 +1,31 @@
 Version 3.9
 
+2/21/07  C++0x mode: The "auto" type specifier
+
+In C++0x mode, the keyword "auto" can now be used as a type specifier.  The
+actual type of the associated entity is deduced from the initializer that
+follows (which is required).  This feature can be used for variable
+declarations, for in-class declarations of static const members, and for
+new-expressions.  For example:
+
+  auto x = 3.0;           // Same as "double x = 3.0;"
+  auto p = new auto(x);   // Same as "double *p = new double(x);"
+  struct S {
+    static auto const m = 3;  // Same as "static int const m = 3;"
+  };
+
+The deduced type is the type deduced for T if the initializer were used as an
+argument to a call to "template<typename T> void f(T);".
+
+If an "auto" specifier is used for multiple declarators, each declarator must
+be associated with an initializer, and each of those initializers must imply
+the same deduced type for the "auto" specifier.  For example:
+
+  auto x = 3.0, y = 0;  // Error: x deduced to double but y deduced to int.
+
+This extension was voted into the C++ committee's working paper for the next
+standard in April 2006 (meeting in Berlin, through proposal numbered N1984).
+
 2/21/07  Some declaration-processing routines restructured
 
 Some significant changes were made to the interface and implementation of key

@@ -2340,6 +2340,9 @@ Display the indicated variable.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
+  if (ptr->declared_with_auto_type_specifier) {
+    disp_boolean("declared_with_auto_type_specifier", TRUE);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

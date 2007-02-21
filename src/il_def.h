@@ -2231,17 +2231,20 @@ typedef unsigned long a_template_param_list_pos;
 			   parameter or argument list (i.e., a given
 			   parameter is the Nth parameter in the list). */
 
-typedef unsigned long a_template_nesting_depth;
+typedef long a_template_nesting_depth;
 			/* When templates are nested within other templates,
-			   the nesting depth is used to associate a
-			   template parameter with a given template
-			   declaration level.  The first level is 1,
-			   the second 2, etc. */
+			   the nesting depth is used to associate a template
+			   parameter with a given template declaration level.
+			   The first level is 1, the second 2, etc.  Levels 0
+			   and -1 have special meanings (see below). */
 
 #define NO_NESTING_DEPTH	0
 			/* Depth used to indicate that a template parameter has
 			   no specified depth.  This is used for template
 			   template parameters. */
+#define AUTO_TYPE_NESTING_DEPTH	-1
+			/* Depth used to indicate that the template parameter
+			   really represents an "auto" type specifier. */
 
 typedef struct a_template_param_coordinate *a_template_param_coordinate_ptr;
 typedef struct a_template_param_coordinate {
@@ -6657,7 +6660,6 @@ typedef struct a_variable {
 			/* TRUE if is_parameter is TRUE and if the
 			   parameter is passed by address. */
 #endif /* ifdef FIL */
-#ifdef CIL
   a_bit_field	referenced_non_locally:1;
 			/* TRUE if the variable is a local static variable
 			   that is referenced from outside of its function
@@ -6836,7 +6838,10 @@ typedef struct a_variable {
 			   back end to allocate more storage for the variable
 			   that what is indicated by its type's size. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
-#endif /* ifdef CIL */
+  a_bit_field	declared_with_auto_type_specifier:1;
+			/* TRUE if the variable's declaration contains the
+			   type specifier (not the storage class specifier)
+			   "auto". */
 #if BACK_END_IS_CP_GEN_BE
   a_bit_field	definition_has_been_put_out:1;
 			/* Used in the C++-generating back end to control

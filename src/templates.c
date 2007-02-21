@@ -3476,15 +3476,13 @@ user later during real instantiations.
 }  /* default_arg_prototype_instantiation */
 
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- attributes is not used in that case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void static_data_member_prototype_instantiation(
-                                              a_symbol_ptr      template_sym,
-                                              an_attribute_ptr  attributes)
+                                          a_tmpl_decl_state_ptr  decl_state,
+                                          a_symbol_ptr           template_sym)
 /*
 This routine is called to do a "prototype instantiation" of a template
-static data member.
+static data member.  The template is identified by *template_sym and
+further described by *decl_state.
 
 This is done to detect those errors that can be diagnosed at template
 definition time and to record information about nondependent calls for
@@ -3497,16 +3495,18 @@ user later during real instantiations.
   a_template_instance_ptr	    tip;
   a_boolean			    instantiation_scope_needed;
   a_boolean			    scope_pushed = FALSE;
+  a_decl_parse_state                *dps = &decl_state->decl_parse;
 
   db_enter(3, "static_data_member_prototype_instantiation");
   var_ptr = template_sym->variant.static_data_member.variable;
 #if GNU_EXTENSIONS_ALLOWED
-  if (attributes != NULL) {
+  if (dps->attributes != NULL) {
     /* Allow the attributes specified to modify the type with which the
        static data member was defined. */
-    var_ptr->type = apply_attributes_to_variable_type(attributes,
+    var_ptr->type = apply_attributes_to_variable_type(dps->attributes,
                                                       var_ptr->type);
-    apply_attributes_to_variable(attributes, var_ptr, /*is_definition=*/TRUE);
+    apply_attributes_to_variable(dps->attributes, var_ptr,
+                                 /*is_definition=*/TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -3557,10 +3557,9 @@ user later during real instantiations.
     has_parenthesized_initializer = (curr_token != tok_assign);
     /* Bypass the "=" or "(". */
     (void)get_token();
-    initializer(template_sym, &template_sym->decl_position,
-                idl_external, has_parenthesized_initializer,
-                /*is_old_style_param_decl=*/FALSE,
-                &incomplete_type_error_reported, (a_decl_pos_block_ptr)NULL);
+    initializer(dps, &template_sym->decl_position, idl_external,
+                has_parenthesized_initializer, &incomplete_type_error_reported,
+                (a_decl_pos_block_ptr)NULL);
     if (curr_token != tok_end_of_source) {
       pos_error(ec_exp_semicolon, &pos_curr_token);
       while (curr_token != tok_end_of_source) (void)get_token();
@@ -4226,8 +4225,9 @@ and the class instantiation will detect the runaway case.
   mark_defined(static_data_member_sym, &tip->template_sym->decl_position);
   if (tssp->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
-    a_boolean  incomplete_type_error_reported;
-    a_boolean  has_parenthesized_initializer;
+    a_decl_parse_state  dps;
+    a_boolean           incomplete_type_error_reported;
+    a_boolean           has_parenthesized_initializer;
 
     rescan_reusable_cache(&tssp->cache.tokens);
     /* If the first token is an equals sign then this is not a parenthesized
@@ -4236,10 +4236,11 @@ and the class instantiation will detect the runaway case.
     has_parenthesized_initializer = (curr_token != tok_assign);
     /* Bypass the "=" or "(". */
     (void)get_token();
-    initializer(static_data_member_sym, &tip->template_sym->decl_position,
-                idl_external, has_parenthesized_initializer,
-                /*is_old_style_param_decl=*/FALSE,
-                &incomplete_type_error_reported, (a_decl_pos_block_ptr)NULL);
+    init_decl_parse_state(&dps);
+    dps.sym = static_data_member_sym;
+    initializer(&dps, &tip->template_sym->decl_position, idl_external,
+                has_parenthesized_initializer, &incomplete_type_error_reported,
+                (a_decl_pos_block_ptr)NULL);
     if (curr_token != tok_end_of_source) {
       pos_error(ec_exp_semicolon, &pos_curr_token);
       while (curr_token != tok_end_of_source) (void)get_token();
@@ -15148,6 +15149,7 @@ any non-empty template parameter lists that were scanned.
   a_boolean			    is_class_template = FALSE;
   a_cached_token_ptr		    ctp;
   a_boolean			    invalid_decl = FALSE;
+  a_decl_parse_state                *dps = &decl_state->decl_parse;
 
   db_enter(3, "template_declaration");
   /* Now that we know where the template declaration begins (and the template
@@ -15221,7 +15223,6 @@ any non-empty template parameter lists that were scanned.
     } else {
       a_symbol_locator    locator;
       a_func_info_block   func_info;
-      a_decl_parse_state  *dps = &decl_state->decl_parse;
 
       /* Scan the decl. specifiers and the declaration. */
       clear_func_info(&func_info);
@@ -15286,6 +15287,7 @@ any non-empty template parameter lists that were scanned.
       done_with_func_info(func_info);
     }  /* if */
   }  /* if */
+  dps->sym = sym;
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template &&
       !sym->is_class_member) {
     /* For function templates that are not class members, remove any
@@ -15392,8 +15394,7 @@ any non-empty template parameter lists that were scanned.
       }  /* if */
     } else {
       check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
-      static_data_member_prototype_instantiation(
-                                      sym, decl_state->decl_parse.attributes);
+      static_data_member_prototype_instantiation(decl_state, sym);
     }  /* if */
   }  /* if */
   /* Save the declaration sequence number at the end of this template
@@ -16107,6 +16108,7 @@ that follows.
       prev_sym_pos = sym->decl_position;
 #endif /* DECL_MODIFIERS_IN_USE */
       sym->decl_position = dps->declarator_pos;
+      dps->sym = sym;
       if (is_definition) {
         srk_flags |= SRK_DEFINITION;
         if (sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -16187,12 +16189,9 @@ that follows.
           if (curr_token != tok_semicolon) {
             /* Advance past "=". */
             if (curr_token == tok_assign) (void)get_token();
-            initializer(sym, &locator.source_position,
-                        (an_id_linkage_kind)idl_external,
+            initializer(dps, &locator.source_position, idl_external,
                         has_parenthesized_initializer,
-                        /*is_old_style_param_decl=*/FALSE,
-                        &incomplete_type_error_reported,
-                        &decl_pos_block);
+                        &incomplete_type_error_reported, &decl_pos_block);
           } else {
             /* This case should only occur in Microsoft bugs mode, in which
                a specialization without an initializer is treated as a

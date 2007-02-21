@@ -5220,6 +5220,7 @@ typedef enum {
   bt_struct_union,
   bt_enum,
   bt_typename,
+  bt_auto,
   bt_no_type,
   bt_error
 } a_basic_type;
@@ -5665,6 +5666,7 @@ modifier _Sat was specified.
     case bt_struct_union:
     case bt_enum:
     case bt_typename:
+    case bt_auto:
     case bt_typedef:
       if (sign != sign_none || size != size_none) bad_combination = TRUE;
       check_assertion_str2(*type_ptr != NULL,
@@ -6564,34 +6566,67 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
 }  /* process_nontype_identifier */
 
 
-#if !NAMED_REGISTERS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* p_ms_attributes and register_id are not used in all
-                 configurations. */
-#endif /* !NAMED_REGISTERS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED */
+static void make_auto_type(a_decl_parse_state  *state)
+/*
+Create a type entry representing the "auto" type specifier (a special kind of
+tk_templ_param) and make state->auto_type point to it.  state->auto_pos is
+used to establish the type entry's position information.
+*/
+{
+  a_type_ptr  type = alloc_type((a_type_kind)tk_template_param);
+
+  type->source_corresp.assoc_info =
+         (char*)make_unnamed_template_param_symbol(sk_type, &state->auto_pos);
+  symbol_for(type)->variant.type.ptr = type;
+  type->variant.template_param.extra_info
+      ->coordinates.depth = AUTO_TYPE_NESTING_DEPTH;
+  type->variant.template_param.extra_info->coordinates.position = 1;
+  set_type_size(type);
+  state->auto_type = type;
+}  /* make_auto_type */
+
+
 static void process_storage_class_specifier(
+                                  a_token_kind           first_token,
                                   a_decl_flag_set        input_flags,
                                   a_decl_parse_state     *state,
                                   a_decl_pos_block_ptr   decl_pos_block,
+                                  a_boolean              first_specifier,
                                   a_decl_specifiers_set  *decl_specifiers_seen,
                                   a_boolean              *err)
 /*
-This is a helper function for decl_specifiers(...) called when the current
+This is a helper function for decl_specifiers(...) called when the given
 token is a storage class specifier (or "mutable", which is syntactically
 similar). input_flags, state, and decl_pos_block are parameters forwarded from
-decl_specifiers.  *decl_specifiers_seen is updated with an indication of the
-specifiers that were consumed.  *err is set to TRUE if an error is issued.
-All the storage class specifier tokens are consumed by this routine.
+decl_specifiers.  If first_specifier is TRUE, the storage specifier token was
+the first decl-specifier (ignoring "friend" and "inline"); a warning may be
+issued if that is not the case.  *decl_specifiers_seen is updated with an
+indication of the specifiers that were consumed.  *err is set to TRUE if an
+error is issued.  All the storage class specifier tokens are consumed by this
+routine, except for "auto" which is processed after any other specifiers have
+also been consumed.
 */
 {
   a_boolean          is_parameter = (input_flags & DSI_IS_PARAMETER);
   a_boolean          is_member_decl =
                                     (input_flags & DSI_IS_MEMBER_DECLARATION);
   a_boolean          is_named_register = FALSE;
-  a_token_kind       first_token = curr_token;
   a_source_position  pos_first_token;
 
-  pos_first_token = pos_curr_token;
-  (void)get_token();
+  /* For "auto" as a storage class specifier, this routine is called after
+     all specifiers have been scanned already.  For all other cases, the
+     specifier token is the current token. */
+  if (first_token != tok_auto) {
+    check_assertion(curr_token == first_token);
+    pos_first_token = pos_curr_token;
+    (void)get_token();
+  } else {
+    pos_first_token = state->auto_pos;
+  }  /* if */
+  if ((input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS)) {
+    pos_warning(ec_secondary_specifier_ignored, &pos_first_token);
+    goto done;
+  }  /* if */
 #if NAMED_REGISTERS_ALLOWED
   if (named_registers_enabled && first_token == tok_register &&
       curr_token == tok_identifier) {
@@ -6759,7 +6794,7 @@ All the storage class specifier tokens are consumed by this routine.
     *err = TRUE;
   } else {
     if (C_dialect != C_dialect_pcc && !*err) {
-      if (*decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND)) {
+      if (!first_specifier) {
         /* Issue a diagnostic if the storage class is not the first
            specifier (except for "inline" or "friend"). */
         pos_diagnostic(strict_ansi_mode ? es_warning : es_remark,
@@ -6805,6 +6840,7 @@ All the storage class specifier tokens are consumed by this routine.
                                          /*is_parameter=*/FALSE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+done:;
 }  /* process_storage_class_specifier */
 
 
@@ -6839,7 +6875,7 @@ macro DSI_NO_INPUT_FLAGS.
   a_boolean                  specifier_allows_vacuous_decl;
   a_boolean                  declares_something = FALSE;
   a_boolean                  defines_something = FALSE;
-  a_boolean                  type_specifier_allowed;
+  a_boolean                  type_specifier_allowed, auto_type_allowed;
   a_boolean                  dangling_type_specifier = FALSE;
   a_boolean                  is_elaborated_type_specifier = FALSE;
   an_error_severity          es;
@@ -6870,6 +6906,7 @@ macro DSI_NO_INPUT_FLAGS.
   a_storage_class            *storage_class = &state->declared_storage_class;
   a_type_ptr                 *type_ptr = &state->specifiers_type;
   a_decl_flag_set            *output_flags = &state->dso_flags;
+  a_boolean                  auto_is_first = FALSE;
  
   db_enter(3, "decl_specifiers");
 #if GNU_EXTENSIONS_ALLOWED
@@ -6880,6 +6917,7 @@ macro DSI_NO_INPUT_FLAGS.
   decl_specifiers_seen = DS_NONE;
   type_specifier_allowed = (input_flags & DSI_TYPE_SPECIFIER_ALLOWED);
   vacuous_decl_allowed = (input_flags & DSI_VACUOUS_TAG_DECL_ALLOWED) != 0;
+  auto_type_allowed = state->auto_type_allowed;
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, state->specifiers_pos);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -6892,13 +6930,26 @@ macro DSI_NO_INPUT_FLAGS.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Loop for each declaration specifier. */
   for (;;) {
-    /* Most specificiers cannot be part of a vacuous class or enum
-       declaration, so we start with that assumption.  The flag will be
-       set to TRUE in the exceptional cases. */
+    /* Most specifiers cannot be part of a vacuous class or enum declaration,
+       so we start with that assumption.  The flag will be set to TRUE in the
+       exceptional cases. */
     specifier_allows_vacuous_decl = FALSE;
     switch (curr_token) {
+      case tok_auto:
+        if (state->auto_type_specifier_seen) {
+          error(auto_type_allowed ? ec_bad_combination_of_type_specifiers :
+                                    ec_mult_storage_classes);
+        } else {
+          state->auto_type_specifier_seen = TRUE;
+          state->auto_pos = pos_curr_token;
+          /* Remember whether "auto" was the first specifier (ignoring inline
+             and friend). */
+          auto_is_first = !(decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND));
+        }  /* if */
+        break;
       case tok_typedef:
         specifier_allows_vacuous_decl = !strict_ansi_mode;
+        auto_type_allowed = FALSE;
         goto storage_class_specifier;
       case tok_extern:
         if (!C_mode() && next_token() == tok_string_literal) {
@@ -6939,19 +6990,15 @@ macro DSI_NO_INPUT_FLAGS.
         }  /* if */
         /* Otherwise drop through for normal storage class processing. */
       case tok_static:
-      case tok_auto:
       case tok_register:
       case tok_mutable:
         /* A storage class specifier (3.5.1). */
 storage_class_specifier:
-        if ((input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS)) {
-          warning(ec_secondary_specifier_ignored);
-        } else {
-          process_storage_class_specifier(input_flags, state, decl_pos_block, 
-                                          &decl_specifiers_seen, &err);
-          goto no_get_token;
-        }  /* if */
-        break;
+        process_storage_class_specifier(
+                            curr_token, input_flags, state, decl_pos_block, 
+                            !(decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND)),
+                            &decl_specifiers_seen, &err);
+        goto no_get_token;
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
       case tok_thread:
         /* A storage specifier allowed in certain modes (can be combined with
@@ -6981,6 +7028,7 @@ storage_class_specifier:
           *storage_class = (a_storage_class)sc_asm;
           decl_specifiers_seen |= DS_STORAGE_CLASS;
         }  /* if */
+        auto_type_allowed = FALSE;
         break;
 #endif /* ASM_FUNCTION_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
@@ -6995,6 +7043,8 @@ storage_class_specifier:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_microsoft_inline:
       case tok_forceinline:
+        auto_type_allowed = FALSE;
+        /*FALLTHROUGH*/
       case tok_declspec:
         /* A Microsoft specific storage class.  Note that Microsoft
            allows these in some nonstandard places such as on
@@ -7270,6 +7320,7 @@ storage_class_specifier:
 	/* "friend" specifier is allowed only in a C++ class declaration.
 	   This also excludes its appearing in a function parameter
 	   specification. */
+        auto_type_allowed = FALSE;
 	if (is_parameter) {
 	  /* "friend" may not appear in a function parameter specification. */
 	  error(ec_bad_param_specifier);
@@ -7315,6 +7366,7 @@ storage_class_specifier:
 	}  /* if */
 	break;
       case tok_virtual:
+        auto_type_allowed = FALSE;
         if (is_parameter) {
           /* "virtual" may not appear in a function parameter specification. */
           error(ec_bad_param_specifier);
@@ -7345,6 +7397,7 @@ storage_class_specifier:
         }  /* if */
         break;
       case tok_inline:
+        auto_type_allowed = FALSE;
         if (is_parameter) {
           /* "inline" may not appear in a function parameter specification. */
           error(ec_bad_param_specifier);
@@ -7377,6 +7430,7 @@ storage_class_specifier:
         }  /* if */
         break;
       case tok_explicit:
+        auto_type_allowed = FALSE;
         if (is_parameter) {
           /* "explicit" may not appear in a function parameter
               specification. */
@@ -7774,6 +7828,7 @@ process_class_specifier:
         /* Special case -- the "overload" keyword (which shows up in
            cfront compatibility mode only).  Ignore it and advance to the
            next token. */
+        auto_type_allowed = FALSE;
         diagnostic(anachronism_error_severity, ec_overload_anachronism);
         decl_specifiers_seen |= DS_OVERLOAD;
         break;
@@ -8095,6 +8150,7 @@ process_class_specifier:
         goto something_unexpected;
       case tok_operator:
         /* Coalesce the operator name. */
+        auto_type_allowed = FALSE;
         (void)is_generalized_identifier_start(GID_NO_OPTIONS);
 operator_or_conversion_name:
         if (locator_for_curr_id.is_conversion_name) {
@@ -8159,6 +8215,7 @@ operator_or_conversion_name:
       case tok_compl:
 destructor_name:
         if (!C_mode() && is_member_decl) {
+          auto_type_allowed = FALSE;
           if (!any_decl_specifiers_seen) {
             *output_flags |= DSO_NO_DECL_SPECIFIERS;
           }  /* if */
@@ -8241,6 +8298,25 @@ no_get_token:
     }  /* if */
   }  /* for */
 exit_loop:
+  if (state->auto_type_specifier_seen) {
+    /* The "auto" token was seen among the specifiers: It is either a storage
+       class specifier or a type specifier, but that can only be decided now
+       that we have seen all the specifiers. */
+    if (auto_type_allowed && (decl_specifiers_seen & DS_TYPE) == 0) {
+      /* No type specifier other than "auto" was seen: So "auto" should be
+         treated as a type specifier. */
+      make_auto_type(state);
+      *type_ptr = state->auto_type;
+      decl_specifiers_seen |= DS_TYPE;
+      basic_type = bt_auto;
+    } else {
+      /* "auto" must be a storage class specifier. */
+      state->auto_type_specifier_seen = FALSE;
+      process_storage_class_specifier(
+                                 tok_auto, input_flags, state, decl_pos_block,
+                                 auto_is_first, &decl_specifiers_seen, &err);
+    }  /* if */
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   /* coverity[dead_error_condition] */
   if (delayed_error != ec_no_error) {
@@ -8293,7 +8369,7 @@ exit_loop:
        had just one specifier, and it was "void". */
     *output_flags |= DSO_JUST_VOID;
   } else if (is_elaborated_type_specifier) {
-    /* Set the output flag bit indicating that we type specifier is an
+    /* Set the output flag bit indicating that the type specifier is an
        elaborated form (i.e., with the "class", "struct", "union", or
        "enum" keyword).  For friend class declarations this must be done
        even if other specifiers or qualifiers are present. */

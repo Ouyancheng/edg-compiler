@@ -2251,35 +2251,29 @@ not be considered further.
 }  /* check_template_arg_type_qualifiers */
 
 
-static a_boolean deduce_one_parameter(a_type_ptr         param_type,
-                                      an_operand         *arg_operand,
-                                      a_type_ptr         arg_type,
-                                      a_symbol_ptr       template_sym,
-                                      a_template_arg_ptr *template_arg_list)
+static a_boolean prep_deduction_pair(a_type_ptr    *p_param_type,
+                                     a_type_ptr    *p_arg_type,
+                                     an_operand    *arg_operand,
+                                     a_symbol_ptr  template_sym)
 /*
-Do template argument deduction on one parameter of a function template.
-param_type is the type of the parameter (and requires deduction).
-arg_operand is the argument; it can be NULL, in which case arg_type gives
-the argument type.  template_sym is the symbol for the function_template
-(not a projection symbol).  *template_arg_list points to the template
-argument list so far; anything deduced is added to that.  Return TRUE
-if the deduction succeeds, FALSE if it fails.
+Adjust the argument type *p_param_type and *p_arg_type for template argument
+deduction.  If the deduction is driven by an actual expression, that
+expression is passed through *arg_operand.  If the deduction is for an "auto"
+type specifier, template_sym is NULL; otherwise, the deduction is for a
+function template represented by template_sym.
+Returns TRUE if the adjustment is successful, and FALSE otherwise (in which
+case the deduction fails).
 */
 {
-  a_template_symbol_supplement_ptr
-            tssp = template_sym->variant.template_info;
-  a_boolean  param_is_reference = is_reference_type(param_type);
-  a_boolean  deduction_okay = FALSE;
-  a_type_ptr orig_arg_type;
-  a_type_ptr orig_param_type = param_type;
+  a_boolean   adjustment_okay = FALSE;
+  a_type_ptr  param_type = *p_param_type;
+  a_type_ptr  arg_type = *p_arg_type;
 
-  if (arg_operand != NULL) arg_type = arg_operand->type;
-  orig_arg_type = arg_type;
-  /* Certain top-level parts of the parameter type (e.g., references)
-     are processed here before going to the type deduction routine.
-     The code here must match determine_arg_match_level and
-     overload_distinguishable. */
-  if (arg_operand != NULL && is_indefinite_function_operand(arg_operand)) {
+  /* Certain top-level parts of the parameter type (e.g., references) are
+     processed here before going to the type deduction routine.  The code here
+     must match determine_arg_match_level and overload_distinguishable. */
+  if (template_sym != NULL && arg_operand != NULL &&
+      is_indefinite_function_operand(arg_operand)) {
     /* For an overloaded function, each possibility must be tried.
        Only one is allowed to match. */
     if (!indefinite_function_can_be_template_arg(arg_operand,
@@ -2299,7 +2293,7 @@ if the deduction succeeds, FALSE if it fails.
                              arg_type->variant.routine.extra_info->this_class);
     }  /* if */
   }  /* if */
-  if (param_is_reference) {
+  if (is_reference_type(param_type)) {
     /* The parameter has a reference type. */
     /* Drop the reference type. */
     param_type = type_pointed_to(param_type);
@@ -2361,9 +2355,38 @@ if the deduction succeeds, FALSE if it fails.
       check_template_arg_type_qualifiers(&arg_type, &param_type);
     }  /* if */
   }  /* if */
-  /* Do template argument deduction, trying to develop a list of
-     template arguments that will produce an instance that matches
-     the argument list. */
+  adjustment_okay = TRUE;
+done:
+  *p_param_type = param_type;
+  *p_arg_type = arg_type;
+  return adjustment_okay;
+}  /* prep_deduction_pair */
+
+
+static a_boolean deduce_from_one_pair(a_type_ptr            param_type,
+                                      a_type_ptr            orig_param_type,
+                                      a_type_ptr            arg_type,
+                                      a_type_ptr            orig_arg_type,
+                                      a_template_arg_ptr    *template_arg_list,
+                                      a_template_param_ptr  template_params)
+/*
+This routine is used to implement template argument deduction: Trying to
+develop a list of template arguments that will produce an instance type
+that matches the argument list the arguments to a function call, or the
+initializer of an "auto type" object.
+This routine updates *template_arg_list with bindings for the template
+argument based on one P/A pair, where P is the generic type *param_type and
+A is the type *arg_type of the call argument or initializer.  The *param_type
+and *arg_type types used for deduction are actually adjusted from the original 
+types *orig_param_type and *orig_arg_type (see prep_deduction_pair), but if
+deduction does not succeed with the adjusted types, deduction with the
+original types is sometimes attempted (see also prep_deduction_pair).
+template_params lists the template parameters (or the "auto" specifier) for
+which bindings are sought.
+*/
+{
+  a_boolean  deduction_okay = FALSE;
+
   /* As the matching is attempted, template_arg_list is filled in with
      the bindings for the template arguments.  This is needed during the
      matching process to ensure that each argument is used consistently
@@ -2372,21 +2395,52 @@ if the deduction succeeds, FALSE if it fails.
      a conversion from Derived<T> to Base<T>, and to allow qualifiers to be
      added under an array type. */
   if (matches_template_type(arg_type, param_type, template_arg_list,
-                            tssp->variant.function.decl_cache.
-                                                         decl_info->parameters,
-                            MTT_ALLOW_INEXACT_DEDUCTION)) {
+                            template_params, MTT_ALLOW_INEXACT_DEDUCTION)) {
     deduction_okay = TRUE;
   } else if (is_pointer_type(arg_type) || is_ptr_to_member_type(arg_type)) {
     /* Normal deduction failed.  For pointer types, see if a qualification
        conversion can be used. */
     if (matches_template_type_with_qualification_conversion(
                             orig_arg_type, orig_param_type, template_arg_list,
-                            tssp->variant.function.decl_cache.
-                                                       decl_info->parameters,
-                            MTT_NO_FLAGS)) {
+                            template_params, MTT_NO_FLAGS)) {
       deduction_okay = TRUE;
     }  /* if */
   }  /* if */
+  return deduction_okay;
+}  /* deduce_from_one_pair */
+
+
+static a_boolean deduce_one_parameter(a_type_ptr         param_type,
+                                      an_operand         *arg_operand,
+                                      a_type_ptr         arg_type,
+                                      a_symbol_ptr       template_sym,
+                                      a_template_arg_ptr *template_arg_list)
+/*
+Do template argument deduction on one parameter of a function template.
+param_type is the type of the parameter (and requires deduction).
+arg_operand is the argument; it can be NULL, in which case arg_type gives
+the argument type.  template_sym is the symbol for the function_template
+(not a projection symbol).  *template_arg_list points to the template
+argument list so far; anything deduced is added to that.  Return TRUE
+if the deduction succeeds, FALSE if it fails.
+*/
+{
+  a_boolean  deduction_okay = FALSE;
+  a_type_ptr orig_arg_type;
+  a_type_ptr orig_param_type = param_type;
+
+  if (arg_operand != NULL) arg_type = arg_operand->type;
+  orig_arg_type = arg_type;
+  if (!prep_deduction_pair(&param_type, &arg_type, arg_operand,
+                           template_sym)) {
+    goto done;
+  }  /* if */
+  deduction_okay = deduce_from_one_pair(
+                         param_type, orig_param_type, arg_type, orig_arg_type,
+                         template_arg_list,
+                         template_sym->variant.template_info
+                                     ->variant.function.decl_cache.decl_info
+                                     ->parameters);
 done:
   return deduction_okay;
 }  /* deduce_one_parameter */
@@ -14368,6 +14422,72 @@ next_function:;
   db_exit();
   return cctor_sym;
 }  /* select_overloaded_copy_constructor */
+
+
+void deduce_auto_type(a_decl_parse_state  *dps)
+/*
+*dps describes a declaration of an "auto" variable, including its initializer.
+Deduce the "auto" type specifier and store the resulting type in dps->type.
+Deduction failures are diagnosed as errors.
+*/
+{
+  an_operand            *arg = &dps->prescanned_auto_initializer->operand;
+  a_template_param_ptr  templ_param;
+  a_template_arg_ptr    templ_arg = NULL;
+  a_type_ptr            type = dps->declared_type, orig_type = type;
+  a_type_ptr            arg_type = arg->type, orig_arg_type = arg_type;
+  a_boolean             subst_error = FALSE;
+
+  check_assertion(dps->auto_type_specifier_seen && dps->auto_type != NULL);
+  dps->type = NULL;
+  templ_param = alloc_template_param(symbol_for(dps->auto_type));
+  /* Adjust the argument and parameter types for deduction.  Some types can
+     never succeed: Issue an error and don't attempt deduction any further. */
+  if (!prep_deduction_pair(&type, &arg_type, arg, (a_symbol_ptr)NULL)) {
+    pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
+    dps->deduced_auto_type = error_type();
+    goto done;
+  }  /* if */
+  if (!deduce_from_one_pair(type, orig_type, arg_type, orig_arg_type,
+                            &templ_arg, templ_param)) {
+    /* Deduction failed. */
+    pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
+    dps->deduced_auto_type = error_type();
+    goto done;
+  }  /* if */
+  check_assertion(templ_arg->kind == (a_templ_arg_kind)tak_type);
+  if (dps->deduced_auto_type != NULL &&
+      !identical_types(dps->deduced_auto_type, templ_arg->variant.type)) {
+    /* This is a declaration with multiple declarators and the type deduced
+       for a previous declarator is not consistent with the current deduction:
+       Issue an error. */
+    pos_ty2_error(ec_inconsistent_deduction_of_auto, &dps->declarator_pos,
+                  templ_arg->variant.type, dps->deduced_auto_type);
+  }  /* if */
+  /* Record the type deduced for the "auto" specifier, and substitute it in the
+     declared type to obtain the actual type for the current declaration. */
+  dps->deduced_auto_type = templ_arg->variant.type;
+  dps->type = copy_type_with_substitution(orig_type, templ_arg, templ_param,
+                                          &dps->declarator_pos,
+                                          CTWS_NO_OPTIONS, &subst_error);
+  /* Check that the actual "auto" type is applicable to the declared entity
+     (in particular, this checks for compatibility with previous declarations
+     of the same entity). */
+  check_deduced_auto_type(dps);
+  if (dps->sym != NULL) {
+    /* Update the type in the IL entry. */
+    if (dps->sym->kind == (a_symbol_kind)sk_variable) {
+      dps->sym->variant.variable.ptr->type = dps->type;
+    } else if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
+      dps->sym->variant.static_data_member.variable->type = dps->type;
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* if */
+done:
+  if (dps->type == NULL) dps->type = error_type();
+  if (templ_arg != NULL) free_template_arg_list(templ_arg);
+}  /* deduce_auto_type */
 
 
 void overload_init(void)

@@ -1851,6 +1851,12 @@ EXTERN a_boolean
 		static_assert_enabled;
 			/* When TRUE, the C++0x construct static_assert is
 			   supported. */
+
+EXTERN a_boolean
+		auto_type_specifier_enabled;
+			/* When TRUE, the "auto" token can appear as a type
+			   specifier (the type is implied by the mandatory
+			   initializer; this is a C++0x feature). */
 /*
 Check that no mutually exclusive dialect emulations are simultaneously
 enabled.

@@ -33,13 +33,12 @@ extern void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
                                     a_dynamic_init_ptr  new_dip,
                                     a_targ_size_t       count);
 
-extern void initializer(a_symbol_ptr       symbol_ptr,
-                        a_source_position  *source_pos,
-                        an_id_linkage_kind linkage,
-                        a_boolean          paren_flag,
-                        a_boolean          is_parameter,
-                        a_boolean          *incomplete_type_error_reported,
-                        a_decl_pos_block   *decl_pos_block);
+extern void initializer(a_decl_parse_state  *state,
+                        a_source_position   *source_pos,
+                        an_id_linkage_kind  linkage,
+                        a_boolean           paren_flag,
+                        a_boolean           *incomplete_type_error_reported,
+                        a_decl_pos_block    *decl_pos_block);
 
 extern a_boolean def_initializer(a_symbol_ptr       sym,
                                  a_source_position  *err_pos);

@@ -17,6 +17,9 @@ expr.h -- Declarations related to expression parsing.
 #ifndef EXPR_H
 #define EXPR_H 1
 
+#ifndef DECLS_H
+#include "decls.h"
+#endif /* ifndef DECLS_H */
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
@@ -70,6 +73,11 @@ expr.h -- Declarations related to expression parsing.
 
 typedef int a_local_expr_options_set;
 
+
+extern void prescan_initializer_for_auto_type_deduction(
+                                                    a_decl_parse_state  *dps);
+
+extern void scan_and_discard_initializer_expression(a_decl_parse_state  *dps);
 
 extern an_expr_node_ptr make_lvalue_cast_node(an_expr_node_ptr source_expr,
                                               a_type_ptr       type_cast_to);
@@ -129,22 +137,22 @@ an_expr_node_ptr scan_asm_operand_expression(a_boolean output);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern void scan_initializer_expression(
-                                     a_type_ptr       required_type,
-                                     a_boolean        static_lifetime,
-                                     a_boolean        force_object_lifetime,
-                                     a_boolean        suppress_object_lifetime,
-                                     a_boolean        is_copy_initialization,
-                                     a_boolean        *is_constant,
-                                     an_expr_node_ptr *expression,
-                                     a_constant       *constant);
+                                 a_type_ptr          required_type,
+                                 a_decl_parse_state  *dps,
+                                 a_boolean           static_lifetime,
+                                 a_boolean           force_object_lifetime,
+                                 a_boolean           suppress_object_lifetime,
+                                 a_boolean           is_copy_initialization,
+                                 a_boolean           *is_constant,
+                                 an_expr_node_ptr    *expression,
+                                 a_constant          *constant);
 
 extern an_expr_node_ptr prep_rvalue_arg_expr(an_expr_node_ptr  expr,
                                              a_param_type_ptr  param,
                                              a_source_position *err_pos);
 
-extern a_boolean scan_class_initializer_expression(
-                                              a_type_ptr         required_type,
-                                              a_dynamic_init_ptr *dip);
+extern a_boolean scan_class_initializer_expression(a_decl_parse_state  *dps,
+                                                   a_dynamic_init_ptr  *dip);
 
 extern a_boolean scan_aggregate_initializer_expression(
                                    a_type_ptr         required_type,
@@ -158,7 +166,7 @@ extern a_boolean scan_aggregate_initializer_expression(
 extern void scan_class_parenthesized_initializer(
                                    a_type_ptr         class_type,
                                    a_type_ptr         object_class_type,
-                                   a_boolean          force_object_lifetime,
+                                   a_decl_parse_state *dps,
                                    a_source_position  *source_pos,
                                    a_boolean          fill_in_dtor,
                                    a_dynamic_init_ptr *p_dip);
@@ -178,15 +186,15 @@ extern void conv_nontype_template_arg_to_param_type(
                                             a_constant         *constant);
 
 extern void scan_member_constant_initializer_expression(
-                                                 a_type_ptr required_type,
-                                                 a_constant *constant);
+                                                 a_decl_parse_state *dps,
+                                                 a_constant         *constant);
 
 extern void scan_constant_initializer_expression(a_type_ptr required_type,
                                                  a_constant *constant);
 
 extern void scan_dependent_type_parenthesized_initializer(
-                                      a_boolean          force_object_lifetime,
-                                      a_dynamic_init_ptr *dip);
+                                                     a_decl_parse_state *dps,
+                                                     a_dynamic_init_ptr *dip);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 void scan_microsoft_case_label_constant_expression(a_constant *constant);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

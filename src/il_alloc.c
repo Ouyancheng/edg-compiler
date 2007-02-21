@@ -1948,6 +1948,7 @@ Clear the fields of the given variable to default values.
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
   vp->has_flexible_array_initializer = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
+  vp->declared_with_auto_type_specifier = FALSE;
 #endif /* ifdef CIL */
 #if BACK_END_IS_CP_GEN_BE
   vp->definition_has_been_put_out = FALSE;

@@ -13,6 +13,9 @@ src_seq.h -- Declarations for support for source sequence list management
 
 */
 
+#ifndef SRC_SEQ_H
+#define SRC_SEQ_H
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 /*
@@ -188,6 +191,7 @@ extern void eliminate_unneeded_source_sequence_entries(a_scope_ptr sp);
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+#endif /* ifndef SRC_SEQ_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *

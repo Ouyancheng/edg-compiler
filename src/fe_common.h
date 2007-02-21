@@ -101,13 +101,6 @@ incorporated:
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-/* Type system support. */
-#include "types.h"
-
-/* Translation unit data structures. */
-#include "trans_unit.h"
-#include "trans_corresp.h"
-
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 /* Source sequence list management */
 #include "src_seq.h"
@@ -118,6 +111,13 @@ incorporated:
 
 /* Extended asm statements. */
 #include "extasm.h"
+
+/* Type system support. */
+#include "types.h"
+
+/* Translation unit data structures. */
+#include "trans_unit.h"
+#include "trans_corresp.h"
 
 #if DEBUG
 /* Debug declarations. */
