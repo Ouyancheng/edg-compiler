@@ -1634,8 +1634,10 @@ of the global variable variadic_macros_allowed.
 
 /*
 Flag that is TRUE if a macro with a variable number of arguments can be
-introduced by appending '...' to the name of the last macro parameter.  It is
-the initial value of the global variable extended_variadic_macros_allowed.
+introduced by appending '...' to the name of the last macro parameter.  A
+TRUE value also causes deletion of the comma in a replacement text like
+'x, ## __VA_ARGS__' if the variadic arguments are omitted.  It is the
+initial value of the global variable extended_variadic_macros_allowed.
 */
 #ifndef DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED
 #define DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED FALSE

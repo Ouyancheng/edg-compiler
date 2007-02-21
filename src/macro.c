@@ -3056,34 +3056,45 @@ static void adjust_length_for_magic_arg(a_repl_text_seq_kind kind,
                                         a_macro_arg_ptr      *arg_values,
                                         sizeof_t             *length)
 /*
-Check if the token pasting operator -- heading the replacement text sections
-pointed to by rtp -- is followed by an empty substitution of the variadic
-macro parameter.  If so, and if it is immediately preceded by a comma
-(optionally followed by white space), the comma is removed (along with any
-white space).  This strange behavior is emulated only when extended variadic
-macros are enabled.  Some preprocessors (notably from the GNU project)
-implement this to work around the following problem:
+Check if the operator to which rtp points (an rt_paste or
+rt_microsoft_magic_arg_marker) is followed by an empty substitution of the
+variadic macro parameter.  If so, and if it is immediately preceded by a
+comma (optionally followed by white space), the comma is removed (along
+with any white space).  This strange behavior is emulated for Microsoft
+variadic macros and when extended variadic macros are enabled.  Some
+preprocessors (notably from the GNU project) implement this to work around
+the following problem:
+
 	#define M(fmt, args) printf(fmt , ## args)
 	void f() { M("Hello.\n"); }
-Without the "deletion effect", the macro would generate an extraneous comma.
-kind describes what kind of section preceded the "##".  rtp points to the
-replacement text sections starting at the "##".  n_params is the number of
+
+Without the "deletion effect", the macro would generate an extraneous
+comma.  (The Microsoft variety of variadic macros does this even without
+the "##" operator.)  kind describes what kind of section preceded the
+operator.  rtp points to the replacement text sections starting at the
+rt_paste or rt_microsoft_magic_arg_marker.  n_params is the number of
 parameters in the macro.  arg_values is a pointer to an array of
 a_macro_arg_ptr elements: it is referred to by the get_arg_value macro and
 hence its name should not be changed.  *length is the value to be adjusted.
 */
 {
-  sizeof_t arg_number;
-  /* Move to the next section, skipping the rt_paste placeholder. */
-  char *ahead = rtp+1;
+  sizeof_t             arg_number;
+  /* Move to the next section, skipping the rt_paste or
+     rt_microsoft_magic_arg_marker placeholder. */
+  char                 *ahead = rtp+1;
+  a_boolean            is_microsoft_variadic_macro =
+                   (a_repl_text_seq_kind)*rtp == rt_microsoft_magic_arg_marker;
+
   get_macro_repl_text_number(arg_number, ahead);
-  if ((a_repl_text_seq_kind)*(ahead++) == rt_raw_argument) {
+  if ((a_repl_text_seq_kind)*(ahead++) == rt_raw_argument ||
+      is_microsoft_variadic_macro) {
     a_macro_arg_ptr map;
 
     get_macro_repl_text_number(arg_number, ahead);
     get_arg_value(arg_number, map);
     if (arg_number == n_params &&
-        map->raw_len == 0) {
+        (map->raw_len == 0 ||
+         (microsoft_mode && map->expanded_len == 0))) {
       /* The last macro parameter (presumably variadic) is empty or missing.
          So we adjust the section length to not include the last chunk of
          white space characters preceded by a comma: */
@@ -3091,6 +3102,12 @@ hence its name should not be changed.  *length is the value to be adjusted.
         char *back = rtp-1;
         /* Skip preceding white space. */
         while (*back == ' ' || *back == '\t') { --back; }
+        if (is_microsoft_variadic_macro &&
+            back[-1] == LE_ESCAPE && back[0] == LE_END_OF_TOKEN) {
+          /* Unlike rt_paste, rt_microsoft_magic_arg_marker does not
+             suppress a preceding end-of-token marker. */
+          back -= LE_ESCAPE_LEN;
+        }  /* if */
         if (*back == ',') {
           *length -= (rtp-back);
         }  /* if */
@@ -3160,9 +3177,9 @@ hence its name should not be changed.
       prev_len = sect_len;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       rtp += sect_len;
-    } else if (rts_kind == rt_paste) {
-      /* Just a placeholder for "##"; it will not take up space in the
-         expansion. */
+    } else if (rts_kind == rt_paste ||
+               rts_kind == rt_microsoft_magic_arg_marker) {
+      /* Just a placeholder; it will not take up space in the expansion. */
       sect_len = 0;
     } else {
       a_macro_arg_ptr map;
@@ -3217,10 +3234,13 @@ hence its name should not be changed.
 #endif /* CHECKING */
       }  /* switch */
     }  /* if */
-    /* When extended variadic macros are enabled, a "##" followed by an empty
-       variadic argument has a special deletion effect. */
-    if (extended_variadic_macros_allowed && mdp->variadic &&
-        (a_repl_text_seq_kind)*rtp == rt_paste) {
+    /* When extended variadic macros are enabled, a "##" followed by an
+       empty variadic argument has a special deletion effect.  The same is
+       true for Microsoft variadic macros, with or without the "##". */
+    if ((extended_variadic_macros_allowed || microsoft_mode) &&
+        mdp->variadic &&
+        ((a_repl_text_seq_kind)*rtp == rt_paste ||
+         (a_repl_text_seq_kind)*rtp == rt_microsoft_magic_arg_marker)) {
       adjust_length_for_magic_arg(rts_kind, rtp, n_params, arg_values,
                                   &sect_len);
     }  /* if */
@@ -4121,12 +4141,20 @@ scan_expanded_tokens:
             goto scan_expanded_tokens;
           }  /* if */
           if (comma_ignored_inside_argument) {
-            /* Add argument delimiter so embedded commas won't terminate a
-               macro argument when the text is rescanned. */
-            ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
-            map->expanded_text[map->expanded_len] = LE_ESCAPE;
-            map->expanded_text[map->expanded_len+1] = LE_END_ARGUMENT;
-            map->expanded_len += LE_ESCAPE_LEN;
+            if (map->expanded_len == LE_ESCAPE_LEN) {
+              /* The expanded text is empty except for the start-argument
+                 delimiter, so the delimiters are not needed; just set the
+                 expanded length to 0, effectively deleting the starting
+                 delimiter. */
+              map->expanded_len = 0;
+            } else {
+              /* Add argument delimiter so embedded commas won't terminate a
+                 macro argument when the text is rescanned. */
+              ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
+              map->expanded_text[map->expanded_len] = LE_ESCAPE;
+              map->expanded_text[map->expanded_len+1] = LE_END_ARGUMENT;
+              map->expanded_len += LE_ESCAPE_LEN;
+            }  /* if */
           }  /* if */
           /* Place terminating LE_END_OF_INSERTION lexical escape. */
           ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
@@ -4199,10 +4227,11 @@ end_arg_expansion:;
       /* Check that all of the formal parameters were taken. */
       if (pp != NULL) {
         /* An argument is missing.  This is an error, except in pcc
-           preprocessing mode, SVR4 C mode, and Microsoft mode. It is also
-           fine to omit an extended variadic macro argument. */
-        if (!(extended_variadic_macros_allowed && pp->next == NULL
-                                               && mdp->variadic)) {
+           preprocessing mode, SVR4 C mode, and Microsoft mode, where we
+           issue a warning. It is also fine (no warning) to omit an
+           extended or Microsoft variadic macro argument. */
+        if (!((extended_variadic_macros_allowed || microsoft_mode) &&
+              pp->next == NULL && mdp->variadic)) {
           diagnostic(pcc_preprocessing_mode || SVR4_C_mode || microsoft_mode
                                         ? es_warning : es_discretionary_error,
                      ec_too_few_macro_args);
@@ -4403,7 +4432,8 @@ end_arg_expansion:;
                              src_loc - rescan_loc + bytes_before_token,
                              this_macro_invocation_record);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-      } else if (rts_kind == rt_paste) {
+      } else if (rts_kind == rt_paste ||
+                 rts_kind == rt_microsoft_magic_arg_marker) {
         sect_len = 0;
       } else {
         /* Other section kinds have an associated parameter number. */
@@ -4577,10 +4607,13 @@ end_arg_expansion:;
 #endif /* CHECKING */
         }  /* switch */
       }  /* if */
-      /* When extended variadic macros are enabled, a "##" followed by an empty
-         variadic argument has a special deletion effect. */
-      if (extended_variadic_macros_allowed && mdp->variadic &&
-          (a_repl_text_seq_kind)*rtp == rt_paste) {
+      /* When extended variadic macros are enabled, a "##" followed by an
+         empty variadic argument has a special deletion effect.  The same
+         is true for Microsoft variadic macros, with or without the "##". */
+      if ((extended_variadic_macros_allowed || microsoft_mode) &&
+          mdp->variadic &&
+          ((a_repl_text_seq_kind)*rtp == rt_paste ||
+           (a_repl_text_seq_kind)*rtp == rt_microsoft_magic_arg_marker)) {
         adjust_length_for_magic_arg(rts_kind, rtp, n_params, arg_values,
                                     &sect_len);
       }  /* if */
@@ -5082,6 +5115,9 @@ macro described by macro_sym, i.e., "#define <name> <replacement>".
           /* Simple parameter name. */
           put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
           break;
+        case rt_microsoft_magic_arg_marker:
+          /* Implicit in the definition -- no textual representation. */
+          break;
         default:
           unexpected_condition_str(
                     "make_il_macro_entry: bad text section kind in macro def");
@@ -5229,6 +5265,9 @@ beginning of the encoding of the replacement list.
           fprintf(f_debug, "  expanded argument %lu\n",
                            (unsigned long)rts_number);
           break;
+        case rt_microsoft_magic_arg_marker:
+          fprintf(f_debug, "  magic arg marker\n");
+          check_assertion(rts_number == 0);
 #if CHECKING
         default:
           internal_error("db_dump_macro_def: bad section kind in macro def");
@@ -5270,6 +5309,7 @@ Scan and process a #define directive.
   a_boolean       any_white_space_skipped;
   sizeof_t	  param_num;
   sizeof_t	  save_param_num;
+  sizeof_t	  n_params;
   a_macro_param_ptr
 		  param_ptr,
 		  save_param_ptr,
@@ -5459,6 +5499,7 @@ Scan and process a #define directive.
           }  /* if */
         } while (!variadic && loop_token(tok_comma));
         remove_stop_token(tok_comma);
+        n_params = param_num;
       }  /* if */
       /* Check for closing parenthesis.  required_token is not used because
          the get_token must be done in a special way, via mdefn_get_token. */
@@ -5637,6 +5678,14 @@ Scan and process a #define directive.
              case put it out as the raw value of the argument. */
           /* In pcc mode, always use the raw form of the argument.  Expansion
              is done on rescan of the macro body. */
+          if (microsoft_mode && microsoft_version >= 1400 && variadic &&
+              param_num == n_params &&
+              next_avail_in_macro_buffer != buffer_start) {
+            /* The Microsoft version of variadic macros performs the
+               "magic deletion" of a preceding comma even without a "##"
+               operator, so we need to mark the __VA_ARGS__ parameter. */
+            put_start_of_non_text_section(rt_microsoft_magic_arg_marker, 0);
+          }  /* if */
           /* Save information on current token because mdefn_get_token will
              change it. */
           save_param_num = param_num;

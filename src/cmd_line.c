@@ -1778,11 +1778,6 @@ by a command line option.
       /* Variadic macros are supported in version 8.0 and later. */
       variadic_macros_allowed = TRUE;
     }  /* if */
-    if (variadic_macros_allowed &&
-        !option_kind_used[(int)optk_extended_variadic_macros]) {
-      /* Version 8.0 accepts the extended version of variadic macros. */
-      extended_variadic_macros_allowed = TRUE;
-    }  /* if */
     if (!(option_kind_used[(int)optk_restrict])) {
       /* The keyword "__restrict" (i.e., the GNU variant of the C99 keyword
          "restrict") is enabled in version 8.0. */

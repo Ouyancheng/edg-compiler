@@ -608,7 +608,9 @@ EXTERN a_boolean
 EXTERN a_boolean
 		extended_variadic_macros_allowed;
 			/* TRUE if '#define EVM(args ...) args' should be
-			   accepted. */
+			   accepted; also enables the deletion of the
+			   comma in a replacement like 'x, ## __VA_ARGS__'
+			   when the variadic argument is empty. */
 
 EXTERN a_boolean
 		compound_literals_allowed;

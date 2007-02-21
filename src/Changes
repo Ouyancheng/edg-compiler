@@ -25,9 +25,20 @@ if the expression type does not match the template parameter type).
 
 2/15/07  Microsoft compatibility: extended variadic macros
 
-Version 8.0 of the Microsoft compiler supports extended variadic macros.
+Version 8.0 of the Microsoft compiler supports a form of variadic macros.
 The front end now accepts them by default in Microsoft mode when
-microsoft_version is 1400 or greater.
+microsoft_version is 1400 or greater.  This includes emulation of the
+Microsoft-specific feature in which a comma in the replacement text
+preceding an empty __VA_ARGS__ substitution is dropped from the expanded
+text, even when no concatenation operator is present.  For example, with
+--microsoft_version=1400, both the A and B macro invocations below expand
+to 'printf("string")', while with --extended_variadic_macros, the B
+invocation expands to 'printf("string", )':
+
+  #define A(x, ...) printf(x, ## __VA_ARGS__)
+  #define B(x, ...) printf(x, __VA_ARGS__)
+  A("string");
+  B("string");
 
 2/15/07  Missing "!= 0" above lowered code for complex == or !=
 

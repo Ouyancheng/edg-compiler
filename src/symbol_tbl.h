@@ -581,9 +581,16 @@ typedef enum /*a_repl_text_seq_kind*/ {
 			/* Same as rt_stringized_raw_argument, but argument
 			   raw string is turned into a char literal instead
 			   (Microsoft extension). */
-  rt_argument		/* Macro-expanded string for argument.  Followed by 3
+  rt_argument,		/* Macro-expanded string for argument.  Followed by 3
 			   bytes containing the argument number, as for 
 			   rt_raw_argument. */
+  rt_microsoft_magic_arg_marker
+			/* Like rt_paste in an extended variadic macro in
+			   that it consumes a comma preceding an empty
+			   __VA_ARGS__ substitution, but without actually
+			   pasting the following token to the preceding
+			   text.  Used to support the Microsoft variety of
+			   variadic macros. */
 } a_repl_text_seq_kind;
 
 
