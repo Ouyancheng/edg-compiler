@@ -99,8 +99,6 @@ incorporated:
 /* Variables set on the basis of command line options. */
 #include "cmd_line.h"
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 /* Source sequence list management */
 #include "src_seq.h"
@@ -111,6 +109,8 @@ incorporated:
 
 /* Extended asm statements. */
 #include "extasm.h"
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /* Type system support. */
 #include "types.h"
