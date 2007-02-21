@@ -5268,6 +5268,7 @@ beginning of the encoding of the replacement list.
         case rt_microsoft_magic_arg_marker:
           fprintf(f_debug, "  magic arg marker\n");
           check_assertion(rts_number == 0);
+          break;
 #if CHECKING
         default:
           internal_error("db_dump_macro_def: bad section kind in macro def");
