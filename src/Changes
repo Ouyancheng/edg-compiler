@@ -1,5 +1,15 @@
 Version 3.9
 
+2/21/07  Some declaration-processing routines restructured
+
+Some significant changes were made to the interface and implementation of key
+routines that handle declaration processing.  This includes (but is not
+limited to) the routines "declaration(...)", "decl_specifiers(...)", and
+"declarator(...)".  The most significant effect of these changes is that much
+information about a declaration is now carried around in an object of type
+a_decl_parse_state.  That in turn will simplify the implementation of future
+language extensions.
+
 2/15/07  Microsoft compatibility: __restrict
 
 In Microsoft C and C++ modes with microsoft_version >= 1400 the front end now
