@@ -358,7 +358,9 @@ Flags to be set for any version that uses the C++ generating back end.
 #define LOWER_DESIGNATED_INITIALIZERS TRUE
 
 #ifndef OPTIMIZED_VERSION
+#ifndef EXPENSIVE_CHECKING
 #define EXPENSIVE_CHECKING 1
+#endif /* ifndef EXPENSIVE_CHECKING */
 #endif /* ifndef OPTIMIZED_VERSION */
 
 #endif /* LINUX_TEST_VERSION */
