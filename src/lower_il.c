@@ -13225,12 +13225,14 @@ code.
           pending_cleanup_state = dip->destructible_entity_descr->
                                 cleanup_state_to_set_when_starting_destruction;
           state_set_pending = TRUE;
+#if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
         } else if (dip->variable == NULL &&
                    dip->destructible_entity_descr->init_pos_descr.variable ==
                                                return_value_pointer_variable) {
           /* This is the initialization of the parameter substituted for the
              return value optimization variable.  The destruction doesn't get
              done on exit from the routine (the caller does it). */
+#endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
 #if VLA_DEALLOCATION_REQUIRED
         } else if (dip->is_vla_deallocation) {
           /* Deallocation of a variable-length array (VLA).  This is
