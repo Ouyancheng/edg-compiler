@@ -237,7 +237,11 @@ variable.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Try to reuse an existing local temporary.  Don't do that, though,
      if the variable being remapped has special attributes. */
-  if (expr_temp && !orig_var->address_taken && !is_register_mapped) {
+  if (expr_temp && !orig_var->address_taken && 
+      !orig_var->initialization_rewritten_as_assignment && 
+      !orig_var->is_partially_initialized && 
+      !(orig_var->init_kind == (an_init_kind)initk_zero) && 
+      !is_register_mapped) {
     vrip->local_temporary_okay = TRUE;
     do {
       temp_var = find_reusable_temporary(orig_var->type, &tlep);
@@ -247,7 +251,12 @@ variable.
     } while (is_temp_for_constructor_this_inlined_param !=
              temp_var->is_temp_for_constructor_this_inlined_param ||
              is_temp_for_unmodified_inlined_param !=
-             temp_var->is_temp_for_unmodified_inlined_param);
+             temp_var->is_temp_for_unmodified_inlined_param ||
+             temp_var->init_kind == (an_init_kind)initk_zero
+#if GNU_EXTENSIONS_ALLOWED
+             || var_is_gnu_named_register(temp_var)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                            );
   }  /* if */
   if (temp_var != NULL) {
     tlep->in_use = TRUE;
@@ -261,6 +270,15 @@ variable.
   if (orig_var->address_taken) temp_var->address_taken = TRUE;
   if (orig_var->initialization_rewritten_as_assignment) {
     temp_var->initialization_rewritten_as_assignment = TRUE;
+  }  /* if */
+  /* Maintain information about partial initialization as well as
+     initialization to zero.  An aggregate automatic variable that is
+     partially initialized will have both of these flags set. */
+  if (orig_var->is_partially_initialized) {
+    temp_var->is_partially_initialized = TRUE;
+  }  /* if */
+  if (orig_var->init_kind == (an_init_kind)initk_zero) {
+    temp_var->init_kind = (an_init_kind)initk_zero;
   }  /* if */
   temp_var->is_temp_for_constructor_this_inlined_param =
                                     is_temp_for_constructor_this_inlined_param;

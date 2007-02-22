@@ -1,5 +1,23 @@
 Version 3.9
 
+2/22/07  Incorrect initialization of automatic aggregate variable when
+         dynamic partial initialization is specified during inlining
+
+In cases where a dynamic designated initializer is used to partially
+initialize an aggregate automatic variable, and the variable is used in an
+inline function, the initk_zero specification that was added during lowering
+is lost during inlining resulting in indeterminate values for fields in the
+aggregate that were not explicitly initialized.  This problem occurs in
+modes that allow designated initializers (i.e. GNU C/C++, C99) with
+structure type aggregates when MINIMAL_INLINING is TRUE.  This is now fixed.
+For example:
+
+  struct foo { int x, y; };  
+  static inline int _f (int xx) {
+    struct foo _foo = { .x = xx };
+    return _foo.y;  // Returns 0 now when inlined, previously indeterminate
+  } 
+
 2/21/07  C++0x mode: The "auto" type specifier
 
 In C++0x mode, the keyword "auto" can now be used as a type specifier.  The
