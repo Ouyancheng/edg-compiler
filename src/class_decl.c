@@ -8545,7 +8545,7 @@ specific information about the member declaration, respectively.
     }  /* if */
   }  /* if */
   var->source_corresp.access = class_state->access;
-  if (curr_token == tok_assign) {
+  if (curr_token == tok_assign && is_expr_start_token(next_token())) {
     a_constant         constant;
     a_source_position  init_pos;
     init_pos = pos_curr_token;
