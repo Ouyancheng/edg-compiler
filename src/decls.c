@@ -13203,11 +13203,6 @@ if one is present.
         /* Fetch the type of the symbol again, since it might have been changed
            if it was an incomplete array and was initialized. */
         state->type = var_ptr->type;
-      } else {
-        /* Some error may have occurred during initialization: Propagate the
-           error type.  (E.g., we may get here when trying to use a brace-
-           enclosed initializer with an "auto" type specifier.) */
-        var_ptr->type = state->type;
       }  /* if */
     }  /* if */
   } else if (state->is_old_style_param_decl) {

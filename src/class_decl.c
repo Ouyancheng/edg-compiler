@@ -8584,7 +8584,12 @@ specific information about the member declaration, respectively.
     } else {
       /* Issue a diagnostic for an invalid member constant type. */
       if (!is_error_type(member_type)) {
-        pos_ty_error(ec_invalid_member_constant_type, &init_pos, member_type);
+        if (!is_const_qualified_type(member_type)) {
+          pos_error(ec_member_constant_not_const, &init_pos);
+        } else {
+          pos_ty_error(ec_invalid_member_constant_type, &init_pos,
+                       member_type);
+        }  /* if */
       }  /* if */
       scan_and_discard_initializer_expression(decl_state);
     }  /* if */
