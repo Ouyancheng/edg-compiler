@@ -8420,6 +8420,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
 				/*is_specialization=*/FALSE, &locator,
                                 &func_info, templ_rout, tip, &decl_pos_block);
       rout_type = state.type;
+      attributes = state.attributes;
       /* Save the prototype scope symbols in the instance pointer. */
       tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
