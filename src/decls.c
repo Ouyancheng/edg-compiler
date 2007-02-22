@@ -9472,10 +9472,9 @@ within this routine if is_parenthesized comes in FALSE.
                        /*top_level_field_decl=*/FALSE,
                        /*top_level_param_decl=*/FALSE,
                        &decl_pos_block);
-      add_to_derived_type_list(new_type_ptr,
-                               &derived_type, &bottom_derived_type,
-                               /*parameter_type=*/FALSE,
-                               /*microsoft_property=*/FALSE);
+      add_to_derived_type_list(
+                     new_type_ptr, &derived_type, &bottom_derived_type, state,
+                     /*parameter_type=*/FALSE, /*microsoft_property=*/FALSE);
       if (rparen_in_new_declarator) {
         /* A form like "new (int)[n]" is accepted in some GNU C++ modes: Only
            one array declarator level is permitted after the right
@@ -9491,20 +9490,18 @@ within this routine if is_parenthesized comes in FALSE.
                            &decl_pos_block);
           /* Add the new type to the bottom of the existing derived type list.
              Note that this involves error checking. */
-          add_to_derived_type_list(new_type_ptr,
-                                   &derived_type, &bottom_derived_type,
-                                   /*parameter_type=*/FALSE,
-                                   /*microsoft_property=*/FALSE);
+          add_to_derived_type_list(
+                     new_type_ptr, &derived_type, &bottom_derived_type, state,
+                     /*parameter_type=*/FALSE, /*microsoft_property=*/FALSE);
         }  /* while */
       }  /* if */
       if (derived_type != NULL) {
         if (complete_type != NULL) {
           if (!is_error_type(bottom_derived_type)) {
             /* Combine derived_type and complete_type. */
-            add_to_derived_type_list(complete_type,
-                                     &derived_type, &bottom_derived_type,
-                                     /*parameter_type=*/FALSE,
-                                     /*microsoft_property=*/FALSE);
+            add_to_derived_type_list(
+                     complete_type, &derived_type, &bottom_derived_type, state,
+                     /*parameter_type=*/FALSE, /*microsoft_property=*/FALSE);
           }  /* if */
         }  /* if */
         complete_type = derived_type;

@@ -323,11 +323,12 @@ extern a_type_ptr form_declared_type(a_type_ptr             type_ptr,
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 
-extern void add_to_derived_type_list(a_type_ptr new_type_ptr,
-                                     a_type_ptr *derived_type,
-                                     a_type_ptr *bottom_derived_type,
-                                     a_boolean  parameter_type,
-                                     a_boolean  microsoft_property);
+extern void add_to_derived_type_list(a_type_ptr          new_type_ptr,
+                                     a_type_ptr          *derived_type,
+                                     a_type_ptr          *bottom_derived_type,
+                                     a_decl_parse_state  *dps,
+                                     a_boolean           parameter_type,
+                                     a_boolean           microsoft_property);
 
 #endif /* DECLARATOR_H */
 

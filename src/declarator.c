@@ -368,11 +368,12 @@ decl-specifier (e.g., "array [1] of NULL").
 }  /* is_partial_type */
 
 
-void add_to_derived_type_list(a_type_ptr new_type_ptr,
-                              a_type_ptr *derived_type,
-                              a_type_ptr *bottom_derived_type,
-                              a_boolean  parameter_type,
-                              a_boolean  microsoft_property)
+void add_to_derived_type_list(a_type_ptr          new_type_ptr,
+                              a_type_ptr          *derived_type,
+                              a_type_ptr          *bottom_derived_type,
+                              a_decl_parse_state  *dps,
+                              a_boolean           parameter_type,
+                              a_boolean           microsoft_property)
 /*
 Add the type entry pointed to by new_type_ptr to the list of derived-type
 entries pointed to by *derived_type (and whose end is pointed to by
@@ -382,7 +383,8 @@ type is legal.  If the type is for a parameter declaration, parameter_type
 is TRUE (in Sun and GNU C++ modes this relaxes the array of abstract class
 check).  When microsoft_property is TRUE, some of these checks are omitted
 (because Microsoft compilers do little checking on the types of property
-fields).
+fields).  *dps describes the specifiers and declarator that formed the new
+type.
 */
 {
   a_type_ptr              temp_type, prev_temp_type, tp;
@@ -739,7 +741,9 @@ fields).
               }  /* if */
             }  /* if */
             if (severity != es_none) {
-              diagnostic(severity, ec_useless_type_qualifier_on_return_type);
+              pos_diagnostic(severity,
+                             ec_useless_type_qualifier_on_return_type,
+                             &dps->qualifiers_pos);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -4845,7 +4849,7 @@ function_lparen:
     /* Add the new type to the bottom of the existing derived type list.
        Note that this involves error checking. */
     add_to_derived_type_list(new_type_ptr, &derived_type, &bottom_derived_type,
-                             (input_flags & DI_IS_PARAMETER_DECL) != 0,
+                             state, (input_flags & DI_IS_PARAMETER_DECL) != 0,
                              (input_flags & DI_IS_MICROSOFT_PROPERTY) != 0);
     consume_any_stray_microsoft_rparen();
     if (allow_one_more_array_dimension) {
@@ -4960,7 +4964,7 @@ function_lparen:
          are in an "implicit int" case.  Change it to void. */
       if (!is_unknown_type(specifiers_type) &&
           !(input_flags & DI_NO_TYPE_SPECIFIERS)) {
-        pos_error(ec_return_type_on_constructor, &declarator_pos);
+        pos_error(ec_return_type_on_constructor, &state->specifiers_pos);
       }  /* if */
       complete_type = void_type();
     } else if (*is_destructor) {
@@ -4969,9 +4973,9 @@ function_lparen:
         complete_type = error_type();
       } else {
         if (!(input_flags & DI_NO_TYPE_SPECIFIERS)) {
-          pos_error(ec_return_type_on_destructor, &declarator_pos);
+          pos_error(ec_return_type_on_destructor, &state->specifiers_pos);
         } else if (derived_type == NULL || !is_function_type(derived_type)) {
-          pos_error(ec_bad_destructor_decl, &declarator_pos);
+          pos_error(ec_bad_destructor_decl, &state->start_pos);
         }  /* if */
         complete_type = void_type();
       }  /* if */
@@ -4983,7 +4987,7 @@ function_lparen:
            operator int(), j;
          issue an error. */
       if (is_unknown_type(specifiers_type)) {
-        pos_error(ec_missing_decl_specifiers, &declarator_pos);
+        pos_error(ec_missing_decl_specifiers, &state->start_pos);
         complete_type = error_type();
       }  /* if */
     }  /* if */
@@ -5013,7 +5017,7 @@ function_lparen:
          (pointer derived type list plus specifiers_list), making
          the full type.  Note that this involves error checking. */
       add_to_derived_type_list(complete_type,
-                               &derived_type, &bottom_derived_type,
+                               &derived_type, &bottom_derived_type, state,
                                (input_flags & DI_IS_PARAMETER_DECL) != 0,
                                (input_flags & DI_IS_MICROSOFT_PROPERTY) != 0);
     }  /* if */

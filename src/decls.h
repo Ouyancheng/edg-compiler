@@ -252,7 +252,7 @@ typedef struct a_decl_parse_state {
   a_source_position
 		qualifiers_pos;
 			/* The position of the type qualifiers (except for
-                           the "restrict" qualifiers. */
+                           the "restrict" qualifiers). */
   a_source_position
 		restrict_pos;
 			/* The position of the "restrict" qualifier (if
