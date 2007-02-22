@@ -8,7 +8,7 @@ initialize an aggregate automatic variable, and the variable is used in an
 inline function, the initk_zero specification that was added during lowering
 is lost during inlining resulting in indeterminate values for fields in the
 aggregate that were not explicitly initialized.  This problem occurs in
-modes that allow designated initializers (i.e. GNU C/C++, C99) with
+modes that allow designated initializers (e.g., GNU C/C++, C99) with
 structure type aggregates when MINIMAL_INLINING is TRUE.  This is now fixed.
 For example:
 
