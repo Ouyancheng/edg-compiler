@@ -1,5 +1,19 @@
 Version 3.9
 
+2/23/07  Invalid constructor and destructor syntax
+
+The front end failed to diagnose constructor or destructor declarations
+preceded by pointer declarator operators like "&" or "*".  For example:
+
+  struct S {
+    *S();
+    * const S(S const&);
+    &S(int);
+    &~S();
+  };  // Previously silently accepted.
+
+This is now fixed (errors are issued on such constructs).
+
 2/23/07  Bad identifier end position recorded for unnamed namespaces
 
 In configurations with EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE, the front end
