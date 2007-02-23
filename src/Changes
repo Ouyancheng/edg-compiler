@@ -1,5 +1,12 @@
 Version 3.9
 
+2/23/07  Bad identifier end position recorded for unnamed namespaces
+
+In configurations with EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE, the front end
+sometimes failed to initialize the "identifier_range.end" position in
+a_namespace entries for unnamed namespaces.  This is now fixed: A null
+position is now recorded in such cases.
+
 2/22/07  Incorrect initialization of automatic aggregate variable when
          dynamic partial initialization is specified during inlining
 
