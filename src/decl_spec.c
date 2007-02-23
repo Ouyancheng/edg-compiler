@@ -6657,8 +6657,20 @@ also been consumed.
     *err = TRUE;
 #endif /* ASM_FUNCTION_ALLOWED */
   } else if (*decl_specifiers_seen & (DS_MUTABLE | DS_STORAGE_CLASS)) {
-    /* More than  one storage class may not be specified. */
-    pos_error(ec_mult_storage_classes, &pos_first_token);
+    /* More than  one storage class may not be specified.  Note that the
+       diagnostic should be issued on the second storage class, but since
+       "auto" is processed after all the other specifiers, something like
+       "auto register x;" needs special care to get the position of the
+       "register" keyword. */
+    a_source_position  *diag_pos = &pos_first_token;
+    if (first_token == tok_auto) {
+      if (state->storage_class_pos.seq > pos_first_token.seq ||
+          (state->storage_class_pos.seq == pos_first_token.seq &&
+           state->storage_class_pos.column > pos_first_token.column)) {
+        diag_pos = &state->storage_class_pos;
+      }  /* if */
+    }  /* if */
+    pos_error(ec_mult_storage_classes, diag_pos);
     *err = TRUE;
   } else if (is_parameter && first_token != tok_register &&
              (C_mode() || first_token != tok_auto)) {

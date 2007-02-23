@@ -13280,7 +13280,7 @@ if one is present.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   copy_source_position(locator->source_position, error_position);
   if (var_ptr != NULL && !is_error_locator(*locator) &&
-      is_incomplete_type(state->type)) {
+      is_incomplete_type(var_ptr->type)) {
     /* Issue an error on a variable for which this is the defining declaration
        but whose type is incomplete.  Also, in C mode, issue an error on a
        static variable with incomplete type (6.7.2 para 3) or an externally
