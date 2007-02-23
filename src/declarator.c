@@ -368,6 +368,57 @@ decl-specifier (e.g., "array [1] of NULL").
 }  /* is_partial_type */
 
 
+static void report_useless_return_type_qualifier(a_type_ptr          type,
+                                                 a_decl_parse_state  *dps)
+/*
+The given type is used as a function return type and was formed with explicit
+type qualifiers that have no effect (e.g., "int const f();").  Issue a warning
+in most cases, but some situations only call for a remark, and some template
+contexts don't call for any diagnostic at all (because some substitutions may
+make the qualifiers meaningful).
+*/
+{
+  an_error_severity  severity = es_warning;
+
+  if (C_mode()) {
+    if (is_void_type(skip_typerefs(type)) &&
+        get_type_qualifiers(type) == TQ_VOLATILE) {
+      /* Issue just a remark for "volatile void" -- gcc uses that to
+         indicate a function (like exit()) that does not return. */
+      severity = es_remark;
+    }  /* if */
+  } else {
+    if (is_nonspecialized_instantiation_context() &&
+        !scope_stack[decl_scope_level].in_prototype_instantiation) {
+      /* Inside a template instantiation it is sometimes the case
+         that the type qualifier is "useless" for some instantiations
+         but not in general -- e.g.,
+           template <class T> struct A {
+             const T f();
+           };
+           struct X { };
+           A<int> aint;     // A<int>::f returns const int (useless)
+           A<X> ax;         // A<X>::f returns const X (okay)
+         Do not issue a remark in this case to eliminate annoying
+         warnings the user can't do anything about. */
+      /* Note that this solution fails to warn on cases that are
+         *always* useless, too.  If A<T>::f returned "T * const" a
+         warning would always be appropriate, whatever T was replaced
+         by in the instantiation.  But the representation of types
+         based on template arguments will have to be improved to
+         make this distinction.  When performing prototype
+         instantiations, however, most such cases are in fact
+         diagnosed. */
+      severity = es_none;
+    }  /* if */
+  }  /* if */
+  if (severity != es_none) {
+    pos_diagnostic(severity, ec_useless_type_qualifier_on_return_type,
+                   &dps->qualifiers_pos);
+  }  /* if */
+}  /* report_useless_return_type_qualifier */
+
+
 void add_to_derived_type_list(a_type_ptr          new_type_ptr,
                               a_type_ptr          *derived_type,
                               a_type_ptr          *bottom_derived_type,
@@ -679,7 +730,7 @@ type.
           promote_float_to_double(new_type_ptr);
         }  /* if */
         if (is_qualified_type(new_type_ptr)) {
-          /* Qualifier on return type. */
+          /* A qualified return type. */
           if (!C_mode() &&
               (is_class_struct_union_type(new_type_ptr) ||
                is_template_param_type(new_type_ptr))) {
@@ -703,48 +754,12 @@ type.
 #endif /* UPC_EXTENSIONS_ALLOWED */
           } else if (is_reference_type(new_type_ptr)) {
             /* A diagnostic will already have been issued. */
-          } else {
-            /* Type qualifiers on a function return type are meaningless.
-               Note, however, that it is left as part of the type. */
-            an_error_severity  severity = es_warning;
-
-            if (C_mode()) {
-              if (is_void_type(skip_typerefs(new_type_ptr)) &&
-                  get_type_qualifiers(new_type_ptr) == TQ_VOLATILE) {
-                /* Issue just a remark for "volatile void" -- gcc uses that to
-                   indicate a function (like exit()) that does not return. */
-                severity = es_remark;
-              }  /* if */
-            } else {
-              if (is_nonspecialized_instantiation_context() &&
-                  !scope_stack[decl_scope_level].in_prototype_instantiation) {
-                /* Inside a template instantiation it is sometimes the case
-                   that the type qualifier is "useless" for some instantiations
-                   but not in general -- e.g.,
-                     template <class T> struct A {
-                       const T f();
-                     };
-                     struct X { };
-                     A<int> aint;     // A<int>::f returns const int (useless)
-                     A<X> ax;         // A<X>::f returns const X (okay)
-                   Do not issue a remark in this case to eliminate annoying
-                   warnings the user can't do anything about. */
-                /* Note that this solution fails to warn on cases that are
-                   *always* useless, too.  If A<T>::f returned "T * const" a
-                   warning would always be appropriate, whatever T was replaced
-                   by in the instantiation.  But the representation of types
-                   based on template arguments will have to be improved to
-                   make this distinction.  When performing prototype
-                   instantiations, however, most such cases are in fact
-                   diagnosed. */
-                severity = es_none;
-              }  /* if */
-            }  /* if */
-            if (severity != es_none) {
-              pos_diagnostic(severity,
-                             ec_useless_type_qualifier_on_return_type,
-                             &dps->qualifiers_pos);
-            }  /* if */
+          } else if (dps->qualifiers != TQ_NONE) {
+            /* Type qualifiers were explicitly specified on the return type,
+               but they have no effect.  Issue a diagnostic in most cases.
+               Note, however, that the qualifiers are left as part of the
+               type. */
+            report_useless_return_type_qualifier(new_type_ptr, dps);
           }  /* if */
         }  /* if */
         if (err) new_type_ptr = error_type();
@@ -4954,7 +4969,8 @@ function_lparen:
       } else {
         if (!is_unknown_type(specifiers_type) &&
             !(input_flags & DI_NO_TYPE_SPECIFIERS)) {
-          pos_error(ec_return_type_on_conversion_function, &declarator_pos);
+          pos_error(ec_return_type_on_conversion_function,
+                    &state->specifiers_pos);
         }  /* if */
         complete_type = locator->variant.conversion_result_type;
       }  /* if */

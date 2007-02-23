@@ -9548,7 +9548,6 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
 
   check_assertion(microsoft_mode);
   init_decl_parse_state(&state);
-  state.start_pos = pos_curr_token;
   clear_decl_pos_block(&decl_pos_block);
   decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR, &state,
                   &decl_pos_block);
@@ -10136,7 +10135,6 @@ a normal try.
         a_decl_parse_state  state;
         a_decl_pos_block    decl_pos_block;
         init_decl_parse_state(&state);
-        state.start_pos = decl_pos;
         clear_decl_pos_block(&decl_pos_block);
         decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_EMPTY_DECL_SPECIFIERS_ALLOWED),
@@ -10575,7 +10573,6 @@ Return a pointer to the variable that is declared.
               DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
               DSI_IS_CONDITION_DECL;
   init_decl_parse_state(&state);
-  state.start_pos = pos_curr_token;
   state.auto_type_allowed = auto_type_specifier_enabled;
   clear_decl_pos_block(&decl_pos_block);
   decl_specifiers(dsi_flags, &state, &decl_pos_block);

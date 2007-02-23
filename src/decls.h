@@ -448,6 +448,7 @@ argument.
 */
 #define init_decl_parse_state(ps) {                                          \
   *(ps) = null_decl_parse_state;                                             \
+  (ps)->start_pos = pos_curr_token;                                          \
   (ps)->p_declarator_attributes = &(ps)->attributes;                         \
 }
 

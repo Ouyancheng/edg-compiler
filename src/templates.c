@@ -8061,7 +8061,6 @@ information.
     /* This is a declaration inside a class definition. */
     dsi_flags |= DSI_IS_MEMBER_DECLARATION;
   }  /* if */
-  state->start_pos = pos_curr_token;
   decl_specifiers(dsi_flags, state, decl_pos_block);
   if (is_error_type(state->specifiers_type) && !is_declarator_start()) {
     /* Error of some sort. */
@@ -12321,7 +12320,6 @@ depends on a template parameter type, return TRUE in *template_dependent
   /* Scan the declaration specifiers. */
   clear_decl_pos_block(&decl_pos_block);
   init_decl_parse_state(&state);
-  state.start_pos = pos_curr_token;
   decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_TEMPLATE_PARAMETER),
                   &state, &decl_pos_block);
   if (state.dso_flags & DSO_DEFINES_SOMETHING) {
@@ -16561,7 +16559,6 @@ keyword.
   decl_state.export_position = *export_pos;
   saved_curr_default_args = curr_default_args;
   curr_default_args = NULL;
-  decl_state.decl_parse.start_pos = pos_curr_token;
   decl_state.in_prototype_instantiation =
                     scope_stack[depth_scope_stack].in_prototype_instantiation;
   decl_state.final_token_ptr = final_token;
