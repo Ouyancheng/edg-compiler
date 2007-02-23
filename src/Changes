@@ -118,15 +118,20 @@ function-scope expression, which could cause aborts later on.  Now fixed.
          prototype instantiation when casting class object to same type
 
 If a class operand was cast to the same type as the class operand during
-prototype instantiation, an internal error resulted.  This is now fixed.
-For example:
+prototype instantiation, an internal error resulted.  Prototype instantiation
+is required in a number of cases including dependent name processing
+(--dep_name), parsing of nonclass templates (--parse_name), strict mode
+(--strict) and in GNU C++ mode in versions greater than or equal to 3.4
+(--g++ --gnu_version=30400).  In some cases, setting
+FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED to TRUE might have
+prevented the error.  This is now fixed.  For example:
 
   template<int N>
   struct A {
     A(A<N> & a);
     void bar();
     void foo(A<N> a) 
-      { ((A<N>) a).bar(); }   // Caused an internal error.
+      { ((A<N>) a).bar(); }   // Caused an internal error with --strict.
   };
 
 2/14/07  g++ overload resolution, partially-ordered template conversion
