@@ -10935,6 +10935,10 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     }  /* if */
     is_unnamed_namespace = FALSE;
     (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  } else {
+    identifier_end_pos = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode && gnu_version >= 40200 && curr_token == tok_attribute) {
@@ -10943,11 +10947,6 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (curr_token == tok_lbrace) {
     /* A namespace or namespace-extension definition. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (is_unnamed_namespace) {
-      identifier_end_pos = null_source_position;
-    }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else if (curr_token == tok_assign && !is_unnamed_namespace) {
     /* This must be a namespace alias definition. */
     is_namespace_alias = TRUE;
