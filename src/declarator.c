@@ -3534,6 +3534,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     { /* Just look for type qualifiers. */
       ptr_mods.qualifiers = TQ_NONE;
       if (is_type_qualifier()) {
+        ptr_mods.qualifiers_pos = pos_curr_token;
         ptr_mods.qualifiers = collect_type_qualifiers(decl_pos_block,
                                                       &upc_block_size);
       }  /* if */
@@ -3542,6 +3543,10 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       /* Some qualifiers were specified. */
       /* Check for invalid use of the restrict qualifier. */
       a_type_qualifier_set restrict_bit = (ptr_mods.qualifiers & TQ_RESTRICT);
+      state->qualifiers = ptr_mods.qualifiers;
+      if (ptr_mods.qualifiers != restrict_bit) {
+        state->qualifiers_pos = ptr_mods.qualifiers_pos;
+      }  /* if */
       if (restrict_bit) {
         /* Remove the restrict bit from the set to allow easier testing
            of qualifiers on references below (restrict is allowed). */

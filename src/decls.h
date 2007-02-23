@@ -247,8 +247,8 @@ typedef struct a_decl_parse_state {
 			   Otherwise, same as declarator_start_pos. */
   a_type_qualifier_set
 		qualifiers;
-			/* Type qualifiers that have been scanned as part of
-			   the declaration specifiers. */
+			/* Top-level type qualifiers (but not function type
+                           qualifiers). */
   a_source_position
 		qualifiers_pos;
 			/* The position of the type qualifiers (except for
