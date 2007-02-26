@@ -251,12 +251,7 @@ variable.
     } while (is_temp_for_constructor_this_inlined_param !=
              temp_var->is_temp_for_constructor_this_inlined_param ||
              is_temp_for_unmodified_inlined_param !=
-             temp_var->is_temp_for_unmodified_inlined_param ||
-             temp_var->init_kind == (an_init_kind)initk_zero
-#if GNU_EXTENSIONS_ALLOWED
-             || var_is_gnu_named_register(temp_var)
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                            );
+             temp_var->is_temp_for_unmodified_inlined_param);
   }  /* if */
   if (temp_var != NULL) {
     tlep->in_use = TRUE;
