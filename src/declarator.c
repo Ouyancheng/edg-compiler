@@ -4695,7 +4695,9 @@ function_lparen:
           member_parent_type = NULL;
         } else if (*is_constructor || *is_destructor) {
           is_nonstatic_member_function = TRUE;
-          if (*output_flags & DO_HAS_PTR_OR_REF_COMPONENT) {
+          if ((*output_flags & DO_HAS_PTR_OR_REF_COMPONENT) &&
+              !(state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+            /* Something like "*~D()". */
             pos_error(*is_constructor ? ec_bad_constructor_decl
                                       : ec_bad_destructor_decl,
                       &state->declarator_start_pos);
