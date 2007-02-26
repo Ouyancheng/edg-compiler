@@ -2632,11 +2632,9 @@ typedef struct a_pointer_modifier_state {
   a_type_qualifier_set
 		qualifiers;
 			/* Standard and nonstandard qualifiers. */
-#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   a_source_position
 		qualifiers_pos;
 			/* The position of the first qualifier seen. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_call_conv_descr
 		cc_descr;
@@ -2675,11 +2673,12 @@ typedef struct a_pointer_modifier_state {
 
 static void clear_pointer_modifier_state(a_pointer_modifier_state  *ptr_mods)
 /*
-Clear the pointer modifiers structure (except for position information, since
+Clear the pointer modifiers structure (except for some position information
 that isn't accessed unless the associated flag has been set).
 */
 {
   ptr_mods->qualifiers = TQ_NONE;
+  ptr_mods->qualifiers_pos = null_source_position;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   clear_call_conv_descr(&ptr_mods->cc_descr);
   ptr_mods->based_var = NULL;
