@@ -5012,7 +5012,7 @@ function_lparen:
            operator int(), j;
          issue an error. */
       if (is_unknown_type(specifiers_type)) {
-        pos_error(ec_missing_decl_specifiers, &state->start_pos);
+        pos_error(ec_missing_decl_specifiers, &state->declarator_start_pos);
         complete_type = error_type();
       }  /* if */
     }  /* if */
