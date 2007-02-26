@@ -8511,6 +8511,13 @@ exit_loop:
      to declarator(...) or by other adjustments (e.g., decay of array types to
      pointer types). */
   state->type = state->declared_type = state->specifiers_type;
+  if ((*output_flags & DSO_NO_DECL_SPECIFIERS) &&
+      !state->is_linkage_spec_decl) {
+    /* Note that for the purposes of diagnostic, something like
+       ``extern "C" f();'' is treated as having a decl-specifier (hence the
+       test for !state->is_linkage_spec_decl). */
+    state->decl_specifiers_omitted = TRUE;
+  }  /* if */
   db_exit();
 }  /* decl_specifiers */
 

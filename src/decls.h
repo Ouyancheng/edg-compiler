@@ -321,8 +321,8 @@ typedef struct a_decl_parse_state {
 			   the current declaration. */
   a_bit_field
 		decl_specifiers_omitted:1;
-			/* TRUE if the current declaration omits neither
-			   linkage specifiers nor decl-specifiers. */
+			/* TRUE if the current declaration omits both linkage
+			   specifiers and decl-specifiers. */
   a_bit_field
 		decl_specifiers_error:1;
 			/* TRUE if an error occurred during the call to

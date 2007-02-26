@@ -13597,12 +13597,7 @@ after the call.
        directly to it (as opposed to just being inside a linkage block). */
     state->decl_modifiers.direct_linkage_specifier = TRUE;
   }  /* if */
-  if ((dso_flags & DSO_NO_DECL_SPECIFIERS) && !state->is_linkage_spec_decl) {
-    /* Note that for the purposes of diagnostic, something like
-       ``extern "C" f();'' is treated as having a decl-specifier (hence
-       the test for !state->is_linkage_spec_decl). */
-    state->decl_specifiers_omitted = TRUE;
-  } else {
+  if (!state->decl_specifiers_omitted) {
     /* Check for cases without a declarator and issue a diagnostic if it's
        invalid. */
     declarator_omitted = check_for_missing_declarator(state);
