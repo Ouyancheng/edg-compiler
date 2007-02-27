@@ -12694,6 +12694,8 @@ passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_type_qualifier_set saved_qualifiers;
+  a_source_position    saved_qualifiers_pos;
 
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
@@ -12844,6 +12846,9 @@ passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   any_decl_other_than_nonstatic_data_member = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Save some state that must be restored for each declarator. */
+  saved_qualifiers = decl_state->qualifiers;
+  saved_qualifiers_pos = decl_state->qualifiers_pos;
   /* Save the effective specifiers type (which may be different from
      decl_state->specifiers_type; e.g., for constructors). */
   specifiers_type = decl_state->type;
@@ -12870,6 +12875,8 @@ passed via template_decl.
     clear_func_info(&func_info);
     /* Initialize certain decl_info fields each time through the loop. */
     start_secondary_declarator(decl_state);
+    decl_state->qualifiers = saved_qualifiers;
+    decl_state->qualifiers_pos = saved_qualifiers_pos;
     decl_info.is_unnamed_field = FALSE;
     decl_info.decl_state.sym = NULL;
     if (!decl_info.is_first_in_declarator_list &&

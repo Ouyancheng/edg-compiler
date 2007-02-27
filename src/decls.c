@@ -13798,6 +13798,8 @@ Broadly speaking, three kinds of declarations are handled here:
   a_token_kind                 final_token = tok_semicolon;
   a_decl_parse_state           state;
   a_decl_pos_block             decl_pos_block;
+  a_type_qualifier_set         saved_qualifiers;
+  a_source_position            saved_qualifiers_pos;
 
   db_enter(3, "declaration");
 
@@ -13883,12 +13885,17 @@ Broadly speaking, three kinds of declarations are handled here:
     case eoda_deferred_actions:  goto deferred_fixups;
     default:                     unexpected_condition();
   }  /* switch */
+  /* Save some state that must be restored for each declarator. */
+  saved_qualifiers = state.qualifiers;
+  saved_qualifiers_pos = state.qualifiers_pos;
   /* Scan the declarator list. */
   do {
     an_attribute_ptr  declarator_attributes = NULL;
     if (!first_declarator) {
       /* We've just skipped a comma separating two declarators. */
       start_secondary_declarator(&state);
+      state.qualifiers = saved_qualifiers;
+      state.qualifiers_pos = saved_qualifiers_pos;
       /* Re-initialize state.is_old_style_param_decl for every declarator,
          because it might have been modified during the processing of the prior
          declarator (e.g., as an error recovery strategy). */
