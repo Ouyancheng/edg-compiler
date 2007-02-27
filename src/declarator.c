@@ -4442,18 +4442,30 @@ The syntax is:
     }  /* if */
 #endif  /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
     add_stop_token(tok_rparen);
-    /* Get the nested declarator, removing the flag allowing parenthesized
-       initializers from the input_flags bit vector.  (The other flags are
-       passed on in the recursive call.) */
-    r_declarator((input_flags & ~DI_PARENTHESIZED_INITIALIZER_ALLOWED),
-                 &local_do_flags, state, /*specifiers_type=*/(a_type_ptr)NULL,
-                 member_parent_type, locator,
-                 &derived_type, &bottom_derived_type,
-                 is_constructor, is_destructor,
-                 &inner_left_call_conv, &unbound_call_conv,
-                 &inner_left_qualifiers, &unbound_qualifiers,
-                 declarator_ssep, func_info, decl_pos_block,
-                 (an_attribute_ptr *)last_attribute_ptr);
+    { /* Call r_declarator recursively to parse the nested declarator.  Some
+         state must be saved and restored for this call.  For example,
+         "int const (* const g())()" has two meaningless const qualifiers
+         that are diagnosed, but when declarator processing is completed,
+         *state->qualifiers should reflect the outermost qualifier (i.e.,
+         the first one in this example). */
+      a_type_qualifier_set  saved_qualifiers = state->qualifiers;
+      a_source_position     saved_qualifiers_pos;
+      saved_qualifiers_pos = state->qualifiers_pos;
+      /* Get the nested declarator, removing the flag allowing parenthesized
+         initializers from the input_flags bit vector.  (The other flags are
+         passed on in the recursive call.) */
+      r_declarator((input_flags & ~DI_PARENTHESIZED_INITIALIZER_ALLOWED),
+                   &local_do_flags, state,
+                   /*specifiers_type=*/(a_type_ptr)NULL, member_parent_type,
+                   locator, &derived_type, &bottom_derived_type,
+                   is_constructor, is_destructor,
+                   &inner_left_call_conv, &unbound_call_conv,
+                   &inner_left_qualifiers, &unbound_qualifiers,
+                   declarator_ssep, func_info, decl_pos_block,
+                   (an_attribute_ptr *)last_attribute_ptr);
+      state->qualifiers = saved_qualifiers;
+      state->qualifiers_pos = saved_qualifiers_pos;
+    }
     if (local_do_flags & DO_HAS_PTR_OR_REF_COMPONENT) {
       /* A nested declarator that contained a pointer, pointer-to-member, or
          reference component.  If we were to scan an array bound next, the
