@@ -360,6 +360,7 @@ typedef struct a_decl_parse_state {
 			/* The string specified by a GNU asm name construct. */
   a_source_position
 		asm_name_pos;
+			/* The position of the "asm" token (if any). */
   an_attribute_ptr
 		attributes;
 			/* A list of GNU attributes scanned for the current
