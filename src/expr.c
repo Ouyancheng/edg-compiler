@@ -1365,8 +1365,11 @@ source position is after the closing parenthesis of the argument list.
     routine_type = NULL;
     routine = NULL;
   }  /* if */
-  if (value_initialization_enabled && curr_token == tok_rparen) {
-    /* Empty parentheses ("()") indicate value-initialization. */
+  if (value_initialization_enabled && curr_token == tok_rparen &&
+      (prescanned_args == NULL || *prescanned_args == NULL)) {
+    /* Empty parentheses ("()") indicate value-initialization.  (If an
+       argument was prescanned, the parentheses weren't empty even if the
+       current token is ")".) */
     value_initialization = TRUE;
   }  /* if */
 
