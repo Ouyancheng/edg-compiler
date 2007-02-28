@@ -7146,7 +7146,7 @@ storage_class_specifier:
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          state->qualifiers_pos = pos_curr_token;
+          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
           qualifiers |= TQ_CONST;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7175,7 +7175,7 @@ storage_class_specifier:
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          state->qualifiers_pos = pos_curr_token;
+          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
           qualifiers |= TQ_VOLATILE;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7194,7 +7194,7 @@ storage_class_specifier:
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          state->qualifiers_pos = pos_curr_token;
+          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
           qualifiers |= TQ_UPC_STRICT;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7212,7 +7212,7 @@ storage_class_specifier:
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          state->qualifiers_pos = pos_curr_token;
+          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
           qualifiers |= TQ_UPC_RELAXED;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7227,7 +7227,7 @@ storage_class_specifier:
           multiple_shared_seen = TRUE;
           saved_block_size = state->upc_block_size;
         } else {
-          state->qualifiers_pos = pos_curr_token;
+          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
           qualifiers |= TQ_UPC_SHARED;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7283,7 +7283,7 @@ storage_class_specifier:
           /* __unaligned may not appear more than once. */
           warning(ec_dupl_type_qualifier);
         } else {
-          state->qualifiers_pos = pos_curr_token;
+          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
           qualifiers |= TQ_UNALIGNED;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7304,7 +7304,7 @@ storage_class_specifier:
           /* near and far are incompatible. */
           error(ec_mem_attrib_incompatible);
         } else {
-          state->qualifiers_pos = pos_curr_token;
+          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
           qualifiers |= TQ_NEAR;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7323,7 +7323,7 @@ storage_class_specifier:
           /* near and far are incompatible. */
           error(ec_mem_attrib_incompatible);
         } else {
-          state->qualifiers_pos = pos_curr_token;
+          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
           qualifiers |= TQ_FAR;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7902,7 +7902,9 @@ process_class_specifier:
             if (named_address_space_from_qualifier_set(qualifiers) != 0) {
               error(ec_multiple_named_address_spaces);
             } else {
-              state->qualifiers_pos = pos_curr_token;
+              if (qualifiers == TQ_NONE) {
+                 state->qualifiers_pos = pos_curr_token;
+              }  /* if */
               set_named_address_space_in_qualifier_set(qualifiers,
                                                        named_address_space);
             }  /* if */
