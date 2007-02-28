@@ -368,28 +368,56 @@ decl-specifier (e.g., "array [1] of NULL").
 }  /* is_partial_type */
 
 
-static void report_useless_return_type_qualifier(a_type_ptr          type,
-                                                 a_decl_parse_state  *dps)
+void report_bad_return_type_qualifier(a_type_ptr          type,
+                                      a_decl_parse_state  *dps,
+                                      a_boolean           *err)
 /*
-The given type is used as a function return type and was formed with explicit
-type qualifiers that have no effect (e.g., "int const f();").  Issue a warning
-in most cases, but some situations only call for a remark, and some template
-contexts don't call for any diagnostic at all (because some substitutions may
-make the qualifiers meaningful).
+The given type is a qualified type used as a function return type.  Issue an
+error if the qualification is invalid or a warning or remark if it is not
+meaningful (e.g., the "const" in "int const f()" has no effect).  If an error
+is issued, *err is set to TRUE.  *dps carries information about the way the
+type was formed (e.g., whether qualifiers appeared explicitly; meaningless
+qualification acquired through a typedef are not diagnosed).
 */
 {
-  an_error_severity  severity = es_warning;
+  an_error_severity  severity = es_none;
 
-  if (C_mode()) {
-    if (is_void_type(skip_typerefs(type)) &&
-        get_type_qualifiers(type) == TQ_VOLATILE) {
-      /* Issue just a remark for "volatile void" -- gcc uses that to
-         indicate a function (like exit()) that does not return. */
-      severity = es_remark;
-    }  /* if */
-  } else {
-    if (is_nonspecialized_instantiation_context() &&
-        !scope_stack[decl_scope_level].in_prototype_instantiation) {
+  if (!C_mode() &&
+      (is_class_struct_union_type(type) || is_template_param_type(type))) {
+    /* In C++ mode class rvalues can have type qualifiers, so allow a function
+       returning a qualified class type or a qualified template param type
+       (the latter because a function template could end up being instantiated
+       with a class type). */
+  } else if (get_type_qualifiers(type) == TQ_RESTRICT) {
+    /* Exactly one type qualifier -- "restrict".  No warning. */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  } else if (type_qualified_with_named_address_space(type)) {
+    /* Functions cannot return a value in a named address space. */
+    error(ec_function_returning_named_address_space);
+    *err = TRUE;
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+  } else if (is_shared_qualified_type(type)) {
+    /* Functions cannot return a shared type. */
+    error(ec_function_returning_shared);
+    *err = TRUE;
+#endif /* UPC_EXTENSIONS_ALLOWED */
+  } else if (is_reference_type(type)) {
+    /* A diagnostic will already have been issued. */
+    expect_error();
+  } else if (dps->qualifiers != TQ_NONE) {
+    /* Type qualifiers were explicitly specified on the return type, but they
+       have no effect.  Issue a diagnostic in most cases.  Note, however, that
+       the qualifiers are left as part of the type. */
+    if (C_mode()) {
+      if (is_void_type(skip_typerefs(type)) &&
+          get_type_qualifiers(type) == TQ_VOLATILE) {
+        /* Issue just a remark for "volatile void" -- gcc uses that to
+           indicate a function (like exit()) that does not return. */
+        severity = es_remark;
+      }  /* if */
+    } else if (is_nonspecialized_instantiation_context() &&
+               !scope_stack[decl_scope_level].in_prototype_instantiation) {
       /* Inside a template instantiation it is sometimes the case
          that the type qualifier is "useless" for some instantiations
          but not in general -- e.g.,
@@ -409,14 +437,15 @@ make the qualifiers meaningful).
          make this distinction.  When performing prototype
          instantiations, however, most such cases are in fact
          diagnosed. */
-      severity = es_none;
+    } else {
+      severity = es_warning;
     }  /* if */
   }  /* if */
   if (severity != es_none) {
     pos_diagnostic(severity, ec_useless_type_qualifier_on_return_type,
                    &dps->qualifiers_pos);
   }  /* if */
-}  /* report_useless_return_type_qualifier */
+}  /* report_bad_return_type_qualifier */
 
 
 void add_to_derived_type_list(a_type_ptr          new_type_ptr,
@@ -731,36 +760,7 @@ type.
         }  /* if */
         if (is_qualified_type(new_type_ptr)) {
           /* A qualified return type. */
-          if (!C_mode() &&
-              (is_class_struct_union_type(new_type_ptr) ||
-               is_template_param_type(new_type_ptr))) {
-            /* In C++ mode class rvalues can have type qualifiers, so allow
-               a function returning a qualified class type or a qualified
-               template param type (the latter because a function template
-               could end up being instantiated with a class type). */
-          } else if (get_type_qualifiers(new_type_ptr) == TQ_RESTRICT) {
-            /* Exactly one type qualifier -- "restrict".  No warning. */
-#if NAMED_ADDRESS_SPACES_ALLOWED
-          } else if (type_qualified_with_named_address_space(new_type_ptr)) {
-            /* Functions cannot return a value in a named address space. */
-            error(ec_function_returning_named_address_space);
-            err = TRUE;
-#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
-#if UPC_EXTENSIONS_ALLOWED
-          } else if (is_shared_qualified_type(new_type_ptr)) {
-            /* Functions cannot return a shared type. */
-            error(ec_function_returning_shared);
-            err = TRUE;
-#endif /* UPC_EXTENSIONS_ALLOWED */
-          } else if (is_reference_type(new_type_ptr)) {
-            /* A diagnostic will already have been issued. */
-          } else if (dps->qualifiers != TQ_NONE) {
-            /* Type qualifiers were explicitly specified on the return type,
-               but they have no effect.  Issue a diagnostic in most cases.
-               Note, however, that the qualifiers are left as part of the
-               type. */
-            report_useless_return_type_qualifier(new_type_ptr, dps);
-          }  /* if */
+          report_bad_return_type_qualifier(new_type_ptr, dps, &err);
         }  /* if */
         if (err) new_type_ptr = error_type();
         check_assertion((*bottom_derived_type)->kind ==

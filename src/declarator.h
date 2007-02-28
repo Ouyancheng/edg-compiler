@@ -330,6 +330,10 @@ extern void add_to_derived_type_list(a_type_ptr          new_type_ptr,
                                      a_boolean           parameter_type,
                                      a_boolean           microsoft_property);
 
+void report_bad_return_type_qualifier(a_type_ptr          type,
+                                      a_decl_parse_state  *dps,
+                                      a_boolean           *err);
+
 #endif /* DECLARATOR_H */
 
 /******************************************************************************

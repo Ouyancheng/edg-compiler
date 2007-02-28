@@ -9687,8 +9687,13 @@ operator function reference.
       end_pos_curr_token = decl_pos_block.specifiers_range.end;
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    make_type_conversion_locator(complete_type, &locator_for_curr_id, id_pos);
+    if (is_qualified_type(complete_type)) {
+      a_boolean  err = FALSE;
+      report_bad_return_type_qualifier(complete_type, &state, &err);
+      if (err) complete_type = error_type();
+    }  /* if */
     check_pending_qualifiers_used(&state);
+    make_type_conversion_locator(complete_type, &locator_for_curr_id, id_pos);
   } else {
     is_conversion_operator = FALSE;
   }  /* if */
