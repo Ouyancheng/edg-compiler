@@ -409,13 +409,11 @@ qualification acquired through a typedef are not diagnosed).
     /* Type qualifiers were explicitly specified on the return type, but they
        have no effect.  Issue a diagnostic in most cases.  Note, however, that
        the qualifiers are left as part of the type. */
-    if (C_mode()) {
-      if (is_void_type(skip_typerefs(type)) &&
-          get_type_qualifiers(type) == TQ_VOLATILE) {
-        /* Issue just a remark for "volatile void" -- gcc uses that to
-           indicate a function (like exit()) that does not return. */
-        severity = es_remark;
-      }  /* if */
+    if (C_mode() && is_void_type(skip_typerefs(type)) &&
+        get_type_qualifiers(type) == TQ_VOLATILE) {
+      /* Issue just a remark for "volatile void" -- gcc uses that to
+         indicate a function (like exit()) that does not return. */
+      severity = es_remark;
     } else if (is_nonspecialized_instantiation_context() &&
                !scope_stack[decl_scope_level].in_prototype_instantiation) {
       /* Inside a template instantiation it is sometimes the case

@@ -6941,6 +6941,10 @@ macro DSI_NO_INPUT_FLAGS.
     decl_pos_block->specifiers_range.start = state->specifiers_pos;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Helper macro to record the position of the first qualifier (other than
+     "restrict", which has its own position record). */
+#define record_qualifiers_pos()                                              \
+  if (state->qualifiers_pos.seq == 0) state->qualifiers_pos = pos_curr_token;
   /* Loop for each declaration specifier. */
   for (;;) {
     /* Most specifiers cannot be part of a vacuous class or enum declaration,
@@ -7146,7 +7150,7 @@ storage_class_specifier:
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
+          record_qualifiers_pos();
           qualifiers |= TQ_CONST;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7175,7 +7179,7 @@ storage_class_specifier:
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
+          record_qualifiers_pos();
           qualifiers |= TQ_VOLATILE;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7194,7 +7198,7 @@ storage_class_specifier:
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
+          record_qualifiers_pos();
           qualifiers |= TQ_UPC_STRICT;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7212,7 +7216,7 @@ storage_class_specifier:
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
+          record_qualifiers_pos();
           qualifiers |= TQ_UPC_RELAXED;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7227,7 +7231,7 @@ storage_class_specifier:
           multiple_shared_seen = TRUE;
           saved_block_size = state->upc_block_size;
         } else {
-          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
+          record_qualifiers_pos();
           qualifiers |= TQ_UPC_SHARED;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7283,7 +7287,7 @@ storage_class_specifier:
           /* __unaligned may not appear more than once. */
           warning(ec_dupl_type_qualifier);
         } else {
-          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
+          record_qualifiers_pos();
           qualifiers |= TQ_UNALIGNED;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7304,7 +7308,7 @@ storage_class_specifier:
           /* near and far are incompatible. */
           error(ec_mem_attrib_incompatible);
         } else {
-          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
+          record_qualifiers_pos();
           qualifiers |= TQ_NEAR;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7323,7 +7327,7 @@ storage_class_specifier:
           /* near and far are incompatible. */
           error(ec_mem_attrib_incompatible);
         } else {
-          if (qualifiers == TQ_NONE) state->qualifiers_pos = pos_curr_token;
+          record_qualifiers_pos();
           qualifiers |= TQ_FAR;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
         }  /* if */
@@ -7902,9 +7906,7 @@ process_class_specifier:
             if (named_address_space_from_qualifier_set(qualifiers) != 0) {
               error(ec_multiple_named_address_spaces);
             } else {
-              if (qualifiers == TQ_NONE) {
-                 state->qualifiers_pos = pos_curr_token;
-              }  /* if */
+              record_qualifiers_pos();
               set_named_address_space_in_qualifier_set(qualifiers,
                                                        named_address_space);
             }  /* if */
@@ -8312,6 +8314,7 @@ no_get_token:
       }  /* if */
     }  /* if */
   }  /* for */
+#undef record_qualifiers_pos
 exit_loop:
   if (state->auto_type_specifier_seen) {
     /* The "auto" token was seen among the specifiers: It is either a storage
