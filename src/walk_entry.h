@@ -894,6 +894,9 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if DO_IL_LOWERING
             conditionally_clear_fe_pointer(ptr->variant.integer.uuid_variable);
 #endif /* DO_IL_LOWERING */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE
+            walk_ptr(ptr->variant.integer.base_type, a_type_ptr, iek_type);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
             break;

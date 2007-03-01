@@ -1,5 +1,17 @@
 Version 3.9
 
+2/28/07  Abort on Microsoft enum types with explicit underlying type
+
+In configurations with IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE and
+PROTOTYPE_INSTANTIATIONS_IN_IL or BACK_END_IS_CP_GEN_BE set TRUE, the front
+end could abort in Microsoft mode when dealing with enum type definitions
+that explicitly specify the underlying type.  For example:
+
+  enum E: short { e };  // Could abort in Microsoft mode in some
+                        // configurations.
+
+This is now fixed.
+
 2/23/07  Invalid constructor and destructor syntax
 
 The front end failed to diagnose constructor or destructor declarations
