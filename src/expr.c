@@ -19379,10 +19379,11 @@ static void extract_constant_from_operand_with_fs_fixup(an_operand *operand,
                                                         a_constant *constant)
 /*
 Extract a constant from the given operand and return it in *constant.
-The constant is or will be allocated in the file scope memory region,
-so do any required adjustment to make that possible.
+The constant is allocated in the file scope memory region, so do any
+required adjustment to make that possible.
 */
 {
+  check_assertion(constant != NULL && in_file_scope(constant));
   extract_constant_from_operand(operand, constant);
   if (has_non_file_scope_ref(constant)) {
     /* The constant has some function-scope parts, so copy its tree.
@@ -19407,10 +19408,12 @@ static void prep_nontype_template_argument_initializer(an_operand *operand,
 /*
 operand points to an operand for a nontype template argument expression.
 Convert it to the template parameter type param_type, and put a constant
-for the converted result in *constant.  Do various error checks.
+for the converted result in *constant (which must be in the file scope
+memory region).  Do various error checks.
 */
 {
   db_enter(3, "prep_nontype_template_argument_initializer");
+  check_assertion(constant != NULL && in_file_scope(constant));
   if (microsoft_mode && microsoft_version < 1310 &&
       is_pointer_type(param_type) &&
       is_an_lvalue(operand) && is_constant_operand(operand) &&
@@ -19458,16 +19461,16 @@ void scan_template_argument_constant_expression(a_type_ptr param_type,
 /*
 Scan a constant argument in a template reference.  Issue an error if it
 is incompatible with the corresponding parameter type, param_type.
-Return the constant in *constant.  If param_type is NULL, the
-parameter type is not known.
+Return the constant in *constant (which must be in the file scope
+memory region).  If param_type is NULL, the parameter type is not known.
 */
 {
-  an_operand          result;
-  an_expr_stack_entry expr_stack_entry;
+  an_operand             result;
+  an_expr_stack_entry    expr_stack_entry;
   a_memory_region_number region_to_switch_back_to;
 
   db_enter(3, "scan_template_argument_constant_expression");
-
+  check_assertion(constant != NULL && in_file_scope(constant));
   push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
@@ -19617,8 +19620,8 @@ void conv_nontype_template_arg_to_param_type(an_arg_operand_ptr arg_operand,
 arg_operand points to an argument operand for a nontype template argument
 expression previously scanned by scan_nontype_template_argument.  Convert it
 to the template parameter type param_type, and put a constant for the
-converted result in *constant.  This is callable from outside of the
-expression processing routines.
+converted result in *constant (which must be in the file scope memory region).
+This is callable from outside of the expression processing routines.
 */
 {
   an_operand             operand;
@@ -19626,7 +19629,7 @@ expression processing routines.
   a_memory_region_number region_to_switch_back_to;
 
   db_enter(3, "conv_nontype_template_arg_to_param_type");
-
+  check_assertion(constant != NULL && in_file_scope(constant));
   push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);

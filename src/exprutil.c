@@ -7559,7 +7559,8 @@ which means "constant" is actually allocated in the IL.)
     /* The constant is a function-scope constant, but we're going to
        need it in the file scope memory region, so copy it. */
     constant = copy_constant_full(constant, &local_constant,
-                                  CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+                                  (CE_COPIED_CONSTANTS_MAY_BE_SHARED |
+                                   CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL));
   }  /* if */
   make_constant_operand(constant, operand);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL

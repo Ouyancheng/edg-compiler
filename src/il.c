@@ -4726,39 +4726,46 @@ static a_constant_ptr i_copy_constant_full(
                                         a_tree_copy_control_block *cblock)
 /*
 Make a copy of a constant and its subtree and return a pointer to the copy.
-If new_constant is non-NULL, the copy is placed there; otherwise, a new
-constant is allocated.  options is the set of options for the copy.
-By default, the copy will be an unshared constant, but if the option
-CE_COPIED_CONSTANTS_MAY_BE_SHARED is specified, the constant may be
-shared.  cblock is a control block for the copy.  This is an internal
-routine (thus the "i_" prefix); copy_constant_full should be called
-to start a copy.
+options is the set of options for the copy.  If new_constant is non-NULL,
+the copy is placed there (that address must be in allocated IL memory
+unless the option CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL is specified);
+otherwise, a new constant is allocated.  By default, the copy will be
+an unshared constant, but if the option CE_COPIED_CONSTANTS_MAY_BE_SHARED
+is specified, the constant may be shared.  cblock is a control block for
+the copy.  This is an internal routine (thus the "i_" prefix);
+copy_constant_full should be called to start a copy.
 */
 {
   a_constant_ptr old_aggr_con, new_aggr_con;
   a_boolean      may_be_shared =
                             (options & CE_COPIED_CONSTANTS_MAY_BE_SHARED) != 0;
+  a_boolean      new_constant_in_il;
   a_constant     local_constant;
   an_expr_copy_options_set
                  options_unshared;
 
-  /* Create a version of the options set with the may-be-shared bit dropped. */
-  options_unshared = (options &
-                      ~(an_expr_copy_options_set)
-                                            CE_COPIED_CONSTANTS_MAY_BE_SHARED);
   if (new_constant != NULL) {
     /* The caller has passed in the address for the copy. */
     copy_constant(old_constant, new_constant);
     may_be_shared = FALSE;
+    new_constant_in_il = !(options & CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL);
   } else if (may_be_shared) {
     /* For the shareable constant case, build up the constant locally and
        do the allocation at the end of this routine. */
     new_constant = &local_constant;
     copy_constant(old_constant, new_constant);
+    new_constant_in_il = FALSE;
   } else {
     /* Allocate a new unshared constant. */
     new_constant = alloc_unshared_constant(old_constant);
+    new_constant_in_il = TRUE;
   }  /* if */
+  options = (options &
+             ~(an_expr_copy_options_set)CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL);
+  /* Create a version of the options set with the may-be-shared bit dropped. */
+  options_unshared = (options &
+                      ~(an_expr_copy_options_set)
+                                            CE_COPIED_CONSTANTS_MAY_BE_SHARED);
   if (new_constant->kind == (a_constant_repr_kind)ck_aggregate) {
     /* For aggregate constants, copy the subtree also. */
     new_constant->variant.aggregate.first_constant = NULL;
@@ -4883,7 +4890,7 @@ to start a copy.
   }  /* if */
   if (may_be_shared) {
     new_constant = alloc_shareable_constant(new_constant);
-  } else {
+  } else if (new_constant_in_il) {
     fix_memory_region_problems_in_copied_constant(new_constant);
   }  /* if */
   return new_constant; /*lint !e809*/
@@ -4895,12 +4902,13 @@ a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   an_expr_copy_options_set options)
 /*
 Make a copy of a constant and its subtree and return a pointer to the copy.
-If new_constant is non-NULL, the copy is placed there; otherwise, a new
-constant is allocated.  options is the set of options for the copy.
-By default, the copy will be an unshared constant, but if the option
-CE_COPIED_CONSTANTS_MAY_BE_SHARED is specified, the constant may be
-shared.  See copy_unshared_constant for a simple interface to this routine
-for the usual case.
+options is the set of options for the copy.  If new_constant is non-NULL,
+the copy is placed there (that address must be in allocated IL memory
+unless the option CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL is specified);
+otherwise, a new constant is allocated.  By default, the copy will be
+an unshared constant, but if the option CE_COPIED_CONSTANTS_MAY_BE_SHARED
+is specified, the constant may be shared.  See copy_unshared_constant
+for a simple interface to this routine for the usual case.
 */
 {
   a_tree_copy_control_block cblock;

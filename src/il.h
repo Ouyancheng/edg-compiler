@@ -895,6 +895,10 @@ typedef int an_expr_copy_options_set;
 			   generated variables. */
 #define CE_COPY_NOT_EVALUATED 0x80
 			/* TRUE if the copy is in an unevaluated context. */
+#define CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL 0x100
+			/* TRUE if the destination address provided to
+			   copy_constant_full is not an IL address (e.g.,
+			   it's the address of a stack variable). */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,
