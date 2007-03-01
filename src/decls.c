@@ -13522,7 +13522,6 @@ based on the current mode and the given declaration parsing state.
 */
 {
   a_decl_flag_set  dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
-                               DSI_GNU_ATTRIBUTES_ALLOWED |
                                DSI_REGISTER_ID_ALLOWED;
 
   if (!state->is_asm_function) {
@@ -13556,8 +13555,11 @@ based on the current mode and the given declaration parsing state.
       dsi_flags |= DSI_INLINE_ALLOWED;
     }  /* if */
   }  /* if */
-  if (state->marked_as_gnu_extension) {
-    dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
+  if (gnu_mode) {
+    dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
+    if (state->marked_as_gnu_extension) {
+      dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
+    }  /* if */
   }  /* if */
   return dsi_flags;
 }  /* get_decl_specifiers_flags */

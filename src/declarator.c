@@ -1621,16 +1621,18 @@ if this is the function declarator in a friend function declaration.
         a_decl_pos_block     local_decl_pos_block;
         a_decl_flag_set      dsi_flags = DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
                                          DSI_TYPE_SPECIFIER_ALLOWED |
-                                         DSI_GNU_ATTRIBUTES_ALLOWED |
-                                         DSI_MICROSOFT_ATTRIBUTES_ALLOWED |
                                          DSI_IS_PARAMETER |
                                          DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
         if (func_info == NULL) dsi_flags |= DSI_IN_ABSTRACT_FUNC_DECLARATOR;
-        if (gnu_mode && curr_token == tok_extension) {
-          /* Ignore the GNU C __extension__ annotation. */
-          (void)get_token();
-          dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
+        if (gnu_mode) {
+          if (curr_token == tok_extension) {
+            /* Ignore the GNU C __extension__ annotation. */
+            (void)get_token();
+            dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
+          }  /* if */
+          dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
         }  /* if */
+        if (microsoft_mode) dsi_flags |= DSI_MICROSOFT_ATTRIBUTES_ALLOWED;
         /* Count the number of parameters encountered. */
         param_number++;
         add_stop_token(tok_comma);

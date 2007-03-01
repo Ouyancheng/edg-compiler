@@ -8038,10 +8038,14 @@ information.
   a_decl_flag_set     dsi_flags = DSI_INLINE_ALLOWED |
                                   DSI_TYPE_SPECIFIER_ALLOWED |
                                   DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
-                                  DSI_GNU_ATTRIBUTES_ALLOWED |
-                                  DSI_MICROSOFT_ATTRIBUTES_ALLOWED |
                                   DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
 
+  if (gpp_mode) {
+    dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
+  }  /* if */
+  if (microsoft_mode) {
+    dsi_flags |= DSI_MICROSOFT_ATTRIBUTES_ALLOWED;
+  }  /* if */
   if (is_initial_decl) {
     dsi_flags |= DSI_IS_TEMPLATE_DECLARATION;
     /* An end-of-source marker is not present when the initial declaration
