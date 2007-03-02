@@ -18172,16 +18172,25 @@ handle_trapped_left_paren:
       break;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_struct:
-    case tok_class:
-    case tok_union:
     case tok_const:
     case tok_volatile:
       if (!microsoft_mode) goto bad_start_of_primary;
-      /* The Microsoft compiler allows casts like "class A(x)"
-         and "const int(0)". */
       /*FALLTHROUGH*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+    case tok_enum:
+    case tok_struct:
+    case tok_class:
+    case tok_union:
+      /* The Microsoft compiler allows casts like "class A(x)" and
+         "const int(0)".  Early versions of the GNU compiler also allow
+         the form involving elaborated type names (i.e., "class A(x)" but
+         not "const int(0)"). */
+      if (!microsoft_mode && !(gpp_mode && gnu_version < 30400)) {
+        goto bad_start_of_primary;
+      }  /* if */
+      /*FALLTHROUGH*/
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
     case tok_char:
     case tok_short:
     case tok_int:
@@ -18218,6 +18227,15 @@ handle_trapped_left_paren:
 #if GNU_EXTENSIONS_ALLOWED
         } else if (curr_token == tok_typeof) {
           cast_type = scan_typeof_operator((a_decl_pos_block*)NULL);
+        } else if (gpp_mode && gnu_version < 30400 &&
+                   (is_class_type_keyword(curr_token) ||
+                    curr_token == tok_enum || curr_token == tok_typename)) {
+          /* Early GNU compilers allow casts like "enum E(3)" (but not the
+             variant "enum E const(3)"). */
+          cast_type = simple_type_specifier_sequence();
+          if (is_qualified_type(cast_type)) {
+            error(ec_bad_type_qualifier);
+          }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode) {

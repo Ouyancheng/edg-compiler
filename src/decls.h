@@ -541,9 +541,9 @@ cv-qualifiers.
 extern void new_type_name(a_decl_parse_state  *state,
                           a_boolean           is_parenthesized);
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
 extern a_type_ptr simple_type_specifier_sequence(void);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 
 extern
 a_boolean scan_conversion_operator(

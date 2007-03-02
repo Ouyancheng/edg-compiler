@@ -1,5 +1,14 @@
 Version 3.9
 
+3/2/07   GNU C++ compatibility: Functional-notation cast syntax
+
+In GNU C++ mode with gnu_version < 30400, the front end now accepts
+functional-notation casts that start with an elaborated type name.
+For example:
+
+  enum E { e = 20 };
+  E f() { return enum E(2); }  // Now accepted in some GNU C++ modes.
+
 3/2/07   Sun compatibility: #pragma redefine_extname and global variables
 
 In Sun mode, the front end implements a limited version of Sun's #pragma

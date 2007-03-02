@@ -9533,7 +9533,7 @@ within this routine if is_parenthesized comes in FALSE.
   db_exit();
 }  /* new_type_name */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
 
 a_type_ptr simple_type_specifier_sequence(void)
 /*
@@ -9546,7 +9546,7 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
   a_decl_pos_block        decl_pos_block;
   a_decl_parse_state      state;
 
-  check_assertion(microsoft_mode);
+  check_assertion(microsoft_mode || gpp_mode);
   init_decl_parse_state(&state);
   clear_decl_pos_block(&decl_pos_block);
   decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR, &state,
@@ -9561,7 +9561,7 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
   return type_ptr;
 }  /* simple_type_specifier_sequence */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 
 a_boolean scan_conversion_operator(
 			a_source_position		*id_pos,
