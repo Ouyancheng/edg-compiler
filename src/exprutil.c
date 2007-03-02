@@ -1765,7 +1765,8 @@ value is TRUE.
           /* In class cases, we don't want to make a copy of the class.
              We reuse the address of the class object we have. */
           class_rvalue_case = TRUE;
-          conv_class_operand_to_object_pointer(operand);
+          conv_class_operand_to_object_pointer(operand, 
+                                               /*will_be_an_lvalue=*/FALSE);
           check_assertion(is_expression_operand(operand));
         }  /* if */
         expr = operand->variant.expression;
@@ -3234,7 +3235,7 @@ convert operand to an address and set *is_arrow_operator to TRUE.
 {
   if (!*is_arrow_operator) {
     /* Convert the operand to an address. */
-    conv_class_operand_to_object_pointer(operand);
+    conv_class_operand_to_object_pointer(operand, /*will_be_an_lvalue=*/FALSE);
     *is_arrow_operator = TRUE;
   }  /* if */
 }  /* conv_selector_to_object_pointer */
@@ -4938,7 +4939,8 @@ returning a class by value).
     }  /* if */
     if (revertible) {
       /* Change the rvalue back into an lvalue. */
-      conv_class_operand_to_object_pointer(operand);
+      conv_class_operand_to_object_pointer(operand, 
+                                           /*will_be_an_lvalue=*/TRUE);
       conv_object_pointer_to_lvalue(operand);
     }  /* if */
   }  /* if */
@@ -5012,7 +5014,8 @@ when gnu_version would ordinarily indicate they should not be.
                                            /*see_if_possible=*/TRUE,
                                            /*gcc_lvalue=*/gcc_mode,
                                            ignore_casts,
-                                           (a_type_ptr *)NULL);
+                                           (a_type_ptr *)NULL,
+                                           /*will_be_an_lvalue=*/TRUE);
         if (ignore_casts && do_recovery && cast_on_top_originally &&
             expr != orig_expr) {
           /* One or more casts was removed. */
@@ -5099,7 +5102,8 @@ when gnu_version would ordinarily indicate they should not be.
                                              /*see_if_possible=*/FALSE,
                                              /*gcc_lvalue=*/gcc_mode,
                                              ignore_casts,
-                                             &lvalue_type);
+                                             &lvalue_type,
+                                             /*will_be_an_lvalue=*/TRUE);
           if (cast_type != NULL) {
             /* Adjust the result lvalue type if necessary because of
                a cast that's not being ignored. */
@@ -7177,11 +7181,13 @@ still provided).
              The class test here is needed for mixed throw/class cases. */
           class_rvalue_cctor_case = TRUE;
           if (is_class_struct_union_type(operand_2->type)) {
-            conv_class_operand_to_object_pointer(operand_2);
+            conv_class_operand_to_object_pointer(operand_2, 
+                                                 /*will_be_an_lvalue=*/FALSE);
             operation_type = operand_2->type;
           }  /* if */
           if (is_class_struct_union_type(operand_3->type)) {
-            conv_class_operand_to_object_pointer(operand_3);
+            conv_class_operand_to_object_pointer(operand_3, 
+                                                 /*will_be_an_lvalue=*/FALSE);
             operation_type = operand_3->type;
           }  /* if */
         }  /* if */
@@ -8569,7 +8575,7 @@ expression in the result because of transformations on the return value).
 	       is_class_struct_union_type(return_type)) {
     /* In Microsoft C++ mode, a function that returns a class type is
 	 considered to return an lvalue.  This was changed in MSVC++ 5.0. */
-    conv_class_operand_to_object_pointer(result);
+    conv_class_operand_to_object_pointer(result, /*will_be_an_lvalue=*/TRUE);
     conv_object_pointer_to_lvalue(result);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -9089,11 +9095,13 @@ result type for the lvalue operation (with no extra pointer-to level).
   conv_rvalue_expr_to_object_pointer(&op2, &op2_possible,
                                      /*see_if_possible=*/TRUE,
                                      /*gcc_lvalue=*/TRUE,
-                                     ignore_casts, &type2);
+                                     ignore_casts, &type2,
+                                     /*will_be_an_lvalue=*/TRUE);
   conv_rvalue_expr_to_object_pointer(&op3, &op3_possible,
                                      /*see_if_possible=*/TRUE,
                                      /*gcc_lvalue=*/TRUE,
-                                     ignore_casts, &type3);
+                                     ignore_casts, &type3,
+                                     /*will_be_an_lvalue=*/TRUE);
   if (!op2_possible || !op3_possible) {
     /* One or both of the operands cannot be converted to an lvalue,
        so give up. */
@@ -9140,7 +9148,8 @@ void conv_rvalue_expr_to_object_pointer(an_expr_node_ptr *p_node,
                                         a_boolean        see_if_possible,
                                         a_boolean        gcc_lvalue,
                                         a_boolean        ignore_casts,
-                                        a_type_ptr       *lvalue_type)
+                                        a_type_ptr       *lvalue_type,
+                                        a_boolean        will_be_an_lvalue)
 /*
 *p_node is an expression tree for an rvalue.  If possible, rewrite it
 as an object pointer for the object, and set *p_node to the new
@@ -9154,7 +9163,9 @@ then turn the expression into an lvalue).  If lvalue_type is non-NULL,
 *lvalue_type is set to the type of the lvalue (without extra
 pointer-to level); it might differ from the original node type in
 having extra cv-qualifiers that were dropped when the lvalue was
-converted to an rvalue.
+converted to an rvalue.  If will_be_an_lvalue is TRUE, the address_taken
+field of any variables in the expression that need to be converted will not
+be set.  will_be_an_lvalue has an effect only when see_if_possible is FALSE.
 */
 {
   an_expr_node_ptr      node = *p_node, op1, op2, op3;
@@ -9188,7 +9199,11 @@ converted to an rvalue.
       possible = FALSE;
     } else if (!see_if_possible) {
       node->kind = (an_expr_node_kind)enk_variable_address;
-      set_variable_address_taken(node->variant.variable);
+      /* Don't set the address_taken field if the object pointer that's
+         being created will result in an lvalue. */
+      if (!will_be_an_lvalue) {
+        set_variable_address_taken(node->variant.variable);
+      }  /* if */
       node->implicit_reference_indirection = FALSE;
     }  /* if */
   } else if (is_constant_node(node)) {
@@ -9245,7 +9260,8 @@ converted to an rvalue.
         conv_rvalue_expr_to_object_pointer(&op2, &op2_possible,
                                            /*see_if_possible=*/TRUE,
                                            /*gcc_lvalue=*/FALSE,
-                                           ignore_casts, (a_type_ptr *)NULL);
+                                           ignore_casts, (a_type_ptr *)NULL,
+                                           will_be_an_lvalue);
         if (!op2_possible &&
             op2->kind == (an_expr_node_kind)enk_throw) {
           op2_is_throw = TRUE;
@@ -9254,7 +9270,8 @@ converted to an rvalue.
         conv_rvalue_expr_to_object_pointer(&op3, &op3_possible,
                                            /*see_if_possible=*/TRUE,
                                            /*gcc_lvalue=*/FALSE,
-                                           ignore_casts, (a_type_ptr *)NULL);
+                                           ignore_casts, (a_type_ptr *)NULL,
+                                           will_be_an_lvalue);
         if (!op3_possible &&
             op3->kind == (an_expr_node_kind)enk_throw) {
           op3_is_throw = TRUE;
@@ -9278,14 +9295,16 @@ converted to an rvalue.
                                                /*see_if_possible=*/FALSE,
                                                gcc_lvalue,
                                                ignore_casts,
-                                               (a_type_ptr *)NULL);
+                                               (a_type_ptr *)NULL,
+                                               will_be_an_lvalue);
           }  /* if */
           if (!op3_is_throw) {
             conv_rvalue_expr_to_object_pointer(&op3, &op3_possible,
                                                /*see_if_possible=*/FALSE,
                                                gcc_lvalue,
                                                ignore_casts,
-                                               (a_type_ptr *)NULL);
+                                               (a_type_ptr *)NULL,
+                                               will_be_an_lvalue);
           }  /* if */
           if (gcc_lvalue) {
             /* For the gcc case, cast the operands to the right result
@@ -9315,7 +9334,8 @@ converted to an rvalue.
                                          /*see_if_possible=*/TRUE,
                                          gcc_lvalue,
                                          ignore_casts,
-                                         (a_type_ptr *)NULL);
+                                         (a_type_ptr *)NULL,
+                                         will_be_an_lvalue);
       if (op2_possible) {
         possible = TRUE;
         if (!see_if_possible) {
@@ -9324,7 +9344,8 @@ converted to an rvalue.
                                              /*see_if_possible=*/FALSE,
                                              gcc_lvalue,
                                              ignore_casts,
-                                             (a_type_ptr *)NULL);
+                                             (a_type_ptr *)NULL,
+                                             will_be_an_lvalue);
           op1->next = op2;
         }  /* if */
       }  /* if */
@@ -9339,7 +9360,8 @@ converted to an rvalue.
                                          /*see_if_possible=*/TRUE,
                                          gcc_lvalue,
                                          ignore_casts,
-                                         (a_type_ptr *)NULL);
+                                         (a_type_ptr *)NULL,
+                                         will_be_an_lvalue);
       if (op1_possible) {
         possible = TRUE;
         if (!see_if_possible) {
@@ -9347,7 +9369,8 @@ converted to an rvalue.
                                              /*see_if_possible=*/FALSE,
                                              gcc_lvalue,
                                              ignore_casts,
-                                             (a_type_ptr *)NULL);
+                                             (a_type_ptr *)NULL,
+                                             will_be_an_lvalue);
           node->variant.operation.operands = op1;
           op1->next = op2;
           node->variant.operation.kind = (an_expr_operator_kind)eok_field;
@@ -9384,12 +9407,16 @@ converted to an rvalue.
 }  /* conv_rvalue_expr_to_object_pointer */
 
 
-void conv_class_operand_to_object_pointer(an_operand *operand)
+void conv_class_operand_to_object_pointer(an_operand *operand,
+                                          a_boolean  will_be_an_lvalue)
 /*
 Convert a class operand for an object into an operand for a pointer to the
 object.  The operand may be either an lvalue or an rvalue; in the rvalue
 case, a temporary is created and initialized with the rvalue, and the
-address of the temporary is returned.  This routine is only used in C++ mode.
+address of the temporary is returned.  If the resulting object pointer will
+be used as an lvalue (will_be_an_lvalue is TRUE), setting of the address_taken
+field is suppressed if conversion is necessary.  This routine is only
+used in C++ mode.
 */
 {
   an_operand        orig_operand;
@@ -9420,7 +9447,8 @@ address of the temporary is returned.  This routine is only used in C++ mode.
                                          /*see_if_possible=*/FALSE,
                                          /*gcc_lvalue=*/FALSE,
                                          /*ignore_casts=*/FALSE,
-                                         (a_type_ptr *)NULL);
+                                         (a_type_ptr *)NULL,
+                                         will_be_an_lvalue);
       if (optimized_case) {
         /* The expression has been rewritten as an object pointer. */
         make_expression_operand(node, node->type, operand);
@@ -10180,7 +10208,8 @@ subtree, some of which will no longer have array type.
       an_operand operand;
 
       make_expression_operand(expr, expr_type, &operand);
-      conv_class_operand_to_object_pointer(&operand);
+      conv_class_operand_to_object_pointer(&operand, 
+                                           /*will_be_an_lvalue=*/FALSE);
       expr = make_node_from_operand(&operand);
     } else {
       /* C mode.  Use an eok_lvalue_from_struct_rvalue node. */

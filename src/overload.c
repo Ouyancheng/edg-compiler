@@ -9743,7 +9743,7 @@ gives the type of the routine being called.
   a_type_ptr       this_param_type, this_class_type, operand_class_type;
   a_base_class_ptr bcp;
 
-  conv_class_operand_to_object_pointer(operand);
+  conv_class_operand_to_object_pointer(operand, /*will_be_an_lvalue=*/FALSE);
   /* If the function is const, change the reference kinds on the selector. */
   change_refs_on_selector_if_const_function(routine_type, operand);
   this_param_type = implicit_this_param_type_of(routine_type);
@@ -9784,7 +9784,7 @@ On return, the operand is an lvalue.
 */
 {
   /* Convert to a pointer to the object. */
-  conv_class_operand_to_object_pointer(operand);
+  conv_class_operand_to_object_pointer(operand, /*will_be_an_lvalue=*/FALSE);
   if (bcp != NULL) {
     /* Cast the pointer to the proper base class. */
     base_class_cast_operand(operand, bcp,
@@ -10559,7 +10559,9 @@ select_best_function:
               have_selector = member_is_best_match;
               if (have_selector) {
                 /* Convert the selector to a pointer. */
-                conv_class_operand_to_object_pointer(bound_function_selector);
+                conv_class_operand_to_object_pointer(
+                                                  bound_function_selector,
+                                                  /*will_be_an_lvalue=*/FALSE);
               }  /* if */
               /* Do the things that would have been done to the symbol but
                  weren't because the specific symbol was not known, and build
@@ -12668,7 +12670,8 @@ copy-initialization.
       /* The result of the conversion is already a class temporary.
          Convert the operand from the value of the temporary to the
          address. */
-      conv_class_operand_to_object_pointer(source_operand);
+      conv_class_operand_to_object_pointer(source_operand, 
+                                           /*will_be_an_lvalue=*/FALSE);
     } else if (have_temp && is_an_lvalue(source_operand)) {
       /* The result of the conversion is already a non-class temporary
          that is an lvalue (in particular, this includes array lvalues).
@@ -13417,7 +13420,8 @@ to be acceptable, and *conversion describes it.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Convert the operand to a pointer to the class object. */
-    conv_class_operand_to_object_pointer(source_operand);
+    conv_class_operand_to_object_pointer(source_operand, 
+                                         /*will_be_an_lvalue=*/FALSE);
     cast_operand(result_ptr_type, source_operand, /*check_cast_access=*/TRUE,
                  /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
                  /*reinterpret_semantics=*/FALSE);

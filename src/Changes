@@ -1,5 +1,17 @@
 Version 3.9
 
+3/1/07   GNU compatibility: address_taken field set on lvalue cast
+
+In GNU emulation mode, an lvalue cast of a variable could result
+in the address_taken field being set.  The problem occurs in C mode when
+gnu_version < 40000 and in C++ mode when gnu_version < 30400.
+
+  int f() {
+    register int n;
+    (short)n = 10;   // Previously set address_taken field of variable "n"
+    return n;
+  }
+
 2/28/07  Abort on Microsoft enum types with explicit underlying type
 
 In configurations with IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE and

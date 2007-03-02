@@ -2255,7 +2255,8 @@ Syntax:
       /* The operand becomes the selector object. */
       check_assertion(!operand->bound_function);
       copy_operand(operand, bound_function_selector);
-      conv_class_operand_to_object_pointer(bound_function_selector);
+      conv_class_operand_to_object_pointer(bound_function_selector, 
+                                           /*will_be_an_lvalue=*/FALSE);
       /* See if the class has an operator(). */
       member_function_symbol = opname_member_function_symbol(
                                         (an_opname_kind)onk_function_call,
@@ -10562,7 +10563,8 @@ for non-class operands).  This routine is called only in C++ mode.
             /* In Microsoft C++ mode, a function that returns a class type is
                considered to return an lvalue.  This was changed in
                MSVC++ 5.0. */
-            conv_class_operand_to_object_pointer(operand);
+            conv_class_operand_to_object_pointer(operand, 
+                                                 /*will_be_an_lvalue=*/TRUE);
             conv_object_pointer_to_lvalue(operand);
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -10640,7 +10642,7 @@ case a generic cast using the operator cast_op is generated.
              is_class_struct_union_type(operand->type)) {
     /* Allow a cast of a class rvalue to a reference type, when appropriate
        (e.g., for a static_cast to a reference-to-const type). */
-    conv_class_operand_to_object_pointer(operand);
+    conv_class_operand_to_object_pointer(operand, /*will_be_an_lvalue=*/FALSE);
   } else if (allow_rvalue) {
     /* Allow a cast of a non-class rvalue when appropriate (e.g., for
        a static_cast to a reference-to-const type).  This requires a
@@ -12424,7 +12426,8 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
       if (microsoft_bugs && microsoft_version < 1100) {
         /* In Microsoft C++ mode, a constructor is considered to return
            an lvalue.  This was changed in MSVC++ 5.0. */
-        conv_class_operand_to_object_pointer(result);
+        conv_class_operand_to_object_pointer(result, 
+                                             /*will_be_an_lvalue=*/TRUE);
         conv_object_pointer_to_lvalue(result);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

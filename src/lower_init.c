@@ -5640,7 +5640,8 @@ copy nothing) but keep any side effects.
                                              /*see_if_possible=*/FALSE,
                                              /*gcc_lvalue=*/FALSE,
                                              /*ignore_casts=*/FALSE,
-                                             (a_type_ptr *)NULL);
+                                             (a_type_ptr *)NULL,
+                                             /*will_be_an_lvalue=*/FALSE);
           if (!converted) {
             /* Couldn't extract an address from the rvalue.  Copy the
                rvalue to a temporary and take the address of the temporary. */
