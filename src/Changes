@@ -1,5 +1,19 @@
 Version 3.9
 
+3/2/07   Sun compatibility: #pragma redefine_extname and global variables
+
+In Sun mode, the front end implements a limited version of Sun's #pragma
+redefine_extname construct: It is limited in that although the construct
+affects mangled names, the front end can only perform the lookup in terms of
+declared names.  Previously, the feature was therefore limited to entities
+with extern "C" name linkage (since both the declared name and the mangled
+name are identical in those cases, at least in the supported ABIs).  Now,
+variables in the global namespaces can also be named.  For example:
+
+  int x;
+  #pragma redefine_extname x y
+    // Now accepted in Sun mode.
+
 3/1/07   GNU compatibility: address_taken field set on lvalue cast
 
 In GNU emulation mode, an lvalue cast of a variable could result
