@@ -38,7 +38,7 @@ affects mangled names, the front end can only perform the lookup in terms of
 declared names.  Previously, the feature was therefore limited to entities
 with extern "C" name linkage (since both the declared name and the mangled
 name are identical in those cases, at least in the supported ABIs).  Now,
-variables in the global namespaces can also be named.  For example:
+variables in the global namespace can also be named.  For example:
 
   int x;
   #pragma redefine_extname x y
