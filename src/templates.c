@@ -11386,7 +11386,7 @@ declaration of a partial specialization declared outside of its class.
     (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode && microsoft_version >= 1400) {
-      scan_microsoft_class_modifiers(&is_abstract, &is_sealed);
+      scan_microsoft_class_modifiers(type_kind, &is_abstract, &is_sealed);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */

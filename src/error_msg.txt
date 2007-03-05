@@ -1644,6 +1644,7 @@ ec_auto_type_requires_initializer;;"cannot deduce \"auto\" type (initializer req
 ec_inconsistent_deduction_of_auto;;"\"auto\" type is %t1 for this entity, but was previously implied to be %t2"
 ec_bad_constructor_decl;;"invalid constructor declaration"
 ec_bad_type_qualifier;;"invalid use of a type qualifier"
+ec_abstract_or_sealed_on_union;;"a union cannot be abstract or sealed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

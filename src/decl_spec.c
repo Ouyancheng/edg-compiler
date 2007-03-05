@@ -2403,14 +2403,19 @@ using-declaration), issue an error.  For example:
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-void scan_microsoft_class_modifiers(a_boolean  *is_abstract,
-                                    a_boolean  *is_sealed)
+void scan_microsoft_class_modifiers(a_type_kind  type_kind,
+                                    a_boolean    *is_abstract,
+                                    a_boolean    *is_sealed)
 /*
 Scan the (context-sensitive) keywords "abstract" and "sealed" and record their
 presence through the given pointers.  Duplicate specifiers are diagnosed as
-discretionary errors.
+discretionary errors.  type_kind indicates whether the modifiers are applied
+to a struct, union, or class type.  An error is issued if the modifier appears
+in a union definition.
 */
 {
+  a_boolean  union_error_issued = FALSE;
+
   for (;;) {
     if (curr_token == tok_abstract) {
       if (*is_abstract) {
@@ -2426,6 +2431,11 @@ discretionary errors.
       }  /* if */
     } else {
       break;
+    }  /* if */
+    if (type_kind == (a_type_kind)tk_union && (*is_sealed || *is_abstract) &&
+        !union_error_issued) {
+      error(ec_abstract_or_sealed_on_union);
+      union_error_issued = TRUE;
     }  /* if */
     (void)get_token();
   }  /* for */
@@ -2922,7 +2932,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   /* Record any class modifiers (a C++/CLI feature accepted in "normal" C++ by
      recent Microsoft C++ compilers). */
   if (microsoft_mode && microsoft_version >= 1400) {
-    scan_microsoft_class_modifiers(&is_abstract, &is_sealed);
+    scan_microsoft_class_modifiers(type_kind, &is_abstract, &is_sealed);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If the next token is a "{" or, in C++, a ":" (introducing a list of
