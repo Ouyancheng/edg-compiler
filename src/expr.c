@@ -18175,7 +18175,7 @@ handle_trapped_left_paren:
     case tok_const:
     case tok_volatile:
       if (!microsoft_mode) goto bad_start_of_primary;
-      /*FALLTHROUGH*/
+      goto type_start;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
     case tok_enum:
@@ -18189,7 +18189,7 @@ handle_trapped_left_paren:
       if (!microsoft_mode && !(gpp_mode && gnu_version < 30400)) {
         goto bad_start_of_primary;
       }  /* if */
-      /*FALLTHROUGH*/
+      goto type_start;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
     case tok_char:
     case tok_short:
@@ -18212,6 +18212,7 @@ handle_trapped_left_paren:
     case tok_typeof:
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case tok_typename:
+type_start:
       /* In C++, these type keywords begin a functional-notation type
          conversion (ARM 5.2.3).  In C, they're a syntax error. */
       if (C_dialect != C_dialect_cplusplus) goto bad_start_of_primary;
@@ -18229,7 +18230,7 @@ handle_trapped_left_paren:
           cast_type = scan_typeof_operator((a_decl_pos_block*)NULL);
         } else if (gpp_mode && gnu_version < 30400 &&
                    (is_class_type_keyword(curr_token) ||
-                    curr_token == tok_enum || curr_token == tok_typename)) {
+                    curr_token == tok_enum)) {
           /* Early GNU compilers allow casts like "enum E(3)" (but not the
              variant "enum E const(3)"). */
           cast_type = simple_type_specifier_sequence();
