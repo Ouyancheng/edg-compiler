@@ -6,7 +6,7 @@ Version 3.9
 In cases where array or class aggregates with automatic storage are
 dynamically initialized and the last designated initializer initializes
 the last field of the aggregate, any fields that were not explicitly
-initialized will have indeterminate values in lowered code.  This is a result
+initialized had indeterminate values in lowered code.  This is a result
 of the is_partially_initialized field inadvertently being set to FALSE
 whenever the last initializer is a designated initializer that initializes
 the last field of an array or class aggregate.  To address this problem,
