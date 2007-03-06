@@ -1016,6 +1016,12 @@ not being eliminated.
            specified on the entry about to be eliminated. */
         corresp_ctsp->uuid_string = ctsp->uuid_string;
       }  /* if */
+      if ((ctsp->decl_modifiers & DM_DLLEXPORT) != 0) {
+        /* __declspec(dllexport) takes precedence over
+           __declspec(dllimport).  */
+        corresp_ctsp->decl_modifiers |= DM_DLLEXPORT;
+        corresp_ctsp->decl_modifiers &= ~DM_DLLIMPORT;
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED

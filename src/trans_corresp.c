@@ -2906,11 +2906,15 @@ declaration modifiers.
     a_class_type_supplement_ptr
          sup1 = tp1->variant.class_struct_union.extra_info,
          sup2 = tp2->variant.class_struct_union.extra_info;
-    if (sup1 != NULL && sup1->decl_modifiers != sup2->decl_modifiers) {
-      /* Currently, the decl_modifiers applying to a class (novtable,
-         dllexport, and dllimport) must only match when the declarations
-         in both translation units are also definitions. */
-      result = class_type_has_body(tp1) && class_type_has_body(tp2);
+    if (sup1 != NULL) {
+      /* The dllimport and dllexport modifiers need not match up (dllexport
+         should take precedence).  The other modifier applying to a class
+         (novtable) must only match when the declarations in both translation
+         units are also definitions. */
+      if ((sup1->decl_modifiers & ~DM_DLLFLAGS) !=
+                                      (sup2->decl_modifiers & ~DM_DLLFLAGS)) {
+        result = class_type_has_body(tp1) && class_type_has_body(tp2);
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

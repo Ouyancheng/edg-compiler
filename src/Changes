@@ -1,5 +1,13 @@
 Version 3.9
 
+3/6/07   Microsoft compatibility: dllexport/dllimport conflicts across
+         translation units
+
+When simultaneously processing multiple translation units in Microsoft mode,
+the front end previously issued an error for a class that was both dllimport
+and dllexport.  Now such conflicts are allowed and dllexport is retained in
+the resulting IL.
+
 3/6/07   Microsoft compatibility: Address of string literal
 
 In Microsoft bugs mode, the front end previously always ignored an ampersand
