@@ -7,13 +7,6 @@ an error when attempting to define a sealed or abstract union.  For example:
 
   union U sealed {};  // Now an error when microsoft_version == 1400.
 
-3/5/07   Compilation error in lower_init.c
-
-The change of 7/27/06 introduced a compilation error in lower_init.c
-(specifically, in b_lower_file_scope_dynamic_inits) in configurations that
-include IL lowering and have LOWER_DESIGNATED_INITIALIZERS set to FALSE.
-Now fixed.
-
 3/2/07   Indeterminate values for fields in aggregate with automatic
          storage when using dynamic initialization with designated initializers
 
