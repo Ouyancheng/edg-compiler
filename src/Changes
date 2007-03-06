@@ -1,5 +1,13 @@
 Version 3.9
 
+3/6/07   Microsoft compatibility: Address of string literal
+
+In Microsoft bugs mode, the front end previously always ignored an ampersand
+(&) preceding a string literal.  Now the operator is no longer ignored when
+microsoft_version >= 1400.  For example:
+
+  char const (*p)[4] = &"abc";  // Now accepted when microsoft_version == 1400
+
 3/6/07   Microsoft compatibility: String literals not shared
 
 In Microsoft mode, the front end no longer attempts to share storage for string

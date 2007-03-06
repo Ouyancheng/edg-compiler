@@ -4971,12 +4971,12 @@ operation is a pointer-to-member (see ARM 5.3).
                than "pointer to array" as in ANSI. */
             pos_warning(ec_pcc_address_of_array, &start_position);
             conv_array_operand_to_pointer_operand(&operand);
-          } else if (microsoft_bugs &&
+          } else if (microsoft_bugs && microsoft_version < 1400 &&
                      operand_is_string_literal(&operand)) {
-            /* MSVC++ ignores "&" in front of a string literal (wide or
-               narrow, in parentheses or not) in both C and C++ mode. 
-               Note that the type of &"abc" is supposed to be a pointer
-               to array, whereas "abc" decays to pointer to char. */
+            /* Early Microsoft compilers ignore "&" in front of a string
+               literal (wide or narrow, in parentheses or not) in both C and
+               C++ mode.  Note that the type of &"abc" is supposed to be a
+               pointer to array, whereas "abc" decays to pointer to char. */
             conv_array_operand_to_pointer_operand(&operand);
           } else {
             if (!C_mode() && was_rvalue &&
