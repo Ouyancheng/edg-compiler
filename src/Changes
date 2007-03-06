@@ -17,6 +17,7 @@ and operator delete are now predeclared just as in other modes (provided the
 global variable array_new_and_delete_enabled is TRUE).  For example:
 
   int *p = (int*)operator new[](sizeof(int));
+                // Accepted in Microsoft mode when microsoft_version == 1400
 
 3/6/07   Microsoft compatibility: dllexport/dllimport conflicts across
          translation units
