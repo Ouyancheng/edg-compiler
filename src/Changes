@@ -1,5 +1,15 @@
 Version 3.9
 
+3/6/07   Microsoft compatibility: Namespace-scope using-declarations for
+         class member types
+
+In Microsoft bugs mode, the front previously accepted namespace-scope using-
+declarations referring to types that are class members.  This is now limited
+to modes with microsoft_version <= 1310.  For example:
+
+  struct S { struct N {}; };
+  using S::N;  // No longer accepted when microsoft_version == 1400
+
 3/6/07   Microsoft compatibility: Predeclared new[] and delete[] operators
 
 In Microsoft mode with microsoft_version >= 1400, array forms of operator new

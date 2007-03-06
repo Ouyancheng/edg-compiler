@@ -11704,10 +11704,12 @@ current scope.
       error(ec_namespace_qualified_name_required);
       err = TRUE;
     } else if (locator_for_curr_id.is_class_member &&
-               !(microsoft_bugs && is_type_symbol(sym))) {
+               !(microsoft_bugs && microsoft_version <=1310 &&
+                 is_type_symbol(sym))) {
       /* A class-qualified name is not allowed here.  Such a name is permitted
-         in Microsoft bugs mode if it refers to a type.  The Microsoft
-         compilers (through at least 7.1) permit such using-declarations. */
+         in Microsoft bugs mode (with microsoft_version <= 1310) if it refers
+         to a type.  The Microsoft compilers (through 7.1) permit such using-
+         declarations. */
       error(ec_class_qualified_name_not_allowed);
       err = TRUE;
     } else if (locator_for_curr_id.is_template_id) {
