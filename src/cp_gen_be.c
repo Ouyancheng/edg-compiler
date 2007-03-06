@@ -12091,6 +12091,10 @@ declaration following this one is such a continuation.
       }  /* if */
     } else if (is_condition && storage_class == (a_storage_class)sc_auto) {
       /* Condition declarations do not allow a storage class. */
+    } else if (var->declared_with_auto_type_specifier &&
+               storage_class == (a_storage_class)sc_auto) {
+      /* The "auto" type specifier cannot be combined with "auto" used as a
+         storage class specifier. */
     } else {
       /* Put out the storage class determined above. */
       gen_storage_class(storage_class);
