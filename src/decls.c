@@ -9538,8 +9538,9 @@ within this routine if is_parenthesized comes in FALSE.
 a_type_ptr simple_type_specifier_sequence(void)
 /*
 Scan a sequence of simple-type-specifiers and return a pointer to the
-resulting type.  This is called in Microsoft mode for function-style casts
-where the type involves more than one token -- e.g., "unsigned int(x)".
+resulting type.  This is called in Microsoft and GNU modes for function-
+style casts where the type involves more than one token -- e.g.,
+"enum E(x)".
 */
 {
   a_type_ptr              type_ptr;
