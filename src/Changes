@@ -1,5 +1,13 @@
 Version 3.9
 
+3/6/07   Microsoft compatibility: Predeclared new[] and delete[] operators
+
+In Microsoft mode with microsoft_version >= 1400, array forms of operator new
+and operator delete are now predeclared just as in other modes (provided the
+global variable array_new_and_delete_enabled is TRUE).  For example:
+
+  int *p = (int*)operator new[](sizeof(int));
+
 3/6/07   Microsoft compatibility: dllexport/dllimport conflicts across
          translation units
 
