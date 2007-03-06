@@ -1,5 +1,12 @@
 Version 3.9
 
+3/6/07   Microsoft compatibility: String literals not shared
+
+In Microsoft mode, the front end no longer attempts to share storage for string
+literals (this is controlled by the global variable string_literals_shared).
+
+  bool f() { return "x" == "x"; }  // Now returns false in Microsoft mode.
+
 3/5/07   Microsoft compatibility: sealed or abstract unions
 
 In Microsoft C++ mode with microsoft_version >= 1400, the front end now issues

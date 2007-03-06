@@ -572,9 +572,9 @@ initialization and must be done after command-line processing.
            "target_init: initialization of int_kind_is_signed is not correct");
   }  /* if */
 #endif /* CHECKING && !USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS */
-  /* String literals should not be shared in pcc mode (they're writable), but
-     should be ordinarily. */
-  string_literals_shared = (C_dialect != C_dialect_pcc);
+  /* String literals are shared, except in pcc mode and Microsoft mode.  (pcc
+     and Microsoft C allow string literals to be overwritten.) */
+  string_literals_shared = (C_dialect != C_dialect_pcc && !microsoft_mode);
   /* Determine the integer kind for the largest integer types. */
 #if LONG_LONG_ALLOWED
   targ_intmax_kind = (an_integer_kind)ik_long_long;
