@@ -7182,12 +7182,12 @@ still provided).
           class_rvalue_cctor_case = TRUE;
           if (is_class_struct_union_type(operand_2->type)) {
             conv_class_operand_to_object_pointer(operand_2, 
-                                                 /*will_be_an_lvalue=*/FALSE);
+                                                 /*will_be_an_lvalue=*/TRUE);
             operation_type = operand_2->type;
           }  /* if */
           if (is_class_struct_union_type(operand_3->type)) {
             conv_class_operand_to_object_pointer(operand_3, 
-                                                 /*will_be_an_lvalue=*/FALSE);
+                                                 /*will_be_an_lvalue=*/TRUE);
             operation_type = operand_3->type;
           }  /* if */
         }  /* if */
@@ -9163,9 +9163,8 @@ then turn the expression into an lvalue).  If lvalue_type is non-NULL,
 *lvalue_type is set to the type of the lvalue (without extra
 pointer-to level); it might differ from the original node type in
 having extra cv-qualifiers that were dropped when the lvalue was
-converted to an rvalue.  If will_be_an_lvalue is TRUE, the address_taken
-field of any variables in the expression that need to be converted will not
-be set.  will_be_an_lvalue has an effect only when see_if_possible is FALSE.
+converted to an rvalue.  will_be_an_lvalue must be TRUE if the caller
+will use the result as an lvalue rather than simply as a pointer.
 */
 {
   an_expr_node_ptr      node = *p_node, op1, op2, op3;
@@ -9413,10 +9412,9 @@ void conv_class_operand_to_object_pointer(an_operand *operand,
 Convert a class operand for an object into an operand for a pointer to the
 object.  The operand may be either an lvalue or an rvalue; in the rvalue
 case, a temporary is created and initialized with the rvalue, and the
-address of the temporary is returned.  If the resulting object pointer will
-be used as an lvalue (will_be_an_lvalue is TRUE), setting of the address_taken
-field is suppressed if conversion is necessary.  This routine is only
-used in C++ mode.
+address of the temporary is returned.  will_be_an_lvalue must be TRUE
+if the caller will use the result as an lvalue rather than simply as a
+pointer.  This routine is only used in C++ mode.
 */
 {
   an_operand        orig_operand;
