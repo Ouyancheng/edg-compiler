@@ -1,5 +1,26 @@
 Version 3.9
 
+3/6/07   C++-generating back end, Microsoft compatibility: vacuous destructor
+         calls with nested and namespace-member classes
+
+When generating code for a vacuous destructor call (an explicit call of the
+destructor of a class that has only a trivial implicit destructor or a
+pseudo-destructor call), the C++-generating back end used a fully-qualified
+name to designate the destructor.  MSVC++ 6.0 has a bug that causes it to
+report an error if the destructor's qualifier is itself a qualified-id, so
+the C++-generating back end no longer generates a qualified-id for the
+destructor when msvc_is_generated_code_target is TRUE,
+msvc_target_version_number is 1200 or less,  and the class of the destructor
+is nested or a member of a namespace.  For example:
+
+  namespace N {
+    struct S { };
+  }
+  void f(N::S* p) {
+    p->~S();    // Formerly generated as p->N::S::~S(), which caused an
+                // error in MSVC++ 6.0
+  }
+
 3/6/07   Microsoft compatibility: Namespace-scope using-declarations for
          class member types
 

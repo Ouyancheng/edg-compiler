@@ -9049,8 +9049,19 @@ there's some possibility of precedence confusion and need_parens is TRUE.
               write_tok_ch('.');
             }  /* if */
             /* Use the type name to create a "destructor" name. */
-            gen_type(type);
-            write_str("::~");
+            if (!(msvc_is_generated_code_target &&
+                  msvc_target_version_number <= 1200 &&
+                  (type->source_corresp.is_class_member ||
+                   type->source_corresp.parent.namespace_ptr != NULL))) {
+              /* MSVC++ 6.0 has a bug that causes it to reject a qualified
+                 destructor reference if the qualifier is itself a
+                 qualified-id.  The qualifier isn't really necessary
+                 anyway, so we just leave it off when it would cause a
+                 problem. */
+              gen_type(type);
+              write_str("::");
+            }  /* if */
+            write_str("~");
             while (type->kind == (a_type_kind)tk_typeref &&
                    typeref_is_typedef(type) &&
                    !type->typedef_definition_has_been_put_out) {
