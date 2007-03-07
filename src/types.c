@@ -5107,6 +5107,14 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
                    is_void(unqual_source_type_pointed_to)) {
           /* cfront 2.1 allows conversion of a pointer to qualified void
              (e.g., "const void *") to "void *". */
+        } else if (sun_mode &&
+                   is_pointer(unqual_dest_type_pointed_to) &&
+                   is_pointer(unqual_source_type_pointed_to)) {
+          /* Sun C++ allows
+               int * const *temp = 0;
+               int **temp2 = temp; // Should be error
+             This is still allowed in the Studio 11 version. */
+          std_conv->warning_suggested = default_warning_code;
         } else if ((microsoft_mode && C_mode()) || gcc_mode) {
           /* Microsoft C mode and gcc mode allow dropping qualifiers. */
           std_conv->warning_suggested = default_warning_code;

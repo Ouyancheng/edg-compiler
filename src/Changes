@@ -1,5 +1,17 @@
 Version 3.9
 
+3/7/07   Sun C++ mode: implicit pointer conversions that drop cv-qualifiers
+
+Sun C++ mode has been updated to emulate a quirk of the Sun C++ compilers
+(this has been observed as recently as the Studio 11 version): conversions
+from "pointer to const pointer to X" to "pointer to pointer to X" are
+now allowed as implicit conversions.  A warning is issued.
+
+  int main() {
+    int * const *temp = 0;
+    int **temp2 = temp; // Sun CC gives no error
+  }
+
 3/6/07   C++-generating back end, Microsoft compatibility: vacuous destructor
          calls with nested and namespace-member classes
 
