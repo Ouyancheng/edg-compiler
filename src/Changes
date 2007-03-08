@@ -1,5 +1,16 @@
 Version 3.9
 
+3/8/07   Microsoft compatibility: stringized macro arguments
+
+The change to Microsoft-mode macro expansion described in the 7/20/06
+entry introduced a bug that resulted in incorrect text in a stringized
+macro argument if the argument is also used in non-stringized form in
+the replacement text.  This is now fixed.  For example:
+
+  #define Y(s) #s, s
+  #define X(s) Y(s)
+  X(xyz)      // formerly expanded to "xyzyz", xyz
+
 3/7/07   Sun C++ mode: implicit pointer conversions that drop cv-qualifiers
 
 Sun C++ mode has been updated to emulate a quirk of the Sun C++ compilers
