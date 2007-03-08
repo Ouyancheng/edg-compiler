@@ -3131,8 +3131,11 @@ stripped out again before the raw text is used.
 {
   char *from = map->raw_text;
   char *to = map->raw_text;
-  char *end = map->raw_text + map->raw_len;
+  char *end = map->raw_text + map->raw_len + LE_ESCAPE_LEN;
 
+  /* Scan through the string (including the terminating LE_END_OF_INSERTION,
+     which is not counted in map->raw_len), compacting over argument
+     delimiters. */
   while (from < end) {
     if (from[0] == LE_ESCAPE &&
         (from[1] == LE_START_ARGUMENT || from[1] == LE_END_ARGUMENT)) {
@@ -3141,6 +3144,8 @@ stripped out again before the raw text is used.
       *to++ = *from++;
     }  /* if */
   }  /* while */
+  /* Reset the length to account for any argument delimiters that were
+     removed. */
   map->raw_len -= from - to;
   map->raw_text_includes_argument_delimiters = FALSE;
 }  /* remove_argument_delimiters_from_raw_text */
