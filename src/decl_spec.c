@@ -8330,13 +8330,25 @@ exit_loop:
     /* The "auto" token was seen among the specifiers: It is either a storage
        class specifier or a type specifier, but that can only be decided now
        that we have seen all the specifiers. */
-    if (auto_type_allowed && (decl_specifiers_seen & DS_TYPE) == 0) {
+    if (auto_type_specifier_enabled && (decl_specifiers_seen & DS_TYPE) == 0 &&
+        type_specifier_allowed) {
       /* No type specifier other than "auto" was seen: So "auto" should be
          treated as a type specifier. */
-      make_auto_type(state);
-      *type_ptr = state->auto_type;
       decl_specifiers_seen |= DS_TYPE;
-      basic_type = bt_auto;
+      if (auto_type_allowed) {
+        make_auto_type(state);
+        *type_ptr = state->auto_type;
+        basic_type = bt_auto;
+      } else {
+        /* The current a mode supports "auto" as a type specifier, but the
+           current context does not.  Issue an error that is specific for
+           "auto" but does imply that it is a type specifier or a storage
+           class (although error recovery will be as if an error type was
+           specified since no other type specifier is present). */
+        pos_error(ec_auto_not_allowed_here, &state->auto_pos);
+        basic_type = bt_error;
+        err = TRUE;
+      }  /* if */
     } else {
       /* "auto" must be a storage class specifier. */
       state->auto_type_specifier_seen = FALSE;

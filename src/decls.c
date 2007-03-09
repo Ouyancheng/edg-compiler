@@ -9205,15 +9205,18 @@ cv-qualifier).
            This was accepted by the Cfront compiler, and is still accepted
            (with a warning) by Microsoft C++ compilers.  In these modes we
            issue a slightly different diagnostic. */
-        if (any_cfront_mode()) {
+        error_code = ec_missing_type_specifier;
+        severity = es_discretionary_error;
+        if (auto_type_specifier_enabled) {
+          /* If "auto" can appear as a type specifier, we disallow the
+             "implicit int" rule even in modes that would otherwise allow
+             it. */
+        } else if (any_cfront_mode()) {
           error_code = ec_nonstd_implicit_int;
           severity = es_remark;
         } else if (microsoft_mode) {
           error_code = ec_nonstd_implicit_int;
           severity = es_warning;
-        } else {
-          error_code = ec_missing_type_specifier;
-          severity = es_discretionary_error;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -9230,12 +9233,14 @@ cv-qualifier).
     /* Non-function declaration with at least some decl-specifiers -- e.g.,
        "const i;" or "typedef const CI;".  We issue a slightly different
        diagnostic in C++ modes that allow the "implicit int" by default
-       (Cfront and Microsoft C++ modes). */
+       (Cfront and Microsoft C++ modes), but not if those modes are modified
+       to allow the "auto" type specifier. */
     if (implicit_int_allowed) {
       error_code = ec_missing_type_specifier;
       severity = es_warning;
     } else {
-      if (microsoft_mode || any_cfront_mode()) {
+      if ((microsoft_mode || any_cfront_mode()) &&
+          !auto_type_specifier_enabled) {
         error_code = ec_nonstd_implicit_int;
         severity = es_warning;
       } else {

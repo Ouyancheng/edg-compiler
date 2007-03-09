@@ -1633,7 +1633,7 @@ ec_cl_list_macros_incompatible_with_multiple_trans_units;;"the option to list ma
 ec_lparen_after_function;;"unexpected parenthesis after declaration of %n (malformed parameter list or invalid initializer?)"
 ec_nonstandard_parenthesized_string_initializer;;"parentheses around a string initializer are nonstandard"
 ec_microsoft_interface;INTERNAL;"__interface"
-ec_auto_variable_in_own_initializer;;"an variable declared with an auto type specifier cannot appear in its own initializer"
+ec_auto_variable_in_own_initializer;;"a variable declared with an auto type specifier cannot appear in its own initializer"
 ec_cannot_deduce_auto_type;;"cannot deduce \"auto\" type"
 ec_auto_brace_initialization_not_allowed;;"initialization with \"{...}\" is not allowed for \"auto\" type"
 ec_auto_type_in_array_type;;"\"auto\" type cannot appear in top-level array type"
@@ -1645,6 +1645,7 @@ ec_inconsistent_deduction_of_auto;;"\"auto\" type is %t1 for this entity, but wa
 ec_bad_constructor_decl;;"invalid constructor declaration"
 ec_bad_type_qualifier;;"invalid use of a type qualifier"
 ec_abstract_or_sealed_on_union;;"a union cannot be abstract or sealed"
+ec_auto_not_allowed_here;;"\"auto\" is not allowed here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
