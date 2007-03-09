@@ -7118,17 +7118,18 @@ Generate the code for a switch statement.
 }  /* dump_switch_statement */
 
 
-static void dump_dynamic_init(a_dynamic_init_ptr dip)
+static void dump_dynamic_init(a_dynamic_init_ptr        dip, 
+                              an_init_control_block_ptr icbp)
 /*
 Dump code for a dynamic initialization operation.  This routine only emits
 code for non-constant initializations; the constant initializations are
-handled in declaration processing in dump_variable_decl.
+handled in declaration processing in dump_variable_decl.  icbp points to
+a control block with state information about this initializer.
 */
 {
   a_variable_ptr        variable = dip->variable;
   FILE                  *save_f_C_output;
   a_boolean             gen_assignments = TRUE;
-  an_init_control_block icb;
 
   /* Direct the assignment output to the proper file. */
   set_init_file(variable, &save_f_C_output);
@@ -7137,10 +7138,9 @@ handled in declaration processing in dump_variable_decl.
        dip->variant.constant->kind == (a_constant_repr_kind)ck_string)) {
     /* Aggregate initialization.  Only comes up in C++, for aggregate
        initializations to constants done in the middle of blocks. */
-    clear_initialization_flags(&icb);
     dump_initializer_part(variable, variable->type, dip->variant.constant,
                           &gen_assignments, (a_gen_init_pos_descr_ptr)NULL,
-                          &icb);
+                          icbp);
   } else {
     set_output_position(&variable->source_corresp.decl_position);
     switch (dip->kind) {
@@ -7196,7 +7196,7 @@ This is used for stmk_init statements.
        dump_variable_decl. */
     clear_initialization_flags(&icb);
     start_initializer_assignments(whole_variable, &icb);
-    dump_dynamic_init(dip);
+    dump_dynamic_init(dip, &icb);
     end_initializer_assignments(whole_variable, &icb);
   }  /* if */
 }  /* dump_whole_variable_dynamic_init */

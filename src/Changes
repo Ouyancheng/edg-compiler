@@ -1,5 +1,22 @@
 Version 3.9
 
+3/9/07   Duplicate initialization to zero of partially initialized 
+         automatic aggregates following an executable statement
+
+In cases where a declaration of an automatic array or class aggregate
+is partially initialized and follows an executable statement, the lowered,
+generated C contains two initializations of the aggregate to zero
+(using either memset or bzero).  This affects only the C-generating back end.
+For example:
+
+  struct S { int a, b, c; };
+  void f(int a) {
+    a = 0;
+    struct S s = {  // had generated two initializations to zero
+      1,
+    };
+  }
+
 3/8/07   Microsoft compatibility: stringized macro arguments
 
 The change to Microsoft-mode macro expansion described in the 7/20/06
