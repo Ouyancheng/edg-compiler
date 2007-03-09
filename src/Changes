@@ -47,9 +47,9 @@ is nested or a member of a namespace.  For example:
 3/6/07   Microsoft compatibility: Namespace-scope using-declarations for
          class member types
 
-In Microsoft bugs mode, the front previously accepted namespace-scope using-
-declarations referring to types that are class members.  This is now limited
-to modes with microsoft_version <= 1310.  For example:
+In Microsoft bugs mode, the front end previously accepted namespace-scope
+using-declarations referring to types that are class members.  This is now
+limited to modes with microsoft_version <= 1310.  For example:
 
   struct S { struct N {}; };
   using S::N;  // No longer accepted when microsoft_version == 1400
