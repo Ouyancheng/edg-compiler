@@ -105,12 +105,13 @@ literals (this is controlled by the global variable string_literals_shared).
 
 3/5/07   Microsoft compatibility: sealed or abstract unions
 
-In Microsoft C++ mode with microsoft_version >= 1400, the front end now issues
-an error when attempting to define a sealed or abstract union (when
-microsoft_version < 1400, sealed and abstract are not allowed for any type).
-For example:
+In Microsoft C++ mode, the front end now issues an error when attempting to
+define a sealed or abstract union.  For example:
 
-  union U sealed {};  // Now an error even when microsoft_version == 1400.
+  union U sealed {};  // Now an error.
+
+(The "sealed" and "abstract" class type modifiers are only recognized when
+microsoft_version >= 1400.)
 
 3/2/07   Indeterminate values for fields in aggregate with automatic
          storage when using dynamic initialization with designated initializers
