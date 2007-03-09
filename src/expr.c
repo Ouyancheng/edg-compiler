@@ -8902,6 +8902,11 @@ specification allow a variable-sized array as the top type.
       /* Prescan the initializer to deduce the type to allocate. */
       prescan_initializer_for_auto_type_deduction(&dps);
     }  /* if */
+  } else if (dps.auto_type_specifier_seen) {
+    /* An auto type specifier not followed by a new-initializer is an error. */
+    error(ec_auto_type_requires_initializer);
+    dps.type = error_type();
+    dps.auto_type_specifier_seen = FALSE;
   }  /* if */
   new_type = dps.type;
   unqual_new_type = skip_typerefs(new_type);

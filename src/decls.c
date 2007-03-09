@@ -10630,6 +10630,9 @@ Return a pointer to the variable that is declared.
   vp = make_variable(state.type, state.storage_class, decl_scope_level);
   sym->variant.variable.ptr = vp;
   set_source_corresp(&vp->source_corresp, sym);
+  if (state.auto_type_specifier_seen) {
+    vp->declared_with_auto_type_specifier = TRUE;
+  }  /* if */
   /* Copy the decl-modifiers into the variable entry. */
   update_variable_decl_modifiers(
                           vp, &state.decl_modifiers, &locator.source_position,

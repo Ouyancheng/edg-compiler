@@ -14447,7 +14447,8 @@ Deduction failures are diagnosed as errors.
   templ_param = alloc_template_param(symbol_for(dps->auto_type));
   /* Adjust the argument and parameter types for deduction.  Some types can
      never succeed: Issue an error and don't attempt deduction any further. */
-  if (!prep_deduction_pair(&type, &arg_type, arg, (a_symbol_ptr)NULL)) {
+  if (is_indefinite_function_operand(arg) ||
+      !prep_deduction_pair(&type, &arg_type, arg, (a_symbol_ptr)NULL)) {
     pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
     dps->deduced_auto_type = error_type();
     goto done;
@@ -14460,6 +14461,17 @@ Deduction failures are diagnosed as errors.
     goto done;
   }  /* if */
   check_assertion(templ_arg->kind == (a_templ_arg_kind)tak_type);
+  /* Substitute the deduced type to obtain the actual type for the current
+     declaration.  A substitution failure is an error. */
+  dps->type = copy_type_with_substitution(orig_type, templ_arg, templ_param,
+                                          &dps->declarator_pos,
+                                          CTWS_NO_OPTIONS, &subst_error);
+  if (subst_error) {
+    /* Substitution failed. */
+    pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
+    dps->type = dps->deduced_auto_type = error_type();
+    goto done;
+  }  /* if */
   if (dps->deduced_auto_type != NULL &&
       !identical_types(dps->deduced_auto_type, templ_arg->variant.type)) {
     /* This is a declaration with multiple declarators and the type deduced
@@ -14468,15 +14480,11 @@ Deduction failures are diagnosed as errors.
     pos_ty2_error(ec_inconsistent_deduction_of_auto, &dps->declarator_pos,
                   templ_arg->variant.type, dps->deduced_auto_type);
   }  /* if */
-  /* Record the type deduced for the "auto" specifier, and substitute it in the
-     declared type to obtain the actual type for the current declaration. */
+  /* Record the type deduced for the "auto" specifier. */
   dps->deduced_auto_type = templ_arg->variant.type;
-  dps->type = copy_type_with_substitution(orig_type, templ_arg, templ_param,
-                                          &dps->declarator_pos,
-                                          CTWS_NO_OPTIONS, &subst_error);
-  /* Check that the actual "auto" type is applicable to the declared entity
-     (in particular, this checks for compatibility with previous declarations
-     of the same entity). */
+  /* Check that the actual (deduced) type of the declaration is applicable to
+     the declared entity (in particular, this checks for compatibility with
+     previous declarations of the same entity). */
   check_deduced_auto_type(dps);
   if (dps->sym != NULL) {
     /* Update the type in the IL entry. */
