@@ -243,6 +243,14 @@ the same deduced type for the "auto" specifier.  For example:
 
   auto x = 3.0, y = 0;  // Error: x deduced to double but y deduced to int.
 
+Some declarations of this form were previously meaningful through the
+"implicit int" rule (e.g., in Cfront modes "auto x = 3.0;" implies that x has
+type int).  In the interest of decreasing surprise, the "implicit int" rule is
+now always disabled in modes supporting C++0x extensions.  For example:
+
+  const x = 3;  // Previously accepted with "--cfront_3.0 --c++0x"; now
+                // an error in all C++0x modes.
+
 This extension was voted into the C++ committee's working paper for the next
 standard in April 2006 (meeting in Berlin, through proposal numbered N1984).
 
