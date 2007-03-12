@@ -13754,6 +13754,19 @@ efficiency.
     dps->auto_type_specifier_seen = FALSE;
     dps->auto_type = NULL;
     dps->specifiers_type = dps->type = error_type();
+    if (dps->sym != NULL) {
+      /* Update the IL entry. */
+      a_variable_ptr  vp;
+      if (dps->sym->kind == (a_symbol_kind)sk_variable) {
+        vp = dps->sym->variant.variable.ptr;
+      } else if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
+        vp = dps->sym->variant.static_data_member.variable;
+      } else {
+        unexpected_condition();
+      }  /* if */
+      vp->declared_with_auto_type_specifier = FALSE;
+      vp->type = dps->type;
+    }  /* if */
   }  /* if */
 }  /* f_check_use_of_auto_type */
 
