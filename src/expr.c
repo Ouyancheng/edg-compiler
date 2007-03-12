@@ -8887,7 +8887,7 @@ specification allow a variable-sized array as the top type.
   /* Scan the new-type-name or ( type-name ). */
   init_decl_parse_state(&dps);
   dps.for_new_expr_type = TRUE;
-  dps.auto_type_allowed = TRUE;
+  dps.auto_type_allowed = auto_type_specifier_enabled;
   new_type_name(&dps, trapped_left_paren);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
