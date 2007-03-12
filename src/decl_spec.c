@@ -1578,7 +1578,8 @@ caution when modifying this routine.
       }  /* if */
     } else if (curr_token == tok_identifier &&
                (decl_scope_level == depth_innermost_namespace_scope ||
-                ((microsoft_mode || sun_mode) && *is_friend_decl)) &&
+                (((microsoft_mode && microsoft_version < 1400) || sun_mode) &&
+                 *is_friend_decl)) &&
                tag_kind != (a_symbol_kind)sk_enum_tag) {
       /* Look up what may be a class template symbol.  If the name is
          the start of a qualified name (e.g., A::B) or has a template
