@@ -14494,7 +14494,7 @@ set_type:
   if (dps->type == NULL) {
     /* An error occurred: Recover with an error type and proceed as if "auto"
        had not been seen. */
-    dps->deduced_auto_type = dps->type = error_type();
+    dps->specifiers_type = dps->deduced_auto_type = dps->type = error_type();
     dps->auto_type_specifier_seen = FALSE;
   }  /* if */
   if (dps->sym != NULL) {
