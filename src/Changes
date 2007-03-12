@@ -1,5 +1,19 @@
 Version 3.9
 
+3/12/07  Better checking of GNU symbol asm operands
+
+The front end previously did not check that references to symbolic asm operand
+names resolve to an actual operand if the reference included an output
+modifier.  For example:
+
+  void f() {
+    int* z;
+    asm volatile ("print %a[zp]" : : [z] "p" (&z));
+  }     // Previously accepted.  Now an error since there is no "zp" operand.
+
+Now such references are checked even when an output modifier appears between
+the characters "%" and the "[".  (See also Changes entry of 7/15/05.)
+
 3/12/07  GNU C++ dependent name lookup closer to standard
 
 The emulation of the name lookup in g++ mode with gnu_version >=
