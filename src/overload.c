@@ -2577,7 +2577,9 @@ static a_boolean candidate_function_is_visible(
                                     int          arg_dep_lookup_extra_info,
                                     a_boolean    dependent_call,
                                     a_boolean    is_overloaded_operator,
-                                    a_boolean    *invisible_because_explicit)
+                                    a_boolean    allow_post_declared_functions,
+                                    a_boolean    *invisible_because_explicit,
+                                    a_boolean    *invisible_because_post_decl)
 /*
 Return TRUE if the indicated candidate function (possibly a projection
 symbol, but not an overloaded function) is visible.  That is, return
@@ -2591,10 +2593,15 @@ from_arg_dep_lookup is TRUE if the function was found by argument-dependent
 lookup.  arg_dep_lookup_extra_info provides extra information about
 argument-dependent lookup.  dependent_call is TRUE if the call is a
 template-dependent call.  is_overloaded_operator is TRUE if the call
-is written in operator form, e.g., a+b rather than operator+(a, b).  If
-invisible_because_explicit is non-NULL, it is returned TRUE
+is written in operator form, e.g., a+b rather than operator+(a, b).
+allow_post_declared_functions is TRUE if functions declared after the
+point of reference in a dependent call should be visible to the
+normal lookup (in violation of the requirements of the standard).
+If invisible_because_explicit is non-NULL, it is returned TRUE
 if the routine is invisible because it is an explicit constructor,
-FALSE otherwise.
+FALSE otherwise.  If invisible_because_post_decl is non-NULL, it is
+returned TRUE if the function is not visible because it is declared
+after the point of call, FALSE otherwise.
 */
 {
   a_boolean              visible = TRUE, function_template_case;
@@ -2602,6 +2609,7 @@ FALSE otherwise.
   a_decl_sequence_number effective_decl_seq;
 
   if (invisible_because_explicit != NULL) *invisible_because_explicit = FALSE;
+  if (invisible_because_post_decl != NULL) *invisible_because_post_decl=FALSE;
   /* Ignore friend functions that aren't visible.  Note that this
      test is done on the projection symbol, if any, and not on the
      underlying fundamental symbol. */
@@ -2644,10 +2652,16 @@ FALSE otherwise.
        deferring prototype instantiations is used to apply the decl_seq
        check to functions found by argument dependent lookup during the
        prototype instantiation. */
-    if (dependent_call && gpp_mode && gnu_version >= 30400) {
+    if (dependent_call && gpp_mode &&
+        (gnu_version >= 30400 && gnu_version < 40100)) {
       /* g++ 3.4 has a bug and considers such symbols visible. */
+    } else if (allow_post_declared_functions) {
+      /* The caller says we should accept this case. */
     } else {
       visible = FALSE;
+      if (invisible_because_post_decl != NULL) {
+        *invisible_because_post_decl = TRUE;
+      }  /* if */
       goto end_of_function;
     }  /* if */
   }  /* if */
@@ -2707,9 +2721,11 @@ static void determine_function_viability(
                  a_boolean                dependent_call,
                  a_boolean                known_to_be_visible,
                  a_boolean                is_overloaded_operator,
+                 a_boolean                allow_post_declared_functions,
                  a_candidate_function_ptr *candidate_functions,
                  a_boolean                *matched_except_for_missing_selector,
-                 a_boolean                *matched_except_for_selector)
+                 a_boolean                *matched_except_for_selector,
+                 a_boolean                *discarded_because_post_decl)
 /*
 Determine whether a function is viable in overload resolution, which
 means whether it has the right number of parameters of the right types.
@@ -2750,7 +2766,12 @@ argument-dependent lookup.  dependent_call is TRUE if the call is a
 template-dependent call.  known_to_be_visible is TRUE if the function
 is known to be visible and the visibility check should be suppressed.
 is_overloaded_operator is TRUE if the call is written in operator form,
-e.g., a+b rather than operator+(a, b).
+e.g., a+b rather than operator+(a, b).  allow_post_declared_functions
+is TRUE if functions declared after the point of reference in a dependent
+call should be visible to the normal lookup (in violation of the requirements
+of the standard).  *discarded_because_post_decl goes along with that:
+it is returned TRUE if the function was not viable (at least) because
+it is declared after the point of call.
 */
 {
   a_symbol_ptr             function_symbol;
@@ -2771,9 +2792,11 @@ e.g., a+b rather than operator+(a, b).
   a_template_arg_ptr       local_template_arg_list = NULL;
   a_boolean                microsoft_explicit_constructor_case = FALSE;
 
+  *discarded_because_post_decl = FALSE;
   if (proj_function_symbol != NULL) {
     /* Normal case: a known function. */
     a_boolean invisible_because_explicit;
+    a_boolean invisible_because_post_decl;
     if (!known_to_be_visible &&
         !candidate_function_is_visible(proj_function_symbol,
                                        is_template_id,
@@ -2782,7 +2805,9 @@ e.g., a+b rather than operator+(a, b).
                                        arg_dep_lookup_extra_info,
                                        dependent_call,
                                        is_overloaded_operator,
-                                       &invisible_because_explicit)) {
+                                       allow_post_declared_functions,
+                                       &invisible_because_explicit,
+                                       &invisible_because_post_decl)) {
       /* The function is not visible. */
       if (microsoft_bugs && microsoft_version == 1200 &&
           invisible_because_explicit && initializing_return_value) {
@@ -2792,6 +2817,7 @@ e.g., a+b rather than operator+(a, b).
         microsoft_explicit_constructor_case = TRUE;
       } else {
         /* The function is not visible, so ignore it. */
+        if (invisible_because_post_decl) *discarded_because_post_decl = TRUE;
         goto reject_function;
       }  /* if */
     }  /* if */
@@ -3193,7 +3219,11 @@ in operator form, e.g., a+b rather than operator+(a, b).
 {
   a_boolean     overloaded_function_case;
   a_symbol_ptr  function_symbol, proj_function_symbol;
+  a_symbol_ptr  saved_proj_function_symbol;
   a_type_ptr    implicit_selector_type = NULL;
+  a_boolean     allow_post_declared_functions = FALSE;
+  a_boolean     any_discarded_because_post_decl;
+  a_boolean     any_not_discarded_because_post_decl;
 
   function_symbol = fundamental_symbol_of(overloaded_function_symbol);
   /* Determine whether or not the symbol is an overloaded function. */
@@ -3250,12 +3280,17 @@ in operator form, e.g., a+b rather than operator+(a, b).
       }  /* if */
     }  /* if */
   }  /* if */
+  saved_proj_function_symbol = proj_function_symbol;
+retry:
+  any_discarded_because_post_decl = FALSE;
+  any_not_discarded_because_post_decl = FALSE;
   /* Look at each instance of the overloaded function and see whether or
      not it can match the actual arguments, and if so, how well. */
   for (; proj_function_symbol != NULL;
        proj_function_symbol = overloaded_function_case ? 
                                                    proj_function_symbol->next :
                                                    NULL) {
+    a_boolean discarded_because_post_decl;
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
       db_display_overload_level();
@@ -3284,10 +3319,29 @@ in operator form, e.g., a+b rather than operator+(a, b).
                                  dependent_call,
                                  known_to_be_visible,
                                  is_overloaded_operator,
+                                 allow_post_declared_functions,
                                  candidate_functions,
                                  matched_except_for_missing_selector,
-                                 matched_except_for_selector);
+                                 matched_except_for_selector,
+                                 &discarded_because_post_decl);
+    if (discarded_because_post_decl) {
+      any_discarded_because_post_decl = TRUE;
+    } else {
+      any_not_discarded_because_post_decl = TRUE;
+    }  /* if */
   }  /* for */
+  if (gpp_mode && gnu_version >= 40100 &&
+      *candidate_functions == NULL &&
+      any_discarded_because_post_decl &&
+      !any_not_discarded_because_post_decl &&
+      !allow_post_declared_functions) {
+    /* g++ 4.1 continues to allow functions declared after the point of a
+       dependent call to be visible, but only if nothing from before the
+       call is visible. */
+    allow_post_declared_functions = TRUE;
+    proj_function_symbol = saved_proj_function_symbol;
+    goto retry;
+  }  /* if */
 }  /* try_overloaded_function_match */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3403,6 +3457,7 @@ arguments of the call (given by arg_operand_list).
         if (match.match_level != aml_none) {
           /* See how the arguments match up against the surrogate function
              parameters. */
+          a_boolean discarded_because_post_decl;
           determine_function_viability((a_symbol_ptr)NULL,
                                        /*is_template_id=*/FALSE,
                                        (a_template_arg_ptr)NULL,
@@ -3422,9 +3477,11 @@ arguments of the call (given by arg_operand_list).
                                        /*dependent_call=*/FALSE,
                                        /*known_to_be_visible=*/FALSE,
                                        /*is_overloaded_operator=*/FALSE,
+                                       /*allow_post_declared_functions=*/FALSE,
                                        candidate_functions,
                                        &matched_except_for_missing_selector,
-                                       &matched_except_for_selector);
+                                       &matched_except_for_selector,
+                                       &discarded_because_post_decl);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5250,6 +5307,8 @@ in_instantiation:
                                        ADLEI_NONE,
                                        dependent_call,
                                        /*is_overloaded_operator=*/FALSE,
+                                       /*allow_post_declared_functions=*/FALSE,
+                                       (a_boolean *)NULL,
                                        (a_boolean *)NULL))) {
           *single_function = TRUE;
           function_symbol = overloaded_function_symbol;
@@ -5318,6 +5377,9 @@ in_instantiation:
                                                 normal_lookup_function_symbol),
                                           dependent_call,
                                           /*is_overloaded_operator=*/FALSE,
+                                          /*allow_post_declared_functions=*/
+                                                                         FALSE,
+                                          (a_boolean *)NULL,
                                           (a_boolean *)NULL)) {
           /* This must be either the only entry on the list, or all other
              entries on the list must be the same symbol. */

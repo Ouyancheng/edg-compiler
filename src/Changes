@@ -1,5 +1,32 @@
 Version 3.9
 
+3/12/07  GNU C++ dependent name lookup closer to standard
+
+The emulation of the name lookup in g++ mode with gnu_version >=
+40100 has been adjusted to match g++ 4.1, which is now closer
+to the standard but still not completely standard-conforming.
+The trick described in the entry of 4/19/05 is now disabled
+when gnu_version is >= 40100, but an additional trick has been added
+that allows functions declared after the point of a dependent call
+to be visible in the normal lookup if there are no functions
+declared preceding the call.
+
+  extern "C" int printf(const char*,...);
+  template <typename T> void func(T&, T&) {
+    printf("in func(T&,T&)\n");
+  }
+  template <typename T> void f1(T& a, T& b) {
+    func(a, b);
+  }
+  void func(int&, int&) {
+    printf("in func(int&,int&)\n");
+  }
+  int main() {
+    int x,y;
+    f1(x, y);  // Now prints "in func(T&,T&)" in g++ 4.1 mode
+    return 0;
+  }
+
 3/9/07   Duplicate initialization to zero of partially initialized 
          automatic aggregates following an executable statement
 
