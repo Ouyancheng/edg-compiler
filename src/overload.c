@@ -14450,15 +14450,19 @@ Deduction failures are diagnosed as errors.
   if (is_indefinite_function_operand(arg) ||
       !prep_deduction_pair(&type, &arg_type, arg, (a_symbol_ptr)NULL)) {
     pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
-    dps->deduced_auto_type = error_type();
-    goto done;
+    goto set_type;
   }  /* if */
   if (!deduce_from_one_pair(type, orig_type, arg_type, orig_arg_type,
                             &templ_arg, templ_param)) {
     /* Deduction failed. */
     pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
-    dps->deduced_auto_type = error_type();
-    goto done;
+    goto set_type;
+  }  /* if */
+  if (templ_arg == NULL) {
+    /* Deduction produced no argument because an error type was involved. */
+    check_assertion(total_errors != 0 &&
+                    is_or_contains_error_type(orig_type));
+    goto set_type;
   }  /* if */
   check_assertion(templ_arg->kind == (a_templ_arg_kind)tak_type);
   /* Substitute the deduced type to obtain the actual type for the current
@@ -14469,8 +14473,8 @@ Deduction failures are diagnosed as errors.
   if (subst_error) {
     /* Substitution failed. */
     pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
-    dps->type = dps->deduced_auto_type = error_type();
-    goto done;
+    dps->type = NULL;
+    goto set_type;
   }  /* if */
   if (dps->deduced_auto_type != NULL &&
       !identical_types(dps->deduced_auto_type, templ_arg->variant.type)) {
@@ -14486,6 +14490,13 @@ Deduction failures are diagnosed as errors.
      the declared entity (in particular, this checks for compatibility with
      previous declarations of the same entity). */
   check_deduced_auto_type(dps);
+set_type:
+  if (dps->type == NULL) {
+    /* An error occurred: Recover with an error type and proceed as if "auto"
+       had not been seen. */
+    dps->deduced_auto_type = dps->type = error_type();
+    dps->auto_type_specifier_seen = FALSE;
+  }  /* if */
   if (dps->sym != NULL) {
     /* Update the type in the IL entry. */
     if (dps->sym->kind == (a_symbol_kind)sk_variable) {
@@ -14496,8 +14507,6 @@ Deduction failures are diagnosed as errors.
       unexpected_condition();
     }  /* if */
   }  /* if */
-done:
-  if (dps->type == NULL) dps->type = error_type();
   if (templ_arg != NULL) free_template_arg_list(templ_arg);
 }  /* deduce_auto_type */
 

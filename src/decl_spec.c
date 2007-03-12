@@ -8348,6 +8348,7 @@ exit_loop:
         pos_error(ec_auto_not_allowed_here, &state->auto_pos);
         basic_type = bt_error;
         err = TRUE;
+        state->auto_type_specifier_seen = FALSE;
       }  /* if */
     } else {
       /* "auto" must be a storage class specifier. */
