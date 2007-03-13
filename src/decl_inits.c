@@ -3134,6 +3134,8 @@ returned set to TRUE.
   a_memory_region_number            region_to_switch_back_to;
   an_object_lifetime_ptr            local_static_lifetime = NULL;
   a_local_static_variable_init_ptr  local_static_var_init = NULL;
+  a_token_kind                      first_token;
+  a_source_position                 pos_first_token;
 
   db_enter(3, "initializer");
   /* There are a number of tests to determine whether the variable can take
@@ -3302,11 +3304,15 @@ returned set to TRUE.
       cssp = NULL;
     }  /* if */
   }  /* if */
+  /* Save the current token kind: curr_token will change if we prescan the
+     initializer. */
+  first_token = curr_token;
+  pos_first_token = pos_curr_token;
   if (dps->auto_type_specifier_seen && !is_error_type(vp_type)) {
     /* An initializer for a variable declared with the "auto" type specifier.*/
-    if (curr_token == tok_lbrace) {
+    if (first_token == tok_lbrace) {
       error(ec_auto_brace_initialization_not_allowed);
-      dps->type = vp_type = error_type();
+      vp->type = vp_type = error_type();
     } else {
       prescan_initializer_for_auto_type_deduction(dps);
       vp_type = dps->type;
@@ -3330,7 +3336,7 @@ returned set to TRUE.
       a_source_position  pos;
 
       /* Use the source position of the first argument as the call position. */
-      pos = pos_curr_token;
+      pos = pos_first_token;
       if (dependent_class_type) {
         scan_dependent_type_parenthesized_initializer(dps, &init_dip);
       } else {
@@ -3375,8 +3381,8 @@ returned set to TRUE.
          the arg list for a constructor call is scanned, so bypass it
          explicitly. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (curr_token == tok_rparen && decl_pos_block != NULL) {
-        decl_pos_block->var_init_range.end = pos_curr_token;
+      if (first_token == tok_rparen && decl_pos_block != NULL) {
+        decl_pos_block->var_init_range.end = pos_first_token;
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       remove_stop_token(tok_rparen);
@@ -3391,11 +3397,11 @@ returned set to TRUE.
       }  /* if */
     }  /* if */
   } else if (is_aggregate_or_union_type(vp_type) ||
-             (curr_token == tok_lbrace &&
+             (first_token == tok_lbrace &&
               (is_error_type(vp_type) || is_template_param_type(vp_type)))) {
     /* Either a brace enclosed list of initializers or other aggregate
        initialization. */
-    if (curr_token != tok_lbrace && is_class_struct_union_type(vp_type) &&
+    if (first_token != tok_lbrace && is_class_struct_union_type(vp_type) &&
         (C_dialect == C_dialect_cplusplus || !static_lifetime)) {
       /* Special C++ case:  a class aggregate may be initialized with an
          object of its class or a class derived from it.  E.g., if S is the
@@ -3416,7 +3422,7 @@ returned set to TRUE.
         /* No appropriate constructor was found.  Abort the initialization. */
         init_err = TRUE;
       }  /* if */
-    } else if (gnu_mode && curr_token != tok_lbrace && static_lifetime) {
+    } else if (gnu_mode && first_token != tok_lbrace && static_lifetime) {
       /* In GNU modes, a compound literal is treated as a constant-expression
          that can initialize a variable with a static lifetime.  We may also
          arrive here when the initializer is a (possibly parenthesized) string
