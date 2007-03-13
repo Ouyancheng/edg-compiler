@@ -282,12 +282,13 @@ references are reported at the given position.
 
   while (*pc != '\0') {
     if (pc[0] == '%' && (pc[1] == '[' || (pc[1] != '\0' && pc[2] == '['))) {
-      /* We found a "%[" or "%X[" (where X is an output modifier) construct.
-         Look up the symbolic operand reference that (normally) follows.  The
-         call to find_symbol_operand will trigger any needed diagnostics. */
+      /* We found a "%[" or "%X[" (where X is an output format modifier)
+         construct.  Look up the symbolic operand reference that (normally)
+         follows.  The call to find_symbol_operand will trigger any needed
+         diagnostics. */
       ++pc;
       if (*pc != '[')  {
-        /* an output format modifier between the '%' and '[' */
+        /* An output format modifier between the '%' and '['. */
         ++pc;
       } /* if */
       (void)find_symbolic_operand(&pc, operands, diag_pos);
