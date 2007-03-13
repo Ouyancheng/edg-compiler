@@ -1,5 +1,16 @@
 Version 3.9
 
+3/13/07  GNU and Microsoft compatibility: Incomplete dependent base classes
+
+In GNU and Microsoft C++ modes the front end now accepts (with a warning)
+template-dependent base classes whose type is in the process of being defined.
+For example:
+
+  template<typename T> struct S {
+    struct N: S<T> {};  // Previously an error.  Now accepted in GNU and
+  };                    // Microsoft modes (with a warning).
+
+
 3/13/07  Nonstandard pointer-to-member forms now an error
 
 The C++ standard requires that a pointer to member be named

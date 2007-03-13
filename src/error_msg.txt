@@ -1646,6 +1646,7 @@ ec_bad_constructor_decl;;"invalid constructor declaration"
 ec_bad_type_qualifier;;"invalid use of a type qualifier"
 ec_abstract_or_sealed_on_union;;"a union cannot be abstract or sealed"
 ec_auto_not_allowed_here;;"\"auto\" is not allowed here"
+ec_unfinished_base_class;;"definition of base class type not completed yet"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

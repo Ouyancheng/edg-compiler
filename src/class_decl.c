@@ -5022,8 +5022,20 @@ issue an error and return FALSE.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_incomplete_type(base_class_type)) {
-      error(ec_incomplete_type_not_allowed);
-      okay = FALSE;
+      if ((gpp_mode || microsoft_mode) &&
+          base_class_type->variant.class_struct_union.extra_info->assoc_scope
+                                                                    != NULL &&
+          is_template_param_or_nonreal_class_type(base_class_type)) {
+        /* Microsoft and GNU compilers never check the completeness of a
+           parameterized base class that has not been fully parsed yet.
+           That causes the following example to be accepted:
+             template<class T> struct S { struct N: S<T> {}; };
+           In other modes, such cases result in an error. */
+        warning(ec_unfinished_base_class);
+      } else {
+        error(ec_incomplete_type_not_allowed);
+        okay = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return okay;
