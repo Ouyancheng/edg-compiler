@@ -20474,9 +20474,12 @@ instantiated.  Pure virtual functions cannot be instantiated.
       }  /* if */
     } else if (sym->variant.routine.ptr->is_specialized &&
                pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
-      /* A specialization declaration has been supplied. */
+      /* A specialization declaration has been supplied.  If an explicit
+         specialization is followed by an explicit instantiation, the
+         explicit instantiation is simply ignored (see core issue 259).
+         Issue an error if this was an instantiation pragma. */
       result = FALSE;
-      if (issue_errors) {
+      if (issue_errors && is_pragma) {
         sym_diagnostic(strict_ansi_discretionary_severity,
                        ec_instantiation_requested_and_specialized, sym);
       }  /* if */
@@ -20495,9 +20498,12 @@ instantiated.  Pure virtual functions cannot be instantiated.
     check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
     if (sym->variant.static_data_member.variable->is_specialized &&
         pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
-      /* A specialization declaration has been supplied. */
+      /* A specialization declaration has been supplied.  If an explicit
+         specialization is followed by an explicit instantiation, the
+         explicit instantiation is simply ignored (see core issue 259).
+         Issue an error if this was an instantiation pragma. */
       result = FALSE;
-      if (issue_errors) {
+      if (issue_errors && is_pragma) {
         sym_diagnostic(strict_ansi_discretionary_severity,
                        ec_instantiation_requested_and_specialized, sym);
       }  /* if */
@@ -20547,7 +20553,10 @@ dllimport or dllexport attribute to a template instance.
       tip = sym->variant.routine.instance_ptr;
     }  /* if */
   } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-    tip = sym->variant.static_data_member.instance_ptr;
+    if (sym_can_be_instantiated(sym, /*issue_errors=*/TRUE,
+                                is_pragma, pragma_kind)) {
+      tip = sym->variant.static_data_member.instance_ptr;
+    }  /* if */
   } else {
     unexpected_condition();
   }  /* if */

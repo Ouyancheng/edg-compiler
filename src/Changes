@@ -1,5 +1,15 @@
 Version 3.9
 
+3/13/07  Explicit instantiation of specialized entity is ignored
+
+The front end now implements the resolution of core issue 259, which amends
+the C++ standard to allow (and ignore) the explicit instantiation of an
+entity that has already been explicitly specialized.
+
+  template <class T> void f(T) {}
+  template <> void f(int){}
+  template void f(int);  // now ignored
+
 3/13/07  GNU and Microsoft compatibility: Incomplete dependent base classes
 
 In GNU and Microsoft C++ modes the front end now accepts (with a warning)
