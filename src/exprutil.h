@@ -1028,6 +1028,8 @@ extern void make_lvalue_operand_from_compound_constant(
                                                      a_constant_ptr  constant,
                                                      an_operand      *operand);
 
+extern void conv_array_rvalue_to_lvalue(an_operand *operand);
+
 extern void make_ptr_to_member_constant_operand(
                                     a_symbol_ptr      member_sym,
                                     a_symbol_ptr      member_proj_sym,

@@ -13530,6 +13530,17 @@ to be acceptable, and *conversion describes it.
                                        ec_nonconst_ref_init_from_rvalue,
                      &source_operand->position);
     }  /* if */
+  } else if (direct_binding_possible && is_an_rvalue(source_operand) &&
+             is_array_type(base_dest_type)) {
+    /* Direct binding of a reference to an rvalue array.  This was made
+       valid by core issue 450.  MSVC++ allows this since version 7.0,
+       Sun allows it in Studio 11, and g++ doesn't allow it even in 4.1,
+       but we'll go ahead and allow it in all modes. */
+    conv_array_rvalue_to_lvalue(source_operand);
+    conv_array_operand_to_pointer_operand(source_operand);
+    cast_operand(result_ptr_type, source_operand, /*check_cast_access=*/TRUE,
+                 /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
+                 /*reinterpret_semantics=*/FALSE);
   } else {
     /* The initialization cannot be done directly; a temporary must be
        used and/or an implicit conversion must be done. */

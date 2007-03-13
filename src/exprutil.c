@@ -30,9 +30,6 @@ exprutil.c -- Expression scanning utility routines.
 #include "func_def.h"
 #include "il_walk.h"
 
-/* Forward declarations required: */
-static void conv_array_rvalue_to_lvalue(an_operand *operand);
-
 
 /*
 Information on references to symbols, held until the kind of reference to
@@ -10247,7 +10244,7 @@ literal).  Make the given operand a variable initialized with that constant.
 }  /* make_lvalue_operand_from_compound_constant */
 
 
-static void conv_array_rvalue_to_lvalue(an_operand *operand)
+void conv_array_rvalue_to_lvalue(an_operand *operand)
 /*
 operand is an array rvalue.  Convert it to an lvalue for the array.
 */

@@ -1,5 +1,24 @@
 Version 3.9
 
+3/13/07  Binding a reference directly to an array rvalue
+
+In accordance with core issue 450, the front end now allows a
+reference to const array to bind directly to an array rvalue.
+Aside from the fact that this makes sense, it avoids aborts
+(in which_binary_operator: "bad type") that formerly resulted
+from the attempt to copy the rvalue array to a temporary in
+order to do the binding to that.
+
+  struct S {
+    char cc[10];
+  };
+  S GetS();
+  template <typename T>
+  void foo(const T&);
+  int main () {
+    foo(GetS().cc);  // Formerly caused an abort
+  }
+
 3/12/07  Microsoft compatibility: Nonstandard friend template declarations
 
 In Microsoft C++ mode, the front end interprets a nontemplate friend class
