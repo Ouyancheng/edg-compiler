@@ -7650,13 +7650,30 @@ issue an error.
   a_symbol_ptr base_member_sym = fundamental_symbol_of(member_sym);
   a_constant   constant;
 
-  /* The ARM only allows this when a qualified name is preceded by a "&" (5.3).
-     We allow it without "&" or without a qualified name as an extension --
-     it's common practice. */
-  if (strict_ansi_mode &&
-      (!is_operand_of_address_of || !is_qualified_name)) {
-    pos_diagnostic(strict_ansi_error_severity,
-                   ec_nonstd_member_function_address, position);
+  /* The standard only allows this when a qualified name is preceded
+     by a "&".  In some modes we allow other forms as an extension. */
+  if (!is_operand_of_address_of || !is_qualified_name) {
+    an_error_severity severity = (an_error_severity)es_discretionary_error;
+    if (strict_ansi_mode) {
+      /* The standard doesn't allow the nonstandard forms. */
+      severity = strict_ansi_discretionary_severity;
+    } else if (gpp_mode) {
+      /* g++ doesn't allow the nonstandard forms in any version (tested
+         in 2.95 through 4.1). */
+    } else if (microsoft_mode) {
+      /* MSVC++ allows the nonstandard forms in versions before 1400. */
+      if (microsoft_version < 1400) severity = (an_error_severity)es_none;
+    } else if (any_cfront_mode()) {
+      /* Cfront allows the nonstandard forms in all versions. */
+      severity = (an_error_severity)es_none;
+    } else if (sun_mode) {
+      /* Sun allows the nonstandard forms in all versions (tested in
+         Workshop 6 and Studio 11). */
+      severity = (an_error_severity)es_none;
+    }  /* if */
+    if (severity != (an_error_severity)es_none) {
+      pos_diagnostic(severity, ec_nonstd_member_function_address, position);
+    }  /* if */
   }  /* if */
   /* Protected members of a base class can only be accessed through an
      object of a derived class (ARM 11.5).  Post-ARM revisions have made

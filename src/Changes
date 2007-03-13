@@ -1,5 +1,27 @@
 Version 3.9
 
+3/13/07  Nonstandard pointer-to-member forms now an error
+
+The C++ standard requires that a pointer to member be named
+using a qualified name and a "&", e.g., &A::f.  The front end
+has accepted nonstandard forms like &f or simply f as a
+concession to existing practice.  We have now changed to
+producing a discretionary error for these cases.  (Since
+the error is discretionary, it can be changed to a warning or
+eliminated to restore the previous behavior.)  The nonstandard
+forms continue to be accepted in Cfront mode, Sun mode, and
+Microsoft mode with microsoft_version < 1400.
+
+  struct Base { 
+    void Test() {}
+  };
+  class Derived : public Base { 
+    virtual void Bar();
+  };
+  void Derived::Bar() {
+    void (Base::*p1)() = Test;   // Now an error
+  }
+
 3/13/07  Binding a reference directly to an array rvalue
 
 In accordance with core issue 450, the front end now allows a
