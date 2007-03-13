@@ -504,17 +504,18 @@ is the source indefinite function operand.
 
 
 static
-a_boolean indefinite_function_can_be_template_arg(an_operand   *operand,
-                                                  a_type_ptr   param_type,
-                                                  a_type_ptr   *arg_type,
-                                                  a_symbol_ptr templ_sym)
+a_boolean indefinite_function_can_be_template_arg(
+                                   an_operand           *operand,
+                                   a_type_ptr           param_type,
+                                   a_type_ptr           *arg_type,
+                                   a_template_param_ptr templ_params)
 /*
 operand is an indefinite function operand.  See if it can be matched against
-a parameter of type param_type from a function template.  If so, return
-TRUE and set *arg_type to the argument type to use.  *arg_type is not
-changed if this function returns FALSE.  templ_sym points to the
-function template symbol associated with the template associated with
-param_type.
+a parameter of type param_type from a function template.  If so, return TRUE
+and set *arg_type to the argument type to use.  *arg_type is not changed if
+this function returns FALSE.  templ_params describes the template parameter
+list of the function template associated with param_type, or it has a single
+entry representing the "auto" type when handling an "auto" type specifier.
 */
 {
   a_boolean    can_be_arg = FALSE;
@@ -538,9 +539,7 @@ param_type.
       }  /* if */
     }  /* if */
   } else {
-    a_template_symbol_supplement_ptr	tssp;
     check_assertion(sym->kind == (a_symbol_kind)sk_overloaded_function);
-    tssp = template_supplement_for_symbol(templ_sym);
     for (proj_sym = sym->variant.overloaded_function.symbols;
          proj_sym != NULL;
          proj_sym = proj_sym->next) {
@@ -576,8 +575,7 @@ param_type.
             ptr_routine_type = make_pointer_type(routine_type);
           }  /* if */
           if (tentatively_matches_template_type(
-                    ptr_routine_type, param_type,
-                    tssp->variant.function.decl_cache.decl_info->parameters)) {
+                                ptr_routine_type, param_type, templ_params)) {
             matches = TRUE;
           }  /* if */
         }  /* if */
@@ -2251,16 +2249,17 @@ not be considered further.
 }  /* check_template_arg_type_qualifiers */
 
 
-static a_boolean prep_deduction_pair(a_type_ptr    *p_param_type,
-                                     a_type_ptr    *p_arg_type,
-                                     an_operand    *arg_operand,
-                                     a_symbol_ptr  template_sym)
+static a_boolean prep_deduction_pair(a_type_ptr           *p_param_type,
+                                     a_type_ptr           *p_arg_type,
+                                     an_operand           *arg_operand,
+                                     a_template_param_ptr templ_params)
 /*
 Adjust the argument type *p_param_type and *p_arg_type for template argument
 deduction.  If the deduction is driven by an actual expression, that
-expression is passed through *arg_operand.  If the deduction is for an "auto"
-type specifier, template_sym is NULL; otherwise, the deduction is for a
-function template represented by template_sym.
+expression is passed through *arg_operand.  templ_params points to the list
+of template parameters (this routine is also called when deducing the "auto"
+type specifier -- in that case, the list of template parameters has a single
+entry representing the "auto" type).
 Returns TRUE if the adjustment is successful, and FALSE otherwise (in which
 case the deduction fails).
 */
@@ -2272,14 +2271,13 @@ case the deduction fails).
   /* Certain top-level parts of the parameter type (e.g., references) are
      processed here before going to the type deduction routine.  The code here
      must match determine_arg_match_level and overload_distinguishable. */
-  if (template_sym != NULL && arg_operand != NULL &&
-      is_indefinite_function_operand(arg_operand)) {
+  if (arg_operand != NULL && is_indefinite_function_operand(arg_operand)) {
     /* For an overloaded function, each possibility must be tried.
        Only one is allowed to match. */
     if (!indefinite_function_can_be_template_arg(arg_operand,
                                                  param_type,
                                                  &arg_type,
-                                                 template_sym)) goto done;
+                                                 templ_params)) goto done;
     arg_operand = NULL;
     if (is_function_type(arg_type) &&
         routine_type_is_nonstatic_member_function(arg_type) &&
@@ -2425,14 +2423,17 @@ argument list so far; anything deduced is added to that.  Return TRUE
 if the deduction succeeds, FALSE if it fails.
 */
 {
-  a_boolean  deduction_okay = FALSE;
-  a_type_ptr orig_arg_type;
-  a_type_ptr orig_param_type = param_type;
+  a_boolean            deduction_okay = FALSE;
+  a_type_ptr           orig_arg_type;
+  a_type_ptr           orig_param_type = param_type;
+  a_template_param_ptr templ_params;
 
   if (arg_operand != NULL) arg_type = arg_operand->type;
   orig_arg_type = arg_type;
+  templ_params = template_supplement_for_symbol(template_sym)
+                          ->variant.function.decl_cache.decl_info->parameters;
   if (!prep_deduction_pair(&param_type, &arg_type, arg_operand,
-                           template_sym)) {
+                           templ_params)) {
     goto done;
   }  /* if */
   deduction_okay = deduce_from_one_pair(
@@ -14509,8 +14510,7 @@ Deduction failures are diagnosed as errors.
   templ_param = alloc_template_param(symbol_for(dps->auto_type));
   /* Adjust the argument and parameter types for deduction.  Some types can
      never succeed: Issue an error and don't attempt deduction any further. */
-  if (is_indefinite_function_operand(arg) ||
-      !prep_deduction_pair(&type, &arg_type, arg, (a_symbol_ptr)NULL)) {
+  if (!prep_deduction_pair(&type, &arg_type, arg, templ_param)) {
     pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
     goto set_type;
   }  /* if */
