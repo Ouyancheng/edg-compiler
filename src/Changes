@@ -29,7 +29,7 @@ the characters "%" and the "[".  (See also Changes entry of 7/15/05.)
 
 3/12/07  GNU C++ dependent name lookup closer to standard
 
-The emulation of the name lookup in g++ mode with gnu_version >=
+The emulation of dependent name lookup in g++ mode with gnu_version >=
 40100 has been adjusted to match g++ 4.1, which is now closer
 to the standard but still not completely standard-conforming.
 The trick described in the entry of 4/19/05 is now disabled
