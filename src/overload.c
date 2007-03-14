@@ -2249,19 +2249,24 @@ not be considered further.
 }  /* check_template_arg_type_qualifiers */
 
 
-static a_boolean prep_deduction_pair(a_type_ptr           *p_param_type,
-                                     a_type_ptr           *p_arg_type,
-                                     an_operand           *arg_operand,
-                                     a_template_param_ptr templ_params)
+static a_boolean adjust_deduction_pair(a_type_ptr           *p_param_type,
+                                       a_type_ptr           *p_arg_type,
+                                       an_operand           *arg_operand,
+                                       a_template_param_ptr templ_params)
 /*
-Adjust the argument type *p_param_type and *p_arg_type for template argument
-deduction.  If the deduction is driven by an actual expression, that
-expression is passed through *arg_operand.  templ_params points to the list
-of template parameters (this routine is also called when deducing the "auto"
-type specifier -- in that case, the list of template parameters has a single
-entry representing the "auto" type).
-Returns TRUE if the adjustment is successful, and FALSE otherwise (in which
-case the deduction fails).
+Adjust the types *p_param_type (a parameter type of a function template or a
+type involving the "auto" type specifier) and *p_arg_type (the type of the
+corresponding argument or initializer) for template argument deduction.  If
+deduction is driven by an actual expression, that expression is described by
+*arg_operand; otherwise, arg_operand is NULL.  templ_params points to the list
+of template parameters (when deducing the "auto" type specifier the list of
+template parameters has a single entry representing the "auto" type).
+Adjustments may include dropping the "reference" layer on the parameter type,
+array-to-pointer or function-to-pointer transformation, dropping cv-qualifiers,
+and/or dropping matching "pointer" layers (e.g., T* and int* can be replaced
+by T and int).  Returns TRUE if the adjustment is successful (which may mean
+the types were left untouched), and FALSE otherwise (in which case the
+deduction fails).
 */
 {
   a_boolean   adjustment_okay = FALSE;
@@ -2358,7 +2363,7 @@ done:
   *p_param_type = param_type;
   *p_arg_type = arg_type;
   return adjustment_okay;
-}  /* prep_deduction_pair */
+}  /* adjust_deduction_pair */
 
 
 static a_boolean deduce_from_one_pair(a_type_ptr            param_type,
@@ -2376,9 +2381,9 @@ This routine updates *template_arg_list with bindings for the template
 argument based on one P/A pair, where P is the generic type *param_type and
 A is the type *arg_type of the call argument or initializer.  The *param_type
 and *arg_type types used for deduction are actually adjusted from the original 
-types *orig_param_type and *orig_arg_type (see prep_deduction_pair), but if
+types *orig_param_type and *orig_arg_type (see adjust_deduction_pair), but if
 deduction does not succeed with the adjusted types, deduction with the
-original types is sometimes attempted (see also prep_deduction_pair).
+original types is sometimes attempted (see also adjust_deduction_pair).
 template_params lists the template parameters (or the "auto" specifier) for
 which bindings are sought.
 */
@@ -2432,8 +2437,8 @@ if the deduction succeeds, FALSE if it fails.
   orig_arg_type = arg_type;
   templ_params = template_supplement_for_symbol(template_sym)
                           ->variant.function.decl_cache.decl_info->parameters;
-  if (!prep_deduction_pair(&param_type, &arg_type, arg_operand,
-                           templ_params)) {
+  if (!adjust_deduction_pair(&param_type, &arg_type, arg_operand,
+                             templ_params)) {
     goto done;
   }  /* if */
   deduction_okay = deduce_from_one_pair(
@@ -14581,7 +14586,7 @@ Deduction failures are diagnosed as errors.
   templ_param = alloc_template_param(symbol_for(dps->auto_type));
   /* Adjust the argument and parameter types for deduction.  Some types can
      never succeed: Issue an error and don't attempt deduction any further. */
-  if (!prep_deduction_pair(&type, &arg_type, arg, templ_param)) {
+  if (!adjust_deduction_pair(&type, &arg_type, arg, templ_param)) {
     pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
     goto set_type;
   }  /* if */
