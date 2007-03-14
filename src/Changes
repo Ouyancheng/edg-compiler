@@ -1,5 +1,25 @@
 Version 3.9
 
+3/13/07  Overload resolution on calls of functions with dependent parameters
+         and non-dependent arguments
+
+Overload resolution for calls within template prototype instantiations
+(done only in modes that parse templates, e.g., strict mode and g++
+mode with gnu_version >= 30400) has been fixed to deal correctly with
+member functions that have template-dependent parameters when they are
+called with arguments that are not template-dependent.  Overload
+resolution for such calls is now delayed until an actual instantiation
+of the function, which avoids a spurious ambiguity error during the
+template parse.
+
+  template <class T, class T2> struct A {
+    int h(T) {return 0;}
+    int h(T2) {return 0;}
+    void f() {
+      h(1);  // No longer flagged as ambiguous
+    }
+  };            
+
 3/13/07  Explicit instantiation of specialized entity is ignored
 
 The front end now implements the resolution of core issue 259, which amends

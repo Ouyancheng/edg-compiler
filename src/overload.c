@@ -5033,27 +5033,87 @@ lookup.
 }  /* add_operand_to_arg_dependent_lookup_list */
 
 
+static a_boolean any_function_has_dependent_param_or_default_arg(
+                                                              a_symbol_ptr sym)
+/*
+sym is a function or set of overloaded functions.  Return TRUE if
+any member of the set has a dependent parameter or dependent default
+argument expression.
+*/
+{
+  a_boolean any_dep = FALSE;
+
+  /* Only block extern functions and members of prototype instantiations
+     can have dependent parameters. */
+  if (is_block_extern_symbol(sym) ||
+      (sym->is_class_member &&
+       sym->parent.class_type->variant.class_struct_union.
+                                                 is_prototype_instantiation)) {
+    a_boolean is_overloaded_function;
+    sym = fundamental_symbol_of(sym);
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      is_overloaded_function = TRUE;
+      sym = sym->variant.overloaded_function.symbols;
+    } else {
+      is_overloaded_function = FALSE;
+    }  /* if */
+    /* Loop through the symbols in the overload set. */
+    for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
+      a_symbol_ptr                  fund_sym = fundamental_symbol_of(sym);
+      a_type_ptr                    rout_type;
+      a_routine_type_supplement_ptr rtsp;
+      a_param_type_ptr              ptp;
+      if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
+        /* Function templates are always going to have template parameters
+           in their parameter lists. */
+        any_dep = TRUE;
+        goto end_of_function;
+      }  /* if */
+      check_assertion(fund_sym->kind == (a_symbol_kind)sk_routine ||
+                      fund_sym->kind == (a_symbol_kind)sk_member_function);
+      rout_type = routine_symbol_type(fund_sym);
+      check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+      rtsp = rout_type->variant.routine.extra_info;
+      /* Loop through the parameter list looking for dependent types. */
+      for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+        if (is_template_dependent_type(ptp->type)) {
+          any_dep = TRUE;
+          goto end_of_function;
+        }  /* if */
+        if (ptp->has_default_arg) {
+          /* We don't have a good way of examining the default argument
+             expression to see whether it is dependent.  Consider
+               void f(int i = 1 + sizeof(T));
+             which is going to look a lot like a normal addition expression.
+             So just assume that any default argument is dependent. */
+          any_dep = TRUE;
+          goto end_of_function;
+        }  /* if */
+      }  /* for */
+    }  /* for */
+  }  /* if */
+end_of_function:
+  return any_dep;
+}  /* any_function_has_dependent_param_or_default_arg */
+
+
 static a_boolean is_symbol_for_which_overload_resolution_should_be_deferred(
                                                               a_symbol_ptr sym)
 /*
-Return TRUE if the indicated symbol is one for which overload resolution
-cannot be done at present.  We are in a template dependent context.
+Return TRUE if the indicated symbol (potentially an overload set) is one for
+which overload resolution cannot be done at present.  We are in a template
+dependent context.
 */
 {
   a_boolean defer = FALSE;
 
   check_assertion(is_template_dependent_context());
-  if (is_block_extern_symbol(sym)) {
-    /* A block extern declaration can be dependent (e.g., it
-       can have dependent parameter types or dependent default
-       argument expressions), so we can't do overload resolution. */
-    defer = TRUE;
-  } else if (sym->kind == (a_symbol_kind)sk_function_template &&
-             sym->is_class_member &&
-             sym->parent.class_type->variant.class_struct_union.
-                                                  is_prototype_instantiation) {
-    /* A template member of a prototype instantiation.  We can't call
-       find_template_function on these, so defer overload resolution. */
+  if (any_function_has_dependent_param_or_default_arg(sym)) {
+    /* If any function in the set has a dependent parameter type we cannot
+       do overload resolution.  If any function has a dependent default
+       argument expression, we might be able to determine the function
+       to call but we couldn't assemble the actual call arguments, so
+       delay all processing until a real instantiation. */
     defer = TRUE;
   } else if (sym->potentially_overloaded) {
     /* The function coexists with a using-declaration that might or
