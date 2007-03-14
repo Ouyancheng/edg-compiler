@@ -1,5 +1,13 @@
 Version 3.9
 
+3/13/07  Microsoft C++ compatibility: implicit int
+
+In Microsoft C++ mode, the "implicit int" rule is now disabled when
+microsoft_version >= 1400.  For example:
+
+  f(int x) { return 3; }  // Now an error in Microsoft C++ mode with
+                          // microsoft_version == 1400.
+
 3/13/07  Overload resolution on calls of functions with dependent parameters
          and non-dependent arguments
 

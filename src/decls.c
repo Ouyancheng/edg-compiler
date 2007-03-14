@@ -9203,8 +9203,8 @@ cv-qualifier).
              b(){}
              extern c();
              extern d(){}
-           This was accepted by the Cfront compiler, and is still accepted
-           (with a warning) by Microsoft C++ compilers.  In these modes we
+           This was accepted by the Cfront compiler and (with a warning) by
+           earlier versions of the Microsoft C++ compiler.  In these modes we
            issue a slightly different diagnostic. */
         error_code = ec_missing_type_specifier;
         severity = es_discretionary_error;
@@ -9215,7 +9215,7 @@ cv-qualifier).
         } else if (any_cfront_mode()) {
           error_code = ec_nonstd_implicit_int;
           severity = es_remark;
-        } else if (microsoft_mode) {
+        } else if (microsoft_mode && (C_mode() || microsoft_version < 1400)) {
           error_code = ec_nonstd_implicit_int;
           severity = es_warning;
         }  /* if */
@@ -9240,7 +9240,8 @@ cv-qualifier).
       error_code = ec_missing_type_specifier;
       severity = es_warning;
     } else {
-      if ((microsoft_mode || any_cfront_mode()) &&
+      if (((microsoft_mode && (C_mode() || microsoft_version < 1400)) ||
+           any_cfront_mode()) &&
           !auto_type_specifier_enabled) {
         error_code = ec_nonstd_implicit_int;
         severity = es_warning;
