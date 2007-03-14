@@ -287,6 +287,11 @@ typedef struct a_decl_parse_state {
 		auto_type_specifier_seen:1;
 			/* TRUE if "auto" appeared as a type specifier. */
   a_bit_field
+		auto_type_is_template_dependent:1;
+			/* TRUE if the "auto" type cannot be deduced because
+			   the types involved are template-dependent (only
+			   happens during prototype instantiations). */
+  a_bit_field
 		is_asm_function:1;
 			/* TRUE if the current declaration is for an asm
 			   function.  (An extension available only when

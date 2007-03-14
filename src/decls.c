@@ -113,6 +113,7 @@ and efficient initialization.
   ps->for_new_expr_type = FALSE;
   ps->auto_type_allowed = FALSE;
   ps->auto_type_specifier_seen = FALSE;
+  ps->auto_type_is_template_dependent = FALSE;
   ps->is_asm_function = FALSE;
   ps->function_definition_allowed = FALSE;
   ps->is_old_style_param_decl = FALSE;
@@ -13747,6 +13748,7 @@ efficiency.
 */
 {
   if (dps->auto_type_specifier_seen && dps->deduced_auto_type == NULL &&
+      !dps->auto_type_is_template_dependent &&
       !(dps->type != NULL && is_error_type(dps->type))) {
     /* The "auto" type specifier was seen, but we never performed deduction
        and no other error was recorded in the declaration's type.*/

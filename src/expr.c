@@ -72,6 +72,34 @@ static void scan_expr_full(an_operand              *result,
                  (local_options))
 
 
+static void set_auto_type_is_template_dependent_flag(a_decl_parse_state  *dps)
+/*
+*dps represents a declaration with an "auto" type specifier and a prescanned
+initializer expression.  Determine whether the declared type and/or the
+initializer type are template dependent and record the result in *dps.
+(The "auto" type is not deduced if the result is TRUE.)
+This routine should be called only during prototype instantiations.
+*/
+{
+  check_assertion(is_prototype_instantiation_context());
+  if (is_template_dependent_type(
+                            dps->prescanned_auto_initializer->operand.type)) {
+    /* The initializer is dependent. */
+    dps->auto_type_is_template_dependent = TRUE;
+  } else {
+    check_assertion(dps->auto_type != NULL &&
+                    dps->auto_type->kind == (a_type_kind)tk_template_param);
+    /* Temporarily treat the "auto" type as an "unknown" type so it is
+       ignored by "is_template_dependent_type". */
+    dps->auto_type->kind = (a_type_kind)tk_unknown;
+    dps->auto_type_is_template_dependent =
+                               is_template_dependent_type(dps->declared_type);
+    dps->auto_type->kind = (a_type_kind)tk_template_param;
+  }  /* if */
+
+}  /* set_auto_type_is_template_dependent_flag */
+
+
 void prescan_initializer_for_auto_type_deduction(a_decl_parse_state  *dps)
 /*
 Prescan an initializer expression for an "auto" type variable declaration and
@@ -112,7 +140,12 @@ get_prescanned_auto_initializer.
   dps->prescanned_auto_initializer = alloc_arg_operand();
   scan_expr(&dps->prescanned_auto_initializer->operand, PREC_LOWEST,
             EOPT_DISALLOW_COMMA_OPERATOR);
-  deduce_auto_type(dps);
+  if (is_prototype_instantiation_context()) {
+    set_auto_type_is_template_dependent_flag(dps);
+  }  /* if */
+  if (!dps->auto_type_is_template_dependent) {
+    deduce_auto_type(dps);
+  }  /* if */
   /* Pop the expression stack if needed. */
   if (!dps->for_new_expr_type) {
     if (!dps->in_class_scope) {
