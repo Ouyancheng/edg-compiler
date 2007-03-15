@@ -2285,12 +2285,11 @@ deduction fails).
                                                  templ_params)) goto done;
     arg_operand = NULL;
     if (is_function_type(arg_type) &&
-        routine_type_is_nonstatic_member_function(arg_type) &&
-        !strict_ansi_mode) {
+        routine_type_is_nonstatic_member_function(arg_type)) {
       /* The routine is a member function, so convert to a pointer to
          member function.  This comes up with the extension that allows
          A::x<int>, without the standard preceding "&", to be used as
-         a pointer to member. */
+         a pointer to member.  An error will be issued later if appropriate. */
       arg_type = ptr_to_member_type(
                              arg_type,
                              arg_type->variant.routine.extra_info->this_class);
