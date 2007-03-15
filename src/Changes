@@ -3,7 +3,7 @@ Version 3.9
 3/15/07  Abort on class rvalue "?" initializing volatile variable
 
 IL lowering aborted with an assertion failure in lower_temp_init
-in lower_init.c while processing an optimize class rvalue "?" operation
+in lower_init.c while processing an optimized class rvalue "?" operation
 that is the initializer for a volatile-qualified variable.  Now fixed.
 
   struct A { A(); };
