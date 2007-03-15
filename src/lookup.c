@@ -3875,11 +3875,12 @@ bypass_inactive_search:
         sym = look_up_conversion_template_instance(locator, class_type);
         if (sym != NULL) goto end_lookup;
       }  /* if */
-      if (!direct_class_members_only) {
+      if (!direct_class_members_only && !locator->is_destructor_name) {
         /* The name was not found.  Try looking for a member symbol that can
            be projected into the class.  When doing a "direct class members
            only" lookup, projection symbols are not created and conversion
-	   template instances are not found. */
+	   template instances are not found.  Destructors are not inherited,
+           so don't attempt to look for a destructor name. */
         determine_projected_symbol_insert_location(locator,
                                                    class_type,
                                                    &add_to_active_list,

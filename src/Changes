@@ -1,5 +1,21 @@
 Version 3.9
 
+3/15/07  Internal error on dependent destructor call when parsing templates
+
+In modes in which nonclass templates are parsed (e.g, strict mode) an internal
+error (in create_nonreal_progenitor_symbol) could occur on certain dependent
+destructor calls.  The error would occur on an explicit destructor call
+where the field selection class is a dependent class without a user-declared
+destructor and its base class is another dependent class.  Now fixed.
+
+  template<class T> class A {
+    struct B {};
+    struct C : B { };
+    void f(C* c) {
+      c->~C();  // internal error
+    }
+  };
+
 3/15/07  C++0x mode: "extern template"
 
 In C++0x mode (and in non-strict C++98 mode) "extern template" can now be
