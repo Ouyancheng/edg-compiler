@@ -51,6 +51,10 @@ static void prep_conversion_operand(
 static a_boolean type_matches_type_code(a_type_ptr type,
                                         char       type_code);
 static a_boolean microsoft_can_bind_ref_to_rvalue(an_operand *operand);
+static a_boolean adjust_deduction_pair(a_type_ptr           *p_param_type,
+                                       a_type_ptr           *p_arg_type,
+                                       an_operand           *arg_operand,
+                                       a_template_param_ptr templ_params);
 
 #if DEBUG
 static unsigned long
@@ -567,16 +571,20 @@ entry representing the "auto" type when handling an "auto" type specifier.
         /* Not a function template. */
         /* This can't match if there are explicit template arguments. */
         if (!operand->is_template_id) {
+          /* See if this function can be made to match the parameter type. */
+          a_type_ptr local_arg_type, local_param_type;
           routine_type = routine_symbol_type(sym);
-          if (routine_type_is_nonstatic_member_function(routine_type)) {
-            ptr_routine_type = ptr_to_member_type(routine_type,
-                                                  sym->parent.class_type);
-          } else {
-            ptr_routine_type = make_pointer_type(routine_type);
-          }  /* if */
-          if (tentatively_matches_template_type(
-                                ptr_routine_type, param_type, templ_params)) {
+          local_arg_type = routine_type;
+          local_param_type = param_type;
+          if (adjust_deduction_pair(&local_param_type, &local_arg_type,
+                                    (an_operand *)NULL, templ_params) &&
+              tentatively_matches_template_type(local_arg_type,
+                                                local_param_type,
+                                                templ_params)) {
             matches = TRUE;
+            ptr_routine_type = arg_type_for_unique_specialization(
+                                                           routine_type,
+                                                           (an_operand *)NULL);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -2284,32 +2292,29 @@ deduction fails).
                                                  &arg_type,
                                                  templ_params)) goto done;
     arg_operand = NULL;
-    if (is_function_type(arg_type) &&
-        routine_type_is_nonstatic_member_function(arg_type)) {
-      /* The routine is a member function, so convert to a pointer to
-         member function.  This comes up with the extension that allows
-         A::x<int>, without the standard preceding "&", to be used as
-         a pointer to member.  An error will be issued later if appropriate. */
-      arg_type = ptr_to_member_type(
+  }  /* if */
+  if (is_function_type(arg_type) &&
+      routine_type_is_nonstatic_member_function(arg_type)) {
+    /* The argument is a member function, so convert it to a pointer to
+       member function.  This comes up when the function name is overloaded
+       and a particular function has just been chosen (either just above,
+       or in the caller).  It comes up both for pointers to members
+       in the standard &A::f form and for nonstandard forms; for the latter,
+       an error will be issued later if appropriate.  Note that the decay
+       here is done unconditionally.  When the parameter type is not a
+       reference, that obviously makes sense.  When it is a reference,
+       consider that there is no such type as a "reference to member function",
+       so there's no need to allow the possibility that the decay should
+       not be done because the reference might bind directly. */
+    arg_operand = NULL;
+    arg_type = ptr_to_member_type(
                              arg_type,
                              arg_type->variant.routine.extra_info->this_class);
-    }  /* if */
   }  /* if */
   if (is_reference_type(param_type)) {
     /* The parameter has a reference type. */
     /* Drop the reference type. */
     param_type = type_pointed_to(param_type);
-    if (arg_operand != NULL &&
-        is_sym_for_member_operand(arg_operand) &&
-        is_a_function_designator(arg_operand)) {
-      /* Convert a member name to a pointer-to-member.  This comes up with
-         the extension that allows A::x to be used for a pointer to member
-         function, without the standard preceding "&", and is necessary
-         when the parameter has type "reference to const pointer to
-         member". */
-      arg_type = type_after_function_to_pointer_transformation(arg_type,
-                                                               arg_operand);
-    }  /* if */
     /* Check and adjust the top-level type qualifiers. */
     check_template_arg_type_qualifiers(&arg_type, &param_type);
   } else {

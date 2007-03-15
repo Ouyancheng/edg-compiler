@@ -1,5 +1,20 @@
 Version 3.9
 
+3/13/07  Overload resolution for template with reference parameter and
+         overloaded function argument
+
+Overload resolution did not correctly analyze cases that involve
+a template-dependent parameter of reference-to-function type and an actual
+argument that is the name of a set of overloaded functions.  A spurious
+amiguity error was issued.  Now fixed.
+
+  int f(char) {return 1;}
+  int f(int) {return 2;}
+  template<class T> void g(T (&r)(int)) {}
+  int main() {
+    g(f);  // No longer considered ambiguous
+  }
+
 3/13/07  Spurious error on cast to template parameter type in prototype
          instantiation
 
