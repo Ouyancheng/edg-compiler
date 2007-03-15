@@ -1759,6 +1759,7 @@ by a command line option.
         microsoft_version >= 1400) {
       type_traits_helpers_enabled = TRUE;
     }  /* if */
+    extern_template_allowed = TRUE;
   }  /* if */
   /* The Microsoft compiler does not find typedefs when looking up names
      in elaborated type specifiers. */
@@ -2207,6 +2208,8 @@ the next standard).
   variadic_macros_allowed = TRUE;
   static_assert_enabled = TRUE;
   auto_type_specifier_enabled = TRUE;
+  extern_template_allowed = TRUE;
+  standard_form_of_extern_template = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -2226,6 +2229,8 @@ may get enabled in the other non-C++0x modes.
     mixed_string_concat_enabled = TRUE;
     extended_friends_enabled = TRUE;
     variadic_macros_allowed = TRUE;
+    extern_template_allowed = TRUE;
+    standard_form_of_extern_template = TRUE;
   }  /* if */
 }  /* check_and_set_default_cpp0x_extensions */
 
@@ -3068,6 +3073,7 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   /* Early GNU C++ compilers do not check accessibility of friend function
      declarations. */
   no_access_check_on_friend_declarator_ids = (gnu_version < 30400);
+  extern_template_allowed = TRUE;
 }  /* check_and_set_gpp_mode_options */
 
 
@@ -5357,6 +5363,8 @@ variables declared in cmd_line.h.
   mixed_string_concat_enabled = FALSE;
   static_assert_enabled = FALSE;
   auto_type_specifier_enabled = FALSE;
+  extern_template_allowed = FALSE;
+  standard_form_of_extern_template = FALSE;
 }  /* cmd_line_static_var_init */
 
 

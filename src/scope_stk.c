@@ -5404,7 +5404,11 @@ e.g., because it's externally defined.
            other compilation units unless it is explicitly declared
            "extern inline".  In addition, in C++ inline template functions
            should be emitted if they are explicitly instantiated except when
-           inline functions are implemented using static functions. */
+           inline functions are implemented using static functions.  If the
+           need_out_of_line_copy flag is set, the routine should also be marked
+           as needed.  This is used by explicit instantiation directives,
+           although code is not actually needed for that case because the
+           routine will already have been marked as needed. */
 	is_needed = FALSE;
       } else if (!is_primary_translation_unit) {
         /* Assume that all external routines from secondary translation units

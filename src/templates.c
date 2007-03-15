@@ -20472,7 +20472,7 @@ instantiated.  Pure virtual functions cannot be instantiated.
       if (issue_errors) {
         sym_error(ec_not_instantiatable_entity, sym);
       }  /* if */
-    } else if (sym->variant.routine.ptr->is_specialized &&
+    } else if (routine->is_specialized &&
                pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
       /* A specialization declaration has been supplied.  If an explicit
          specialization is followed by an explicit instantiation, the
@@ -20488,11 +20488,21 @@ instantiated.  Pure virtual functions cannot be instantiated.
          in a pragma.  The Sun compiler does not instantiate inline functions
          when a class instantiation directive is used. */
       result = !is_pragma && !sun_mode;
-      if (issue_errors) {
+      if (!result && issue_errors) {
         sym_diagnostic(is_pragma ? es_error : es_remark,
                        ec_inline_function_cannot_be_instantiated,
                        sym);
       }  /* if */
+    }  /* if */
+    if (standard_form_of_extern_template &&
+        routine->storage_class == (a_storage_class)sc_static &&
+        pragma_kind == (a_pragma_kind)pk_do_not_instantiate && !is_pragma) {
+       
+      if (issue_errors) {
+        /* A standard "extern template" cannot refer to a static entity. */
+        sym_error(ec_static_extern_template, tip->template_sym);
+      }  /* if */
+      result = FALSE;
     }  /* if */
   } else {
     check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
@@ -20562,11 +20572,20 @@ dllimport or dllexport attribute to a template instance.
   }  /* if */
   if (tip != NULL) {
     a_boolean	instantiation_required_flag;
+    a_boolean	is_inline;
+    is_inline = is_inline_template_function(tip, /*in_class=*/FALSE);
     if (!(is_pragma || is_dll_directive) && tip->explicit_instantiation) {
-      /* A template cannot be instantiated more than once using an explicit
-         instantiation. */
-      sym_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
-                     ec_multiple_explicit_instantiations, sym);
+      if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
+        /* An "extern template" cannot follow an explicit instantiation of
+           an entity. */
+        sym_diagnostic(es_discretionary_error,
+                       ec_extern_template_follows_instantiation, sym);
+      } else {
+        /* A template cannot be instantiated more than once using an explicit
+           instantiation. */
+        sym_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
+                       ec_multiple_explicit_instantiations, sym);
+      }  /* if */
     }  /* if */
     if (pragma_kind == (a_pragma_kind)pk_instantiate) {
       instantiation_required_flag = TRUE;
@@ -20579,14 +20598,34 @@ dllimport or dllexport attribute to a template instance.
       if (tip->pos_of_first_reference.seq == 0) {
         tip->pos_of_first_reference = *pos;
       }  /* if */
+      if (sym->kind != (a_symbol_kind)sk_static_data_member && !is_pragma &&
+          is_inline) {
+        /* Clear the suppress_inline_body flag in case it was previously
+           set by an "extern template".  This is used to implement the
+           C++0x form of "extern template" where the sole out-of-line copy
+           should be emitted where the inline function is explicitly
+           instantiated.  This also matches the behavior of the GNU
+           and Microsoft compilers. */
+        sym->variant.routine.ptr->suppress_inline_body = FALSE;
+        sym->variant.routine.ptr->need_out_of_line_copy = TRUE;
+        mark_as_needed((char*)sym->variant.routine.ptr,
+                       (an_il_entry_kind)iek_routine);
+      }  /* if */
     } else if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
-      instantiation_required_flag = FALSE;
-      tip->explicit_instantiation = FALSE;
-      tip->explicit_do_not_instantiate = TRUE;
-      tip->class_explicitly_instantiated = FALSE;
-      /* We can get here from either a do_not_instantiate pragma or a
-         Microsoft/GNU "extern template" explicit instantiation directive.
-         A do_not_instantiate pragma is assumed to be used in cases where
+      if (is_inline && !is_dll_directive) {
+        /* Inline functions should still be instantiated even if specified in
+           an "extern inline" directive.  But the out-of-line copy will be
+           suppressed below. */
+        instantiation_required_flag = TRUE;
+      } else {
+        instantiation_required_flag = FALSE;
+        tip->explicit_instantiation = FALSE;
+        tip->explicit_do_not_instantiate = TRUE;
+        tip->class_explicitly_instantiated = FALSE;
+      }  /* if */
+      /* We can get here from either a do_not_instantiate pragma or an
+         "extern template" explicit instantiation directive.  A
+         do_not_instantiate pragma is assumed to be used in cases where
          an old-style specialization is present in some other translation unit.
          Consequently, the is_specialized and specialized_with_old_syntax
          flags are set so that the mangled name used here will match the
@@ -20603,6 +20642,15 @@ dllimport or dllexport attribute to a template instance.
           rp->is_specialized = TRUE;
           rp->specialized_with_old_syntax = TRUE;
         }  /* if */
+      }  /* if */
+      if (sym->kind != (a_symbol_kind)sk_static_data_member && !is_pragma &&
+          is_inline_template_function(tip, /*in_class=*/FALSE)) {
+        /* Set the suppress_inline_body flag for an "extern template"
+           This is used to implement the C++0x form of "extern template"
+           where the sole out-of-line copy should be emitted where the
+           inline function is explicitly instantiated. */
+        sym->variant.routine.ptr->suppress_inline_body = TRUE;
+        sym->variant.routine.ptr->need_out_of_line_copy = FALSE;
       }  /* if */
     } else { /* pragma_kind == (a_pragma_kind)pk_can_instantiate */
       /* For the can_instantiate pragma set the instantiation required
@@ -20814,7 +20862,7 @@ void make_instantiation_directive(a_pragma_kind                pragma_kind,
 /*
 Create an IL entry to represent an instantiation directive.  pragma_kind is
 used to distinguish an instantiation directive from a "do not instantiate"
-directive (which is specified as "extern template" in Microsoft and GNU modes).
+directive (which is specified as "extern template" in some modes).
 sym identifies the entity being instantiated, pos is the source position
 of the template keyword, and ssep is the empty source sequence entry that
 should be used.  When EXTRA_SOURCE_POSITIONS_IN_IL is set to TRUE,

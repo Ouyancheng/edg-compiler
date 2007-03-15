@@ -1452,6 +1452,18 @@ EXTERN a_boolean
 			   This is set to TRUE in C99, GNU C, and Microsoft C
 			   modes. */
 
+EXTERN a_boolean
+		extern_template_allowed;
+			/* TRUE if "extern template" can be used to suppress
+			   the instantiation of entities. */
+
+EXTERN a_boolean
+		standard_form_of_extern_template;
+			/* TRUE if the "extern template" feature should have
+			   the semantics specified by the C++ standard (as
+			   opposed to the semantics used by Microsoft or
+		           GNU). */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

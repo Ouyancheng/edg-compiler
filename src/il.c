@@ -16665,11 +16665,11 @@ eliminate_unneeded_scope_orphaned_list_entries).
     rp->use_comdat = FALSE;
 #endif /* IA64_ABI && DO_IL_LOWERING */
   }  /* if */
+  rp->need_out_of_line_copy = FALSE;
 #if DO_IL_LOWERING && MINIMAL_INLINING
   /* If IL lowering was done and these flags are set, clear them to avoid
      problems later. */
   rp->inlinable = FALSE;
-  rp->need_out_of_line_copy = FALSE;
 #endif /* DO_IL_LOWERING && MINIMAL_INLINING */
   /* Note that defined_outside_of_parent is not reset.  The main reason
      for this is the fact that the flag is needed for prototype instantiations

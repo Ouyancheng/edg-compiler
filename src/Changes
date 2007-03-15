@@ -1,5 +1,30 @@
 Version 3.9
 
+3/15/07  C++0x mode: "extern template"
+
+In C++0x mode (and in non-strict C++98 mode) "extern template" can now be
+used to suppress the implicit instantiation of an entity.  The C++0x feature
+is very similar to the version of the feature already accepted in GNU and
+Microsoft modes (there are some additional error checks that are required).
+
+One subtle point: According to the standard, an "extern template" directive
+has no effect on inline functions (i.e., they are still instantiated), but
+the standard recommends that implementations suppress any out-of-line copies
+in the presence of an "extern template" directive (the GNU and Microsoft
+compilers also behave in this way).  For this to work as intended, an
+out-of-line copy must be generated at the site where an explicit
+instantiation of the inline function is done.
+
+To help back ends detect cases in which an out-of-line copy should be
+emitted, the need_out_of_line_copy flag, which was previously present only
+when using MINIMAL_INLINING, is now present in all configurations (IL CHANGE).
+If a back end already emits any extern inline routine for which the
+definition_needed flag is set and for which the suppress_inline_body flag
+is not set, it should not be necessary to test the need_out_of_line_copy flag.
+On the other hand, if a back end sometimes suppresses the definitions of such
+extern inline functions, it may need now to check the need_out_of_line_copy
+flag.
+
 3/15/07  Abort on class rvalue "?" initializing volatile variable
 
 IL lowering aborted with an assertion failure in lower_temp_init

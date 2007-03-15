@@ -2887,6 +2887,9 @@ Display the indicated routine.
   if (ptr->suppress_inline_body) {
     disp_boolean("suppress_inline_body", TRUE);
   }  /* if */
+  if (ptr->need_out_of_line_copy) {
+    disp_boolean("need_out_of_line_copy", TRUE);
+  }  /* if */
   if (il_header.c99_mode) {
     if (ptr->fp_contract != (a_stdc_pragma_value)stdc_pv_default) {
       disp_stdc_pragma_value("fp_contract", ptr->fp_contract);

@@ -8519,9 +8519,6 @@ typedef struct a_routine {
 			   if inlining of this routine is temporarily
 			   suppressed, e.g., because it's currently being
 			   inlined. */
-  a_bit_field	need_out_of_line_copy:1;
-			/* TRUE if an out-of-line copy of this inline routine
-			   is needed, e.g., because its address was taken. */
 #endif /* DO_IL_LOWERING && MINIMAL_INLINING */
 #if MAINTAIN_NEEDED_FLAGS
   a_bit_field	definition_needed:1;
@@ -8601,6 +8598,11 @@ typedef struct a_routine {
   a_bit_field	on_inline_function_list:1;
 			/* TRUE if this routine has been added to the inline
 			   function list. */
+  a_bit_field	need_out_of_line_copy:1;
+			/* TRUE if an out-of-line copy of this inline routine
+			   is needed, e.g., because its address was taken, or
+			   it was named in an explicit instantiation
+			   directive. */
   a_bit_field	fp_contract:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* In C99 mode, the setting of the fp_contract mode
 			   at the point that this routine was defined. */

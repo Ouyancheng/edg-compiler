@@ -2220,7 +2220,6 @@ to it.  The entry is allocated in the file scope memory region.
   rp->defined_outside_of_parent   = FALSE;
 #if MINIMAL_INLINING
   rp->inlinable                   = FALSE;
-  rp->need_out_of_line_copy       = FALSE;
 #endif /* MINIMAL_INLINING */
 #if MAINTAIN_NEEDED_FLAGS
   rp->definition_needed           = FALSE;
@@ -2247,6 +2246,7 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* INSTANTIATE_EXTERN_INLINE */
   rp->suppress_inline_body        = FALSE;
   rp->on_inline_function_list     = FALSE;
+  rp->need_out_of_line_copy       = FALSE;
   rp->fp_contract                 = (a_stdc_pragma_value)stdc_pv_none;
   rp->fenv_access                 = (a_stdc_pragma_value)stdc_pv_none;
   rp->cx_limited_range            = (a_stdc_pragma_value)stdc_pv_none;

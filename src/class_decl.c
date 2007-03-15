@@ -14514,7 +14514,7 @@ classes.
           }  /* if */
           /* Check for template declaration. */
           if (curr_token == tok_template || curr_token == tok_export ||
-              ((microsoft_mode || gpp_mode) && curr_token == tok_extern &&
+              (extern_template_allowed && curr_token == tok_extern &&
                next_token() == tok_template)) {
             /* A template declaration in a class may be a member template
                declaration or a friend declaration.  Explicit instantiations
@@ -14531,8 +14531,7 @@ classes.
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             if (curr_token == tok_extern) {
-              /* In Microsoft and GNU modes "extern template ..." is
-                 permitted. */
+              /* In some modes "extern template ..." is permitted. */
               (void)get_token();
               td_flags = TDO_EXTERN;
             }  /* if */
