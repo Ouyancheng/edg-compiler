@@ -13758,18 +13758,35 @@ efficiency.
     dps->auto_type = NULL;
     dps->specifiers_type = dps->type = error_type();
     if (dps->sym != NULL) {
-      /* Update the IL entry. */
-      a_variable_ptr  vp;
-      if (dps->sym->kind == (a_symbol_kind)sk_variable) {
-        vp = dps->sym->variant.variable.ptr;
-      } else if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
-        vp = dps->sym->variant.static_data_member.variable;
-      } else {
-        vp = NULL;
+      /* Update the IL entry.  Normally it should be a variable or static
+         data member, but erroneous uses of "auto" can get here for other
+         entities (e.g., fields) as well. */
+      a_variable_ptr  vp = NULL;
+      a_type_ptr      *p_type = NULL;
+      switch (dps->sym->kind) {
+        case sk_variable:
+          vp = dps->sym->variant.variable.ptr;
+          p_type = &vp->type;
+          break;
+        case sk_static_data_member:
+          vp = dps->sym->variant.static_data_member.variable;
+          p_type = &vp->type;
+          break;
+        case sk_field:
+          p_type = &dps->sym->variant.field.ptr->type;
+          break;
+        case sk_routine:
+        case sk_member_function:
+          p_type = &dps->sym->variant.routine.ptr->type;
+          break;
+        default:
+          unexpected_condition_str("f_check_use_of_auto_type: bad symbol");
+      }  /* switch */
+      if (p_type != NULL) {
+        *p_type = dps->type;
       }  /* if */
       if (vp != NULL) {
         vp->declared_with_auto_type_specifier = FALSE;
-        vp->type = dps->type;
       }  /* if */
     }  /* if */
   }  /* if */
