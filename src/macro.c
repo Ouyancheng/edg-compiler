@@ -7554,6 +7554,13 @@ command line -D options.
     (void)enter_predef_macro("1", "_WIN32",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
+    if (rtti_enabled) {
+      /* Define _CPPRTTI when RTTI is enabled. */
+      (void)enter_predef_macro(
+                     "1", "_CPPRTTI",
+                     /*cannot_be_redefined=*/TRUE,
+                     /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
     /* Enter a macro for the maximum size of an integral value. */
     { unsigned long int_max_size;
 #if LONG_LONG_ALLOWED

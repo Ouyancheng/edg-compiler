@@ -1,5 +1,12 @@
 Version 3.9
 
+3/15/07  Microsoft compatibility: _CPPRTTI macro defined when RTTI is enabled
+
+The Microsoft compiler defines the macro _CPPRTTI to 1 when runtime type
+identification is enabled.  The front end can be configured to define an
+arbitrary macro when RTTI is enabled.  In addition to any such macro, the
+front end now defines the _CPPRTTI macro in Microsoft mode.
+
 3/15/07  Internal error on dependent destructor call when parsing templates
 
 In modes in which nonclass templates are parsed (e.g, strict mode) an internal
