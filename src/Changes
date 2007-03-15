@@ -1,5 +1,23 @@
 Version 3.9
 
+3/13/07  Spurious error on cast to template parameter type in prototype
+         instantiation
+
+The front end issued a spurious error on a dynamic_cast of a class-typed
+object to a template parameter type in modes that do prototype
+instantiations (e.g., strict mode and g++ mode with gnu_version >= 30400).
+The cast can be valid if the template parameter is given a reference type.
+Now fixed.
+
+  class Object {};
+  template <class T>
+  void castObjectT(Object& o) {
+    dynamic_cast<T>(o);  // No longer mistakenly flagged as an error
+  }
+  void foo(Object& o) {
+    castObjectT<Object&>(o);
+  }
+
 3/13/07  Microsoft C++ compatibility: implicit int
 
 In Microsoft C++ mode, the "implicit int" rule is now disabled when

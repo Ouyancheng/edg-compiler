@@ -8335,6 +8335,11 @@ Syntax:
       /* An operand of unknown type, in a prototype instantiation. */
       operand_type_okay = TRUE;
       template_param_case = TRUE;
+    } else if (template_param_case) {
+      /* Can't check the operand type when casting to a template parameter
+         type.  In particular, the template parameter type might be a
+         reference, which would require a different set of checks. */
+      operand_type_okay = TRUE;
     } else if (!reference_case) {
       /* When casting to a pointer type, the operand is treated as an
          rvalue. */
