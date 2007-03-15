@@ -1,6 +1,17 @@
 Version 3.9
 
-3/13/07  Overload resolution for template with reference parameter and
+3/15/07  Abort on class rvalue "?" initializing volatile variable
+
+IL lowering aborted with an assertion failure in lower_temp_init
+in lower_init.c while processing an optimize class rvalue "?" operation
+that is the initializer for a volatile-qualified variable.  Now fixed.
+
+  struct A { A(); };
+  int main() {
+    volatile A a = 1 ? A() : A();
+  }
+
+3/15/07  Overload resolution for template with reference parameter and
          overloaded function argument
 
 Overload resolution did not correctly analyze cases that involve
@@ -15,7 +26,7 @@ amiguity error was issued.  Now fixed.
     g(f);  // No longer considered ambiguous
   }
 
-3/13/07  Spurious error on cast to template parameter type in prototype
+3/15/07  Spurious error on cast to template parameter type in prototype
          instantiation
 
 The front end issued a spurious error on a dynamic_cast of a class-typed

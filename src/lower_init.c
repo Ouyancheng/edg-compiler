@@ -8239,7 +8239,12 @@ Do IL lowering of an enk_temp_init expression node.
              insertion scheme works. */
           a_boolean can_optimize = FALSE;
           check_assertion(!node_has_side_effects(second_operand,
-                                                 (a_boolean *)NULL));
+                                                 (a_boolean *)NULL) ||
+                          /* Watch out for a volatile destination variable
+                             (this is needed for optimized class rvalue "?"
+                             operations). */
+                          (is_variable_node(second_operand) &&
+                           second_operand->variant.variable == dip->variable));
           if (result_is_not_used) {
             /* The result is not used and the second operand has no side
                effects (because it's a simple variable reference).  Do
