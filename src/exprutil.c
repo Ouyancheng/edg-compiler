@@ -6422,6 +6422,7 @@ what will be done with the operand.
     /* Replace an indefinite function by the address of an unknown
        function in the set.  The result is always an rvalue. */
     conv_indefinite_function_operand_to_unknown_dependent_function(operand);
+    operand->state = (an_operand_state)os_rvalue;
   } else if (is_sym_for_member_operand(operand)) {
     /* Replace a symbol-for-member operand by a pointer-to-member. */
     conv_sym_for_member_operand_to_ptr_to_member(operand);
