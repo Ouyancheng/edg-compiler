@@ -2932,7 +2932,7 @@ void make_unknown_dependent_function_operand(
                                           a_boolean          is_qualified_name,
                                           an_operand         *operand)
 /*
-Make an operand for the address of an unknown function from the set
+Make an rvalue operand for the address of an unknown function from the set
 of overloaded functions indicated by sym.  This is used in prototype
 instantiations when the function to be selected is not known.  If the
 function name is followed by a list of explicit template arguments,
@@ -2946,6 +2946,7 @@ is_qualified_name is TRUE if the source form used a qualified name.
     /* The symbol is a constant whose value is the "address" of the
        unknown function. */
     make_sym_constant_operand(unk_sym, operand);
+    operand->state = (an_operand_state)os_rvalue;
   } else {
     /* The function name has an explicit template argument list.  Record
        it in a tpck_template_ref constant that points to the constant for
@@ -2970,8 +2971,8 @@ void conv_indefinite_function_operand_to_unknown_dependent_function(
                                                            an_operand *operand)
 /*
 Convert the indicated operand (which must be an indefinite function) to
-an unknown dependent function.  This is used in prototype instantiations
-when the function to be selected is not known.
+an rvalue for the address of an unknown dependent function.  This is used in
+prototype instantiations when the function to be selected is not known.
 */
 {
   check_assertion(is_indefinite_function_operand(operand) &&
@@ -6422,7 +6423,6 @@ what will be done with the operand.
     /* Replace an indefinite function by the address of an unknown
        function in the set.  The result is always an rvalue. */
     conv_indefinite_function_operand_to_unknown_dependent_function(operand);
-    operand->state = (an_operand_state)os_rvalue;
   } else if (is_sym_for_member_operand(operand)) {
     /* Replace a symbol-for-member operand by a pointer-to-member. */
     conv_sym_for_member_operand_to_ptr_to_member(operand);
