@@ -13614,7 +13614,7 @@ to be acceptable, and *conversion describes it.
        Sun allows it in Studio 11, and g++ doesn't allow it even in 4.1,
        but we'll go ahead and allow it in all modes. */
     conv_array_rvalue_to_lvalue(source_operand);
-    conv_array_operand_to_pointer_operand(source_operand);
+    take_address_of_lvalue(source_operand);
     cast_operand(result_ptr_type, source_operand, /*check_cast_access=*/TRUE,
                  /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
                  /*reinterpret_semantics=*/FALSE);
