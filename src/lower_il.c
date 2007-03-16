@@ -3991,9 +3991,29 @@ constants in other scopes.
 }  /* lower_os_constant */
 
 
-a_variable_ptr make_var_for_virtual_function_table(a_type_ptr       class_type,
-                                                   a_base_class_ptr bcp,
-                                                   a_base_class_ptr ctor_bcp)
+static void set_virtual_function_table_name(a_variable_ptr   vtbl_var,
+                                            a_type_ptr       class_type,
+                                            a_base_class_ptr bcp,
+                                            a_base_class_ptr ctor_bcp)
+/*
+Set the mangled name of the virtual function table variable vtbl_var.
+class_type, bcp, and ctor_bcp are as for make_var_for_virtual_function_table.
+*/
+{
+  char     *name = mangled_vtbl_name(class_type, bcp, ctor_bcp);
+  sizeof_t length = strlen(name);
+
+  vtbl_var->source_corresp.name = 
+                             strcpy(alloc_lowered_name_string(length+1), name);
+  vtbl_var->source_corresp.name_has_been_mangled = TRUE;
+}  /* set_virtual_function_table_name */
+
+
+a_variable_ptr make_var_for_virtual_function_table(
+                                                 a_type_ptr       class_type,
+                                                 a_base_class_ptr bcp,
+                                                 a_base_class_ptr ctor_bcp,
+                                                 a_boolean        set_name_now)
 /*
 Create the variable to contain the virtual function table for base class bcp
 when it appears in a complete object of type class_type.  If bcp is NULL,
@@ -4005,12 +4025,13 @@ to be the complete object type for purposes of overriding (this is used
 during constructors and destructors).  The variable is an array of structs,
 each of which describes one virtual function.  At this point, the variable
 is created as an extern variable.  It might be changed later to add a
-definition.
+definition.  set_name_now is TRUE if the variable's mangled name should be
+set now, rather than in define_one_virtual_function_table (FALSE is the
+setting that should be used unless there is a strong reason not to).
 */
 {
   a_type_ptr     array_type;
   a_variable_ptr vtbl_var;
-  char           *temp_name;
   a_class_type_supplement_ptr
                  ctsp = class_type->variant.class_struct_union.extra_info;
 
@@ -4041,11 +4062,6 @@ definition.
                          make_qualified_type(make_vtbl_entry_type(), TQ_CONST);
   set_type_size(array_type);
   /* Make the variable. */
-  /* Develop the mangled name, which looks like
-       __vtbl__<mangled-base-class-name>__<mangled-class-name> or
-       __vtbl__<mangled-class-name>
-  */
-  temp_name = mangled_vtbl_name(class_type, bcp, ctor_bcp);
   /* Note that the variable is made with extern storage class; it might
      be changed to internal linkage later, but the name linkage in the
      class at this time is not necessarily its final value, so we can't
@@ -4053,13 +4069,20 @@ definition.
      cases where the definition is not put out, and if the definition
      is put out (and it always is for internally-linked classes) the
      storage class is adjusted at that point. */
-  vtbl_var = make_lowered_variable(temp_name, /*already_il_name=*/FALSE,
+  /* The mangled name is set later.  We don't want to force determination
+     of the module id too early. */
+  vtbl_var = make_lowered_variable((char *)NULL, /*already_il_name=*/TRUE,
                                    array_type, (a_storage_class)sc_extern);
   /* make_lowered_variable creates a variable with referenced set TRUE, but the
      variable is not necessarily going to be referenced, so clear the
      flag. */
   vtbl_var->source_corresp.referenced = FALSE;
-  vtbl_var->source_corresp.name_has_been_mangled = TRUE;
+  if (set_name_now) {
+    /* Usually define_one_virtual_function_table sets the name, but in some
+       cases we set the name earlier because the proper state won't be
+       available later. */
+    set_virtual_function_table_name(vtbl_var, class_type, bcp, ctor_bcp);
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if ((ctsp->decl_modifiers & DM_DLLFLAGS) != 0) {
     /* Set any required dllimport/dllexport attributes.  If the storage class
@@ -4489,7 +4512,8 @@ entry, unless it is already non-zero.
     }  /* if */
   }  /* for */
   vtbl_var = make_var_for_virtual_function_table(vtbl_class, eff_bcp,
-                                                 ctor_bcp);
+                                                 ctor_bcp,
+                                                 /*set_name_now=*/FALSE);
 #if IA64_ABI
   vtbl_index = vptr_index(vtbl_class, eff_bcp, /*is_complete=*/FALSE);
 #endif /* IA64_ABI */
@@ -4893,7 +4917,8 @@ process only those bases below bcp.
        itself. */
     (void)make_var_for_virtual_function_table(class_type,
                                               (a_base_class_ptr)NULL,
-                                              (a_base_class_ptr)NULL);
+                                              (a_base_class_ptr)NULL,
+                                              /*set_name_now=*/FALSE);
     if (needs_virtual_function_table(class_type)) {
       *index += -ctsp->first_vcall_offset_index - 1;
       if (ctsp->highest_virtual_function_number != 
@@ -4973,7 +4998,8 @@ class_type if any are needed and if they have not already been generated.
 #if !IA64_ABI
         (void)make_var_for_virtual_function_table(class_type,
                                                   (a_base_class_ptr)NULL,
-                                                  (a_base_class_ptr)NULL);
+                                                  (a_base_class_ptr)NULL,
+                                                  /*set_name_now=*/FALSE);
 #else /* IA64_ABI */
         f_make_vars_for_virtual_function_tables(class_type,
                                                 (a_base_class_ptr)NULL,
@@ -4991,7 +5017,8 @@ class_type if any are needed and if they have not already been generated.
       if (base_class_needs_virtual_function_table(bcp, class_type)) {
         if (bcp->virtual_function_table_var == NULL) {
           (void)make_var_for_virtual_function_table(class_type, bcp,
-                                                    (a_base_class_ptr)NULL);
+                                                    (a_base_class_ptr)NULL,
+                                                    /*set_name_now=*/FALSE);
         }  /* if */
       }  /* if */
     }  /* for */
@@ -6258,7 +6285,8 @@ If force_static is TRUE, the virtual function table is forced to be
 local to the current compilation even if the class is externally linked.
 If first_virtual is non-NULL, it points to the virtual function that was used
 as the basis for a decision on whether or not to put out the virtual function 
-table.
+table.  In the IA-64 ABI, this routine may be called multiple times
+for the same virtual function table variable; see note below.
 */
 {
   a_class_type_supplement_ptr ctsp;
@@ -6336,6 +6364,21 @@ table.
 #if IA64_ABI
   if (main_vtbl) {
 #endif /* IA64_ABI */
+    /* Set the mangled name.  This is done here instead of in
+       make_var_for_virtual_function_table to avoid determining the module id
+       before all the top-level external names are known.  Don't set the
+       name if it was set already (that happens in some rare cases). */
+    if (vtbl_var->source_corresp.name == NULL) {
+      a_base_class_ptr eff_bcp = bcp;
+#if IA64_ABI
+      /* In the IA-64 ABI, several calls of this routine fill up the primary
+         vtable for the class.  We're on the first call here, but it might be
+         for a base class if the class itself does not need a vtable.
+         Set the name on the basis of the whole class. */
+      if (ctor_bcp == NULL) eff_bcp = NULL;
+#endif /* IA64_ABI */
+      set_virtual_function_table_name(vtbl_var, class_type, eff_bcp, ctor_bcp);
+    }  /* if */
     if (force_static) {
       /* When told to by the flag force_static (e.g., for an internally-linked
          class or one with no linkage), change the storage class to

@@ -1,5 +1,21 @@
 Version 3.9
 
+3/16/07  More predictable "module id" in some mangled names
+
+The point at which name mangling for virtual function table names is
+done during IL lowering has been pushed somewhat later so that the
+determination of the "module id" (used in some names that have to be
+made unique across a whole program) is always done after all
+file-scope externals are known (the name of one of them is used as
+part of the module id).  That gives more predictable mangled names
+for cases that involve, for example, unnamed namespaces:
+
+  namespace {
+    struct S { virtual void f() {} } s; // Name of f uses module id
+    void g() {}
+  }
+  void (*fp)() = g;  // Module id now based on this
+
 3/16/07  GNU C++ mode abort on designator for anonymous union member
 
 In GNU C++ mode, the front end could abort in decl_inits.c when processing a
