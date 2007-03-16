@@ -185,7 +185,7 @@ order to do the binding to that.
 3/12/07  Microsoft compatibility: Nonstandard friend template declarations
 
 In Microsoft C++ mode, the front end interprets a nontemplate friend class
-declaration that resolves to a class template as a the declaration of a friend
+declaration that resolves to a class template as a declaration of a friend
 class template.  This behavior is now limited to Microsoft C++ modes with
 microsoft_version < 1400; when microsoft_version >= 1400, such nonstandard
 construct are diagnosed with an error.  For example:
