@@ -21041,10 +21041,9 @@ instantiation.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       /* Something else -- issue an error. */
-      if (microsoft_bugs && microsoft_version == 1300 &&
-          is_template_class_symbol(sym)) {
-        /* Microsoft (in version 7.0) allows explicit instantiation of a
-           specialized class. */
+      if (is_template_class_symbol(sym)) {
+        /* Allow an explicit instantiation of an explicitly specialized
+           class (core issue 259). */
       } else {
         sym_error(ec_not_instantiatable_entity, sym);
       }  /* if */
