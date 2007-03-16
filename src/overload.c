@@ -12248,6 +12248,12 @@ mode) at *err_pos if not.
       /* The copy constructor is inaccessible. */
       pos_sy_diagnostic(strict_ansi_discretionary_severity,
                         ec_inaccessible_elided_cctor, err_pos, cctor_sym);
+    } else {
+      /* No error.  The C++98 standard requires that the definition of the
+         copy constructor be generated even though it is not called, so
+         force that now. */
+      force_definition_of_compiler_generated_routine(
+                                               cctor_sym->variant.routine.ptr);
     }  /* if */
   }  /* if */
 }  /* check_access_to_elided_copy_constructor */

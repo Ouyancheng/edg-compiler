@@ -30,6 +30,11 @@ modes that is not a change of behavior.)
     g (nc());          // Was ill-formed, now okay
   }
 
+In a related change, when the callability check is done (i.e.,
+in strict C++98 mode) the definition of the copy constructor is
+now forced, which may elicit errors during creation of a generated
+copy constructor or instantiation of a template constructor.
+
 3/15/07  Microsoft compatibility: _CPPRTTI macro defined when RTTI is enabled
 
 The Microsoft compiler defines the macro _CPPRTTI to 1 when runtime type
