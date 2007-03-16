@@ -1,5 +1,11 @@
 Version 3.9
 
+3/16/07  Specifying DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST in defines.h
+
+Formerly, DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST could not be defined in
+defines.h because the definition in host_envir.h did not have an ifndef
+guard.  This has been fixed.
+
 3/16/07  Top-level file entries for entries read from precompiled headers
 
 The primary source file associated with a precompiled header file that is

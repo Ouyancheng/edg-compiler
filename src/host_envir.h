@@ -1657,12 +1657,14 @@ Otherwise, we reserve 3 lines.
 The suffixes to be used when searching for an instantiation source file
 that is associated with a given instantiation header file.
 */
+#ifndef DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST
 #if __MICROSOFT_OS__
 /* Case is not significant in MS-DOS file names. */
 #define DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST "C:CPP:CXX:CC"
 #else /* !__MICROSOFT_OS__ */
 #define DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST "c:C:cpp:CPP:cxx:CXX:cc"
 #endif /* __MICROSOFT_OS__ */
+#endif /* ifndef DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 /*
