@@ -13134,7 +13134,8 @@ passed via template_decl.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         /* Such typedef function types are shared and so are unsuited to be
            the type of a defined function. */
-        check_typedef_function_type(&decl_state->type, &locator.source_position,
+        check_typedef_function_type(&decl_state->type,
+                                    &locator.source_position,
                                     function_def_present, class_type,
                                     (!friend_specified &&
                                      decl_state->storage_class !=
