@@ -1,5 +1,11 @@
 Version 3.9
 
+3/16/07  Suppressing warnings when using the --strict_warnings option
+
+Formerly, if the --strict_warnings and --no_warnings options were used
+together, warnings would still be issued.  This has been changed so that
+the option specified later on the command-line takes precedence.
+
 3/16/07  GNU mode abort in c_gen_be.c for "packed" field
 
 In GNU modes, the front sometimes aborted in routine "field_padding"

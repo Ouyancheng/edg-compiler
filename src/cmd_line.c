@@ -2800,11 +2800,6 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Make sure that strict ANSI messages come out even if the
-     error threshold was set at a higher level. */
-  if ((int)error_threshold > (int)strict_ansi_error_severity) {
-    error_threshold = strict_ansi_error_severity;
-  }  /* if */
 }  /* check_and_set_ansi_mode_options */
 
 
@@ -3498,6 +3493,12 @@ Process the arguments on the command line that invoked the compiler.
         } else {
           strict_ansi_error_severity = es_warning;
           strict_ansi_discretionary_severity = es_warning;
+        }  /* if */
+        /* Make sure that strict ANSI messages come out even if the
+           error threshold was set at a higher level.  Note that this may
+           be changed by a later option that modifies the error threshold. */
+        if ((int)error_threshold > (int)strict_ansi_error_severity) {
+          error_threshold = strict_ansi_error_severity;
         }  /* if */
         break;
       case optk_preprocess_only_emit_line_dirs:
