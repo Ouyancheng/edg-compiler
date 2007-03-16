@@ -9191,9 +9191,13 @@ Note that this routine determines whether the "implicit int" rule applies.
           severity = strict_ansi_mode ?
                          strict_ansi_discretionary_severity : es_warning;
         } else {
-          /* Something like "static f();" or "f() { ... }".  The message
-             indicates that "int" is implicit. */
+          /* Something like "static f();" or "f() { ... }".  If the are no
+             decl_specifiers but a function definition follows, the diagnostic
+             is for the missing type specifier rather than for the missing
+             specifiers in general.  (The message indicates that "int" is
+             implicit.) */
           severity = es_remark;
+          error_code = ec_missing_type_specifier;
         }  /* if */
       }  /* if */
     } else {
