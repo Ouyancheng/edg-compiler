@@ -1634,6 +1634,7 @@ context->anonymous_union_field_sym is reset to NULL at that point.
 {
   a_symbol_ptr member_sym = context->anonymous_union_field_sym;
   a_field_ptr  member_field;
+  a_type_ptr   context_type = skip_typerefs(context->type);
 
   /* Work up through parent types looking for the level that comes next
      at the current context->type. */
@@ -1642,7 +1643,7 @@ context->anonymous_union_field_sym is reset to NULL at that point.
                     member_sym->kind == (a_symbol_kind)sk_field);
     member_field = member_sym->variant.field.ptr;
     if (same_entities(member_field->source_corresp.parent.class_type,
-                      skip_typerefs(context->type))) {
+                      context_type)) {
       break;
     }  /* if */
     member_sym = member_sym->variant.field.anonymous_parent_object;
