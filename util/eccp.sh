@@ -1441,7 +1441,7 @@ process_option()
           --microsoft_version=* | \
           --gnu_version=* | \
           --pending_instantiations=* | \
-          --preinclude* | \
+          --preinclude=* | \
           --preinclude_macros=* | \
           --sys_include=* | \
           --template_directory=* | \

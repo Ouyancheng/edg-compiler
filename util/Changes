@@ -1,3 +1,11 @@
+Version 3.9
+
+3/16/07  eccp: typo in --preinclude option
+
+A typo in the eccp script would cause it to accept and pass on to the front
+end a malformed --preinclude option (e.g., --preincludexxx).  Now fixed.
+
+-------------------------------------------------------------------------------
 Version 3.8, July 14, 2006
 
 No changes.
