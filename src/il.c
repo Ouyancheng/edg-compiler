@@ -14162,9 +14162,12 @@ first_op_volatile_test:
          class type can throw an exception. */
       node_type = node->type;
       operand_type = node->variant.operation.operands->type;
-      if (is_reference_type(node_type) &&
-          is_ptr_or_ref_type(operand_type) &&
-          is_polymorphic_class_type(type_pointed_to(operand_type))) {
+      if ((is_reference_type(node_type) &&
+           is_ptr_or_ref_type(operand_type) &&
+           (is_polymorphic_class_type(type_pointed_to(operand_type)) ||
+            is_template_param_type(type_pointed_to(operand_type)))) ||
+          /* A template parameter type could be a reference type. */
+          is_template_param_type(node_type)) {
         has_side_effects = TRUE;
       }  /* if */
       break;
@@ -14289,7 +14292,8 @@ doing nothing should be suppressed.
         /* A typeid applied to an expression that is a pointer to a
            polymorphic class type can throw an exception if the pointer is
            NULL. */
-        if (is_polymorphic_class_type(node->variant.typeid_info.type)) {
+        if (is_polymorphic_class_type(node->variant.typeid_info.type) ||
+            is_template_param_type(node->variant.typeid_info.type)) {
           has_side_effects = TRUE;
         }  /* if */
       }  /* if */
