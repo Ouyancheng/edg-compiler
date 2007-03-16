@@ -11,7 +11,7 @@ a typedef type or with a qualified type.  For example:
 
 This is now fixed.
 
-3/16/07  Relaxed rules for disambiguation using "template" keyword
+3/16/07  C++0x: Relaxed rules for disambiguation using "template" keyword
 
 Core issue 468 relaxes the rules for the use of the "template" keyword
 for syntactic disambiguation.  Formerly, such use was only allowed in
