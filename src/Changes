@@ -1,5 +1,24 @@
 Version 3.9
 
+3/16/07  Elided copy constructor no longer needs to be accessible
+
+Core issue 391 eliminated the requirement of the C++ standard that
+an elided copy constructor must be accessible.  The front end now
+implements that in strict C++0x mode, i.e., no error is issued
+when an elided copy constructor cannot be called.  (That was already
+the behavior in every mode except strict C++ mode, so for most
+modes that is not a change of behavior.)
+
+  class nc {
+    nc (nc const &);  // private, nowhere defined
+  public:
+    nc ();
+  };
+  void f () {
+    void g (nc const &);
+    g (nc());          // Was ill-formed, now okay
+  }
+
 3/15/07  Microsoft compatibility: _CPPRTTI macro defined when RTTI is enabled
 
 The Microsoft compiler defines the macro _CPPRTTI to 1 when runtime type

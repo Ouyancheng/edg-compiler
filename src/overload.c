@@ -12218,8 +12218,9 @@ mode) at *err_pos if not.
   a_boolean    class_bitwise_copy;
 
   /* The diagnostics here are issued only in strict mode. */
+  /* Core issue 391 eliminated this check for C++0x. */
   /* Avoid problems when the source is an error. */
-  if (strict_ansi_mode && !is_error_type(source_type)) {
+  if ((strict_ansi_mode && !cpp0x_mode) && !is_error_type(source_type)) {
     cctor_sym = select_overloaded_copy_constructor(
                                       class_type,
                                       get_type_qualifiers(source_type),
