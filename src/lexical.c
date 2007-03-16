@@ -13291,11 +13291,13 @@ selection operator, in which case it points to the type of the left operand.
         (void)get_token();
         if (curr_token == tok_template) {
           is_template = TRUE;
-          if (!is_template_context() && !in_if_exists) {
-            /* The template keyword, when used for syntactic disambiguation,
-               may only appear within a template. */
-            diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
-                                        : es_warning,
+          if (!cpp0x_mode && strict_ansi_mode &&
+              !is_template_context() && !in_if_exists) {
+            /* In strict C++98 mode the template keyword, when used for
+               syntactic disambiguation, may only appear within a template.
+               Core issue 468 allows the construct to be used outside of
+               templates. */
+            diagnostic(strict_ansi_discretionary_severity,
                        ec_template_not_in_template);
             is_template = FALSE;
           }  /* if */

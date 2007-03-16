@@ -11,6 +11,14 @@ a typedef type or with a qualified type.  For example:
 
 This is now fixed.
 
+3/16/07  Relaxed rules for disambiguation using "template" keyword
+
+Core issue 468 relaxes the rules for the use of the "template" keyword
+for syntactic disambiguation.  Formerly, such use was only allowed in
+template contexts, but is now also allowed outside of templates.  A diagnostic
+is still issued in strict C++98 mode.  It is accepted without a diagnostic
+in all other modes.
+
 3/16/07  Suppressing warnings when using the --strict_warnings option
 
 Formerly, if the --strict_warnings and --no_warnings options were used
