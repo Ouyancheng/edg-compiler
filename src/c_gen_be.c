@@ -8502,11 +8502,13 @@ Dump all source files at this level.
   for (; source_file != NULL; source_file = source_file->next) {
     do_indentation();
     (void)fprintf(f_C_output,
-                       "%s (from line number %lu, sequence numbers %lu-%lu)\n",
-			      source_file->file_name,
-			      source_file->first_line_number,
-                              source_file->first_seq_number,
-			      source_file->last_seq_number);
+                  "%s (from line number %lu, sequence numbers %lu-%lu%s)\n",
+                  source_file->file_name,
+		  source_file->first_line_number,
+                  source_file->first_seq_number,
+		  source_file->last_seq_number,
+                  source_file->top_level_file_from_pch ?
+                                             ", top level file from PCH" : "");
     if (source_file->first_child_file != NULL) {
       /* This file included others; dump them out indented in from this one. */
       indent += 2;

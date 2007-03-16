@@ -192,9 +192,16 @@ typedef struct a_source_file {
 			/* TRUE if this file is a top-level file, i.e., it
 			   wasn't included by another file.  TRUE for the
 			   primary source file and for secondary files
-			   read when processing exported templates.  FALSE
+			   read when processing exported templates.  Also TRUE
+			   for the primary source file associated with any
+			   precompiled header files that are being used.  FALSE
 			   for files brought in by template implicit
 			   inclusion. */
+  a_bit_field	top_level_file_from_pch:1;
+			/* When top_level_file is TRUE, this field is TRUE
+			   for a file that is a primary source file
+			   associated with a precompiled header file that is
+			   being used. */
 } a_source_file;
 
 /*

@@ -751,6 +751,9 @@ Display a_source_file entry.
   if (ptr->top_level_file) {
     disp_boolean("top_level_file", TRUE);
   }  /* if */
+  if (ptr->top_level_file_from_pch) {
+    disp_boolean("top_level_file_from_pch", TRUE);
+  }  /* if */
 }  /* disp_source_file */
 
 

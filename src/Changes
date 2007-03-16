@@ -1,5 +1,13 @@
 Version 3.9
 
+3/16/07  Top-level file entries for entries read from precompiled headers
+
+The primary source file associated with a precompiled header file that is
+being used is marked as a "top-level" file.  A flag has been added to the
+source file entry to allow such entries to be distinguished from the actual
+top-level files of the current compilation.  The new flag is named
+top_level_file_from_pch.
+
 3/16/07  Microsoft compatibility: template name used in base class specifier
 
 The special treatment of template names in the base-specifier list of

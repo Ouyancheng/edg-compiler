@@ -582,6 +582,7 @@ Allocate a source file entry, initialize it, and return a pointer to it.
   sfp->preinclude_macros_only = FALSE;
   sfp->from_system_include_dir = FALSE;
   sfp->top_level_file = FALSE;
+  sfp->top_level_file_from_pch = FALSE;
 
   return sfp;
 }  /* alloc_source_file */

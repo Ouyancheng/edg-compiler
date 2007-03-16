@@ -2049,6 +2049,9 @@ is created when the primary source file is reopened between the two fixups.
      from the precompiled header to work properly. */
   sfp->first_child_file = orig_sfp;
   sfp->last_child_file = orig_sfp;
+  /* Mark the source file entry as being the top level file from a PCH
+     that is being used. */
+  orig_sfp->top_level_file_from_pch = TRUE;
   sfp->first_seq_number = 1;
   /* Set the ending sequence number for what was the primary source
      file when the precompiled header was generated. */
