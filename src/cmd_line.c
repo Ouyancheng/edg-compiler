@@ -1650,7 +1650,7 @@ by a command line option.
       bool_is_keyword = microsoft_version >= 1100;
     }  /* if */
     if (!option_kind_used[(int)optk_wchar_t_is_keyword]) {
-      wchar_t_is_keyword = FALSE;
+      wchar_t_is_keyword = microsoft_version >= 1400;
     }  /* if */
     if (!option_kind_used[(int)optk_explicit]) {
       /* The explicit keyword is supported by Microsoft Visual C++ 5.0. */
@@ -1683,10 +1683,16 @@ by a command line option.
       /* MSVC++ 7.0 and earlier always use the old for-init scoping rule.
          MSVC++ 7.1 uses the new rule for for-init variables with nontrivial
          destructors and the old rule for other variables.  We emulate the
-         MSVC++ 7.1 behavior using the standard scope stack setup. */
+         MSVC++ 7.1 behavior using the standard scope stack setup.   MSVC++ 8
+         implements the C++ standard rule. */
       if (microsoft_version < 1310) {
+        /* MSVC++ 7.0 or earlier. */
         use_nonstandard_for_init_scope = TRUE;
+      } else if (microsoft_version >= 1400) {
+        /* MSVC++ 8 and later. */
+        use_nonstandard_for_init_scope = FALSE;
       } else {
+        /* MSVC++ 7.1. */
         use_nonstandard_for_init_scope = FALSE;
         microsoft_type_dependent_for_init_scope = TRUE;
       }  /* if */

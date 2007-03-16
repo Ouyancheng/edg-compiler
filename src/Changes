@@ -1,5 +1,17 @@
 Version 3.9
 
+3/16/07  Microsoft compatibility: for-init scope
+
+In Microsoft C++ mode with microsoft_version >= 1400, the standard scope rules
+are now applied to for-init declarations by default.  See also the Changes
+entries of 12/2/04 and 9/20/04.
+
+3/16/07  Microsoft compatibility: wchar_t keyword
+
+In Microsoft C++ mode with microsoft_version >= 1400, wchar_t is now treated
+as a keyword (as specified by the C++ standard).  See also the Changes entry
+of 7/24/03.
+
 3/16/07  More predictable "module id" in some mangled names
 
 The point at which name mangling for virtual function table names is
