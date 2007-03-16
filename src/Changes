@@ -1,5 +1,16 @@
 Version 3.9
 
+3/16/07  GNU C++ mode abort on designator for anonymous union member
+
+In GNU C++ mode, the front end could abort in decl_inits.c when processing a
+designator referring to an anonymous union field for a variable declared with
+a typedef type or with a qualified type.  For example:
+
+  struct S { union { int i; }; };
+  S const s = { .i = 3; };  // Previously triggered an abort in decl_inits.c
+
+This is now fixed.
+
 3/16/07  Suppressing warnings when using the --strict_warnings option
 
 Formerly, if the --strict_warnings and --no_warnings options were used

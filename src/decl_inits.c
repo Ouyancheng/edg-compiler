@@ -1642,7 +1642,7 @@ context->anonymous_union_field_sym is reset to NULL at that point.
                     member_sym->kind == (a_symbol_kind)sk_field);
     member_field = member_sym->variant.field.ptr;
     if (same_entities(member_field->source_corresp.parent.class_type,
-                      context->type)) {
+                      skip_typerefs(context->type))) {
       break;
     }  /* if */
     member_sym = member_sym->variant.field.anonymous_parent_object;
