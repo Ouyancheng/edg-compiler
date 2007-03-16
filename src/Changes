@@ -65,7 +65,7 @@ that is the initializer for a volatile-qualified variable.  Now fixed.
 Overload resolution did not correctly analyze cases that involve
 a template-dependent parameter of reference-to-function type and an actual
 argument that is the name of a set of overloaded functions.  A spurious
-amiguity error was issued.  Now fixed.
+ambiguity error was issued.  Now fixed.
 
   int f(char) {return 1;}
   int f(int) {return 2;}
