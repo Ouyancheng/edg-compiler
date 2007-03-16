@@ -25,6 +25,7 @@ overload.c -- Expression processing overload resolution.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 #include "trans_corresp.h"
+#include "func_def.h"
 
 /* Forward declarations required because of out-of-order references. */
 static void try_conversion_function_match(
