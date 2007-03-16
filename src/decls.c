@@ -9147,10 +9147,11 @@ a function declaration that is also a definition; is_main_function is TRUE
 if it is a declaration of global scope "main".  any_decl_specifiers is
 TRUE if at least one decl-specifier was seen (e.g., a storage class or
 cv-qualifier).
+Note that this routine determines whether the "implicit int" rule applies.
 */
 {
-  an_error_code      error_code = ec_no_error;
-  an_error_severity  severity;
+  an_error_code      error_code;
+  an_error_severity  severity = es_none;
   a_type_ptr         bottom_type;
   a_boolean          implicit_int_allowed =
                              !(C_dialect == C_dialect_cplusplus || c99_mode);
@@ -9158,104 +9159,102 @@ cv-qualifier).
   bottom_type = find_bottom_of_type(type);
   if (is_error_type(bottom_type) || is_unknown_type(bottom_type)) {
     /* An error was previously issued on the specifiers type, so do
-       not issue another error. */
-  } else if (is_function) {
-    /* It must be a function declaration or else there is at least some type
-       specifier (even if the type itself is implicit). */
-    if (C_dialect == C_dialect_pcc) {
-      /* No diagnostic is issued. */
-    } else if (is_main_function) {
-      /* Special handling for global function "main" -- including a separate
-         error code, in case discretionary-error control for "main" should
-         be independent of that for other functions. */
-      if (implicit_int_allowed) {
-        /* No diagnostic. */
-      } else {
-        /* C++ or C99 mode, in which the standard requires an explicit
-           return type on "main". */
-        error_code = ec_implicit_int_on_main;
-        severity = strict_ansi_mode ?
-                          strict_ansi_discretionary_severity : es_remark;
-      }  /* if */
-    } else {
-      /* In general, issue a message about the implicit int return type,
-         which deserves at least a remark in C mode and is now an error in
-         strict C++ and strict C99 modes. */
-      if (implicit_int_allowed) {
-        /* Function declaration in C mode. */
+       not issue another diagnostic. */
+    goto done;
+  }  /* if */
+  /* Different modes call for different severities.  Most diagnostics involve
+     one of two messages depending on whether any decl-specifiers were seen at
+     all, but the global function "main" is handled with a different error
+     code (in case discretionary-error control for "main" should be
+     independent of that for other functions). */
+  error_code = is_main_function    ? ec_implicit_int_on_main :
+               any_decl_specifiers ? ec_missing_type_specifier :
+                                     ec_missing_decl_specifiers;
+  if (C_dialect == C_dialect_pcc) {
+    /* pcc mode is the most permissive when it comes to diagnosing missing
+       type specifiers.  Only non-function cases are diagnosed, and the
+       diagnostic is just a warning. */
+    if (!is_function) {
+      severity = es_warning;
+    }  /* if */
+  } else if (C_mode() && (!c99_mode || microsoft_mode)) {
+    /* In C89 modes the "implicit int" rule applies in most cases, but it's
+       nonstandard for declarations that aren't function definitions and
+       have no decl-specifiers at all (e.g., "f();").  The standard cases
+       usually deserve a remark. */
+    /* The combination of Microsoft mode and C99 mode is treated like a C89
+       mode in this respect (Microsoft compilers currently don't have a true
+       C99 mode).*/
+    if (is_function) {
+      /* The "main" function is silently accepted without any specifiers. */
+      if (!is_main_function) {
         if (!any_decl_specifiers && !is_function_def) {
           /* Something like "f();". */
-          error_code = ec_missing_decl_specifiers;
           severity = strict_ansi_mode ?
                          strict_ansi_discretionary_severity : es_warning;
         } else {
           /* Something like "static f();" or "f() { ... }".  The message
              indicates that "int" is implicit. */
-          error_code = ec_missing_type_specifier;
           severity = es_remark;
-        }  /* if */
-      } else {
-        /* Function declaration in C++ or C99 mode.  Unlike in C mode, issue
-           the same message whether or not any_decl_specifiers is TRUE and
-           whether this is a definition or merely a declaration.  That is,
-           all the following are treated the same way:
-             a();
-             b(){}
-             extern c();
-             extern d(){}
-           This was accepted by the Cfront compiler and (with a warning) by
-           earlier versions of the Microsoft C++ compiler.  In these modes we
-           issue a slightly different diagnostic. */
-        error_code = ec_missing_type_specifier;
-        severity = es_discretionary_error;
-        if (auto_type_specifier_enabled) {
-          /* If "auto" can appear as a type specifier, we disallow the
-             "implicit int" rule even in modes that would otherwise allow
-             it. */
-        } else if (any_cfront_mode()) {
-          error_code = ec_nonstd_implicit_int;
-          severity = es_remark;
-        } else if (microsoft_mode && (C_mode() || microsoft_version < 1400)) {
-          error_code = ec_nonstd_implicit_int;
-          severity = es_warning;
         }  /* if */
       }  /* if */
-    }  /* if */
-  } else if (!any_decl_specifiers) {
-    /* This is a non-function declaration for which the decl-specifiers are
-       missing altogether.  Issue a diagnostic in all modes. */
-    error_code = ec_missing_decl_specifiers;
-    if (C_mode() && (microsoft_mode || C_dialect == C_dialect_pcc)) {
-      severity = es_warning;
     } else {
+      /* A non-function declaration. */
+      if (!any_decl_specifiers) {
+        /* Microsoft compilers are as permissive as pcc in this case. */
+        severity = microsoft_mode ? es_warning : es_discretionary_error;
+      } else {
+        severity = es_warning;
+      }  /* if */
+    }  /* if */
+  } else if (!C_mode() && (any_cfront_mode() ||
+                           (microsoft_mode && microsoft_version < 1400)) &&
+             !auto_type_specifier_enabled) {
+    /* Cfront compilers and early Microsoft C++ compilers are fairly
+       permissive and allow "implicit int" in most cases.  However, if "auto"
+       may appear as a type specifier, we fall back on the standard
+       constraints. */
+    if (is_main_function) {
+      severity = es_remark;
+    } else if (is_function) {
+      severity = any_cfront_mode() ? es_remark : es_warning;
+      error_code = ec_nonstd_implicit_int;
+    } else if (!any_decl_specifiers) {
       severity = es_discretionary_error;
+    } else {
+      severity = es_warning;
+      error_code = ec_nonstd_implicit_int;
     }  /* if */
   } else {
-    /* Non-function declaration with at least some decl-specifiers -- e.g.,
-       "const i;" or "typedef const CI;".  We issue a slightly different
-       diagnostic in C++ modes that allow the "implicit int" by default
-       (Cfront and Microsoft C++ modes), but not if those modes are modified
-       to allow the "auto" type specifier. */
-    if (implicit_int_allowed) {
-      error_code = ec_missing_type_specifier;
-      severity = es_warning;
+    /* Apply the standard C++/C99 constraints.  Implicit int is normally not
+       accepted, but some allowances are made in nonstrict modes for "main".
+       If "auto" may appear as a type specifier, diagnostics are emitted as if
+       we were in strict mode. */
+    if (is_main_function) {
+      severity = (strict_ansi_mode || auto_type_specifier_enabled) ?
+                    strict_ansi_discretionary_severity : es_remark;
     } else {
-      if (((microsoft_mode && (C_mode() || microsoft_version < 1400)) ||
-           any_cfront_mode()) &&
-          !auto_type_specifier_enabled) {
-        error_code = ec_nonstd_implicit_int;
-        severity = es_warning;
-      } else {
+      severity = es_discretionary_error;
+      if (is_function) {
+        /* Function declaration in C++ or C99 mode.  Issue the same message
+           whether or not any_decl_specifiers is TRUE and whether this is a
+           definition or merely a declaration.  That is, all the following are
+           treated the same way:
+             a();
+             b() {}
+             extern c();
+             extern d() {}
+        */
         error_code = ec_missing_type_specifier;
-        severity = es_discretionary_error;
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Unless the error is suppressed (e.g., in pcc mode), put out the
+  /* Unless the diagnostic is suppressed (e.g., many pcc cases), put out the
      diagnostic. */
-  if (error_code != ec_no_error) {
+  if (severity != es_none) {
     pos_diagnostic(severity, error_code, err_pos);
   }  /* if */
+done:;
 }  /* report_missing_type_specifier */
 
 
