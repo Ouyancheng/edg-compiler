@@ -1,5 +1,17 @@
 Version 3.9
 
+3/16/07  Spurious error on global qualifier on definition of member of
+         class template
+
+A spurious error was issued when a member of a class template was defined
+outside of its class using a global qualifier.  Now fixed.
+
+  template <typename T> struct A {
+    void f();
+  };
+
+template <typename T> void ::A<T>::f() {}
+
 3/16/07  Specifying DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST in defines.h
 
 Formerly, DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST could not be defined in

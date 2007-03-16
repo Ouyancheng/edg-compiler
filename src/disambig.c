@@ -962,9 +962,11 @@ part of a declarator is found, may_be_decl is set to FALSE.
        declarators are not allowed in this context, so tildes don't need
        to be handled. */
     a_boolean	is_name_start;
-    /* Declarator names cannot contain global qualifiers (e.g., ::i). */
+    /* Declarator names cannot contain global qualifiers (e.g., ::i). This
+       is allowed for template prescans. */
     is_name_start = curr_token == tok_identifier &&
-                    !locator_for_curr_id.is_global_qualified_name;
+                    (!locator_for_curr_id.is_global_qualified_name ||
+                     is_template_decl(flags));
     if (!real_declarator_allowed(flags) ||
         (abstract_declarator_allowed(flags) && !is_name_start)) {
       /* Identifier is omitted in an abstract declarator. */
