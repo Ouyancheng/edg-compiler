@@ -20599,7 +20599,7 @@ dllimport or dllexport attribute to a template instance.
         tip->pos_of_first_reference = *pos;
       }  /* if */
       if (sym->kind != (a_symbol_kind)sk_static_data_member && !is_pragma &&
-          is_inline) {
+          is_inline && !treat_as_static_inline(sym->variant.routine.ptr)) {
         /* Clear the suppress_inline_body flag in case it was previously
            set by an "extern template".  This is used to implement the
            C++0x form of "extern template" where the sole out-of-line copy
@@ -20646,7 +20646,7 @@ dllimport or dllexport attribute to a template instance.
         }  /* if */
       }  /* if */
       if (sym->kind != (a_symbol_kind)sk_static_data_member && !is_pragma &&
-          is_inline_template_function(tip, /*in_class=*/FALSE)) {
+          is_inline && !treat_as_static_inline(sym->variant.routine.ptr)) {
         /* Set the suppress_inline_body flag for an "extern template"
            This is used to implement the C++0x form of "extern template"
            where the sole out-of-line copy should be emitted where the
