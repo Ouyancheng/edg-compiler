@@ -9153,8 +9153,6 @@ Note that this routine determines whether the "implicit int" rule applies.
   an_error_code      error_code;
   an_error_severity  severity = es_none;
   a_type_ptr         bottom_type;
-  a_boolean          implicit_int_allowed =
-                             !(C_dialect == C_dialect_cplusplus || c99_mode);
 
   bottom_type = find_bottom_of_type(type);
   if (is_error_type(bottom_type) || is_unknown_type(bottom_type)) {
