@@ -2521,11 +2521,31 @@ These two fields are normally consecutive members of the given "type", but
     field_type = skip_typerefs(field_type);
     if (is_immediate_class_type(field_type)) {
       a_targ_size_t     after_field, excess_bytes, rounded_after_field;
-      a_targ_alignment  alignment = alignment_of_type(field->type);
+      a_targ_alignment  alignment;
 #if USER_CONTROL_OF_STRUCT_PACKING
-      a_targ_alignment  pack_alignment = get_pack_alignment(type);
-      if (pack_alignment != 0 && pack_alignment < alignment) {
-        alignment = pack_alignment;
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+      if (field->alignment != 0) {
+        /* The alignment of the field was explicitly specified. */
+        alignment = field->alignment;
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+#if GNU_EXTENSIONS_ALLOWED
+      if (field->is_packed) {
+        /* If no alignment is explicitly specified, the GNU "packed"
+           attribute implies an alignment of 1. */
+        alignment = 1;
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        /* The field is not explicitly packed or aligned: Determine the
+           alignment of the type. */
+        a_targ_alignment  pack_alignment = get_pack_alignment(type);
+        alignment = alignment_of_type(field->type);
+        if (pack_alignment != 0 && pack_alignment < alignment) {
+          alignment = pack_alignment;
+        }  /* if */
       }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       /* The offset after the field, rounded up for the alignment of the
