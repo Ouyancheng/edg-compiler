@@ -46,8 +46,8 @@ High level EDG macros used solely in this file for easy configuration:
                         can be used on a variety of hosts.  This set is
                         meant to include many of the major language features.
                         Originally based on the set of SUN_TEST_VERSION
-                        features so that many of the run_tests will continue to 
-                        work properly.
+                        features so that many of the run_tests will continue
+                        to work properly.
 
   CP_GEN_BE_VERSION     Flags to be set for any version that uses the 
                         C++ generating back end.
