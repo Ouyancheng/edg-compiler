@@ -20608,8 +20608,10 @@ dllimport or dllexport attribute to a template instance.
            and Microsoft compilers. */
         sym->variant.routine.ptr->suppress_inline_body = FALSE;
         sym->variant.routine.ptr->need_out_of_line_copy = TRUE;
+#if MAINTAIN_NEEDED_FLAGS
         mark_as_needed((char*)sym->variant.routine.ptr,
                        (an_il_entry_kind)iek_routine);
+#endif /* MAINTAIN_NEEDED_FLAGS */
       }  /* if */
     } else if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
       if (is_inline && !is_dll_directive) {
