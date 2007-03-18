@@ -3991,10 +3991,10 @@ constants in other scopes.
 }  /* lower_os_constant */
 
 
-static void set_virtual_function_table_name(a_variable_ptr   vtbl_var,
-                                            a_type_ptr       class_type,
-                                            a_base_class_ptr bcp,
-                                            a_base_class_ptr ctor_bcp)
+void set_virtual_function_table_name(a_variable_ptr   vtbl_var,
+                                     a_type_ptr       class_type,
+                                     a_base_class_ptr bcp,
+                                     a_base_class_ptr ctor_bcp)
 /*
 Set the mangled name of the virtual function table variable vtbl_var.
 class_type, bcp, and ctor_bcp are as for make_var_for_virtual_function_table.
@@ -4009,11 +4009,9 @@ class_type, bcp, and ctor_bcp are as for make_var_for_virtual_function_table.
 }  /* set_virtual_function_table_name */
 
 
-a_variable_ptr make_var_for_virtual_function_table(
-                                                 a_type_ptr       class_type,
-                                                 a_base_class_ptr bcp,
-                                                 a_base_class_ptr ctor_bcp,
-                                                 a_boolean        set_name_now)
+a_variable_ptr make_var_for_virtual_function_table(a_type_ptr       class_type,
+                                                   a_base_class_ptr bcp,
+                                                   a_base_class_ptr ctor_bcp)
 /*
 Create the variable to contain the virtual function table for base class bcp
 when it appears in a complete object of type class_type.  If bcp is NULL,
@@ -4025,9 +4023,7 @@ to be the complete object type for purposes of overriding (this is used
 during constructors and destructors).  The variable is an array of structs,
 each of which describes one virtual function.  At this point, the variable
 is created as an extern variable.  It might be changed later to add a
-definition.  set_name_now is TRUE if the variable's mangled name should be
-set now, rather than in define_one_virtual_function_table (FALSE is the
-setting that should be used unless there is a strong reason not to).
+definition.
 */
 {
   a_type_ptr     array_type;
@@ -4077,12 +4073,6 @@ setting that should be used unless there is a strong reason not to).
      variable is not necessarily going to be referenced, so clear the
      flag. */
   vtbl_var->source_corresp.referenced = FALSE;
-  if (set_name_now) {
-    /* Usually define_one_virtual_function_table sets the name, but in some
-       cases we set the name earlier because the proper state won't be
-       available later. */
-    set_virtual_function_table_name(vtbl_var, class_type, bcp, ctor_bcp);
-  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if ((ctsp->decl_modifiers & DM_DLLFLAGS) != 0) {
     /* Set any required dllimport/dllexport attributes.  If the storage class
@@ -4512,8 +4502,7 @@ entry, unless it is already non-zero.
     }  /* if */
   }  /* for */
   vtbl_var = make_var_for_virtual_function_table(vtbl_class, eff_bcp,
-                                                 ctor_bcp,
-                                                 /*set_name_now=*/FALSE);
+                                                 ctor_bcp);
 #if IA64_ABI
   vtbl_index = vptr_index(vtbl_class, eff_bcp, /*is_complete=*/FALSE);
 #endif /* IA64_ABI */
@@ -4917,8 +4906,7 @@ process only those bases below bcp.
        itself. */
     (void)make_var_for_virtual_function_table(class_type,
                                               (a_base_class_ptr)NULL,
-                                              (a_base_class_ptr)NULL,
-                                              /*set_name_now=*/FALSE);
+                                              (a_base_class_ptr)NULL);
     if (needs_virtual_function_table(class_type)) {
       *index += -ctsp->first_vcall_offset_index - 1;
       if (ctsp->highest_virtual_function_number != 
@@ -4998,8 +4986,7 @@ class_type if any are needed and if they have not already been generated.
 #if !IA64_ABI
         (void)make_var_for_virtual_function_table(class_type,
                                                   (a_base_class_ptr)NULL,
-                                                  (a_base_class_ptr)NULL,
-                                                  /*set_name_now=*/FALSE);
+                                                  (a_base_class_ptr)NULL);
 #else /* IA64_ABI */
         f_make_vars_for_virtual_function_tables(class_type,
                                                 (a_base_class_ptr)NULL,
@@ -5017,8 +5004,7 @@ class_type if any are needed and if they have not already been generated.
       if (base_class_needs_virtual_function_table(bcp, class_type)) {
         if (bcp->virtual_function_table_var == NULL) {
           (void)make_var_for_virtual_function_table(class_type, bcp,
-                                                    (a_base_class_ptr)NULL,
-                                                    /*set_name_now=*/FALSE);
+                                                    (a_base_class_ptr)NULL);
         }  /* if */
       }  /* if */
     }  /* for */

@@ -939,11 +939,15 @@ extern void set_unsigned_integer_constant_with_overflow_check(
                                           an_integer_kind	ikind,
                                           a_type_ptr            class_type);
 
+extern void set_virtual_function_table_name(a_variable_ptr   vtbl_var,
+                                            a_type_ptr       class_type,
+                                            a_base_class_ptr bcp,
+                                            a_base_class_ptr ctor_bcp);
+
 extern a_variable_ptr make_var_for_virtual_function_table(
-                                                a_type_ptr       class_type,
-                                                a_base_class_ptr bcp,
-                                                a_base_class_ptr ctor_bcp,
-                                                a_boolean        set_name_now);
+                                                   a_type_ptr       class_type,
+                                                   a_base_class_ptr bcp,
+                                                   a_base_class_ptr ctor_bcp);
 
 extern a_routine_ptr vtbl_decider_function_for_class(a_type_ptr class_type);
 

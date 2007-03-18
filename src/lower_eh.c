@@ -1510,12 +1510,16 @@ typeinfo variable in a COMDAT group.
         tinfo_type_for_vtbl->source_corresp.parent.namespace_ptr =
                                             ns_sym->variant.namespace_info.ptr;
       }  /* if */
-      /* We force setting of the mangled name now because of this trick with
-         altering the containing namespace. */
       vtbl_var = make_var_for_virtual_function_table(tinfo_type_for_vtbl,
                                                      (a_base_class_ptr)NULL,
-                                                     (a_base_class_ptr)NULL,
-                                                     /*set_name_now=*/TRUE);
+                                                     (a_base_class_ptr)NULL);
+      /* Usually define_one_virtual_function_table sets the name, but we force
+         setting of the mangled name now because of this trick with altering
+         the containing namespace. */
+      set_virtual_function_table_name(vtbl_var,
+                                      tinfo_type_for_vtbl,
+                                      (a_base_class_ptr)NULL,
+                                      (a_base_class_ptr)NULL);
       /* Save the virtual function table so it won't be generated again.
          (The subroutine will not have recognized this as a type_info
          type, because it's not -- it's the runtime typeinfo version.) */
