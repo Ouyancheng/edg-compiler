@@ -20445,10 +20445,16 @@ static a_boolean sym_can_be_instantiated(a_symbol_ptr	sym,
                                          a_boolean	is_pragma,
 					 a_pragma_kind	pragma_kind)
 /*
-Determine whether the template function or static data member
-specified by sym can be instantiated.  Inline functions and compiler
-generated routines (which also happen to be inline) cannot be
-instantiated.  Pure virtual functions cannot be instantiated.
+Determine whether the template function or static data member specified by
+sym can be instantiated.  Return TRUE if the entity can be instantiated.  If
+issue_errors is TRUE, a diagnostic will be issued for certain conditions that
+prevent the entity from being instantiated.  is_pragma is TRUE if the
+instantiation directive was specified using an instantiation pragma, or FALSE
+if it was specified using an explicit instantiation directive.  pragma_kind
+indicates the kind of instantiation pragma being processed, or for an
+explicit instantiation directive, is pk_instantiate for a normal
+instantiation directive or pk_do_not_instantiate for an "extern template"
+directive.
 */
 {
   a_boolean			result = TRUE;
@@ -20546,11 +20552,19 @@ void update_instantiation_flags(a_symbol_ptr	      sym,
                                 a_boolean	      is_pragma,
                                 a_boolean             is_dll_directive)
 /*
-Given a pointer to either a routine, member function, or static data member
-symbol, set either the instantiation required flag (if instantiate is TRUE)
-or the specific definition flag (if instantiate is FALSE).
-is_dll_directive is TRUE if the update is the result of applying a Microsoft
-dllimport or dllexport attribute to a template instance.
+Given a pointer to either a routine, member function, or static data
+member symbol, update the instantiation flags as required for a given
+instantiation pragma or explicit instantiation directive.  pos is the source
+position of the instantiation directive.  is_class_instantiation is TRUE if
+the instantiation directive named a class, which is used to request that all
+of the instantiatable members of the class be instantiated.  is_pragma is
+TRUE if the instantiation directive was specified using an instantiation
+pragma, or FALSE if it was specified using an explicit instantiation
+directive.  pragma_kind indicates the kind of instantiation pragma being
+processed, or for an explicit instantiation directive, is pk_instantiate for
+a normal instantiation directive or pk_do_not_instantiate for an "extern
+template" directive.  is_dll_directive is TRUE if the update is the result of
+applying a Microsoft dllimport or dllexport attribute to a template instance.
 */
 {
   a_template_instance_ptr	tip = NULL;
@@ -20647,7 +20661,7 @@ dllimport or dllexport attribute to a template instance.
       }  /* if */
       if (sym->kind != (a_symbol_kind)sk_static_data_member && !is_pragma &&
           is_inline && !treat_as_static_inline(sym->variant.routine.ptr)) {
-        /* Set the suppress_inline_body flag for an "extern template"
+        /* Set the suppress_inline_body flag for an "extern template".
            This is used to implement the C++0x form of "extern template"
            where the sole out-of-line copy should be emitted where the
            inline function is explicitly instantiated. */
