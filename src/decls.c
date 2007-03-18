@@ -9182,7 +9182,7 @@ Note that this routine determines whether the "implicit int" rule applies.
        usually deserve a remark. */
     /* The combination of Microsoft mode and C99 mode is treated like a C89
        mode in this respect (Microsoft compilers currently don't have a true
-       C99 mode).*/
+       C99 mode). */
     if (is_function) {
       /* The "main" function is silently accepted without any specifiers. */
       if (!is_main_function) {
