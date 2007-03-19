@@ -20759,6 +20759,13 @@ dllimport or dllexport attribute to a template instance.
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Keep track of whether a class template is explicitly not
+         instantiated in this translation unit. */
+      if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
+        class_type->variant.class_struct_union.do_not_instantiate = TRUE;
+      } else if (pragma_kind == (a_pragma_kind)pk_instantiate) {
+        class_type->variant.class_struct_union.do_not_instantiate = FALSE;
+      }  /* if */
       mem_sym = sym->variant.class_struct_union.extra_info->symbols;
       /* Loop through all the member symbols looking for member functions,
          static data members, and nested classes. */

@@ -1,5 +1,25 @@
 Version 3.9
 
+3/19/07  Virtual function tables in IA64 ABI mode with extern template
+         directives
+
+During lowering, the definition of a virtual function table for a class
+(or class template) is placed in the translation unit where its key function
+is defined.  If no key function exists in the class (or class template)
+and no applicable command line option is specified (i.e., --force_vtbl or
+--suppress_vtbl) a new check is made, only in IA64_ABI mode, to see if the
+class template is explicitly not instantiated (i.e, "extern template" or
+"#pragma do_not_instantiate").  If so, the virtual function table is
+suppressed; otherwise the virtual function table is emitted.  For example:
+
+  template <class T> struct foo {
+     inline virtual int bar(int x);
+  };
+  template <class T> int foo<T>::bar(int x) { return x; }
+  foo<int> f;
+  extern template class foo<int>;  // Virtual function table now suppressed
+                                   // in IA64_ABI mode.
+
 3/19/07  C++-generating back end: calling an overloaded static member
          function for a class member
 

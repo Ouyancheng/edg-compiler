@@ -5155,6 +5155,12 @@ not to put out the definition; otherwise, it's set to NULL.
           defined_here = TRUE;
         } else if (virtual_function_table_definition == vfd_suppress) {
           defined_here = FALSE;
+#if IA64_ABI
+        } else if (class_type->variant.class_struct_union.do_not_instantiate) {
+          /* Is explicitly not instantiated (e.g., "extern template").
+             Suppress the vtable. */
+          defined_here = FALSE;
+#endif /* IA64_ABI */
         } else {
           /* No command-line option.  Put out the virtual function table, but
              make it static, because each compilation with this same class

@@ -1748,6 +1748,9 @@ do_struct_union:
       if (ptr->variant.class_struct_union.specialized_with_old_syntax) {
         disp_boolean("specialized_with_old_syntax", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.do_not_instantiate) {
+        disp_boolean("do_not_instantiate", TRUE);
+      }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
       disp_boolean("definition_needed",
                  (a_boolean)ptr->variant.class_struct_union.definition_needed);

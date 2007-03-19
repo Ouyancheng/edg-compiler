@@ -6068,6 +6068,12 @@ typedef struct a_type {
 			   enclosing class using the Microsoft in-class
 			   specialization syntax.  Also true for classes
 			   nested within an in-class specialization */
+      a_bit_field
+		do_not_instantiate:1;
+			/* TRUE if this class template will not be
+			   instantiated because of a do-not-instantiate
+			   directive (i.e., "extern template" or "#pragma
+			   do_not_instantiate"). */
 #if MAINTAIN_NEEDED_FLAGS
       a_bit_field
 		definition_needed:1;
