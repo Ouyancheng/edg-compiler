@@ -2521,7 +2521,7 @@ These two fields are normally consecutive members of the given "type", but
     field_type = skip_typerefs(field_type);
     if (is_immediate_class_type(field_type)) {
       a_targ_size_t     after_field, excess_bytes, rounded_after_field;
-      a_targ_alignment  alignment;
+      a_targ_alignment  alignment = alignment_of_type(field->type);
 #if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       if (field->alignment != 0) {
@@ -2539,10 +2539,9 @@ These two fields are normally consecutive members of the given "type", but
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
       {
-        /* The field is not explicitly packed or aligned: Determine the
-           alignment of the type. */
+        /* The field is not explicitly packed or aligned, but its type may
+           have a modified alignment for field layout purposes. */
         a_targ_alignment  pack_alignment = get_pack_alignment(type);
-        alignment = alignment_of_type(field->type);
         if (pack_alignment != 0 && pack_alignment < alignment) {
           alignment = pack_alignment;
         }  /* if */
