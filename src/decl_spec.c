@@ -6971,12 +6971,8 @@ macro DSI_NO_INPUT_FLAGS.
         } else {
           /* In C++0x "auto" can be a storage class specifier or a type
              specifier, but that cannot be decided in general until all the
-             decl-specifiers have been seen.  In modes where auto can only be
-             a storage class specifier, we process it right away, however. */
+             decl-specifiers have been seen. */
           state->auto_pos = pos_curr_token;
-          if (!auto_type_specifier_enabled) {
-            goto storage_class_specifier;
-          }  /* if */
           state->auto_type_specifier_seen = TRUE;
           /* Remember whether "auto" was the first specifier (ignoring inline
              and friend). */
