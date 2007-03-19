@@ -65,6 +65,13 @@ Definitions for Windows NT/95/98:
 #define DEFAULT_VA_LIST_IN_STD_NAMESPACE 0
 #define DEFAULT_EXCEPTIONS_ENABLED 1
 
+/*
+Use fixed address for mmap to work around issues with address space
+layout randomization (ASLR) on Windows Vista.
+*/
+#define USE_FIXED_ADDRESS_FOR_MMAP 1
+#define FIXED_ADDRESS_FOR_MMAP 0X2000000
+
 /* The EDG driver on NT does not support one instantiation per object mode. */
 #define ONE_INSTANTIATION_PER_OBJECT 0
 

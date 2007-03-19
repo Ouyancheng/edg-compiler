@@ -1,5 +1,12 @@
 Version 3.9
 
+3/19/07  Microsoft compatibility: PCH issues on Windows Vista
+
+The address space layout randomization (ASLR) feature of Windows Vista causes
+problems with our precompiled header mechanism.  To work around this problem
+the defines.h.win32 file has been modified to use a fixed address for the
+memory that is mapped for PCH purposes.
+
 3/16/07  More predictable "module id" in some mangled names
 
 The point at which name mangling for virtual function table names is
