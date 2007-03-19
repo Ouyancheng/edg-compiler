@@ -6677,7 +6677,8 @@ also been consumed.
        "register" keyword. */
     a_source_position  *diag_pos = &pos_first_token;
     if (first_token == tok_auto) {
-      if (cmp_source_position(state->storage_class_pos, pos_first_token) > 0) {
+      if (cmp_source_positions(state->storage_class_pos,
+                               pos_first_token) > 0) {
         diag_pos = &state->storage_class_pos;
       }  /* if */
     }  /* if */
