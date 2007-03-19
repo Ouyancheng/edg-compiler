@@ -110,7 +110,7 @@ and efficient initialization.
   ps->auto_pos = null_source_position;
   ps->unused_qualifiers = FALSE;
   ps->in_class_scope = FALSE;
-  ps->for_new_expr_type = FALSE;
+  ps->is_new_expr_type = FALSE;
   ps->auto_type_allowed = FALSE;
   ps->auto_type_specifier_seen = FALSE;
   ps->auto_type_is_template_dependent = FALSE;
@@ -4988,8 +4988,8 @@ emit an error.
                      is_function_type(type_pointed_to(dps->type))) ||
                     (is_ptr_to_member_type(dps->type) &&
                      is_function_type(pm_member_type(dps->type))))) {
-     check_exception_specification(dps->type, dps->sym, &dps->declarator_pos,
-                                   /*is_redecl=*/TRUE);
+    check_exception_specification(dps->type, dps->sym, &dps->declarator_pos,
+                                  /*is_redecl=*/TRUE);
   }  /* if */
   if (!types_are_redecl_compatible(dps->type, dps->prev_type)) {
     an_error_severity  severity = es_none;
@@ -13739,14 +13739,12 @@ a diagnostic if that isn't the case.
 }  /* check_deduced_auto_type */
 
 
-void f_check_use_of_auto_type(a_decl_parse_state  *dps)
+void check_use_of_auto_type(a_decl_parse_state  *dps)
 /*
 Check that if the "auto" type specifier was used in the current declaration,
 an initializer enabled the deduction of an actual type.  Issue an error if
 that was not the case and set dps->specifiers_type to an error type to avoid
 repeating the diagnostic if additional declarators follow.
-This routine should be called through the macro check_use_of_auto_type for
-efficiency.
 */
 {
   if (dps->auto_type_specifier_seen && dps->deduced_auto_type == NULL &&
@@ -13761,7 +13759,9 @@ efficiency.
     if (dps->sym != NULL) {
       /* Update the IL entry.  Normally it should be a variable or static
          data member, but erroneous uses of "auto" can get here for other
-         entities (e.g., fields) as well. */
+         entities (e.g., fields) as well.  Recording an error type in the
+         IL entry avoids error cascades later on and prevents aborts in
+         code that isn't expecting a template parameter type. */
       a_variable_ptr  vp = NULL;
       a_type_ptr      *p_type = NULL;
       switch (dps->sym->kind) {

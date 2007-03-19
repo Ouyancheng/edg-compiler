@@ -6580,7 +6580,7 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
 static void make_auto_type(a_decl_parse_state  *state)
 /*
 Create a type entry representing the "auto" type specifier (a special kind of
-tk_templ_param) and make state->auto_type point to it.  state->auto_pos is
+tk_template_param) and make state->auto_type point to it.  state->auto_pos is
 used to establish the type entry's position information.
 */
 {
@@ -6607,12 +6607,14 @@ static void process_storage_class_specifier(
                                   a_decl_specifiers_set  *decl_specifiers_seen,
                                   a_boolean              *err)
 /*
-This is a helper function for decl_specifiers(...) called when the given
-token is a storage class specifier (or "mutable", which is syntactically
-similar). input_flags, state, and decl_pos_block are parameters forwarded from
-decl_specifiers.  If first_specifier is TRUE, the storage specifier token was
-the first decl-specifier (ignoring "friend" and "inline"); a warning may be
-issued if that is not the case.  *decl_specifiers_seen is updated with an
+This is a helper function for decl_specifiers(...) called when the first_token
+is the first token of a storage class specifier (or "mutable", which is
+syntactically similar).  (first_token is usually also the only token of the
+storage class specifier; the only exception are named-register storage class
+specifiers.)  input_flags, state, and decl_pos_block are parameters forwarded
+from decl_specifiers.  If first_specifier is TRUE, the storage specifier token
+was the first decl-specifier (ignoring "friend" and "inline"); a warning may
+be issued if that is not the case.  *decl_specifiers_seen is updated with an
 indication of the specifiers that were consumed.  *err is set to TRUE if an
 error is issued.  All the storage class specifier tokens are consumed by this
 routine, except for "auto" which is processed after any other specifiers have
@@ -6675,9 +6677,7 @@ also been consumed.
        "register" keyword. */
     a_source_position  *diag_pos = &pos_first_token;
     if (first_token == tok_auto) {
-      if (state->storage_class_pos.seq > pos_first_token.seq ||
-          (state->storage_class_pos.seq == pos_first_token.seq &&
-           state->storage_class_pos.column > pos_first_token.column)) {
+      if (cmp_source_position(state->storage_class_pos, pos_first_token) > 0) {
         diag_pos = &state->storage_class_pos;
       }  /* if */
     }  /* if */
@@ -6968,8 +6968,15 @@ macro DSI_NO_INPUT_FLAGS.
           error(auto_type_allowed ? ec_bad_combination_of_type_specifiers :
                                     ec_mult_storage_classes);
         } else {
-          state->auto_type_specifier_seen = TRUE;
+          /* In C++0x "auto" can be a storage class specifier or a type
+             specifier, but that cannot be decided in general until all the
+             decl-specifiers have been seen.  In modes where auto can only be
+             a storage class specifier, we process it right away, however. */
           state->auto_pos = pos_curr_token;
+          if (!auto_type_specifier_enabled) {
+            goto storage_class_specifier;
+          }  /* if */
+          state->auto_type_specifier_seen = TRUE;
           /* Remember whether "auto" was the first specifier (ignoring inline
              and friend). */
           auto_is_first = !(decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND));

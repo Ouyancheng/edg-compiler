@@ -271,7 +271,7 @@ typedef struct a_decl_parse_state {
 			/* TRUE if the current declaration appears in class
 			   scope. */
   a_bit_field
-		for_new_expr_type:1;
+		is_new_expr_type:1;
 			/* TRUE if this information block describes the parsing
 			   of a type for a "new-expression". */
   a_bit_field
@@ -463,16 +463,8 @@ extern void start_secondary_declarator(a_decl_parse_state  *ps);
 
 extern void check_deduced_auto_type(a_decl_parse_state  *dps);
 
-extern void f_check_use_of_auto_type(a_decl_parse_state  *dps);
+extern void check_use_of_auto_type(a_decl_parse_state  *dps);
 
-/*
-Check that if the "auto" type specifier was used, an initializer was present
-to enable type deduction.
-*/
-#define check_use_of_auto_type(dps)                                          \
-  if ((dps)->auto_type != NULL && (dps)->deduced_auto_type == NULL) {        \
-    f_check_use_of_auto_type((dps));                                         \
-  }  /* if */
 /*
 Macro to discard the source sequence entry associated with the declarator.
 (The first argument is a pointer to the current a_decl_parse_state block and
