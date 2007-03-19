@@ -93,9 +93,10 @@ the option specified later on the command-line takes precedence.
 
 3/16/07  GNU mode abort in c_gen_be.c for "packed" field
 
-In GNU modes, the front sometimes aborted in routine "field_padding"
-(c_gen_be.c) when computing the padding for a field with a class type
-marked with the "packed" attribute.  For example:
+In GNU modes, the front end sometimes aborted with an internal error in
+routine "field_padding" in c_gen_be.c ("negative padding required") when
+computing the padding for a field with a class type marked with the "packed"
+attribute.  For example:
 
   struct X {
     int x1;
@@ -103,8 +104,8 @@ marked with the "packed" attribute.  For example:
   };
   struct Y {
     short y1;
-    X y2 __attribute__((packed));  // Previously triggered an abort in
-  } d;                             // c_gen_be.c
+    X y2 __attribute__((packed));  // Previously triggered an internal error
+  } d;                             // in c_gen_be.c
 
 This is now fixed.
 
