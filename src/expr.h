@@ -17,9 +17,11 @@ expr.h -- Declarations related to expression parsing.
 #ifndef EXPR_H
 #define EXPR_H 1
 
+#if !STANDALONE_UTILITY_PROGRAM
 #ifndef DECLS_H
 #include "decls.h"
 #endif /* ifndef DECLS_H */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */

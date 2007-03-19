@@ -816,7 +816,9 @@ extern a_symbol_ptr select_overloaded_copy_constructor
                                    a_boolean             *uncallable,
                                    a_boolean             *class_bitwise_copy);
 
+#if !STANDALONE_UTILITY_PROGRAM
 extern void deduce_auto_type(a_decl_parse_state  *dps);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern void overload_init(void);
 
