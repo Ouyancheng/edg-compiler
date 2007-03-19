@@ -6095,7 +6095,9 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
       selector_expr = bound_function_selector->variant.expression;
       if ((selector_expr->kind == (an_expr_node_kind)enk_temp_init &&
            selector_expr->variant.init.result_is_addr) ||
-          is_variable_address_node(selector_expr)) {
+          is_variable_address_node(selector_expr) ||
+          (is_operation_node(selector_expr) &&
+           node_operator_is(selector_expr, eok_field))) {
         conv_object_pointer_to_lvalue(bound_function_selector);
         is_arrow_operator = FALSE;
       }  /* if */

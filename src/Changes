@@ -1,5 +1,28 @@
 Version 3.9
 
+3/19/07  C++-generating back end: calling an overloaded static member
+         function for a class member
+
+When an overloaded static member function is called using a "." member
+selection operator whose left operand is itself a class member, the
+C++-generating back end changed the form of the reference from m.f() to
+(&m)->f() in the generated code.  This could cause problems with an
+overloaded operator& in the class type of "m".  This has been changed to
+retain the "." form.  For example:
+
+  struct S {
+    static void f(int);
+    void f();
+    void* operator&();
+  };
+  struct A {
+    S s;
+    void g() {
+      s.f(0);    // Previously generated as ((&(this->s))->f(0)),
+                 // incorrectly invoking S::operator&()
+    }
+  };
+
 3/19/07  Microsoft compatibility: PCH issues on Windows Vista
 
 The address space layout randomization (ASLR) feature of Windows Vista causes
