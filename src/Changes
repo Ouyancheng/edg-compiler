@@ -162,17 +162,19 @@ a class template is now disabled when microsoft_version is >= 1400 (see
   // argument list must be specified for B).
   template <class T> class B : public A<B> { };
 
-3/16/07  Elided copy constructor no longer needs to be accessible
+3/16/07  Copy constructor no longer needs to be callable on direct reference
+         binding to class rvalue
 
-Core issue 391 eliminated the requirement of the C++ standard that
-an elided copy constructor must be accessible.  The front end now
-implements that in strict C++0x mode, i.e., no error is issued
-when an elided copy constructor cannot be called.  (That was already
-the behavior in every mode except strict C++ mode, so for most
-modes that is not a change of behavior.)
+Core issue 391 eliminated the requirement of the C++ standard that an
+elided copy constructor must be callable when a reference is bound
+directly to a class rvalue.  The front end now implements that in
+strict C++0x mode, i.e., no error is issued when the copy constructor
+is inaccessible or otherwise cannot be called in such a case.  (That
+was already the behavior in every mode except strict C++ mode, so for
+most modes that is not a change of behavior.)
 
   class nc {
-    nc (nc const &);  // private, nowhere defined
+    nc (nc const &);  // Private, nowhere defined
   public:
     nc ();
   };

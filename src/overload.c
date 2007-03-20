@@ -12221,9 +12221,8 @@ mode) at *err_pos if not.
   a_boolean    class_bitwise_copy;
 
   /* The diagnostics here are issued only in strict mode. */
-  /* Core issue 391 eliminated this check for C++0x. */
   /* Avoid problems when the source is an error. */
-  if ((strict_ansi_mode && !cpp0x_mode) && !is_error_type(source_type)) {
+  if (strict_ansi_mode && !is_error_type(source_type)) {
     cctor_sym = select_overloaded_copy_constructor(
                                       class_type,
                                       get_type_qualifiers(source_type),
@@ -13549,12 +13548,18 @@ to be acceptable, and *conversion describes it.
        to the call of convert_operand_into_temp we would be looking
        at copy constructors, which really isn't appropriate and
        produces confusing error messages. */
-    if (!dropping_qualifiers && !any_cfront_mode()) {
-      /* [dcl.init.ref] of the WP requires that the copy constructor be
-         callable whether or not it is actually called.  We never call
-         it, but we must check it anyway. */
-      check_access_to_elided_copy_constructor(orig_source_type,
-                                              &source_operand->position);
+    if (!dropping_qualifiers) {
+      /* [dcl.init.ref] of the C++98 standard requires that the copy
+         constructor be callable whether or not it is actually called.
+         We never call it, but we must check it anyway.  We only check
+         in strict mode.  However, core issue 391 eliminated this
+         check for C++0x, by requiring the direct binding and therefore
+         eliminating the idea that any copy constructor call is
+         being elided. */
+      if (strict_ansi_mode && !cpp0x_mode) {
+        check_access_to_elided_copy_constructor(orig_source_type,
+                                                &source_operand->position);
+      }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode && direct_binding_possible && initializing_variable) {
