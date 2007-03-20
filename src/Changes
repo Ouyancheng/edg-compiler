@@ -1,5 +1,21 @@
 Version 3.9
 
+3/20/07   Improved indication of definition status of static data members
+          in anachronisms mode with the IA-64 ABI
+
+In anachronisms mode, static data members do not require a definition
+in the source.  This is implemented by representing such static data
+members in the IL as tentative definitions, which in many implementations
+will produce object code that will allow the linker to merge the multiple
+instances.  In the IA-64 ABI, there is a more explicit way of indicating
+the desired behavior, i.e., by placing the static data member in a COMDAT,
+so IL lowering has now been changed to do so.  For example:
+
+  struct S {
+    static int i;           // Now placed in a COMDAT when IA64_ABI is TRUE
+    static const int j = 1; // Now placed in a COMDAT when IA64_ABI is TRUE
+  };
+
 3/19/07  Virtual function tables in IA64 ABI mode with extern template
          directives
 

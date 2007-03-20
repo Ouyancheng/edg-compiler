@@ -16372,6 +16372,11 @@ Do IL lowering of the indicated scope and everything under it.
                 !is_incomplete_type(var->type)) {
               var->storage_class = (a_storage_class)sc_unspecified;
               var->source_corresp.referenced = TRUE;
+#if IA64_ABI
+              /* Allow the variable to potentially be defined in multiple
+                 translation units. */
+              put_variable_into_comdat_group(var);
+#endif /* IA64_ABI */
             }  /* if */
           }  /* for */
         }  /* if */
