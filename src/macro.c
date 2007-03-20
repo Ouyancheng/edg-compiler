@@ -6616,10 +6616,10 @@ symbol entry is returned.
 }  /* enter_predef_macro */
 
 
-static a_boolean is_valid_identifier(char             *id_start,
-                                     sizeof_t         id_len,
-                                     a_symbol_ptr     *assoc_symbol,
-                                     a_symbol_locator *locator)
+a_boolean is_valid_identifier(char             *id_start,
+                              sizeof_t         id_len,
+                              a_symbol_ptr     *assoc_symbol,
+                              a_symbol_locator *locator)
 /*
 Check the given identifier to see if it is valid as a macro name.
 If so, return TRUE; if not, return FALSE.  Return in *assoc_symbol

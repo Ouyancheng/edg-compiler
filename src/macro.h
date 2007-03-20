@@ -143,6 +143,11 @@ extern void clear_macro_def(a_macro_def_ptr mdp);
 
 extern void gen_pp_output_for_macro_definitions(void);
 
+extern a_boolean is_valid_identifier(char             *id_start,
+                                     sizeof_t         id_len,
+                                     a_symbol_ptr     *assoc_symbol,
+                                     a_symbol_locator *locator);
+
 #if DEBUG
 /* Show and return the amount of space used by macro entries. */
 extern unsigned long show_macro_space_used(void);

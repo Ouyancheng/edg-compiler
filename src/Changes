@@ -1,5 +1,26 @@
 Version 3.9
 
+3/20/07  Include guard optimization for "#if !defined(X)" tests
+
+Formerly, the front end would only suppress redundant includes of files
+for which the guard test was written using an #ifndef or #ifdef.  The
+optimization is now also done for guard tests written as "#if !defined(X)"
+or "#if defined(X)".  In order for the optimization to be done, the #if
+must exactly match one of the patterns described above.   White space is
+permitted but comments are not.
+
+  file t.c:
+
+  #include "t.h"
+  #include "t.h"
+
+  file t.h:
+
+  #if !defined(__T_H__)
+  #define __T_H__ 1
+  // ...
+  #endif /* ! __T_H__ */
+
 3/20/07  C-generating back end, GNU compatibility: alignment of function
          addresses
 

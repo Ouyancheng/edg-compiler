@@ -548,13 +548,103 @@ then return.
 }  /* perform_if */
 
 
+static void check_for_if_defined_include_guard(void)
+/*
+This routine is called to determine whether an #if might be an include file
+guard test.  It is only called if the include guard state indicates
+that we are at the start of an include file.   It checks to see if the
+current #if directive is of one of the following forms:
+
+	#if defined(X)
+	#if !defined(X)
+
+If it is of one of those forms, the include guard state is updated to
+indicate that a guard test of the macro X has been seen.
+
+The check is done by examining the current source line to look for one of the
+patterns above.  The check is very strict (e.g., comments are not allowed
+to appear in a valid pattern).  The include guard processing is an
+optimization, so the failure to detect the presence of a guard does not
+affect the proper compilation of the program.
+*/
+{
+  char		*ptr;
+  a_boolean	not_operator_present = FALSE;
+
+/* Local macro to skip white space characters. */
+#define local_skip_white_space() while (*ptr == ' ' || *ptr == '\t') ptr++
+
+  /* The current token is the identifier token for the "if".  Start scanning
+      after the end of that token. */
+  ptr = end_of_curr_token + 1;
+  local_skip_white_space();
+  /* Check for the presence of a "!". */
+  if (*ptr == '!') {
+    not_operator_present = TRUE;
+    ptr++;
+  }  /* if */
+  local_skip_white_space();
+  /* Check for the string "defined". */
+  if (strncmp(ptr, "defined", 7) == 0) {
+    /* Skip past the "defined". */
+    ptr += 7;
+    local_skip_white_space();
+    /* Check for a "(". */
+    if (*ptr++ == '(') {
+      char	*id_start;
+      sizeof_t	id_len;
+      local_skip_white_space();
+      /* Find the end of the macro identifier.  This only needs to be the
+         actual end of the identifier for valid cases.  Other cases will be
+         rejected by the call of is_valid_identifier below. */
+      id_start = ptr;
+      while (*ptr != ' ' && *ptr != '\t' && *ptr != ')' && *ptr != '\0') ptr++;
+      id_len = ptr - id_start;
+      local_skip_white_space();
+      /* Check for a "(". */
+      if (*ptr++ == ')') {
+        local_skip_white_space();
+        /* We should now be at the end of the line. */
+        if (*ptr == '\0') {
+          a_symbol_ptr		sym;
+          a_symbol_locator	locator;
+          /* The line matches our pattern.  If the identifier is valid,
+             update the include guard information. */
+          if (is_valid_identifier(id_start, id_len, &sym, &locator)) {
+            set_ifg_state(IFG_STATE_INTERMED);
+            if (not_operator_present) {
+              curr_ise->include_history->ifndef_guard = TRUE;
+            } else {
+              curr_ise->include_history->ifdef_guard = TRUE;
+            }  /* if */
+            curr_ise->include_history->controlling_macro_name =
+                                             locator.symbol_header->identifier;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#undef local_skip_white_space
+}  /* check_for_if_defined_include_guard */
+
+
 static void proc_if(void)
 /*
 Scan and process an #if directive.
 */
 {
-  a_boolean condition;
+  a_boolean	condition;
+  a_byte	ifg_state = get_ifg_state();
 
+  if (ifg_state == IFG_STATE_START) {
+    /* We are at the start of an include file.  Look for an
+       "#if !defined(X)" form of include guard. */
+    check_for_if_defined_include_guard();
+  } else if (ifg_state == IFG_STATE_ACCEPT) {
+    set_ifg_state(IFG_STATE_FAIL);
+  } else {
+    /* Do nothing if state is FAIL, INTERMED or ONCE. */
+  }  /* if */
   scan_if_expr(&condition);
   perform_if(condition);
 }  /* proc_if */
@@ -2568,6 +2658,7 @@ execute the preprocessor directive.
        #ifndef/#endif guard code of the current file then it is not a
        candidate for suppression of a subsequent include. */
     switch (dir_kind) {
+      case ppd_if:
       case ppd_ifdef:
       case ppd_ifndef:
       case ppd_else:
