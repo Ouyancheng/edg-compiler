@@ -101,7 +101,7 @@ the option specified later on the command-line takes precedence.
 In GNU modes, the front end sometimes aborted with an internal error in
 routine "field_padding" in c_gen_be.c ("negative padding required") when
 computing the padding for a field with a class type marked with the "packed"
-attribute.  For example:
+attribute.  This affects only the C-generating back end.  For example:
 
   struct X {
     int x1;
