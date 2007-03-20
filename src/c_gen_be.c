@@ -8345,6 +8345,19 @@ if this routine has a body (dump nothing if it has no body).
     }  /* if */
     /* Dump the routine interface. */
     set_output_position(&rout->source_corresp.decl_position);
+#if IA64_ABI
+    if (is_definition &&
+        rout->type->variant.routine.extra_info->this_class != NULL &&
+        gcc_is_generated_code_target) {
+      /* On some architectures, gcc does not enforce any alignment
+         requirements on the address of functions.  This conflicts with the
+         use of the low-order bit of pointers-to-members to indicate
+         different representations, so we must explicitly align non-static
+         member functions on a 2-byte boundary. */
+      write_tok_str("__asm__(\".align 2\");");
+      end_output_line();
+    }  /* if */
+#endif /* IA64_ABI */
     /* Determine the proper storage class to display. */
     if (!is_definition) {
       /* The function is not defined (here), so use "extern". */

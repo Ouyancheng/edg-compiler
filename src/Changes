@@ -1,5 +1,16 @@
 Version 3.9
 
+3/20/07  C-generating back end, GNU compatibility: alignment of function
+         addresses
+
+On some architectures, gcc does not enforce any alignment requirements on
+the address of functions.  This conflicts with the IA64 ABI representation
+of pointers to members, which uses the low-order bit of the function
+address as a flag.  In configurations with gcc_is_generated_code_target and
+IA64_ABI set to TRUE, the C-generating back end has been changed to add
+explicit two-byte alignment to the definition of nonstatic member functions
+in order to avoid this conflict.
+
 3/20/07   Improved indication of definition status of static data members
           in anachronisms mode with the IA-64 ABI
 
