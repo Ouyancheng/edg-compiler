@@ -88,9 +88,6 @@ typedef struct an_aggregate_init_info {
                 designation_state;
                         /* Have we just collected a partial or complete
                            designation? */
-  a_boolean     uses_designated_initializers;
-                        /* Set to TRUE if any member of the aggregate was
-                           initialized by a designated initializer. */
 } an_aggregate_init_info;
 
 
@@ -110,7 +107,6 @@ Initialize an entry of type an_aggregrate_init_info.
   init_info->init_end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   init_info->designation_state = ds_no_designation;
-  init_info->uses_designated_initializers = FALSE;
 }  /* initialize_init_info */
 
 
@@ -2120,11 +2116,9 @@ this function points to a tree that includes a dynamic-init entry.
           add_field_designator_for_anonymous_union(&context, &curr_field);
         } else if (get_designator(init_info, &context, &curr_array_element,
                                   &curr_field)) {
-          /* A designator was present and has been processed. */
-          init_info->uses_designated_initializers = TRUE;
-          /* If initializers were being discarded because we ran out of
-             array elements, we can now start recording the initializers
-             again (GNU C mode). */
+          /* A designator was present and has been processed.  If initializers
+             were being discarded because we ran out of array elements, we can
+             now start recording the initializers again (GNU C mode). */
           if (discard_initializers && !is_error_type(context.type)) {
             discard_initializers = FALSE;
             kind = skip_typerefs(context.type)->kind;
@@ -2742,12 +2736,7 @@ detection of uninitialized fields).
           }  /* if */
         }  /* if */
       }  /* if */
-      /* In cases where designated initializers have been used, we don't know
-         if the aggregate is partially initialized or not so to be safe
-         assume it is.  This flag is typically used by back ends to determine
-         if zeroing of an auto aggregate before initialization is necessary. */
-      if (init_info.any_uninitialized_member || 
-          init_info.uses_designated_initializers) {
+      if (init_info.any_uninitialized_member) {
         vp->is_partially_initialized = TRUE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED

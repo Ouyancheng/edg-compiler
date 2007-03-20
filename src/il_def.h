@@ -6767,14 +6767,7 @@ typedef struct a_variable {
 			   that trailing elements not covered by an aggregate
 			   initializer need to be zeroed prior to being
 			   initialized by a generated default constructor
-			   (because of the value-initialization rules). 
-			   The use of designated initializers during
-			   initialization of array and class aggregates
-			   circumvents the normal detection of partially
-			   initialized aggregates, therefore this field is
-			   also set to TRUE if any member of an array or
-			   class aggregate was initialized by designated
-			   initializer. */
+			   (because of the value-initialization rules). */
   a_bit_field	is_anonymous_parent_object:1;
 			/* TRUE if type is the type of an anonymous union --
 			   this variable is the "parent object" of which the

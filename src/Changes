@@ -554,27 +554,6 @@ define a sealed or abstract union.  For example:
 (The "sealed" and "abstract" class type modifiers are only recognized when
 microsoft_version >= 1400.)
 
-3/2/07   Indeterminate values for fields in aggregate with automatic
-         storage when using dynamic initialization with designated initializers
-
-In cases where array or class aggregates with automatic storage are
-dynamically initialized and the last designated initializer initializes
-the last field of the aggregate, any fields that were not explicitly
-initialized had indeterminate values in lowered code.  This is a result
-of the is_partially_initialized field inadvertently being set to FALSE
-whenever the last initializer is a designated initializer that initializes
-the last field of an array or class aggregate.  To address this problem,
-the is_partially_initialized flag in a_variable is now always set to TRUE
-whenever any member of an aggregate is initialized using designated
-initializers.
-
-  struct S { int a, b; };
-  void f(int B) {
-    struct S s = {  // Previously s.a was indeterminate
-        .b = B,
-    };
-  }
-
 3/2/07   GNU C++ compatibility: Functional-notation cast syntax
 
 In GNU C++ mode with gnu_version < 30400, the front end now accepts
