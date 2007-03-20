@@ -68,9 +68,10 @@ for cases that involve, for example, unnamed namespaces:
 
 3/16/07  GNU mode abort on designator for anonymous union member
 
-In GNU modes, the front end could abort in decl_inits.c when processing a
-designator referring to an anonymous union field for a variable declared with
-a typedef type or with a qualified type.  Both the standard field designator
+In GNU modes, the front end could abort in decl_inits.c (in routine
+"add_field_designator_for_anonymous_union") when processing a designator
+referring to an anonymous union field for a variable declared with a
+typedef type or with a qualified type.  Both the standard field designator
 syntax (".x =") and the GNU variant of that syntax ("x:") were affected.
 For example:
 
@@ -78,8 +79,8 @@ For example:
   S const s = { i: 3; };  // Previously triggered an abort in decl_inits.c
                           // in GNU C++ mode.
 
-This problem also could appear in GNU C mode with nonstandard anonymous union
-constructs.  This is now fixed.
+This problem also could appear in GNU C mode with nonstandard anonymous
+union constructs.  This is now fixed.
 
 3/16/07  C++0x: Relaxed rules for disambiguation using "template" keyword
 
