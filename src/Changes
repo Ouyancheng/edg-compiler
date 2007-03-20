@@ -1,5 +1,18 @@
 Version 3.9
 
+3/20/07  Microsoft compatibility: abort on _if_exists following __pragma
+
+An abort could occur (in scan_template_argument_list) if a class template
+contains a Microsoft __pragma operator followed by an __if_exists that
+references the template that is in the process of being defined.  Now fixed.
+
+  template <class T> struct A {
+    void f() {
+      __pragma(diag_warning=1234)
+      __if_exists(A<T>::g) { }
+    }
+  };
+
 3/20/07  C++-generating back end: Microsoft compatibility for default
          arguments of member functions
 

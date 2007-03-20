@@ -1394,6 +1394,7 @@ be copied to the new cache.
   a_token_sequence_number	first_tsn = curr_token_sequence_number;
   a_token_sequence_number	last_tsn;
   a_token_sequence_number	last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
+  a_boolean			save_caching_tokens = caching_tokens;
 
   db_enter(4, "cache_token_stream_with_coalesce_flag");
   /* Set a flag that indicates that the tokens being scanned are to be
@@ -1457,7 +1458,7 @@ be copied to the new cache.
   }  /* if */
   /* Clear the flag that indicates that the tokens being scanned are to be
      cached. */
-  caching_tokens = FALSE;
+  caching_tokens = save_caching_tokens;
   db_exit();
 }  /* cache_token_stream_with_coalesce_flag */
 
@@ -14509,6 +14510,7 @@ not be returned.
   a_token_set_array  stop_tokens;
   a_boolean	     result = FALSE;
   a_boolean	     try_found = FALSE;
+  a_boolean	     save_caching_tokens = caching_tokens;
 
   db_enter(3, "cache_function_body");
   /* Set a flag that indicates that the tokens being scanned are to be
@@ -14570,7 +14572,7 @@ not be returned.
   }  /* if */
   /* Clear the flag that indicates that the tokens being scanned are to be
      cached. */
-  caching_tokens = FALSE;
+  caching_tokens = save_caching_tokens;
   db_exit();
   return result;
 }  /* cache_function_body */
