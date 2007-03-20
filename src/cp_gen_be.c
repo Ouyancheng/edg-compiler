@@ -6997,9 +6997,8 @@ obscure Microsoft bug).
            expr->variant.operation.compiler_generated) {
       expr = expr->variant.operation.operands;
     }  /* while */
-    if (mbr_fcn_default_arg_expr &&
-        msvc_is_generated_code_target &&
-        msvc_target_version_number == 1200 &&
+    if (mbr_fcn_default_arg_expr && !in_ctor_default_argument &&
+        msvc_is_generated_code_target && msvc_target_version_number == 1200 &&
         (expr->kind == (an_expr_node_kind)enk_temp_init ||
          expr->kind == (an_expr_node_kind)enk_object_lifetime)) {
       if (expr->kind == (an_expr_node_kind)enk_temp_init) {
@@ -7034,14 +7033,17 @@ obscure Microsoft bug).
             !scope_is_in_name_context_stack(base_type->
                    source_corresp.parent.namespace_ptr->variant.assoc_scope)) {
           /* Work around a bug in the Microsoft version 6.0 compiler: in a
-             default argument of a class member function of the form
+             default argument of a non-constructor class member function of
+             the form
 
                  f(const N::T<x,y>& = N::T<x,y>())
 
              the "," in the template argument list is mistakenly treated as
              a function argument separator, leading to spurious syntax errors.
              The problem does not occur if the argument is enclosed in
-             parentheses. */
+             parentheses.  (Note that constructors do not have this problem;
+             in fact, the Microsoft compiler issues an error if the extra
+             parentheses are supplied.) */
           write_tok_ch('(');
           close_paren_needed = TRUE;
         }  /* if */

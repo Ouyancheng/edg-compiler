@@ -1,5 +1,16 @@
 Version 3.9
 
+3/20/07  C++-generating back end: Microsoft compatibility for default
+         arguments of member functions
+
+The changes described in the 1/26/07 and 4/13/05 entries work around a bug
+in MSVC++ 6.0 regarding default arguments in member function declarations.
+However, constructor declarations are not affected by this bug; in fact,
+a separate bug causes MSVC++ to reject constructors declared using the
+workaround described in these entries.  The C++-generating back end has
+now been changed to apply the workaround only to non-constructor member
+functions.
+
 3/20/07  Include guard optimization for "#if !defined(X)" tests
 
 Formerly, the front end would only suppress redundant includes of files
