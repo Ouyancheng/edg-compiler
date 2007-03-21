@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2006 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2007 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -831,6 +831,6 @@ extern void overload_init(void);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2006 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2007 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
