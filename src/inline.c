@@ -1720,8 +1720,8 @@ statement).
                the original statement source position. */
             { a_stmt_source_position saved_position = statement->position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-              a_stmt_source_position saved_end_position = 
-                                                       statement->end_position;
+              a_stmt_source_position saved_end_position;
+              saved_end_position = statement->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
               copy_statement(block_stmt, statement);
               statement->position = saved_position;
