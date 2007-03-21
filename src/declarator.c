@@ -368,6 +368,9 @@ decl-specifier (e.g., "array [1] of NULL").
 }  /* is_partial_type */
 
 
+#if !NAMED_ADDRESS_SPACES_ALLOWED && !UPC_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* *err is not used in some configurations. */
+#endif /* !NAMED_ADDRESS_SPACES_ALLOWED && !UPC_EXTENSIONS_ALLOWED */
 void report_bad_return_type_qualifier(a_type_ptr          type,
                                       a_decl_parse_state  *dps,
                                       a_boolean           *err)

@@ -18256,7 +18256,9 @@ handle_trapped_left_paren:
     case tok_typeof:
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case tok_typename:
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
 type_start:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
       /* In C++, these type keywords begin a functional-notation type
          conversion (ARM 5.2.3).  In C, they're a syntax error. */
       if (C_dialect != C_dialect_cplusplus) goto bad_start_of_primary;

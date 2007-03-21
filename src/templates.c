@@ -8341,7 +8341,9 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     a_source_position	          locator_position;
 #endif /* DECL_MODIFIERS_IN_USE */
     a_template_cache_ptr        tcp;
+#if GNU_EXTENSIONS_ALLOWED
     an_attribute_ptr            attributes = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Push the template instantiation scope.  Note that the instance symbol
        passed to push_template_instantiation_scope is NULL.  This is done
        because the type associated with the symbol is not yet complete
@@ -8423,7 +8425,9 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
 				/*is_specialization=*/FALSE, &locator,
                                 &func_info, templ_rout, tip, &decl_pos_block);
       rout_type = state.type;
+#if GNU_EXTENSIONS_ALLOWED
       attributes = state.attributes;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       /* Save the prototype scope symbols in the instance pointer. */
       tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
 #if GENERATE_SOURCE_SEQUENCE_LISTS

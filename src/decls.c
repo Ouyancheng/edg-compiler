@@ -5039,6 +5039,10 @@ emit an error.
 }  /* check_variable_redecl_compatible */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL && !NAMED_REGISTERS_ALLOWED && \
+    !GENERATE_SOURCE_SEQUENCE_LISTS
+/*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL && !NAMED_REGISTERS_ALLOWED && ... */
 void decl_variable(a_symbol_locator             *locator,
                    a_decl_parse_state           *dps,
                    a_symbol_reference_kind      srk_flags,
@@ -12387,6 +12391,9 @@ prototype scope associated with func_info to the current scope.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+/*ARGSUSED*/  /* func_info is not used in some configurations. */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 static void prep_old_style_param_decl(a_decl_parse_state  *state,
                                       a_func_info_block   *func_info,
                                       a_param_id_ptr      param_id_list,
