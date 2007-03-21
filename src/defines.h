@@ -147,6 +147,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #define GCC_IS_GENERATED_CODE_TARGET 0
 #define SUN_IS_GENERATED_CODE_TARGET 1
 #define SUN_TARGET_VERSION_NUMBER 0
+#define ASM_FUNCTION_ALLOWED 0
 #endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
 /* Implement long double as double. */
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
