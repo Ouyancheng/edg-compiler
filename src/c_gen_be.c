@@ -8347,7 +8347,8 @@ if this routine has a body (dump nothing if it has no body).
     set_output_position(&rout->source_corresp.decl_position);
 #if IA64_ABI
     if (is_definition &&
-        rout->type->variant.routine.extra_info->this_class != NULL &&
+        skip_typerefs(rout->type)->variant.routine.extra_info->this_class !=
+                                                                        NULL &&
         gcc_is_generated_code_target) {
       /* On some architectures, gcc does not enforce any alignment
          requirements on the address of functions.  This conflicts with the
