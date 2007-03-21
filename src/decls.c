@@ -13765,16 +13765,19 @@ repeating the diagnostic if additional declarators follow.
       a_variable_ptr  vp = NULL;
       a_type_ptr      *p_type = NULL;
       switch (dps->sym->kind) {
+        case sk_constant:
+          p_type = &dps->sym->variant.constant->type;
+          break;
         case sk_variable:
           vp = dps->sym->variant.variable.ptr;
           p_type = &vp->type;
           break;
+        case sk_field:
+          p_type = &dps->sym->variant.field.ptr->type;
+          break;
         case sk_static_data_member:
           vp = dps->sym->variant.static_data_member.variable;
           p_type = &vp->type;
-          break;
-        case sk_field:
-          p_type = &dps->sym->variant.field.ptr->type;
           break;
         case sk_routine:
         case sk_member_function:
