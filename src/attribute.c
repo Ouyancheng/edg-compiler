@@ -401,12 +401,12 @@ process_alias_fixup_list.
     pragma_extname_string_space += pragma_len;
 #endif /* DEBUG */
     /*lint --e(668)*/(void)memcpy(ppp->pragma_text, "redefine_extname ",
-                                  prefix_len);
+                                  size_t_arg(prefix_len));
     /*lint --e(668)*/(void)memcpy(ppp->pragma_text+prefix_len, src_name,
-                                  src_name_len);
+                                  size_t_arg(src_name_len));
     ppp->pragma_text[prefix_len+src_name_len] = ' ';
     /*lint --e(668)*/(void)memcpy(ppp->pragma_text+prefix_len+src_name_len+1,
-                                  asm_name, asm_name_len+1);
+                                  asm_name, size_t_arg(asm_name_len+1));
     /* Record the pragma in the IL. */
     create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
   }  /* if */
