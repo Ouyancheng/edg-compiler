@@ -1,7 +1,7 @@
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
 * Copyright 1988-2007 Edison Design Group Inc.                   [_]          *
@@ -58,7 +58,7 @@ extern void concat_string_literals(a_token_cache_ptr cache,
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
 * Copyright 1988-2007 Edison Design Group Inc.                   [_]          *

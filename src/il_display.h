@@ -1,7 +1,7 @@
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
 * Copyright 1988-2007 Edison Design Group Inc.                   [_]          *
@@ -31,7 +31,7 @@ extern void disp_routine_scope_il(a_memory_region_number region_number);
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
 * Copyright 1988-2007 Edison Design Group Inc.                   [_]          *
