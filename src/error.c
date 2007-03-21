@@ -965,7 +965,7 @@ declaration position to eliminate redundant file names in a diagnostic.
           } else if (C_mode()) {
             entity_kind = ec_struct;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          } else if (fund_sym->variant.type.ptr
+          } else if (fund_sym->variant.class_struct_union.type
                              ->variant.class_struct_union.is_interface) {
             entity_kind = ec_microsoft_interface;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
