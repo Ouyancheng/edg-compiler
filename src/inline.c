@@ -1718,11 +1718,12 @@ statement).
             /* Replace the original call statement by overwriting it with
                the block statement containing the inlined code.  But keep
                the original statement source position. */
-            { a_stmt_source_position saved_position = statement->position;
+            { a_stmt_source_position saved_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
               a_stmt_source_position saved_end_position;
               saved_end_position = statement->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+              saved_position = statement->position;
               copy_statement(block_stmt, statement);
               statement->position = saved_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
