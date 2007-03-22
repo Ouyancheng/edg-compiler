@@ -213,11 +213,11 @@ need to provide them).
 
 #ifdef __EDG_IA64_ABI
 
-#ifdef __linux__
+#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
 #define SYSTEM_RUNTIME_HAS_IA64_SUPPORT TRUE
-#else /* ifndef __linux__ */
+#else /* !(defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))) */
 #define SYSTEM_RUNTIME_HAS_IA64_SUPPORT FALSE
-#endif /* ifdef __linux__ */
+#endif /* defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) */
 
 #else /* ifndef __EDG_IA64_ABI */
 #define SYSTEM_RUNTIME_HAS_IA64_SUPPORT FALSE
@@ -234,11 +234,11 @@ runtime includes the __cxa_atexit function.
 #ifndef SYSTEM_RUNTIME_HAS_IA64_ATEXIT
 
 #if SYSTEM_RUNTIME_HAS_IA64_SUPPORT
-#ifdef __linux__
+#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
 #define SYSTEM_RUNTIME_HAS_IA64_ATEXIT TRUE
-#else /* ifndef __linux__ */
+#else /* !(defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))) */
 #define SYSTEM_RUNTIME_HAS_IA64_ATEXIT FALSE
-#endif /* ifdef __linux__ */
+#endif /* defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) */
 #else /* !SYSTEM_RUNTIME_HAS_IA64_SUPPORT */
 /* The system does not have IA-64 support, so it can't have atexit. */
 #define SYSTEM_RUNTIME_HAS_IA64_ATEXIT FALSE
