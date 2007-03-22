@@ -462,8 +462,7 @@ are not the same and the operand is a user-defined conversion (UDC).
    (operand)->variant.operation.is_conversion_call &&                         \
    is_pointer_type(dest_type) &&                                              \
    is_pointer_type((operand)->type) &&                                        \
-   !f_same_entities(skip_typerefs(dest_type),                                 \
-                    skip_typerefs((operand)->type)))
+   skip_typerefs(dest_type) != skip_typerefs((operand)->type))
 
 
 static void alloc_hidden_name_fixup(a_tagged_pointer entity)
