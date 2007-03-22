@@ -2236,7 +2236,7 @@ via a command-line error.  Now fixed.
 
 In some complicated templates, the front end sometimes looped internally,
 eventually overflowing the stack.  The problem cases involved a const
-member given an intitial value that is an expression (e.g., sr>0 in
+member given an initial value that is an expression (e.g., sr>0 in
 the example below), and uses of the value of that member at more than
 one place and more than one level in expression operands that are not
 the final ones (e.g., fixed_size is used twice in "?" operators below).
@@ -2326,7 +2326,7 @@ For example:
 This was already accepted in Microsoft C++ mode (see Changes entry of
 1/23/97).
 
-9/15/06  GNU compatibilty: Attribute visibility
+9/15/06  GNU compatibility: Attribute visibility
 
 In GNU C++ mode with gnu_version >= 40200, the front end now accepts the
 attribute "visibility" on namespace definitions (when the configuration macro
