@@ -3236,10 +3236,11 @@ Files using #ifndef guards have the form:
 	... Body of include file ...
 	#endif
 
-Note that #ifndef and #ifdef forms of this are supported, but similar
-mechanisms using
+#ifndef and #ifdef forms of this are supported.  In addition these forms
+are accepted, but only if they do not have any embedded comments:
  
 	#if !defined(NAME)
+	#if defined(NAME)
 
 are not supported.
 
