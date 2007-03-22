@@ -598,7 +598,9 @@ affect the proper compilation of the program.
          actual end of the identifier for valid cases.  Other cases will be
          rejected by the call of is_valid_identifier below. */
       id_start = ptr;
-      while (*ptr != ' ' && *ptr != '\t' && *ptr != ')' && *ptr != '\0') ptr++;
+      while (*ptr != ' ' && *ptr != '\t' && *ptr != ')' && *ptr != LE_ESCAPE) {
+        ptr++;
+      }  /* while */
       id_len = ptr - id_start;
       local_skip_white_space();
       /* Check for a "(". */
