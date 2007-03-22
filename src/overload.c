@@ -3187,6 +3187,7 @@ static void try_overloaded_function_match(
                  a_boolean                from_arg_dep_lookup,
                  int                      arg_dep_lookup_extra_info,
                  a_boolean                dependent_call,
+                 a_boolean                forced_dependent,
                  a_boolean                known_to_be_visible,
                  a_boolean                is_overloaded_operator,
                  a_candidate_function_ptr *candidate_functions,
@@ -3222,10 +3223,12 @@ is TRUE if user-defined conversions should be allowed on the argument
 matches.  from_arg_dep_lookup is TRUE if the function was found by
 argument-dependent lookup.  arg_dep_lookup_extra_info provides extra
 information about argument-dependent lookup.  dependent_call is TRUE
-if the call is a template-dependent call.  known_to_be_visible is TRUE
-if the function is known to be visible and the visibility check should
-be suppressed.  is_overloaded_operator is TRUE if the call is written
-in operator form, e.g., a+b rather than operator+(a, b).
+if the call is a template-dependent call.  forced_dependent is
+TRUE if dependent_call was forced to TRUE for reasons of g++ emulation.
+known_to_be_visible is TRUE if the function is known to be visible and
+the visibility check should be suppressed.  is_overloaded_operator is
+TRUE if the call is written in operator form, e.g., a+b rather than
+operator+(a, b).
 */
 {
   a_boolean     overloaded_function_case;
@@ -3290,6 +3293,11 @@ in operator form, e.g., a+b rather than operator+(a, b).
         have_selector = TRUE;
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (gpp_mode && gnu_version >= 40100 && forced_dependent) {
+    /* Weird g++ emulation case, which comes up for the "new" operator:
+       Make functions declared after the call visible. */
+    allow_post_declared_functions = TRUE;
   }  /* if */
   saved_proj_function_symbol = proj_function_symbol;
 retry:
@@ -3389,6 +3397,7 @@ are viable functions, FALSE if not.  Issues no errors.
                                 /*from_arg_dep_lookup=*/FALSE,
                                 ADLEI_NONE,
                                 /*dependent_call=*/FALSE,
+                                /*forced_dependent=*/FALSE,
                                 /*known_to_be_visible=*/FALSE,
                                 /*is_overloaded_operator=*/FALSE,
                                 &candidate_functions,
@@ -5401,6 +5410,7 @@ in_instantiation:
                                     /*from_arg_dep_lookup=*/FALSE,
                                     ADLEI_NONE,
                                     dependent_call,
+                                    force_dependent,
                                     known_to_be_visible,
                                     /*is_overloaded_operator=*/FALSE,
                                     &candidate_functions,
@@ -5492,6 +5502,7 @@ in_instantiation:
                                       adl_extra_arg(slep,
                                                 normal_lookup_function_symbol),
                                       dependent_call,
+                                      force_dependent,
                                       /*known_to_be_visible=*/FALSE,
                                       /*is_overloaded_operator=*/FALSE,
                                       &candidate_functions,
@@ -10328,6 +10339,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*from_arg_dep_lookup=*/FALSE,
                                          ADLEI_NONE,
                                          /*dependent_call=*/FALSE,
+                                         /*forced_dependent=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
                                          /*is_overloaded_operator=*/TRUE,
                                          &candidate_functions,
@@ -10369,6 +10381,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*from_arg_dep_lookup=*/FALSE,
                                          ADLEI_NONE,
                                          dependent_call,
+                                         /*forced_dependent=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
                                          /*is_overloaded_operator=*/TRUE,
                                          &candidate_functions,
@@ -10450,6 +10463,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                                   normal_sym),
                                          adl_extra_arg(slep, normal_sym),
                                          dependent_call,
+                                         /*forced_dependent=*/FALSE,
                                          /*known_to_be_visible=*/FALSE,
                                          /*is_overloaded_operator=*/TRUE,
                                          &candidate_functions,
@@ -10909,6 +10923,7 @@ mode.
                                     /*from_arg_dep_lookup=*/FALSE,
                                     ADLEI_NONE,
                                     /*dependent_call=*/FALSE,
+                                    /*forced_dependent=*/FALSE,
                                     /*known_to_be_visible=*/FALSE,
                                     /*is_overloaded_operator=*/FALSE,
                                     &candidate_functions,
