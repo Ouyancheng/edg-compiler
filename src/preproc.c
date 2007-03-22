@@ -605,7 +605,7 @@ affect the proper compilation of the program.
       if (*ptr++ == ')') {
         local_skip_white_space();
         /* We should now be at the end of the line. */
-        if (*ptr == '\0') {
+        if (*ptr == LE_ESCAPE && ptr[1] == LE_NEWLINE) {
           a_symbol_ptr		sym;
           a_symbol_locator	locator;
           /* The line matches our pattern.  If the identifier is valid,
