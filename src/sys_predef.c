@@ -426,15 +426,13 @@ Enter the standard predeclared functions for GCC.
                              edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
                              edg_concat(a4tp,_type), edg_concat(a5tp,_type), \
                              (a_type_ptr)NULL, /*is_varargs=*/FALSE);
-#define enter_gnu_builtin_vararg_func5(name, rtp, a1tp, a2tp, a3tp, a4tp,    \
-                                       a5tp)                                 \
+#define enter_gnu_builtin_vararg_func5(name,rtp,a1tp,a2tp,a3tp,a4tp,a5tp)    \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
                              edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
                              edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
                              edg_concat(a4tp,_type), edg_concat(a5tp,_type), \
                              (a_type_ptr)NULL, /*is_varargs=*/TRUE);
-#define enter_gnu_builtin_func6(name, rtp, a1tp, a2tp, a3tp, a4tp, a5tp,     \
-                                a6tp)                                        \
+#define enter_gnu_builtin_func6(name,rtp,a1tp,a2tp,a3tp,a4tp,a5tp,a6tp)      \
   enter_gnu_builtin_function(bfk_prefix(name),                               \
                              edg_concat(rtp,_type), edg_concat(a1tp,_type),  \
                              edg_concat(a2tp,_type), edg_concat(a3tp,_type), \
