@@ -69,14 +69,20 @@ This version is for the Apple MacOS X operating system.
 
 
 /* ABI selection. */
-#define IA64_ABI 0
+#define IA64_ABI 1
 #define DEFAULT_EMULATE_GNU_ABI_BUGS 0
-#define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 0
 #define GCC_IS_GENERATED_CODE_TARGET 1
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 1
 #define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
 #define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C 1
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
+#if defined(__i386__)
+#define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 1
+#elif defined(__ppc__)
+#define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 0
+#else
+#error -- Unexpected MacOS X platform
+#endif
 
 /******************************************************************************
 *                                                             \  ___  /       *
