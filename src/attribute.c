@@ -92,7 +92,7 @@ attribute refers to that name).
   check_assertion(str != NULL);
   p_sym = (a_symbol_ptr*)hash_find(asm_name_map, (a_void_ptr)str,
                                    /*create=*/TRUE);
-  /* If multiple entities are declated with the same asm name, the last one
+  /* If multiple entities are declared with the same asm name, the last one
      will be the one recorded. */
   *p_sym = sym;
 }  /* record_asm_name_for_lookup */
