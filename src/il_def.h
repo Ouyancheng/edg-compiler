@@ -10499,13 +10499,13 @@ typedef struct a_switch_clause {
   a_switch_case_entry_ptr
 		cases_by_value;
 			/* Pointer to the first switch case entry on the list
-			   created by the "next_larger_value" pointers.  (If
-			   there is a default case, that entry is the first
-			   on that list.  Next are template-dependent entries
-			   (if any and in no particular order).  Finally,
-			   known-value cases appear in value order.  Case
-			   ranges -- a GNU extension -- are ordered according
-			   to their lower bound.) */
+			   created by the "next_by_value" pointers.  (If there
+			   is a default case, that entry is the first on that
+			   list.  Next are template-dependent entries (if any
+			   and in no particular order).  Finally, known-value
+			   cases appear in value order.  Case ranges -- a GNU
+			   extension -- are ordered according to their lower
+			   bound.) */
 #else /* !RECORD_SWITCH_CASE_ENTRIES */
   a_constant_ptr
 		constant_list;
