@@ -1583,7 +1583,7 @@ end_sizeof:;
         remap_next_ptr(ptr->next, a_switch_clause_ptr, iek_switch_clause);
 #if RECORD_SWITCH_CASE_ENTRIES
         walk_list(ptr->cases, a_switch_case_entry_ptr, iek_switch_case_entry);
-        walk_list(ptr->cases_by_value, a_switch_case_entry_ptr,
+        remap_ptr(ptr->cases_by_value, a_switch_case_entry_ptr,
                   iek_switch_case_entry);
 #else /* !RECORD_SWITCH_CASE_ENTRIES */
         walk_list(ptr->constant_list, a_constant_ptr, iek_constant);
@@ -1597,8 +1597,8 @@ end_sizeof:;
         a_switch_case_entry_ptr ptr = (a_switch_case_entry_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_switch_case_entry_ptr,
                        iek_switch_case_entry);
-        remap_next_ptr(ptr->next_by_value, a_switch_case_entry_ptr,
-                       iek_switch_case_entry);
+        remap_ptr(ptr->next_by_value, a_switch_case_entry_ptr,
+                  iek_switch_case_entry);
         walk_ptr(ptr->constant, a_constant_ptr, iek_constant);
 #if GNU_EXTENSIONS_ALLOWED
         walk_ptr(ptr->range_end, a_constant_ptr, iek_constant);
