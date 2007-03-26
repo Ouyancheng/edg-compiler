@@ -497,7 +497,7 @@ initialization; otherwise, these pointers are NULL.
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITI0NS_IN_IL */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (!using_pending_init_con) {
       /* Bypass the string and the right paren, if appropriate. */
       (void)get_token();
@@ -507,7 +507,7 @@ initialization; otherwise, these pointers are NULL.
       if (curr_token == tok_rparen) {
         curr_construct_end_position = pos_curr_token;
       }  /* if */
-#endif /* EXTRA_SOURCE_POSITI0NS_IN_IL */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)required_token(tok_rparen, ec_exp_rparen);
     }  /* if */
   }  /* if */
@@ -1569,7 +1569,7 @@ the recursion in get_initializer.
   error_position = start_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITI0NS_IN_IL */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Move past the closing right bracket: */
   (void)required_token(tok_rbracket, ec_exp_rbracket);
   remove_stop_token(tok_rbracket);
@@ -1759,7 +1759,7 @@ multiple designators are handled by the recursion in get_initializer.
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITI0NS_IN_IL */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Move past the identifier */
     (void)get_token();
   }  /* if */
