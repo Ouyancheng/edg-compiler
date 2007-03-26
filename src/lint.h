@@ -23,6 +23,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(755,typeref_is_restrict_qualified)*/
 /*lint -esym(755,DSI_NO_INPUT_FLAGS)*/
 /*lint -esym(755,DSO_NO_OUTPUT_FLAGS)*/
+/*lint -esym(756,a_simple_source_position_ptr)*/
+/*lint -esym(755,set_macro_inv_record_ptr_to_index)*/
 /* Entities not used in certain configurations: */
 /*lint -esym(755,EXTERN_C)*/
 /*lint -esym(750,chdir_with_check)*/

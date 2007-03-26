@@ -2093,7 +2093,7 @@ END_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 
-void get_source_pos_from_macro_text_map(
+static void get_source_pos_from_macro_text_map(
                                 a_macro_text_map_ptr            mtmp,
                                 sizeof_t                        offset,
                                 a_seq_number                    *seq,

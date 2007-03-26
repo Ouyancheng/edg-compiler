@@ -2027,12 +2027,6 @@ extern void rem_source_line_modif_from_hash_table(
 extern int compare_macro_text_map_entry_with_offset(
                                                    a_const_void_ptr offset_ptr,
                                                    a_const_void_ptr entry_ptr);
-extern void get_source_pos_from_macro_text_map(
-                               a_macro_text_map_ptr            mtmp,
-                               sizeof_t                        offset,
-                               a_seq_number                    *seq,
-                               a_column_number                 *column,
-                               a_macro_invocation_record_index *macro_context);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 /* Add an entry recording a logical modification to the source line. */
 extern a_source_line_modif_ptr add_source_line_modif(
