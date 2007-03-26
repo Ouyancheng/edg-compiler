@@ -2355,6 +2355,8 @@ extern unsigned long show_lexical_space_used(void);
 
 extern void db_token_cache(a_token_cache *cache,
                            char		 *cache_name);
+
+extern void db_stop_tokens(void);
 #endif /* DEBUG */
 
 /* Test whether or not a given character location falls within

@@ -50,6 +50,12 @@ extern void write_memory_region(a_memory_region_number region_number);
 
 extern void il_write_early_init(void);
 
+#if CHECKING && DEBUG
+extern void trace_entry(a_memory_region_number memory_region_number,
+                        an_il_entry_kind       entry_kind,
+                        an_il_entry_number     entry_number);
+#endif /* CHECKING && DEBUG */
+
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 #endif /* ifndef IL_WRITE_H */

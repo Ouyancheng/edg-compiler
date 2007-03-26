@@ -1992,7 +1992,7 @@ Display a Microsoft attribute entry, for debugging purposes.
 
   fprintf(f_debug, "Microsoft attribute '%s' at %p (%lu/%d):\n",
           msap->name == NULL ? "NULL" : msap->name,
-          msap, msap->position.seq, msap->position.column);
+          (void *)msap, msap->position.seq, msap->position.column);
   fprintf(f_debug, "  attribute string: %s\n", msap->string);
   for (arg = msap->arg_list; arg != NULL; arg = arg->next) {
     fprintf(f_debug, "  argument %d (%s): ", arg_number++, arg->param_name);

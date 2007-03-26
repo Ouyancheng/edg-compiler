@@ -15175,10 +15175,10 @@ Display the contents of a token cache.
   a_cached_token_ptr	ctp;
   unsigned long		count = 0;
 
-  fprintf(f_debug, "%s token cache at %p\n", cache_name, cache);
+  fprintf(f_debug, "%s token cache at %p\n", cache_name, (void *)cache);
   if (cache != NULL) {
-    fprintf(f_debug, "first_token: %p\n", cache->first_token);
-    fprintf(f_debug, "last_token: %p\n", cache->last_token);
+    fprintf(f_debug, "first_token: %p\n", (void *)cache->first_token);
+    fprintf(f_debug, "last_token: %p\n", (void *)cache->last_token);
     fprintf(f_debug, "token_count: %lu\n", cache->token_count);
     fprintf(f_debug, "pragma_count: %lu\n", cache->pragma_count);
     for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {

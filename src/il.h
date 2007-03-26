@@ -1577,6 +1577,10 @@ extern unsigned long show_il_space_used(void);
 extern void db_seq_number_lookup_table(void);
 
 extern void db_source_file_for_seq_info(void);
+
+extern a_line_number db_line_for_seq(a_seq_number seq_number);
+
+extern void db_scheduled_routine_moves(void);
 #endif /* DEBUG */
 
 #if ORPHAN_PROCESSING_NEEDED

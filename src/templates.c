@@ -18736,7 +18736,7 @@ incremented.
   db_symbol_name(mip->instance->instance_sym);
   fprintf(f_debug, " %s to %d (mip=%p)\n",
           increment ? "incremented" : "decremented",
-          (int)mip->instance_required_count, mip);
+          (int)mip->instance_required_count, (void *)mip);
 }  /* db_instance_count */
 
 #endif /* DEBUG */

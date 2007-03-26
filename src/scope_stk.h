@@ -1283,12 +1283,19 @@ extern void scope_stk_init(void);
 
 #if DEBUG
 extern int db_scope_kind(a_scope_kind sck);
+
 extern void db_scope_stack_entry_at_depth(a_scope_depth  depth);
+
 extern void db_scope_stack_entry(a_scope_stack_entry_ptr ssep);
+
 extern void db_scope_stack(void);
+
+extern void db_top_of_scope_stack(int entries);
+
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 extern void db_decl_pos_info(a_symbol_ptr sym);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
 extern unsigned long db_show_scope_stack_space_used(unsigned long grand_total);
 #endif /* DEBUG */
 

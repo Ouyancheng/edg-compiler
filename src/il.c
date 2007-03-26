@@ -450,8 +450,8 @@ information, such as its address and translation unit.
                                 (scp == NULL) ? NULL : scp->trans_unit_corresp;
       if (tucp != NULL) {
         /* Display the correspondence information. */
-        fprintf(f_debug, "corresp = %p, canonical = %p, primary = %p\n", tucp,
-                tucp->canonical, tucp->primary);
+        fprintf(f_debug, "corresp = %p, canonical = %p, primary = %p\n",
+                (void *)tucp, tucp->canonical, tucp->primary);
       }  /* if */
       if (in_secondary_trans_unit(entry) && in_file_scope(entry)) {
         copy_addr = trans_unit_copy_address_of(entry);
