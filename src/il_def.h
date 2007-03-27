@@ -4018,6 +4018,8 @@ enum a_decl_modifier_tag {
   dmt_novtable,
   dmt_noreturn,
   dmt_noinline,
+  dmt_noalias,
+  dmt_restrict,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
   /* The order of the following link scope values (increasing strictness) is
@@ -4032,7 +4034,7 @@ enum a_decl_modifier_tag {
 /*
 Type used to represent a set of decl modifiers.
 */
-typedef unsigned short a_decl_modifier;
+typedef unsigned int a_decl_modifier;
 
 #if DECL_MODIFIERS_IN_USE
 EXTERN char *decl_modifier_names[(int)dmt_last + 1]
@@ -4054,6 +4056,8 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
   /* dmt_novtable */		"novtable",
   /* dmt_noreturn */		"noreturn",
   /* dmt_noinline */		"noinline",
+  /* dmt_noalias */		"noalias",
+  /* dmt_restrict */		"restrict",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
   /* dmt_global_link_scope */	"__global",
@@ -4113,6 +4117,12 @@ about variables and routines.
 #define DM_NOINLINE	((a_decl_modifier)(1 << (int)dmt_noinline))
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(noinline) specifier. */
+#define DM_NOALIAS	((a_decl_modifier)(1 << (int)dmt_noalias))
+			/* TRUE if the declaration includes the Microsoft
+			   __declspec(noalias) specifier. */
+#define DM_RESTRICT	((a_decl_modifier)(1 << (int)dmt_restrict))
+			/* TRUE if the declaration includes the Microsoft
+			   __declspec(restrict) specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
 #define DM_GLOBAL_LINK_SCOPE \

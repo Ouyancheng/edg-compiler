@@ -3449,6 +3449,18 @@ diagnostics.
           case dmt_nothrow:
           case dmt_noreturn:
           case dmt_noinline:
+          case dmt_noalias:
+            break;
+          case dmt_restrict:
+            { a_type_ptr  return_type = skip_typerefs(routine->type)
+                                                ->variant.routine.return_type;
+              /* __declspec(restrict) can only be applied to functions
+                 returning a pointer type (even a reference is not valid). */
+              if (!is_pointer_type(return_type)) {
+                pos_error(ec_bad_declspec_restrict_return, position);
+                flags &= (~modifier_value);
+              }  /*if */
+            }
             break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
@@ -8402,7 +8414,11 @@ Issue a diagnostic if the modifier is invalid.
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && flags != 0) {
-    pos_warning(ec_declspec_missing_declarator, pos);
+    an_error_severity  sev = es_warning;
+    if (flags & (DM_NOALIAS | DM_RESTRICT)) {
+      sev = es_discretionary_error;
+    }  /* if */
+    pos_diagnostic(sev, ec_declspec_missing_declarator, pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* diagnose_decl_modifiers_on_type_declaration */

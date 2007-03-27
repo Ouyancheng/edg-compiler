@@ -449,22 +449,24 @@ Scan the Microsoft __declspec specifier, which has the form
 		extended-decl-modifier-seq extended-decl-modifier
 
 	extended-decl_modifier:
-		thread
-		naked
-		dllimport
-		dllexport
-                selectany
+                align( unsigned-integer-literal )
+                allocate ( data-segment-name )
+                deprecated
+                dllexport
+                dllimport
+                implementation_key ( unsigned-integer-literal )
+                intrin_type
+                naked
+                noalias
+                noinline
+                noreturn
                 nothrow
                 novtable
-                noreturn
-                noinline
-                deprecated
-                align( unsigned-integer-literal )
-                uuid ( "hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh" )
                 property ( get = xxx, put = yyy )
-                allocate ( data-segment-name )
-                intrin_type
-                implementation_key ( unsigned-integer-literal )
+                restrict
+                selectany
+                thread
+                uuid ( "hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh" )
 
 Return the modifiers that were found by updating the decl_modifiers block.
 Issue a warning for an unrecognized modifier.  If an error occurs (e.g., a
@@ -650,6 +652,24 @@ declaration of a class member.
                          &pos_curr_token, modifier);
         } else {
           decl_modifiers->is_microsoft_intrinsic = TRUE;
+        }  /* if */
+      } else if (microsoft_version >= 1400 &&
+                 strcmp(modifier, "noalias") == 0) {
+        if (is_class_decl) {
+          /* "noalias" is not allowed on a class declaration. */
+          pos_st_error(ec_decl_modifiers_invalid_for_this_decl,
+                       &pos_curr_token, modifier);
+        } else {
+          decl_modifiers->flags |= DM_NOALIAS;
+        }  /* if */
+      } else if (microsoft_version >= 1400 &&
+                 strcmp(modifier, "restrict") == 0) {
+        if (is_class_decl) {
+          /* "restrict" is not allowed on a class declaration. */
+          pos_st_error(ec_decl_modifiers_invalid_for_this_decl,
+                       &pos_curr_token, modifier);
+        } else {
+          decl_modifiers->flags |= DM_RESTRICT;
         }  /* if */
       } else {
         /* Issue a warning on an unrecognized __declspec attribute. */

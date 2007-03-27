@@ -1,5 +1,22 @@
 Version 3.10
 
+3/27/07  Microsoft compatibility: __declspec(noalias) and __declspec(restrict)
+
+In Microsoft C and C++ modes, with microsoft_version >= 1400, the front end
+now accepts the __declspec(noalias) and __declspec(restrict) hints on function
+declarations.  __declspec(noalias) indicates that the marked function will
+only read/write its own local variables and/or the objects directly pointed to
+by its parameters (if any).  __declspec(restrict) can only be applied to
+functions returning a pointer type: It indicates that the object pointed to by
+the return value is not aliased.  These modifiers may be useful hints for an
+optimizer, but the programmer is responsible for their correctness: They are
+not checked by the front end.  For example:
+
+  int i, *p = &i;
+  __declspec(restrict) void f() {  // Now accepted in some Microsoft modes.
+    return &i;                     // i is aliased by *p: the __declspec hint
+  }                                // is therefore invalid, but the front end
+                                   // does not diagnose such violations.
 
 ------------------------------------------------------------------------------
 Version 3.9, March 23, 2007

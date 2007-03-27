@@ -1649,6 +1649,7 @@ ec_auto_not_allowed_here;;"\"auto\" is not allowed here"
 ec_unfinished_base_class;;"definition of base class type not completed yet"
 ec_static_extern_template;;"\"extern template\" cannot refer to a specialization of static %nd"
 ec_extern_template_follows_instantiation;;"\"extern template\" cannot follow explicit instantiation of %n"
+ec_bad_declspec_restrict_return;;"__declspec(restrict) requires a function returning a pointer type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
