@@ -1645,12 +1645,14 @@ caution when modifying this routine.
                     friend struct S;
                               // Same as: template<class T> friend struct S;
                   };
-               In Microsoft bugs mode, the following is also accepted:
+               In Microsoft bugs mode (with microsoft_version < 1400) and in
+               Sun mode, the following is also accepted:
                   template<class T> struct S;
                   struct S; // ignored
             */
             if (next_token() == tok_semicolon && !is_ref_within_new_expr &&
-                (*is_friend_decl || microsoft_bugs)) {
+                (*is_friend_decl || sun_mode ||
+                 (microsoft_bugs && microsoft_version < 1400))) {
               if (*is_friend_decl) {
                 *locator = locator_for_curr_id;
                 goto done;
@@ -3498,14 +3500,15 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
           ctsp->assoc_scope->depth_in_scope_stack != NO_SCOPE_DEPTH)) {
       /* A prototype instantiation of a class template (as opposed of that of
          a class nested in a class template).
-         This can only happen in the emulation of a peculiar Microsoft bug
-         that causes the following to be accepted:
+         This can only happen in the emulation of a peculiar Microsoft and Sun
+         bug that causes the following to be accepted:
            template<class T> struct S;
            struct S; // ignored (scan_tag_name returns the prototype
                      //          instantiation)
          Such "redeclarations" are ignored (i.e., not recorded).
       */
-      check_assertion(microsoft_bugs);
+      check_assertion(sun_mode ||
+                      (microsoft_bugs && microsoft_version < 1400));
     } else if (is_class_definition || is_predeclared_type_decl ||
                (curr_token == tok_semicolon &&
                 (vacuous_decl_allowed ||

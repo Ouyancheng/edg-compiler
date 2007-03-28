@@ -1,5 +1,19 @@
 Version 3.10
 
+3/28/07  Microsoft and Sun compatibility: Class template redeclarations
+
+In Microsoft bugs mode the front previously always accepted invalid class
+template redeclarations omitting the "template <...>" preamble.  For example:
+
+  template<class T> struct S;
+  struct S;  // Previously accepted in all Microsoft bugs mode.  Now accepted
+             // in Microsoft bugs mode with microsoft_version < 1400, and also
+             // in Sun mode.
+
+Now such invalid constructs are accepted in Microsoft bugs mode only when
+microsoft_version < 1400.  Furthermore, such constructs are now also accepted
+in Sun mode.
+
 3/27/07  Microsoft compatibility: __declspec(noalias) and __declspec(restrict)
 
 In Microsoft C and C++ modes, with microsoft_version >= 1400, the front end
