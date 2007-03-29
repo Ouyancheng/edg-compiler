@@ -4986,6 +4986,29 @@ diagnostic is associated; error_code indicates the message to be issued.
   pos_diagnostic(severity, error_code, error_pos);
 }  /* embedded_cplusplus_noncompliance_diagnostic */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+void f_report_gnu_extension_if_needed(a_source_position  *pos,
+                                      an_error_code      error_code)
+/*
+Issue the given warning at the given position if that position does not
+correspond to a system header and the use of GNU extensions should be
+diagnosed.
+*/
+{
+  if (report_gnu_extensions) {
+    a_source_file_ptr	sfp;
+    a_boolean		at_end_of_source;
+    a_line_number	line_number;
+    sfp = source_file_for_seq(pos->seq, &line_number, &at_end_of_source,
+                              /*physical_line=*/FALSE);
+    if (sfp == NULL || !sfp->from_system_include_dir) {
+      pos_warning(error_code, pos);
+    }  /* if */
+  }  /* if */
+}  /* f_report_gnu_extension_if_needed */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void diag_pragma(a_pending_pragma_ptr	ppp)
 /*

@@ -2604,6 +2604,9 @@ constant.
       }  /* if */
       switch_back_to_original_region(region_to_switch_back_to);
     }  /* if */
+    if (gnu_mode && !c99_mode && (*new_type_ptr)->variant.array.is_vla) {
+      report_gnu_extension_if_needed(&size_pos, ec_vla_is_gnu_extension);
+    }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
     /* Record whether the dimension is a multiple of THREADS. */
     (*new_type_ptr)->variant.array.is_threads_dimension =

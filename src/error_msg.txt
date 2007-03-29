@@ -1650,6 +1650,12 @@ ec_unfinished_base_class;;"definition of base class type not completed yet"
 ec_static_extern_template;;"\"extern template\" cannot refer to a specialization of static %nd"
 ec_extern_template_follows_instantiation;;"\"extern template\" cannot follow explicit instantiation of %n"
 ec_bad_declspec_restrict_return;;"__declspec(restrict) requires a function returning a pointer type"
+ec_cl_report_gnu_extensions_requires_gnu_mode;;"the \"report_gnu_extensions\" option is only valid in GNU C and GNU C++ modes"
+ec_vla_is_gnu_extension;;"variable-length array types are a GNU extension"
+ec_designator_is_gnu_extension;;"designators are a GNU extension"
+ec_extended_designator_is_gnu_extension;;"this designator syntax is a GNU extension"
+ec_compound_literal_is_gnu_extension;;"compound literals are a GNU extension"
+ec_statement_expression_is_gnu_extension;;"statement expressions are a GNU extension"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

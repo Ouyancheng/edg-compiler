@@ -999,6 +999,9 @@ Initialize the option information table.
   add_option_description(optk_gnu_version, "gnu_version",
                          '\0', /*value=*/FALSE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_report_gnu_extensions, "report_gnu_extensions",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_short_enums,
                          "short_enums",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -3080,13 +3083,19 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
 
 static void exclude_gnu_specific_options(void)
 /*
-No GNU mode was selected: Make sure no option specific to GNU mode
-was selected either.
+No GNU mode was selected: Make sure no option specific to GNU mode is
+selected either.
 */
 {
 #if GNU_EXTENSIONS_ALLOWED
   if (il_header.short_enums) {
     command_line_error(ec_cl_short_enums_requires_gcc_mode);
+  }  /* if */
+  if (report_gnu_extensions) {
+    if (option_kind_used[(int)optk_report_gnu_extensions]) {
+      command_line_error(ec_cl_report_gnu_extensions_requires_gnu_mode);
+    }  /* if */
+    report_gnu_extensions = FALSE;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* exclude_gnu_specific_options */
@@ -4329,8 +4338,14 @@ enable_microsoft_mode:
           str_command_line_error(ec_cl_invalid_gnu_version, opt_arg);
         }  /* if */
         break;
+      case optk_report_gnu_extensions:
+        /* An option to request that the use of GNU extensions outside system
+           headers be diagnosed with a warning. */
+        check_assertion(opt_value == TRUE);
+        report_gnu_extensions = TRUE;
+        break;
       case optk_short_enums:
-        /* An options to specify that all enumeration types should be
+        /* An option to specify that all enumeration types should be
            treated as if they were declared with the "packed" attribute. */
         check_assertion(opt_value == TRUE);
         il_header.short_enums = TRUE;
@@ -5240,6 +5255,7 @@ variables declared in cmd_line.h.
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   null_chars_allowed_in_source = DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE;
   report_embedded_cplusplus_noncompliance = FALSE;
+  report_gnu_extensions = FALSE;
   ptr_to_unknown_bound_array_allowed_in_param_type =
                       DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE;
   ref_to_unknown_bound_array_allowed_in_param_type =

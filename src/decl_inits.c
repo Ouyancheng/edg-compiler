@@ -1449,9 +1449,13 @@ scanned value.
 }  /* scan_array_element_subscript */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* designator_pos isn't used in some configurations. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static a_designation_state check_for_end_of_designation(
-                                                  a_boolean allow_colon,
-                                                  a_boolean assign_optional)
+                                           a_boolean          allow_colon,
+                                           a_boolean          assign_optional,
+                                           a_source_position  *designator_pos)
 /*
 After a designator has been scanned, call this function to check if the
 designation is completed (returns ds_complete_designation) or more
@@ -1460,10 +1464,14 @@ designators of the form 'x:' are allowed, allow_colon should be set to true
 (and the colon indicates a complete designation has been seen).  Similarly,
 extended array element designators make the '=' optional and assign_optional
 should be TRUE in that case.  The termination token is consumed if it is
-present.
+present.  *designator_pos is the position of the designator that was just
+scanned.
 */
 {
-  a_designation_state result;
+  a_designation_state  result;
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean            extended_syntax = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   set_err_pos_to_curr_token();
   if (curr_token == tok_assign) {
@@ -1476,6 +1484,10 @@ present.
       /* Something like ".f:" -- you can't mix the old-style and new-style
          designators. */
       error(ec_no_ordinary_and_extended_designators);
+#if GNU_EXTENSIONS_ALLOWED
+    } else {
+      extended_syntax = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     (void)get_token();
     result = ds_complete_designation;
@@ -1486,11 +1498,26 @@ present.
        assume the token was forgotten. */
     if (!assign_optional) {
       error(ec_exp_assign);
+#if GNU_EXTENSIONS_ALLOWED
+    } else {
+      extended_syntax = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     result = ds_complete_designation;
   } else {
     result = ds_partial_designation;
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (gnu_mode) {
+    if (extended_syntax) {
+      report_gnu_extension_if_needed(designator_pos,
+                                     ec_extended_designator_is_gnu_extension);
+    } else if (!c99_mode) {
+      report_gnu_extension_if_needed(designator_pos,
+                                     ec_designator_is_gnu_extension);
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   return result;
 }  /* check_for_end_of_designation */
 
@@ -1595,7 +1622,8 @@ the recursion in get_initializer.
   /* See whether the designator list ends here. */
   init_info->designation_state = check_for_end_of_designation(
                              /*allow_colon=*/FALSE,
-                             /*assign_optional=*/extended_designators_allowed);
+                             /*assign_optional=*/extended_designators_allowed,
+                             &start_pos);
 }  /* get_array_designator */
 
 
@@ -1781,7 +1809,8 @@ multiple designators are handled by the recursion in get_initializer.
   init_info->designation_state =
        check_for_end_of_designation(
                              /*allow_colon=*/extended_form,
-                             /*assign_optional=*/extended_designators_allowed);
+                             /*assign_optional=*/extended_designators_allowed,
+                             &start_pos);
 }  /* get_field_designator */
 
 

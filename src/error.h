@@ -519,6 +519,24 @@ extern char *error_text(an_error_code error_code);
   { if (report_embedded_cplusplus_noncompliance)                          \
       embedded_cplusplus_noncompliance_diagnostic((pos), (error_code)); }
 
+#if GNU_EXTENSIONS_ALLOWED
+
+extern void f_report_gnu_extension_if_needed(a_source_position  *pos,
+                                             an_error_code      error_code);
+
+/* Macro to report uses of GNU extensions if needed. */
+#define report_gnu_extension_if_needed(pos, error_code)                     \
+  { if (report_gnu_extensions) {                                            \
+      f_report_gnu_extension_if_needed((pos), (error_code));                \
+    }  /* if */                                                             \
+  }
+
+#else /* !GNU_EXTENSIONS_ALLOWED */
+
+#define report_gnu_extension_if_needed(pos, error_code)  /* Nothing */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern void end_error(void);
 

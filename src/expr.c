@@ -12061,6 +12061,8 @@ both C and C++ modes.
       expr->type = expr_type;
       make_expression_operand(expr, expr_type, result);
       current_routine_entry()->contains_statement_expression = TRUE;
+      report_gnu_extension_if_needed(&start_position,
+                                     ec_statement_expression_is_gnu_extension);
     }  /* if */
   }  /* if */
   (void)required_token(tok_rparen, ec_exp_rparen);
@@ -12128,7 +12130,12 @@ to the compound literal.
     pos_ty_error(ec_bad_compound_literal_type, type_position, literal_type);
     err = TRUE;
   }  /* if */
-  if (err) literal_type = error_type();
+  if (err) {
+    literal_type = error_type();
+  } else if (gnu_mode && !c99_mode && report_gnu_extensions) {
+    report_gnu_extension_if_needed(&error_position,
+                                   ec_compound_literal_is_gnu_extension);
+  }  /* if */
   /* Save, clear, and later restore the expression stack, since the
      initializer is not part of any expression we may currently be
      inside of. */

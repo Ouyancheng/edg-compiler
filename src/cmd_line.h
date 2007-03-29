@@ -209,6 +209,7 @@ typedef enum /*an_option_kind*/ {
   optk_gcc_mode,
   optk_gpp_mode,
   optk_gnu_version,
+  optk_report_gnu_extensions,
   optk_short_enums,
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DEBUG
@@ -1084,6 +1085,12 @@ EXTERN a_boolean
 			   exceptions, RTTI, new-style casts, etc.).  The
 			   severity of the diagnostic issued is controlled
 			   by the discretionary-error mechanism. */
+
+EXTERN a_boolean
+		report_gnu_extensions;
+			/* TRUE to diagnose (with a warning by default) uses
+			   of certain GNU extensions outside system header
+			   files. */
 
 EXTERN a_boolean
 		ptr_to_unknown_bound_array_allowed_in_param_type;
