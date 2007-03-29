@@ -4905,14 +4905,17 @@ may have to be freed on exit from the statement expression.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static void record_asm_name_for_variable(a_variable_ptr         variable,
-                                         char                   *asm_name,
-                                         a_boolean              is_register,
-                                         a_source_position_ptr  diag_pos)
+static void record_asm_name_for_variable(
+                                    a_variable_ptr         variable,
+                                    char                   *asm_name,
+                                    a_boolean              is_register,
+                                    a_source_position_ptr  diag_pos,
+                                    a_boolean              previously_defined)
 /*
 Record the given asm name in the given variable entry.  is_register indicates
 that the asm name should be treated as a register name.  If a problem is
-detected, issue a diagnostic at the given position.
+detected, issue a diagnostic at the given position.  previously_defined is
+TRUE if a definition preceded the current declaration.
 */
 {
   a_named_register  anr = name_to_register(asm_name);
@@ -4949,6 +4952,16 @@ detected, issue a diagnostic at the given position.
 #endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
     if (gnu_version >= 30000 && anr != reg_not_found) {
       pos_error(ec_register_name_on_nonregister, diag_pos);
+    } else if (gcc_mode && previously_defined) {
+      /* GNU C (but not GNU C++) ignores asm names appearing on declarations
+         of previously defined variables.  Version 4.0.0 and later issue a
+         a warning, but we issue the warning for all values of gnu_version.  */
+      /* Don't warn if the construct is identical to one that applied to the
+         definition. */
+      if (variable->asm_name_or_reg.name == NULL ||
+          strcmp(variable->asm_name_or_reg.name, asm_name) != 0) {
+        pos_warning(ec_asm_name_after_definition, diag_pos);
+      }  /* if */
     } else if (variable->asm_name_or_reg.name == NULL) {
       /* This is the first declaration of this variable with an "asm name"
          construct. */
@@ -5451,8 +5464,9 @@ for use in generating cross-reference output describing this declaration.
     }  /* if */
     /* Record the assembly name. */
     if (dps->asm_name != NULL) {
-      record_asm_name_for_variable(variable_ptr, dps->asm_name, is_register,
-                                   &dps->asm_name_pos);
+      record_asm_name_for_variable(
+                 variable_ptr, dps->asm_name, is_register, &dps->asm_name_pos,
+                 symbol_for(variable_ptr)->defined && !is_variable_def);
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     /* Update the ELF visibility if applicable. */
@@ -5800,16 +5814,36 @@ of the given routine.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static void record_asm_name_for_routine(a_routine_ptr          routine,
-                                        char                   *asm_name,
-                                        a_source_position_ptr  diag_pos)
+static void record_asm_name_for_routine(
+                                    a_routine_ptr          routine,
+                                    char                   *asm_name,
+                                    a_source_position_ptr  diag_pos,
+                                    a_boolean              previously_defined)
 /*
 Record the given asm name in the given routine entry.  If a conflict is
-detected, issue a diagnostic at the given position.
+detected, issue a diagnostic at the given position.  previously_defined is
+TRUE if a definition preceded the current declaration.
 */
 {
   check_assertion(asm_name != NULL);
-  if (routine->asm_name == NULL) {
+  if (gcc_mode && previously_defined) {
+    /* GNU C (but not GNU C++) 4.0.0 and later ignore asm names appearing on
+       declarations of previously defined functions with a warning.  Earlier
+       versions of GNU C take the asm name into account only for subsequent
+       references.  We enforce the newer behavior for all values of gnu_version
+       because the older behavior would add too much complexity.  E.g.:
+         void f() {}           // Always emitted as "f" by gcc (not g++).
+         void f() __asm("h");  // Ignored in gcc 4.0.0 and later.
+         void g() { f(); }     // Refers to "h" in versions prior to 4.0.0.
+       (GNU C++ applies the name change throughout the translation unit.)
+    */
+    /* Don't warn if the construct is identical to one that applied to the
+       definition. */
+    if (routine->asm_name == NULL ||
+        strcmp(routine->asm_name, asm_name) != 0) {
+      pos_warning(ec_asm_name_after_definition, diag_pos);
+    }  /* if */
+  } else if (routine->asm_name == NULL) {
     /* This is the first declaration of this routine with an "asm name"
        construct. */
     routine->asm_name = asm_name;
@@ -7236,7 +7270,9 @@ skip_overloading:;
     }  /* if */
     /* Record the assembly name. */
     if (asm_name != NULL) {
-      record_asm_name_for_routine(routine_ptr, asm_name, asm_name_pos);
+      record_asm_name_for_routine(
+                   routine_ptr, asm_name, asm_name_pos,
+                   routine_has_been_defined(routine_ptr) && !is_function_def);
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     /* Update the ELF visibility if applicable. */

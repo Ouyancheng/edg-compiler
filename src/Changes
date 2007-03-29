@@ -1,5 +1,22 @@
 Version 3.10
 
+3/29/07  GNU C compatibility: asm name on redeclaration after definition
+
+In GNU C mode (but not in GNU C++ mode), when redeclaring a function or
+variable after a definition of the function or variable was already seen, the
+front end now ignores the asm name (with a warning if the asm construct is
+different from that on the definition).  For example:
+
+  void f() {}
+  void f() __asm("g");  // Now ignored with a warning in GNU C mode.
+
+The front end implements this new behavior for all values of gnu_version even
+though it matches the behavior of gcc 4.0.0 and later only.  Prior versions of
+gcc behaved as follows:
+  - for variables, the construct was also ignored, but with no warning.
+  - for functions, the construct only affected subsequent references to the
+    affected function (which usually resulted in linker errors). 
+
 3/28/07  Microsoft and Sun compatibility: Class template redeclarations
 
 In Microsoft bugs mode the front previously always accepted invalid class

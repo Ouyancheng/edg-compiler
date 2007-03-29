@@ -1656,6 +1656,7 @@ ec_designator_is_gnu_extension;;"designators are a GNU extension"
 ec_extended_designator_is_gnu_extension;;"this designator syntax is a GNU extension"
 ec_compound_literal_is_gnu_extension;;"compound literals are a GNU extension"
 ec_statement_expression_is_gnu_extension;;"statement expressions are a GNU extension"
+ec_asm_name_after_definition;;"asm name ignored for previously defined entity"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
