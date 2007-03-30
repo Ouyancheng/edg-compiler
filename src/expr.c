@@ -10939,6 +10939,35 @@ address.
 }  /* is_cast_of_nonconstant_address_to_smaller_integer */
 
 
+static a_boolean is_gpp_lvalue_cast(an_operand *operand,
+                                    a_type_ptr type_cast_to)
+/*
+Return TRUE if a cast of operand to type_cast_to should be treated as
+an lvalue cast in g++ mode.
+*/
+{
+  a_boolean is_lvalue_cast = FALSE;
+
+  if (gpp_mode && gnu_version < 30400 && is_an_lvalue(operand) &&
+      !curr_expr_kind_is_const()) {
+    /* A cast that is essentially a do-nothing cast on an integral operand
+       is treated as an lvalue cast. */
+    a_type_ptr source_type = operand->type;
+    if (is_integral_or_enum_type(source_type) &&
+        is_integral_or_enum_type(type_cast_to) &&
+        f_skip_typerefs(source_type)->size ==
+                                         f_skip_typerefs(type_cast_to)->size &&
+        !f_identical_types(source_type,
+                           rvalue_type(type_cast_to),
+                           ITF_NO_FLAGS) &&
+        !is_bit_field_operand(operand)) {
+      is_lvalue_cast = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_lvalue_cast;
+}  /* is_gpp_lvalue_cast */
+
+
 static void do_cast(a_type_ptr               type_cast_to,
                     an_operand               *operand,
                     an_operand               *bound_function_selector,
@@ -11062,16 +11091,7 @@ C-style casts and C++ functional-notation type conversions.
           /* GNU C ignores a do-nothing cast.  The result does not change
              type (even if there is a cv-qualifier difference implied) and
              it is not forced to an rvalue. */
-        } else if (gpp_mode && gnu_version < 30400 && is_an_lvalue(operand) &&
-                   !curr_expr_kind_is_const() &&
-                   is_integral_or_enum_type(source_type) &&
-                   is_integral_or_enum_type(type_cast_to) &&
-                   f_skip_typerefs(source_type)->size ==
-                                         f_skip_typerefs(type_cast_to)->size &&
-                   !f_identical_types(source_type,
-                                      rvalue_type(type_cast_to),
-                                      ITF_NO_FLAGS) &&
-                   !is_bit_field_operand(operand)) {
+        } else if (is_gpp_lvalue_cast(operand, type_cast_to)) {
           /* GNU C++ allows a limited form of lvalue cast on integral types. */
           lvalue_cast(type_cast_to, operand);
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -11484,7 +11504,12 @@ Syntax:
     }  /* if */
     if (!processed) {
       /* No user-defined conversion applies. */
-      if (!cast_to_reference && !cast_to_void) {
+      a_boolean microsoft_lvalue_cast_case = FALSE;
+      if (is_gpp_lvalue_cast(result, type_cast_to)) {
+        /* GNU C++ allows a limited form of lvalue cast on integral types. */
+        microsoft_lvalue_cast_case = TRUE;
+      }  /* if */
+      if (!cast_to_reference && !cast_to_void && !microsoft_lvalue_cast_case) {
         /* Normal case (not a cast to reference or cast to void). */
         /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
            conversions.  They must be done now because they affect the type
@@ -11536,6 +11561,9 @@ Syntax:
         } else if (cast_to_void) {
           /* Cast to (possibly cv-qualified) void. */
           cast_operand_to_void(result, type_cast_to);
+        } else if (microsoft_lvalue_cast_case) {
+          /* GNU C++ allows a limited form of lvalue cast on integral types. */
+          lvalue_cast(type_cast_to, result);
         } else if (static_cast_conversion_possible(source_type,
                                                    operand_is_constant,
                                                    (a_boolean)result->

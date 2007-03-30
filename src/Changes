@@ -1,5 +1,19 @@
 Version 3.10
 
+3/30/07  GNU C++ compatibility: static_cast preserves an lvalue sometimes
+
+GNU C++ mode for gnu_version <= 30400 now treats a static_cast of
+an integral or enum lvalue to an integral or enum type of the same size
+as an lvalue cast, i.e., the result is still an lvalue.
+
+  enum T { ONE, TWO };
+  int main() {
+    for (T type = ONE; type < TWO; (static_cast<int>(type))++) {}
+  }
+
+This was already allowed when written as an old-style or functional-notation
+cast.
+
 3/30/07  GNU __extension__ and class members
 
 The front end now records the presence of the GNU __extension__ keyword on
