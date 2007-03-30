@@ -7732,9 +7732,10 @@ implicitly declared member functions.
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
         || func_info->is_movable_member_or_friend_def
 #endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
-                                                  ) {
-      /* A non-defining entry is represented by a
-         secondary-decl entry in the source sequence list. */
+                                                     ) {
+      /* A non-defining entry is represented by a secondary-decl entry in the
+         source sequence list. */
+      an_sssd_flag_set      sssd_flags;
       a_name_reference_ptr  name_ref = NULL;
 #if RECORD_FORM_OF_NAME_REFERENCE
       name_ref = qualifiable_name_reference(locator, &rtn->source_corresp);
@@ -7798,7 +7799,6 @@ implicitly declared member functions.
            which was saved during function declarator processing, to make
            it consistent with the routine type. */
         a_routine_type_supplement_ptr  rtsp1, rtsp2;
-
         tp = func_info->declared_type;
         rtsp1 = skip_typerefs(member_type)->variant.routine.extra_info;
         rtsp2 = skip_typerefs(tp)->variant.routine.extra_info;
@@ -7827,14 +7827,26 @@ implicitly declared member functions.
       /* Update the secondary-declaration entry.  A member function
          declaration within a class definition is always the initial
          declaration. */
-      if (!update_src_seq_secondary_decl((char *)rtn, tp, name_ref,
-                                         SSSD_FIRST_DECLARATION,
+      sssd_flags = SSSD_FIRST_DECLARATION;
+#if GNU_EXTENSIONS_ALLOWED
+      if (decl_state->marked_as_gnu_extension) {
+        sssd_flags |= SSSD_MARKED_AS_GNU_EXTENSION;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      if (!update_src_seq_secondary_decl((char *)rtn, tp, name_ref, sssd_flags,
                                          &decl_info->decl_pos_block)) {
         /* No source-sequence secondary declaration entity was found, which
            means the declared type will not be needed.  Clear the pointer
            to suppress copying the default arg expression to it later on. */
         func_info->declared_type = NULL;
       }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS && GNU_EXTENSIONS_ALLOWED
+    } else {
+      /* An in-class definition (that will not be moved out-of-class). */
+      /* Record whether the declaration was preceded by __extension__. */
+      rtn->source_corresp.marked_as_gnu_extension =
+                                          decl_state->marked_as_gnu_extension;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && GNU_EXTENSIONS_ALLOWED */
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (func_info->is_definition) {
@@ -8620,9 +8632,15 @@ specific information about the member declaration, respectively.
 #if RECORD_FORM_OF_NAME_REFERENCE
   name_ref = qualifiable_name_reference(locator, &var->source_corresp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-  (void)update_src_seq_secondary_decl((char *)var, member_type, name_ref,
-                                      SSSD_NO_FLAGS,
-                                      &decl_info->decl_pos_block);
+  { an_sssd_flag_set  flags = SSSD_NO_FLAGS;
+#if GNU_EXTENSIONS_ALLOWED
+    if (decl_state->marked_as_gnu_extension) {
+      flags |= SSSD_MARKED_AS_GNU_EXTENSION;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    (void)update_src_seq_secondary_decl((char *)var, member_type, name_ref,
+                                        flags, &decl_info->decl_pos_block);
+  }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
@@ -10440,6 +10458,15 @@ definition and specific information about the member declaration, respectively.
     /* We are done with the postfix attributes. */
     free_attribute_list(*last_attribute);
     *last_attribute = NULL;
+    /* An asm name is not allowed on a field. */
+    if (decl_state->asm_name != NULL) {
+      pos_error(ec_field_with_asm_name_not_allowed, &decl_state->asm_name_pos);
+    }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Record whether the declaration was preceded by __extension__. */
+    field->source_corresp.marked_as_gnu_extension =
+                                          decl_state->marked_as_gnu_extension;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -10643,11 +10670,6 @@ definition and specific information about the member declaration, respectively.
     }  /* if */
   }  /* if */
   class_state->is_first_field = FALSE;
-#if GNU_EXTENSIONS_ALLOWED
-  if (decl_state->asm_name != NULL) {
-    pos_error(ec_field_with_asm_name_not_allowed, &decl_state->asm_name_pos);
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (debug_level >= 3) {
     if (member_sym != NULL) {
@@ -12737,6 +12759,7 @@ passed via template_decl.
                  DSI_GNU_ATTRIBUTES_ALLOWED;
     if (curr_token == tok_extension) {
       dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
+      decl_state->marked_as_gnu_extension = TRUE;
       (void)get_token();
     }  /* if */
   }  /* if */

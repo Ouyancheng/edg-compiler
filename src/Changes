@@ -1,5 +1,16 @@
 Version 3.10
 
+3/30/07  GNU __extension__ and class members
+
+The front end now records the presence of the GNU __extension__ keyword on
+declarations of fields, static data members, and (static and nonstatic) member
+functions.  This allows the C++-generating back end to render the keyword on
+such entity declarations.  For example:
+
+  struct S {
+    __extension__ int i;  // "__extension__" is now rendered by the C++-
+  };                      // generating back end.
+
 3/29/07  GNU C compatibility: asm name on redeclaration after definition
 
 In GNU C mode (but not in GNU C++ mode), when redeclaring a function or
