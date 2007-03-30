@@ -976,8 +976,8 @@ declaration position to eliminate redundant file names in a diagnostic.
               seg_ptr->variant.symbol.force_template_name_output) {
             /* If the class is a template instance, get the corresponding
                prototype symbol for display purposes. */
-            corresp_template_sym =
-              prototype_symbol_for_class(sym->variant.class_struct_union.type);
+            corresp_template_sym = prototype_symbol_for_class(
+                                    fund_sym->variant.class_struct_union.type);
           }  /* if */
           goto symbol_name;
         }  /* if */
