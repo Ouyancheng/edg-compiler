@@ -52,10 +52,13 @@ static void prep_conversion_operand(
 static a_boolean type_matches_type_code(a_type_ptr type,
                                         char       type_code);
 static a_boolean microsoft_can_bind_ref_to_rvalue(an_operand *operand);
-static a_boolean adjust_deduction_pair(a_type_ptr           *p_param_type,
-                                       a_type_ptr           *p_arg_type,
-                                       an_operand           *arg_operand,
-                                       a_template_param_ptr templ_params);
+static a_boolean adjust_deduction_pair(
+                                    a_type_ptr           *p_param_type,
+                                    a_type_ptr           *p_arg_type,
+                                    an_operand           *arg_operand,
+                                    a_template_param_ptr templ_params,
+                                    a_boolean            *consider_nondeduced);
+
 
 #if DEBUG
 static unsigned long
@@ -513,7 +516,8 @@ a_boolean indefinite_function_can_be_template_arg(
                                    an_operand           *operand,
                                    a_type_ptr           param_type,
                                    a_type_ptr           *arg_type,
-                                   a_template_param_ptr templ_params)
+                                   a_template_param_ptr templ_params,
+                                   a_boolean            *multiple_matches)
 /*
 operand is an indefinite function operand.  See if it can be matched against
 a parameter of type param_type from a function template.  If so, return TRUE
@@ -521,12 +525,15 @@ and set *arg_type to the argument type to use.  *arg_type is not changed if
 this function returns FALSE.  templ_params describes the template parameter
 list of the function template associated with param_type, or it has a single
 entry representing the "auto" type when handling an "auto" type specifier.
+*multiple_matches is returned TRUE if the match failed because there are
+multiple matches.
 */
 {
   a_boolean    can_be_arg = FALSE;
   a_symbol_ptr sym = operand->variant.symbol, proj_sym;
   a_type_ptr   matching_arg_type = NULL;
 
+  *multiple_matches = FALSE;
   reduce_projection_symbol_to_fundamental_symbol(sym);
   if (sym->kind == (a_symbol_kind)sk_function_template) {
     /* A template with explicit arguments can be made to match if there's
@@ -578,7 +585,8 @@ entry representing the "auto" type when handling an "auto" type specifier.
           local_arg_type = routine_type;
           local_param_type = param_type;
           if (adjust_deduction_pair(&local_param_type, &local_arg_type,
-                                    (an_operand *)NULL, templ_params) &&
+                                    (an_operand *)NULL, templ_params,
+                                    (a_boolean *)NULL) &&
               tentatively_matches_template_type(local_arg_type,
                                                 local_param_type,
                                                 templ_params)) {
@@ -594,6 +602,7 @@ entry representing the "auto" type when handling an "auto" type specifier.
            a previous one matched, the overall match fails. */ 
         if (can_be_arg) {
           can_be_arg = FALSE;
+          *multiple_matches = TRUE;
           break;
         } else {
           can_be_arg = TRUE;
@@ -2258,10 +2267,12 @@ not be considered further.
 }  /* check_template_arg_type_qualifiers */
 
 
-static a_boolean adjust_deduction_pair(a_type_ptr           *p_param_type,
-                                       a_type_ptr           *p_arg_type,
-                                       an_operand           *arg_operand,
-                                       a_template_param_ptr templ_params)
+static a_boolean adjust_deduction_pair(
+                                     a_type_ptr           *p_param_type,
+                                     a_type_ptr           *p_arg_type,
+                                     an_operand           *arg_operand,
+                                     a_template_param_ptr templ_params,
+                                     a_boolean            *consider_nondeduced)
 /*
 Adjust the types *p_param_type (a parameter type of a function template or a
 type involving the "auto" type specifier) and *p_arg_type (the type of the
@@ -2275,7 +2286,9 @@ array-to-pointer or function-to-pointer transformation, dropping cv-qualifiers,
 and/or dropping matching "pointer" layers (e.g., T* and int* can be replaced
 by T and int).  Returns TRUE if the adjustment is successful (which may mean
 the types were left untouched), and FALSE otherwise (in which case the
-deduction fails).
+deduction fails).  If consider_nondeduced is non-NULL and the reason for
+failure is that an indefinite function matches several ways, return
+*consider_nondeduced TRUE.
 */
 {
   a_boolean   adjustment_okay = FALSE;
@@ -2285,13 +2298,23 @@ deduction fails).
   /* Certain top-level parts of the parameter type (e.g., references) are
      processed here before going to the type deduction routine.  The code here
      must match determine_arg_match_level and overload_distinguishable. */
+  if (consider_nondeduced != NULL) *consider_nondeduced = FALSE;
   if (arg_operand != NULL && is_indefinite_function_operand(arg_operand)) {
     /* For an overloaded function, each possibility must be tried.
        Only one is allowed to match. */
+    a_boolean multiple_matches;
     if (!indefinite_function_can_be_template_arg(arg_operand,
                                                  param_type,
                                                  &arg_type,
-                                                 templ_params)) goto done;
+                                                 templ_params,
+                                                 &multiple_matches)) {
+      if (multiple_matches) {
+        /* There are multiple matches, so the caller should be instructed
+           to consider this a nondeduced context. */
+        if (consider_nondeduced != NULL) *consider_nondeduced = TRUE;
+      }  /* if */
+      goto done;
+    }  /* if */
     arg_operand = NULL;
   }  /* if */
   if (is_function_type(arg_type) &&
@@ -2437,13 +2460,20 @@ if the deduction succeeds, FALSE if it fails.
   a_type_ptr           orig_arg_type;
   a_type_ptr           orig_param_type = param_type;
   a_template_param_ptr templ_params;
+  a_boolean            consider_nondeduced;
 
   if (arg_operand != NULL) arg_type = arg_operand->type;
   orig_arg_type = arg_type;
   templ_params = template_supplement_for_symbol(template_sym)
                           ->variant.function.decl_cache.decl_info->parameters;
   if (!adjust_deduction_pair(&param_type, &arg_type, arg_operand,
-                             templ_params)) {
+                             templ_params, &consider_nondeduced)) {
+    if (consider_nondeduced) {
+      /* The argument is an indefinite function that can match in more than
+         one way.  Keep going without adding anything to the template argument
+         list and see if we can resolve this later as a nondeduced context. */
+      deduction_okay = TRUE;
+    }  /* if */
     goto done;
   }  /* if */
   deduction_okay = deduce_from_one_pair(
@@ -14620,7 +14650,8 @@ Deduction failures are diagnosed as errors.
   templ_param = alloc_template_param(symbol_for(dps->auto_type));
   /* Adjust the argument and parameter types for deduction.  Some types can
      never succeed: Issue an error and don't attempt deduction any further. */
-  if (!adjust_deduction_pair(&type, &arg_type, arg, templ_param)) {
+  if (!adjust_deduction_pair(&type, &arg_type, arg, templ_param,
+                             (a_boolean *)NULL)) {
     pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
     goto set_type;
   }  /* if */

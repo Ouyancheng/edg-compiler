@@ -1,5 +1,24 @@
 Version 3.10
 
+3/30/07  Overloaded function as argument to template
+
+Overload resolution has been changed to handle the case where an
+overloaded function is passed as an argument to a template function
+more in accordance with the C++ standard.  If more than one
+instance of the function can be made to match the corresponding
+function parameter, the parameter is now treated as a nondeduced
+context, which allows the ambiguity to be resolved, if possible,
+by use of template parameters deduced from the other arguments.
+
+  template< typename Arg > void foo(Arg, void (*pf)(Arg));
+  class B {};
+  class A {};
+  void g(B);
+  void g(A);
+  int main() {
+    foo(B(), &g);  // Now accepted without error
+  }
+
 3/30/07  GNU C++ compatibility: static_cast preserves an lvalue sometimes
 
 GNU C++ mode for gnu_version <= 30400 now treats a static_cast of
