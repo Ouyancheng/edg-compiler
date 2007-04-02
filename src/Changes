@@ -1,5 +1,21 @@
 Version 3.10
 
+4/2/07   IA-64 ABI: unneeded virtual function tables emitted sometimes
+
+IL lowering in the IA-64 ABI mode emitted unreferenced virtual function
+tables for a class that has no key function and requires construction
+vtables (which means it has a virtual base class and virtual functions).
+Now, such virtual function tables (and associated typeinfo variables,
+etc.) are emitted only when referenced.
+
+  struct base {
+    virtual ~base() {}
+    virtual void foo() = 0;
+  };
+  struct derived : virtual public base {
+    virtual ~derived() {}
+  };
+
 4/2/07   C++-generating back end: casts to pointers to unnamed types in the
          operands of ?: in C mode
 

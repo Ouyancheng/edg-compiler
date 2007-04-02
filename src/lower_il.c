@@ -6402,9 +6402,27 @@ for the same virtual function table variable; see note below.
         }  /* if */
       }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+      if (ctor_bcp == NULL) {
+        /* A normal (non-construction) vtable. */
 #if IA64_ABI
-      put_variable_into_comdat_group(vtbl_var);
+        put_variable_into_comdat_group(vtbl_var);
 #endif /* IA64_ABI */
+      } else {
+        /* A construction vtable. */
+        a_variable_ptr primary_vtbl = ctor_bcp->derived_class->variant.
+                                                class_struct_union.extra_info->
+                                                    virtual_function_table_var;
+        check_assertion(primary_vtbl != NULL);
+        /* Make a construction vtable optional if the primary vtable is
+           optional. */
+        vtbl_var->is_optional_vtable = primary_vtbl->is_optional_vtable;
+#if IA64_ABI
+        /* For a construction vtable, put the variable into the COMDAT named
+           for the primary vtable for the class. */
+        check_assertion(primary_vtbl->comdat_group != NULL);
+        vtbl_var->comdat_group = primary_vtbl->comdat_group;
+#endif /* IA64_ABI */
+      }  /* if */
     }  /* if */
 #if IA64_ABI
   }  /* if */
@@ -6514,28 +6532,20 @@ for the same virtual function table variable; see note below.
 /*ARGSUSED*/ /* <-- class_type is not used in that case. */
 #endif /* !IA64_ABI */
 static void define_construction_vtbls(
-                                    a_type_ptr              class_type,
                                     a_construction_vtbl_ptr construction_vtbls,
                                     a_boolean               definition_needed,
                                     a_boolean               force_static,
                                     a_routine_ptr           first_virtual)
 /*
 Generate the definitions of the virtual function tables described on
-the construction_vtbls list.  class_type gives the type that will be the
-eventual most derived class.  These are special versions of 
-virtual function tables to be used during construction of subobjects.
+the construction_vtbls list.  These are special versions of virtual function
+tables to be used during construction of subobjects.
 */
 {
   a_construction_vtbl_ptr     cvp;
   a_base_class_ptr            base_class;
   a_type_ptr                  derived_class;
-#if IA64_ABI
-  a_class_type_supplement_ptr ctsp;
-#endif /* IA64_ABI */
 
-#if IA64_ABI
-  ctsp = class_type->variant.class_struct_union.extra_info;
-#endif /* IA64_ABI */
   for (cvp = construction_vtbls; cvp != NULL; cvp = cvp->next) {
     /* Do not define variables more than once (comes up with promoted
        local classes). */
@@ -6557,15 +6567,6 @@ virtual function tables to be used during construction of subobjects.
                                         cvp->virtual_function_table_var,
                                         definition_needed, force_static,
                                         first_virtual);
-#if IA64_ABI
-      /* If the variable is in a comdat group, move it to the same COMDAT
-         group as the primary virtual table. */
-      if (definition_needed && !force_static) {
-        cvp->virtual_function_table_var->comdat_group = 
-          ctsp->virtual_function_table_var->comdat_group;
-        check_assertion(cvp->virtual_function_table_var->comdat_group != NULL);
-      }  /* if */
-#endif /* IA64_ABI */
     }  /* if */
   }  /* for */
 }  /* define_construction_vtbls */
@@ -6716,7 +6717,7 @@ class_type if any are needed.
                                                                &first_virtual);
         need_determined = TRUE;
       }  /* if */
-      define_construction_vtbls(class_type, ctsp->construction_vtbls,
+      define_construction_vtbls(ctsp->construction_vtbls,
                                 definition_needed, force_static,
                                 first_virtual);
 #if IA64_ABI
@@ -6739,7 +6740,7 @@ class_type if any are needed.
                                                                &first_virtual);
           need_determined = TRUE;
         }  /* if */
-        define_construction_vtbls(class_type, bcp->base_construction_vtbls,
+        define_construction_vtbls(bcp->base_construction_vtbls,
                                   definition_needed,
                                   force_static, first_virtual);
       }  /* if */

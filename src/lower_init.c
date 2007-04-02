@@ -9621,12 +9621,13 @@ given by the elements.
   a_constant_ptr                  aggr_con;
   a_memory_region_number          region_to_switch_back_to;
   a_type_ptr                      array_type;
-#if IA64_ABI
-  a_class_type_supplement_ptr     ctsp;
-#endif /* IA64_ABI */
+  a_class_type_supplement_ptr     ctsp = class_type->variant.
+                                                 class_struct_union.extra_info;
+  a_variable_ptr                  primary_vtbl_var =
+                                              ctsp->virtual_function_table_var;
 
+  check_assertion(primary_vtbl_var != NULL);
 #if IA64_ABI
-  ctsp = class_type->variant.class_struct_union.extra_info;
   if (var == NULL) {
     var = make_construction_vtbls_array(class_type, elements);
   }  /* if */
@@ -9674,9 +9675,10 @@ given by the elements.
   aggr_con->type = array_type;
   var->init_kind = (an_init_kind)initk_static;
   var->initializer.constant = aggr_con;
+  var->is_optional_vtable = primary_vtbl_var->is_optional_vtable;
 #if IA64_ABI
-  var->storage_class = ctsp->virtual_function_table_var->storage_class;
-  var->comdat_group = ctsp->virtual_function_table_var->comdat_group;
+  var->storage_class = primary_vtbl_var->storage_class;
+  var->comdat_group = primary_vtbl_var->comdat_group;
 #endif /* IA64_ABI */
   switch_back_to_original_region(region_to_switch_back_to);
 }  /* define_construction_vtbls_array */
