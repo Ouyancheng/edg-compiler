@@ -2017,6 +2017,12 @@ Display the indicated decl modifiers.
     if (dm & DM_NOINLINE) {
       disp_boolean("noinline", TRUE);
     }  /* if */
+    if (dm & DM_NOALIAS) {
+      disp_boolean("noalias", TRUE);
+    }  /* if */
+    if (dm & DM_RESTRICT) {
+      disp_boolean("restrict", TRUE);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* disp_decl_modifiers */
