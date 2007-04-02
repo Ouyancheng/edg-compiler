@@ -2805,6 +2805,13 @@ conversions.
       /* Do-nothing explicit casts are preserved in some configurations. */
       need_cast = PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL;
     }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+  } else if (node->type != new_type) {
+    /* Even though the types are "identical," they may not be spelled the
+       same, so we need to preserve the original type of the operand and
+       not just overwrite it with the new type. */
+    need_cast = TRUE;
+#endif /* BACK_END_IS_CP_GEN_BE */
   } else {
     /* Do-nothing implicit casts are not needed. */
     need_cast = FALSE;

@@ -1,5 +1,23 @@
 Version 3.10
 
+4/2/07   C++-generating back end: casts to pointers to unnamed types in the
+         operands of ?: in C mode
+
+In C mode, when the operands of a conditional operator involved casts to a
+pointer to an unnamed type via a typedef, the C++-generating back end
+generated the casts using an undeclared temporary name.  This is now fixed;
+the generated code retains the original typedef in the casts.  For example:
+
+  typedef struct {
+    int i;
+  } S;
+
+  void f(int b, void* vp) {
+    S* sp;
+    sp = (b) ? (S*) vp : (S*) vp;  /* Casts formerly generated as
+                                      "(struct __T9414192 *)vp" */
+  }
+
 3/30/07  Overloaded function as argument to template
 
 Overload resolution has been changed to handle the case where an
