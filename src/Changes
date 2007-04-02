@@ -81,11 +81,11 @@ gcc behaved as follows:
 
 3/28/07  Microsoft and Sun compatibility: Class template redeclarations
 
-In Microsoft bugs mode the front previously always accepted invalid class
-template redeclarations omitting the "template <...>" preamble.  For example:
+In Microsoft bugs mode the front end previously always accepted invalid class
+template redeclarations that omit the "template <...>" preamble.  For example:
 
   template<class T> struct S;
-  struct S;  // Previously accepted in all Microsoft bugs mode.  Now accepted
+  struct S;  // Previously accepted in all Microsoft bugs modes.  Now accepted
              // in Microsoft bugs mode with microsoft_version < 1400, and also
              // in Sun mode.
 
