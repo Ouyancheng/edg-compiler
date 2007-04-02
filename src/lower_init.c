@@ -9732,9 +9732,6 @@ to the variable.
   if ((ctsp->decl_modifiers & DM_DLLFLAGS) != 0) {
     /* Set any required dllimport/dllexport attributes. */
     var->decl_modifiers |= (ctsp->decl_modifiers & DM_DLLFLAGS);
-    update_dll_info_for_variable(var, ctsp->decl_modifiers,
-                                 /*is_redecl=*/FALSE, /*is_definition=*/FALSE,
-                                 (a_source_position*)NULL);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ctsp->virtual_table_table_var = var;
