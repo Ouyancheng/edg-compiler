@@ -951,6 +951,8 @@ extern a_variable_ptr make_var_for_virtual_function_table(
 
 extern a_routine_ptr vtbl_decider_function_for_class(a_type_ptr class_type);
 
+extern a_variable_ptr primary_vtbl_var_for_class(a_type_ptr class_type);
+
 extern a_boolean inline_virtual_function_definitions_needed(
                                                         a_type_ptr class_type);
 

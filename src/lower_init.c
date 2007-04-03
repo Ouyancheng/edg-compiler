@@ -9621,12 +9621,9 @@ given by the elements.
   a_constant_ptr                  aggr_con;
   a_memory_region_number          region_to_switch_back_to;
   a_type_ptr                      array_type;
-  a_class_type_supplement_ptr     ctsp = class_type->variant.
-                                                 class_struct_union.extra_info;
   a_variable_ptr                  primary_vtbl_var =
-                                              ctsp->virtual_function_table_var;
+                                        primary_vtbl_var_for_class(class_type);
 
-  check_assertion(primary_vtbl_var != NULL);
 #if IA64_ABI
   if (var == NULL) {
     var = make_construction_vtbls_array(class_type, elements);

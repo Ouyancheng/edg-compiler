@@ -5082,6 +5082,36 @@ have one yet.
 }  /* vtbl_decider_function_for_class */
 
 
+a_variable_ptr primary_vtbl_var_for_class(a_type_ptr class_type)
+/*
+Return a pointer to the primary virtual function table for the given class.
+There must be one.  The "primary" virtual function table for the class is
+the one whose attributes, like whether it's defined, are mirrored by
+any other virtual function tables for the class.  It's usually the one recorded
+directly in the class type, but in the Cfront-like ABI if the class itself
+has no vtable it is the first one associated with a base class.
+*/
+{
+  a_class_type_supplement_ptr ctsp = class_type->variant.class_struct_union.
+                                                                    extra_info;
+  a_variable_ptr              vtbl_var = ctsp->virtual_function_table_var;
+
+#if !IA64_ABI
+  if (vtbl_var == NULL) {
+    /* The class itself has no virtual function table, so look at the
+       base classes.  At least one of them must have one. */
+    a_base_class_ptr bcp;
+    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      vtbl_var = bcp->virtual_function_table_var;
+      if (vtbl_var != NULL) break;
+    }  /* for */
+  }  /* if */
+#endif /* !IA64_ABI */
+  check_assertion(vtbl_var != NULL);
+  return vtbl_var;
+}  /* primary_vtbl_var_for_class */
+
+
 static a_boolean virtual_function_table_should_be_defined_here(
                                                   a_type_ptr    class_type,
                                                   a_boolean     *force_static,
@@ -5183,21 +5213,7 @@ not to put out the definition; otherwise, it's set to NULL.
        references to the virtual function table (which only occur in
        constructor and destructor wrapper code), so if the referenced flag
        is FALSE the virtual function table is not referenced at all. */
-    a_variable_ptr vtbl_var = ctsp->virtual_function_table_var;
-#if !IA64_ABI
-    if (vtbl_var == NULL) {
-      /* The class itself has no virtual function table, so look at the
-         base classes.  At least one of them must have one (otherwise, we
-         wouldn't be asking whether a virtual function table should be
-         defined).  Do the test on the first one found. */
-      a_base_class_ptr bcp;
-      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-        vtbl_var = bcp->virtual_function_table_var;
-        if (vtbl_var != NULL) break;
-      }  /* for */
-    }  /* if */
-#endif /* !IA64_ABI */
-    check_assertion(vtbl_var != NULL);
+    a_variable_ptr vtbl_var = primary_vtbl_var_for_class(class_type);
     vtbl_var->is_optional_vtable = vtable_is_optional;
     if (class_type->typeinfo_var != NULL &&
         class_type->typeinfo_var->source_corresp.referenced) {
