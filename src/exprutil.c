@@ -2805,21 +2805,23 @@ conversions.
       /* Do-nothing explicit casts are preserved in some configurations. */
       need_cast = PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL;
     }  /* if */
-#if BACK_END_IS_CP_GEN_BE
-  } else if (node->type != new_type) {
-    /* Even though the types are "identical," they may not be spelled the
-       same, so we need to preserve the original type of the operand and
-       not just overwrite it with the new type. */
-    need_cast = TRUE;
-#endif /* BACK_END_IS_CP_GEN_BE */
   } else {
     /* Do-nothing implicit casts are not needed. */
     need_cast = FALSE;
   }  /* if */
   if (!need_cast) {
-    /* We don't need to add a cast.  We will, however, put the new type in
-       the node (since it may be "identical" but not exactly the same). */
-    node->type = new_type;
+    /* We don't need to add a cast. */
+    if (is_implicit_cast && is_cast_operation_node(node) &&
+        !node->variant.operation.compiler_generated) {
+      /* If the existing node represents a cast that appeared explicitly in
+         the source and this would have been an implicit cast, leave the
+         type of the node alone -- it might be needed for source analysis
+         or for the C++-generating back end. */
+    } else {
+      /* Otherwise, put the new type in the node (since it may be
+         "identical" but not exactly the same). */
+      node->type = new_type;
+    }  /* if */
     if (!is_implicit_cast && is_operation_node(node) &&
         node->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
         node->variant.operation.compiler_generated) {
