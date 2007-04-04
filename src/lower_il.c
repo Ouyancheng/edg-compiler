@@ -6427,7 +6427,6 @@ for the same virtual function table variable; see note below.
         /* A construction vtable. */
         a_variable_ptr primary_vtbl =
                            primary_vtbl_var_for_class(ctor_bcp->derived_class);
-        check_assertion(primary_vtbl != NULL);
         /* Make a construction vtable optional if the primary vtable is
            optional. */
         vtbl_var->is_optional_vtable = primary_vtbl->is_optional_vtable;
