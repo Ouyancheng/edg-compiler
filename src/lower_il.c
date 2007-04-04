@@ -6425,9 +6425,8 @@ for the same virtual function table variable; see note below.
 #endif /* IA64_ABI */
       } else {
         /* A construction vtable. */
-        a_variable_ptr primary_vtbl = ctor_bcp->derived_class->variant.
-                                                class_struct_union.extra_info->
-                                                    virtual_function_table_var;
+        a_variable_ptr primary_vtbl =
+                           primary_vtbl_var_for_class(ctor_bcp->derived_class);
         check_assertion(primary_vtbl != NULL);
         /* Make a construction vtable optional if the primary vtable is
            optional. */
