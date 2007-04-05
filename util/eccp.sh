@@ -752,6 +752,7 @@ check_abbreviation()
 --remarks
 --remove_instantiation_flags
 --remove_unneeded_entities
+--report_gnu_extensions
 --restrict
 --rtti
 --set_flag
@@ -1254,6 +1255,7 @@ process_option()
          --no_gcc | \
          --g++ | \
          --no_g++ | \
+         --report_gnu_extensions | \
          --dep_name | \
          --no_dep_name | \
          --parse_templates | \
