@@ -431,9 +431,9 @@ Install the keywords in the symbol table.
   if (gnu_restrict_keyword_enabled) {
     if (microsoft_mode) {
       /* Microsoft compilers accept "__restrict" but not "__restrict__". */
-      enter_keyword((a_token_kind)tok_restrict, "__restrict");
+      enter_keyword((a_token_kind)tok_gnu_restrict, "__restrict");
     } else {
-      enter_gnu_keyword((a_token_kind)tok_restrict, "__restrict");
+      enter_gnu_keyword((a_token_kind)tok_gnu_restrict, "__restrict");
     }  /* if */
   }  /* if */
   if (c99_mode || gnu_mode) {

@@ -1518,7 +1518,7 @@ scanned.
                                      ec_extended_designator_is_gnu_extension);
     } else if (!c99_mode) {
       report_gnu_extension_if_needed(designator_pos,
-                                     ec_designator_is_gnu_extension);
+                                     ec_designator_is_nonstandard);
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

@@ -5446,6 +5446,10 @@ modifier _Sat was specified.
        into a matching basic type, for the cases for which it makes sense.
        For the others, an error will be detected below. */
     basic_type = basic_type_from_typedef(type_ptr, &sign, &size);
+    if (gnu_mode && basic_type != bt_typedef) {
+      report_gnu_extension_if_needed(&error_position,
+                                     ec_typedef_modification_is_nonstandard);
+    }  /* if */
   }  /* if */
   /* Now check for the various legal combinations of specifiers.  See 3.5.2
      for list. */
@@ -7289,6 +7293,7 @@ storage_class_specifier:
         }  /* if */
         goto no_get_token;
 #endif /* UPC_EXTENSIONS_ALLOWED */
+      case tok_gnu_restrict:
       case tok_restrict:
         /* restrict type qualifier. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -7313,6 +7318,16 @@ storage_class_specifier:
           qualifiers |= TQ_RESTRICT;
           state->restrict_pos = pos_curr_token;
           decl_specifiers_seen |= DS_TYPE_QUALIFIER;
+          if (gnu_mode && report_gnu_extensions) {
+            if (curr_token == tok_gnu_restrict) {
+              report_gnu_extension_if_needed(&pos_curr_token,
+                                             ec_gnu_restrict_is_nonstandard);
+            } else if (!c99_mode && curr_token == tok_restrict) {
+              /* GNU compilers don't accept the "restrict" form in non-C99
+                 modes. */
+              unexpected_condition();
+            }  /* if */
+          }  /* if */
         }  /* if */
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED

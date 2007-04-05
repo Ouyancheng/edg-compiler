@@ -810,6 +810,8 @@ colons, which will be tokenized as a single tok_colon_colon (in C++).  */
 
   db_enter(3, "asm_operands_spec");
   check_assertion(curr_token == tok_colon || curr_token == tok_colon_colon);
+  report_gnu_extension_if_needed(&pos_curr_token,
+                                 ec_asm_operand_spec_is_gnu_extension);
   /* :: is interpreted the same as as : :, i.e. an empty output list. */
   if (curr_token == tok_colon_colon) {
     output = FALSE;

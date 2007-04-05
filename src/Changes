@@ -1,5 +1,22 @@
 Version 3.10
 
+4/5/07   Option to warn about the use of some GNU extensions
+
+The new option --report_gnu_extensions causes the front end to issue warnings
+on the use of certain GNU extensions outside of system headers.  For example:
+
+  int x[0];  // Warning with --gcc --report_gnu_extensions: zero-length arrays
+             // are a GNU extension.
+
+The new option is valid only in GNU modes and is not meant to be exhaustive
+(i.e., not all GNU extensions are reported).  When the option is enabled,
+features that are standard in C99 mode are warned about in plain GNU C mode,
+but not in GNU C99 mode.  Extensions warned about include: variable-length
+arrays, designated initializers, compound literals, statement expressions, GNU
+attributes, extended uses of the "asm" keyword, restricted pointers, typeof,
+integer sign and size specifiers on typedefs, zero-length arrays, and flexible
+array members.
+
 4/5/07   Improve setting of is_partially_initialized in a_variable
 
 Two refinements have been made in setting the is_partially_initialized

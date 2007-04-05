@@ -14909,7 +14909,7 @@ of characters added.
       put_str_to_temp_text_buffer(")");
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (token == tok_restrict) {
+  } else if (is_restrict_token(token)) {
 #if !SUPPRESS_RESTRICT_IN_GENERATED_CODE
     char *restrict_kw = "restrict";
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE

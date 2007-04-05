@@ -1232,6 +1232,10 @@ set to the position of the final right parenthesis.
   an_attribute_ptr  attributes = NULL;
   an_attribute_ptr  *next_attribute;
 
+  if (curr_token == tok_attribute) {
+    report_gnu_extension_if_needed(&pos_curr_token,
+                                   ec_attribute_is_gnu_extension);
+  }  /* if */
   /* The next_attribute will be the first one in the list. */
   next_attribute = &attributes;
   /* Keep going until there are no more attributes. */

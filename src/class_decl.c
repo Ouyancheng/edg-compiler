@@ -9656,6 +9656,10 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
                          C_mode() ? ec_nonstd_unnamed_field :
                                     ec_nonstd_unnamed_member,
                          &pos_curr_token);
+        } else if (gnu_mode) {
+          report_gnu_extension_if_needed(&pos_curr_token,
+                                         C_mode() ? ec_nonstd_unnamed_field :
+                                                    ec_nonstd_unnamed_member);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -13924,6 +13928,12 @@ bits of information that were acquired while parsing.
         class_type->variant.class_struct_union.
                                     contains_flexible_array_member = FALSE;
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (gnu_mode && !c99_mode) {
+      a_field_ptr  fp = class_state->end_of_field_list;
+      report_gnu_extension_if_needed(&fp->source_corresp.decl_position,
+                                     ec_flexible_array_is_nonstandard);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */    
   if (!class_state->is_nonreal_instantiation) {

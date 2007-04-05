@@ -148,6 +148,7 @@ typedef enum /*a_token_kind*/ {
   tok_va_start, tok_va_arg, tok_va_end, tok_va_copy,
   tok_builtin_offsetof,
   tok_restrict,
+  tok_gnu_restrict,
   /* C99 types: _Bool, _Complex and _Imaginary. */
   tok_c99_bool,
   tok_c99_complex,
@@ -343,7 +344,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "while", "__generic", "__genericfx", "__ALIGNOF__", "__INTADDR__",
    "va_start", "va_arg", "va_end", "va_copy",
    "__builtin_offsetof",
-   "restrict",
+   "restrict", "__restrict",
    "_Bool", "_Complex", "_Imaginary", "__I__", "__NAN__", "__INFINITY__",
    "_Fract", "_Accum", "_Sat",
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -725,6 +726,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_va_copy */
    (an_opname_kind)onk_none,          /* tok_builtin_offsetof */
    (an_opname_kind)onk_none,          /* tok_restrict */
+   (an_opname_kind)onk_none,          /* tok_gnu_restrict */
    (an_opname_kind)onk_none,          /* tok_c99_bool */
    (an_opname_kind)onk_none,          /* tok_c99_complex */
    (an_opname_kind)onk_none,          /* tok_c99_imaginary */
@@ -2149,7 +2151,7 @@ extern a_boolean accum_quoted_string(unsigned long     *num_chars,
 
 /*
 Return TRUE if the indicated token is a type qualifier.  This is
-straightforward for const, volatile, and restrict but and __unaligned is
+straightforward for const, volatile, and restrict but __unaligned is
 valid only with certain configurations.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2171,8 +2173,16 @@ Unified Parallel C adds several new type qualifiers.
 #define or_is_upc_qual_token(tok) /* Nothing */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+/*
+Return whether the current token is the standard "restrict" token or the
+equivalent GNU/Microsoft "__restrict" token.  (Distinct token kinds are used
+because uses of the nonstandard spelling are warned about in some modes.)
+*/
+#define is_restrict_token(tok)                                                \
+  ((tok) == tok_restrict || (tok) == tok_gnu_restrict)
+
 #define is_type_qualifier_token(tok)                                          \
-  ((tok) == tok_const || (tok) == tok_volatile || (tok) == tok_restrict       \
+  ((tok) == tok_const || (tok) == tok_volatile || is_restrict_token((tok))    \
    or_is_unaligned_token(tok)                                                 \
    or_is_upc_qual_token(tok))
 

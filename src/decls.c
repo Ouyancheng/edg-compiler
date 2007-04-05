@@ -181,6 +181,8 @@ an error, return NULL.  asm_name_pos is the position of the asm name.
 
   db_enter(3, "scan_asm_name");
   if (curr_token == tok_asm) {
+    report_gnu_extension_if_needed(&pos_curr_token,
+                                   ec_asm_name_is_gnu_extension);
     /* Bypass "asm" and the leading paren. */
     (void)get_token();
     if (required_token(tok_lparen, ec_exp_lparen)) {
@@ -10540,6 +10542,8 @@ instruction's operands.
         pos_warning(ec_const_ignored, &cv_pos);
       }  /* if */
       if (qualifiers & TQ_VOLATILE) {
+        report_gnu_extension_if_needed(&cv_pos,
+                                       ec_volatile_asm_is_gnu_extension);
         is_volatile = TRUE;
       }  /* if */
     }  /* if */

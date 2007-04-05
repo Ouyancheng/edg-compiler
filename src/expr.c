@@ -5133,10 +5133,9 @@ current token on entry.
     /* Address-of-label not allowed in a template argument expression. */
     pos_error(ec_bad_templ_arg_expr_operator, &start_position);
     err = TRUE;
-  } else if (strict_ansi_mode) {
-    pos_diagnostic(strict_ansi_error_severity, ec_nonstd_address_of_label,
-		   &start_position);
-    err = (strict_ansi_error_severity == es_error);
+  } else {
+    report_gnu_extension_if_needed(&pos_curr_token,
+                                   ec_nonstd_address_of_label);
   }  /* if */
 
   /* Scan the operand.  This must be a single label.  */
@@ -6667,6 +6666,7 @@ NULL, the end position in its specifiers_range is updated.
      the wrong answer. */
   /* Skip the typeof or __typeof__ token. */
   check_assertion(gnu_mode && curr_token == tok_typeof);
+  report_gnu_extension_if_needed(&pos_curr_token, ec_typeof_is_gnu_extension);
   (void)get_token();
   /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
@@ -12160,9 +12160,9 @@ to the compound literal.
   }  /* if */
   if (err) {
     literal_type = error_type();
-  } else if (gnu_mode && !c99_mode && report_gnu_extensions) {
+  } else if (gnu_mode && !c99_mode) {
     report_gnu_extension_if_needed(&error_position,
-                                   ec_compound_literal_is_gnu_extension);
+                                   ec_compound_literal_is_nonstandard);
   }  /* if */
   /* Save, clear, and later restore the expression stack, since the
      initializer is not part of any expression we may currently be
