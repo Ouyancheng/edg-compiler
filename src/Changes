@@ -1,5 +1,24 @@
 Version 3.10
 
+4/5/07   Improve setting of is_partially_initialized in a_variable
+
+Two refinements have been made in setting the is_partially_initialized
+field in the a_variable structure of the IL when initializing
+array or class aggregates.
+
+If extended designators are used in an initializer, the front end
+cannot always determine if the initializer fully initializes the array
+or class aggregate.  The front end now conservatively sets
+is_partially_initialized to TRUE in this case (i.e., whenever a
+designated initializer is used in an initialization).
+
+If LOWER_DESIGNATED_INITIALIZERS is TRUE, lowered variables that
+were originally flagged as being partially initialized (e.g., as
+a result of the change listed above) are re-analyzed to see if
+the lowering process has resulted in a fully initialized variable.
+If the result is a fully initialized variable the is_partially_initialized
+flag is set to FALSE.
+
 4/2/07   IA-64 ABI: unneeded virtual function tables emitted sometimes
 
 IL lowering in the IA-64 ABI mode emitted unreferenced virtual function
