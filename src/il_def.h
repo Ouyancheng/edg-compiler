@@ -2050,7 +2050,10 @@ typedef struct a_dynamic_init {
   a_bit_field	is_partially_initialized_compound_literal:1;
 			/* If TRUE, the source construct is a compound
 			   literal (C99) and the entity was not fully
-			   initialized by the initializer. */
+			   initialized by the initializer.  Also set if
+			   designated initializers were used to initialize
+			   fields in the aggregate, potentially leading
+			   to undetected partial initialization. */
   a_bit_field	is_result_for_class_rvalue_question_mark:1;
 			/* If TRUE, this entity is the temporary that is
 			   the result of a "?" operator that returns a

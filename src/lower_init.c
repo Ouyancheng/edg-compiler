@@ -9534,11 +9534,14 @@ partially initializes the aggregate; otherwise returns FALSE.
       temp_con = temp_con->variant.init_repeat.constant;
     }  /* if */
     if (is_aggregate_or_union_type(aggr_pos.member_type)) {
-      check_assertion(temp_con->kind == (a_constant_repr_kind)ck_aggregate);
-      if (recompute_partially_initialized_flag(temp_con)) {
-        /* Any partially initialized sub-aggregate results in a partially
-           initialized aggregate. */
-        return TRUE;
+      /* Aggregates that are initialized by a ck_dynamic_init are
+         fully initialized. */
+      if (temp_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
+        if (recompute_partially_initialized_flag(temp_con)) {
+          /* Any partially initialized sub-aggregate results in a partially
+             initialized aggregate. */
+          return TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (con_pos.repeat_count > 0) {
