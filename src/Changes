@@ -1,5 +1,22 @@
 Version 3.10
 
+4/9/07   Bad pointer in IL after inlining, RECORD_CONSTANT_EXPRESSIONS_IN_IL
+
+In configurations that do IL lowering and inlining and also have
+RECORD_CONSTANT_EXPRESSIONS_IN_IL set to TRUE, the inlining of a function
+call could copy a constant that has a pointer to an associated
+expression in the original function memory region.  As a consequence,
+the destination constant contained an invalid pointer between function
+memory regions.  The pointer is now cleared on the copy.
+
+  inline void f() {
+    const int i = 1;
+    int j = i + 1;
+  }
+  int main() {
+    f();
+  }
+
 4/5/07   Option to warn about the use of some GNU extensions
 
 The new option --report_gnu_extensions causes the front end to issue warnings

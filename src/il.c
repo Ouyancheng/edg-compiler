@@ -4888,6 +4888,15 @@ copy_constant_full should be called to start a copy.
         unexpected_condition_str("i_copy_constant_full: bad templ param kind");
     }  /* if */
   }  /* if */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  if (options & CE_DOING_INLINING_OF_FUNCTION_CALL) {
+    /* When copying for inlining, the expression pointed to is in a
+       function scope memory region and can't be used in the new function
+       scope memory region.  (The expression tree can't even be copied,
+       because it may refer to local variables.) */
+    new_constant->expr = NULL;
+  }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   if (may_be_shared) {
     new_constant = alloc_shareable_constant(new_constant);
   } else if (new_constant_in_il) {
