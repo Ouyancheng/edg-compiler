@@ -8730,19 +8730,19 @@ the aggregate.
 }  /* advance_aggregate_position_to_next_member */
 
 
-static a_boolean is_last_member_in_aggregate(an_aggregate_position *aggr_pos)
+static a_boolean any_more_members_in_aggregate(an_aggregate_position *aggr_pos)
 /*
-Return TRUE if the indicated position is the last member in the aggregate.
+Return TRUE if there are additional initializable fields after the
+position indicated by aggr_pos.
 */
 {
   if (aggr_pos->array_init) {
-    return aggr_pos->curr_elem == aggr_pos->number_of_elements - 1;
+    return aggr_pos->curr_elem < aggr_pos->number_of_elements - 1;
   } else {
     a_field_ptr field = aggr_pos->curr_field;
-    check_assertion(field != NULL);
-    return next_initializable_field(field->next) == NULL;
+    return field != NULL && next_initializable_field(field->next) != NULL;
   }  /* if */
-}  /* is_last_member_in_aggregate */
+}  /* any_more_members_in_aggregate */
 
 
 static a_constant_ptr make_init_zero_constant(a_type_ptr type)
@@ -9518,48 +9518,54 @@ partially initializes the aggregate; otherwise returns FALSE.
   an_aggregate_position aggr_pos;
   an_init_con_pos       con_pos;
 
-  check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
-  temp_con = aggr_con->variant.aggregate.first_constant;
-  /* Union is fully initialized if it has at least one initializer. */
-  if (is_union_type(aggr_con->type)) {
-    return temp_con == NULL;
-  }  /* if */
-  /* Set initial positions in both aggregate and constant. */
-  init_aggregate_position(aggr_con, &aggr_pos);
-  set_init_con_pos(temp_con, &con_pos);
-  /* Iterate for each constant in the aggregate constant. */
-  while (con_pos.ptr != NULL) {
-    temp_con = con_pos.ptr;
-    if (temp_con->kind == (a_constant_repr_kind)ck_init_repeat) {
-      temp_con = temp_con->variant.init_repeat.constant;
+  if (aggr_con->kind == (a_constant_repr_kind)ck_string) {
+    check_assertion(is_array_type(aggr_con->type));
+    return aggr_con->variant.string.length < 
+       skip_typerefs(aggr_con->type)->variant.array.variant.number_of_elements;
+  } else {
+    check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
+    temp_con = aggr_con->variant.aggregate.first_constant;
+    /* Union is fully initialized if it has at least one initializer. */
+    if (is_union_type(aggr_con->type)) {
+      return temp_con == NULL;
     }  /* if */
-    if (is_aggregate_or_union_type(aggr_pos.member_type)) {
-      /* Aggregates that are initialized by a ck_dynamic_init are
-         fully initialized. */
-      if (temp_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
-        if (recompute_partially_initialized_flag(temp_con)) {
-          /* Any partially initialized sub-aggregate results in a partially
-             initialized aggregate. */
-          return TRUE;
+    /* Set initial positions in both aggregate and constant. */
+    init_aggregate_position(aggr_con, &aggr_pos);
+    set_init_con_pos(temp_con, &con_pos);
+    /* Iterate for each constant in the aggregate constant. */
+    while (con_pos.ptr != NULL) {
+      temp_con = con_pos.ptr;
+      if (temp_con->kind == (a_constant_repr_kind)ck_init_repeat) {
+        temp_con = temp_con->variant.init_repeat.constant;
+      }  /* if */
+      if (is_aggregate_or_union_type(aggr_pos.member_type)) {
+        /* Aggregates that are initialized by a ck_dynamic_init are
+           fully initialized. */
+        if (temp_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
+          if (recompute_partially_initialized_flag(temp_con)) {
+            /* Any partially initialized sub-aggregate results in a partially
+               initialized aggregate. */
+            return TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
-    }  /* if */
-    if (con_pos.repeat_count > 0) {
-      /* When dealing with a repeated constant, we can skip directly over
-         all the corresponding elements. */
-      aggr_pos.curr_elem += (con_pos.repeat_count - 1);
-      con_pos.repeat_count = 0;
-    }  /* if */
-    /* Advance to next position in both constant and aggregate. */
-    advance_init_con_pos(&con_pos);
-    if (con_pos.ptr != NULL) {
-      advance_aggregate_position_to_next_member(&aggr_pos);
-    }  /* if */
-  }  /* while */
-  /* We've exhausted the list of constants.  If there are any more
-     fields in the aggregate, this initializer only partially
-     initializes the aggregate. */
-  return !is_last_member_in_aggregate(&aggr_pos);
+      if (con_pos.repeat_count > 0) {
+        /* When dealing with a repeated constant, we can skip directly over
+           all the corresponding elements. */
+        aggr_pos.curr_elem += (con_pos.repeat_count - 1);
+        con_pos.repeat_count = 0;
+      }  /* if */
+      /* Advance to next position in both constant and aggregate. */
+      advance_init_con_pos(&con_pos);
+      if (con_pos.ptr != NULL) {
+        advance_aggregate_position_to_next_member(&aggr_pos);
+      }  /* if */
+    }  /* while */
+    /* We've exhausted the list of constants.  If there are any more
+       fields in the aggregate, this initializer only partially
+       initializes the aggregate. */
+    return any_more_members_in_aggregate(&aggr_pos);
+  }  /* if */
 }  /* recompute_partially_initialized_flag */
 
 
@@ -9596,8 +9602,7 @@ C mode as well as C++ mode.
     lower_designated_initializers(dip->variant.constant);
     /* Lowering may have changed the initializer from partially
        initialized to fully initialized, so re-compute it. */
-    if (dip->variable != NULL && dip->variable->is_partially_initialized &&
-        dip->variant.constant->kind == (a_constant_repr_kind)ck_aggregate) {
+    if (dip->variable != NULL && dip->variable->is_partially_initialized) {
       dip->variable->is_partially_initialized = 
                    recompute_partially_initialized_flag(dip->variant.constant);
     }  /* if */
