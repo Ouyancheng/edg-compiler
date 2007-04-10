@@ -51,7 +51,7 @@ array members.
 
 4/5/07   Improve setting of is_partially_initialized in a_variable
 
-Two refinements have been made in setting the is_partially_initialized
+Three refinements have been made in setting the is_partially_initialized
 field in the a_variable structure of the IL when initializing
 array or class aggregates.
 
@@ -67,6 +67,16 @@ a result of the change listed above) are re-analyzed to see if
 the lowering process has resulted in a fully initialized variable.
 If the result is a fully initialized variable the is_partially_initialized
 flag is set to FALSE.
+
+Initializing an array of known size with a string literal that contains
+fewer elements than the array should result in setting the
+is_partially_initialized flag to TRUE.  In one particular case (i.e.,
+a variable that has a static lifetime in GNU mode and whose initializer is
+not enclosed in braces) the flag was inadvertently set to FALSE.
+This has been fixed.  For example:
+
+  char hello[10] = "hello";  // is_partially_initialized set to TRUE
+                             // now in GNU mode
 
 4/2/07   IA-64 ABI: unneeded virtual function tables emitted sometimes
 

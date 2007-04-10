@@ -3464,25 +3464,36 @@ returned set to TRUE.
       a_constant  constant;
       scan_constant_initializer_expression(vp_type, &constant);
       init_con = alloc_unshared_constant(&constant);
-      if (!var_err && vp != NULL && is_incomplete_type(vp->type)) {
-        /* An array of unspecified size is initialized with a constant that
-           has a known number of elements: adjust the variable type. */
+      if (!var_err && vp != NULL) {
         a_type_ptr     array_type = skip_typerefs(vp->type);
-        a_targ_size_t  num_elems;
-        check_assertion(is_array_type(array_type));
-        if (!is_array_type(constant.type)) {
-          /* An error occurred while scanning the initializer constant.
-             Set the number of elements to "1" to avoid a second diagnostic
-             about creating a variable of incomplete type. */
-          check_assertion(is_or_contains_error_type(constant.type) &&
-                          total_errors != 0);
-          init_err = TRUE;
-          num_elems = 1;
-        } else {
-          num_elems = constant.type->variant.array.variant.number_of_elements;
+        if (is_incomplete_type(vp->type)) {
+          /* An array of unspecified size is initialized with a constant that
+             has a known number of elements: adjust the variable type. */
+          a_targ_size_t  num_elems;
+          check_assertion(is_array_type(array_type));
+          if (!is_array_type(constant.type)) {
+            /* An error occurred while scanning the initializer constant.
+               Set the number of elements to "1" to avoid a second diagnostic
+               about creating a variable of incomplete type. */
+            check_assertion(is_or_contains_error_type(constant.type) &&
+                            total_errors != 0);
+            init_err = TRUE;
+            num_elems = 1;
+          } else {
+            num_elems =
+                       constant.type->variant.array.variant.number_of_elements;
+          }  /* if */
+          set_initialized_array_size(&array_type, num_elems);
+          vp->type = array_type;
+        } else if (is_array_type(array_type) && 
+                   !has_unknown_specified_bound(array_type) &&
+                   init_con->kind == (a_constant_repr_kind)ck_string) {
+          /* Flag the variable as partially initialized if the string
+             contains fewer elements than the array. */
+          vp->is_partially_initialized = 
+                         array_type->variant.array.variant.number_of_elements >
+                                               init_con->variant.string.length;
         }  /* if */
-        set_initialized_array_size(&array_type, num_elems);
-        vp->type = array_type;
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (decl_pos_block != NULL) {
