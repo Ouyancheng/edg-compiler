@@ -1305,6 +1305,11 @@ If not, *failed is set.
                                     &sub_insert_location, inlinable, failed);
             if (!*failed) {
               then_expr = sub_insert_location.variant.expr;
+              if (then_expr == NULL) {
+                /* No "then" statement; use 0. */
+                then_expr = node_for_integer_constant(0L,
+                                                      (an_integer_kind)ik_int);
+              }  /* if */
               then_expr = add_cast_if_necessary(then_expr, void_type());
             }  /* if */
           }  /* if */
