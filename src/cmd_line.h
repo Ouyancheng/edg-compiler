@@ -1088,9 +1088,8 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		report_gnu_extensions;
-			/* TRUE to diagnose (with a warning by default) uses
-			   of certain GNU extensions outside system header
-			   files. */
+			/* TRUE to diagnose (with a warning) uses of certain
+			   GNU extensions outside system header files. */
 
 EXTERN a_boolean
 		ptr_to_unknown_bound_array_allowed_in_param_type;

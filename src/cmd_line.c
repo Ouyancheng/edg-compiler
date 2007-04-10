@@ -1001,7 +1001,7 @@ Initialize the option information table.
                          pchek_command_line);
   add_option_description(optk_report_gnu_extensions, "report_gnu_extensions",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
+                         pchek_none);
   add_option_description(optk_short_enums,
                          "short_enums",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,

@@ -2174,7 +2174,7 @@ Unified Parallel C adds several new type qualifiers.
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
 /*
-Return whether the current token is the standard "restrict" token or the
+Return TRUE if the current token is the standard "restrict" token or the
 equivalent GNU/Microsoft "__restrict" token.  (Distinct token kinds are used
 because uses of the nonstandard spelling are warned about in some modes.)
 */
