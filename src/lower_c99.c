@@ -3565,17 +3565,19 @@ Do C99 lowering on the indicated statement.
 
 
 static void lower_c99_initializer(an_init_kind    init_kind,
-                                  an_initializer  *initializer)
+                                  an_initializer  *initializer,
+                                  a_variable_ptr  variable)
 /*
 Do C99 lowering for an initializer (e.g., from a variable).  init_kind
 indicates the kind of initialization, and *initializer provides the details.
+variable indicates the variable that is being initialized.
 */
 {
   switch (init_kind) {
     case initk_static:
       /* The initializer is a constant. */
 #if LOWER_DESIGNATED_INITIALIZERS
-      lower_designated_initializers(initializer->constant);
+      lower_designated_initializers(initializer->constant, variable);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
       lower_c99_constant(initializer->constant);
       break;
@@ -3621,7 +3623,7 @@ Do C99 lowering on the indicated variable and its subtree.
   saved_error_position = error_position;
   error_position = var->source_corresp.decl_position;
   lower_c99_source_correspondence(&var->source_corresp);
-  lower_c99_initializer(var->init_kind, &var->initializer);
+  lower_c99_initializer(var->init_kind, &var->initializer, var);
 #if GNU_EXTENSIONS_ALLOWED
   if (force_variable_definition_via_zeroing && var->is_not_common &&
       var->storage_class == (a_storage_class)sc_unspecified &&
@@ -3756,7 +3758,8 @@ Do C99 lowering for all entities in and under the given scope.
   for (lsvip = scope->local_static_variable_inits;
        lsvip != NULL;
        lsvip = lsvip->next) {
-    lower_c99_initializer(lsvip->init_kind, &lsvip->initializer);
+    lower_c99_initializer(lsvip->init_kind, &lsvip->initializer, 
+                          lsvip->variable);
   }  /* for */
   if (scope->kind == (a_scope_kind)sck_function) {
     /* Lower the function block statement. */

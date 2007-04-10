@@ -9507,10 +9507,12 @@ have already had their designated initializers lowered.
 }  /* lower_aggregate_designated_initializers */
 
 
-static a_boolean recompute_partially_initialized_flag(a_constant_ptr aggr_con)
+static a_boolean recompute_partially_initialized_flag(a_constant_ptr aggr_con,
+                                                      a_type_ptr     aggr_type)
 /*
 Check the initialization constant aggr_con to determine if
-it partially initializes the aggregate.  Returns TRUE if the constant only
+it partially initializes the aggregate.  aggr_type is the type of the
+aggregate being initialized.  Returns TRUE if the constant only
 partially initializes the aggregate; otherwise returns FALSE.
 */
 { 
@@ -9519,9 +9521,9 @@ partially initializes the aggregate; otherwise returns FALSE.
   an_init_con_pos       con_pos;
 
   if (aggr_con->kind == (a_constant_repr_kind)ck_string) {
-    check_assertion(is_array_type(aggr_con->type));
+    check_assertion(is_array_type(aggr_type));
     return aggr_con->variant.string.length < 
-       skip_typerefs(aggr_con->type)->variant.array.variant.number_of_elements;
+            skip_typerefs(aggr_type)->variant.array.variant.number_of_elements;
   } else {
     check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
     temp_con = aggr_con->variant.aggregate.first_constant;
@@ -9542,7 +9544,8 @@ partially initializes the aggregate; otherwise returns FALSE.
         /* Aggregates that are initialized by a ck_dynamic_init are
            fully initialized. */
         if (temp_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
-          if (recompute_partially_initialized_flag(temp_con)) {
+          if (recompute_partially_initialized_flag(temp_con,
+                                                   aggr_pos.member_type)) {
             /* Any partially initialized sub-aggregate results in a partially
                initialized aggregate. */
             return TRUE;
@@ -9569,10 +9572,12 @@ partially initializes the aggregate; otherwise returns FALSE.
 }  /* recompute_partially_initialized_flag */
 
 
-void lower_designated_initializers(a_constant_ptr init_con)
+void lower_designated_initializers(a_constant_ptr init_con,
+                                   a_variable_ptr variable)
 /*
 If the initial value constant indicated by init_con contains any
-designated initializers, rewrite them as standard C.  Note that this is
+designated initializers, rewrite them as standard C.  variable points to the
+variable that is being initialized by init_con.  Note that this is
 called in C mode as well as C++ mode.
 */
 {
@@ -9584,6 +9589,12 @@ called in C mode as well as C++ mode.
     }  /* if */
     lower_aggregate_designated_initializers(init_con,
                                             (a_constant_ptr)NULL);
+    /* Lowering may have changed the initializer from partially
+       initialized to fully initialized, so re-compute it. */
+    if (variable != NULL && variable->is_partially_initialized) {
+      variable->is_partially_initialized = 
+                recompute_partially_initialized_flag(init_con, variable->type);
+    }  /* if */
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
 }  /* lower_designated_initializers */
@@ -9599,13 +9610,7 @@ C mode as well as C++ mode.
   if (designators_allowed &&
       (dip->kind == (a_dynamic_init_kind)dik_constant ||
        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate)) {
-    lower_designated_initializers(dip->variant.constant);
-    /* Lowering may have changed the initializer from partially
-       initialized to fully initialized, so re-compute it. */
-    if (dip->variable != NULL && dip->variable->is_partially_initialized) {
-      dip->variable->is_partially_initialized = 
-                   recompute_partially_initialized_flag(dip->variant.constant);
-    }  /* if */
+    lower_designated_initializers(dip->variant.constant, dip->variable);
   }  /* if */
 }  /* lower_dynamic_init_designated_initializers */
 
