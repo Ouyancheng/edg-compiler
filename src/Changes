@@ -1,5 +1,25 @@
 Version 3.10
 
+4/11/07  C-generating back end, GNU compatibility: "extern template"
+
+The change described in the 3/15/07 entry caused a problem when
+gcc_is_generated_code_target is true: the definition of an instantiated
+inline function was marked with "__attribute__((__weak__))", causing an
+execution-time failure instead of a link-time error if the function is
+called.  The C-generating back end now suppresses the "weak" attribute
+for the definition of an inline function template instance that is the
+subject of an "extern template" directive.  For example, in the following
+case the definition of foo<char>(char) is no longer marked as "weak" in
+the generated code:
+
+  template <typename T> inline int foo(T) {
+    return 0;
+  }
+  extern template int foo(char);
+  void f() {
+    foo('c');
+  }
+
 4/10/07  Abort in inlining in GNU C mode with "if" with empty dependent
          statement
 
