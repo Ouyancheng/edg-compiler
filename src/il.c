@@ -12700,7 +12700,6 @@ name lookup options.
             constant->variant.template_param.variant.templ_sizeof.type =
                                                                       new_type;
             constant->variant.template_param.variant.templ_sizeof.expr = expr;
-            fix_memory_region_problems_in_copied_constant(constant);
             con_copy = NULL;
           } else {
             /* No longer a template parameter type, so the sizeof/alignof
