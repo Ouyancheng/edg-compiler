@@ -1760,6 +1760,7 @@ Initialize a dynamic_init entry of the kind specified.
 #endif /* DO_IL_LOWERING && MULTIPLE_INIT_ROUTINES */
   dip->is_explicit_cast = FALSE;
   dip->is_partially_initialized_compound_literal = FALSE;
+  dip->uses_designated_initializers   = FALSE;
   dip->is_result_for_class_rvalue_question_mark = FALSE;
   dip->is_optimized_class_rvalue_question_mark = FALSE;
   dip->is_reused_value = FALSE;
@@ -1950,6 +1951,7 @@ Clear the fields of the given variable to default values.
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
   vp->has_flexible_array_initializer = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
+  vp->uses_designated_initializers = FALSE;
   vp->declared_with_auto_type_specifier = FALSE;
 #endif /* ifdef CIL */
 #if BACK_END_IS_CP_GEN_BE

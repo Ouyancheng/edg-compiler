@@ -2672,9 +2672,11 @@ function get_initializer does all the hard work.
       *dip = compound_constant->variant.dynamic_init;
     }  /* if */
   }  /* if */
-  if (!err && (info.any_uninitialized_member ||
-               info.uses_designated_initializers)) {
-    (*dip)->is_partially_initialized_compound_literal = TRUE;
+  if (!err) {
+    if (info.any_uninitialized_member || info.uses_designated_initializers) {
+      (*dip)->is_partially_initialized_compound_literal = TRUE;
+    }  /* if */
+    (*dip)->uses_designated_initializers = info.uses_designated_initializers;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* Record the position of the closing brace. */
@@ -2788,6 +2790,8 @@ detection of uninitialized fields).
       vp->has_flexible_array_initializer =
                                      init_info.has_flexible_array_initializer;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
+      vp->uses_designated_initializers =
+                                        init_info.uses_designated_initializers;
     }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

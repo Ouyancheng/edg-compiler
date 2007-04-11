@@ -8148,6 +8148,9 @@ Do IL lowering of an enk_temp_init expression node.
            for them). */
         temp_var->is_partially_initialized = TRUE;
       }  /* if */
+      if (dip->uses_designated_initializers) {
+        temp_var->uses_designated_initializers = TRUE;
+      }  /* if */
       if (variably_modified) {
         temp_var->has_variably_modified_type = TRUE;
       }  /* if */
@@ -9581,7 +9584,7 @@ variable that is being initialized by init_con.  Note that this is
 called in C mode as well as C++ mode.
 */
 {
-  if (designators_allowed &&
+  if (designators_allowed && variable->uses_designated_initializers &&
       init_con->kind == (a_constant_repr_kind)ck_aggregate) {
     a_memory_region_number region_to_switch_back_to = NULL_region_number;
     if (in_file_scope(init_con)) {

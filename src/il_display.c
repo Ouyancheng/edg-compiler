@@ -2351,6 +2351,9 @@ Display the indicated variable.
     disp_boolean("has_flexible_array_initializer", TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
+  if (ptr->uses_designated_initializers) {
+    disp_boolean("uses_designated_initializers", TRUE);
+  }  /* if */
 #endif /* ifdef CFE */
   if (ptr->declared_with_auto_type_specifier) {
     disp_boolean("declared_with_auto_type_specifier", TRUE);
@@ -5249,6 +5252,9 @@ Display the indicated dynamic_init structure.
   }  /* if */
   if (ptr->is_partially_initialized_compound_literal) {
     disp_boolean("is_partially_initialized_compound_literal", TRUE);
+  }  /* if */
+  if (ptr->uses_designated_initializers) {
+    disp_boolean("uses_designated_initializers", TRUE);
   }  /* if */
   if (ptr->is_result_for_class_rvalue_question_mark) {
     disp_boolean("is_result_for_class_rvalue_question_mark", TRUE);

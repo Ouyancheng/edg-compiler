@@ -2054,6 +2054,9 @@ typedef struct a_dynamic_init {
 			   designated initializers were used to initialize
 			   fields in the aggregate, potentially leading
 			   to undetected partial initialization. */
+  a_bit_field	uses_designated_initializers:1;
+			/* TRUE if the initializer contains designated
+			   initializers. */
   a_bit_field	is_result_for_class_rvalue_question_mark:1;
 			/* If TRUE, this entity is the temporary that is
 			   the result of a "?" operator that returns a
@@ -6874,6 +6877,9 @@ typedef struct a_variable {
 			   back end to allocate more storage for the variable
 			   that what is indicated by its type's size. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
+  a_bit_field	uses_designated_initializers:1;
+			/* TRUE if the initializer for this variable
+			   contains designated initializers. */
   a_bit_field	declared_with_auto_type_specifier:1;
 			/* TRUE if the variable's declaration contains the
 			   type specifier (not the storage class specifier)
