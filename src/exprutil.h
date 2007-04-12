@@ -1025,8 +1025,9 @@ extern void make_lvalue_variable_operand(a_variable_ptr  variable,
                                          a_boolean       record_expr);
 
 extern void make_lvalue_operand_from_compound_constant(
-                                                     a_constant_ptr  constant,
-                                                     an_operand      *operand);
+                                 a_constant_ptr  constant,
+                                 an_operand      *operand,
+                                 a_boolean       uses_designated_initializers);
 
 extern void conv_array_rvalue_to_lvalue(an_operand *operand);
 

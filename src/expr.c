@@ -12188,7 +12188,8 @@ to the compound literal.
          initialize a variable (if an lvalue is needed after all). */
       make_constant_operand(literal_con, result);
     } else {
-      make_lvalue_operand_from_compound_constant(literal_con, result);
+      make_lvalue_operand_from_compound_constant(literal_con, result,
+                                            dip->uses_designated_initializers);
     }  /* if */
   } else {
     /* Non-static case.  Allocate an enk_temp_init node. */

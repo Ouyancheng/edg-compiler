@@ -9584,7 +9584,8 @@ variable that is being initialized by init_con.  Note that this is
 called in C mode as well as C++ mode.
 */
 {
-  if (designators_allowed && variable->uses_designated_initializers &&
+  if (designators_allowed && 
+      (variable == NULL || variable->uses_designated_initializers) &&
       init_con->kind == (a_constant_repr_kind)ck_aggregate) {
     a_memory_region_number region_to_switch_back_to = NULL_region_number;
     if (in_file_scope(init_con)) {
