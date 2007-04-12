@@ -8212,9 +8212,11 @@ not include the function scope memory region, if any.
       }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #else /* IA64_ABI */
-      /* Place the routine in a COMDAT group so that the linker will eliminate
-         duplicate copies. */
-      put_routine_into_comdat_group(routine);
+      if (!routine->suppress_inline_body) {
+        /* Place the routine in a COMDAT group so that the linker will
+           eliminate duplicate copies. */
+        put_routine_into_comdat_group(routine);
+      }  /* if */
 #endif /* !IA64_ABI */
     } /* if */
 #endif /* LOWER_EXTERN_INLINE */
@@ -8222,7 +8224,7 @@ not include the function scope memory region, if any.
     if (routine->is_template_function &&
         !routine->is_specialized &&
         routine->storage_class == (a_storage_class)sc_unspecified &&
-        !routine->use_comdat) {
+        !routine->use_comdat && !routine->suppress_inline_body) {
       /* A defined non-inline template goes into a COMDAT group.
          Note that this is done even when the prelinker is used.  If we
          have the COMDAT feature, it's good to be able to ignore

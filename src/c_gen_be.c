@@ -8375,7 +8375,7 @@ if this routine has a body (dump nothing if it has no body).
     /* Output the storage class. */
     dump_storage_class(storage_class);
 #if IA64_ABI
-    if (rout->use_comdat && !rout->suppress_inline_body
+    if (rout->use_comdat
 #if ONE_INSTANTIATION_PER_OBJECT
         && part_of_current_output_file
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
