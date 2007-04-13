@@ -78,7 +78,7 @@ Three refinements have been made in setting the is_partially_initialized
 field in the a_variable structure of the IL when initializing
 array or class aggregates.
 
-If extended designators are used in an initializer, the front end
+If designators are used in an initializer, the front end
 cannot always determine if the initializer fully initializes the array
 or class aggregate.  The front end now conservatively sets
 is_partially_initialized to TRUE in this case (i.e., whenever a
