@@ -1165,10 +1165,10 @@ to this routine).
       check_assertion(dip != NULL);
       *init_constant = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       (*init_constant)->variant.dynamic_init = dip;
-      if (dip->uses_designated_initializers) {
-        /* Propagate the use of designated initializers upwards. */
-        init_info->uses_designated_initializers = TRUE;
-      }  /* if */
+    }  /* if */
+    if (constant.uses_designated_initializers) {
+      /* Propagate the use of designated initializers upwards. */
+      init_info->uses_designated_initializers = TRUE;
     }  /* if */
   }  /* if */
   if (!err) {
@@ -2614,6 +2614,10 @@ this function points to a tree that includes a dynamic-init entry.
     /* Return to the caller information about whether init_con involves a
        dynamic-init entry. */
     *any_dynamic_init = context.any_dynamic_initialization;
+    if (init_info->uses_designated_initializers) {
+      /* This initializer uses designated initializers. */
+      init_con->uses_designated_initializers = TRUE;
+    }  /* if */
   }  /* if */
   db_exit();
   return(init_con);
@@ -2676,11 +2680,9 @@ function get_initializer does all the hard work.
       *dip = compound_constant->variant.dynamic_init;
     }  /* if */
   }  /* if */
-  if (!err) {
-    if (info.any_uninitialized_member || info.uses_designated_initializers) {
-      (*dip)->is_partially_initialized_compound_literal = TRUE;
-    }  /* if */
-    (*dip)->uses_designated_initializers = info.uses_designated_initializers;
+  if (!err && (info.any_uninitialized_member ||
+               info.uses_designated_initializers)) {
+    (*dip)->is_partially_initialized_compound_literal = TRUE;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* Record the position of the closing brace. */
@@ -2794,8 +2796,6 @@ detection of uninitialized fields).
       vp->has_flexible_array_initializer =
                                      init_info.has_flexible_array_initializer;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
-      vp->uses_designated_initializers =
-                                        init_info.uses_designated_initializers;
     }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

@@ -10244,15 +10244,11 @@ subtree, some of which will no longer have array type.
 }  /* conv_array_rvalue_expr_to_object_pointer */
 
 
-void make_lvalue_operand_from_compound_constant(
-                                  a_constant_ptr  constant,
-                                  an_operand      *operand,
-                                  a_boolean       uses_designated_initializers)
+void make_lvalue_operand_from_compound_constant(a_constant_ptr  constant,
+                                                an_operand      *operand)
 /*
 The given constant has nonscalar type (presumably the result of a compound
 literal).  Make the given operand a variable initialized with that constant.
-uses_designated_initializers is TRUE if the constant contains
-designated initializers.
 */
 {
   /* Use a static temporary so it can be statically initialized. */
@@ -10269,7 +10265,6 @@ designated initializers.
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   temp_var->initializer.constant = constant;
-  temp_var->uses_designated_initializers = uses_designated_initializers;
   /* The operand is an lvalue for the temporary. */
   make_lvalue_variable_operand(temp_var, operand, (a_ref_entry_ptr)NULL,
                                /*record_expr=*/FALSE);
@@ -10291,10 +10286,7 @@ operand is an array rvalue.  Convert it to an lvalue for the array.
     a_constant_ptr  constant;
     check_assertion(gnu_mode && is_constant_operand(operand));
     constant = alloc_unshared_constant(&operand->variant.constant);
-    /* Conservatively assume the constant may contain designated
-       initializers . */
-    make_lvalue_operand_from_compound_constant(constant, operand,
-                                        /*uses_designated_initializers=*/TRUE);
+    make_lvalue_operand_from_compound_constant(constant, operand);
   } else {
     expr = operand->variant.expression;
     expr = conv_array_rvalue_expr_to_object_pointer(expr);

@@ -3028,9 +3028,6 @@ in C99 mode to represent a compound literal.
   if (dip->is_partially_initialized_compound_literal) {
     var->is_partially_initialized = TRUE;
   }  /* if */
-  if (dip->uses_designated_initializers) {
-    var->uses_designated_initializers = TRUE;
-  }  /* if */
   if (variably_modified) {
     var->has_variably_modified_type = TRUE;
   }  /* if */

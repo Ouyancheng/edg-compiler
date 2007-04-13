@@ -811,6 +811,7 @@ associated variant fields to default values.
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL && BACK_END_IS_CP_GEN_BE
   cp->suppress_expression_in_cp_gen_be = FALSE;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL && BACK_END_IS_CP_GEN_BE */
+  cp->uses_designated_initializers = FALSE;
 #if CENTERLINE_CHECKING
   cp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -1760,7 +1761,6 @@ Initialize a dynamic_init entry of the kind specified.
 #endif /* DO_IL_LOWERING && MULTIPLE_INIT_ROUTINES */
   dip->is_explicit_cast = FALSE;
   dip->is_partially_initialized_compound_literal = FALSE;
-  dip->uses_designated_initializers   = FALSE;
   dip->is_result_for_class_rvalue_question_mark = FALSE;
   dip->is_optimized_class_rvalue_question_mark = FALSE;
   dip->is_reused_value = FALSE;
@@ -1951,7 +1951,6 @@ Clear the fields of the given variable to default values.
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
   vp->has_flexible_array_initializer = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
-  vp->uses_designated_initializers = FALSE;
   vp->declared_with_auto_type_specifier = FALSE;
 #endif /* ifdef CIL */
 #if BACK_END_IS_CP_GEN_BE
