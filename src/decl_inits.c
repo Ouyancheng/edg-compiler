@@ -1165,10 +1165,11 @@ to this routine).
       check_assertion(dip != NULL);
       *init_constant = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       (*init_constant)->variant.dynamic_init = dip;
-    }  /* if */
-    if (constant.uses_designated_initializers) {
-      /* Propagate the use of designated initializers upwards. */
-      init_info->uses_designated_initializers = TRUE;
+      if (dip->kind == (a_dynamic_init_kind)dik_constant &&
+          dip->variant.constant->uses_designated_initializers) {
+        /* Propagate the use of designated initializers upwards. */
+        init_info->uses_designated_initializers = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (!err) {
