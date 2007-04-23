@@ -9480,20 +9480,24 @@ have already had their designated initializers lowered.
       }  /* if */
       { a_type_ptr con_type = skip_typerefs(temp_con->type);
         check_assertion_str(
-                     identical_types(con_type, member_type) ||
-                     /* A short string literal can initialize a longer
-                        char array.  Also an array of non-const chars
-                        can initialize an array of const chars. */
-                     (is_string_type(con_type) &&
-                      is_string_type(member_type) &&
-                      (temp_con->kind == (a_constant_repr_kind)ck_string ||
-                       temp_con->kind == (a_constant_repr_kind)ck_aggregate))||
+                   identical_types(con_type, member_type) ||
+                   /* A short string literal can initialize a longer
+                      char array.  Also an array of non-const chars
+                      can initialize an array of const chars. */
+                   (is_string_type(con_type) &&
+                    is_string_type(member_type) &&
+                    (temp_con->kind == (a_constant_repr_kind)ck_string ||
+                     temp_con->kind == (a_constant_repr_kind)ck_aggregate)) ||
+                   ((is_array_type(con_type) && 
+                     is_array_type(member_type)) &&
                      /* In GNU C mode, zero-length array fields can be
                         initialized with arbitrary-length arrays. */
-                     (gcc_mode && is_array_type(con_type) &&
-                      is_array_type(member_type) &&
-                      skip_typerefs(con_type)->variant.array.bound_is_zero),
-                     "lower_aggregate_designated_initializers: type mismatch");
+                     ((gcc_mode &&
+                       skip_typerefs(con_type)->variant.array.bound_is_zero) ||
+                      /* Allow an array initializer of any length to initialize
+                         an incomplete array. */
+                      is_incomplete_array_type(member_type))),
+                   "lower_aggregate_designated_initializers: type mismatch");
       }
       last_con = con_pos.ptr;
       advance_init_con_pos(&con_pos);
