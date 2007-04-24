@@ -270,6 +270,7 @@ Enter the standard predeclared functions for GCC.
 #endif /*  LONG_LONG_ALLOWED */
   a_type_ptr  intmax_type;
   a_type_ptr  wint_t_type;
+  a_type_ptr  ssize_t_type;
 #if TARG_ALL_POINTERS_SAME_SIZE
   a_type_ptr  pmode_type;
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
@@ -318,6 +319,7 @@ Enter the standard predeclared functions for GCC.
 #endif /* LONG_LONG_ALLOWED */
   intmax_type = integer_type(targ_intmax_kind);
   wint_t_type = integer_type(targ_wint_t_int_kind);
+  ssize_t_type = integer_type(targ_ssize_t_int_kind);
 #if TARG_ALL_POINTERS_SAME_SIZE
   pmode_type = get_type_with_mode(int_type, targ_pointer_mode, 
 				  &error_position);
@@ -781,19 +783,19 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func2(_strcpy, char_star, char_star, const_char_star);
   enter_gnu_builtin_func2(_strcspn, size_t, const_char_star, const_char_star);
   enter_gnu_builtin_func1(_strdup, char_star, const_char_star);
-  enter_gnu_builtin_vararg_func3(_strfmon, int,
-                                 char_star, unsigned, const_char_star);
-  enter_gnu_builtin_func1(_strlen, unsigned, const_char_star);
+  enter_gnu_builtin_vararg_func3(_strfmon, ssize_t,
+                                 char_star, size_t, const_char_star);
+  enter_gnu_builtin_func1(_strlen, size_t, const_char_star);
   enter_gnu_builtin_func3(_strncat, char_star,
-                          char_star, const_char_star, unsigned);
+                          char_star, const_char_star, size_t);
   enter_gnu_builtin_func3(_strncmp, int,
-                          const_char_star, const_char_star, unsigned);
+                          const_char_star, const_char_star, size_t);
   enter_gnu_builtin_func3(_strncpy, char_star,
-                          char_star, const_char_star, unsigned);
+                          char_star, const_char_star, size_t);
   enter_gnu_builtin_func2(_strpbrk, char_star,
                           const_char_star, const_char_star);
   enter_gnu_builtin_func2(_strrchr, char_star, const_char_star, int);
-  enter_gnu_builtin_func2(_strspn, unsigned, const_char_star, const_char_star);
+  enter_gnu_builtin_func2(_strspn, size_t, const_char_star, const_char_star);
   enter_gnu_builtin_func2(_strstr, char_star,
                           const_char_star, const_char_star);
   enter_gnu_builtin_real_math_funcs1(_tan);
@@ -814,7 +816,7 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func2(_vprintf, int, const_char_star, char_star);
   enter_gnu_builtin_func2(_vscanf, int, const_char_star, char_star);
   enter_gnu_builtin_func4(_vsnprintf, int,
-                          char_star, unsigned, const_char_star, char_star);
+                          char_star, size_t, const_char_star, char_star);
   enter_gnu_builtin_func3(_vsprintf, int,
                           char_star, const_char_star, char_star);
   enter_gnu_builtin_func3(_vsscanf, int,

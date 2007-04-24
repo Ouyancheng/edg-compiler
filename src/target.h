@@ -389,6 +389,13 @@ EXTERN an_integer_kind
 			   large enough to hold a pointer value.  Initialized
 			   to the default value but reconfigurable. */
 
+#if GNU_EXTENSIONS_ALLOWED
+EXTERN an_integer_kind
+		targ_ssize_t_int_kind;
+			/* Representation for ssize_t (a POSIX type used to
+			   count bytes in certain I/O functions). */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 #if FIXED_POINT_ALLOWED
 /*
 Fixed-point types:

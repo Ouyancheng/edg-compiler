@@ -1,5 +1,15 @@
 Version 3.10
 
+4/24/07  GNU compatibility: Types of some built-in functions
+
+The types of the following built-in GNU functions have been adjusted:
+__builtin_strfmon, __builtin_strlen, __builtin_strncat, __builtin_strncpy,
+__builtin_strspn, and __builtin_vsnprintf.  The adjustment amount to replacing
+certain uses of type "unsigned" by "size_t", and certain uses of type "int" by
+"ssize_t".  Type "ssize_t" is a signed integer type specified by POSIX to
+declare certain I/O functions; it can be configured with the new macro
+TARG_SSIZE_T_INT_KIND (and is equivalent to "ptrdiff_t" by default).
+
 4/24/07  Abort in end_mangling with --implicit_include
 
 The front end sometimes aborted with an internal error in routine

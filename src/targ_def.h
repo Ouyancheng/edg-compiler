@@ -1692,6 +1692,16 @@ typedef a_host_large_unsigned a_targ_size_t;  /* Must be
 			   targ_size_t_max. */
 #endif /* ifndef TARG_SIZE_T_MAX */
 
+#if GNU_EXTENSIONS_ALLOWED
+/* TARG_SSIZE_T_INT_KIND determines the representation of the POSIX ssize_t
+   type (a signed type used to count bytes for certain I/O functions).  It is
+   typically identical to ptrdiff_t.  Currently only used to predeclare
+   certain GNU __builtin_xyz functions. */
+#ifndef TARG_SSIZE_T_INT_KIND
+#define TARG_SSIZE_T_INT_KIND TARG_PTRDIFF_T_INT_KIND
+#endif /* ifndef TARG_SSIZE_T_INT_KIND */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 /* Specification of a target alignment requirement.  1 means no alignment
    requirement.  (TARG_MAXIMUM_PACK_ALIGNMENT must fit in this type.) */
 #ifndef TYPE_FOR_TARG_ALIGNMENT

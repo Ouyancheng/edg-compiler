@@ -430,6 +430,7 @@ This is done before command line processing.
 #if TARG_ALL_POINTERS_SAME_SIZE
   targ_pointer_mode = (a_type_mode_kind)TARG_POINTER_MODE;
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
+  targ_ssize_t_int_kind = TARG_SSIZE_T_INT_KIND;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
   targ_short_field_alignment = TARG_SHORT_FIELD_ALIGNMENT;
