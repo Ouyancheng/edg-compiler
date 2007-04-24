@@ -5068,13 +5068,13 @@ unit.
       }  /* if */
     }  /* if */
   }  /* if */
-  db_exit();
   if (kind == (a_scope_kind)sck_namespace ||
       kind == (a_scope_kind)sck_namespace_extension ||
       kind == (a_scope_kind)sck_file) {
     /* Move routine entries as needed (and remove placeholder entries). */
     perform_scheduled_routine_moves();
   }  /* if */
+  db_exit();
 }  /* wrapup_scope */
 
 
