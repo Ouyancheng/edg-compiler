@@ -5069,6 +5069,12 @@ unit.
     }  /* if */
   }  /* if */
   db_exit();
+  if (kind == (a_scope_kind)sck_namespace ||
+      kind == (a_scope_kind)sck_namespace_extension ||
+      kind == (a_scope_kind)sck_file) {
+    /* Move routine entries as needed (and remove placeholder entries). */
+    perform_scheduled_routine_moves();
+  }  /* if */
 }  /* wrapup_scope */
 
 
@@ -5808,10 +5814,6 @@ End a name scope by popping an entry off the scope stack.
   if (kind == (a_scope_kind)sck_function) {
     /* If the scope is for a routine, get a pointer to the routine. */
     curr_routine = ssep->il_scope->variant.routine.ptr;
-  } else if (kind == (a_scope_kind)sck_namespace ||
-             kind == (a_scope_kind)sck_namespace_extension ||
-             kind == (a_scope_kind)sck_file) {
-    perform_scheduled_routine_moves();
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
