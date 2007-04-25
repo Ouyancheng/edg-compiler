@@ -1927,6 +1927,7 @@ accepted.  The function returns a pointer to an IL a_constant entity.
     }  /* if */
     context->pending_init_con = NULL;
   } else {
+    a_type_ptr  required_type = context->type;
     if (init_info->designation_state == ds_partial_designation) {
       /* A designator has been started but not completed.  Yet an additional
          designator cannot appear at this level.  For example:
@@ -1935,7 +1936,6 @@ accepted.  The function returns a pointer to an IL a_constant entity.
       */
       error(ec_exp_assign);
     }  /* if */
-    a_type_ptr  required_type = context->type;
     if (!C_mode()) {
       nonconst_allowed = TRUE;
     } else if (allow_nonconstant_auto_aggr_init_in_c_mode) {
