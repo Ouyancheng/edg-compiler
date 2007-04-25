@@ -8736,12 +8736,16 @@ Return TRUE if there are additional initializable fields after the
 position indicated by aggr_pos.
 */
 {
+  a_boolean more_members;
+
   if (aggr_pos->array_init) {
-    return aggr_pos->curr_elem < aggr_pos->number_of_elements - 1;
+    more_members = (aggr_pos->curr_elem < aggr_pos->number_of_elements - 1);
   } else {
     a_field_ptr field = aggr_pos->curr_field;
-    return field != NULL && next_initializable_field(field->next) != NULL;
+    more_members = (field != NULL &&
+                    next_initializable_field(field->next) != NULL);
   }  /* if */
+  return more_members;
 }  /* any_more_members_in_aggregate */
 
 
@@ -9644,17 +9648,19 @@ partially initializes the aggregate; otherwise returns FALSE.
   a_constant_ptr        temp_con;
   an_aggregate_position aggr_pos;
   an_init_con_pos       con_pos;
+  a_boolean             is_partially_initialized;
 
   if (aggr_con->kind == (a_constant_repr_kind)ck_string) {
     check_assertion(is_array_type(aggr_type));
-    return aggr_con->variant.string.length < 
-            skip_typerefs(aggr_type)->variant.array.variant.number_of_elements;
+    is_partially_initialized = (aggr_con->variant.string.length < 
+           skip_typerefs(aggr_type)->variant.array.variant.number_of_elements);
   } else {
     check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
     temp_con = aggr_con->variant.aggregate.first_constant;
     /* Union is fully initialized if it has at least one initializer. */
     if (is_union_type(aggr_con->type)) {
-      return temp_con == NULL;
+      is_partially_initialized = (temp_con == NULL);
+      goto done;
     }  /* if */
     /* Set initial positions in both aggregate and constant. */
     init_aggregate_position(aggr_con, &aggr_pos);
@@ -9673,7 +9679,8 @@ partially initializes the aggregate; otherwise returns FALSE.
                                                    aggr_pos.member_type)) {
             /* Any partially initialized sub-aggregate results in a partially
                initialized aggregate. */
-            return TRUE;
+            is_partially_initialized = TRUE;
+            goto done;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -9692,8 +9699,10 @@ partially initializes the aggregate; otherwise returns FALSE.
     /* We've exhausted the list of constants.  If there are any more
        fields in the aggregate, this initializer only partially
        initializes the aggregate. */
-    return any_more_members_in_aggregate(&aggr_pos);
+    is_partially_initialized = any_more_members_in_aggregate(&aggr_pos);
   }  /* if */
+done:
+  return is_partially_initialized;
 }  /* recompute_partially_initialized_flag */
 
 
