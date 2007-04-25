@@ -8776,6 +8776,33 @@ the first member of the aggregate.
 }  /* make_init_zero_constant */
 
 
+static a_constant_ptr make_one_or_more_init_zero_constants(
+                                      a_type_ptr    type,
+                                      a_targ_size_t number_of_constants_needed)
+/*
+Make and return an unshared constant that is either a zero or a
+repeated zero of the indicated type.  If the type is an aggregate,
+return an aggregate constant that initializes the first member of
+the aggregate.  number_of_constants_needed specifies how many zero
+constants are required.
+*/
+{
+  a_constant_ptr zero_con;
+  a_constant_ptr con;
+
+  check_assertion(number_of_constants_needed != 0);
+  zero_con = make_init_zero_constant(type);
+  if (number_of_constants_needed == 1) {
+    con = zero_con;
+  } else {
+    con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+    con->variant.init_repeat.count = number_of_constants_needed;
+    con->variant.init_repeat.constant = zero_con;
+  }  /* if */
+  return con;
+}  /* make_one_or_more_init_zero_constants */
+
+
 /*
 Return TRUE if the aggregate position aggr_pos and the ck_designator
 constant con indicate the same aggregate member.
@@ -9093,6 +9120,77 @@ is not called for union initializations.
 }  /* find_designator_insert_point */
 
 
+static a_boolean quickly_find_designator_insert_point(
+                                              a_constant_ptr  desig_con,
+                                              a_type_ptr      aggr_type,
+                                              a_constant_ptr  prior_designator,
+                                              a_constant_ptr  prior_constant,
+                                              a_constant_ptr  earlier_aggr_con,
+                                              a_constant_ptr  *prev_con,
+                                              an_init_con_pos *earlier_con)
+/*
+Attempt to quickly find the correct designator insert point for
+designator constant desig_con.  If the insert point is found,
+the function returns TRUE and sets *prev_con to the constant after
+which the designator constant should be queued, as well as setting
+*earlier_con to point to any previous constants being overwritten.
+aggr_type is the type of the aggregate.  prior_designator points
+to the last designator that was placed in the aggregate initializer (or NULL).
+prior_constant (if not NULL) points to the last constant that was
+placed in the aggregate initializer (corresponds to prior_designator).
+earlier_aggr_con (if not NULL) points to an aggregate constant whose
+values are being overwritten by the current aggregate.
+*/
+{
+  a_boolean found_insert_point = FALSE;
+
+  if (aggr_type->kind == (a_type_kind)tk_array &&
+      prior_designator != NULL && prior_constant != NULL &&
+      desig_con->variant.designator.array_element >
+       prior_designator->variant.designator.array_element) {
+    /* Some large arrays initializers use designated initializers
+       whose values monotonically increase, causing exponential
+       behavior during the lowering of the designators.  If the
+       designator we're attempting to place immediately follows the
+       last designator we placed, there is no need to search for
+       the correct designator insert point.  If there is a gap
+       between the last designator we placed and the current one,
+       fill the gap with zeros unless the gap already contains constants
+       (either from an earlier aggregate initialization or from
+       earlier in this initialization). */
+    a_targ_size_t number_of_zero_constants_needed = 
+                    desig_con->variant.designator.array_element -
+                    prior_designator->variant.designator.array_element - 1;
+    if (number_of_zero_constants_needed == 0) {
+      /* Designated constant follows prior constant. */
+      *prev_con = prior_constant;
+      set_init_con_pos((*prev_con)->next, earlier_con);
+      found_insert_point = TRUE;
+    } else if (prior_constant->next == NULL && earlier_aggr_con == NULL) {
+      /* There is a gap between the prior constant and this one.
+         Create an appropriate number of zero constants to fill it. */
+      a_constant_ptr zero_con = make_one_or_more_init_zero_constants(
+                             skip_typerefs(array_element_type(aggr_type)),
+                             number_of_zero_constants_needed);
+      prior_constant->next = zero_con;
+      *prev_con = zero_con;
+      set_init_con_pos((a_constant_ptr)NULL, earlier_con);
+      found_insert_point = TRUE;
+    }  /* if */
+#if DEBUG
+    if (found_insert_point && db_flag_is_set("designators")) {
+      (void)fprintf(f_debug, "Quickly found insert point, prev_con = ");
+      db_constant(*prev_con);
+      (void)fprintf(f_debug, ", earlier_con.ptr = ");
+      db_constant(earlier_con->ptr);
+      (void)fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  return found_insert_point;
+}  /* quickly_find_designator_insert_point */
+
+
 static void process_union_designators(
                                     a_constant_ptr  old_con,
                                     a_constant_ptr  old_designator,
@@ -9159,6 +9257,8 @@ have already had their designated initializers lowered.
 {
   a_constant_ptr  temp_con;
   a_constant_ptr  prev_con;
+  a_constant_ptr  prior_designator = NULL;
+  a_constant_ptr  prior_constant = NULL;
   a_constant_ptr  union_designator = NULL, saved_union_init_constant = NULL;
   a_type_ptr      aggr_type = skip_typerefs(aggr_con->type);
   a_boolean       union_init = is_union_type(aggr_type);
@@ -9237,6 +9337,12 @@ have already had their designated initializers lowered.
       }  /* if */
       /* Exit the loop if we've reached a designator. */
       if (con.ptr->kind == (a_constant_repr_kind)ck_designator) break;
+      if (con.ptr != prior_constant) {
+        /* Reset pointers to prior designator and associated constant
+           once we reach a new constant without a designator. */
+        prior_designator = NULL;
+        prior_constant = NULL;
+      }  /* if */
       if (earlier_con.ptr != NULL &&
           con.ptr->kind != (a_constant_repr_kind)ck_string) {
         /* If merging old and new values, rewrite string constants as
@@ -9395,13 +9501,28 @@ have already had their designated initializers lowered.
       aggr_con->variant.aggregate.first_constant = NULL;
     } else {
       /* Array or struct initialization. */
-      /* Find the right point to insert the constants after the designator. */
-      find_designator_insert_point(con.ptr, aggr_con, &prev_con, &earlier_con);
+      /* In cases where an aggregate array is initialized with monotonically
+         increasing initializers, we may be able to quickly locate the
+         designator insert point.  If not, use the slower method. */
+      if (!quickly_find_designator_insert_point(con.ptr,
+                                                aggr_type,
+                                                prior_designator,
+                                                prior_constant, 
+                                                earlier_aggr_con,
+                                                &prev_con,
+                                                &earlier_con)) {
+        /* Find the right point to insert the constants after the
+           designator. */
+        find_designator_insert_point(con.ptr, aggr_con, &prev_con, 
+                                                                 &earlier_con);
+      }  /* if */
     }  /* if */
+    prior_designator = con.ptr;
     /* Advance to the constant following the ck_designator. */
     advance_init_con_pos(&con);
     check_assertion(con.ptr != NULL &&
                     con.ptr->kind != (a_constant_repr_kind)ck_designator);
+    prior_constant = con.ptr;
     /* Relink the previous constant (at the insert point) to the first
        constant following the ck_designator. */
     if (prev_con == NULL) {

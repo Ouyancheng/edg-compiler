@@ -1,5 +1,15 @@
 Version 3.10
 
+4/25/07  Improved performance when lowering large arrays that use
+         designated initializers
+
+The performance of the front end when lowering large arrays that
+use designated initializers can be poor.  One common case that arises
+(e.g., in the source code for glibc) is the case where monotonically
+increasing designated initializers are used to initialize a large
+array.  The lowering algorithm has been modified to perform better
+in this case.
+
 4/25/07  GNU compatibility: Spurious error on elaborated qualified name
 
 In GNU C++ mode with gnu_version < 30400, the front end sometimes issued a
