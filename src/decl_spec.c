@@ -1463,15 +1463,16 @@ caution when modifying this routine.
          is a qualified typedef name. */
       allow_typedef = TRUE;
       if (!locator_for_curr_id.is_class_member) {
-        /* GNU C++ compilers treat elaborated class names qualified with the
-           current namespace scope as unqualified names. */
+        /* GNU C++ compilers sometimes treat elaborated class names qualified
+           with the current namespace scope as unqualified names. */
         a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+        a_namespace_ptr          nsp =
+                                  qualifier_namespace_ptr(locator_for_curr_id);
         if (((ssep->kind == (a_scope_kind)sck_namespace ||
               ssep->kind == (a_scope_kind)sck_namespace_extension) &&
-             ssep->il_scope->variant.assoc_namespace ==
-                              qualifier_namespace_ptr(locator_for_curr_id)) ||
-            (ssep->kind == (a_scope_kind)sck_file &&
-             qualifier_namespace_ptr(locator_for_curr_id) == NULL)) {
+             ssep->il_scope->variant.assoc_namespace == nsp) ||
+            (ssep->kind == (a_scope_kind)sck_file && nsp == NULL)) {
+          a_boolean  clear_qualifier = TRUE;
           if (is_tag_definition || next_tok == tok_semicolon) {
             /* Issue a warning if the tag introduces a class definition or a
                stand-alone declaration. */
@@ -1482,8 +1483,24 @@ caution when modifying this routine.
               err_code = ec_nonstd_qualifier_in_namespace_member_decl;
             }  /* if */
             pos_warning(err_code, &pos_curr_token);
+          } else {
+            /* If qualified lookup finds something, don't treat the name as
+               unqualified. */
+            a_symbol_ptr  qual_lookup_result;
+            if (nsp == NULL) {
+              qual_lookup_result = file_scope_id_lookup(
+                                       il_header.primary_scope,
+                                       &locator_for_curr_id, IDL_MUST_BE_TAG);
+            } else {
+              qual_lookup_result = namespace_qualified_id_lookup(
+                                   &locator_for_curr_id, nsp, IDL_MUST_BE_TAG);
+            }  /* if */
+            clear_qualifier = (qual_lookup_result == NULL);
+            clear_specific_symbol(locator_for_curr_id);
           }  /* if */
-          clear_qualifier_from_locator(&locator_for_curr_id);
+          if (clear_qualifier) {
+            clear_qualifier_from_locator(&locator_for_curr_id);
+          }  /* if */
         }  /*  if */
       }  /*  if */
     }  /* if */
