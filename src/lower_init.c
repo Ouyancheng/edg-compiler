@@ -9174,7 +9174,7 @@ values are being overwritten by the current aggregate.
       /* There is a gap between the prior constant and this one.
          Create an appropriate number of zero constants to fill it. */
       a_constant_ptr zero_con = make_one_or_more_init_zero_constants(
-                             skip_typerefs(array_element_type(aggr_type)),
+                             f_skip_typerefs(array_element_type(aggr_type)),
                              number_of_zero_constants_needed);
       prior_constant->next = zero_con;
       *prev_con = zero_con;
