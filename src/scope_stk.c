@@ -4370,77 +4370,83 @@ NULL.
 #endif /* CHECKING */
     case sk_class_or_struct_tag:
     case sk_union_tag:
-      if (is_member_of_unnamed_namespace(
-                                    &type_symbol_type(sym)->source_corresp)) {
-        /* Member functions and static data members of classes declared in
-           unnamed namespaces can be checked: they should be defined if used,
-           and they're useless if not used. */
-        a_type_ptr      type = type_symbol_type(sym);
-        a_class_type_supplement_ptr
-                        ctsp = type->variant.class_struct_union.extra_info;
+      { a_type_ptr  type = type_symbol_type(sym);
+        if (is_member_of_unnamed_namespace(&type->source_corresp)) {
+          /* Member functions and static data members of classes declared in
+             unnamed namespaces can be checked: they should be defined if used,
+             and they're useless if not used. */
+          a_class_type_supplement_ptr
+                           ctsp = type->variant.class_struct_union.extra_info;
 
-        if (ctsp->assoc_scope != NULL) {
-          /* A class definition was provided. */
-          a_routine_ptr   rp = ctsp->assoc_scope->routines;
-          a_variable_ptr  vp = ctsp->assoc_scope->variables;
-          /* Diagnose undefined and unused member functions: */
-          for (; rp != NULL; rp = rp->next) {
-            if ((rp->source_corresp.referenced
+          if (ctsp->assoc_scope != NULL) {
+            /* A class definition was provided. */
+            a_routine_ptr   rp = ctsp->assoc_scope->routines;
+            a_variable_ptr  vp = ctsp->assoc_scope->variables;
+            /* Diagnose undefined and unused member functions: */
+            for (; rp != NULL; rp = rp->next) {
+              if ((rp->source_corresp.referenced
 #if IA64_ABI && DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-                 && rp->overridden_function_for_covariant_return_type == NULL
+                   && rp->overridden_function_for_covariant_return_type == NULL
 #endif /* IA64_ABI && DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL... */
                                                                           ) ||
-                (rp->is_virtual && !rp->pure_virtual &&
-                 !rp->compiler_generated)) {
-              /* Virtual functions are in some way always "referenced" by the
-                 virtual function table, but pure virtual functions and
-                 compiler generated virtual functions (destructors) do not
-                 always need to have a definition.  Similarly, no diagnostic
-                 should be issued for IA-64 virtual call thunks. */
-              if (!routine_defined(rp)) {
-                pos_sy_diagnostic(es_discretionary_error,
-                                  ec_virtual_function_never_defined,
-                                  &rp->source_corresp.decl_position,
-                                  (a_symbol_ptr)rp->source_corresp.assoc_info);
+                  (rp->is_virtual && !rp->pure_virtual &&
+                   !rp->compiler_generated)) {
+                /* Virtual functions are in some way always "referenced" by the
+                   virtual function table, but pure virtual functions and
+                   compiler generated virtual functions (destructors) do not
+                   always need to have a definition.  Similarly, no diagnostic
+                   should be issued for IA-64 virtual call thunks. */
+                if (!routine_defined(rp)) {
+                  an_error_severity  sev = es_discretionary_error;
+                  if (!type->source_corresp.referenced) {
+                    /* If the enclosing class is unreferenced, the lack of a
+                       definition for a virtual function is rarely a serious
+                       problem. */
+                    sev = es_remark;
+                  }  /* if */
+                  pos_sy_diagnostic(sev, ec_virtual_function_never_defined,
+                                    &rp->source_corresp.decl_position,
+                                    symbol_for(rp));
+                }  /* if */
+              } else if (!rp->source_corresp.referenced &&
+                         !rp->compiler_generated &&
+                         !rp->is_virtual &&
+                         /* Don't warn about members that might be declared
+                            to avoid compiler generated declarations. */
+                         !((rp->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+                            rp->special_kind ==
+                                    (a_special_function_kind)sfk_destructor ||
+                            (rp->special_kind ==
+                                    (a_special_function_kind)sfk_operator && 
+                             rp->variant.opname_kind == 
+                                    (an_opname_kind)onk_assign)) &&
+                           !routine_defined(rp))) {
+                report_unreferenced(symbol_for(rp),
+                                    ec_declared_but_not_referenced,
+                                    es_warning);
               }  /* if */
-            } else if (!rp->source_corresp.referenced &&
-                       !rp->compiler_generated &&
-                       !rp->is_virtual &&
-                       /* Don't warn about members that might be declared
-                          to avoid compiler generated declarations. */
-                       !((rp->special_kind ==
-                                  (a_special_function_kind)sfk_constructor ||
-                          rp->special_kind ==
-                                  (a_special_function_kind)sfk_destructor ||
-                          (rp->special_kind ==
-                                  (a_special_function_kind)sfk_operator && 
-                           rp->variant.opname_kind == 
-                                  (an_opname_kind)onk_assign)) &&
-                         !routine_defined(rp))) {
-              report_unreferenced((a_symbol_ptr)rp->source_corresp.assoc_info,
-                                  ec_declared_but_not_referenced,
-                                  es_warning);
-            }  /* if */
-          }  /* for */
-          /* Diagnose undefined and unused static data members: */
-          for (; vp != NULL; vp = vp->next) {
-            if (vp->source_corresp.referenced &&
-                vp->storage_class == (a_storage_class)sc_extern &&
-                !vp->is_member_constant) {
-              pos_sy_error(ec_never_defined,
-                           &vp->source_corresp.decl_position,
-                           (a_symbol_ptr)vp->source_corresp.assoc_info);
-            } else if (!vp->source_corresp.referenced) {
-              report_unreferenced((a_symbol_ptr)vp->source_corresp.assoc_info,
-                                  ec_declared_but_not_referenced,
-                                  es_warning);
+            }  /* for */
+            /* Diagnose undefined and unused static data members: */
+            for (; vp != NULL; vp = vp->next) {
+              if (vp->source_corresp.referenced &&
+                  vp->storage_class == (a_storage_class)sc_extern &&
+                  !vp->is_member_constant) {
+                pos_sy_error(ec_never_defined,
+                             &vp->source_corresp.decl_position,
+                             symbol_for(vp));
+              } else if (!vp->source_corresp.referenced) {
+                report_unreferenced(symbol_for(vp),
+                                    ec_declared_but_not_referenced,
+                                    es_warning);
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
-      }  /* if */
 #if CHECKING
-      scp = &type_symbol_type(sym)->source_corresp;
+        scp = &type->source_corresp;
 #endif /* CHECKING */
+      }
       break;
     case sk_class_template:
       {
