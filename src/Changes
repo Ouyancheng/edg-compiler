@@ -42,8 +42,12 @@ TARG_SSIZE_T_INT_KIND (and is equivalent to "ptrdiff_t" by default).
 4/24/07  Abort in end_mangling with --implicit_include
 
 The front end sometimes aborted with an internal error in routine
-"end_mangling" in lower_name.c ("wrong number of leftover spaces") after
-processing an implicitly-included source file.  This is now fixed.
+"end_mangling" in lower_name.c ("wrong nunber of leftover spaces"; note the
+misspelling of "number" which is now fixed) after processing an implicitly-
+included source file.  This is now fixed.  (The underlying problem was that
+placeholder entries on the file scope's "routines" list had not yet been
+replaced by routines scheduled to be moved to the placeholders' position.
+Attempting to mangle the placeholder entries triggered the abort.)
 
 4/11/07  GNU compatibility: "extern template" in the IA64 ABI
 
