@@ -9150,6 +9150,7 @@ values are being overwritten by the current aggregate.
 
   if (aggr_type->kind == (a_type_kind)tk_array &&
       prior_designator != NULL && prior_constant != NULL &&
+      prior_constant->kind != (a_constant_repr_kind)ck_init_repeat &&
       desig_con->variant.designator.array_element >
        prior_designator->variant.designator.array_element) {
     /* Some large arrays initializers use designated initializers
