@@ -575,7 +575,7 @@ other mangled names.
     } while (ch != '\0');
     check_assertion_str(mctl->num_leftover_spaces == 0 &&
                         mangling_text_buffer->size == mctl->length,
-                        "end_mangling: wrong nunber of leftover spaces");
+                        "end_mangling: wrong number of leftover spaces");
   }  /* if */
   buffer = mangling_text_buffer->buffer;
   if (final) {
