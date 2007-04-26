@@ -917,6 +917,7 @@ EXTERN a_boolean
 #undef TARG_PTRDIFF_T_INT_KIND
 #undef TARG_SIZE_T_MAX
 #undef TARG_SIZE_T_INT_KIND
+#undef TARG_SSIZE_T_INT_KIND
 #undef TARG_SIZEOF_FLOAT
 #undef TARG_ALIGNOF_FLOAT
 #undef TARG_SIZEOF_DOUBLE
@@ -1028,6 +1029,7 @@ EXTERN a_boolean
 #define TARG_PTRDIFF_T_INT_KIND targ_ptrdiff_t_int_kind
 #define TARG_SIZE_T_MAX targ_size_t_max
 #define TARG_SIZE_T_INT_KIND targ_size_t_int_kind
+#define TARG_SSIZE_T_INT_KIND targ_ssize_t_int_kind
 #define TARG_SIZEOF_FLOAT targ_sizeof_float
 #define TARG_ALIGNOF_FLOAT targ_alignof_float
 #define TARG_SIZEOF_DOUBLE targ_sizeof_double
