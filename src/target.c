@@ -530,6 +530,9 @@ This is done before command line processing.
   cp_gen_be_target_matches_source_dialect =
                                        CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT;
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if !IA64_ABI
+  targ_runtime_elem_count_int_kind = TARG_RUNTIME_ELEM_COUNT_INT_KIND;
+#endif /* !IA64_ABI */
   init_character_sizes();
 }  /* target_early_init */
 

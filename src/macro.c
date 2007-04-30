@@ -6779,6 +6779,22 @@ from the front end to the runtime.
 			   "__EDG_LOWER_VARIABLE_LENGTH_ARRAYS",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+#if IA64_ABI
+  /* Are we using the variant form of array cookies for the IA-64 ABI? */
+  (void)enter_predef_macro(conv_unsigned_long_to_str(
+                            (unsigned long)IA64_ABI_USE_VARIANT_ARRAY_COOKIES),
+			   "__EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* IA64_ABI */
+#if !IA64_ABI
+  /* What type should we use for number_of_elements arguments in cfront ABI? */
+  (void)enter_predef_macro(
+                           int_kind_name(targ_runtime_elem_count_int_kind),
+			   "__EDG_ELEM_COUNT_PARAM_TYPE",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* !IA64_ABI */
 #endif /* DO_IL_LOWERING */
   /* Define the ABI compatibility version being used. */
   (void)enter_predef_macro(conv_unsigned_long_to_str
@@ -6818,14 +6834,6 @@ from the front end to the runtime.
 			   "__EDG_ANSIC",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-#if IA64_ABI
-  /* Are we using the variant form of array cookies for the IA-64 ABI? */
-  (void)enter_predef_macro(conv_unsigned_long_to_str(
-                            (unsigned long)IA64_ABI_USE_VARIANT_ARRAY_COOKIES),
-			   "__EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-#endif /* IA64_ABI */
 }  /* init_runtime_macros */
 
 

@@ -1895,7 +1895,7 @@ for the Cfront-like ABI, type size_t for the IA-64 ABI.
 #if IA64_ABI
                  targ_size_t_int_kind,
 #else /* !IA64_ABI */
-                 (an_integer_kind)ik_int,
+                 targ_runtime_elem_count_int_kind,
 #endif /* IA64_ABI */
                  (a_type_ptr)NULL);
   /* Allocate an expression node for the constant. */
@@ -1930,11 +1930,11 @@ all dimensions.
     num_elem_node = add_cast_if_necessary(num_elem_node,
                                           integer_type(
 #if IA64_ABI
-                                                       targ_size_t_int_kind
+                                               targ_size_t_int_kind
 #else /* !IA64_ABI */
-                                                       (an_integer_kind)ik_int
+                                               targ_runtime_elem_count_int_kind
 #endif /* IA64_ABI */
-                                                      ));
+                                               ));
   } else {
     /* Not a VLA. */
     a_boolean        is_array = FALSE;
@@ -2317,6 +2317,10 @@ IA-64 ABI; see comments below.
                                             ctor_routine);
     }  /* if */
   }  /* if */
+#else /* !IA64_ABI */
+    /* Cast to the proper type for the element count parameter. */
+    num_elem_node=add_cast_if_necessary(num_elem_node,
+                               integer_type(targ_runtime_elem_count_int_kind));
 #endif /* IA64_ABI */
   /* Build an expression for the address of the constructor. */
   ctor_addr_node = expr_for_pointer_to_constructor(ctor_routine);
@@ -2344,10 +2348,6 @@ IA-64 ABI; see comments below.
       make_zero_of_proper_type(void_star_type(), &null_constant);
       entity_node = alloc_node_for_constant(&null_constant);
     }  /* if */
-    /* The runtime routines take an element count of type int.
-       If we have size_t now, convert to int. */
-    num_elem_node=add_cast_if_necessary(num_elem_node,
-                                        integer_type((an_integer_kind)ik_int));
 #else /* IA64_ABI */
     if (entity_node != NULL)
 #endif /* IA64_ABI */
@@ -2543,10 +2543,9 @@ IA-64 ABI, the routines called are different.
          __placement_array_new(entity_node, num_elems, size_elem,
                                ctor_routine, dtor_routine)
   */
-  /* The runtime routines take an element count of type int.
-     If we have size_t now, convert to int. */
+  /* Cast to the proper type for the element count parameter. */
   num_elem_node = add_cast_if_necessary(num_elem_node,
-                                        integer_type((an_integer_kind)ik_int));
+                               integer_type(targ_runtime_elem_count_int_kind));
   /* Build a constant node for the size of the array elements. */
   size_elem_node = size_elem_node_from_pointer_type(entity_type);
   ctor_addr_node = expr_for_pointer_to_constructor(ctor_routine);

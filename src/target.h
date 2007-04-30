@@ -857,6 +857,12 @@ EXTERN a_boolean
 			   if string literals are not shared because they
 			   might be writable (as in pcc mode). */
 
+#if !IA64_ABI
+EXTERN an_integer_kind
+		targ_runtime_elem_count_int_kind;
+			/* Type used for number_of_elements arguments
+			   in the cfront ABI. */
+#endif /* !IA64_ABI */
 
 
 #ifndef DO_NOT_UNDEF_TARGET_MACROS
@@ -953,6 +959,9 @@ EXTERN a_boolean
 #undef TARG_LDBL_MAX_EXP
 #undef MSVC_IS_GENERATED_CODE_TARGET
 #undef MSVC_TARGET_VERSION_NUMBER
+#if !IA64_ABI
+#undef TARG_RUNTIME_ELEM_COUNT_INT_KIND
+#endif /* !IA64_ABI */
 /* MAKE_TARG_NAMES_REFER_TO_VARIABLES cannot be set when this file is included
    by target.c.  If it was previously defined, undefine it and set it to the
    value required by target.c. */
@@ -1072,6 +1081,9 @@ EXTERN a_boolean
 #define TARG_LDBL_MAX_EXP targ_ldbl_max_exp
 #define MSVC_IS_GENERATED_CODE_TARGET msvc_is_generated_code_target
 #define MSVC_TARGET_VERSION_NUMBER msvc_target_version_number
+#if !IA64_ABI
+#define TARG_RUNTIME_ELEM_COUNT_INT_KIND targ_runtime_elem_count_int_kind
+#endif /* !IA64_ABI */
 #endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

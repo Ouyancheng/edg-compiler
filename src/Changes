@@ -1,5 +1,32 @@
 Version 3.10
 
+4/30/07  Incorrect type for argument to __array_new and __array_new_zero
+         runtime routines in the Cfront-like ABI
+
+While investigating the change listed below it was discovered that the
+first argument to the Cfront-like ABI routines __array_new and
+__array_new_zero was being passed as type size_t while the parameter
+(i.e., number_of_elements) was declared as type int.  The discrepancy
+has been resolved.  If PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T is TRUE,
+both are now type ptrdiff_t, otherwise int as described below.
+
+4/30/07  Type of argument passed to Cfront-like ABI runtime routines for
+         number of elements
+
+Historically the type of the argument passed to the Cfront-like ABI
+runtime routes to represent the number of elements in an array
+(i.e., number_of_elements) is int.  In some configurations it
+may be desirable to allow this type to be ptrdiff_t.  A change has
+been made to the front end and runtime library to accommodate this.
+A new configuration macro, PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T,
+when set to TRUE will cause the front end to pass the number of
+elements argument as ptrdiff_t and the runtime library to expect
+the parameter as ptrdiff_t.  The default value for the macro is TRUE.
+The old behavior can be obtained by setting
+PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T to FALSE.
+PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T can only be set to TRUE when
+ABI_COMPATIBILITY_VERSION >= 310.  The IA-64 ABI is unchanged.
+
 4/25/07  Undefined virtual functions in unnamed namespaces
 
 The front end previously always issued a discretionary error when a virtual

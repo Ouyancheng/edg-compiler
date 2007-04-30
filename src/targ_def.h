@@ -3409,6 +3409,34 @@ the region table for the portable implementation of EH.
  #error -- The IA-64 ABI requires ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 #endif /* IA64_ABI && !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
+#if !IA64_ABI
+/*
+Traditionally the number_of_elements arguments to the Cfront ABI is
+an int.  Setting PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T flag to TRUE
+changes the argument type to ptrdiff_t.  Supported only in
+ABI versions 3.10 and higher.
+*/
+#ifndef PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T
+#if ABI_COMPATIBILITY_VERSION < 310 || CFRONT_OBJECT_CODE_COMPATIBILITY
+#define PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T FALSE  /* Do not change. */
+#else /* !(ABI_COMPATIBILITY_VERSION < 310 || CFRONT... ) */
+#define PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T TRUE  /* Can be changed. */
+#endif /* ABI_COMPATIBILITY_VERSION < 310 || CFRONT... */
+#endif /* ifndef PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T */
+#if PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T && CFRONT_OBJECT_CODE_COMPATIBILITY
+ #error -- PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T is incompatible with \
+           CFRONT_OBJECT_CODE_COMPATIBILITY
+#endif /* PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T && CFRONT_... */
+#if PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T && ABI_COMPATIBILITY_VERSION < 310
+ #error -- PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T is incompatible with \
+           ABI_COMPATIBILITY_VERSION < 310
+#endif /* PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T && ABI_... */
+#if PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T
+#define TARG_RUNTIME_ELEM_COUNT_INT_KIND TARG_PTRDIFF_T_INT_KIND
+#else /* !PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T */
+#define TARG_RUNTIME_ELEM_COUNT_INT_KIND ((an_integer_kind)ik_int)
+#endif /* PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T */
+#endif /* !IA64_ABI */
 
 /*
 Flag that is TRUE if the definition of extern inline functions
