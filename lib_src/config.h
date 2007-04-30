@@ -340,6 +340,24 @@ abort should be displayed.
 #define DISPLAY_ABORT_DESCRIPTION TRUE
 #endif /* ifndef DISPLAY_ABORT_DESCRIPTION */
 
+/*
+Determine the type to be used in the non-IA-64 ABI to pass an element count
+to routines such as __vec_new.  For cfront-compatibility purposes the type
+of this parameter was originally "int".  Starting with version 3.10, the
+front end can be configured to use the type of ptrdiff_t as the element count.
+Note that this is ptrdiff_t and not size_t, because the special value -1 is
+used to indicate an unknown element count in some cases.  The front end
+defines the macro __EDG_ELEM_COUNT_PARAM_TYPE to the type that is used to
+pass the element count.
+*/
+#ifndef __EDG_IA64_ABI
+#ifdef __EDG_ELEM_COUNT_PARAM_TYPE
+typedef __EDG_ELEM_COUNT_PARAM_TYPE an_element_count_param;
+#else /* ifndef __EDG_ELEM_COUNT_PARAM_TYPE */
+typedef int an_element_count_param;
+#endif /* ifdef __EDG_ELEM_COUNT_PARAM_TYPE */
+#endif /* ifndef __EDG_IA64_ABI */
+
 #endif /* CONFIG_H */
 
 

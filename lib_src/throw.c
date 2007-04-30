@@ -712,8 +712,8 @@ requires cleanup.
             elements = (an_element_count)*element_addr;
          }  /* if */
 #ifndef __EDG_IA64_ABI
-          __vec_delete(obj_addr, elements, ehasp->element_size, dtor_ptr,
-                      /*delete_flag=*/FALSE, /*unused_arg=*/0);
+          __vec_delete(obj_addr, (ptrdiff_t)elements, ehasp->element_size,
+                       dtor_ptr, /*delete_flag=*/FALSE, /*unused_arg=*/0);
 #else /* ifdef __EDG_IA64_ABI */
           ABI_NAMESPACE::__cxa_vec_dtor(obj_addr, elements, 
                                         ehasp->element_size, dtor_ptr);

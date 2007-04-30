@@ -64,16 +64,16 @@ EXTERN_C void _array_pointer_not_from_vec_new();
 struct an_array_alloc_eh_info {
   void*	array_ptr;
 			/* Pointer to the memory allocated for the array. */
-  a_sizeof_t
+  ptrdiff_t  
 		number_of_elements;
 			/* Total number of elements in the array. */
-  a_sizeof_t
+  size_t  
 		element_size;
 			/* Size of each element. */
-  a_sizeof_t
+  size_t  
 		prefix_size;
                         /* Size of the array prefix. */
-  a_sizeof_t
+  size_t  
 		elements_processed;
 			/* Number of elements constructed or destructed so
 			   far. */
@@ -273,10 +273,10 @@ prefix_size.
 #endif /* ifdef __EDG_IA64_ABI */
 #endif /* USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
 
-static inline a_boolean record_array_alloc_info(void*	array_ptr,
-	   				        size_t	size,
-					        int	number_of_elements,
-						size_t	element_size)
+static inline a_boolean record_array_alloc_info(void*	  array_ptr,
+	   				        size_t	  size,
+					        ptrdiff_t number_of_elements,
+						size_t	  element_size)
 /*
 Record the size of the array so that it can be retrieved later using
 the array pointer.  Returns TRUE if an error occurred and the size
@@ -406,7 +406,7 @@ The number of elements in the array is returned in *number_of_elements.
                     "prefix_size" is only used when
                     USE_PREFIX_FOR_ARRAY_ALLOC_INFO is true. */
 static void *array_new_general(void                  *array_ptr,
-                               int                   number_of_elements,
+                               ptrdiff_t	     number_of_elements,
                                size_t                element_size,
                                size_t                prefix_size,
                                void                  *src_array_ptr,
@@ -458,9 +458,9 @@ this reason, the alternate mechanism is recommended for production
 use.
 */
 {
-  size_t   array_size;
-  int      i;
-  void     *arr_ptr;
+  size_t    array_size;
+  ptrdiff_t i;
+  void      *arr_ptr;
 
 #if EXCEPTION_HANDLING
   an_eh_stack_entry		ehse;
@@ -569,7 +569,7 @@ error_exit:
 
 #ifndef __EDG_IA64_ABI
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
-EXTERN_C void *__array_new(int                          number_of_elements,
+EXTERN_C void *__array_new(an_element_count_param       number_of_elements,
                            size_t                       element_size,
                            a_constructor_ptr	 	ctor,
                            a_destructor_ptr	        dtor,
@@ -594,7 +594,7 @@ routine is one that requires two arguments.
 #if ABI_COMPATIBILITY_VERSION >= 234
 EXTERN_C void *__placement_array_new(
 			   void				*array_ptr,
-			   int                          number_of_elements,
+			   an_element_count_param       number_of_elements,
                            size_t                       element_size,
                            a_constructor_ptr	 	ctor,
                            a_destructor_ptr	        dtor)
@@ -615,7 +615,7 @@ information and to call the constructor for each array element.
 
 
 EXTERN_C void *__vec_new_eh(void                         *array_ptr,
-                            int                          number_of_elements,
+                            an_element_count_param       number_of_elements,
                             size_t                       element_size,
                             a_constructor_ptr	 	 ctor,
                             a_destructor_ptr	         dtor)
@@ -634,7 +634,7 @@ operator new.
 
 
 EXTERN_C void *__vec_new(void                         *array_ptr,
-                         int                          number_of_elements,
+                         an_element_count_param       number_of_elements,
                          size_t                       element_size,
                          a_constructor_ptr            ctor)
 /*
@@ -675,13 +675,13 @@ can never be zero.
 
 
 #if ABI_COMPATIBILITY_VERSION >= 300
-EXTERN_C void *__array_new_zero(int                   number_of_elements,
-                                size_t                element_size,
-                                a_constructor_ptr     ctor,
-                                a_destructor_ptr      dtor,
-                                a_new_ptr             new_routine,
-                                a_delete_ptr          delete_routine,
-                                int                   is_two_arg)
+EXTERN_C void *__array_new_zero(an_element_count_param number_of_elements,
+                                size_t                 element_size,
+                                a_constructor_ptr      ctor,
+                                a_destructor_ptr       dtor,
+                                a_new_ptr              new_routine,
+                                a_delete_ptr           delete_routine,
+                                int                    is_two_arg)
 /*
 This entry point is used for operations requiring value-initialization.
 In such cases, memory is zeroed before calling a (default) constructor
@@ -696,11 +696,11 @@ on it.  See array_new_general for the meaning of the parameters.
 
 
 EXTERN_C void *__placement_array_new_zero(
-                                        void               *array_ptr,
-                                        int                number_of_elements,
-                                        size_t             element_size,
-                                        a_constructor_ptr  ctor,
-                                        a_destructor_ptr   dtor)
+                                     void                   *array_ptr,
+                                     an_element_count_param number_of_elements,
+                                     size_t                 element_size,
+                                     a_constructor_ptr      ctor,
+                                     a_destructor_ptr       dtor)
 /*
 This entry point is used for placement array new operations requiring value-
 initialization.  The actual memory is allocated by a call to the appropriate
@@ -715,11 +715,11 @@ the array size information and to call the constructor for each array element.
 }  /* __placement_array_new_zero */
 
 
-EXTERN_C void *__vec_new_eh_zero(void               *array_ptr,
-                                 int                number_of_elements,
-                                 size_t             element_size,
-                                 a_constructor_ptr  ctor,
-                                 a_destructor_ptr   dtor)
+EXTERN_C void *__vec_new_eh_zero(void                   *array_ptr,
+                                 an_element_count_param number_of_elements,
+                                 size_t                 element_size,
+                                 a_constructor_ptr      ctor,
+                                 a_destructor_ptr       dtor)
 /*
 This entry point is used by code that uses exception handling for
 new operations that do not involve the use of a class specific
@@ -745,7 +745,7 @@ EXTERN_C void *ABI_NAMESPACE::__cxa_vec_new(
 The entry point used for ordinary array new.
 */
 {
-  return (array_new_general((void *)NULL, (int)number_of_elements,
+  return (array_new_general((void *)NULL, (ptrdiff_t)number_of_elements,
                             element_size, prefix_size, (void *)NULL,
                             ctor, dtor, (a_new_ptr)NULL, (a_delete_ptr)NULL,
                             /*is_two_arg=*/FALSE, /*zero_init=*/FALSE));
@@ -765,7 +765,7 @@ The entry point used for array new with class-specific new and delete
 operators.
 */
 {
-  return (array_new_general((void *)NULL, (int)number_of_elements,
+  return (array_new_general((void *)NULL, (ptrdiff_t)number_of_elements,
                             element_size, prefix_size, (void *)NULL,
                             ctor, dtor, new_routine, delete_routine,
                             /*is_two_arg=*/FALSE, /*zero_init=*/FALSE));
@@ -785,7 +785,7 @@ The entry point used for array new with class-specific new and delete
 operators where the delete operator, if any, takes two arguments.
 */
 {
-  return (array_new_general((void *)NULL, (int)number_of_elements,
+  return (array_new_general((void *)NULL, (ptrdiff_t)number_of_elements,
                             element_size, prefix_size, (void *)NULL,
                             ctor, dtor, new_routine, 
                             (a_delete_ptr)delete_routine,
@@ -804,7 +804,7 @@ The entry point used for constructing an array of objects where the memory has
 already been allocated.
 */
 {
-  (void)(array_new_general(array_ptr, (int)number_of_elements,
+  (void)(array_new_general(array_ptr, (ptrdiff_t)number_of_elements,
                            element_size, /*prefix_size=*/0, (void *)NULL,
                            ctor, dtor, (a_new_ptr)NULL, (a_delete_ptr)NULL,
                            /*is_two_arg=*/FALSE, /*zero_init=*/FALSE));
@@ -822,7 +822,7 @@ EXTERN_C void ABI_NAMESPACE::__cxa_vec_cctor(
 The entry point used for copying an array of objects.
 */
 {
-  (void)(array_new_general(array_ptr, (int)number_of_elements,
+  (void)(array_new_general(array_ptr, (ptrdiff_t)number_of_elements,
                            element_size, /*prefix_size=*/0, src_array_ptr,
                            (a_constructor_ptr)ctor, dtor, (a_new_ptr)NULL,
                             (a_delete_ptr)NULL, /*is_two_arg=*/FALSE, 
@@ -843,12 +843,12 @@ an exception.
      reverse order. */
   an_array_alloc_eh_info_ptr	aaehip = ehsep->variant.array_alloc_eh_info;
   a_destructor_ptr		dtor = aaehip->destructor;
-  a_sizeof_t			number_of_elements;
-  a_sizeof_t			element_size;
+  size_t  			number_of_elements;
+  size_t  			element_size;
   void*               		arr_ptr;
   void*				array_ptr;
-  a_sizeof_t			i;
-  a_sizeof_t		        first_element;
+  size_t  			i;
+  size_t  		        first_element;
 
 #ifdef __EDG_IA64_ABI
   if (aaehip->terminate_immediately) {
@@ -897,7 +897,7 @@ an exception.
 /*ARGSUSED*/ /* terminate_immediately is used only in the IA-64 ABI. */
 #endif /* ifndef __EDG_IA64_ABI */
 static void array_delete_general(void                *array_ptr,
-                                 int                 number_of_elements_param,
+                                 ptrdiff_t           number_of_elements_param,
                                  size_t              element_size,
                                  size_t              prefix_size,
                                  a_destructor_ptr    dtor,
@@ -921,7 +921,7 @@ destructor elements throws an exception; otherwise, the remainder of the
 elements will be destroyed and the exception will be rethrown.
 */
 {
-  int                   i;
+  ptrdiff_t             i;
   void                  *arr_ptr;
   size_t		array_size = 0;
   size_t		number_of_elements = number_of_elements_param;
@@ -996,12 +996,12 @@ elements will be destroyed and the exception will be rethrown.
 
 #ifndef __EDG_IA64_ABI
 /*ARGSUSED*/ /* <-- "unused" is unused. */
-EXTERN_C void __vec_delete(void                *array_ptr,
-                           int                 number_of_elements,
-                           size_t              element_size,
-                           a_destructor_ptr    dtor,
-                           int                 delete_flag,
-                           int                 unused)
+EXTERN_C void __vec_delete(void                   *array_ptr,
+                           an_element_count_param number_of_elements,
+                           size_t                 element_size,
+                           a_destructor_ptr       dtor,
+                           int                    delete_flag,
+                           int                    unused)
 /*
 Entry point used for the normal vector delete operation.  The unused
 parameter is there for cfront compatibility.
@@ -1016,12 +1016,12 @@ parameter is there for cfront compatibility.
 
 
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
-EXTERN_C void __array_delete(void                *array_ptr,
-                             int                 number_of_elements,
-                             size_t              element_size,
-                             a_destructor_ptr    dtor,
-                             a_delete_ptr	 delete_routine,
-			     int		 is_two_arg)
+EXTERN_C void __array_delete(void                   *array_ptr,
+                             an_element_count_param number_of_elements,
+                             size_t                 element_size,
+                             a_destructor_ptr       dtor,
+                             a_delete_ptr	    delete_routine,
+			     int		    is_two_arg)
 /*
 This entry point is used for operations that use class specific array
 new and delete operators.  The delete routine is pointed to

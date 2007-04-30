@@ -1,3 +1,13 @@
+Version 3.10
+
+4/30/07  Type of argument passed to Cfront ABI runtime routines for
+         number of elements
+
+The type of the parameter used to pass an array element count to routines
+such as __vec_new and __vec_delete can now be configured to be ptrdiff_t
+instead of int.  See the front end Changes file for more information
+
+-------------------------------------------------------------------------------
 Version 3.9, March 23, 2007
 
 No changes.
