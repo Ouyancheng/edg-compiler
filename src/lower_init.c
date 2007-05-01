@@ -2318,8 +2318,8 @@ IA-64 ABI; see comments below.
     }  /* if */
   }  /* if */
 #else /* !IA64_ABI */
-    /* Cast to the proper type for the element count parameter. */
-    num_elem_node=add_cast_if_necessary(num_elem_node,
+  /* Cast to the proper type for the element count parameter. */
+  num_elem_node = add_cast_if_necessary(num_elem_node,
                                integer_type(targ_runtime_elem_count_int_kind));
 #endif /* IA64_ABI */
   /* Build an expression for the address of the constructor. */
