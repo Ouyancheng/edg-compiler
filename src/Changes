@@ -1,5 +1,15 @@
 Version 3.10
 
+5/1/07   Microsoft compatibility: comments created via macro expansion
+
+The change described in the 11/29/06 entry introduced a bug that caused
+an infinite loop when generating preprocessing output for certain kinds
+of these constructs.  This is now fixed.  For example:
+
+  #define COMMENT SLASH(/)
+  #define SLASH(s) /##s
+  COMMENT i=3;     // Previously caused an infinite loop with -E
+
 4/30/07  Incorrect type for argument to __array_new and __array_new_zero
          runtime routines in the Cfront-like ABI
 

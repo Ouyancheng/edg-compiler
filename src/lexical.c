@@ -2316,17 +2316,21 @@ invocations.
 Add a source line modification entry to indicate deletion of num_chars
 characters starting at line_loc.  The inserted_chars area is used for
 the zero-length replacement string.  for_comment is TRUE if the
-modification is due to a comment.
+modification is due to a comment.  If the text to be deleted has length 0,
+nothing is done (there is no room for the ATTENTION_MARKER).
 */
-#define add_deletion_source_line_modif(line_loc, num_chars, for_comment) \
-{ a_source_line_modif_ptr dslmp; \
-  dslmp = add_source_line_modif(line_loc, num_chars, \
-                                (char *)NULL, (char *)NULL); \
-  *dslmp->inserted_chars   = LE_ESCAPE; \
-  dslmp->inserted_chars[1] = LE_END_OF_INSERTION; \
-  dslmp->inserted_text = dslmp->end_inserted_text = dslmp->inserted_chars; \
-  dslmp->is_for_comment = for_comment; \
-}  /* add_deletion_source_line_modif */
+#define add_deletion_source_line_modif(line_loc, num_chars, for_comment)     \
+{                                                                            \
+  if (num_chars > 0) {                                                       \
+    a_source_line_modif_ptr dslmp;                                           \
+    dslmp = add_source_line_modif(line_loc, num_chars,                       \
+                                  (char *)NULL, (char *)NULL);               \
+    *dslmp->inserted_chars   = LE_ESCAPE;                                    \
+    dslmp->inserted_chars[1] = LE_END_OF_INSERTION;                          \
+    dslmp->inserted_text = dslmp->end_inserted_text = dslmp->inserted_chars; \
+    dslmp->is_for_comment = for_comment;                                     \
+  }  /* add_deletion_source_line_modif */                                    \
+}
 
 
 /*
