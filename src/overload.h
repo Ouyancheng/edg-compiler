@@ -816,6 +816,13 @@ extern a_symbol_ptr select_overloaded_copy_constructor
                                    a_boolean             *uncallable,
                                    a_boolean             *class_bitwise_copy);
 
+extern a_routine_ptr select_assignment_operator_for_copy(
+                                             a_type_ptr        class_type,
+                                             an_expr_node_ptr  source_expr,
+                                             an_expr_node_ptr  dest_expr,
+                                             a_boolean         *pass_by_value,
+                                             a_source_position *dest_decl_pos);
+
 #if !STANDALONE_UTILITY_PROGRAM
 extern void deduce_auto_type(a_decl_parse_state  *dps);
 #endif /* !STANDALONE_UTILITY_PROGRAM */

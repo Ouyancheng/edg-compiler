@@ -2055,7 +2055,6 @@ operator routine or do bitwise assignment.
   a_routine_ptr                  rp;
   a_symbol_ptr                   sym;
   a_boolean                      pass_by_value;
-  a_type_qualifier_set           qualifiers;
   a_param_type_ptr               ptp;
   a_boolean                      bitwise_assign;
   a_source_position              *err_pos;
@@ -2095,11 +2094,6 @@ operator routine or do bitwise assignment.
        the base class's assignment function), and then do the appropriate
        copy of each member. */
     a_type_ptr source_type = type_pointed_to(source_var->type);
-    if (is_const_qualified_type(source_type)) {
-      qualifiers = TQ_CONST;
-    } else {
-      qualifiers = TQ_NONE;
-    }  /* if */
     for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
       if (bcp->direct) {
         /* We are only interested in direct base classes. */
@@ -2126,9 +2120,9 @@ operator routine or do bitwise assignment.
         } else {
           /* A bitwise copy may not be done.  Find the default assignment
              operator and put out a call to it. */
-          rp = select_copy_assignment_operator(bcp->type, qualifiers,
-                                               &bcp->decl_position,
-                                               &pass_by_value);
+          rp = select_assignment_operator_for_copy(bcp->type, source_expr,
+                                                   dest_expr, &pass_by_value,
+                                                   &bcp->decl_position);
           if (rp == NULL) {
             /* Error has already been issued in the subroutine. */
             continue;
@@ -2180,21 +2174,8 @@ operator routine or do bitwise assignment.
           } else {
             a_statement_ptr call_stmt;
             /* A bitwise copy may not be done.  Find the default assignment
-               operator and put out a call to it.  If the field is mutable,
-               ignore the constness of the enclosing object. */
-            a_type_qualifier_set  eff_qualifiers = qualifiers;
-            if (fp->is_mutable) {
-              eff_qualifiers &= ~(a_type_qualifier_set)TQ_CONST;
-            }  /* if */
+               operator and put out a call to it. */
             bitwise_assign = FALSE;
-            rp = select_copy_assignment_operator(tp, eff_qualifiers,
-                                                 &fp->source_corresp.
-                                                              decl_position,
-                                                 &pass_by_value);
-            if (rp == NULL) {
-              /* Error has already been issued in the subroutine. */
-              continue;
-            }  /* if */
             source_expr = fe_field_lvalue_selection_expr(source_expr, fp);
             if (array_type != NULL) {
               /* Copying an array of classes.  Generate a loop around the
@@ -2244,6 +2225,16 @@ operator routine or do bitwise assignment.
                         /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
                         /*is_reinterpret_cast=*/FALSE,
                         /*reinterpret_semantics=*/FALSE, err_pos);
+              /* Now that we have element pointers, we can find the right
+                 assignment operator. */
+              rp = select_assignment_operator_for_copy(
+                                            tp, source_expr, dest_expr,
+                                            &pass_by_value,
+                                            &fp->source_corresp.decl_position);
+              if (rp == NULL) {
+                /* Error has already been issued in the subroutine. */
+                continue;
+              }  /* if */
               /* Add the subscript to the source_expr. */
               source_expr->next = var_rvalue_expr(temp_var);
               source_expr =
@@ -2254,6 +2245,16 @@ operator routine or do bitwise assignment.
               dest_expr =
                       make_operator_node((an_expr_operator_kind)eok_padd_subsc,
                                          dest_expr->type, dest_expr);
+            } else {
+              /* Find the assignment operator to do the copy. */
+              rp = select_assignment_operator_for_copy(
+                                            tp, source_expr, dest_expr,
+                                            &pass_by_value,
+                                            &fp->source_corresp.decl_position);
+              if (rp == NULL) {
+                /* Error has already been issued in the subroutine. */
+                continue;
+              }  /* if */
             }  /* if */
             call_stmt = make_assignment_call(source_expr, dest_expr, rp,
                                              pass_by_value, err_pos);

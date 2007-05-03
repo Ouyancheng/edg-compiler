@@ -1,5 +1,36 @@
 Version 3.10
 
+5/3/07   Overload resolution in generated copy assignment operators
+
+The C++ Standard says that assignment operators that are not copy assignment
+operators will be selected by overload resolution for a copy operation if
+they are a better match for the object being copied.  The front end correctly
+implemented this specification for explicit copy assignment; however, in a
+generated copy assignment operator, only copy assignment operators were
+considered for the memberwise copying of base and member subobjects.  This
+has now been fixed, and full overload resolution is performed when copying
+base and member subobjects.  For example:
+
+struct B1 {
+  B1& operator=(B1&);
+};
+struct B2 {
+  B2& operator=(const B2&);
+  template <typename T> B2& operator=(T&);
+};
+struct D {
+  B1 b1;
+  B2 b2;
+  // D& operator=(D&) implicitly declared, with non-const reference parameter
+  // because of non-const reference parameter in B1::operator=(B1&)
+};
+
+void f() {
+  D d1, d2;
+  d1 = d2;   // Previously called B2::operator=(const B2&), now correctly
+             // calls template instance B2::operator=(B2&) to copy D::b2
+}
+
 5/3/07   Microsoft compatibility: conversion for direct reference binding
 
 The previous change in the area of Microsoft compatibility and conversions

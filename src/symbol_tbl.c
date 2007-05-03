@@ -7158,52 +7158,6 @@ is returned TRUE if the parameter is not a reference parameter.
 }  /* find_copy_assignment_operator */
 
 
-a_routine_ptr select_copy_assignment_operator(
-                                    a_type_ptr            class_type,
-                                    a_type_qualifier_set  required_qualifiers,
-                                    a_source_position     *err_pos,
-                                    a_boolean             *pass_by_value)
-/*
-Return a pointer to the routine entry for the copy assignment operator for
-class_type that is consistent with the type qualifiers indicated by
-required_qualifiers.  *err_pos indicates the source position at which to issue
-an error (e.g., for ambiguous or missing assignment operator).  *pass_by_value
-is returned TRUE if the parameter is not a reference parameter.
-*/
-{
-  a_symbol_ptr    opass_sym = NULL;
-  a_boolean       ambiguous;
-  a_routine_ptr   opass_routine = NULL;
-
-  db_enter(4, "select_copy_assignment_operator");
-  opass_sym = find_copy_assignment_operator(class_type, required_qualifiers,
-                                            &ambiguous, pass_by_value);
-  if (ambiguous) {
-    /* More than one applicable assignment operator function. */
-    pos_ty_error(ec_ambiguous_assignment_operator, err_pos, class_type);
-  } else if (opass_sym == NULL) {
-    /* No applicable assignment operator function. */
-    if (required_qualifiers == TQ_CONST) {
-      /* The common case:  missing const assignment operator function. */
-      pos_ty_error(ec_missing_const_assignment_operator, err_pos, class_type);
-    } else {
-      /* Unusual case: volatile or const-volatile expected. */
-      pos_ty_error(ec_no_suitable_assignment_operator, err_pos, class_type);
-    }  /* if */
-  } else {
-    /* Exactly one assignment operator function is best. */
-    /* Check that the function is accessible and mark it referenced. */
-    reference_to_implicitly_invoked_function(
-                                  opass_sym, err_pos, (a_type_ptr)NULL,
-                                  /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
-                                  /*instantiate=*/TRUE);
-    opass_routine = opass_sym->variant.routine.ptr;
-  }  /* if */
-  db_exit();
-  return opass_routine;
-}  /* select_copy_assignment_operator */
-
-
 char *il_entry_for_symbol_null_okay(a_symbol_ptr      sym,
                                     an_il_entry_kind  *kind)
 /*
