@@ -2314,23 +2314,23 @@ invocations.
 
 /*
 Add a source line modification entry to indicate deletion of num_chars
-characters starting at line_loc.  The inserted_chars area is used for
-the zero-length replacement string.  for_comment is TRUE if the
-modification is due to a comment.  If the text to be deleted has length 0,
-nothing is done (there is no room for the ATTENTION_MARKER).
+characters starting at line_loc.  The inserted_chars area is used for the
+zero-length replacement string.  for_comment is TRUE if the modification is
+due to a comment.  If no text is to be deleted, nothing is done (there is
+no room for the ATTENTION_MARKER).
 */
 #define add_deletion_source_line_modif(line_loc, num_chars, for_comment)     \
 {                                                                            \
-  if (num_chars > 0) {                                                       \
+  if ((num_chars) > 0) {                                                     \
     a_source_line_modif_ptr dslmp;                                           \
-    dslmp = add_source_line_modif(line_loc, num_chars,                       \
+    dslmp = add_source_line_modif(line_loc, (sizeof_t)(num_chars),           \
                                   (char *)NULL, (char *)NULL);               \
     *dslmp->inserted_chars   = LE_ESCAPE;                                    \
     dslmp->inserted_chars[1] = LE_END_OF_INSERTION;                          \
     dslmp->inserted_text = dslmp->end_inserted_text = dslmp->inserted_chars; \
     dslmp->is_for_comment = for_comment;                                     \
-  }  /* add_deletion_source_line_modif */                                    \
-}
+  }  /* if */                                                                \
+}  /* add_deletion_source_line_modif */
 
 
 /*
@@ -6088,12 +6088,9 @@ white_space_loop:
              invocation argument list is being scanned.  Keep the final
              line-end lexical escape, but delete the newline lexical
              escape. */
-          delete_to = curr_char_loc - 1;
-          if (delete_from <= delete_to) {
-            add_deletion_source_line_modif(delete_from,
-                                         (sizeof_t)(delete_to-delete_from+1),
+          add_deletion_source_line_modif(delete_from,
+                                         curr_char_loc-delete_from,
                                          /*for_comment=*/FALSE);
-          }  /* if */
           /* Clear the flag to be sure it is cleared for error exit cases.
              It will be set later to the location of further text if there is
              any. */
@@ -6207,12 +6204,9 @@ white_space_loop:
         /* Source from the indicated position to the current position
            is to be deleted.  This is typically because a macro
            invocation argument list is being scanned. */
-        delete_to = curr_char_loc - 1;
-        if (delete_source_from_loc <= delete_to) {
-          add_deletion_source_line_modif(delete_source_from_loc,
-                                (sizeof_t)(delete_to-delete_source_from_loc+1),
-                                         /*for_comment=*/FALSE);
-        }  /* if */
+        add_deletion_source_line_modif(delete_source_from_loc,
+                                       curr_char_loc-delete_source_from_loc,
+                                       /*for_comment=*/FALSE);
       }  /* if */
       /* Find the appropriate source line modification entry, and begin
          scanning text in that entry.  kind_skipped is not set, since this
@@ -6304,7 +6298,7 @@ white_space_loop:
                 /* Delete the comment entirely, but leave the end-of-insertion
                    escape. */
                 add_deletion_source_line_modif(comment_start_loc,
-                                   (sizeof_t)(curr_char_loc-comment_start_loc),
+                                               curr_char_loc-comment_start_loc,
                                                /*for_comment=*/TRUE);
                 if (slmp->being_rescanned_for_token_pasting) {
                   /* If we are rescanning tokens to do the special
@@ -6345,7 +6339,7 @@ white_space_loop:
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
             /* Delete the comment entirely, but leave the newline escape. */
             add_deletion_source_line_modif(comment_start_loc,
-                                   (sizeof_t)(curr_char_loc-comment_start_loc),
+                                           curr_char_loc-comment_start_loc,
                                            /*for_comment=*/TRUE);
           }  /* if */
         }  /* if */
@@ -6500,15 +6494,13 @@ normal_comment:
                  well so that multi-line directives will become one-line
                  directives. */
               if (in_preprocessing_directive && ch == LE_NEWLINE) {
-                delete_to = curr_char_loc+LE_ESCAPE_LEN-1;
+                delete_to = curr_char_loc+LE_ESCAPE_LEN;
               } else {
-                delete_to = curr_char_loc-1;
+                delete_to = curr_char_loc;
               }  /* if */
-              if (delete_from <= delete_to) {
-                add_deletion_source_line_modif(delete_from,
-                                           (sizeof_t)(delete_to-delete_from+1),
+              add_deletion_source_line_modif(
+                                      delete_from, delete_to-delete_from,
                                       /*for_comment=*/delete_only_for_comment);
-              }  /* if */
             }  /* if */
             /* Read a new line.  Note the parameter asking that the input
                stack not be popped, since we need to know about ends of files
@@ -6588,7 +6580,7 @@ normal_comment:
           if (pcc_preprocessing_mode) {
             /* pcc mode; delete the comment entirely. */
             add_deletion_source_line_modif(comment_start_loc,
-                                   (sizeof_t)(curr_char_loc-comment_start_loc),
+                                           curr_char_loc-comment_start_loc,
                                            /*for_comment=*/TRUE);
           } else {
             /* ANSI mode; replace the comment with a space. */
