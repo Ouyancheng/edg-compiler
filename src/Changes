@@ -1,5 +1,24 @@
 Version 3.10
 
+5/3/07   Microsoft compatibility: conversion for direct reference binding
+
+The previous change in the area of Microsoft compatibility and conversions
+for direct reference binding (see entry of 11/2/06) has been tweaked a bit
+further to avoid an internal error when two different instances of the
+same template are selected as the ambiguous alternatives.
+
+  int i;
+  struct A {
+    template<class T> operator T&() {
+      return i;
+    }
+  };
+  int main() {
+    A a;
+    int n = (const int &)a;  // Now not ambiguous again in Microsoft mode,
+                             // no internal error
+  }
+
 5/1/07   Source position on generated stmk_goto statement
 
 The general rule of thumb is that compiler-generated statements

@@ -1503,9 +1503,16 @@ must free that list.
                                          &local_conversion,
                                          &local_ambiguous,
                                          (a_candidate_function_ptr *)NULL)) {
-        if (local_conversion.routine != conversion->routine) {
+        if (local_conversion.routine != conversion->routine &&
+            !(local_conversion.routine != NULL &&
+              conversion->routine != NULL &&
+              local_conversion.routine->assoc_template != NULL &&
+              local_conversion.routine->assoc_template ==
+                                        conversion->routine->assoc_template)) {
           /* The second overload resolution would get a different conversion
-             function. */
+             function.  We rule out cases where both routines are instances of
+             the same template because MSVC++ seems to do something like
+             that. */
           local_ambiguous = TRUE;
         }  /* if */
       }  /* if */
@@ -1525,8 +1532,7 @@ must free that list.
                                         /*is_copy_initialization=*/FALSE,
                                         /*is_reference_binding=*/FALSE,
                                         ambiguity_list);
-          check_assertion(*ambiguity_list != NULL &&
-                          (*ambiguity_list)->next != NULL);
+          check_assertion(*ambiguity_list != NULL);
         }  /* if */
       }  /* if */
     }  /* if */
