@@ -1,5 +1,21 @@
 Version 3.10
 
+5/1/07   Source position on generated stmk_goto statement
+
+The general rule of thumb is that compiler-generated statements
+should have their start source positions (and end positions when
+EXTRA_SOURCE_POSITIONS_IN_IL is TRUE) set to a null position.  The source
+position was incorrectly set on a stmk_goto statement generated
+when a label appears inside a structured statement nested within
+a switch statement.  The source position(s) in the stmk_goto statement
+are now set to null positions.  For example:
+
+  void f(int n) {
+    switch (n) {
+      case 0: { n = 0; case 7: n = 1;   }
+    }
+  }
+
 5/1/07   Microsoft compatibility: comments created via macro expansion
 
 The change described in the 11/29/06 entry introduced a bug that caused

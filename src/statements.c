@@ -6282,7 +6282,6 @@ redundant diagnostics in case ranges (GNU C mode only).
         label->case_fallthrough_label = TRUE;
       } else {
         goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
-        set_stmt_source_position(goto_stmt->position, *label_position);
         scp->statements = goto_stmt;
       }  /* if */
       goto_stmt->variant.label.ptr = label;
