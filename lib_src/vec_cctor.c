@@ -30,9 +30,9 @@ this runtime routine will only be called for constructor initialization
 of member arrays, the number_of_elements can never be zero.
 */
 {
-  int  i;
-  char *arr_ptr;
-  char *src_arr;
+  size_t	i;
+  char		*arr_ptr;
+  char		*src_arr;
 
   if (ctor != NULL) {
     for (i = 0, arr_ptr = (char *)array_ptr, src_arr = (char *)src_array_ptr;
