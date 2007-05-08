@@ -5559,7 +5559,9 @@ this one is such a continuation.
           need_to_unset_typedefs = TRUE;
         }  /* if */
       }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
       construct_pragma_pack_if_needed(type);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       /* Put out "template<>" at the beginning. */
       gen_template_specialization_header(
                    &type->source_corresp,

@@ -1,5 +1,10 @@
 Version 3.10
 
+5/8/07   Build errors with USER_CONTROL_OF_STRUCT_PACKING set to FALSE
+
+Some code that should have been conditional on USER_CONTROL_OF_STRUCT_PACKING
+was unprotected, resulting in build errors.  This has now been fixed.
+
 5/3/07   Overload resolution in generated copy assignment operators
 
 The C++ Standard says that assignment operators that are not copy assignment
