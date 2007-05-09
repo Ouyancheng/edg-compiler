@@ -4398,7 +4398,7 @@ NULL.
                    should be issued for IA-64 virtual call thunks. */
                 if (!routine_defined(rp)) {
                   an_error_severity  sev = es_discretionary_error;
-                  if (!type->source_corresp.referenced) {
+                  if (!strict_ansi_mode && !type->source_corresp.referenced) {
                     /* If the enclosing class is unreferenced, the lack of a
                        definition for a virtual function is rarely a serious
                        problem. */
