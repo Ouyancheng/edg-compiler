@@ -14674,7 +14674,9 @@ need to be handled here.
   a_routine_type_supplement_ptr
                            rtsp;
 
+#if DEBUG
   overload_level++;
+#endif /* DEBUG */
   /* Make operands from the source and destination expressions. */
   make_expression_operand(dest_expr, dest_expr->type, &operand_1);
   make_expression_operand(source_expr, source_expr->type, &operand_2);
@@ -14760,7 +14762,9 @@ need to be handled here.
     free_candidate_function_list(candidate_functions);
   }  /* if */
   free_arg_operand_list(arg_operand_list);
+#if DEBUG
   overload_level--;
+#endif /* DEBUG */
   return rout;
 }  /* select_assignment_operator_for_copy */
 
