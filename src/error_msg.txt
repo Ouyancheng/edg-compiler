@@ -1666,6 +1666,10 @@ ec_typeof_is_gnu_extension;;"\"typeof\" is a GNU extension"
 ec_typedef_modification_is_nonstandard;;"modifying the size or signedness of a typedef is nonstandard"
 ec_zero_length_array_is_gnu_extension;;"zero-length arrays are a GNU extension"
 ec_flexible_array_is_nonstandard;;"flexible array members are nonstandard"
+ec_nonnull_on_nonpointer;;"attribute \"nonnull\" references nonpointer parameter"
+ec_nonnull_parameter_number_too_large;;"argument for attribute \"nonnull\" is larger than number of parameters"
+ec_no_pointer_parameters;;"no parameter has pointer type"
+ec_null_argument_for_nonnull_parameter;;"null argument for parameter marked with attribute \"nonnull\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -84,6 +84,7 @@ enum an_attribute_kind_tag {
   ak_init_priority,
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   ak_strong,
+  ak_nonnull,
   ak_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -136,6 +137,7 @@ EXTERN char *attribute_kind_names[(int)ak_last + 1]
 /* ak_init_priority */              "init_priority",
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 /* ak_strong */			    "strong", 
+/* ak_nonnull */		    "nonnull", 
 /* ak_last */                       "last" /* used to check that
                                               initialization is right. */
 }
@@ -245,6 +247,10 @@ typedef struct an_attribute {
 			/* The initialization priority of a dynamically
 			   initialized namespace-scope variable. */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+    int		nonnull_param;
+			/* The parameter number (starting at 1) that must be
+			   non-NULL.  If zero, all pointer parameters must ne
+			   non-NULL. */
   } variant;
   an_attribute_ptr
   		next;

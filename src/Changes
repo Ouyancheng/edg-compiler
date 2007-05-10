@@ -1,5 +1,20 @@
 Version 3.10
 
+5/10/07  GNU compatibility: Attribute "nonnull"
+
+In GNU modes, the front end now accepts attribute "nonnull".  If followed by
+a list of parameter numbers, the corresponding parameters must be pointers
+and passing a null pointer constant through them triggers a remark.  If the
+attribute is not followed by a list of parameter numbers, passing a null
+pointer constant to any pointer parameter triggers the remark.  For example:
+
+  void f1(void *p, void *q, void *r) __attribute((nonnull(1, 3)));
+  void f2(int n, void *p, void *q) __attribute((nonnull));
+  int main() {
+    f1(0, 0, 0);  // Remark on first and third argument.
+    f2(0, 0, 0);  // Remark on second and third argument.
+  }
+
 5/10/07  Expressions in VLA dimension are now always scanned as evaluated
 
 In some cases (e.g., when used as the operator to sizeof), an expression

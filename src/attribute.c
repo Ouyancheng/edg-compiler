@@ -519,6 +519,9 @@ pointed to be "pos" can be freed when this routine returns.
       ap->variant.init_priority = 0;
       break;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+    case ak_nonnull:
+      ap->variant.nonnull_param = 0;
+      break;
     default:
       unexpected_condition_str("alloc_attribute: bad kind");
   }  /* switch */
@@ -599,6 +602,9 @@ Return a copy of the complete attribute list.
         (*end)->variant.init_priority = attributes->variant.init_priority;
         break;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+      case ak_nonnull:
+        (*end)->variant.nonnull_param = attributes->variant.nonnull_param;
+        break;
       default:
         unexpected_condition_str("copy_attribute_list: bad kind");
         break;
@@ -941,6 +947,37 @@ that do take arguments.
       }
       break;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+    case ak_nonnull:
+      { a_host_large_integer  param_number;
+        a_boolean             error_occurred;
+        a_boolean             ovflo;
+        an_attribute_ptr      ap = attribute;
+        /* If things go well, result will be reset to TRUE. */
+        result = FALSE;
+        do {
+          /* Scan the argument number. */
+          param_number = scan_integral_argument(&error_occurred, &ovflo);
+          /* If there was no integer constant, a message has already been
+             issued. */
+          if (error_occurred) goto done;
+          /* For overflow, issue the message now. */
+          if (ovflo || param_number <= 0 ||
+              param_number > INT_MAX-1) { /*lint !e685*/
+            goto error;
+          }  /* if */
+          /* Remember the value. */
+          attribute->variant.nonnull_param = param_number;
+          if (curr_token == tok_comma) {
+            /* Another parameter number follows: Allocate a separate attribute
+               entry for it. */
+            ap->next = alloc_attribute(ap->kind, &ap->position);
+            ap = ap->next;
+          }  /* if */
+        } while (loop_token(tok_comma));
+        /* All went well. */
+        result = TRUE;
+      }
+      break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -1043,6 +1080,7 @@ These attributes take arguments:
 The following attribute can appear with or without an argument:
 
   weakref or weakref( string-literal )
+  nonnull or nonnull( list-of-integer-constants )
 
 The attributes are appended at the location pointed to by next.  This
 function returns the address of the last attribute.
@@ -1118,6 +1156,7 @@ function returns the address of the last attribute.
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
           case ak_init_priority:
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+          case ak_nonnull:
             /* Bypass the lparen. */
             (void)get_token();
             if (!scan_attribute_arguments(attribute)) {
@@ -1174,6 +1213,7 @@ function returns the address of the last attribute.
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
           case ak_strong:
           case ak_weakref:
+          case ak_nonnull:
             /* These attributes do not take arguments (or the arguments are
                optional). */
             break;
@@ -1196,10 +1236,12 @@ function returns the address of the last attribute.
         }  /* switch */
       } /* if */
       if (attribute_kind != (an_attribute_kind)ak_error) { 
-        /* Add the attribute to the list. */
+        /* Add the new attributes (usually just one) to the end of the list. */
         *next = attribute;
-        /* The new attribute is now the last entry in the list. */
-        next = &attribute->next;
+        /* Update next to point to the last "next" pointer. */
+        do {
+          next = &(*next)->next;
+        } while (*next != NULL);
       }  /* if */
     }  /* if */
     if (curr_token != tok_comma && curr_token != tok_rparen) {
@@ -1406,10 +1448,11 @@ attributes.  */
       case ak_cdecl:
       case ak_stdcall:
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
-        /* GCC allows "noreturn", "volatile", "const", "cdecl", and "stdcall"
-           to apply to variables with pointer-to-function type.  GCC does not
-           accept "pure" in this context, even though it is conceptually
-           similar. */
+      case ak_nonnull:
+        /* GCC allows "nonnull", "noreturn", "volatile", "const", "cdecl", and
+           "stdcall" to apply to variables with pointer-to-function type.  GCC
+           does not accept "pure" in this context, even though it is
+           conceptually similar. */
         if (!is_pointer_type(type) ||
             !is_function_type(type_pointed_to(type))) {
           pos_ty_warning(ec_attr_requires_func_type, &ap->position, type);
@@ -1627,6 +1670,7 @@ attributes were specified on a definition.
       case ak_cdecl:
       case ak_stdcall:
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+      case ak_nonnull:
         /* These attributes were handled in
            apply_attributes_to_variable_type. */
         break;
@@ -1737,6 +1781,7 @@ messages about any invalid attributes.
       case ak_noreturn:
       case ak_volatile:
       case ak_const:
+      case ak_nonnull:
         /* These attributes were handled in
            apply_attributes_to_variable_type. */
         break;
@@ -1794,6 +1839,52 @@ the case.
 }  /* ensure_routine_type_is_modifiable */
 
 
+static void record_nonnull_parameter(a_type_ptr         *rtp,
+                                     int                param_num,
+                                     a_source_position  *diag_pos)
+/*
+Mark the param_num-th parameter of routine type *rtp as requiring a nonnull
+argument.  If param_num is zero, mark all the pointer parameters of *rtp this
+way.  Issue any diagnostics at the given position (e.g., when the indicated
+parameter has a nonpointer type).
+*/
+{
+  a_routine_type_supplement_ptr  rtsp;
+  a_param_type_ptr               ptp;
+  int                            p = 1;
+  a_boolean                      no_effect = TRUE;
+
+  ensure_routine_type_is_modifiable(rtp);
+  rtsp = skip_typerefs(*rtp)->variant.routine.extra_info;
+  for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next, ++p) {
+    a_boolean  is_ptr = is_pointer_type(ptp->type);
+    if (p == param_num || (param_num == 0 && is_ptr)) {
+      /* We have have found the specific indicated parameter, or this is a
+         parameter of pointer type and all such parameters should be marked
+         as "non-NULL". */
+      if (!is_ptr) {
+        pos_error(ec_nonnull_on_nonpointer, diag_pos);
+      } else {
+        ptp->nonnull = TRUE;
+      }  /* if */
+      no_effect = FALSE;
+      if (param_num != 0) break;
+    }  /* if */
+  }  /* for */
+  if (no_effect) {
+    if (param_num != 0) {
+      /* A specific parameter position was given, but no corresponding
+         parameter exists. */
+      pos_error(ec_nonnull_parameter_number_too_large, diag_pos);
+    } else {
+      /* All pointer parameters should be marked as non-NULL, but the were no
+         such parameters. */
+      pos_warning(ec_no_pointer_parameters, diag_pos);
+    }  /* if */
+  }  /* if */
+}  /* record_nonnull_parameter */
+
+
 void apply_attributes_to_routine(an_attribute_ptr  attributes,
                                  a_routine_ptr     rp)
 /*
@@ -1847,6 +1938,10 @@ messages about any invalid attributes.
             rtsp->does_not_return = TRUE;
           }  /* if */
         }
+        break;
+      case ak_nonnull:
+        record_nonnull_parameter(&rp->type, ap->variant.nonnull_param,
+                                 &ap->position);
         break;
       case ak_weak:
         if (check_routine_has_external_linkage(rp, ap)) {

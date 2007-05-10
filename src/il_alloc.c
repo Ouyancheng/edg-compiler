@@ -885,6 +885,7 @@ at file scope.
   ptp->qualifiers = TQ_NONE;
 #if GNU_EXTENSIONS_ALLOWED
   ptp->is_transparent = FALSE;
+  ptp->nonnull = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING
   ptp->avoid_codecenter_warnings = 0;

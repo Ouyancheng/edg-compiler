@@ -7368,9 +7368,10 @@ current parameter, and is updated at the end of the call to describe the
 next parameter.
 */
 {
-  a_boolean   do_default_promotion;
-  a_boolean   arg_is_fmt_string = FALSE;
-  an_operand  *operand = &arg_operand->operand;
+  a_boolean         do_default_promotion;
+  a_boolean         arg_is_fmt_string = FALSE;
+  an_operand        *operand = &arg_operand->operand;
+  a_param_type_ptr  ptp = arg_block->curr_param_type;
 
   /* Count the arguments. */
   arg_block->arg_ctr++;
@@ -7385,7 +7386,7 @@ next parameter.
     /* We have no information on parameter types. */
   } else if (arg_block->prototyped) {
     /* Prototyped parameter list. */
-    if (arg_block->curr_param_type != NULL) {
+    if (ptp != NULL) {
       do_default_promotion = FALSE;
     } else {
       /* No more formal arguments in the list. */
@@ -7408,7 +7409,7 @@ next parameter.
   } else {
     /* Old-style parameter list, for a function with a body (i.e., we know
        the argument types). */
-    if (arg_block->curr_param_type == NULL) {
+    if (ptp == NULL) {
       /* No more formal arguments in the list. */
       if (arg_block->varargs_count == NOT_LINT_VARARGS) {
         /* A lint-style varargs comment does not apply, so warning:
@@ -7426,29 +7427,24 @@ next parameter.
     /* If this is an old-style call and we have the list of types as
        defined by the function body, check the promoted type of the
        actual against the formal. */
-    if (arg_block->have_param_info &&
-        !arg_block->prototyped &&
-        arg_block->curr_param_type != NULL) {
+    if (arg_block->have_param_info && !arg_block->prototyped && ptp != NULL) {
       /* Compare the type of the promoted actual with the promoted formal
          without qualifiers. */
-      if (!is_error_type(arg_block->curr_param_type->type)) {
-        a_type_ptr        formal_type = default_argument_promotion(
-                              skip_typerefs(arg_block->curr_param_type->type));
+      a_type_ptr  ptype = skip_typerefs(ptp->type);
+      if (!is_error_type(ptype)) {
+        a_type_ptr        formal_type = default_argument_promotion(ptype);
         an_error_severity severity;
         severity = arg_okay_for_old_style_param(operand, formal_type);
 #if GNU_EXTENSIONS_ALLOWED
         if (severity == (an_error_severity)es_warning &&
-            (arg_block->curr_param_type->is_transparent ||
-             (is_union_type(arg_block->curr_param_type->type) &&
-              (skip_typerefs(arg_block->curr_param_type->type)->
-               variant.class_struct_union.is_transparent)))) {
+            (ptp->is_transparent ||
+             (is_union_type(ptype) &&
+              (ptype->variant.class_struct_union.is_transparent)))) {
           /* This argument might be okay if its type matches one of
              the field types in the transparent union. */
-          a_type_ptr        union_type;
           a_field_ptr       f;
           an_error_severity new_severity;
-          union_type = skip_typerefs(arg_block->curr_param_type->type);
-          for (f = union_type->variant.class_struct_union.field_list;
+          for (f = ptype->variant.class_struct_union.field_list;
                f != NULL;
                f = f->next) {
             new_severity = arg_okay_for_old_style_param(operand, f->type);
@@ -7475,14 +7471,23 @@ next parameter.
     /* Check the argument for compatibility against the parameter,
        casting it if necessary.  Also convert from lvalue to rvalue
        when appropriate. */
-    prep_argument_operand(operand, arg_block->curr_param_type,
-                          /*processed_arg=*/FALSE,
+    prep_argument_operand(operand, ptp, /*processed_arg=*/FALSE,
                           (a_conv_descr_ptr)NULL, ec_incompatible_param);
+#if GNU_EXTENSIONS_ALLOWED
+    if (ptp->nonnull && op_is_null_pointer_value(operand)) {
+      /* The parameter carries the GNU "nonnull" attribute and a null pointer
+         is passed through it.  GNU compilers only warn about this when a
+         specific GNU command-line option is specified.  We issue a remark
+         instead (which can be increased in severity through command-line
+         options if needed). */
+      pos_remark(ec_null_argument_for_nonnull_parameter, &operand->position);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-  if (arg_block->curr_param_type != NULL) {
+  if (ptp != NULL) {
     /* Advance to the next parameter type entry in preparation for the
        next call of this routine. */
-    arg_block->curr_param_type = arg_block->curr_param_type->next;
+    arg_block->curr_param_type = ptp->next;
   }  /* if */
   /* If this is a call to a function with a printf- or scanf-style
      argument list and the ellipsis is next, the current argument is
@@ -13953,8 +13958,7 @@ conversion_to_class_possible.
   if (formal_param->passed_via_copy_constructor) {
     /* Argument is initialized by a copy constructor. */
     prep_arg_passed_via_copy_constructor(source_operand, param_type,
-                                         processed_arg,
-                                         conversion, err_code);
+                                         processed_arg, conversion, err_code);
   } else {
     /* Normal argument. */
     if (microsoft_mode && conversion != NULL &&

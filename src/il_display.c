@@ -1194,6 +1194,9 @@ Display a_param_type entry.
   if (ptr->is_transparent) {
     disp_boolean("is_transparent", TRUE);
   }  /* if */
+  if (ptr->nonnull) {
+    disp_boolean("nonnull", TRUE);
+  }  /* if */
   if (ptr->mode != (a_type_mode_kind)tmk_none) {
     disp_name("mode");
     disp_type_mode(ptr->mode);
