@@ -19374,7 +19374,15 @@ FALSE and a pointer to the expression tree in *expression.
   push_expr_stack(ekind, &expr_stack_entry, /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.favor_constant_result = TRUE;
-  if (is_vla_decl) expr_stack_entry.is_vla_dimension_expression = TRUE;
+  if (is_vla_decl) {
+    /* Make sure an expression in a VLA is marked as evaluated.  Not doing
+       so creates problems in expressions such as 'sizeof(int[f()])' where
+       operands in the VLA expression are not marked as referenced and
+       destructible temporaries are not properly destroyed. */
+    expr_stack_entry.evaluated = TRUE;
+    expr_stack_entry.potentially_evaluated = TRUE;
+    expr_stack_entry.is_vla_dimension_expression = TRUE;
+  }  /* if */
   /* Scan the expression. */
   if (c99_mode) {
     /* In C99 the expression is an assignment_expression. */

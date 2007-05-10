@@ -1,5 +1,23 @@
 Version 3.10
 
+5/10/07  Expressions in VLA dimension are now always scanned as evaluated
+
+In some cases (e.g., when used as the operator to sizeof), an expression
+used to declare the size of a variable-length array (VLA) is scanned
+as though the expression will never be evaluated.  This can result in
+inconsistencies such as variables and routines whose only use is in
+the expression not being properly marked as referenced in the IL.  It can
+also result in a failure to destroy temporary variables created during
+the expression.  A change has been made to scan VLA dimension expressions as
+though they will be evaluated in all cases.  In the following example
+the function f5 was being marked as neither referenced nor called in the IL:
+
+  int f5();
+  int main() {
+    return sizeof(int [f5()]);   // f5 is now marked as referenced and called
+  }
+
+
 5/8/07   Build errors with USER_CONTROL_OF_STRUCT_PACKING set to FALSE
 
 Some code that should have been conditional on USER_CONTROL_OF_STRUCT_PACKING
