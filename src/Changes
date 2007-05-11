@@ -59,8 +59,9 @@ the function f5 was being marked as neither referenced nor called in the IL:
 
 5/8/07   Build errors with USER_CONTROL_OF_STRUCT_PACKING set to FALSE
 
-Some code that should have been conditional on USER_CONTROL_OF_STRUCT_PACKING
-was unprotected, resulting in build errors.  This has now been fixed.
+Some code in cp_gen_be.c and attribute.c that should have been conditional
+on USER_CONTROL_OF_STRUCT_PACKING was unprotected, resulting in build
+errors.  This has now been fixed.
 
 5/3/07   Overload resolution in generated copy assignment operators
 
