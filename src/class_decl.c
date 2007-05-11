@@ -13563,12 +13563,23 @@ passed via template_decl.
         a_token_sequence_number  first_token_number;
         a_token_sequence_number  last_token_number;
         a_token_cache		 body_cache;
-
-        /* The inline flag is set for friend functions in
-           decl_friend_function, which also handles cases in which it should
-           be left unset despite the presence of a function body. */
-        check_assertion(friend_specified ||
-                        rout_sym->variant.routine.ptr->is_inline);
+#if CHECKING
+        if (friend_specified) {
+          /* The inline flag is set for friend functions in
+             decl_friend_function, which also handles cases in which it should
+             be left unset despite the presence of a function body. */
+#if GNU_EXTENSIONS_ALLOWED
+        } else if (rout_sym->variant.routine.ptr->never_inline) {
+          /* An in-class definition may have been declared with the "noinline"
+             attribute. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        } else if (rout_sym->variant.routine.ptr->is_inline) {
+          /* The usual case: In-class member function definitions are
+             inline. */
+        } else {
+          unexpected_condition();
+        }  /* if */
+#endif /* CHECKING */
         remove_stop_token(tok_comma);
         /* Cache the tokens comprising the function definition so that they
            can be rescanned once the entire class definition has been

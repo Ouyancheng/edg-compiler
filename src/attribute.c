@@ -490,6 +490,8 @@ pointed to be "pos" can be freed when this routine returns.
     case ak_cdecl:
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
     case ak_strong:
+    case ak_noinline:
+    case ak_always_inline:
       break;
     case ak_section:
       ap->variant.section = NULL;
@@ -566,6 +568,9 @@ Return a copy of the complete attribute list.
       case ak_stdcall:
       case ak_cdecl:
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+      case ak_strong:
+      case ak_noinline:
+      case ak_always_inline:
         /* No variant fields. */
         break;
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -690,8 +695,7 @@ that do take arguments.
   a_boolean          result = TRUE;
 
   pos = error_position;
-  /* Different kinds of attributes take different kinds of 
-     arguments.  */
+  /* Different kinds of attributes take different kinds of arguments.  */
   switch (attribute->kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
     case ak_aligned:
@@ -1067,6 +1071,9 @@ Specifically, these attributes take no arguments:
   no_check_memory_usage
   cdecl
   stdcall
+  strong
+  noinline
+  always_inline
 
 These attributes take arguments:
 
@@ -1212,6 +1219,8 @@ function returns the address of the last attribute.
           case ak_cdecl:
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
           case ak_strong:
+          case ak_noinline:
+          case ak_always_inline:
           case ak_weakref:
           case ak_nonnull:
             /* These attributes do not take arguments (or the arguments are
@@ -2171,6 +2180,17 @@ messages about any invalid attributes.
         invalid_severity = es_discretionary_error;
         /*FALLTHROUGH*/
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      case ak_noinline:
+        rp->never_inline = TRUE;
+        if (rp->is_inline) {
+          pos_warning(ec_inline_gnu_noinline_conflict, &ap->position);
+        }  /* if */
+        set_inline_flag(rp, FALSE);
+        break;
+      case ak_always_inline:
+        set_inline_flag(rp, TRUE);
+        rp->always_inline = TRUE;
+        break;
       default:
         /* An invalid attribute. */
         pos_sy_diagnostic(invalid_severity, ec_attribute_does_not_apply,

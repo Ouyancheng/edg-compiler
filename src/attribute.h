@@ -85,6 +85,8 @@ enum an_attribute_kind_tag {
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   ak_strong,
   ak_nonnull,
+  ak_noinline,
+  ak_always_inline,
   ak_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -138,6 +140,8 @@ EXTERN char *attribute_kind_names[(int)ak_last + 1]
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 /* ak_strong */			    "strong", 
 /* ak_nonnull */		    "nonnull", 
+/* ak_noinline */		    "noinline", 
+/* ak_always_inline */		    "always_inline", 
 /* ak_last */                       "last" /* used to check that
                                               initialization is right. */
 }

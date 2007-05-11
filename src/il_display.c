@@ -2863,6 +2863,12 @@ Display the indicated routine.
   if (ptr->no_check_memory_usage) {
     disp_boolean("no_check_memory_usage", TRUE);
   }  /* if */
+  if (ptr->never_inline) {
+    disp_boolean("never_inline", TRUE);
+  }  /* if */
+  if (ptr->always_inline) {
+    disp_boolean("always_inline", TRUE);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {

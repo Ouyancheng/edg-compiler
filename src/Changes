@@ -1,5 +1,28 @@
 Version 3.10
 
+5/11/07  GNU compatibility: Attributes "noinline" and "always_inline"
+
+In GNU modes, the front end now accepts the attributes "noinline" and
+"always_inline" on function declarations.  The attribute "noinline" indicates
+that calls to the attributed function should never be inlined.  Conversely,
+the attribute "always_inline" is an indication that the code generator should
+attempt to inline calls to the function even at the lowest levels of
+optimization.  For example:
+
+  __attribute__((noinline)) void f() {}
+  __attribute__((always_inline)) void g() {}
+  int main() {
+    f();  // Call should never be inlined.
+    g();  // Call should be inlined at all levels of optimization.
+  }
+
+Attribute "always_inline" implies that the function is "inline", whereas
+"noinline" implies that it is not "inline".  The simple inliner included in
+the front end does not treat functions marked with either of these new
+attribute differently from other functions (in particular, since calls to
+non-inline functions are never inlined by the simple inliner, calls to
+"noinline" functions will never be inlined either).
+
 5/11/07  Microsoft compatibility: suppression of implicitly-declared special
          member functions
 

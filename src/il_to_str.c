@@ -4770,6 +4770,12 @@ Do the output in the way described by octl.
       form_simple_attribute("__no_check_memory_usage__", &need_leading_space,
                             octl);
     }  /* if */
+    if (rout->never_inline) {
+      form_simple_attribute("__noinline__", &need_leading_space, octl);
+    }  /* if */
+    if (rout->always_inline) {
+      form_simple_attribute("__always_inline__", &need_leading_space, octl);
+    }  /* if */
     if (rout->type->kind == (a_type_kind)tk_routine) {
       /* If this routine is declared using ordinary function declarator
          syntax (i.e., not using a typedef), generate the associated

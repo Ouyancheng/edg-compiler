@@ -1672,6 +1672,7 @@ ec_no_pointer_parameters;;"no parameter has pointer type"
 ec_null_argument_for_nonnull_parameter;;"null argument for parameter marked with attribute \"nonnull\""
 ec_access_prevents_dtor_generation;;"the destructor for %t1 has been suppressed because the destructor for %t2 is inaccessible"
 ec_suppressed_dtor_needed;;"the suppressed destructor for %t is needed"
+ec_inline_gnu_noinline_conflict;;"routine is both \"inline\" and \"noinline\" (\"noinline\" assumed)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
