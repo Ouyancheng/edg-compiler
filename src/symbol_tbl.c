@@ -6962,6 +6962,12 @@ if necessary.  *position is the source position of the reference.
                                                honor_virtual, evaluated,
                                                instantiate);
       dtor_routine = dtor_sym->variant.routine.ptr;
+    } else if (class_type->variant.class_struct_union.dtor_decl_suppressed &&
+               microsoft_version >= 1400) {
+      /* MSVC++ 8.0 issues an error if a suppressed destructor would have
+         been called. */
+      pos_ty_diagnostic(es_discretionary_error, ec_suppressed_dtor_needed,
+                        position, class_type);
     }  /* if */
   }  /* if */
   return dtor_routine;
@@ -7057,9 +7063,9 @@ is returned TRUE if the parameter is not a reference parameter.
   if (cssp->assignment_by_bitwise_copy_allowed ||
       cssp->assignment_operator == NULL) {
     /* A NULL assignment operator when bitwise copies are not allowed can
-       occur in certain error cases.  Return NULL. */
+       occur in certain error cases and in Microsoft mode.  Return NULL. */
     check_assertion(cssp->assignment_by_bitwise_copy_allowed ||
-                    total_errors != 0);
+                    total_errors != 0 || microsoft_mode);
   } else {
     sym = cssp->assignment_operator;
     /* If sym is an overloaded function symbol we need to go through the whole

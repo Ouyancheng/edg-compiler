@@ -1772,6 +1772,15 @@ do_struct_union:
       if (ptr->variant.class_struct_union.has_operator_ampersand) {
         disp_boolean("has_operator_ampersand", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.copy_assignment_decl_suppressed) {
+        disp_boolean("copy_assignment_decl_suppressed", TRUE);
+      }  /* if */
+      if (ptr->variant.class_struct_union.copy_ctor_decl_suppressed) {
+        disp_boolean("copy_ctor_decl_suppressed", TRUE);
+      }  /* if */
+      if (ptr->variant.class_struct_union.dtor_decl_suppressed) {
+        disp_boolean("dtor_decl_suppressed", TRUE);
+      }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
       if (ptr->variant.class_struct_union.is_transparent) {
         disp_boolean("is_transparent", TRUE);

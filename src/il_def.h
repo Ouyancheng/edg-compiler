@@ -6153,6 +6153,34 @@ typedef struct a_type {
 			   been marked as required by
 			   require_definitions_of_virtual_functions_in_class;
 			   this is used to avoid doing it again. */
+      a_bit_field
+		copy_assignment_decl_suppressed:1;
+			/* TRUE if the class would have had an implicitly-
+			   declared copy assignment operator but its
+			   declaration was suppressed because the class has
+			   a nonstatic data member of reference or
+			   const-qualified type or a base or nonstatic
+			   member with an ambiguous or inaccessible copy
+			   assignment operator.  (Such suppression is
+			   nonstandard and occurs only in Microsoft
+			   mode.) */
+      a_bit_field
+		copy_ctor_decl_suppressed:1;
+			/* TRUE if the class would have had an implicitly-
+			   declared copy constructor but its declaration
+			   was suppressed because the class has a nonstatic
+			   data member or base class with an ambiguous or
+			   inaccessible copy constructor.  (Such
+			   suppression is nonstandard and occurs only in
+			   Microsoft mode.) */
+      a_bit_field
+		dtor_decl_suppressed:1;
+			/* TRUE if the class would have had an implicitly-
+			   declared destructor but its declaration was
+			   suppressed because the class has a nonstatic
+			   data member or base class with an inaccessible
+			   destructor.  (Such suppression is nonstandard
+			   and occurs only in Microsoft mode.) */
       bitfield_to_avoid_codecenter_warnings()
 #if USER_CONTROL_OF_STRUCT_PACKING
       a_targ_alignment

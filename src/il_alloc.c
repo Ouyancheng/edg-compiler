@@ -1468,6 +1468,9 @@ to default values.
       pte->variant.class_struct_union.has_operator_ampersand = FALSE;
       pte->variant.class_struct_union.virtual_functions_marked_as_required =
                                                                          FALSE;
+      pte->variant.class_struct_union.copy_assignment_decl_suppressed = FALSE;
+      pte->variant.class_struct_union.copy_ctor_decl_suppressed = FALSE;
+      pte->variant.class_struct_union.dtor_decl_suppressed = FALSE;
 #if CENTERLINE_CHECKING
       pte->variant.class_struct_union.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

@@ -14674,97 +14674,111 @@ need to be handled here.
   a_routine_type_supplement_ptr
                            rtsp;
 
+  if (class_type->variant.class_struct_union.copy_assignment_decl_suppressed) {
+    /* In order to emulate the behavior of the Microsoft compiler, we
+       suppress the declaration of the implicit copy assignment operator
+       for a class that has a member with reference or const-qualified
+       type; this allows overload resolution to select a different
+       assignment operator for the copy.  However, the Microsoft compiler
+       only does this for direct assignments; when generating the
+       definition of an implicitly-declared copy assignment operator, it
+       reports an error for such subobjects, rather than performing
+       overload resolution among the remaining assignment operators. */
+    pos_ty_error(ec_no_suitable_assignment_operator, dest_decl_pos,
+                 class_type);
+  } else {
 #if DEBUG
-  overload_level++;
+    overload_level++;
 #endif /* DEBUG */
-  /* Make operands from the source and destination expressions. */
-  make_expression_operand(dest_expr, dest_expr->type, &operand_1);
-  make_expression_operand(source_expr, source_expr->type, &operand_2);
-  /* Treat the source as an lvalue so it will be an acceptable match for
-     a non-const reference parameter. */
-  conv_object_pointer_to_lvalue(&operand_2);
-  /* Change the operands into argument operand form. */
-  arg_operand_list = alloc_arg_operand();
-  copy_operand(&operand_1, &arg_operand_list->operand);
-  arg_operand_list2 = alloc_arg_operand();
-  copy_operand(&operand_2, &arg_operand_list2->operand);
-  arg_operand_list->next = arg_operand_list2;
-  /* candidate_functions will contain the list of viable functions. */
-  candidate_functions = NULL;
-  member_functions_symbol = opname_member_function_symbol(
-                                               (an_opname_kind)onk_assign,
-                                               class_type);
-  if (member_functions_symbol != NULL) {
-    /* There are assignment operators for this class type.  See how well they
-       match up.  Use the first operand as the selector expression, and the
-       second operand as the actual argument. */
-    try_overloaded_function_match(member_functions_symbol,
-                                  /*is_template_id=*/FALSE,
-                                  (a_template_arg_ptr)NULL,
-                                  arg_operand_list2,
-                                  /*have_selector=*/TRUE,
-                                  &operand_1,
-                                  /*selector_is_object_pointer=*/TRUE,
-                                  /*ctor_conversion_case=*/FALSE,
-                                  /*initializing_return_value=*/FALSE,
-                                  /*effects_copy_initialization=*/FALSE,
-                                  /*allow_udc_on_arguments=*/FALSE,
-                                  /*from_arg_dep_lookup=*/FALSE,
-                                  ADLEI_NONE,
-                                  /*dependent_call=*/FALSE,
-                                  /*forced_dependent=*/FALSE,
-                                  /*known_to_be_visible=*/TRUE,
-                                  /*is_overloaded_operator=*/TRUE,
-                                  &candidate_functions,
-                                  &matched_except_for_missing_selector,
-                                  &matched_except_for_selector);
-    /* The candidate_functions list now contains all the viable functions.
-       Find the best. */
-    select_best_candidate_functions(&candidate_functions, dest_decl_pos,
-                                    &undecidable_because_of_error, &ambiguous);
-    if (undecidable_because_of_error) {
-      /* There was a previously-reported error. */
-    } else if (candidate_functions == NULL) {
-      /* There is no applicable operator= function. */
-      tp = type_pointed_to(source_expr->type);
-      if (is_const_qualified_type(tp)) {
-        /* The common case: missing const assignment operator function. */
-        pos_ty_error(ec_missing_const_assignment_operator, dest_decl_pos,
+    /* Make operands from the source and destination expressions. */
+    make_expression_operand(dest_expr, dest_expr->type, &operand_1);
+    make_expression_operand(source_expr, source_expr->type, &operand_2);
+    /* Treat the source as an lvalue so it will be an acceptable match for
+       a non-const reference parameter. */
+    conv_object_pointer_to_lvalue(&operand_2);
+    /* Change the operands into argument operand form. */
+    arg_operand_list = alloc_arg_operand();
+    copy_operand(&operand_1, &arg_operand_list->operand);
+    arg_operand_list2 = alloc_arg_operand();
+    copy_operand(&operand_2, &arg_operand_list2->operand);
+    arg_operand_list->next = arg_operand_list2;
+    /* candidate_functions will contain the list of viable functions. */
+    candidate_functions = NULL;
+    member_functions_symbol = opname_member_function_symbol(
+                                                 (an_opname_kind)onk_assign,
+                                                 class_type);
+    if (member_functions_symbol != NULL) {
+      /* There are assignment operators for this class type.  See how well they
+         match up.  Use the first operand as the selector expression, and the
+         second operand as the actual argument. */
+      try_overloaded_function_match(member_functions_symbol,
+                                    /*is_template_id=*/FALSE,
+                                    (a_template_arg_ptr)NULL,
+                                    arg_operand_list2,
+                                    /*have_selector=*/TRUE,
+                                    &operand_1,
+                                    /*selector_is_object_pointer=*/TRUE,
+                                    /*ctor_conversion_case=*/FALSE,
+                                    /*initializing_return_value=*/FALSE,
+                                    /*effects_copy_initialization=*/FALSE,
+                                    /*allow_udc_on_arguments=*/FALSE,
+                                    /*from_arg_dep_lookup=*/FALSE,
+                                    ADLEI_NONE,
+                                    /*dependent_call=*/FALSE,
+                                    /*forced_dependent=*/FALSE,
+                                    /*known_to_be_visible=*/TRUE,
+                                    /*is_overloaded_operator=*/TRUE,
+                                    &candidate_functions,
+                                    &matched_except_for_missing_selector,
+                                    &matched_except_for_selector);
+      /* The candidate_functions list now contains all the viable functions.
+         Find the best. */
+      select_best_candidate_functions(&candidate_functions, dest_decl_pos,
+                                      &undecidable_because_of_error, &ambiguous);
+      if (undecidable_because_of_error) {
+        /* There was a previously-reported error. */
+      } else if (candidate_functions == NULL) {
+        /* There is no applicable operator= function. */
+        tp = type_pointed_to(source_expr->type);
+        if (is_const_qualified_type(tp)) {
+          /* The common case: missing const assignment operator function. */
+          pos_ty_error(ec_missing_const_assignment_operator, dest_decl_pos,
+                       class_type);
+        } else {
+          /* Unusual case: volatile or const-volatile expected. */
+          pos_ty_error(ec_no_suitable_assignment_operator, dest_decl_pos,
+                       class_type);
+        }  /* if */
+      } else if (ambiguous) {
+        /* More than one operator= function applies and is a best match. */
+        pos_ty_error(ec_ambiguous_assignment_operator, dest_decl_pos,
                      class_type);
       } else {
-        /* Unusual case: volatile or const-volatile expected. */
-        pos_ty_error(ec_no_suitable_assignment_operator, dest_decl_pos,
-                     class_type);
+        /* Exactly one operator= function applies and is best. */
+        proj_function_symbol = candidate_functions->function_symbol;
+        function_symbol = fundamental_symbol_of(proj_function_symbol);
+        /* Check that the function is accessible and mark it referenced. */
+        reference_to_implicitly_invoked_function(function_symbol,
+                                                 dest_decl_pos,
+                                                 (a_type_ptr)NULL,
+                                                 /*honor_virtual=*/FALSE,
+                                                 /*evaluated=*/TRUE,
+                                                 /*instantiate=*/TRUE);
+        rout = function_symbol->variant.routine.ptr;
+        routine_type = routine_symbol_type(function_symbol);
+        rtsp = routine_type->variant.routine.extra_info;
+        ptp = rtsp->param_type_list;
+        check_assertion(ptp != NULL);
+        tp = skip_typerefs(ptp->type);
+        *pass_by_value = !is_reference_type(tp);
       }  /* if */
-    } else if (ambiguous) {
-      /* More than one operator= function applies and is a best match. */
-      pos_ty_error(ec_ambiguous_assignment_operator, dest_decl_pos,
-                   class_type);
-    } else {
-      /* Exactly one operator= function applies and is best. */
-      proj_function_symbol = candidate_functions->function_symbol;
-      function_symbol = fundamental_symbol_of(proj_function_symbol);
-      /* Check that the function is accessible and mark it referenced. */
-      reference_to_implicitly_invoked_function(function_symbol,
-                                               dest_decl_pos,
-                                               (a_type_ptr)NULL,
-                                               /*honor_virtual=*/FALSE,
-                                               /*evaluated=*/TRUE,
-                                               /*instantiate=*/TRUE);
-      rout = function_symbol->variant.routine.ptr;
-      routine_type = routine_symbol_type(function_symbol);
-      rtsp = routine_type->variant.routine.extra_info;
-      ptp = rtsp->param_type_list;
-      check_assertion(ptp != NULL);
-      tp = skip_typerefs(ptp->type);
-      *pass_by_value = !is_reference_type(tp);
+      free_candidate_function_list(candidate_functions);
     }  /* if */
-    free_candidate_function_list(candidate_functions);
-  }  /* if */
-  free_arg_operand_list(arg_operand_list);
+    free_arg_operand_list(arg_operand_list);
 #if DEBUG
-  overload_level--;
+    overload_level--;
 #endif /* DEBUG */
+  }  /* if */
   return rout;
 }  /* select_assignment_operator_for_copy */
 

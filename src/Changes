@@ -1,5 +1,29 @@
 Version 3.10
 
+5/11/07  Microsoft compatibility: suppression of implicitly-declared special
+         member functions
+
+When the Microsoft compiler determines that an implicitly-declared copy
+constructor, copy assignment operator, or destructor could not be implicitly
+defined because of access errors and the like, it does not declare the
+member function in the class.  This allows overload resolution to select
+a different constructor or assignment operator for a copy and prevents
+errors if a destructor is not actually used.  The front end now emulates
+this behavior in --microsoft mode.  For example:
+
+  struct S {
+    S();
+    template <typename T> S& operator=(const T&) {
+      return *this;
+    }
+    int &ir;    // reference member would cause error defining implicit
+                // operator=, so do not declare it
+  };
+  S s;
+  void f() {
+    s = S();    // No error, uses template operator= to copy
+  }
+
 5/10/07  GNU compatibility: Attribute "nonnull"
 
 In GNU modes, the front end now accepts attribute "nonnull".  If followed by

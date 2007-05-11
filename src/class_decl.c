@@ -10999,6 +10999,179 @@ done:;
 }  /* default_copy_constructor_check */
 
 
+static void check_microsoft_suppressed_special_functions(
+                                   a_type_ptr           class_type,
+                                   a_type_qualifier_set ctor_qualifiers,
+                                   a_type_qualifier_set asgn_qualifiers,
+                                   a_boolean            issue_dtor_warning,
+                                   a_boolean            *suppress_copy_ctor,
+                                   a_boolean            *suppress_copy_asgn_op,
+                                   a_boolean            *suppress_dtor)
+/*
+Check to see if any errors exist that would prevent the successful
+generation of the implicit definition of a copy constructor, copy
+assignment operator, or destructor for the specified class_type.  This is
+called in Microsoft mode to emulate the behavior of the Microsoft compiler,
+which suppresses the declaration of these member functions in case of an
+error, allowing overload resolution to select a non-copy constructor or
+assignment operator for copy operations and preventing diagnostics
+resulting from an unused destructor.  The ctor_qualifiers and
+asgn_qualifiers are the qualifiers on the parameter of the function, used
+in looking up the corresponding function in the members and bases; the
+three booleans are set to reflect whether an error would occur in the
+definition or not,  If issue_dtor_warning is TRUE, a warning diagnostic will
+be issued if the destructor is suppressed.
+*/
+{
+  a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
+  a_class_symbol_supplement_ptr cssp2;
+  a_symbol_ptr                  sym;
+  a_symbol_ptr                  rout_sym;
+  a_base_class_ptr              bcp;
+  a_type_ptr                    tp;
+  a_boolean                     ambiguous;
+  a_boolean                     pass_by_value;
+  a_boolean                     bitwise_copy;
+  a_boolean                     dtor_message_issued = !issue_dtor_warning;
+
+  *suppress_copy_ctor = FALSE;
+  *suppress_copy_asgn_op = FALSE;
+  *suppress_dtor = FALSE;
+  /* First, scan through all the nonstatic data members, using the symbol
+     list rather than the field list to be sure that only user-defined
+     fields are checked and to be sure that anonymous union fields are
+     picked up. */
+  for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
+    if (sym->kind == (a_symbol_kind)sk_field) {
+      tp = sym->variant.field.ptr->type;
+      if (is_array_type(tp)) {
+        tp = underlying_array_element_type(tp);
+      }  /* if */
+      if (is_const_qualified_type(tp) || is_reference_type(tp)) {
+        /* A nonstatic data member with const-qualified or reference type
+           prevents the copy assignment operator from being generated. */
+        *suppress_copy_asgn_op = TRUE;
+      } else if (is_class_struct_union_type(tp)) {
+        tp = skip_typerefs(tp);
+        if (tp->variant.class_struct_union.copy_assignment_decl_suppressed) {
+          /* A member with a suppressed copy assignment operator suppresses
+             this one, too. */
+          *suppress_copy_asgn_op = TRUE;
+        } else if (microsoft_version < 1400) {
+          /* MSVC++ 8.0 issues an error for an inaccessible member copy
+             assignment operator, while earlier versions suppress the
+             containing copy assignment operator. */
+          rout_sym = find_copy_assignment_operator(tp, asgn_qualifiers,
+                                                   &ambiguous, &pass_by_value);
+          if (ambiguous ||
+              (rout_sym != NULL && !have_access_to_symbol(rout_sym))) {
+            /* A member with an ambiguous or inaccessible copy assignment
+               operator prevents this copy assignment operator from being
+               generated. */
+            *suppress_copy_asgn_op = TRUE;
+          }  /* if */
+        }  /* if */
+        if (microsoft_version < 1400) {
+          /* Microsoft versions before 8.0 had similar processing for copy
+             constructors. */
+          if (tp->variant.class_struct_union.copy_ctor_decl_suppressed) {
+            /* A member with a suppressed copy constructor suppresses this
+               one, too. */
+            *suppress_copy_ctor = TRUE;
+          } else {
+            rout_sym = find_copy_constructor(tp, ctor_qualifiers,
+                                             /*source_is_rvalue=*/FALSE,
+                                             &tp->source_corresp.decl_position,
+                                             &ambiguous, &bitwise_copy);
+            if (ambiguous ||
+                (rout_sym != NULL && !have_access_to_symbol(rout_sym))) {
+              /* A member with an ambiguous or inaccessible copy constructor
+                 prevents this one from being generated. */
+              *suppress_copy_ctor = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        /* Now check for the destructor's accessibility. */
+        cssp2 = symbol_supplement_for_class(tp);
+        if (cssp2->destructor != NULL &&
+            !have_access_to_symbol(cssp2->destructor)) {
+          /* An inaccessible member destructor prevents this one from being
+             generated. */
+          *suppress_dtor = TRUE;
+          if (!dtor_message_issued) {
+            dtor_message_issued = TRUE;
+            pos_ty2_diagnostic(es_warning, ec_access_prevents_dtor_generation,
+                               &class_type->source_corresp.decl_position,
+                               class_type, tp);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Now scan through all the direct base classes of this class. */
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct  &&
+        !(bcp->is_virtual &&
+          virtual_base_class_is_indirect(bcp, class_type))) {
+      if (bcp->type->variant.class_struct_union.
+                                             copy_assignment_decl_suppressed) {
+        /* A base class with a suppressed copy assignment operator suppresses
+           this one, too. */
+        *suppress_copy_asgn_op = TRUE;
+      } else if (microsoft_version < 1400) {
+        /* MSVC++ 8.0 issues an error for an inaccessible base copy
+           assignment operator, while earlier versions suppress the
+           containing copy assignment operator. */
+        rout_sym = find_copy_assignment_operator(bcp->type, asgn_qualifiers,
+                                                 &ambiguous, &pass_by_value);
+        if (ambiguous ||
+            (rout_sym != NULL && !have_access_to_symbol(rout_sym))) {
+          /* A base class with an ambiguous or inaccessible copy assignment
+             operator prevents this copy assignment operator from being
+             generated. */
+          *suppress_copy_asgn_op = TRUE;
+        }  /* if */
+      }  /* if */
+      if (microsoft_version < 1400) {
+        /* Microsoft versions before 8.0 had similar processing for the copy
+           constructor. */
+        if (bcp->type->variant.class_struct_union.copy_ctor_decl_suppressed) {
+          /* A base class with a suppressed copy constructor suppresses this
+             one, too. */
+          *suppress_copy_ctor = TRUE;
+        } else {
+          rout_sym = find_copy_constructor(
+                                      bcp->type, ctor_qualifiers,
+                                      /*source_is_rvalue=*/FALSE,
+                                      &bcp->type->source_corresp.decl_position,
+                                      &ambiguous, &bitwise_copy);
+          if (ambiguous ||
+              (rout_sym != NULL && !have_access_to_symbol(rout_sym))) {
+            /* A base class with an ambiguous or inaccessible copy constructor
+               prevents this one from being generated. */
+            *suppress_copy_ctor = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      /* Now check for the destructor's accessibility. */
+      cssp2 = symbol_supplement_for_class(bcp->type);
+      if (cssp2->destructor != NULL &&
+          !have_access_to_symbol(cssp2->destructor)) {
+        /* An inaccessible base destructor prevents this one from being
+           generated. */
+        *suppress_dtor = TRUE;
+        if (!dtor_message_issued) {
+          dtor_message_issued = TRUE;
+          pos_ty2_diagnostic(es_warning, ec_access_prevents_dtor_generation,
+                             &class_type->source_corresp.decl_position,
+                             class_type, bcp->type);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* check_microsoft_suppressed_special_functions */
+
+
 static void check_special_member_functions(a_type_ptr            class_type,
                                            a_class_def_state_ptr class_state)
 
@@ -11013,10 +11186,14 @@ The routine body is not generated until it is known to be needed.
   a_param_type_ptr              ptp;
   a_class_symbol_supplement_ptr cssp;
   a_boolean                     const_okay, dummy_flag;
-  a_type_qualifier_set          qualifiers;
+  a_type_qualifier_set          ctor_qualifiers;
+  a_type_qualifier_set          asgn_qualifiers;
   a_member_decl_info            decl_info;
   a_source_position             *pos;
   a_boolean                     user_declared_copy_assignment_op = FALSE;
+  a_boolean                     suppress_copy_ctor = FALSE;
+  a_boolean                     suppress_copy_asgn_op = FALSE;
+  a_boolean                     suppress_dtor = FALSE;
 
   db_enter(3, "check_special_member_functions");
   cssp = symbol_supplement_for_class(class_type);
@@ -11050,24 +11227,62 @@ The routine body is not generated until it is known to be needed.
   }  /* if */
   if (cssp->constructor != NULL && !cssp->has_copy_constructor) {
     default_copy_constructor_check(class_type, &const_okay);
-    /* Generate a copy constructor. */
-    qualifiers = const_okay ? TQ_CONST : TQ_NONE;
-    ptp = alloc_param_type(make_reference_type(
-                               make_qualified_type(class_type, qualifiers)));
-    /* Set a flag in the param type entry if its associated type is or contains
-       a template parameter. */
-    ptp->type_involves_deduced_template_param =
-                                  is_or_contains_template_param(class_type);
-    initialize_member_decl_info(&decl_info, pos);
-    decl_info.is_constructor = TRUE;
-    generate_special_function(class_state, &decl_info, ptp);
+    ctor_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
+  }  /* if */
+  if (!user_declared_copy_assignment_op &&
+      (!any_cfront_mode() || cssp->assignment_operator == NULL)) {
+    const_okay = default_assignment_of_const_object_okay(class_type);
+    asgn_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
+  }
+  if (microsoft_mode &&
+      ((cssp->constructor != NULL && !cssp->has_copy_constructor) ||
+       ((class_state->member_destruction_required ||
+         class_state->base_destruction_required) &&
+        cssp->destructor == NULL) ||
+       (!user_declared_copy_assignment_op &&
+        cssp->assignment_operator == NULL))) {
+    /* The Microsoft compiler does not implicitly declare some special
+       member functions if their definition would have errors.  Check to
+       see if these member function declarations should be suppressed. */
+    check_microsoft_suppressed_special_functions(class_type, ctor_qualifiers,
+                                                 asgn_qualifiers,
+                                                 /*issue_dtor_warning=*/TRUE,
+                                                 &suppress_copy_ctor,
+                                                 &suppress_copy_asgn_op,
+                                                 &suppress_dtor);
+  }  /* if */
+  if (cssp->constructor != NULL && !cssp->has_copy_constructor) {
+    if (suppress_copy_ctor) {
+      /* Mark this class as having a suppressed copy constructor and do not
+         add its declaration. */
+      class_type->variant.class_struct_union.copy_ctor_decl_suppressed = TRUE;
+    } else {
+      /* Generate a copy constructor. */
+      ptp = alloc_param_type(make_reference_type(
+                            make_qualified_type(class_type, ctor_qualifiers)));
+      /* Set a flag in the param type entry if its associated type is or
+         contains a template parameter. */
+      ptp->type_involves_deduced_template_param =
+                                    is_or_contains_template_param(class_type);
+      initialize_member_decl_info(&decl_info, pos);
+      decl_info.is_constructor = TRUE;
+      generate_special_function(class_state, &decl_info, ptp);
+    }  /* if */
   }  /* if */
   if ((class_state->member_destruction_required ||
        class_state->base_destruction_required) &&
       cssp->destructor == NULL) {
-    initialize_member_decl_info(&decl_info, pos);
-    decl_info.is_destructor = TRUE;
-    generate_special_function(class_state, &decl_info, (a_param_type_ptr)NULL);
+    if (suppress_dtor) {
+      /* Mark the class as having a suppressed destructor and do not add
+         the declaration. */
+      class_type->variant.class_struct_union.dtor_decl_suppressed = TRUE;
+    } else {
+      /* Add the declaration of the destructor. */
+      initialize_member_decl_info(&decl_info, pos);
+      decl_info.is_destructor = TRUE;
+      generate_special_function(class_state, &decl_info,
+                                (a_param_type_ptr)NULL);
+    }  /* if */
   }  /* if */
   /* Create a default assignment operator to copy an object of the current
      class if one doesn't already exist.  Note that in cfront mode, the
@@ -11078,35 +11293,41 @@ The routine body is not generated until it is known to be needed.
     /* An implicit assignment operator is generated if the class does not
        contain a user-declared copy assignment operator. */
     a_type_ptr this_type;
-    const_okay = default_assignment_of_const_object_okay(class_type);
-    qualifiers = const_okay ? TQ_CONST : TQ_NONE;
-    this_type = make_qualified_type(class_type, qualifiers);
-    ptp = alloc_param_type(make_reference_type(this_type));
-    /* Set a flag in the param type entry if its associated type is or
-       contains a template parameter. */
-    ptp->type_involves_deduced_template_param =
-                                is_or_contains_template_param(class_type);
-    initialize_member_decl_info(&decl_info, pos);
-    generate_special_function(class_state, &decl_info, ptp);
-#if NEAR_AND_FAR_ALLOWED
-    if (near_and_far_enabled()) {
-      /* Generate also an operator= that can copy a "far" object. */
-      a_param_type_ptr ptp_far;
-      a_type_ptr       this_type_far;
-      this_type_far = make_qualified_type(class_type, TQ_CONST|TQ_FAR);
-      /* Don't create the "far" operator= if the default one is "far"
-         (e.g., because the class is declared "far"). */
-      if (!identical_types(this_type_far, this_type)) {
-        ptp_far = alloc_param_type(make_reference_type(this_type_far));
-        /* Set a flag in the param type entry if its associated type is or
-           contains a template parameter. */
-        ptp_far->type_involves_deduced_template_param =
+    if (suppress_copy_asgn_op) {
+      /* Mark this class as having a suppressed copy assignment operator and
+         do not add its declaration. */
+      class_type->variant.class_struct_union.copy_assignment_decl_suppressed
+                                                                        = TRUE;
+    } else {
+      /* Add the implicit declaration of the copy assignment operator. */
+      this_type = make_qualified_type(class_type, asgn_qualifiers);
+      ptp = alloc_param_type(make_reference_type(this_type));
+      /* Set a flag in the param type entry if its associated type is or
+         contains a template parameter. */
+      ptp->type_involves_deduced_template_param =
+                                  is_or_contains_template_param(class_type);
+      initialize_member_decl_info(&decl_info, pos);
+      generate_special_function(class_state, &decl_info, ptp);
+  #if NEAR_AND_FAR_ALLOWED
+      if (near_and_far_enabled()) {
+        /* Generate also an operator= that can copy a "far" object. */
+        a_param_type_ptr ptp_far;
+        a_type_ptr       this_type_far;
+        this_type_far = make_qualified_type(class_type, TQ_CONST|TQ_FAR);
+        /* Don't create the "far" operator= if the default one is "far"
+           (e.g., because the class is declared "far"). */
+        if (!identical_types(this_type_far, this_type)) {
+          ptp_far = alloc_param_type(make_reference_type(this_type_far));
+          /* Set a flag in the param type entry if its associated type is or
+             contains a template parameter. */
+          ptp_far->type_involves_deduced_template_param =
                                      ptp->type_involves_deduced_template_param;
-        initialize_member_decl_info(&decl_info, pos);
-        generate_special_function(class_state, &decl_info, ptp_far);
+          initialize_member_decl_info(&decl_info, pos);
+          generate_special_function(class_state, &decl_info, ptp_far);
+        }  /* if */
       }  /* if */
+  #endif /* NEAR_AND_FAR_ALLOWED */
     }  /* if */
-#endif /* NEAR_AND_FAR_ALLOWED */
   }  /* if */
   db_exit();
 }  /* check_special_member_functions */

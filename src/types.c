@@ -9152,6 +9152,50 @@ that type's definition.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+
+a_boolean is_virtual_base_class_of(a_type_ptr  base_class_type,
+                                   a_type_ptr  derived_type)
+/*
+Return TRUE if base_class_type is a virtual base class of derived_type.
+*/
+{
+  a_base_class_ptr  bcp;
+
+  /* Loop through the base classes. */
+  for (bcp = base_classes_of(derived_type); bcp != NULL; bcp = bcp->next) {
+    if (same_entities(bcp->type, base_class_type)) {
+      /* Found it if it's virtual. */
+      if (!bcp->is_virtual) bcp = NULL;
+      break;
+    }  /* if */
+  }  /* for */
+  /* Return TRUE if we found it. */
+  return (bcp != NULL);
+}  /* is_virtual_base_class_of */
+
+
+a_boolean virtual_base_class_is_indirect(a_base_class_ptr  vbcp,
+                                         a_type_ptr        class_type)
+/*
+vbcp points to a virtual direct base class of the current class (class_type).
+Return TRUE if it is also an indirect base class of the current class -- i.e.,
+if at least one direct base class of the current class is virtually derived
+from the same class as the one with which vbcp is associated.
+*/
+{
+  a_base_class_ptr  bcp;
+  a_boolean         is_indirect = FALSE;
+
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+    if (is_virtual_base_class_of(vbcp->type, bcp->type)) {
+      is_indirect = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return is_indirect;
+}  /* virtual_base_class_is_indirect */
+
+
 void types_early_init(void)
 /*
 One time initialization that must occur early in the execution of the

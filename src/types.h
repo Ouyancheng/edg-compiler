@@ -976,6 +976,12 @@ extern a_targ_size_t upc_local_type_size(a_type_ptr tp);
 
 extern a_boolean in_definition_of_class(a_type_ptr  tp);
 
+extern a_boolean is_virtual_base_class_of(a_type_ptr base_class_type,
+                                          a_type_ptr derived_type);
+
+extern a_boolean virtual_base_class_is_indirect(a_base_class_ptr vbcp,
+                                                a_type_ptr       class_type);
+
 extern void types_early_init(void);
 
 #endif /* ifndef TYPES_H */
