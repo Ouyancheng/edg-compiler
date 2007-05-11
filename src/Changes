@@ -169,7 +169,7 @@ ABI_COMPATIBILITY_VERSION >= 310.  The IA-64 ABI is unchanged.
 4/25/07  Undefined virtual functions in unnamed namespaces
 
 The front end previously always issued a discretionary error when a virtual
-function a declared in an unnamed namespace but not defined in the same
+function is declared in an unnamed namespace but not defined in the same
 translation unit.  Now that diagnostic is weakened to a remark in nonstrict
 modes if the class enclosing such a virtual function is not actually
 referenced.
