@@ -11229,7 +11229,7 @@ The routine body is not generated until it is known to be needed.
   ctor_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
   const_okay = default_assignment_of_const_object_okay(class_type);
   asgn_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
-  if (microsoft_mode &&
+  if (microsoft_mode && !is_prototype_instantiation_context() &&
       ((cssp->constructor != NULL && !cssp->has_copy_constructor) ||
        ((class_state->member_destruction_required ||
          class_state->base_destruction_required) &&
