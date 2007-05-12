@@ -11225,15 +11225,10 @@ The routine body is not generated until it is known to be needed.
                                 (a_param_type_ptr)NULL);
     }  /* if */
   }  /* if */
-  if (cssp->constructor != NULL && !cssp->has_copy_constructor) {
-    default_copy_constructor_check(class_type, &const_okay);
-    ctor_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
-  }  /* if */
-  if (!user_declared_copy_assignment_op &&
-      (!any_cfront_mode() || cssp->assignment_operator == NULL)) {
-    const_okay = default_assignment_of_const_object_okay(class_type);
-    asgn_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
-  }
+  default_copy_constructor_check(class_type, &const_okay);
+  ctor_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
+  const_okay = default_assignment_of_const_object_okay(class_type);
+  asgn_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
   if (microsoft_mode &&
       ((cssp->constructor != NULL && !cssp->has_copy_constructor) ||
        ((class_state->member_destruction_required ||
