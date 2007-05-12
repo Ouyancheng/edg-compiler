@@ -1216,6 +1216,11 @@ extern void push_class_and_template_reactivation_scope(
                                  a_type_ptr	class_type,
                                  a_boolean      reactivate_template_params,
                                  a_boolean	extend_namespace);
+extern void push_class_and_template_reactivation_scope_full(
+                                 a_type_ptr	class_type,
+                                 a_boolean      reactivate_template_params,
+                                 a_boolean	extend_namespace,
+                                 a_boolean      force_new_entry_for_namespace);
 
 extern a_scope_pointers_block *get_pointers_block_for_scope(a_scope_ptr scope);
 

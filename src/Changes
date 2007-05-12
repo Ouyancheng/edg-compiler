@@ -1,5 +1,21 @@
 Version 3.10
 
+5/12/07  C++-generating back end: missing qualifier on name in class from
+         containing namespace
+
+Under some circumstances, the C++-generating back end failed to qualify a
+name from the containing namespace appearing in a class when that name is
+hidden by a name declared in the class.  This is now fixed.  For example:
+
+  namespace A {
+    typedef int T;
+    template <class C> struct deriv;
+    struct base {
+      typedef A::T T;    // Previously generated as "typedef T T;"
+    };
+    template<class C>  struct deriv : public base  { };
+  }
+
 5/11/07  GNU compatibility: Attributes "noinline" and "always_inline"
 
 In GNU modes, the front end now accepts the attributes "noinline" and

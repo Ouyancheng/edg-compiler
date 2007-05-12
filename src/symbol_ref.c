@@ -673,7 +673,10 @@ class, too, and thus must be flagged as requiring qualification.
        (unless the scope belongs to a secondary translation unit; it's an
        error to try to put hidden names into such scopes). */
     a_scope_depth init_depth = depth_scope_stack;
-    push_class_reactivation_scope(base_class, /*extend_namespace=*/FALSE);
+    push_class_and_template_reactivation_scope_full(
+                              base_class, /*reactivate_template_params=*/FALSE,
+                              /*extend_namespace=*/FALSE,
+                              /*force_new_entry_for_namespace=*/TRUE);
     /* Skip scopes that were previously pushed for hidden name processing. */
     scope_stack[init_depth+1].previous_scope = DEPTH_OF_FILE_SCOPE;
     check_name_hiding_for_scope(base_scope);
