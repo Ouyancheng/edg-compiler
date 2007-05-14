@@ -13823,10 +13823,11 @@ Lower an stmk_return statement.
 #endif /* CTORS_RETURN_THIS */
 #if DTORS_RETURN_THIS
   } else if (routine->special_kind==(a_special_function_kind)sfk_destructor) {
-    /* A destructor returns "this". */
+    /* A destructor returns "(void *)this". */
     a_variable_ptr this_param_var =
                  innermost_function_scope->variant.routine.this_param_variable;
-    return_expr = statement->expr = var_rvalue_expr(this_param_var);
+    return_expr = add_cast(var_rvalue_expr(this_param_var), void_star_type());
+    statement->expr = return_expr;
     return_type = return_expr->type;
 #endif /* DTORS_RETURN_THIS */
   }  /* if */

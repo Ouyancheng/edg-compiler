@@ -1,5 +1,28 @@
 Version 3.10
 
+5/14/07  Inlining destructors in IA-64 ABI configuration with
+         IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS results in errors
+
+When the front end is using the IA-64 ABI and is configured with the macro
+IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS set to TRUE and
+destructors are inlined during lowering, these destructors mistakenly
+return zero rather than the value of 'this'.  This can cause a value of
+zero to be passed to operator delete after the destructor has been invoked,
+resulting in a memory leak.  For example:
+
+  int destruc_counter = 0;
+  int is_zero = 0;
+  struct C {
+    ~C(){ destruc_counter++;}
+    void operator delete(void *vp) 
+      { is_zero = (vp == (void*)0); }  // is_zero was TRUE, now FALSE
+  };
+  int main(void) {
+    C* cp = new C();
+    delete cp;                  // destructor invocation is inlined if possible
+    return is_zero;
+  }
+
 5/12/07  C++-generating back end: missing qualifier on name in class from
          containing namespace
 
