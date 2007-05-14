@@ -6673,6 +6673,12 @@ typedef struct a_variable {
 			   between 101 and 65535 inclusive, or should be zero
 			   if the attribute was not specified. */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  a_routine_ptr
+		cleanup_routine;
+			/* The cleanup routine that should be called when the
+			   variable (which must be an automatic variable) goes
+			   out of scope.  (Currently, the front end does not
+			   make that call explicit in any way.) */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   a_bit_field   ELF_visibility:3;
 			/* The visibility of the variable in the generated

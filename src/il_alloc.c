@@ -1884,6 +1884,7 @@ Clear the fields of the given variable to default values.
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   vp->init_priority               = 0;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  vp->cleanup_routine             = NULL;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   vp->ELF_visibility              = (an_ELF_visibility_kind)evk_unspecified;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */

@@ -1,5 +1,21 @@
 Version 3.10
 
+5/14/07  GNU compatibility: Attribute "cleanup"
+
+In GNU C mode, the front end now accepts and records attribute "cleanup" on
+local variables with automatic storage duration (except parameters).  The
+attribute specifies that a given function should be called when a variable
+goes out of scope (much like a destructor); note however that the front end
+does not insert a call to the cleanup function in the IL.  For example:
+
+  void f(int *p);
+  void g() {
+    int x __attribute((cleanup(f)));  // Now accepted in GNU C mode.
+  }                                   // No call to "f" is inserted.
+
+The attribute is currently not accepted in GNU C++ mode (because the behavior
+of current and past versions of g++ is unclear for this attribute).
+
 5/14/07  Inlining destructors in IA-64 ABI configuration with
          IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS results in errors
 

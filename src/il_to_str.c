@@ -4607,6 +4607,14 @@ Do the output in the way described by octl.
                 &need_leading_space, octl);
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+    if (var->cleanup_routine != NULL) {
+      if (need_leading_space) octl->output_str(" ");
+      need_leading_space = TRUE;
+      octl->output_str("__attribute__((cleanup(");
+      form_unqualified_name(&var->cleanup_routine->source_corresp,
+                            iek_routine, octl);
+      octl->output_str(")))");
+    }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     form_ELF_visibility_attribute(var->ELF_visibility, &var->source_corresp,
                                   &need_leading_space, octl);

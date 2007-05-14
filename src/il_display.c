@@ -2233,6 +2233,9 @@ Display the indicated variable.
     disp_unsigned_long("init_priority", (unsigned long)ptr->init_priority);
   }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  if (ptr->cleanup_routine != NULL) {
+    disp_ptr("cleanup_routine", (char *)ptr->cleanup_routine, iek_routine);
+  }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   if (ptr->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified) {
     disp_ELF_visibility_kind(ptr->ELF_visibility);

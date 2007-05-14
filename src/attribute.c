@@ -524,6 +524,9 @@ pointed to be "pos" can be freed when this routine returns.
     case ak_nonnull:
       ap->variant.nonnull_param = 0;
       break;
+    case ak_cleanup:
+      ap->variant.cleanup_routine = NULL;
+      break;
     default:
       unexpected_condition_str("alloc_attribute: bad kind");
   }  /* switch */
@@ -609,6 +612,9 @@ Return a copy of the complete attribute list.
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
       case ak_nonnull:
         (*end)->variant.nonnull_param = attributes->variant.nonnull_param;
+        break;
+      case ak_cleanup:
+        (*end)->variant.cleanup_routine = attributes->variant.cleanup_routine;
         break;
       default:
         unexpected_condition_str("copy_attribute_list: bad kind");
@@ -982,6 +988,22 @@ that do take arguments.
         result = TRUE;
       }
       break;
+    case ak_cleanup:
+      result = FALSE;
+      if (curr_token != tok_identifier || next_token() != tok_rparen) {
+        goto error;
+      } else {
+        a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id,
+                                             IDL_NO_OPTIONS);
+        if (sym == NULL || sym->kind != (a_symbol_kind)sk_routine) {
+          warning(ec_invalid_cleanup_routine);
+        } else {
+          result = TRUE;
+          attribute->variant.cleanup_routine = sym->variant.routine.ptr;
+        }  /* if */
+        (void)get_token();
+      }  /* if */
+      break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -1024,6 +1046,15 @@ is not a recognized kind of attribute, set *kind to ak_last.
       }  /* if */
       break;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+    case ak_cleanup:
+      if (gpp_mode) {
+        /* Although various versions of g++ appear to recognize the "cleanup"
+           attribute, they either issue a strange diagnostic for it, or they
+           silently ignore the attribute.  We therefore do not accept the
+           attribute in GNU C++ mode at this time. */
+        *kind = (an_attribute_kind)ak_last;
+      }  /* if */
+      break;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     case ak_visibility:
       if (gnu_visibility_attribute_enabled) break;
@@ -1164,6 +1195,7 @@ function returns the address of the last attribute.
           case ak_init_priority:
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
           case ak_nonnull:
+          case ak_cleanup:
             /* Bypass the lparen. */
             (void)get_token();
             if (!scan_attribute_arguments(attribute)) {
@@ -1632,6 +1664,60 @@ transparent.  If not, issue a diagnostic and return FALSE.
 }  /* check_transparent_union */
 
 
+static a_boolean check_cleanup_function(a_variable_ptr    vp,
+                                        an_attribute_ptr  ap)
+/*
+Check whether the given attribute of kind ak_cleanup validly applies to the
+given variable.  If so, return TRUE; otherwise, return FALSE and issue a
+diagnostic.
+*/
+{
+  a_boolean  return_okay = FALSE;
+
+  if (vp->storage_class != (a_storage_class)sc_auto) {
+    pos_warning(ec_attribute_cleanup_requires_automatic_storage,
+                &ap->position);
+  } else if (vp->is_parameter) {
+    pos_warning(ec_attribute_cleanup_for_parameter, &ap->position);
+  } else {
+    /* Check that the cleanup routine has an acceptable type. */
+    a_type_ptr  rtp = skip_typerefs(ap->variant.cleanup_routine->type);
+    a_routine_type_supplement_ptr
+                rtsp = rtp->variant.routine.extra_info;
+    
+    if (!rtsp->prototyped) {
+      /* No check possible: Assume the function is acceptable. */
+      return_okay = TRUE;
+    } else if (rtsp->param_type_list == NULL ||
+               rtsp->param_type_list->next != NULL) {
+      pos_error(ec_bad_type_for_cleanup_routine, &ap->position);
+    } else {
+      /* Check that the cleanup routine can be called with an argument that is
+         this address of the give variable. */
+      a_std_conv_descr  std_conv;
+      clear_std_conv_descr(&std_conv);
+      if (impl_conversion_possible(make_pointer_type(vp->type),
+                                   /*source_is_constant=*/FALSE,
+                                   /*source_is_string_literal=*/FALSE,
+                                   (a_constant*)NULL,
+                                   rtsp->param_type_list->type,
+                                   /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                   /*suppress_extensions=*/TRUE,
+                                   ec_nonstandard_conversion_for_cleanup,
+                                   &std_conv)) {
+        if (std_conv.warning_suggested != ec_no_error) {
+          pos_warning(std_conv.warning_suggested, &ap->position);
+        }  /* if */
+        return_okay = TRUE;
+      } else {
+        pos_error(ec_bad_type_for_cleanup_routine, &ap->position);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return return_okay;
+}  /* check_cleanup_function */
+
+
 #if !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
 /*ARGSUSED*/ /* <-- is_definition is only used when the init_priority
                     attribute is enabled. */
@@ -1764,6 +1850,13 @@ attributes were specified on a definition.
         }  /* if */
         break;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+      case ak_cleanup:
+        if (check_cleanup_function(vp, ap)) {
+          vp->cleanup_routine = ap->variant.cleanup_routine;
+          mark_referenced(symbol_for(ap->variant.cleanup_routine),
+                          &ap->position);
+        }  /* if */
+        break;
       default:
         /* This attribute is not applicable to variables. */
         pos_sy_warning(ec_attribute_does_not_apply,
@@ -2175,6 +2268,11 @@ messages about any invalid attributes.
         }  /* if */
         break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#if USER_CONTROL_OF_STRUCT_PACKING
+      case ak_aligned:
+        invalid_severity = es_discretionary_error;
+        /*FALLTHROUGH*/
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       case ak_noinline:
         rp->never_inline = TRUE;
         if (rp->is_inline) {
@@ -2186,11 +2284,6 @@ messages about any invalid attributes.
         set_inline_flag(rp, TRUE);
         rp->always_inline = TRUE;
         break;
-#if USER_CONTROL_OF_STRUCT_PACKING
-      case ak_aligned:
-        invalid_severity = es_discretionary_error;
-        /*FALLTHROUGH*/
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       default:
         /* An invalid attribute. */
         pos_sy_diagnostic(invalid_severity, ec_attribute_does_not_apply,

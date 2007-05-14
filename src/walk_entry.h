@@ -1038,6 +1038,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_initializer(ptr->init_kind, ptr->initializer);
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
 #if GNU_EXTENSIONS_ALLOWED
+        remap_ptr(ptr->cleanup_routine, a_routine_ptr, iek_routine);
         if (ptr->asm_name_is_valid) {
           walk_string_ptr(ptr->asm_name_or_reg.name, iek_other_text, 0);
         }  /* if */

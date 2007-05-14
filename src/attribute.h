@@ -87,6 +87,7 @@ enum an_attribute_kind_tag {
   ak_nonnull,
   ak_noinline,
   ak_always_inline,
+  ak_cleanup,
   ak_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -142,6 +143,7 @@ EXTERN char *attribute_kind_names[(int)ak_last + 1]
 /* ak_nonnull */		    "nonnull", 
 /* ak_noinline */		    "noinline", 
 /* ak_always_inline */		    "always_inline", 
+/* ak_cleanup */		    "cleanup", 
 /* ak_last */                       "last" /* used to check that
                                               initialization is right. */
 }
@@ -255,6 +257,9 @@ typedef struct an_attribute {
 			/* The parameter number (starting at 1) that must be
 			   non-NULL.  If zero, all pointer parameters must ne
 			   non-NULL. */
+    a_routine_ptr
+		cleanup_routine;
+			/* The routine specified by the cleanup attribute. */
   } variant;
   an_attribute_ptr
   		next;
