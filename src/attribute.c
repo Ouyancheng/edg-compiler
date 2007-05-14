@@ -2175,11 +2175,6 @@ messages about any invalid attributes.
         }  /* if */
         break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-#if USER_CONTROL_OF_STRUCT_PACKING
-      case ak_aligned:
-        invalid_severity = es_discretionary_error;
-        /*FALLTHROUGH*/
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       case ak_noinline:
         rp->never_inline = TRUE;
         if (rp->is_inline) {
@@ -2191,6 +2186,11 @@ messages about any invalid attributes.
         set_inline_flag(rp, TRUE);
         rp->always_inline = TRUE;
         break;
+#if USER_CONTROL_OF_STRUCT_PACKING
+      case ak_aligned:
+        invalid_severity = es_discretionary_error;
+        /*FALLTHROUGH*/
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       default:
         /* An invalid attribute. */
         pos_sy_diagnostic(invalid_severity, ec_attribute_does_not_apply,
