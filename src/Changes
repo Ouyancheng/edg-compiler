@@ -1,5 +1,16 @@
 Version 3.10
 
+5/15/07  Incorrect matching of symbolic asm operands in GNU modes
+
+In GNU modes, an extended asm construct like
+
+  __asm("mov %[p], %[q]" : [q]"=m"(y) : [px]"r"(x));  // No [p] operand!
+
+caused the front end to erroneously associated the reference to a symbolic
+operand [p] with an actual operand [px] because they share a common prefix.
+This is now fixed: Cases such as the example above are diagnosed with an
+error.
+
 5/14/07  GNU compatibility: Attribute "cleanup"
 
 In GNU C mode, the front end now accepts and records attribute "cleanup" on

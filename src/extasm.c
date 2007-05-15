@@ -251,7 +251,8 @@ far (this routine is sometimes called when that list is still incomplete).
   /* Look for an operand with that name in the list of preceding operands. */
   while (operands != NULL) {
     if (operands->name != NULL &&
-        strncmp(operands->name, start, *pc-start) == 0) {
+        strncmp(operands->name, start, *pc-start) == 0 &&
+        strlen(operands->name) == *pc-start) {
       result = n;
       break;
     }  /* if */
