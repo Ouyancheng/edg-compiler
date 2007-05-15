@@ -8517,14 +8517,15 @@ typedef struct a_routine {
 			/* TRUE if a code generator should not instrument the
 			   routine for checking memory access. */
   a_bit_field	never_inline:1;
-			/* TRUE if a code generator should never attempt to
-			   inline calls to this routine (i.e., when declared
-			   with the GNU attribute "noinline".) */
+			/* TRUE for routines declared with the GNU attribute
+			   "noinline"; this indicates that a code generator
+			   should never attempt to inline calls to this
+			   routine. */
   a_bit_field	always_inline:1;
-			/* TRUE if a code generator should attempt to inline
-			   calls to this routine even at the lowest
-			   optimization levels (i.e., when declared with the
-			   GNU attribute "always_inline"). */
+			/* TRUE for routines declared with the GNU attribute
+			   "always_inline"; this indicates that a code
+			   generator should attempt to inline calls to this
+			   routine even at the lowest optimization levels. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
