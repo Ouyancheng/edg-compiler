@@ -11078,6 +11078,10 @@ be issued if the destructor is suppressed.
             /* A member with a suppressed copy constructor suppresses this
                one, too. */
             *suppress_copy_ctor = TRUE;
+          } else if (tp->incomplete) {
+            /* A property field can have an incomplete type, but it has no
+               effect on the generation of the containing class's copy
+               constructor. */
           } else {
             rout_sym = find_copy_constructor(tp, ctor_qualifiers,
                                              /*source_is_rvalue=*/FALSE,
