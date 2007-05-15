@@ -4,10 +4,10 @@ Version 3.10
 
 In GNU modes, an extended asm construct like
 
-  __asm("mov %[p], %[q]" : [q]"=m"(y) : [px]"r"(x));  // No [p] operand!
+  __asm("mov %[p], %[q]" : [q]"=m"(y) : [px]"r"(x));
 
-caused the front end to erroneously associated the reference to a symbolic
-operand [p] with an actual operand [px] because they share a common prefix.
+caused the front end to erroneously associate the reference to a symbolic
+operand [p] with the actual operand [px] because they share a common prefix.
 This is now fixed: Cases such as the example above are diagnosed with an
 error.
 
