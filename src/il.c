@@ -2421,6 +2421,7 @@ only be used for inlining (i.e., the suppress_inline_body flag should be set).
   } else if (rp->never_inline) {
     warning(ec_inline_gnu_noinline_conflict);
     flag = FALSE;
+    check_assertion(rp->suppress_inline_body == FALSE);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   rp->is_inline = flag;
