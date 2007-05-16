@@ -6599,7 +6599,7 @@ is returned through *result.
 
   check_assertion(gnu_mode);
   if (!C_mode()) {
-    /* __is_base_of is not accepted in C++ mode. */
+    /* __builtin_types_compatible_p is not accepted in C++ mode. */
     pos_st_error(ec_feature_requires_c, &pos_curr_token,
                  builtin_operation_names[(int)bok_types_compatible]);
   }  /* if */
