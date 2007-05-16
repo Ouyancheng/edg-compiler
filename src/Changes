@@ -1,5 +1,18 @@
 Version 3.10
 
+5/16/07  GNU compatibility: Attribute "nothrow"
+
+In GNU C and C++ modes, the front end now accepts attribute "nothrow" on
+function and member function declarations.  This is an assertion by the
+programmer that the function will not throw an exception; the front end does
+not check that assertion, nor is the assertion checked at run time (which
+makes this feature different from the standard "throw()" specification).
+For example:
+
+  __attribute((nothrow)) void f() {  // Now accepted in GNU modes.
+    throw 3;    // Violates the attribute's claim, but not diagnosed by the
+  }             // front end and not caught at run time.
+
 5/15/07  Incorrect matching of symbolic asm operands in GNU modes
 
 In GNU modes, an extended asm construct like
