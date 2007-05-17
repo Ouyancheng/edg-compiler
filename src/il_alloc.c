@@ -2217,6 +2217,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->no_check_memory_usage       = FALSE;
   rp->never_inline                = FALSE;
   rp->always_inline               = FALSE;
+  rp->never_throws                = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   rp->can_be_instantiated         = FALSE;

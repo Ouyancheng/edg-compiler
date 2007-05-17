@@ -2872,6 +2872,9 @@ Display the indicated routine.
   if (ptr->always_inline) {
     disp_boolean("always_inline", TRUE);
   }  /* if */
+  if (ptr->never_throws) {
+    disp_boolean("never_throws", TRUE);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {

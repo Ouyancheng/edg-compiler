@@ -88,6 +88,7 @@ enum an_attribute_kind_tag {
   ak_noinline,
   ak_always_inline,
   ak_cleanup,
+  ak_nothrow,
   ak_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -144,6 +145,7 @@ EXTERN char *attribute_kind_names[(int)ak_last + 1]
 /* ak_noinline */		    "noinline", 
 /* ak_always_inline */		    "always_inline", 
 /* ak_cleanup */		    "cleanup", 
+/* ak_nothrow */		    "nothrow", 
 /* ak_last */                       "last" /* used to check that
                                               initialization is right. */
 }

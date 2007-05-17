@@ -492,6 +492,7 @@ pointed to be "pos" can be freed when this routine returns.
     case ak_strong:
     case ak_noinline:
     case ak_always_inline:
+    case ak_nothrow:
       break;
     case ak_section:
       ap->variant.section = NULL;
@@ -574,6 +575,7 @@ Return a copy of the complete attribute list.
       case ak_strong:
       case ak_noinline:
       case ak_always_inline:
+      case ak_nothrow:
         /* No variant fields. */
         break;
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -1105,6 +1107,7 @@ Specifically, these attributes take no arguments:
   strong
   noinline
   always_inline
+  nothrow
 
 These attributes take arguments:
 
@@ -1253,6 +1256,7 @@ function returns the address of the last attribute.
           case ak_strong:
           case ak_noinline:
           case ak_always_inline:
+          case ak_nothrow:
           case ak_weakref:
           case ak_nonnull:
             /* These attributes do not take arguments (or the arguments are
@@ -2278,6 +2282,9 @@ messages about any invalid attributes.
       case ak_always_inline:
         set_inline_flag(rp, TRUE);
         rp->always_inline = TRUE;
+        break;
+      case ak_nothrow:
+        rp->never_throws = TRUE;
         break;
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:

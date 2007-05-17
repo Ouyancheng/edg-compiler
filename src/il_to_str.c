@@ -4784,6 +4784,9 @@ Do the output in the way described by octl.
     if (rout->always_inline) {
       form_simple_attribute("__always_inline__", &need_leading_space, octl);
     }  /* if */
+    if (rout->never_throws) {
+      form_simple_attribute("__nothrow__", &need_leading_space, octl);
+    }  /* if */
     if (rout->type->kind == (a_type_kind)tk_routine) {
       /* If this routine is declared using ordinary function declarator
          syntax (i.e., not using a typedef), generate the associated

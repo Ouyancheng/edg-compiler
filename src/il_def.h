@@ -8526,6 +8526,11 @@ typedef struct a_routine {
 			   "always_inline"; this indicates that a code
 			   generator should attempt to inline calls to this
 			   routine even at the lowest optimization levels. */
+  a_bit_field	never_throws:1;
+			/* TRUE for routines declared with the GNU attribute
+			   "nothrow"; this is an assertion by the programmer
+			   that the routine will not throw an exception (the
+			   front end does not check that assertion). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
