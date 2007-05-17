@@ -1,5 +1,30 @@
 Version 3.10
 
+5/17/07  Missing base/derived class conversion when operand of cast
+         or implicit conversion is a dynamic_cast to a reference type
+
+In cases where a dynamic_cast to a reference type is further cast 
+or implicitly converted to a derived or base class pointer or reference,
+the derived or base class conversion is mistakenly replaced with
+an ordinary cast.  For example:
+
+  struct B {
+    virtual ~B() {}
+  };
+  struct C {
+    virtual ~C() {}
+  };
+  struct D : public virtual B, public virtual C {
+    virtual ~D() {}
+  };
+  void f() {
+    D d;
+    C &rc = d;
+    B *b = &dynamic_cast<D&>(rc);   // had produced an ordinary cast from D*
+                                    // to B*, now performs a base class
+                                    // conversion
+  }
+  
 5/16/07  GNU compatibility: Attribute "nothrow"
 
 In GNU C and C++ modes, the front end now accepts attribute "nothrow" on

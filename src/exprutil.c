@@ -2680,6 +2680,17 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
      new expression). */
   (*p_node)->next = NULL;
   if (!C_mode() && !reinterpret_semantics &&
+      is_operation_node(*p_node) &&
+      node_operator_is(*p_node, eok_dynamic_cast) &&
+      is_reference_type(old_type) && is_pointer_type(new_type)) {
+    /* Casting a dynamic_cast of a reference to a pointer.  For comparison
+       purposes change the reference type to a pointer type.
+       eok_dynamic_cast is a special case in the IL -- the reference
+       type is needed to distinguish the case of a cast to a reference
+       type, which has different semantics. */
+    old_type = make_pointer_type(type_pointed_to(old_type));
+  }  /* if */
+  if (!C_mode() && !reinterpret_semantics &&
       related_class_pointers(old_type, new_type, &baseward_cast, &bcp)) {
     /* C++ cast from a pointer to a class to a pointer to a related
        (base or derived) class. */
