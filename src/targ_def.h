@@ -1225,10 +1225,6 @@ match the target machine behavior on integer operations in C.
    size in bytes of one of the integral types.  0 means "use the smallest
    integral type into which the field will fit".  < 0 means "use the
    base type given in the declaration". */
-/* Note that if the C-generating back end is being used, the setting of
-   this switch must match ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
-   so that the front end's layout code gets the same result that the
-   underlying C compiler will get. */
 #ifndef TARG_BIT_FIELD_CONTAINER_SIZE
 #if TARG_MICROSOFT_BIT_FIELD_ALLOCATION
 #define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
@@ -2920,11 +2916,15 @@ compiling ANSI C code in SVR4 C compatibility mode.
 /*
 If the C-generating back end is being used, are bit fields in the
 generated C allowed to have base types other than the standard
-"int" and "unsigned int"?  Note that the setting of this switch must
-match TARG_BIT_FIELD_CONTAINER_SIZE so that the front end's layout
-code gets the same result that the underlying C compiler will get.
+"int" and "unsigned int"?
 */
 #ifndef ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
+#if TARG_BIT_FIELD_CONTAINER_SIZE < 0 || GCC_IS_GENERATED_CODE_TARGET
+/* See comment below regarding TARG_BIT_FIELD_CONTAINER_SIZE.  When
+   generating code for gcc, we know that non-int bit field types are
+   allowed. */
+#define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C TRUE
+#else /* !(TARG_BIT_FIELD_CONTAINER_SIZE < 0 || ... ) */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY || ABI_COMPATIBILITY_VERSION < 235
 /* In the C code it generates, cfront changes the underlying types of all
    bit-fields to int or unsigned int. */
@@ -2932,7 +2932,16 @@ code gets the same result that the underlying C compiler will get.
 #else /* !(CFRONT_OBJECT_CODE_COMPATIBILITY || ...) */
 #define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C TRUE
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY || ... */
+#endif /* TARG_BIT_FIELD_CONTAINER_SIZE < 0 || ... */
 #endif /* ifndef ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
+#if !ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C && \
+    TARG_BIT_FIELD_CONTAINER_SIZE < 0
+/* When TARG_BIT_FIELD_CONTAINER_SIZE is less than 0, meaning "use the
+   base type given in the declaration", we have to use the original
+   bit field type or we won't get the right layout. */
+ #error -- ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C must be TRUE \
+           when TARG_BIT_FIELD_CONTAINER_SIZE < 0
+#endif /* !ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C && ... */
 
 /*
 If the C-generating back end is being used, are "?" operators allowed
