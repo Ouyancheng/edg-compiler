@@ -266,10 +266,14 @@ Perform consistency check on target configuration variables.
   /* Be sure the maximum and minimum values for "pack alignment" are
      appropriate and may be stored within a_targ_alignment, which is a_byte
      (= unsigned char). */
-  if (targ_minimum_pack_alignment < 1 ||
-      targ_minimum_pack_alignment > UCHAR_MAX) { /*lint !e685*/
-    internal_error("check_target_config: invalid targ_minimum_pack_alignment");
-  }  /* if */
+  { a_targ_alignment temp = UCHAR_MAX;  /* Use variable to avoid
+                                           lint/gcc complaints. */
+    if (targ_minimum_pack_alignment < 1 ||
+        targ_minimum_pack_alignment > temp) {
+      internal_error(
+                   "check_target_config: invalid targ_minimum_pack_alignment");
+    }  /* if */
+  }
   if (targ_maximum_pack_alignment < targ_minimum_pack_alignment ||
       (a_targ_alignment)targ_maximum_pack_alignment !=
                                                 targ_maximum_pack_alignment) {
