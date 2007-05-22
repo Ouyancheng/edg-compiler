@@ -1,5 +1,13 @@
 Version 3.10
 
+5/22/07  Uninitialized local variable in enum_specifier
+
+The local variable "err" in enum_specifier (file decl_spec.c) was sometimes
+passed to set_enum_representation without being used.  Although the variable
+was not otherwise used in such cases, it triggered run-time aborts when
+compiled with tools that verify all arguments to function call have been
+initialized.  This is now fixed (the variable is always initialized). 
+
 5/17/07  Missing base/derived class conversion when operand of cast
          or implicit conversion is a dynamic_cast to a reference type
 
