@@ -212,10 +212,6 @@ Flags to be set for any version that uses the C++ generating back end.
 #define LOWER_VARIABLE_LENGTH_ARRAYS 0
 #endif /* ifndef LOWER_VARIABLE_LENGTH_ARRAYS */
 #ifdef SOLARIS
-#define _POSIX_C_SOURCE 3
-#define _XOPEN_VERSION 0
-#define _XOPEN_SOURCE 0
-#define _XOPEN_SOURCE_EXTENDED 1
 #define __EXTENSIONS__ 1
 #endif /* SOLARIS */
 #define GCC_IS_GENERATED_CODE_TARGET 1
