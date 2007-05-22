@@ -4125,7 +4125,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
   a_type_ptr                   enum_con_type;
   a_symbol_ptr                 enum_sym;
   a_constant                   constant;
-  a_boolean                    err, did_not_fold, template_param;
+  a_boolean                    err = FALSE, did_not_fold, template_param;
   a_constant_ptr               enum_con;
   a_constant_ptr               end_of_enum_con_list;
   a_constant                   max_value, min_value;
