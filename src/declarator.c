@@ -3072,7 +3072,9 @@ Additional position information is recorded in *decl_pos_block.
         }  /* if */
         (void)get_token();
       } else if (curr_token == tok_microsoft_sptr) {
-        if (!plain_ptr_seen && !ptr_to_member_seen) {
+        if (ptr_to_member_seen) {
+          error(ec_microsoft_ptr_signedness_on_ptr_to_member);
+        } else if (!plain_ptr_seen) {
           error(ec_microsoft_ptr_signedness_must_follow_star);
         } else if ((ptr_mods->modifiers & PM_UPTR) != 0) {
           error(ec_microsoft_ptr_signedness_conflict);
@@ -3083,7 +3085,9 @@ Additional position information is recorded in *decl_pos_block.
         }  /* if */
         (void)get_token();
       } else if (curr_token == tok_microsoft_uptr) {
-        if (!plain_ptr_seen && !ptr_to_member_seen) {
+        if (ptr_to_member_seen) {
+          error(ec_microsoft_ptr_signedness_on_ptr_to_member);
+        } else if (!plain_ptr_seen) {
           error(ec_microsoft_ptr_signedness_must_follow_star);
         } else if ((ptr_mods->modifiers & PM_SPTR) != 0) {
           error(ec_microsoft_ptr_signedness_conflict);
