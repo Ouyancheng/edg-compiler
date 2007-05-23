@@ -962,7 +962,7 @@ buffer.  If "qualifier" is TQ_NONE, unconditionally add "name"
 
 char* db_qualifiers_str(a_type_qualifier_set  qualifiers)
 /*
-Return a string containing the given qualifiers in human readable form.
+Return a string containing the given qualifiers in human-readable form.
 */
 {
 #if NAMED_ADDRESS_SPACES_ALLOWED
@@ -1012,7 +1012,7 @@ Return a string containing the given qualifiers in human readable form.
 
 static void db_qualifiers(a_type_qualifier_set  qualifiers)
 /*
-Print the given qualifiers in human readable form.
+Print the given qualifiers in human-readable form.
 */
 {
   if (qualifiers != TQ_NONE) {
@@ -1020,8 +1020,30 @@ Print the given qualifiers in human readable form.
   }  /* if */
 }  /* db_qualifiers */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
+static void db_pointer_modifiers(a_pointer_modifier_set  modifiers)
+/*
+Printf the given pointer modifiers in human-readable form.
+*/
+{
+  if ((modifiers & PM_SPTR) != 0) {
+    fputs("signed ", f_debug);
+  }  /* if */
+  if ((modifiers & PM_UPTR) != 0) {
+    fputs("unsigned ", f_debug);
+  }  /* if */
+  if ((modifiers & PM_PTR32) != 0) {
+    fputs("32-bit ", f_debug);
+  }  /* if */
+  if ((modifiers & PM_PTR64) != 0) {
+    fputs("64-bit ", f_debug);
+  }  /* if */
+}  /* db_pointer_modifiers */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
+
 static void db_shared_block_size(a_type_ptr tp)
 /*
 If the given type is UPC shared, print the corresponding qualifier,
@@ -1038,8 +1060,8 @@ including the associated block size.
     }  /* if */
   }  /* if */
 } /* db_shared_block_size */
-#endif /* UPC_EXTENSIONS_ALLOWED */
 
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 void db_type(a_type *tp)
 /*
@@ -1113,12 +1135,7 @@ Dump the contents of the indicated type entry, for debug purposes.
                          iek_variable);
             fputs(") ", f_debug);
           }  /* if */
-          if (tp->variant.pointer.is_ptr32) {
-            fputs("32-bit ", f_debug);
-          }  /* if */
-          if (tp->variant.pointer.is_ptr64) {
-            fputs("64-bit ", f_debug);
-          }  /* if */
+          db_pointer_modifiers(tp->variant.pointer.modifiers);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           fputs("ptr to ", f_debug);
         }  /* if */
@@ -1400,12 +1417,7 @@ Dump the contents of the indicated type entry, for debug purposes.
         break;
       case tk_ptr_to_member:
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (tp->variant.ptr_to_member.is_ptr32) {
-          fputs("32-bit ", f_debug);
-        }  /* if */
-        if (tp->variant.ptr_to_member.is_ptr64) {
-          fputs("64-bit ", f_debug);
-        }  /* if */
+        db_pointer_modifiers(tp->variant.ptr_to_member.modifiers);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         fputs("ptr-to-member of ", f_debug);
         db_abbreviated_type(tp->variant.ptr_to_member.class_of_which_a_member);
@@ -8054,69 +8066,76 @@ done:;
                      and far may be recognized and upc_block_size is only used
                      when UPC extensions are enabled. */
 #endif /* !NEAR_AND_FAR_ALLOWED || !UPC_EXTENSIONS_ALLOWED */
-static a_type_ptr get_based_type(a_type_ptr            base_type,
-                                 a_based_type_kind     kind,
-                                 a_type_qualifier_set  qualifiers,
-                                 a_boolean             expl_mem_attr_implicit,
-                                 a_type_ptr            class_type,
-                                 a_upc_block_size      upc_block_size)
+static a_type_ptr get_based_type(
+                               a_type_ptr              base_type,
+                               a_based_type_kind       kind,
+                               a_type_qualifier_set    qualifiers,
+                               a_pointer_modifier_set  modifiers,
+                               a_boolean               expl_mem_attr_implicit,
+                               a_type_ptr              class_type,
+                               a_upc_block_size        upc_block_size)
 /*
 Search the based_types list of base_type to see if it contains a based type
 of the kind indicated by "kind".  If the kind is "btk_qualified", the
 "qualifiers" parameter must match the "qualifiers" field of the based type,
-the upc_block_size parameter must match the underlying block size of the
-type (if it is UPC shared), and expl_mem_attr_implicit must match the
+the upc_block_size parameter must match the underlying block size of the type
+(if it is UPC shared), and expl_mem_attr_implicit must match the
 explicit_memory_attribute_made_implicit flag of the based type (that's used
-for memory attributes like near/far).  If the kind is
-"btk_ptr_to_member", the specified "class_type" must also match
-"class_of_which_a_member" of that based type.  Return a pointer to the
-type if such an entry exists, or NULL if no such entry exists.  The
-based_types list is used to hold pointers to types based on the base
-type, so that only one copy of pointer-to that type, reference-to that
-type, etc., is allocated.  As a simple optimization to based type lookup,
-move the desired based type, if found, to the front of the list.  This
-will tend to keep frequently-asked-for based types at the front of the
-list.
+for memory attributes like near/far).  If the kind is "btk_ptr_to_member", the
+specified "class_type" must also match "class_of_which_a_member" of that based
+type.  If kind is "btk_ptr_to_member" or "btk_pointer", the based type must
+have the given pointer modifers.  Return a pointer to the type if such an
+entry exists, or NULL if no such entry exists.  The based_types list is used
+to hold pointers to types based on the base type, so that only one copy of
+pointer-to that type, reference-to that type, etc., is allocated.  As a simple
+optimization to based type lookup, move the desired based type, if found, to
+the front of the list.  This will tend to keep frequently-asked-for based
+types at the front of the list.
 */
 {
-  a_type_ptr                    ptr = NULL;
+  a_type_ptr                    tp = NULL;
   a_based_type_list_member_ptr  btlmp;
   a_based_type_list_member_ptr  prev_btlmp;
-  a_boolean                     ptr_to_member;
+  a_boolean                     ptr_to_member, ptr;
 
 #if DEBUG
   num_get_based_type_calls++;
 #endif /* DEBUG */
-  ptr_to_member = (kind == (a_based_type_kind)btk_ptr_to_member
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                   || kind == (a_based_type_kind)btk_ptr32_to_member
-                   || kind == (a_based_type_kind)btk_ptr64_to_member
+  ptr = (kind == (a_based_type_kind)btk_pointer);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                    );
+  ptr_to_member = (kind == (a_based_type_kind)btk_ptr_to_member);
   /* Search the based_types list looking for an entry of the right kind. */
   for (btlmp = base_type->based_types, prev_btlmp = NULL;
        btlmp != NULL;
        prev_btlmp = btlmp, btlmp = btlmp->next) {
     if (btlmp->kind == kind) {
-      ptr = btlmp->based_type;
+      tp = btlmp->based_type;
       if (ptr_to_member &&
-          ptr->variant.ptr_to_member.class_of_which_a_member != class_type) {
+          tp->variant.ptr_to_member.class_of_which_a_member != class_type) {
         /* Pointer-to-member parent class does not match class type -- keep
            looking. */
-        ptr = NULL;
+        tp = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (ptr_to_member &&
+                 tp->variant.ptr_to_member.modifiers != modifiers) {
+        tp = NULL;
+      } else if (ptr && tp->variant.pointer.modifiers != modifiers) {
+        tp = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (kind == (a_based_type_kind)btk_qualified &&
-                 (ptr->variant.typeref.qualifiers != qualifiers
+                 (tp->variant.typeref.qualifiers != qualifiers
 #if NEAR_AND_FAR_ALLOWED
-                  || (a_boolean)ptr->variant.typeref.
+                  || (a_boolean)tp->variant.typeref.
                                      explicit_memory_attribute_made_implicit
                                                   != expl_mem_attr_implicit
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
-                  || ptr->variant.typeref.upc_block_size != upc_block_size
+                  || tp->variant.typeref.upc_block_size != upc_block_size
 #endif /* UPC_EXTENSIONS_ALLOWED */
                                                                           )) {
         /* Qualifiers do not match -- keep looking. */
-        ptr = NULL;
+        tp = NULL;
       } else {
         /* This is a match. */
         if (prev_btlmp != NULL) {
@@ -8130,7 +8149,7 @@ list.
       }  /* if */
     }  /* if */
   }  /* for */
-  return ptr;
+  return tp;
 }  /* get_based_type */
 
 
@@ -8153,12 +8172,7 @@ is already an entry of the indicated kind on the list.
   btlmp->next = base_type->based_types;
   base_type->based_types = btlmp;
   if (!prototype_instantiations_in_il &&
-      (btlmp->kind == (a_based_type_kind)btk_ptr_to_member
-#if MICROSOFT_EXTENSIONS_ALLOWED
-       || btlmp->kind == (a_based_type_kind)btk_ptr32_to_member
-       || btlmp->kind == (a_based_type_kind)btk_ptr64_to_member
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                               )) {
+      btlmp->kind == (a_based_type_kind)btk_ptr_to_member) {
     a_type_ptr tp = based_type->variant.ptr_to_member.class_of_which_a_member;
     if (!is_class_struct_union_type(tp) ||
         tp->variant.class_struct_union.is_nonreal_class) {
@@ -8244,32 +8258,20 @@ is not "C".
 }  /* check_ptr_to_member_function_type */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <- is_ptr32 and is_ptr64 are not used in all configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-a_type_ptr ptr_to_member_type_full(a_type_ptr  member_type,
-                                   a_type_ptr  class_type,
-                                   a_boolean  is_ptr32,
-                                   a_boolean  is_ptr64)
+a_type_ptr ptr_to_member_type_full(a_type_ptr              member_type,
+                                   a_type_ptr              class_type,
+                                   a_pointer_modifier_set  modifiers)
 /*
-Allocate and return a pointer-to-member type, initializing its fields based
-on the specified member and class types.  Attempt to find and reuse an
-existing type entry.  is_ptr32 or is_ptr64 is TRUE when an explicitly sized
-pointer (a Microsoft extension) is requested.  (member_type may be NULL, e.g.,
-when building a type from nested declarators outward.  class_type must be
-non-NULL.)
+Allocate and return a pointer-to-member type, initializing its fields based on
+the specified member and class types.  Attempt to find and reuse an existing
+type entry.  modifiers describes the pointer modifiers (like "__ptr32", a
+Microsoft extension) that are requested.  (member_type may be NULL, e.g., when
+building a type from nested declarators outward.  class_type must be non-NULL.)
 */
 {
   a_type_ptr         tp;
   a_based_type_kind  kind = (a_based_type_kind)btk_ptr_to_member;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_ptr32) {
-    kind = (a_based_type_kind)btk_ptr32_to_member;
-  } else if (is_ptr64) {
-    kind = (a_based_type_kind)btk_ptr64_to_member;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   class_type = skip_typerefs(class_type);
   if (is_template_param_type(class_type)) {
     /* The class type is a template parameter.  Substitute the template
@@ -8287,7 +8289,7 @@ non-NULL.)
        already been allocated.  If one was allocated, a pointer to it is
        stored in the based_types list of the member type, and the pointer
        can be reused. */
-    tp = get_based_type(member_type, kind, (a_type_qualifier_set)TQ_NONE,
+    tp = get_based_type(member_type, kind, TQ_NONE, modifiers,
                         /*expl_mem_attr_implicit=*/FALSE, class_type,
                         UPC_BLOCK_SIZE_NONE);
   }  /* if */
@@ -8298,8 +8300,7 @@ non-NULL.)
     tp->variant.ptr_to_member.type = member_type;
     tp->variant.ptr_to_member.class_of_which_a_member = class_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    tp->variant.ptr_to_member.is_ptr32 = is_ptr32;
-    tp->variant.ptr_to_member.is_ptr64 = is_ptr64;
+    tp->variant.ptr_to_member.modifiers = modifiers;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* If member_type is NULL we are creating an incomplete type; otherwise,
        set its type and alignment. */
@@ -8389,17 +8390,13 @@ class_type.
 }  /* related_ptr_to_member_type */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <- is_ptr32 and is_ptr64 are not used in all configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_type_ptr make_pointer_type_full(a_type_ptr  pointed_to_type,
-                                  a_boolean   is_ptr32,
-                                  a_boolean   is_ptr64)
+                                  a_pointer_modifier_set  modifiers)
 /*
 Allocate a pointer type record and initialize it.  Attempt to find and reuse
-an existing entry if possible.  is_ptr32 or is_ptr64 is TRUE when an explicitly
-sized pointer (a Microsoft extension) is requested.  (pointed_to_type may be
-NULL, e.g., when building a type from nested declarators outward.)
+an existing entry if possible.  modifiers describes the pointer modifiers
+(like "__ptr32", a Microsoft extension) that are requested.  (pointed_to_type
+may be NULL, e.g., when building a type from nested declarators outward.)
 */
 {
   a_type_ptr  ptr;
@@ -8408,15 +8405,8 @@ NULL, e.g., when building a type from nested declarators outward.)
   /* See if a pointer type for the type pointed to has already been allocated.
      If one was allocated, a pointer to it is stored in the based_types list
      for the base type, and the pointer type can be reused. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_ptr32) {
-    kind = (a_based_type_kind)btk_ptr32;
-  } else if (is_ptr64) {
-    kind = (a_based_type_kind)btk_ptr64;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (pointed_to_type != NULL) {
-    ptr = get_based_type(pointed_to_type, kind, (a_type_qualifier_set)TQ_NONE,
+    ptr = get_based_type(pointed_to_type, kind, TQ_NONE, modifiers,
                          /*expl_mem_attr_implicit=*/FALSE,
                          /*class_type=*/(a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
   } else {
@@ -8427,8 +8417,7 @@ NULL, e.g., when building a type from nested declarators outward.)
     ptr = alloc_type((a_type_kind)tk_pointer);
     ptr->variant.pointer.type = pointed_to_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    ptr->variant.pointer.is_ptr32 = is_ptr32;
-    ptr->variant.pointer.is_ptr64 = is_ptr64;
+    ptr->variant.pointer.modifiers = modifiers;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     set_type_size(ptr);
     if (pointed_to_type != NULL) {
@@ -8474,8 +8463,7 @@ an existing entry if possible.
      based_types list for the base type, and the reference type can be
      reused. */
   ptr = get_based_type(pointed_to_type, (a_based_type_kind)btk_reference,
-                       (a_type_qualifier_set)TQ_NONE,
-                       /*expl_mem_attr_implicit=*/FALSE,
+                       TQ_NONE, PM_NONE, /*expl_mem_attr_implicit=*/FALSE,
                        /*class_type=*/(a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
@@ -8736,7 +8724,7 @@ are not already present.
     /* See if the properly qualified version of base_type already exists.
        If so, a pointer to it is stored in the based_types for base_type. */
     ptr = get_based_type(base_type, (a_based_type_kind)btk_qualified,
-                         qualifiers_to_add, expl_mem_attr_implicit,
+                         qualifiers_to_add, PM_NONE, expl_mem_attr_implicit,
                          /*class_type=*/(a_type_ptr)NULL, upc_block_size);
     if (ptr == NULL) {
       /* No allocated entry, need to allocate one. */

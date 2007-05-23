@@ -2310,10 +2310,10 @@ set, leave it alone.  Also compute and set the alignment requirement.
         /* Explicitly sized pointers have a size independent from the type
            pointed to.  Their size can vary even when
            TARG_ALL_POINTERS_SAME_SIZE is TRUE. */
-        if (type_ptr->variant.pointer.is_ptr32) {
+        if ((type_ptr->variant.pointer.modifiers & PM_PTR32) != 0) {
           size = 4;
           alignment = 4;
-        } else if (type_ptr->variant.pointer.is_ptr64) {
+        } else if ((type_ptr->variant.pointer.modifiers & PM_PTR64) != 0) {
           size = 8;
           alignment = 8;
         } else
@@ -3258,12 +3258,9 @@ for more information.
              references. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode &&
-              (type_1->variant.pointer.is_ptr32 !=
-                                           type_2->variant.pointer.is_ptr32 ||
-               type_1->variant.pointer.is_ptr64 !=
-                                           type_2->variant.pointer.is_ptr64)) {
-            /* If __ptr32/__ptr64 modifiers were applied, they must be
-               identical. */
+              type_1->variant.pointer.modifiers !=
+                                          type_2->variant.pointer.modifiers) {
+            /* If pointer modifiers were applied, they must be identical. */
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
@@ -3382,12 +3379,9 @@ for more information.
              class type and to the same member type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode &&
-              (type_1->variant.ptr_to_member.is_ptr32 !=
-                                     type_2->variant.ptr_to_member.is_ptr32 ||
-               type_1->variant.ptr_to_member.is_ptr64 !=
-                                     type_2->variant.ptr_to_member.is_ptr64)) {
-            /* If __ptr32/__ptr64 modifiers were applied, they must be
-               identical. */
+              type_1->variant.ptr_to_member.modifiers !=
+                                    type_2->variant.ptr_to_member.modifiers) {
+            /* If pointer modifiers were applied, they must be identical. */
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
@@ -3818,10 +3812,8 @@ for exact pointer equality.
              references and must point to compatible types. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode &&
-              (type_1->variant.pointer.is_ptr32 !=
-                                           type_2->variant.pointer.is_ptr32 ||
-               type_1->variant.pointer.is_ptr64 !=
-                                           type_2->variant.pointer.is_ptr64)) {
+              type_1->variant.pointer.modifiers !=
+                                          type_2->variant.pointer.modifiers) {
             /* A difference in __ptr32 or ptr64 modifiers makes pointer types
                incompatible. */
           } else
@@ -3928,10 +3920,8 @@ for exact pointer equality.
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode &&
-              (type_1->variant.ptr_to_member.is_ptr32 !=
-                                     type_2->variant.ptr_to_member.is_ptr32 ||
-               type_1->variant.ptr_to_member.is_ptr64 !=
-                                     type_2->variant.ptr_to_member.is_ptr64)) {
+              type_1->variant.ptr_to_member.modifiers !=
+                                    type_2->variant.ptr_to_member.modifiers) {
             /* A difference in __ptr32 or ptr64 modifiers makes pointer types
                incompatible. */
           } else
@@ -5135,6 +5125,18 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (std_conv->warning_suggested == ec_no_error &&
+        source_type->size < dest_type->size &&
+        (source_type->variant.pointer.modifiers & (PM_SPTR | PM_UPTR)) == 0 &&
+        (dest_type->variant.pointer.modifiers & PM_UPTR) == 0) {
+      /* A widening conversion from a pointer type with no explicit signedness
+         (i.e., no __sptr/__uptr modifier) to an explicitly or implicitly
+         signed pointer type.  Issue a remark (the default severity of this
+         diagnostic is established in set_default_message_severities). */
+      std_conv->warning_suggested = ec_microsoft_ptr_sign_extension;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode || gcc_mode ||
              (C_mode() && microsoft_mode)) &&
 	     is_integral_or_enum(source_type) && !suppress_extensions) {
@@ -6935,15 +6937,11 @@ is allocated, it is allocated in the file scope.
             }
           break;
         case tk_pointer:
-          {
-            a_boolean  is_ptr32 = FALSE;
-            a_boolean  is_ptr64 = FALSE;
+          { a_pointer_modifier_set  modifiers = PM_NONE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            is_ptr32 = base_type_1->variant.pointer.is_ptr32;
-            is_ptr64 = base_type_1->variant.pointer.is_ptr64;
+            modifiers = base_type_1->variant.pointer.modifiers;
             check_assertion(
-                          is_ptr32 == base_type_2->variant.pointer.is_ptr32 &&
-                          is_ptr64 == base_type_2->variant.pointer.is_ptr64);
+                         modifiers == base_type_2->variant.pointer.modifiers);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* Pointer and reference types.  The composite type is a pointer
 	       or reference to the composite of the types pointed to. */
@@ -6960,8 +6958,7 @@ is allocated, it is allocated in the file scope.
 	      if (base_type_1->variant.pointer.is_reference) {
                 comp_type = make_reference_type(comp_elem);
 	      } else {
-                comp_type = make_pointer_type_full(comp_elem, is_ptr32,
-                                                   is_ptr64);
+                comp_type = make_pointer_type_full(comp_elem, modifiers);
               }  /* if */
             }  /* if */
           }
@@ -6974,15 +6971,11 @@ is allocated, it is allocated in the file scope.
           comp_type = composite_routine_type(base_type_1, base_type_2);
           break;
         case tk_ptr_to_member:
-          {
-            a_boolean  is_ptr32 = FALSE;
-            a_boolean  is_ptr64 = FALSE;
+          { a_pointer_modifier_set  modifiers = PM_NONE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            is_ptr32 = base_type_1->variant.ptr_to_member.is_ptr32;
-            is_ptr64 = base_type_1->variant.ptr_to_member.is_ptr64;
+            modifiers = base_type_1->variant.ptr_to_member.modifiers;
             check_assertion(
-                     is_ptr32 == base_type_2->variant.ptr_to_member.is_ptr32 &&
-                     is_ptr64 == base_type_2->variant.ptr_to_member.is_ptr64);
+                   modifiers == base_type_2->variant.ptr_to_member.modifiers);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* The composite of two pointer-to-member types will point to the
                same class type and to a member type that is a composite of the
@@ -6997,7 +6990,7 @@ is allocated, it is allocated in the file scope.
             } else {
               comp_type = ptr_to_member_type_full(comp_elem,
                                                   pm_class_type(base_type_1),
-                                                  is_ptr32, is_ptr64);
+                                                  modifiers);
             }  /* if */
           }  /* if */
           break;
@@ -8803,11 +8796,9 @@ a new tree is built.
       /* Leaf nodes -- no further traversal required. */
       break;
     case tk_pointer:
-      { a_boolean  is_ptr32 = FALSE;
-        a_boolean  is_ptr64 = FALSE;
+      { a_pointer_modifier_set  modifiers = PM_NONE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        is_ptr32 = type->variant.pointer.is_ptr32;
-        is_ptr64 = type->variant.pointer.is_ptr64;
+        modifiers = type->variant.pointer.modifiers;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* If the type pointed to is modified, then a new pointer or
            reference type must be created. */
@@ -8815,7 +8806,7 @@ a new tree is built.
           if (type->variant.pointer.is_reference) {
             new_type = make_reference_type(tp);
           } else {
-            new_type = make_pointer_type_full(tp, is_ptr32, is_ptr64);
+            new_type = make_pointer_type_full(tp, modifiers);
           }  /* if */
         }  /* if */
       }
@@ -8948,11 +8939,9 @@ make_new_type:
       /* No action required. */
       break;
     case tk_ptr_to_member:
-      { a_boolean  is_ptr32 = FALSE;
-        a_boolean  is_ptr64 = FALSE;
+      { a_pointer_modifier_set  modifiers = PM_NONE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        is_ptr32 = type->variant.ptr_to_member.is_ptr32;
-        is_ptr64 = type->variant.ptr_to_member.is_ptr64;
+        modifiers = type->variant.ptr_to_member.modifiers;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         (void)func(type->variant.ptr_to_member.type, flags, &tp);
         (void)func(type->variant.ptr_to_member.class_of_which_a_member, flags,
@@ -8963,7 +8952,7 @@ make_new_type:
           /* Make a pointer-to-member type.  The current pointer-to-member type
              points to two types, so the new type is based on modified versions
              of one or both. */
-          new_type = ptr_to_member_type_full(tp, tp2, is_ptr32, is_ptr64);
+          new_type = ptr_to_member_type_full(tp, tp2, modifiers);
         }  /* if */
       }
       break;

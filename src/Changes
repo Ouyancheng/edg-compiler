@@ -1,5 +1,22 @@
 Version 3.10
 
+5/22/07  Microsoft compatibility: __sptr/__uptr pointer modifiers
+
+In Microsoft modes, the front end now accepts the pointer modifiers __sptr and
+__uptr to indicate that a pointer is to be treated as a signed or unsigned
+address, respectively.  Pointers are considered "implicitly signed" when
+neither modifier is present.  Widening conversions of signed pointers involve
+sign extension (which is usually surprising): The front end therefore issues a
+remark when converting an implicitly signed 32-bit pointer to a signed 64-bit
+pointer.  For example:
+
+  int *p1;
+  int *__ptr64 p2 = p1;  // Now triggers a remark (conversion involves sign
+                         // extension).
+
+Some minor changes were also made to the IL representation of __ptr32 and
+__ptr64 for pointer and pointer-to-member types (IL CHANGE).
+
 5/22/07  Uninitialized local variable in enum_specifier
 
 The local variable "err" in enum_specifier (file decl_spec.c) was sometimes

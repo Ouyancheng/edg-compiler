@@ -2663,20 +2663,11 @@ typedef struct a_pointer_modifier_state {
   a_source_position
 		microsoft_w64_pos;
 			/* The source position of the __w64 token (if any). */
-  a_boolean
-		is_ptr32;
-			/* TRUE if the __ptr32 modifier was seen. */
-  a_source_position
-		ptr32_pos;
-			/* The source position of the __ptr32 token (if
-			   any). */
-  a_boolean
-		is_ptr64;
-			/* TRUE if the __ptr64 modifier was seen. */
-  a_source_position
-		ptr64_pos;
-			/* The source position of the __ptr64 token (if
-			   any). */
+  a_pointer_modifier_set
+		modifiers;
+			/* A bit set describing the presence of certain
+			   additional modifiers (like __ptr32). */
+			   
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_pointer_modifier_state;
 
@@ -2693,8 +2684,7 @@ that isn't accessed unless the associated flag has been set).
   clear_call_conv_descr(&ptr_mods->cc_descr);
   ptr_mods->based_var = NULL;
   ptr_mods->microsoft_w64 = FALSE;
-  ptr_mods->is_ptr32 = FALSE;
-  ptr_mods->is_ptr64 = FALSE;
+  ptr_mods->modifiers = PM_NONE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* clear_pointer_modifier_state */
 
@@ -3062,25 +3052,45 @@ Additional position information is recorded in *decl_pos_block.
       } else if (curr_token == tok_microsoft_ptr32) {
         if (!plain_ptr_seen && !ptr_to_member_seen) {
           error(ec_microsoft_ptr_width_must_follow_star);
-        } else if (ptr_mods->is_ptr64) {
+        } else if ((ptr_mods->modifiers & PM_PTR64) != 0) {
           error(ec_microsoft_ptr_width_conflict);
-        } else if (ptr_mods->is_ptr32) {
+        } else if ((ptr_mods->modifiers & PM_PTR32) != 0) {
           warning(ec_dupl_type_qualifier);
         } else {
-          ptr_mods->is_ptr32 = TRUE;
-          ptr_mods->ptr32_pos = pos_curr_token;
+          ptr_mods->modifiers |= PM_PTR32;
         }  /* if */
         (void)get_token();
       } else if (curr_token == tok_microsoft_ptr64) {
         if (!plain_ptr_seen && !ptr_to_member_seen) {
           error(ec_microsoft_ptr_width_must_follow_star);
-        } else if (ptr_mods->is_ptr32) {
+        } else if ((ptr_mods->modifiers & PM_PTR32) != 0) {
           error(ec_microsoft_ptr_width_conflict);
-        } else if (ptr_mods->is_ptr64) {
+        } else if ((ptr_mods->modifiers & PM_PTR64) != 0) {
           warning(ec_dupl_type_qualifier);
         } else {
-          ptr_mods->is_ptr64 = TRUE;
-          ptr_mods->ptr64_pos = pos_curr_token;
+          ptr_mods->modifiers |= PM_PTR64;
+        }  /* if */
+        (void)get_token();
+      } else if (curr_token == tok_microsoft_sptr) {
+        if (!plain_ptr_seen && !ptr_to_member_seen) {
+          error(ec_microsoft_ptr_signedness_must_follow_star);
+        } else if ((ptr_mods->modifiers & PM_UPTR) != 0) {
+          error(ec_microsoft_ptr_signedness_conflict);
+        } else if ((ptr_mods->modifiers & PM_SPTR) != 0) {
+          warning(ec_dupl_type_qualifier);
+        } else {
+          ptr_mods->modifiers |= PM_SPTR;
+        }  /* if */
+        (void)get_token();
+      } else if (curr_token == tok_microsoft_uptr) {
+        if (!plain_ptr_seen && !ptr_to_member_seen) {
+          error(ec_microsoft_ptr_signedness_must_follow_star);
+        } else if ((ptr_mods->modifiers & PM_SPTR) != 0) {
+          error(ec_microsoft_ptr_signedness_conflict);
+        } else if ((ptr_mods->modifiers & PM_UPTR) != 0) {
+          warning(ec_dupl_type_qualifier);
+        } else {
+          ptr_mods->modifiers |= PM_UPTR;
         }  /* if */
         (void)get_token();
       } else {
@@ -3127,32 +3137,32 @@ and the existing ones (explicit and implied), issue an error (at position
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void apply_microsoft_ptr_width_specifier(
+static void apply_microsoft_ptr_modifiers(
                                           a_type_ptr                *type,
                                           a_pointer_modifier_state  *ptr_mods)
 /*
-Replace *type by a similar type that has its is_ptr32 or is_ptr64 flag set
-according to the values of those flags in ptr_mods.  The given type must be
-a (possibly qualified) pointer or pointer-to-member type.
+Replace *type by a similar type that has its "modifiers" flags set according
+to the values of those flags in ptr_mods.  The given type must be a (possibly
+qualified) pointer or pointer-to-member type.
 */
 {
   a_type_qualifier_set  qualifiers = get_type_qualifiers(*type);
-  a_type_ptr  plain_type = skip_typerefs(*type), copy;
+  a_type_ptr            plain_type = skip_typerefs(*type), copy;
 
-  check_assertion(ptr_mods->is_ptr32 || ptr_mods->is_ptr64);
+  check_assertion(ptr_mods->modifiers != PM_NONE);
   /* Create a modified copy of the unqualified type and then reapply the
      qualifiers (if any). */
   if (plain_type->kind == (a_type_kind)tk_pointer) {
     copy = make_pointer_type_full(plain_type->variant.pointer.type,
-                                  ptr_mods->is_ptr32, ptr_mods->is_ptr64);
+                                  ptr_mods->modifiers);
   } else {
     check_assertion(plain_type->kind == (a_type_kind)tk_ptr_to_member);
     copy = ptr_to_member_type_full(pm_member_type(plain_type),
                                    pm_class_type(plain_type),
-                                   ptr_mods->is_ptr32, ptr_mods->is_ptr64);
+                                   ptr_mods->modifiers);
   }  /* if */
   *type = make_qualified_type(copy, qualifiers);
-}  /* apply_microsoft_ptr_width_specifier */
+}  /* apply_microsoft_ptr_modifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -3533,8 +3543,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
         apply_microsoft_w64_specifier(&complete_type,
                                       &ptr_mods.microsoft_w64_pos);
       }  /* if */
-      if (ptr_mods.is_ptr32 || ptr_mods.is_ptr64) {
-        apply_microsoft_ptr_width_specifier(&complete_type, &ptr_mods);
+      if (ptr_mods.modifiers != PM_NONE) {
+        apply_microsoft_ptr_modifiers(&complete_type, &ptr_mods);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else

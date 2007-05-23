@@ -237,6 +237,10 @@ extern void form_type_qualifier(
                      an_il_to_str_output_control_block_ptr octl);
 #endif /* ifdef CFE */
 
+extern void form_pointer_modifiers(
+                             a_pointer_modifier_set                 modifiers,
+                             an_il_to_str_output_control_block_ptr  octl);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void form_calling_convention(
                      a_calling_convention                  calling_convention,

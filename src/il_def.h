@@ -5425,10 +5425,6 @@ enum a_based_type_kind_tag {
 			   version of the type. */
   btk_reference,	/* Reference to the type. */
   btk_ptr_to_member,	/* Pointer to member type (C++ only). */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  btk_ptr32_to_member,	/* Pointer to member of specified 32-bit size. */
-  btk_ptr64_to_member,	/* Pointer to member of specified 64-bit size. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   btk_unqualified_array_type,
 			/* Means that the "based type" is an array type to
 			   which a qualifier was applied to produce the
@@ -5438,10 +5434,6 @@ enum a_based_type_kind_tag {
 			   const creates (const int)[3], and the original is
 			   recorded as a based type of the new type.) */
 #endif /* ifdef CIL */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  btk_ptr32,		/* Pointer of specified 32-bit size. */
-  btk_ptr64,		/* Pointer of specified 64-bit size. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   btk_pointer		/* Pointer to the type. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -5463,6 +5455,45 @@ typedef struct a_based_type_list_member {
 			   is set, the entry is removed from the based-type
 			   list after front-end processing is completed. */
 } a_based_type_list_member;
+
+
+/* 
+A bit set whose values represent the presence of one or more pointer modifiers
+(such as "__ptr32" or "__uptr").
+*/
+typedef a_byte a_pointer_modifier_set;
+
+/*
+Enumeration of pointer modifiers that are accepted.  The enumeration values
+are used to create bit masks that are used to represent the various modifiers.
+Note that -- unlike type qualifiers -- pointer modifiers are not dropped by
+calls to skip_typerefs.
+*/
+enum a_pointer_modifier_tag {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  pmt_ptr32,		/* __ptr32 modifier. */
+  pmt_ptr64,		/* __ptr64 modifier. */
+  pmt_sptr,		/* __sptr modifier ("signed pointer"). */
+  pmt_uptr,		/* __uptr modifier ("unsigned pointer"). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  pmt_last		/* Must be last. */
+};
+
+/*
+Definitions of the bits in bit sets of type a_pointer_modifier_set.
+*/
+#define PM_NONE		((a_pointer_modifier_set)0x0)
+			/* No pointer modifiers. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define PM_PTR32	((a_pointer_modifier_set)(1 << (int)pmt_ptr32))
+			/* This bit is set to represent __ptr32. */
+#define PM_PTR64	((a_pointer_modifier_set)(1 << (int)pmt_ptr64))
+			/* This bit is set to represent __ptr64. */
+#define PM_SPTR		((a_pointer_modifier_set)(1 << (int)pmt_sptr))
+			/* This bit is set to represent __sptr. */
+#define PM_UPTR		((a_pointer_modifier_set)(1 << (int)pmt_uptr))
+			/* This bit is set to represent __uptr. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 /* Type used for the internal representation of UPC block sizes. */
@@ -5820,22 +5851,10 @@ typedef struct a_type {
 		is_reference;
 			/* If TRUE, this type is a C++ reference type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      a_bit_field
-		is_ptr32:1;
-			/* TRUE if the pointer was declared with "__ptr32",
-			   forcing the pointer to be 4 bytes wide even when
-			   a pointer has size 8 by default.  Note that even
-			   when pointers have size 4 by default, "int*" is
-			   not compatible with "int *__ptr32".  Only used in
-			   Microsoft mode.*/
-      a_bit_field
-		is_ptr64:1;
-			/* TRUE if the pointer was declared with "__ptr64",
-			   forcing the pointer to be 8 bytes wide even when
-			   a pointer has size 4 by default.  Note that even
-			   when pointers have size 8 by default, "int*" is
-			   not compatible with "int *__ptr64".  Only used in
-			   Microsoft mode.*/
+      a_pointer_modifier_set
+		modifiers;
+			/* Bit set with bits to inidicate the presence of one
+			   or more pointer modifiers (e.g., "__ptr32"). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
     } pointer;
@@ -6285,20 +6304,15 @@ typedef struct a_type {
 		type;
 			/* Type of the member pointed to. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      a_bit_field
-		is_ptr32:1;
-			/* TRUE if the type was declared with "__ptr32".
-			   On Microsoft compilers, this only appears to affect
-			   the size of pointer-to-member-functions.  However,
-			   even when the size is not affected, the type is
-			   considered distinct. */
-      a_bit_field
-		is_ptr64:1;
-			/* TRUE if the type was declared with "__ptr64".
-			   On Microsoft compilers, this only appears to affect
-			   the size of pointer-to-member-functions.  However,
-			   even when the size is not affected, the type is
-			   considered distinct. */
+      a_pointer_modifier_set
+		modifiers;
+			/* Bit set with bits to inidicate the presence of one
+			   or more pointer modifiers.  Microsoft compilers
+			   only accept the "__ptr32" and "__ptr64" modifiers.
+			   Furthermore, they only appear to affect the size of
+			   pointer-to-member-functions.  However, even when
+			   the size is not affected, the type is considered
+			   distinct. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } ptr_to_member;
     /* When kind == tk_template_param (C++ front end only, except when

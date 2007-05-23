@@ -865,6 +865,26 @@ Do the output in the way described by octl.
 #undef output_qualifier
 }  /* form_type_qualifier */
 
+
+void form_pointer_modifiers(a_pointer_modifier_set                 modifiers,
+                            an_il_to_str_output_control_block_ptr  octl)
+/*
+Output a string for the pointer modifiers in the given modifier set.  If the
+set is empty, put out nothing; otherwise, append a trailing space to the
+output.  Do the output in the way described by octl.
+*/
+{
+  if (modifiers != PM_NONE) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (modifiers & PM_PTR32) octl->output_str("__ptr32 ");
+    if (modifiers & PM_PTR64) octl->output_str("__ptr64 ");
+    if (modifiers & PM_SPTR)  octl->output_str("__sptr ");
+    if (modifiers & PM_UPTR)  octl->output_str("__uptr ");
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+}  /* form_pointer_modifiers */
+
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void form_calling_convention(
@@ -1560,11 +1580,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
            end. */
         octl->output_str("__w64 ");
       }  /* if */
-      if (type->variant.pointer.is_ptr32) {
-        octl->output_str("__ptr32 ");
-      } else if (type->variant.pointer.is_ptr64) {
-        octl->output_str("__ptr64 ");
-      }  /* if */
+      form_pointer_modifiers(type->variant.pointer.modifiers, octl);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef CFE
     }  /* if */
@@ -1588,11 +1604,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
        okay; it's a separate token. */
     octl->output_str("*");
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (type->variant.ptr_to_member.is_ptr32) {
-      octl->output_str("__ptr32 ");
-    } else if (type->variant.ptr_to_member.is_ptr64) {
-      octl->output_str("__ptr64 ");
-    }  /* if */
+    form_pointer_modifiers(type->variant.ptr_to_member.modifiers, octl);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Output the type qualifiers on the pointer, if any. */
     if (qualifiers != TQ_NONE) {

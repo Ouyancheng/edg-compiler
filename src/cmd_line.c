@@ -3393,6 +3393,11 @@ assigns those severities.
                                    (int)ec_pointer_conversion_to_same_size_int,
                                       es_none,
                                       /*make_default=*/TRUE);
+  /* In Microsoft mode, converting an implicitly signed 32-bit pointer to an
+     explicitly or implicitly signed 64-bit pointer should be a remark by
+     default. */
+  (void)set_severity_for_error_number((int)ec_microsoft_ptr_sign_extension,
+                                      es_remark, /*make_default=*/TRUE);
 }  /* set_default_message_severities */
 
 void proc_command_line(int argc, char *argv[])

@@ -1395,8 +1395,7 @@ to default values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pte->variant.pointer.is_reference = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      pte->variant.pointer.is_ptr32 = FALSE;
-      pte->variant.pointer.is_ptr64 = FALSE;
+      pte->variant.pointer.modifiers = PM_NONE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case tk_array:
@@ -1573,8 +1572,7 @@ to default values.
       pte->variant.ptr_to_member.class_of_which_a_member = NULL;
       pte->variant.ptr_to_member.type                    = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      pte->variant.ptr_to_member.is_ptr32                = FALSE;
-      pte->variant.ptr_to_member.is_ptr64                = FALSE;
+      pte->variant.pointer.modifiers = PM_NONE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case tk_template_param:
