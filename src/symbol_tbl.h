@@ -3514,7 +3514,8 @@ extern a_routine_ptr select_copy_constructor(
                                   a_type_ptr            object_class_type,
                                   a_boolean             *class_bitwise_copy,
                                   a_boolean             record_ref,
-                                  a_boolean             evaluated);
+                                  a_boolean             evaluated,
+                                  a_boolean             allow_suppressed_ctor);
 
 extern a_symbol_ptr find_copy_assignment_operator(
                                     a_type_ptr            class_type,

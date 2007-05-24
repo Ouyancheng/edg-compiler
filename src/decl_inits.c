@@ -5043,7 +5043,8 @@ scan_paren:
                                        &err_pos, object_class_type,
                                        &bitwise_copy,
                                        /*record_ref=*/TRUE,
-                                       /*evaluated=*/TRUE);
+                                       /*evaluated=*/TRUE,
+                                       /*allow_suppressed_ctor=*/FALSE);
         }  /* if */
         if (bitwise_copy) {
           /* Construction by bitwise copy is allowed. */

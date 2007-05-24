@@ -12559,7 +12559,8 @@ happen only in C++ mode.
                                 &source_operand->position, class_type,
                                 &class_bitwise_copy,
                                 /*record_ref=*/TRUE,
-                                curr_expr_is_potentially_evaluated());
+                                curr_expr_is_potentially_evaluated(),
+                                /*allow_suppressed_ctor=*/FALSE);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -12764,7 +12765,8 @@ in C++ mode.
                                 &operand->position, unqual_temp_type,
                                 &class_bitwise_copy,
                                 /*record_ref=*/FALSE,
-                                curr_expr_is_potentially_evaluated());
+                                curr_expr_is_potentially_evaluated(),
+                                /*allow_suppressed_ctor=*/FALSE);
       if (class_bitwise_copy) {
         /* A bitwise copy can be done. */
         /* cctor_case = FALSE;  -- already set */

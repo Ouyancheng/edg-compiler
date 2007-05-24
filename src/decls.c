@@ -10315,6 +10315,8 @@ a normal try.
           /* Classes may require the use of a copy constructor. */
           a_boolean          bitwise_copy;
           a_source_position  pos;
+          a_boolean          allow_suppressed_ctor =
+                                  (microsoft_mode && microsoft_version < 1310);
 
           if (sym != NULL) {
             pos = sym->decl_position;
@@ -10331,12 +10333,19 @@ a normal try.
                                           /*source_is_rvalue=*/FALSE,
                                           &pos, state.type, &bitwise_copy,
                                           /*record_ref=*/TRUE,
-                                          /*evaluated=*/TRUE);
+                                          /*evaluated=*/TRUE,
+                                          allow_suppressed_ctor);
           /* Only an implicit copy constructor (cctor == NULL) can correspond
              to a bitwise copy.  However, cctor can also be NULL if the
-             copy constructor was ambiguous. */
+             copy constructor was ambiguous.  For Microsoft versions earlier
+             than 7.1, it can also be NULL (without a diagnostic) if the
+             declaration of the copy constructor was suppressed because of
+             an inability to generate its definition. */
           check_assertion((cctor == NULL) == bitwise_copy ||
-                          total_errors != 0);
+                          total_errors != 0 ||
+                          (allow_suppressed_ctor &&
+                           state.type->variant.class_struct_union.
+                                                   copy_ctor_decl_suppressed));
           dtor = select_destructor(state.type, state.type, &pos,
                                    /*honor_virtual=*/FALSE,
                                    /*evaluated=*/TRUE,

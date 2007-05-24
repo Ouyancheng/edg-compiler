@@ -6982,7 +6982,8 @@ a_routine_ptr select_copy_constructor(
                                   a_type_ptr            object_class_type,
                                   a_boolean             *class_bitwise_copy,
                                   a_boolean             record_ref,
-                                  a_boolean             evaluated)
+                                  a_boolean             evaluated,
+                                  a_boolean             allow_suppressed_ctor)
 /*
 Find and return a pointer to a routine representing a copy constructor for
 the class indicated by class_type and accepting a first parameter whose type
@@ -6998,7 +6999,9 @@ NULL and *class_bitwise_copy TRUE.  If record_ref is TRUE, a reference
 is recorded against the copy constructor selected; as a side effect,
 access to the copy constructor is checked, and an error issued if
 the copy constructor is inaccessible.  If evaluated is FALSE, the reference is
-within an unevaluated expression.  This routine is only used in C++ mode.
+within an unevaluated expression.  If class_type has no copy constructor
+because its declaration was suppressed, no diagnostic will be emitted if
+allow_suppressed_ctor is TRUE.  This routine is only used in C++ mode.
 */
 {
   a_symbol_ptr  cctor_sym;
@@ -7015,7 +7018,11 @@ within an unevaluated expression.  This routine is only used in C++ mode.
     pos_ty_error(ec_ambiguous_copy_constructor, err_pos, class_type);
   } else if (cctor_sym == NULL) {
     /* No applicable copy constructor. */
-    if (required_qualifiers == TQ_CONST) {
+    if (class_type->variant.class_struct_union.copy_ctor_decl_suppressed &&
+        allow_suppressed_ctor) {
+      /* The declaration of the copy constructor was suppressed (for
+         Microsoft compatibility).  Do not report an error at this point. */
+    } else if (required_qualifiers == TQ_CONST) {
       /* The common case:  missing const copy constructor. */
       pos_ty_error(ec_missing_const_copy_constructor, err_pos, class_type);
     } else {
