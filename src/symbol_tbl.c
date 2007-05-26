@@ -6956,12 +6956,21 @@ if necessary.  *position is the source position of the reference.
   if (cssp != NULL) {
     dtor_sym = cssp->destructor;
     if (dtor_sym != NULL) {
-      /* Check that the destructor is accessible and mark it referenced. */
-      reference_to_implicitly_invoked_function(dtor_sym, position,
-                                               object_class_type,
-                                               honor_virtual, evaluated,
-                                               instantiate);
-      dtor_routine = dtor_sym->variant.routine.ptr;
+      if (!have_access_to_symbol(dtor_sym) &&
+          microsoft_mode && microsoft_version < 1400 &&
+          object_class_type != NULL &&
+          object_class_type->variant.class_struct_union.dtor_decl_suppressed) {
+        /* MSVC++ versions before 8.0 simply do not invoke an inaccessible
+           subobject destructor if the declaration of the complete object's
+           destructor was suppressed. */
+      } else {
+        /* Check that the destructor is accessible and mark it referenced. */
+        reference_to_implicitly_invoked_function(dtor_sym, position,
+                                                 object_class_type,
+                                                 honor_virtual, evaluated,
+                                                 instantiate);
+        dtor_routine = dtor_sym->variant.routine.ptr;
+      }  /* if */
     } else if (class_type->variant.class_struct_union.dtor_decl_suppressed &&
                microsoft_version >= 1400) {
       /* MSVC++ 8.0 issues an error if a suppressed destructor would have
