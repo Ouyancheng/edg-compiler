@@ -7073,6 +7073,8 @@ is returned TRUE if the parameter is not a reference parameter.
   a_boolean                      opass_sym_matches_exactly = FALSE;
   a_boolean                      base_class_match_allowed = FALSE;
   a_boolean                      any_base_class_match = FALSE;
+  a_routine_type_supplement_ptr  rtsp;
+  a_type_qualifier_set           opass_qualifiers;
 
   *ambiguous = FALSE;
   cssp = symbol_supplement_for_class(class_type);
@@ -7150,15 +7152,30 @@ is returned TRUE if the parameter is not a reference parameter.
               sym_matches_exactly = FALSE;
             }  /* if */
           }  /* if */
+          rtsp = routine_symbol_type(sym)->variant.routine.extra_info;
           if (opass_sym != NULL) {
             /* We have a match on this symbol, but we've already had one
-               before as well.  If one but not the other is an exact match,
-               take the one that matches.  Otherwise it's an ambiguity.  */
-            *ambiguous = (sym_matches_exactly == opass_sym_matches_exactly);
-            if (!sym_matches_exactly) continue;
+               before as well. */
+            if (sym_matches_exactly == opass_sym_matches_exactly &&
+                (opass_qualifiers == rtsp->qualifiers ||
+                 (microsoft_mode && microsoft_version < 1310))) {
+              /* The symbols cannot be disambiguated.  (MSVC++ 7.0 does not
+                 consider the cv-qualification of the functions in
+                 determining whether the symbols are ambiguous.) */
+              *ambiguous = TRUE;
+            }  /* if */
+            if (!sym_matches_exactly ||
+                (opass_sym_matches_exactly && opass_qualifiers == TQ_NONE)) {
+              /* We keep the opass sym if this one is not an exact match
+                 or, even if this one is an exact match, if the opass sym
+                 was cv-unqualified (it will be picked by overload resolution
+                 on that basis). */
+              continue;
+            }  /* if */
           }  /* if */
           opass_sym = viable_sym;
           opass_sym_matches_exactly = sym_matches_exactly;
+          opass_qualifiers = rtsp->qualifiers;
           *pass_by_value = !is_ref_arg;
         }  /* if */
       }  /* for */
