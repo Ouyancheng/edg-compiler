@@ -7152,7 +7152,8 @@ is returned TRUE if the parameter is not a reference parameter.
               sym_matches_exactly = FALSE;
             }  /* if */
           }  /* if */
-          rtsp = routine_symbol_type(sym)->variant.routine.extra_info;
+          rtsp = routine_symbol_type(viable_sym)->variant.routine.extra_info;
+          check_assertion(rtsp != NULL);
           if (opass_sym != NULL) {
             /* We have a match on this symbol, but we've already had one
                before as well. */
