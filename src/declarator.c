@@ -529,7 +529,7 @@ type.
            a partial array or pointer type (see comment above), let it
            by as long as it looks okay otherwise. */
         temp_type = skip_typerefs(new_type_ptr);
-        if (!C_mode()) {
+        if (!C_mode() && is_incomplete_type(temp_type)) {
           /* In nonstrict modes, a complete element type is not always needed
              at this point.  So we don't call complete_type_is_needed here.
              However, if the underlying type is a instance of a defined class
