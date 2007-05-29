@@ -1,5 +1,23 @@
 Version 3.10
 
+5/29/07  Microsoft compatibility: ending source position of expressions
+         involving property references
+
+In configurations in which EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the ending
+position of an expression whose last subexpression is a property reference
+was incorrect, extending through the position of the following token.  This
+has now been fixed.  For example:
+
+  struct S {
+    __declspec(property(get=GetCount)) int Count;
+    int GetCount();
+  };
+
+  int f(S *p, int x) {
+    return x + p->Count;  // The ending position of the return expression
+                          // previously designated the ';', now the 't'
+  }
+
 5/29/07  Arrays of class template instances
 
 When creating an array type whose element type is an instance of a defined

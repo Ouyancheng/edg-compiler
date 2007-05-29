@@ -10625,8 +10625,14 @@ is a "get" if put_operand is NULL.
   a_field_ptr       field = operand->variant.property_ref.field;
   char              *getput_property_name;
   a_source_position operand_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position operand_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   operand_position = operand->position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  operand_end_position = operand->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Get the "get" or "put" function name from the field. */
   getput_property_name = (put_operand != NULL) ? field->put_property_name :
                                                  field->get_property_name;
@@ -10732,6 +10738,12 @@ is a "get" if put_operand is NULL.
                                  /*found_through_adl=*/FALSE,
                                  /*uses_operator_syntax=*/FALSE,
                                  &operand_position, operand);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          /* The operand's end position now reflects the end of the current
+             token, which is past the end of the field reference.  Restore
+             the original operand end position. */
+          operand->end_position = operand_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         }  /* if */
       }  /* if */
     }  /* if */
