@@ -2577,6 +2577,69 @@ Lower the indicated fixed-point increment or decrement operation.
 
 #endif /* LOWER_FIXED_POINT */
 
+static void match_routine_type_in_call(an_expr_node_ptr  call)
+/*
+"call" is an eok_call node.  If it represents a call to a known routine,
+ensure that the type of the enk_routine_address node matches that of the
+a_routine entry.  This may not be the case on entry if the call found a
+block-extern declaration of the entry with a type different from an earlier
+namespace-scope declaration.  Consider the following example:
+
+  int f(int (*p)[*]);      // (1)
+  int main() {
+    int a[10][5] = { 0 };
+    int f(int (*a)[5]);    // (2)
+    f(a);                  // (3)
+  }
+
+After lowering the VLA-based declaration in (1), it is no longer compatible
+with the non-VLA-based type of (2) (and the latter determines the type of the
+enk_routine_address node).  This can lead to problems in the back end.  In
+particular, the C-generating back end would generate code that some C
+compilers (including newer versions of GCC) do not accept.  The transformation
+here (when applicable) consists in changing the type of the enk_routine_address
+node to match the type of the a_routine node, and cast the arguments to match
+the adjusted parameter types if needed.
+*/
+{
+  an_expr_node_ptr  target = call->variant.operation.operands;
+  a_type_ptr        call_type = f_skip_typerefs(type_pointed_to(target->type));
+  a_routine_ptr     callee = NULL;
+
+  while (is_operation_node(target) &&
+         target->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
+    target = target->variant.operation.operands;
+  }  /* if */
+  if (target->kind == (an_expr_node_kind)enk_routine_address) {
+    /* A known callee. */
+    a_routine_type_supplement_ptr  rtsp;
+    callee = target->variant.routine;
+    rtsp = skip_typerefs(callee->type)->variant.routine.extra_info;
+    if (rtsp->prototyped && !identical_types(call_type, callee->type)) {
+      /* Change the type of the enk_routine_address node, and convert the
+         parameter types accordingly (if needed). */
+      an_expr_node_ptr  ap = call->variant.operation.operands->next;
+      an_expr_node_ptr  *ip = &target->next;
+      a_param_type_ptr  ptp = rtsp->param_type_list;
+      call->variant.operation.operands = target;
+      target->type = make_pointer_type(callee->type);
+      while (ap != NULL) {
+        *ip = ap;
+        ap = ap->next;
+        if (ptp != NULL) {
+          *ip = add_cast_if_necessary(*ip, ptp->type);
+          ptp = ptp->next;
+        } else {
+          /* Ellipsis argument. */
+          check_assertion(rtsp->has_ellipsis);
+        }  /* if */
+        ip = &(*ip)->next;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* match_routine_type_in_call */
+
+                             
 #if !LOWER_FIXED_POINT
 /*ARGSUSED*/  /* <-- expr is not used in that case. */
 #endif /* !LOWER_FIXED_POINT */
@@ -2610,6 +2673,7 @@ have been lowered already.
     }  /* for */
   }  /* if */
 #endif /* LOWER_FIXED_POINT */
+  match_routine_type_in_call(expr);
 }  /* lower_c99_call */
 
 
@@ -3173,6 +3237,9 @@ second parameter.
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       break;
     case enk_routine_address:
+      /* Although enk_routine_address nodes are not lowered here, they may be
+         adjusted (in match_routine_type_in_call) when processing call
+         nodes. */
     case enk_variable:
     case enk_field:
     case enk_address_of_ellipsis:

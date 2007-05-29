@@ -6092,6 +6092,24 @@ End a name scope by popping an entry off the scope stack.
       }  /* if */
     }  /* for */
   }  /* if */
+  /* For any entities on the extern_type_fixup_list, restore the type of the
+     variable or routine to what it was earlier.  This is used for cases like
+       int a[];
+       main () {
+         extern int a[5];
+         ... Type of "a" is now "int [5]".
+       }
+       ... Type of "a" must be restored to "int []" at the end of "main".
+     Note that the entries are just thrown away.  There are expected to be
+     very few of them.
+  */
+  for (etfp = ssep->extern_type_fixup_list; etfp != NULL; etfp = etfp->next) {
+    if (etfp->is_routine) {
+      etfp->variant.routine->type  = etfp->type;
+    } else {
+      etfp->variant.variable->type = etfp->type;
+    }  /* if */
+  }  /* for */
   if (!old_region_still_needed) {
     /* The old memory region is no longer needed. */
     check_assertion(kind == (a_scope_kind)sck_function &&
@@ -6153,24 +6171,6 @@ End a name scope by popping an entry off the scope stack.
       check_for_done_with_memory_region(old_memory_region_number);
     }  /* if */
   }  /* if */
-  /* For any entities on the extern_type_fixup_list, restore the type of the
-     variable or routine to what it was earlier.  This is used for cases like
-       int a[];
-       main () {
-         extern int a[5];
-         ... Type of "a" is now "int [5]".
-       }
-       ... Type of "a" must be restored to "int []" at the end of "main".
-     Note that the entries are just thrown away.  There are expected to be
-     very few of them.
-  */
-  for (etfp = ssep->extern_type_fixup_list; etfp != NULL; etfp = etfp->next) {
-    if (etfp->is_routine) {
-      etfp->variant.routine->type  = etfp->type;
-    } else {
-      etfp->variant.variable->type = etfp->type;
-    }  /* if */
-  }  /* for */
   /* For template instantiation scopes, restore the template parameters
      to their previous state.  Normally this just involves setting the
      parameters to point to the "resting" values assigned when the

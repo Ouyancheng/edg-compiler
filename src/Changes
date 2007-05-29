@@ -1,5 +1,30 @@
 Version 3.10
 
+5/29/07  Lowering of VLAs in parameter declarations
+
+In C99 and GNU C modes, variable-length arrays (VLAs) can appear in parameter
+declarations.  For example:
+
+  int f(int (*p)[*]);  // Array type lowered to plain pointer type.
+
+IL lowering replaces such VLA types by pointers to the underlying element type.
+However, a block-extern declaration of the same parameter may not involve a
+corresponding VLA type, and that type (which is used in the IL tree of the call
+expression) would therefore not be lowered.  For example:
+
+  int main() {
+    int a[10][5] = { 0 };
+    int f(int (*a)[5]);  // Array type remains in lowered call tree.
+    f(a);
+  }
+
+The C-generating back end previously handled the resulting type incompatibility
+by inserting a cast at the call site on the function's address.  Unfortunately,
+such C constructs technically have "undefined behavior" and some newer C
+compilers (notably GCC 4.x) now trap such calls at run time.  To avoid the
+problem, the non-VLA-based parameter type is now eliminated from the call's
+expression tree in such cases.
+
 5/22/07  Microsoft compatibility: __sptr/__uptr pointer modifiers
 
 In Microsoft modes, the front end now accepts the pointer modifiers __sptr and
