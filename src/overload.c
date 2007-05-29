@@ -14643,26 +14643,37 @@ next_function:;
 }  /* select_overloaded_copy_constructor */
 
 
-a_routine_ptr select_assignment_operator_for_copy(
+a_routine_ptr select_assignment_operator_for_memberwise_copy(
                                               a_type_ptr        class_type,
                                               an_expr_node_ptr  source_expr,
                                               an_expr_node_ptr  dest_expr,
                                               a_boolean         *pass_by_value,
                                               a_source_position *dest_decl_pos)
 /*
-Perform overload resolution to select the best assignment operator to copy
-source_expr to dest_expr; *pass_by_value is set to reflect whether the
-parameter of the selected operator= is a reference type or not.  This
-function is called while creating the definition of an implicitly-declared
-assignment operator; dest_decl_pos is the position in the class definition
-of the base specifier or member declaration for the subobject to be copied.
-This processing is similar to that of check_for_operator_overloading,
-except that the context is more restricted and thus fewer possibilities
-need to be handled here.
+Perform overload resolution to select the assignment operator to use in
+copying a base or member subobject in the implicit definition of a copy
+assignment operator and return a pointer to the selected routine.  If an
+error is detected, the returned value will be NULL (and the appropriate
+diagnostic will have been issued).  Note that this routine should not be
+called directly but only via find_assignment_operator_for_memberwise_copy.
+Its processing is similar to that of check_for_operator_overloading, except
+that the context is more restricted and thus fewer possibilities need to be
+handled here.
+
+source_expr is an expression node of pointer type that refers to the base
+or member subobject of the class object that is being copied; dest_expr is
+an expression node of pointer type that refers to the corresponding
+subobject of the target object.  Because they are generated directly in the
+IL and do not reflect source constructs, they are neither lvalues nor
+rvalues but can be used as such as needed.  class_type is the type of the
+subobject to be copied.  *pass_by_value is set to reflect whether the
+parameter of the selected operator= has a reference type or not.
+dest_decl_pos is the position in the class definition of the base specifier
+or member declaration for the subobject to be copied.
 */
 {
   an_operand               operand_1, operand_2;
-  an_arg_operand_ptr       arg_operand_list, arg_operand_list2;
+  an_arg_operand_ptr       arg_operand_list;
   a_symbol_ptr             member_functions_symbol;
   a_symbol_ptr             function_symbol, proj_function_symbol;
   a_candidate_function_ptr candidate_functions;
@@ -14676,6 +14687,7 @@ need to be handled here.
   a_routine_type_supplement_ptr
                            rtsp;
 
+  *pass_by_value = FALSE;
   if (class_type->variant.class_struct_union.copy_assignment_decl_suppressed) {
     /* In order to emulate the behavior of the Microsoft compiler, we
        suppress the declaration of the implicit copy assignment operator
@@ -14692,18 +14704,18 @@ need to be handled here.
 #if DEBUG
     overload_level++;
 #endif /* DEBUG */
-    /* Make operands from the source and destination expressions. */
+    /* Make operands from the source and destination expressions.  The
+       dest_expr operand represents the "this" pointer of the
+       operator= and thus can remain an rvalue.  The source_expr
+       operand is a pointer to the base class or member subobject
+       being copied and must be an lvalue so it will be an acceptable
+       match for a non-const reference parameter. */
     make_expression_operand(dest_expr, dest_expr->type, &operand_1);
     make_expression_operand(source_expr, source_expr->type, &operand_2);
-    /* Treat the source as an lvalue so it will be an acceptable match for
-       a non-const reference parameter. */
     conv_object_pointer_to_lvalue(&operand_2);
-    /* Change the operands into argument operand form. */
+    /* Change the source operand into argument operand form. */
     arg_operand_list = alloc_arg_operand();
-    copy_operand(&operand_1, &arg_operand_list->operand);
-    arg_operand_list2 = alloc_arg_operand();
-    copy_operand(&operand_2, &arg_operand_list2->operand);
-    arg_operand_list->next = arg_operand_list2;
+    copy_operand(&operand_2, &arg_operand_list->operand);
     /* candidate_functions will contain the list of viable functions. */
     candidate_functions = NULL;
     member_functions_symbol = opname_member_function_symbol(
@@ -14716,7 +14728,7 @@ need to be handled here.
       try_overloaded_function_match(member_functions_symbol,
                                     /*is_template_id=*/FALSE,
                                     (a_template_arg_ptr)NULL,
-                                    arg_operand_list2,
+                                    arg_operand_list,
                                     /*have_selector=*/TRUE,
                                     &operand_1,
                                     /*selector_is_object_pointer=*/TRUE,
@@ -14760,7 +14772,7 @@ need to be handled here.
         proj_function_symbol = candidate_functions->function_symbol;
         function_symbol = fundamental_symbol_of(proj_function_symbol);
         /* Check that the function is accessible and mark it referenced. */
-        reference_to_implicitly_invoked_function(function_symbol,
+        reference_to_implicitly_invoked_function(proj_function_symbol,
                                                  dest_decl_pos,
                                                  (a_type_ptr)NULL,
                                                  /*honor_virtual=*/FALSE,
@@ -14782,7 +14794,7 @@ need to be handled here.
 #endif /* DEBUG */
   }  /* if */
   return rout;
-}  /* select_assignment_operator_for_copy */
+}  /* select_assignment_operator_for_memberwise_copy */
 
 
 void deduce_auto_type(a_decl_parse_state  *dps)

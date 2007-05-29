@@ -9142,8 +9142,8 @@ that type's definition.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
-a_boolean is_virtual_base_class_of(a_type_ptr  base_class_type,
-                                   a_type_ptr  derived_type)
+static a_boolean is_virtual_base_class_of(a_type_ptr  base_class_type,
+                                          a_type_ptr  derived_type)
 /*
 Return TRUE if base_class_type is a virtual base class of derived_type.
 */

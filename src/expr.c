@@ -20865,6 +20865,52 @@ This routine is used only in C++ mode.
 }  /* find_copy_constructor */
 
 
+a_routine_ptr find_assignment_operator_for_memberwise_copy(
+                                              a_type_ptr        class_type,
+                                              an_expr_node_ptr  source_expr,
+                                              an_expr_node_ptr  dest_expr,
+                                              a_boolean         *pass_by_value,
+                                              a_source_position *dest_decl_pos)
+/*
+Find the correct assignment operator to use in copying a base or member
+subobject in the implicit definition of a copy assignment operator and
+return a pointer to the selected routine.  If an error is detected, the
+returned value will be NULL (and the appropriate diagnostic will have been
+issued).  This routine is a wrapper for
+select_assignment_operator_for_memberwise_copy, which should not be called
+directly.
+
+source_expr is an expression node of pointer type that refers to the base
+or member subobject of the class object that is being copied; dest_expr is
+an expression node of pointer type that refers to the corresponding
+subobject of the target object.  Because they are generated directly in the
+IL and do not reflect source constructs, they are neither lvalues nor
+rvalues but can be used as such as needed.  class_type is the type of the
+subobject to be copied.  *pass_by_value is set to reflect whether the
+parameter of the selected operator= has a reference type or not.
+dest_decl_pos is the position in the class definition of the base specifier
+or member declaration for the subobject to be copied.
+*/
+{
+  a_routine_ptr           assignment_operator;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+
+  /* Save the current expr_stack for later restoration, and start over, because
+     this processing is not part of any expression we happen to be inside
+     of. */
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  assignment_operator = select_assignment_operator_for_memberwise_copy(
+             class_type, source_expr, dest_expr, pass_by_value, dest_decl_pos);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return assignment_operator;
+}  /* find_assignment_operator_for_memberwise_copy */
+
+
 void process_unattached_template_argument_list(
                                           a_template_arg_ptr template_arg_list)
 /*

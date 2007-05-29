@@ -2076,9 +2076,10 @@ operator routine or do bitwise assignment.
         } else {
           /* A bitwise copy may not be done.  Find the default assignment
              operator and put out a call to it. */
-          rp = select_assignment_operator_for_copy(bcp->type, source_expr,
-                                                   dest_expr, &pass_by_value,
-                                                   &bcp->decl_position);
+          rp = find_assignment_operator_for_memberwise_copy(
+                                                     bcp->type, source_expr,
+                                                     dest_expr, &pass_by_value,
+                                                     &bcp->decl_position);
           if (rp == NULL) {
             /* Error has already been issued in the subroutine. */
             continue;
@@ -2183,7 +2184,7 @@ operator routine or do bitwise assignment.
                         /*reinterpret_semantics=*/FALSE, err_pos);
               /* Now that we have element pointers, we can find the right
                  assignment operator. */
-              rp = select_assignment_operator_for_copy(
+              rp = find_assignment_operator_for_memberwise_copy(
                                             tp, source_expr, dest_expr,
                                             &pass_by_value,
                                             &fp->source_corresp.decl_position);
@@ -2203,7 +2204,7 @@ operator routine or do bitwise assignment.
                                          dest_expr->type, dest_expr);
             } else {
               /* Find the assignment operator to do the copy. */
-              rp = select_assignment_operator_for_copy(
+              rp = find_assignment_operator_for_memberwise_copy(
                                             tp, source_expr, dest_expr,
                                             &pass_by_value,
                                             &fp->source_corresp.decl_position);

@@ -253,6 +253,13 @@ extern a_symbol_ptr find_copy_constructor(
                                    a_boolean             *ambiguous,
                                    a_boolean             *class_bitwise_copy);
 
+extern a_routine_ptr find_assignment_operator_for_memberwise_copy(
+                                             a_type_ptr        class_type,
+                                             an_expr_node_ptr  source_expr,
+                                             an_expr_node_ptr  dest_expr,
+                                             a_boolean         *pass_by_value,
+                                             a_source_position *dest_decl_pos);
+
 extern void process_unattached_template_argument_list(
                                          a_template_arg_ptr template_arg_list);
 
