@@ -43,13 +43,13 @@ in generated code.  For example:
   typedef A<void> T[3];  // Now A<void> is instantiated at this point.
   T xx;  // Previously, A<void> was instantiated here.
 
-Previously, the the C-generating back end produced C code that included a
-typedef for an array of incomplete struct objects (and the struct was later
-completed).  While this was previously almost always accepted by common C
-compilers, newer versions of GCC diagnose it as an error.  By performing the
-instantiation earlier, that problem is avoided.  This does mean that some
-unusual cases that were previously accepted (because the template would not
-have been instantiated at all) will now trigger errors during instantiation.
+Previously, the C-generating back end produced C code that included a typedef
+for an array of incomplete struct objects (and the struct was later completed).
+While this was previously almost always accepted by common C compilers, newer
+versions of GCC diagnose it as an error.  By performing the instantiation
+earlier, that problem is avoided.  This does mean that some unusual cases that
+were previously accepted (because the template would not have been instantiated
+at all) will now trigger errors during instantiation.
 
 5/29/07  Lowering of VLAs in parameter declarations
 
