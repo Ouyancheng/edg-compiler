@@ -7480,7 +7480,7 @@ next parameter.
          specific GNU command-line option is specified.  We issue a remark
          instead (which can be increased in severity through command-line
          options if needed). */
-      pos_remark(ec_null_argument_for_nonnull_parameter, &operand->position);
+      pos_warning(ec_null_argument_for_nonnull_parameter, &operand->position);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
