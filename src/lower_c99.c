@@ -2592,7 +2592,7 @@ namespace-scope declaration.  Consider the following example:
     f(a);                  // (3)
   }
 
-After lowering the VLA-based declaration in (1), it is no longer compatible
+After the VLA-based declaration in (1) is lowered, it is no longer compatible
 with the non-VLA-based type of (2) (and the latter determines the type of the
 enk_routine_address node).  This can lead to problems in the back end.  In
 particular, the C-generating back end would generate code that some C
@@ -2604,23 +2604,24 @@ the adjusted parameter types if needed.
 {
   an_expr_node_ptr  target = call->variant.operation.operands;
   a_type_ptr        call_type = f_skip_typerefs(type_pointed_to(target->type));
-  a_routine_ptr     callee = NULL;
 
-  while (is_operation_node(target) &&
-         target->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
-    target = target->variant.operation.operands;
-  }  /* if */
+  check_assertion(is_operation_node(call) && node_operator_is(call, eok_call));
   if (target->kind == (an_expr_node_kind)enk_routine_address) {
     /* A known callee. */
-    a_routine_type_supplement_ptr  rtsp;
-    callee = target->variant.routine;
-    rtsp = skip_typerefs(callee->type)->variant.routine.extra_info;
-    if (rtsp->prototyped && !identical_types(call_type, callee->type)) {
-      /* Change the type of the enk_routine_address node, and convert the
-         parameter types accordingly (if needed). */
+    a_routine_ptr                  callee = target->variant.routine;
+    a_routine_type_supplement_ptr  callee_rtsp, call_rtsp;
+    callee_rtsp = skip_typerefs(callee->type)->variant.routine.extra_info;
+    check_assertion(is_function_type(call_type));
+    call_rtsp = call_type->variant.routine.extra_info;
+    if (callee_rtsp->prototyped && call_rtsp->prototyped &&
+        !identical_types(call_type, callee->type)) {
+      /* The type used for the call and the type of the routine being called
+         are different (and the parameter types are known).  Change the type
+         of the enk_routine_address node, and convert the argument types
+         accordingly (if needed). */
       an_expr_node_ptr  ap = call->variant.operation.operands->next;
       an_expr_node_ptr  *ip = &target->next;
-      a_param_type_ptr  ptp = rtsp->param_type_list;
+      a_param_type_ptr  ptp = callee_rtsp->param_type_list;
       call->variant.operation.operands = target;
       target->type = make_pointer_type(callee->type);
       while (ap != NULL) {
@@ -2628,13 +2629,26 @@ the adjusted parameter types if needed.
         ap = ap->next;
         if (ptp != NULL) {
           *ip = add_cast_if_necessary(*ip, ptp->type);
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+          if (vla_enabled && !(*ip)->type->visited_for_vla_lowering) {
+            /* We may be casting to a type that would otherwise not have
+               appeared in the lowered IL: Make sure that any newly-introduced
+               VLA types are lowered too. */
+            record_vla_component_types_for_lowering((*ip)->type);
+          }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
           ptp = ptp->next;
         } else {
           /* Ellipsis argument. */
-          check_assertion(rtsp->has_ellipsis);
+          check_assertion(callee_rtsp->has_ellipsis);
         }  /* if */
         ip = &(*ip)->next;
-      }  /* if */
+      }  /* while */
+      /* If both the file-scope and the local-scope declaration were
+         prototyped, they should originally be compatible, and therefore the
+         call should have at least as many arguments as there are parameters
+         (possibly more if there is an ellipsis parameter). */
+      check_assertion(ptp == NULL);
     }  /* if */
   }  /* if */
 }  /* match_routine_type_in_call */
@@ -2649,6 +2663,7 @@ Do any required lowering on an eok_call expression node.  The operands
 have been lowered already.
 */
 {
+  match_routine_type_in_call(expr);
 #if LOWER_FIXED_POINT
   if (fixed_point_enabled) {
     /* May need to widen some fixed-point arguments passed to
@@ -2673,7 +2688,6 @@ have been lowered already.
     }  /* for */
   }  /* if */
 #endif /* LOWER_FIXED_POINT */
-  match_routine_type_in_call(expr);
 }  /* lower_c99_call */
 
 
