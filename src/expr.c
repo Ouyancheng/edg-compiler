@@ -11984,8 +11984,10 @@ both C and C++ modes.
   a_boolean         err = FALSE;
   a_statement_ptr   sp;
   a_source_position start_position;
+  a_source_position end_position;
 
   start_position = pos_curr_token;
+  end_position = null_source_position;
   if (curr_expr_kind_is_const()) {
     /* Not allowed in a constant expression. */
     error(ec_expr_not_constant);
@@ -12037,6 +12039,9 @@ both C and C++ modes.
                             /*explicit_return_type=*/FALSE,
                             /*is_catch_clause=*/FALSE,
                             /*is_statement_expr=*/TRUE);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    set_position_from_stmt_source_position(end_position, sp->end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     restore_expr_stack(saved_expr_stack);
     curr_object_lifetime = saved_curr_object_lifetime;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -12094,7 +12099,7 @@ both C and C++ modes.
     }  /* if */
   }  /* if */
   (void)required_token(tok_rparen, ec_exp_rparen);
-  set_operand_position(result, &start_position, &pos_curr_token,
+  set_operand_position(result, &start_position, &end_position,
                        &start_position);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
 }  /* scan_gnu_statement_expression */

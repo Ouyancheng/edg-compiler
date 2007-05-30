@@ -1,5 +1,18 @@
 Version 3.10
 
+5/30/07  GNU compatibility: ending source position of statement expressions
+
+In configurations in which EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the ending
+position of a statement expression was incorrect, extending through the
+position of the token following the terminating parenthesis.  This has now
+been fixed.  For example:
+
+  void f (int i) {
+    while ( ({i--;}) )   // The ending position of the statement expression
+                         // previously designated the second ')', now the '}'
+      ;
+   }
+
 5/29/07  Microsoft compatibility: ending source position of expressions
          involving property references
 
