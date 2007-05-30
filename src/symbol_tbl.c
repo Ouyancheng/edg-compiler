@@ -6963,6 +6963,8 @@ if necessary.  *position is the source position of the reference.
         /* MSVC++ versions before 8.0 simply do not invoke an inaccessible
            subobject destructor if the declaration of the complete object's
            destructor was suppressed. */
+        pos_ty2_diagnostic(es_warning, ec_inaccessible_dtor_not_invoked,
+                           position, class_type, object_class_type);
       } else {
         /* Check that the destructor is accessible and mark it referenced. */
         reference_to_implicitly_invoked_function(dtor_sym, position,
@@ -7074,7 +7076,7 @@ is returned TRUE if the parameter is not a reference parameter.
   a_boolean                      base_class_match_allowed = FALSE;
   a_boolean                      any_base_class_match = FALSE;
   a_routine_type_supplement_ptr  rtsp;
-  a_type_qualifier_set           opass_qualifiers;
+  a_type_qualifier_set           opass_qualifiers = TQ_NONE;
 
   *ambiguous = FALSE;
   cssp = symbol_supplement_for_class(class_type);

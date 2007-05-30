@@ -10344,7 +10344,8 @@ a normal try.
           check_assertion((cctor == NULL) == bitwise_copy ||
                           total_errors != 0 ||
                           (allow_suppressed_ctor &&
-                           state.type->variant.class_struct_union.
+                           skip_typerefs(state.type)->
+                                                   variant.class_struct_union.
                                                    copy_ctor_decl_suppressed));
           dtor = select_destructor(state.type, state.type, &pos,
                                    /*honor_virtual=*/FALSE,

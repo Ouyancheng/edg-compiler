@@ -1682,6 +1682,15 @@ ec_microsoft_ptr_signedness_must_follow_star;;"__sptr and __uptr must follow a \
 ec_microsoft_ptr_signedness_conflict;;"__sptr and __uptr cannot both apply"
 ec_microsoft_ptr_sign_extension;;"widening pointer conversion from %t1 to %t2 extends sign bit"
 ec_microsoft_ptr_signedness_on_ptr_to_member;;"__sptr and __uptr don't apply to pointer-to-member types"
+ec_const_mbr_suppresses_copy_asgn_decl;;"the declaration of the copy assignment operator for %t has been suppressed because %n is const"
+ec_ref_mbr_suppresses_copy_asgn_decl;;"the declaration of the copy assignment operator for %t has been suppressed because %n has reference type"
+ec_subobj_copy_asgn_decl_suppressed;;"the declaration of the copy assignment operator for %t1 has been suppressed because that of %t2 was suppressed"
+ec_ambig_suppresses_copy_asgn_decl;;"the declaration of the copy assignment operator for %t1 has been suppressed because that of %t2 is ambiguous"
+ec_access_suppresses_copy_asgn_decl;;"the declaration of the copy assignment operator for %t1 has been suppressed because that of %t2 is inaccessible"
+ec_subobj_copy_ctor_decl_suppressed;;"the declaration of the copy constructor for %t1 has been suppressed because that of %t2 was suppressed"
+ec_ambig_suppresses_copy_ctor_decl;;"the declaration of the copy constructor for %t1 has been suppressed because that of %t2 is ambiguous"
+ec_access_suppresses_copy_ctor_decl;;"the declaration of the copy constructor for %t1 has been suppressed because that of %t2 is inaccessible"
+ec_inaccessible_dtor_not_invoked;;"the destructor for %t1 will not be called because it is inaccessible and the destructor for %t2 was suppressed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
