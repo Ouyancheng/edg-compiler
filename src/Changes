@@ -132,9 +132,9 @@ an ordinary cast.  For example:
 In GNU C and C++ modes, the front end now accepts attribute "nothrow" on
 function and member function declarations.  This is an assertion by the
 programmer that the function will not throw an exception; the front end does
-not check that assertion, nor is the assertion checked at run time (which
-makes this feature different from the standard "throw()" specification).
-For example:
+not check that assertion, nor is the assertion checked at run time (this
+matches the GNU behavior and makes this feature different from the standard
+"throw()" specification).  For example:
 
   __attribute((nothrow)) void f() {  // Now accepted in GNU modes.
     throw 3;    // Violates the attribute's claim, but not diagnosed by the
