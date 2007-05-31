@@ -5476,7 +5476,7 @@ enum a_pointer_modifier_tag {
   pmt_sptr,		/* __sptr modifier ("signed pointer"). */
   pmt_uptr,		/* __uptr modifier ("unsigned pointer"). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  pmt_last		/* Must be last. */
+  pmt_last		/*lint -esym(769,a_pointer_modifier_tag::pmt_last)*/
 };
 
 /*
