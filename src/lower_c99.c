@@ -2598,14 +2598,16 @@ enk_routine_address node).  This can lead to problems in the back end.  In
 particular, the C-generating back end would generate code that some C
 compilers (including newer versions of GCC) do not accept.  The transformation
 here (when applicable) consists in changing the type of the enk_routine_address
-node to match the type of the a_routine node, and cast the arguments to match
-the adjusted parameter types if needed.
+node to match the type of the a_routine node, and casting the arguments to
+match the adjusted parameter types if needed.
 */
 {
-  an_expr_node_ptr  target = call->variant.operation.operands;
-  a_type_ptr        call_type = f_skip_typerefs(type_pointed_to(target->type));
+  an_expr_node_ptr  target;
+  a_type_ptr        call_type;
 
   check_assertion(is_operation_node(call) && node_operator_is(call, eok_call));
+  target = call->variant.operation.operands;
+  call_type = f_skip_typerefs(type_pointed_to(target->type));
   if (target->kind == (an_expr_node_kind)enk_routine_address) {
     /* A known callee. */
     a_routine_ptr                  callee = target->variant.routine;
@@ -2622,7 +2624,6 @@ the adjusted parameter types if needed.
       an_expr_node_ptr  ap = call->variant.operation.operands->next;
       an_expr_node_ptr  *ip = &target->next;
       a_param_type_ptr  ptp = callee_rtsp->param_type_list;
-      call->variant.operation.operands = target;
       target->type = make_pointer_type(callee->type);
       while (ap != NULL) {
         *ip = ap;

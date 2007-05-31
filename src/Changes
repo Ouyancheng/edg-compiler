@@ -74,7 +74,7 @@ by inserting a cast at the call site on the function's address.  Unfortunately,
 such C constructs technically have "undefined behavior" and some newer C
 compilers (notably GCC 4.x) now trap such calls at run time.  To avoid the
 problem, the non-VLA-based parameter type is now eliminated from the call's
-expression tree in such cases.
+expression tree during lowering in such cases.
 
 5/22/07  Microsoft compatibility: __sptr/__uptr pointer modifiers
 
