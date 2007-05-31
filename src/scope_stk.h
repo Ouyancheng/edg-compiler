@@ -912,7 +912,7 @@ a NULL pointer if the scope depth is NO_SCOPE_DEPTH.
 
 
 /*
-Given a pointer a scope stack entry, return the address of the associated
+Given a pointer to a scope stack entry, return the address of the associated
 scope-pointers-block -- it may either be part of the entry itself or part of
 another data structure elsewhere (as indicated by the value of the
 assoc_pointers_block field in the scope stack entry).
