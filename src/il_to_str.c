@@ -866,6 +866,9 @@ Do the output in the way described by octl.
 }  /* form_type_qualifier */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- octl is not used in some configurations. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void form_pointer_modifiers(a_pointer_modifier_set                 modifiers,
                             an_il_to_str_output_control_block_ptr  octl)
 /*

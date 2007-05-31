@@ -8094,9 +8094,11 @@ types at the front of the list.
 */
 {
   a_type_ptr                    tp = NULL;
-  a_based_type_list_member_ptr  btlmp;
-  a_based_type_list_member_ptr  prev_btlmp;
-  a_boolean                     ptr_to_member, ptr;
+  a_based_type_list_member_ptr  btlmp, prev_btlmp;
+  a_boolean                     ptr_to_member;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean                     ptr;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DEBUG
   num_get_based_type_calls++;
