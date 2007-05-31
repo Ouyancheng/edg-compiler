@@ -11006,6 +11006,7 @@ static void check_base_or_mbr_class_type_for_suppression(
                                    a_type_ptr           base_or_mbr_type,
                                    a_type_qualifier_set asgn_qualifiers,
                                    a_type_qualifier_set ctor_qualifiers,
+                                   a_boolean            check_all,
                                    a_boolean            *asgn_warning_needed,
                                    a_boolean            *ctor_warning_needed,
                                    a_boolean            *dtor_warning_needed,
@@ -11023,7 +11024,9 @@ in looking up the corresponding function in the base or member class type;
 the three "suppress" booleans are set to reflect whether an error would
 occur in the definition or not.  If the corresponding "warning_needed" flag
 is TRUE, a warning will be issued for each suppressed special function and
-the flag updated to prevent repeated warnings.
+the flag updated to prevent repeated warnings.  If check_all is TRUE, all
+checks will be run; otherwise, checking will be limited to the cases that
+affect the behavior of the MSVC++ version indicated by microsoft_version.
 */
 {
   a_class_symbol_supplement_ptr cssp;
@@ -11039,11 +11042,11 @@ the flag updated to prevent repeated warnings.
     *suppress_copy_asgn_op = TRUE;
     if (*asgn_warning_needed) {
       *asgn_warning_needed = FALSE;
-      pos_ty2_diagnostic(es_warning, ec_subobj_copy_asgn_decl_suppressed,
+      pos_ty2_diagnostic(es_remark, ec_subobj_copy_asgn_decl_suppressed,
                          &class_type->source_corresp.decl_position,
                          class_type, base_or_mbr_type);
     }  /* if */
-  } else if (microsoft_version < 1400) {
+  } else if (microsoft_version < 1400 || check_all) {
     /* MSVC++ 8.0 issues an error for an inaccessible base or member copy
        assignment operator, while earlier versions suppress the containing
        class's copy assignment operator. */
@@ -11057,7 +11060,7 @@ the flag updated to prevent repeated warnings.
       *suppress_copy_asgn_op = TRUE;
       if (*asgn_warning_needed) {
         *asgn_warning_needed = FALSE;
-        pos_ty2_diagnostic(es_warning, ambiguous ?
+        pos_ty2_diagnostic(es_remark, ambiguous ?
                            ec_ambig_suppresses_copy_asgn_decl :
                            ec_access_suppresses_copy_asgn_decl,
                            &class_type->source_corresp.decl_position,
@@ -11065,7 +11068,7 @@ the flag updated to prevent repeated warnings.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (microsoft_version < 1400) {
+  if (microsoft_version < 1400 || check_all) {
     /* Microsoft versions before 8.0 had similar processing for copy
        constructors. */
     if (base_or_mbr_type->variant.class_struct_union.
@@ -11075,13 +11078,10 @@ the flag updated to prevent repeated warnings.
       *suppress_copy_ctor = TRUE;
       if (*ctor_warning_needed) {
         *ctor_warning_needed = FALSE;
-        pos_ty2_diagnostic(es_warning, ec_subobj_copy_ctor_decl_suppressed,
+        pos_ty2_diagnostic(es_remark, ec_subobj_copy_ctor_decl_suppressed,
                            &class_type->source_corresp.decl_position,
                            class_type, base_or_mbr_type);
       }  /* if */
-    } else if (base_or_mbr_type->incomplete) {
-      /* A property field can have an incomplete type, but it has no effect
-         on the generation of the containing class's copy constructor. */
     } else {
       rout_sym = find_copy_constructor(
                                base_or_mbr_type, ctor_qualifiers,
@@ -11095,7 +11095,7 @@ the flag updated to prevent repeated warnings.
         *suppress_copy_ctor = TRUE;
         if (*ctor_warning_needed) {
           *ctor_warning_needed = FALSE;
-          pos_ty2_diagnostic(es_warning, ambiguous ?
+          pos_ty2_diagnostic(es_remark, ambiguous ?
                              ec_ambig_suppresses_copy_ctor_decl :
                              ec_access_suppresses_copy_ctor_decl,
                              &class_type->source_corresp.decl_position,
@@ -11113,6 +11113,11 @@ the flag updated to prevent repeated warnings.
     *suppress_dtor = TRUE;
     if (*dtor_warning_needed) {
       *dtor_warning_needed = FALSE;
+      /* Note that this diagnostic is a warning, not a remark like the
+         other diagnostics for suppressed functions.  Because MSVC++ issues
+         a warning only for this case, issuing warnings for the other cases
+         would likely result in a lot of unwanted diagnostic output for
+         code that compiles silently under MSVC++. */
       pos_ty2_diagnostic(es_warning, ec_access_prevents_dtor_generation,
                          &class_type->source_corresp.decl_position,
                          class_type, base_or_mbr_type);
@@ -11125,6 +11130,7 @@ static void check_microsoft_suppressed_special_functions(
                                    a_type_ptr           class_type,
                                    a_type_qualifier_set asgn_qualifiers,
                                    a_type_qualifier_set ctor_qualifiers,
+                                   a_boolean            check_all,
                                    a_boolean            asgn_warning_needed,
                                    a_boolean            ctor_warning_needed,
                                    a_boolean            dtor_warning_needed,
@@ -11144,7 +11150,9 @@ the parameter of the function, used in looking up the corresponding
 function in the members and bases; the three "suppress" booleans are set to
 reflect whether an error would occur in the definition or not.  A warning
 will be issued for each suppressed special function if the corresponding
-"warning_needed" flag is TRUE.
+"warning_needed" flag is TRUE.  If check_all is TRUE, all checks will be
+run; otherwise, checking will be limited to the cases that affect the
+behavior of the MSVC++ version indicated by microsoft_version.
 */
 {
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
@@ -11160,7 +11168,13 @@ will be issued for each suppressed special function if the corresponding
      fields are checked and to be sure that anonymous union fields are
      picked up. */
   for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
-    if (sym->kind == (a_symbol_kind)sk_field) {
+    if (sym->kind == (a_symbol_kind)sk_field
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* Property fields do not affect the special member functions. */
+        && sym->variant.field.ptr->get_property_name == NULL &&
+        sym->variant.field.ptr->put_property_name == NULL
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        ) {
       tp = sym->variant.field.ptr->type;
       if (is_array_type(tp)) {
         tp = underlying_array_element_type(tp);
@@ -11171,7 +11185,7 @@ will be issued for each suppressed special function if the corresponding
         *suppress_copy_asgn_op = TRUE;
         if (asgn_warning_needed) {
           asgn_warning_needed = FALSE;
-          pos_syty_diagnostic(es_warning,
+          pos_syty_diagnostic(es_remark,
                               ec_const_mbr_suppresses_copy_asgn_decl,
                               &class_type->source_corresp.decl_position,
                               sym, class_type);
@@ -11182,7 +11196,7 @@ will be issued for each suppressed special function if the corresponding
         *suppress_copy_asgn_op = TRUE;
         if (asgn_warning_needed) {
           asgn_warning_needed = FALSE;
-          pos_syty_diagnostic(es_warning,
+          pos_syty_diagnostic(es_remark,
                               ec_ref_mbr_suppresses_copy_asgn_decl,
                               &class_type->source_corresp.decl_position,
                               sym, class_type);
@@ -11196,6 +11210,7 @@ will be issued for each suppressed special function if the corresponding
                                                      skip_typerefs(tp),
                                                      asgn_qualifiers,
                                                      ctor_qualifiers,
+                                                     check_all,
                                                      &asgn_warning_needed,
                                                      &ctor_warning_needed,
                                                      &dtor_warning_needed,
@@ -11216,6 +11231,7 @@ will be issued for each suppressed special function if the corresponding
       check_base_or_mbr_class_type_for_suppression(class_type, bcp->type,
                                                    asgn_qualifiers,
                                                    ctor_qualifiers,
+                                                   check_all,
                                                    &asgn_warning_needed,
                                                    &ctor_warning_needed,
                                                    &dtor_warning_needed,
@@ -11300,6 +11316,7 @@ The routine body is not generated until it is known to be needed.
        see if these member function declarations should be suppressed. */
     check_microsoft_suppressed_special_functions(class_type, asgn_qualifiers,
                                                  ctor_qualifiers,
+                                                 /*check_all=*/FALSE,
                                                  declare_copy_asgn_op,
                                                  declare_copy_ctor,
                                                  declare_dtor,
