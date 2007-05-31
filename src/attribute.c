@@ -2900,6 +2900,17 @@ Copy any GNU type attributes in type dst to type src.
             dst_rtsp->arg_pragma = src_rtsp->arg_pragma;
             dst_rtsp->fmt_arg = src_rtsp->fmt_arg;
           }  /* if */
+          if (src_rtsp->prototyped && dst_rtsp->prototyped) {
+            /* Copy any "nonnull" attributes. */
+            a_param_type_ptr  src_ptp = src_rtsp->param_type_list;
+            a_param_type_ptr  dst_ptp = dst_rtsp->param_type_list;
+            while (src_ptp != NULL) {
+              check_assertion(dst_ptp != NULL);
+              if (src_ptp->nonnull) dst_ptp->nonnull = TRUE;
+              src_ptp = src_ptp->next;
+              dst_ptp = dst_ptp->next;
+            }  /* while */
+          }  /* if */
           /* Update the result since a skip_typerefs was applied to dst. */
           result = dst;
         }
