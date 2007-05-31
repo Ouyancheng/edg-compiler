@@ -15222,7 +15222,7 @@ void move_destruction_to_curr_object_lifetime(a_dynamic_init_ptr  dip)
 /*
 Move a dynamic init entry representing a destruction (or a list thereof) to
 the destructions list associated with the current object lifetime.  This
-is routine is called to promote the destruction list from an object
+routine is called to promote the destruction list from an object
 lifetime that is being discarded.
 */
 {
