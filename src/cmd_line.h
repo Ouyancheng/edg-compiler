@@ -898,6 +898,12 @@ EXTERN a_calling_convention
 			/* The default calling convention.  cc_default is
 			   considered compatible with this calling
 			   convention. */
+
+EXTERN a_boolean
+		microsoft_64bit_pointer_extensions_enabled;
+			/* TRUE if 64-bit pointer extensions (__ptr32/__ptr64
+			   and __sptr/__uptr) should be accepted in Microsoft
+			   modes. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS

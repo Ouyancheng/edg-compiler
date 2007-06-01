@@ -5210,6 +5210,8 @@ variables declared in cmd_line.h.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   explicit_enum_base_enabled = FALSE;
   default_calling_convention = (a_calling_convention)cc_cdecl;
+  microsoft_64bit_pointer_extensions_enabled =
+                            DEFAULT_MICROSOFT_64BIT_POINTER_EXTENSIONS_ENABLED;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   allow_nonstandard_anonymous_unions =

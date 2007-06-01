@@ -652,6 +652,19 @@ by a command line option.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Flag that is TRUE if by default in Microsoft modes the front end should accept
+64-bit pointer extensions (__ptr32/__ptr64 and __sptr/__uptr).  This is used
+to initialize the global variable microsoft_64bit_pointer_extensions_enabled.
+*/
+#ifndef DEFAULT_MICROSOFT_64BIT_POINTER_EXTENSIONS_ENABLED
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define DEFAULT_MICROSOFT_64BIT_POINTER_EXTENSIONS_ENABLED TRUE
+#else /* !defined(MICROSOFT_EXTENSIONS_ALLOWED) */
+#define DEFAULT_MICROSOFT_64BIT_POINTER_EXTENSIONS_ENABLED TRUE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ifndef DEFAULT_MICROSOFT_64BIT_POINTER_EXTENSIONS_ENABLED */
+
+/*
 Flag that is TRUE to permit "near" and "far" memory attributes.  This should
 always be TRUE if Microsoft 16-bit mode is supported, but may be set to
 FALSE even if Microsoft extensions are supported to disallow Microsoft

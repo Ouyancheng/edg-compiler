@@ -93,6 +93,12 @@ pointer.  For example:
 Some minor changes were also made to the IL representation of __ptr32 and
 __ptr64 for pointer and pointer-to-member types (IL CHANGE).
 
+In addition, the acceptance of both the __ptr32/__ptr64 and the __sptr/__uptr
+features (in Microsoft modes) is now determined by the global variable
+microsoft_64bit_pointer_extensions_enabled, which is initialized by the macro
+DEFAULT_MICROSOFT_64BIT_POINTER_EXTENSIONS_ENABLED (TRUE by default if
+MICROSOFT_EXTENSIONS_ALLOWED is TRUE).
+
 5/22/07  Uninitialized local variable in enum_specifier
 
 The local variable "err" in enum_specifier (file decl_spec.c) was sometimes
