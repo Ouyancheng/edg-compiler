@@ -14748,7 +14748,8 @@ or member declaration for the subobject to be copied.
       /* The candidate_functions list now contains all the viable functions.
          Find the best. */
       select_best_candidate_functions(&candidate_functions, dest_decl_pos,
-                                      &undecidable_because_of_error, &ambiguous);
+                                      &undecidable_because_of_error,
+                                      &ambiguous);
       if (undecidable_because_of_error) {
         /* There was a previously-reported error. */
       } else if (candidate_functions == NULL) {
