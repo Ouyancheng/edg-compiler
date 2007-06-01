@@ -2982,9 +2982,9 @@ for the subk_prefix and subk_template_prefix cases.
       allocated_substitutions += 500;
       new_size = allocated_substitutions*sizeof(a_substitution);
       if (substitutions == NULL) {
-        substitutions = malloc(new_size);
+        substitutions = (a_substitution*)malloc(new_size);
       } else {
-        substitutions = realloc(substitutions, new_size);
+        substitutions = (a_substitution*)realloc(substitutions, new_size);
       }  /* if */
       if (substitutions == NULL) {
         bad_mangled_name(dctl);
@@ -5147,11 +5147,12 @@ and "user_buffer_size" is set to the new size.
              don't free the user buffer yet because an error might still
              occur and we can only provide the new buffer address in cases
              where we return successfully. */
-          buf_to_use = malloc((true_size_t)required_buffer_size);
+          buf_to_use = (char*)malloc((true_size_t)required_buffer_size);
           temp_buffer_used = FALSE;
         } else {
           /* We are using a user-buffer.  Reallocate that buffer. */
-          buf_to_use = realloc(buf_to_use, (true_size_t)required_buffer_size);
+          buf_to_use = (char*)realloc(buf_to_use, 
+                                      (true_size_t)required_buffer_size);
         }  /* if */
         buf_size = required_buffer_size;
         if (buf_to_use == NULL) {
@@ -5170,7 +5171,7 @@ and "user_buffer_size" is set to the new size.
          allocated buffer. */
       true_size_t	size;
       size = strlen(temp_buffer) + 1;
-      buf_to_use = malloc(size);
+      buf_to_use = (char*)malloc(size);
       if (buf_to_use == NULL) {
         result_status = CXA_DEMANGLE_ALLOC_FAILURE;
       } else {
