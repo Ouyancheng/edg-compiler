@@ -1024,7 +1024,7 @@ Print the given qualifiers in human-readable form.
 
 static void db_pointer_modifiers(a_pointer_modifier_set  modifiers)
 /*
-Printf the given pointer modifiers in human-readable form.
+Print the given pointer modifiers in human-readable form.
 */
 {
   if ((modifiers & PM_SPTR) != 0) {
@@ -8061,11 +8061,11 @@ done:;
 }  /* add_to_based_type_fixup_list */
 
 
-#if !NEAR_AND_FAR_ALLOWED || !UPC_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- Because expl_mem_attr_implicit is only used when near
-                     and far may be recognized and upc_block_size is only used
-                     when UPC extensions are enabled. */
-#endif /* !NEAR_AND_FAR_ALLOWED || !UPC_EXTENSIONS_ALLOWED */
+#if !NEAR_AND_FAR_ALLOWED || !UPC_EXTENSIONS_ALLOWED || \
+    !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- expl_mem_attr_implicit, upc_block_size, and modifiers are
+                     only used in some configurations. */
+#endif /* !NEAR_AND_FAR_ALLOWED || !UPC_EXTENSIONS_ALLOWED || ... */
 static a_type_ptr get_based_type(
                                a_type_ptr              base_type,
                                a_based_type_kind       kind,
@@ -8084,7 +8084,7 @@ explicit_memory_attribute_made_implicit flag of the based type (that's used
 for memory attributes like near/far).  If the kind is "btk_ptr_to_member", the
 specified "class_type" must also match "class_of_which_a_member" of that based
 type.  If kind is "btk_ptr_to_member" or "btk_pointer", the based type must
-have the given pointer modifers.  Return a pointer to the type if such an
+have the given pointer modifiers.  Return a pointer to the type if such an
 entry exists, or NULL if no such entry exists.  The based_types list is used
 to hold pointers to types based on the base type, so that only one copy of
 pointer-to that type, reference-to that type, etc., is allocated.  As a simple
@@ -8392,7 +8392,7 @@ class_type.
 }  /* related_ptr_to_member_type */
 
 
-a_type_ptr make_pointer_type_full(a_type_ptr  pointed_to_type,
+a_type_ptr make_pointer_type_full(a_type_ptr              pointed_to_type,
                                   a_pointer_modifier_set  modifiers)
 /*
 Allocate a pointer type record and initialize it.  Attempt to find and reuse

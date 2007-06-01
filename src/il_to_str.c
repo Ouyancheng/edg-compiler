@@ -865,10 +865,8 @@ Do the output in the way described by octl.
 #undef output_qualifier
 }  /* form_type_qualifier */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- octl is not used in some configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void form_pointer_modifiers(a_pointer_modifier_set                 modifiers,
                             an_il_to_str_output_control_block_ptr  octl)
 /*
@@ -878,17 +876,13 @@ output.  Do the output in the way described by octl.
 */
 {
   if (modifiers != PM_NONE) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
     if (modifiers & PM_PTR32) octl->output_str("__ptr32 ");
     if (modifiers & PM_PTR64) octl->output_str("__ptr64 ");
     if (modifiers & PM_SPTR)  octl->output_str("__sptr ");
     if (modifiers & PM_UPTR)  octl->output_str("__uptr ");
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* form_pointer_modifiers */
 
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void form_calling_convention(
                      a_calling_convention                  calling_convention,

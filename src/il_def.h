@@ -5853,7 +5853,7 @@ typedef struct a_type {
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_pointer_modifier_set
 		modifiers;
-			/* Bit set with bits to inidicate the presence of one
+			/* Bit set with bits to indicate the presence of one
 			   or more pointer modifiers (e.g., "__ptr32"). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
@@ -6306,7 +6306,7 @@ typedef struct a_type {
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_pointer_modifier_set
 		modifiers;
-			/* Bit set with bits to inidicate the presence of one
+			/* Bit set with bits to indicate the presence of one
 			   or more pointer modifiers.  Microsoft compilers
 			   only accept the "__ptr32" and "__ptr64" modifiers.
 			   Furthermore, they only appear to affect the size of

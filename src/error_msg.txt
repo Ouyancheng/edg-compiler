@@ -1679,7 +1679,7 @@ ec_attribute_cleanup_for_parameter;;"attribute \"cleanup\" does not apply to par
 ec_bad_type_for_cleanup_routine;;"cleanup routine has invalid type" 
 ec_nonstandard_conversion_for_cleanup;;"call of cleanup routine requires suspect conversion"
 ec_microsoft_ptr_signedness_must_follow_star;;"__sptr and __uptr must follow a \"*\""
-ec_microsoft_ptr_signedness_conflict;;"__sptr and __uptr cannot both apply"
+ec_microsoft_ptr_signedness_conflict;;"__sptr and __uptr cannot both be specified"
 ec_microsoft_ptr_sign_extension;;"widening pointer conversion from %t1 to %t2 extends sign bit"
 ec_microsoft_ptr_signedness_on_ptr_to_member;;"__sptr and __uptr don't apply to pointer-to-member types"
 ec_const_mbr_suppresses_copy_asgn_decl;;"the declaration of the copy assignment operator for %t has been suppressed because %n is const"
