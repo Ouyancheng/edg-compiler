@@ -8084,13 +8084,13 @@ explicit_memory_attribute_made_implicit flag of the based type (that's used
 for memory attributes like near/far).  If the kind is "btk_ptr_to_member", the
 specified "class_type" must also match "class_of_which_a_member" of that based
 type.  If kind is "btk_ptr_to_member" or "btk_pointer", the based type must
-have the given pointer modifiers.  Return a pointer to the type if such an
-entry exists, or NULL if no such entry exists.  The based_types list is used
-to hold pointers to types based on the base type, so that only one copy of
-pointer-to that type, reference-to that type, etc., is allocated.  As a simple
-optimization to based type lookup, move the desired based type, if found, to
-the front of the list.  This will tend to keep frequently-asked-for based
-types at the front of the list.
+have the pointer modifiers specified by "modifiers".  Return a pointer to the
+type if such an entry exists, or NULL if no such entry exists.  The
+based_types list is used to hold pointers to types based on the base type, so
+that only one copy of pointer-to that type, reference-to that type, etc., is
+allocated.  As a simple optimization to based type lookup, move the desired
+based type, if found, to the front of the list.  This will tend to keep
+frequently-asked-for based types at the front of the list.
 */
 {
   a_type_ptr                    tp = NULL;
