@@ -1,5 +1,22 @@
 Version 3.10
 
+6/1/07   Position of diagnostic for unterminated type definitions
+
+When the definition of a class type or enum type is missing a terminating
+semicolon, the resulting syntax error is always issued on a token following
+the type definition.  This can be surprising when the latter token appears in
+a source file that is different from the file containing the type definition.
+To mitigate that surprise, a warning is now issued when the last token of a
+type definition (usually the closing brace) is the last token of a file.
+For example:
+
+  // f.h:
+  struct S {}  // A warning is now issued here.
+
+  // f.c:
+  #include "f.h"
+  S *f();  // The syntax error (missing semicolon) is still issued here.
+
 5/30/07  GNU compatibility: ending source position of statement expressions
 
 In configurations in which EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the ending

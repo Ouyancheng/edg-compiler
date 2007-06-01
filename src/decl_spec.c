@@ -4471,6 +4471,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (curr_token == tok_lbrace) {
+    a_source_position  end_pos;
     /* We associate a curr-construct pragma with this enum type only if this
        is a definition.  Otherwise this is assumed to be part of a declaration
        of something else -- to which the pragma should be bound. */
@@ -4788,6 +4789,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
       } while (!done);
       remove_stop_token(tok_rbrace);
     }  /* if */
+    end_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     local_decl_pos_block.specifiers_range.end = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -4796,11 +4798,15 @@ describes Microsoft attributes preceding the enum specifier (if any).
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode) {
       /* Look for any attributes that apply to this type. */
-      *last_attribute_link(&attributes) = scan_attributes();
+      *last_attribute_link(&attributes) =
+                  f_scan_attributes((a_token_sequence_number*)NULL, &end_pos);
       apply_attributes_to_type(attributes, enum_type, /*is_typedef=*/FALSE);
       free_attribute_list(attributes);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    /* Issue a warning if the current token is in a file different from the
+       last token of the enum definition. */
+    check_for_file_with_unterminated_type_definition(&end_pos);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (p_ms_attributes != NULL && *p_ms_attributes != NULL &&
         depth_innermost_function_scope == NO_SCOPE_NUMBER &&

@@ -58,6 +58,9 @@ extern a_type_ptr rescan_member_template_declaration(
                                            a_type_ptr               class_type,
                                            a_template_instance_ptr  instance);
 
+extern void check_for_file_with_unterminated_type_definition(
+                                                  a_source_position  *end_pos);
+
 extern a_boolean scan_class_definition(
                                    a_type_ptr       class_type,
                                    a_scope_depth    effective_decl_level,

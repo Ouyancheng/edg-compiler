@@ -14425,6 +14425,39 @@ Call this function through the macro consume_any_stray_microsoft_rparen.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+void check_for_file_with_unterminated_type_definition(
+                                                  a_source_position  *end_pos)
+/*
+end_pos is the position of the last token of a class type or enum type
+definition (usually the position of the closing brace, although GNU attributes
+can make it the position of a parenthesis closing the attribute).  If the
+current token (which must be the subsequent token; usually a declarator or a
+semicolon) is in a different file, issue warning for what is likely going to
+be a syntax error showing up in the next file.  I.e., something like:
+
+	struct S {}  // Warn on the suspect end-of-file condition here.
+	# 1 "defs.c"
+	S* f();  // Missing semicolon error issued here.
+*/
+{
+  if (end_pos->seq != pos_curr_token.seq) {
+    /* The last token of the type definition and the token after that are on
+       different lines.  Now check whether these two position correspond to
+       different files (taking into account any #line directives). */
+    a_line_number  line1, line2;
+    a_boolean      eos1, eos2;
+    if (source_file_for_seq(end_pos->seq, &line1, &eos1,
+                            /*physical_line=*/FALSE) !=
+          source_file_for_seq(pos_curr_token.seq, &line2, &eos2,
+                            /*physical_line=*/FALSE)) {
+      /* Issue a warning in the file containing the definition to clarify the
+         error that is likely to follow. */
+      pos_warning(ec_file_ends_with_unterminated_type_definition, end_pos);
+    }  /* if */
+  }  /* if */
+}  /* check_for_file_with_unterminated_type_definition */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -14484,6 +14517,7 @@ classes.
 #if DO_IL_LOWERING && IA64_ABI
   a_routine_ptr                   rout;
 #endif /* DO_IL_LOWERING && IA64_ABI */
+  a_source_position               end_pos;
 
   db_enter(3, "scan_class_definition");
   initialize_class_def_state(class_type, &class_state);
@@ -14936,6 +14970,7 @@ next_declaration:
     process_curr_token_pragmas();
     /* Check for and ignore the closing brace. */
     last_token_number_of_definition = curr_token_sequence_number;
+    end_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Record the end-of-decl-specifiers source position. */
     if (decl_pos_block != NULL) {
@@ -14946,17 +14981,14 @@ next_declaration:
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode && curr_token == tok_attribute) {
       /* Process attributes that apply to this class. */
-      a_source_position  *end_pos = NULL;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (decl_pos_block != NULL) {
-        end_pos = &decl_pos_block->specifiers_range.end;
-      }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       attributes = f_scan_attributes(&last_token_number_of_definition,
-                                     end_pos);
+                                     &end_pos);
       apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    /* Issue a warning if the current token is in a file different from the
+       last token of the class definition. */
+    check_for_file_with_unterminated_type_definition(&end_pos);
     if (depth_template_declaration_scope == NO_SCOPE_DEPTH) {
       /* Something went wrong if we are in a template declaration scope;
          we ought to be in class_template_declaration instead.  An error
@@ -15142,7 +15174,7 @@ next_declaration:
         if (curr_token != tok_semicolon) {
           /* If the token following the closing brace of the class is not 
              a semicolon, then the class (if it is a nested class) is not
-             "standalone", meaning that the body cannot be extract from
+             "standalone", meaning that the body cannot be extracted from
              the enclosing template.  Nested classes that are not
              standalone cannot be specialized. */
           tssp->variant.class_template.not_standalone_nested_class = TRUE;
