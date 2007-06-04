@@ -213,6 +213,8 @@ Included from basic_hdrs.h in every compilation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(759,form_calling_convention)*/
 /*lint -esym(765,form_calling_convention)*/
+/*lint -esym(759,form_pointer_modifiers)*/
+/*lint -esym(765,form_pointer_modifiers)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 /*lint -esym(759,form_ELF_visibility_attribute)*/
