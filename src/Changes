@@ -48,26 +48,6 @@ has now been fixed.  For example:
                           // previously designated the ';', now the 't'
   }
 
-5/29/07  Arrays of class template instances
-
-When creating an array type whose element type is an instance of a defined
-class template, the front end now ensures the template is instantiated at that
-point.  Previously, the instantiation could be delayed until the complete type
-was needed in some other way, but that approach could lead to ordering problems
-in generated code.  For example:
-
-  template<typename T> struct A { T *p; };
-  typedef A<void> T[3];  // Now A<void> is instantiated at this point.
-  T xx;  // Previously, A<void> was instantiated here.
-
-Previously, the C-generating back end produced C code that included a typedef
-for an array of incomplete struct objects (and the struct was later completed).
-While this was previously almost always accepted by common C compilers, newer
-versions of GCC diagnose it as an error.  By performing the instantiation
-earlier, that problem is avoided.  This does mean that some unusual cases that
-were previously accepted (because the template would not have been instantiated
-at all) will now trigger errors during instantiation.
-
 5/29/07  Lowering of VLAs in parameter declarations
 
 In C99 and GNU C modes, variable-length arrays (VLAs) can appear in parameter
