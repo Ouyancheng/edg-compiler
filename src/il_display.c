@@ -1850,7 +1850,7 @@ do_struct_union:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (ptr->variant.ptr_to_member.modifiers != PM_NONE) {
         disp_name("modifiers");
-        form_pointer_modifiers(ptr->variant.pointer.modifiers, &octl);
+        form_pointer_modifiers(ptr->variant.ptr_to_member.modifiers, &octl);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
