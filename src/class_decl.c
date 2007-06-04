@@ -14432,7 +14432,7 @@ end_pos is the position of the last token of a class type or enum type
 definition (usually the position of the closing brace, although GNU attributes
 can make it the position of a parenthesis closing the attribute).  If the
 current token (which must be the subsequent token; usually a declarator or a
-semicolon) is in a different file, issue warning for what is likely going to
+semicolon) is in a different file, issue a warning for what is likely going to
 be a syntax error showing up in the next file.  I.e., something like:
 
 	struct S {}  // Warn on the suspect end-of-file condition here.
@@ -14449,7 +14449,7 @@ be a syntax error showing up in the next file.  I.e., something like:
     if (source_file_for_seq(end_pos->seq, &line1, &eos1,
                             /*physical_line=*/FALSE) !=
           source_file_for_seq(pos_curr_token.seq, &line2, &eos2,
-                            /*physical_line=*/FALSE)) {
+                              /*physical_line=*/FALSE)) {
       /* Issue a warning in the file containing the definition to clarify the
          error that is likely to follow. */
       pos_warning(ec_file_ends_with_unterminated_type_definition, end_pos);
@@ -14970,9 +14970,12 @@ next_declaration:
     process_curr_token_pragmas();
     /* Check for and ignore the closing brace. */
     last_token_number_of_definition = curr_token_sequence_number;
+    /* Since a brace is a single-character token, pos_curr_token is also the
+       end position of that token.  (I.e., end_pos will be a correct end
+       position.) */
     end_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    /* Record the end-of-decl-specifiers source position. */
+    /* Update the end-of-decl-specifiers source position. */
     if (decl_pos_block != NULL) {
       decl_pos_block->specifiers_range.end = pos_curr_token;
     }  /* if */
@@ -14983,6 +14986,13 @@ next_declaration:
       /* Process attributes that apply to this class. */
       attributes = f_scan_attributes(&last_token_number_of_definition,
                                      &end_pos);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (decl_pos_block != NULL) {
+        /* Update the recorded end position to the end of the attributes
+           specifier. */
+        decl_pos_block->specifiers_range.end = end_pos;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
