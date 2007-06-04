@@ -1625,6 +1625,8 @@ variant fields to default values.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 #if BACK_END_IS_C_GEN_BE
   pte->prototype_scope_types_if_any_promoted = FALSE;
+  pte->has_been_defined = FALSE;
+  pte->typedef_pending = FALSE;
 #endif /* BACK_END_IS_C_GEN_BE */
 #if BACK_END_IS_CP_GEN_BE
   pte->has_been_declared = FALSE;

@@ -5583,6 +5583,21 @@ typedef struct a_type {
 			/* On function types, TRUE if the type has been
 			   examined for prototype scopes, and the types
 			   in those scopes promoted out to the file scope. */
+  a_bit_field	has_been_defined:1;
+			/* Used for class/struct/union types: FALSE until
+			   the definition has been emitted, TRUE
+			   thereafter. */
+  a_bit_field	typedef_pending:1;
+			/* For a typedef, a TRUE value indicates that the
+			   definition has been deferred from its position in
+			   the type list and will be emitted later; this is
+			   used to make the typedef "invisible," i.e., to
+			   force use of the underlying type instead of the
+			   typedef name in the generated code.  For a
+			   class/struct/union type, a TRUE value indicates
+			   that there are one or more deferred typedefs
+			   whose definition should be emitted after this
+			   type's definition. */
 #endif /* BACK_END_IS_C_GEN_BE */
 #if BACK_END_IS_CP_GEN_BE
   a_bit_field	has_been_declared:1;

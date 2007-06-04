@@ -386,6 +386,41 @@ typedef struct an_init_control_block {
 #define NO_NAME ((char *)NULL)
 
 
+/*
+Data structure used to save information about a pending typedef, i.e., a
+typedef whose definition has been deferred from its place in the type list.
+This occurs because the typedef involves an array of a struct whose
+definition follows that of the typedef in the type list, so the typedef
+cannot be emitted until the struct's definition has been emitted.
+*/
+typedef struct a_pending_typedef *a_pending_typedef_ptr;
+typedef struct a_pending_typedef {
+  a_pending_typedef_ptr
+		next;	/* The next pending typedef to be processed, or NULL
+			   for the end of the list. */
+  a_type_ptr	pending_typedef;
+			/* Points to the typedef whose definition has been
+			   deferred. */
+  a_type_ptr	type_to_be_completed;
+			/* Points to the struct type that must be complete
+			   before the pending typedef can be emitted. */
+} a_pending_typedef;
+
+/*
+Head and tail of a singly-linked list of pending typedefs.
+*/
+static a_pending_typedef_ptr
+		pending_typedefs;
+static a_pending_typedef_ptr
+		last_pending_typedef;
+/*
+Head of a list of pending typedefs that have been processed and can be
+reused.
+*/
+static a_pending_typedef_ptr
+		avail_pending_typedefs;
+
+
 /* Declarations needed because of forward references: */
 static void dump_constant(a_constant_ptr constant);
 static void dump_cast(a_type_ptr type);
@@ -2958,8 +2993,110 @@ final semicolon if output_final_semi is TRUE.
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     end_unreferenced_bracket(&type->source_corresp);
+    type->has_been_defined = TRUE;
   }  /* if */
 }  /* dump_struct_union_definition */
+
+
+static void add_pending_typedef(a_type_ptr pending_typedef,
+                                a_type_ptr type_to_be_completed)
+/*
+Add a typedef/incomplete-struct pair to the list of pending typedefs.  The
+typedef declaration will be emitted once the struct definition has been
+emitted, and the typedef name will be "invisible" until that occurs.
+*/
+{
+  a_pending_typedef_ptr ptp;
+
+  if (avail_pending_typedefs != NULL) {
+    /* Reuse an already-processed record. */
+    ptp = avail_pending_typedefs;
+    avail_pending_typedefs = ptp->next;
+  } else {
+    /* Allocate a new record. */
+    ptp = (a_pending_typedef_ptr)alloc_general(
+                                          (sizeof_t)sizeof(a_pending_typedef));
+  }  /* if */
+  /* Add the pending typedef to the list. */
+  ptp->next = NULL;
+  ptp->pending_typedef = pending_typedef;
+  ptp->type_to_be_completed = type_to_be_completed;
+  if (last_pending_typedef != NULL) {
+    last_pending_typedef->next = ptp;
+  } else {
+    pending_typedefs = ptp;
+  }  /* if */
+  last_pending_typedef = ptp;
+  /* Flag the types appropriately. */
+  pending_typedef->typedef_pending = TRUE;
+  type_to_be_completed->typedef_pending = TRUE;
+}  /* add_pending_typedef */
+
+
+static void dump_pending_typedefs(a_type_ptr completed_type)
+/*
+Emit the declaration for any typedefs that were deferred pending the
+definition of completed_type and remove the corresponding records from the
+list of pending typedefs.
+*/
+{
+  a_pending_typedef_ptr ptp;
+  a_pending_typedef_ptr prev_ptp = NULL;
+  a_pending_typedef_ptr next_ptp;
+
+  for (ptp = pending_typedefs; ptp != NULL; ptp = next_ptp) {
+    next_ptp = ptp->next;
+    if (ptp->type_to_be_completed == completed_type) {
+      /* This typedef was waiting for the definition of completed_type to
+         be emitted.  Emit it now and remove it from the list. */
+      dump_typedef_decl(ptp->pending_typedef);
+      ptp->pending_typedef->typedef_pending = FALSE;
+      if (prev_ptp != NULL) {
+        prev_ptp->next = ptp->next;
+      } else {
+        pending_typedefs = ptp->next;
+      }  /* if */
+      if (last_pending_typedef == ptp) {
+        last_pending_typedef == prev_ptp;
+      }  /* if */
+      ptp->next = avail_pending_typedefs;
+      avail_pending_typedefs = ptp;
+    } else {
+      prev_ptp = ptp;
+    }  /* if */
+  }  /* for */
+  completed_type->typedef_pending = FALSE;
+}  /* dump_pending_typedefs */
+
+
+static a_boolean typedef_deferred_pending_struct_definition(a_type_ptr type)
+/*
+If type (which must be a typedef) is, or points to, an array of a struct
+that has not yet been defined, add a record to the list of pending typedefs
+and return TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_type_ptr tp = type;
+  a_boolean  typedef_was_deferred = FALSE;
+
+  for (;;) {
+    if (is_array_type(tp)) {
+      tp = f_skip_typerefs(underlying_array_element_type(tp));
+      if (is_immediate_class_type(tp) && !tp->has_been_defined) {
+        /* Defer the declaration of this typedef pending the definition of
+           the struct to which it refers. */
+        add_pending_typedef(type, tp);
+        typedef_was_deferred = TRUE;
+        break;
+      }  /* if */
+    } else if (is_pointer_type(tp)) {
+      tp = type_pointed_to(tp);
+    } else {
+      break;
+    }  /* if */
+  }  /* for */
+  return typedef_was_deferred;
+}  /* typedef_deferred_pending_struct_definition */
 
 
 static void dump_type_decl(a_type_ptr type,
@@ -3010,6 +3147,9 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
         }  /* if */
       } else if (output_defn) {
         dump_struct_union_definition(type, /*output_final_semi=*/TRUE);
+        if (type->typedef_pending) {
+          dump_pending_typedefs(type);
+        }  /* if */
       }  /* if */
       break;
     case tk_typeref:
@@ -3021,7 +3161,10 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
 #endif /* GNU_EXTENSIONS_ALLOWED */
       } else {
         /* Output typedefs only on the second pass. */
-        if (pass == 2) dump_typedef_decl(type);
+        if (pass == 2 &&
+            !typedef_deferred_pending_struct_definition(type)) {
+          dump_typedef_decl(type);
+        }  /* if */
       }  /* if */
       break;
     default:
@@ -5097,6 +5240,18 @@ Interface routine called from the il_to_str routines to dump expressions
 {
   dump_expr_with_parens(expr);
 }  /* dump_expression_for_il_to_str */
+
+
+static a_boolean is_typedef_invisible_in_c_gen_be(a_type_ptr type)
+/*
+Routine called from the il_to_str routines to determine whether a typedef's
+name or its underlying type should be put out.  The typedef will be
+considered "invisible" if its declaration has been deferred pending the
+definition of a struct to which it refers.
+*/
+{
+  return type->typedef_pending;
+}  /* is_typedef_invisible_in_c_gen_be */
 
 
 static void dump_boolean_controlling_expression(an_expr_node_ptr node)
@@ -8845,6 +9000,15 @@ must be redone for each generated C file.
 #if ASM_FUNCTION_ALLOWED
   within_asm_function_definition = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
+  if (pending_typedefs != NULL) {
+    /* There were pending typedefs left over from the previous file (the
+       struct on which they depended was never defined).  Move them to
+       the available list. */
+    last_pending_typedef->next = avail_pending_typedefs;
+    avail_pending_typedefs = pending_typedefs;
+    pending_typedefs = NULL;
+    last_pending_typedef = NULL;
+  }  /* if */
 }  /* c_gen_be_file_init */
 
 #if ONE_INSTANTIATION_PER_OBJECT
@@ -9035,6 +9199,7 @@ The IL is already available when this routine is called.
   octl.output_func_declarator = dump_function_declarator;
   octl.output_expression = dump_expression_for_il_to_str;
   octl.gen_compilable_code = TRUE;
+  octl.is_typedef_invisible = is_typedef_invisible_in_c_gen_be;
 #if !C_GEN_BE_GENERATES_ANSI_C
   octl.gen_pcc_code = TRUE;
 #else /* C_GEN_BE_GENERATES_ANSI_C */
@@ -9068,6 +9233,9 @@ The IL is already available when this routine is called.
                                      (a_upc_access_method)upc_access_strict :
                                      (a_upc_access_method)upc_access_relaxed;
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  pending_typedefs = NULL;
+  last_pending_typedef = NULL;
+  avail_pending_typedefs = NULL;
 }  /* c_gen_be_init */
 
 
