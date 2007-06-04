@@ -871,15 +871,27 @@ void form_pointer_modifiers(a_pointer_modifier_set                 modifiers,
                             an_il_to_str_output_control_block_ptr  octl)
 /*
 Output a string for the pointer modifiers in the given modifier set.  If the
-set is empty, put out nothing; otherwise, append a trailing space to the
-output.  Do the output in the way described by octl.
+set is empty, put out nothing.  No trailing space is added to the output.
+Do the output in the way described by octl.
 */
 {
   if (modifiers != PM_NONE) {
-    if (modifiers & PM_PTR32) octl->output_str("__ptr32 ");
-    if (modifiers & PM_PTR64) octl->output_str("__ptr64 ");
-    if (modifiers & PM_SPTR)  octl->output_str("__sptr ");
-    if (modifiers & PM_UPTR)  octl->output_str("__uptr ");
+    a_boolean  modifier_put_out = FALSE;
+/* Local macro that determines whether a given qualifier is present,
+   and if so outputs the appropriate string. */
+#define output_modifier(flag, string)                                        \
+{                                                                            \
+  if ((modifiers & flag) != 0) {                                             \
+    if (modifier_put_out) octl->output_str(" ");                             \
+    modifier_put_out = TRUE;                                                 \
+    octl->output_str(string);                                                \
+  }  /* if */                                                                \
+}  /* output_qualifier */
+    output_modifier(PM_PTR32, "__ptr32");
+    output_modifier(PM_PTR64, "__ptr64");
+    output_modifier(PM_SPTR, "__sptr");
+    output_modifier(PM_UPTR, "__uptr");
+#undef output_modifier
   }  /* if */
 }  /* form_pointer_modifiers */
 
@@ -1575,9 +1587,14 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
           !(octl->gen_compilable_code && octl->c_generating_back_end)) {
         /* Do not propagate the "__w64" specifier to the C-generating back
            end. */
-        octl->output_str("__w64 ");
+        octl->output_str("__w64");
+        if (need_trailing_space || qualifiers != TQ_NONE ||
+            type->variant.pointer.modifiers != PM_NONE) {
+          octl->output_str(" ");
+        }  /* if */
       }  /* if */
       form_pointer_modifiers(type->variant.pointer.modifiers, octl);
+      if (need_trailing_space || qualifiers != TQ_NONE) octl->output_str(" ");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef CFE
     }  /* if */
@@ -1602,6 +1619,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     octl->output_str("*");
 #if MICROSOFT_EXTENSIONS_ALLOWED
     form_pointer_modifiers(type->variant.ptr_to_member.modifiers, octl);
+    if (need_trailing_space || qualifiers != TQ_NONE) octl->output_str(" ");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Output the type qualifiers on the pointer, if any. */
     if (qualifiers != TQ_NONE) {
