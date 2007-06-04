@@ -1593,8 +1593,12 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
           octl->output_str(" ");
         }  /* if */
       }  /* if */
-      form_pointer_modifiers(type->variant.pointer.modifiers, octl);
-      if (need_trailing_space || qualifiers != TQ_NONE) octl->output_str(" ");
+      if (type->variant.ptr_to_member.modifiers != PM_NONE) {
+        form_pointer_modifiers(type->variant.pointer.modifiers, octl);
+        if (need_trailing_space || qualifiers != TQ_NONE) {
+          octl->output_str(" ");
+        }  /* if */
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef CFE
     }  /* if */
@@ -1618,8 +1622,10 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
        okay; it's a separate token. */
     octl->output_str("*");
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    form_pointer_modifiers(type->variant.ptr_to_member.modifiers, octl);
-    if (need_trailing_space || qualifiers != TQ_NONE) octl->output_str(" ");
+    if (type->variant.ptr_to_member.modifiers != PM_NONE) {
+      form_pointer_modifiers(type->variant.ptr_to_member.modifiers, octl);
+      if (need_trailing_space || qualifiers != TQ_NONE) octl->output_str(" ");
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Output the type qualifiers on the pointer, if any. */
     if (qualifiers != TQ_NONE) {
