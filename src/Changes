@@ -4,13 +4,18 @@ Version 3.10
          type
 
 A typedef naming an instance of a template does not cause that template to
-be instantiated, so if the typedef appears before the point of instantiation,
-it will refer in the output of the C-generating back end to an incomplete
-struct type.  If the typedef involves an array of that template instance,
-the generated C code was incorrect, because it is not permitted to declare
-a type that is an array of an incomplete struct type.  This has now been
-fixed by deferring the emission of such typedefs until after the definition
-of the generated struct.  For example:
+be instantiated, so if the typedef appears before the point of
+instantiation, it will refer in the output of the C-generating back end to
+an incomplete struct type.  If the typedef involves an array of that
+template instance, the generated C code was incorrect, because it is not
+permitted to declare a type that is an array of an incomplete struct type.
+(Note that C and C++ differ in this regard.  C++ allows formation of a type
+that is an array of incomplete class type, as long as the array type is not
+used in a way that requires knowledge of the element size before the class
+type is completed.  In C, however, an incomplete struct type is not an
+object type, and only object types can be used as the element type of an
+array.)  This has now been fixed by deferring the emission of such typedefs
+until after the definition of the generated struct.  For example:
 
   template<typename T> struct A { T *i; };
   typedef A<void> T[3];   // typedef previously emitted before the
