@@ -3057,7 +3057,7 @@ list of pending typedefs.
         pending_typedefs = ptp->next;
       }  /* if */
       if (last_pending_typedef == ptp) {
-        last_pending_typedef == prev_ptp;
+        last_pending_typedef = prev_ptp;
       }  /* if */
       ptp->next = avail_pending_typedefs;
       avail_pending_typedefs = ptp;
