@@ -14440,10 +14440,13 @@ be a syntax error showing up in the next file.  I.e., something like:
 	S* f();  // Missing semicolon error issued here.
 */
 {
-  if (end_pos->seq != pos_curr_token.seq) {
+  if (end_pos->seq != pos_curr_token.seq &&
+      depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
     /* The last token of the type definition and the token after that are on
-       different lines.  Now check whether these two position correspond to
-       different files (taking into account any #line directives). */
+       different lines.  (This can also happen with template instantiations;
+       hence the condition on depth_innermost_instantiation_scope.)  Now check
+       whether these two position correspond to different files (taking into
+       account any #line directives). */
     a_line_number  line1, line2;
     a_boolean      eos1, eos2;
     if (source_file_for_seq(end_pos->seq, &line1, &eos1,
