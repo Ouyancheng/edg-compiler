@@ -1593,7 +1593,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
           octl->output_str(" ");
         }  /* if */
       }  /* if */
-      if (type->variant.ptr_to_member.modifiers != PM_NONE) {
+      if (type->variant.pointer.modifiers != PM_NONE) {
         form_pointer_modifiers(type->variant.pointer.modifiers, octl);
         if (need_trailing_space || qualifiers != TQ_NONE) {
           octl->output_str(" ");
