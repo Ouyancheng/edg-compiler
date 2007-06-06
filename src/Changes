@@ -4,7 +4,7 @@ Version 3.10
 
 During lowering, an overflow diagnostic is now issued when a sign change
 is detected during certain internal integer to integer conversions.
-In particular, conversions related to the delta field in pointer to
+In particular, conversions related to the delta field in pointer to virtual
 member functions are now checked for a sign change as in this example:
 
   struct Test {
