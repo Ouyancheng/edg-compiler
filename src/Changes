@@ -1,5 +1,23 @@
 Version 3.10
 
+6/6/07   Issue overflow diagnostic when sign changes during integer conversion
+
+During lowering, an overflow diagnostic is now issued when a sign change
+is detected during certain internal integer to integer conversions.
+In particular, conversions related to the delta field in pointer to
+member functions are now checked for a sign change as in this example:
+
+  struct Test {
+    char LargeData[0x7ff8];
+    virtual void vfunct();
+    void (Test::*vtfp)();
+    void test() {
+      vtfp = &Test::vfunct;     // overflow diagnostic now issued here in
+                                // Cfront ABI mode when TARG_DELTA_INT_KIND
+                                // is ik_short
+    }
+  };
+
 6/4/07   C-generating back end: typedefs referring to arrays of incomplete
          type
 

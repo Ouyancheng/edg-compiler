@@ -3227,9 +3227,7 @@ indicated class.
   new_constant.type = integer_type(ikind);
   conv_integer_to_integer(con, &new_constant, /*is_implicit_cast=*/TRUE,
                           &err_code, &err_severity);
-  if (err_severity == es_error ||
-      (err_severity == es_warning &&
-       err_code == ec_integer_truncated)) {
+  if (err_code != ec_no_error) {
     if (class_type != NULL) {
       pos_ty_error(ec_integer_overflow_class_internal, &error_position,
                    class_type);
