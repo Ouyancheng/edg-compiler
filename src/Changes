@@ -1,6 +1,7 @@
 Version 3.10
 
-6/6/07   Issue overflow diagnostic when sign changes during integer conversion
+6/6/07   Issue overflow diagnostic when sign changes during integer
+         conversions that happen during lowering
 
 During lowering, an overflow diagnostic is now issued when a sign change
 is detected during certain internal integer to integer conversions.
