@@ -1,5 +1,28 @@
 Version 3.10
 
+6/6/07   Certain using-declarations can result in undefined behavior
+
+A template argument that refers to an overloaded pointer or pointer to member
+function declared by a using-declaration can result in a segmentation
+violation or assertion failure.  This is now fixed.  The following
+example triggered such an error:
+
+  struct B {
+    void fn() {}
+    void fn(int) {}
+  };
+  struct D : public B {
+    using B::fn;            // caused segmentation violation/abort
+  };
+  template <void(B::*)()> struct Bp { typedef void t; };
+  template <void(D::*)()> struct Dp { typedef void t; };
+  template <typename T> typename Bp<&T::fn>::t f() {}
+  template <typename T> typename Dp<&T::fn>::t f() {}
+
+  int main() {
+    f<D>();
+  }
+
 6/6/07   Issue overflow diagnostic when sign changes during integer
          conversions that happen during lowering
 
