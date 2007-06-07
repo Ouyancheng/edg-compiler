@@ -1,5 +1,20 @@
 Version 3.10
 
+6/7/07   Conversion between pointers to functions and pointers to objects
+         in C++
+
+The resolution of C++ core language issue 195, adopted in April, 2005,
+defines the conversion of a pointer to a function to a pointer to an
+object or vice versa as conditionally-supported behavior.  The front end
+previously allowed these conversions when the target type is at least as
+large as the source type but issued an error in --strict mode.  The
+--strict diagnostic has now been eliminated in C++ mode, although it is
+still issued in C mode.  For example:
+
+  void (*fp)();
+  void *p = (void *)fp;    // Now accepted without complaint in C++
+                           // strict mode if sizeof(p) >= sizeof(fp)
+
 6/6/07   Certain using-declarations can result in undefined behavior
 
 A template argument that refers to an overloaded pointer or pointer to member

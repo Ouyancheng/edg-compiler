@@ -6170,12 +6170,14 @@ well as C++ mode.
 #endif /* UPC_EXTENSIONS_ALLOWED */
     } else {
       /* Pointer to function --> pointer to object/incomplete, or pointer
-         to object/incomplete --> pointer to function.  Allowed as an
-         extension in C and C++ if the destination is big enough. */
-      if (!suppress_extensions &&
+         to object/incomplete --> pointer to function.  If the destination
+         is at least as large as the source, this is allowed in C++ as
+         conditionally-supported behavior (see DR 195, adopted in April,
+         2005) and in C as an extension. */
+      if ((!C_mode() || !suppress_extensions) &&
           dest_of_ptr_cast_big_enough(source_type, dest_type)) {
         okay = TRUE;
-        if (strict_ansi_mode) {
+        if (C_mode() && strict_ansi_mode) {
           *warning_suggested = ec_ptr_func_ptr_data_conv;
           if ((int)strict_ansi_error_severity < (int)es_error) {
             *is_mild_warning = TRUE;
