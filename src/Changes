@@ -1,5 +1,31 @@
 Version 3.10
 
+6/8/07   Explicit eok_indirect operations with EXPR_RANGE_MODIFIERS_IN_IL
+
+As noted in the Changes entry of 8/14/06, a unary * generally does not
+result in the creation of a new expression node but simply changes the
+interpretation of an existing node from a pointer rvalue to an lvalue
+designating the target of that pointer.  In many cases, however, the lvalue
+is used in a context requiring an rvalue, resulting in the addition of an
+explicit eok_indirect node whose operand is the existing node.  Although
+this eok_indirect node does not represent the unary * operator that
+appeared in the source (and thus did not have an operator_position), its
+presence in close proximity to the node into which the real unary *
+operator was subsumed was confusing.  In configurations in which
+EXPR_RANGE_MODIFIERS_IN_IL is TRUE, the expr_range and operator_position of
+such eok_indirect nodes are now taken from the erm_asterisk range modifier
+in the operand and the erm_asterisk is is removed from the operand,
+simulating the association between the eok_indirect node and the unary *
+operator in the source.  For example:
+
+  bool f(void *p) {
+    return !(*(char *)p);   // eok_cast previously had erm_asterisk with
+                            // source range for "*(char *)p"; expr_range
+                            // of eok_indirect was "(*(char *)p)".  Now
+                            // eok_indirect expr_range is "*(char *)p"
+                            // and eok_cast has no range modifiers.
+  }
+
 6/8/07   Abort on attempt to declare a void parameter list through template
          instantiation
 

@@ -10146,24 +10146,53 @@ cases so we don't do it here.
     restore_operand_details(operand, &orig_operand);
 #if EXPR_RANGE_MODIFIERS_IN_IL
     if (orig_node != NULL) {
-      /* If there is a new node replacing the original node (i.e., the
-         operand's current node is not the original and not an eok_indirect
-         on top of it), copy the expr_range and range_modifiers from the
-         original. */
       an_expr_node_ptr curr_node = expr_node_from_operand(operand);
-      if (curr_node != NULL && curr_node != orig_node &&
-          !(is_operation_node(curr_node) &&
-            node_operator_is(curr_node, eok_indirect))) {
-        curr_node->expr_range = orig_node->expr_range;
-        curr_node->operator_position = orig_node->operator_position;
-        copy_expr_range_modifiers(orig_node, curr_node);
+      if (curr_node == NULL) {
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-      } else if (curr_node == NULL) {
         /* The original node is being discarded; ignore any associated
            range modifiers. */
         forget_expr_range_modifiers_in_tree(orig_node,
                                             (an_expr_node_ptr)NULL);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
+      } else if (curr_node != orig_node) {
+        if (is_operation_node(curr_node) &&
+            node_operator_is(curr_node, eok_indirect) &&
+            curr_node->variant.operation.operands == orig_node) {
+          /* An indirection has been placed on top of the original node. */
+          an_expr_range_modifier_ptr ermp;
+          an_expr_range_modifier_ptr prev_ermp = NULL;
+          for (ermp = orig_node->range_modifiers; ermp != NULL;
+               ermp = ermp->next) {
+            if (ermp->kind == (an_expr_range_modifier_kind)erm_asterisk) {
+              break;
+            }  /* if */
+            prev_ermp = ermp;
+          }  /* for */
+          if (ermp != NULL) {
+            /* The original node included a unary * operation, represented
+               by an erm_asterisk.  Make the added eok_indirect node look
+               as if it represents that operator in the source. */
+            if (prev_ermp != NULL) {
+              /* There are range modifiers on top of the erm_asterisk.
+                 They become modifiers of the eok_indirect node. */
+              curr_node->range_modifiers = orig_node->range_modifiers;
+              prev_ermp->next = NULL;
+            }  /* if */
+            curr_node->expr_range = ermp->range;
+            curr_node->operator_position = ermp->range.start;
+            orig_node->range_modifiers = ermp->next;
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+            /* The erm_asterisk modifier is being abandoned. */
+            remove_expr_range_modifier(ermp);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
+          }  /* if */
+        } else {
+          /* The original node has been replaced.  Copy the expr_range and
+             range_modifiers from the original. */
+          curr_node->expr_range = orig_node->expr_range;
+          curr_node->operator_position = orig_node->operator_position;
+          copy_expr_range_modifiers(orig_node, curr_node);
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
