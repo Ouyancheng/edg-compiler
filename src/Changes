@@ -1,5 +1,17 @@
 Version 3.10
 
+6/8/07   Precompiled headers lose some GNU attribute arguments
+
+In GNU modes, the arguments specified for the attributes "alias" and "weakref"
+were not recorded in precompiled header (PCH) files.  For example:
+
+  void g();
+  void f() __attribute((alias("g")));  // Attribute previous not correctly
+                                       // recorded in PCH files.
+
+Using such PCH files could result in generating incorrect code.  This is now
+fixed.
+
 6/7/07   Conversion between pointers to functions and pointers to objects
          in C++
 

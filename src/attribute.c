@@ -2998,6 +2998,16 @@ attributes.
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_attributes),
+      pch_saved_var_array_elem(asm_name_map),
+      pch_saved_var_array_elem(alias_fixup_list),
+      pch_saved_var_array_elem(avail_alias_fixups),
+#if DEBUG
+      pch_saved_var_array_elem(num_attributes_allocated),
+      pch_saved_var_array_elem(num_alias_fixups_allocated),
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+      pch_saved_var_array_elem(pragma_extname_string_space),
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
