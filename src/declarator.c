@@ -1663,13 +1663,23 @@ if this is the function declarator in a friend function declaration.
                list.  In C99 mode, this is a standard form and no diagnostic
                is needed.  Otherwise, issue an error (in strict mode) or a
                warning. */
-            if (!c99_mode) {
-              pos_diagnostic(strict_ansi_mode ?
+            if (is_template_dependent_context() ||
+                is_nonspecialized_instantiation_context()) {
+              /* We don't accept such constructs at all in template contexts,
+                 because it could cause the number of parameters seen in the
+                 template to differ from the number seen during instantiation.
+                 */
+              pos_error(ec_void_param_not_allowed, &param_type_pos);
+              param_state.type = error_type();
+            } else {
+              if (!c99_mode) {
+                pos_diagnostic(strict_ansi_mode ?
                                strict_ansi_discretionary_severity : es_warning,
-                             ec_nonstd_void_param_list, &param_type_pos);
+                               ec_nonstd_void_param_list, &param_type_pos);
+              }  /* if */
+              remove_stop_token(tok_comma);
+              break;
             }  /* if */
-            remove_stop_token(tok_comma);
-            break;
           }  /* if */
         }  /* if */
         if (is_destructor && last_param_type == NULL) {

@@ -1,5 +1,20 @@
 Version 3.10
 
+6/8/07   Abort on attempt to declare a void parameter list through template
+         instantiation
+
+The front end previously often aborted in scan_function_body (func_def.c) when
+instantiating a function whose parameter list expanded to a single void
+parameter.  For example:
+
+  template<typename T> struct X {
+    X(typename T::Z) {}
+  };
+  struct S { typedef void Z; };
+  X<S> x;  // Triggered an abort during the instantiation of the constructor.
+
+This is now fixed, and an error is issued on such cases in all modes.
+
 6/8/07   Performance improvement in #undef processing
 
 The time required to do an #undef can become significant in programs with
