@@ -472,12 +472,13 @@ is TRUE, template_arg_list is a set of explicit template arguments for sym.
       std_conversion.exception_spec_incompatibility) {
     *err = TRUE;
   } else {
+    a_routine_ptr routine;
     /* Remove projections for namespaces, if any. */
     func_sym = fundamental_symbol_of(func_sym);
     check_assertion(func_sym->kind == (a_symbol_kind)sk_routine ||
                     func_sym->kind == (a_symbol_kind)sk_member_function);
     /* Build a pointer-to-function or pointer-to-member constant. */
-    a_routine_ptr routine = func_sym->variant.routine.ptr;
+    routine = func_sym->variant.routine.ptr;
     if (routine_type_is_nonstatic_member_function(routine->type)) {
       /* Nonstatic member function: pointer to member. */
       set_ptr_to_member_function_constant(routine, constant);
