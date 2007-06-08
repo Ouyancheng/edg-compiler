@@ -2414,6 +2414,9 @@ typedef struct a_symbol {
   a_symbol_ptr	next_in_scope;
 			/* When the symbol is in the symbol table, this
 			   points to the next symbol in the same scope. */
+  a_symbol_ptr	prev_in_scope;
+			/* When the symbol is in the symbol table, this
+			   points to the previous symbol in the same scope. */
   a_scope_number
 		decl_scope;
 			/* Scope number of the scope in which this symbol

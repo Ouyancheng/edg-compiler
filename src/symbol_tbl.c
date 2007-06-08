@@ -2995,25 +2995,18 @@ static void remove_symbol_from_no_scope_list(a_symbol_ptr sym_ptr)
 Remove a symbol from the symbols_with_no_scope list.
 */
 {
-  a_symbol_ptr       ptr;
-  a_symbol_ptr       prev_ptr;
-
   if (sym_ptr == symbols_with_no_scope) {
     symbols_with_no_scope = sym_ptr->next_in_scope;
-    prev_ptr = NULL;
   } else {
-    for (prev_ptr = symbols_with_no_scope;
-         (ptr = prev_ptr->next_in_scope) != sym_ptr;
-         prev_ptr = ptr) {
-      check_assertion_str2(ptr != NULL, "remove_symbol_from_no_scope_list:",
-                           "could not find symbol");
-    }  /* for */
-    prev_ptr->next_in_scope = sym_ptr->next_in_scope;
+    sym_ptr->prev_in_scope->next_in_scope = sym_ptr->next_in_scope;
+  }  /* if */
+  if (sym_ptr->next_in_scope != NULL) {
+    sym_ptr->next_in_scope->prev_in_scope = sym_ptr->prev_in_scope;
   }  /* if */
   /* If the removed entry is the last entry on the list, update the
      last-pointer. */
   if (sym_ptr == symbols_with_no_scope_tail) {
-    symbols_with_no_scope_tail = prev_ptr;
+    symbols_with_no_scope_tail = sym_ptr->prev_in_scope;
   }  /* if */
 }  /* remove_symbol_from_no_scope_list */
 
@@ -3023,7 +3016,6 @@ static void remove_symbol_from_scope_list(a_symbol_ptr sym_ptr)
 Remove the given symbol from the list of symbols for its scope.
 */
 {
-  register a_symbol_ptr       ptr, prev_ptr;
   a_scope_stack_entry_ptr     ssep;
   a_scope_pointers_block_ptr  pointers_block;
 
@@ -3061,33 +3053,20 @@ Remove the given symbol from the list of symbols for its scope.
     pointers_block = assoc_pointers_block_of(ssep);
     if (sym_ptr == pointers_block->symbols) {
       pointers_block->symbols = sym_ptr->next_in_scope;
-      prev_ptr = NULL;
     } else {
-      for (prev_ptr = pointers_block->symbols;
-           (ptr = prev_ptr->next_in_scope) != sym_ptr;
-           prev_ptr = ptr) {
-#if CHECKING
-        if (ptr == NULL) {
-#if DEBUG
-          if (debug_level > 0) {
-            fprintf(f_debug, "Symbol name = %s\n",
-                             sym_ptr->header->identifier);
-          }  /* if */
-#endif /* DEBUG */
-          internal_error(
-                       "remove_symbol_from_scope_list: could not find symbol");
-        }  /* if */
-#endif /* CHECKING */
-      }  /* for */
-      prev_ptr->next_in_scope = sym_ptr->next_in_scope;
+      sym_ptr->prev_in_scope->next_in_scope = sym_ptr->next_in_scope;
+    }  /* if */
+    if (sym_ptr->next_in_scope != NULL) {
+      sym_ptr->next_in_scope->prev_in_scope = sym_ptr->prev_in_scope;
     }  /* if */
     /* If the removed entry is the last entry on the list, update the
        last-pointer. */
     if (sym_ptr == pointers_block->last_symbol) {
-      pointers_block->last_symbol = prev_ptr;
+      pointers_block->last_symbol = sym_ptr->prev_in_scope;
     }  /* if */
   }  /* if */
   sym_ptr->next_in_scope = NULL;
+  sym_ptr->prev_in_scope = NULL;
 }  /* remove_symbol_from_scope_list */
 
 
@@ -3997,6 +3976,7 @@ changed if there is no error.
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   }  /* if */
   sym_ptr->next_in_scope = NULL;
+  sym_ptr->prev_in_scope = NULL;
   if (sym_ptr->is_error) {
     /* Error symbols are not added to the scope list. */
   } else if (pointers_block == NULL) {
@@ -4006,6 +3986,7 @@ changed if there is no error.
       symbols_with_no_scope = sym_ptr;
     } else {
       symbols_with_no_scope_tail->next_in_scope = sym_ptr;
+      sym_ptr->prev_in_scope = symbols_with_no_scope_tail;
     }  /* if */
     symbols_with_no_scope_tail = sym_ptr;
   } else if (pointers_block != NULL) {
@@ -4014,6 +3995,7 @@ changed if there is no error.
       pointers_block->symbols = sym_ptr;
     } else {
       pointers_block->last_symbol->next_in_scope = sym_ptr;
+      sym_ptr->prev_in_scope = pointers_block->last_symbol;
     }  /* if */
     pointers_block->last_symbol = sym_ptr;
   }  /* if */
@@ -4237,6 +4219,10 @@ the options being used for the lookup.
     pointers_block = assoc_pointers_block_of(&scope_stack[scope_depth]);
   }  /* if */
   sym_ptr->next_in_scope = pointers_block->synth_namespace_projection_symbols;
+  if (pointers_block->synth_namespace_projection_symbols != NULL) {
+    pointers_block->synth_namespace_projection_symbols->prev_in_scope =
+                                                                       sym_ptr;
+  }  /* if */
   pointers_block->synth_namespace_projection_symbols = sym_ptr;
   /* See if the specified lookup options represent a reusable lookup. */
   can_be_reused = is_reusable_using_directive_lookup(options);
@@ -4433,6 +4419,7 @@ unless suppress_error is TRUE.
   /* Clear the next pointers. */
   new_sym->next = NULL;
   new_sym->next_in_scope = NULL;
+  new_sym->prev_in_scope = NULL;
   /* Add the symbol to the proper scope's symbol list. */
   add_symbol_to_scope_list(new_sym, scope_depth, &suppress_error);
   /* Add the symbol to the symbol table.  This must be done after the symbol
@@ -4672,20 +4659,18 @@ the file scope is used.
         pointers_block->symbols = overload_sym;
       }  /* if */
     }  /* if */
+    overload_sym->next_in_scope = other_sym->next_in_scope;
+    overload_sym->prev_in_scope = other_sym->prev_in_scope;
     if (prev_sym_ptr == other_sym) {
         /* The entry is the first on the list.  This case is handled above. */
     } else {
-       while (prev_sym_ptr != NULL &&
-              prev_sym_ptr->next_in_scope != other_sym) {
-         prev_sym_ptr = prev_sym_ptr->next_in_scope;
-       }  /* while */
-      check_assertion_str2(prev_sym_ptr != NULL,
-                           "add_symbol_to_overload_list:",
-                           "symbol not in scope stack list");
-       prev_sym_ptr->next_in_scope = overload_sym;
+       other_sym->prev_in_scope->next_in_scope = overload_sym;
     }  /* if */
-    overload_sym->next_in_scope = other_sym->next_in_scope;
+    if (other_sym->next_in_scope != NULL) {
+      other_sym->next_in_scope->prev_in_scope = overload_sym;
+    }  /* if */
     other_sym->next_in_scope = NULL;
+    other_sym->prev_in_scope = NULL;
     if (pointers_block->last_symbol == other_sym) {
       pointers_block->last_symbol = overload_sym;
     }  /* if */
@@ -10089,6 +10074,7 @@ created if a projected symbol cannot be found in any of the real bases.
         pointers_block = assoc_pointers_block_of(ssep);
         if (pointers_block->symbols != NULL) {
           pointers_block->last_symbol->next_in_scope = new_sym;
+          new_sym->prev_in_scope = pointers_block->last_symbol;
         } else {
           pointers_block->symbols = new_sym;
         }  /* if */
@@ -11924,6 +11910,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.header                            = NULL;
   cleared_symbol.next                              = NULL;
   cleared_symbol.next_in_scope                     = NULL;
+  cleared_symbol.prev_in_scope                     = NULL;
   cleared_symbol.decl_scope                        = NO_SCOPE_NUMBER;
   cleared_symbol.decl_seq                          = 0;
   cleared_symbol.decl_position                     = null_source_position;

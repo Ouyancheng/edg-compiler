@@ -1,5 +1,12 @@
 Version 3.10
 
+6/8/07   Performance improvement in #undef processing
+
+The time required to do an #undef can become significant in programs with
+a very large number of macros and other entities in the global scope.
+A prev_in_scope pointer has been added to the symbol entry to allow symbols
+to be removed from the scope list quickly.
+
 6/8/07   Precompiled headers lose some GNU attribute arguments
 
 In GNU modes, the arguments specified for the attributes "alias" and "weakref"

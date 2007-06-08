@@ -15759,6 +15759,7 @@ replaces it by a new symbol pointing to a new routine entry.
   new_sym->defined = FALSE;
   new_sym->next = NULL;
   new_sym->next_in_scope = NULL;
+  new_sym->prev_in_scope = NULL;
   /* Copy the routine type (scan_function_body could potentially modify it). */
   new_tp = copy_routine_type_with_param_types(old_tp,
                                               /*copy_default_args=*/FALSE);

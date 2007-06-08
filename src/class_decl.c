@@ -9313,6 +9313,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
       /* Disjoin the symbol from the list.  It will be added to another
          list when it is reentered in the symbol table. */
       sym->next_in_scope = NULL;
+      sym->prev_in_scope = NULL;
       if (!is_template_symbol(sym)) {
         /* It is no longer treated as a member of the anonymous union but
            rather it will be a member of the class_type.  (Templates are not
