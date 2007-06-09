@@ -14,9 +14,9 @@ presence in close proximity to the node into which the real unary *
 operator was subsumed was confusing.  In configurations in which
 EXPR_RANGE_MODIFIERS_IN_IL is TRUE, the expr_range and operator_position of
 such eok_indirect nodes are now taken from the erm_asterisk range modifier
-in the operand and the erm_asterisk is is removed from the operand,
-simulating the association between the eok_indirect node and the unary *
-operator in the source.  For example:
+in the operand and the erm_asterisk is removed from the operand, simulating
+the association between the eok_indirect node and the unary * operator in
+the source.  For example:
 
   bool f(void *p) {
     return !(*(char *)p);   // eok_cast previously had erm_asterisk with
