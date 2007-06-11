@@ -54,7 +54,7 @@ In GNU modes, the arguments specified for the attributes "alias" and "weakref"
 were not recorded in precompiled header (PCH) files.  For example:
 
   void g();
-  void f() __attribute((alias("g")));  // Attribute previous not correctly
+  void f() __attribute((alias("g")));  // Attribute previously not correctly
                                        // recorded in PCH files.
 
 Using such PCH files could result in generating incorrect code.  This is now
