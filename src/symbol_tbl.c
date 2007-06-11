@@ -4607,7 +4607,7 @@ the file scope is used.
                                other_sym->parent.namespace_ptr);
     }  /* if */
     /* Synthesized projection symbols marked "do not reuse" are not on
-       any of the symbol header lists, so don't try to fine them. */
+       any of the symbol header lists, so don't try to find them. */
     if (!other_sym->do_not_reuse) {
       /* Put overload_sym into the symbol list in place of other_sym.
          This will normally use the active symbol list, but may use the
