@@ -2964,13 +2964,6 @@ Do one-time initialization of variables related to the processing of
 attributes.
 */
 {
-#if DEBUG
-  num_alias_fixups_allocated = 0;
-#if REDEFINE_EXTNAME_PRAGMA_ENABLED
-  pragma_extname_string_space = 0;
-#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
-  num_attributes_allocated = 0;
-#endif /* DEBUG */
 #if CHECKING
   /* Check that the table of mode names is correctly initialized. */
   if (type_mode_kind_names[(int)tmk_last] == NULL ||
@@ -3042,6 +3035,13 @@ be initialized for each compilation.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   avail_alias_fixups = NULL;
   alias_fixup_list = NULL;
+#if DEBUG
+  num_alias_fixups_allocated = 0;
+#if REDEFINE_EXTNAME_PRAGMA_ENABLED
+  pragma_extname_string_space = 0;
+#endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+  num_attributes_allocated = 0;
+#endif /* DEBUG */
 }  /* attribute_init */
 
 #if DEBUG
