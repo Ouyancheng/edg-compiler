@@ -1,5 +1,29 @@
 Version 3.10
 
+6/12/07  Undefined behavior when using generated assignment operator
+         and "bool" is not a keyword
+
+The Changes entry of 10/11/06 describes changing the result
+type of the loop termination test in a generated assignment operator
+from "int" to "bool".  In cases where "bool" is not a keyword (e.g.,
+cfront mode) this change can lead to a segmentation violation.
+This has now been fixed.  This example demonstrates the behavior
+when compiled with the --cfront_2.1 command line argument:
+
+  struct C {
+    C &operator=(const C &);
+    int i;
+  };
+
+  class D {
+    C c[2];
+  };
+
+  void copy() {
+    D a, b;
+    a = b;      // caused a segmentation violation with --cfront_2.1
+  }
+
 6/8/07   Explicit eok_indirect operations with EXPR_RANGE_MODIFIERS_IN_IL
 
 As noted in the Changes entry of 8/14/06, a unary * generally does not

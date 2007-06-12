@@ -11066,7 +11066,7 @@ C, and false or true in C++).
   if (bool_is_keyword) {
     /* bool exists (C++), so the result type is bool. */
     result_type = bool_type();
-  } else if (curr_expr_kind_is(ek_pp)) {
+  } else if (expr_stack != NULL && curr_expr_kind_is(ek_pp)) {
     /* All integers have a type of long in the preprocessor.  In C99 mode,
        they have type intmax_t, which might be long long. */
     result_type = integer_type((an_integer_kind)
