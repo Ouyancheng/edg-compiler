@@ -8585,6 +8585,12 @@ temp_init_statements list.
   /* Reflect the initialization method in the variable entry. */
   var->init_kind = (an_init_kind)initk_dynamic;
   var->initializer.dynamic = dip;
+  /* Conservatively set follows_an_exec_statement to TRUE to force the
+     initialization to take place immediately before the compound literal
+     is used.  Cases involving a loop where a label might intervene
+     between the temporary variable declaration and the compound literal use
+     make this necessary. */
+  dip->follows_an_exec_statement = TRUE;
 }  /* add_stmk_init_for_compound_literal */
 
 

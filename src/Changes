@@ -1,5 +1,23 @@
 Version 3.10
 
+6/12/07  Lowering of compound literal initialization
+
+During lowering, the constant portion of a compound literal initialization
+is moved to the declaration of the temporary variable.  This can cause
+problems when the statement containing the compound literal is re-executed.
+A change was made to perform the compound literal initialization each
+time the statement containing the compound literal is executed.
+This change affects only the C generating back end.  This example
+demonstrates the problem:
+
+  int main() {
+    int ret, i = 0;
+  again:
+    ret = ++(int[]) {0}[0];
+    if (i++ < 2) goto again;
+    return ret;             // previously returned 3, now returns 1
+  }
+
 6/12/07  Undefined behavior when using generated assignment operator
          and "bool" is not a keyword
 
