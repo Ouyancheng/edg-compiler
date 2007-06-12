@@ -5,18 +5,20 @@ Version 3.10
 As noted in the Changes entry of 8/14/06, a unary * generally does not
 result in the creation of a new expression node but simply changes the
 interpretation of an existing node from a pointer rvalue to an lvalue
-designating the target of that pointer.  In many cases, however, the lvalue
-is used in a context requiring an rvalue, resulting in the addition of an
-explicit eok_indirect node whose operand is the existing node.  Although
-this eok_indirect node does not represent the unary * operator that
-appeared in the source (and thus did not have an operator_position), its
-presence in close proximity to the node into which the real unary *
-operator was subsumed was confusing.  In configurations in which
-EXPR_RANGE_MODIFIERS_IN_IL is TRUE, the expr_range and operator_position of
-such eok_indirect nodes are now taken from the erm_asterisk range modifier
-in the operand and the erm_asterisk is removed from the operand, simulating
-the association between the eok_indirect node and the unary * operator in
-the source.  For example:
+designating the target of that pointer.  In configurations in which
+EXPR_RANGE_MODIFIERS_IN_IL is TRUE, the presence of the unary * is recorded
+by adding an erm_asterisk modifier to the existing node.  In many cases,
+however, an lvalue node is used in a context requiring an rvalue, resulting
+in the generation of an explicit eok_indirect node to convert the lvalue to
+an rvalue.  In cases where the immediate operand of an eok_indirect node is
+a node into which a unary * has been subsumed, the expr_range and
+operator_position of the eok_indirect node are now taken from the
+erm_asterisk range modifier in the operand and the erm_asterisk is removed,
+so that the eok_indirect represents the unary * in the IL.  (In cases where
+the node containing the erm_asterisk modifier is not the immediate operand
+of the eok_indirect node, the eok_indirect node now has no expr_range or
+operator_position, to reduce the potential for confusion, and the
+erm_asterisk modifier is left unchanged.)  For example:
 
   bool f(void *p) {
     return !(*(char *)p);   // eok_cast previously had erm_asterisk with

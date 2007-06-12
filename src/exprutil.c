@@ -9841,12 +9841,47 @@ non-NULL return *con_value == NULL.
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (node != NULL) {
-    /* Restore the original expression position. */
-    node->expr_range = saved_expr_range;
-    if (is_operation_node(node) && !added_indirection_to_node) {
-      /* Don't restore the operator position to an added indirection node:
-         this node does not correspond to a unary * appearing in the
-         source, so giving it an operator position is just confusing. */
+    if (added_indirection_to_node &&
+        is_operation_node(node) &&
+        node_operator_is(node, eok_indirect)) {
+      /* We created an eok_indirect node that has no relationship with the
+         source position of the original expression.  Do not copy the
+         original expression's position to the new node. */
+#if EXPR_RANGE_MODIFIERS_IN_IL
+      /* If the operand of the newly-created eok_indirect has an
+         erm_asterisk modifier, we want to make the eok_indirect look as
+         if it represents that unary * in the source. */
+      an_expr_range_modifier_ptr ermp;
+      an_expr_range_modifier_ptr prev_ermp = NULL;
+      for (ermp = node->variant.operation.operands->range_modifiers;
+           ermp != NULL; ermp = ermp->next) {
+        if (ermp->kind == (an_expr_range_modifier_kind)erm_asterisk) {
+          break;
+        }  /* if */
+        prev_ermp = ermp;
+      }  /* for */
+      if (ermp != NULL) {
+        /* The operand of the eok_indirect has subsumed a unary *
+           operator. */
+        if (prev_ermp != NULL) {
+          /* There are range modifiers on top of the erm_asterisk.  They
+             become modifiers of the eok_indirect node. */
+          node->range_modifiers =
+                             node->variant.operation.operands->range_modifiers;
+          prev_ermp->next = NULL;
+        }  /* if */
+        node->expr_range = ermp->range;
+        node->operator_position = ermp->range.start;
+        node->variant.operation.operands->range_modifiers = ermp->next;
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+        /* The erm_asterisk modifier is being abandoned. */
+        remove_expr_range_modifier(ermp);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
+      }  /* if */
+#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
+    } else {
+      /* Restore the original expression position. */
+      node->expr_range = saved_expr_range;
       node->operator_position = saved_operator_position;
     }  /* if */
   }  /* if */
@@ -9912,14 +9947,17 @@ the standard requires that, but it's actually wanted only in some limited
 cases so we don't do it here.
 */
 {
-  an_expr_node_ptr node;
-  an_operand       orig_operand;
-  an_expr_node_ptr operand_node, cast_expr;
-  a_type_ptr       operand_type, cast_orig_type;
-  a_boolean        constant_case = FALSE, qualifiers_dropped = FALSE;
-  a_constant_ptr   con_value;
+  an_expr_node_ptr  node;
+  an_operand        orig_operand;
+  an_expr_node_ptr  operand_node, cast_expr;
+  a_type_ptr        operand_type, cast_orig_type;
+  a_boolean         constant_case = FALSE, qualifiers_dropped = FALSE;
+  a_constant_ptr    con_value;
 #if EXPR_RANGE_MODIFIERS_IN_IL
-  an_expr_node_ptr orig_node = expr_node_from_operand(operand);
+  an_expr_node_ptr  orig_node = expr_node_from_operand(operand);
+  an_expr_node_ptr  curr_node;
+  a_source_range    range_to_restore;
+  a_source_position operator_position;
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 
   /* Ignore non-lvalues. */
@@ -10142,59 +10180,53 @@ cases so we don't do it here.
         error_in_operand(ec_expr_not_constant, operand);
       }  /* if */
     }  /* if */
-    /* Restore the operand's source position. */
-    restore_operand_details(operand, &orig_operand);
 #if EXPR_RANGE_MODIFIERS_IN_IL
+    curr_node = expr_node_from_operand(operand);
+    if (curr_node != NULL) {
+      /* Make sure that restore_operand_details doesn't leave the wrong
+         source positions in the expr node. */
+      if (orig_node == NULL ||
+          (is_operation_node(curr_node) &&
+           node_operator_is(curr_node, eok_indirect))) {
+        /* Either there is no original node from which to restore the
+           source positions, or curr_node is an added eok_indirect node
+           whose position we want to preserve, so copy curr_node's
+           positions. */
+        range_to_restore = curr_node->expr_range;
+        operator_position = curr_node->operator_position;
+      } else {
+        /* Use the original node's source positions. */
+        range_to_restore = orig_node->expr_range;
+        operator_position = orig_node->operator_position;
+      }  /* if */
+      restore_operand_details(operand, &orig_operand);
+      curr_node->expr_range = range_to_restore;
+      curr_node->operator_position = operator_position;
+    } else {
+      /* Just set the operand position -- there's no expr node to worry
+         about. */
+      restore_operand_details(operand, &orig_operand);
+    }  /* if */
     if (orig_node != NULL) {
-      an_expr_node_ptr curr_node = expr_node_from_operand(operand);
-      if (curr_node == NULL) {
+      /* If there is a new node replacing the original node (i.e., the
+         operand's current node is not the original and not an eok_indirect
+         on top of it), copy the range_modifiers from the original. */
+      if (curr_node != NULL && curr_node != orig_node &&
+          !(is_operation_node(curr_node) &&
+            node_operator_is(curr_node, eok_indirect))) {
+        copy_expr_range_modifiers(orig_node, curr_node);
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+      } else if (curr_node == NULL) {
         /* The original node is being discarded; ignore any associated
            range modifiers. */
         forget_expr_range_modifiers_in_tree(orig_node,
                                             (an_expr_node_ptr)NULL);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
-      } else if (curr_node != orig_node) {
-        if (is_operation_node(curr_node) &&
-            node_operator_is(curr_node, eok_indirect) &&
-            curr_node->variant.operation.operands == orig_node) {
-          /* An indirection has been placed on top of the original node. */
-          an_expr_range_modifier_ptr ermp;
-          an_expr_range_modifier_ptr prev_ermp = NULL;
-          for (ermp = orig_node->range_modifiers; ermp != NULL;
-               ermp = ermp->next) {
-            if (ermp->kind == (an_expr_range_modifier_kind)erm_asterisk) {
-              break;
-            }  /* if */
-            prev_ermp = ermp;
-          }  /* for */
-          if (ermp != NULL) {
-            /* The original node included a unary * operation, represented
-               by an erm_asterisk.  Make the added eok_indirect node look
-               as if it represents that operator in the source. */
-            if (prev_ermp != NULL) {
-              /* There are range modifiers on top of the erm_asterisk.
-                 They become modifiers of the eok_indirect node. */
-              curr_node->range_modifiers = orig_node->range_modifiers;
-              prev_ermp->next = NULL;
-            }  /* if */
-            curr_node->expr_range = ermp->range;
-            curr_node->operator_position = ermp->range.start;
-            orig_node->range_modifiers = ermp->next;
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-            /* The erm_asterisk modifier is being abandoned. */
-            remove_expr_range_modifier(ermp);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
-          }  /* if */
-        } else {
-          /* The original node has been replaced.  Copy the expr_range and
-             range_modifiers from the original. */
-          curr_node->expr_range = orig_node->expr_range;
-          curr_node->operator_position = orig_node->operator_position;
-          copy_expr_range_modifiers(orig_node, curr_node);
-        }  /* if */
       }  /* if */
     }  /* if */
+#else /* !EXPR_RANGE_MODIFIERS_IN_IL */
+    /* Restore the operand's source position. */
+    restore_operand_details(operand, &orig_operand);
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
     /* The ref_entries_list is cleared because it should only contain
        information on lvalue addresses. */
