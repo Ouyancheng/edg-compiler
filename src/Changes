@@ -1,5 +1,21 @@
 Version 3.10
 
+6/13/07  Lowering and GNU statement expressions
+
+A GNU statement expression returns as its value the value of the
+last statement contained within the statement expression.
+During lowering, it is possible that an expression statement that is
+the last statement of a statement expression may be changed into a block
+(which has no value), causing an internal error in some configurations
+and intermediate C code that would not compile in others.
+A change has been made to further lower such a block into a
+statement expression which will return the value of its last statement.
+Here is such an example:
+
+  int main() {
+    return ({ (int) {5}; });    // Now returns 5 with --gcc
+  }
+
 6/12/07  Lowering of compound literal initialization
 
 During lowering, the constant portion of a compound literal initialization

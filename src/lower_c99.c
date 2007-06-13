@@ -3266,7 +3266,14 @@ second parameter.
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       /* GNU C statement expression, ({...}). */
-      {
+      { a_statement_ptr  block = expr->variant.statement;
+        a_statement_ptr  last;
+        a_boolean        original_statement_was_expr = FALSE;
+        check_assertion(block->kind == (a_statement_kind)stmk_block);
+        last = last_statement_in_block(block);
+        if (last != NULL && last->kind == (a_statement_kind)stmk_expr) {
+          original_statement_was_expr = TRUE;
+        }  /* if */
 #if MINIMAL_INLINING
         a_boolean saved_inlining_enabled = inlining_enabled;
         /* Turn off inlining, because the last statement creates a
@@ -3275,10 +3282,17 @@ second parameter.
            block statement). */
         inlining_enabled = FALSE;
 #endif /* MINIMAL_INLINING */
-        lower_c99_statement(expr->variant.statement);
+        lower_c99_statement(block);
 #if MINIMAL_INLINING
         inlining_enabled = saved_inlining_enabled;
 #endif /* MINIMAL_INLINING */
+        last = last_statement_in_block(block);
+        if (original_statement_was_expr && 
+            last != NULL && last->kind == (a_statement_kind)stmk_block) {
+          /* Lowering changed the last statement into a block.  Change it
+             into a statement expression so it will produce a value. */
+          change_block_into_statement_expression(last);
+        }  /* if */
       }
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */

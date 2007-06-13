@@ -14801,6 +14801,48 @@ original statement in its new location.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* change_statement_into_block */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+void change_block_into_statement_expression(a_statement_ptr block)
+/*
+Change the specified block into a GNU statement expression.  This
+is used when the last statement of an existing GNU statement expression
+has been changed into a block during lowering.  Changing the block
+into a statement expression allows the statement to retain a value.
+*/
+{
+  a_statement_ptr  last_statement;
+  a_type_ptr       expr_type = void_type();
+  a_statement_ptr  block_copy;
+
+  check_assertion(block->kind == (a_statement_kind)stmk_block);
+  last_statement = last_statement_in_block(block);
+  if (last_statement != NULL) {
+    if (last_statement->kind == (a_statement_kind)stmk_block) {
+      /* Recursively change this block into a statement expression. */
+      change_block_into_statement_expression(last_statement);
+      /* Statement will be an stmk_expr on return. */
+      check_assertion(last_statement->kind == (a_statement_kind)stmk_expr);
+      last_statement->expr->result_is_not_used = FALSE;
+      expr_type = last_statement->expr->type;
+    } else if (last_statement->kind == (a_statement_kind)stmk_expr) {
+      last_statement->expr->result_is_not_used = FALSE;
+      expr_type = last_statement->expr->type;
+    }  /* if */
+  }  /* if */
+  /* Make a copy of the original block. */
+  block_copy = alloc_statement(block->kind);
+  copy_statement(block, block_copy);
+  /* Turn the original block into an stmk_expr statement. */
+  set_statement_kind(block, (a_statement_kind)stmk_expr);
+  /* Do not allow a statement expression to have a variably-modified type. */
+  check_assertion(!is_variably_modified_type(expr_type));
+  block->expr = alloc_expr_node((an_expr_node_kind)enk_statement);
+  block->expr->type = expr_type;
+  block->expr->variant.statement = block_copy;
+}  /* change_block_into_statement_expression */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void add_to_pragma_list(a_pragma_ptr             pragma,
                         a_scope_depth            scope_depth,

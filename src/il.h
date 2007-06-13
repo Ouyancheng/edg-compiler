@@ -1038,6 +1038,10 @@ extern void copy_statement(a_statement *from,
 extern void change_statement_into_block(a_statement_ptr statement,
                                         a_statement_ptr *orig_statement);
 
+#if GNU_EXTENSIONS_ALLOWED
+extern void change_block_into_statement_expression(a_statement_ptr block);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 extern void set_expr_result_not_used(an_expr_node_ptr node);
 
 extern void set_node_operator(an_expr_node_ptr      node,
