@@ -1,5 +1,29 @@
 Version 3.10
 
+6/13/06  GNU compatibility: __sync_... functions
+
+In GNU modes, the front end now accepts a variety of built-in functions for
+atomic memory access when the configuration macro USE_X86_64 is TRUE.  The
+list of functions includes the "generic" functions __sync_fetch_and_add,
+__sync_fetch_and_sub, __sync_fetch_and_or, __sync_fetch_and_and,
+__sync_fetch_and_xor, __sync_fetch_and_nand, __sync_add_and_fetch,
+__sync_sub_and_fetch, __sync_or_and_fetch, __sync_and_and_fetch,
+__sync_xor_and_fetch, __sync_nand_and_fetch, __sync_bool_compare_and_swap,
+__sync_val_compare_and_swap, __sync_lock_test_and_set, and __sync_lock_release.
+When such a routine is called, the first argument must be a pointer to an
+integer or enumeration type of size N, where N is 1, 2, 4, or 8.  The actual
+call is then resolved to a routine of the same name with the suffix _1, _2, _4,
+or _8 according to the value of N.  The functions whose names have the added
+suffix are also available as GNU built-in functions.  For example:
+
+  void f(char x) {
+    __sync_lock_release(&x);    // Calls "__sync_lock_release_1".
+    __sync_lock_release_1(&x);  // Same as above.
+  }
+
+Finally, in addition to the functions described above, the front end now also
+accepts the GNU built-in function __sync_synchronize.
+
 6/13/07  Lowering and GNU statement expressions
 
 A GNU statement expression returns as its value the value of the

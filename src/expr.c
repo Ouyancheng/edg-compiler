@@ -1165,8 +1165,6 @@ the source position of the closing parenthesis of the call.
        "prescanned"). */
     arg_operand_list = *p_arg_operand_list;
     *p_arg_operand_list = NULL;
-    /* Currently, all "prescan" cases involve a single operand. */
-    check_assertion(arg_operand_list->next == NULL);
   } else {
     arg_operand_list =
                     scan_expr_list(/*trailing_comma_okay=*/any_cfront_mode());
@@ -2134,6 +2132,135 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
   remove_matching_stop_token(tok_rparen);
 }  /* scan_gnu_builtin_pseudo_call */
 
+#if USE_X86_64
+
+static a_routine_ptr adjust_gnu_sync_call(an_operand          *target,
+                                          an_arg_operand_ptr  *args)
+/*
+A GNU built-in function (described by target) is being called.  If the call is
+to a predeclared GNU __sync_...  function it may need to be adjusted.  For
+example, a call like:
+	__sync_fetch_and_add(&x, 3, ignored())
+must be replaced by
+	(typeof(x))__sync_fetch_and_add_4((void*)&x, (typeof(x)3)
+if x is a 4-byte integral type.  Such transformations (if applicable) are made
+by this routine.  The actual routine to call is returned, and if the arguments to the call were prescanned, they are returned through *args.
+*/
+{
+  int                      n_args = 0, k;
+  a_routine_ptr            rout;
+  a_builtin_function_kind  bfk;
+
+  check_assertion(
+          target->kind == (an_operand_kind)ok_constant &&
+          target->variant.constant.kind == (a_constant_repr_kind)ck_address);
+  rout = target->variant.constant.variant.address.variant.routine;
+  bfk = rout->variant.builtin_function_kind;
+  /* Check if this a generic __sync_... function and if so record the number
+     of arguments expected by that function. */
+  switch (bfk) {
+    case bfk_sync_lock_release:
+      n_args = 1;
+      break;
+    case bfk_sync_fetch_and_add:
+    case bfk_sync_fetch_and_sub:
+    case bfk_sync_fetch_and_or:
+    case bfk_sync_fetch_and_and:
+    case bfk_sync_fetch_and_xor:
+    case bfk_sync_fetch_and_nand:
+    case bfk_sync_add_and_fetch:
+    case bfk_sync_sub_and_fetch:
+    case bfk_sync_or_and_fetch:
+    case bfk_sync_and_and_fetch:
+    case bfk_sync_xor_and_fetch:
+    case bfk_sync_nand_and_fetch:
+    case bfk_sync_lock_test_and_set:
+      n_args = 2;
+      break;
+    case bfk_sync_bool_compare_and_swap:
+    case bfk_sync_val_compare_and_swap:
+      n_args = 3;
+      break;
+    default:
+      /* Nothing more to be done. */
+      break;
+  }  /* switch */
+  if (n_args != 0) {
+    /* A generic __sync call that must be dispatched to a concrete version.
+       Determining which version is called requires knowing the type of the
+       first argument; we therefore prescan the argument list. */
+    a_source_position  first_arg_pos;
+    a_type_ptr         dispatch_type;
+    check_assertion(curr_token == tok_lparen);
+    (void)get_token();
+    first_arg_pos = pos_curr_token;
+    *args = scan_expr_list(/*trailing_comma_okay=*/any_cfront_mode());
+    if (*args == NULL) {
+      /* If there is no first argument, we cannot determine the concrete
+         version to call. */
+      pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
+      goto done;
+    } else {
+      /* Truncate the argument list to the length expected by the concrete
+         function.  Issue a warning on excess arguments.  (If there are too
+         few arguments, that will be caught by normal processing in
+         scan_call_arguments.) */
+      an_arg_operand_ptr  *arg = args;
+      for (k = 0; k < n_args && *arg != NULL; ++k, arg = &(*arg)->next) {
+        /* Empty. */
+      }  /* for */
+      if (*arg != NULL) {
+        /* *arg points to the first excess argument. */
+        pos_warning(ec_extra_arguments_ignored, &(*arg)->operand.position);
+        free_arg_operand_list(*arg);
+        *arg = NULL;
+      }  /* if */
+    }  /* if */
+    dispatch_type = skip_typerefs((*args)->operand.type);
+    if (!is_pointer_type(dispatch_type)) {
+      pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
+      goto done;
+    }  /* if */
+    dispatch_type = type_pointed_to(dispatch_type);
+    dispatch_type = skip_typerefs(dispatch_type);
+    if (!is_integral_or_enum_type(dispatch_type)) {
+      pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
+    } else if (dispatch_type->size != 1 && dispatch_type->size != 2 &&
+               dispatch_type->size != 4 && dispatch_type->size != 8) {
+      pos_error(ec_invalid_gnu_sync_size, &first_arg_pos);
+    } else {
+      /* Find the concrete routine to dispatch the operation to. */
+      a_symbol_ptr       sym;
+      a_symbol_locator   loc;
+      a_source_position  pos;
+      char          name[100], suffix[3];
+      /* Construct the concrete routine's name: */
+      check_assertion(strlen(builtin_function_kind_names[bfk]) < 90);
+      strcpy(name, builtin_function_kind_names[bfk]);
+      suffix[0] = '_';
+      suffix[1] = '0'+ dispatch_type->size;
+      suffix[2] = '\0';
+      strcat(name, suffix);
+      /* Look it up: */
+      sym = find_symbol(name, (sizeof_t)strlen(name), &loc);
+      /* Cover the unlikely case that the symbol name corresponds to multiple
+         entries. */
+      for (; sym != NULL; sym = sym->next) {
+        if (sym->kind == (a_symbol_kind)sk_routine) break;
+      }  /* for */
+      check_assertion(sym != NULL);
+      /* Update the operand: */
+      pos = target->position;
+      make_function_designator_operand(sym, target->is_qualified_name, &pos,
+                                       target->ref_entries_list, target);
+      rout = sym->variant.routine.ptr;
+    }  /* if */
+  }  /* if */
+done:
+  return rout;
+}  /* adjust_gnu_sync_call */
+
+#endif /* USE_X86_64 */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void scan_function_call(an_operand *operand,
@@ -2486,6 +2613,20 @@ Syntax:
     change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
                           SRK_REFERENCE);
   }  /* if */
+
+#if GNU_EXTENSIONS_ALLOWED && USE_X86_64
+  if (routine != NULL && is_gnu_builtin_function(routine)) {
+      /* If this is a call to a predeclared GNU __sync_... function adjust the
+         function that is being called. */
+      routine = adjust_gnu_sync_call(operand, &arg_operand_list);
+      if (arg_operand_list != NULL) {
+        /* The arguments were prescanned, which means that operand (the callee
+           expression) must have been updated. */
+        already_after_left_paren = TRUE;
+        routine_type = routine->type;
+      }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && USE_X86_64 */
 
   /* Scan the arguments of the call. */
   scan_call_arguments(routine_type, routine,

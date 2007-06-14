@@ -7772,6 +7772,99 @@ enum a_builtin_function_kind_tag {
   bfk_yn,                       /* "__builtin_yn" */
   bfk_ynf,                      /* "__builtin_ynf" */
   bfk_ynl,                      /* "__builtin_ynl" */
+#if USE_X86_64
+  bfk_sync_synchronize,         /* __sync_synchronize */
+  bfk_sync_fetch_and_add,       /* __sync_fetch_and_add */
+  bfk_sync_fetch_and_sub,       /* __sync_fetch_and_sub */
+  bfk_sync_fetch_and_or,        /* __sync_fetch_and_or */
+  bfk_sync_fetch_and_and,       /* __sync_fetch_and_and */
+  bfk_sync_fetch_and_xor,       /* __sync_fetch_and_xor */
+  bfk_sync_fetch_and_nand,      /* __sync_fetch_and_nand */
+  bfk_sync_add_and_fetch,       /* __sync_add_and_fetch */
+  bfk_sync_sub_and_fetch,       /* __sync_sub_and_fetch */
+  bfk_sync_or_and_fetch,        /* __sync_or_and_fetch */
+  bfk_sync_and_and_fetch,       /* __sync_and_and_fetch */
+  bfk_sync_xor_and_fetch,       /* __sync_xor_and_fetch */
+  bfk_sync_nand_and_fetch,      /* __sync_nand_and_fetch */
+  bfk_sync_bool_compare_and_swap,
+                                /* __sync_bool_compare_and_swap */
+  bfk_sync_val_compare_and_swap,
+                                /* __sync_val_compare_and_swap */
+  bfk_sync_lock_test_and_set,   /* __sync_lock_test_and_set */
+  bfk_sync_lock_release,        /* __sync_lock_release */
+  bfk_sync_fetch_and_add_1,     /* __sync_fetch_and_add_1 */
+  bfk_sync_fetch_and_sub_1,     /* __sync_fetch_and_sub_1 */
+  bfk_sync_fetch_and_or_1,      /* __sync_fetch_and_or_1 */
+  bfk_sync_fetch_and_and_1,     /* __sync_fetch_and_and_1 */
+  bfk_sync_fetch_and_xor_1,     /* __sync_fetch_and_xor_1 */
+  bfk_sync_fetch_and_nand_1,    /* __sync_fetch_and_nand_1 */
+  bfk_sync_add_and_fetch_1,     /* __sync_add_and_fetch_1 */
+  bfk_sync_sub_and_fetch_1,     /* __sync_sub_and_fetch_1 */
+  bfk_sync_or_and_fetch_1,      /* __sync_or_and_fetch_1 */
+  bfk_sync_and_and_fetch_1,     /* __sync_and_and_fetch_1 */
+  bfk_sync_xor_and_fetch_1,     /* __sync_xor_and_fetch_1 */
+  bfk_sync_nand_and_fetch_1,    /* __sync_nand_and_fetch_1 */
+  bfk_sync_bool_compare_and_swap_1,
+                                /* __sync_bool_compare_and_swap_1 */
+  bfk_sync_val_compare_and_swap_1,
+                                /* __sync_val_compare_and_swap_1 */
+  bfk_sync_lock_test_and_set_1, /* __sync_lock_test_and_set_1 */
+  bfk_sync_lock_release_1,      /* __sync_lock_release_1 */
+  bfk_sync_fetch_and_add_2,     /* __sync_fetch_and_add_2 */
+  bfk_sync_fetch_and_sub_2,     /* __sync_fetch_and_sub_2 */
+  bfk_sync_fetch_and_or_2,      /* __sync_fetch_and_or_2 */
+  bfk_sync_fetch_and_and_2,     /* __sync_fetch_and_and_2 */
+  bfk_sync_fetch_and_xor_2,     /* __sync_fetch_and_xor_2 */
+  bfk_sync_fetch_and_nand_2,    /* __sync_fetch_and_nand_2 */
+  bfk_sync_add_and_fetch_2,     /* __sync_add_and_fetch_2 */
+  bfk_sync_sub_and_fetch_2,     /* __sync_sub_and_fetch_2 */
+  bfk_sync_or_and_fetch_2,      /* __sync_or_and_fetch_2 */
+  bfk_sync_and_and_fetch_2,     /* __sync_and_and_fetch_2 */
+  bfk_sync_xor_and_fetch_2,     /* __sync_xor_and_fetch_2 */
+  bfk_sync_nand_and_fetch_2,    /* __sync_nand_and_fetch_2 */
+  bfk_sync_bool_compare_and_swap_2,
+                                /* __sync_bool_compare_and_swap_2 */
+  bfk_sync_val_compare_and_swap_2,
+                                /* __sync_val_compare_and_swap_2 */
+  bfk_sync_lock_test_and_set_2, /* __sync_lock_test_and_set_2 */
+  bfk_sync_lock_release_2,      /* __sync_lock_release_2 */
+  bfk_sync_fetch_and_add_4,     /* __sync_fetch_and_add_4 */
+  bfk_sync_fetch_and_sub_4,     /* __sync_fetch_and_sub_4 */
+  bfk_sync_fetch_and_or_4,      /* __sync_fetch_and_or_4 */
+  bfk_sync_fetch_and_and_4,     /* __sync_fetch_and_and_4 */
+  bfk_sync_fetch_and_xor_4,     /* __sync_fetch_and_xor_4 */
+  bfk_sync_fetch_and_nand_4,    /* __sync_fetch_and_nand_4 */
+  bfk_sync_add_and_fetch_4,     /* __sync_add_and_fetch_4 */
+  bfk_sync_sub_and_fetch_4,     /* __sync_sub_and_fetch_4 */
+  bfk_sync_or_and_fetch_4,      /* __sync_or_and_fetch_4 */
+  bfk_sync_and_and_fetch_4,     /* __sync_and_and_fetch_4 */
+  bfk_sync_xor_and_fetch_4,     /* __sync_xor_and_fetch_4 */
+  bfk_sync_nand_and_fetch_4,    /* __sync_nand_and_fetch_4 */
+  bfk_sync_bool_compare_and_swap_4,
+                                /* __sync_bool_compare_and_swap_4 */
+  bfk_sync_val_compare_and_swap_4,
+                                /* __sync_val_compare_and_swap_4 */
+  bfk_sync_lock_test_and_set_4, /* __sync_lock_test_and_set_4 */
+  bfk_sync_lock_release_4,      /* __sync_lock_release_4 */
+  bfk_sync_fetch_and_add_8,     /* __sync_fetch_and_add_8 */
+  bfk_sync_fetch_and_sub_8,     /* __sync_fetch_and_sub_8 */
+  bfk_sync_fetch_and_or_8,      /* __sync_fetch_and_or_8 */
+  bfk_sync_fetch_and_and_8,     /* __sync_fetch_and_and_8 */
+  bfk_sync_fetch_and_xor_8,     /* __sync_fetch_and_xor_8 */
+  bfk_sync_fetch_and_nand_8,    /* __sync_fetch_and_nand_8 */
+  bfk_sync_add_and_fetch_8,     /* __sync_add_and_fetch_8 */
+  bfk_sync_sub_and_fetch_8,     /* __sync_sub_and_fetch_8 */
+  bfk_sync_or_and_fetch_8,      /* __sync_or_and_fetch_8 */
+  bfk_sync_and_and_fetch_8,     /* __sync_and_and_fetch_8 */
+  bfk_sync_xor_and_fetch_8,     /* __sync_xor_and_fetch_8 */
+  bfk_sync_nand_and_fetch_8,    /* __sync_nand_and_fetch_8 */
+  bfk_sync_bool_compare_and_swap_8,
+                                /* __sync_bool_compare_and_swap_8 */
+  bfk_sync_val_compare_and_swap_8,
+                                /* __sync_val_compare_and_swap_8 */
+  bfk_sync_lock_test_and_set_8, /* __sync_lock_test_and_set_8 */
+  bfk_sync_lock_release_8,      /* __sync_lock_release_8 */
+#endif /* USE_X86_64 */
   bfk_last
 };
 /* Define as "unsigned short" to explicitly control storage size (a_byte
@@ -8246,6 +8339,99 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_yn */                       "__builtin_yn",
   /* bfk_ynf */                      "__builtin_ynf",
   /* bfk_ynl */                      "__builtin_ynl",
+#if USE_X86_64
+  /* bfk_sync_synchronize */         "__sync_synchronize",
+  /* bfk_sync_fetch_and_add */       "__sync_fetch_and_add",
+  /* bfk_sync_fetch_and_sub */       "__sync_fetch_and_sub",
+  /* bfk_sync_fetch_and_or */        "__sync_fetch_and_or",
+  /* bfk_sync_fetch_and_and */       "__sync_fetch_and_and",
+  /* bfk_sync_fetch_and_xor */       "__sync_fetch_and_xor",
+  /* bfk_sync_fetch_and_nand */      "__sync_fetch_and_nand",
+  /* bfk_sync_add_and_fetch */       "__sync_add_and_fetch",
+  /* bfk_sync_sub_and_fetch */       "__sync_sub_and_fetch",
+  /* bfk_sync_or_and_fetch */        "__sync_or_and_fetch",
+  /* bfk_sync_and_and_fetch */       "__sync_and_and_fetch",
+  /* bfk_sync_xor_and_fetch */       "__sync_xor_and_fetch",
+  /* bfk_sync_nand_and_fetch */      "__sync_nand_and_fetch",
+  /* bfk_sync_bool_compare_and_swap */
+                                     "__sync_bool_compare_and_swap",
+  /* bfk_sync_val_compare_and_swap */
+                                     "__sync_val_compare_and_swap",
+  /* bfk_sync_lock_test_and_set */   "__sync_lock_test_and_set",
+  /* bfk_sync_lock_release */        "__sync_lock_release",
+  /* bfk_sync_fetch_and_add_1 */     "__sync_fetch_and_add_1",
+  /* bfk_sync_fetch_and_sub_1 */     "__sync_fetch_and_sub_1",
+  /* bfk_sync_fetch_and_or_1 */      "__sync_fetch_and_or_1",
+  /* bfk_sync_fetch_and_and_1 */     "__sync_fetch_and_and_1",
+  /* bfk_sync_fetch_and_xor_1 */     "__sync_fetch_and_xor_1",
+  /* bfk_sync_fetch_and_nand_1 */    "__sync_fetch_and_nand_1",
+  /* bfk_sync_add_and_fetch_1 */     "__sync_add_and_fetch_1",
+  /* bfk_sync_sub_and_fetch_1 */     "__sync_sub_and_fetch_1",
+  /* bfk_sync_or_and_fetch_1 */      "__sync_or_and_fetch_1",
+  /* bfk_sync_and_and_fetch_1 */     "__sync_and_and_fetch_1",
+  /* bfk_sync_xor_and_fetch_1 */     "__sync_xor_and_fetch_1",
+  /* bfk_sync_nand_and_fetch_1 */    "__sync_nand_and_fetch_1",
+  /* bfk_sync_bool_compare_and_swap_1 */
+                                     "__sync_bool_compare_and_swap_1",
+  /* bfk_sync_val_compare_and_swap_1 */
+                                     "__sync_val_compare_and_swap_1",
+  /* bfk_sync_lock_test_and_set_1 */ "__sync_lock_test_and_set_1",
+  /* bfk_sync_lock_release_1 */      "__sync_lock_release_1",
+  /* bfk_sync_fetch_and_add_2 */     "__sync_fetch_and_add_2",
+  /* bfk_sync_fetch_and_sub_2 */     "__sync_fetch_and_sub_2",
+  /* bfk_sync_fetch_and_or_2 */      "__sync_fetch_and_or_2",
+  /* bfk_sync_fetch_and_and_2 */     "__sync_fetch_and_and_2",
+  /* bfk_sync_fetch_and_xor_2 */     "__sync_fetch_and_xor_2",
+  /* bfk_sync_fetch_and_nand_2 */    "__sync_fetch_and_nand_2",
+  /* bfk_sync_add_and_fetch_2 */     "__sync_add_and_fetch_2",
+  /* bfk_sync_sub_and_fetch_2 */     "__sync_sub_and_fetch_2",
+  /* bfk_sync_or_and_fetch_2 */      "__sync_or_and_fetch_2",
+  /* bfk_sync_and_and_fetch_2 */     "__sync_and_and_fetch_2",
+  /* bfk_sync_xor_and_fetch_2 */     "__sync_xor_and_fetch_2",
+  /* bfk_sync_nand_and_fetch_2 */    "__sync_nand_and_fetch_2",
+  /* bfk_sync_bool_compare_and_swap_2 */
+                                     "__sync_bool_compare_and_swap_2",
+  /* bfk_sync_val_compare_and_swap_2 */
+                                     "__sync_val_compare_and_swap_2",
+  /* bfk_sync_lock_test_and_set_2 */ "__sync_lock_test_and_set_2",
+  /* bfk_sync_lock_release_2 */      "__sync_lock_release_2",
+  /* bfk_sync_fetch_and_add_4 */     "__sync_fetch_and_add_4",
+  /* bfk_sync_fetch_and_sub_4 */     "__sync_fetch_and_sub_4",
+  /* bfk_sync_fetch_and_or_4 */      "__sync_fetch_and_or_4",
+  /* bfk_sync_fetch_and_and_4 */     "__sync_fetch_and_and_4",
+  /* bfk_sync_fetch_and_xor_4 */     "__sync_fetch_and_xor_4",
+  /* bfk_sync_fetch_and_nand_4 */    "__sync_fetch_and_nand_4",
+  /* bfk_sync_add_and_fetch_4 */     "__sync_add_and_fetch_4",
+  /* bfk_sync_sub_and_fetch_4 */     "__sync_sub_and_fetch_4",
+  /* bfk_sync_or_and_fetch_4 */      "__sync_or_and_fetch_4",
+  /* bfk_sync_and_and_fetch_4 */     "__sync_and_and_fetch_4",
+  /* bfk_sync_xor_and_fetch_4 */     "__sync_xor_and_fetch_4",
+  /* bfk_sync_nand_and_fetch_4 */    "__sync_nand_and_fetch_4",
+  /* bfk_sync_bool_compare_and_swap_4 */
+                                     "__sync_bool_compare_and_swap_4",
+  /* bfk_sync_val_compare_and_swap_4 */
+                                     "__sync_val_compare_and_swap_4",
+  /* bfk_sync_lock_test_and_set_4 */ "__sync_lock_test_and_set_4",
+  /* bfk_sync_lock_release_4 */      "__sync_lock_release_4",
+  /* bfk_sync_fetch_and_add_8 */     "__sync_fetch_and_add_8",
+  /* bfk_sync_fetch_and_sub_8 */     "__sync_fetch_and_sub_8",
+  /* bfk_sync_fetch_and_or_8 */      "__sync_fetch_and_or_8",
+  /* bfk_sync_fetch_and_and_8 */     "__sync_fetch_and_and_8",
+  /* bfk_sync_fetch_and_xor_8 */     "__sync_fetch_and_xor_8",
+  /* bfk_sync_fetch_and_nand_8 */    "__sync_fetch_and_nand_8",
+  /* bfk_sync_add_and_fetch_8 */     "__sync_add_and_fetch_8",
+  /* bfk_sync_sub_and_fetch_8 */     "__sync_sub_and_fetch_8",
+  /* bfk_sync_or_and_fetch_8 */      "__sync_or_and_fetch_8",
+  /* bfk_sync_and_and_fetch_8 */     "__sync_and_and_fetch_8",
+  /* bfk_sync_xor_and_fetch_8 */     "__sync_xor_and_fetch_8",
+  /* bfk_sync_nand_and_fetch_8 */    "__sync_nand_and_fetch_8",
+  /* bfk_sync_bool_compare_and_swap_8 */
+                                     "__sync_bool_compare_and_swap_8",
+  /* bfk_sync_val_compare_and_swap_8 */
+                                     "__sync_val_compare_and_swap_8",
+  /* bfk_sync_lock_test_and_set_8 */ "__sync_lock_test_and_set_8",
+  /* bfk_sync_lock_release_8 */      "__sync_lock_release_8",
+#endif /* USE_X86_64 */
   /* bfk_last */                     "last" /* used to check that 
                                                initialization is right. */
 }

@@ -31,17 +31,18 @@ This is the version for Linux.
 #endif /* ifndef COMPILE_MULTIPLE_SOURCE_FILES */
 
 /*
-The USE_x86_64
+The USE_X86_64 should be set when targeting the x86-64 variant of the i386
+platform.
 */
 #ifndef USE_X86_64
 #ifdef __x86_64
 #define USE_X86_64 1
 #else /* ifndef __x86_64 */
 #define USE_x86_64 0
-#endif /* ifdef __Xx86_64 */
+#endif /* ifdef __x86_64 */
 #endif /* ifndef USE_X86_64 */
 
-#ifdef USE_X86_64
+#if USE_X86_64
 #define TARG_SIZEOF_LONG 8
 #define TARG_ALIGNOF_LONG 8
 #define TARG_SIZEOF_POINTER 8
@@ -54,7 +55,7 @@ The USE_x86_64
 #ifndef _lint
 /* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_INT
-#endif
+#endif /* ifndef _lint */
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long)
 #define HOST_ALIGNMENT_REQUIRED 8
@@ -71,7 +72,7 @@ The USE_x86_64
 #ifndef _lint
 /* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
-#endif
+#endif /* ifndef _lint */
 /* double and long long have two different alignments on Linux. */
 #define TARG_DOUBLE_FIELD_ALIGNMENT 4
 #define TARG_LONG_LONG_FIELD_ALIGNMENT 4

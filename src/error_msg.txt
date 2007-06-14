@@ -1692,6 +1692,9 @@ ec_ambig_suppresses_copy_ctor_decl;;"the declaration of the copy constructor for
 ec_access_suppresses_copy_ctor_decl;;"the declaration of the copy constructor for %t1 has been suppressed because that of %t2 is inaccessible"
 ec_inaccessible_dtor_not_invoked;;"the destructor for %t1 will not be called because it is inaccessible and the destructor for %t2 was suppressed"
 ec_file_ends_with_unterminated_type_definition;;"definition at end of file not followed by a semicolon or a declarator"
+ec_bad_type_for_gnu_sync_function;;"first argument must be a pointer to integer or enumeration type"
+ec_invalid_gnu_sync_size;;"synchronized operations are valid only on objects of size 1, 2, 4, or 8"
+ec_extra_arguments_ignored;;"extra arguments ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

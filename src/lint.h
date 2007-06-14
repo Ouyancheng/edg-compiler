@@ -497,6 +497,11 @@ extern int fileno(FILE *);
 /*lint -esym(759,alignment_of_variable)*/
 /*lint -esym(765,alignment_of_variable)*/
 /*lint -esym(714,alignment_of_variable)*/
+#if !(GNU_EXTENSIONS_ALLOWED && USE_X86_64)
+/*lint -esym(769,ec_bad_type_for_gnu_sync_function)*/
+/*lint -esym(769,ec_invalid_gnu_sync_size)*/
+/*lint -esym(769,ec_extra_arguments_ignored)*/
+#endif /* !(GNU_EXTENSIONS_ALLOWED && USE_X86_64) */
 
 /******************************************************************************
 *                                                             \  ___  /       *

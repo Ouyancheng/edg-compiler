@@ -256,6 +256,17 @@ bugs are emulated).
 #endif /* DEFAULT_GNU_ABI_VERSION < 30200 */
 
 /*
+Flag that is TRUE if the target is a 64-bit x86 platform.
+*/
+#if !defined(USE_X86_64)
+#if defined(__x86_64)
+#define USE_X86_64 TRUE
+#else /* !defined(__x86_64) */
+#define USE_X86_64 FALSE
+#endif /* defined(__x86_64) */
+#endif /* !defined(USE_X86_64) */
+
+/*
 Flag that is TRUE if support for exported templates can be enabled.
 Export support requires some name mangling features not present in
 ABIs older that 2.32.
