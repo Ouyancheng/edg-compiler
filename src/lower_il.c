@@ -11954,7 +11954,11 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       /* GNU statement expression, ({ ... }). */
-      { a_statement_ptr  block = expr->variant.statement;
+      {
+#if MINIMAL_INLINING
+        a_boolean saved_inlining_enabled;
+#endif /* MINIMAL_INLINING */
+        a_statement_ptr  block = expr->variant.statement;
         a_statement_ptr  last;
         a_boolean        original_statement_was_expr = FALSE;
         check_assertion(block->kind == (a_statement_kind)stmk_block);
@@ -11963,7 +11967,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           original_statement_was_expr = TRUE;
         }  /* if */
 #if MINIMAL_INLINING
-        a_boolean saved_inlining_enabled = inlining_enabled;
+        saved_inlining_enabled = inlining_enabled;
         /* Turn off inlining, because the last statement creates a
            value that gets returned, and it needs to be an expression
            statement to get returned (inlining would turn it into a
