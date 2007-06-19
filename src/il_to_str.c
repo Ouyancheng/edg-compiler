@@ -4477,6 +4477,10 @@ Do the output in the way described by octl.
     case cc_stdcall:
       form_simple_attribute("__stdcall__", need_leading_space, octl);
       break;
+    case cc_thiscall:
+      /* A Microsoft-only calling convention.  These aren't generated for
+         the GNU C compiler. */
+      break;
     default:
       unexpected_condition();
   }  /* switch */

@@ -1,5 +1,21 @@
 Version 3.10
 
+6/19/07  Abort in il_to_str.c on __thiscall member function
+
+In Microsoft mode with microsoft_version >= 1400, the front end sometimes
+aborted with an internal error in function form_routine_type_attributes
+(il_to_str.c).  Specifically, this occurred in the C- or C++-generating back
+end when generating code for a GNU compiler (GCC_IS_GENERATED_CODE_TARGET is
+TRUE) in configurations that also set GNU_X86_ATTRIBUTES_ALLOWED to TRUE.
+For example:
+
+  struct S {
+    __thiscall S();  // Could trigger an abort when rendered by the C- or
+  };                 // C++-generating back end.
+  S::S() {}
+
+This is now fixed.
+
 6/13/07  GNU compatibility: __sync_... functions
 
 In GNU modes, the front end now accepts a variety of built-in functions for
