@@ -2143,7 +2143,7 @@ predeclared GNU __sync_...  function it may need to be adjusted.  For example,
 a call like:
 	__sync_fetch_and_add(&x, 3, ignored())
 must be replaced by
-	(typeof(x))__sync_fetch_and_add_4((void*)&x, (typeof(x)3)
+	(typeof(x))__sync_fetch_and_add_4((void*)&x, (typeof(x)3))
 if x is a 4-byte integral type.  Such transformations (if applicable) are made
 by this routine and require prescanning the argument types.  The actual routine
 to call is returned, and if the arguments to the call were prescanned, they are
