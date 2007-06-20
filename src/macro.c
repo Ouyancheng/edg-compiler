@@ -3579,7 +3579,7 @@ end_scan_for_macro_modifs:;
            the offset of the token and its length to allow the existing map
            entry to be cloned later. */
         src_offset = start_of_curr_token - invocation_slmp->inserted_text;
-        src_token_len = len_of_curr_token;
+        src_token_len = locator_for_curr_id.symbol_header->identifier_length;
       } else {
         /* The macro name comes from the current source line.  Remember the
            position of the token to allow a map entry for it to be added

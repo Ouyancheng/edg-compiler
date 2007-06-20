@@ -1,5 +1,16 @@
 Version 3.10
 
+6/20/07  Abort with built-in macros and FULLY_RESOLVED_MACRO_POSITIONS
+
+In configurations in which FULLY_RESOLVED_MACRO_POSITIONS is TRUE, use of
+one of the special built-in macros such as __LINE__ or __FILE__ (where the
+expansion must be computed at each use) in the definition of a macro could
+result in an abort, depending on the characteristics of the macro definition
+and invocation.  This is now fixed.  For example:
+
+  #define M(x) static char *p = x __FILE__;
+  M("The current file name is ");
+
 6/20/07  Microsoft compatibility: Double right angle brackets
 
 In Microsoft C++ mode with microsoft_version >= 1400, a right shift token
