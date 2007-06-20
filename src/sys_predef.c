@@ -840,6 +840,16 @@ Enter the standard predeclared functions for GCC.
 
 #if USE_X86_64
   /* __sync functions: */
+  /* Check that "unsigned short", "unsigned int", and "unsigned long long"
+     have sizes 2, 4, and 8, respectively.  This is necessary because calls
+     to the generic _sync_... functions are dispatched to the versions
+     ending in _1, _2, _4, and _8, depending on the size of the type pointed
+     to by the first argument.  ("unsigned char" has size 1 by definition and
+     therefore need not be checked.) */
+  check_assertion_str(unsigned_short_type->size == 2 &&
+                      unsigned_type->size == 4 &&
+                      unsigned_long_long_type->size == 8,
+                      "invalid integer type configuration for x86-64 target");
   enter_gnu_builtin_func0(_sync_synchronize, no_return);
   enter_gnu_builtin_vararg_func0(_sync_fetch_and_add, no_return);
   enter_gnu_builtin_vararg_func0(_sync_fetch_and_sub, no_return);
