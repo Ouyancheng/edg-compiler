@@ -497,15 +497,15 @@ modes.
 
 /*
 Flag that is TRUE if asm expressions target a processor of an x86 family.
-If Gnu extensions are enabled and we are building on an x86 system,
-this flag defaults to TRUE.
+If Gnu extensions are enabled and we are building on an x86 system (32-bit
+or 64-bit variants), this flag defaults to TRUE.
 */
 #ifndef GNU_X86_ASM_EXTENSIONS_ALLOWED
-#if GNU_EXTENSIONS_ALLOWED && defined(__i386)
+#if GNU_EXTENSIONS_ALLOWED && (defined(__i386) || defined(__x86_64))
 #define GNU_X86_ASM_EXTENSIONS_ALLOWED TRUE
-#else /* !(GNU_EXTENSIONS_ALLOWED && defined(__i386)) */
+#else /* !(GNU_EXTENSIONS_ALLOWED && (defined(__i386) || defined(__x86_64))) */
 #define GNU_X86_ASM_EXTENSIONS_ALLOWED FALSE
-#endif /* GNU_EXTENSIONS_ALLOWED && defined(__i386) */
+#endif /* GNU_EXTENSIONS_ALLOWED && (defined(__i386) || defined(__x86_64)) */
 #endif /* ifndef GNU_X86_ASM_EXTENSIONS_ALLOWED */
 
 #if !GNU_EXTENSIONS_ALLOWED && GNU_X86_ASM_EXTENSIONS_ALLOWED
@@ -531,11 +531,11 @@ Flag that is TRUE if x86-specific attributes should be recognized (and
 recorded in the IL).  This includes the stdcall and cdecl attributes.
 */
 #ifndef GNU_X86_ATTRIBUTES_ALLOWED
-#if GNU_EXTENSIONS_ALLOWED && defined(__i386)
+#if GNU_EXTENSIONS_ALLOWED && (defined(__i386) || defined(__x86_64))
 #define GNU_X86_ATTRIBUTES_ALLOWED TRUE
-#else /* !(GNU_EXTENSIONS_ALLOWED && defined(__i386)) */
+#else /* !(GNU_EXTENSIONS_ALLOWED && (defined(__i386) || defined(__x86_64))) */
 #define GNU_X86_ATTRIBUTES_ALLOWED FALSE
-#endif /* GNU_EXTENSIONS_ALLOWED && defined(__i386) */
+#endif /* GNU_EXTENSIONS_ALLOWED && (defined(__i386) || defined(__x86_64)) */
 #endif /* ifndef GNU_X86_ATTRIBUTES_ALLOWED */
 
 #if !GNU_EXTENSIONS_ALLOWED && GNU_X86_ATTRIBUTES_ALLOWED
