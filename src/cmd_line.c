@@ -3422,9 +3422,9 @@ file.
 #define stringize(X) #X
 #define print_string_valued_macro(X) \
   fprintf(f_error, "#define %s %s\n", #X, stringize(X));
-#define print_numeric_valued_macro(X)                                         \
-  fprintf(f_error, "#define %s " PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE "\n", \
-          #X, (TYPE_FOR_AN_INTEGER_VALUE)(X));
+#define print_numeric_valued_macro(X)                                       \
+  fprintf(f_error, "#define %s " PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER "\n", \
+          #X, (a_host_large_integer)(X));
 #define print_undefined_macro_name(X) \
   fprintf(f_error, "/*      %s not defined */\n", #X);
 
