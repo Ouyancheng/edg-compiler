@@ -6401,8 +6401,8 @@ Process the arguments on the command line that invoked the compiler.
 {
   an_option_description_ptr	odp;
   char 			        *ofile_name = NULL;
-  a_boolean			cannot_open;
-  a_boolean			bad_name;
+  a_boolean			cannot_open, bad_name;
+  a_boolean			source_file_name_optional = FALSE;
   char				*instantiation_mode_string = NULL;
   a_directory_name_entry_ptr	include_path_boundary = NULL;
 #if !USE_MMAP_FOR_MEMORY_REGIONS
@@ -6686,6 +6686,7 @@ Process the arguments on the command line that invoked the compiler.
         fprintf(f_error, "Demonstration version for %s\n", DEMO_VERSION_ID);
 #endif /* ifdef DEMO_VERSION_ID */
         fputc('\n', f_error);
+        source_file_name_optional = TRUE;
         break;
       case optk_suppress_warnings:
         /* Suppress warnings. */
@@ -7515,6 +7516,7 @@ enable_microsoft_mode:
         /* Display the values of all configuration macros with which this
            executable was built. */
         dump_configuration_macros();
+        source_file_name_optional = TRUE;
         break;
 #endif /* DEBUG */
       default:
@@ -7772,7 +7774,13 @@ enable_microsoft_mode:
 
   /* Pick up the source file name. */
   if (opt_ind >= argc) {
-    command_line_error(ec_cl_missing_source_file_name);
+    /* No source file name is given. */
+    if (source_file_name_optional) {
+      exit_compilation(es_none);
+    } else {
+      command_line_error(ec_cl_missing_source_file_name);
+    }  /* if */
+    /*NOTREACHED*/
   }  /* if */
   opt_arg = argv[opt_ind++];
   /* If the name is "-", use stdin for input. */
