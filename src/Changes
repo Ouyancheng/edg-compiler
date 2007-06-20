@@ -1,5 +1,13 @@
 Version 3.10
 
+6/20/07  Microsoft compatibility: Double right angle brackets
+
+In Microsoft C++ mode with microsoft_version >= 1400, a right shift token
+(">>") not enclosed by parentheses or square brackets is treated as two
+closing angle brackets (">") if the right shift token appears after at least
+one opening angle bracket ("<") that has not been closed.  This matches the
+the C++0x mode behavior (see Changes entry of 5/8/06).
+
 6/20/07  Source file name sometimes optional
 
 When specifying the command-line options --version or --display_configuration

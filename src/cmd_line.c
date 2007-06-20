@@ -1778,6 +1778,9 @@ by a command line option.
       type_traits_helpers_enabled = TRUE;
     }  /* if */
     extern_template_allowed = TRUE;
+    /* MSVC++ 8 follows the C++0x rules for treating the single ">>" token as
+       two ">" tokens in angle bracket contexts. */
+    right_shift_can_be_angle_brackets = microsoft_version >= 1400;
   }  /* if */
   /* The Microsoft compiler does not find typedefs when looking up names
      in elaborated type specifiers. */
