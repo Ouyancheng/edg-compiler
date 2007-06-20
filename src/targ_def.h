@@ -266,6 +266,10 @@ Flag that is TRUE if the target is a 64-bit x86 platform.
 #endif /* defined(__x86_64) */
 #endif /* !defined(USE_X86_64) */
 
+#if USE_X86_64 && !LONG_LONG_ALLOWED
+ #error -- USE_X86_64 requires that LONG_LONG_ALLOWED be TRUE
+#endif /* USE_X86_64 && !LONG_LONG_ALLOWED */
+
 /*
 Flag that is TRUE if support for exported templates can be enabled.
 Export support requires some name mangling features not present in
