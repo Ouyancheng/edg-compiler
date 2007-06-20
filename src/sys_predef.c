@@ -937,7 +937,8 @@ Enter the standard predeclared functions for GCC.
                           volatile_void_star, unsigned);
   enter_gnu_builtin_func2(_sync_sub_and_fetch_4, unsigned,
                           volatile_void_star, unsigned);
-  enter_gnu_builtin_func2(_sync_or_and_fetch_4, unsigned, volatile_void_star, unsigned);
+  enter_gnu_builtin_func2(_sync_or_and_fetch_4, unsigned,
+                          volatile_void_star, unsigned);
   enter_gnu_builtin_func2(_sync_and_and_fetch_4, unsigned,
                           volatile_void_star, unsigned);
   enter_gnu_builtin_func2(_sync_xor_and_fetch_4, unsigned,

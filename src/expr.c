@@ -2137,14 +2137,18 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
 static a_routine_ptr adjust_gnu_sync_call(an_operand          *target,
                                           an_arg_operand_ptr  *args)
 /*
-A GNU built-in function (described by target) is being called.  If the call is
-to a predeclared GNU __sync_...  function it may need to be adjusted.  For
-example, a call like:
+A GNU built-in function (described by target) is being called and the current
+token is right after the left parenthesis of the call.  If the call is to a
+predeclared GNU __sync_...  function it may need to be adjusted.  For example,
+a call like:
 	__sync_fetch_and_add(&x, 3, ignored())
 must be replaced by
 	(typeof(x))__sync_fetch_and_add_4((void*)&x, (typeof(x)3)
 if x is a 4-byte integral type.  Such transformations (if applicable) are made
-by this routine.  The actual routine to call is returned, and if the arguments to the call were prescanned, they are returned through *args.
+by this routine and require prescanning the argument types.  The actual routine
+to call is returned, and if the arguments to the call were prescanned, they are
+returned through *args (in that case, the current token on return is the
+closing right parenthesis).
 */
 {
   int                      n_args = 0, k;
@@ -2194,7 +2198,7 @@ by this routine.  The actual routine to call is returned, and if the arguments t
     check_assertion(curr_token == tok_lparen);
     (void)get_token();
     first_arg_pos = pos_curr_token;
-    *args = scan_expr_list(/*trailing_comma_okay=*/any_cfront_mode());
+    *args = scan_expr_list(/*trailing_comma_okay=*/FALSE);
     if (*args == NULL) {
       /* If there is no first argument, we cannot determine the concrete
          version to call. */
@@ -2218,12 +2222,16 @@ by this routine.  The actual routine to call is returned, and if the arguments t
     }  /* if */
     dispatch_type = skip_typerefs((*args)->operand.type);
     if (!is_pointer_type(dispatch_type)) {
-      pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
+      if (!is_error_type(dispatch_type)) {
+        pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
+      }  /* if */
       goto done;
     }  /* if */
     dispatch_type = type_pointed_to(dispatch_type);
     dispatch_type = skip_typerefs(dispatch_type);
-    if (!is_integral_or_enum_type(dispatch_type)) {
+    if (is_error_type(dispatch_type)) {
+      /* An error has already been issued. */
+    } else if (!is_integral_or_enum_type(dispatch_type)) {
       pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
     } else if (dispatch_type->size != 1 && dispatch_type->size != 2 &&
                dispatch_type->size != 4 && dispatch_type->size != 8) {

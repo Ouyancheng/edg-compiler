@@ -31,7 +31,7 @@ This is the version for Linux.
 #endif /* ifndef COMPILE_MULTIPLE_SOURCE_FILES */
 
 /*
-The USE_X86_64 should be set when targeting the x86-64 variant of the i386
+USE_X86_64 should be set when targeting the x86-64 variant of the i386
 platform.
 */
 #ifndef USE_X86_64
