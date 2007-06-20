@@ -629,11 +629,13 @@ Char types:
    allowed to make the target char larger than the host char, but individual
    characters in string literals will be limited by what is representable in
    a host char. */
+#ifndef TARG_HOST_STRING_CHAR_BIT
 #if TARG_CHAR_BIT > CHAR_BIT
 #define TARG_HOST_STRING_CHAR_BIT CHAR_BIT
 #else /* TARG_CHAR_BIT <= CHAR_BIT */
 #define TARG_HOST_STRING_CHAR_BIT TARG_CHAR_BIT
 #endif /* TARG_CHAR_BIT > CHAR_BIT */
+#endif /* !defined(TARG_HOST_STRING_CHAR_BIT) */
 			/* Default value, used to initialize global variable
 			   targ_host_string_char_bit. */
 
@@ -1498,10 +1500,17 @@ Macro that determines how to encode a 32-bit character code (e.g., from a
 Invoking the macro should produce the number of values needed by the encoding
 or zero if the encoding failed.  The default is UTF-16 encoding.
 */
-#ifndef ENCODE_IN_CHAR16_T
-#define ENCODE_IN_CHAR16_T(code, p_char16_t_vals) \
+#ifndef encode_in_char16_t
+#ifdef ENCODE_IN_CHAR16_T
+/* The old spelling of this macro used all capital letters, and there is
+   a definition with that spelling; just map the macro to that definition. */
+#define encode_in_char16_t ENCODE_IN_CHAR16_T
+#else /* !defined(ENCODE_IN_CHAR16_T) */
+#define encode_in_char16_t(code, p_char16_t_vals) \
   ucn_to_utf16((code), (p_char16_t_vals))
-#endif /* !defined(ENCODE_IN_CHAR16_T) */
+#endif /* defined(ENCODE_IN_CHAR16_T) */
+#endif /* !defined(encode_in_char16_t) */
+
 
 /*
 The maximum number of char16_t characters required to encode a 32-bit

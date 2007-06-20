@@ -255,6 +255,9 @@ typedef enum /*an_option_kind*/ {
   optk_type_traits_helpers,
   optk_cpp0x_mode,
   optk_list_macros,
+#if DEBUG
+  optk_display_configuration,
+#endif /* DEBUG */
   optk_last		/* Must be last. */
 } an_option_kind;
 

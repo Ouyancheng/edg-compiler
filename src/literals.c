@@ -1076,7 +1076,7 @@ processing, and in wide characters if the constant is wide).
       char_size = (unsigned int)targ_sizeof_char16_t;
       /* Do not use a mask for char16_t characters at this time.  Any masking
          operation is the responsibility of the encoding (invoked through the
-         ENCODE_IN_CHAR16_T macro). */
+         encode_in_char16_t macro). */
       centity_bits = sizeof(unsigned long)*CHAR_BIT;
       centity_is_signed = FALSE; 
       con_type = integer_type(targ_char16_t_int_kind);
@@ -1112,7 +1112,7 @@ processing, and in wide characters if the constant is wide).
           { unsigned short char16_t_vals[MAX_CHAR16_T_ENCODING_LENGTH];
             char           *char_pos = temp_ptr;
             conv_single_wide_char(&temp_ptr, &ch, centity_mask);
-            encoding_length = ENCODE_IN_CHAR16_T(ch, char16_t_vals);
+            encoding_length = encode_in_char16_t(ch, char16_t_vals);
             if (encoding_length == 1 && i == 0) {
               /* Normal case. */
               ch = (unsigned long)char16_t_vals[0];
@@ -1321,7 +1321,7 @@ smaller) than the number of characters needed to represent the string.
       case chk_char16_t:
         prev_pos = temp_ptr;
         conv_single_wide_char(&temp_ptr, &ch, centity_mask);
-        encoding_length = ENCODE_IN_CHAR16_T(ch, char16_t_vals);
+        encoding_length = encode_in_char16_t(ch, char16_t_vals);
         if (encoding_length == 0) {
           /* ch contained a character code that cannot be encoded in a
              char16_t representation. */

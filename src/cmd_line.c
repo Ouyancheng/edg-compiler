@@ -13,6 +13,10 @@ cmd_line.c -- Command-line parsing.
 
 */
 
+/* Preserve macro definitions in targ_def.h so that dump_configuration_macros
+   below can access them. */
+#define DO_NOT_UNDEF_TARGET_MACROS 1
+
 /* Header files common to all files. */
 #include "fe_common.h"
 
@@ -1164,6 +1168,11 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_list_macros, "list_macros", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE, pchek_none);
+#if DEBUG
+  add_option_description(optk_display_configuration, "display_configuration",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
+#endif /* DEBUG */
 }  /* initialize_option_descriptions */
 
 
@@ -3400,6 +3409,2991 @@ assigns those severities.
                                       es_remark, /*make_default=*/TRUE);
 }  /* set_default_message_severities */
 
+
+#if DEBUG
+void dump_configuration_macros()
+/*
+Display the values of all the configuration macros with which this
+executable was built in a form suitable for capture and use as a defines.h
+file.
+*/
+{
+/* Macros used to display the various options. */
+#define stringize(X) #X
+#define print_string_valued_macro(X) \
+  fprintf(f_error, "#define %s %s\n", #X, stringize(X));
+#define print_numeric_valued_macro(X)                                         \
+  fprintf(f_error, "#define %s " PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE "\n", \
+          #X, (TYPE_FOR_AN_INTEGER_VALUE)(X));
+#define print_undefined_macro_name(X) \
+  fprintf(f_error, "/*      %s not defined */\n", #X);
+
+/* Print a banner. */
+  fprintf(f_error,
+          "/* Configuration data for Edison Design Group C/C++ Front End */\n"
+          "/* version %s, built on %s at %s. */\n\n",
+          VERSION_NUMBER, build_date, build_time);
+/* Print the values of all configuration macros. */
+#if defined(ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE)
+  print_numeric_valued_macro(ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE);
+#else /* !defined(ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE) */
+  print_undefined_macro_name(ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE);
+#endif /* defined(ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE) */
+#if defined(ABI_CHANGES_FOR_CONSTRUCTION_VTBLS)
+  print_numeric_valued_macro(ABI_CHANGES_FOR_CONSTRUCTION_VTBLS);
+#else /* !defined(ABI_CHANGES_FOR_CONSTRUCTION_VTBLS) */
+  print_undefined_macro_name(ABI_CHANGES_FOR_CONSTRUCTION_VTBLS);
+#endif /* defined(ABI_CHANGES_FOR_CONSTRUCTION_VTBLS) */
+#if defined(ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN)
+  print_numeric_valued_macro(ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN);
+#else /* !defined(ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN) */
+  print_undefined_macro_name(ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN);
+#endif /* defined(ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN) */
+#if defined(ABI_CHANGES_FOR_PLACEMENT_DELETE)
+  print_numeric_valued_macro(ABI_CHANGES_FOR_PLACEMENT_DELETE);
+#else /* !defined(ABI_CHANGES_FOR_PLACEMENT_DELETE) */
+  print_undefined_macro_name(ABI_CHANGES_FOR_PLACEMENT_DELETE);
+#endif /* defined(ABI_CHANGES_FOR_PLACEMENT_DELETE) */
+#if defined(ABI_CHANGES_FOR_RTTI)
+  print_numeric_valued_macro(ABI_CHANGES_FOR_RTTI);
+#else /* !defined(ABI_CHANGES_FOR_RTTI) */
+  print_undefined_macro_name(ABI_CHANGES_FOR_RTTI);
+#endif /* defined(ABI_CHANGES_FOR_RTTI) */
+#if defined(ABI_COMPATIBILITY_VERSION)
+  print_numeric_valued_macro(ABI_COMPATIBILITY_VERSION);
+#else /* !defined(ABI_COMPATIBILITY_VERSION) */
+  print_undefined_macro_name(ABI_COMPATIBILITY_VERSION);
+#endif /* defined(ABI_COMPATIBILITY_VERSION) */
+#if defined(ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR)
+  print_numeric_valued_macro(ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR);
+#else /* !defined(ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR) */
+  print_undefined_macro_name(ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR);
+#endif /* defined(ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR) */
+#if defined(ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS)
+  print_numeric_valued_macro(ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS);
+#else /* !defined(ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS) */
+  print_undefined_macro_name(ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS);
+#endif /* defined(ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS) */
+#if defined(ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED)
+  print_numeric_valued_macro(ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED);
+#else /* !defined(ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED) */
+  print_undefined_macro_name(ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED);
+#endif /* defined(ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED) */
+#if defined(ADDR_OF_BIT_FIELD_ALLOWED)
+  print_numeric_valued_macro(ADDR_OF_BIT_FIELD_ALLOWED);
+#else /* !defined(ADDR_OF_BIT_FIELD_ALLOWED) */
+  print_undefined_macro_name(ADDR_OF_BIT_FIELD_ALLOWED);
+#endif /* defined(ADDR_OF_BIT_FIELD_ALLOWED) */
+#if defined(ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C)
+  print_numeric_valued_macro(ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C);
+#else /* !defined(ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C) */
+  print_undefined_macro_name(ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C);
+#endif /* defined(ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C) */
+#if defined(ALIAS_DIRECTIVE)
+  print_numeric_valued_macro(ALIAS_DIRECTIVE);
+#else /* !defined(ALIAS_DIRECTIVE) */
+  print_undefined_macro_name(ALIAS_DIRECTIVE);
+#endif /* defined(ALIAS_DIRECTIVE) */
+#if defined(ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C)
+  print_numeric_valued_macro(ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C);
+#else /* !defined(ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C) */
+  print_undefined_macro_name(ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C);
+#endif /* defined(ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C) */
+#if defined(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C)
+  print_numeric_valued_macro(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C);
+#else /* !defined(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C) */
+  print_undefined_macro_name(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C);
+#endif /* defined(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C) */
+#if defined(ALLOW_HIDDEN_NAMES_IN_IL_WITH_IL_LOWERING)
+  print_numeric_valued_macro(ALLOW_HIDDEN_NAMES_IN_IL_WITH_IL_LOWERING);
+#else /* !defined(ALLOW_HIDDEN_NAMES_IN_IL_WITH_IL_LOWERING) */
+  print_undefined_macro_name(ALLOW_HIDDEN_NAMES_IN_IL_WITH_IL_LOWERING);
+#endif /* defined(ALLOW_HIDDEN_NAMES_IN_IL_WITH_IL_LOWERING) */
+#if defined(ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE)
+  print_numeric_valued_macro(
+                         ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE);
+#else /* !defined(ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE) */
+  print_undefined_macro_name(
+                         ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE);
+#endif /* defined(ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE) */
+#if defined(ALLOW_NONSTANDARD_ANONYMOUS_UNIONS)
+  print_numeric_valued_macro(ALLOW_NONSTANDARD_ANONYMOUS_UNIONS);
+#else /* !defined(ALLOW_NONSTANDARD_ANONYMOUS_UNIONS) */
+  print_undefined_macro_name(ALLOW_NONSTANDARD_ANONYMOUS_UNIONS);
+#endif /* defined(ALLOW_NONSTANDARD_ANONYMOUS_UNIONS) */
+#if defined(ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C)
+  print_numeric_valued_macro(ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C);
+#else /* !defined(ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C) */
+  print_undefined_macro_name(ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C);
+#endif /* defined(ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C) */
+#if defined(ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING)
+  print_numeric_valued_macro(ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING);
+#else /* !defined(ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING) */
+  print_undefined_macro_name(ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING);
+#endif /* defined(ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING) */
+#if defined(ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C)
+  print_numeric_valued_macro(ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C);
+#else /* !defined(ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C) */
+  print_undefined_macro_name(ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C);
+#endif /* defined(ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C) */
+#if defined(ALTERNATE_IL_FILE_FORMAT)
+  print_numeric_valued_macro(ALTERNATE_IL_FILE_FORMAT);
+#else /* !defined(ALTERNATE_IL_FILE_FORMAT) */
+  print_undefined_macro_name(ALTERNATE_IL_FILE_FORMAT);
+#endif /* defined(ALTERNATE_IL_FILE_FORMAT) */
+#if defined(ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE)
+  print_numeric_valued_macro(ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE);
+#else /* !defined(ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE) */
+  print_undefined_macro_name(ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE);
+#endif /* defined(ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE) */
+#if defined(ASM_FUNCTION_ALLOWED)
+  print_numeric_valued_macro(ASM_FUNCTION_ALLOWED);
+#else /* !defined(ASM_FUNCTION_ALLOWED) */
+  print_undefined_macro_name(ASM_FUNCTION_ALLOWED);
+#endif /* defined(ASM_FUNCTION_ALLOWED) */
+#if defined(ASSIGNMENT_TO_THIS_ALLOWED)
+  print_numeric_valued_macro(ASSIGNMENT_TO_THIS_ALLOWED);
+#else /* !defined(ASSIGNMENT_TO_THIS_ALLOWED) */
+  print_undefined_macro_name(ASSIGNMENT_TO_THIS_ALLOWED);
+#endif /* defined(ASSIGNMENT_TO_THIS_ALLOWED) */
+#if defined(ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS)
+  print_numeric_valued_macro(ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS);
+#else /* !defined(ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS) */
+  print_undefined_macro_name(ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS);
+#endif /* defined(ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS) */
+#if defined(ATT_PREPROCESSING_EXTENSIONS_ALLOWED)
+  print_numeric_valued_macro(ATT_PREPROCESSING_EXTENSIONS_ALLOWED);
+#else /* !defined(ATT_PREPROCESSING_EXTENSIONS_ALLOWED) */
+  print_undefined_macro_name(ATT_PREPROCESSING_EXTENSIONS_ALLOWED);
+#endif /* defined(ATT_PREPROCESSING_EXTENSIONS_ALLOWED) */
+#if defined(AUTOMATIC_TEMPLATE_INSTANTIATION)
+  print_numeric_valued_macro(AUTOMATIC_TEMPLATE_INSTANTIATION);
+#else /* !defined(AUTOMATIC_TEMPLATE_INSTANTIATION) */
+  print_undefined_macro_name(AUTOMATIC_TEMPLATE_INSTANTIATION);
+#endif /* defined(AUTOMATIC_TEMPLATE_INSTANTIATION) */
+#if defined(BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR)
+  print_numeric_valued_macro(BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR);
+#else /* !defined(BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR) */
+  print_undefined_macro_name(BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR);
+#endif /* defined(BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR) */
+#if defined(BACKSLASH_IS_ALSO_DIR_SEPARATOR)
+  print_numeric_valued_macro(BACKSLASH_IS_ALSO_DIR_SEPARATOR);
+#else /* !defined(BACKSLASH_IS_ALSO_DIR_SEPARATOR) */
+  print_undefined_macro_name(BACKSLASH_IS_ALSO_DIR_SEPARATOR);
+#endif /* defined(BACKSLASH_IS_ALSO_DIR_SEPARATOR) */
+#if defined(BACK_END_IS_CP_GEN_BE)
+  print_numeric_valued_macro(BACK_END_IS_CP_GEN_BE);
+#else /* !defined(BACK_END_IS_CP_GEN_BE) */
+  print_undefined_macro_name(BACK_END_IS_CP_GEN_BE);
+#endif /* defined(BACK_END_IS_CP_GEN_BE) */
+#if defined(BACK_END_IS_C_GEN_BE)
+  print_numeric_valued_macro(BACK_END_IS_C_GEN_BE);
+#else /* !defined(BACK_END_IS_C_GEN_BE) */
+  print_undefined_macro_name(BACK_END_IS_C_GEN_BE);
+#endif /* defined(BACK_END_IS_C_GEN_BE) */
+#if defined(BACK_END_SHOULD_BE_CALLED)
+  print_numeric_valued_macro(BACK_END_SHOULD_BE_CALLED);
+#else /* !defined(BACK_END_SHOULD_BE_CALLED) */
+  print_undefined_macro_name(BACK_END_SHOULD_BE_CALLED);
+#endif /* defined(BACK_END_SHOULD_BE_CALLED) */
+#if defined(BITS_IN_AN_INTEGER_VALUE)
+  print_numeric_valued_macro(BITS_IN_AN_INTEGER_VALUE);
+#else /* !defined(BITS_IN_AN_INTEGER_VALUE) */
+  print_undefined_macro_name(BITS_IN_AN_INTEGER_VALUE);
+#endif /* defined(BITS_IN_AN_INTEGER_VALUE) */
+#if defined(BOOL_ENABLING_POSSIBLE)
+  print_numeric_valued_macro(BOOL_ENABLING_POSSIBLE);
+#else /* !defined(BOOL_ENABLING_POSSIBLE) */
+  print_undefined_macro_name(BOOL_ENABLING_POSSIBLE);
+#endif /* defined(BOOL_ENABLING_POSSIBLE) */
+#if defined(BSEARCH_QSORT_FUNCTION_IS_EXTERN_C)
+  print_numeric_valued_macro(BSEARCH_QSORT_FUNCTION_IS_EXTERN_C);
+#else /* !defined(BSEARCH_QSORT_FUNCTION_IS_EXTERN_C) */
+  print_undefined_macro_name(BSEARCH_QSORT_FUNCTION_IS_EXTERN_C);
+#endif /* defined(BSEARCH_QSORT_FUNCTION_IS_EXTERN_C) */
+#if defined(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME)
+  print_string_valued_macro(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME);
+#else /* !defined(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME) */
+  print_undefined_macro_name(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME);
+#endif /* defined(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME) */
+#if defined(BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE)
+  print_numeric_valued_macro(BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE);
+#else /* !defined(BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE) */
+  print_undefined_macro_name(BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE);
+#endif /* defined(BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE) */
+#if defined(C99_IL_EXTENSIONS_SUPPORTED)
+  print_numeric_valued_macro(C99_IL_EXTENSIONS_SUPPORTED);
+#else /* !defined(C99_IL_EXTENSIONS_SUPPORTED) */
+  print_undefined_macro_name(C99_IL_EXTENSIONS_SUPPORTED);
+#endif /* defined(C99_IL_EXTENSIONS_SUPPORTED) */
+#if defined(CENTERLINE_CHECKING)
+  print_numeric_valued_macro(CENTERLINE_CHECKING);
+#else /* !defined(CENTERLINE_CHECKING) */
+  print_undefined_macro_name(CENTERLINE_CHECKING);
+#endif /* defined(CENTERLINE_CHECKING) */
+#if defined(CFE)
+  print_numeric_valued_macro(CFE);
+#else /* !defined(CFE) */
+  print_undefined_macro_name(CFE);
+#endif /* defined(CFE) */
+#if defined(CFRONT_2_1_OBJECT_CODE_COMPATIBILITY)
+  print_numeric_valued_macro(CFRONT_2_1_OBJECT_CODE_COMPATIBILITY);
+#else /* !defined(CFRONT_2_1_OBJECT_CODE_COMPATIBILITY) */
+  print_undefined_macro_name(CFRONT_2_1_OBJECT_CODE_COMPATIBILITY);
+#endif /* defined(CFRONT_2_1_OBJECT_CODE_COMPATIBILITY) */
+#if defined(CFRONT_3_0_OBJECT_CODE_COMPATIBILITY)
+  print_numeric_valued_macro(CFRONT_3_0_OBJECT_CODE_COMPATIBILITY);
+#else /* !defined(CFRONT_3_0_OBJECT_CODE_COMPATIBILITY) */
+  print_undefined_macro_name(CFRONT_3_0_OBJECT_CODE_COMPATIBILITY);
+#endif /* defined(CFRONT_3_0_OBJECT_CODE_COMPATIBILITY) */
+#if defined(CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG)
+  print_numeric_valued_macro(CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG);
+#else /* !defined(CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG) */
+  print_undefined_macro_name(CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG);
+#endif /* defined(CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG) */
+#if defined(CHECKING)
+  print_numeric_valued_macro(CHECKING);
+#else /* !defined(CHECKING) */
+  print_undefined_macro_name(CHECKING);
+#endif /* defined(CHECKING) */
+#if defined(CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS)
+  print_numeric_valued_macro(CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS);
+#else /* !defined(CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS) */
+  print_undefined_macro_name(CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS);
+#endif /* defined(CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS) */
+#if defined(CIL)
+  print_numeric_valued_macro(CIL);
+#else /* !defined(CIL) */
+  print_undefined_macro_name(CIL);
+#endif /* defined(CIL) */
+#if defined(CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS)
+  print_numeric_valued_macro(
+                       CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS);
+#else /* !defined(CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS) */
+  print_undefined_macro_name(
+                       CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS);
+#endif /* defined(CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS) */
+#if defined(COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS)
+  print_numeric_valued_macro(COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS);
+#else /* !defined(COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS) */
+  print_undefined_macro_name(COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS);
+#endif /* defined(COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS) */
+#if defined(COMPILE_MULTIPLE_SOURCE_FILES)
+  print_numeric_valued_macro(COMPILE_MULTIPLE_SOURCE_FILES);
+#else /* !defined(COMPILE_MULTIPLE_SOURCE_FILES) */
+  print_undefined_macro_name(COMPILE_MULTIPLE_SOURCE_FILES);
+#endif /* defined(COMPILE_MULTIPLE_SOURCE_FILES) */
+#if defined(COMPILE_MULTIPLE_TRANSLATION_UNITS)
+  print_numeric_valued_macro(COMPILE_MULTIPLE_TRANSLATION_UNITS);
+#else /* !defined(COMPILE_MULTIPLE_TRANSLATION_UNITS) */
+  print_undefined_macro_name(COMPILE_MULTIPLE_TRANSLATION_UNITS);
+#endif /* defined(COMPILE_MULTIPLE_TRANSLATION_UNITS) */
+#if defined(COMPOUND_LITERAL_ENABLING_POSSIBLE)
+  print_numeric_valued_macro(COMPOUND_LITERAL_ENABLING_POSSIBLE);
+#else /* !defined(COMPOUND_LITERAL_ENABLING_POSSIBLE) */
+  print_undefined_macro_name(COMPOUND_LITERAL_ENABLING_POSSIBLE);
+#endif /* defined(COMPOUND_LITERAL_ENABLING_POSSIBLE) */
+#if defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
+  print_numeric_valued_macro(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT);
+#else /* !defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
+  print_undefined_macro_name(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT);
+#endif /* defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
+#if defined(CUSTOM_NAME_LINKAGE_KINDS)
+  print_string_valued_macro(CUSTOM_NAME_LINKAGE_KINDS);
+#else /* !defined(CUSTOM_NAME_LINKAGE_KINDS) */
+  print_undefined_macro_name(CUSTOM_NAME_LINKAGE_KINDS);
+#endif /* defined(CUSTOM_NAME_LINKAGE_KINDS) */
+#if defined(CUSTOM_NAME_LINKAGE_KIND_NAMES)
+  print_string_valued_macro(CUSTOM_NAME_LINKAGE_KIND_NAMES);
+#else /* !defined(CUSTOM_NAME_LINKAGE_KIND_NAMES) */
+  print_undefined_macro_name(CUSTOM_NAME_LINKAGE_KIND_NAMES);
+#endif /* defined(CUSTOM_NAME_LINKAGE_KIND_NAMES) */
+#if defined(C_ANACHRONISMS_ALLOWED)
+  print_numeric_valued_macro(C_ANACHRONISMS_ALLOWED);
+#else /* !defined(C_ANACHRONISMS_ALLOWED) */
+  print_undefined_macro_name(C_ANACHRONISMS_ALLOWED);
+#endif /* defined(C_ANACHRONISMS_ALLOWED) */
+#if defined(C_GEN_BE_GENERATES_ANSI_C)
+  print_numeric_valued_macro(C_GEN_BE_GENERATES_ANSI_C);
+#else /* !defined(C_GEN_BE_GENERATES_ANSI_C) */
+  print_undefined_macro_name(C_GEN_BE_GENERATES_ANSI_C);
+#endif /* defined(C_GEN_BE_GENERATES_ANSI_C) */
+#if defined(DEBUG)
+  print_numeric_valued_macro(DEBUG);
+#else /* !defined(DEBUG) */
+  print_undefined_macro_name(DEBUG);
+#endif /* defined(DEBUG) */
+#if defined(DECL_MODIFIERS_IN_USE)
+  print_numeric_valued_macro(DECL_MODIFIERS_IN_USE);
+#else /* !defined(DECL_MODIFIERS_IN_USE) */
+  print_undefined_macro_name(DECL_MODIFIERS_IN_USE);
+#endif /* defined(DECL_MODIFIERS_IN_USE) */
+#if defined(DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED)
+  print_numeric_valued_macro(DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED);
+#else /* !defined(DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED) */
+  print_undefined_macro_name(DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED);
+#endif /* defined(DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED) */
+#if defined(DEFAULT_ALLOW_ANACHRONISMS)
+  print_numeric_valued_macro(DEFAULT_ALLOW_ANACHRONISMS);
+#else /* !defined(DEFAULT_ALLOW_ANACHRONISMS) */
+  print_undefined_macro_name(DEFAULT_ALLOW_ANACHRONISMS);
+#endif /* defined(DEFAULT_ALLOW_ANACHRONISMS) */
+#if defined(DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM)
+  print_numeric_valued_macro(
+                       DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM);
+#else /* !defined(DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM) */
+  print_undefined_macro_name(
+                       DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM);
+#endif /* defined(DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM) */
+#if defined(DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS)
+  print_numeric_valued_macro(DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS);
+#else /* !defined(DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS) */
+  print_undefined_macro_name(DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS);
+#endif /* defined(DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS) */
+#if defined(DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE)
+  print_numeric_valued_macro(DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE);
+#else /* !defined(DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE) */
+  print_undefined_macro_name(DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE);
+#endif /* defined(DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE) */
+#if defined(DEFAULT_ALLOW_NONCONST_CALL_ANACHRONISM)
+  print_numeric_valued_macro(DEFAULT_ALLOW_NONCONST_CALL_ANACHRONISM);
+#else /* !defined(DEFAULT_ALLOW_NONCONST_CALL_ANACHRONISM) */
+  print_undefined_macro_name(DEFAULT_ALLOW_NONCONST_CALL_ANACHRONISM);
+#endif /* defined(DEFAULT_ALLOW_NONCONST_CALL_ANACHRONISM) */
+#if defined(DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM)
+  print_numeric_valued_macro(DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM);
+#else /* !defined(DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM) */
+  print_undefined_macro_name(DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM);
+#endif /* defined(DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM) */
+#if defined(DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS)
+  print_numeric_valued_macro(DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS);
+#else /* !defined(DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS) */
+  print_undefined_macro_name(DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS);
+#endif /* defined(DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS) */
+#if defined(DEFAULT_ALTERNATIVE_TOKENS_ALLOWED)
+  print_numeric_valued_macro(DEFAULT_ALTERNATIVE_TOKENS_ALLOWED);
+#else /* !defined(DEFAULT_ALTERNATIVE_TOKENS_ALLOWED) */
+  print_undefined_macro_name(DEFAULT_ALTERNATIVE_TOKENS_ALLOWED);
+#endif /* defined(DEFAULT_ALTERNATIVE_TOKENS_ALLOWED) */
+#if defined(DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P)
+  print_numeric_valued_macro(DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P);
+#else /* !defined(DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P) */
+  print_undefined_macro_name(DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P);
+#endif /* defined(DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P) */
+#if defined(DEFAULT_ARG_DEPENDENT_LOOKUP)
+  print_numeric_valued_macro(DEFAULT_ARG_DEPENDENT_LOOKUP);
+#else /* !defined(DEFAULT_ARG_DEPENDENT_LOOKUP) */
+  print_undefined_macro_name(DEFAULT_ARG_DEPENDENT_LOOKUP);
+#endif /* defined(DEFAULT_ARG_DEPENDENT_LOOKUP) */
+#if defined(DEFAULT_ARRAY_NEW_AND_DELETE_ENABLED)
+  print_numeric_valued_macro(DEFAULT_ARRAY_NEW_AND_DELETE_ENABLED);
+#else /* !defined(DEFAULT_ARRAY_NEW_AND_DELETE_ENABLED) */
+  print_undefined_macro_name(DEFAULT_ARRAY_NEW_AND_DELETE_ENABLED);
+#endif /* defined(DEFAULT_ARRAY_NEW_AND_DELETE_ENABLED) */
+#if defined(DEFAULT_AUTOMATIC_INSTANTIATION_MODE)
+  print_numeric_valued_macro(DEFAULT_AUTOMATIC_INSTANTIATION_MODE);
+#else /* !defined(DEFAULT_AUTOMATIC_INSTANTIATION_MODE) */
+  print_undefined_macro_name(DEFAULT_AUTOMATIC_INSTANTIATION_MODE);
+#endif /* defined(DEFAULT_AUTOMATIC_INSTANTIATION_MODE) */
+#if defined(DEFAULT_BOOL_IS_KEYWORD)
+  print_numeric_valued_macro(DEFAULT_BOOL_IS_KEYWORD);
+#else /* !defined(DEFAULT_BOOL_IS_KEYWORD) */
+  print_undefined_macro_name(DEFAULT_BOOL_IS_KEYWORD);
+#endif /* defined(DEFAULT_BOOL_IS_KEYWORD) */
+#if defined(DEFAULT_BRIEF_DIAGNOSTICS)
+  print_numeric_valued_macro(DEFAULT_BRIEF_DIAGNOSTICS);
+#else /* !defined(DEFAULT_BRIEF_DIAGNOSTICS) */
+  print_undefined_macro_name(DEFAULT_BRIEF_DIAGNOSTICS);
+#endif /* defined(DEFAULT_BRIEF_DIAGNOSTICS) */
+#if defined(DEFAULT_C99_MODE)
+  print_numeric_valued_macro(DEFAULT_C99_MODE);
+#else /* !defined(DEFAULT_C99_MODE) */
+  print_undefined_macro_name(DEFAULT_C99_MODE);
+#endif /* defined(DEFAULT_C99_MODE) */
+#if defined(DEFAULT_CHECK_FOR_BYTE_ORDER_MARK)
+  print_numeric_valued_macro(DEFAULT_CHECK_FOR_BYTE_ORDER_MARK);
+#else /* !defined(DEFAULT_CHECK_FOR_BYTE_ORDER_MARK) */
+  print_undefined_macro_name(DEFAULT_CHECK_FOR_BYTE_ORDER_MARK);
+#endif /* defined(DEFAULT_CHECK_FOR_BYTE_ORDER_MARK) */
+#if defined(DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS)
+  print_numeric_valued_macro(DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS);
+#else /* !defined(DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS) */
+  print_undefined_macro_name(DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS);
+#endif /* defined(DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS) */
+#if defined(DEFAULT_CLASS_NAME_INJECTION)
+  print_numeric_valued_macro(DEFAULT_CLASS_NAME_INJECTION);
+#else /* !defined(DEFAULT_CLASS_NAME_INJECTION) */
+  print_undefined_macro_name(DEFAULT_CLASS_NAME_INJECTION);
+#endif /* defined(DEFAULT_CLASS_NAME_INJECTION) */
+#if defined(DEFAULT_COMPOUND_LITERALS_ALLOWED)
+  print_numeric_valued_macro(DEFAULT_COMPOUND_LITERALS_ALLOWED);
+#else /* !defined(DEFAULT_COMPOUND_LITERALS_ALLOWED) */
+  print_undefined_macro_name(DEFAULT_COMPOUND_LITERALS_ALLOWED);
+#endif /* defined(DEFAULT_COMPOUND_LITERALS_ALLOWED) */
+#if defined(DEFAULT_COMPRESS_MANGLED_NAMES)
+  print_numeric_valued_macro(DEFAULT_COMPRESS_MANGLED_NAMES);
+#else /* !defined(DEFAULT_COMPRESS_MANGLED_NAMES) */
+  print_undefined_macro_name(DEFAULT_COMPRESS_MANGLED_NAMES);
+#endif /* defined(DEFAULT_COMPRESS_MANGLED_NAMES) */
+#if defined(DEFAULT_CONTEXT_LIMIT)
+  print_string_valued_macro(DEFAULT_CONTEXT_LIMIT);
+#else /* !defined(DEFAULT_CONTEXT_LIMIT) */
+  print_undefined_macro_name(DEFAULT_CONTEXT_LIMIT);
+#endif /* defined(DEFAULT_CONTEXT_LIMIT) */
+#if defined(DEFAULT_CPP0X_MODE)
+  print_numeric_valued_macro(DEFAULT_CPP0X_MODE);
+#else /* !defined(DEFAULT_CPP0X_MODE) */
+  print_undefined_macro_name(DEFAULT_CPP0X_MODE);
+#endif /* defined(DEFAULT_CPP0X_MODE) */
+#if defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT)
+  print_numeric_valued_macro(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT);
+#else /* !defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT) */
+  print_undefined_macro_name(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT);
+#endif /* defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT) */
+#if defined(DEFAULT_DEPENDENT_NAME_PROCESSING)
+  print_numeric_valued_macro(DEFAULT_DEPENDENT_NAME_PROCESSING);
+#else /* !defined(DEFAULT_DEPENDENT_NAME_PROCESSING) */
+  print_undefined_macro_name(DEFAULT_DEPENDENT_NAME_PROCESSING);
+#endif /* defined(DEFAULT_DEPENDENT_NAME_PROCESSING) */
+#if defined(DEFAULT_DESIGNATORS_ALLOWED)
+  print_numeric_valued_macro(DEFAULT_DESIGNATORS_ALLOWED);
+#else /* !defined(DEFAULT_DESIGNATORS_ALLOWED) */
+  print_undefined_macro_name(DEFAULT_DESIGNATORS_ALLOWED);
+#endif /* defined(DEFAULT_DESIGNATORS_ALLOWED) */
+#if defined(DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE)
+  print_numeric_valued_macro(DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE);
+#else /* !defined(DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE) */
+  print_undefined_macro_name(DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE);
+#endif /* defined(DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE) */
+#if defined(DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS)
+  print_numeric_valued_macro(DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS);
+#else /* !defined(DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS) */
+  print_undefined_macro_name(DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS);
+#endif /* defined(DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS) */
+#if defined(DEFAULT_DISTINCT_TEMPLATE_SIGNATURES)
+  print_numeric_valued_macro(DEFAULT_DISTINCT_TEMPLATE_SIGNATURES);
+#else /* !defined(DEFAULT_DISTINCT_TEMPLATE_SIGNATURES) */
+  print_undefined_macro_name(DEFAULT_DISTINCT_TEMPLATE_SIGNATURES);
+#endif /* defined(DEFAULT_DISTINCT_TEMPLATE_SIGNATURES) */
+#if defined(DEFAULT_DO_LATE_OVL_RES_TIEBREAKER)
+  print_numeric_valued_macro(DEFAULT_DO_LATE_OVL_RES_TIEBREAKER);
+#else /* !defined(DEFAULT_DO_LATE_OVL_RES_TIEBREAKER) */
+  print_undefined_macro_name(DEFAULT_DO_LATE_OVL_RES_TIEBREAKER);
+#endif /* defined(DEFAULT_DO_LATE_OVL_RES_TIEBREAKER) */
+#if defined(DEFAULT_EDG_BASE)
+  print_string_valued_macro(DEFAULT_EDG_BASE);
+#else /* !defined(DEFAULT_EDG_BASE) */
+  print_undefined_macro_name(DEFAULT_EDG_BASE);
+#endif /* defined(DEFAULT_EDG_BASE) */
+#if defined(DEFAULT_EMBEDDED_C_ENABLED)
+  print_numeric_valued_macro(DEFAULT_EMBEDDED_C_ENABLED);
+#else /* !defined(DEFAULT_EMBEDDED_C_ENABLED) */
+  print_undefined_macro_name(DEFAULT_EMBEDDED_C_ENABLED);
+#endif /* defined(DEFAULT_EMBEDDED_C_ENABLED) */
+#if defined(DEFAULT_EMULATE_GNU_ABI_BUGS)
+  print_numeric_valued_macro(DEFAULT_EMULATE_GNU_ABI_BUGS);
+#else /* !defined(DEFAULT_EMULATE_GNU_ABI_BUGS) */
+  print_undefined_macro_name(DEFAULT_EMULATE_GNU_ABI_BUGS);
+#endif /* defined(DEFAULT_EMULATE_GNU_ABI_BUGS) */
+#if defined(DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS)
+  print_numeric_valued_macro(DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS);
+#else /* !defined(DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS) */
+  print_undefined_macro_name(DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS);
+#endif /* defined(DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS) */
+#if defined(DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS)
+  print_numeric_valued_macro(DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS);
+#else /* !defined(DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS) */
+  print_undefined_macro_name(DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS);
+#endif /* defined(DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS) */
+#if defined(DEFAULT_EXCEPTIONS_ENABLED)
+  print_numeric_valued_macro(DEFAULT_EXCEPTIONS_ENABLED);
+#else /* !defined(DEFAULT_EXCEPTIONS_ENABLED) */
+  print_undefined_macro_name(DEFAULT_EXCEPTIONS_ENABLED);
+#endif /* defined(DEFAULT_EXCEPTIONS_ENABLED) */
+#if defined(DEFAULT_EXPLICIT_KEYWORD_ENABLED)
+  print_numeric_valued_macro(DEFAULT_EXPLICIT_KEYWORD_ENABLED);
+#else /* !defined(DEFAULT_EXPLICIT_KEYWORD_ENABLED) */
+  print_undefined_macro_name(DEFAULT_EXPLICIT_KEYWORD_ENABLED);
+#endif /* defined(DEFAULT_EXPLICIT_KEYWORD_ENABLED) */
+#if defined(DEFAULT_EXPORT_TEMPLATE_ALLOWED)
+  print_numeric_valued_macro(DEFAULT_EXPORT_TEMPLATE_ALLOWED);
+#else /* !defined(DEFAULT_EXPORT_TEMPLATE_ALLOWED) */
+  print_undefined_macro_name(DEFAULT_EXPORT_TEMPLATE_ALLOWED);
+#endif /* defined(DEFAULT_EXPORT_TEMPLATE_ALLOWED) */
+#if defined(DEFAULT_EXTENDED_DESIGNATORS_ALLOWED)
+  print_numeric_valued_macro(DEFAULT_EXTENDED_DESIGNATORS_ALLOWED);
+#else /* !defined(DEFAULT_EXTENDED_DESIGNATORS_ALLOWED) */
+  print_undefined_macro_name(DEFAULT_EXTENDED_DESIGNATORS_ALLOWED);
+#endif /* defined(DEFAULT_EXTENDED_DESIGNATORS_ALLOWED) */
+#if defined(DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED)
+  print_numeric_valued_macro(DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED);
+#else /* !defined(DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED) */
+  print_undefined_macro_name(DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED);
+#endif /* defined(DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED) */
+#if defined(DEFAULT_EXTERN_INLINE_ALLOWED)
+  print_numeric_valued_macro(DEFAULT_EXTERN_INLINE_ALLOWED);
+#else /* !defined(DEFAULT_EXTERN_INLINE_ALLOWED) */
+  print_undefined_macro_name(DEFAULT_EXTERN_INLINE_ALLOWED);
+#endif /* defined(DEFAULT_EXTERN_INLINE_ALLOWED) */
+#if defined(DEFAULT_FAR_CODE_POINTERS)
+  print_numeric_valued_macro(DEFAULT_FAR_CODE_POINTERS);
+#else /* !defined(DEFAULT_FAR_CODE_POINTERS) */
+  print_undefined_macro_name(DEFAULT_FAR_CODE_POINTERS);
+#endif /* defined(DEFAULT_FAR_CODE_POINTERS) */
+#if defined(DEFAULT_FAR_DATA_POINTERS)
+  print_numeric_valued_macro(DEFAULT_FAR_DATA_POINTERS);
+#else /* !defined(DEFAULT_FAR_DATA_POINTERS) */
+  print_undefined_macro_name(DEFAULT_FAR_DATA_POINTERS);
+#endif /* defined(DEFAULT_FAR_DATA_POINTERS) */
+#if defined(DEFAULT_FIXED_POINT_ENABLED)
+  print_numeric_valued_macro(DEFAULT_FIXED_POINT_ENABLED);
+#else /* !defined(DEFAULT_FIXED_POINT_ENABLED) */
+  print_undefined_macro_name(DEFAULT_FIXED_POINT_ENABLED);
+#endif /* defined(DEFAULT_FIXED_POINT_ENABLED) */
+#if defined(DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED)
+  print_numeric_valued_macro(
+                           DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED);
+#else /* !defined(DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED) */
+  print_undefined_macro_name(
+                           DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED);
+#endif /* defined(DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED) */
+#if defined(DEFAULT_FRIEND_INJECTION)
+  print_numeric_valued_macro(DEFAULT_FRIEND_INJECTION);
+#else /* !defined(DEFAULT_FRIEND_INJECTION) */
+  print_undefined_macro_name(DEFAULT_FRIEND_INJECTION);
+#endif /* defined(DEFAULT_FRIEND_INJECTION) */
+#if defined(DEFAULT_GNU_ABI_VERSION)
+  print_string_valued_macro(DEFAULT_GNU_ABI_VERSION);
+#else /* !defined(DEFAULT_GNU_ABI_VERSION) */
+  print_undefined_macro_name(DEFAULT_GNU_ABI_VERSION);
+#endif /* defined(DEFAULT_GNU_ABI_VERSION) */
+#if defined(DEFAULT_GNU_COMPATIBILITY)
+  print_numeric_valued_macro(DEFAULT_GNU_COMPATIBILITY);
+#else /* !defined(DEFAULT_GNU_COMPATIBILITY) */
+  print_undefined_macro_name(DEFAULT_GNU_COMPATIBILITY);
+#endif /* defined(DEFAULT_GNU_COMPATIBILITY) */
+#if defined(DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED)
+  print_numeric_valued_macro(DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED);
+#else /* !defined(DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED) */
+  print_undefined_macro_name(DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED);
+#endif /* defined(DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED) */
+#if defined(DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS)
+  print_numeric_valued_macro(DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS);
+#else /* !defined(DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS) */
+  print_undefined_macro_name(DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS);
+#endif /* defined(DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS) */
+#if defined(DEFAULT_GNU_VERSION)
+  print_string_valued_macro(DEFAULT_GNU_VERSION);
+#else /* !defined(DEFAULT_GNU_VERSION) */
+  print_undefined_macro_name(DEFAULT_GNU_VERSION);
+#endif /* defined(DEFAULT_GNU_VERSION) */
+#if defined(DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED)
+  print_numeric_valued_macro(DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED);
+#else /* !defined(DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED) */
+  print_undefined_macro_name(DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED);
+#endif /* defined(DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED) */
+#if defined(DEFAULT_GUIDING_DECLS_ALLOWED)
+  print_numeric_valued_macro(DEFAULT_GUIDING_DECLS_ALLOWED);
+#else /* !defined(DEFAULT_GUIDING_DECLS_ALLOWED) */
+  print_undefined_macro_name(DEFAULT_GUIDING_DECLS_ALLOWED);
+#endif /* defined(DEFAULT_GUIDING_DECLS_ALLOWED) */
+#if defined(DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE)
+  print_numeric_valued_macro(DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE);
+#else /* !defined(DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE) */
+  print_undefined_macro_name(DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE);
+#endif /* defined(DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE) */
+#if defined(DEFAULT_IMPLICIT_TYPENAME_ENABLED)
+  print_numeric_valued_macro(DEFAULT_IMPLICIT_TYPENAME_ENABLED);
+#else /* !defined(DEFAULT_IMPLICIT_TYPENAME_ENABLED) */
+  print_undefined_macro_name(DEFAULT_IMPLICIT_TYPENAME_ENABLED);
+#endif /* defined(DEFAULT_IMPLICIT_TYPENAME_ENABLED) */
+#if defined(DEFAULT_IMPLICIT_USING_STD)
+  print_numeric_valued_macro(DEFAULT_IMPLICIT_USING_STD);
+#else /* !defined(DEFAULT_IMPLICIT_USING_STD) */
+  print_undefined_macro_name(DEFAULT_IMPLICIT_USING_STD);
+#endif /* defined(DEFAULT_IMPLICIT_USING_STD) */
+#if defined(DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED)
+  print_numeric_valued_macro(
+                    DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED);
+#else /* !defined(DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED) */
+  print_undefined_macro_name(
+                    DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED);
+#endif /* defined(DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED) */
+#if defined(DEFAULT_INCLUDE_FILE_SUFFIX_LIST)
+  print_string_valued_macro(DEFAULT_INCLUDE_FILE_SUFFIX_LIST);
+#else /* !defined(DEFAULT_INCLUDE_FILE_SUFFIX_LIST) */
+  print_undefined_macro_name(DEFAULT_INCLUDE_FILE_SUFFIX_LIST);
+#endif /* defined(DEFAULT_INCLUDE_FILE_SUFFIX_LIST) */
+#if defined(DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST)
+  print_numeric_valued_macro(
+                       DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST);
+#else /* !defined(DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST) */
+  print_undefined_macro_name(
+                       DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST);
+#endif /* defined(DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST) */
+#if defined(DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST)
+  print_string_valued_macro(DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST);
+#else /* !defined(DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST) */
+  print_undefined_macro_name(DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST);
+#endif /* defined(DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST) */
+#if defined(DEFAULT_INSTANTIATION_MODE)
+  print_string_valued_macro(DEFAULT_INSTANTIATION_MODE);
+#else /* !defined(DEFAULT_INSTANTIATION_MODE) */
+  print_undefined_macro_name(DEFAULT_INSTANTIATION_MODE);
+#endif /* defined(DEFAULT_INSTANTIATION_MODE) */
+#if defined(DEFAULT_LONG_PRESERVING_RULES)
+  print_numeric_valued_macro(DEFAULT_LONG_PRESERVING_RULES);
+#else /* !defined(DEFAULT_LONG_PRESERVING_RULES) */
+  print_undefined_macro_name(DEFAULT_LONG_PRESERVING_RULES);
+#endif /* defined(DEFAULT_LONG_PRESERVING_RULES) */
+#if defined(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS)
+  print_numeric_valued_macro(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS);
+#else /* !defined(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS) */
+  print_undefined_macro_name(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS);
+#endif /* defined(DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS) */
+#if defined(DEFAULT_MAX_MANGLED_NAME_LENGTH)
+  print_numeric_valued_macro(DEFAULT_MAX_MANGLED_NAME_LENGTH);
+#else /* !defined(DEFAULT_MAX_MANGLED_NAME_LENGTH) */
+  print_undefined_macro_name(DEFAULT_MAX_MANGLED_NAME_LENGTH);
+#endif /* defined(DEFAULT_MAX_MANGLED_NAME_LENGTH) */
+#if defined(DEFAULT_MAX_PENDING_INSTANTIATIONS)
+  print_numeric_valued_macro(DEFAULT_MAX_PENDING_INSTANTIATIONS);
+#else /* !defined(DEFAULT_MAX_PENDING_INSTANTIATIONS) */
+  print_undefined_macro_name(DEFAULT_MAX_PENDING_INSTANTIATIONS);
+#endif /* defined(DEFAULT_MAX_PENDING_INSTANTIATIONS) */
+#if defined(DEFAULT_MICROSOFT_64BIT_POINTER_EXTENSIONS_ENABLED)
+  print_numeric_valued_macro(
+                           DEFAULT_MICROSOFT_64BIT_POINTER_EXTENSIONS_ENABLED);
+#else /* !defined(DEFAULT_MICROSOFT_64BIT_POINTER_EXTENSIONS_ENABLED) */
+  print_undefined_macro_name(
+                           DEFAULT_MICROSOFT_64BIT_POINTER_EXTENSIONS_ENABLED);
+#endif /* defined(DEFAULT_MICROSOFT_64BIT_POINTER_EXTENSIONS_ENABLED) */
+#if defined(DEFAULT_MICROSOFT_BUGS)
+  print_numeric_valued_macro(DEFAULT_MICROSOFT_BUGS);
+#else /* !defined(DEFAULT_MICROSOFT_BUGS) */
+  print_undefined_macro_name(DEFAULT_MICROSOFT_BUGS);
+#endif /* defined(DEFAULT_MICROSOFT_BUGS) */
+#if defined(DEFAULT_MICROSOFT_MODE)
+  print_numeric_valued_macro(DEFAULT_MICROSOFT_MODE);
+#else /* !defined(DEFAULT_MICROSOFT_MODE) */
+  print_undefined_macro_name(DEFAULT_MICROSOFT_MODE);
+#endif /* defined(DEFAULT_MICROSOFT_MODE) */
+#if defined(DEFAULT_MICROSOFT_VERSION)
+  print_numeric_valued_macro(DEFAULT_MICROSOFT_VERSION);
+#else /* !defined(DEFAULT_MICROSOFT_VERSION) */
+  print_undefined_macro_name(DEFAULT_MICROSOFT_VERSION);
+#endif /* defined(DEFAULT_MICROSOFT_VERSION) */
+#if defined(DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED)
+  print_numeric_valued_macro(DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED);
+#else /* !defined(DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED) */
+  print_undefined_macro_name(DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED);
+#endif /* defined(DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED) */
+#if defined(DEFAULT_NAMED_ADDRESS_SPACES_ENABLED)
+  print_numeric_valued_macro(DEFAULT_NAMED_ADDRESS_SPACES_ENABLED);
+#else /* !defined(DEFAULT_NAMED_ADDRESS_SPACES_ENABLED) */
+  print_undefined_macro_name(DEFAULT_NAMED_ADDRESS_SPACES_ENABLED);
+#endif /* defined(DEFAULT_NAMED_ADDRESS_SPACES_ENABLED) */
+#if defined(DEFAULT_NAMED_REGISTERS_ENABLED)
+  print_numeric_valued_macro(DEFAULT_NAMED_REGISTERS_ENABLED);
+#else /* !defined(DEFAULT_NAMED_REGISTERS_ENABLED) */
+  print_undefined_macro_name(DEFAULT_NAMED_REGISTERS_ENABLED);
+#endif /* defined(DEFAULT_NAMED_REGISTERS_ENABLED) */
+#if defined(DEFAULT_NAMESPACES_ENABLED)
+  print_numeric_valued_macro(DEFAULT_NAMESPACES_ENABLED);
+#else /* !defined(DEFAULT_NAMESPACES_ENABLED) */
+  print_undefined_macro_name(DEFAULT_NAMESPACES_ENABLED);
+#endif /* defined(DEFAULT_NAMESPACES_ENABLED) */
+#if defined(DEFAULT_NEAR_AND_FAR_ENABLED)
+  print_numeric_valued_macro(DEFAULT_NEAR_AND_FAR_ENABLED);
+#else /* !defined(DEFAULT_NEAR_AND_FAR_ENABLED) */
+  print_undefined_macro_name(DEFAULT_NEAR_AND_FAR_ENABLED);
+#endif /* defined(DEFAULT_NEAR_AND_FAR_ENABLED) */
+#if defined(DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION)
+  print_numeric_valued_macro(DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION);
+#else /* !defined(DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION) */
+  print_undefined_macro_name(DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION);
+#endif /* defined(DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION) */
+#if defined(DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION)
+  print_numeric_valued_macro(DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION);
+#else /* !defined(DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION) */
+  print_undefined_macro_name(DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION);
+#endif /* defined(DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION) */
+#if defined(DEFAULT_NONSTANDARD_USING_DECL_ALLOWED)
+  print_numeric_valued_macro(DEFAULT_NONSTANDARD_USING_DECL_ALLOWED);
+#else /* !defined(DEFAULT_NONSTANDARD_USING_DECL_ALLOWED) */
+  print_undefined_macro_name(DEFAULT_NONSTANDARD_USING_DECL_ALLOWED);
+#endif /* defined(DEFAULT_NONSTANDARD_USING_DECL_ALLOWED) */
+#if defined(DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS)
+  print_numeric_valued_macro(DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS);
+#else /* !defined(DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS) */
+  print_undefined_macro_name(DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS);
+#endif /* defined(DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS) */
+#if defined(DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE)
+  print_numeric_valued_macro(DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE);
+#else /* !defined(DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE) */
+  print_undefined_macro_name(DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE);
+#endif /* defined(DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE) */
+#if defined(DEFAULT_OLD_SPECIALIZATIONS_ALLOWED)
+  print_numeric_valued_macro(DEFAULT_OLD_SPECIALIZATIONS_ALLOWED);
+#else /* !defined(DEFAULT_OLD_SPECIALIZATIONS_ALLOWED) */
+  print_undefined_macro_name(DEFAULT_OLD_SPECIALIZATIONS_ALLOWED);
+#endif /* defined(DEFAULT_OLD_SPECIALIZATIONS_ALLOWED) */
+#if defined(DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES)
+  print_numeric_valued_macro(
+                          DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES);
+#else /* !defined(DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES) */
+  print_undefined_macro_name(
+                          DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES);
+#endif /* defined(DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES) */
+#if defined(DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS)
+  print_numeric_valued_macro(DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS);
+#else /* !defined(DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS) */
+  print_undefined_macro_name(DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS);
+#endif /* defined(DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS) */
+#if defined(DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE)
+  print_numeric_valued_macro(DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE);
+#else /* !defined(DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE) */
+  print_undefined_macro_name(DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE);
+#endif /* defined(DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE) */
+#if defined(DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED)
+  print_numeric_valued_macro(
+                          DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED);
+#else /* !defined(DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED) */
+  print_undefined_macro_name(
+                          DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED);
+#endif /* defined(DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED) */
+#if defined(DEFAULT_PREALLOCATED_PCH_MEM_SIZE)
+  print_numeric_valued_macro(DEFAULT_PREALLOCATED_PCH_MEM_SIZE);
+#else /* !defined(DEFAULT_PREALLOCATED_PCH_MEM_SIZE) */
+  print_undefined_macro_name(DEFAULT_PREALLOCATED_PCH_MEM_SIZE);
+#endif /* defined(DEFAULT_PREALLOCATED_PCH_MEM_SIZE) */
+#if defined(DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE)
+  print_numeric_valued_macro(
+                     DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE);
+#else /* !defined(DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE) */
+  print_undefined_macro_name(
+                     DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE);
+#endif /* defined(DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE) */
+#if defined(DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE)
+  print_numeric_valued_macro(
+                     DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE);
+#else /* !defined(DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE) */
+  print_undefined_macro_name(
+                     DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE);
+#endif /* defined(DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE) */
+#if defined(DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES)
+  print_numeric_valued_macro(DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES);
+#else /* !defined(DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES) */
+  print_undefined_macro_name(DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES);
+#endif /* defined(DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES) */
+#if defined(DEFAULT_REMOVE_UNNEEDED_ENTITIES)
+  print_numeric_valued_macro(DEFAULT_REMOVE_UNNEEDED_ENTITIES);
+#else /* !defined(DEFAULT_REMOVE_UNNEEDED_ENTITIES) */
+  print_undefined_macro_name(DEFAULT_REMOVE_UNNEEDED_ENTITIES);
+#endif /* defined(DEFAULT_REMOVE_UNNEEDED_ENTITIES) */
+#if defined(DEFAULT_RESTRICT_ENABLED)
+  print_numeric_valued_macro(DEFAULT_RESTRICT_ENABLED);
+#else /* !defined(DEFAULT_RESTRICT_ENABLED) */
+  print_undefined_macro_name(DEFAULT_RESTRICT_ENABLED);
+#endif /* defined(DEFAULT_RESTRICT_ENABLED) */
+#if defined(DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS)
+  print_numeric_valued_macro(DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS);
+#else /* !defined(DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS) */
+  print_undefined_macro_name(DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS);
+#endif /* defined(DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS) */
+#if defined(DEFAULT_RTTI_ENABLED)
+  print_numeric_valued_macro(DEFAULT_RTTI_ENABLED);
+#else /* !defined(DEFAULT_RTTI_ENABLED) */
+  print_undefined_macro_name(DEFAULT_RTTI_ENABLED);
+#endif /* defined(DEFAULT_RTTI_ENABLED) */
+#if defined(DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER)
+  print_numeric_valued_macro(DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER);
+#else /* !defined(DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER) */
+  print_undefined_macro_name(DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER);
+#endif /* defined(DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER) */
+#if defined(DEFAULT_SPECIAL_SUBSCRIPT_COST)
+  print_numeric_valued_macro(DEFAULT_SPECIAL_SUBSCRIPT_COST);
+#else /* !defined(DEFAULT_SPECIAL_SUBSCRIPT_COST) */
+  print_undefined_macro_name(DEFAULT_SPECIAL_SUBSCRIPT_COST);
+#endif /* defined(DEFAULT_SPECIAL_SUBSCRIPT_COST) */
+#if defined(DEFAULT_STRING_LITERALS_ARE_CONST)
+  print_numeric_valued_macro(DEFAULT_STRING_LITERALS_ARE_CONST);
+#else /* !defined(DEFAULT_STRING_LITERALS_ARE_CONST) */
+  print_undefined_macro_name(DEFAULT_STRING_LITERALS_ARE_CONST);
+#endif /* defined(DEFAULT_STRING_LITERALS_ARE_CONST) */
+#if defined(DEFAULT_SUN_COMPATIBILITY)
+  print_numeric_valued_macro(DEFAULT_SUN_COMPATIBILITY);
+#else /* !defined(DEFAULT_SUN_COMPATIBILITY) */
+  print_undefined_macro_name(DEFAULT_SUN_COMPATIBILITY);
+#endif /* defined(DEFAULT_SUN_COMPATIBILITY) */
+#if defined(DEFAULT_SUN_LINKER_SCOPE_ALLOWED)
+  print_numeric_valued_macro(DEFAULT_SUN_LINKER_SCOPE_ALLOWED);
+#else /* !defined(DEFAULT_SUN_LINKER_SCOPE_ALLOWED) */
+  print_undefined_macro_name(DEFAULT_SUN_LINKER_SCOPE_ALLOWED);
+#endif /* defined(DEFAULT_SUN_LINKER_SCOPE_ALLOWED) */
+#if defined(DEFAULT_SVR4_C_MODE)
+  print_numeric_valued_macro(DEFAULT_SVR4_C_MODE);
+#else /* !defined(DEFAULT_SVR4_C_MODE) */
+  print_undefined_macro_name(DEFAULT_SVR4_C_MODE);
+#endif /* defined(DEFAULT_SVR4_C_MODE) */
+#if defined(DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED)
+  print_numeric_valued_macro(DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED);
+#else /* !defined(DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED) */
+  print_undefined_macro_name(DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED);
+#endif /* defined(DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED) */
+#if defined(DEFAULT_TMPDIR)
+  print_string_valued_macro(DEFAULT_TMPDIR);
+#else /* !defined(DEFAULT_TMPDIR) */
+  print_undefined_macro_name(DEFAULT_TMPDIR);
+#endif /* defined(DEFAULT_TMPDIR) */
+#if defined(DEFAULT_TRIGRAPHS_ALLOWED)
+  print_numeric_valued_macro(DEFAULT_TRIGRAPHS_ALLOWED);
+#else /* !defined(DEFAULT_TRIGRAPHS_ALLOWED) */
+  print_undefined_macro_name(DEFAULT_TRIGRAPHS_ALLOWED);
+#endif /* defined(DEFAULT_TRIGRAPHS_ALLOWED) */
+#if defined(DEFAULT_TYPENAME_ENABLED)
+  print_numeric_valued_macro(DEFAULT_TYPENAME_ENABLED);
+#else /* !defined(DEFAULT_TYPENAME_ENABLED) */
+  print_undefined_macro_name(DEFAULT_TYPENAME_ENABLED);
+#endif /* defined(DEFAULT_TYPENAME_ENABLED) */
+#if defined(DEFAULT_TYPE_INFO_IN_NAMESPACE_STD)
+  print_numeric_valued_macro(DEFAULT_TYPE_INFO_IN_NAMESPACE_STD);
+#else /* !defined(DEFAULT_TYPE_INFO_IN_NAMESPACE_STD) */
+  print_undefined_macro_name(DEFAULT_TYPE_INFO_IN_NAMESPACE_STD);
+#endif /* defined(DEFAULT_TYPE_INFO_IN_NAMESPACE_STD) */
+#if defined(DEFAULT_TYPE_TRAITS_HELPERS_ENABLED)
+  print_numeric_valued_macro(DEFAULT_TYPE_TRAITS_HELPERS_ENABLED);
+#else /* !defined(DEFAULT_TYPE_TRAITS_HELPERS_ENABLED) */
+  print_undefined_macro_name(DEFAULT_TYPE_TRAITS_HELPERS_ENABLED);
+#endif /* defined(DEFAULT_TYPE_TRAITS_HELPERS_ENABLED) */
+#if defined(DEFAULT_ULITERALS_ENABLED)
+  print_numeric_valued_macro(DEFAULT_ULITERALS_ENABLED);
+#else /* !defined(DEFAULT_ULITERALS_ENABLED) */
+  print_undefined_macro_name(DEFAULT_ULITERALS_ENABLED);
+#endif /* defined(DEFAULT_ULITERALS_ENABLED) */
+#if defined(DEFAULT_UPC_MODE)
+  print_numeric_valued_macro(DEFAULT_UPC_MODE);
+#else /* !defined(DEFAULT_UPC_MODE) */
+  print_undefined_macro_name(DEFAULT_UPC_MODE);
+#endif /* defined(DEFAULT_UPC_MODE) */
+#if defined(DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE)
+  print_numeric_valued_macro(DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE);
+#else /* !defined(DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE) */
+  print_undefined_macro_name(DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE);
+#endif /* defined(DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE) */
+#if defined(DEFAULT_USE_PREDEFINED_MACRO_FILE)
+  print_numeric_valued_macro(DEFAULT_USE_PREDEFINED_MACRO_FILE);
+#else /* !defined(DEFAULT_USE_PREDEFINED_MACRO_FILE) */
+  print_undefined_macro_name(DEFAULT_USE_PREDEFINED_MACRO_FILE);
+#endif /* defined(DEFAULT_USE_PREDEFINED_MACRO_FILE) */
+#if defined(DEFAULT_USR_INCLUDE)
+  print_string_valued_macro(DEFAULT_USR_INCLUDE);
+#else /* !defined(DEFAULT_USR_INCLUDE) */
+  print_undefined_macro_name(DEFAULT_USR_INCLUDE);
+#endif /* defined(DEFAULT_USR_INCLUDE) */
+#if defined(DEFAULT_VARIADIC_MACROS_ALLOWED)
+  print_numeric_valued_macro(DEFAULT_VARIADIC_MACROS_ALLOWED);
+#else /* !defined(DEFAULT_VARIADIC_MACROS_ALLOWED) */
+  print_undefined_macro_name(DEFAULT_VARIADIC_MACROS_ALLOWED);
+#endif /* defined(DEFAULT_VARIADIC_MACROS_ALLOWED) */
+#if defined(DEFAULT_VA_LIST_IN_STD_NAMESPACE)
+  print_numeric_valued_macro(DEFAULT_VA_LIST_IN_STD_NAMESPACE);
+#else /* !defined(DEFAULT_VA_LIST_IN_STD_NAMESPACE) */
+  print_undefined_macro_name(DEFAULT_VA_LIST_IN_STD_NAMESPACE);
+#endif /* defined(DEFAULT_VA_LIST_IN_STD_NAMESPACE) */
+#if defined(DEFAULT_VLA_ENABLED)
+  print_numeric_valued_macro(DEFAULT_VLA_ENABLED);
+#else /* !defined(DEFAULT_VLA_ENABLED) */
+  print_undefined_macro_name(DEFAULT_VLA_ENABLED);
+#endif /* defined(DEFAULT_VLA_ENABLED) */
+#if defined(DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE)
+  print_numeric_valued_macro(DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE);
+#else /* !defined(DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE) */
+  print_undefined_macro_name(DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE);
+#endif /* defined(DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE) */
+#if defined(DEFAULT_WARNING_ON_NON_TEMPLATE_FRIEND)
+  print_numeric_valued_macro(DEFAULT_WARNING_ON_NON_TEMPLATE_FRIEND);
+#else /* !defined(DEFAULT_WARNING_ON_NON_TEMPLATE_FRIEND) */
+  print_undefined_macro_name(DEFAULT_WARNING_ON_NON_TEMPLATE_FRIEND);
+#endif /* defined(DEFAULT_WARNING_ON_NON_TEMPLATE_FRIEND) */
+#if defined(DEFAULT_WCHAR_T_IS_KEYWORD)
+  print_numeric_valued_macro(DEFAULT_WCHAR_T_IS_KEYWORD);
+#else /* !defined(DEFAULT_WCHAR_T_IS_KEYWORD) */
+  print_undefined_macro_name(DEFAULT_WCHAR_T_IS_KEYWORD);
+#endif /* defined(DEFAULT_WCHAR_T_IS_KEYWORD) */
+#if defined(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED)
+  print_numeric_valued_macro(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED);
+#else /* !defined(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED) */
+  print_undefined_macro_name(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED);
+#endif /* defined(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED) */
+#if defined(DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD)
+  print_numeric_valued_macro(DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD);
+#else /* !defined(DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD) */
+  print_undefined_macro_name(DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD);
+#endif /* defined(DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD) */
+#if defined(DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED)
+  print_numeric_valued_macro(DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED);
+#else /* !defined(DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED) */
+  print_undefined_macro_name(DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED);
+#endif /* defined(DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED) */
+#if defined(DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED)
+  print_numeric_valued_macro(DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED);
+#else /* !defined(DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED) */
+  print_undefined_macro_name(DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED);
+#endif /* defined(DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED) */
+#if defined(DEFINE_MACRO_WHEN_PLACEMENT_DELETE_ENABLED)
+  print_numeric_valued_macro(DEFINE_MACRO_WHEN_PLACEMENT_DELETE_ENABLED);
+#else /* !defined(DEFINE_MACRO_WHEN_PLACEMENT_DELETE_ENABLED) */
+  print_undefined_macro_name(DEFINE_MACRO_WHEN_PLACEMENT_DELETE_ENABLED);
+#endif /* defined(DEFINE_MACRO_WHEN_PLACEMENT_DELETE_ENABLED) */
+#if defined(DEFINE_MACRO_WHEN_RTTI_ENABLED)
+  print_numeric_valued_macro(DEFINE_MACRO_WHEN_RTTI_ENABLED);
+#else /* !defined(DEFINE_MACRO_WHEN_RTTI_ENABLED) */
+  print_undefined_macro_name(DEFINE_MACRO_WHEN_RTTI_ENABLED);
+#endif /* defined(DEFINE_MACRO_WHEN_RTTI_ENABLED) */
+#if defined(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD)
+  print_numeric_valued_macro(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD);
+#else /* !defined(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD) */
+  print_undefined_macro_name(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD);
+#endif /* defined(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD) */
+#if defined(DELETE_CAN_BE_FOLDED_INTO_DTOR)
+  print_numeric_valued_macro(DELETE_CAN_BE_FOLDED_INTO_DTOR);
+#else /* !defined(DELETE_CAN_BE_FOLDED_INTO_DTOR) */
+  print_undefined_macro_name(DELETE_CAN_BE_FOLDED_INTO_DTOR);
+#endif /* defined(DELETE_CAN_BE_FOLDED_INTO_DTOR) */
+#if defined(DEMO_VERSION_ID)
+  print_string_valued_macro(DEMO_VERSION_ID);
+#else /* !defined(DEMO_VERSION_ID) */
+  print_undefined_macro_name(DEMO_VERSION_ID);
+#endif /* defined(DEMO_VERSION_ID) */
+#if defined(DEPRECATION_STRING_IN_IL)
+  print_numeric_valued_macro(DEPRECATION_STRING_IN_IL);
+#else /* !defined(DEPRECATION_STRING_IN_IL) */
+  print_undefined_macro_name(DEPRECATION_STRING_IN_IL);
+#endif /* defined(DEPRECATION_STRING_IN_IL) */
+#if defined(DESIGNATED_INITIALIZER_ENABLING_POSSIBLE)
+  print_numeric_valued_macro(DESIGNATED_INITIALIZER_ENABLING_POSSIBLE);
+#else /* !defined(DESIGNATED_INITIALIZER_ENABLING_POSSIBLE) */
+  print_undefined_macro_name(DESIGNATED_INITIALIZER_ENABLING_POSSIBLE);
+#endif /* defined(DESIGNATED_INITIALIZER_ENABLING_POSSIBLE) */
+#if defined(DIRECTORY_SEPARATOR)
+  print_string_valued_macro(DIRECTORY_SEPARATOR);
+#else /* !defined(DIRECTORY_SEPARATOR) */
+  print_undefined_macro_name(DIRECTORY_SEPARATOR);
+#endif /* defined(DIRECTORY_SEPARATOR) */
+#if defined(DIRECTORY_SEPARATOR_STRING)
+  print_string_valued_macro(DIRECTORY_SEPARATOR_STRING);
+#else /* !defined(DIRECTORY_SEPARATOR_STRING) */
+  print_undefined_macro_name(DIRECTORY_SEPARATOR_STRING);
+#endif /* defined(DIRECTORY_SEPARATOR_STRING) */
+#if defined(DIRECT_ERROR_OUTPUT_TO_STDOUT)
+  print_numeric_valued_macro(DIRECT_ERROR_OUTPUT_TO_STDOUT);
+#else /* !defined(DIRECT_ERROR_OUTPUT_TO_STDOUT) */
+  print_undefined_macro_name(DIRECT_ERROR_OUTPUT_TO_STDOUT);
+#endif /* defined(DIRECT_ERROR_OUTPUT_TO_STDOUT) */
+#if defined(DO_C99_IL_LOWERING)
+  print_numeric_valued_macro(DO_C99_IL_LOWERING);
+#else /* !defined(DO_C99_IL_LOWERING) */
+  print_undefined_macro_name(DO_C99_IL_LOWERING);
+#endif /* defined(DO_C99_IL_LOWERING) */
+#if defined(DO_FULL_PORTABLE_EH_LOWERING)
+  print_numeric_valued_macro(DO_FULL_PORTABLE_EH_LOWERING);
+#else /* !defined(DO_FULL_PORTABLE_EH_LOWERING) */
+  print_undefined_macro_name(DO_FULL_PORTABLE_EH_LOWERING);
+#endif /* defined(DO_FULL_PORTABLE_EH_LOWERING) */
+#if defined(DO_IL_LOWERING)
+  print_numeric_valued_macro(DO_IL_LOWERING);
+#else /* !defined(DO_IL_LOWERING) */
+  print_undefined_macro_name(DO_IL_LOWERING);
+#endif /* defined(DO_IL_LOWERING) */
+#if defined(DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING)
+  print_numeric_valued_macro(DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING);
+#else /* !defined(DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING) */
+  print_undefined_macro_name(DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING);
+#endif /* defined(DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING) */
+#if defined(DO_UNORDERED_EH_PROCESSING)
+  print_numeric_valued_macro(DO_UNORDERED_EH_PROCESSING);
+#else /* !defined(DO_UNORDERED_EH_PROCESSING) */
+  print_undefined_macro_name(DO_UNORDERED_EH_PROCESSING);
+#endif /* defined(DO_UNORDERED_EH_PROCESSING) */
+#if defined(DRIVER_COMPATIBILITY_VERSION)
+  print_numeric_valued_macro(DRIVER_COMPATIBILITY_VERSION);
+#else /* !defined(DRIVER_COMPATIBILITY_VERSION) */
+  print_undefined_macro_name(DRIVER_COMPATIBILITY_VERSION);
+#endif /* defined(DRIVER_COMPATIBILITY_VERSION) */
+#if defined(DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE)
+  print_numeric_valued_macro(DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE);
+#else /* !defined(DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE) */
+  print_undefined_macro_name(DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE);
+#endif /* defined(DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE) */
+#if defined(DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES)
+  print_numeric_valued_macro(
+                            DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES);
+#else /* !defined(DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES) */
+  print_undefined_macro_name(
+                            DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES);
+#endif /* defined(DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES) */
+#if defined(EDG_AUXILIARY_INFO_DIR_NAME)
+  print_string_valued_macro(EDG_AUXILIARY_INFO_DIR_NAME);
+#else /* !defined(EDG_AUXILIARY_INFO_DIR_NAME) */
+  print_undefined_macro_name(EDG_AUXILIARY_INFO_DIR_NAME);
+#endif /* defined(EDG_AUXILIARY_INFO_DIR_NAME) */
+#if defined(EDG_MAIN)
+  print_string_valued_macro(EDG_MAIN);
+#else /* !defined(EDG_MAIN) */
+  print_undefined_macro_name(EDG_MAIN);
+#endif /* defined(EDG_MAIN) */
+#if defined(EDG_MULTIBYTE_CHAR_TEST_MODE)
+  print_numeric_valued_macro(EDG_MULTIBYTE_CHAR_TEST_MODE);
+#else /* !defined(EDG_MULTIBYTE_CHAR_TEST_MODE) */
+  print_undefined_macro_name(EDG_MULTIBYTE_CHAR_TEST_MODE);
+#endif /* defined(EDG_MULTIBYTE_CHAR_TEST_MODE) */
+#if defined(ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS)
+  print_numeric_valued_macro(ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS);
+#else /* !defined(ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS) */
+  print_undefined_macro_name(ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS);
+#endif /* defined(ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS) */
+#if defined(EMBEDDED_C_ALLOWED)
+  print_numeric_valued_macro(EMBEDDED_C_ALLOWED);
+#else /* !defined(EMBEDDED_C_ALLOWED) */
+  print_undefined_macro_name(EMBEDDED_C_ALLOWED);
+#endif /* defined(EMBEDDED_C_ALLOWED) */
+#if defined(ENABLE_TRANS_UNIT_TEST_MODE)
+  print_numeric_valued_macro(ENABLE_TRANS_UNIT_TEST_MODE);
+#else /* !defined(ENABLE_TRANS_UNIT_TEST_MODE) */
+  print_undefined_macro_name(ENABLE_TRANS_UNIT_TEST_MODE);
+#endif /* defined(ENABLE_TRANS_UNIT_TEST_MODE) */
+#if defined(END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE)
+  print_numeric_valued_macro(END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE);
+#else /* !defined(END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE) */
+  print_undefined_macro_name(END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE);
+#endif /* defined(END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE) */
+#if defined(ENSURE_LOWERED_TYPE_LIST_ORDERING)
+  print_numeric_valued_macro(ENSURE_LOWERED_TYPE_LIST_ORDERING);
+#else /* !defined(ENSURE_LOWERED_TYPE_LIST_ORDERING) */
+  print_undefined_macro_name(ENSURE_LOWERED_TYPE_LIST_ORDERING);
+#endif /* defined(ENSURE_LOWERED_TYPE_LIST_ORDERING) */
+#if defined(ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES)
+  print_numeric_valued_macro(ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES);
+#else /* !defined(ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES) */
+  print_undefined_macro_name(ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES);
+#endif /* defined(ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES) */
+#if defined(EXIT_ON_INTERNAL_ERROR)
+  print_numeric_valued_macro(EXIT_ON_INTERNAL_ERROR);
+#else /* !defined(EXIT_ON_INTERNAL_ERROR) */
+  print_undefined_macro_name(EXIT_ON_INTERNAL_ERROR);
+#endif /* defined(EXIT_ON_INTERNAL_ERROR) */
+#if defined(EXPENSIVE_CHECKING)
+  print_numeric_valued_macro(EXPENSIVE_CHECKING);
+#else /* !defined(EXPENSIVE_CHECKING) */
+  print_undefined_macro_name(EXPENSIVE_CHECKING);
+#endif /* defined(EXPENSIVE_CHECKING) */
+#if defined(EXPORTED_TEMPLATE_FILE_SUFFIX)
+  print_string_valued_macro(EXPORTED_TEMPLATE_FILE_SUFFIX);
+#else /* !defined(EXPORTED_TEMPLATE_FILE_SUFFIX) */
+  print_undefined_macro_name(EXPORTED_TEMPLATE_FILE_SUFFIX);
+#endif /* defined(EXPORTED_TEMPLATE_FILE_SUFFIX) */
+#if defined(EXPORT_ENABLING_POSSIBLE)
+  print_numeric_valued_macro(EXPORT_ENABLING_POSSIBLE);
+#else /* !defined(EXPORT_ENABLING_POSSIBLE) */
+  print_undefined_macro_name(EXPORT_ENABLING_POSSIBLE);
+#endif /* defined(EXPORT_ENABLING_POSSIBLE) */
+#if defined(EXPORT_INFO_FILE_NAME)
+  print_string_valued_macro(EXPORT_INFO_FILE_NAME);
+#else /* !defined(EXPORT_INFO_FILE_NAME) */
+  print_undefined_macro_name(EXPORT_INFO_FILE_NAME);
+#endif /* defined(EXPORT_INFO_FILE_NAME) */
+#if defined(EXPR_RANGE_MODIFIERS_IN_IL)
+  print_numeric_valued_macro(EXPR_RANGE_MODIFIERS_IN_IL);
+#else /* !defined(EXPR_RANGE_MODIFIERS_IN_IL) */
+  print_undefined_macro_name(EXPR_RANGE_MODIFIERS_IN_IL);
+#endif /* defined(EXPR_RANGE_MODIFIERS_IN_IL) */
+#if defined(EXTRA_SOURCE_POSITIONS_IN_IL)
+  print_numeric_valued_macro(EXTRA_SOURCE_POSITIONS_IN_IL);
+#else /* !defined(EXTRA_SOURCE_POSITIONS_IN_IL) */
+  print_undefined_macro_name(EXTRA_SOURCE_POSITIONS_IN_IL);
+#endif /* defined(EXTRA_SOURCE_POSITIONS_IN_IL) */
+#if defined(FFE)
+  print_numeric_valued_macro(FFE);
+#else /* !defined(FFE) */
+  print_undefined_macro_name(FFE);
+#endif /* defined(FFE) */
+#if defined(FIL)
+  print_numeric_valued_macro(FIL);
+#else /* !defined(FIL) */
+  print_undefined_macro_name(FIL);
+#endif /* defined(FIL) */
+#if defined(FILE_NAME_FOR_STDIN)
+  print_string_valued_macro(FILE_NAME_FOR_STDIN);
+#else /* !defined(FILE_NAME_FOR_STDIN) */
+  print_undefined_macro_name(FILE_NAME_FOR_STDIN);
+#endif /* defined(FILE_NAME_FOR_STDIN) */
+#if defined(FIXED_ADDRESS_FOR_MMAP)
+  print_numeric_valued_macro(FIXED_ADDRESS_FOR_MMAP);
+#else /* !defined(FIXED_ADDRESS_FOR_MMAP) */
+  print_undefined_macro_name(FIXED_ADDRESS_FOR_MMAP);
+#endif /* defined(FIXED_ADDRESS_FOR_MMAP) */
+#if defined(FIXED_POINT_ALLOWED)
+  print_numeric_valued_macro(FIXED_POINT_ALLOWED);
+#else /* !defined(FIXED_POINT_ALLOWED) */
+  print_undefined_macro_name(FIXED_POINT_ALLOWED);
+#endif /* defined(FIXED_POINT_ALLOWED) */
+#if defined(FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS)
+  print_numeric_valued_macro(FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS);
+#else /* !defined(FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS) */
+  print_undefined_macro_name(FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS);
+#endif /* defined(FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS) */
+#if defined(FORCE_VARIABLE_DEFINITION_VIA_ZEROING)
+  print_numeric_valued_macro(FORCE_VARIABLE_DEFINITION_VIA_ZEROING);
+#else /* !defined(FORCE_VARIABLE_DEFINITION_VIA_ZEROING) */
+  print_undefined_macro_name(FORCE_VARIABLE_DEFINITION_VIA_ZEROING);
+#endif /* defined(FORCE_VARIABLE_DEFINITION_VIA_ZEROING) */
+#if defined(FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS)
+  print_numeric_valued_macro(
+                      FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS);
+#else /* !defined(FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS) */
+  print_undefined_macro_name(
+                      FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS);
+#endif /* defined(FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS) */
+#if defined(FULLY_RESOLVED_MACRO_POSITIONS)
+  print_numeric_valued_macro(FULLY_RESOLVED_MACRO_POSITIONS);
+#else /* !defined(FULLY_RESOLVED_MACRO_POSITIONS) */
+  print_undefined_macro_name(FULLY_RESOLVED_MACRO_POSITIONS);
+#endif /* defined(FULLY_RESOLVED_MACRO_POSITIONS) */
+#if defined(FULL_SOURCE_POS_IN_IL_STATEMENT)
+  print_numeric_valued_macro(FULL_SOURCE_POS_IN_IL_STATEMENT);
+#else /* !defined(FULL_SOURCE_POS_IN_IL_STATEMENT) */
+  print_undefined_macro_name(FULL_SOURCE_POS_IN_IL_STATEMENT);
+#endif /* defined(FULL_SOURCE_POS_IN_IL_STATEMENT) */
+#if defined(FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED)
+  print_numeric_valued_macro(
+                            FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED);
+#else /* !defined(FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED) */
+  print_undefined_macro_name(
+                            FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED);
+#endif /* defined(FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED) */
+#if defined(GCC_BUILTIN_VARARGS)
+  print_numeric_valued_macro(GCC_BUILTIN_VARARGS);
+#else /* !defined(GCC_BUILTIN_VARARGS) */
+  print_undefined_macro_name(GCC_BUILTIN_VARARGS);
+#endif /* defined(GCC_BUILTIN_VARARGS) */
+#if defined(GCC_BUILTIN_VARARGS_IN_GENERATED_CODE)
+  print_numeric_valued_macro(GCC_BUILTIN_VARARGS_IN_GENERATED_CODE);
+#else /* !defined(GCC_BUILTIN_VARARGS_IN_GENERATED_CODE) */
+  print_undefined_macro_name(GCC_BUILTIN_VARARGS_IN_GENERATED_CODE);
+#endif /* defined(GCC_BUILTIN_VARARGS_IN_GENERATED_CODE) */
+#if defined(GCC_IS_GENERATED_CODE_TARGET)
+  print_numeric_valued_macro(GCC_IS_GENERATED_CODE_TARGET);
+#else /* !defined(GCC_IS_GENERATED_CODE_TARGET) */
+  print_undefined_macro_name(GCC_IS_GENERATED_CODE_TARGET);
+#endif /* defined(GCC_IS_GENERATED_CODE_TARGET) */
+#if defined(GCC_VERSION_STRING)
+  print_string_valued_macro(GCC_VERSION_STRING);
+#else /* !defined(GCC_VERSION_STRING) */
+  print_undefined_macro_name(GCC_VERSION_STRING);
+#endif /* defined(GCC_VERSION_STRING) */
+#if defined(GENERATE_EH_TABLES)
+  print_numeric_valued_macro(GENERATE_EH_TABLES);
+#else /* !defined(GENERATE_EH_TABLES) */
+  print_undefined_macro_name(GENERATE_EH_TABLES);
+#endif /* defined(GENERATE_EH_TABLES) */
+#if defined(GENERATE_MICROSOFT_IF_EXISTS_ENTRIES)
+  print_numeric_valued_macro(GENERATE_MICROSOFT_IF_EXISTS_ENTRIES);
+#else /* !defined(GENERATE_MICROSOFT_IF_EXISTS_ENTRIES) */
+  print_undefined_macro_name(GENERATE_MICROSOFT_IF_EXISTS_ENTRIES);
+#endif /* defined(GENERATE_MICROSOFT_IF_EXISTS_ENTRIES) */
+#if defined(GENERATE_SOURCE_SEQUENCE_LISTS)
+  print_numeric_valued_macro(GENERATE_SOURCE_SEQUENCE_LISTS);
+#else /* !defined(GENERATE_SOURCE_SEQUENCE_LISTS) */
+  print_undefined_macro_name(GENERATE_SOURCE_SEQUENCE_LISTS);
+#endif /* defined(GENERATE_SOURCE_SEQUENCE_LISTS) */
+#if defined(GEN_C_FILE_SUFFIX)
+  print_string_valued_macro(GEN_C_FILE_SUFFIX);
+#else /* !defined(GEN_C_FILE_SUFFIX) */
+  print_undefined_macro_name(GEN_C_FILE_SUFFIX);
+#endif /* defined(GEN_C_FILE_SUFFIX) */
+#if defined(GEN_EXTRA_LINE_ID_INFO)
+  print_numeric_valued_macro(GEN_EXTRA_LINE_ID_INFO);
+#else /* !defined(GEN_EXTRA_LINE_ID_INFO) */
+  print_undefined_macro_name(GEN_EXTRA_LINE_ID_INFO);
+#endif /* defined(GEN_EXTRA_LINE_ID_INFO) */
+#if defined(GNU_COMPLEX_EXTENSIONS_ALLOWED)
+  print_numeric_valued_macro(GNU_COMPLEX_EXTENSIONS_ALLOWED);
+#else /* !defined(GNU_COMPLEX_EXTENSIONS_ALLOWED) */
+  print_undefined_macro_name(GNU_COMPLEX_EXTENSIONS_ALLOWED);
+#endif /* defined(GNU_COMPLEX_EXTENSIONS_ALLOWED) */
+#if defined(GNU_EXTENSIONS_ALLOWED)
+  print_numeric_valued_macro(GNU_EXTENSIONS_ALLOWED);
+#else /* !defined(GNU_EXTENSIONS_ALLOWED) */
+  print_undefined_macro_name(GNU_EXTENSIONS_ALLOWED);
+#endif /* defined(GNU_EXTENSIONS_ALLOWED) */
+#if defined(GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED)
+  print_numeric_valued_macro(GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED);
+#else /* !defined(GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED) */
+  print_undefined_macro_name(GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED);
+#endif /* defined(GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED) */
+#if defined(GNU_NAKED_ATTRIBUTE_ALLOWED)
+  print_numeric_valued_macro(GNU_NAKED_ATTRIBUTE_ALLOWED);
+#else /* !defined(GNU_NAKED_ATTRIBUTE_ALLOWED) */
+  print_undefined_macro_name(GNU_NAKED_ATTRIBUTE_ALLOWED);
+#endif /* defined(GNU_NAKED_ATTRIBUTE_ALLOWED) */
+#if defined(GNU_TARGET_VERSION_NUMBER)
+  print_numeric_valued_macro(GNU_TARGET_VERSION_NUMBER);
+#else /* !defined(GNU_TARGET_VERSION_NUMBER) */
+  print_undefined_macro_name(GNU_TARGET_VERSION_NUMBER);
+#endif /* defined(GNU_TARGET_VERSION_NUMBER) */
+#if defined(GNU_VISIBILITY_ATTRIBUTE_ALLOWED)
+  print_numeric_valued_macro(GNU_VISIBILITY_ATTRIBUTE_ALLOWED);
+#else /* !defined(GNU_VISIBILITY_ATTRIBUTE_ALLOWED) */
+  print_undefined_macro_name(GNU_VISIBILITY_ATTRIBUTE_ALLOWED);
+#endif /* defined(GNU_VISIBILITY_ATTRIBUTE_ALLOWED) */
+#if defined(GNU_X86_ASM_EXTENSIONS_ALLOWED)
+  print_numeric_valued_macro(GNU_X86_ASM_EXTENSIONS_ALLOWED);
+#else /* !defined(GNU_X86_ASM_EXTENSIONS_ALLOWED) */
+  print_undefined_macro_name(GNU_X86_ASM_EXTENSIONS_ALLOWED);
+#endif /* defined(GNU_X86_ASM_EXTENSIONS_ALLOWED) */
+#if defined(GNU_X86_ATTRIBUTES_ALLOWED)
+  print_numeric_valued_macro(GNU_X86_ATTRIBUTES_ALLOWED);
+#else /* !defined(GNU_X86_ATTRIBUTES_ALLOWED) */
+  print_undefined_macro_name(GNU_X86_ATTRIBUTES_ALLOWED);
+#endif /* defined(GNU_X86_ATTRIBUTES_ALLOWED) */
+#if defined(GUARD_MACRO2_FOR_VA_LIST)
+  print_string_valued_macro(GUARD_MACRO2_FOR_VA_LIST);
+#else /* !defined(GUARD_MACRO2_FOR_VA_LIST) */
+  print_undefined_macro_name(GUARD_MACRO2_FOR_VA_LIST);
+#endif /* defined(GUARD_MACRO2_FOR_VA_LIST) */
+#if defined(GUARD_MACRO_FOR_VA_LIST)
+  print_string_valued_macro(GUARD_MACRO_FOR_VA_LIST);
+#else /* !defined(GUARD_MACRO_FOR_VA_LIST) */
+  print_undefined_macro_name(GUARD_MACRO_FOR_VA_LIST);
+#endif /* defined(GUARD_MACRO_FOR_VA_LIST) */
+#if defined(HOSTID)
+  print_string_valued_macro(HOSTID);
+#else /* !defined(HOSTID) */
+  print_undefined_macro_name(HOSTID);
+#endif /* defined(HOSTID) */
+#if defined(HOSTID2)
+  print_string_valued_macro(HOSTID2);
+#else /* !defined(HOSTID2) */
+  print_undefined_macro_name(HOSTID2);
+#endif /* defined(HOSTID2) */
+#if defined(HOST_ALIGNMENT_REQUIRED)
+  print_numeric_valued_macro(HOST_ALIGNMENT_REQUIRED);
+#else /* !defined(HOST_ALIGNMENT_REQUIRED) */
+  print_undefined_macro_name(HOST_ALIGNMENT_REQUIRED);
+#endif /* defined(HOST_ALIGNMENT_REQUIRED) */
+#if defined(HOST_ALLOCATION_INCREMENT)
+  print_numeric_valued_macro(HOST_ALLOCATION_INCREMENT);
+#else /* !defined(HOST_ALLOCATION_INCREMENT) */
+  print_undefined_macro_name(HOST_ALLOCATION_INCREMENT);
+#endif /* defined(HOST_ALLOCATION_INCREMENT) */
+#if defined(HOST_IL_ENTRY_PREFIX_ALIGNMENT)
+  print_numeric_valued_macro(HOST_IL_ENTRY_PREFIX_ALIGNMENT);
+#else /* !defined(HOST_IL_ENTRY_PREFIX_ALIGNMENT) */
+  print_undefined_macro_name(HOST_IL_ENTRY_PREFIX_ALIGNMENT);
+#endif /* defined(HOST_IL_ENTRY_PREFIX_ALIGNMENT) */
+#if defined(HOST_POINTER_ALIGNMENT)
+  print_numeric_valued_macro(HOST_POINTER_ALIGNMENT);
+#else /* !defined(HOST_POINTER_ALIGNMENT) */
+  print_undefined_macro_name(HOST_POINTER_ALIGNMENT);
+#endif /* defined(HOST_POINTER_ALIGNMENT) */
+#if defined(IA64_ABI)
+  print_numeric_valued_macro(IA64_ABI);
+#else /* !defined(IA64_ABI) */
+  print_undefined_macro_name(IA64_ABI);
+#endif /* defined(IA64_ABI) */
+#if defined(IA64_ABI_USE_GUARD_ACQUIRE_RELEASE)
+  print_numeric_valued_macro(IA64_ABI_USE_GUARD_ACQUIRE_RELEASE);
+#else /* !defined(IA64_ABI_USE_GUARD_ACQUIRE_RELEASE) */
+  print_undefined_macro_name(IA64_ABI_USE_GUARD_ACQUIRE_RELEASE);
+#endif /* defined(IA64_ABI_USE_GUARD_ACQUIRE_RELEASE) */
+#if defined(IA64_ABI_USE_INT_STATIC_INIT_GUARD)
+  print_numeric_valued_macro(IA64_ABI_USE_INT_STATIC_INIT_GUARD);
+#else /* !defined(IA64_ABI_USE_INT_STATIC_INIT_GUARD) */
+  print_undefined_macro_name(IA64_ABI_USE_INT_STATIC_INIT_GUARD);
+#endif /* defined(IA64_ABI_USE_INT_STATIC_INIT_GUARD) */
+#if defined(IA64_ABI_USE_VARIANT_ARRAY_COOKIES)
+  print_numeric_valued_macro(IA64_ABI_USE_VARIANT_ARRAY_COOKIES);
+#else /* !defined(IA64_ABI_USE_VARIANT_ARRAY_COOKIES) */
+  print_undefined_macro_name(IA64_ABI_USE_VARIANT_ARRAY_COOKIES);
+#endif /* defined(IA64_ABI_USE_VARIANT_ARRAY_COOKIES) */
+#if defined(IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR)
+  print_numeric_valued_macro(IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR);
+#else /* !defined(IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR) */
+  print_undefined_macro_name(IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR);
+#endif /* defined(IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR) */
+#if defined(IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS)
+  print_numeric_valued_macro(IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS);
+#else /* !defined(IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS) */
+  print_undefined_macro_name(IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS);
+#endif /* defined(IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS) */
+#if defined(IA64_ABI_VARIANT_KEY_FUNCTION)
+  print_numeric_valued_macro(IA64_ABI_VARIANT_KEY_FUNCTION);
+#else /* !defined(IA64_ABI_VARIANT_KEY_FUNCTION) */
+  print_undefined_macro_name(IA64_ABI_VARIANT_KEY_FUNCTION);
+#endif /* defined(IA64_ABI_VARIANT_KEY_FUNCTION) */
+#if defined(IDENT_DIRECTIVE_AND_PRAGMA)
+  print_numeric_valued_macro(IDENT_DIRECTIVE_AND_PRAGMA);
+#else /* !defined(IDENT_DIRECTIVE_AND_PRAGMA) */
+  print_undefined_macro_name(IDENT_DIRECTIVE_AND_PRAGMA);
+#endif /* defined(IDENT_DIRECTIVE_AND_PRAGMA) */
+#if defined(IGNORE_CARRIAGE_RETURN_IN_SOURCE)
+  print_numeric_valued_macro(IGNORE_CARRIAGE_RETURN_IN_SOURCE);
+#else /* !defined(IGNORE_CARRIAGE_RETURN_IN_SOURCE) */
+  print_undefined_macro_name(IGNORE_CARRIAGE_RETURN_IN_SOURCE);
+#endif /* defined(IGNORE_CARRIAGE_RETURN_IN_SOURCE) */
+#if defined(IL_FILE_SUFFIX)
+  print_string_valued_macro(IL_FILE_SUFFIX);
+#else /* !defined(IL_FILE_SUFFIX) */
+  print_undefined_macro_name(IL_FILE_SUFFIX);
+#endif /* defined(IL_FILE_SUFFIX) */
+#if defined(IL_LOWERING_INIT_ROUTINE_PREFIX)
+  print_string_valued_macro(IL_LOWERING_INIT_ROUTINE_PREFIX);
+#else /* !defined(IL_LOWERING_INIT_ROUTINE_PREFIX) */
+  print_undefined_macro_name(IL_LOWERING_INIT_ROUTINE_PREFIX);
+#endif /* defined(IL_LOWERING_INIT_ROUTINE_PREFIX) */
+#if defined(IL_SHOULD_BE_WRITTEN_TO_FILE)
+  print_numeric_valued_macro(IL_SHOULD_BE_WRITTEN_TO_FILE);
+#else /* !defined(IL_SHOULD_BE_WRITTEN_TO_FILE) */
+  print_undefined_macro_name(IL_SHOULD_BE_WRITTEN_TO_FILE);
+#endif /* defined(IL_SHOULD_BE_WRITTEN_TO_FILE) */
+#if defined(IL_VERSION_NUMBER)
+  print_string_valued_macro(IL_VERSION_NUMBER);
+#else /* !defined(IL_VERSION_NUMBER) */
+  print_undefined_macro_name(IL_VERSION_NUMBER);
+#endif /* defined(IL_VERSION_NUMBER) */
+#if defined(IL_WALK_NEEDED)
+  print_numeric_valued_macro(IL_WALK_NEEDED);
+#else /* !defined(IL_WALK_NEEDED) */
+  print_undefined_macro_name(IL_WALK_NEEDED);
+#endif /* defined(IL_WALK_NEEDED) */
+#if defined(IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE)
+  print_numeric_valued_macro(
+                           IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE);
+#else /* !defined(IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE) */
+  print_undefined_macro_name(
+                           IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE);
+#endif /* defined(IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE) */
+#if defined(INCLUDE_COMMENTS_IN_ASM_FUNC_BODY)
+  print_numeric_valued_macro(INCLUDE_COMMENTS_IN_ASM_FUNC_BODY);
+#else /* !defined(INCLUDE_COMMENTS_IN_ASM_FUNC_BODY) */
+  print_undefined_macro_name(INCLUDE_COMMENTS_IN_ASM_FUNC_BODY);
+#endif /* defined(INCLUDE_COMMENTS_IN_ASM_FUNC_BODY) */
+#if defined(INCLUDE_EDG_TEST_ATTRIBUTES)
+  print_numeric_valued_macro(INCLUDE_EDG_TEST_ATTRIBUTES);
+#else /* !defined(INCLUDE_EDG_TEST_ATTRIBUTES) */
+  print_undefined_macro_name(INCLUDE_EDG_TEST_ATTRIBUTES);
+#endif /* defined(INCLUDE_EDG_TEST_ATTRIBUTES) */
+#if defined(INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES)
+  print_numeric_valued_macro(INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES);
+#else /* !defined(INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES) */
+  print_undefined_macro_name(INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES);
+#endif /* defined(INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES) */
+#if defined(INCLUDE_EDG_TEST_NAMED_REGISTERS)
+  print_numeric_valued_macro(INCLUDE_EDG_TEST_NAMED_REGISTERS);
+#else /* !defined(INCLUDE_EDG_TEST_NAMED_REGISTERS) */
+  print_undefined_macro_name(INCLUDE_EDG_TEST_NAMED_REGISTERS);
+#endif /* defined(INCLUDE_EDG_TEST_NAMED_REGISTERS) */
+#if defined(INCLUDE_EDG_TEST_PRAGMAS)
+  print_numeric_valued_macro(INCLUDE_EDG_TEST_PRAGMAS);
+#else /* !defined(INCLUDE_EDG_TEST_PRAGMAS) */
+  print_undefined_macro_name(INCLUDE_EDG_TEST_PRAGMAS);
+#endif /* defined(INCLUDE_EDG_TEST_PRAGMAS) */
+#if defined(INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL)
+  print_numeric_valued_macro(INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL);
+#else /* !defined(INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL) */
+  print_undefined_macro_name(INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL);
+#endif /* defined(INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL) */
+#if defined(INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE)
+  print_numeric_valued_macro(INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE);
+#else /* !defined(INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE) */
+  print_undefined_macro_name(INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE);
+#endif /* defined(INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE) */
+#if defined(INSTANTIATE_EXTERN_INLINE)
+  print_numeric_valued_macro(INSTANTIATE_EXTERN_INLINE);
+#else /* !defined(INSTANTIATE_EXTERN_INLINE) */
+  print_undefined_macro_name(INSTANTIATE_EXTERN_INLINE);
+#endif /* defined(INSTANTIATE_EXTERN_INLINE) */
+#if defined(INSTANTIATE_TEMPLATES_EVERYWHERE_USED)
+  print_numeric_valued_macro(INSTANTIATE_TEMPLATES_EVERYWHERE_USED);
+#else /* !defined(INSTANTIATE_TEMPLATES_EVERYWHERE_USED) */
+  print_undefined_macro_name(INSTANTIATE_TEMPLATES_EVERYWHERE_USED);
+#endif /* defined(INSTANTIATE_TEMPLATES_EVERYWHERE_USED) */
+#if defined(INSTANTIATION_BY_IMPLICIT_INCLUSION)
+  print_numeric_valued_macro(INSTANTIATION_BY_IMPLICIT_INCLUSION);
+#else /* !defined(INSTANTIATION_BY_IMPLICIT_INCLUSION) */
+  print_undefined_macro_name(INSTANTIATION_BY_IMPLICIT_INCLUSION);
+#endif /* defined(INSTANTIATION_BY_IMPLICIT_INCLUSION) */
+#if defined(INSTANTIATION_FILE_SUFFIX)
+  print_string_valued_macro(INSTANTIATION_FILE_SUFFIX);
+#else /* !defined(INSTANTIATION_FILE_SUFFIX) */
+  print_undefined_macro_name(INSTANTIATION_FILE_SUFFIX);
+#endif /* defined(INSTANTIATION_FILE_SUFFIX) */
+#if defined(INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE)
+  print_numeric_valued_macro(INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE);
+#else /* !defined(INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE) */
+  print_undefined_macro_name(INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE);
+#endif /* defined(INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE) */
+#if defined(INSTANTIATION_REQUEST_LINES_RESERVED)
+  print_numeric_valued_macro(INSTANTIATION_REQUEST_LINES_RESERVED);
+#else /* !defined(INSTANTIATION_REQUEST_LINES_RESERVED) */
+  print_undefined_macro_name(INSTANTIATION_REQUEST_LINES_RESERVED);
+#endif /* defined(INSTANTIATION_REQUEST_LINES_RESERVED) */
+#if defined(INTEGER_VALUE_REPR_IS_A_HOST_INTEGER)
+  print_numeric_valued_macro(INTEGER_VALUE_REPR_IS_A_HOST_INTEGER);
+#else /* !defined(INTEGER_VALUE_REPR_IS_A_HOST_INTEGER) */
+  print_undefined_macro_name(INTEGER_VALUE_REPR_IS_A_HOST_INTEGER);
+#endif /* defined(INTEGER_VALUE_REPR_IS_A_HOST_INTEGER) */
+#if defined(ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE)
+  print_numeric_valued_macro(ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE);
+#else /* !defined(ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE) */
+  print_undefined_macro_name(ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE);
+#endif /* defined(ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE) */
+#if defined(KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED)
+  print_numeric_valued_macro(
+                      KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED);
+#else /* !defined(KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED) */
+  print_undefined_macro_name(
+                      KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED);
+#endif /* defined(KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED) */
+#if defined(LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS)
+  print_numeric_valued_macro(LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS);
+#else /* !defined(LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS) */
+  print_undefined_macro_name(LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS);
+#endif /* defined(LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS) */
+#if defined(LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED)
+  print_string_valued_macro(LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED);
+#else /* !defined(LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED) */
+  print_undefined_macro_name(LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED);
+#endif /* defined(LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED) */
+#if defined(LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C)
+  print_numeric_valued_macro(LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C);
+#else /* !defined(LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C) */
+  print_undefined_macro_name(LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C);
+#endif /* defined(LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C) */
+#if defined(LONG_LONG_ALLOWED)
+  print_numeric_valued_macro(LONG_LONG_ALLOWED);
+#else /* !defined(LONG_LONG_ALLOWED) */
+  print_undefined_macro_name(LONG_LONG_ALLOWED);
+#endif /* defined(LONG_LONG_ALLOWED) */
+#if defined(LOWER_COMPLEX)
+  print_numeric_valued_macro(LOWER_COMPLEX);
+#else /* !defined(LOWER_COMPLEX) */
+  print_undefined_macro_name(LOWER_COMPLEX);
+#endif /* defined(LOWER_COMPLEX) */
+#if defined(LOWER_DESIGNATED_INITIALIZERS)
+  print_numeric_valued_macro(LOWER_DESIGNATED_INITIALIZERS);
+#else /* !defined(LOWER_DESIGNATED_INITIALIZERS) */
+  print_undefined_macro_name(LOWER_DESIGNATED_INITIALIZERS);
+#endif /* defined(LOWER_DESIGNATED_INITIALIZERS) */
+#if defined(LOWER_EXTERN_INLINE)
+  print_numeric_valued_macro(LOWER_EXTERN_INLINE);
+#else /* !defined(LOWER_EXTERN_INLINE) */
+  print_undefined_macro_name(LOWER_EXTERN_INLINE);
+#endif /* defined(LOWER_EXTERN_INLINE) */
+#if defined(LOWER_FIXED_POINT)
+  print_numeric_valued_macro(LOWER_FIXED_POINT);
+#else /* !defined(LOWER_FIXED_POINT) */
+  print_undefined_macro_name(LOWER_FIXED_POINT);
+#endif /* defined(LOWER_FIXED_POINT) */
+#if defined(LOWER_LVALUE_RETURNING_OPERATIONS)
+  print_numeric_valued_macro(LOWER_LVALUE_RETURNING_OPERATIONS);
+#else /* !defined(LOWER_LVALUE_RETURNING_OPERATIONS) */
+  print_undefined_macro_name(LOWER_LVALUE_RETURNING_OPERATIONS);
+#endif /* defined(LOWER_LVALUE_RETURNING_OPERATIONS) */
+#if defined(LOWER_MICROSOFT_NONCONSTANT_AGGREGATE)
+  print_numeric_valued_macro(LOWER_MICROSOFT_NONCONSTANT_AGGREGATE);
+#else /* !defined(LOWER_MICROSOFT_NONCONSTANT_AGGREGATE) */
+  print_undefined_macro_name(LOWER_MICROSOFT_NONCONSTANT_AGGREGATE);
+#endif /* defined(LOWER_MICROSOFT_NONCONSTANT_AGGREGATE) */
+#if defined(LOWER_VARIABLE_LENGTH_ARRAYS)
+  print_numeric_valued_macro(LOWER_VARIABLE_LENGTH_ARRAYS);
+#else /* !defined(LOWER_VARIABLE_LENGTH_ARRAYS) */
+  print_undefined_macro_name(LOWER_VARIABLE_LENGTH_ARRAYS);
+#endif /* defined(LOWER_VARIABLE_LENGTH_ARRAYS) */
+#if defined(MACRO_DEFINED_WHEN_ARRAY_NEW_AND_DELETE_ENABLED)
+  print_string_valued_macro(MACRO_DEFINED_WHEN_ARRAY_NEW_AND_DELETE_ENABLED);
+#else /* !defined(MACRO_DEFINED_WHEN_ARRAY_NEW_AND_DELETE_ENABLED) */
+  print_undefined_macro_name(MACRO_DEFINED_WHEN_ARRAY_NEW_AND_DELETE_ENABLED);
+#endif /* defined(MACRO_DEFINED_WHEN_ARRAY_NEW_AND_DELETE_ENABLED) */
+#if defined(MACRO_DEFINED_WHEN_BOOL_IS_KEYWORD)
+  print_string_valued_macro(MACRO_DEFINED_WHEN_BOOL_IS_KEYWORD);
+#else /* !defined(MACRO_DEFINED_WHEN_BOOL_IS_KEYWORD) */
+  print_undefined_macro_name(MACRO_DEFINED_WHEN_BOOL_IS_KEYWORD);
+#endif /* defined(MACRO_DEFINED_WHEN_BOOL_IS_KEYWORD) */
+#if defined(MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED)
+  print_string_valued_macro(MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED);
+#else /* !defined(MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED) */
+  print_undefined_macro_name(MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED);
+#endif /* defined(MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED) */
+#if defined(MACRO_DEFINED_WHEN_IA64_ABI)
+  print_string_valued_macro(MACRO_DEFINED_WHEN_IA64_ABI);
+#else /* !defined(MACRO_DEFINED_WHEN_IA64_ABI) */
+  print_undefined_macro_name(MACRO_DEFINED_WHEN_IA64_ABI);
+#endif /* defined(MACRO_DEFINED_WHEN_IA64_ABI) */
+#if defined(MACRO_DEFINED_WHEN_IA64_CTORS_DTORS_RETURN_THIS)
+  print_string_valued_macro(MACRO_DEFINED_WHEN_IA64_CTORS_DTORS_RETURN_THIS);
+#else /* !defined(MACRO_DEFINED_WHEN_IA64_CTORS_DTORS_RETURN_THIS) */
+  print_undefined_macro_name(MACRO_DEFINED_WHEN_IA64_CTORS_DTORS_RETURN_THIS);
+#endif /* defined(MACRO_DEFINED_WHEN_IA64_CTORS_DTORS_RETURN_THIS) */
+#if defined(MACRO_DEFINED_WHEN_IA64_USE_INT_STATIC_INIT_GUARD)
+  print_string_valued_macro(MACRO_DEFINED_WHEN_IA64_USE_INT_STATIC_INIT_GUARD);
+#else /* !defined(MACRO_DEFINED_WHEN_IA64_USE_INT_STATIC_INIT_GUARD) */
+  print_undefined_macro_name(
+                            MACRO_DEFINED_WHEN_IA64_USE_INT_STATIC_INIT_GUARD);
+#endif /* defined(MACRO_DEFINED_WHEN_IA64_USE_INT_STATIC_INIT_GUARD) */
+#if defined(MACRO_DEFINED_WHEN_IMPLICITLY_USING_STD)
+  print_string_valued_macro(MACRO_DEFINED_WHEN_IMPLICITLY_USING_STD);
+#else /* !defined(MACRO_DEFINED_WHEN_IMPLICITLY_USING_STD) */
+  print_undefined_macro_name(MACRO_DEFINED_WHEN_IMPLICITLY_USING_STD);
+#endif /* defined(MACRO_DEFINED_WHEN_IMPLICITLY_USING_STD) */
+#if defined(MACRO_DEFINED_WHEN_LONG_LONG_IS_DISABLED)
+  print_string_valued_macro(MACRO_DEFINED_WHEN_LONG_LONG_IS_DISABLED);
+#else /* !defined(MACRO_DEFINED_WHEN_LONG_LONG_IS_DISABLED) */
+  print_undefined_macro_name(MACRO_DEFINED_WHEN_LONG_LONG_IS_DISABLED);
+#endif /* defined(MACRO_DEFINED_WHEN_LONG_LONG_IS_DISABLED) */
+#if defined(MACRO_DEFINED_WHEN_PLACEMENT_DELETE_ENABLED)
+  print_string_valued_macro(MACRO_DEFINED_WHEN_PLACEMENT_DELETE_ENABLED);
+#else /* !defined(MACRO_DEFINED_WHEN_PLACEMENT_DELETE_ENABLED) */
+  print_undefined_macro_name(MACRO_DEFINED_WHEN_PLACEMENT_DELETE_ENABLED);
+#endif /* defined(MACRO_DEFINED_WHEN_PLACEMENT_DELETE_ENABLED) */
+#if defined(MACRO_DEFINED_WHEN_RTTI_ENABLED)
+  print_string_valued_macro(MACRO_DEFINED_WHEN_RTTI_ENABLED);
+#else /* !defined(MACRO_DEFINED_WHEN_RTTI_ENABLED) */
+  print_undefined_macro_name(MACRO_DEFINED_WHEN_RTTI_ENABLED);
+#endif /* defined(MACRO_DEFINED_WHEN_RTTI_ENABLED) */
+#if defined(MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES)
+  print_string_valued_macro(MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES);
+#else /* !defined(MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES) */
+  print_undefined_macro_name(MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES);
+#endif /* defined(MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES) */
+#if defined(MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED)
+  print_string_valued_macro(MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED);
+#else /* !defined(MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED) */
+  print_undefined_macro_name(MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED);
+#endif /* defined(MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED) */
+#if defined(MACRO_DEFINED_WHEN_WCHAR_T_IS_KEYWORD)
+  print_string_valued_macro(MACRO_DEFINED_WHEN_WCHAR_T_IS_KEYWORD);
+#else /* !defined(MACRO_DEFINED_WHEN_WCHAR_T_IS_KEYWORD) */
+  print_undefined_macro_name(MACRO_DEFINED_WHEN_WCHAR_T_IS_KEYWORD);
+#endif /* defined(MACRO_DEFINED_WHEN_WCHAR_T_IS_KEYWORD) */
+#if defined(MACRO_INVOCATION_TREE_IN_IL)
+  print_numeric_valued_macro(MACRO_INVOCATION_TREE_IN_IL);
+#else /* !defined(MACRO_INVOCATION_TREE_IN_IL) */
+  print_undefined_macro_name(MACRO_INVOCATION_TREE_IN_IL);
+#endif /* defined(MACRO_INVOCATION_TREE_IN_IL) */
+#if defined(MAINTAIN_ALLOCATION_SEQUENCE_NUMBER)
+  print_numeric_valued_macro(MAINTAIN_ALLOCATION_SEQUENCE_NUMBER);
+#else /* !defined(MAINTAIN_ALLOCATION_SEQUENCE_NUMBER) */
+  print_undefined_macro_name(MAINTAIN_ALLOCATION_SEQUENCE_NUMBER);
+#endif /* defined(MAINTAIN_ALLOCATION_SEQUENCE_NUMBER) */
+#if defined(MAINTAIN_NEEDED_FLAGS)
+  print_numeric_valued_macro(MAINTAIN_NEEDED_FLAGS);
+#else /* !defined(MAINTAIN_NEEDED_FLAGS) */
+  print_undefined_macro_name(MAINTAIN_NEEDED_FLAGS);
+#endif /* defined(MAINTAIN_NEEDED_FLAGS) */
+#if defined(MAKE_ALL_FUNCTIONS_UNPROTOTYPED)
+  print_numeric_valued_macro(MAKE_ALL_FUNCTIONS_UNPROTOTYPED);
+#else /* !defined(MAKE_ALL_FUNCTIONS_UNPROTOTYPED) */
+  print_undefined_macro_name(MAKE_ALL_FUNCTIONS_UNPROTOTYPED);
+#endif /* defined(MAKE_ALL_FUNCTIONS_UNPROTOTYPED) */
+#if defined(MAKE_FRONT_END_CALLABLE)
+  print_numeric_valued_macro(MAKE_FRONT_END_CALLABLE);
+#else /* !defined(MAKE_FRONT_END_CALLABLE) */
+  print_undefined_macro_name(MAKE_FRONT_END_CALLABLE);
+#endif /* defined(MAKE_FRONT_END_CALLABLE) */
+#if defined(MANGLE_ALL_NAMES)
+  print_numeric_valued_macro(MANGLE_ALL_NAMES);
+#else /* !defined(MANGLE_ALL_NAMES) */
+  print_undefined_macro_name(MANGLE_ALL_NAMES);
+#endif /* defined(MANGLE_ALL_NAMES) */
+#if defined(MAX_CHAR16_T_ENCODING_LENGTH)
+  print_numeric_valued_macro(MAX_CHAR16_T_ENCODING_LENGTH);
+#else /* !defined(MAX_CHAR16_T_ENCODING_LENGTH) */
+  print_undefined_macro_name(MAX_CHAR16_T_ENCODING_LENGTH);
+#endif /* defined(MAX_CHAR16_T_ENCODING_LENGTH) */
+#if defined(MAX_ERROR_OUTPUT_LINE_LENGTH)
+  print_numeric_valued_macro(MAX_ERROR_OUTPUT_LINE_LENGTH);
+#else /* !defined(MAX_ERROR_OUTPUT_LINE_LENGTH) */
+  print_undefined_macro_name(MAX_ERROR_OUTPUT_LINE_LENGTH);
+#endif /* defined(MAX_ERROR_OUTPUT_LINE_LENGTH) */
+#if defined(MAX_INCLUDE_FILES_OPEN_AT_ONCE)
+  print_numeric_valued_macro(MAX_INCLUDE_FILES_OPEN_AT_ONCE);
+#else /* !defined(MAX_INCLUDE_FILES_OPEN_AT_ONCE) */
+  print_undefined_macro_name(MAX_INCLUDE_FILES_OPEN_AT_ONCE);
+#endif /* defined(MAX_INCLUDE_FILES_OPEN_AT_ONCE) */
+#if defined(MAX_TOTAL_PENDING_INSTANTIATIONS)
+  print_numeric_valued_macro(MAX_TOTAL_PENDING_INSTANTIATIONS);
+#else /* !defined(MAX_TOTAL_PENDING_INSTANTIATIONS) */
+  print_undefined_macro_name(MAX_TOTAL_PENDING_INSTANTIATIONS);
+#endif /* defined(MAX_TOTAL_PENDING_INSTANTIATIONS) */
+#if defined(MAX_UNUSED_ALL_MODE_INSTANTIATIONS)
+  print_numeric_valued_macro(MAX_UNUSED_ALL_MODE_INSTANTIATIONS);
+#else /* !defined(MAX_UNUSED_ALL_MODE_INSTANTIATIONS) */
+  print_undefined_macro_name(MAX_UNUSED_ALL_MODE_INSTANTIATIONS);
+#endif /* defined(MAX_UNUSED_ALL_MODE_INSTANTIATIONS) */
+#if defined(MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET)
+  print_numeric_valued_macro(MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET);
+#else /* !defined(MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET) */
+  print_undefined_macro_name(MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET);
+#endif /* defined(MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET) */
+#if defined(MICROSOFT_EXTENSIONS_ALLOWED)
+  print_numeric_valued_macro(MICROSOFT_EXTENSIONS_ALLOWED);
+#else /* !defined(MICROSOFT_EXTENSIONS_ALLOWED) */
+  print_undefined_macro_name(MICROSOFT_EXTENSIONS_ALLOWED);
+#endif /* defined(MICROSOFT_EXTENSIONS_ALLOWED) */
+#if defined(MINIMAL_INLINING)
+  print_numeric_valued_macro(MINIMAL_INLINING);
+#else /* !defined(MINIMAL_INLINING) */
+  print_undefined_macro_name(MINIMAL_INLINING);
+#endif /* defined(MINIMAL_INLINING) */
+#if defined(MIN_GNU_VERSION)
+  print_numeric_valued_macro(MIN_GNU_VERSION);
+#else /* !defined(MIN_GNU_VERSION) */
+  print_undefined_macro_name(MIN_GNU_VERSION);
+#endif /* defined(MIN_GNU_VERSION) */
+#if defined(MSVC_IS_GENERATED_CODE_TARGET)
+  print_numeric_valued_macro(MSVC_IS_GENERATED_CODE_TARGET);
+#else /* !defined(MSVC_IS_GENERATED_CODE_TARGET) */
+  print_undefined_macro_name(MSVC_IS_GENERATED_CODE_TARGET);
+#endif /* defined(MSVC_IS_GENERATED_CODE_TARGET) */
+#if defined(MSVC_TARGET_VERSION_NUMBER)
+  print_numeric_valued_macro(MSVC_TARGET_VERSION_NUMBER);
+#else /* !defined(MSVC_TARGET_VERSION_NUMBER) */
+  print_undefined_macro_name(MSVC_TARGET_VERSION_NUMBER);
+#endif /* defined(MSVC_TARGET_VERSION_NUMBER) */
+#if defined(MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED)
+  print_numeric_valued_macro(MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED);
+#else /* !defined(MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED) */
+  print_undefined_macro_name(MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED);
+#endif /* defined(MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED) */
+#if defined(NAMED_ADDRESS_SPACES_ALLOWED)
+  print_numeric_valued_macro(NAMED_ADDRESS_SPACES_ALLOWED);
+#else /* !defined(NAMED_ADDRESS_SPACES_ALLOWED) */
+  print_undefined_macro_name(NAMED_ADDRESS_SPACES_ALLOWED);
+#endif /* defined(NAMED_ADDRESS_SPACES_ALLOWED) */
+#if defined(NAMED_REGISTERS_ALLOWED)
+  print_numeric_valued_macro(NAMED_REGISTERS_ALLOWED);
+#else /* !defined(NAMED_REGISTERS_ALLOWED) */
+  print_undefined_macro_name(NAMED_REGISTERS_ALLOWED);
+#endif /* defined(NAMED_REGISTERS_ALLOWED) */
+#if defined(NEAR_AND_FAR_ALLOWED)
+  print_numeric_valued_macro(NEAR_AND_FAR_ALLOWED);
+#else /* !defined(NEAR_AND_FAR_ALLOWED) */
+  print_undefined_macro_name(NEAR_AND_FAR_ALLOWED);
+#endif /* defined(NEAR_AND_FAR_ALLOWED) */
+#if defined(NEED_DECLARATIVE_WALK)
+  print_numeric_valued_macro(NEED_DECLARATIVE_WALK);
+#else /* !defined(NEED_DECLARATIVE_WALK) */
+  print_undefined_macro_name(NEED_DECLARATIVE_WALK);
+#endif /* defined(NEED_DECLARATIVE_WALK) */
+#if defined(NEED_NAME_MANGLING)
+  print_numeric_valued_macro(NEED_NAME_MANGLING);
+#else /* !defined(NEED_NAME_MANGLING) */
+  print_undefined_macro_name(NEED_NAME_MANGLING);
+#endif /* defined(NEED_NAME_MANGLING) */
+#if defined(NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE)
+  print_numeric_valued_macro(
+                  NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE);
+#else /* !defined(
+                NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE) */
+  print_undefined_macro_name(
+                  NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE);
+#endif /* defined(
+                NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE) */
+#if defined(NEW_CAN_BE_FOLDED_INTO_CTOR)
+  print_numeric_valued_macro(NEW_CAN_BE_FOLDED_INTO_CTOR);
+#else /* !defined(NEW_CAN_BE_FOLDED_INTO_CTOR) */
+  print_undefined_macro_name(NEW_CAN_BE_FOLDED_INTO_CTOR);
+#endif /* defined(NEW_CAN_BE_FOLDED_INTO_CTOR) */
+#if defined(NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS)
+  print_numeric_valued_macro(
+                    NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS);
+#else /* !defined(NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS) */
+  print_undefined_macro_name(
+                    NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS);
+#endif /* defined(NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS) */
+#if defined(NO_USR_INCLUDE)
+  print_numeric_valued_macro(NO_USR_INCLUDE);
+#else /* !defined(NO_USR_INCLUDE) */
+  print_undefined_macro_name(NO_USR_INCLUDE);
+#endif /* defined(NO_USR_INCLUDE) */
+#if defined(NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES)
+  print_numeric_valued_macro(
+                          NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES);
+#else /* !defined(NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES) */
+  print_undefined_macro_name(
+                          NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES);
+#endif /* defined(NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES) */
+#if defined(NUM_BITS_FOR_CHARACTER_KIND)
+  print_numeric_valued_macro(NUM_BITS_FOR_CHARACTER_KIND);
+#else /* !defined(NUM_BITS_FOR_CHARACTER_KIND) */
+  print_undefined_macro_name(NUM_BITS_FOR_CHARACTER_KIND);
+#endif /* defined(NUM_BITS_FOR_CHARACTER_KIND) */
+#if defined(NUM_BITS_FOR_NAMED_ADDRESS_SPACE)
+  print_numeric_valued_macro(NUM_BITS_FOR_NAMED_ADDRESS_SPACE);
+#else /* !defined(NUM_BITS_FOR_NAMED_ADDRESS_SPACE) */
+  print_undefined_macro_name(NUM_BITS_FOR_NAMED_ADDRESS_SPACE);
+#endif /* defined(NUM_BITS_FOR_NAMED_ADDRESS_SPACE) */
+#if defined(NUM_BITS_FOR_NAME_LINKAGE)
+  print_numeric_valued_macro(NUM_BITS_FOR_NAME_LINKAGE);
+#else /* !defined(NUM_BITS_FOR_NAME_LINKAGE) */
+  print_undefined_macro_name(NUM_BITS_FOR_NAME_LINKAGE);
+#endif /* defined(NUM_BITS_FOR_NAME_LINKAGE) */
+#if defined(NUM_BITS_FOR_STDC_PRAGMA_VALUE)
+  print_numeric_valued_macro(NUM_BITS_FOR_STDC_PRAGMA_VALUE);
+#else /* !defined(NUM_BITS_FOR_STDC_PRAGMA_VALUE) */
+  print_undefined_macro_name(NUM_BITS_FOR_STDC_PRAGMA_VALUE);
+#endif /* defined(NUM_BITS_FOR_STDC_PRAGMA_VALUE) */
+#if defined(NUM_NAMED_REGISTERS)
+  print_numeric_valued_macro(NUM_NAMED_REGISTERS);
+#else /* !defined(NUM_NAMED_REGISTERS) */
+  print_undefined_macro_name(NUM_NAMED_REGISTERS);
+#endif /* defined(NUM_NAMED_REGISTERS) */
+#if defined(OBJECT_FILE_SUFFIX)
+  print_string_valued_macro(OBJECT_FILE_SUFFIX);
+#else /* !defined(OBJECT_FILE_SUFFIX) */
+  print_undefined_macro_name(OBJECT_FILE_SUFFIX);
+#endif /* defined(OBJECT_FILE_SUFFIX) */
+#if defined(OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE)
+  print_numeric_valued_macro(OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE);
+#else /* !defined(OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE) */
+  print_undefined_macro_name(OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE);
+#endif /* defined(OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE) */
+#if defined(ONE_INSTANTIATION_PER_OBJECT)
+  print_numeric_valued_macro(ONE_INSTANTIATION_PER_OBJECT);
+#else /* !defined(ONE_INSTANTIATION_PER_OBJECT) */
+  print_undefined_macro_name(ONE_INSTANTIATION_PER_OBJECT);
+#endif /* defined(ONE_INSTANTIATION_PER_OBJECT) */
+#if defined(OPTIMIZE_VIRTUAL_FUNCTION_CALLS)
+  print_numeric_valued_macro(OPTIMIZE_VIRTUAL_FUNCTION_CALLS);
+#else /* !defined(OPTIMIZE_VIRTUAL_FUNCTION_CALLS) */
+  print_undefined_macro_name(OPTIMIZE_VIRTUAL_FUNCTION_CALLS);
+#endif /* defined(OPTIMIZE_VIRTUAL_FUNCTION_CALLS) */
+#if defined(PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T)
+  print_numeric_valued_macro(PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T);
+#else /* !defined(PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T) */
+  print_undefined_macro_name(PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T);
+#endif /* defined(PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T) */
+#if defined(PCH_DECL_SEQ_THRESHOLD)
+  print_numeric_valued_macro(PCH_DECL_SEQ_THRESHOLD);
+#else /* !defined(PCH_DECL_SEQ_THRESHOLD) */
+  print_undefined_macro_name(PCH_DECL_SEQ_THRESHOLD);
+#endif /* defined(PCH_DECL_SEQ_THRESHOLD) */
+#if defined(PCH_FILE_SUFFIX)
+  print_string_valued_macro(PCH_FILE_SUFFIX);
+#else /* !defined(PCH_FILE_SUFFIX) */
+  print_undefined_macro_name(PCH_FILE_SUFFIX);
+#endif /* defined(PCH_FILE_SUFFIX) */
+#if defined(PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED)
+  print_numeric_valued_macro(PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED);
+#else /* !defined(PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED) */
+  print_undefined_macro_name(PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED);
+#endif /* defined(PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED) */
+#if defined(PRAGMA_WEAK_ALLOWED)
+  print_numeric_valued_macro(PRAGMA_WEAK_ALLOWED);
+#else /* !defined(PRAGMA_WEAK_ALLOWED) */
+  print_undefined_macro_name(PRAGMA_WEAK_ALLOWED);
+#endif /* defined(PRAGMA_WEAK_ALLOWED) */
+#if defined(PREDEFINED_MACRO_FILE_NAME)
+  print_string_valued_macro(PREDEFINED_MACRO_FILE_NAME);
+#else /* !defined(PREDEFINED_MACRO_FILE_NAME) */
+  print_undefined_macro_name(PREDEFINED_MACRO_FILE_NAME);
+#endif /* defined(PREDEFINED_MACRO_FILE_NAME) */
+#if defined(PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL)
+  print_numeric_valued_macro(PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL);
+#else /* !defined(PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL) */
+  print_undefined_macro_name(PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL);
+#endif /* defined(PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL) */
+#if defined(PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL)
+  print_numeric_valued_macro(PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL);
+#else /* !defined(PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL) */
+  print_undefined_macro_name(PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL);
+#endif /* defined(PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL) */
+#if defined(PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE)
+  print_string_valued_macro(PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE);
+#else /* !defined(PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE) */
+  print_undefined_macro_name(PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE);
+#endif /* defined(PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE) */
+#if defined(PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER)
+  print_string_valued_macro(PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER);
+#else /* !defined(PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER) */
+  print_undefined_macro_name(PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER);
+#endif /* defined(PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER) */
+#if defined(PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED)
+  print_string_valued_macro(PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED);
+#else /* !defined(PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED) */
+  print_undefined_macro_name(PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED);
+#endif /* defined(PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED) */
+#if defined(PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE)
+  print_string_valued_macro(PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE);
+#else /* !defined(PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE) */
+  print_undefined_macro_name(PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE);
+#endif /* defined(PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE) */
+#if defined(PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE)
+  print_string_valued_macro(PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE);
+#else /* !defined(PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE) */
+  print_undefined_macro_name(PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE);
+#endif /* defined(PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE) */
+#if defined(PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE)
+  print_numeric_valued_macro(PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE);
+#else /* !defined(PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE) */
+  print_undefined_macro_name(PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE);
+#endif /* defined(PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE) */
+#if defined(PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED)
+  print_numeric_valued_macro(PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED);
+#else /* !defined(PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED) */
+  print_undefined_macro_name(PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED);
+#endif /* defined(PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED) */
+#if defined(PROTOTYPE_INSTANTIATIONS_IN_IL)
+  print_numeric_valued_macro(PROTOTYPE_INSTANTIATIONS_IN_IL);
+#else /* !defined(PROTOTYPE_INSTANTIATIONS_IN_IL) */
+  print_undefined_macro_name(PROTOTYPE_INSTANTIATIONS_IN_IL);
+#endif /* defined(PROTOTYPE_INSTANTIATIONS_IN_IL) */
+#if defined(PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED)
+  print_numeric_valued_macro(PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED);
+#else /* !defined(PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED) */
+  print_undefined_macro_name(PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED);
+#endif /* defined(PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED) */
+#if defined(QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR)
+  print_numeric_valued_macro(
+                            QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR);
+#else /* !defined(QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR) */
+  print_undefined_macro_name(
+                            QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR);
+#endif /* defined(QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR) */
+#if defined(READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS)
+  print_numeric_valued_macro(READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS);
+#else /* !defined(READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS) */
+  print_undefined_macro_name(READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS);
+#endif /* defined(READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS) */
+#if defined(RECOGNIZE_MICROSOFT_ATTRIBUTES)
+  print_numeric_valued_macro(RECOGNIZE_MICROSOFT_ATTRIBUTES);
+#else /* !defined(RECOGNIZE_MICROSOFT_ATTRIBUTES) */
+  print_undefined_macro_name(RECOGNIZE_MICROSOFT_ATTRIBUTES);
+#endif /* defined(RECOGNIZE_MICROSOFT_ATTRIBUTES) */
+#if defined(RECORD_CONSTANT_EXPRESSIONS_IN_IL)
+  print_numeric_valued_macro(RECORD_CONSTANT_EXPRESSIONS_IN_IL);
+#else /* !defined(RECORD_CONSTANT_EXPRESSIONS_IN_IL) */
+  print_undefined_macro_name(RECORD_CONSTANT_EXPRESSIONS_IN_IL);
+#endif /* defined(RECORD_CONSTANT_EXPRESSIONS_IN_IL) */
+#if defined(RECORD_FORM_OF_NAME_REFERENCE)
+  print_numeric_valued_macro(RECORD_FORM_OF_NAME_REFERENCE);
+#else /* !defined(RECORD_FORM_OF_NAME_REFERENCE) */
+  print_undefined_macro_name(RECORD_FORM_OF_NAME_REFERENCE);
+#endif /* defined(RECORD_FORM_OF_NAME_REFERENCE) */
+#if defined(RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL)
+  print_numeric_valued_macro(RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL);
+#else /* !defined(RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL) */
+  print_undefined_macro_name(RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL);
+#endif /* defined(RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL) */
+#if defined(RECORD_HIDDEN_NAMES_IN_IL)
+  print_numeric_valued_macro(RECORD_HIDDEN_NAMES_IN_IL);
+#else /* !defined(RECORD_HIDDEN_NAMES_IN_IL) */
+  print_undefined_macro_name(RECORD_HIDDEN_NAMES_IN_IL);
+#endif /* defined(RECORD_HIDDEN_NAMES_IN_IL) */
+#if defined(RECORD_MACROS_IN_IL)
+  print_numeric_valued_macro(RECORD_MACROS_IN_IL);
+#else /* !defined(RECORD_MACROS_IN_IL) */
+  print_undefined_macro_name(RECORD_MACROS_IN_IL);
+#endif /* defined(RECORD_MACROS_IN_IL) */
+#if defined(RECORD_NAME_IN_PARAM_TYPE_ENTRY)
+  print_numeric_valued_macro(RECORD_NAME_IN_PARAM_TYPE_ENTRY);
+#else /* !defined(RECORD_NAME_IN_PARAM_TYPE_ENTRY) */
+  print_undefined_macro_name(RECORD_NAME_IN_PARAM_TYPE_ENTRY);
+#endif /* defined(RECORD_NAME_IN_PARAM_TYPE_ENTRY) */
+#if defined(RECORD_SCOPE_DEPTH_IN_IL)
+  print_numeric_valued_macro(RECORD_SCOPE_DEPTH_IN_IL);
+#else /* !defined(RECORD_SCOPE_DEPTH_IN_IL) */
+  print_undefined_macro_name(RECORD_SCOPE_DEPTH_IN_IL);
+#endif /* defined(RECORD_SCOPE_DEPTH_IN_IL) */
+#if defined(RECORD_SWITCH_CASE_ENTRIES)
+  print_numeric_valued_macro(RECORD_SWITCH_CASE_ENTRIES);
+#else /* !defined(RECORD_SWITCH_CASE_ENTRIES) */
+  print_undefined_macro_name(RECORD_SWITCH_CASE_ENTRIES);
+#endif /* defined(RECORD_SWITCH_CASE_ENTRIES) */
+#if defined(RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL)
+  print_numeric_valued_macro(RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL);
+#else /* !defined(RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL) */
+  print_undefined_macro_name(RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL);
+#endif /* defined(RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL) */
+#if defined(RECORD_TEMPLATE_STRINGS)
+  print_numeric_valued_macro(RECORD_TEMPLATE_STRINGS);
+#else /* !defined(RECORD_TEMPLATE_STRINGS) */
+  print_undefined_macro_name(RECORD_TEMPLATE_STRINGS);
+#endif /* defined(RECORD_TEMPLATE_STRINGS) */
+#if defined(REDEFINE_EXTNAME_PRAGMA_ENABLED)
+  print_numeric_valued_macro(REDEFINE_EXTNAME_PRAGMA_ENABLED);
+#else /* !defined(REDEFINE_EXTNAME_PRAGMA_ENABLED) */
+  print_undefined_macro_name(REDEFINE_EXTNAME_PRAGMA_ENABLED);
+#endif /* defined(REDEFINE_EXTNAME_PRAGMA_ENABLED) */
+#if defined(REPRESENT_EMPTY_STATEMENTS_IN_IL)
+  print_numeric_valued_macro(REPRESENT_EMPTY_STATEMENTS_IN_IL);
+#else /* !defined(REPRESENT_EMPTY_STATEMENTS_IN_IL) */
+  print_undefined_macro_name(REPRESENT_EMPTY_STATEMENTS_IN_IL);
+#endif /* defined(REPRESENT_EMPTY_STATEMENTS_IN_IL) */
+#if defined(REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING)
+  print_numeric_valued_macro(REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING);
+#else /* !defined(REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING) */
+  print_undefined_macro_name(REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING);
+#endif /* defined(REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING) */
+#if defined(RTTI_ENABLING_POSSIBLE)
+  print_numeric_valued_macro(RTTI_ENABLING_POSSIBLE);
+#else /* !defined(RTTI_ENABLING_POSSIBLE) */
+  print_undefined_macro_name(RTTI_ENABLING_POSSIBLE);
+#endif /* defined(RTTI_ENABLING_POSSIBLE) */
+#if defined(RUNTIME_USES_NAMESPACES)
+  print_numeric_valued_macro(RUNTIME_USES_NAMESPACES);
+#else /* !defined(RUNTIME_USES_NAMESPACES) */
+  print_undefined_macro_name(RUNTIME_USES_NAMESPACES);
+#endif /* defined(RUNTIME_USES_NAMESPACES) */
+#if defined(RUNTIME_USES_TYPENAME)
+  print_numeric_valued_macro(RUNTIME_USES_TYPENAME);
+#else /* !defined(RUNTIME_USES_TYPENAME) */
+  print_undefined_macro_name(RUNTIME_USES_TYPENAME);
+#endif /* defined(RUNTIME_USES_TYPENAME) */
+#if defined(SAME_REPR_INTS_INTERCHANGEABLE_IN_IL)
+  print_numeric_valued_macro(SAME_REPR_INTS_INTERCHANGEABLE_IN_IL);
+#else /* !defined(SAME_REPR_INTS_INTERCHANGEABLE_IN_IL) */
+  print_undefined_macro_name(SAME_REPR_INTS_INTERCHANGEABLE_IN_IL);
+#endif /* defined(SAME_REPR_INTS_INTERCHANGEABLE_IN_IL) */
+#if defined(SRC_SEQ_ENTRIES_FOR_DECL_STMTS)
+  print_numeric_valued_macro(SRC_SEQ_ENTRIES_FOR_DECL_STMTS);
+#else /* !defined(SRC_SEQ_ENTRIES_FOR_DECL_STMTS) */
+  print_undefined_macro_name(SRC_SEQ_ENTRIES_FOR_DECL_STMTS);
+#endif /* defined(SRC_SEQ_ENTRIES_FOR_DECL_STMTS) */
+#if defined(STACK_REFERENCED_INCLUDE_DIRECTORIES)
+  print_numeric_valued_macro(STACK_REFERENCED_INCLUDE_DIRECTORIES);
+#else /* !defined(STACK_REFERENCED_INCLUDE_DIRECTORIES) */
+  print_undefined_macro_name(STACK_REFERENCED_INCLUDE_DIRECTORIES);
+#endif /* defined(STACK_REFERENCED_INCLUDE_DIRECTORIES) */
+#if defined(STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR)
+  print_numeric_valued_macro(STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR);
+#else /* !defined(STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR) */
+  print_undefined_macro_name(STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR);
+#endif /* defined(STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR) */
+#if defined(STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION)
+  print_numeric_valued_macro(
+                    STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION);
+#else /* !defined(STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION) */
+  print_undefined_macro_name(
+                    STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION);
+#endif /* defined(STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION) */
+#if defined(STAT_FIRST_PARAM_IS_CONST)
+  print_numeric_valued_macro(STAT_FIRST_PARAM_IS_CONST);
+#else /* !defined(STAT_FIRST_PARAM_IS_CONST) */
+  print_undefined_macro_name(STAT_FIRST_PARAM_IS_CONST);
+#endif /* defined(STAT_FIRST_PARAM_IS_CONST) */
+#if defined(STDC_HOSTED)
+  print_numeric_valued_macro(STDC_HOSTED);
+#else /* !defined(STDC_HOSTED) */
+  print_undefined_macro_name(STDC_HOSTED);
+#endif /* defined(STDC_HOSTED) */
+#if defined(STDC_IEC_559)
+  print_numeric_valued_macro(STDC_IEC_559);
+#else /* !defined(STDC_IEC_559) */
+  print_undefined_macro_name(STDC_IEC_559);
+#endif /* defined(STDC_IEC_559) */
+#if defined(STDC_IEC_559_COMPLEX)
+  print_numeric_valued_macro(STDC_IEC_559_COMPLEX);
+#else /* !defined(STDC_IEC_559_COMPLEX) */
+  print_undefined_macro_name(STDC_IEC_559_COMPLEX);
+#endif /* defined(STDC_IEC_559_COMPLEX) */
+#if defined(STDC_ISO_10646)
+  print_numeric_valued_macro(STDC_ISO_10646);
+#else /* !defined(STDC_ISO_10646) */
+  print_undefined_macro_name(STDC_ISO_10646);
+#endif /* defined(STDC_ISO_10646) */
+#if defined(STDC_ISO_10646_VALUE)
+  print_numeric_valued_macro(STDC_ISO_10646_VALUE);
+#else /* !defined(STDC_ISO_10646_VALUE) */
+  print_undefined_macro_name(STDC_ISO_10646_VALUE);
+#endif /* defined(STDC_ISO_10646_VALUE) */
+#if defined(STDC_ZERO_IN_NONSTRICT_MODE)
+  print_numeric_valued_macro(STDC_ZERO_IN_NONSTRICT_MODE);
+#else /* !defined(STDC_ZERO_IN_NONSTRICT_MODE) */
+  print_undefined_macro_name(STDC_ZERO_IN_NONSTRICT_MODE);
+#endif /* defined(STDC_ZERO_IN_NONSTRICT_MODE) */
+#if defined(SUN_EXTENSIONS_ALLOWED)
+  print_numeric_valued_macro(SUN_EXTENSIONS_ALLOWED);
+#else /* !defined(SUN_EXTENSIONS_ALLOWED) */
+  print_undefined_macro_name(SUN_EXTENSIONS_ALLOWED);
+#endif /* defined(SUN_EXTENSIONS_ALLOWED) */
+#if defined(SUN_IS_GENERATED_CODE_TARGET)
+  print_numeric_valued_macro(SUN_IS_GENERATED_CODE_TARGET);
+#else /* !defined(SUN_IS_GENERATED_CODE_TARGET) */
+  print_undefined_macro_name(SUN_IS_GENERATED_CODE_TARGET);
+#endif /* defined(SUN_IS_GENERATED_CODE_TARGET) */
+#if defined(SUN_TARGET_VERSION_NUMBER)
+  print_numeric_valued_macro(SUN_TARGET_VERSION_NUMBER);
+#else /* !defined(SUN_TARGET_VERSION_NUMBER) */
+  print_undefined_macro_name(SUN_TARGET_VERSION_NUMBER);
+#endif /* defined(SUN_TARGET_VERSION_NUMBER) */
+#if defined(SUPPRESS_ARRAY_STATIC_IN_GENERATED_CODE)
+  print_numeric_valued_macro(SUPPRESS_ARRAY_STATIC_IN_GENERATED_CODE);
+#else /* !defined(SUPPRESS_ARRAY_STATIC_IN_GENERATED_CODE) */
+  print_undefined_macro_name(SUPPRESS_ARRAY_STATIC_IN_GENERATED_CODE);
+#endif /* defined(SUPPRESS_ARRAY_STATIC_IN_GENERATED_CODE) */
+#if defined(SUPPRESS_CONST_IN_GENERATED_C)
+  print_numeric_valued_macro(SUPPRESS_CONST_IN_GENERATED_C);
+#else /* !defined(SUPPRESS_CONST_IN_GENERATED_C) */
+  print_undefined_macro_name(SUPPRESS_CONST_IN_GENERATED_C);
+#endif /* defined(SUPPRESS_CONST_IN_GENERATED_C) */
+#if defined(SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING)
+  print_numeric_valued_macro(SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING);
+#else /* !defined(SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING) */
+  print_undefined_macro_name(SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING);
+#endif /* defined(SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING) */
+#if defined(SUPPRESS_NEAR_AND_FAR_IN_GENERATED_CODE)
+  print_numeric_valued_macro(SUPPRESS_NEAR_AND_FAR_IN_GENERATED_CODE);
+#else /* !defined(SUPPRESS_NEAR_AND_FAR_IN_GENERATED_CODE) */
+  print_undefined_macro_name(SUPPRESS_NEAR_AND_FAR_IN_GENERATED_CODE);
+#endif /* defined(SUPPRESS_NEAR_AND_FAR_IN_GENERATED_CODE) */
+#if defined(SUPPRESS_RESTRICT_IN_GENERATED_CODE)
+  print_numeric_valued_macro(SUPPRESS_RESTRICT_IN_GENERATED_CODE);
+#else /* !defined(SUPPRESS_RESTRICT_IN_GENERATED_CODE) */
+  print_undefined_macro_name(SUPPRESS_RESTRICT_IN_GENERATED_CODE);
+#endif /* defined(SUPPRESS_RESTRICT_IN_GENERATED_CODE) */
+#if defined(SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED)
+  print_numeric_valued_macro(SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED);
+#else /* !defined(SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED) */
+  print_undefined_macro_name(SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED);
+#endif /* defined(SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED) */
+#if defined(SVR4_TRAP_NULL_POINTER_REFERENCES)
+  print_numeric_valued_macro(SVR4_TRAP_NULL_POINTER_REFERENCES);
+#else /* !defined(SVR4_TRAP_NULL_POINTER_REFERENCES) */
+  print_undefined_macro_name(SVR4_TRAP_NULL_POINTER_REFERENCES);
+#endif /* defined(SVR4_TRAP_NULL_POINTER_REFERENCES) */
+#if defined(TARG_ALERT_CHAR)
+  print_string_valued_macro(TARG_ALERT_CHAR);
+#else /* !defined(TARG_ALERT_CHAR) */
+  print_undefined_macro_name(TARG_ALERT_CHAR);
+#endif /* defined(TARG_ALERT_CHAR) */
+#if defined(TARG_ALIGNOF_DOUBLE)
+  print_numeric_valued_macro(TARG_ALIGNOF_DOUBLE);
+#else /* !defined(TARG_ALIGNOF_DOUBLE) */
+  print_undefined_macro_name(TARG_ALIGNOF_DOUBLE);
+#endif /* defined(TARG_ALIGNOF_DOUBLE) */
+#if defined(TARG_ALIGNOF_FAR_POINTER)
+  print_numeric_valued_macro(TARG_ALIGNOF_FAR_POINTER);
+#else /* !defined(TARG_ALIGNOF_FAR_POINTER) */
+  print_undefined_macro_name(TARG_ALIGNOF_FAR_POINTER);
+#endif /* defined(TARG_ALIGNOF_FAR_POINTER) */
+#if defined(TARG_ALIGNOF_FLOAT)
+  print_numeric_valued_macro(TARG_ALIGNOF_FLOAT);
+#else /* !defined(TARG_ALIGNOF_FLOAT) */
+  print_undefined_macro_name(TARG_ALIGNOF_FLOAT);
+#endif /* defined(TARG_ALIGNOF_FLOAT) */
+#if defined(TARG_ALIGNOF_INT)
+  print_numeric_valued_macro(TARG_ALIGNOF_INT);
+#else /* !defined(TARG_ALIGNOF_INT) */
+  print_undefined_macro_name(TARG_ALIGNOF_INT);
+#endif /* defined(TARG_ALIGNOF_INT) */
+#if defined(TARG_ALIGNOF_LONG)
+  print_numeric_valued_macro(TARG_ALIGNOF_LONG);
+#else /* !defined(TARG_ALIGNOF_LONG) */
+  print_undefined_macro_name(TARG_ALIGNOF_LONG);
+#endif /* defined(TARG_ALIGNOF_LONG) */
+#if defined(TARG_ALIGNOF_LONG_DOUBLE)
+  print_numeric_valued_macro(TARG_ALIGNOF_LONG_DOUBLE);
+#else /* !defined(TARG_ALIGNOF_LONG_DOUBLE) */
+  print_undefined_macro_name(TARG_ALIGNOF_LONG_DOUBLE);
+#endif /* defined(TARG_ALIGNOF_LONG_DOUBLE) */
+#if defined(TARG_ALIGNOF_LONG_LONG)
+  print_numeric_valued_macro(TARG_ALIGNOF_LONG_LONG);
+#else /* !defined(TARG_ALIGNOF_LONG_LONG) */
+  print_undefined_macro_name(TARG_ALIGNOF_LONG_LONG);
+#endif /* defined(TARG_ALIGNOF_LONG_LONG) */
+#if defined(TARG_ALIGNOF_NEAR_POINTER)
+  print_numeric_valued_macro(TARG_ALIGNOF_NEAR_POINTER);
+#else /* !defined(TARG_ALIGNOF_NEAR_POINTER) */
+  print_undefined_macro_name(TARG_ALIGNOF_NEAR_POINTER);
+#endif /* defined(TARG_ALIGNOF_NEAR_POINTER) */
+#if defined(TARG_ALIGNOF_POINTER)
+  print_numeric_valued_macro(TARG_ALIGNOF_POINTER);
+#else /* !defined(TARG_ALIGNOF_POINTER) */
+  print_undefined_macro_name(TARG_ALIGNOF_POINTER);
+#endif /* defined(TARG_ALIGNOF_POINTER) */
+#if defined(TARG_ALIGNOF_PTR_TO_DATA_MEMBER)
+  print_numeric_valued_macro(TARG_ALIGNOF_PTR_TO_DATA_MEMBER);
+#else /* !defined(TARG_ALIGNOF_PTR_TO_DATA_MEMBER) */
+  print_undefined_macro_name(TARG_ALIGNOF_PTR_TO_DATA_MEMBER);
+#endif /* defined(TARG_ALIGNOF_PTR_TO_DATA_MEMBER) */
+#if defined(TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION)
+  print_numeric_valued_macro(TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION);
+#else /* !defined(TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION) */
+  print_undefined_macro_name(TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION);
+#endif /* defined(TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION) */
+#if defined(TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS)
+  print_numeric_valued_macro(TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS);
+#else /* !defined(TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS) */
+  print_undefined_macro_name(TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS);
+#endif /* defined(TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS) */
+#if defined(TARG_ALIGNOF_SHORT)
+  print_numeric_valued_macro(TARG_ALIGNOF_SHORT);
+#else /* !defined(TARG_ALIGNOF_SHORT) */
+  print_undefined_macro_name(TARG_ALIGNOF_SHORT);
+#endif /* defined(TARG_ALIGNOF_SHORT) */
+#if defined(TARG_ALIGNOF_SIGNED_ACCUM)
+  print_numeric_valued_macro(TARG_ALIGNOF_SIGNED_ACCUM);
+#else /* !defined(TARG_ALIGNOF_SIGNED_ACCUM) */
+  print_undefined_macro_name(TARG_ALIGNOF_SIGNED_ACCUM);
+#endif /* defined(TARG_ALIGNOF_SIGNED_ACCUM) */
+#if defined(TARG_ALIGNOF_SIGNED_FRACT)
+  print_numeric_valued_macro(TARG_ALIGNOF_SIGNED_FRACT);
+#else /* !defined(TARG_ALIGNOF_SIGNED_FRACT) */
+  print_undefined_macro_name(TARG_ALIGNOF_SIGNED_FRACT);
+#endif /* defined(TARG_ALIGNOF_SIGNED_FRACT) */
+#if defined(TARG_ALIGNOF_SIGNED_LONG_ACCUM)
+  print_numeric_valued_macro(TARG_ALIGNOF_SIGNED_LONG_ACCUM);
+#else /* !defined(TARG_ALIGNOF_SIGNED_LONG_ACCUM) */
+  print_undefined_macro_name(TARG_ALIGNOF_SIGNED_LONG_ACCUM);
+#endif /* defined(TARG_ALIGNOF_SIGNED_LONG_ACCUM) */
+#if defined(TARG_ALIGNOF_SIGNED_LONG_FRACT)
+  print_numeric_valued_macro(TARG_ALIGNOF_SIGNED_LONG_FRACT);
+#else /* !defined(TARG_ALIGNOF_SIGNED_LONG_FRACT) */
+  print_undefined_macro_name(TARG_ALIGNOF_SIGNED_LONG_FRACT);
+#endif /* defined(TARG_ALIGNOF_SIGNED_LONG_FRACT) */
+#if defined(TARG_ALIGNOF_SIGNED_SHORT_ACCUM)
+  print_numeric_valued_macro(TARG_ALIGNOF_SIGNED_SHORT_ACCUM);
+#else /* !defined(TARG_ALIGNOF_SIGNED_SHORT_ACCUM) */
+  print_undefined_macro_name(TARG_ALIGNOF_SIGNED_SHORT_ACCUM);
+#endif /* defined(TARG_ALIGNOF_SIGNED_SHORT_ACCUM) */
+#if defined(TARG_ALIGNOF_SIGNED_SHORT_FRACT)
+  print_numeric_valued_macro(TARG_ALIGNOF_SIGNED_SHORT_FRACT);
+#else /* !defined(TARG_ALIGNOF_SIGNED_SHORT_FRACT) */
+  print_undefined_macro_name(TARG_ALIGNOF_SIGNED_SHORT_FRACT);
+#endif /* defined(TARG_ALIGNOF_SIGNED_SHORT_FRACT) */
+#if defined(TARG_ALIGNOF_UNSIGNED_ACCUM)
+  print_numeric_valued_macro(TARG_ALIGNOF_UNSIGNED_ACCUM);
+#else /* !defined(TARG_ALIGNOF_UNSIGNED_ACCUM) */
+  print_undefined_macro_name(TARG_ALIGNOF_UNSIGNED_ACCUM);
+#endif /* defined(TARG_ALIGNOF_UNSIGNED_ACCUM) */
+#if defined(TARG_ALIGNOF_UNSIGNED_FRACT)
+  print_numeric_valued_macro(TARG_ALIGNOF_UNSIGNED_FRACT);
+#else /* !defined(TARG_ALIGNOF_UNSIGNED_FRACT) */
+  print_undefined_macro_name(TARG_ALIGNOF_UNSIGNED_FRACT);
+#endif /* defined(TARG_ALIGNOF_UNSIGNED_FRACT) */
+#if defined(TARG_ALIGNOF_UNSIGNED_LONG_ACCUM)
+  print_numeric_valued_macro(TARG_ALIGNOF_UNSIGNED_LONG_ACCUM);
+#else /* !defined(TARG_ALIGNOF_UNSIGNED_LONG_ACCUM) */
+  print_undefined_macro_name(TARG_ALIGNOF_UNSIGNED_LONG_ACCUM);
+#endif /* defined(TARG_ALIGNOF_UNSIGNED_LONG_ACCUM) */
+#if defined(TARG_ALIGNOF_UNSIGNED_LONG_FRACT)
+  print_numeric_valued_macro(TARG_ALIGNOF_UNSIGNED_LONG_FRACT);
+#else /* !defined(TARG_ALIGNOF_UNSIGNED_LONG_FRACT) */
+  print_undefined_macro_name(TARG_ALIGNOF_UNSIGNED_LONG_FRACT);
+#endif /* defined(TARG_ALIGNOF_UNSIGNED_LONG_FRACT) */
+#if defined(TARG_ALIGNOF_UNSIGNED_SHORT_ACCUM)
+  print_numeric_valued_macro(TARG_ALIGNOF_UNSIGNED_SHORT_ACCUM);
+#else /* !defined(TARG_ALIGNOF_UNSIGNED_SHORT_ACCUM) */
+  print_undefined_macro_name(TARG_ALIGNOF_UNSIGNED_SHORT_ACCUM);
+#endif /* defined(TARG_ALIGNOF_UNSIGNED_SHORT_ACCUM) */
+#if defined(TARG_ALIGNOF_UNSIGNED_SHORT_FRACT)
+  print_numeric_valued_macro(TARG_ALIGNOF_UNSIGNED_SHORT_FRACT);
+#else /* !defined(TARG_ALIGNOF_UNSIGNED_SHORT_FRACT) */
+  print_undefined_macro_name(TARG_ALIGNOF_UNSIGNED_SHORT_FRACT);
+#endif /* defined(TARG_ALIGNOF_UNSIGNED_SHORT_FRACT) */
+#if defined(TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO)
+  print_numeric_valued_macro(TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO);
+#else /* !defined(TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO) */
+  print_undefined_macro_name(TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO);
+#endif /* defined(TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO) */
+#if defined(TARG_ALL_POINTERS_SAME_SIZE)
+  print_numeric_valued_macro(TARG_ALL_POINTERS_SAME_SIZE);
+#else /* !defined(TARG_ALL_POINTERS_SAME_SIZE) */
+  print_undefined_macro_name(TARG_ALL_POINTERS_SAME_SIZE);
+#endif /* defined(TARG_ALL_POINTERS_SAME_SIZE) */
+#if defined(TARG_BACKSPACE_CHAR)
+  print_string_valued_macro(TARG_BACKSPACE_CHAR);
+#else /* !defined(TARG_BACKSPACE_CHAR) */
+  print_undefined_macro_name(TARG_BACKSPACE_CHAR);
+#endif /* defined(TARG_BACKSPACE_CHAR) */
+#if defined(TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT)
+  print_numeric_valued_macro(TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT);
+#else /* !defined(TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT) */
+  print_undefined_macro_name(TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT);
+#endif /* defined(TARG_BIT_FIELD_AFFECTS_UNION_ALIGNMENT) */
+#if defined(TARG_BIT_FIELD_CONTAINER_SIZE)
+  print_numeric_valued_macro(TARG_BIT_FIELD_CONTAINER_SIZE);
+#else /* !defined(TARG_BIT_FIELD_CONTAINER_SIZE) */
+  print_undefined_macro_name(TARG_BIT_FIELD_CONTAINER_SIZE);
+#endif /* defined(TARG_BIT_FIELD_CONTAINER_SIZE) */
+#if defined(TARG_BOOL_INT_KIND)
+  print_string_valued_macro(TARG_BOOL_INT_KIND);
+#else /* !defined(TARG_BOOL_INT_KIND) */
+  print_undefined_macro_name(TARG_BOOL_INT_KIND);
+#endif /* defined(TARG_BOOL_INT_KIND) */
+#if defined(TARG_CARR_RETURN_CHAR)
+  print_string_valued_macro(TARG_CARR_RETURN_CHAR);
+#else /* !defined(TARG_CARR_RETURN_CHAR) */
+  print_undefined_macro_name(TARG_CARR_RETURN_CHAR);
+#endif /* defined(TARG_CARR_RETURN_CHAR) */
+#if defined(TARG_CASE_SENSITIVE_EXTERNAL_NAMES)
+  print_numeric_valued_macro(TARG_CASE_SENSITIVE_EXTERNAL_NAMES);
+#else /* !defined(TARG_CASE_SENSITIVE_EXTERNAL_NAMES) */
+  print_undefined_macro_name(TARG_CASE_SENSITIVE_EXTERNAL_NAMES);
+#endif /* defined(TARG_CASE_SENSITIVE_EXTERNAL_NAMES) */
+#if defined(TARG_CHAR16_T_INT_KIND)
+  print_string_valued_macro(TARG_CHAR16_T_INT_KIND);
+#else /* !defined(TARG_CHAR16_T_INT_KIND) */
+  print_undefined_macro_name(TARG_CHAR16_T_INT_KIND);
+#endif /* defined(TARG_CHAR16_T_INT_KIND) */
+#if defined(TARG_CHAR32_T_INT_KIND)
+  print_string_valued_macro(TARG_CHAR32_T_INT_KIND);
+#else /* !defined(TARG_CHAR32_T_INT_KIND) */
+  print_undefined_macro_name(TARG_CHAR32_T_INT_KIND);
+#endif /* defined(TARG_CHAR32_T_INT_KIND) */
+#if defined(TARG_CHAR_BIT)
+  print_numeric_valued_macro(TARG_CHAR_BIT);
+#else /* !defined(TARG_CHAR_BIT) */
+  print_undefined_macro_name(TARG_CHAR_BIT);
+#endif /* defined(TARG_CHAR_BIT) */
+#if defined(TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT)
+  print_numeric_valued_macro(TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT);
+#else /* !defined(TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT) */
+  print_undefined_macro_name(TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT);
+#endif /* defined(TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT) */
+#if defined(TARG_CPP_COMPILER_DOES_NOT_VISIBLY_INJECT_FRIEND_NAMES)
+  print_numeric_valued_macro(
+                       TARG_CPP_COMPILER_DOES_NOT_VISIBLY_INJECT_FRIEND_NAMES);
+#else /* !defined(TARG_CPP_COMPILER_DOES_NOT_VISIBLY_INJECT_FRIEND_NAMES) */
+  print_undefined_macro_name(
+                       TARG_CPP_COMPILER_DOES_NOT_VISIBLY_INJECT_FRIEND_NAMES);
+#endif /* defined(TARG_CPP_COMPILER_DOES_NOT_VISIBLY_INJECT_FRIEND_NAMES) */
+#if defined(TARG_DBL_MANT_DIG)
+  print_numeric_valued_macro(TARG_DBL_MANT_DIG);
+#else /* !defined(TARG_DBL_MANT_DIG) */
+  print_undefined_macro_name(TARG_DBL_MANT_DIG);
+#endif /* defined(TARG_DBL_MANT_DIG) */
+#if defined(TARG_DBL_MAX_EXP)
+  print_numeric_valued_macro(TARG_DBL_MAX_EXP);
+#else /* !defined(TARG_DBL_MAX_EXP) */
+  print_undefined_macro_name(TARG_DBL_MAX_EXP);
+#endif /* defined(TARG_DBL_MAX_EXP) */
+#if defined(TARG_DBL_MIN_EXP)
+  print_numeric_valued_macro(TARG_DBL_MIN_EXP);
+#else /* !defined(TARG_DBL_MIN_EXP) */
+  print_undefined_macro_name(TARG_DBL_MIN_EXP);
+#endif /* defined(TARG_DBL_MIN_EXP) */
+#if defined(TARG_DELTA_INT_KIND)
+  print_string_valued_macro(TARG_DELTA_INT_KIND);
+#else /* !defined(TARG_DELTA_INT_KIND) */
+  print_undefined_macro_name(TARG_DELTA_INT_KIND);
+#endif /* defined(TARG_DELTA_INT_KIND) */
+#if defined(TARG_DOUBLE_FIELD_ALIGNMENT)
+  print_numeric_valued_macro(TARG_DOUBLE_FIELD_ALIGNMENT);
+#else /* !defined(TARG_DOUBLE_FIELD_ALIGNMENT) */
+  print_undefined_macro_name(TARG_DOUBLE_FIELD_ALIGNMENT);
+#endif /* defined(TARG_DOUBLE_FIELD_ALIGNMENT) */
+#if defined(TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES)
+  print_numeric_valued_macro(TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES);
+#else /* !defined(TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES) */
+  print_undefined_macro_name(TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES);
+#endif /* defined(TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES) */
+#if defined(TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED)
+  print_numeric_valued_macro(TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED);
+#else /* !defined(TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED) */
+  print_undefined_macro_name(TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED);
+#endif /* defined(TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED) */
+#if defined(TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT)
+  print_numeric_valued_macro(TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT);
+#else /* !defined(TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT) */
+  print_undefined_macro_name(TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT);
+#endif /* defined(TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT) */
+#if defined(TARG_ESC_CHAR)
+  print_string_valued_macro(TARG_ESC_CHAR);
+#else /* !defined(TARG_ESC_CHAR) */
+  print_undefined_macro_name(TARG_ESC_CHAR);
+#endif /* defined(TARG_ESC_CHAR) */
+#if defined(TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED)
+  print_numeric_valued_macro(TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED);
+#else /* !defined(TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED) */
+  print_undefined_macro_name(TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED);
+#endif /* defined(TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED) */
+#if defined(TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE)
+  print_numeric_valued_macro(TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE);
+#else /* !defined(TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE) */
+  print_undefined_macro_name(TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE);
+#endif /* defined(TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE) */
+#if defined(TARG_FLOAT_FIELD_ALIGNMENT)
+  print_numeric_valued_macro(TARG_FLOAT_FIELD_ALIGNMENT);
+#else /* !defined(TARG_FLOAT_FIELD_ALIGNMENT) */
+  print_undefined_macro_name(TARG_FLOAT_FIELD_ALIGNMENT);
+#endif /* defined(TARG_FLOAT_FIELD_ALIGNMENT) */
+#if defined(TARG_FLT_MANT_DIG)
+  print_numeric_valued_macro(TARG_FLT_MANT_DIG);
+#else /* !defined(TARG_FLT_MANT_DIG) */
+  print_undefined_macro_name(TARG_FLT_MANT_DIG);
+#endif /* defined(TARG_FLT_MANT_DIG) */
+#if defined(TARG_FLT_MAX_EXP)
+  print_numeric_valued_macro(TARG_FLT_MAX_EXP);
+#else /* !defined(TARG_FLT_MAX_EXP) */
+  print_undefined_macro_name(TARG_FLT_MAX_EXP);
+#endif /* defined(TARG_FLT_MAX_EXP) */
+#if defined(TARG_FLT_MIN_EXP)
+  print_numeric_valued_macro(TARG_FLT_MIN_EXP);
+#else /* !defined(TARG_FLT_MIN_EXP) */
+  print_undefined_macro_name(TARG_FLT_MIN_EXP);
+#endif /* defined(TARG_FLT_MIN_EXP) */
+#if defined(TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED)
+  print_numeric_valued_macro(TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED);
+#else /* !defined(TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED) */
+  print_undefined_macro_name(TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED);
+#endif /* defined(TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED) */
+#if defined(TARG_FORM_FEED_CHAR)
+  print_string_valued_macro(TARG_FORM_FEED_CHAR);
+#else /* !defined(TARG_FORM_FEED_CHAR) */
+  print_undefined_macro_name(TARG_FORM_FEED_CHAR);
+#endif /* defined(TARG_FORM_FEED_CHAR) */
+#if defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_ACCUM)
+  print_numeric_valued_macro(TARG_FRACTIONAL_BITS_FOR_SIGNED_ACCUM);
+#else /* !defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_ACCUM) */
+  print_undefined_macro_name(TARG_FRACTIONAL_BITS_FOR_SIGNED_ACCUM);
+#endif /* defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_ACCUM) */
+#if defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_FRACT)
+  print_numeric_valued_macro(TARG_FRACTIONAL_BITS_FOR_SIGNED_FRACT);
+#else /* !defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_FRACT) */
+  print_undefined_macro_name(TARG_FRACTIONAL_BITS_FOR_SIGNED_FRACT);
+#endif /* defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_FRACT) */
+#if defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_ACCUM)
+  print_numeric_valued_macro(TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_ACCUM);
+#else /* !defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_ACCUM) */
+  print_undefined_macro_name(TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_ACCUM);
+#endif /* defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_ACCUM) */
+#if defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_FRACT)
+  print_numeric_valued_macro(TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_FRACT);
+#else /* !defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_FRACT) */
+  print_undefined_macro_name(TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_FRACT);
+#endif /* defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_LONG_FRACT) */
+#if defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_ACCUM)
+  print_numeric_valued_macro(TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_ACCUM);
+#else /* !defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_ACCUM) */
+  print_undefined_macro_name(TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_ACCUM);
+#endif /* defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_ACCUM) */
+#if defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_FRACT)
+  print_numeric_valued_macro(TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_FRACT);
+#else /* !defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_FRACT) */
+  print_undefined_macro_name(TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_FRACT);
+#endif /* defined(TARG_FRACTIONAL_BITS_FOR_SIGNED_SHORT_FRACT) */
+#if defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_ACCUM)
+  print_numeric_valued_macro(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_ACCUM);
+#else /* !defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_ACCUM) */
+  print_undefined_macro_name(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_ACCUM);
+#endif /* defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_ACCUM) */
+#if defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_FRACT)
+  print_numeric_valued_macro(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_FRACT);
+#else /* !defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_FRACT) */
+  print_undefined_macro_name(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_FRACT);
+#endif /* defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_FRACT) */
+#if defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_ACCUM)
+  print_numeric_valued_macro(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_ACCUM);
+#else /* !defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_ACCUM) */
+  print_undefined_macro_name(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_ACCUM);
+#endif /* defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_ACCUM) */
+#if defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_FRACT)
+  print_numeric_valued_macro(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_FRACT);
+#else /* !defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_FRACT) */
+  print_undefined_macro_name(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_FRACT);
+#endif /* defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_FRACT) */
+#if defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_ACCUM)
+  print_numeric_valued_macro(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_ACCUM);
+#else /* !defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_ACCUM) */
+  print_undefined_macro_name(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_ACCUM);
+#endif /* defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_ACCUM) */
+#if defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT)
+  print_numeric_valued_macro(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT);
+#else /* !defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT) */
+  print_undefined_macro_name(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT);
+#endif /* defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT) */
+#if defined(TARG_HAS_IEEE_FLOATING_POINT)
+  print_numeric_valued_macro(TARG_HAS_IEEE_FLOATING_POINT);
+#else /* !defined(TARG_HAS_IEEE_FLOATING_POINT) */
+  print_undefined_macro_name(TARG_HAS_IEEE_FLOATING_POINT);
+#endif /* defined(TARG_HAS_IEEE_FLOATING_POINT) */
+#if defined(TARG_HAS_SIGNED_CHARS)
+  print_numeric_valued_macro(TARG_HAS_SIGNED_CHARS);
+#else /* !defined(TARG_HAS_SIGNED_CHARS) */
+  print_undefined_macro_name(TARG_HAS_SIGNED_CHARS);
+#endif /* defined(TARG_HAS_SIGNED_CHARS) */
+#if defined(TARG_HORIZ_TAB_CHAR)
+  print_string_valued_macro(TARG_HORIZ_TAB_CHAR);
+#else /* !defined(TARG_HORIZ_TAB_CHAR) */
+  print_undefined_macro_name(TARG_HORIZ_TAB_CHAR);
+#endif /* defined(TARG_HORIZ_TAB_CHAR) */
+#if defined(TARG_HOST_STRING_CHAR_BIT)
+  print_numeric_valued_macro(TARG_HOST_STRING_CHAR_BIT);
+#else /* !defined(TARG_HOST_STRING_CHAR_BIT) */
+  print_undefined_macro_name(TARG_HOST_STRING_CHAR_BIT);
+#endif /* defined(TARG_HOST_STRING_CHAR_BIT) */
+#if defined(TARG_INT_FIELD_ALIGNMENT)
+  print_numeric_valued_macro(TARG_INT_FIELD_ALIGNMENT);
+#else /* !defined(TARG_INT_FIELD_ALIGNMENT) */
+  print_undefined_macro_name(TARG_INT_FIELD_ALIGNMENT);
+#endif /* defined(TARG_INT_FIELD_ALIGNMENT) */
+#if defined(TARG_JMP_BUF_ELEMENTS_ARE_FLOAT)
+  print_numeric_valued_macro(TARG_JMP_BUF_ELEMENTS_ARE_FLOAT);
+#else /* !defined(TARG_JMP_BUF_ELEMENTS_ARE_FLOAT) */
+  print_undefined_macro_name(TARG_JMP_BUF_ELEMENTS_ARE_FLOAT);
+#endif /* defined(TARG_JMP_BUF_ELEMENTS_ARE_FLOAT) */
+#if defined(TARG_JMP_BUF_ELEMENT_FLOAT_KIND)
+  print_string_valued_macro(TARG_JMP_BUF_ELEMENT_FLOAT_KIND);
+#else /* !defined(TARG_JMP_BUF_ELEMENT_FLOAT_KIND) */
+  print_undefined_macro_name(TARG_JMP_BUF_ELEMENT_FLOAT_KIND);
+#endif /* defined(TARG_JMP_BUF_ELEMENT_FLOAT_KIND) */
+#if defined(TARG_JMP_BUF_ELEMENT_INT_KIND)
+  print_string_valued_macro(TARG_JMP_BUF_ELEMENT_INT_KIND);
+#else /* !defined(TARG_JMP_BUF_ELEMENT_INT_KIND) */
+  print_undefined_macro_name(TARG_JMP_BUF_ELEMENT_INT_KIND);
+#endif /* defined(TARG_JMP_BUF_ELEMENT_INT_KIND) */
+#if defined(TARG_JMP_BUF_NUM_ELEMENTS)
+  print_numeric_valued_macro(TARG_JMP_BUF_NUM_ELEMENTS);
+#else /* !defined(TARG_JMP_BUF_NUM_ELEMENTS) */
+  print_undefined_macro_name(TARG_JMP_BUF_NUM_ELEMENTS);
+#endif /* defined(TARG_JMP_BUF_NUM_ELEMENTS) */
+#if defined(TARG_LDBL_MANT_DIG)
+  print_numeric_valued_macro(TARG_LDBL_MANT_DIG);
+#else /* !defined(TARG_LDBL_MANT_DIG) */
+  print_undefined_macro_name(TARG_LDBL_MANT_DIG);
+#endif /* defined(TARG_LDBL_MANT_DIG) */
+#if defined(TARG_LDBL_MAX_EXP)
+  print_numeric_valued_macro(TARG_LDBL_MAX_EXP);
+#else /* !defined(TARG_LDBL_MAX_EXP) */
+  print_undefined_macro_name(TARG_LDBL_MAX_EXP);
+#endif /* defined(TARG_LDBL_MAX_EXP) */
+#if defined(TARG_LDBL_MIN_EXP)
+  print_numeric_valued_macro(TARG_LDBL_MIN_EXP);
+#else /* !defined(TARG_LDBL_MIN_EXP) */
+  print_undefined_macro_name(TARG_LDBL_MIN_EXP);
+#endif /* defined(TARG_LDBL_MIN_EXP) */
+#if defined(TARG_LITTLE_ENDIAN)
+  print_numeric_valued_macro(TARG_LITTLE_ENDIAN);
+#else /* !defined(TARG_LITTLE_ENDIAN) */
+  print_undefined_macro_name(TARG_LITTLE_ENDIAN);
+#endif /* defined(TARG_LITTLE_ENDIAN) */
+#if defined(TARG_LONG_DOUBLE_FIELD_ALIGNMENT)
+  print_numeric_valued_macro(TARG_LONG_DOUBLE_FIELD_ALIGNMENT);
+#else /* !defined(TARG_LONG_DOUBLE_FIELD_ALIGNMENT) */
+  print_undefined_macro_name(TARG_LONG_DOUBLE_FIELD_ALIGNMENT);
+#endif /* defined(TARG_LONG_DOUBLE_FIELD_ALIGNMENT) */
+#if defined(TARG_LONG_FIELD_ALIGNMENT)
+  print_numeric_valued_macro(TARG_LONG_FIELD_ALIGNMENT);
+#else /* !defined(TARG_LONG_FIELD_ALIGNMENT) */
+  print_undefined_macro_name(TARG_LONG_FIELD_ALIGNMENT);
+#endif /* defined(TARG_LONG_FIELD_ALIGNMENT) */
+#if defined(TARG_LONG_LONG_FIELD_ALIGNMENT)
+  print_numeric_valued_macro(TARG_LONG_LONG_FIELD_ALIGNMENT);
+#else /* !defined(TARG_LONG_LONG_FIELD_ALIGNMENT) */
+  print_undefined_macro_name(TARG_LONG_LONG_FIELD_ALIGNMENT);
+#endif /* defined(TARG_LONG_LONG_FIELD_ALIGNMENT) */
+#if defined(TARG_MAXIMUM_INTRINSIC_ALIGNMENT)
+  print_numeric_valued_macro(TARG_MAXIMUM_INTRINSIC_ALIGNMENT);
+#else /* !defined(TARG_MAXIMUM_INTRINSIC_ALIGNMENT) */
+  print_undefined_macro_name(TARG_MAXIMUM_INTRINSIC_ALIGNMENT);
+#endif /* defined(TARG_MAXIMUM_INTRINSIC_ALIGNMENT) */
+#if defined(TARG_MAXIMUM_PACK_ALIGNMENT)
+  print_numeric_valued_macro(TARG_MAXIMUM_PACK_ALIGNMENT);
+#else /* !defined(TARG_MAXIMUM_PACK_ALIGNMENT) */
+  print_undefined_macro_name(TARG_MAXIMUM_PACK_ALIGNMENT);
+#endif /* defined(TARG_MAXIMUM_PACK_ALIGNMENT) */
+#if defined(TARG_MAX_BASE_CLASS_OFFSET)
+  print_numeric_valued_macro(TARG_MAX_BASE_CLASS_OFFSET);
+#else /* !defined(TARG_MAX_BASE_CLASS_OFFSET) */
+  print_undefined_macro_name(TARG_MAX_BASE_CLASS_OFFSET);
+#endif /* defined(TARG_MAX_BASE_CLASS_OFFSET) */
+#if defined(TARG_MAX_CLASS_OBJECT_SIZE)
+  print_numeric_valued_macro(TARG_MAX_CLASS_OBJECT_SIZE);
+#else /* !defined(TARG_MAX_CLASS_OBJECT_SIZE) */
+  print_undefined_macro_name(TARG_MAX_CLASS_OBJECT_SIZE);
+#endif /* defined(TARG_MAX_CLASS_OBJECT_SIZE) */
+#if defined(TARG_MICROSOFT_BIT_FIELD_ALLOCATION)
+  print_numeric_valued_macro(TARG_MICROSOFT_BIT_FIELD_ALLOCATION);
+#else /* !defined(TARG_MICROSOFT_BIT_FIELD_ALLOCATION) */
+  print_undefined_macro_name(TARG_MICROSOFT_BIT_FIELD_ALLOCATION);
+#endif /* defined(TARG_MICROSOFT_BIT_FIELD_ALLOCATION) */
+#if defined(TARG_MINIMUM_PACK_ALIGNMENT)
+  print_numeric_valued_macro(TARG_MINIMUM_PACK_ALIGNMENT);
+#else /* !defined(TARG_MINIMUM_PACK_ALIGNMENT) */
+  print_undefined_macro_name(TARG_MINIMUM_PACK_ALIGNMENT);
+#endif /* defined(TARG_MINIMUM_PACK_ALIGNMENT) */
+#if defined(TARG_MINIMUM_STRUCT_ALIGNMENT)
+  print_numeric_valued_macro(TARG_MINIMUM_STRUCT_ALIGNMENT);
+#else /* !defined(TARG_MINIMUM_STRUCT_ALIGNMENT) */
+  print_undefined_macro_name(TARG_MINIMUM_STRUCT_ALIGNMENT);
+#endif /* defined(TARG_MINIMUM_STRUCT_ALIGNMENT) */
+#if defined(TARG_NEWLINE_CHAR)
+  print_string_valued_macro(TARG_NEWLINE_CHAR);
+#else /* !defined(TARG_NEWLINE_CHAR) */
+  print_undefined_macro_name(TARG_NEWLINE_CHAR);
+#endif /* defined(TARG_NEWLINE_CHAR) */
+#if defined(TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED)
+  print_numeric_valued_macro(TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED);
+#else /* !defined(TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED) */
+  print_undefined_macro_name(TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED);
+#endif /* defined(TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED) */
+#if defined(TARG_NO_ERROR_ON_INTEGER_OVERFLOW)
+  print_numeric_valued_macro(TARG_NO_ERROR_ON_INTEGER_OVERFLOW);
+#else /* !defined(TARG_NO_ERROR_ON_INTEGER_OVERFLOW) */
+  print_undefined_macro_name(TARG_NO_ERROR_ON_INTEGER_OVERFLOW);
+#endif /* defined(TARG_NO_ERROR_ON_INTEGER_OVERFLOW) */
+#if defined(TARG_NULL_IS_ALL_BITS_ZERO)
+  print_numeric_valued_macro(TARG_NULL_IS_ALL_BITS_ZERO);
+#else /* !defined(TARG_NULL_IS_ALL_BITS_ZERO) */
+  print_undefined_macro_name(TARG_NULL_IS_ALL_BITS_ZERO);
+#endif /* defined(TARG_NULL_IS_ALL_BITS_ZERO) */
+#if defined(TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT)
+  print_numeric_valued_macro(TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT);
+#else /* !defined(TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT) */
+  print_undefined_macro_name(TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT);
+#endif /* defined(TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT) */
+#if defined(TARG_PAD_ALLOCATED_EMPTY_BASE)
+  print_numeric_valued_macro(TARG_PAD_ALLOCATED_EMPTY_BASE);
+#else /* !defined(TARG_PAD_ALLOCATED_EMPTY_BASE) */
+  print_undefined_macro_name(TARG_PAD_ALLOCATED_EMPTY_BASE);
+#endif /* defined(TARG_PAD_ALLOCATED_EMPTY_BASE) */
+#if defined(TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE)
+  print_numeric_valued_macro(TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE);
+#else /* !defined(TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE) */
+  print_undefined_macro_name(TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE);
+#endif /* defined(TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE) */
+#if defined(TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED)
+  print_numeric_valued_macro(TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED);
+#else /* !defined(TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED) */
+  print_undefined_macro_name(TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED);
+#endif /* defined(TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED) */
+#if defined(TARG_POINTER_MODE)
+  print_string_valued_macro(TARG_POINTER_MODE);
+#else /* !defined(TARG_POINTER_MODE) */
+  print_undefined_macro_name(TARG_POINTER_MODE);
+#endif /* defined(TARG_POINTER_MODE) */
+#if defined(TARG_PTRDIFF_T_INT_KIND)
+  print_string_valued_macro(TARG_PTRDIFF_T_INT_KIND);
+#else /* !defined(TARG_PTRDIFF_T_INT_KIND) */
+  print_undefined_macro_name(TARG_PTRDIFF_T_INT_KIND);
+#endif /* defined(TARG_PTRDIFF_T_INT_KIND) */
+#if defined(TARG_REGION_NUMBER_INT_KIND)
+  print_string_valued_macro(TARG_REGION_NUMBER_INT_KIND);
+#else /* !defined(TARG_REGION_NUMBER_INT_KIND) */
+  print_undefined_macro_name(TARG_REGION_NUMBER_INT_KIND);
+#endif /* defined(TARG_REGION_NUMBER_INT_KIND) */
+#if defined(TARG_REUSE_TAIL_PADDING)
+  print_numeric_valued_macro(TARG_REUSE_TAIL_PADDING);
+#else /* !defined(TARG_REUSE_TAIL_PADDING) */
+  print_undefined_macro_name(TARG_REUSE_TAIL_PADDING);
+#endif /* defined(TARG_REUSE_TAIL_PADDING) */
+#if defined(TARG_RIGHT_SHIFT_IS_ARITHMETIC)
+  print_numeric_valued_macro(TARG_RIGHT_SHIFT_IS_ARITHMETIC);
+#else /* !defined(TARG_RIGHT_SHIFT_IS_ARITHMETIC) */
+  print_undefined_macro_name(TARG_RIGHT_SHIFT_IS_ARITHMETIC);
+#endif /* defined(TARG_RIGHT_SHIFT_IS_ARITHMETIC) */
+#if defined(TARG_RUNTIME_ELEM_COUNT_INT_KIND)
+  print_string_valued_macro(TARG_RUNTIME_ELEM_COUNT_INT_KIND);
+#else /* !defined(TARG_RUNTIME_ELEM_COUNT_INT_KIND) */
+  print_undefined_macro_name(TARG_RUNTIME_ELEM_COUNT_INT_KIND);
+#endif /* defined(TARG_RUNTIME_ELEM_COUNT_INT_KIND) */
+#if defined(TARG_SHORT_FIELD_ALIGNMENT)
+  print_numeric_valued_macro(TARG_SHORT_FIELD_ALIGNMENT);
+#else /* !defined(TARG_SHORT_FIELD_ALIGNMENT) */
+  print_undefined_macro_name(TARG_SHORT_FIELD_ALIGNMENT);
+#endif /* defined(TARG_SHORT_FIELD_ALIGNMENT) */
+#if defined(TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME)
+  print_numeric_valued_macro(TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME);
+#else /* !defined(TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME) */
+  print_undefined_macro_name(TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME);
+#endif /* defined(TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME) */
+#if defined(TARG_SIZEOF_DOUBLE)
+  print_numeric_valued_macro(TARG_SIZEOF_DOUBLE);
+#else /* !defined(TARG_SIZEOF_DOUBLE) */
+  print_undefined_macro_name(TARG_SIZEOF_DOUBLE);
+#endif /* defined(TARG_SIZEOF_DOUBLE) */
+#if defined(TARG_SIZEOF_FAR_POINTER)
+  print_numeric_valued_macro(TARG_SIZEOF_FAR_POINTER);
+#else /* !defined(TARG_SIZEOF_FAR_POINTER) */
+  print_undefined_macro_name(TARG_SIZEOF_FAR_POINTER);
+#endif /* defined(TARG_SIZEOF_FAR_POINTER) */
+#if defined(TARG_SIZEOF_FLOAT)
+  print_numeric_valued_macro(TARG_SIZEOF_FLOAT);
+#else /* !defined(TARG_SIZEOF_FLOAT) */
+  print_undefined_macro_name(TARG_SIZEOF_FLOAT);
+#endif /* defined(TARG_SIZEOF_FLOAT) */
+#if defined(TARG_SIZEOF_INT)
+  print_numeric_valued_macro(TARG_SIZEOF_INT);
+#else /* !defined(TARG_SIZEOF_INT) */
+  print_undefined_macro_name(TARG_SIZEOF_INT);
+#endif /* defined(TARG_SIZEOF_INT) */
+#if defined(TARG_SIZEOF_LARGEST_FIXED_POINT)
+  print_numeric_valued_macro(TARG_SIZEOF_LARGEST_FIXED_POINT);
+#else /* !defined(TARG_SIZEOF_LARGEST_FIXED_POINT) */
+  print_undefined_macro_name(TARG_SIZEOF_LARGEST_FIXED_POINT);
+#endif /* defined(TARG_SIZEOF_LARGEST_FIXED_POINT) */
+#if defined(TARG_SIZEOF_LARGEST_INTEGER)
+  print_numeric_valued_macro(TARG_SIZEOF_LARGEST_INTEGER);
+#else /* !defined(TARG_SIZEOF_LARGEST_INTEGER) */
+  print_undefined_macro_name(TARG_SIZEOF_LARGEST_INTEGER);
+#endif /* defined(TARG_SIZEOF_LARGEST_INTEGER) */
+#if defined(TARG_SIZEOF_LONG)
+  print_numeric_valued_macro(TARG_SIZEOF_LONG);
+#else /* !defined(TARG_SIZEOF_LONG) */
+  print_undefined_macro_name(TARG_SIZEOF_LONG);
+#endif /* defined(TARG_SIZEOF_LONG) */
+#if defined(TARG_SIZEOF_LONG_DOUBLE)
+  print_numeric_valued_macro(TARG_SIZEOF_LONG_DOUBLE);
+#else /* !defined(TARG_SIZEOF_LONG_DOUBLE) */
+  print_undefined_macro_name(TARG_SIZEOF_LONG_DOUBLE);
+#endif /* defined(TARG_SIZEOF_LONG_DOUBLE) */
+#if defined(TARG_SIZEOF_LONG_LONG)
+  print_numeric_valued_macro(TARG_SIZEOF_LONG_LONG);
+#else /* !defined(TARG_SIZEOF_LONG_LONG) */
+  print_undefined_macro_name(TARG_SIZEOF_LONG_LONG);
+#endif /* defined(TARG_SIZEOF_LONG_LONG) */
+#if defined(TARG_SIZEOF_NEAR_POINTER)
+  print_numeric_valued_macro(TARG_SIZEOF_NEAR_POINTER);
+#else /* !defined(TARG_SIZEOF_NEAR_POINTER) */
+  print_undefined_macro_name(TARG_SIZEOF_NEAR_POINTER);
+#endif /* defined(TARG_SIZEOF_NEAR_POINTER) */
+#if defined(TARG_SIZEOF_POINTER)
+  print_numeric_valued_macro(TARG_SIZEOF_POINTER);
+#else /* !defined(TARG_SIZEOF_POINTER) */
+  print_undefined_macro_name(TARG_SIZEOF_POINTER);
+#endif /* defined(TARG_SIZEOF_POINTER) */
+#if defined(TARG_SIZEOF_PTR_TO_DATA_MEMBER)
+  print_numeric_valued_macro(TARG_SIZEOF_PTR_TO_DATA_MEMBER);
+#else /* !defined(TARG_SIZEOF_PTR_TO_DATA_MEMBER) */
+  print_undefined_macro_name(TARG_SIZEOF_PTR_TO_DATA_MEMBER);
+#endif /* defined(TARG_SIZEOF_PTR_TO_DATA_MEMBER) */
+#if defined(TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION)
+  print_numeric_valued_macro(TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION);
+#else /* !defined(TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION) */
+  print_undefined_macro_name(TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION);
+#endif /* defined(TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION) */
+#if defined(TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS)
+  print_numeric_valued_macro(TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS);
+#else /* !defined(TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS) */
+  print_undefined_macro_name(TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS);
+#endif /* defined(TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS) */
+#if defined(TARG_SIZEOF_SHORT)
+  print_numeric_valued_macro(TARG_SIZEOF_SHORT);
+#else /* !defined(TARG_SIZEOF_SHORT) */
+  print_undefined_macro_name(TARG_SIZEOF_SHORT);
+#endif /* defined(TARG_SIZEOF_SHORT) */
+#if defined(TARG_SIZEOF_SIGNED_ACCUM)
+  print_numeric_valued_macro(TARG_SIZEOF_SIGNED_ACCUM);
+#else /* !defined(TARG_SIZEOF_SIGNED_ACCUM) */
+  print_undefined_macro_name(TARG_SIZEOF_SIGNED_ACCUM);
+#endif /* defined(TARG_SIZEOF_SIGNED_ACCUM) */
+#if defined(TARG_SIZEOF_SIGNED_FRACT)
+  print_numeric_valued_macro(TARG_SIZEOF_SIGNED_FRACT);
+#else /* !defined(TARG_SIZEOF_SIGNED_FRACT) */
+  print_undefined_macro_name(TARG_SIZEOF_SIGNED_FRACT);
+#endif /* defined(TARG_SIZEOF_SIGNED_FRACT) */
+#if defined(TARG_SIZEOF_SIGNED_LONG_ACCUM)
+  print_numeric_valued_macro(TARG_SIZEOF_SIGNED_LONG_ACCUM);
+#else /* !defined(TARG_SIZEOF_SIGNED_LONG_ACCUM) */
+  print_undefined_macro_name(TARG_SIZEOF_SIGNED_LONG_ACCUM);
+#endif /* defined(TARG_SIZEOF_SIGNED_LONG_ACCUM) */
+#if defined(TARG_SIZEOF_SIGNED_LONG_FRACT)
+  print_numeric_valued_macro(TARG_SIZEOF_SIGNED_LONG_FRACT);
+#else /* !defined(TARG_SIZEOF_SIGNED_LONG_FRACT) */
+  print_undefined_macro_name(TARG_SIZEOF_SIGNED_LONG_FRACT);
+#endif /* defined(TARG_SIZEOF_SIGNED_LONG_FRACT) */
+#if defined(TARG_SIZEOF_SIGNED_SHORT_ACCUM)
+  print_numeric_valued_macro(TARG_SIZEOF_SIGNED_SHORT_ACCUM);
+#else /* !defined(TARG_SIZEOF_SIGNED_SHORT_ACCUM) */
+  print_undefined_macro_name(TARG_SIZEOF_SIGNED_SHORT_ACCUM);
+#endif /* defined(TARG_SIZEOF_SIGNED_SHORT_ACCUM) */
+#if defined(TARG_SIZEOF_SIGNED_SHORT_FRACT)
+  print_numeric_valued_macro(TARG_SIZEOF_SIGNED_SHORT_FRACT);
+#else /* !defined(TARG_SIZEOF_SIGNED_SHORT_FRACT) */
+  print_undefined_macro_name(TARG_SIZEOF_SIGNED_SHORT_FRACT);
+#endif /* defined(TARG_SIZEOF_SIGNED_SHORT_FRACT) */
+#if defined(TARG_SIZEOF_UNSIGNED_ACCUM)
+  print_numeric_valued_macro(TARG_SIZEOF_UNSIGNED_ACCUM);
+#else /* !defined(TARG_SIZEOF_UNSIGNED_ACCUM) */
+  print_undefined_macro_name(TARG_SIZEOF_UNSIGNED_ACCUM);
+#endif /* defined(TARG_SIZEOF_UNSIGNED_ACCUM) */
+#if defined(TARG_SIZEOF_UNSIGNED_FRACT)
+  print_numeric_valued_macro(TARG_SIZEOF_UNSIGNED_FRACT);
+#else /* !defined(TARG_SIZEOF_UNSIGNED_FRACT) */
+  print_undefined_macro_name(TARG_SIZEOF_UNSIGNED_FRACT);
+#endif /* defined(TARG_SIZEOF_UNSIGNED_FRACT) */
+#if defined(TARG_SIZEOF_UNSIGNED_LONG_ACCUM)
+  print_numeric_valued_macro(TARG_SIZEOF_UNSIGNED_LONG_ACCUM);
+#else /* !defined(TARG_SIZEOF_UNSIGNED_LONG_ACCUM) */
+  print_undefined_macro_name(TARG_SIZEOF_UNSIGNED_LONG_ACCUM);
+#endif /* defined(TARG_SIZEOF_UNSIGNED_LONG_ACCUM) */
+#if defined(TARG_SIZEOF_UNSIGNED_LONG_FRACT)
+  print_numeric_valued_macro(TARG_SIZEOF_UNSIGNED_LONG_FRACT);
+#else /* !defined(TARG_SIZEOF_UNSIGNED_LONG_FRACT) */
+  print_undefined_macro_name(TARG_SIZEOF_UNSIGNED_LONG_FRACT);
+#endif /* defined(TARG_SIZEOF_UNSIGNED_LONG_FRACT) */
+#if defined(TARG_SIZEOF_UNSIGNED_SHORT_ACCUM)
+  print_numeric_valued_macro(TARG_SIZEOF_UNSIGNED_SHORT_ACCUM);
+#else /* !defined(TARG_SIZEOF_UNSIGNED_SHORT_ACCUM) */
+  print_undefined_macro_name(TARG_SIZEOF_UNSIGNED_SHORT_ACCUM);
+#endif /* defined(TARG_SIZEOF_UNSIGNED_SHORT_ACCUM) */
+#if defined(TARG_SIZEOF_UNSIGNED_SHORT_FRACT)
+  print_numeric_valued_macro(TARG_SIZEOF_UNSIGNED_SHORT_FRACT);
+#else /* !defined(TARG_SIZEOF_UNSIGNED_SHORT_FRACT) */
+  print_undefined_macro_name(TARG_SIZEOF_UNSIGNED_SHORT_FRACT);
+#endif /* defined(TARG_SIZEOF_UNSIGNED_SHORT_FRACT) */
+#if defined(TARG_SIZEOF_VIRTUAL_FUNCTION_INFO)
+  print_numeric_valued_macro(TARG_SIZEOF_VIRTUAL_FUNCTION_INFO);
+#else /* !defined(TARG_SIZEOF_VIRTUAL_FUNCTION_INFO) */
+  print_undefined_macro_name(TARG_SIZEOF_VIRTUAL_FUNCTION_INFO);
+#endif /* defined(TARG_SIZEOF_VIRTUAL_FUNCTION_INFO) */
+#if defined(TARG_SIZEOF_WCHAR_T)
+  print_numeric_valued_macro(TARG_SIZEOF_WCHAR_T);
+#else /* !defined(TARG_SIZEOF_WCHAR_T) */
+  print_undefined_macro_name(TARG_SIZEOF_WCHAR_T);
+#endif /* defined(TARG_SIZEOF_WCHAR_T) */
+#if defined(TARG_SIZE_T_INT_KIND)
+  print_string_valued_macro(TARG_SIZE_T_INT_KIND);
+#else /* !defined(TARG_SIZE_T_INT_KIND) */
+  print_undefined_macro_name(TARG_SIZE_T_INT_KIND);
+#endif /* defined(TARG_SIZE_T_INT_KIND) */
+#if defined(TARG_SSIZE_T_INT_KIND)
+  print_string_valued_macro(TARG_SSIZE_T_INT_KIND);
+#else /* !defined(TARG_SSIZE_T_INT_KIND) */
+  print_undefined_macro_name(TARG_SSIZE_T_INT_KIND);
+#endif /* defined(TARG_SSIZE_T_INT_KIND) */
+#if defined(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE)
+  print_numeric_valued_macro(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE);
+#else /* !defined(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE) */
+  print_undefined_macro_name(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE);
+#endif /* defined(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE) */
+#if defined(TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT)
+  print_numeric_valued_macro(TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT);
+#else /* !defined(TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT) */
+  print_undefined_macro_name(TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT);
+#endif /* defined(TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT) */
+#if defined(TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS)
+  print_numeric_valued_macro(
+                       TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS);
+#else /* !defined(TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS) */
+  print_undefined_macro_name(
+                       TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS);
+#endif /* defined(TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS) */
+#if defined(TARG_VAR_HANDLE_INT_KIND)
+  print_string_valued_macro(TARG_VAR_HANDLE_INT_KIND);
+#else /* !defined(TARG_VAR_HANDLE_INT_KIND) */
+  print_undefined_macro_name(TARG_VAR_HANDLE_INT_KIND);
+#endif /* defined(TARG_VAR_HANDLE_INT_KIND) */
+#if defined(TARG_VERT_TAB_CHAR)
+  print_string_valued_macro(TARG_VERT_TAB_CHAR);
+#else /* !defined(TARG_VERT_TAB_CHAR) */
+  print_undefined_macro_name(TARG_VERT_TAB_CHAR);
+#endif /* defined(TARG_VERT_TAB_CHAR) */
+#if defined(TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND)
+  print_string_valued_macro(TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
+#else /* !defined(TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND) */
+  print_undefined_macro_name(TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
+#endif /* defined(TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND) */
+#if defined(TARG_WCHAR_T_INT_KIND)
+  print_string_valued_macro(TARG_WCHAR_T_INT_KIND);
+#else /* !defined(TARG_WCHAR_T_INT_KIND) */
+  print_undefined_macro_name(TARG_WCHAR_T_INT_KIND);
+#endif /* defined(TARG_WCHAR_T_INT_KIND) */
+#if defined(TARG_WINT_T_INT_KIND)
+  print_string_valued_macro(TARG_WINT_T_INT_KIND);
+#else /* !defined(TARG_WINT_T_INT_KIND) */
+  print_undefined_macro_name(TARG_WINT_T_INT_KIND);
+#endif /* defined(TARG_WINT_T_INT_KIND) */
+#if defined(TARG_WORD_MODE)
+  print_string_valued_macro(TARG_WORD_MODE);
+#else /* !defined(TARG_WORD_MODE) */
+  print_undefined_macro_name(TARG_WORD_MODE);
+#endif /* defined(TARG_WORD_MODE) */
+#if defined(TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT)
+  print_numeric_valued_macro(
+                           TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT);
+#else /* !defined(TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT) */
+  print_undefined_macro_name(
+                           TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT);
+#endif /* defined(TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT) */
+#if defined(TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT)
+  print_numeric_valued_macro(TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT);
+#else /* !defined(TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT) */
+  print_undefined_macro_name(TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT);
+#endif /* defined(TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT) */
+#if defined(TEMPLATE_INFO_FILE_SUFFIX)
+  print_string_valued_macro(TEMPLATE_INFO_FILE_SUFFIX);
+#else /* !defined(TEMPLATE_INFO_FILE_SUFFIX) */
+  print_undefined_macro_name(TEMPLATE_INFO_FILE_SUFFIX);
+#endif /* defined(TEMPLATE_INFO_FILE_SUFFIX) */
+#if defined(TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE)
+  print_numeric_valued_macro(TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE);
+#else /* !defined(TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE) */
+  print_undefined_macro_name(TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE);
+#endif /* defined(TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE) */
+#if defined(THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED)
+  print_numeric_valued_macro(THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED);
+#else /* !defined(THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED) */
+  print_undefined_macro_name(THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED);
+#endif /* defined(THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED) */
+#if defined(TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION)
+  print_numeric_valued_macro(TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION);
+#else /* !defined(TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION) */
+  print_undefined_macro_name(TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION);
+#endif /* defined(TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION) */
+#if defined(TYPE_FOR_AN_FP_VALUE_PART)
+  print_string_valued_macro(TYPE_FOR_AN_FP_VALUE_PART);
+#else /* !defined(TYPE_FOR_AN_FP_VALUE_PART) */
+  print_undefined_macro_name(TYPE_FOR_AN_FP_VALUE_PART);
+#endif /* defined(TYPE_FOR_AN_FP_VALUE_PART) */
+#if defined(TYPE_FOR_AN_INTEGER_VALUE)
+  print_string_valued_macro(TYPE_FOR_AN_INTEGER_VALUE);
+#else /* !defined(TYPE_FOR_AN_INTEGER_VALUE) */
+  print_undefined_macro_name(TYPE_FOR_AN_INTEGER_VALUE);
+#endif /* defined(TYPE_FOR_AN_INTEGER_VALUE) */
+#if defined(TYPE_FOR_A_FIXED_POINT_VALUE)
+  print_string_valued_macro(TYPE_FOR_A_FIXED_POINT_VALUE);
+#else /* !defined(TYPE_FOR_A_FIXED_POINT_VALUE) */
+  print_undefined_macro_name(TYPE_FOR_A_FIXED_POINT_VALUE);
+#endif /* defined(TYPE_FOR_A_FIXED_POINT_VALUE) */
+#if defined(TYPE_FOR_A_SIGNED_INTEGER_VALUE)
+  print_string_valued_macro(TYPE_FOR_A_SIGNED_INTEGER_VALUE);
+#else /* !defined(TYPE_FOR_A_SIGNED_INTEGER_VALUE) */
+  print_undefined_macro_name(TYPE_FOR_A_SIGNED_INTEGER_VALUE);
+#endif /* defined(TYPE_FOR_A_SIGNED_INTEGER_VALUE) */
+#if defined(TYPE_FOR_A_SMALL_TOKEN_KIND)
+  print_string_valued_macro(TYPE_FOR_A_SMALL_TOKEN_KIND);
+#else /* !defined(TYPE_FOR_A_SMALL_TOKEN_KIND) */
+  print_undefined_macro_name(TYPE_FOR_A_SMALL_TOKEN_KIND);
+#endif /* defined(TYPE_FOR_A_SMALL_TOKEN_KIND) */
+#if defined(TYPE_FOR_TARG_ALIGNMENT)
+  print_string_valued_macro(TYPE_FOR_TARG_ALIGNMENT);
+#else /* !defined(TYPE_FOR_TARG_ALIGNMENT) */
+  print_undefined_macro_name(TYPE_FOR_TARG_ALIGNMENT);
+#endif /* defined(TYPE_FOR_TARG_ALIGNMENT) */
+#if defined(UCN_ESCAPE_REWRITE_CHAR)
+  print_string_valued_macro(UCN_ESCAPE_REWRITE_CHAR);
+#else /* !defined(UCN_ESCAPE_REWRITE_CHAR) */
+  print_undefined_macro_name(UCN_ESCAPE_REWRITE_CHAR);
+#endif /* defined(UCN_ESCAPE_REWRITE_CHAR) */
+#if defined(UNARY_PLUS_IN_IL)
+  print_numeric_valued_macro(UNARY_PLUS_IN_IL);
+#else /* !defined(UNARY_PLUS_IN_IL) */
+  print_undefined_macro_name(UNARY_PLUS_IN_IL);
+#endif /* defined(UNARY_PLUS_IN_IL) */
+#if defined(UPC_EXTENSIONS_ALLOWED)
+  print_numeric_valued_macro(UPC_EXTENSIONS_ALLOWED);
+#else /* !defined(UPC_EXTENSIONS_ALLOWED) */
+  print_undefined_macro_name(UPC_EXTENSIONS_ALLOWED);
+#endif /* defined(UPC_EXTENSIONS_ALLOWED) */
+#if defined(USER_CONTROL_OF_STRUCT_PACKING)
+  print_numeric_valued_macro(USER_CONTROL_OF_STRUCT_PACKING);
+#else /* !defined(USER_CONTROL_OF_STRUCT_PACKING) */
+  print_undefined_macro_name(USER_CONTROL_OF_STRUCT_PACKING);
+#endif /* defined(USER_CONTROL_OF_STRUCT_PACKING) */
+#if defined(USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS)
+  print_numeric_valued_macro(USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS);
+#else /* !defined(USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS) */
+  print_undefined_macro_name(USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS);
+#endif /* defined(USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS) */
+#if defined(USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS)
+  print_numeric_valued_macro(USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS);
+#else /* !defined(USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS) */
+  print_undefined_macro_name(USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS);
+#endif /* defined(USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS) */
+#if defined(USE_FIXED_ADDRESS_FOR_MMAP)
+  print_numeric_valued_macro(USE_FIXED_ADDRESS_FOR_MMAP);
+#else /* !defined(USE_FIXED_ADDRESS_FOR_MMAP) */
+  print_undefined_macro_name(USE_FIXED_ADDRESS_FOR_MMAP);
+#endif /* defined(USE_FIXED_ADDRESS_FOR_MMAP) */
+#if defined(USE_INIT_SECTION_IN_GENERATED_C)
+  print_numeric_valued_macro(USE_INIT_SECTION_IN_GENERATED_C);
+#else /* !defined(USE_INIT_SECTION_IN_GENERATED_C) */
+  print_undefined_macro_name(USE_INIT_SECTION_IN_GENERATED_C);
+#endif /* defined(USE_INIT_SECTION_IN_GENERATED_C) */
+#if defined(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE)
+  print_numeric_valued_macro(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE);
+#else /* !defined(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE) */
+  print_undefined_macro_name(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE);
+#endif /* defined(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE) */
+#if defined(USE_MMAP_FOR_MEMORY_REGIONS)
+  print_numeric_valued_macro(USE_MMAP_FOR_MEMORY_REGIONS);
+#else /* !defined(USE_MMAP_FOR_MEMORY_REGIONS) */
+  print_undefined_macro_name(USE_MMAP_FOR_MEMORY_REGIONS);
+#endif /* defined(USE_MMAP_FOR_MEMORY_REGIONS) */
+#if defined(USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING)
+  print_numeric_valued_macro(USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING);
+#else /* !defined(USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING) */
+  print_undefined_macro_name(USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING);
+#endif /* defined(USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING) */
+#if defined(USE_PATCH_INIT_STARTUP)
+  print_numeric_valued_macro(USE_PATCH_INIT_STARTUP);
+#else /* !defined(USE_PATCH_INIT_STARTUP) */
+  print_undefined_macro_name(USE_PATCH_INIT_STARTUP);
+#endif /* defined(USE_PATCH_INIT_STARTUP) */
+#if defined(USE_PRAGMA_IDENT_IN_GENERATED_CODE)
+  print_numeric_valued_macro(USE_PRAGMA_IDENT_IN_GENERATED_CODE);
+#else /* !defined(USE_PRAGMA_IDENT_IN_GENERATED_CODE) */
+  print_undefined_macro_name(USE_PRAGMA_IDENT_IN_GENERATED_CODE);
+#endif /* defined(USE_PRAGMA_IDENT_IN_GENERATED_CODE) */
+#if defined(USE_TEMPLATE_INFO_FILE)
+  print_numeric_valued_macro(USE_TEMPLATE_INFO_FILE);
+#else /* !defined(USE_TEMPLATE_INFO_FILE) */
+  print_undefined_macro_name(USE_TEMPLATE_INFO_FILE);
+#endif /* defined(USE_TEMPLATE_INFO_FILE) */
+#if defined(USING_DECLARATIONS_IN_GENERATED_CODE)
+  print_numeric_valued_macro(USING_DECLARATIONS_IN_GENERATED_CODE);
+#else /* !defined(USING_DECLARATIONS_IN_GENERATED_CODE) */
+  print_undefined_macro_name(USING_DECLARATIONS_IN_GENERATED_CODE);
+#endif /* defined(USING_DECLARATIONS_IN_GENERATED_CODE) */
+#if defined(USING_DRIVER)
+  print_numeric_valued_macro(USING_DRIVER);
+#else /* !defined(USING_DRIVER) */
+  print_undefined_macro_name(USING_DRIVER);
+#endif /* defined(USING_DRIVER) */
+#if defined(USING_KAI_INLINER)
+  print_numeric_valued_macro(USING_KAI_INLINER);
+#else /* !defined(USING_KAI_INLINER) */
+  print_undefined_macro_name(USING_KAI_INLINER);
+#endif /* defined(USING_KAI_INLINER) */
+#if defined(VERSION_NUMBER)
+  print_string_valued_macro(VERSION_NUMBER);
+#else /* !defined(VERSION_NUMBER) */
+  print_undefined_macro_name(VERSION_NUMBER);
+#endif /* defined(VERSION_NUMBER) */
+#if defined(VERSION_NUMBER_FOR_MACRO)
+  print_numeric_valued_macro(VERSION_NUMBER_FOR_MACRO);
+#else /* !defined(VERSION_NUMBER_FOR_MACRO) */
+  print_undefined_macro_name(VERSION_NUMBER_FOR_MACRO);
+#endif /* defined(VERSION_NUMBER_FOR_MACRO) */
+#if defined(VLA_ALLOWED)
+  print_numeric_valued_macro(VLA_ALLOWED);
+#else /* !defined(VLA_ALLOWED) */
+  print_undefined_macro_name(VLA_ALLOWED);
+#endif /* defined(VLA_ALLOWED) */
+#if defined(VLA_DEALLOCATIONS_IN_IL)
+  print_numeric_valued_macro(VLA_DEALLOCATIONS_IN_IL);
+#else /* !defined(VLA_DEALLOCATIONS_IN_IL) */
+  print_undefined_macro_name(VLA_DEALLOCATIONS_IN_IL);
+#endif /* defined(VLA_DEALLOCATIONS_IN_IL) */
+#if defined(VLA_DEALLOCATION_REQUIRED)
+  print_numeric_valued_macro(VLA_DEALLOCATION_REQUIRED);
+#else /* !defined(VLA_DEALLOCATION_REQUIRED) */
+  print_undefined_macro_name(VLA_DEALLOCATION_REQUIRED);
+#endif /* defined(VLA_DEALLOCATION_REQUIRED) */
+#if defined(WCHAR_T_ENABLING_POSSIBLE)
+  print_numeric_valued_macro(WCHAR_T_ENABLING_POSSIBLE);
+#else /* !defined(WCHAR_T_ENABLING_POSSIBLE) */
+  print_undefined_macro_name(WCHAR_T_ENABLING_POSSIBLE);
+#endif /* defined(WCHAR_T_ENABLING_POSSIBLE) */
+#if defined(WRITE_SIGNOFF_MESSAGE)
+  print_numeric_valued_macro(WRITE_SIGNOFF_MESSAGE);
+#else /* !defined(WRITE_SIGNOFF_MESSAGE) */
+  print_undefined_macro_name(WRITE_SIGNOFF_MESSAGE);
+#endif /* defined(WRITE_SIGNOFF_MESSAGE) */
+/* Undefine local macros. */
+#undef print_undefined_macro_name
+#undef print_numeric_valued_macro
+#undef print_string_valued_macro
+#undef stringize
+}  /* dump_configuration_macros */
+#endif /* DEBUG */
+
+
 void proc_command_line(int argc, char *argv[])
 /*
 Process the arguments on the command line that invoked the compiler.
@@ -4516,6 +7510,13 @@ enable_microsoft_mode:
         generate_pp_output = FALSE;
         list_macro_definitions = TRUE;
         break;
+#if DEBUG
+      case optk_display_configuration:
+        /* Display the values of all configuration macros with which this
+           executable was built. */
+        dump_configuration_macros();
+        break;
+#endif /* DEBUG */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

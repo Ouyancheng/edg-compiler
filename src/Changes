@@ -1,5 +1,16 @@
 Version 3.10
 
+6/20/07  Displaying the as-built configuration
+
+A new command-line option, --display_configuration, has been added in
+configurations in which DEBUG is TRUE.  It displays on the error output
+the value of each configuration option with which the executable was built.
+The form of the display is a series of #define directives, making the
+output suitable for capture and use directly as a defines.h file.  This
+output can be helpful when reporting issues to EDG support and for
+determining whether two separately-compiled executables were built with
+compatible configuration options.
+
 6/19/07  Default settings for GNU_X86_ASM_EXTENSIONS_ALLOWED and
          GNU_X86_ATTRIBUTES_ALLOWED
 

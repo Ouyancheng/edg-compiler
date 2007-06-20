@@ -1146,29 +1146,29 @@ Flag that is TRUE if source sequence lists are being generated and if they
 should include (member and nonmember) function template instantiations and
 static data member template instantiations.
 */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
 #ifndef NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 /* You can change this: */
 #define NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS FALSE
-#endif /* ifndef NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 /* Do not change this: */
 #define NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS FALSE
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* ifndef NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 /*
 Flag that is TRUE if source sequence lists are being generated and if they
 should include class template instantiations.
 */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
 #ifndef CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 /* You can change this: */
 #define CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS FALSE
-#endif /* ifndef CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 /* Do not change this: */
 #define CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS FALSE
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* ifndef CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 /*
 Union of two previous flags.
@@ -1180,6 +1180,11 @@ Union of two previous flags.
          !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #define TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS FALSE
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS... */
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && \
+    !GENERATE_SOURCE_SEQUENCE_LISTS
+ #error -- Instantiations requested in nonexistent source sequence lists
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS &&
+          !GENERATE_SOURCE_SEQUENCE_LISTS */
 
 /*
 Flag that indicates whether a source sequence entry representing a template
