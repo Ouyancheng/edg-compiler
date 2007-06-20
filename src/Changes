@@ -1,5 +1,14 @@
 Version 3.10
 
+6/19/07  Default settings for GNU_X86_ASM_EXTENSIONS_ALLOWED and
+         GNU_X86_ATTRIBUTES_ALLOWED
+
+In configurations with GNU_EXTENSIONS_ALLOWED set to TRUE, the macros
+GNU_X86_ASM_EXTENSIONS_ALLOWED and GNU_X86_ATTRIBUTES_ALLOWED are set to TRUE
+by default when the front end is build on a system that defines __i386.  Now
+these macros are also set to TRUE by default when the build system defines the
+macro __x86_64.
+
 6/19/07  Abort in il_to_str.c on __thiscall member function
 
 In Microsoft mode with microsoft_version >= 1400, the front end sometimes
