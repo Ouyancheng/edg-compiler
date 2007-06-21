@@ -21,7 +21,7 @@ the C++0x mode behavior (see Changes entry of 5/8/06).
 
 6/20/07  Source file name sometimes optional
 
-When specifying the command-line options --version or --display_configuration
+When the command-line options --version or --dump_configuration are specified
 the front end no longer issues an error if no source file name is specified.
 The effect of the front end invocation is then simply to produce the requested
 output (version and/or configuration information).
