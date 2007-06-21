@@ -265,6 +265,7 @@ used for creating pbk_immediate pragmas.
             read_string_as_header_name, error_severity);
 }  /* add_immediate_pragma_kind_description */
 
+#if INCLUDE_EDG_TEST_PRAGMAS
 
 static a_pragma_kind_description_ptr add_other_pragma_kind_description
                       (a_pragma_kind 	     kind,
@@ -296,6 +297,7 @@ used for creating pbk_other pragmas.
             read_string_as_header_name, error_severity);
 }  /* add_other_pragma_kind_description */
 
+#endif /* INCLUDE_EDG_TEST_PRAGMAS */
 
 static
 a_pragma_kind_description_ptr add_preproc_immediate_pragma_kind_description(
