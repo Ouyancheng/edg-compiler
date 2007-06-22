@@ -1169,7 +1169,7 @@ Initialize the option information table.
   add_option_description(optk_list_macros, "list_macros", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE, pchek_none);
 #if DEBUG
-  add_option_description(optk_display_configuration, "display_configuration",
+  add_option_description(optk_dump_configuration, "dump_configuration",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
 #endif /* DEBUG */
@@ -7515,7 +7515,7 @@ enable_microsoft_mode:
         list_macro_definitions = TRUE;
         break;
 #if DEBUG
-      case optk_display_configuration:
+      case optk_dump_configuration:
         /* Display the values of all configuration macros with which this
            executable was built. */
         dump_configuration_macros();
