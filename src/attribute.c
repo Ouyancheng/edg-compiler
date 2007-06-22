@@ -1063,6 +1063,14 @@ is not a recognized kind of attribute, set *kind to ak_last.
       *kind = (an_attribute_kind)ak_last;
       break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#if GNU_X86_ATTRIBUTES_ALLOWED && USE_X86_64
+    case ak_stdcall:
+    case ak_cdecl:
+      /* The x86 calling convention attributes are ignored by gcc/g++ on
+         x86-64 platforms. */
+      *kind = (an_attribute_kind)ak_last;
+      break;
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
     case ak_weakref:
       min_gnu_version = 40100;
       break;

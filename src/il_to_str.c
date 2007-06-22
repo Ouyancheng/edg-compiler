@@ -4462,7 +4462,7 @@ Do the output in the way described by octl.
   if (rtsp->is_const) {
     form_simple_attribute("__const__", need_leading_space, octl);
   }  /* if */
-#if GNU_X86_ATTRIBUTES_ALLOWED
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
   switch (rtsp->calling_convention) {
     case cc_default:
       /* No attribute to generate. */
@@ -4484,7 +4484,7 @@ Do the output in the way described by octl.
     default:
       unexpected_condition();
   }  /* switch */
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   if (!octl->c_generating_back_end) {
     /* Don't emit the following attributes in generated C code to avoid having
        a back-end C compiler duplicate a diagnostic already emitted by the

@@ -1,5 +1,12 @@
 Version 3.10
 
+6/22/07  GNU compatibility: cdecl/stdcall attributes with USE_X86_64
+
+In GNU modes the x86 calling convention attributes cdecl and stdcall are no
+longer recognized in configurations where USE_X86_64 is TRUE.  In addition,
+when USE_X86_64 is TRUE the C- and C++-generating back ends no longer generate
+such attributes when generating code for a GNU compiler.
+
 6/20/07  Abort with built-in macros and FULLY_RESOLVED_MACRO_POSITIONS
 
 In configurations in which FULLY_RESOLVED_MACRO_POSITIONS is TRUE, use of
