@@ -254,7 +254,11 @@ certain language features and preprocessing features are available.
 #ifdef __cplusplus
 #define USING_ISO_C TRUE
 #else /* !defined(__cplusplus) */
+#if __MSC__
+#define USING_ISO_C TRUE
+#else /* !__MSC__ */
 #define USING_ISO_C FALSE
+#endif /* __MSC__ */
 #endif /* ifdef __cplusplus */
 #endif /* ifdef __STDC__ */
 #endif /* ifndef USING_ISO_C */
