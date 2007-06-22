@@ -578,7 +578,7 @@ check_abbreviation()
 --diag_remark
 --diag_suppress
 --diag_warning
---display_configuration
+--dump_configuration
 --display_error_number
 --distinct_template_signatures
 --dollar
@@ -1294,7 +1294,7 @@ process_option()
          --no_macro_positions_in_diagnostics | \
          --uliterals | \
          --no_uliterals | \
-         --display_configuration | \
+         --dump_configuration | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
