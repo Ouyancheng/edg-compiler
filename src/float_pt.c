@@ -815,7 +815,7 @@ Display a mantissa value, for debugging purposes.
   int	i;
 
   for (i = 0; i < MANTISSA_PARTS; i++) {
-    fprintf(f_debug, "%08lx", mp->parts[i]);
+    fprintf(f_debug, "%08lx", (unsigned long)mp->parts[i]);
   }  /* for */
   fprintf(f_debug, "\n");
 }  /* db_mantissa */
