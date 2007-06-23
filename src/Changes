@@ -1,5 +1,16 @@
 Version 3.10
 
+6/23/07  New-style casts in template default arguments
+
+The front end incorrectly parsed some template declarations in which a
+default template argument contains a new-style cast (static_cast,
+const_cast, etc.) and reported spurious syntax errors.  This is now fixed.
+For example:
+
+  template<typename T> struct O {
+    template<T = static_cast<T>(0)> struct I { };
+  };
+
 6/22/07  GNU compatibility: cdecl/stdcall attributes with USE_X86_64
 
 In GNU modes the x86 calling convention attributes cdecl and stdcall are no

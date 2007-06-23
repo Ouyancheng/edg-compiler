@@ -1288,9 +1288,9 @@ a_boolean cache_token_stream_until_matching_token(
                                 a_boolean		coalesce_ids,
 				a_token_sequence_number last_tsn_in_cache)
 /*
-Given curr_token of '(', '[', or '{', copy tokens into the token cache
+Given curr_token of '<', '(', '[', or '{', copy tokens into the token cache
 specified by cache up to but not including the corresponding closing token,
-')', ']', or '}', respectively.  Return immediately if end of source is
+'>', ')', ']', or '}', respectively.  Return immediately if end of source is
 reached.  (This routine is similar to flush_until_matching_token, but instead
 of throwing tokens away it adds them to the specified token cache.)
 
@@ -1301,7 +1301,8 @@ coalesce_ids is TRUE if identifiers found in the token stream should
 be coalesced.  This should be done when the stop token set includes
 tokens that can appear in an expression, which means that the
 caching process must be able to determine whether a "<" starts
-a template argument list or is just a less-than sign.
+a template argument list or is just a less-than sign.  coalesce_ids must
+be TRUE if curr_token is tok_lt.
 */
 {
   a_token_kind  closing_token;
@@ -1310,8 +1311,15 @@ a template argument list or is just a less-than sign.
   a_boolean	err = FALSE;
 
   db_enter(4, "cache_token_stream_until_matching_token");
+  if (curr_token == tok_lt) {
+    /* We rely on coalescing of template-ids in the logic below: because we
+       won't see any nested <...> pairs, we don't have to keep a count of
+       angle brackets as we do with parentheses, brackets, and braces. */
+    check_assertion(coalesce_ids);
+  }  /* if */
   /* Determine the closing token that corresponds to curr_token. */
   switch (curr_token) {
+    case tok_lt:        closing_token = tok_gt;       break;
     case tok_lparen:    closing_token = tok_rparen;   break;
     case tok_lbracket:  closing_token = tok_rbracket; break;
     case tok_lbrace:    closing_token = tok_rbrace;   break;
@@ -1353,7 +1361,7 @@ a template argument list or is just a less-than sign.
         case tok_lbracket:                         bracket_count++; break;
         case tok_rbracket:  if (bracket_count > 0) bracket_count--; break;
         case tok_lbrace:                           brace_count++;   break;
-        case tok_rbrace:    if (brace_count > 0) brace_count--;     break;
+        case tok_rbrace:    if (brace_count > 0)   brace_count--;   break;
         default:;
       }  /* switch */
     }  /* if */
@@ -1395,6 +1403,7 @@ be copied to the new cache.
   a_token_sequence_number	last_tsn;
   a_token_sequence_number	last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
   a_boolean			save_caching_tokens = caching_tokens;
+  a_boolean			prev_token_was_new_style_cast_keyword = FALSE;
 
   db_enter(4, "cache_token_stream_with_coalesce_flag");
   /* Set a flag that indicates that the tokens being scanned are to be
@@ -1428,12 +1437,23 @@ be copied to the new cache.
      '{' is encountered, ignore the stop token array until the corresponding
      ')', ']', or '}' is reached. */
   while (stop_tokens[(int)curr_token] == 0) {
-    a_boolean	err;
-    if (curr_token == tok_lparen || curr_token == tok_lbracket ||
-        curr_token == tok_lbrace) {
-      err = cache_token_stream_until_matching_token(
+    if (coalesce_ids && stop_tokens[(int)tok_gt] > 0 &&
+        (curr_token == tok_dynamic_cast || curr_token == tok_static_cast ||
+         curr_token == tok_reinterpret_cast || curr_token == tok_const_cast)) {
+      /* We're looking for the end of a template argument list and are
+         about to scan over a new-style cast.  Make sure we don't stop the
+         scan for the '>' that's part of the new-style cast syntax. */
+      prev_token_was_new_style_cast_keyword = TRUE;
+    } else {
+      a_boolean	err;
+      if (curr_token == tok_lparen || curr_token == tok_lbracket ||
+          curr_token == tok_lbrace ||
+          (curr_token == tok_lt && prev_token_was_new_style_cast_keyword)) {
+        err = cache_token_stream_until_matching_token(
                                        cache, coalesce_ids, last_tsn_in_cache);
-      if (err) break;
+        if (err) break;
+      }  /* if */
+      prev_token_was_new_style_cast_keyword = FALSE;
     }  /* if */
     /* Stop immediately when end of source is reached. */
     if (curr_token == tok_end_of_source) break;
