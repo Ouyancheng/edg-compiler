@@ -5744,45 +5744,6 @@ type entry if appropriate, otherwise using the indicated declared_type.
   }  /* if */
 }  /* set_routine_declared_type */
 
-
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-a_boolean update_src_seq_secondary_decl(char                  *il_entry_ptr,
-                                        a_type_ptr            declared_type,
-                                        a_name_reference_ptr  name_ref,
-                                        an_sssd_flag_set      flags,
-                                        a_decl_pos_block_ptr  decl_pos_block)
-/*
-Call set_src_seq_secondary_decl_fields to set the declared_type field and
-various flags in the secondary-decl source sequence entry associated with
-il_entry_ptr.  declared_type may be NULL.  flags is a bit vector whose
-non-zero bits correspond to bit fields in the secondary source sequence
-entry that need to be set.  If decl_pos_block is non-NULL, also update the
-decl_pos_info supplement of the secondary-decl entry.
-*/
-{
-  a_src_seq_secondary_decl_ptr  sssdp;
-
-  if (source_sequence_entries_disallowed) {
-    /* We are in a context in which source sequence entries are not being
-       created.  No further action is required. */
-    sssdp = NULL;
-  } else {
-    sssdp = set_src_seq_secondary_decl_fields(il_entry_ptr, declared_type,
-                                              name_ref, flags);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (sssdp != NULL && decl_pos_block != NULL) {
-      /* Update source range information in the secondary-decl entry. */
-      sssdp->decl_pos_info = make_decl_pos_supplement(in_file_scope(sssdp),
-                                                      decl_pos_block);
-    }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  }  /* if */
-  return (sssdp != NULL);
-}  /* update_src_seq_secondary_decl */
-
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 static void record_pragma_state_in_routine(a_routine_ptr  routine_ptr)

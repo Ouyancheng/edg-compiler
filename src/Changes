@@ -1,5 +1,11 @@
 Version 3.10
 
+6/25/07  IL display utility: Build error in some configurations
+
+The IL display utility previously failed to build when the configuration
+macros TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and
+GENERATE_SOURCE_SEQUENCE_LISTS were both set to TRUE.  This is now fixed.
+
 6/23/07  New-style casts in template default arguments
 
 The front end incorrectly parsed some template declarations in which a
