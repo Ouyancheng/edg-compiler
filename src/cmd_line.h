@@ -258,6 +258,8 @@ typedef enum /*an_option_kind*/ {
 #if DEBUG
   optk_dump_configuration,
 #endif /* DEBUG */
+  optk_signed_bit_fields,
+  optk_unsigned_bit_fields,
   optk_last		/* Must be last. */
 } an_option_kind;
 

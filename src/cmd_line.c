@@ -1173,6 +1173,12 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
 #endif /* DEBUG */
+  add_option_description(optk_signed_bit_fields, "signed_bit_fields",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_unsigned_bit_fields, "unsigned_bit_fields",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -7579,6 +7585,12 @@ enable_microsoft_mode:
         source_file_name_optional = TRUE;
         break;
 #endif /* DEBUG */
+      case optk_signed_bit_fields:
+        targ_plain_int_bit_field_is_unsigned = FALSE;
+        break;
+      case optk_unsigned_bit_fields:
+        targ_plain_int_bit_field_is_unsigned = TRUE;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

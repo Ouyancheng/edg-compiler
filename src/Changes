@@ -1,5 +1,22 @@
 Version 3.10
 
+6/26/07  Implicit bit field signedness
+
+When a bit field is declared without an explicitly "signed" or "unsigned"
+type, its signedness can now be controlled with the new command-line options
+--signed_bit_fields and --unsigned_bit_fields.  For example:
+
+  #include <stdio.h>
+  struct S { int i: 3; } s = { 7 };  // No explicit signedness.
+  int main() {
+    printf("%d\n", s.i);  // Outputs 7 with --unsigned_bit_fields; and
+  }                       // -1 with --signed_bit_fields.
+
+The default is (still) established by the configuration macro
+TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED.  The new options have no effect on
+1-bit bit fields if the macro TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED
+is set to TRUE.
+
 6/25/07  IL display utility: Build error in some configurations
 
 The IL display utility previously failed to build when the configuration
