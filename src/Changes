@@ -1,5 +1,19 @@
 Version 3.10
 
+6/26/07  Destruction of compound literals in GNU C++ mode
+
+The front end previously failed to call the destructor for certain compound
+literals with a destructible type.  For example:
+
+  #include <stdio.h>
+  int main() {
+    struct S { int i; ~S() { printf("~S\n"); } };
+    (S){3};  // Previously the temporary object involved was not destroyed.
+  }
+
+This is now fixed.  Note that GNU's g++ compiler does not invoke the
+destructor in cases like these (a GNU bug).
+
 6/26/07  Implicit bit field signedness
 
 When a bit field is declared without an explicitly "signed" or "unsigned"

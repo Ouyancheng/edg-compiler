@@ -2654,9 +2654,11 @@ function get_initializer does all the hard work.
   an_aggregate_init_info info;
   a_boolean              no_token_consumed, any_dynamic_init;
   a_boolean		 err = FALSE;
+  a_source_position      err_pos;
 
   check_assertion((C_mode() || gpp_mode) && (curr_token == tok_lbrace));
   initialize_init_info(&info, is_static);
+  err_pos = pos_curr_token;
   info.compound_literal = TRUE;
   compound_constant = get_initializer(type, &info,
                                       (an_aggregate_init_context_ptr)NULL,
@@ -2680,6 +2682,18 @@ function get_initializer does all the hard work.
       *dip =
            alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
       (*dip)->variant.constant = compound_constant;
+      if (!C_mode()) {
+        /* Check if the temporary (possibly an array) created for the literal
+           requires destruction and if so record the destructor. */
+         a_type_ptr  etype = skip_typerefs(
+                                        underlying_array_element_type(*type));
+        if (is_class_struct_union_type(etype)) {
+          (*dip)->destructor = select_destructor(etype, etype, &err_pos,
+                                                 /*honor_virtual=*/FALSE,
+                                                 /*evaluated=*/TRUE,
+                                                 /*instantiate=*/TRUE);
+        }  /* if */
+      }  /* if */
     } else {
       /* get_initializer (through get_single_value_for_aggregate_initializer
          and its helpers) created a constant on top of a dynamic init entry.
