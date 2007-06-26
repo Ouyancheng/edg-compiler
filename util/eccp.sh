@@ -759,6 +759,7 @@ check_abbreviation()
 --set_flag
 --short_enums
 --short_lifetime_temps
+--signed_bit_fields
 --signed_chars
 --special_subscript_cost
 --stdarg_builtin
@@ -786,6 +787,7 @@ check_abbreviation()
 --typename
 --uliterals
 --undefine_macro
+--unsigned_bit_fields
 --unsigned_chars
 --upc
 --upc_relaxed
@@ -1295,6 +1297,8 @@ process_option()
          --uliterals | \
          --no_uliterals | \
          --dump_configuration | \
+         --signed_bit_fields | \
+         --unsigned_bit_fields | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
