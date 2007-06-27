@@ -1,5 +1,19 @@
 Version 3.10
 
+6/27/07  Spurious error on elaborated type specifier after using directive
+
+In some situations involving a typedef with a name identical to that of its
+underlying type, a using directive could cause the front end to issue spurious
+errors on subsequent elaborated type specifiers.  For example:
+
+  typedef struct S {} S;
+  namespace N { using ::S; }
+  using namespace N;
+  struct S *p;  // Spurious error: 'typedef "S" may not be used in an
+                // elaborated type specifier'
+
+This is now fixed.
+
 6/27/07  Suppress spurious "set but never used" diagnostic after error
 
 In some instances, a spurious "set but never used" diagnostic is now

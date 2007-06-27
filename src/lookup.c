@@ -1440,10 +1440,11 @@ In Sun compatibility mode, the symbols need not be from the same scope.
     if (new_is_tag != curr_is_tag) {
       /* Two symbols from the same scope and only one is a nontag.
          This is okay. */
+      a_boolean  must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
       result = TRUE;
-      if (curr_is_tag) {
-        /* The current symbol is a tag and the new one is not. 
-           Prefer the nontag (i.e., the new symbol).  Update the
+      if (curr_is_tag != must_be_tag) {
+        /* The current symbol is a tag and we prefer a nontag, or the current
+           symbol is a nontag and we are looking for a tag.  Update the
            namespace projection symbol to point to the new symbol. */
         check_assertion_str2((*curr_sym)->kind ==
                                    (a_symbol_kind)sk_namespace_projection,
