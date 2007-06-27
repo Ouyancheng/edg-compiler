@@ -9014,7 +9014,9 @@ address_taken flag.
 */
 {
   if (is_error_operand(operand)) {
-    /* Leave an error operand alone. */
+    /* Leave an error operand mostly alone.  Mark the address as being taken
+       to prevent cascading diagnostics. */
+    change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
   } else {
 #if CHECKING
     if (!is_an_lvalue(operand)) {

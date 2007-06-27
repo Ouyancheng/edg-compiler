@@ -1,5 +1,17 @@
 Version 3.10
 
+6/27/07  Suppress spurious "set but never used" diagnostic after error
+
+In some instances, a spurious "set but never used" diagnostic is now
+suppressed when the variable in question had errors during its declaration.
+For example:
+
+  void func(void*);
+  void f() {
+    static struct unknown s;  // No more "set but never used" diagnostic on 's'
+    func(&s);
+  }
+
 6/26/07  Destruction of compound literals in GNU C++ mode
 
 The front end previously failed to call the destructor for certain compound
