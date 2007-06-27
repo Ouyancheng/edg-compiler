@@ -2685,8 +2685,8 @@ function get_initializer does all the hard work.
       if (!C_mode()) {
         /* Check if the temporary (possibly an array) created for the literal
            requires destruction and if so record the destructor. */
-         a_type_ptr  etype = skip_typerefs(
-                                        underlying_array_element_type(*type));
+        a_type_ptr  etype = skip_typerefs(*type);
+        if (is_array_type(etype)) etype = underlying_array_element_type(etype);
         if (is_class_struct_union_type(etype)) {
           (*dip)->destructor = select_destructor(etype, etype, &err_pos,
                                                  /*honor_virtual=*/FALSE,
