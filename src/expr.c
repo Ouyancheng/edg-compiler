@@ -12277,6 +12277,7 @@ to the compound literal.
   a_dynamic_init_ptr      dip;
   a_boolean               is_static;
   an_expr_stack_entry_ptr saved_expr_stack;
+  a_routine_ptr           dtor = NULL;
 
   check_assertion((C_mode() || gpp_mode) &&
                   !curr_expr_kind_is(ek_pp) &&
@@ -12314,9 +12315,23 @@ to the compound literal.
   }  /* if */
   if (err) {
     literal_type = error_type();
-  } else if (gnu_mode && !c99_mode) {
-    report_gnu_extension_if_needed(&error_position,
-                                   ec_compound_literal_is_nonstandard);
+  } else {
+    if (gnu_mode && !c99_mode) {
+      report_gnu_extension_if_needed(&error_position,
+                                     ec_compound_literal_is_nonstandard);
+    }  /* if */
+    if (!C_mode()) {
+      /* Check if the temporary (possibly an array) created for the literal
+         requires destruction and if so record the destructor. */
+      a_type_ptr  etype = skip_typerefs(literal_type);
+      if (is_array_type(etype)) etype = underlying_array_element_type(etype);
+      if (is_class_struct_union_type(etype)) {
+        dtor = select_destructor(etype, etype, type_position,
+                                 /*honor_virtual=*/FALSE,
+                                 curr_expr_is_potentially_evaluated(),
+                                 /*instantiate=*/TRUE);
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* Save, clear, and later restore the expression stack, since the
      initializer is not part of any expression we may currently be
@@ -12325,7 +12340,12 @@ to the compound literal.
   /* Scan the brace-enclosed initializer. */
   scan_compound_literal_initializer(&literal_type, is_static, &dip);
   /* No dynamic init entry will be returned if an error occurred. */
-  if (dip == NULL) err = TRUE;
+  if (dip == NULL) {
+    /* No dynamic init entry will be returned if an error occurred. */
+    err = TRUE;
+  } else {
+    dip->destructor = dtor;
+  }  /* if */
   /* The type can be updated for an incomplete array. */
   *p_literal_type = literal_type;
   restore_expr_stack(saved_expr_stack);

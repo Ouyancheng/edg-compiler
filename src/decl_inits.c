@@ -2682,18 +2682,6 @@ function get_initializer does all the hard work.
       *dip =
            alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
       (*dip)->variant.constant = compound_constant;
-      if (!C_mode()) {
-        /* Check if the temporary (possibly an array) created for the literal
-           requires destruction and if so record the destructor. */
-        a_type_ptr  etype = skip_typerefs(*type);
-        if (is_array_type(etype)) etype = underlying_array_element_type(etype);
-        if (is_class_struct_union_type(etype)) {
-          (*dip)->destructor = select_destructor(etype, etype, &err_pos,
-                                                 /*honor_virtual=*/FALSE,
-                                                 /*evaluated=*/TRUE,
-                                                 /*instantiate=*/TRUE);
-        }  /* if */
-      }  /* if */
     } else {
       /* get_initializer (through get_single_value_for_aggregate_initializer
          and its helpers) created a constant on top of a dynamic init entry.
