@@ -3738,12 +3738,28 @@ file.
   comment_undefined_macro_name(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT);
 #endif /* defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
 #if defined(CUSTOM_NAME_LINKAGE_KINDS)
-  define_string_valued_macro(CUSTOM_NAME_LINKAGE_KINDS);
+  /* We cannot conveniently display the value of CUSTOM_NAME_LINKAGE_KINDS
+     because it contains embedded commas (it's inserted into the middle of
+     a list of enumerators in il_def.h), which makes it unsuitable for
+     passing as an argument to the output macros.  Instead, we output a
+     #error directive so that if the output is captured and used blindly as
+     a defines.h file, the user will be notified that the definition is
+     missing. */
+  fprintf(f_error,
+          "#error -- CUSTOM_NAME_LINKAGE_KINDS must be set manually\n");
 #else /* !defined(CUSTOM_NAME_LINKAGE_KINDS) */
   comment_undefined_macro_name(CUSTOM_NAME_LINKAGE_KINDS);
 #endif /* defined(CUSTOM_NAME_LINKAGE_KINDS) */
 #if defined(CUSTOM_NAME_LINKAGE_KIND_NAMES)
-  define_string_valued_macro(CUSTOM_NAME_LINKAGE_KIND_NAMES);
+  /* We cannot conveniently display the value of
+     CUSTOM_NAME_LINKAGE_KIND_NAMES because it contains embedded commas
+     (it's inserted into the middle of an initializer list in il_def.h),
+     which makes it unsuitable for passing as an argument to the output
+     macros.  Instead, we output a #error directive so that if the output
+     is captured and used blindly as a defines.h file, the user will be
+     notified that the definition is missing. */
+  fprintf(f_error,
+          "#error -- CUSTOM_NAME_LINKAGE_KIND_NAMES must be set manually\n");
 #else /* !defined(CUSTOM_NAME_LINKAGE_KIND_NAMES) */
   comment_undefined_macro_name(CUSTOM_NAME_LINKAGE_KIND_NAMES);
 #endif /* defined(CUSTOM_NAME_LINKAGE_KIND_NAMES) */
@@ -3876,7 +3892,7 @@ file.
   comment_undefined_macro_name(DEFAULT_COMPRESS_MANGLED_NAMES);
 #endif /* defined(DEFAULT_COMPRESS_MANGLED_NAMES) */
 #if defined(DEFAULT_CONTEXT_LIMIT)
-  define_string_valued_macro(DEFAULT_CONTEXT_LIMIT);
+  define_numeric_valued_macro(DEFAULT_CONTEXT_LIMIT);
 #else /* !defined(DEFAULT_CONTEXT_LIMIT) */
   comment_undefined_macro_name(DEFAULT_CONTEXT_LIMIT);
 #endif /* defined(DEFAULT_CONTEXT_LIMIT) */
@@ -4005,7 +4021,7 @@ file.
   comment_undefined_macro_name(DEFAULT_FRIEND_INJECTION);
 #endif /* defined(DEFAULT_FRIEND_INJECTION) */
 #if defined(DEFAULT_GNU_ABI_VERSION)
-  define_string_valued_macro(DEFAULT_GNU_ABI_VERSION);
+  define_numeric_valued_macro(DEFAULT_GNU_ABI_VERSION);
 #else /* !defined(DEFAULT_GNU_ABI_VERSION) */
   comment_undefined_macro_name(DEFAULT_GNU_ABI_VERSION);
 #endif /* defined(DEFAULT_GNU_ABI_VERSION) */
@@ -4025,7 +4041,7 @@ file.
   comment_undefined_macro_name(DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS);
 #endif /* defined(DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS) */
 #if defined(DEFAULT_GNU_VERSION)
-  define_string_valued_macro(DEFAULT_GNU_VERSION);
+  define_numeric_valued_macro(DEFAULT_GNU_VERSION);
 #else /* !defined(DEFAULT_GNU_VERSION) */
   comment_undefined_macro_name(DEFAULT_GNU_VERSION);
 #endif /* defined(DEFAULT_GNU_VERSION) */
