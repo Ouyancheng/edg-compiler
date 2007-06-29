@@ -2654,11 +2654,9 @@ function get_initializer does all the hard work.
   an_aggregate_init_info info;
   a_boolean              no_token_consumed, any_dynamic_init;
   a_boolean		 err = FALSE;
-  a_source_position      err_pos;
 
   check_assertion((C_mode() || gpp_mode) && (curr_token == tok_lbrace));
   initialize_init_info(&info, is_static);
-  err_pos = pos_curr_token;
   info.compound_literal = TRUE;
   compound_constant = get_initializer(type, &info,
                                       (an_aggregate_init_context_ptr)NULL,
