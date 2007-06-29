@@ -12326,10 +12326,11 @@ to the compound literal.
       a_type_ptr  etype = skip_typerefs(literal_type);
       if (is_array_type(etype)) etype = underlying_array_element_type(etype);
       if (is_class_struct_union_type(etype)) {
-        dtor = select_destructor(etype, etype, type_position,
-                                 /*honor_virtual=*/FALSE,
-                                 curr_expr_is_potentially_evaluated(),
-                                 /*instantiate=*/TRUE);
+        dtor = expr_select_destructor(etype, etype, type_position,
+                                      /*honor_virtual=*/FALSE);
+        /* If a destructor must be invoked, don't statically initialize the
+           literal (even if it has static storage duration). */
+        if (dtor != NULL) is_static = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */
