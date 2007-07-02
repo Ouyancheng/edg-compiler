@@ -3370,7 +3370,7 @@ is_full_expr is TRUE.
   /* This expression is supposed to have something on top that guarantees
      a 0/1 value.  If the rewriting has disturbed that, add a "!= 0" test. */
   normalize_lowered_boolean_controlling_expression(expr);
-}  /* lower_boolean_controlling_expr */
+}  /* lower_c99_boolean_controlling_expr */
 
 
 static void lower_c99_stmk_init(a_statement_ptr statement)
