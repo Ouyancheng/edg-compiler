@@ -1976,7 +1976,7 @@ mode) forces the value to be 0/1 even if it was already of bool type.
     if (!C_mode()) change_result_type_of_operator_returning_bool(node);
   }  /* if */
   return node;
-}  /* add_c99_lowered_cast_if_necessary */
+}  /* add_lowered_cast_if_necessary */
 
 
 an_expr_node_ptr add_cast_to_char_star(an_expr_node_ptr node)
