@@ -10441,12 +10441,19 @@ and NULL otherwise.  The statement(s) created are inserted at
   /* Develop a position description for the entity to initialize. */
   develop_ctor_init_pos_descr(ctor_init, this_param_var, &ipd, &ipm);
   if (base_of_complete_object) ipd.base_of_complete_object = TRUE;
+  /* Shouldn't be any pending compound literal initialization statements. */
+  check_assertion(temp_init_statements == NULL);
   /* Generate the code to do the initialization. */
   lower_dynamic_init(dip, &ipd,
                      ctor_init, construction_vtbls_var,
                      LDIO_FULL_EXPR, /*others_follow_in_aggr=*/FALSE,
                      insert_location, (a_boolean *)NULL,
                      (a_constant **)NULL);
+  /* Insert compound literal initialization statements, if any. */
+  if (temp_init_statements != NULL) {
+    check_assertion(insert_location->kind == ilk_after_statement);
+    insert_temp_init_statements(insert_location->variant.stmt);
+  }  /* if */
 }  /* lower_ctor_init */
 
 
@@ -12401,6 +12408,9 @@ instantiations have been generated.
 #if LOWER_DESIGNATED_INITIALIZERS
       lower_dynamic_init_designated_initializers(dip);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
+      /* Shouldn't be any pending compound literal initialization
+         statements. */
+      check_assertion(temp_init_statements == NULL);
       lower_dynamic_init(dip, &ipd,
                          (a_constructor_init_ptr)NULL,
                          (a_variable_ptr)NULL,
@@ -12408,6 +12418,11 @@ instantiations have been generated.
                          /*others_follow_in_aggr=*/FALSE,
                          eff_insert_location, (a_boolean *)NULL,
                          (a_constant **)NULL);
+      /* Insert compound literal initialization statements, if any. */
+      if (temp_init_statements != NULL) {
+        check_assertion(eff_insert_location->kind == ilk_after_statement);
+        insert_temp_init_statements(eff_insert_location->variant.stmt);
+      }  /* if */
     }  /* for */
     pop_generated_routine_context(scope, region_number, &grcontext);
     processing_file_scope_init_routine = FALSE;

@@ -16579,6 +16579,8 @@ Do IL lowering of the indicated scope and everything under it.
     pop_context();
   }  /* if */
   innermost_function_scope = saved_innermost_function_scope;
+  /* Make sure no compound literal initialization statements remain. */
+  check_assertion(temp_init_statements == NULL);
   db_exit();
 }  /* lower_scope */
 
@@ -17049,6 +17051,8 @@ C++ to C, so that a C back end can handle it without change.
     lower_c99_il_memory_region(region_number);
 #endif /* DO_C99_IL_LOWERING */
   }  /* if */
+  /* Make sure no compound literal initialization statements remain. */
+  check_assertion(temp_init_statements == NULL);
   db_exit();
 }  /* lower_il_memory_region */
 

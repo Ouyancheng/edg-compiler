@@ -1,5 +1,25 @@
 Version 3.10
 
+7/2/07   Initialization of compound literals at file scope and in
+         constructor initializers was lost during lowering
+
+The lowering of compound literals results in stmk_init statements
+being added to perform temporary initialization.  In certain cases
+where this initialization was not being performed within a block
+(i.e., at file scope or in a constructor initializer), these statements
+were being lost.  This is now fixed.  Here is an example that
+demonstrates these two cases:
+
+  struct S { int i; };
+  struct T { 
+    int i;
+    T() : i(((S) { 11 }).i) {};   // initialization was lost
+  };
+  int s = ((S) { 11 }).i;         // initialization was lost
+  int main() {
+    return s + T().i;             // return was indeterminate, now 22.
+  }
+
 6/27/07  Spurious error on elaborated type specifier after using directive
 
 In some situations involving a typedef with a name identical to that of its
