@@ -8154,9 +8154,15 @@ the symbol through dps->sym and its linkage (which is always "none") through
   sym = locator->specific_symbol;
   /* A storage class of sc_unspecified means "no storage class explicitly
      specified" -- anything else is an error.  (Some cases -- like "auto" --
-     were already checked by the caller.) */
+     were already checked by the caller.)  An exception is GNU C++ mode, which
+     accepts and ignores the "extern" case (with a warning). */
   if (dps->storage_class != (a_storage_class)sc_unspecified) {
-    pos_error(ec_storage_class_not_allowed, &locator->source_position);
+    an_error_severity  sev = es_error;
+    if (gpp_mode && dps->storage_class == (a_storage_class)sc_extern) {
+      sev = es_warning;
+      dps->storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
+    pos_diagnostic(sev, ec_storage_class_not_allowed, &dps->storage_class_pos);
   }  /* if */
   if (microsoft_mode && sym->kind == (a_symbol_kind)sk_projection) {
     /* In Microsoft compatibility mode it's permitted to define a static

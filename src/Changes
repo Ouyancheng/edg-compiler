@@ -1,5 +1,17 @@
 Version 3.10
 
+7/2/07   GNU C++ compatibility: "extern" static data member definition
+
+In GNU C++ mode, the front end now accepts and ignores the "extern" storage
+class specifier on the definition of a static data member; a warning is issued
+in such cases.  For example:
+
+  struct S { static int x; };
+  extern int S::x;  // Now a warning in GNU C++ mode (an error otherwise).
+
+Also, the error position (caret) now points to the actual storage class
+specifier (previously it pointed to the declarator).
+
 7/2/07   Initialization of compound literals at file scope and in
          constructor initializers was lost during lowering
 
