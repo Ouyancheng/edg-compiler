@@ -1,5 +1,15 @@
 Version 3.10
 
+7/5/07   GNU C++ compatibility: attribute init_priority on arrays
+
+In GNU C++ mode (and when GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED is set to TRUE)
+the front end now accepts attribute init_priority on declarations of arrays
+with class type elements (previously, the attribute was only accepted on
+variables of class type).  For example:
+
+  struct S {};
+  S a[3] __attribute((init_priority(111)));  // Now accepted in GNU C++ mode.
+
 7/2/07   GNU C++ compatibility: "extern" static data member definition
 
 In GNU C++ mode, the front end now accepts and ignores the "extern" storage

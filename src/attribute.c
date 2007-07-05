@@ -1852,13 +1852,19 @@ attributes were specified on a definition.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
       case ak_init_priority:
-        if ((is_file_or_namespace_scope(&scope_stack_top()) ||
-             vp->source_corresp.is_class_member) &&
-            is_class_struct_union_type(vp->type) &&
-            is_definition) {
-          vp->init_priority = ap->variant.init_priority;
-        } else {
-          pos_error(ec_bad_variable_for_init_priority, &ap->position);
+        { a_type_ptr  tp = skip_typerefs(vp->type);
+          /* Only accept the init_priority attributes on class type variables
+             and on arrays of class type objects, and only on entities that
+             are initialized at program start-up time. */
+          if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+          if ((is_file_or_namespace_scope(&scope_stack_top()) ||
+               vp->source_corresp.is_class_member) &&
+              is_class_struct_union_type(tp) &&
+              is_definition) {
+            vp->init_priority = ap->variant.init_priority;
+          } else {
+            pos_error(ec_bad_variable_for_init_priority, &ap->position);
+          }  /* if */
         }  /* if */
         break;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
