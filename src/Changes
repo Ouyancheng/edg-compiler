@@ -1,5 +1,17 @@
 Version 3.10
 
+7/6/07   Right shift token closing an empty template argument list
+
+In C++0x mode (and in some Microsoft modes) a right shift token (>>) may be
+interpreted as two closing angle brackets for template argument lists.  The
+front end previously failed to apply that rule for empty template argument
+lists.  For example:
+
+  template<typename T = int> struct S {};
+  S<S<>> x;  // Previously triggered a spurious error in C++0x.
+
+This is now fixed.
+
 7/5/07   __based and __w64 pointer modifiers sometimes lost
 
 In Microsoft mode, the __based and __w64 pointer modifiers were lost when

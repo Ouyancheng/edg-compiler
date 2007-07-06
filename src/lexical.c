@@ -9890,8 +9890,7 @@ an opening parenthesis).  Flush to the corresponding closing token.
       case tok_lbrace:                           brace_count++;   break;
       case tok_rbrace:    if (brace_count > 0)   brace_count--;   break;
       case tok_gt:
-        /* A ">" is only meaningful if when it is the token we are looking
-           for. */
+        /* A ">" is only meaningful when it is the token we are looking for. */
         if (closing_token == tok_gt) {
           /* A ">" only counts as the end of the parameter list if we are not
              inside some other construct.  For example when scanning
@@ -10994,6 +10993,11 @@ done using the disambiguation routines.
        possible on the first iteration if we have an empty argument list.
        If it occurs elsewhere, we must have a comma followed by the closing
        ">" of the template argument list. */
+    if (curr_token == tok_shift_right && right_shift_can_be_angle_brackets) {
+      /* Check for the case where a "right shift" could be interpreted as two
+         consecutive closing angle brackets. */
+      replace_right_shift_by_two_closing_angle_brackets();
+    }  /* if */
     if (curr_token == tok_gt) {
       if (arg_list != NULL) {
         error(ec_expected_template_arg);
@@ -11119,6 +11123,11 @@ this routine.  Its value is unchanged if no errors are detected.
   }  /* if */
   do {
     a_source_position  arg_pos;
+    if (curr_token == tok_shift_right && right_shift_can_be_angle_brackets) {
+      /* Check for the case where a "right shift" could be interpreted as two
+         consecutive closing angle brackets. */
+      replace_right_shift_by_two_closing_angle_brackets();
+    }  /* if */
     /* If the current token is a ">", and this is the first argument,
        then exit the loop (an empty argument list). */
     if (curr_token == tok_gt && arg_list == NULL) break;
