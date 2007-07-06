@@ -753,8 +753,8 @@ indicates the source position at which the error should be put out.
 }  /* check_inheritance_kind */
 
 
-void apply_microsoft_w64_specifier(a_type_ptr         *type_ptr,
-                                   a_source_position  *err_pos)
+static void apply_microsoft_w64_specifier(a_type_ptr         *type_ptr,
+                                          a_source_position  *err_pos)
 /*
 Replace the given type with a copy that is marked as having been specified
 with the __w64 token.  Except for signedness and qualifiers the given type

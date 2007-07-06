@@ -1,5 +1,17 @@
 Version 3.10
 
+7/5/07   __based and __w64 pointer modifiers sometimes lost
+
+In Microsoft mode, the __based and __w64 pointer modifiers were lost when
+any of the __ptr32, __ptr64, __sptr, or __uptr modifiers also appeared.
+For example:
+
+  int *p;
+  int __based(p) *__ptr64 q = 0;  // IL previously did not record the __based
+                                  // modifier.
+
+This is now fixed.
+
 7/5/07   GNU C++ compatibility: attribute init_priority on arrays
 
 In GNU C++ mode (and when GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED is set to TRUE)

@@ -93,9 +93,6 @@ extern char *scan_GUID_string(void);
 extern void check_inheritance_kind(a_type_ptr           class_type,
                                    an_inheritance_kind  inheritance_kind,
                                    a_source_position    *err_pos);
-
-extern void apply_microsoft_w64_specifier(a_type_ptr         *type_ptr,
-                                          a_source_position  *err_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void typename_specifier(a_type_ptr            *type_ptr,
