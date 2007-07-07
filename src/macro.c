@@ -5515,11 +5515,26 @@ Scan and process a #define directive.
       remove_stop_token(tok_rparen);
     }  /* if */
     /* If we're scanning a command-line macro definition option, then the
-       next character should be a "=".  Skip it. */
+       next character should be a "=" (or, in GNU mode, possibly a " ").
+       Skip it. */
     if (curr_command_line_macro_def != NULL) {
-      if (*curr_char_loc != '=') {
-        str_command_line_error(ec_bad_cmd_line_macro,
-                               curr_command_line_macro_def);
+      if (*curr_char_loc != '=' &&
+          !(gnu_mode && *curr_char_loc == ' ')) {
+        if (gnu_mode) {
+          /* The GNU preprocessor accepts command-line definitions of the
+             form -DX3.9 with only a warning, treating the macro name as
+             "X3".  We must set curr_command_line_macro_def to NULL before
+             issuing the diagnostic to avoid treating this warning as a
+             catastrophic command-line error. */
+          char *saved_command_line_macro_def = curr_command_line_macro_def;
+          curr_command_line_macro_def = NULL;
+          str_warning(ec_equals_assumed_in_cmd_line_macro_def,
+                      locator_for_curr_id.symbol_header->identifier);
+          curr_command_line_macro_def = saved_command_line_macro_def;
+        } else {
+          str_command_line_error(ec_bad_cmd_line_macro,
+                                 curr_command_line_macro_def);
+        }  /* if */
       } else {
         ++curr_char_loc;
       }  /* if */
@@ -6916,7 +6931,16 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
       equal_pos = strchr(curr_source_line, '=');
       if (equal_pos == NULL) {
         /* "-DNAME(X)" becomes "NAME(X)=1". */
-        strcpy(curr_source_line+du_len, "=1");
+        if (gnu_mode) {
+          /* The GNU preprocessor uses " " instead of "=" to prefix the
+             default replacement text.  This is only significant in cases
+             where the definition has an implicit "=", such as "-Dx3.9":
+             the GNU preprocessor treats this as equivalent to
+             "#define x3 .9 1". */
+          strcpy(curr_source_line+du_len, " 1");
+        } else {
+          strcpy(curr_source_line+du_len, "=1");
+        }  /* if */
         du_len += 2;
       }  /* if */
       curr_source_line[du_len+0] = LE_ESCAPE;

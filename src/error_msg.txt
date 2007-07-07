@@ -1695,6 +1695,7 @@ ec_file_ends_with_unterminated_type_definition;;"definition at end of file not f
 ec_bad_type_for_gnu_sync_function;;"first argument must be a pointer to integer or enumeration type"
 ec_invalid_gnu_sync_size;;"synchronized operations are valid only on objects of size 1, 2, 4, or 8"
 ec_extra_arguments_ignored;;"extra arguments ignored"
+ec_equals_assumed_in_cmd_line_macro_def;;"'=' assumed following macro name %sq in command-line definition"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

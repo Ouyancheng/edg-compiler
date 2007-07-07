@@ -1,5 +1,12 @@
 Version 3.10
 
+7/7/07   GNU compatibility: command-line macro definitions without '='
+
+The GNU preprocessor accepts a command-line macro definition of the form
+-Dx3.9, taking "x3" as the macro name.  The front end previously issued a
+catastrophic command-line error for such definitions; it now accepts them
+(with a warning) in g++ and gcc modes.
+
 7/6/07   Right shift token closing an empty template argument list
 
 In C++0x mode (and in some Microsoft modes) a right shift token (>>) may be
