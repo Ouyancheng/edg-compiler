@@ -1,5 +1,17 @@
 Version 3.10
 
+7/7/07   Required white space between macro name and replacement text
+
+In the definition of an object-like macro, C99 and C++0x require that the
+replacement text be separated from the macro name by white space.  The
+front end previously failed to enforce this requiremnt in --strict mode.
+It now issues an error with --strict in --c99 and --c++0x modes and a
+warning in all other modes.  For example:
+
+  #define x3.9    /* Error in strict C99 and C++0x, warning (with "x3" as
+                     the macro name, ".9" as the replacement text) in all
+                     other modes. */
+
 7/7/07   GNU compatibility: command-line macro definitions without '='
 
 The GNU preprocessor accepts a command-line macro definition of the form

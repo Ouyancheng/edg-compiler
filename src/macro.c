@@ -5568,6 +5568,16 @@ Scan and process a #define directive.
     /* Get first token of the replacement text. */
     (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                           &any_white_space_skipped);
+    if (object_like && !any_white_space_skipped) {
+      /* In C99 and C++0x, an object-like macro definition must have white
+         space between the macro name and the replacement list: issue an
+         error in strict mode and a warning in all other modes. */
+      pos_st_diagnostic((strict_ansi_mode && (c99_mode || cpp0x_mode)) ?
+                        strict_ansi_discretionary_severity : es_warning,
+                        ec_white_space_required_after_macro_name,
+                        &pos_curr_token,
+                        locator_for_curr_id.symbol_header->identifier);
+    }  /* if */
     /* Ignore leading white space.  See standard, 3.8.3, semantics. */
     any_white_space_skipped = FALSE;
     need_end_of_token_marker = FALSE;
