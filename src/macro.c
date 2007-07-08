@@ -5568,7 +5568,7 @@ Scan and process a #define directive.
     /* Get first token of the replacement text. */
     (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                           &any_white_space_skipped);
-    if (object_like && !any_white_space_skipped) {
+    if (curr_token != tok_newline && object_like && !any_white_space_skipped) {
       /* In C99 and C++0x, an object-like macro definition must have white
          space between the macro name and the replacement list: issue an
          error in strict mode and a warning in all other modes. */
