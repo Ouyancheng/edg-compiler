@@ -3623,7 +3623,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
          and/or because near/far is present), return them to the caller if
          appropriate, or else issue a warning that they're being ignored. */
       if (unbound_qualifiers != NULL) {
-        *unbound_qualifiers = ptr_mods.qualifiers;
+        *unbound_qualifiers = pending_ptr_mods.qualifiers;
       } else {
         /* Can't be returned to the caller, so put out a warning. */
         pos_warning(near_and_far_enabled() ?
