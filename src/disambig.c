@@ -119,10 +119,12 @@ Macros to test bits in a disambiguation flag set.
 
 
 /*
-Macro that returns GID_USE_PROTOTYPE_NOT_NONREAL if is_template_decl is TRUE.
+Macro that returns GID_USE_PROTOTYPE_NOT_NONREAL if is_template_decl is TRUE
+and if gid_flags does not include GID_IS_TYPENAME.
 */
-#define gid_flags_for_template(flags)					\
-  (is_template_decl(flags) ? GID_USE_PROTOTYPE_NOT_NONREAL : GID_NO_OPTIONS)
+#define gid_flags_for_template(flags, gid_flags)			\
+  (is_template_decl(flags) && (((gid_flags) & GID_IS_TYPENAME) == 0) ?  \
+                               GID_USE_PROTOTYPE_NOT_NONREAL : GID_NO_OPTIONS)
 
 
 
@@ -194,7 +196,8 @@ scanned are coalesced prior to analysis.
   (void)get_token();
   (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
                                         GID_IS_EXPR_CONTEXT |
-                                        gid_flags_for_template(flags) |
+                                        gid_flags_for_template(flags,
+                                                               gid_flags) |
                                         gid_flags);
 }  /* f_get_token_and_coalesce_if_identifier */
 
@@ -1077,7 +1080,8 @@ evidence to the contrary.
   /* Coalesce the identifier if this is a tok_identifier. */
   (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
                                         GID_IS_EXPR_CONTEXT |
-                                        gid_flags_for_template(flags));
+                                        gid_flags_for_template(
+                                                       flags, GID_NO_OPTIONS));
   for (;;) {
     /* Scan the decl specifiers. */
     prescan_decl_specifiers(state, flags);
