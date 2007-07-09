@@ -1,6 +1,6 @@
 Version 3.10
 
-7/5/07   __based and __w64 pointer modifiers sometimes lost
+7/9/07   __based and __w64 pointer modifiers sometimes lost
 
 In Microsoft mode, the __based and __w64 pointer modifiers were lost when
 any of the __ptr32, __ptr64, __sptr, or __uptr modifiers also appeared.
