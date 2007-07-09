@@ -2591,15 +2591,17 @@ this function points to a tree that includes a dynamic-init entry.
     a_boolean  extra_braces_okay = FALSE;
     if (curr_token == tok_lbrace && !top_level &&
         context.pending_init_con == NULL) {
+      a_boolean  another_brace_next = next_token() == tok_lbrace;
       extra_braces_okay =
                 (gcc_mode ||
                  (microsoft_mode && (!C_mode() || microsoft_version < 1310)));
-      if (extra_braces_okay || next_token() != tok_lbrace) {
-        /* The brace is extraneous.  Issue a warning or an error, except if it
-           is followed by another brace that will be diagnosed as an error
-           later on.  (Some GNU and Microsoft modes will not diagnose the
-           additional braces and so the first one should be warned about at
-           this point. */
+      if ((!C_mode() && !another_brace_next) ||
+          (extra_braces_okay && another_brace_next)) {
+        /* The brace is extraneous (in C++ modes) or it is followed by another
+           brace that will not be diagnosed later on (in some GNU and Microsoft
+           modes).  Issue a warning or an error.  In C++ mode, the diagnostic
+           is not issued if another brace follows because that next brace will
+           trigger an error. */
         diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                    ec_nonstd_braces);
       }  /* if */
