@@ -123,7 +123,8 @@ Macro that returns GID_USE_PROTOTYPE_NOT_NONREAL if is_template_decl is TRUE
 and if gid_flags does not include GID_IS_TYPENAME.
 */
 #define gid_flags_for_template(flags, gid_flags)			\
-  (is_template_decl(flags) && (((gid_flags) & GID_IS_TYPENAME) == 0) ?  \
+  (is_template_decl(flags) && (/*lint --e(506)*/                        \
+                               ((gid_flags) & GID_IS_TYPENAME) == 0) ?  \
                                GID_USE_PROTOTYPE_NOT_NONREAL : GID_NO_OPTIONS)
 
 
