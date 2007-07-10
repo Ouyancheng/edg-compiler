@@ -675,11 +675,6 @@ extern a_type_ptr make_pointer_type_full(
 #define make_pointer_type(tp)                                                \
   (make_pointer_type_full((tp), PM_NONE))
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_type_ptr make_based_pointer_type(a_type_ptr     type_pointed_to,
-	                                  a_variable_ptr variable);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
 extern a_type_ptr make_reference_type(a_type_ptr type_pointed_to);
 
 extern a_type_ptr make_reference_to_reference(
