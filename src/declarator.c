@@ -3532,6 +3532,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       ptr_mods.based_var = based_var;
       ptr_mods.based_pos = based_pos;
       apply_microsoft_ptr_modifiers(&complete_type, &ptr_mods);
+      pending_ptr_mods.cc_descr = ptr_mods.cc_descr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
