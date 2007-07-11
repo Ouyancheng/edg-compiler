@@ -12340,7 +12340,6 @@ to the compound literal.
   save_expr_stack(&saved_expr_stack);
   /* Scan the brace-enclosed initializer. */
   scan_compound_literal_initializer(&literal_type, is_static, &dip);
-  /* No dynamic init entry will be returned if an error occurred. */
   if (dip == NULL) {
     /* No dynamic init entry will be returned if an error occurred. */
     err = TRUE;
