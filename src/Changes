@@ -1,5 +1,26 @@
 Version 3.10
 
+7/11/07  Incorrect member kind of template reference should be substitution
+         failure not error
+
+When the front end is creating a substituted function template parameter
+for a type like "U::template X<T>" in the example below, the substitution
+of "A" should fail because A::X is not a template.  The substitution
+incorrectly succeeded provided A::X was a type, resulting in a spurious error
+later.  This has been fixed.
+
+  typedef char (&yes)[1];
+  typedef char (&no)[2];
+
+  template<typename T> struct has_X {
+    template <typename U> static no test(...);
+    template <typename U> static yes test(U*, typename U::template X<T>* = 0);
+    static const bool value = sizeof(test<T>(0)) == sizeof(yes);
+  };
+
+  struct A { typedef int X; };
+  typedef int test_A[!has_X<A>::value];
+
 7/9/07   Spurious "incomplete type" error on nonreal member of an incomplete
          class template
 

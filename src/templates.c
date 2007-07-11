@@ -6980,17 +6980,37 @@ entity is known to be a type.
                              sym, parent_type, templ_arg_list,
                              templ_param_list, source_pos, is_type,
                              options, copy_error);
-    if (new_sym != NULL && is_class_template_symbol(new_sym) &&
-        !is_class_template_symbol(sym)) {
-      /* The symbol found is a class template symbol but the original symbol
-         was just a class.  Get the corresponding instance using the template
-         argument list from the original parent class. */
-      if (!is_any_template_instance_class_symbol(sym)) {
-        /* The original symbol was not a template instance.  This is an
-           error. */
-        *copy_error = TRUE;
-        new_sym = NULL;
-      } else {
+    if (new_sym != NULL) {
+      a_boolean	do_template_class_subst = FALSE;
+      if (is_class_template_symbol(new_sym) &&
+          !is_class_template_symbol(sym)) {
+        /* The symbol found is a class template symbol but the original symbol
+           was just a class.  Get the corresponding instance using the template
+           argument list from the original parent class. */
+        if (!is_any_template_instance_class_symbol(sym)) {
+          /* The original symbol was not a template instance.  This is an
+             error. */
+          *copy_error = TRUE;
+          new_sym = NULL;
+        } else {
+          do_template_class_subst = TRUE;
+        }  /* if */
+      } else if (is_template_param_type(orig_parent_type) &&
+                 is_nonreal_instance_class_symbol(sym)) {
+        if (is_class_template_symbol(new_sym)) {
+          /* The original symbol is a member of a nonreal template.  If the
+             new symbol is a class template, get the corresponding
+             instance of the new template. */
+          do_template_class_subst = TRUE;
+        } else {
+          /* The new symbol is not a class template, so the substitution
+             cannot be done. */
+          *copy_error = TRUE;
+          new_sym = NULL;
+        }  /* if */
+      }  /* if */
+      if (do_template_class_subst) {
+        /* Do the class template substitution as indicated above. */
         new_sym = copy_template_class_reference_with_substitution(
                                  new_sym, sym->variant.class_struct_union.type,
                                  templ_arg_list, templ_param_list, source_pos,
