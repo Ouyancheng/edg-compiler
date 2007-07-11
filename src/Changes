@@ -3,9 +3,9 @@ Version 3.10
 7/9/07   Spurious "incomplete type" error on nonreal member of an incomplete
          class template
 
-A spurious "incomplete type not allowed" error was issued if typename directive
-naming a nonreal member of an incomplete class template was used as the
-return type of a function template.  Now fixed.
+A spurious "incomplete type not allowed" error was issued if a typename
+directive naming a nonreal member of an incomplete class template was used
+as the return type of a function template.  Now fixed.
 
   template <typename T> struct A;
   template <typename T> typename A<T>::B::C f(T);
