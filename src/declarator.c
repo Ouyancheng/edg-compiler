@@ -3148,14 +3148,14 @@ __w64 annotation, and __based variable specifiers).  The given type must be a
       copy->variant.pointer.type = plain_type->variant.pointer.type;
       copy->has_microsoft_w64_specifier = ptr_mods->microsoft_w64;
       copy->variant.pointer.base_variable = ptr_mods->based_var;
-      /* Marked the base variable as consumed. */
+      /* Mark the base variable as consumed. */
       ptr_mods->based_var = NULL;
     } else {
       check_assertion(plain_type->kind == (a_type_kind)tk_ptr_to_member);
-      /* Issue an error if this was preceded by __based. */
       copy = ptr_to_member_type_full(pm_member_type(plain_type),
                                      pm_class_type(plain_type),
                                      ptr_mods->modifiers);
+      /* Issue an error if this was preceded by __based. */
       based_not_allowed_here(ptr_mods->based_var, ptr_mods->based_pos);
       if (ptr_mods->microsoft_w64) {
         pos_error(ec_invalid_type_for_w64, &ptr_mods->microsoft_w64_pos);
