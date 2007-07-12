@@ -19610,7 +19610,7 @@ FALSE and a pointer to the expression tree in *expression.
       if (constant->kind != (a_constant_repr_kind)ck_integer) {
         /* If the constant is not a ck_integer, we cannot check its sign. */
         if (!is_error_constant(constant) &&
-            !constant->kind == (a_constant_repr_kind)ck_template_param) {
+            constant->kind != (a_constant_repr_kind)ck_template_param) {
           /* This case can occur with expressions like (int)&x which are
              represented as constants but aren't known until link time. */
           *expression = alloc_node_for_constant(constant);
