@@ -1882,7 +1882,7 @@ init_info tracks the whole initializer.
 static a_constant_ptr get_single_value_for_aggregate_initializer(
                               an_aggregate_init_info_ptr     init_info,
                               an_aggregate_init_context_ptr  context,
-                              a_boolean                      extra_braces_okay)
+                              a_boolean                      extra_braces)
 /*
 Scans a "single value" as a simple non-class type item for an aggregate
 initializer.  Unfortunately, this scanning might have already occurred while
@@ -1890,26 +1890,58 @@ trying to determine if the expression could initialize a class type member
 (see process_whole_object_init): in that case, the constant is pending in the
 context structure.  init_info describes the state of the complete initializer
 and context describes the state of the initialization of the current
-subaggregate.  extra_braces_okay is TRUE if extra levels of braces should be
-accepted.  The function returns a pointer to an IL a_constant entity.
+subaggregate.  extra_braces is TRUE if this is a recursive call to deal with
+extra levels of braces: Some diagnostics issued in the outermost call are not
+repeated during the recursive call.  The function returns a pointer to an
+IL a_constant entity.
 */
 {
   a_constant_ptr      constant; /* Result of this function */
-  a_boolean           nonconst_allowed, brace_flag;
+  a_boolean           top_level = context->prev_context == NULL;
+  a_boolean           nonconst_allowed, brace_flag, another_brace_next;
+  a_boolean           extra_braces_okay = extra_braces;
   a_boolean           microsoft_enum_case = FALSE;
-  a_dynamic_init_ptr dip = 0;
+  a_dynamic_init_ptr  dip = 0;
+  a_source_position   pos_first_token;
 
+  pos_first_token = pos_curr_token;
   check_for_opening_brace(&brace_flag);
-  if (curr_token == tok_lbrace && extra_braces_okay) {
+  another_brace_next = curr_token == tok_lbrace;
+  if (brace_flag && !top_level && context->pending_init_con == NULL &&
+      !extra_braces) {
+    if (another_brace_next) {
+      /* Two or more consecutive left braces: The second one will usually be
+         diagnosed with an error later on; so diagnosing the first is
+         superfluous in such cases. */
+      extra_braces_okay =
+                (gcc_mode ||
+                 (microsoft_mode && (!C_mode() || microsoft_version < 1310)));
+      if (extra_braces_okay) {
+        /* Some Microsoft and GNU modes allow extraneous braces: We handle the
+           extra braces through recursion below, but issue a warning on the
+           first one. */
+        pos_warning(ec_nonstd_braces, &pos_first_token);
+      }  /* if */
+    } else {
+      /* A single level of braces is standard in C, but not in C++. */
+      if (!C_mode()) {
+        pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity
+                                        : es_warning,
+                       ec_nonstd_braces,
+                       &pos_first_token);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (another_brace_next && extra_braces_okay) {
     /* In some modes, an arbitrary number of extraneous braces are accepted.
-       Each level of braces, can also contain a trailing comma.  For example:
+       Each level of braces can also contain a trailing comma.  For example:
          struct S s = { { { 1, }, }, };
        We handle these cases via recursion.  A warning will already have been
-       issued for the outermost braces in get_initializer.  (Source code rarely
-       takes advantage of this bug, so the cost of recursion should be
-       acceptable.) */
-    constant = get_single_value_for_aggregate_initializer(init_info, context,
-                                                          extra_braces_okay);
+       issued for the outermost braces in the original (nonrecursive) call.
+       (Source code rarely takes advantage of this bug, so the cost of
+       recursion should be acceptable.) */
+    constant = get_single_value_for_aggregate_initializer(
+                                   init_info, context, /*extra_braces=*/TRUE);
     goto process_closing_brace;
   }  /* if */
   if (context->pending_init_con != NULL) {
@@ -1946,8 +1978,7 @@ accepted.  The function returns a pointer to an IL a_constant entity.
     } else {
       nonconst_allowed = FALSE;
     }  /* if */
-    if (microsoft_mode && !C_mode() &&
-        context->prev_context != NULL &&
+    if (microsoft_mode && !C_mode() && !top_level &&
         context->prev_context->field != NULL &&
         context->prev_context->field->is_bit_field &&
         is_enum_type(context->type)) {
@@ -2588,26 +2619,8 @@ this function points to a tree that includes a dynamic-init entry.
   } else {
     /* Non-aggregate/union case -- initializer is a single (possibly
        brace-enclosed) value. */
-    a_boolean  extra_braces_okay = FALSE;
-    if (curr_token == tok_lbrace && !top_level &&
-        context.pending_init_con == NULL) {
-      a_boolean  another_brace_next = next_token() == tok_lbrace;
-      extra_braces_okay =
-                (gcc_mode ||
-                 (microsoft_mode && (!C_mode() || microsoft_version < 1310)));
-      if ((!C_mode() && !another_brace_next) ||
-          (extra_braces_okay && another_brace_next)) {
-        /* The brace is extraneous (in C++ modes) or it is followed by another
-           brace that will not be diagnosed later on (in some GNU and Microsoft
-           modes).  Issue a warning or an error.  In C++ mode, the diagnostic
-           is not issued if another brace follows because that next brace will
-           trigger an error. */
-        diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
-                   ec_nonstd_braces);
-      }  /* if */
-    }  /* if */
-    init_con = get_single_value_for_aggregate_initializer(init_info, &context,
-                                                          extra_braces_okay);
+    init_con = get_single_value_for_aggregate_initializer(
+                                 init_info, &context, /*extra_braces=*/FALSE);
   }  /* if */
   if (prev_init_context != NULL) {
     /* Let the flag recording whether there were any dynamic initializations
