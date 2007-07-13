@@ -5093,7 +5093,8 @@ typedef struct a_class_type_supplement {
 		decl_modifiers;
 			/* Additional declaration information representing
 			   Microsoft-style __declspec modifiers that are
-			   applied to the class as a whole. */
+			   applied to the class as a whole.  Also used for
+			   Sun-style link scope specifiers. */
 #endif /* DECL_MODIFIERS_IN_USE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_type_kind	orig_type_kind;

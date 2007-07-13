@@ -1400,6 +1400,13 @@ typeinfo variable in a COMDAT group.
     /* If the typeinfo object has internal linkage, we cannot make it dllimport
        or dllexport. */
     typeinfo_var->decl_modifiers &= ~(a_decl_modifier)DM_DLLFLAGS;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+    /* If the typeinfo object has  internal linkage, we cannot give it a Sun
+       link scope. */
+      typeinfo_var->decl_modifiers &= ~(a_decl_modifier)DM_ANY_SUN_LINK_SCOPE;
+#endif /* SUN_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   } else if ((typeinfo_var->decl_modifiers & DM_DLLIMPORT) != 0) {
     /* A typeinfo object for a dllimport-ed class should not be defined. */
     goto done;
@@ -2181,17 +2188,28 @@ pointers-to-members).
          non-class cases). */
       define_typeinfo_var(type, force_static, use_comdat);
     } else if (is_immediate_class_type(type)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+      a_class_type_supplement_ptr  ctsp = class_type_supp(type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode &&
           typeinfo_var->storage_class != (a_storage_class)sc_static) {
         /* Set any required dllimport/dllexport attributes.  If the storage
            class of the virtual table changes (to sc_static), we will need to
            update this again. */
-        a_class_type_supplement_ptr
-                           ctsp = type->variant.class_struct_union.extra_info;
         typeinfo_var->decl_modifiers |= (ctsp->decl_modifiers & DM_DLLFLAGS);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+      if ((ctsp->decl_modifiers & DM_ANY_SUN_LINK_SCOPE) != 0 &&
+          typeinfo_var->storage_class != (a_storage_class)sc_static) {
+        /* Set any required __global/__symbolic/__hidden attributes.  If the
+           storage class of the virtual table changes, we will need to update
+           this again. */
+        typeinfo_var->decl_modifiers |=
+                               (ctsp->decl_modifiers & DM_ANY_SUN_LINK_SCOPE);
+      }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
       if (in_typeinfo_var_generation_phase) {
         /* If we're already in the definition generation phase, generate the
            definition for a class typeinfo now. */

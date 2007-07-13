@@ -1,5 +1,15 @@
 Version 3.10
 
+7/13/07  Sun compatibility: Link scope and class types
+
+In Sun mode (a C++ mode), the front end now accepts link scope specifiers on
+class types.  Such specifiers are applied to all compiler-generated members of
+the class (like virtual function tables and compiler-generated constructors).
+For example:
+
+  struct __hidden X { virtual ~X(); };  // Virtual function table will be
+  X::~X() {}                            // marked "__hidden".
+
 7/11/07  Incorrect member kind of template reference should be substitution
          failure not error
 

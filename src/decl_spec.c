@@ -2441,6 +2441,61 @@ using-declaration), issue an error.  For example:
   }  /* if */
 }  /* check_name_used_for_qualified_class_definition */
 
+#if SUN_EXTENSIONS_ALLOWED
+
+static void scan_link_scope_specifier(a_decl_flag_set         input_flags,
+                                      a_decl_modifiers_block  *decl_modifiers)
+/*
+The current token corresponds to a Sun link scope specifier.  Update
+decl_modifiers to reflect the specifier if appropriate.  Issue an error if
+there are several such specifiers on the current declaration or if the
+specifiers appear on a parameter declaration.  input_flags is the flag set
+passed to the call to decl_specifiers.
+*/
+{
+  if (input_flags & DSI_IS_PARAMETER) {
+    error(ec_parameter_with_link_scope_specifier);
+  } else if (decl_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) {
+    error(ec_multiple_link_scope_specifiers);
+  } else {
+    switch (curr_token) {
+      case tok_global_link_scope:
+        decl_modifiers->flags |= DM_GLOBAL_LINK_SCOPE;
+        break;
+      case tok_symbolic_link_scope:
+        decl_modifiers->flags |= DM_SYMBOLIC_LINK_SCOPE;
+        break;
+      case tok_hidden_link_scope:
+        decl_modifiers->flags |= DM_HIDDEN_LINK_SCOPE;
+        break;
+      default:
+        unexpected_condition();
+    }  /* if */
+  }  /* if */
+}  /* scan_link_scope_specifier */
+
+
+static void record_sun_link_scope_for_class(a_type_ptr              class_type,
+                                            a_decl_modifier         link_scope,
+                                            a_source_position       *err_pos)
+/*
+The given class type is declared with the given link scope.  Record the new
+link scope value, but issue an error at the given position if it loosens a
+previous specification.  For example:
+	class __hidden X *p;
+        class __global X {};  // Error.
+*/
+{
+  a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
+
+  if (link_scope < (ctsp->decl_modifiers & DM_ANY_SUN_LINK_SCOPE)) {
+    pos_error(ec_link_scope_relaxation, err_pos);
+  }  /* if */
+  ctsp->decl_modifiers &= ~(a_decl_modifier)DM_ANY_SUN_LINK_SCOPE;
+  ctsp->decl_modifiers |= link_scope;
+}  /* record_sun_linker_scope_for_class */
+
+#endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void scan_microsoft_class_modifiers(a_type_kind  type_kind,
@@ -2695,10 +2750,11 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   a_boolean               is_predeclared_type_decl = FALSE;
   a_decl_pos_block        local_decl_pos_block;
   a_boolean		  previously_invisible = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED || \
+    NEAR_AND_FAR_ALLOWED
   an_extended_decl_info_block
                           extended_decl_info;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED || NEAR_... */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
   a_boolean               tag_name_access_checks_deferred = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
@@ -2706,6 +2762,9 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   an_attribute_ptr        attributes = NULL;
   a_source_position       attr_pos;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+  a_source_position       pos_link_scope;
+#endif /* SUN_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_name_reference_ptr    name_ref = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2718,9 +2777,10 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   local_decl_pos_block.specifiers_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED || \
+    NEAR_AND_FAR_ALLOWED
   clear_extended_decl_info_block(extended_decl_info);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED || NEAR_... */
   /* Determine whether this is a template class instantiation or a local
      class (one being declared within a function scope). */
   if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
@@ -2768,6 +2828,17 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
       attributes = scan_attributes();
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+    if (sun_linker_scope_allowed) {
+      /* Scan and record any __hidden/__symbolic/__global tokens. */
+      pos_link_scope = pos_curr_token;
+      while (is_sun_link_scope_specifier()) {
+        scan_link_scope_specifier(DSI_NO_INPUT_FLAGS,
+                                  &extended_decl_info.decl_modifiers);
+        (void)get_token();
+      }  /* while */
+    }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
     /* If there is an identifier next, it is a tag.  It can be the declaration
        of a new tag or a reference to an existing tag.  Although it is an
        error, also be on the lookout for a qualified name. */
@@ -3681,6 +3752,16 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+    if (sun_linker_scope_allowed) {
+      a_decl_modifier  link_scope = (extended_decl_info.decl_modifiers.flags &
+                                     DM_ANY_SUN_LINK_SCOPE);
+      if (link_scope != 0) {
+        record_sun_link_scope_for_class(class_type, link_scope,
+                                        &pos_link_scope);
+      }  /* if */
+    }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
   if (is_class_definition) {
     if (scan_class_definition(class_type, effective_decl_level,
                               orig_decl_level, is_local_class,
@@ -6313,40 +6394,6 @@ passed to the call to decl_specifiers.
 }  /* scan_thread_local_storage_specifier */
 
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
-#if SUN_EXTENSIONS_ALLOWED
-
-static void scan_link_scope_specifier(a_decl_flag_set         input_flags,
-                                      a_decl_modifiers_block  *decl_modifiers)
-/*
-The current token corresponds to a Sun link scope specifier.  Update
-decl_modifiers to reflect the specifier if appropriate.  Issue an error if
-there are several such specifiers on the current declaration or if the
-specifiers appear on a parameter declaration.  input_flags is the flag set
-passed to the call to decl_specifiers.
-*/
-{
-  if (input_flags & DSI_IS_PARAMETER) {
-    error(ec_parameter_with_link_scope_specifier);
-  } else if (decl_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) {
-    error(ec_multiple_link_scope_specifiers);
-  } else {
-    switch (curr_token) {
-      case tok_global_link_scope:
-        decl_modifiers->flags |= DM_GLOBAL_LINK_SCOPE;
-        break;
-      case tok_symbolic_link_scope:
-        decl_modifiers->flags |= DM_SYMBOLIC_LINK_SCOPE;
-        break;
-      case tok_hidden_link_scope:
-        decl_modifiers->flags |= DM_HIDDEN_LINK_SCOPE;
-        break;
-      default:
-        unexpected_condition();
-    }  /* if */
-  }  /* if */
-}  /* scan_link_scope_specifier */
-
-#endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void microsoft_specific_decl_specifiers(

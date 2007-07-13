@@ -7554,6 +7554,14 @@ implicitly declared member functions.
   }  /* if */
   if (compiler_generated) {
     rtn->compiler_generated = TRUE;
+#if SUN_EXTENSIONS_ALLOWED
+    if (sun_linker_scope_allowed) {
+      /* A linker scope specifier on a class type is applied to all the
+         implicit members of that class type. */
+      a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
+      rtn->decl_modifiers |= (ctsp->decl_modifiers & DM_ANY_SUN_LINK_SCOPE);
+    }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
   }  /* if */
   /* The routine name linkage on the function type is also required to be
      C++ no matter what the name linkage of the routine turns out to be. */

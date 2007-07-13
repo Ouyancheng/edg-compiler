@@ -4934,8 +4934,8 @@ Put out the list of direct base classes of the class associated with ctsp
   }  /* for */
 }  /* gen_base_class_list */
 
-
 #if USER_CONTROL_OF_STRUCT_PACKING
+
 static void construct_pragma_pack_if_needed(a_type_ptr type)
 /*
 Check the alignment of the specified class type; if it is not the same as
@@ -4970,8 +4970,26 @@ pragma, construct a #pragma pack with the type's alignment.
     }  /* if */
   }  /* if */
 }  /* construct_pragma_pack_if_needed */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if SUN_EXTENSIONS_ALLOWED
+
+static void gen_sun_link_scope_specifiers(a_decl_modifier  flags)
+/*
+Generate the __global, __symbolic, or __hidden keyword according to the value
+of flags.  Only generate the keyword if we target a Sun compiler. 
+*/
+{
+  if (sun_is_generated_code_target && (flags & DM_ANY_SUN_LINK_SCOPE)) {
+    form_sun_link_scope_specifiers(flags, &octl);
+  }  /* if */
+}  /* gen_sun_link_scope_specifiers */
+
+#else /* !SUN_EXTENSIONS_ALLOWED */
+
+#define gen_sun_link_scope_specifiers(flags) /* Nothing */
+
+#endif /* SUN_EXTENSIONS_ALLOWED */
 
 static void gen_class_definition(a_type_ptr type)
 /*
@@ -5017,6 +5035,7 @@ is the one associated with the definition of the class.
     write_space();
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  gen_sun_link_scope_specifiers(ctsp->decl_modifiers);
   /* Write the name of the class. */
   if (ctsp != NULL &&
       ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
@@ -10588,23 +10607,6 @@ is generated.
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define gen_microsoft_routine_decl_modifiers(rout, is_definition) /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-#if SUN_EXTENSIONS_ALLOWED
-
-static void gen_sun_link_scope_specifiers(a_decl_modifier  flags)
-/*
-Generate the __global, __symbolic, or __hidden keyword according to the value
-of flags.  Only generate the keyword if we target a Sun compiler. 
-*/
-{
-  if (sun_is_generated_code_target && (flags & DM_ANY_SUN_LINK_SCOPE)) {
-    form_sun_link_scope_specifiers(flags, &octl);
-  }  /* if */
-}  /* gen_sun_link_scope_specifiers */
-
-#else /* !SUN_EXTENSIONS_ALLOWED */
-#define gen_sun_link_scope_specifiers(flags) /* Nothing */
-#endif /* SUN_EXTENSIONS_ALLOWED */
 
 static void gen_instantiation_directive(void)
 /*

@@ -4078,6 +4078,14 @@ definition.
     vtbl_var->decl_modifiers |= (ctsp->decl_modifiers & DM_DLLFLAGS);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+  if ((ctsp->decl_modifiers & DM_ANY_SUN_LINK_SCOPE) != 0) {
+    /* Set any required __global/__symbolic/__hidden attributes.  If the
+       storage class of the virtual table changes, we will need to update
+       this again. */
+    vtbl_var->decl_modifiers |= (ctsp->decl_modifiers & DM_ANY_SUN_LINK_SCOPE);
+  }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
 #if ABI_CHANGES_FOR_RTTI
   /* If this is the virtual function table for type_info, remember it for
      the use of EH lowering. */
@@ -5648,9 +5656,15 @@ yet.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* If the overriding routine has the dllexport or dllimport attribute, then
      the thunk must also have that attribute. */
-  entry_routine->decl_modifiers =
+  entry_routine->decl_modifiers |=
                            (overriding_function->decl_modifiers & DM_DLLFLAGS);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+  /* If the overriding routine has a Sun link scope, propagate it to the
+     thunk. */
+  entry_routine->decl_modifiers |=
+                 (overriding_function->decl_modifiers & DM_ANY_SUN_LINK_SCOPE);
+#endif /* SUN_EXTENSIONS_ALLOWED */
   set_inline_flag(entry_routine, (a_boolean)overriding_function->is_inline);
 #if ONE_INSTANTIATION_PER_OBJECT
   /* Use the needed bit number from the overriding function.  This is needed
@@ -6396,6 +6410,13 @@ for the same virtual function table variable; see note below.
       /* If the table has internal linkage, we cannot make it dllimport or
          dllexport. */
       vtbl_var->decl_modifiers &= ~(a_decl_modifier)DM_DLLFLAGS;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+      /* If the table has internal linkage, we cannot give it a Sun link
+         scope. */
+      vtbl_var->decl_modifiers &= ~(a_decl_modifier)DM_ANY_SUN_LINK_SCOPE;
+#endif /* SUN_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if ((vtbl_var->decl_modifiers & DM_DLLIMPORT) != 0) {
       /* A virtual table for a dllimport-ed class should not be defined. */
       definition_needed = FALSE;

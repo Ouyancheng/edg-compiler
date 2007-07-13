@@ -69,16 +69,6 @@ specifier (3.5.1).
    or_is_microsoft_storage_class())
 
 /*
-Macro that is TRUE if the current token denotes a link scope specifier.
-*/
-#if SUN_EXTENSIONS_ALLOWED
-#define is_sun_link_scope_specifier()                                 \
-  (curr_token == tok_global_link_scope ||                             \
-   curr_token == tok_symbolic_link_scope ||                           \
-   curr_token == tok_hidden_link_scope)
-#endif /* SUN_EXTENSIONS_ALLOWED */
-
-/*
 Macro that is TRUE if the current token is the start of a function
 specifier.
 */

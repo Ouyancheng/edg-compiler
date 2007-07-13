@@ -188,6 +188,16 @@ Macro that is TRUE if the current token is the start of a type qualifier
 #define is_type_qualifier()                                                  \
   (is_type_qualifier_token(curr_token) or_is_named_address_space_qualifier())
 
+/*
+Macro that is TRUE if the current token denotes a link scope specifier.
+*/
+#if SUN_EXTENSIONS_ALLOWED
+#define is_sun_link_scope_specifier()                                 \
+  (curr_token == tok_global_link_scope ||                             \
+   curr_token == tok_symbolic_link_scope ||                           \
+   curr_token == tok_hidden_link_scope)
+#endif /* SUN_EXTENSIONS_ALLOWED */
+
 
 /*
 If type_ptr is float, change it to double.  Used in pcc mode to promote
