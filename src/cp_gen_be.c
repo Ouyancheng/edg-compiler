@@ -5035,7 +5035,11 @@ is the one associated with the definition of the class.
     write_space();
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  gen_sun_link_scope_specifiers(ctsp->decl_modifiers);
+#if SUN_EXTENSIONS_ALLOWED
+  if (ctsp != NULL) {
+    gen_sun_link_scope_specifiers(ctsp->decl_modifiers);
+  }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
   /* Write the name of the class. */
   if (ctsp != NULL &&
       ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
