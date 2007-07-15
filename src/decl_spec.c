@@ -3753,14 +3753,13 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
-    if (sun_linker_scope_allowed) {
-      a_decl_modifier  link_scope = (extended_decl_info.decl_modifiers.flags &
-                                     DM_ANY_SUN_LINK_SCOPE);
-      if (link_scope != 0) {
-        record_sun_link_scope_for_class(class_type, link_scope,
-                                        &pos_link_scope);
-      }  /* if */
+  if (sun_linker_scope_allowed) {
+    a_decl_modifier  link_scope = (extended_decl_info.decl_modifiers.flags &
+                                   DM_ANY_SUN_LINK_SCOPE);
+    if (link_scope != 0) {
+      record_sun_link_scope_for_class(class_type, link_scope, &pos_link_scope);
     }  /* if */
+  }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
   if (is_class_definition) {
     if (scan_class_definition(class_type, effective_decl_level,
