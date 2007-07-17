@@ -1255,7 +1255,8 @@ and GNU C modes, the processing is similar to that in C++.
 
   if ((!C_mode() || c99_mode || gcc_mode) &&
       (is_class_struct_union_type(context->type) ||
-       (gnu_mode && is_array_type(context->type))) &&
+       (gnu_mode && is_array_type(context->type) &&
+        !skip_typerefs(context->type)->variant.array.bound_is_zero)) &&
       (curr_token != tok_lbrace || context->pending_init_con != NULL) &&
       !top_level && !designator_coming((a_boolean *)NULL)) {
     /* If this is an aggregate, whole object initialization is possible but
@@ -1392,11 +1393,14 @@ if no initializer was consumed.
   } else {
     /* The list for the aggregate is not enclosed in braces. */
     a_boolean top_level = (context->prev_context == NULL);
-    if (!any_members && !top_level && !C_mode()) {
+    if (!any_members && !top_level && 
+        (!C_mode() || 
+         (gnu_mode && is_array_type(context->type) &&
+          skip_typerefs(context->type)->variant.array.bound_is_zero))) {
       /* This is an initialization of an aggregate with no members,
-         i.e., an empty class, and there are no braces for this
-         level of the aggregate.  Take nothing to satisfy this
-         initialization. */
+         i.e., an empty class or GNU zero-sized array, and there are no
+         braces for this level of the aggregate.  Take nothing to
+         satisfy this initialization. */
       *nothing_taken = TRUE;
       result = FALSE;
     }  /* if */
@@ -2310,7 +2314,7 @@ this function points to a tree that includes a dynamic-init entry.
             } else {
               /* The only other zero-sized type that should be allowed here
                  is a (complete) zero-sized GNU C class. */
-              check_assertion_str(gcc_mode && !is_incomplete_type(member_type),
+              check_assertion_str(gnu_mode && !is_incomplete_type(member_type),
                                   "get_initializer: can't init 0-size member");
             }  /* if */
           }  /* if */

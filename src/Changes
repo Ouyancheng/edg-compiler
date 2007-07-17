@@ -1,5 +1,25 @@
 Version 3.10
 
+7/16/07  GNU mode: initialization of zero-sized arrays
+
+In GNU mode, zero-sized arrays (i.e., arrays whose size is explicitly
+set to zero) are permitted and may be members of an aggregate
+(at any point in the aggregate - not just as the last member).
+Zero-sized array members can be statically initialized by specifying
+an empty set (i.e., {}).  The front end has been changed to more
+closely follow GNU's behavior in cases where a zero-sized array
+member is initialized by a non-brace-enclosed initializer in a
+static initializer list.  Specifically, in GNU emulation mode,
+an empty set initializer is implicitly added to initialize the
+zero-sized array member.  For example:
+
+  struct {
+    char x;
+    int a[0];
+    short y;
+  } obj = {2,4};    // initializes obj.x to 2 and obj.y to 4 in GNU mode
+                    //   (effectively treated as { 2, {}, 4 })
+
 7/13/07  Sun compatibility: Link scope and class types
 
 In Sun mode (a C++ mode), the front end now accepts link scope specifiers on
