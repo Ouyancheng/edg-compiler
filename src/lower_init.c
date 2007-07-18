@@ -12663,7 +12663,7 @@ The overriding function must have a definition in the current compilation.
   check_assertion(overriding_function->assoc_scope != NULL_region_number &&
                   !overriding_function->suppress_inline_body);
   /* Make an expression that is an enk_result_of_overriding_function cast
-     to the right base class pointer. */
+     to the right pointer type. */
   expr = alloc_expr_node((an_expr_node_kind)enk_result_of_overriding_function);
   expr->type = overriding_return_type;
 #if IA64_ABI
@@ -12674,13 +12674,27 @@ The overriding function must have a definition in the current compilation.
     bcp = find_base_class_of_full(type_pointed_to(overriding_return_type),
                                   type_pointed_to(overridden_return_type),
                                   /*instantiate_if_necessary=*/FALSE);
-    check_assertion(bcp != NULL);
-    add_base_class_casts(bcp, type_pointed_to(overridden_return_type),
-                         /*check_cast_access=*/FALSE,
-                         /*is_implicit_cast=*/TRUE,
-                         /*implicit_in_naming=*/FALSE,
-                         &expr,
-                         &overriding_function->source_corresp.decl_position);
+    check_assertion(
+      bcp != NULL ||
+      same_entities(f_skip_typerefs(type_pointed_to(overriding_return_type)),
+                    f_skip_typerefs(type_pointed_to(overridden_return_type))));
+    if (bcp != NULL) {
+      /* The return types point to a derived/base pair and not just types
+         that differ by cv-qualification. */
+      add_base_class_casts(bcp, type_pointed_to(overridden_return_type),
+                           /*check_cast_access=*/FALSE,
+                           /*is_implicit_cast=*/TRUE,
+                           /*implicit_in_naming=*/FALSE,
+                           &expr,
+                           &overriding_function->source_corresp.decl_position);
+    } else {
+      /* The return types point to the same class, so a regular cast is
+         needed to handle the difference in cv-qualification. */
+      cast_node(&expr, overridden_return_type, /*check_cast_access=*/FALSE,
+                /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
+                /*reinterpret_semantics=*/FALSE,
+                &overriding_function->source_corresp.decl_position);
+    }  /* if */
 #if IA64_ABI
   }  /* if */
 #endif /* IA64_ABI */

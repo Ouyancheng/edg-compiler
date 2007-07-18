@@ -1,5 +1,25 @@
 Version 3.10
 
+7/18/07  Abort lowering covariant return types differing only in
+         cv-qualification
+
+The front end aborted in some cases when lowering an overriding virtual
+function whose return type differs from that of the overridden function
+only by cv-qualification.  This is now fixed.  For example:
+
+  struct Control { };
+  struct Iterator { };
+  struct Toolbar: virtual Control { };
+  struct Matrix {
+    virtual const Iterator *getRows() const = 0;
+  };
+  struct ToolbarMatrix: Toolbar, Matrix {
+    virtual Iterator *getRows() const;
+  };
+  Iterator *ToolbarMatrix::getRows() const {
+    return 0;
+  }
+
 7/16/07  GNU mode: initialization of zero-sized arrays
 
 In GNU mode, zero-sized arrays (i.e., arrays whose size is explicitly
