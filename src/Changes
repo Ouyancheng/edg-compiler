@@ -3,10 +3,10 @@ Version 3.10
 7/18/07  IA-64 ABI mode abort lowering covariant return types differing only
          in cv-qualification
 
-In IA64_ABI mode, the front end aborted in some cases when lowering an
-overriding virtual function whose return type differs from that of the
-overridden function only by cv-qualification.  This is now fixed.  For
-example:
+In IA64_ABI mode, the front end aborted when lowering an overriding virtual
+function whose return type differs from that of the overridden function
+only by cv-qualification and where the adjustment to "this" involves a
+non-zero delta.  This is now fixed.  For example:
 
   struct Control { };
   struct Iterator { };
