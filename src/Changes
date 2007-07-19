@@ -1,11 +1,12 @@
 Version 3.10
 
-7/18/07  Abort lowering covariant return types differing only in
-         cv-qualification
+7/18/07  IA-64 ABI mode abort lowering covariant return types differing only
+         in cv-qualification
 
-The front end aborted in some cases when lowering an overriding virtual
-function whose return type differs from that of the overridden function
-only by cv-qualification.  This is now fixed.  For example:
+In IA64_ABI mode, the front end aborted in some cases when lowering an
+overriding virtual function whose return type differs from that of the
+overridden function only by cv-qualification.  This is now fixed.  For
+example:
 
   struct Control { };
   struct Iterator { };
