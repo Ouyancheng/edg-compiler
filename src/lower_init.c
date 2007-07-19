@@ -12611,6 +12611,8 @@ The overriding function must have a definition in the current compilation.
   a_routine_ptr          overriding_function, overridden_function;
   a_base_class_ptr       bcp;
   a_type_ptr             overriding_return_type, overridden_return_type;
+  a_type_ptr             overriding_return_type_class;
+  a_type_ptr             overridden_return_type_class;
 #if IA64_ABI
   a_variable_ptr         this_param = NULL;
   an_insert_location     insert_location;
@@ -12671,13 +12673,16 @@ The overriding function must have a definition in the current compilation.
       is_class_struct_union_type(type_pointed_to(overriding_return_type)) &&
       !identical_types(overriding_return_type, overridden_return_type)) {
 #endif /* IA64_ABI */
-    bcp = find_base_class_of_full(type_pointed_to(overriding_return_type),
-                                  type_pointed_to(overridden_return_type),
+    overriding_return_type_class =
+                       f_skip_typerefs(type_pointed_to(overriding_return_type));
+    overridden_return_type_class =
+                       f_skip_typerefs(type_pointed_to(overridden_return_type));
+    bcp = find_base_class_of_full(overriding_return_type_class,
+                                  overridden_return_type_class,
                                   /*instantiate_if_necessary=*/FALSE);
-    check_assertion(
-      bcp != NULL ||
-      same_entities(f_skip_typerefs(type_pointed_to(overriding_return_type)),
-                    f_skip_typerefs(type_pointed_to(overridden_return_type))));
+    check_assertion(bcp != NULL ||
+                    same_entities(overriding_return_type_class,
+                                  overridden_return_type_class));
     if (bcp != NULL) {
       /* The return types point to a derived/base pair and not just types
          that differ by cv-qualification. */
