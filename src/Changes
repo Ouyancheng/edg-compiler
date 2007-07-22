@@ -1,5 +1,27 @@
 Version 3.10
 
+7/22/07  Object destroyed multiple times when breaks or gotos leave a GNU
+         statement expression in g++ emulation mode
+
+In cases where a GNU statement expression contains a break or goto statement
+that leaves the scope of the statement expression and the statement
+expression is not at the innermost function scope, the object lifetime
+mechanism that is used to track object destructions may erroneously
+emit multiple destructions for an object.  For example:
+
+  struct S {
+    ~S();
+  };
+  void f() {
+    {
+      S s;            // Destructor for s mistakenly called twice
+      for (;;)
+        ({ break; });
+    }
+  }
+
+This is now fixed.
+
 7/18/07  IA-64 ABI mode abort lowering covariant return types differing only
          in cv-qualification
 
