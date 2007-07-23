@@ -1905,7 +1905,7 @@ IL a_constant entity.
   a_boolean           nonconst_allowed, brace_flag, another_brace_next;
   a_boolean           extra_braces_okay = extra_braces;
   a_boolean           microsoft_enum_case = FALSE;
-  a_dynamic_init_ptr  dip = 0;
+  a_dynamic_init_ptr  dip = NULL;
   a_source_position   pos_first_token;
 
   pos_first_token = pos_curr_token;
