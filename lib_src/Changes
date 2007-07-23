@@ -1,5 +1,23 @@
 Version 3.10
 
+7/23/07  Zero-length array with same address as other object
+
+When an array of destructible objects is constructed, the space allocated
+by the runtime includes a prefix that contains information used when the
+array is deleted.  The pointer returned by the new operation points to the
+array itself, which is just after the prefix.  If the array has a length of
+zero it is possible for the array address to be the same as that of a
+non-array object allocated later.  This is unlikely as most allocators
+also place a prefix before the memory returned, but not impossible.
+
+  struct C {~C(){}};
+  struct D {~D(){}};
+  int main() {
+    C *ptr1 = new C[0];
+    D *ptr2 = new D;
+    return (void*)ptr1 == (void*)ptr2;
+  }
+
 4/30/07  Type of argument passed to Cfront ABI runtime routines for
          number of elements
 
