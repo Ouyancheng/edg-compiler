@@ -5,9 +5,9 @@ Version 3.10
 
 In cases where a GNU statement expression contains a break or goto statement
 that leaves the scope of the statement expression and the statement
-expression is not at the innermost function scope, the object lifetime
-mechanism that is used to track object destructions may erroneously
-emit multiple destructions for an object.  For example:
+expression is nested within a block within a function scope, the object
+lifetime mechanism that is used to track object destructions may have
+erroneously emitted multiple destructions for an object.  For example:
 
   struct S {
     ~S();
