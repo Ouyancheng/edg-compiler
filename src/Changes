@@ -104,19 +104,6 @@ as the return type of a function template.  Now fixed.
   template <typename T> struct A;
   template <typename T> typename A<T>::B::C f(T);
 
-7/9/07   Spurious VLA diagnostic in GNU C++ mode
-
-In GNU C++ modes with gnu_version >= 30400, the front end sometimes issued a
-spurious VLA-related error when declaring a local static array with a
-template-dependent bound.  (VLA = variable-length array.)  For example:
-
-  template<typename T> void f() {
-    static T x[sizeof(T)];  // Spurious error when compiled with:
-  }                         //   -tused --gnu_version=30400
-  template void f<int>();
-
-This is now fixed.
-
 7/9/07   Extra braces in aggregate initializers in C modes
 
 The front end previously diagnosed with a warning or error extra braces around
