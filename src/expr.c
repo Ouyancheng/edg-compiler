@@ -12175,17 +12175,10 @@ both C and C++ modes.
        lifetime (which is likely to be on the top of the object lifetime
        stack), so traverse upward until we find one we can use. */
     while (curr_object_lifetime != NULL &&
-           !(curr_object_lifetime->kind ==
-                             (an_object_lifetime_kind)olk_block ||
-             curr_object_lifetime->kind ==
-                             (an_object_lifetime_kind)olk_block_after_label)) {
+           curr_object_lifetime->kind ==
+                             (an_object_lifetime_kind)olk_expr_temporary) {
       curr_object_lifetime = curr_object_lifetime->parent_lifetime;
     }  /* while */
-    if (curr_object_lifetime == NULL) {
-      /* No suitable object lifetime found, use innermost function scope. */
-      check_assertion(innermost_function_scope != NULL);
-      curr_object_lifetime = innermost_function_scope->lifetime;
-    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     saved_sses_disallowed = source_sequence_entries_disallowed;
     if (!saved_expr_stack->potentially_evaluated &&
