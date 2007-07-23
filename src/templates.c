@@ -6347,7 +6347,8 @@ points to the template parameter list.
 a_boolean tentatively_matches_template_type(
 			       a_type_ptr           type,
 		  	       a_type_ptr           templ_type,
-                               a_template_param_ptr templ_param_list)
+                               a_template_param_ptr templ_param_list,
+                               a_template_arg_ptr   templ_arg_list)
 /*
 This routine calls matches_template_type to determine whether the
 type specified by "type" matches the type specified by "templ_type" with
@@ -6355,13 +6356,15 @@ appropriate substitution of the template parameters in "templ_type".
 We return TRUE if the types match.  This routine is an interface to
 matches template type that is used to evaluate the match for a
 single function parameter and then discard any template arguments that
-may have been deduced.
+may have been deduced.  templ_arg_list is used in some nonstandard modes
+to introduce knowledge from previous arguments; in the standard case,
+it is always NULL.
 */
 {
-  a_template_arg_ptr   templ_arg_list = NULL;
-  a_boolean            result;
+  a_boolean result;
 
   db_enter(5, "tentatively_matches_template_type");
+  templ_arg_list = copy_template_arg_list(templ_arg_list);
   result = matches_template_type(type, templ_type, &templ_arg_list,
                                  templ_param_list, MTT_NO_FLAGS);
   if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);

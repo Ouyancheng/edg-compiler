@@ -397,7 +397,8 @@ extern
 a_boolean tentatively_matches_template_type(
 			       a_type_ptr           type,
 		  	       a_type_ptr           templ_type,
-                               a_template_param_ptr templ_param_list);
+                               a_template_param_ptr templ_param_list,
+                               a_template_arg_ptr   templ_arg_list);
 
 extern a_type_ptr substitute_template_arguments(
 				a_symbol_ptr		templ_sym,

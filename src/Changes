@@ -1,5 +1,19 @@
 Version 3.10
 
+7/23/07  Extension to template deduction with overloaded function argument
+
+In GNU and Microsoft C++ modes, cases like the following are now
+accepted.  Information from previous arguments is allowed to be used
+in deduction related to a later argument that is an overloaded function.
+
+  struct A { };
+  void f1( unsigned int nUID );
+  void f1( char x );
+  unsigned int f2();
+  template <class RetT, class VarT>
+  A& ff(VarT (*p)(), RetT (*q)(VarT));
+  static A x = ff( &f2, &f1 );
+
 7/22/07  Object destroyed multiple times when breaks or gotos leave a GNU
          statement expression in g++ emulation mode
 
