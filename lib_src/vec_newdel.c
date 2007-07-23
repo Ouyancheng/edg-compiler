@@ -476,6 +476,10 @@ use.
   if (array_ptr == NULL || prefix_size != 0) {
     a_boolean	err;
     array_size = number_of_elements * element_size;
+    /* Always allocate at least a byte of storage for the array to guarantee
+       that the pointer returned to the caller (which points after the prefix)
+       cannot be the same as a subsequently allocated object. */
+    if (array_size == 0) array_size = 1;
     if (array_ptr == NULL) {
       /* Allocate the array if a pointer has not been supplied by the
          caller. */
