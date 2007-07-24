@@ -359,6 +359,9 @@ The number of elements in the array is returned in *number_of_elements.
   size = app->size;
   *number_of_elements = ~(app->encoded_number_of_elements);
   size_to_check = element_size * *number_of_elements;
+  /* The array size is adjusted to always allocate at least a byte of
+     storage for the array. */
+  if (size_to_check == 0) size_to_check = 1;
   if (size != size_to_check) _array_pointer_not_from_vec_new();
 #else /* defined(__EDG_IA64_ABI) */
   app = ((an_alloc_prefix_ptr)array_ptr) - 1;
