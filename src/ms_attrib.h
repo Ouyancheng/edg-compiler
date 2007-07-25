@@ -138,6 +138,10 @@ extern void dispose_of_unapplied_attributes(an_ms_attribute_ptr	*attributes,
 
 extern an_ms_attribute_ptr duplicate_ms_attributes(an_ms_attribute_ptr  orig);
 
+extern an_ms_attribute_ptr  find_ms_attribute_for_entity(
+                                            an_ms_attribute_ptr          msap,
+                                            a_source_correspondence_ptr  scp);
+
 extern void ms_attrib_one_time_init(void);
 
 extern void ms_attrib_init(void);

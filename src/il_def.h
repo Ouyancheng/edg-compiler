@@ -12330,6 +12330,7 @@ enum an_ms_attribute_kind_tag {
   msak_unrecognized,	/* Used to represent unrecognized attributes. */
   msak_misc,		/* Used for predefined attributes that don't require
 			   special processing. */
+  msak_uuid,		/* The [uuid(...)] attribute. */
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   msak_edg_test,
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */

@@ -174,7 +174,7 @@ otherwise return NULL.
     }  /* if */
   }  /* for */
   return msakdp;
-}  /* an_ms_attribute_kind_descr_ptr */
+}  /* find_attribute_kind */
 
 
 static an_ms_attribute_kind_descr_ptr alloc_ms_attribute_kind_descr(void)
@@ -955,12 +955,14 @@ are accepted.
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "usesgetlasterror", MSAT_ANY);
   /* [uuid] */
-  make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "uuid",
-                             MSAT_CLASS | MSAT_STRUCT | MSAT_INTERFACE);
-  set_initialization_style_arg_allowed();
-  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
-                          "uuid", /*is_unnamed=*/FALSE, (char*)NULL);
+  if (!C_mode()) {
+    make_attribute_description((an_ms_attribute_kind)msak_uuid,
+                               "uuid",
+                               MSAT_CLASS | MSAT_STRUCT | MSAT_INTERFACE);
+    set_initialization_style_arg_allowed();
+    add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
+                            "uuid", /*is_unnamed=*/FALSE, (char*)NULL);
+  }  /* if */
   /* [v1_enum] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "v1_enum", MSAT_ENUM);
@@ -1803,6 +1805,44 @@ entry.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+static void process_ms_attr_uuid(an_ms_attribute_ptr  msap)
+/*
+The given Microsoft attribute represent the "uuid" attribute applied to a
+class type.  Record the associated uuid string in the class type.
+*/
+{
+  check_assertion(
+                msap->entity.kind == (an_il_entry_kind)iek_type &&
+                is_immediate_class_type((a_type_ptr)msap->entity.ptr) &&
+                msap->arg_list != NULL &&
+                msap->arg_list->kind == (an_ms_attribute_arg_kind)msaak_uuid);
+  record_uuid_for_class((a_type_ptr)msap->entity.ptr,
+                        msap->arg_list->variant.uuid_string,
+                        &msap->position);
+}  /* process_ms_attr_uuid */
+
+
+static void process_microsoft_attribute(an_ms_attribute_ptr  msap)
+/*
+The given attribute requires special processing (e.g., updating the IL entry
+it is bound to): Perform that processing.
+*/
+{
+  switch (msap->kind) {
+    case msak_uuid:
+      process_ms_attr_uuid(msap);
+      break;
+#if INCLUDE_EDG_TEST_ATTRIBUTES
+    case msak_edg_test:
+      /* Nothing to be done. */
+      break;
+#endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* process_microsoft_attribute */
+
+
 void apply_microsoft_attributes(an_ms_attribute_ptr	*attributes,
 				char			*entity,
 				an_il_entry_kind	kind,
@@ -1864,6 +1904,10 @@ in the param_type entry).
       finalize_ms_attribute_source_sequence_entry(msap, is_error);
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    if (msap->kind > (an_ms_attribute_kind)msak_misc) {
+      /* An attribute for which special processing is neededed. */
+      process_microsoft_attribute(msap);
+    }  /* if */
   }  /* for */
   /* All entities except for param_type entries are expected to have
      source correspondences. */
@@ -1979,6 +2023,41 @@ arguments point to (like character strings) are shared.
   }  /* while */
   return result;
 }  /* duplicate_ms_attributes */
+
+
+an_ms_attribute_ptr  find_ms_attribute_for_entity(
+                                            an_ms_attribute_ptr          msap,
+                                            a_source_correspondence_ptr  scp)
+/*
+Find an attribute associated with the nonlocal (i.e., not defined inside a
+function) entity whose source correspondence is scp.  If msap is NULL, the
+search starts at the beginning of the list of attributes recorded for the
+parent scope of scp; otherwise, the search starts with msap->next.  If no
+attribute associated with scp is found, return NULL.
+*/
+{
+  if (msap == NULL) {
+    if (C_mode()) {
+      /* In C mode, there are no class or namespace scopes; so only the file
+         scope is searched. */
+      msap = il_header.primary_scope->ms_attributes;
+    } else if (scp->is_class_member) {
+      a_class_type_supplement_ptr
+                               ctsp = class_type_supp(scp->parent.class_type);
+      msap = ctsp->assoc_scope->ms_attributes;
+    } else if (scp->parent.namespace_ptr != NULL) {
+      msap = scp->parent.namespace_ptr->variant.assoc_scope->ms_attributes;
+    } else {
+      msap = il_header.primary_scope->ms_attributes;
+    }  /* if */
+  } else {
+    msap = msap->next;
+  }  /* if */
+  while (msap != NULL) {
+    if (msap->entity.ptr == (char*)scp) break;
+  }  /* while */
+  return msap;
+}  /* find_ms_attribute_for_entity */
 
 #if DEBUG
 

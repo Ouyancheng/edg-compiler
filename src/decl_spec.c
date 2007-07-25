@@ -1001,6 +1001,31 @@ incompatibilities are diagnosed at the given position.
   }  /* if */
 }  /* update_deprecation_info */
 
+
+void record_uuid_for_class(a_type_ptr         class_type,
+                           char               *uuid_string,
+                           a_source_position  *err_pos)
+/*
+Record the given uuid string in the given class type.  If the class type
+already had an associated uuid string, do not record the new value but
+issue an error at the given source position.
+*/
+{
+  a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
+
+  if (ctsp->uuid_string != NULL) {
+    /* Issue an error if __declspec(uuid(...)) strings are present and they
+       aren't identical. */
+    if (strcmp(ctsp->uuid_string, uuid_string) != 0) {
+      pos_diagnostic(es_discretionary_error,
+                     ec_decl_modifiers_incompatible_with_previous_decl,
+                     err_pos);
+    }  /* if */
+  } else {
+    ctsp->uuid_string = uuid_string;
+  }  /* if */
+}  /* record_uuid_for_class */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   
 #if !MICROSOFT_EXTENSIONS_ALLOWED
@@ -1109,18 +1134,9 @@ to a source position used for diagnostics.
       }  /* if */
     }  /* if */
     if (extended_decl_info->decl_modifiers.uuid_string != NULL) {
-      if (ctsp->uuid_string != NULL) {
-        /* Issue an error if __declspec(uuid(...)) strings are present and
-           they aren't identical. */
-        if (strcmp(ctsp->uuid_string,
-                   extended_decl_info->decl_modifiers.uuid_string) != 0) {
-          pos_diagnostic(es_discretionary_error,
-                         ec_decl_modifiers_incompatible_with_previous_decl,
-                         err_pos);
-        }  /* if */
-      } else {
-        ctsp->uuid_string = extended_decl_info->decl_modifiers.uuid_string;
-      }  /* if */
+      record_uuid_for_class(class_type,
+                            extended_decl_info->decl_modifiers.uuid_string,
+                            err_pos);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
