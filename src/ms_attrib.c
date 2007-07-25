@@ -1812,7 +1812,7 @@ class type.  Record the associated uuid string in the class type.
 */
 {
   check_assertion(
-                msap->entity.kind == (an_il_entry_kind)iek_type &&
+                msap->entity.kind == (a_byte_il_entry_kind)iek_type &&
                 is_immediate_class_type((a_type_ptr)msap->entity.ptr) &&
                 msap->arg_list != NULL &&
                 msap->arg_list->kind == (an_ms_attribute_arg_kind)msaak_uuid);
