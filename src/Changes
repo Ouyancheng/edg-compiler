@@ -1,5 +1,25 @@
 Version 3.10
 
+7/25/07  Constant initializers for automatic variables
+
+The front end previously treated cases in which an automatic variable
+is initialized with an address constant expression as dynamic
+initialization.  If the new configuration macro
+FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT is set to TRUE, the front end
+will now fold such initializers to constants, potentially allowing
+generation of more-efficient code.  (This folding was formerly done
+only for initializers of variables with static duration.)  For
+instance, an automatic array could be initialized with an aggregate
+constant instead of by assignment to each individual member:
+
+  extern int a[];
+  const int *f(int n) {
+    const int *const p[] =
+      { &a[1], &a[8], &a[5] };   /* Can now be aggregate initialization
+                                    instead of three assignments. */
+    return p[n];
+  }
+
 7/23/07  Extension to template deduction with overloaded function argument
 
 In GNU and Microsoft C++ modes, cases like the following are now

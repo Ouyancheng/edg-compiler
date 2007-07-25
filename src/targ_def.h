@@ -4311,6 +4311,18 @@ EXTERN a_named_register_storage_class_descr
 ;
 #endif /* NAMED_REGISTERS_ALLOWED */
 
+/*
+TRUE if an attempt should be made to fold all initializers to constant
+expressions, FALSE if only initializers for variables with static duration
+should be so treated.  
+*/
+#ifndef FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT
+/* By default, do not fold automatic initializers if the C++-generating
+   back end is in use; this will increase the probability that the
+   generated code for these initializers is similar to the input source. */
+#define FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT (!BACK_END_IS_CP_GEN_BE)
+#endif /* ifndef FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT */
+
 #endif /* !defined(TARG_DEF_H) */
 
 

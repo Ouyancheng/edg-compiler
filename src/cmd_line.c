@@ -4576,6 +4576,11 @@ file.
 #else /* !defined(EXTRA_SOURCE_POSITIONS_IN_IL) */
   comment_undefined_macro_name(EXTRA_SOURCE_POSITIONS_IN_IL);
 #endif /* defined(EXTRA_SOURCE_POSITIONS_IN_IL) */
+#if defined(FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT)
+  define_numeric_valued_macro(FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT);
+#else /* !defined(FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT) */
+  comment_undefined_macro_name(FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT);
+#endif /* defined(FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT) */
 #if defined(FFE)
   define_numeric_valued_macro(FFE);
 #else /* !defined(FFE) */

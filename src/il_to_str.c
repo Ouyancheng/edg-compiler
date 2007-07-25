@@ -3154,30 +3154,52 @@ precedence confusion.  Do the output in the way described by octl.
       final_cast_needed = TRUE;
     }  /* if */
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-  } else if (msvc_is_generated_code_target &&
-             constant->kind == (a_constant_repr_kind)ck_address &&
+  } else if (constant->kind == (a_constant_repr_kind)ck_address &&
              constant->variant.address.kind ==
                                           (an_address_base_kind)abk_variable &&
-             constant->variant.address.variant.variable->
-                                              is_template_static_data_member &&
-             constant->variant.address.offset == 0 &&
              is_array_type(direct_achieved_type) &&
              !has_unknown_specified_bound(direct_achieved_type) &&
              direct_achieved_type->variant.array.variant.number_of_elements
                                                                         != 0) {
-    /* The Microsoft compiler cannot complete the type of a static data
-       member of a template instance in cases like the following:
+#if BACK_END_IS_C_GEN_BE
+    a_type_ptr elem_type = underlying_array_element_type(direct_achieved_type);
+    if (get_top_level_type_qualifiers(elem_type) & TQ_CONST) {
+      /* In some cases const qualifiers are removed from arrays to permit
+         initialization by assignment.  We need to restore the qualifier by
+         means of a cast so this address constant will have the proper type
+         when used.  For example:
 
-           template<typename T> struct S {
-             static int arr[];
-           };
-           template<typename T> int S<T>::arr[4];
-           int (&r)[4] = &S<int>::arr;
+             struct A {
+               const char ccarray[32];
+             } a = {"constant string literal"};
+             void f() {
+               const char (&rconst)[32] = a.ccarray;
+             }
 
-       We must therefore add a cast to the final type in such cases (but not
-       if the array type is still incomplete, as MSVC++ cannot handle a cast
-       to a reference to an array of unknown bound). */
-    final_cast_needed = TRUE;
+         A::ccarray is generated as non-const, so the reference to a.array
+         must be cast to "const char (*)[32]" to have the required type. */
+      final_cast_needed = TRUE;
+    } else
+#endif /* BACK_END_IS_C_GEN_BE */
+    /* Do not insert code here. */
+    if (msvc_is_generated_code_target &&
+        constant->variant.address.variant.variable->
+                                              is_template_static_data_member &&
+        constant->variant.address.offset == 0) {
+      /* The Microsoft compiler cannot complete the type of a static data
+         member of a template instance in cases like the following:
+
+             template<typename T> struct S {
+               static int arr[];
+             };
+             template<typename T> int S<T>::arr[4];
+             int (&r)[4] = &S<int>::arr;
+
+         We must therefore add a cast to the final type in such cases (but not
+         if the array type is still incomplete, as MSVC++ cannot handle a cast
+         to a reference to an array of unknown bound). */
+      final_cast_needed = TRUE;
+    }  /* if */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   }  /* if */
   if (final_cast_needed) {

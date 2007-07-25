@@ -130,7 +130,8 @@ get_prescanned_auto_initializer.
     push_expr_stack(expr_kind, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
-    if (has_static_storage_duration(dps->storage_class)) {
+    if (has_static_storage_duration(dps->storage_class) ||
+        favor_constant_result_for_nonstatic_init) {
       expr_stack_entry.favor_constant_result = TRUE;
     }  /* if */
   }  /* if */
@@ -20158,10 +20159,11 @@ scan_aggregate_initializer_expression.
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   force_object_lifetime, suppress_object_lifetime);
-  if (static_lifetime) {
-    /* In initializations of static variables, fold constant addressing
-       expressions to constants so that constant initialization can be
-       more easily discerned. */
+  if (static_lifetime || favor_constant_result_for_nonstatic_init) {
+    /* Fold constant addressing expressions to constants so that constant
+       initialization can be more easily discerned.  This is necessary for
+       C-mode static initialization, and it can result in better code for
+       auto initialization, as well. */
     expr_stack->favor_constant_result = TRUE;
   }  /* if */
   /* Scan the expression. */
@@ -20391,10 +20393,11 @@ string initializers.
   push_expr_stack(expr_kind, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   suppress_object_lifetime);
-  if (static_lifetime) {
-    /* In initializations of static variables, fold constant addressing
-       expressions to constants so that constant initialization can be
-       more easily discerned. */
+  if (static_lifetime || favor_constant_result_for_nonstatic_init) {
+    /* Fold constant addressing expressions to constants so that constant
+       initialization can be more easily discerned.  This is necessary for
+       C-mode static initialization, and it can result in better code for
+       auto initialization, as well. */
     expr_stack->favor_constant_result = TRUE;
   }  /* if */
   /* Scan the expression. */

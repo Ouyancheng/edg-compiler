@@ -638,6 +638,18 @@ EXTERN a_ref_entry_ptr
 			   expression.  Before that, the kind of reference
 			   each indicates might be adjusted. */
 
+/*
+Variable that controls whether an attempt should be made to fold all
+initializers to constant expressions or only initializers for variables
+with static duration.
+*/
+EXTERN a_boolean
+		favor_constant_result_for_nonstatic_init
+#if VAR_INITIALIZERS
+                                    = FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+
 #if DEBUG
 /*
 Counts of entries allocated, for debugging purposes.
