@@ -4078,8 +4078,10 @@ the object.
     switch(constant->variant.address.kind) {
       case abk_variable:
         tp = skip_typerefs(constant->variant.address.variant.variable->type);
-        /* Ignore incomplete arrays. */
-        if (!is_incomplete_type(tp)) {
+        /* Ignore incomplete arrays and flexible arrays. */
+        if (!is_incomplete_type(tp) &&
+            !(is_immediate_class_type(tp) &&
+              tp->variant.class_struct_union.contains_flexible_array_member)) {
           object_size = tp->size;
         }  /* if */
         break;
