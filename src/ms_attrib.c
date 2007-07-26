@@ -1807,7 +1807,7 @@ entry.
 
 static void process_ms_attr_uuid(an_ms_attribute_ptr  msap)
 /*
-The given Microsoft attribute represent the "uuid" attribute applied to a
+The given Microsoft attribute represents the "uuid" attribute applied to a
 class type.  Record the associated uuid string in the class type.
 */
 {
@@ -2025,18 +2025,22 @@ arguments point to (like character strings) are shared.
 }  /* duplicate_ms_attributes */
 
 
-an_ms_attribute_ptr  find_ms_attribute_for_entity(
+an_ms_attribute_ptr find_ms_attribute_for_entity(
                                             an_ms_attribute_ptr          msap,
                                             a_source_correspondence_ptr  scp)
 /*
 Find an attribute associated with the nonlocal (i.e., not defined inside a
 function) entity whose source correspondence is scp.  If msap is NULL, the
 search starts at the beginning of the list of attributes recorded for the
-parent scope of scp; otherwise, the search starts with msap->next.  If no
-attribute associated with scp is found, return NULL.
+parent scope of scp; otherwise, the search starts with msap->next.  This
+allows finding all attributes associated with scp using repeated calls to
+find_ms_attribute_for_entity.  If no attribute associated with scp is found,
+return NULL.
 */
 {
   if (msap == NULL) {
+    /* Determine the scope whose Microsoft attributes list should be
+       searched. */
     if (C_mode()) {
       /* In C mode, there are no class or namespace scopes; so only the file
          scope is searched. */
@@ -2048,13 +2052,17 @@ attribute associated with scp is found, return NULL.
     } else if (scp->parent.namespace_ptr != NULL) {
       msap = scp->parent.namespace_ptr->variant.assoc_scope->ms_attributes;
     } else {
+      /* File scope in C++ mode. */
       msap = il_header.primary_scope->ms_attributes;
     }  /* if */
   } else {
+    /* Start off right after the given attribute (which is presumably an
+       attribute found in a previous call). */
     msap = msap->next;
   }  /* if */
   while (msap != NULL) {
     if (msap->entity.ptr == (char*)scp) break;
+    msap = msap->next;
   }  /* while */
   return msap;
 }  /* find_ms_attribute_for_entity */

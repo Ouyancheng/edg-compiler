@@ -2,19 +2,21 @@ Version 3.10
 
 7/25/07  Microsoft uuid attribute
 
-In Microsoft C++ mode, the front end now records the uuid attribute in a class
-type.  The __uuidof operator is therefore aware of any uuid strings applied
-with the uuid attribute.  For example:
+In Microsoft C++ mode, the front end now records the bracketed uuid attribute
+(the [uuid(...)] construct) in the IL entry for a class type.  The __uuidof
+operator is therefore aware of any uuid strings applied with the bracket-based
+uuid attribute syntax.  For example:
 
   [uuid("00000001-0002-0003-0004-000000000005")] struct S { int i; } s;
   void f() {
     __uuidof(s);  // Previously an error; now accepted.
   }
 
-In addition, the Microsoft uuid attribute is now only recognized in C++ mode.
-Finally, a new function find_ms_attribute_for_entity is now provided as a
-convenience to back ends for finding all Microsoft attributes associated with
-a nonlocal entity.
+In addition, the Microsoft uuid attribute is now only recognized in C++ mode
+(this matches the behavior of the Microsoft compilers).  Finally, a new
+function find_ms_attribute_for_entity is now provided as a convenience to back
+ends for finding all Microsoft attributes (specified using the bracket-based
+syntax) associated with a nonlocal entity.
 
 7/25/07  Constant initializers for automatic variables
 
