@@ -18,7 +18,7 @@ function find_ms_attribute_for_entity is now provided as a convenience to back
 ends for finding all Microsoft attributes (specified using the bracket-based
 syntax) associated with a nonlocal entity.
 
-7/25/07  Constant initializers for automatic variables
+7/25/07  Address constant initializers for automatic variables
 
 The front end previously treated cases in which an automatic variable
 is initialized with an address constant expression as dynamic
@@ -26,9 +26,16 @@ initialization.  If the new configuration macro
 FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT is set to TRUE, the front end
 will now fold such initializers to constants, potentially allowing
 generation of more-efficient code.  (This folding was formerly done
-only for initializers of variables with static duration.)  For
-instance, an automatic array could be initialized with an aggregate
-constant instead of by assignment to each individual member:
+only for initializers of variables with static duration, where it is
+required by C initialization rules.  The expressions were not folded
+to constants for automatic variables because having them in their
+original form allows compilers to do better alias analysis.)  Except
+for configurations with BACK_END_IS_CP_GEN_BE, the default value of
+FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT is TRUE, which means that
+folding will be performed in most configurations unless specifically
+overridden.  For instance, in the C-generating back end, an automatic
+array could be initialized with an aggregate constant instead of by
+assignment to each individual element:
 
   extern int a[];
   const int *f(int n) {
