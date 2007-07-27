@@ -11725,13 +11725,19 @@ source and the expression is generated in that form.
         if (force_parens || is_value_init) write_tok_str("()");
         break;
       }  /* if */
-      /* The constant must be an aggregate and it cannot be put out as
-         a parenthesized initializer. */
-      check_assertion_str(con->kind == (a_constant_repr_kind)ck_aggregate &&
-                          !parenthesized_init,
+      /* The constant must be an aggregate. */
+      check_assertion_str(con->kind == (a_constant_repr_kind)ck_aggregate,
                           "gen_dynamic_init: bad nonconst aggr");
-      gen_initializer_constant(con, init_entity_type,
-                               /*suppress_braces=*/FALSE);
+      if (parenthesized_init) {
+        /* This can happen when a compound literal appears in a parenthesized
+           initializer.  For example:
+             struct D { D(int); };   struct S { D d; } s((S){7});   */
+        check_assertion(gpp_mode);
+        gen_compound_literal(con, /*dip=*/NULL, /*literal_type=*/NULL);
+      } else {
+        gen_initializer_constant(con, init_entity_type,
+                                 /*suppress_braces=*/FALSE);
+      }  /* if */
       break;
     case dik_expression:
       /* Expression. */

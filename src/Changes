@@ -1,5 +1,18 @@
 Version 3.10
 
+7/26/07  Abort in C++-generating back end on parenthesized initializer
+         containing a compound literal
+
+In GNU C++ mode, the C++-generating back end sometimes aborted with an
+internal error ("gen_dynamic_init: bad nonconst aggr") in routine
+gen_dynamic_init (cp_gen_be.c) when a compound literal appeared in a
+parenthesized initializer.  For example:
+
+  struct D { D(int); };
+  struct S { D d; } s((S){2});  // Previously triggered an internal error.
+
+This is now fixed.
+
 7/25/07  Microsoft uuid attribute
 
 In Microsoft C++ mode, the front end now records the bracketed uuid attribute
