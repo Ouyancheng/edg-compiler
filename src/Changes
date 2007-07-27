@@ -1,5 +1,13 @@
 Version 3.10
 
+7/27/07  Properties of thunks
+
+Various properties of overriding virtual functions are now also recorded for
+any thunks created for such functions.  These properties include those
+specified by the GNU attributes "section", "visibility", and "weak", as well
+as whether the routine is the result of the instantiation or explicit
+specialization of a template.
+
 7/27/07  Invalid IL containing template parameters
 
 A use of an explicit template argument list that contains a

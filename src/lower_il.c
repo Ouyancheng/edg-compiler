@@ -5653,12 +5653,24 @@ yet.
   }  /* if */  
   entry_routine->source_corresp.name_linkage = 
                               overriding_function->source_corresp.name_linkage;
+  /* Copy various properties/attributes from the overriding routine to the
+     associated thunk entry. */
+  entry_routine->is_template_function =
+                                    overriding_function->is_template_function;
+  entry_routine->is_specialized = overriding_function->is_specialized;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* If the overriding routine has the dllexport or dllimport attribute, then
      the thunk must also have that attribute. */
   entry_routine->decl_modifiers |=
                            (overriding_function->decl_modifiers & DM_DLLFLAGS);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  entry_routine->ELF_visibility = overriding_function->ELF_visibility;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+  entry_routine->is_weak = overriding_function->is_weak;
+  entry_routine->section = overriding_function->section;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
   /* If the overriding routine has a Sun link scope, propagate it to the
      thunk. */
