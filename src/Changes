@@ -1,5 +1,28 @@
 Version 3.10
 
+7/27/07  Invalid IL containing template parameters
+
+A use of an explicit template argument list that contains a
+type parameter on a reference to a function template, in a mode
+that does prototype instantiations of functions (e.g., --strict),
+caused the IL to contain a routine entry whose type involved
+template parameters.  This is not supposed to occur unless
+prototype instantiations are kept in the IL.  Now fixed (the
+routine entry is not generated).
+
+  template <class T> void match_table_entry(T);
+  template <class T>
+  struct C {
+    typedef void (*fn_match)(int);
+    void foo() {
+      (fn_match) &match_table_entry<T>;
+    }
+  };
+  int main() {
+    C<int> p;
+    p.foo();
+  }
+
 7/26/07  Abort in C++-generating back end on parenthesized initializer
          containing a compound literal
 
