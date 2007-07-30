@@ -5655,9 +5655,6 @@ yet.
                               overriding_function->source_corresp.name_linkage;
   /* Copy various properties/attributes from the overriding routine to the
      associated thunk entry. */
-  entry_routine->is_template_function =
-                                    overriding_function->is_template_function;
-  entry_routine->is_specialized = overriding_function->is_specialized;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* If the overriding routine has the dllexport or dllimport attribute, then
      the thunk must also have that attribute. */
