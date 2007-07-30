@@ -4709,25 +4709,31 @@ into the base classes of class_type.
 
 #endif /* IA64_ABI */
 
-static a_boolean gnu_zero_length_array_subobjects_only(a_type_ptr  type)
+static a_boolean gnu_zero_sized_class_type(a_type_ptr  type)
 /*
-Return TRUE if the given class type has no base classes and only zero-length
-array fields; return FALSE otherwise.  (Such classes are sometimes given
-size zero by GNU C++ compilers.)
+The given class must be a class type whose size as determined by the layout
+algorithm so far is zero.  Return TRUE if the given class type has no base
+classes and if all its fields are either zero-length arrays or zero-sized
+class types; return FALSE otherwise.  (If TRUE is returned, the class type's
+size will remain zero; otherwise it will require padding.)
 */
 {
   a_boolean    result = TRUE;
   a_field_ptr  fp;
 
-  type = skip_typerefs(type);
+  check_assertion(is_immediate_class_type(type) && type->size == 0);
   fp = type->variant.class_struct_union.field_list;
   if (fp == NULL) {
-    /* At least one zero-length array field must be present. */
+    /* At least one zero-sized field must be present. */
     result = FALSE;
   } else {
     for (; fp != NULL; fp = fp->next) {
-      if (!is_array_type(fp->type) ||
-          skip_typerefs(fp->type)->size != 0) {
+      if (skip_typerefs(fp->type)->size == 0 &&
+          (is_array_type(fp->type) || is_class_struct_union_type(fp->type))) {
+        /* A zero-length array member or a zero-sized class type member allow
+           for the parent class to have size zero. */
+      } else {
+        /* Any other field type: The parent class cannot have size zero. */
         result = FALSE;
         break;
       }  /* if */
@@ -4739,7 +4745,7 @@ size zero by GNU C++ compilers.)
     result = FALSE;
   }  /* if */
   return result;
-}  /* gnu_zero_length_array_subobjects_only */
+}  /* gnu_zero_sized_class_type */
 
 
 void do_class_layout(a_type_ptr  class_type)
@@ -4954,8 +4960,7 @@ for handling virtual bases and functions.
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
-    if (!(gcc_mode ||
-          (gpp_mode && gnu_zero_length_array_subobjects_only(class_type)))) {
+    if (!(gcc_mode || (gpp_mode && gnu_zero_sized_class_type(class_type)))) {
       class_type->size = 1;
     }  /* if */
   }  /* if */

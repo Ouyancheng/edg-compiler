@@ -1,5 +1,17 @@
 Version 3.10
 
+7/30/07  GNU C++ compatibility: Zero-length arrays and zero-sized classes
+
+In GNU C++ mode, class types containing only data members with zero-length
+array types have size zero (see Changes entry of 1/12/04).  Now, this is
+extended to class types containing only data members with zero-length array
+types and/or data members with zero-sized class types.  For example:
+
+	struct X { int a[0]; };       // Previously already zero-sized.
+        struct Y { int b[0]; X c; };  // Now also zero-sized.
+
+Note that this is an ABI CHANGE in GNU C++ mode.
+
 7/27/07  Properties of thunks
 
 Various properties of overriding virtual functions are now also recorded for
