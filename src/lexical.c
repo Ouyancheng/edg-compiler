@@ -1282,6 +1282,20 @@ is actually the first token to not be included in the cache.
 }  /* copy_tokens_from_cache */
 
 
+static void replace_right_shift_by_two_closing_angle_brackets(void)
+/*
+The current token must be a ">>": Replace it with two ">" tokens.
+*/
+{
+  a_token_cache  cache;
+
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  curr_token = tok_gt;
+  cache_curr_token(&cache);
+  rescan_cached_tokens(&cache);
+}  /* replace_right_shift_by_two_closing_angle_brackets */
+
+
 static
 a_boolean cache_token_stream_until_matching_token(
 				a_token_cache		*cache,
@@ -1370,6 +1384,14 @@ be TRUE if curr_token is tok_lt.
     /* None of the conditions was satisfied, so keep going. */
     if (!coalesce_ids) cache_curr_token(cache);
     get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
+    if (curr_token == tok_shift_right && closing_token == tok_gt &&
+        right_shift_can_be_angle_brackets) {
+      /* A right shift token may need to be treated as two closing angle
+         brackets. */
+      if (paren_count == 0 && bracket_count == 0 && brace_count == 0) {
+        replace_right_shift_by_two_closing_angle_brackets();
+      }  /* if */
+    }  /* if */
   }  /* while */
   db_exit();
   return err;
@@ -9827,20 +9849,6 @@ Interface to pop_stop_token_stack_full that passes in final_pop == FALSE.
 {
   pop_stop_token_stack_full(/*final_pop=*/FALSE);
 }  /* pop_stop_token_stack */
-
-
-static void replace_right_shift_by_two_closing_angle_brackets(void)
-/*
-The current token must be a ">>": Replace it with two ">" tokens.
-*/
-{
-  a_token_cache  cache;
-
-  clear_token_cache(&cache, /*reusable=*/FALSE);
-  curr_token = tok_gt;
-  cache_curr_token(&cache);
-  rescan_cached_tokens(&cache);
-}  /* replace_right_shift_by_two_closing_angle_brackets */
 
 
 void flush_until_matching_token(void)
