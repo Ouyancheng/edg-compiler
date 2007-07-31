@@ -267,12 +267,12 @@ Enter the standard predeclared functions for GCC.
   a_type_ptr  intmax_type;
   a_type_ptr  wint_t_type;
   a_type_ptr  ssize_t_type;
-#if USE_X86_64
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   a_type_ptr  unsigned_char_type;
   a_type_ptr  boolean_type;
   a_type_ptr  unsigned_short_type;
   a_type_ptr  volatile_void_star_type;
-#endif /* USE_X86_64 */
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #if TARG_ALL_POINTERS_SAME_SIZE
   a_type_ptr  pmode_type;
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
@@ -322,14 +322,14 @@ Enter the standard predeclared functions for GCC.
   intmax_type = integer_type(targ_intmax_kind);
   wint_t_type = integer_type(targ_wint_t_int_kind);
   ssize_t_type = integer_type(targ_ssize_t_int_kind);
-#if USE_X86_64
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   unsigned_char_type = integer_type((an_integer_kind)ik_unsigned_char);
   boolean_type = (!C_mode() || c99_mode) ? bool_type() : unsigned_char_type;
   unsigned_short_type = integer_type((an_integer_kind)ik_unsigned_short);
   volatile_void_star_type = 
     make_pointer_type(make_qualified_type(void_type(),
 					  (a_type_qualifier_set)TQ_VOLATILE));
-#endif /* USE_X86_64 */
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #if TARG_ALL_POINTERS_SAME_SIZE
   pmode_type = get_type_with_mode(int_type, targ_pointer_mode, 
 				  &error_position);
@@ -838,7 +838,7 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func2(_ynf, floating, int, floating);
   enter_gnu_builtin_func2(_ynl, long_double, int, long_double);
 
-#if USE_X86_64
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   /* __sync functions: */
   /* Check that "unsigned short", "unsigned int", and "unsigned long long"
      have sizes 2, 4, and 8, respectively.  This is necessary because calls
@@ -994,7 +994,7 @@ Enter the standard predeclared functions for GCC.
                           volatile_void_star, unsigned_long);
   enter_gnu_builtin_func1(_sync_lock_release_8, unsigned_long,
                           volatile_void_star);
-#endif /* USE_X86_64 */
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
 #undef edg_concat_impl
 #undef edg_concat

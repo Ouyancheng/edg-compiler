@@ -7773,7 +7773,7 @@ enum a_builtin_function_kind_tag {
   bfk_yn,                       /* "__builtin_yn" */
   bfk_ynf,                      /* "__builtin_ynf" */
   bfk_ynl,                      /* "__builtin_ynl" */
-#if USE_X86_64
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   bfk_sync_synchronize,         /* __sync_synchronize */
   bfk_sync_fetch_and_add,       /* __sync_fetch_and_add */
   bfk_sync_fetch_and_sub,       /* __sync_fetch_and_sub */
@@ -7865,7 +7865,7 @@ enum a_builtin_function_kind_tag {
                                 /* __sync_val_compare_and_swap_8 */
   bfk_sync_lock_test_and_set_8, /* __sync_lock_test_and_set_8 */
   bfk_sync_lock_release_8,      /* __sync_lock_release_8 */
-#endif /* USE_X86_64 */
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
   bfk_last
 };
 /* Define as "unsigned short" to explicitly control storage size (a_byte
@@ -8340,7 +8340,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_yn */                       "__builtin_yn",
   /* bfk_ynf */                      "__builtin_ynf",
   /* bfk_ynl */                      "__builtin_ynl",
-#if USE_X86_64
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   /* bfk_sync_synchronize */         "__sync_synchronize",
   /* bfk_sync_fetch_and_add */       "__sync_fetch_and_add",
   /* bfk_sync_fetch_and_sub */       "__sync_fetch_and_sub",
@@ -8432,7 +8432,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
                                      "__sync_val_compare_and_swap_8",
   /* bfk_sync_lock_test_and_set_8 */ "__sync_lock_test_and_set_8",
   /* bfk_sync_lock_release_8 */      "__sync_lock_release_8",
-#endif /* USE_X86_64 */
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
   /* bfk_last */                     "last" /* used to check that 
                                                initialization is right. */
 }

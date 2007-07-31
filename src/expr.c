@@ -2133,7 +2133,7 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
   remove_matching_stop_token(tok_rparen);
 }  /* scan_gnu_builtin_pseudo_call */
 
-#if USE_X86_64
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
 
 static a_routine_ptr adjust_gnu_sync_call(an_operand          *target,
                                           an_arg_operand_ptr  *args)
@@ -2269,7 +2269,7 @@ done:
   return rout;
 }  /* adjust_gnu_sync_call */
 
-#endif /* USE_X86_64 */
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void scan_function_call(an_operand *operand,
@@ -2623,7 +2623,7 @@ Syntax:
                           SRK_REFERENCE);
   }  /* if */
 
-#if GNU_EXTENSIONS_ALLOWED && USE_X86_64
+#if GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   if (routine != NULL && is_gnu_builtin_function(routine)) {
       /* If this is a call to a predeclared GNU __sync_... function adjust the
          function that is being called. */
@@ -2635,7 +2635,7 @@ Syntax:
         routine_type = routine->type;
       }  /* if */
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED && USE_X86_64 */
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
   /* Scan the arguments of the call. */
   scan_call_arguments(routine_type, routine,

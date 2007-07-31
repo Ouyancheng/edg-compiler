@@ -606,6 +606,18 @@ support library.
 #endif /* !GNU_EXTENSIONS_ALLOWED && GNU_COMPLEX_EXTENSIONS_ALLOWED */
 
 /*
+Flag that is TRUE if built-in GNU __sync_... functions should be accepted in
+GNU modes.
+*/
+#ifndef GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#define GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED FALSE
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+
+#if !GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+ #error -- GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED requires GNU_EXTENSIONS_ALLOWED
+#endif /* !GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+
+/*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
 a set of configuration flags.
