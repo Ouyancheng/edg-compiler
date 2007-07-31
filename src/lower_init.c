@@ -5124,12 +5124,15 @@ and update *insert_location accordingly.
 #if IA64_ABI
   dtor_node = alloc_node_for_constant(dtor_con);
   if (dso_handle_var == NULL) {
-    /* Make the variable that identifies the current DSO, i.e. it
+    /* Make the hidden variable that identifies the current DSO, i.e. it
        discriminates between user code and dynamically loaded libraries. */
     dso_handle_var = make_lowered_variable("__dso_handle",
                                            /*already_il_name=*/FALSE,
                                            void_star_type(),
                                            (a_storage_class)sc_extern);
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    dso_handle_var->ELF_visibility = (an_ELF_visibility_kind)evk_hidden;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   }  /* if */
   dso_handle_node = var_lvalue_expr(dso_handle_var);
   dtor_node->next = object_node;
