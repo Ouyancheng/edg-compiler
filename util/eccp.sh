@@ -665,6 +665,7 @@ check_abbreviation()
 --no_definition_list_file
 --no_dep_name
 --no_designators
+--no_display_error_number
 --no_distinct_template_signatures
 --no_embedded_c
 --no_enum_overloading
@@ -1154,6 +1155,7 @@ process_option()
          --no_c99 | \
          --no_c++0x | \
          --display_error_number | \
+         --no_display_error_number | \
          --dollar | \
 	 --old_line_commands | \
 	 --microsoft | \
