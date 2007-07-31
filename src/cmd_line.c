@@ -418,6 +418,9 @@ Initialize the option information table.
   add_option_description(optk_display_error_number, "display_error_number",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
+  add_option_description(optk_display_error_number, "no_display_error_number",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_none);
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   add_option_description(optk_gen_c_file_name, "gen_c_file_name",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
@@ -3921,6 +3924,11 @@ file.
 #else /* !defined(DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE) */
   comment_undefined_macro_name(DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE);
 #endif /* defined(DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE) */
+#if defined(DEFAULT_DISPLAY_ERROR_NUMBER)
+  define_numeric_valued_macro(DEFAULT_DISPLAY_ERROR_NUMBER);
+#else /* !defined(DEFAULT_DISPLAY_ERROR_NUMBER) */
+  comment_undefined_macro_name(DEFAULT_DISPLAY_ERROR_NUMBER);
+#endif /* defined(DEFAULT_DISPLAY_ERROR_NUMBER) */
 #if defined(DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS)
   define_numeric_valued_macro(
                              DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS);
@@ -6956,9 +6964,8 @@ Process the arguments on the command line that invoked the compiler.
         process_diag_override_option(kind, opt_arg);
         break;
       case optk_display_error_number:
-        /* Display the error number in diagnostic messages. */
-        check_assertion(opt_value == TRUE);
-        display_error_number = TRUE;
+        /* Enable or disable display of error number in diagnostic messages. */
+        display_error_number = opt_value;
         break;
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
       case optk_gen_c_file_name:
@@ -8289,7 +8296,7 @@ variables declared in cmd_line.h.
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   implicit_template_inclusion_mode = DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE;
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-  display_error_number = FALSE;
+  display_error_number = DEFAULT_DISPLAY_ERROR_NUMBER;
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   gen_c_file_name = NULL;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */

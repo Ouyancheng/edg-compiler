@@ -1,5 +1,15 @@
 Version 3.10
 
+7/31/07  Add configuration macro for display of error number in diagnostics
+
+A new configuration macro, DEFAULT_DISPLAY_ERROR_NUMBER, has been added
+to control the default behavior when displaying error numbers in
+diagnostic messages.  Its default value is FALSE.  A new command line
+option, --no_display_error_number (which complements the existing
+--display_error_number command line option), has been added to suppress
+reporting of error numbers in cases where DEFAULT_DISPLAY_ERROR_NUMBER
+has been set to TRUE.
+
 7/31/07  IA-64 ABI: set visibility of __dso_handle references to hidden
 
 In configurations using the IA-64 ABI mode, any extern reference to

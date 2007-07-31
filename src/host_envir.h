@@ -286,6 +286,14 @@ output in brief diagnostics mode.
 #endif /* ifndef COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS */
 
 /*
+Flag that is TRUE to display error numbers in diagnostics.  This is the
+default value for the flag that can be modified by a command line option.
+*/
+#ifndef DEFAULT_DISPLAY_ERROR_NUMBER
+#define DEFAULT_DISPLAY_ERROR_NUMBER FALSE
+#endif /* ifndef DEFAULT_DISPLAY_ERROR_NUMBER */
+
+/*
 The maximum number of instantiation contexts that should be displayed as
 part of a diagnostic.  If this limit is exceeded, the first N and last N
 contexts are displayed, where N is half of the limit value.  If the limit
