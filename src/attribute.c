@@ -331,6 +331,8 @@ Traverse the list of alias fixups and set the alias fields as needed.
       pos_sy_error(ec_aliased_name_bad_kind,
                    &entry->alias->decl_position, aliased_sym);
     } else {
+      /* Usual case: An entity declared in this translation unit is aliased
+         using the GNU "alias" (or "weakref") attribute. */
       switch (entry->alias->kind) {
         case sk_routine:
           entry->alias->variant.routine.ptr->aliased_routine =
@@ -345,9 +347,11 @@ Traverse the list of alias fixups and set the alias fields as needed.
         default:
           unexpected_condition();
       }  /* switch */
-      /* The aliased entity is referenced in the alias specification; only
-         now, however, do we know the symbol to mark it as referenced. */
-      mark_referenced(aliased_sym, &entry->alias->decl_position);
+      /* The aliased entity is referenced ("used") in the alias specification;
+         only now, however, do we know the symbol to mark it as used. */
+      record_symbol_reference(SRK_USE | SRK_REFERENCE, aliased_sym,
+                              &entry->alias->decl_position,
+                              /*update_il_entry=*/TRUE);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     free_alias_fixup(entry);

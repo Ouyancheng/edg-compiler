@@ -5144,7 +5144,11 @@ it is an external definition).
          entry should be kept. */
       is_needed = TRUE;
     } else if (var->aliased_variable != NULL) {
-      is_needed = variable_needed_even_if_unreferenced(var->aliased_variable);
+      /* The current variable is an alias for another variable.  If that
+         other variable is needed, then so it the alias.  The alias is also
+         needed if it has external linkage. */
+      is_needed = var->storage_class == (a_storage_class)sc_extern &&
+                  variable_needed_even_if_unreferenced(var->aliased_variable);
     } else if (var_is_gnu_named_register(var)) {
       /* The declaration of a namespace-scope variable mapped on a specific
          register using the GNU "asm(...)" construct must be preserved even
@@ -5307,6 +5311,16 @@ been completed.
                  variable_needed_even_if_unreferenced(vp));
     if (is_needed) {
       mark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
+#if GNU_EXTENSIONS_ALLOWED
+      { a_variable_ptr  avp = vp->aliased_variable;
+        if (avp != NULL && !avp->source_corresp.needed) {
+        /* vp represent a needed alias for a variable that was previously not
+           found to be needed.  Mark it (and its subtree) as needed now. */
+          mark_as_needed((char*)avp, (an_il_entry_kind)iek_variable); 
+          remark_as_needed((char*)avp, (an_il_entry_kind)iek_variable);
+        }  /* if */
+      }
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     /* If the variable is marked as needed, remark it to visit its
        subtree.  The subtree is not visited until this phase, because it

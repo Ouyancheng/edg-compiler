@@ -1,5 +1,16 @@
 Version 3.10
 
+7/31/07  Needed-flag processing and aliased variables
+
+In GNU modes, when a variable with internal linkage is aliased to a variable
+with external linkage, both variables are now marked as needed.  For example:
+
+  static int x = 0;  // Now marked as needed.
+  extern int a __attribute((alias("x")));
+
+In addition, the aliased variable is now considered "used", thereby preventing
+a spurious warning about it being unused.
+
 7/31/07  IL display for template template parameters incorrect
 
 In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, 
