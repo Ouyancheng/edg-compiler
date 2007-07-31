@@ -4387,10 +4387,10 @@ Display the indicated template parameter.
     case tpk_template:
       (void)printf("tpk_template\n");
       disp_ptr("class_template", (char*)ptr->variant.templ.class_template,
-               iek_type);
+               iek_template);
       if (ptr->variant.templ.default_arg_template) {
         disp_ptr("default_arg_template",
-                 (char*)ptr->variant.templ.default_arg_template, iek_type);
+                 (char*)ptr->variant.templ.default_arg_template, iek_template);
       }  /* if */
       break;
       default:
