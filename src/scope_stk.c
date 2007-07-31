@@ -5147,7 +5147,7 @@ it is an external definition).
       /* The current variable is an alias for another variable.  If that
          other variable is needed, then so it the alias.  The alias is also
          needed if it has external linkage. */
-      is_needed = var->storage_class == (a_storage_class)sc_extern &&
+      is_needed = var->storage_class == (a_storage_class)sc_extern ||
                   variable_needed_even_if_unreferenced(var->aliased_variable);
     } else if (var_is_gnu_named_register(var)) {
       /* The declaration of a namespace-scope variable mapped on a specific
