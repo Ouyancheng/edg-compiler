@@ -1962,6 +1962,10 @@ IL a_constant entity.
       constant->type = rvalue_type(constant->type);
     }  /* if */
     context->pending_init_con = NULL;
+  } else if (is_error_type(context->type) && curr_token == tok_rbrace) {
+    /* Prevent cascading errors by returning an error constant here. */
+    constant = alloc_constant((a_constant_repr_kind)ck_error);
+    set_error_constant(constant);
   } else {
     a_type_ptr  required_type = context->type;
     if (init_info->designation_state == ds_partial_designation) {
