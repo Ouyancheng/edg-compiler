@@ -3037,7 +3037,9 @@ attributes.
       pch_saved_var_array_elem(alias_fixup_list),
       pch_saved_var_array_elem(avail_alias_fixups),
 #if DEBUG
+#if GNU_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(num_attributes_allocated),
+#endif /* GNU_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(num_alias_fixups_allocated),
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
       pch_saved_var_array_elem(pragma_extname_string_space),
@@ -3082,7 +3084,9 @@ be initialized for each compilation.
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
   pragma_extname_string_space = 0;
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if GNU_EXTENSIONS_ALLOWED
   num_attributes_allocated = 0;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* DEBUG */
 }  /* attribute_init */
 
