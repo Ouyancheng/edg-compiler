@@ -4272,16 +4272,17 @@ typedef struct a_routine_type_supplement {
 			   qualifiers even when this_class (declared below) is
 			   NULL in the case of a function typedef. */
 #if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	result_should_be_used:1;
+			/* TRUE if the type was declared with the attribute
+			   "warn_unused_result". */ 
   a_bit_field	does_not_return:1;
-			/* TRUE if the type was declared with the
-			   "noreturn" attribute.  Note that this flag
-			   is not set on the type of a routine
-			   declared with the "noreturn" attribute. */
+			/* TRUE if the type was declared with the "noreturn"
+			   or "volatile" attribute. */
   a_bit_field	is_const:1;
-			/* TRUE if the type was declared with the
-			   "const" attribute.  Note that this flag
-			   is not set on the type of a routine
-			   declared with the "const" attribute. */
+			/* TRUE if the type was declared with the "const"
+			   attribute.  Note that this flag is not set on the
+			   type of a const member function (unless the "const"
+			   attribute is also specified). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   a_lint_varargs_count

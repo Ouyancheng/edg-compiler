@@ -4941,15 +4941,11 @@ returning a class by value).
         revertible = TRUE;
       }  /* if */
     } else if (is_operation_node(expr)) {
-      an_expr_operator_kind op = expr->variant.operation.kind;
-      if (op == (an_expr_operator_kind)eok_call ||
-          op == (an_expr_operator_kind)eok_virtual_call ||
-          op == (an_expr_operator_kind)eok_pm_call) {
+      if (is_call_node(expr)) {
         /* A function call that returns a class can be changed back
            into an lvalue. */
         revertible = TRUE;
-      } else if (microsoft_mode &&
-                 op == (an_expr_operator_kind)eok_question) {
+      } else if (microsoft_mode && node_operator_is(expr, eok_question)) {
         /* A class rvalue "?" can be turned into an lvalue in Microsoft
            mode. */
         revertible = TRUE;
@@ -9180,6 +9176,19 @@ result type for the lvalue operation (with no extra pointer-to level).
 }  /* okay_as_gcc_lvalue_question */
 
 
+an_expr_node_ptr remove_cast_operations(an_expr_node_ptr  node)
+/*
+If node points to a sequence of eok_cast operations, return the (non-eok_cast)
+node pointed to by that sequence.  Otherwise, return node.
+*/
+{
+  while (is_operation_node(node) && node_operator_is(node, eok_cast)) {
+    node = node->variant.operation.operands;
+  }  /* while */
+  return node;
+}  /* remove_cast_operations */
+
+
 void conv_rvalue_expr_to_object_pointer(an_expr_node_ptr *p_node,
                                         a_boolean        *converted,
                                         a_boolean        see_if_possible,
@@ -9212,11 +9221,7 @@ will use the result as an lvalue rather than simply as a pointer.
 
   possible = FALSE;
   if (ignore_casts) {
-    /* Remove casts. */
-    while (is_operation_node(node) &&
-           node->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
-      node = node->variant.operation.operands;
-    }  /* while */
+    node = remove_cast_operations(node);
   }  /* if */
   node_type = node->type;
   if (is_variable_node(node)) {

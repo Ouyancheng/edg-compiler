@@ -10257,6 +10257,26 @@ set the void_expression_lvalue flag in the expression.
 {
   an_expr_node_ptr node = make_node_from_operand(operand);
 
+#if GNU_EXTENSIONS_ALLOWED
+  if (gnu_mode) {
+    /* In GNU mode, check for void expressions that are calls to a function
+       marked with the "warn_unused_result" attribute.  Such calls should be
+       warned about. */
+    /* A cast is not treated as a "use" of a returned value in this context. */
+    an_expr_node_ptr  expr = remove_cast_operations(node);
+    if (is_call_node(expr)) {
+      an_expr_node_ptr  target = expr->variant.operation.operands;
+      a_type_ptr        tp = skip_typerefs(target->type);
+      check_assertion(tp->kind == (a_type_kind)tk_pointer);
+      tp = type_pointed_to(tp);
+      tp = skip_typerefs(tp);
+      check_assertion(tp->kind == (a_type_kind)tk_routine);
+      if (tp->variant.routine.extra_info->result_should_be_used) {
+        pos_warning(ec_call_result_should_be_used, &operand->position);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (is_an_lvalue(operand)) {
     check_assertion(!C_mode());
     node->void_expression_lvalue = TRUE;

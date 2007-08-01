@@ -355,6 +355,16 @@ node) is "op".
 #define node_operator_is(node, op)                                      \
   ((node)->variant.operation.kind == (an_expr_operator_kind)(op))
 
+/*
+Return TRUE if "node" (which must be an operation node) is a function call
+operation.
+*/
+#define is_call_node(node)                                              \
+  (is_operation_node((node)) &&                                         \
+   (node_operator_is((node), eok_call) ||                               \
+    node_operator_is((node), eok_virtual_call) ||                       \
+    node_operator_is((node), eok_pm_call)))
+
 #endif /* ifndef EXPR_H */
 
 

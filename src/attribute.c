@@ -497,6 +497,7 @@ pointed to be "pos" can be freed when this routine returns.
     case ak_noinline:
     case ak_always_inline:
     case ak_nothrow:
+    case ak_warn_unused_result:
       break;
     case ak_section:
       ap->variant.section = NULL;
@@ -580,6 +581,7 @@ Return a copy of the complete attribute list.
       case ak_noinline:
       case ak_always_inline:
       case ak_nothrow:
+      case ak_warn_unused_result:
         /* No variant fields. */
         break;
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -1120,6 +1122,7 @@ Specifically, these attributes take no arguments:
   noinline
   always_inline
   nothrow
+  warn_unused_result
 
 These attributes take arguments:
 
@@ -1271,6 +1274,7 @@ function returns the address of the last attribute.
           case ak_nothrow:
           case ak_weakref:
           case ak_nonnull:
+          case ak_warn_unused_result:
             /* These attributes do not take arguments (or the arguments are
                optional). */
             break;
@@ -1506,10 +1510,11 @@ attributes.  */
       case ak_stdcall:
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
       case ak_nonnull:
-        /* GCC allows "nonnull", "noreturn", "volatile", "const", "cdecl", and
-           "stdcall" to apply to variables with pointer-to-function type.  GCC
-           does not accept "pure" in this context, even though it is
-           conceptually similar. */
+      case ak_warn_unused_result:
+        /* GCC allows "nonnull", "noreturn", "volatile", "const", "cdecl",
+           "stdcall", and "warn_unused_result" to apply to variables with
+	   pointer-to-function type.  GCC does not accept "pure" in this
+	   context, even though it is conceptually similar. */
         if (!is_pointer_type(type) ||
             !is_function_type(type_pointed_to(type))) {
           pos_ty_warning(ec_attr_requires_func_type, &ap->position, type);
@@ -1782,6 +1787,7 @@ attributes were specified on a definition.
       case ak_stdcall:
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
       case ak_nonnull:
+      case ak_warn_unused_result:
         /* These attributes were handled in
            apply_attributes_to_variable_type. */
         break;
@@ -1906,6 +1912,7 @@ messages about any invalid attributes.
       case ak_volatile:
       case ak_const:
       case ak_nonnull:
+      case ak_warn_unused_result:
         /* These attributes were handled in
            apply_attributes_to_variable_type. */
         break;
@@ -2052,11 +2059,20 @@ messages about any invalid attributes.
       case ak_noreturn:
       case ak_volatile:
       case ak_const:
+      case ak_warn_unused_result:
         { a_routine_type_supplement_ptr  rtsp;
           ensure_routine_type_is_modifiable(&rp->type);
           rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
           if (ap->kind == (an_attribute_kind)ak_const) {
             rtsp->is_const = TRUE;
+          } else if (ap->kind == (an_attribute_kind)ak_warn_unused_result) {
+            if (is_void_type(
+                      skip_typerefs(rp->type)->variant.routine.return_type)) {
+              pos_warning(ec_warn_unused_result_with_void_return,
+                          &ap->position);
+            } else {
+              rtsp->result_should_be_used = TRUE;
+            }  /* if */
           } else {
             /* Note that "volatile" is a synonym for "noreturn". */
             rtsp->does_not_return = TRUE;
@@ -2396,8 +2412,9 @@ a typedef, is_typedef is TRUE.
     case ak_noreturn:
     case ak_volatile:
     case ak_const:
-      /* GCC allows "noreturn" and "const" to apply to
-         pointer-to-function types.  GCC does not accept "pure" in
+    case ak_warn_unused_result:
+      /* GCC allows "noreturn"/"volatile", "const", and "warn_unused_result"
+         to apply to pointer-to-function types.  GCC does not accept "pure" in
          this context, even though it is conceptually similar. */
       if (!is_pointer_type(tp) || !is_function_type(type_pointed_to(tp))) {
         pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
@@ -2410,6 +2427,13 @@ a typedef, is_typedef is TRUE.
         rout_type = skip_typerefs(rout_type);
         if (ap->kind == (an_attribute_kind)ak_const) {
           rout_type->variant.routine.extra_info->is_const = TRUE;
+        } else if (ap->kind == (an_attribute_kind)ak_warn_unused_result) {
+          if (is_void_type(rout_type->variant.routine.return_type)) {
+            pos_warning(ec_warn_unused_result_with_void_return, &ap->position);
+          } else {
+            rout_type->variant.routine.extra_info
+                     ->result_should_be_used = TRUE;
+          }  /* if */
         } else {
           /* Note that "volatile" is a synonym for "noreturn". */
           rout_type->variant.routine.extra_info->does_not_return = TRUE;

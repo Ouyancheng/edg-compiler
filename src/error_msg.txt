@@ -1697,6 +1697,8 @@ ec_invalid_gnu_sync_size;;"synchronized operations are valid only on objects of 
 ec_extra_arguments_ignored;;"extra arguments ignored"
 ec_equals_assumed_in_cmd_line_macro_def;;"'=' assumed following macro name %sq in command-line definition"
 ec_white_space_required_after_macro_name;;"white space is required between the macro name %sq and its replacement text"
+ec_call_result_should_be_used;;"result of call is not used"
+ec_warn_unused_result_with_void_return;;"attribute is ignored for void return type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -1279,6 +1279,9 @@ Display a_routine_type_supplement.
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
+  if (ptr->result_should_be_used) {
+    disp_boolean("result_should_be_used", TRUE);
+  }  /* if */
   if (ptr->does_not_return) {
     disp_boolean("does_not_return", TRUE);
   }  /* if */

@@ -4478,6 +4478,12 @@ Do the output in the way described by octl.
   a_routine_type_supplement_ptr 
                       rtsp = skip_typerefs(type)->variant.routine.extra_info;
 
+  if (rtsp->result_should_be_used && !octl->c_generating_back_end) {
+    /* If we're generating output for the C-generating back end, we do not
+       output the attribute __warn_unused_result__ because any diagnostics it
+       might trigger were already issued by the front end. */
+    form_simple_attribute("__warn_unused_result__", need_leading_space, octl);
+  }  /* if */
   if (rtsp->does_not_return) {
     form_simple_attribute("__noreturn__", need_leading_space, octl);
   }  /* if */

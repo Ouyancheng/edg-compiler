@@ -1518,6 +1518,7 @@ to default values.
       rtsp->routine_name_linkage     = default_routine_name_linkage;
       rtsp->routine_name_linkage_is_explicit = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
+      rtsp->result_should_be_used    = FALSE;
       rtsp->does_not_return          = FALSE;
       rtsp->is_const                 = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
