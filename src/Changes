@@ -1,5 +1,22 @@
 Version 3.10
 
+8/1/07   GNU compatibility, C-generating back end: __stdcall__ attribute
+
+The __stdcall__ function attribute (supported in configurations in which
+GNU_X86_ATTRIBUTES_ALLOWED is TRUE and USE_X86_64 is FALSE) was emitted on
+the declaration but not the definition of a function in the output of the
+C-generating back end when gcc_is_generated_code_target is TRUE.  This
+mismatch caused an error when the generated code was compiled.  It has now
+been fixed by emitting all function attributes on both the declaration and
+the definition of a function.  Because the location at which the attributes
+were generated on the declaration (following the complete function
+declarator) is not acceptable to gcc in a definition, the location for
+these attributes has been changed for both declarations and definitions to
+the point immediately preceding the function name.  For example:
+
+  void __attribute__((__stdcall__)) f() { }  // Previously caused an error
+                                             // in the generated code
+
 7/31/07  GNU compatibility: __sync_... functions
 
 In GNU modes, the front end now accepts a variety of built-in functions for

@@ -378,6 +378,9 @@ typedef struct an_init_control_block {
 /* Value to use to specify no variable. */
 #define NO_VARIABLE ((a_variable_ptr)NULL)
 
+/* Value to use to specify no routine. */
+#define NO_ROUTINE ((a_routine_ptr)NULL)
+
 /* Value to use to specify no temporary name generated from an IL entry
    address. */
 #define NO_TEMP ((char *)NULL)
@@ -430,6 +433,7 @@ static void dump_general_declaration_using_type(
                                       a_type_ptr              type,
                                       a_source_correspondence *scp,
                                       a_variable_ptr          var,
+                                      a_routine_ptr           rout,
                                       char                    *temp,
                                       char                    *name,
                                       a_type_qualifier_set    added_qualifiers,
@@ -1777,8 +1781,8 @@ is non-NULL, in which case that is the function scope.
                names. */
             dump_general_declaration_using_type(param_var->type,
                                                 &param_var->source_corresp,
-                                                param_var, NO_TEMP, NO_NAME,
-                                                TQ_NONE,
+                                                param_var, NO_ROUTINE,
+                                                NO_TEMP, NO_NAME, TQ_NONE,
                                                 /*suppress_const=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
             /* Output any attributes associated with the variable. */
@@ -1808,8 +1812,8 @@ is non-NULL, in which case that is the function scope.
             /* If the type was qualified in the original, and the qualifiers
                were removed in C++, restore them here. */
             dump_general_declaration_using_type(param->type, NO_SCP,
-                                                NO_VARIABLE, temp, name,
-                                                (a_type_qualifier_set)
+                                                NO_VARIABLE, NO_ROUTINE, temp,
+                                                name, (a_type_qualifier_set)
                                                              param->qualifiers,
                                                 /*suppress_const=*/FALSE);
           }
@@ -1875,26 +1879,31 @@ Do any desirable consistency checks on the indicated type.
 #endif /* CHECKING */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- rout is not used in this case. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void dump_general_declaration_using_type(
                                       a_type_ptr              type,
                                       a_source_correspondence *scp,
                                       a_variable_ptr          var,
+                                      a_routine_ptr           rout,
                                       char                    *temp,
                                       char                    *name,
                                       a_type_qualifier_set    added_qualifiers,
                                       a_boolean               suppress_const)
 /*
-Output a declaration built around a type.  "type" gives the type.  The
-rest of the arguments specify the name, if any, to be placed in the
-middle of the type declarator.  The argument scp is the source
-correspondence entry for the entity being declared, or NULL if there is
-no name.  If var is non-NULL, it points to a variable being declared (and
-&scp == &var->source_corresp); var is ignored if scp is NULL.  If temp is
-non-NULL, it gives the address of an IL entry from which a temporary name
-is to be generated.  If name is not NULL, it gives the name to be put
-out.  If added_qualifiers is not zero, the indicated qualifiers are added
-on top of the type.  If suppress_const is TRUE, suppress generation of
-top-level "const" in ANSI C mode.
+Output a declaration built around a type.  "type" gives the type.  The rest
+of the arguments specify the name, if any, to be placed in the middle of
+the type declarator.  The argument scp is the source correspondence entry
+for the entity being declared, or NULL if there is no name.  If var is
+non-NULL, it points to a variable being declared (and &scp ==
+&var->source_corresp); var is ignored if scp is NULL.  If rout is non-NULL,
+it points to a routine being declared (and &scp == &rout->source_corresp).
+If temp is non-NULL, it gives the address of an IL entry from which a
+temporary name is to be generated.  If name is not NULL, it gives the name
+to be put out.  If added_qualifiers is not zero, the indicated qualifiers
+are added on top of the type.  If suppress_const is TRUE, suppress
+generation of top-level "const" in ANSI C mode.
 */
 {
   a_form_type_options_set options = FTO_NO_OPTIONS;
@@ -1908,6 +1917,14 @@ top-level "const" in ANSI C mode.
                        /*need_trailing_space=*/
                                  (scp != NULL || temp != NULL || name != NULL),
                        added_qualifiers, options, &octl);
+#if GNU_EXTENSIONS_ALLOWED
+  if (rout != NULL) {
+    /* Any routine attributes should immediately precede the name. */
+    if (form_routine_attributes(rout, /*need_leading_space=*/FALSE, &octl)) {
+      m_write_space();
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Write the name if there is one. */
   if (name != NULL) {
     write_tok_str(name);
@@ -1941,8 +1958,8 @@ correspondence entry for the entity being declared, or NULL if there is
 no name.
 */
 {
-  dump_general_declaration_using_type(type, scp, NO_VARIABLE, NO_TEMP,
-                                      NO_NAME, TQ_NONE,
+  dump_general_declaration_using_type(type, scp, NO_VARIABLE, NO_ROUTINE,
+                                      NO_TEMP, NO_NAME, TQ_NONE,
                                       /*suppress_const=*/FALSE);
 }  /* dump_declaration_using_type */
 
@@ -2776,8 +2793,8 @@ final semicolon if output_final_semi is TRUE.
            can assign to this member and the overall struct. */
         dump_general_declaration_using_type(field_type,
                                             &field->source_corresp,
-                                            NO_VARIABLE, NO_TEMP, NO_NAME,
-                                            TQ_NONE,
+                                            NO_VARIABLE, NO_ROUTINE, NO_TEMP,
+                                            NO_NAME, TQ_NONE,
                                             /*suppress_const=*/TRUE);
 #if GNU_EXTENSIONS_ALLOWED
         (void)form_field_attributes(field, /*need_leading_space=*/TRUE, &octl);
@@ -2827,8 +2844,8 @@ final semicolon if output_final_semi is TRUE.
             }  /* if */
             dump_general_declaration_using_type(eff_type,
                                                 &field->source_corresp,
-                                                NO_VARIABLE, NO_TEMP,
-                                                NO_NAME, TQ_NONE,
+                                                NO_VARIABLE, NO_ROUTINE,
+                                                NO_TEMP, NO_NAME, TQ_NONE,
                                                 /*suppress_const=*/TRUE);
             write_tok_ch(';');
           }  /* if */
@@ -5894,8 +5911,8 @@ out in this way to guarantee their alignment.
     set_output_position(&constant->source_corresp.decl_position);
     write_tok_str("static ");
     dump_general_declaration_using_type(constant->type, NO_SCP,
-                                        NO_VARIABLE, (char *)constant,
-                                        NO_NAME, TQ_NONE,
+                                        NO_VARIABLE, NO_ROUTINE,
+                                        (char *)constant, NO_NAME, TQ_NONE,
                                         /*suppress_const=*/FALSE);
     write_tok_str(" = {");
     dump_exploded_wide_string(constant);
@@ -6641,7 +6658,7 @@ parameters.
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
         dump_general_declaration_using_type(var_type,
                                             &variable->source_corresp,
-                                            variable, NO_TEMP,
+                                            variable, NO_ROUTINE, NO_TEMP,
                                             NO_NAME, TQ_NONE,
                                             suppress_const);
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -6990,7 +7007,7 @@ the current routine.
     return_type = skip_typerefs(return_type); /* Rvalue type. */
     if (!is_void_type(return_type)) {
       dump_general_declaration_using_type(return_type,
-                                          NO_SCP, NO_VARIABLE,
+                                          NO_SCP, NO_VARIABLE, NO_ROUTINE,
                                           (char *)covariant_return_expr,
                                           NO_NAME, TQ_NONE,
                                           /*suppress_const=*/FALSE);
@@ -7699,7 +7716,7 @@ statement expression, i.e., ({...}).
           } else {
             dump_general_declaration_using_type(param->type,
                                                 &param->source_corresp,
-                                                param, NO_TEMP,
+                                                param, NO_ROUTINE, NO_TEMP,
                                                 NO_NAME, TQ_NONE,
                                                 /*suppress_const=*/FALSE);
           }  /* if */
@@ -7861,16 +7878,16 @@ prescan temporaries in the indicated expression.
       } else {
         /* Declare the temporary. */
         dump_general_declaration_using_type(op1_type, NO_SCP, NO_VARIABLE,
-                                            (char *)node, NO_NAME, TQ_NONE,
-                                            /*suppress_const=*/FALSE);
+                                            NO_ROUTINE, (char *)node, NO_NAME,
+                                            TQ_NONE, /*suppress_const=*/FALSE);
         write_tok_ch(';');
       }  /* if */
     } else if (op ==(an_expr_operator_kind)eok_lvalue_from_struct_rvalue) {
       /* Part of allowing subscripting of rvalue arrays.  Make a temporary
          into which a struct rvalue is copied, so we can take its address. */
       dump_general_declaration_using_type(op1_type, NO_SCP, NO_VARIABLE,
-                                          (char *)node, NO_NAME, TQ_NONE,
-                                          /*suppress_const=*/FALSE);
+                                          NO_ROUTINE, (char *)node, NO_NAME,
+                                          TQ_NONE, /*suppress_const=*/FALSE);
       write_tok_ch(';');
     }  /* if */
   }  /* if */
@@ -7980,7 +7997,8 @@ routine whose parameters are being processed.
     set_output_position(&param_var->source_corresp.decl_position);
     dump_general_declaration_using_type(param_var->type,
                                         &param_var->source_corresp,
-                                        param_var, NO_TEMP, NO_NAME, TQ_NONE,
+                                        param_var, NO_ROUTINE, NO_TEMP,
+                                        NO_NAME, TQ_NONE,
                                         /*suppress_const=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
     (void)form_variable_attributes(param_var, /*need_leading_space=*/TRUE,
@@ -8022,6 +8040,12 @@ for the definition of the indicated routine.  scope is the associated scope.
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part_simple(qual_type, /*under_lhs_declarator=*/FALSE,
                               /*need_trailing_space=*/TRUE, &octl);
+#if GNU_EXTENSIONS_ALLOWED
+  /* Any routine attributes should immediately precede the name. */
+  if (form_routine_attributes(rout, /*need_leading_space=*/FALSE, &octl)) {
+    m_write_space();
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Write the name. */
   dump_routine_name(rout);
   /* Write the second part of the declarator. */
@@ -8585,15 +8609,11 @@ if this routine has a body (dump nothing if it has no body).
     }  /* if */
     if (!is_definition) {
       /* A declaration of the routine. */
-      dump_declaration_using_type(rout->type, &rout->source_corresp);
+      dump_general_declaration_using_type(rout->type, &rout->source_corresp,
+                                          NO_VARIABLE, rout, NO_TEMP, NO_NAME,
+                                          TQ_NONE, /*suppress_const=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
-      /* Unlike the C++-generating back end, we can assume that each
-         function definition will be preceded by a separate declaration.
-         It is therefore sufficient to emit GNU attributes and asm name
-         constructs on the nondefining declarations. */
-      /* The asm name construct must precede all attribute specifications. */
       form_asm_name(rout->asm_name, &octl);
-      (void)form_routine_attributes(rout, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if !USE_INIT_SECTION_IN_GENERATED_C
       if (gcc_is_generated_code_target && routine_is_init_routine(rout)) {
