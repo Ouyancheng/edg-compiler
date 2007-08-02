@@ -7153,6 +7153,18 @@ skip_overloading:;
      declaration, and report inconsistencies, if appropriate. */
   set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && locator->is_qualified_name) {
+    /* Microsoft compilers ignore dllexport/dllimport on qualified
+       (re)declarations. */
+    if ((decl_modifiers->flags & DM_DLLFLAGS) != 0) {
+      pos_warning(ec_dll_interface_ignored_on_qualified_declaration,
+                  &locator->source_position);
+    }  /* if */
+    decl_modifiers->flags &= ~(a_decl_modifier)DM_DLLFLAGS;
+    decl_modifiers->flags |= (routine_ptr->decl_modifiers & DM_DLLFLAGS);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   update_routine_decl_modifiers(routine_ptr, decl_modifiers,
                                 &locator->source_position, redeclaration,
                                 is_function_def,
