@@ -1699,6 +1699,7 @@ ec_equals_assumed_in_cmd_line_macro_def;;"'=' assumed following macro name %sq i
 ec_white_space_required_after_macro_name;;"white space is required between the macro name %sq and its replacement text"
 ec_call_result_should_be_used;;"result of call is not used"
 ec_warn_unused_result_with_void_return;;"attribute is ignored for void return type"
+ec_attr_requires_ptr_to_func_type;;"attribute requires pointer-to-function type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
