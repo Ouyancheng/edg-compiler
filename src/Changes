@@ -1,5 +1,21 @@
 Version 3.10
 
+8/2/07   Microsoft C++ compatibility: Old-style class template specializations
+
+In Microsoft C++ mode, an old-style specialization of a class template is
+is accepted if it is not a definition.  Such specialization declarations
+can appear in namespace scopes, class scopes, and local scopes, and they
+may use a qualified name.  For example:
+
+  template<typename T> struct S {};
+  int main() {
+    struct ::S<int>;  // Now accepted as an old-style specialization.
+    S<int> x;         // Error: Incomplete type.
+  }
+
+As part of this change, the changes documented in the Changes entry of 4/4/97
+have been reverted.
+
 8/2/07   Microsoft compatibility: DLL attributes on qualified declarations
 
 In Microsoft C++ mode DLL attributes appearing on qualified declarations of

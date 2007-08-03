@@ -3210,20 +3210,19 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
           set_to_named_error_locator(locator);
           err = TRUE;
         } else if (is_class_definition ||
-            (curr_token == tok_semicolon && !is_ref_within_new_expr &&
-             !is_friend_decl && !is_explicit_instantiation &&
-             (!microsoft_mode || microsoft_version < 1100))) {
-          /* We have a specific declaration of a template class.  Note that
-             starting with version 11.0 (Visual C++ 5.0) the Microsoft
-             compiler no longer considers a declaration such as
-             "class A<int>;" to declare an incomplete specialization. */
+                   (curr_token == tok_semicolon && !is_ref_within_new_expr &&
+                    !is_friend_decl && !is_explicit_instantiation)) {
+          /* We have a specific declaration of a template class. */
           if (tag_sym->decl_scope != scope_stack[depth_scope_stack].number &&
+              !(microsoft_mode && !is_class_definition) &&
               ((!tag_sym->is_class_member &&
                 tag_sym->parent.namespace_ptr == NULL) ||
                !namespace_is_enclosed_by_curr_scope(tag_sym))) {
             /* Explicit specializations of class templates must appear in the
                file or namespace scope in which the template was originally
-               declared or in a scope enclosing the original scope. */
+               declared or in a scope enclosing the original scope.  In
+               Microsoft mode, that restriction is not imposed if the
+               specialization is not a definition. */
             pos_sy_error(ec_bad_scope_for_specialization,
                          &tag_position, tag_sym);
             tag_sym = NULL;
