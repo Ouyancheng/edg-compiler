@@ -1333,14 +1333,7 @@ be TRUE if curr_token is tok_lt.
   }  /* if */
   /* Determine the closing token that corresponds to curr_token. */
   switch (curr_token) {
-    case tok_lt:
-      closing_token = tok_gt;
-      if (curr_token == tok_shift_right && right_shift_can_be_angle_brackets) {
-        /* A right shift token may need to be treated as two closing angle
-           brackets. */
-        replace_right_shift_by_two_closing_angle_brackets();
-      }  /* if */
-      break;
+    case tok_lt:        closing_token = tok_gt;       break;
     case tok_lparen:    closing_token = tok_rparen;   break;
     case tok_lbracket:  closing_token = tok_rbracket; break;
     case tok_lbrace:    closing_token = tok_rbrace;   break;
@@ -1355,6 +1348,12 @@ be TRUE if curr_token is tok_lt.
   /* Keep looping through successive tokens until the corresponding closing
      token is found at level zero (i.e., not within a nesting of parens,
      brackets, or braces). */
+  if (curr_token == tok_shift_right && closing_token == tok_gt &&
+      right_shift_can_be_angle_brackets) {
+    /* A right shift token may need to be treated as two closing angle
+       brackets. */
+    replace_right_shift_by_two_closing_angle_brackets();
+  }  /* if */
   while (!done && (curr_token != closing_token ||
                    paren_count != 0 || bracket_count != 0 ||
 		   brace_count != 0)) {
