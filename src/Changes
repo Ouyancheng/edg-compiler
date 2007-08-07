@@ -1,5 +1,29 @@
 Version 3.10
 
+8/7/07   Template deduction: reference/pointer confusion
+
+In a strange case, template deduction mistakenly concluded that
+given a pointer-to-X argument and a reference-to-const-T parameter
+T could be deduced to be X.  This doesn't produce a callable
+function, obviously, so if the function was selected there would
+be an error.  However, in some cases where there is more than one
+parameter involved, this confusion could result in a spurious ambiguity.
+Now fixed.
+
+  template <typename T0> struct A {
+    A();
+    template <typename T> A(const T& operand) {
+      f(operand, 1L);  // Formerly flagged as ambiguous
+    }
+    template <typename T> void f(T&, int);
+    template <typename U> void f(const A<U>&, long);
+  };
+  int main() {
+    typedef A<int> type_v1;
+    type_v1 var1;
+    type_v1 var2( &var1 );
+  }
+
 8/7/07   GNU C++ compatibility: Class attributes in explicit instantiations
 
 The front end previously ignored (with a warning) attributes specified

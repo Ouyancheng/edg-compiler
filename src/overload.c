@@ -2455,7 +2455,10 @@ which bindings are sought.
   if (matches_template_type(arg_type, param_type, template_arg_list,
                             template_params, MTT_ALLOW_INEXACT_DEDUCTION)) {
     deduction_okay = TRUE;
-  } else if (is_pointer_type(arg_type) || is_ptr_to_member_type(arg_type)) {
+  } else if ((is_pointer_type(orig_arg_type) ||
+              is_ptr_to_member_type(orig_arg_type)) &&
+             (is_pointer_type(orig_param_type) ||
+              is_ptr_to_member_type(orig_param_type))) {
     /* Normal deduction failed.  For pointer types, see if a qualification
        conversion can be used. */
     if (matches_template_type_with_qualification_conversion(
