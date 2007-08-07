@@ -3296,6 +3296,8 @@ operator+(a, b).
   a_boolean     allow_post_declared_functions = FALSE;
   a_boolean     any_discarded_because_post_decl;
   a_boolean     any_not_discarded_because_post_decl;
+  a_candidate_function_ptr
+                saved_candidate_functions = *candidate_functions;
 
   function_symbol = fundamental_symbol_of(overloaded_function_symbol);
   /* Determine whether or not the symbol is an overloaded function. */
@@ -3408,7 +3410,7 @@ retry:
     }  /* if */
   }  /* for */
   if (gpp_mode && gnu_version >= 40100 &&
-      *candidate_functions == NULL &&
+      *candidate_functions == saved_candidate_functions &&
       any_discarded_because_post_decl &&
       !any_not_discarded_because_post_decl &&
       !allow_post_declared_functions) {

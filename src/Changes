@@ -1,5 +1,30 @@
 Version 3.10
 
+8/7/07   GNU C++ compatibility: more on dependent name lookup
+
+An additional tweak to the change of 3/12/07 on dependent name lookup
+emulation with gnu_version >= 40100: Now, the lookup for nonmember
+functions for an overloaded operator case finds declarations after
+the point of use even if some member functions were also found.
+
+  namespace NN {
+    class A;
+    template <typename S>
+    struct C {
+      static void f (NN::A* p, S const & x) {
+        (*p) <<=  x;  // Previously got access error in g++ 4.1 mode
+      }
+    };
+    void foo() {
+      C<char>::f(0,1);
+    }
+    class  A {
+    private:
+      void operator<<= (unsigned char);
+    };
+  }
+  void operator<<= (NN::A &, int);
+
 8/7/07   IA-64 ABI: Set least significant bit in guard when using ARM EABI
          (affects ARM in big-endian mode)        
 
