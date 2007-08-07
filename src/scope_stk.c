@@ -5143,12 +5143,12 @@ it is an external definition).
          may do so, but some attributes are taken as an indication that the
          entry should be kept. */
       is_needed = TRUE;
-    } else if (var->aliased_variable != NULL) {
-      /* The current variable is an alias for another variable.  If that
-         other variable is needed, then so it the alias.  The alias is also
-         needed if it has external linkage. */
-      is_needed = var->storage_class == (a_storage_class)sc_extern ||
-                  variable_needed_even_if_unreferenced(var->aliased_variable);
+    } else if (var->aliased_variable != NULL &&
+               var->storage_class == (a_storage_class)sc_extern) {
+      /* The current variable is an alias for another variable.  Aliases
+         usually have external linkage and are needed in those cases
+         (elsewhere the entities they alias are also marked as needed). */
+      is_needed = TRUE;
     } else if (var_is_gnu_named_register(var)) {
       /* The declaration of a namespace-scope variable mapped on a specific
          register using the GNU "asm(...)" construct must be preserved even
@@ -5313,12 +5313,15 @@ been completed.
       mark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
 #if GNU_EXTENSIONS_ALLOWED
       { a_variable_ptr  avp = vp->aliased_variable;
-        if (avp != NULL && !avp->source_corresp.needed) {
-        /* vp represent a needed alias for a variable that was previously not
-           found to be needed.  Mark it (and its subtree) as needed now. */
-          mark_as_needed((char*)avp, (an_il_entry_kind)iek_variable); 
-          remark_as_needed((char*)avp, (an_il_entry_kind)iek_variable);
-        }  /* if */
+        /* If vp is a needed alias, the variable (possibly through a chain of
+           aliases) it aliases should also be marked as needed. */
+        while (avp != NULL) {
+          if (!avp->source_corresp.needed) {
+            mark_as_needed((char*)avp, (an_il_entry_kind)iek_variable); 
+            remark_as_needed((char*)avp, (an_il_entry_kind)iek_variable);
+          }  /* if */
+          avp = avp->aliased_variable;
+        }  /* while */
       }
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
@@ -5330,7 +5333,8 @@ been completed.
   for (rp = scope->routines; rp != NULL; rp = rp->next) {
     a_boolean saved_defined = rp->defined;
 #if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && rp->aliased_routine != NULL) {
+    if (gnu_mode && rp->aliased_routine != NULL &&
+        rp->storage_class != (a_storage_class)sc_static) {
       /* Routine aliases are needed because they may be accessed from other
          translation units. */
       mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);

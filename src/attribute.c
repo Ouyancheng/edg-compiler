@@ -1823,7 +1823,9 @@ attributes were specified on a definition.
         break;
       case ak_alias:
         if (check_variable_is_local(vp, ap, /*allow_local_static=*/FALSE,
-                                    (an_error_severity)es_error)) {
+                                    (an_error_severity)es_error) &&
+            (gnu_version >= 40200 ||
+             check_variable_has_external_linkage(vp, ap))) {
           add_alias_fixup((a_symbol_ptr)vp->source_corresp.assoc_info,
                           (char*)NULL, ap->variant.alias, &ap->position);
         }  /* if */
