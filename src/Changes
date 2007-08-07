@@ -8,7 +8,7 @@ instantiation directive for a class template.  Now such attributes are applied
 to the instantiated type.  For example:
 
   template<typename T> struct S { void f() {} };
-  template struct __attribute((visibility("hidden"))) struct S;
+  template struct __attribute((visibility("hidden"))) S<int>;
     // The attribute was previously ignored with a warning; now it is
     // applied to the instantiated type.
 
