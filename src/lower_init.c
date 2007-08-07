@@ -5451,12 +5451,22 @@ indicate that the initialization is complete.  Insert the code at
 *insert_location.
 */
 {
+#if IA64_ABI_USE_INT_STATIC_INIT_GUARD
+  /* ARM EABI specifies to use least significant bit for guard test. */
+  (void)insert_assignment_statement(var_lvalue_expr(local_static_guard_var),
+                                    (an_expr_operator_kind)eok_iassign,
+                                    node_for_integer_constant(1L,
+                                                      (an_integer_kind)ik_int),
+                                    insert_location);
+#else /* !IA64_ABI_USE_INT_STATIC_INIT_GUARD */
+  /* IA-64 ABI specifies to use first byte for guard test. */
   (void)insert_assignment_statement(add_cast_to_char_star(
                                       var_lvalue_expr(local_static_guard_var)),
                                     (an_expr_operator_kind)eok_iassign,
                                     node_for_integer_constant(1L,
                                                      (an_integer_kind)ik_char),
                                     insert_location);
+#endif /* IA64_ABI_USE_INT_STATIC_INIT_GUARD */
 }  /* set_local_static_guard_var */
 
 #endif /* !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */

@@ -1,5 +1,26 @@
 Version 3.10
 
+8/7/07   IA-64 ABI: Set least significant bit in guard when using ARM EABI
+         (affects ARM in big-endian mode)        
+
+The IA-64 ABI specifies to use the first byte of a guard variable to
+protect one-time initialization of static data (see section 2.8 of IA-64).
+The ARM ABI differs in that the least significant bit of the guard variable
+is used to protect the one-time initialization (see section 4.4.2 of ARM EABI).
+Previously, with IA64_ABI_USE_INT_STATIC_INIT_GUARD set to TRUE (i.e., use
+ARM EABI semantics for static guards), the front end generated guard test
+queried the least significant bit, but set the first byte once the
+one-time initialization was finished.  This behavior occurred both when
+the front end was responsible for assigning to the guard variable
+(IA64_ABI_USE_GUARD_ACQUIRE_RELEASE set to FALSE) as well as when the
+runtime library routines (i.e., __cxa_guard_acquire, __cxa_guard_release
+and __cxa_guard_abort) made the assignment (IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+set to TRUE).  A change has been made to the front end as well as
+to the runtime library to utilize the least significant bit of the guard
+variable when IA64_ABI_USE_INT_STATIC_INIT_GUARD is TRUE.  The problem
+manifests itself on big-endian architectures where the least significant
+bit is not in the first byte of the guard variable.
+
 8/7/07   Needed-flag processing and aliased variables
 
 In GNU modes, when a variable with internal linkage is aliased to a variable

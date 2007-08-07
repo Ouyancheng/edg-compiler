@@ -113,9 +113,11 @@ solution in the runtime.
 #endif /* ifndef IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
 
 /*
-TRUE to use "int"-sized guard variables for local static variable
-initializations in the IA-64 ABI.  See 3.2.3.1 in the ARM EABI
-document.  The test code is also altered somewhat.
+TRUE to use ARM EABI semantics for static initialization guard variables
+(see section 4.4.2 of version 2.02 of the ARM EABI).  The two differences
+from the standard IA-64 ABI are: the guard variable is "int"-sized,
+and the least significant bit of the guard variable (rather than
+the first byte) is used for the guard test.
 */
 #ifndef IA64_ABI_USE_INT_STATIC_INIT_GUARD
 #define IA64_ABI_USE_INT_STATIC_INIT_GUARD FALSE
