@@ -1,5 +1,17 @@
 Version 3.10
 
+8/7/07   IA-64 ABI: Read and write least significant bit in guard when
+         using ARM EABI (affects ARM in big-endian mode)
+
+Modify guard routines (i.e.,  __cxa_guard_acquire, __cxa_guard_release
+and __cxa_guard_abort) to read and write the least significant bit of
+the guard variable when __EDG_IA64_ABI_USE_INT_STATIC_INIT_GUARD is TRUE
+(i.e., when using ARM EABI).  When __EDG_IA64_ABI_USE_INT_STATIC_INIT_GUARD
+is FALSE (i.e., when using generic IA-64 ABI), continue to 
+use the first byte of the guard variable.  This change is consistent
+with the ARM EABI (see section 4.4.2 of version 2.02 of the ARM EABI).
+The change should only be noticeable on big-endian architectures.
+
 7/23/07  Zero-length array with same address as other object
 
 When an array of destructible objects is constructed, the space allocated
