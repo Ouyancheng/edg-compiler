@@ -3747,8 +3747,10 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
     if (attributes != NULL) {
       /* In GNU mode, attributes appearing between the class/struct/union
          keyword and the type name are ignored if the elaborated name specifier
-         is not followed by a class type definition. */
-      if (is_class_definition) {
+         is not followed by a class type definition and if this is not an
+         explicit class template instantiation directive. */
+      if (is_class_definition ||
+          (is_explicit_instantiation && !is_declarator_start())) {
         apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
       } else {
         pos_warning(ec_attribute_ignored_on_incomplete_class_decl, &attr_pos);

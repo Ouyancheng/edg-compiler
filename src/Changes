@@ -1,5 +1,17 @@
 Version 3.10
 
+8/7/07   GNU C++ compatibility: Class attributes in explicit instantiations
+
+The front end previously ignored (with a warning) attributes specified
+between the class, struct, or union keyword and the type name in an explicit
+instantiation directive for a class template.  Now such attributes are applied
+to the instantiated type.  For example:
+
+  template<typename T> struct S { void f() {} };
+  template struct __attribute((visibility("hidden"))) struct S;
+    // The attribute was previously ignored with a warning; now it is
+    // applied to the instantiated type.
+
 8/7/07   GNU C++ compatibility: more on dependent name lookup
 
 An additional tweak to the change of 3/12/07 on dependent name lookup
