@@ -194,6 +194,11 @@ cycle of aliased entities.  Break the cycle if that is the case.
       { a_routine_ptr  orig_rp = sym->variant.routine.ptr,
                        rp = orig_rp->aliased_routine;
         for (; rp != NULL; rp = rp->aliased_routine) {
+          if (rp == rp->aliased_routine) {
+            /* rp is an alias whose associated fixup has not yet been
+               processed. */
+            break;
+          }  /* if */
           if (same_entities(rp, orig_rp)) {
             alias_loop = TRUE;
             orig_rp->aliased_routine = NULL;
@@ -206,6 +211,11 @@ cycle of aliased entities.  Break the cycle if that is the case.
       { a_variable_ptr  orig_vp = sym->variant.variable.ptr,
                         vp = orig_vp->aliased_variable;
         for (; vp != NULL; vp = vp->aliased_variable) {
+          if (vp == vp->aliased_variable) {
+            /* vp is an alias whose associated fixup has not yet been
+               processed. */
+            break;
+          }  /* if */
           if (same_entities(vp, orig_vp)) {
             alias_loop = TRUE;
             orig_vp->aliased_variable = NULL;
@@ -378,6 +388,7 @@ Traverse the list of alias fixups and set the alias fields as needed.
         case sk_routine:
           entry->alias->variant.routine.ptr->aliased_routine =
                                               aliased_sym->variant.routine.ptr;
+          report_any_alias_loop(entry);
           break;
         case sk_variable:
           entry->alias->variant.variable.ptr->aliased_variable =
@@ -1858,6 +1869,8 @@ attributes were specified on a definition.
           } else {
             add_alias_fixup((a_symbol_ptr)vp->source_corresp.assoc_info,
                             (char*)NULL, ap->variant.alias, &ap->position);
+            /* Make the entity alias itself until the fixup is resolved. */
+            vp->aliased_variable = vp;
           }  /* if */
         }  /* if */
         break;
@@ -1868,6 +1881,8 @@ attributes were specified on a definition.
              check_variable_has_external_linkage(vp, ap))) {
           add_alias_fixup((a_symbol_ptr)vp->source_corresp.assoc_info,
                           (char*)NULL, ap->variant.alias, &ap->position);
+          /* Make the entity alias itself until the fixup is resolved. */
+          vp->aliased_variable = vp;
         }  /* if */
         break;
       case ak_nocommon:
@@ -2168,6 +2183,8 @@ messages about any invalid attributes.
         }  /* if */
         add_alias_fixup((a_symbol_ptr)rp->source_corresp.assoc_info,
                         (char*)NULL, ap->variant.alias, &ap->position);
+        /* Make the entity alias itself until the fixup is resolved. */
+        rp->aliased_routine = rp;
         break;
       case ak_malloc:
         /* GCC does not issue any diagnostics if the routine does not
