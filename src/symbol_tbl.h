@@ -2597,6 +2597,11 @@ typedef struct a_symbol {
 			   defined in friend declarations (and not declared
 			   elsewhere) have this flag set. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	is_alias:1;
+			/* Used in GNU mode for routines and variables declared
+			   with attribute "alias" or attribute "weakref". */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* bitfield_to_avoid_codecenter_warnings() -- at byte boundary right now. */
   union {
     /* When kind == sk_undefined, no variant fields. */

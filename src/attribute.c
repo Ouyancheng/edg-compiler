@@ -166,6 +166,14 @@ Allocate a fixup entry for a new alias described by the given parameters.
   entry->alias_name = alias_name;
   entry->aliased_name = aliased_name;
   entry->alias_position = *alias_position;
+#if GNU_EXTENSIONS_ALLOWED
+  if (alias != NULL) {
+    /* This fixup represents an entity declared with the "alias" or "weakref"
+       attributes.  This is recorded early so that we can tell whether an
+       entity is an alias before the alias is resolved. */
+    alias->is_alias = TRUE;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* add_alias_fixup */
 
 
@@ -221,6 +229,34 @@ cycle of aliased entities.  Break the cycle if that is the case.
     pos_error(ec_alias_loop, &alias_fixup->alias_position);
   }  /* if */
 }  /* report_any_alias_loop */
+
+
+static a_boolean undefined_aliased_entity(a_symbol_ptr        aliased_sym,
+                                          an_alias_fixup_ptr  entry)
+/*
+The given fixup entry represents an "alias" (or "weakref") attribute and
+looking up the aliased name produced aliased_sym.  Return TRUE if aliased_sym
+should be treated as an undefined entity.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (aliased_sym == NULL) {
+    /* The alias is to a name not at all declared in the current translation
+       unit. */
+    result = TRUE;
+  } else if (aliased_sym->kind != entry->alias->kind) {
+    /* The alias refers to an entity of a kind different from that implied
+       by the alias declaration (e.g., a variable alias referring to a
+       function declaration).  Don't treat that as an undefined case: An error
+       will be issued elsewhere. */
+  } else if (!aliased_sym->defined) {
+    /* This is usually a case of an alias to an undefined entity, but if it
+       is an alias to another alias we treat that other alias as "defined". */
+    result = !aliased_sym->is_alias;
+  }  /* if */
+  return result;
+}  /* undefined_aliased_entity */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -309,11 +345,13 @@ Traverse the list of alias fixups and set the alias fields as needed.
       unexpected_condition();
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if GNU_EXTENSIONS_ALLOWED
-    } else if (aliased_sym == NULL) {
-      /* The aliased entity was not declared in this translation unit.
-         Just change the asm name of the alias (which is how GNU C behaves
-         on Intel-based platforms) and issue a warning (because on some
-         other platforms, GNU C considers this an error). */
+    } else if (undefined_aliased_entity(aliased_sym, entry)) {
+      /* The aliased entity was not defined in this translation unit (either
+         note declared at all, or declared but not defined).  GCC versions
+         prior to 4.0 (on Intel platforms) treat this as an alternative way to
+         specify the asm name of the alias.  Newer GCC versions treat is as an
+         error (as do earlier versions on some non-Intel platforms).  We
+         emulate the behavior implemented for Intel-based platforms. */
       switch (entry->alias->kind) {
         case sk_routine:
           entry->alias->variant.routine.ptr->asm_name = entry->aliased_name;
@@ -325,8 +363,10 @@ Traverse the list of alias fixups and set the alias fields as needed.
         default:
           unexpected_condition();
       }  /* switch */
-      pos_st_warning(ec_aliased_name_undeclared,
-                     &entry->alias_position, entry->aliased_name);
+      pos_st_diagnostic(gnu_version < 40000 ? es_warning
+                                            : es_discretionary_error,
+                        ec_aliased_name_undeclared,
+                        &entry->alias_position, entry->aliased_name);
     } else if (aliased_sym->kind != entry->alias->kind) {
       pos_sy_error(ec_aliased_name_bad_kind,
                    &entry->alias->decl_position, aliased_sym);
