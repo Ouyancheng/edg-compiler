@@ -3,9 +3,9 @@ Version 3.10
 8/7/07   IA-64 ABI: Read and write least significant bit in guard when
          using ARM EABI (affects ARM in big-endian mode)
 
-Modify guard routines (i.e.,  __cxa_guard_acquire, __cxa_guard_release
-and __cxa_guard_abort) to read and write the least significant bit of
-the guard variable when __EDG_IA64_ABI_USE_INT_STATIC_INIT_GUARD is TRUE
+The guard routines (__cxa_guard_acquire, __cxa_guard_release and
+__cxa_guard_abort) have been modified to read and write the least significant
+bit of the guard variable when __EDG_IA64_ABI_USE_INT_STATIC_INIT_GUARD is TRUE
 (i.e., when using ARM EABI).  When __EDG_IA64_ABI_USE_INT_STATIC_INIT_GUARD
 is FALSE (i.e., when using generic IA-64 ABI), continue to 
 use the first byte of the guard variable.  This change is consistent
