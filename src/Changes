@@ -1,5 +1,19 @@
 Version 3.10
 
+8/8/08   GNU compatibility: Aliases to undefined entities
+
+Previously, in GNU modes, an alias attribute referring to an entity not
+declared in the same translation unit was treated as if the aliased name was
+an "asm name".  Now such cases are only accepted when gnu_version < 40000.
+Furthermore, aliases for entities that are declared but not defined are
+treated in the same way as aliases for entities that are not declared at all.
+For example:
+
+  extern int x;  // Declared but not defined.
+  extern int y __attribute((alias("x")));
+     // Now rejected when gnu_version >= 40000, and treated as
+     // "extern int y __asm("x");" when gnu_version < 40000.
+
 8/7/07   Template deduction: reference/pointer confusion
 
 In a strange case, template deduction mistakenly concluded that
