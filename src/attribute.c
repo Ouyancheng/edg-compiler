@@ -237,7 +237,7 @@ should be treated as an undefined entity.
     /* The alias is to a name not at all declared in the current translation
        unit. */
     result = TRUE;
-  } else if (aliased_sym->kind == entry->alias->kind) {
+  } else if (aliased_sym->kind != entry->alias->kind) {
     /* The alias refers to an entity of a kind different from that implied
        by the alias declaration (e.g., a variable alias referring to a
        function declaration).  Don't treat that as an undefined case: An error
