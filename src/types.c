@@ -4545,10 +4545,13 @@ to a pointer to dest_type.
 }  /* exception_spec_conversion_possible */
 
 
-a_boolean qualification_conversion_possible(a_type_ptr source_type,
-					    a_type_ptr dest_type,
-					    a_boolean  *p_qualifiers_added,
-                                            a_boolean  ignore_underlying_type)
+a_boolean qualification_conversion_possible_full(
+					a_type_ptr source_type,
+					a_type_ptr dest_type,
+					a_boolean  *p_qualifiers_added,
+					a_boolean  ignore_underlying_type,
+					a_type_ptr *underlying_source_type,
+					a_type_ptr *underlying_dest_type)
 /*
 Return TRUE if source_type and dest_type are compatible types except that
 dest_type may have some additional type qualifiers at some level(s).
@@ -4576,7 +4579,10 @@ is set to TRUE.  Otherwise it is set to FALSE.  p_qualifiers_added
 can be NULL if the caller does not need this flag returned.
 
 If ignore_underlying_type is TRUE, return TRUE once we've reached the
-underlying type of either source_type or dest_type.
+underlying type of either source_type or dest_type and return the types
+that were reached in underlying_source_type and underlying_dest_type if
+requested to do so by the caller by providing non-NULL values for those
+parameters.
 */
 {
   a_boolean   same;
@@ -4639,7 +4645,31 @@ underlying type of either source_type or dest_type.
   /* If there were any qualifiers added, set the flag specified by the
      caller. */
   if (p_qualifiers_added != NULL) *p_qualifiers_added = qualifiers_added;
+  if (ignore_underlying_type) {
+    /* Return the underlying types to the caller. */
+    if (underlying_source_type != NULL) {
+      *underlying_source_type = source_type;
+    }  /* if */
+    if (underlying_dest_type != NULL) {
+      *underlying_dest_type = dest_type;
+    }  /* if */
+  }  /* if */
   return same;
+}  /* qualification_conversion_possible_full */
+
+
+a_boolean qualification_conversion_possible(a_type_ptr source_type,
+					    a_type_ptr dest_type,
+					    a_boolean  *p_qualifiers_added,
+                                            a_boolean  ignore_underlying_type)
+/*
+Interface to qualification_conversion_possible_full that supplies default
+values for the underlying source and destination return values.
+*/
+{
+  return qualification_conversion_possible_full(
+                 source_type, dest_type, p_qualifiers_added,
+                 ignore_underlying_type, (a_type_ptr*)NULL, (a_type_ptr*)NULL);
 }  /* qualification_conversion_possible */
 
 
