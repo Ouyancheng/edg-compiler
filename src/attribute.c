@@ -351,22 +351,28 @@ Traverse the list of alias fixups and set the alias fields as needed.
          prior to 4.0 (on Intel platforms) treat this as an alternative way to
          specify the asm name of the alias.  Newer GCC versions treat is as an
          error (as do earlier versions on some non-Intel platforms).  We
-         emulate the behavior implemented for Intel-based platforms. */
+         emulate the behavior implemented for Intel-based platforms.  No error
+         (or warning) is issued if the alias is for a "weakref" attribute. */
+      a_boolean  is_weakref = FALSE;
       switch (entry->alias->kind) {
         case sk_routine:
           entry->alias->variant.routine.ptr->asm_name = entry->aliased_name;
+          is_weakref = entry->alias->variant.routine.ptr->is_weakref;
           break;
         case sk_variable:
           entry->alias->variant.variable.ptr->asm_name_or_reg.name =
                                                           entry->aliased_name;
+          is_weakref = entry->alias->variant.variable.ptr->is_weakref;
           break;
         default:
           unexpected_condition();
       }  /* switch */
-      pos_st_diagnostic(gnu_version < 40000 ? es_warning
-                                            : es_discretionary_error,
-                        ec_aliased_name_undeclared,
-                        &entry->alias_position, entry->aliased_name);
+      if (!is_weakref) {
+        pos_st_diagnostic(gnu_version < 40000 ? es_warning
+                                              : es_discretionary_error,
+                          ec_aliased_name_undeclared,
+                          &entry->alias_position, entry->aliased_name);
+      }  /* if */
     } else if (aliased_sym->kind != entry->alias->kind) {
       pos_sy_error(ec_aliased_name_bad_kind,
                    &entry->alias->decl_position, aliased_sym);
@@ -1845,13 +1851,16 @@ attributes were specified on a definition.
       case ak_weakref:
         /* gcc 4.1 and 4.2 have opposite constraints on weakref entities:
            With gcc 4.1 they must have external linkage and with gcc 4.2
-           they must have internal linkage. */
-        if ((gnu_version < 40200 &&
-             check_variable_has_external_linkage(vp, ap)) ||
-            (gnu_version >= 40200 &&
-             check_variable_has_internal_linkage(vp, ap))) {
-          vp->is_weak = TRUE;
-          vp->is_weakref = TRUE;
+           they must have internal linkage.  (The weakref attribute is
+           recorded even when the constraint is not satisfied, to improve
+           error recovery.) */
+        if (gnu_version < 40200) {
+          (void)check_variable_has_external_linkage(vp, ap);
+        } else {
+          (void)check_variable_has_internal_linkage(vp, ap);
+        }  /* if */
+        vp->is_weak = TRUE;
+        vp->is_weakref = TRUE;
           if (ap->variant.alias == NULL) {
             /* A weakref attribute without an argument.  Don't create an alias
                fixup until an alias attribute is seen. */
@@ -1859,7 +1868,6 @@ attributes were specified on a definition.
             add_alias_fixup((a_symbol_ptr)vp->source_corresp.assoc_info,
                             (char*)NULL, ap->variant.alias, &ap->position);
           }  /* if */
-        }  /* if */
         break;
       case ak_alias:
         if (check_variable_is_local(vp, ap, /*allow_local_static=*/FALSE,
@@ -2136,14 +2144,16 @@ messages about any invalid attributes.
       case ak_weakref:
         /* gcc 4.1 and 4.2 have opposite constraints on weakref entities:
            With gcc 4.1 they must have external linkage and with gcc 4.2
-           they must have internal linkage. */
-        if ((gnu_version < 40200 &&
-             check_routine_has_external_linkage(rp, ap)) ||
-            (gnu_version >= 40200 &&
-             check_routine_has_internal_linkage(rp, ap))) {
-          rp->is_weak = TRUE;
-          rp->is_weakref = TRUE;
+           they must have internal linkage.  (The weakref attribute is
+           recorded even when the constraint is not satisfied, to improve
+           error recovery.) */
+        if (gnu_version < 40200) {
+          (void)check_routine_has_external_linkage(rp, ap);
+        } else {
+          (void)check_routine_has_internal_linkage(rp, ap);
         }  /* if */
+        rp->is_weak = TRUE;
+        rp->is_weakref = TRUE;
         if (ap->variant.alias == NULL) {
           /* A weakref attribute without an argument.  Don't create an alias
              fixup until an alias attribute is seen. */
