@@ -1,5 +1,28 @@
 Version 3.10
 
+8/9/07   C++-generating back end, GNU compatibility: variable attributes and
+         initializers
+
+Different versions of g++ have different requirements for the location of
+variable attributes with respect to a parenthesized initializer: recent
+versions only honor attributes that precede the initializer, while versions
+older than 3.4 give a syntax error for attributes in that location.  The
+C++-generating back end unconditionally generated such attributes before
+the initializer.  It has now been changed to select the location for the
+attributes based on the value of gnu_target_version_number.  (That variable
+is set to the value of gnu_version in configurations in which
+CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT is TRUE and to the value of the
+GNU_TARGET_VERSION_NUMBER configuration macro in other configurations.)
+For example, the following code is accepted with --gnu_version=30300 and by
+g++ version 3.3:
+
+  struct S {
+    S(int);
+  };
+  S s (3) __attribute((__used__));  // Previously generated as
+                                    // "S s __attribute__((__used__))(3);"
+                                    // with gnu_target_version_number==30300
+
 8/8/08   GNU compatibility: Aliases to undefined entities
 
 Previously, in GNU modes, an alias attribute referring to an entity not

@@ -11938,6 +11938,7 @@ declaration following this one is such a continuation.
   a_template_ptr	       assoc_template;
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean                    marked_as_gnu_extension = FALSE;
+  a_boolean                    attributes_follow_initializer = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_name_reference_ptr         name_ref = NULL;
                             
@@ -12215,8 +12216,16 @@ declaration following this one is such a continuation.
          attribute. */
       var->aliased_variable = NULL;
     }  /* if */
-    /* Emit attributes associated with this variable. */
-    (void)form_variable_attributes(var, /*need_leading_space=*/TRUE, &octl);
+    if (gcc_is_generated_code_target &&
+        gnu_target_version_number < 30400 &&
+        var->has_parenthesized_initializer) {
+      /* Versions of g++ prior to 3.4 give a syntax error if attributes
+         precede a parenthesized initializer. */
+      attributes_follow_initializer = TRUE;
+    } else {
+      /* Emit attributes associated with this variable. */
+      (void)form_variable_attributes(var, /*need_leading_space=*/TRUE, &octl);
+    }  /* if */
     var->aliased_variable = aliased_variable;
   }
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -12226,7 +12235,14 @@ declaration following this one is such a continuation.
      the definition. */
   consider_initialization = is_definition;
   if (var->is_member_constant) consider_initialization = !is_definition;
-  if (consider_initialization) gen_initializer(var, is_condition);
+  if (consider_initialization) {
+    gen_initializer(var, is_condition);
+#if GNU_EXTENSIONS_ALLOWED
+    if (attributes_follow_initializer) {
+      (void)form_variable_attributes(var, /*need_leading_space=*/TRUE, &octl);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
   /* Output the semicolon or comma at the end of the declaration, but not
      for a condition. */
   if (!is_condition) {
