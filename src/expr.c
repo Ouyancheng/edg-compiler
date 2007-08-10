@@ -10268,17 +10268,19 @@ set the void_expression_lvalue flag in the expression.
       /* Retrieve the type of the routine being called. */
       an_expr_node_ptr  target = expr->variant.operation.operands;
       a_type_ptr        tp = skip_typerefs(target->type);
-      if (node_operator_is(expr, eok_pm_call)) {
-        check_assertion(tp->kind == (a_type_kind)tk_ptr_to_member);
-        tp = pm_member_type(tp);
-      } else {
-        check_assertion(tp->kind == (a_type_kind)tk_pointer);
-        tp = type_pointed_to(tp);
-      }  /* if */
-      tp = skip_typerefs(tp);
-      check_assertion(tp->kind == (a_type_kind)tk_routine);
-      if (tp->variant.routine.extra_info->result_should_be_used) {
-        pos_warning(ec_call_result_should_be_used, &operand->position);
+      if (!is_error_type(tp)) {
+        if (node_operator_is(expr, eok_pm_call)) {
+          check_assertion(tp->kind == (a_type_kind)tk_ptr_to_member);
+          tp = pm_member_type(tp);
+        } else {
+          check_assertion(tp->kind == (a_type_kind)tk_pointer);
+          tp = type_pointed_to(tp);
+        }  /* if */
+        tp = skip_typerefs(tp);
+        check_assertion(tp->kind == (a_type_kind)tk_routine);
+        if (tp->variant.routine.extra_info->result_should_be_used) {
+          pos_warning(ec_call_result_should_be_used, &operand->position);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
