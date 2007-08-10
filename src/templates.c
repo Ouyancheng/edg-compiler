@@ -5813,8 +5813,8 @@ argument deduction purposes.
 */
 {
   a_boolean	match = FALSE;
-  a_type_ptr	underlying_type = NULL;
-  a_type_ptr	underlying_templ_type = NULL;
+  a_type_ptr	type_underlying = NULL;
+  a_type_ptr	templ_type_underlying = NULL;
 
   type = skip_typerefs(type);
   templ_type = skip_typerefs(templ_type);
@@ -5837,21 +5837,21 @@ argument deduction purposes.
       match = qualification_conversion_possible_full(
                                      templ_type, type, (a_boolean*)NULL,
                                      /*ignore_underlying_type=*/TRUE,
-                                     &underlying_templ_type, &underlying_type);
+                                     &templ_type_underlying, &type_underlying);
     } else {
       match = qualification_conversion_possible_full(
                                      type, templ_type, (a_boolean*)NULL,
                                      /*ignore_underlying_type=*/TRUE,
-                                     &underlying_type, &underlying_templ_type);
+                                     &type_underlying, &templ_type_underlying);
     }  /* if */
     if (match) {
       /* A qualification conversion is possible.  Check whether the underlying
          types match.  The types returned above may still have qualifiers.
          Remove them before comparing the underlying types. */
       match = FALSE;
-      underlying_type = skip_typerefs(underlying_type);
-      underlying_templ_type = skip_typerefs(underlying_templ_type);
-      if (matches_template_type(underlying_type, underlying_templ_type,
+      type_underlying = skip_typerefs(type_underlying);
+      templ_type_underlying = skip_typerefs(templ_type_underlying);
+      if (matches_template_type(type_underlying, templ_type_underlying,
                                 templ_arg_list, templ_param_list, flags)) {
         /* They match.  The qualification conversion is possible. */
         match = TRUE;
