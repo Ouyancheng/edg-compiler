@@ -1,5 +1,21 @@
 Version 3.10
 
+8/10/07  Abort in find_instantiation_insert_scope with nested class
+
+When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE and
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is FALSE (a highly
+unusual configuration), the front end sometimes aborted in src_seq.c (function
+find_instantiation_insert_scope).  For example:
+
+  template<typename T> struct S;
+  template<typename T> struct S {
+    struct N { static T n; };
+    static int a[sizeof(N)];
+  };
+  template struct S<char>;
+
+This is now fixed.
+
 8/9/07   C++-generating back end, GNU compatibility: variable attributes and
          initializers
 

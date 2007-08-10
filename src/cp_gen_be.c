@@ -12216,13 +12216,17 @@ declaration following this one is such a continuation.
          attribute. */
       var->aliased_variable = NULL;
     }  /* if */
+#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
     if (gcc_is_generated_code_target &&
         gnu_target_version_number < 30400 &&
         var->has_parenthesized_initializer) {
       /* Versions of g++ prior to 3.4 give a syntax error if attributes
          precede a parenthesized initializer. */
       attributes_follow_initializer = TRUE;
-    } else {
+    } else
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
+    /* Do not insert code here. */
+    {
       /* Emit attributes associated with this variable. */
       (void)form_variable_attributes(var, /*need_leading_space=*/TRUE, &octl);
     }  /* if */

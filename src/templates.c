@@ -1040,8 +1040,12 @@ itself recursively to process classes nested within this class.
          this function is a member will itself be put out as a
          specialization, because that definition will include declarations
          of all the member functions. */
-      /* Don't do this for things like generated copy constructors. */
-      if (!rout->compiler_generated) {
+      /* Don't do this for things like generated copy constructors.  Also,
+         don't do it for (early) class-scope instantiations of nested
+         classes (see the static data member case below for details). */
+      if (scope_stack[depth_scope_stack].kind !=
+                                       (a_scope_kind)sck_class_struct_union &&
+          !rout->compiler_generated) {
         a_type_ptr  declared_type = rout->declared_type;
 
         if (declared_type == NULL || declared_type == rout->type) {
@@ -1090,8 +1094,19 @@ itself recursively to process classes nested within this class.
          specialization.  This entry is not needed if the class of which
          this is a static data member will itself be put out as a
          specialization, because that definition will include declarations
-         of all the static data members. */
-      { a_type_ptr  declared_type = var->declared_type;
+         of all the static data members.  For nested classes, this should
+         not be done during (early) instantiations in the scope of the
+         surrounding class (since that surrounding class instance won't
+         have source sequence entries).  E.g.:
+           template<typename T> struct X {
+             struct S { static T s; };
+             static int a[sizeof(S)];  // Triggers early instantiation of S
+           };
+         Instead, this code will be invoked again for all nested classes when
+         instantiating the outer class. */
+      if (scope_stack[depth_scope_stack].kind !=
+                                       (a_scope_kind)sck_class_struct_union) {
+        a_type_ptr  declared_type = var->declared_type;
 
         if (declared_type == NULL) declared_type = var->type;
         add_source_sequence_entry_for_partial_instantiation(
