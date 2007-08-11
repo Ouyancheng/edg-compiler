@@ -12220,7 +12220,10 @@ declaration following this one is such a continuation.
     if (is_definition && var->has_parenthesized_initializer &&
         gcc_is_generated_code_target && gnu_target_version_number < 30400) {
       /* Versions of g++ prior to 3.4 give a syntax error if attributes
-         precede a parenthesized initializer. */
+         precede a parenthesized initializer.  (Note that member constants
+         use the "=" form, so they are not affected by this issue;
+         has_parenthesized_initializer will always be FALSE, so a member
+         constant never ends up here.) */
       attributes_follow_initializer = TRUE;
     } else 
 #endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
