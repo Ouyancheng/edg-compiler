@@ -1,5 +1,18 @@
 Version 3.10
 
+8/10/07  GNU C++ compatibility: Attributes before parenthesized initializers
+
+In GNU C++ mode with gnu_version >= 30400, the front end now accepts
+attributes appearing just before a parenthesized initializer.  For example:
+
+  struct S { S(int); };
+  S a __attribute((deprecated)) (3);  // Now accepted.
+
+Furthermore, attributes are no longer accepted within nested declarators.
+For example:
+
+  int (a __attribute((deprecated)));  // No longer accepted.
+
 8/10/07  Abort in find_instantiation_insert_scope with nested class
 
 When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE and

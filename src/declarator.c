@@ -4971,8 +4971,9 @@ function_lparen:
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  /* Scan a postfix attribute specification. */
-  if (attributes != NULL && gnu_mode && curr_token == tok_attribute) {
+  /* Scan a postfix attribute specification (but not on nested declarators). */
+  if (attributes != NULL && gnu_mode && curr_token == tok_attribute &&
+      specifiers_type != NULL) {
     check_assertion(last_attribute_ptr != NULL);
     *last_attribute_ptr = scan_attributes();
     if (*last_attribute_ptr != NULL) {
@@ -4982,6 +4983,13 @@ function_lparen:
       *output_flags |= DO_POSTFIX_ATTRIBUTES;
       /* Advance to the end of the list. */
       last_attribute_ptr = last_attribute_link(last_attribute_ptr);
+    }  /* if */
+    if (curr_token == tok_lparen) {
+      *output_flags |= DO_PARENTHESIZED_INITIALIZER;
+      if (decl_pos_block != NULL) {
+        decl_pos_block->var_init_range.start = pos_curr_token;
+      }  /* if */
+      (void)get_token();
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
