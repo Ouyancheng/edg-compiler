@@ -3,7 +3,7 @@ Version 3.10
 8/13/07  GNU compatibility: Multicharacter character literals
 
 In GNU modes, when a multicharacter (narrow) character literal cannot fit in
-an int, the front now discards leading characters until the remaining
+an int, the front end now discards leading characters until the remaining
 characters do fit.  Previously, an error was issued.  (Now the usual warning
 about multicharacter narrow character literals is issued.)  For example:
 
