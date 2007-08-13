@@ -1,5 +1,16 @@
 Version 3.10
 
+8/13/07  GNU compatibility: Multicharacter character literals
+
+In GNU modes, when a multicharacter (narrow) character literal cannot fit in
+an int, the front now discards leading characters until the remaining
+characters do fit.  Previously, an error was issued.  (Now the usual warning
+about multicharacter narrow character literals is issued.)  For example:
+
+  int x = 'abcdef';  // Literal treated as 'cdef' when sizeof(int) == 4.
+                     // (With warning about 'abcdef' being a multicharacter
+                     // character literal.)
+
 8/13/07  Abort on dependent call to overload set containing using-declaration
          for function in dependent base class
 

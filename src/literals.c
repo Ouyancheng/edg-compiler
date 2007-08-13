@@ -1009,8 +1009,7 @@ the number of characters contained within the quotes (after escape
 processing, and in wide characters if the constant is wide).
 */
 {
-  unsigned long     i;
-  unsigned long     ch;
+  unsigned long     i, ch, skip_count = 0;
   an_integer_value  number, ch_int_val;
   char              *temp_ptr;
   a_boolean         err, too_many_chars = FALSE, bad_character = FALSE;
@@ -1045,7 +1044,18 @@ processing, and in wide characters if the constant is wide).
       if (C_mode() || num_chars > 1) {
         con_type = integer_type((an_integer_kind)ik_int);
         /* Record whether there are too many characters to fit. */
-        too_many_chars = (constant_size > targ_sizeof_int);
+        if (constant_size > targ_sizeof_int) {
+#if GNU_EXTENSIONS_ALLOWED
+          if (gnu_mode) {
+            /* GNU compilers only keep the trailing characters that fit. */
+            skip_count = constant_size - targ_sizeof_int;
+          } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
+          {
+            too_many_chars = TRUE;
+          }  /* if */
+        }  /* if */
       } else {
         /* A single-character constant in C++. */
         con_type = integer_type((an_integer_kind)ik_char);
@@ -1101,6 +1111,16 @@ processing, and in wide characters if the constant is wide).
         case chk_char:
           conv_single_char(&temp_ptr, &remaining_mbc_char_count, &ch,
                            centity_mask);
+#if GNU_EXTENSIONS_ALLOWED
+          if (skip_count > 0) {
+            /* Ignore leading characters so that the remaining characters
+               can fit in an int. */
+            check_assertion(gnu_mode);
+            --skip_count;
+            --i;
+            continue;
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
           break;
         case chk_wchar_t:
           conv_single_wide_char(&temp_ptr, &ch, centity_mask);
@@ -1160,7 +1180,7 @@ processing, and in wide characters if the constant is wide).
         } /* if */
       } /* if */
       or_integer_values(&number, &ch_int_val);
-    }  /* while */
+    }  /* for */
   }  /* if */
   if (bad_character) {
     *err_code = ec_no_char16_t_representation;
