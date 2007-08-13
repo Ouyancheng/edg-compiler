@@ -5145,9 +5145,13 @@ argument expression.
       a_type_ptr                    rout_type;
       a_routine_type_supplement_ptr rtsp;
       a_param_type_ptr              ptp;
-      if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
+      if (fund_sym->kind == (a_symbol_kind)sk_function_template ||
+          fund_sym->kind == (a_symbol_kind)sk_constant) {
         /* Function templates are always going to have template parameters
-           in their parameter lists. */
+           in their parameter lists.  Also, using-declarations for names
+           in dependent base classes show up as sk_constant symbols, and
+           we can't tell much about them, so we assume they will be
+           dependent. */
         any_dep = TRUE;
         goto end_of_function;
       }  /* if */

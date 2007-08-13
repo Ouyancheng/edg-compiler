@@ -1,5 +1,32 @@
 Version 3.10
 
+8/13/07  Abort on dependent call to overload set containing using-declaration
+         for function in dependent base class
+
+A change made in release 3.9 caused an assertion failure in
+any_function_has_dependent_param_or_default_arg in overload.c on
+processing a call in a template in a mode that does prototype
+instantiations when the overload set contains a using-declaration
+that refers to a function in a dependent base class.  Now fixed.
+
+  template <class T> struct Foo {
+    int k(float);
+  };
+  struct Baz {
+    int k(int);
+  };
+  template <class T> struct Bar : public Foo<T> , Baz {
+    using Foo<T>::k;
+    using Baz::k;
+    void foo() {
+      k(1.0f);
+    }
+  };
+  int main() {
+    Bar<int> bar;
+    bar.foo();
+  }
+
 8/10/07  GNU C++ compatibility: Attributes before parenthesized initializers
 
 In GNU C++ mode with gnu_version >= 30400, the front end now accepts
