@@ -4984,7 +4984,7 @@ function_lparen:
       /* Advance to the end of the list. */
       last_attribute_ptr = last_attribute_link(last_attribute_ptr);
     }  /* if */
-    if (curr_token == tok_lparen) {
+    if (curr_token == tok_lparen && gnu_version >= 30400) {
       *output_flags |= DO_PARENTHESIZED_INITIALIZER;
       if (decl_pos_block != NULL) {
         decl_pos_block->var_init_range.start = pos_curr_token;
