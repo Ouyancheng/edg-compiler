@@ -10277,9 +10277,11 @@ set the void_expression_lvalue flag in the expression.
           tp = type_pointed_to(tp);
         }  /* if */
         tp = skip_typerefs(tp);
-        check_assertion(tp->kind == (a_type_kind)tk_routine);
-        if (tp->variant.routine.extra_info->result_should_be_used) {
-          pos_warning(ec_call_result_should_be_used, &operand->position);
+        if (!is_error_type(tp)) {
+          check_assertion(tp->kind == (a_type_kind)tk_routine);
+          if (tp->variant.routine.extra_info->result_should_be_used) {
+            pos_warning(ec_call_result_should_be_used, &operand->position);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
