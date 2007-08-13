@@ -1009,7 +1009,10 @@ the number of characters contained within the quotes (after escape
 processing, and in wide characters if the constant is wide).
 */
 {
-  unsigned long     i, ch, skip_count = 0;
+  unsigned long     i, ch;
+#if GNU_EXTENSIONS_ALLOWED
+  unsigned long     skip_count = 0;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   an_integer_value  number, ch_int_val;
   char              *temp_ptr;
   a_boolean         err, too_many_chars = FALSE, bad_character = FALSE;
