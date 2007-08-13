@@ -347,9 +347,9 @@ Traverse the list of alias fixups and set the alias fields as needed.
 #if GNU_EXTENSIONS_ALLOWED
     } else if (undefined_aliased_entity(aliased_sym, entry)) {
       /* The aliased entity was not defined in this translation unit (either
-         note declared at all, or declared but not defined).  GCC versions
+         not declared at all, or declared but not defined).  GCC versions
          prior to 4.0 (on Intel platforms) treat this as an alternative way to
-         specify the asm name of the alias.  Newer GCC versions treat is as an
+         specify the asm name of the alias.  Newer GCC versions treat it as an
          error (as do earlier versions on some non-Intel platforms).  We
          emulate the behavior implemented for Intel-based platforms.  No error
          (or warning) is issued if the alias is for a "weakref" attribute. */
@@ -1861,13 +1861,13 @@ attributes were specified on a definition.
         }  /* if */
         vp->is_weak = TRUE;
         vp->is_weakref = TRUE;
-          if (ap->variant.alias == NULL) {
-            /* A weakref attribute without an argument.  Don't create an alias
-               fixup until an alias attribute is seen. */
-          } else {
-            add_alias_fixup((a_symbol_ptr)vp->source_corresp.assoc_info,
-                            (char*)NULL, ap->variant.alias, &ap->position);
-          }  /* if */
+        if (ap->variant.alias == NULL) {
+          /* A weakref attribute without an argument.  Don't create an alias
+             fixup until an alias attribute is seen. */
+        } else {
+          add_alias_fixup((a_symbol_ptr)vp->source_corresp.assoc_info,
+                          (char*)NULL, ap->variant.alias, &ap->position);
+        }  /* if */
         break;
       case ak_alias:
         if (check_variable_is_local(vp, ap, /*allow_local_static=*/FALSE,
