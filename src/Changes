@@ -227,9 +227,9 @@ both routines and variables) are eliminated from the IL if unused.
 8/2/07   Microsoft C++ compatibility: Old-style class template specializations
 
 In Microsoft C++ mode, an old-style specialization of a class template is
-is accepted if it is not a definition.  Such specialization declarations
-can appear in namespace scopes, class scopes, and local scopes, and they
-may use a qualified name.  For example:
+accepted if it is not a definition.  Such specialization declarations can
+appear in namespace scopes, class scopes, and local scopes, and they may
+use a qualified name.  For example:
 
   template<typename T> struct S {};
   int main() {
