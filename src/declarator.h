@@ -199,8 +199,9 @@ abstract or real declarator.
    declarator. */
 #define DO_NO_OUTPUT_FLAGS ((a_decl_flag_set)0x0)
 #define DO_PARENTHESIZED_INITIALIZER ((a_decl_flag_set)0x1)
-			/* If this bit was set the declarator appears to be
-			   followed by a parenthesized initializer. */
+			/* If this bit was set the declarator is followed by
+			   a parenthesized initializer.  The left parenthesis
+                           has been consumed by the call to "declarator". */
 #define DO_REAL_DECLARATOR_SCANNED ((a_decl_flag_set)0x2)
 			/* If this bit was set a name was scanned, indicating
 			   a real, not abstract, declarator. */

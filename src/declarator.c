@@ -4984,13 +4984,6 @@ function_lparen:
       /* Advance to the end of the list. */
       last_attribute_ptr = last_attribute_link(last_attribute_ptr);
     }  /* if */
-    if (curr_token == tok_lparen && gnu_version >= 30400) {
-      *output_flags |= DO_PARENTHESIZED_INITIALIZER;
-      if (decl_pos_block != NULL) {
-        decl_pos_block->var_init_range.start = pos_curr_token;
-      }  /* if */
-      (void)get_token();
-    }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (specifiers_type != NULL) {
@@ -5278,6 +5271,20 @@ the parameters.
   if (state->do_flags & DO_HAS_PTR_TO_MEMBER_COMPONENT) {
     (void)check_for_vla_in_pointer_to_member(state->declared_type,
                                              &state->declarator_start_pos);
+  }  /* if */
+  if (curr_token == tok_lparen &&
+      (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED) != 0 &&
+      (state->do_flags & DO_PARENTHESIZED_INITIALIZER) == 0) {
+    /* A call to declarator consumes the left parenthesis introducing a
+       parenthesized initializer.  This is usually done by the call to
+       r_declarator (where at first the parenthesis could still introduce
+       a function parameter list), but in some cases (e.g. after a GNU
+       attribute) the parenthesis might not have been considered yet. */
+    state->do_flags |= DO_PARENTHESIZED_INITIALIZER;
+    if (decl_pos_block != NULL) {
+      decl_pos_block->var_init_range.start = pos_curr_token;
+    }  /* if */
+    (void)get_token();
   }  /* if */
   check_pending_qualifiers_used(state);
   if (state->auto_type_specifier_seen) {

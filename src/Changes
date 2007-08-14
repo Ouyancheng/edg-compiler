@@ -58,11 +58,14 @@ that refers to a function in a dependent base class.  Now fixed.
 
 8/10/07  GNU C++ compatibility: Attributes before parenthesized initializers
 
-In GNU C++ mode with gnu_version >= 30400, the front end now accepts
-attributes appearing just before a parenthesized initializer.  For example:
+In GNU C++ mode, the front end now accepts attributes appearing just before a
+parenthesized initializer.  For example:
 
   struct S { S(int); };
   S a __attribute((deprecated)) (3);  // Now accepted.
+
+This is accepted for all values of gnu_version even though versions of GCC
+prior to 3.4 do not accept such constructs.
 
 Furthermore, attributes are no longer accepted within nested declarators.
 For example:
