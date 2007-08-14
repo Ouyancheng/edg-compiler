@@ -7647,375 +7647,6 @@ call in the normal way.
 }  /* handle_conversion_function_call */
 
 
-static a_boolean handle_operator_call(an_expr_node_ptr expr)
-/*
-expr is a call expression.  If it is the result of operator syntax ("a+b")
-in the source, as opposed to an explicit function call ("operator+(a,b)"),
-recreate the original operator notation in the generated code and return
-TRUE.  (This is important for cases in which the operator function is
-found by argument-dependent lookup in contexts in which a call to a named
-function -- e.g., using a qualified name, or inside a member of a class with
-an operator member function of the same name -- would not use ADL.)  Otherwise,
-return FALSE and let the caller generate the code normally.
-*/
-{
-  a_boolean        handled = FALSE;
-
-  if (expr->variant.operation.call_uses_operator_syntax) {
-    an_expr_node_ptr              func_expr = expr->variant.operation.operands;
-    a_routine_ptr                 rp;
-    a_type_ptr                    rout_type;
-    a_routine_type_supplement_ptr rtsp;
-    a_param_type_ptr              param;
-    an_expr_node_ptr              arg;
-    an_opname_kind                op;
-    a_boolean                     parens_needed;
-    char                          *op_name;
-    char                          *right_half;
-
-    check_assertion_str(func_expr != NULL &&
-                        func_expr->kind ==
-                                        (an_expr_node_kind)enk_routine_address,
-                     "handle_operator_call: operand not a function constant.");
-
-    rp = func_expr->variant.routine;
-    check_assertion_str(rp->special_kind ==
-	                                 (a_special_function_kind)sfk_operator,
-          "handle_operator_call: non-operator function using operator syntax");
-
-    rout_type = skip_typerefs(rp->type);
-    rtsp = rout_type->variant.routine.extra_info;
-    param = rtsp->param_type_list;
-    arg = func_expr->next;
-    op = rp->variant.opname_kind;
-
-    /* For postfix operators, there's no need to enclose the generated
-       expression in parentheses because the precedence is already higher
-       than all the other operators.. */
-    parens_needed = !(op == (an_opname_kind)onk_function_call ||
-                      op == (an_opname_kind)onk_subscript ||
-                      op == (an_opname_kind)onk_arrow ||
-                      ((op == (an_opname_kind)onk_plus_plus ||
-                        op == (an_opname_kind)onk_minus_minus) &&
-                       arg->next != NULL));
-
-    /* For most operators we can use the opname_names table to get the
-       operator representation.  Function call and subscript operators,
-       however, come in two parts, one before the second operand and one
-       after. */
-    if (op == (an_opname_kind)onk_function_call) {
-      op_name = "(";
-      right_half = ")";
-    } else if (op == (an_opname_kind)onk_subscript) {
-      op_name = "[";
-      right_half = "]";
-    } else {
-      op_name = opname_names[op];
-      right_half = NULL;
-    }  /* if */
-
-    if (parens_needed) {
-      /* Parenthesize to make sure we don't have precedence problems. */
-      write_tok_ch('(');
-    }  /* if */
-
-    if (arg->next == NULL &&
-        op != (an_opname_kind)onk_function_call &&
-        op != (an_opname_kind)onk_arrow) {
-      /* This is a prefix operator, so put the operator name first. */
-      write_tok_str(op_name);
-    }  /* if */
-
-    if (routine_type_is_nonstatic_member_function(rp->type)) {
-      /* The first operand is the member function's "this" pointer:
-         generate it as an lvalue. */
-      gen_lvalue_full(arg, /*need_parens=*/TRUE,
-                      /*obj_expr_of_mfunc_operator=*/TRUE);
-      arg = arg->next;
-    } else {
-      /* For non-member functions, there's a parameter declaration to
-         guide the generation of the first operand. */
-      gen_argument(arg, param, /*operator_notation=*/TRUE);
-      arg = arg->next;
-      param = param->next;
-    }  /* if */
-
-    if (op == (an_opname_kind)onk_arrow) {
-      /* "->" must be handled specially, because a single "->" in the source
-         can turn into multiple calls to operator-> functions (when one
-         returns a class object rather than a pointer).  Consequently,
-         generating the operand may have already output a "->" for a nested
-         operator->() invocation.  To avoid generating "a->->->b" in such
-         cases, we only output "->" if there isn't one already at the current
-         location (which can only happen in this cascade case, otherwise
-         there must have been subsequent output since the last "->" from an
-         operator->() call). */
-      if (last_arrow_column != curr_output_column ||
-          last_arrow_line != curr_output_line) {
-        write_tok_str(op_name);
-        last_arrow_column = curr_output_column;
-        last_arrow_line = curr_output_line;
-      }  /* if */
-    } else if (arg != NULL ||
-               op == (an_opname_kind)onk_function_call) {
-      /* Either there's a second argument or this is a function call
-         operator, so the operator follows the first operand. */
-      a_boolean spaces_needed = (op != (an_opname_kind)onk_function_call &&
-                                 op != (an_opname_kind)onk_subscript &&
-                                 op != (an_opname_kind)onk_plus_plus &&
-                                 op != (an_opname_kind)onk_minus_minus &&
-                                 op != (an_opname_kind)onk_arrow_star);
-      if (spaces_needed && op != (an_opname_kind)onk_comma) {
-        write_space();
-      }  /* if */
-      write_tok_str(op_name);
-      if (spaces_needed) {
-        write_space();
-      }  /* if */
-
-      if (op != (an_opname_kind)onk_plus_plus &&
-          op != (an_opname_kind)onk_minus_minus) {
-        /* Postfix "++" and "--" have a second argument in the function call
-           form, but it doesn't appear in the operator syntax. */
-        while (arg != NULL && !arg->generated_default_arg) {
-          /* A function call has an arbitrary number of arguments, some of
-             which may not have corresponding parameter declarations (in case
-             of ellipsis).  The remaining cases will have a single right
-             operand.  This loop handles all these cases.  We fall out of
-             the loop if we encounter an argument that results from a
-             default argument, because these must not appear in the
-             generated code. */
-          gen_argument(arg, param, /*operator_notation=*/TRUE);
-          arg = arg->next;
-          if (arg != NULL && !arg->generated_default_arg) {
-            write_tok_str(", ");
-          }  /* if */
-          if (param != NULL) {
-            param = param->next;
-          }  /* if */
-        }  /* while */
-
-        if (right_half != NULL) {
-          write_tok_str(right_half);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-
-    if (parens_needed) {
-      write_tok_ch(')');
-    }  /* if */
-    handled = TRUE;
-  }  /* if */
-
-  return handled;
-}  /* handle_operator_call */
-
-
-static void gen_call(an_expr_node_ptr expr)
-/*
-Generate code for the indicated expression, which is a non-virtual call.
-*/
-{
-  an_expr_operator_kind op = expr->variant.operation.kind;
-  an_expr_node_ptr      func_expr = expr->variant.operation.operands;
-  an_expr_node_ptr      args = func_expr->next;
-
-  if (handle_conversion_function_call(expr)) {
-    /* Conversion function call.  Code was generated by the subroutine. */
-  } else if (handle_operator_call(expr)) {
-    /* Operator function call that was given in operator syntax ("a+b") in
-       the source, as opposed to an explicit function call ("operator+(a,b)").
-       Code was generated by the subroutine. */
-  } else {
-    a_boolean need_close_paren = FALSE;
-    a_boolean need_arg_dep_close_paren = FALSE;
-    a_boolean is_dot_static = is_dot_static_operation(func_expr);
-
-    if (is_dot_static) {
-      /* Put parentheses around a call using a dot-static operator
-         to avoid problems if the subroutine replaces the field selection
-         by a ",". */
-      write_tok_ch('(');
-      need_close_paren = TRUE;
-    }  /* if */
-    if (expr->variant.operation.arg_dependent_lookup_suppressed_on_call) {
-      /* Put parentheses around the name of the function to suppress
-         argument-dependent lookup. */
-      write_tok_ch('(');
-      need_arg_dep_close_paren = TRUE;
-    }  /* if */
-    if (func_expr->kind == (an_expr_node_kind)enk_routine_address) {
-      /* We can tell which routine is being called. */
-      a_routine_ptr rout = func_expr->variant.routine;
-      a_type_ptr    rout_type = skip_typerefs(rout->type);
-      if (rout_type->variant.routine.extra_info->this_class != NULL) {
-        /* Nonstatic member function call, so put out the selector object
-           first. */
-        gen_bound_function(args, func_expr, /*suppress_virtual=*/TRUE);
-        args = args->next;
-      } else {
-        /* Nonmember function or static member function. */
-        gen_name_from_routine_address_node(
-               func_expr,
-               expr->variant.operation.only_found_through_arg_dependent_lookup,
-               /*suppress_ampersand=*/TRUE);
-      }  /* if */
-    } else if (is_dot_static) {
-      /* Call of a static member function identified by a static
-         selection, e.g., p->f().  Put out the selection without
-         surrounding parentheses, to avoid problems with overloaded
-         functions (the function identifier must be right next to the
-         argument parentheses). */
-      gen_expression(func_expr);
-    } else {
-      if (op == (an_expr_operator_kind)eok_generic_member_call) {
-        /* Unknown member function call. */
-        gen_lvalue(args);
-        write_tok_str(".");
-        args = args->next;
-      }  /* if */
-      if (is_constant_node(func_expr) &&
-          func_expr->variant.constant->kind ==
-                                     (a_constant_repr_kind)ck_template_param &&
-          (func_expr->variant.constant->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_unknown_function ||
-           func_expr->variant.constant->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_template_ref)) {
-        /* A tpck_unknown_function or tpck_template_ref constant
-           represents the address of the unknown function.  Drop the "&"
-           (it's implied) to make neater output. */
-        form_unknown_function_constant(func_expr->variant.constant, &octl);
-      } else {
-        /* Specific routine is not known (e.g., call through a pointer). */
-        gen_expr_with_parens(func_expr);
-      }  /* if */
-    }  /* if */
-    if (need_arg_dep_close_paren) {
-      /* Close parentheses around the name of the function to suppress
-         argument-dependent lookup. */
-      write_tok_ch(')');
-    }  /* if */
-    /* Put out the arguments. */
-    gen_argument_list(args,
-                      (op == (an_expr_operator_kind)eok_generic_call ||
-                       op == (an_expr_operator_kind)eok_generic_member_call) ?
-                                       NULL : type_pointed_to(func_expr->type),
-                      /*skip_num=*/0);
-    if (need_close_paren) write_tok_ch(')');
-  }  /* if */
-}  /* gen_call */
-
-
-static void gen_member_selector_for_builtin_offsetof(an_expr_node_ptr  expr)
-/*
-Generate the second argument of a __builtin_offsetof construct.  expr
-represents that argument as a data member selection applied to a dummy
-address placeholder (a null pointer constant).  The selection can involve
-normal field selections using the dot (.) operator and array element
-selections.  Multilevel cases (e.g., "__builtin_offsetof(T, x.y[3])") are
-handled through recursion.
-*/
-{
-  an_expr_node_ptr  arg1, arg2;
-
-  check_assertion(is_operation_node(expr));
-  arg1 = expr->variant.operation.operands;
-  arg2 = arg1->next;
-  /* Skip any (pointer) casts on the first operand. */
-  while (is_operation_node(arg1) &&
-         (arg1->variant.operation.kind == (an_expr_operator_kind)eok_cast ||
-          arg1->variant.operation.kind ==
-                                (an_expr_operator_kind)eok_base_class_cast)) {
-    arg1 = arg1->variant.operation.operands;
-  }  /* while */
-  switch (expr->variant.operation.kind) {
-    case eok_field:
-    case eok_lvalue_dot_static:
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-      arg1 = remove_nonstandard_anonymous_union_field_selections(arg1);
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-      if (!is_constant_node(arg1)) {
-        /* This is not the bottom-most operation (which is applied to a null
-           pointer constant that is just a placeholder).  Render the
-           underlying accesses first. */
-        gen_member_selector_for_builtin_offsetof(arg1);
-        write_tok_ch('.');
-      }  /* if */
-      if (expr->variant.operation.kind == (an_expr_operator_kind)eok_field) {
-        gen_field_reference(arg2);
-      } else {
-        gen_lvalue_no_parens(arg2);
-      }  /* if */
-      break;
-    case eok_padd_subsc:
-      gen_member_selector_for_builtin_offsetof(arg1);
-      gen_array_subscript(arg2);
-      break;
-    case eok_cast:
-    case eok_base_class_cast:
-      /* The casts are implicit and should not be rendered. */
-      gen_member_selector_for_builtin_offsetof(arg1);
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-}  /* gen_member_selector_for_builtin_offsetof */
-
-
-static void gen_builtin_offsetof(an_expr_node_ptr  expr)
-/*
-Generate code for a builtin offsetof construct (currently accepted only in
-GNU modes with gnu_version >= 40000).  Note that even if the target compiler
-does not support __builtin_offsetof we do not have a very good alternative
-rendering for the operator applied to template-dependent types.  For now, we
-therefore always render the operator as "__builtin_offsetof".
-*/
-{
-  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
-                    arg2 = arg1->next;
-  a_type_ptr  type = arg1->variant.type_operand.type;
-
-  write_tok_str("__builtin_offsetof(");
-  gen_type(type);
-  write_tok_str(", ");
-  if (is_template_param_type(type)) {
-    /* For template parameters, use the associated proxy class (if any). */
-    type = type->variant.template_param.extra_info->class_type;
-  }  /* if */
-  if (type != NULL) {
-    push_class_name_context(skip_typerefs(type));
-  }  /* if */
-  gen_member_selector_for_builtin_offsetof(arg2);
-  if (type != NULL) {
-    pop_name_context();
-  }  /* if */
-  write_tok_ch(')');
-}  /* gen_builtin_offsetof */
-
-
-static void gen_builtin_operation(an_expr_node_ptr  expr)
-/*
-Render code for the given expression node, which represent a builtin operation.
-Most cases fit a simple pattern, but some require special handling.
-*/
-{
-  if (expr->variant.builtin_operation.kind ==
-                                     (a_builtin_operation_kind)bok_offsetof) {
-    /* The builtin offsetof operator is a little tricky because its second
-       operand must be rendered in the context of its first operand. */
-    gen_builtin_offsetof(expr);
-  } else {
-    /* The normal case:
-          <operation-name> ( <operand1>, <operand2>, ... )
-    */
-    write_tok_str(
-               builtin_operation_names[expr->variant.builtin_operation.kind]);
-    gen_argument_list(expr->variant.builtin_operation.operands,
-                      (a_type_ptr)NULL, /*skip_num=*/0);
-  }  /* if */
-}  /* gen_builtin_operation */
-
-
 /*
 Precedence of the generated form of expression operators, used to determine
 whether parentheses are needed around a given expression operand.  If you add
@@ -8299,48 +7930,514 @@ static a_byte generated_precedence[] = {
 #endif /* CIL */
   PREC_LOWEST,		/* eok_error */
   PREC_LOWEST		/* eok_last */
-};
+};  /* generated_precedence */
 
 
-static a_boolean parens_may_be_needed(an_expr_operator_kind op,
-                                      an_expr_node_ptr      operand)
+static a_boolean parens_may_be_needed(a_byte           operator_precedence,
+                                      an_expr_node_ptr operand)
 /*
 Return TRUE if parentheses may be needed around the generated code for
-operand when appearing under the specified kind of operator node.  This is a
-conservative determination; parens_may_be_needed will return FALSE only if
-it can be easily determined that there will be no precedence problems.
+operand when appearing under an operator having operator_precedence.  This
+is a conservative determination; parens_may_be_needed will return FALSE
+only if it can be easily determined that there will be no precedence
+problems.
 */
 {
   a_boolean parens_needed = TRUE;
 
-  if (is_operation_node(operand) &&
-      (node_operator_is(operand, eok_cast) ||
-       node_operator_is(operand, eok_base_class_cast) ||
-       node_operator_is(operand, eok_derived_class_cast) ||
-       node_operator_is(operand, eok_bool_cast) ||
-       node_operator_is(operand, eok_pm_base_class_cast) ||
-       node_operator_is(operand, eok_pm_derived_class_cast)) &&
-      operand->variant.operation.compiler_generated &&
-      !operand->variant.operation.keep_cast_for_cp_gen_be &&
-      !is_array_decay_cast(operand) &&
-      !is_const_string_literal_cast(operand)) {
+  while (is_operation_node(operand) &&
+         (node_operator_is(operand, eok_cast) ||
+          node_operator_is(operand, eok_base_class_cast) ||
+          node_operator_is(operand, eok_derived_class_cast) ||
+          node_operator_is(operand, eok_bool_cast) ||
+          node_operator_is(operand, eok_pm_base_class_cast) ||
+          node_operator_is(operand, eok_pm_derived_class_cast)) &&
+         operand->variant.operation.compiler_generated &&
+         !operand->variant.operation.keep_cast_for_cp_gen_be &&
+         !is_array_decay_cast(operand) &&
+         !is_const_string_literal_cast(operand)) {
     /* This cast will not appear in the generated code, so use its operand
        instead of the cast. */
     operand = operand->variant.operation.operands;
-  }  /* if */
+  }  /* while */
   if (operand->kind == (an_expr_node_kind)enk_variable ||
       operand->kind == (an_expr_node_kind)enk_variable_address) {
     /* A variable can't have precedence problems. */
     parens_needed = FALSE;
   } else if (is_operation_node(operand) &&
-             generated_precedence[op] <
+             operator_precedence <
                        generated_precedence[operand->variant.operation.kind]) {
-    /* The operand's operator binds more tightly than op does, so parentheses
-       around the operand are not required. */
+    /* The operand's operator binds more tightly than the operator does, so
+       parentheses around the operand are not required. */
     parens_needed = FALSE;
   }  /* if */
   return parens_needed;
 }  /* parens_may_be_needed */
+
+
+/*
+Precedence of the overloadable operators, used to determine whether
+parentheses are needed around a given expression operand.  If you add
+operators to this list and are uncertain about the precedence to use, it is
+always safe to use PREC_LOWEST, which effectively results in use of
+gen_expr_with_parens to generate the expression containing the operator.
+*/
+static a_byte overloadable_operator_precedence[] = {
+  PREC_LOWEST,		/* onk_none */
+  PREC_LOWEST,		/* onk_new */
+  PREC_LOWEST,		/* onk_delete */
+  PREC_LOWEST,		/* onk_array_new */
+  PREC_LOWEST,		/* onk_array_delete */
+  PREC_PLUS_MINUS,	/* onk_plus */
+  PREC_PLUS_MINUS,	/* onk_minus */
+  PREC_MULT_DIV,	/* onk_star */
+  PREC_MULT_DIV,	/* onk_divide */
+  PREC_MULT_DIV,	/* onk_remainder */
+  PREC_EXCL_OR,		/* onk_excl_or */
+  PREC_AND,		/* onk_ampersand */
+  PREC_OR,		/* onk_or */
+  PREC_PREFIX,		/* onk_compl */
+  PREC_PREFIX,		/* onk_not */
+  PREC_ASSIGNMENT,	/* onk_assign */
+  PREC_RELATIONAL,	/* onk_lt */
+  PREC_RELATIONAL,	/* onk_gt */
+  PREC_ASSIGNMENT,	/* onk_plus_assign */
+  PREC_ASSIGNMENT,	/* onk_minus_assign */
+  PREC_ASSIGNMENT,	/* onk_times_assign */
+  PREC_ASSIGNMENT,	/* onk_divide_assign */
+  PREC_ASSIGNMENT,	/* onk_remainder_assign */
+  PREC_ASSIGNMENT,	/* onk_excl_or_assign */
+  PREC_ASSIGNMENT,	/* onk_and_assign */
+  PREC_ASSIGNMENT,	/* onk_or_assign */
+  PREC_SHIFT,		/* onk_shift_left */
+  PREC_SHIFT,		/* onk_shift_right */
+  PREC_ASSIGNMENT,	/* onk_shift_right_assign */
+  PREC_ASSIGNMENT,	/* onk_shift_left_assign */
+  PREC_EQ_NE,		/* onk_eq */
+  PREC_EQ_NE,		/* onk_ne */
+  PREC_RELATIONAL,	/* onk_le */
+  PREC_RELATIONAL,	/* onk_ge */
+  PREC_AND_AND,		/* onk_and_and */
+  PREC_OR_OR,		/* onk_or_or */
+  PREC_POSTFIX,		/* onk_plus_plus */
+  PREC_POSTFIX,		/* onk_minus_minus */
+  PREC_COMMA,		/* onk_comma */
+  PREC_PTR_TO_MEMBER,	/* onk_arrow_star */
+  PREC_POSTFIX,		/* onk_arrow */
+  PREC_POSTFIX,		/* onk_function_call */
+  PREC_POSTFIX,		/* onk_subscript */
+  PREC_QUEST_MARK,	/* onk_question */
+  PREC_GNU_MIN_MAX,	/* onk_gnu_min */
+  PREC_GNU_MIN_MAX,	/* onk_gnu_max */
+  PREC_LOWEST		/* onk_last */
+};  /* overloadable_operator_precedence */
+
+static a_boolean handle_operator_call(an_expr_node_ptr expr)
+/*
+expr is a call expression.  If it is the result of operator syntax ("a+b")
+in the source, as opposed to an explicit function call ("operator+(a,b)"),
+recreate the original operator notation in the generated code and return
+TRUE.  (This is important for cases in which the operator function is
+found by argument-dependent lookup in contexts in which a call to a named
+function -- e.g., using a qualified name, or inside a member of a class with
+an operator member function of the same name -- would not use ADL.)  Otherwise,
+return FALSE and let the caller generate the code normally.
+*/
+{
+  a_boolean        handled = FALSE;
+
+  if (expr->variant.operation.call_uses_operator_syntax) {
+    an_expr_node_ptr              func_expr = expr->variant.operation.operands;
+    a_routine_ptr                 rp;
+    a_type_ptr                    rout_type;
+    a_routine_type_supplement_ptr rtsp;
+    a_param_type_ptr              param;
+    an_expr_node_ptr              arg;
+    an_opname_kind                op;
+    a_byte                        operator_precedence;
+    a_boolean                     outer_parens_needed;
+    a_boolean                     operand_parens_needed;
+    char                          *op_name;
+    char                          *right_half;
+
+    check_assertion_str(func_expr != NULL &&
+                        func_expr->kind ==
+                                        (an_expr_node_kind)enk_routine_address,
+                     "handle_operator_call: operand not a function constant.");
+
+    rp = func_expr->variant.routine;
+    check_assertion_str(rp->special_kind ==
+	                                 (a_special_function_kind)sfk_operator,
+          "handle_operator_call: non-operator function using operator syntax");
+
+    rout_type = skip_typerefs(rp->type);
+    rtsp = rout_type->variant.routine.extra_info;
+    param = rtsp->param_type_list;
+    arg = func_expr->next;
+    op = rp->variant.opname_kind;
+    if (arg->next == NULL &&
+        (op == (an_opname_kind)onk_plus_plus ||
+         op == (an_opname_kind)onk_minus_minus ||
+         op == (an_opname_kind)onk_ampersand ||
+         op == (an_opname_kind)onk_star ||
+         op == (an_opname_kind)onk_plus ||
+         op == (an_opname_kind)onk_minus)) {
+      /* These opname kinds are used for both prefix and infix/postfix
+         operators.  If there is no second operand, this call represents
+         the prefix variant. */
+      operator_precedence = PREC_PREFIX;
+    } else {
+      /* In all other cases, the precedence is given by the
+         overloadable_operator_precedence table. */
+      operator_precedence = overloadable_operator_precedence[op];
+    }  /* if */
+
+    /* For postfix operators, there's no need to enclose the generated
+       expression in parentheses because the precedence is already higher
+       than all the other operators.. */
+    outer_parens_needed = !(op == (an_opname_kind)onk_function_call ||
+                            op == (an_opname_kind)onk_subscript ||
+                            op == (an_opname_kind)onk_arrow ||
+                            ((op == (an_opname_kind)onk_plus_plus ||
+                              op == (an_opname_kind)onk_minus_minus) &&
+                             arg->next != NULL));
+
+    /* For most operators we can use the opname_names table to get the
+       operator representation.  Function call and subscript operators,
+       however, come in two parts, one before the second operand and one
+       after. */
+    if (op == (an_opname_kind)onk_function_call) {
+      op_name = "(";
+      right_half = ")";
+    } else if (op == (an_opname_kind)onk_subscript) {
+      op_name = "[";
+      right_half = "]";
+    } else {
+      op_name = opname_names[op];
+      right_half = NULL;
+    }  /* if */
+
+    if (outer_parens_needed) {
+      /* Parenthesize to make sure we don't have precedence problems. */
+      write_tok_ch('(');
+    }  /* if */
+
+    if (arg->next == NULL &&
+        op != (an_opname_kind)onk_function_call &&
+        op != (an_opname_kind)onk_arrow) {
+      /* This is a prefix operator, so put the operator name first. */
+      write_tok_str(op_name);
+    }  /* if */
+
+    operand_parens_needed = parens_may_be_needed(operator_precedence, arg);
+    if (operand_parens_needed) {
+      write_tok_ch('(');
+    }  /* if */
+    if (routine_type_is_nonstatic_member_function(rp->type)) {
+      /* The first operand is the member function's "this" pointer:
+         generate it as an lvalue. */
+      gen_lvalue_full(arg, /*need_parens=*/TRUE,
+                      /*obj_expr_of_mfunc_operator=*/TRUE);
+      arg = arg->next;
+    } else {
+      /* For non-member functions, there's a parameter declaration to
+         guide the generation of the first operand. */
+      gen_argument(arg, param, /*operator_notation=*/TRUE);
+      arg = arg->next;
+      param = param->next;
+    }  /* if */
+    if (operand_parens_needed) {
+      write_tok_ch(')');
+    }  /* if */
+
+    if (op == (an_opname_kind)onk_arrow) {
+      /* "->" must be handled specially, because a single "->" in the source
+         can turn into multiple calls to operator-> functions (when one
+         returns a class object rather than a pointer).  Consequently,
+         generating the operand may have already output a "->" for a nested
+         operator->() invocation.  To avoid generating "a->->->b" in such
+         cases, we only output "->" if there isn't one already at the current
+         location (which can only happen in this cascade case, otherwise
+         there must have been subsequent output since the last "->" from an
+         operator->() call). */
+      if (last_arrow_column != curr_output_column ||
+          last_arrow_line != curr_output_line) {
+        write_tok_str(op_name);
+        last_arrow_column = curr_output_column;
+        last_arrow_line = curr_output_line;
+      }  /* if */
+    } else if (arg != NULL ||
+               op == (an_opname_kind)onk_function_call) {
+      /* Either there's a second argument or this is a function call
+         operator, so the operator follows the first operand. */
+      a_boolean spaces_needed = (op != (an_opname_kind)onk_function_call &&
+                                 op != (an_opname_kind)onk_subscript &&
+                                 op != (an_opname_kind)onk_plus_plus &&
+                                 op != (an_opname_kind)onk_minus_minus &&
+                                 op != (an_opname_kind)onk_arrow_star);
+      if (spaces_needed && op != (an_opname_kind)onk_comma) {
+        write_space();
+      }  /* if */
+      write_tok_str(op_name);
+      if (spaces_needed) {
+        write_space();
+      }  /* if */
+
+      if (op != (an_opname_kind)onk_plus_plus &&
+          op != (an_opname_kind)onk_minus_minus) {
+        /* Postfix "++" and "--" have a second argument in the function call
+           form, but it doesn't appear in the operator syntax. */
+        while (arg != NULL && !arg->generated_default_arg) {
+          /* A function call has an arbitrary number of arguments, some of
+             which may not have corresponding parameter declarations (in case
+             of ellipsis).  The remaining cases will have a single right
+             operand.  This loop handles all these cases.  We fall out of
+             the loop if we encounter an argument that results from a
+             default argument, because these must not appear in the
+             generated code. */
+          if (right_half != NULL) {
+            /* This form has its own delimiter, so no additional parentheses
+               are needed. */
+            operand_parens_needed = FALSE;
+          } else {
+            operand_parens_needed = parens_may_be_needed(operator_precedence,
+                                                         arg);
+          }  /* if */
+          if (operand_parens_needed) {
+            write_tok_ch('(');
+          }  /* if */
+          gen_argument(arg, param, /*operator_notation=*/TRUE);
+          if (operand_parens_needed) {
+            write_tok_ch(')');
+          }  /* if */
+          arg = arg->next;
+          if (arg != NULL && !arg->generated_default_arg) {
+            write_tok_str(", ");
+          }  /* if */
+          if (param != NULL) {
+            param = param->next;
+          }  /* if */
+        }  /* while */
+
+        if (right_half != NULL) {
+          write_tok_str(right_half);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+
+    if (outer_parens_needed) {
+      write_tok_ch(')');
+    }  /* if */
+    handled = TRUE;
+  }  /* if */
+
+  return handled;
+}  /* handle_operator_call */
+
+
+static void gen_call(an_expr_node_ptr expr)
+/*
+Generate code for the indicated expression, which is a non-virtual call.
+*/
+{
+  an_expr_operator_kind op = expr->variant.operation.kind;
+  an_expr_node_ptr      func_expr = expr->variant.operation.operands;
+  an_expr_node_ptr      args = func_expr->next;
+
+  if (handle_conversion_function_call(expr)) {
+    /* Conversion function call.  Code was generated by the subroutine. */
+  } else if (handle_operator_call(expr)) {
+    /* Operator function call that was given in operator syntax ("a+b") in
+       the source, as opposed to an explicit function call ("operator+(a,b)").
+       Code was generated by the subroutine. */
+  } else {
+    a_boolean need_close_paren = FALSE;
+    a_boolean need_arg_dep_close_paren = FALSE;
+    a_boolean is_dot_static = is_dot_static_operation(func_expr);
+
+    if (is_dot_static) {
+      /* Put parentheses around a call using a dot-static operator
+         to avoid problems if the subroutine replaces the field selection
+         by a ",". */
+      write_tok_ch('(');
+      need_close_paren = TRUE;
+    }  /* if */
+    if (expr->variant.operation.arg_dependent_lookup_suppressed_on_call) {
+      /* Put parentheses around the name of the function to suppress
+         argument-dependent lookup. */
+      write_tok_ch('(');
+      need_arg_dep_close_paren = TRUE;
+    }  /* if */
+    if (func_expr->kind == (an_expr_node_kind)enk_routine_address) {
+      /* We can tell which routine is being called. */
+      a_routine_ptr rout = func_expr->variant.routine;
+      a_type_ptr    rout_type = skip_typerefs(rout->type);
+      if (rout_type->variant.routine.extra_info->this_class != NULL) {
+        /* Nonstatic member function call, so put out the selector object
+           first. */
+        gen_bound_function(args, func_expr, /*suppress_virtual=*/TRUE);
+        args = args->next;
+      } else {
+        /* Nonmember function or static member function. */
+        gen_name_from_routine_address_node(
+               func_expr,
+               expr->variant.operation.only_found_through_arg_dependent_lookup,
+               /*suppress_ampersand=*/TRUE);
+      }  /* if */
+    } else if (is_dot_static) {
+      /* Call of a static member function identified by a static
+         selection, e.g., p->f().  Put out the selection without
+         surrounding parentheses, to avoid problems with overloaded
+         functions (the function identifier must be right next to the
+         argument parentheses). */
+      gen_expression(func_expr);
+    } else {
+      if (op == (an_expr_operator_kind)eok_generic_member_call) {
+        /* Unknown member function call. */
+        gen_lvalue(args);
+        write_tok_str(".");
+        args = args->next;
+      }  /* if */
+      if (is_constant_node(func_expr) &&
+          func_expr->variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param &&
+          (func_expr->variant.constant->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function ||
+           func_expr->variant.constant->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_template_ref)) {
+        /* A tpck_unknown_function or tpck_template_ref constant
+           represents the address of the unknown function.  Drop the "&"
+           (it's implied) to make neater output. */
+        form_unknown_function_constant(func_expr->variant.constant, &octl);
+      } else {
+        /* Specific routine is not known (e.g., call through a pointer). */
+        gen_expr_with_parens(func_expr);
+      }  /* if */
+    }  /* if */
+    if (need_arg_dep_close_paren) {
+      /* Close parentheses around the name of the function to suppress
+         argument-dependent lookup. */
+      write_tok_ch(')');
+    }  /* if */
+    /* Put out the arguments. */
+    gen_argument_list(args,
+                      (op == (an_expr_operator_kind)eok_generic_call ||
+                       op == (an_expr_operator_kind)eok_generic_member_call) ?
+                                       NULL : type_pointed_to(func_expr->type),
+                      /*skip_num=*/0);
+    if (need_close_paren) write_tok_ch(')');
+  }  /* if */
+}  /* gen_call */
+
+
+static void gen_member_selector_for_builtin_offsetof(an_expr_node_ptr  expr)
+/*
+Generate the second argument of a __builtin_offsetof construct.  expr
+represents that argument as a data member selection applied to a dummy
+address placeholder (a null pointer constant).  The selection can involve
+normal field selections using the dot (.) operator and array element
+selections.  Multilevel cases (e.g., "__builtin_offsetof(T, x.y[3])") are
+handled through recursion.
+*/
+{
+  an_expr_node_ptr  arg1, arg2;
+
+  check_assertion(is_operation_node(expr));
+  arg1 = expr->variant.operation.operands;
+  arg2 = arg1->next;
+  /* Skip any (pointer) casts on the first operand. */
+  while (is_operation_node(arg1) &&
+         (arg1->variant.operation.kind == (an_expr_operator_kind)eok_cast ||
+          arg1->variant.operation.kind ==
+                                (an_expr_operator_kind)eok_base_class_cast)) {
+    arg1 = arg1->variant.operation.operands;
+  }  /* while */
+  switch (expr->variant.operation.kind) {
+    case eok_field:
+    case eok_lvalue_dot_static:
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+      arg1 = remove_nonstandard_anonymous_union_field_selections(arg1);
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+      if (!is_constant_node(arg1)) {
+        /* This is not the bottom-most operation (which is applied to a null
+           pointer constant that is just a placeholder).  Render the
+           underlying accesses first. */
+        gen_member_selector_for_builtin_offsetof(arg1);
+        write_tok_ch('.');
+      }  /* if */
+      if (expr->variant.operation.kind == (an_expr_operator_kind)eok_field) {
+        gen_field_reference(arg2);
+      } else {
+        gen_lvalue_no_parens(arg2);
+      }  /* if */
+      break;
+    case eok_padd_subsc:
+      gen_member_selector_for_builtin_offsetof(arg1);
+      gen_array_subscript(arg2);
+      break;
+    case eok_cast:
+    case eok_base_class_cast:
+      /* The casts are implicit and should not be rendered. */
+      gen_member_selector_for_builtin_offsetof(arg1);
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* gen_member_selector_for_builtin_offsetof */
+
+
+static void gen_builtin_offsetof(an_expr_node_ptr  expr)
+/*
+Generate code for a builtin offsetof construct (currently accepted only in
+GNU modes with gnu_version >= 40000).  Note that even if the target compiler
+does not support __builtin_offsetof we do not have a very good alternative
+rendering for the operator applied to template-dependent types.  For now, we
+therefore always render the operator as "__builtin_offsetof".
+*/
+{
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    arg2 = arg1->next;
+  a_type_ptr  type = arg1->variant.type_operand.type;
+
+  write_tok_str("__builtin_offsetof(");
+  gen_type(type);
+  write_tok_str(", ");
+  if (is_template_param_type(type)) {
+    /* For template parameters, use the associated proxy class (if any). */
+    type = type->variant.template_param.extra_info->class_type;
+  }  /* if */
+  if (type != NULL) {
+    push_class_name_context(skip_typerefs(type));
+  }  /* if */
+  gen_member_selector_for_builtin_offsetof(arg2);
+  if (type != NULL) {
+    pop_name_context();
+  }  /* if */
+  write_tok_ch(')');
+}  /* gen_builtin_offsetof */
+
+
+static void gen_builtin_operation(an_expr_node_ptr  expr)
+/*
+Render code for the given expression node, which represent a builtin operation.
+Most cases fit a simple pattern, but some require special handling.
+*/
+{
+  if (expr->variant.builtin_operation.kind ==
+                                     (a_builtin_operation_kind)bok_offsetof) {
+    /* The builtin offsetof operator is a little tricky because its second
+       operand must be rendered in the context of its first operand. */
+    gen_builtin_offsetof(expr);
+  } else {
+    /* The normal case:
+          <operation-name> ( <operand1>, <operand2>, ... )
+    */
+    write_tok_str(
+               builtin_operation_names[expr->variant.builtin_operation.kind]);
+    gen_argument_list(expr->variant.builtin_operation.operands,
+                      (a_type_ptr)NULL, /*skip_num=*/0);
+  }  /* if */
+}  /* gen_builtin_operation */
 
 
 static void gen_expr(an_expr_node_ptr expr,
@@ -9196,14 +9293,16 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       if (operand_1_is_lvalue) {
         gen_lvalue(operand_1);
       } else {
-        gen_expr(operand_1, parens_may_be_needed(op, operand_1));
+        gen_expr(operand_1, parens_may_be_needed(generated_precedence[op],
+                                                 operand_1));
       }  /* if */
       if (operand_2 != NULL) {
         /* Binary operator. */
         m_write_space();
         write_tok_str(opstr);
         m_write_space();
-        gen_expr(operand_2, parens_may_be_needed(op, operand_2));
+        gen_expr(operand_2, parens_may_be_needed(generated_precedence[op],
+                                                 operand_2));
       }  /* if */
 done_with_operation:
       if (need_parens) m_write_tok_ch(')');
@@ -13470,11 +13569,19 @@ static void init_cp_gen_be(void)
 Initialize for the C++/C-generating back end.
 */
 {
-  sizeof_t num_prec_table_elems = 
+  sizeof_t num_generated_prec_table_elems = 
                 sizeof(generated_precedence) / sizeof(generated_precedence[0]);
+  sizeof_t num_overloadable_operator_prec_table_elems =
+                                   sizeof(overloadable_operator_precedence) /
+                                   sizeof(overloadable_operator_precedence[0]);
 
-  check_assertion_str(num_prec_table_elems == ((sizeof_t)eok_last + 1),
+  check_assertion_str(num_generated_prec_table_elems ==
+                                                      ((sizeof_t)eok_last + 1),
           "init_cp_gen_be: size of generated_precedence table is not correct");
+  check_assertion_str(num_overloadable_operator_prec_table_elems ==
+                                                      ((sizeof_t)onk_last + 1),
+              "init_cp_gen_be: size of overloadable_operator_precedence table "
+                                                             "is not correct");
   line_wrapping_disabled = 0;
   disable_line_wrapping_until_column = 0;
   f_C_output = NULL;

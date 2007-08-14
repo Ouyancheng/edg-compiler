@@ -1,5 +1,23 @@
 Version 3.10
 
+8/13/07  C++-generating back end: precedence in operator-notation function
+         calls
+
+When the C++-generating back end generated a call to an overloaded operator
+function using the operator notation, it failed to add parentheses when they
+were required by the relative precedence of the operator and its operands.
+This is now fixed.  For example:
+
+  struct Integer {
+    Integer(int);
+  };
+  Integer operator-(const Integer &, const Integer &);
+
+  Integer foo(const Integer &x, int y) {
+    return x - (y ? 1 : -1);   // previously omitted parens around operand
+                               // of operator-, i.e., "x - (y) ? 1 : (-1)"
+  }
+
 8/13/07  GNU compatibility: Multicharacter character literals
 
 In GNU modes, when a multicharacter (narrow) character literal cannot fit in
