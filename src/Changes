@@ -1,5 +1,22 @@
 Version 3.10
 
+8/14/07  C++0x: __func__
+
+In C++0x mode, the reserved identifier __func__ is now accepted in function
+bodies as the name of a predeclared character array that is initialized to a
+string containing the name of the enclosing function.  (This is similar to
+the meaning of __func__ in C99.  As is the case in C99 mode, the reserved
+identifier is implemented as a keyword.)  The name of the function is
+qualified with the names of any enclosing classes and/or namespaces.
+For example:
+
+  namespace N {
+    void f() { printf("%s\n", __func__); }  // Prints "N::f".
+  }
+
+This extension was voted into the C++ committee's working paper for the next
+standard in July 2007 (meeting in Toronto, through proposal numbered N2340).
+
 8/13/07  C++-generating back end: precedence in operator-notation function
          calls
 

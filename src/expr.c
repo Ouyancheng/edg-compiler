@@ -17425,8 +17425,9 @@ rather than a static variable.
     /* The current token is not a function-name keyword. */
     is_string = FALSE;
   } else if (microsoft_mode) {
-    /* Microsoft mode keywords are always string literals. */
-    is_string = TRUE;
+    /* Microsoft mode keywords are always string literals, except for the
+       standard __func__. */
+    is_string = (token != tok_func_name);
   } else if (gcc_mode && gnu_version < 30400) {
     /* gcc mode keywords are strings except for __func__ (which is
        a variable because it's from C99).  The gcc documentation says
@@ -17434,7 +17435,7 @@ rather than a static variable.
        but as of 3.3 they are still strings.  In 3.4 they are variables. */
     is_string = (token != tok_func_name);
   } else {
-    /* Other cases (C99, g++): use a static variable. */
+    /* Other cases (C99, C++0x, g++): use a static variable. */
     is_string = FALSE;
   }  /* if */
   return is_string;
@@ -17493,8 +17494,11 @@ If do_concat is TRUE, do concatenation of any subsequent string literals.
     switch (curr_token) {
       case tok_func_name:
       case tok_function_name:
-        if (microsoft_mode && !C_mode()) {
-          /* A full qualified name for the function. */
+        if ((microsoft_mode && !C_mode()) ||
+            (cpp0x_mode && curr_token == tok_func_name)) {
+          /* Microsoft's __FUNCTION__ expands to the fully qualified name of
+             the function.  In C++0x mode, we use the same expansion for
+             __func__. */
           an_il_to_str_output_control_block octl;
           clear_il_to_str_output_control_block(&octl);
           octl.output_str = put_str_to_temp_text_buffer;
