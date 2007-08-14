@@ -7156,11 +7156,15 @@ skip_overloading:;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && locator->is_qualified_name) {
     /* Microsoft compilers ignore dllexport/dllimport on qualified
-       (re)declarations. */
-    if ((decl_modifiers->flags & DM_DLLFLAGS) != 0) {
+       (re)declarations.  Issue a warning if dllexport or dllimport was
+       specified, and it conflicts with the earlier declaration(s). */
+    if ((decl_modifiers->flags & DM_DLLFLAGS) != 0 &&
+        (decl_modifiers->flags & DM_DLLFLAGS) !=
+                                (routine_ptr->decl_modifiers & DM_DLLFLAGS)) {
       pos_warning(ec_dll_interface_ignored_on_qualified_declaration,
                   &locator->source_position);
     }  /* if */
+    /* Set the DLL flags to what is already recorded for this routine. */
     decl_modifiers->flags &= ~(a_decl_modifier)DM_DLLFLAGS;
     decl_modifiers->flags |= (routine_ptr->decl_modifiers & DM_DLLFLAGS);
   }  /* if */
