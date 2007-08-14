@@ -7945,30 +7945,41 @@ problems.
 {
   a_boolean parens_needed = TRUE;
 
-  while (is_operation_node(operand) &&
-         (node_operator_is(operand, eok_cast) ||
-          node_operator_is(operand, eok_base_class_cast) ||
-          node_operator_is(operand, eok_derived_class_cast) ||
-          node_operator_is(operand, eok_bool_cast) ||
-          node_operator_is(operand, eok_pm_base_class_cast) ||
-          node_operator_is(operand, eok_pm_derived_class_cast)) &&
-         operand->variant.operation.compiler_generated &&
-         !operand->variant.operation.keep_cast_for_cp_gen_be &&
-         !is_array_decay_cast(operand) &&
-         !is_const_string_literal_cast(operand)) {
-    /* This cast will not appear in the generated code, so use its operand
-       instead of the cast. */
-    operand = operand->variant.operation.operands;
+  while ((is_operation_node(operand) &&
+          (node_operator_is(operand, eok_cast) ||
+           node_operator_is(operand, eok_base_class_cast) ||
+           node_operator_is(operand, eok_derived_class_cast) ||
+           node_operator_is(operand, eok_bool_cast) ||
+           node_operator_is(operand, eok_pm_base_class_cast) ||
+           node_operator_is(operand, eok_pm_derived_class_cast)) &&
+          operand->variant.operation.compiler_generated &&
+          !operand->variant.operation.keep_cast_for_cp_gen_be &&
+          !is_array_decay_cast(operand) &&
+          !is_const_string_literal_cast(operand)) ||
+         (operand->kind == (an_expr_node_kind)enk_temp_init &&
+          operand->variant.init.dynamic_init->kind ==
+                                        (a_dynamic_init_kind)dik_expression)) {
+    /* This node will not appear in the generated code, so use its operand
+       instead. */
+    if (is_operation_node(operand)) {
+      operand = operand->variant.operation.operands;
+    } else {
+      operand = operand->variant.init.dynamic_init->variant.expression;
+    }  /* if */
   }  /* while */
   if (operand->kind == (an_expr_node_kind)enk_variable ||
-      operand->kind == (an_expr_node_kind)enk_variable_address) {
-    /* A variable can't have precedence problems. */
+      operand->kind == (an_expr_node_kind)enk_variable_address ||
+      operand->kind == (an_expr_node_kind)enk_temp_init) {
+    /* These can't have precedence problems. */
     parens_needed = FALSE;
   } else if (is_operation_node(operand) &&
-             operator_precedence <
-                       generated_precedence[operand->variant.operation.kind]) {
-    /* The operand's operator binds more tightly than the operator does, so
-       parentheses around the operand are not required. */
+             (operator_precedence <
+                       generated_precedence[operand->variant.operation.kind] ||
+              generated_precedence[operand->variant.operation.kind] ==
+                                                               PREC_POSTFIX)) {
+    /* Either the operand's operator binds more tightly than the operator
+       does or both are postfix operators, so parentheses around the
+       operand are not required. */
     parens_needed = FALSE;
   }  /* if */
   return parens_needed;
