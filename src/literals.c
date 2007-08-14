@@ -1010,6 +1010,9 @@ processing, and in wide characters if the constant is wide).
 */
 {
   unsigned long     i, ch;
+#if GNU_EXTENSIONS_ALLOWED
+  unsigned long     skip_count = 0;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   an_integer_value  number, ch_int_val;
   char              *temp_ptr;
   a_boolean         err, too_many_chars = FALSE, bad_character = FALSE;
@@ -1048,14 +1051,8 @@ processing, and in wide characters if the constant is wide).
         if (constant_size > targ_sizeof_int) {
 #if GNU_EXTENSIONS_ALLOWED
           if (gnu_mode) {
-            /* GNU compilers only keep the trailing characters that fit.  Skip
-               leading characters until what remains can fit. */
-            centity_mask = (unsigned long)1 << (centity_bits-1);
-            centity_mask = centity_mask | (centity_mask - 1);
-            for (i = 0; i < constant_size - targ_sizeof_int; ++i) {
-              conv_single_char(&temp_ptr, &remaining_mbc_char_count, &ch,
-                               centity_mask);
-            }  /* for */
+            /* GNU compilers only keep the trailing characters that fit. */
+            skip_count = constant_size - targ_sizeof_int;
           } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
@@ -1108,6 +1105,16 @@ processing, and in wide characters if the constant is wide).
     /* Initialize for scanning multibyte characters in the string. */
     mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+#if GNU_EXTENSIONS_ALLOWED
+    if (skip_count != 0) {
+      /* Skip leading characters until what remains can fit. */
+      check_assertion(gnu_mode);
+      for (i = 0; i < skip_count; ++i) {
+        conv_single_char(&temp_ptr, &remaining_mbc_char_count, &ch,
+                         centity_mask);
+      }  /* for */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
     /* Accumulate the characters.  A wide literal with no characters (L'')
        is possible in Microsoft mode and must produce a zero value. */
