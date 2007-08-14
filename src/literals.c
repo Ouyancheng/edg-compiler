@@ -1010,9 +1010,6 @@ processing, and in wide characters if the constant is wide).
 */
 {
   unsigned long     i, ch;
-#if GNU_EXTENSIONS_ALLOWED
-  unsigned long     skip_count = 0;
-#endif /* GNU_EXTENSIONS_ALLOWED */
   an_integer_value  number, ch_int_val;
   char              *temp_ptr;
   a_boolean         err, too_many_chars = FALSE, bad_character = FALSE;
@@ -1044,14 +1041,21 @@ processing, and in wide characters if the constant is wide).
       constant_size = (sizeof_t)num_chars;
       centity_bits = targ_char_bit;
       centity_is_signed = targ_has_signed_chars; 
+      temp_ptr = start_of_curr_token+1;
       if (C_mode() || num_chars > 1) {
         con_type = integer_type((an_integer_kind)ik_int);
         /* Record whether there are too many characters to fit. */
         if (constant_size > targ_sizeof_int) {
 #if GNU_EXTENSIONS_ALLOWED
           if (gnu_mode) {
-            /* GNU compilers only keep the trailing characters that fit. */
-            skip_count = constant_size - targ_sizeof_int;
+            /* GNU compilers only keep the trailing characters that fit.  Skip
+               leading characters until what remains can fit. */
+            centity_mask = (unsigned long)1 << (centity_bits-1);
+            centity_mask = centity_mask | (centity_mask - 1);
+            for (i = 0; i < constant_size - targ_sizeof_int; ++i) {
+              conv_single_char(&temp_ptr, &remaining_mbc_char_count, &ch,
+                               centity_mask);
+            }  /* for */
           } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
@@ -1063,7 +1067,6 @@ processing, and in wide characters if the constant is wide).
         /* A single-character constant in C++. */
         con_type = integer_type((an_integer_kind)ik_char);
       }  /* if */
-      temp_ptr = start_of_curr_token+1;
       break;
     case 'L':
       /* Wide character literal. */
@@ -1114,16 +1117,6 @@ processing, and in wide characters if the constant is wide).
         case chk_char:
           conv_single_char(&temp_ptr, &remaining_mbc_char_count, &ch,
                            centity_mask);
-#if GNU_EXTENSIONS_ALLOWED
-          if (skip_count > 0) {
-            /* Ignore leading characters so that the remaining characters
-               can fit in an int. */
-            check_assertion(gnu_mode);
-            --skip_count;
-            --i;
-            continue;
-          }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
           break;
         case chk_wchar_t:
           conv_single_wide_char(&temp_ptr, &ch, centity_mask);
