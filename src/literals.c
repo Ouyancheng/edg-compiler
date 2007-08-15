@@ -1203,9 +1203,15 @@ processing, and in wide characters if the constant is wide).
          implementation-defined value.  Issue a warning.  The "too many
          characters" message is used for wide characters as this is
          unlikely to produce a meaningful result. */
+      an_error_code  wcode = (character_kind != (a_character_kind)chk_char) ?
+                               ec_too_many_characters : ec_multi_char_literal;
+#if GNU_EXTENSIONS_ALLOWED
+      if (skip_count != 0) {
+        wcode = ec_leading_character_ignored_in_char_literal;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
-      warning((character_kind != (a_character_kind)chk_char) ?
-                              ec_too_many_characters : ec_multi_char_literal);
+      warning(wcode);
     }  /* if */
     clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
     const_for_curr_token.type = con_type;
