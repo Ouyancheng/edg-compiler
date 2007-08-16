@@ -12464,7 +12464,7 @@ the normal lookup symbol.
       class_sym = NULL;
     } else if (class_fund_sym->is_nonreal_member &&
                !is_template_symbol(class_fund_sym) &&
-               symbol_is_or_contains_template(normal_fund_sym)) {
+               is_template_or_injected_template_symbol(normal_fund_sym)) {
       /* The class symbols is a nonreal nontemplate and the normal symbol
          is a template.  Use the normal symbol. */
       class_sym = NULL;

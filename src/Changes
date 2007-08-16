@@ -1,40 +1,5 @@
 Version 3.10
 
-8/15/07  Class member access disambiguation with function template overload
-         in g++ mode when gnu_version >= 30400
-
-The C++ standard states [basic.lookup.classref]:
-
-  In a class member access expression (5.2.5), if the . or -> token is
-  immediately followed by an identifier followed by a <, the identifier
-  must be looked up to determine whether the < is the beginning of a
-  template argument list (14.2) or a less-than operator.
-
-If the identifier names both an overloaded function set and a nonreal
-non-template class member, the overload function set is now preferred,
-resulting in the identifier being treated as a call to a function template
-in g++ emulation mode when gnu_version >= 30400.  Alternatively the
-template keyword can be used to disambiguate the reference.  For example:
-
-  template <class T> void convert(T);
-  #if OVERLOAD
-  template <class T> void convert(T,T);
-  #endif
-  template <class T> struct B {
-    template <class T2> T2 convert();
-  };
-  template <class T> struct A : B<T> {
-    static void f(A* p) {
-      p->convert<T>();            // Previous error here when OVERLOAD is TRUE.
-      p->template convert<T>();   // Works whether or not OVERLOAD is TRUE.
-    }
-  };
-
-  int main() {
-    A<int> a;
-    A<int>::f(&a);
-  }
-
 8/14/07  C++0x: __func__
 
 In C++0x mode, the reserved identifier __func__ is now accepted in function
