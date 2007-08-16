@@ -297,7 +297,8 @@ have been reverted.
 8/2/07   Microsoft compatibility: DLL attributes on qualified declarations
 
 In Microsoft C++ mode DLL attributes appearing on qualified declarations of
-ordinary (non-member, non-template) functions are ignored (with a warning).
+ordinary (non-member, non-template) functions are ignored (with a warning)
+when they differ from the DLL attributes implied by previous declarations.
 Furthermore, if no DLL attributes appear on the qualified declaration of an
 entity previously declared with a DLL attribute, no diagnostic is issued
 (previously, a warning was emitted).  For example:
