@@ -73,13 +73,12 @@ This is now fixed.  For example:
 8/13/07  GNU compatibility: Multicharacter character literals
 
 In GNU modes, when a multicharacter (narrow) character literal cannot fit in
-an int, the front end now discards leading characters until the remaining
-characters do fit.  Previously, an error was issued.  (Now the usual warning
-about multicharacter narrow character literals is issued.)  For example:
+an int, the front end now discards (with a warning) leading characters until
+the remaining characters do fit.  Previously, an error was issued.
+For example:
 
   int x = 'abcdef';  // Literal treated as 'cdef' when sizeof(int) == 4 (with
-                     // a warning about 'abcdef' being a multicharacter
-                     // character literal).
+                     // a warning about leading characters being dropped).
 
 8/13/07  Abort on dependent call to overload set containing using-declaration
          for function in dependent base class
