@@ -7944,29 +7944,40 @@ problems.
 */
 {
   a_boolean parens_needed = TRUE;
+  a_boolean operand_changed;
 
-  while ((is_operation_node(operand) &&
-          (node_operator_is(operand, eok_cast) ||
-           node_operator_is(operand, eok_base_class_cast) ||
-           node_operator_is(operand, eok_derived_class_cast) ||
-           node_operator_is(operand, eok_bool_cast) ||
-           node_operator_is(operand, eok_pm_base_class_cast) ||
-           node_operator_is(operand, eok_pm_derived_class_cast)) &&
-          operand->variant.operation.compiler_generated &&
-          !operand->variant.operation.keep_cast_for_cp_gen_be &&
-          !is_array_decay_cast(operand) &&
-          !is_const_string_literal_cast(operand)) ||
-         (operand->kind == (an_expr_node_kind)enk_temp_init &&
-          operand->variant.init.dynamic_init->kind ==
-                                        (a_dynamic_init_kind)dik_expression)) {
-    /* This node will not appear in the generated code, so use its operand
-       instead. */
-    if (is_operation_node(operand)) {
+  do {
+    /* Scan down through nodes that will not appear in the generated code to
+       get to the expression that will appear. */
+    operand_changed = FALSE;
+    if (is_operation_node(operand) &&
+        (node_operator_is(operand, eok_cast) ||
+         node_operator_is(operand, eok_base_class_cast) ||
+         node_operator_is(operand, eok_derived_class_cast) ||
+         node_operator_is(operand, eok_bool_cast) ||
+         node_operator_is(operand, eok_pm_base_class_cast) ||
+         node_operator_is(operand, eok_pm_derived_class_cast)) &&
+        operand->variant.operation.compiler_generated &&
+        !operand->variant.operation.keep_cast_for_cp_gen_be &&
+        !is_array_decay_cast(operand) &&
+        !is_const_string_literal_cast(operand)) {
       operand = operand->variant.operation.operands;
-    } else {
-      operand = operand->variant.init.dynamic_init->variant.expression;
+      operand_changed = TRUE;
+    } else if (operand->kind == (an_expr_node_kind)enk_temp_init) {
+      if (operand->variant.init.dynamic_init->kind ==
+                                         (a_dynamic_init_kind)dik_expression ||
+          operand->variant.init.dynamic_init->kind ==
+                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+        operand = operand->variant.init.dynamic_init->variant.expression;
+        operand_changed = TRUE;
+      } else if (operand->variant.init.dynamic_init->kind ==
+                                        (a_dynamic_init_kind)dik_constructor &&
+                 !operand->variant.init.dynamic_init->is_explicit_cast) {
+        operand = operand->variant.init.dynamic_init->variant.constructor.args;
+        operand_changed = TRUE;
+      }  /* if */
     }  /* if */
-  }  /* while */
+  } while (operand_changed);
   if (operand->kind == (an_expr_node_kind)enk_variable ||
       operand->kind == (an_expr_node_kind)enk_variable_address ||
       operand->kind == (an_expr_node_kind)enk_temp_init) {
