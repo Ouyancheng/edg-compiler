@@ -406,6 +406,8 @@ static void gen_statement_full(a_statement_ptr statement,
 static void gen_routine_decl(a_boolean suppress_specifiers,
                              a_boolean *another_decl_in_comma_list);
 static void gen_declaration(a_boolean for_init);
+static a_boolean parens_may_be_needed(a_byte           operator_precedence,
+                                      an_expr_node_ptr operand);
 /*
 Options for gen_general_declaration_using_type.
 */
@@ -7648,356 +7650,6 @@ call in the normal way.
 
 
 /*
-Precedence of the generated form of expression operators, used to determine
-whether parentheses are needed around a given expression operand.  If you add
-operators to this list and are uncertain about the precedence to use, it is
-always safe to use PREC_LOWEST, which effectively results in use of
-gen_expr_with_parens to generate the expression containing the operator.  If
-a given operator may be generated in different forms, this table should
-reflect the one with the lowest precedence.
-*/
-static a_byte generated_precedence[] = {
-  PREC_PREFIX,		/* eok_indirect */
-  PREC_PREFIX,		/* eok_inegate */
-#if FIXED_POINT_ALLOWED
-  PREC_PREFIX,		/* eok_fxnegate */
-#endif /* FIXED_POINT_ALLOWED */
-  PREC_PREFIX,		/* eok_fnegate */
-  PREC_PREFIX,		/* eok_unary_plus */
-  PREC_PREFIX,		/* eok_not */
-  PREC_CAST,		/* eok_cast (NOTE: cases where the cast is not
-                           generated are filtered out by
-                           parens_may_be_needed) */
-#ifdef CIL
-  PREC_CAST,		/* eok_base_class_cast */
-  PREC_CAST,		/* eok_derived_class_cast */
-  PREC_CAST,		/* eok_pm_base_class_cast */
-  PREC_CAST,		/* eok_pm_derived_class_cast */
-  PREC_CAST,		/* eok_lvalue_cast */
-  PREC_POSTFIX,		/* eok_dynamic_cast */
-  PREC_CAST,		/* eok_bool_cast */
-  PREC_PREFIX,		/* eok_complement */
-  PREC_POSTFIX,		/* eok_ipost_incr */
-  PREC_POSTFIX,		/* eok_ipost_decr */
-  PREC_PREFIX,		/* eok_ipre_incr */
-  PREC_PREFIX,		/* eok_ipre_decr */
-#if FIXED_POINT_ALLOWED
-  PREC_POSTFIX,		/* eok_fxpost_incr */
-  PREC_POSTFIX,		/* eok_fxpost_decr */
-  PREC_PREFIX,		/* eok_fxpre_incr */
-  PREC_PREFIX,		/* eok_fxpre_decr */
-#endif /* FIXED_POINT_ALLOWED */
-  PREC_POSTFIX,		/* eok_fpost_incr */
-  PREC_POSTFIX,		/* eok_fpost_decr */
-  PREC_PREFIX,		/* eok_fpre_incr */
-  PREC_PREFIX,		/* eok_fpre_decr */
-  PREC_POSTFIX,		/* eok_ppost_incr */
-  PREC_POSTFIX,		/* eok_ppost_decr */
-  PREC_PREFIX,		/* eok_ppre_incr */
-  PREC_PREFIX,		/* eok_ppre_decr */
-  PREC_LOWEST,		/* eok_lvalue_from_struct_rvalue (NOTE: the
-                           generated code for this operator just copies the
-                           operand up, so we don't know anything about how
-                           it might actually be generated, hence the
-                           PREC_LOWEST) */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  PREC_POSTFIX,		/* eok_assume */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* CIL */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
-  PREC_PREFIX,		/* eok_xnegate */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FIL
-  PREC_LOWEST,		/* eok_char_length */
-  PREC_LOWEST,		/* eok_address_of_value */
-  PREC_LOWEST,		/* eok_loc */
-  PREC_LOWEST,		/* eok_test_logical */
-#endif /* FIL */
-  PREC_PLUS_MINUS,	/* eok_iadd */
-  PREC_PLUS_MINUS,	/* eok_isubtract */
-  PREC_MULT_DIV,	/* eok_imultiply */
-  PREC_MULT_DIV,	/* eok_idivide */
-  PREC_EQ_NE,		/* eok_ieq */
-  PREC_EQ_NE,		/* eok_ine */
-  PREC_RELATIONAL,	/* eok_igt */
-  PREC_RELATIONAL,	/* eok_ilt */
-  PREC_RELATIONAL,	/* eok_ige */
-  PREC_RELATIONAL,	/* eok_ile */
-  PREC_GNU_MIN_MAX,	/* eok_ignu_min */
-  PREC_GNU_MIN_MAX,	/* eok_ignu_max */
-  PREC_ASSIGNMENT,	/* eok_iassign */
-#if FIXED_POINT_ALLOWED
-  PREC_PLUS_MINUS,	/* eok_fxadd */
-  PREC_PLUS_MINUS,	/* eok_fxsubtract */
-  PREC_MULT_DIV,	/* eok_fxmultiply */
-  PREC_MULT_DIV,	/* eok_fxdivide */
-  PREC_SHIFT,		/* eok_fxshiftl */
-  PREC_SHIFT,		/* eok_fxshiftr */
-  PREC_EQ_NE,		/* eok_fxeq */
-  PREC_EQ_NE,		/* eok_fxne */
-  PREC_RELATIONAL,	/* eok_fxgt */
-  PREC_RELATIONAL,	/* eok_fxlt */
-  PREC_RELATIONAL,	/* eok_fxge */
-  PREC_RELATIONAL,	/* eok_fxle */
-  PREC_ASSIGNMENT,	/* eok_fxassign */
-#endif /* FIXED_POINT_ALLOWED */
-  PREC_PLUS_MINUS,	/* eok_fadd */
-  PREC_PLUS_MINUS,	/* eok_fsubtract */
-  PREC_MULT_DIV,	/* eok_fmultiply */
-  PREC_MULT_DIV,	/* eok_fdivide */
-  PREC_EQ_NE,		/* eok_feq */
-  PREC_EQ_NE,		/* eok_fne */
-  PREC_RELATIONAL,	/* eok_fgt */
-  PREC_RELATIONAL,	/* eok_flt */
-  PREC_RELATIONAL,	/* eok_fge */
-  PREC_RELATIONAL,	/* eok_fle */
-  PREC_GNU_MIN_MAX,	/* eok_fgnu_min */
-  PREC_GNU_MIN_MAX,	/* eok_fgnu_max */
-  PREC_ASSIGNMENT,	/* eok_fassign */
-  PREC_PLUS_MINUS,	/* eok_padd */
-  PREC_PLUS_MINUS,	/* eok_psubtract */
-  PREC_ASSIGNMENT,	/* eok_passign */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
-  PREC_PLUS_MINUS,	/* eok_xadd */
-  PREC_PLUS_MINUS,	/* eok_xsubtract */
-  PREC_MULT_DIV,	/* eok_xmultiply */
-  PREC_MULT_DIV,	/* eok_xdivide */
-  PREC_EQ_NE,		/* eok_xeq */
-  PREC_EQ_NE,		/* eok_xne */
-  PREC_ASSIGNMENT,	/* eok_xassign */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
-#if C99_IL_EXTENSIONS_SUPPORTED
-  PREC_ASSIGNMENT,	/* eok_xadd_assign */
-  PREC_ASSIGNMENT,	/* eok_xsubtract_assign */
-  PREC_ASSIGNMENT,	/* eok_xmultiply_assign */
-  PREC_ASSIGNMENT,	/* eok_xdivide_assign */
-  PREC_MULT_DIV,	/* eok_jmultiply */
-  PREC_MULT_DIV,	/* eok_jdivide */
-  PREC_PLUS_MINUS,	/* eok_fjadd */
-  PREC_PLUS_MINUS,	/* eok_jfadd */
-  PREC_PLUS_MINUS,	/* eok_fjsubtract */
-  PREC_PLUS_MINUS,	/* eok_jfsubtract */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
-  PREC_PREFIX,		/* eok_xconj */
-  PREC_POSTFIX,		/* eok_real_part */
-  PREC_POSTFIX,		/* eok_imag_part */
-  PREC_PREFIX,		/* eok_lvalue_real_part (NOTE: this operator and the
-                           next are sometimes generated with an &, hence the
-                           PREC_PREFIX) */
-  PREC_PREFIX,		/* eok_lvalue_imag_part */
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-#ifdef FIL
-  PREC_LOWEST,		/* eok_complex */
-  PREC_LOWEST,		/* eok_ceq */
-  PREC_LOWEST,		/* eok_cne */
-  PREC_LOWEST,		/* eok_cgt */
-  PREC_LOWEST,		/* eok_clt */
-  PREC_LOWEST,		/* eok_cge */
-  PREC_LOWEST,		/* eok_cle */
-  PREC_LOWEST,		/* eok_cassign */
-  PREC_LOWEST,		/* eok_concat */
-  PREC_LOWEST,		/* eok_i_to_i_expon */
-  PREC_LOWEST,		/* eok_f_to_i_expon */
-  PREC_LOWEST,		/* eok_x_to_i_expon */
-  PREC_LOWEST,		/* eok_f_to_f_expon */
-  PREC_LOWEST,		/* eok_x_to_x_expon */
-#endif /* FIL */
-#ifdef CIL
-  PREC_MULT_DIV,	/* eok_remainder */
-  PREC_PLUS_MINUS,	/* eok_padd_subsc (NOTE: this operator is sometimes
-                           generated as a[b], sometimes as a+b, hence the
-                           PREC_PLUS_MINUS) */
-  PREC_PLUS_MINUS,	/* eok_pdiff */
-  PREC_EQ_NE,		/* eok_peq */
-  PREC_EQ_NE,		/* eok_pne */
-  PREC_RELATIONAL,	/* eok_pgt */
-  PREC_RELATIONAL,	/* eok_plt */
-  PREC_RELATIONAL,	/* eok_pge */
-  PREC_RELATIONAL,	/* eok_ple */
-  PREC_GNU_MIN_MAX,	/* eok_pgnu_min */
-  PREC_GNU_MIN_MAX,	/* eok_pgnu_max */
-  PREC_EQ_NE,		/* eok_pmeq */
-  PREC_EQ_NE,		/* eok_pmne */
-  PREC_ASSIGNMENT,	/* eok_sassign */
-  PREC_ASSIGNMENT,	/* eok_bassign */
-  PREC_ASSIGNMENT,	/* eok_pmassign */
-  PREC_ASSIGNMENT,	/* eok_iadd_assign */
-  PREC_ASSIGNMENT,	/* eok_isubtract_assign */
-  PREC_ASSIGNMENT,	/* eok_imultiply_assign */
-  PREC_ASSIGNMENT,	/* eok_idivide_assign */
-  PREC_ASSIGNMENT,	/* eok_remainder_assign */
-#if FIXED_POINT_ALLOWED
-  PREC_ASSIGNMENT,	/* eok_fxadd_assign */
-  PREC_ASSIGNMENT,	/* eok_fxsubtract_assign */
-  PREC_ASSIGNMENT,	/* eok_fxmultiply_assign */
-  PREC_ASSIGNMENT,	/* eok_fxdivide_assign */
-  PREC_ASSIGNMENT,	/* eok_fxshiftl_assign */
-  PREC_ASSIGNMENT,	/* eok_fxshiftr_assign */
-#endif /* FIXED_POINT_ALLOWED */
-  PREC_ASSIGNMENT,	/* eok_fadd_assign */
-  PREC_ASSIGNMENT,	/* eok_fsubtract_assign */
-  PREC_ASSIGNMENT,	/* eok_fmultiply_assign */
-  PREC_ASSIGNMENT,	/* eok_fdivide_assign */
-  PREC_ASSIGNMENT,	/* eok_padd_assign */
-  PREC_ASSIGNMENT,	/* eok_psubtract_assign */
-  PREC_ASSIGNMENT,	/* eok_shiftl_assign */
-  PREC_ASSIGNMENT,	/* eok_shiftr_assign */
-  PREC_ASSIGNMENT,	/* eok_and_assign */
-  PREC_ASSIGNMENT,	/* eok_or_assign */
-  PREC_ASSIGNMENT,	/* eok_xor_assign */
-  PREC_POSTFIX,		/* eok_subscript */
-  PREC_PREFIX,		/* eok_field (NOTE: eok_field is sometimes generated
-                           using &, hence the PREC_PREFIX) */
-  PREC_POSTFIX,		/* eok_value_field */
-  PREC_POSTFIX,		/* eok_bit_field */
-  PREC_POSTFIX,		/* eok_value_bit_field */
-  PREC_POSTFIX,		/* eok_extract_bit_field */
-  PREC_PTR_TO_MEMBER,	/* eok_pm_field */
-  PREC_POSTFIX,		/* eok_points_to_static */
-  PREC_POSTFIX,		/* eok_lvalue_dot_static */
-  PREC_POSTFIX,		/* eok_rvalue_dot_static */
-  PREC_SHIFT,		/* eok_shiftl */
-  PREC_SHIFT,		/* eok_shiftr */
-  PREC_AND,		/* eok_and */
-  PREC_OR,		/* eok_or */
-  PREC_EXCL_OR,		/* eok_xor */
-  PREC_COMMA,		/* eok_comma */
-  PREC_POSTFIX,		/* eok_virtual_function_ptr */
-  PREC_POSTFIX,		/* eok_vacuous_destructor_call */
-  PREC_POSTFIX,		/* eok_value_vacuous_destructor_call */
-#endif /* CIL */
-  PREC_AND_AND,		/* eok_land */
-  PREC_OR_OR,		/* eok_lor */
-#ifdef FIL
-  PREC_LOWEST,		/* eok_neqv */
-  PREC_LOWEST,		/* eok_eqv */
-#endif /* FIL */
-#ifdef CIL
-  PREC_QUEST_MARK,	/* eok_question */
-#endif /* CIL */
-#ifdef FIL
-  PREC_LOWEST,		/* eok_substring */
-  PREC_LOWEST,		/* eok_value_substring */
-#endif /* FIL */
-  PREC_POSTFIX,		/* eok_call */
-#ifdef CIL
-  PREC_POSTFIX,		/* eok_virtual_call */
-  PREC_POSTFIX,		/* eok_pm_call */
-#endif /* CIL */
-#ifdef FIL
-  PREC_LOWEST,		/* eok_fsubscript */
-  PREC_LOWEST,		/* eok_value_fsubscript */
-#endif /* FIL */
-  PREC_POSTFIX,		/* eok_va_start */
-  PREC_POSTFIX,		/* eok_va_arg */
-  PREC_POSTFIX,		/* eok_va_end */
-  PREC_POSTFIX,		/* eok_va_copy */
-  PREC_POSTFIX,		/* eok_va_start_single_operand */
-#ifdef CIL
-  PREC_PREFIX,		/* eok_negate */
-  PREC_POSTFIX,		/* eok_post_incr */
-  PREC_POSTFIX,		/* eok_post_decr */
-  PREC_PREFIX,		/* eok_pre_incr */
-  PREC_PREFIX,		/* eok_pre_decr */
-  PREC_PLUS_MINUS,	/* eok_add */
-  PREC_PLUS_MINUS,	/* eok_subtract */
-  PREC_MULT_DIV,	/* eok_multiply */
-  PREC_MULT_DIV,	/* eok_divide */
-  PREC_EQ_NE,		/* eok_eq */
-  PREC_EQ_NE,		/* eok_ne */
-  PREC_RELATIONAL,	/* eok_gt */
-  PREC_RELATIONAL,	/* eok_lt */
-  PREC_RELATIONAL,	/* eok_ge */
-  PREC_RELATIONAL,	/* eok_le */
-  PREC_GNU_MIN_MAX,	/* eok_gnu_min */
-  PREC_GNU_MIN_MAX,	/* eok_gnu_max */
-  PREC_ASSIGNMENT,	/* eok_assign */
-  PREC_ASSIGNMENT,	/* eok_add_assign */
-  PREC_ASSIGNMENT,	/* eok_subtract_assign */
-  PREC_ASSIGNMENT,	/* eok_multiply_assign */
-  PREC_ASSIGNMENT,	/* eok_divide_assign */
-  PREC_PREFIX,		/* eok_address */
-  PREC_PTR_TO_MEMBER,	/* eok_pm_dot_field */
-  PREC_PTR_TO_MEMBER,	/* eok_pm_arrow_field */
-  PREC_POSTFIX,		/* eok_static_cast */
-  PREC_POSTFIX,		/* eok_const_cast */
-  PREC_POSTFIX,		/* eok_reinterpret_cast */
-  PREC_LOWEST,		/* eok_lvalue */
-  PREC_LOWEST,		/* eok_rvalue */
-  PREC_POSTFIX,		/* eok_generic_call */
-  PREC_POSTFIX,		/* eok_generic_member_call */
-#endif /* CIL */
-  PREC_LOWEST,		/* eok_error */
-  PREC_LOWEST		/* eok_last */
-};  /* generated_precedence */
-
-
-static a_boolean parens_may_be_needed(a_byte           operator_precedence,
-                                      an_expr_node_ptr operand)
-/*
-Return TRUE if parentheses may be needed around the generated code for
-operand when appearing under an operator having operator_precedence.  This
-is a conservative determination; parens_may_be_needed will return FALSE
-only if it can be easily determined that there will be no precedence
-problems.
-*/
-{
-  a_boolean parens_needed = TRUE;
-  a_boolean operand_changed;
-
-  do {
-    /* Scan down through nodes that will not appear in the generated code to
-       get to the expression that will appear. */
-    operand_changed = FALSE;
-    if (is_operation_node(operand) &&
-        (node_operator_is(operand, eok_cast) ||
-         node_operator_is(operand, eok_base_class_cast) ||
-         node_operator_is(operand, eok_derived_class_cast) ||
-         node_operator_is(operand, eok_bool_cast) ||
-         node_operator_is(operand, eok_pm_base_class_cast) ||
-         node_operator_is(operand, eok_pm_derived_class_cast)) &&
-        operand->variant.operation.compiler_generated &&
-        !operand->variant.operation.keep_cast_for_cp_gen_be &&
-        !is_array_decay_cast(operand) &&
-        !is_const_string_literal_cast(operand)) {
-      operand = operand->variant.operation.operands;
-      operand_changed = TRUE;
-    } else if (operand->kind == (an_expr_node_kind)enk_temp_init) {
-      if (operand->variant.init.dynamic_init->kind ==
-                                         (a_dynamic_init_kind)dik_expression ||
-          operand->variant.init.dynamic_init->kind ==
-                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
-        operand = operand->variant.init.dynamic_init->variant.expression;
-        operand_changed = TRUE;
-      } else if (operand->variant.init.dynamic_init->kind ==
-                                        (a_dynamic_init_kind)dik_constructor &&
-                 !operand->variant.init.dynamic_init->is_explicit_cast) {
-        operand = operand->variant.init.dynamic_init->variant.constructor.args;
-        operand_changed = TRUE;
-      }  /* if */
-    }  /* if */
-  } while (operand_changed);
-  if (operand->kind == (an_expr_node_kind)enk_variable ||
-      operand->kind == (an_expr_node_kind)enk_variable_address ||
-      operand->kind == (an_expr_node_kind)enk_temp_init) {
-    /* These can't have precedence problems. */
-    parens_needed = FALSE;
-  } else if (is_operation_node(operand) &&
-             (operator_precedence <
-                       generated_precedence[operand->variant.operation.kind] ||
-              generated_precedence[operand->variant.operation.kind] ==
-                                                               PREC_POSTFIX)) {
-    /* Either the operand's operator binds more tightly than the operator
-       does or both are postfix operators, so parentheses around the
-       operand are not required. */
-    parens_needed = FALSE;
-  }  /* if */
-  return parens_needed;
-}  /* parens_may_be_needed */
-
-
-/*
 Precedence of the overloadable operators, used to determine whether
 parentheses are needed around a given expression operand.  If you add
 operators to this list and are uncertain about the precedence to use, it is
@@ -8053,6 +7705,7 @@ static a_byte overloadable_operator_precedence[] = {
   PREC_GNU_MIN_MAX,	/* onk_gnu_max */
   PREC_LOWEST		/* onk_last */
 };  /* overloadable_operator_precedence */
+
 
 static a_boolean handle_operator_call(an_expr_node_ptr expr)
 /*
@@ -8460,6 +8113,356 @@ Most cases fit a simple pattern, but some require special handling.
                       (a_type_ptr)NULL, /*skip_num=*/0);
   }  /* if */
 }  /* gen_builtin_operation */
+
+
+/*
+Precedence of the generated form of expression operators, used to determine
+whether parentheses are needed around a given expression operand.  If you add
+operators to this list and are uncertain about the precedence to use, it is
+always safe to use PREC_LOWEST, which effectively results in use of
+gen_expr_with_parens to generate the expression containing the operator.  If
+a given operator may be generated in different forms, this table should
+reflect the one with the lowest precedence.
+*/
+static a_byte generated_precedence[] = {
+  PREC_PREFIX,		/* eok_indirect */
+  PREC_PREFIX,		/* eok_inegate */
+#if FIXED_POINT_ALLOWED
+  PREC_PREFIX,		/* eok_fxnegate */
+#endif /* FIXED_POINT_ALLOWED */
+  PREC_PREFIX,		/* eok_fnegate */
+  PREC_PREFIX,		/* eok_unary_plus */
+  PREC_PREFIX,		/* eok_not */
+  PREC_CAST,		/* eok_cast (NOTE: cases where the cast is not
+                           generated are filtered out by
+                           parens_may_be_needed) */
+#ifdef CIL
+  PREC_CAST,		/* eok_base_class_cast */
+  PREC_CAST,		/* eok_derived_class_cast */
+  PREC_CAST,		/* eok_pm_base_class_cast */
+  PREC_CAST,		/* eok_pm_derived_class_cast */
+  PREC_CAST,		/* eok_lvalue_cast */
+  PREC_POSTFIX,		/* eok_dynamic_cast */
+  PREC_CAST,		/* eok_bool_cast */
+  PREC_PREFIX,		/* eok_complement */
+  PREC_POSTFIX,		/* eok_ipost_incr */
+  PREC_POSTFIX,		/* eok_ipost_decr */
+  PREC_PREFIX,		/* eok_ipre_incr */
+  PREC_PREFIX,		/* eok_ipre_decr */
+#if FIXED_POINT_ALLOWED
+  PREC_POSTFIX,		/* eok_fxpost_incr */
+  PREC_POSTFIX,		/* eok_fxpost_decr */
+  PREC_PREFIX,		/* eok_fxpre_incr */
+  PREC_PREFIX,		/* eok_fxpre_decr */
+#endif /* FIXED_POINT_ALLOWED */
+  PREC_POSTFIX,		/* eok_fpost_incr */
+  PREC_POSTFIX,		/* eok_fpost_decr */
+  PREC_PREFIX,		/* eok_fpre_incr */
+  PREC_PREFIX,		/* eok_fpre_decr */
+  PREC_POSTFIX,		/* eok_ppost_incr */
+  PREC_POSTFIX,		/* eok_ppost_decr */
+  PREC_PREFIX,		/* eok_ppre_incr */
+  PREC_PREFIX,		/* eok_ppre_decr */
+  PREC_LOWEST,		/* eok_lvalue_from_struct_rvalue (NOTE: the
+                           generated code for this operator just copies the
+                           operand up, so we don't know anything about how
+                           it might actually be generated, hence the
+                           PREC_LOWEST) */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  PREC_POSTFIX,		/* eok_assume */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* CIL */
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+  PREC_PREFIX,		/* eok_xnegate */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FIL
+  PREC_LOWEST,		/* eok_char_length */
+  PREC_LOWEST,		/* eok_address_of_value */
+  PREC_LOWEST,		/* eok_loc */
+  PREC_LOWEST,		/* eok_test_logical */
+#endif /* FIL */
+  PREC_PLUS_MINUS,	/* eok_iadd */
+  PREC_PLUS_MINUS,	/* eok_isubtract */
+  PREC_MULT_DIV,	/* eok_imultiply */
+  PREC_MULT_DIV,	/* eok_idivide */
+  PREC_EQ_NE,		/* eok_ieq */
+  PREC_EQ_NE,		/* eok_ine */
+  PREC_RELATIONAL,	/* eok_igt */
+  PREC_RELATIONAL,	/* eok_ilt */
+  PREC_RELATIONAL,	/* eok_ige */
+  PREC_RELATIONAL,	/* eok_ile */
+  PREC_GNU_MIN_MAX,	/* eok_ignu_min */
+  PREC_GNU_MIN_MAX,	/* eok_ignu_max */
+  PREC_ASSIGNMENT,	/* eok_iassign */
+#if FIXED_POINT_ALLOWED
+  PREC_PLUS_MINUS,	/* eok_fxadd */
+  PREC_PLUS_MINUS,	/* eok_fxsubtract */
+  PREC_MULT_DIV,	/* eok_fxmultiply */
+  PREC_MULT_DIV,	/* eok_fxdivide */
+  PREC_SHIFT,		/* eok_fxshiftl */
+  PREC_SHIFT,		/* eok_fxshiftr */
+  PREC_EQ_NE,		/* eok_fxeq */
+  PREC_EQ_NE,		/* eok_fxne */
+  PREC_RELATIONAL,	/* eok_fxgt */
+  PREC_RELATIONAL,	/* eok_fxlt */
+  PREC_RELATIONAL,	/* eok_fxge */
+  PREC_RELATIONAL,	/* eok_fxle */
+  PREC_ASSIGNMENT,	/* eok_fxassign */
+#endif /* FIXED_POINT_ALLOWED */
+  PREC_PLUS_MINUS,	/* eok_fadd */
+  PREC_PLUS_MINUS,	/* eok_fsubtract */
+  PREC_MULT_DIV,	/* eok_fmultiply */
+  PREC_MULT_DIV,	/* eok_fdivide */
+  PREC_EQ_NE,		/* eok_feq */
+  PREC_EQ_NE,		/* eok_fne */
+  PREC_RELATIONAL,	/* eok_fgt */
+  PREC_RELATIONAL,	/* eok_flt */
+  PREC_RELATIONAL,	/* eok_fge */
+  PREC_RELATIONAL,	/* eok_fle */
+  PREC_GNU_MIN_MAX,	/* eok_fgnu_min */
+  PREC_GNU_MIN_MAX,	/* eok_fgnu_max */
+  PREC_ASSIGNMENT,	/* eok_fassign */
+  PREC_PLUS_MINUS,	/* eok_padd */
+  PREC_PLUS_MINUS,	/* eok_psubtract */
+  PREC_ASSIGNMENT,	/* eok_passign */
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+  PREC_PLUS_MINUS,	/* eok_xadd */
+  PREC_PLUS_MINUS,	/* eok_xsubtract */
+  PREC_MULT_DIV,	/* eok_xmultiply */
+  PREC_MULT_DIV,	/* eok_xdivide */
+  PREC_EQ_NE,		/* eok_xeq */
+  PREC_EQ_NE,		/* eok_xne */
+  PREC_ASSIGNMENT,	/* eok_xassign */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  PREC_ASSIGNMENT,	/* eok_xadd_assign */
+  PREC_ASSIGNMENT,	/* eok_xsubtract_assign */
+  PREC_ASSIGNMENT,	/* eok_xmultiply_assign */
+  PREC_ASSIGNMENT,	/* eok_xdivide_assign */
+  PREC_MULT_DIV,	/* eok_jmultiply */
+  PREC_MULT_DIV,	/* eok_jdivide */
+  PREC_PLUS_MINUS,	/* eok_fjadd */
+  PREC_PLUS_MINUS,	/* eok_jfadd */
+  PREC_PLUS_MINUS,	/* eok_fjsubtract */
+  PREC_PLUS_MINUS,	/* eok_jfsubtract */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+  PREC_PREFIX,		/* eok_xconj */
+  PREC_POSTFIX,		/* eok_real_part */
+  PREC_POSTFIX,		/* eok_imag_part */
+  PREC_PREFIX,		/* eok_lvalue_real_part (NOTE: this operator and the
+                           next are sometimes generated with an &, hence the
+                           PREC_PREFIX) */
+  PREC_PREFIX,		/* eok_lvalue_imag_part */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#ifdef FIL
+  PREC_LOWEST,		/* eok_complex */
+  PREC_LOWEST,		/* eok_ceq */
+  PREC_LOWEST,		/* eok_cne */
+  PREC_LOWEST,		/* eok_cgt */
+  PREC_LOWEST,		/* eok_clt */
+  PREC_LOWEST,		/* eok_cge */
+  PREC_LOWEST,		/* eok_cle */
+  PREC_LOWEST,		/* eok_cassign */
+  PREC_LOWEST,		/* eok_concat */
+  PREC_LOWEST,		/* eok_i_to_i_expon */
+  PREC_LOWEST,		/* eok_f_to_i_expon */
+  PREC_LOWEST,		/* eok_x_to_i_expon */
+  PREC_LOWEST,		/* eok_f_to_f_expon */
+  PREC_LOWEST,		/* eok_x_to_x_expon */
+#endif /* FIL */
+#ifdef CIL
+  PREC_MULT_DIV,	/* eok_remainder */
+  PREC_PLUS_MINUS,	/* eok_padd_subsc (NOTE: this operator is sometimes
+                           generated as a[b], sometimes as a+b, hence the
+                           PREC_PLUS_MINUS) */
+  PREC_PLUS_MINUS,	/* eok_pdiff */
+  PREC_EQ_NE,		/* eok_peq */
+  PREC_EQ_NE,		/* eok_pne */
+  PREC_RELATIONAL,	/* eok_pgt */
+  PREC_RELATIONAL,	/* eok_plt */
+  PREC_RELATIONAL,	/* eok_pge */
+  PREC_RELATIONAL,	/* eok_ple */
+  PREC_GNU_MIN_MAX,	/* eok_pgnu_min */
+  PREC_GNU_MIN_MAX,	/* eok_pgnu_max */
+  PREC_EQ_NE,		/* eok_pmeq */
+  PREC_EQ_NE,		/* eok_pmne */
+  PREC_ASSIGNMENT,	/* eok_sassign */
+  PREC_ASSIGNMENT,	/* eok_bassign */
+  PREC_ASSIGNMENT,	/* eok_pmassign */
+  PREC_ASSIGNMENT,	/* eok_iadd_assign */
+  PREC_ASSIGNMENT,	/* eok_isubtract_assign */
+  PREC_ASSIGNMENT,	/* eok_imultiply_assign */
+  PREC_ASSIGNMENT,	/* eok_idivide_assign */
+  PREC_ASSIGNMENT,	/* eok_remainder_assign */
+#if FIXED_POINT_ALLOWED
+  PREC_ASSIGNMENT,	/* eok_fxadd_assign */
+  PREC_ASSIGNMENT,	/* eok_fxsubtract_assign */
+  PREC_ASSIGNMENT,	/* eok_fxmultiply_assign */
+  PREC_ASSIGNMENT,	/* eok_fxdivide_assign */
+  PREC_ASSIGNMENT,	/* eok_fxshiftl_assign */
+  PREC_ASSIGNMENT,	/* eok_fxshiftr_assign */
+#endif /* FIXED_POINT_ALLOWED */
+  PREC_ASSIGNMENT,	/* eok_fadd_assign */
+  PREC_ASSIGNMENT,	/* eok_fsubtract_assign */
+  PREC_ASSIGNMENT,	/* eok_fmultiply_assign */
+  PREC_ASSIGNMENT,	/* eok_fdivide_assign */
+  PREC_ASSIGNMENT,	/* eok_padd_assign */
+  PREC_ASSIGNMENT,	/* eok_psubtract_assign */
+  PREC_ASSIGNMENT,	/* eok_shiftl_assign */
+  PREC_ASSIGNMENT,	/* eok_shiftr_assign */
+  PREC_ASSIGNMENT,	/* eok_and_assign */
+  PREC_ASSIGNMENT,	/* eok_or_assign */
+  PREC_ASSIGNMENT,	/* eok_xor_assign */
+  PREC_POSTFIX,		/* eok_subscript */
+  PREC_PREFIX,		/* eok_field (NOTE: eok_field is sometimes generated
+                           using &, hence the PREC_PREFIX) */
+  PREC_POSTFIX,		/* eok_value_field */
+  PREC_POSTFIX,		/* eok_bit_field */
+  PREC_POSTFIX,		/* eok_value_bit_field */
+  PREC_POSTFIX,		/* eok_extract_bit_field */
+  PREC_PTR_TO_MEMBER,	/* eok_pm_field */
+  PREC_POSTFIX,		/* eok_points_to_static */
+  PREC_POSTFIX,		/* eok_lvalue_dot_static */
+  PREC_POSTFIX,		/* eok_rvalue_dot_static */
+  PREC_SHIFT,		/* eok_shiftl */
+  PREC_SHIFT,		/* eok_shiftr */
+  PREC_AND,		/* eok_and */
+  PREC_OR,		/* eok_or */
+  PREC_EXCL_OR,		/* eok_xor */
+  PREC_COMMA,		/* eok_comma */
+  PREC_POSTFIX,		/* eok_virtual_function_ptr */
+  PREC_POSTFIX,		/* eok_vacuous_destructor_call */
+  PREC_POSTFIX,		/* eok_value_vacuous_destructor_call */
+#endif /* CIL */
+  PREC_AND_AND,		/* eok_land */
+  PREC_OR_OR,		/* eok_lor */
+#ifdef FIL
+  PREC_LOWEST,		/* eok_neqv */
+  PREC_LOWEST,		/* eok_eqv */
+#endif /* FIL */
+#ifdef CIL
+  PREC_QUEST_MARK,	/* eok_question */
+#endif /* CIL */
+#ifdef FIL
+  PREC_LOWEST,		/* eok_substring */
+  PREC_LOWEST,		/* eok_value_substring */
+#endif /* FIL */
+  PREC_POSTFIX,		/* eok_call */
+#ifdef CIL
+  PREC_POSTFIX,		/* eok_virtual_call */
+  PREC_POSTFIX,		/* eok_pm_call */
+#endif /* CIL */
+#ifdef FIL
+  PREC_LOWEST,		/* eok_fsubscript */
+  PREC_LOWEST,		/* eok_value_fsubscript */
+#endif /* FIL */
+  PREC_POSTFIX,		/* eok_va_start */
+  PREC_POSTFIX,		/* eok_va_arg */
+  PREC_POSTFIX,		/* eok_va_end */
+  PREC_POSTFIX,		/* eok_va_copy */
+  PREC_POSTFIX,		/* eok_va_start_single_operand */
+#ifdef CIL
+  PREC_PREFIX,		/* eok_negate */
+  PREC_POSTFIX,		/* eok_post_incr */
+  PREC_POSTFIX,		/* eok_post_decr */
+  PREC_PREFIX,		/* eok_pre_incr */
+  PREC_PREFIX,		/* eok_pre_decr */
+  PREC_PLUS_MINUS,	/* eok_add */
+  PREC_PLUS_MINUS,	/* eok_subtract */
+  PREC_MULT_DIV,	/* eok_multiply */
+  PREC_MULT_DIV,	/* eok_divide */
+  PREC_EQ_NE,		/* eok_eq */
+  PREC_EQ_NE,		/* eok_ne */
+  PREC_RELATIONAL,	/* eok_gt */
+  PREC_RELATIONAL,	/* eok_lt */
+  PREC_RELATIONAL,	/* eok_ge */
+  PREC_RELATIONAL,	/* eok_le */
+  PREC_GNU_MIN_MAX,	/* eok_gnu_min */
+  PREC_GNU_MIN_MAX,	/* eok_gnu_max */
+  PREC_ASSIGNMENT,	/* eok_assign */
+  PREC_ASSIGNMENT,	/* eok_add_assign */
+  PREC_ASSIGNMENT,	/* eok_subtract_assign */
+  PREC_ASSIGNMENT,	/* eok_multiply_assign */
+  PREC_ASSIGNMENT,	/* eok_divide_assign */
+  PREC_PREFIX,		/* eok_address */
+  PREC_PTR_TO_MEMBER,	/* eok_pm_dot_field */
+  PREC_PTR_TO_MEMBER,	/* eok_pm_arrow_field */
+  PREC_POSTFIX,		/* eok_static_cast */
+  PREC_POSTFIX,		/* eok_const_cast */
+  PREC_POSTFIX,		/* eok_reinterpret_cast */
+  PREC_LOWEST,		/* eok_lvalue */
+  PREC_LOWEST,		/* eok_rvalue */
+  PREC_POSTFIX,		/* eok_generic_call */
+  PREC_POSTFIX,		/* eok_generic_member_call */
+#endif /* CIL */
+  PREC_LOWEST,		/* eok_error */
+  PREC_LOWEST		/* eok_last */
+};  /* generated_precedence */
+
+
+static a_boolean parens_may_be_needed(a_byte           operator_precedence,
+                                      an_expr_node_ptr operand)
+/*
+Return TRUE if parentheses may be needed around the generated code for
+operand when appearing under an operator having operator_precedence.  This
+is a conservative determination; parens_may_be_needed will return FALSE
+only if it can be easily determined that there will be no precedence
+problems.
+*/
+{
+  a_boolean parens_needed = TRUE;
+  a_boolean operand_changed;
+
+  do {
+    /* Scan down through nodes that will not appear in the generated code to
+       get to the expression that will appear. */
+    operand_changed = FALSE;
+    if (is_operation_node(operand) &&
+        (node_operator_is(operand, eok_cast) ||
+         node_operator_is(operand, eok_base_class_cast) ||
+         node_operator_is(operand, eok_derived_class_cast) ||
+         node_operator_is(operand, eok_bool_cast) ||
+         node_operator_is(operand, eok_pm_base_class_cast) ||
+         node_operator_is(operand, eok_pm_derived_class_cast)) &&
+        operand->variant.operation.compiler_generated &&
+        !operand->variant.operation.keep_cast_for_cp_gen_be &&
+        !is_array_decay_cast(operand) &&
+        !is_const_string_literal_cast(operand)) {
+      operand = operand->variant.operation.operands;
+      operand_changed = TRUE;
+    } else if (operand->kind == (an_expr_node_kind)enk_temp_init) {
+      if (operand->variant.init.dynamic_init->kind ==
+                                         (a_dynamic_init_kind)dik_expression ||
+          operand->variant.init.dynamic_init->kind ==
+                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+        operand = operand->variant.init.dynamic_init->variant.expression;
+        operand_changed = TRUE;
+      } else if (operand->variant.init.dynamic_init->kind ==
+                                        (a_dynamic_init_kind)dik_constructor &&
+                 !operand->variant.init.dynamic_init->is_explicit_cast) {
+        operand = operand->variant.init.dynamic_init->variant.constructor.args;
+        operand_changed = TRUE;
+      }  /* if */
+    }  /* if */
+  } while (operand_changed);
+  if (operand->kind == (an_expr_node_kind)enk_variable ||
+      operand->kind == (an_expr_node_kind)enk_variable_address ||
+      operand->kind == (an_expr_node_kind)enk_temp_init) {
+    /* These can't have precedence problems. */
+    parens_needed = FALSE;
+  } else if (is_operation_node(operand) &&
+             (operator_precedence <
+                       generated_precedence[operand->variant.operation.kind] ||
+              generated_precedence[operand->variant.operation.kind] ==
+                                                               PREC_POSTFIX)) {
+    /* Either the operand's operator binds more tightly than the operator
+       does or both are postfix operators, so parentheses around the
+       operand are not required. */
+    parens_needed = FALSE;
+  }  /* if */
+  return parens_needed;
+}  /* parens_may_be_needed */
 
 
 static void gen_expr(an_expr_node_ptr expr,
