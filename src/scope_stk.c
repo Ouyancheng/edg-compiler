@@ -5311,19 +5311,6 @@ been completed.
                  variable_needed_even_if_unreferenced(vp));
     if (is_needed) {
       mark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
-#if GNU_EXTENSIONS_ALLOWED
-      { a_variable_ptr  avp = vp->aliased_variable;
-        /* If vp is a needed alias, the variable (possibly through a chain of
-           aliases) it aliases should also be marked as needed. */
-        while (avp != NULL) {
-          if (!avp->source_corresp.needed) {
-            mark_as_needed((char*)avp, (an_il_entry_kind)iek_variable); 
-            remark_as_needed((char*)avp, (an_il_entry_kind)iek_variable);
-          }  /* if */
-          avp = avp->aliased_variable;
-        }  /* while */
-      }
-#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     /* If the variable is marked as needed, remark it to visit its
        subtree.  The subtree is not visited until this phase, because it

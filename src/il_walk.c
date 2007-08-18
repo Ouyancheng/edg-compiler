@@ -1022,6 +1022,19 @@ as needed.
 #endif /* IA64_ABI || ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #endif /* DO_IL_LOWERING */
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    if (entry_kind == (an_il_entry_kind)iek_variable) {
+      /* If this is a needed GNU alias for a variable, then any entity (alias
+         or variable) it aliases should be marked as needed too. */
+      a_variable_ptr avp = ((a_variable_ptr)entry_ptr)->aliased_variable;
+      while (avp != NULL) {
+        if (!needed_flag_is_set(&avp->source_corresp)) {
+          mark_as_needed((char*)avp, (an_il_entry_kind)iek_variable); 
+        }  /* if */
+        avp = avp->aliased_variable;
+      }  /* while */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   return prune;
 }  /* prune_needed_flag_il_walk */
