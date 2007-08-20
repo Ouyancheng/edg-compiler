@@ -1823,6 +1823,9 @@ Free all memory used by the compilation.  This must be called at the
 very end of processing.
 */
 {
+  /* Don't keep checking the stop token stack in db_enter/db_exit because
+     the storage goes away when the front end memory region is freed. */
+  curr_stop_token_stack_entry = NULL;
   if (mem_region_table != NULL) free_all_memory_regions();
 #if !STANDALONE_UTILITY_PROGRAM
 #if USE_MMAP_FOR_MEMORY_REGIONS

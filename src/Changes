@@ -1,5 +1,14 @@
 Version 3.10
 
+8/20/07  Use of freed memory in debug_exit could cause front end crash
+
+In configurations where DEBUG, CHECKING and MAKE_FRONT_END_CALLABLE are 
+all TRUE, and debugging is active (i.e., debug_level > 0), it is possible
+for the front end to erroneously reference memory that has already been
+freed.  This can happen when compilation terminates abruptly (e.g.,
+from a #error directive) causing fe_cleanup to be called rather than
+fe_wrapup.  This is now fixed.
+
 8/14/07  C++0x: __func__
 
 In C++0x mode, the reserved identifier __func__ is now accepted in function
