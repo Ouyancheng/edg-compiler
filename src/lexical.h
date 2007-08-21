@@ -1735,9 +1735,7 @@ typedef struct a_stop_token_stack_entry {
 
 EXTERN a_stop_token_stack_entry_ptr
 		curr_stop_token_stack_entry;
-			/* Pointer to the current stop token stack entry.
-			   This is initialized to point to the statically
-			   allocated bottom_of_stop_token_stack entry. */
+			/* Pointer to the current stop token stack entry. */
 
 /*
 Other general variables:
