@@ -3978,20 +3978,34 @@ void check_old_specialization_allowed(a_symbol_ptr       sym,
                                       a_source_position  *pos)
 /*
 Issue a discretionary error if old-style template specializations are not
-allowed.  sym is the instance symbol, pos the error position.
+allowed.  sym is the instance symbol, pos the error position.  If this is
+called for a class template specialization, the current token must be the
+one following the class specifier (a colon or brace in the case of a
+definition).
 */
 {
-  an_error_code  code;
-
   if (!old_specializations_allowed) {
-    if (strict_ansi_mode) {
+    an_error_code  code = ec_no_error;
+    if (microsoft_mode && microsoft_version >= 1310 &&
+        microsoft_version < 1400 && is_class_symbol(sym)) {
+      /* Microsoft C++ 8.0 (microsoft_version == 1400) rejects every kind of
+         old-style specialization.  Microsoft C++ 7.0 and earlier accept those
+         cases (and old_specializations_allowed is TRUE by default when
+         microsoft_version < 1310).  However, Microsoft C++ 7.1 accepts old-
+         style specializations of class templates that aren't definitions. */
+      if (curr_token == tok_colon || curr_token == tok_lbrace) {
+        code = ec_old_specialization_not_allowed;
+      }  /* if */
+    } else if (strict_ansi_mode) {
       /* Old-style template specialization is nonstandard. */
       code = ec_nonstd_old_specialization;
     } else {
       /* Old-style template specialization is not allowed. */
       code = ec_old_specialization_not_allowed;
     }  /* if */
-    pos_sy_diagnostic(es_discretionary_error, code, pos, sym);
+    if (code != ec_no_error) {
+      pos_sy_diagnostic(es_discretionary_error, code, pos, sym);
+    }  /* if */
   }  /* if */
 }  /* check_old_specialization_allowed */
 

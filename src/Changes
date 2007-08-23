@@ -1,5 +1,19 @@
 Version 3.10
 
+8/23/07  Microsoft compatibility: Old-style explicit specializations
+
+In Microsoft mode, old-style explicit specializations are now disallowed by
+default when microsoft_version >= 1310 (a discretionary error is issued).
+An exception is made when microsoft >= 1310 but < 1400: In that case, explicit
+specializations of class templates that are not definitions are still
+accepted.  For example:
+
+  template<class T> struct S {};
+  struct S<int>;             // Error when microsoft_version >= 1400.
+  struct S<int> { int i; };  // Error when microsoft_version >= 1310.
+
+See also the related Changes entry of 8/2/07.
+
 8/23/07  GNU compatibility: __alignof applied to packed fields
 
 In GNU modes, applying the __alignof operator to a field selection operation
