@@ -1691,7 +1691,7 @@ by a command line option.
       guiding_decls_allowed = microsoft_version <= 1300;
     }  /* if */
     if (!option_kind_used[(int)optk_old_specializations]) {
-      old_specializations_allowed = TRUE;
+      old_specializations_allowed = microsoft_version < 1310;
     }  /* if */
     c_and_cpp_function_types_are_distinct = FALSE;
     if (!option_kind_used[(int)optk_extern_inline]) {
