@@ -5528,13 +5528,13 @@ result_known:
 static void fold_types_compatible(an_expr_node_ptr   expr,
                                   a_constant_ptr     constant)
 /*
-expr is an enk_builtin_operation node for a GNU __builtin_types_compatible
-operation.  If the operand types are nondependent, store a boolean constant
-in *constant.  The boolean constant will have value "true" if the operand
-types are "compatible"; otherwise, the constant will have value "false".
-If either of the operand types is dependent, store a ck_template_param
-constant in *constant.  The constant will be of the tpck_expression variant
-and will point to the given expression.
+expr is an enk_builtin_operation node for a GNU C __builtin_types_compatible
+operation.  If the operand types are nondependent, store a boolean constant in
+*constant.  The boolean constant will have value "true" if the operand types
+are "compatible" (ignoring top-level qualifiers); otherwise, the constant will
+have value "false".  If either of the operand types is dependent, store a
+ck_template_param constant in *constant.  The constant will be of the
+tpck_expression variant and will point to the given expression.
 */
 {
   an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
@@ -5553,7 +5553,7 @@ and will point to the given expression.
                    constant, (a_template_param_constant_kind)tpck_expression);
     constant->variant.template_param.variant.expr = expr;
   } else {
-    a_boolean  result = types_are_compatible(type1, type2);
+    a_boolean  result = types_are_compatible_ignoring_qualifiers(type1, type2);
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&constant->variant.integer_value,
                       (a_host_large_integer)result);

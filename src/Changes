@@ -1,5 +1,10 @@
 Version 3.10
 
+8/23/07  GNU C compatibility: __builtin_types_compatible_p
+
+In GNU C mode, the front end now ignores top-level qualifiers when evaluating
+the __builtin_types_compatible_p pseudo-function.
+
 8/20/07  Use of freed memory in debug_exit could cause front end crash
 
 In configurations where DEBUG, CHECKING and MAKE_FRONT_END_CALLABLE are 
