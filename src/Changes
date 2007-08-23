@@ -1,5 +1,18 @@
 Version 3.10
 
+8/23/07  GNU compatibility: __alignof applied to packed fields
+
+In GNU modes, applying the __alignof operator to a field selection operation
+for a packed field now produces the value 1.  (Previously, the "packed"
+attribute was ignored in such cases.)  For example:
+
+  struct S { int i __attribute__((packed)); } s;
+  int main() {
+    return __alignof(s.i); // Returns 1.
+  }
+
+(See also Changes entry of 3/1/06.)
+
 8/23/07  GNU C compatibility: __builtin_types_compatible_p
 
 In GNU C mode, the front end now ignores top-level qualifiers when evaluating

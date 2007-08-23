@@ -6265,12 +6265,15 @@ implement <stdarg.h>, a standard feature.
         an_expr_node_ptr  field_op = expr->variant.operation.operands->next;
         a_targ_alignment  explicit_alignment = 0;
 #if USER_CONTROL_OF_STRUCT_PACKING
-        explicit_alignment = field_op->variant.field->alignment;
+        /* The "packed" attribute implies an alignment of one, and overrides
+           any value specified with the "aligned" attribute. */
+        explicit_alignment = field_op->variant.field->is_packed ?
+                                       1 : field_op->variant.field->alignment;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
         if (field_op->kind == (an_expr_node_kind)enk_field &&
             explicit_alignment != 0) {
           /* A field selection for a field that has an explicit alignment
-             (presumably set by the "aligned" attribute). */
+             (presumably set by the "packed" or "aligned" attributes). */
           alignment = explicit_alignment;
 #if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
         } else if (gnu_version >= 30300) {
