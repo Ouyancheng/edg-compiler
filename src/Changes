@@ -2,11 +2,11 @@ Version 3.10
 
 8/23/07  Microsoft compatibility: Old-style explicit specializations
 
-In Microsoft mode, old-style explicit specializations are now disallowed by
-default when microsoft_version >= 1310 (a discretionary error is issued).
-An exception is made when microsoft >= 1310 but < 1400: In that case, explicit
-specializations of class templates that are not definitions are still
-accepted.  For example:
+In Microsoft mode, old-style explicit specializations of nonmember entities
+are now disallowed by default when microsoft_version >= 1310 (a discretionary
+error is issued).  An exception is made when microsoft >= 1310 but < 1400: In
+that case, explicit specializations of class templates that are not
+definitions are still accepted.  For example:
 
   template<class T> struct S {};
   struct S<int>;             // Error when microsoft_version >= 1400.
