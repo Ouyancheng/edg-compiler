@@ -6944,7 +6944,7 @@ typedef struct a_variable {
 			   an aggregate initializer that includes values for
 			   the flexible array member.  This may require a
 			   back end to allocate more storage for the variable
-			   that what is indicated by its type's size. */
+			   than what is indicated by its type's size. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
   a_bit_field	declared_with_auto_type_specifier:1;
 			/* TRUE if the variable's declaration contains the
