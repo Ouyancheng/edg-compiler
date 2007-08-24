@@ -168,7 +168,7 @@ g++ version 3.3:
                                     // "S s __attribute__((__used__))(3);"
                                     // with gnu_target_version_number==30300
 
-8/8/08   GNU compatibility: Aliases to undefined entities
+8/8/07   GNU compatibility: Aliases to undefined entities
 
 Previously, in GNU modes, an alias attribute referring to an entity not
 declared in the same translation unit was treated as if the aliased name was
