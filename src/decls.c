@@ -3986,14 +3986,22 @@ definition).
 {
   if (!old_specializations_allowed) {
     an_error_code  code = ec_no_error;
-    if (microsoft_mode && microsoft_version >= 1310 &&
-        microsoft_version < 1400 && is_class_symbol(sym)) {
-      /* Microsoft C++ 8.0 (microsoft_version == 1400) rejects every kind of
-         old-style specialization.  Microsoft C++ 7.0 and earlier accept those
-         cases (and old_specializations_allowed is TRUE by default when
-         microsoft_version < 1310).  However, Microsoft C++ 7.1 accepts old-
-         style specializations of class templates that aren't definitions. */
-      if (curr_token == tok_colon || curr_token == tok_lbrace) {
+    if (microsoft_mode) {
+      if (sym->is_class_member) {
+        /* All current versions of Microsoft C++ compilers appear to accept
+           old-style specializations of members of class templates. */
+      } else if (microsoft_version >= 1310 && microsoft_version < 1400 &&
+                 is_class_symbol(sym)) {
+        /* Microsoft C++ 8.0 (microsoft_version == 1400) rejects every kind of
+           old-style nonmember specialization.  Microsoft C++ 7.0 and earlier
+           accept those cases (and old_specializations_allowed is TRUE by
+           default when microsoft_version < 1310).  However, Microsoft C++ 7.1
+           accepts old-style specializations of class templates that aren't
+           definitions. */
+        if (curr_token == tok_colon || curr_token == tok_lbrace) {
+          code = ec_old_specialization_not_allowed;
+        }  /* if */
+      } else {
         code = ec_old_specialization_not_allowed;
       }  /* if */
     } else if (strict_ansi_mode) {
