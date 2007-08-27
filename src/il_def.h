@@ -2403,9 +2403,9 @@ typedef struct a_constant {
 			   it's zero). */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
   a_bit_field	flexible_array_initializer:1;
-			/* For a ck_aggregate constant in an initializer,
-			   TRUE if the initializer is for a flexible array
-			   member. */
+			/* For a ck_aggregate or ck_string constant in an
+			   initializer, TRUE if the initializer is for a
+			   flexible array member. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL && BACK_END_IS_CP_GEN_BE
   a_bit_field	suppress_expression_in_cp_gen_be:1;

@@ -1,5 +1,19 @@
 Version 3.10
 
+8/27/07  String initializers for flexible array members
+
+In some GNU and Microsoft modes, flexible array members can be initialized
+with a brace-enclosed initializer.  When the component of the aggregate
+constant corresponding to the flexible array member is itself an aggregate
+constant, the latter constant already had its field flexible_array_initializer
+set to TRUE.  This is now also done when the component of the aggregate
+constant corresponding to the flexible array member is a string constant
+(ck_string).  For example:
+
+  struct F { int n; int a[]; } = { 1, "x" };
+    // The constant representing "x" now has its flexible_array_initializer
+    // flag set to TRUE.
+
 8/23/07  Microsoft compatibility: Old-style explicit specializations
 
 In Microsoft mode, old-style explicit specializations of nonmember entities

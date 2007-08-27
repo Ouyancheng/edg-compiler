@@ -2328,13 +2328,18 @@ this function points to a tree that includes a dynamic-init entry.
         member_con = get_initializer(&member_type, init_info, &context,
                                      &local_nothing_taken,
                                      &local_any_dynamic_init);
-        if (gcc_mode && !is_flexible_array && local_any_dynamic_init &&
-            init_info->has_flexible_array_initializer) {
+        if (!is_flexible_array && init_info->has_flexible_array_initializer) {
           /* We just scanned an aggregate initializer for a flexible array
-             member, and it contained a dynamic component.  In GNU C, this
-             is invalid. */
-          pos_error(ec_nonconstant_flexible_array_member_init,
-                    &initializer_pos);
+             member. */
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+          member_con->flexible_array_initializer = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
+          if (gcc_mode && local_any_dynamic_init) {
+            /* In GNU C mode, a flexible array initializer can not include a
+               dynamic component. */
+            pos_error(ec_nonconstant_flexible_array_member_init,
+                      &initializer_pos);
+          }  /* if */
         }  /* if */
         /* If exceptions are enabled and the type of the member being
            initialized is a class with a destructor, it may be appropriate to
@@ -2597,10 +2602,6 @@ this function points to a tree that includes a dynamic-init entry.
         init_con->variant.aggregate.first_constant = context.constant_list;
         init_con->variant.aggregate.last_constant =
                                           context.end_of_constant_list;
-
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
-        init_con->flexible_array_initializer = is_flexible_array;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
         if (any_more_members) init_info->any_uninitialized_member = TRUE;
         if (brace_flag) {
           /* Remember the explicit braces.  This affects the meaning of
