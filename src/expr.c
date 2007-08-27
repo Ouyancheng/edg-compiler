@@ -6899,7 +6899,6 @@ non-parenthesized class member access expressions, and for calls.
             check_assertion(arg2->variant.constant->kind ==
                                      (a_constant_repr_kind)ck_template_param);
             goto general_case;
-            break;
           default:
             check_assertion(total_errors != 0);
             result = error_type();
