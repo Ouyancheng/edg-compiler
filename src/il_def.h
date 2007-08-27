@@ -10142,16 +10142,18 @@ typedef struct an_eh_prologue_supplement {
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 
 
-typedef enum a_local_expr_node_ref_kind_tag {
+enum a_local_expr_node_ref_kind_tag {
   lerk_none,		/* Used for initialization only. */
   lerk_generic_typeof,	/* A template-dependent expression used as an argument
 			   for a typeof construct. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
   lerk_generic_sizeof,	/* A template-dependent expression used as an argument
 			   for a sizeof, alignof, or uuidof construct. */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   lerk_decltype
 			/* An expression used as an argument for a decltype
 			   construct. */
-} a_local_expr_node_ref_kind_tag;
+};
 
 typedef a_byte a_local_expr_node_ref_kind;
 

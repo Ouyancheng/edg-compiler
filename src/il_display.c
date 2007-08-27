@@ -3541,9 +3541,11 @@ local) memory region.
     case lerk_generic_typeof:
       (void)printf("generic-typeof");
       break;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
     case lerk_generic_sizeof:
       (void)printf("generic-sizeof");
       break;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     case lerk_decltype:
       (void)printf("decltype");
       break;
