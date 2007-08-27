@@ -1,5 +1,39 @@
 Version 3.10
 
+8/27/07  C++0x: decltype
+
+In C++0x mode, the front end now accepts the decltype operator.  This operator
+allows a type to be produced from an expression.  In the general case,
+decltype applied to an rvalue expression produces the type of that expression,
+and decltype applied to an lvalue expression produces a reference to the type
+of that expression.  Two exceptions to this rule exist.  First, when decltype
+is applied to a qualified or unqualified name, or to a class member access
+operation, the type produced is that of the indicated entity or class member.
+Second, when decltype is applied to a function call, the type produced is that
+of the return type associated with the type of the call.  For example:
+
+  int i;
+  decltype(i) i2;    // Same as "int i2;"
+  decltype((i)) i3;  // Same as "int &i3;"
+
+This extension was voted into the C++ committee's working paper for the next
+standard in July 2007 (meeting in Toronto, through proposal numbered N2343).
+
+An important intended use of decltype is to determine the return type of
+certain function templates.  For example:
+
+  template<typename T> struct A<T> { /* ... */ };
+  template<typename T> T makeT();
+  template<typename X, typename Y>
+    A<decltype(makeT<X>()+makeT<Y>())> operator+(A<X> const&, A<Y> const&);
+
+Unfortunately, such uses are currently not supported because of an existing
+language issue under review by the C++ committee (Core issue number 339).
+Trying to instantiate a decltype construct during function template argument
+deduction results in a deduction failure.  The same is now also true for
+GNU C++ typeof constructs (previously such situations lead to an internal
+error).
+
 8/27/07  String initializers for flexible array members
 
 In some GNU and Microsoft modes, flexible array members can be initialized

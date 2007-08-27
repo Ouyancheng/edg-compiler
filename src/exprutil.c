@@ -1397,6 +1397,7 @@ values.
   operand->state = (an_operand_state)os_none;
   operand->bound_function = FALSE;
   operand->virtual_function = FALSE;
+  operand->is_id_expression = FALSE;
   operand->is_qualified_name = FALSE;
   operand->access_control_error_reported = FALSE;
   operand->is_operand_of_address_of = FALSE;

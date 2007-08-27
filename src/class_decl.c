@@ -12594,6 +12594,7 @@ routine.
     /* A C++ anonymous union -- "union { int i, j; };".
        decl_info->is_anonymous_union will have been set to TRUE by the call
        to is_anonymous_union_decl. */
+    a_type_ptr  au_type = skip_typerefs_not_typedefs(member_type);
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
     /* It might also be an anonymous-union-like construct in C or C++, namely
        an unnamed class/struct/union type, possibly represented by a typedef
@@ -12606,24 +12607,23 @@ routine.
        put out the declaration entry for the anonymous struct.
     */
     if (decl_info->is_nonstd_anonymous_union) {
-      a_symbol_ptr  sym;
-
-      sym = (a_symbol_ptr)(member_type)->source_corresp.assoc_info;
-      if (sym != NULL && has_name(member_type)) {
+      a_symbol_ptr  sym = symbol_for(au_type);
+      if (sym != NULL && has_name(au_type)) {
         record_symbol_declaration(SRK_DECLARATION, sym, err_pos,
                                   (a_source_sequence_entry_ptr)NULL);
       }  /* if */
-      if (!has_name(member_type)) {
+      if (!has_name(au_type)) {
         /* Only the types of anonymous unions whose type itself (as opposed
            to the associated member object) is anonymous are marked as being
            nonstandard anonymous union types. */
-        member_type
+        check_assertion(is_immediate_class_type(au_type));
+        au_type
            ->variant.class_struct_union.is_nonstd_anonymous_union_type = TRUE;
       }  /* if */
     }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     /* Set the IL referenced flag for the anonymous union type. */
-    member_type->source_corresp.referenced = TRUE;
+    au_type->source_corresp.referenced = TRUE;
   } else if (!C_mode()) {
     /* C++ mode. */
     if (dso_flags & DSO_MUTABLE) {

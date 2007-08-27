@@ -12644,11 +12644,11 @@ declarator (or NULL if it wasn't recorded).
      can appear above the function type even in a function definition
      in the presence of Microsoft qualifiers like near/far. */
   while (rout_type->kind == (a_type_kind)tk_typeref &&
-         !(typeref_is_typedef(rout_type)
+         !(typeref_is_typedef(rout_type) ||
 #if GNU_EXTENSIONS_ALLOWED
-           || rout_type->variant.typeref.is_typeof
+           rout_type->variant.typeref.is_typeof ||
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                                                  )) {
+           rout_type->variant.typeref.is_decltype)) {
     rout_type = rout_type->variant.typeref.type;
   }  /* while */
   if (rout_type->kind != (a_type_kind)tk_routine) {

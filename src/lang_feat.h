@@ -1886,6 +1886,12 @@ EXTERN a_boolean
 			/* When TRUE, the "auto" token can appear as a type
 			   specifier (the type is implied by the mandatory
 			   initializer; this is a C++0x feature). */
+
+EXTERN a_boolean
+		decltype_enabled;
+			/* When TRUE, the C++0x construct decltype is
+			   supported. */
+
 /*
 Check that no mutually exclusive dialect emulations are simultaneously
 enabled.

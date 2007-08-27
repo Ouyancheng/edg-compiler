@@ -1641,6 +1641,43 @@ to be displayed.
   fprintf(f_debug, "%.*s\n", (int)buf->size, buf->buffer);
 }  /* db_text_buffer */
 
+
+void db_prefix(char  *entry)
+/*
+Display the IL entry prefix of the given IL entry.
+*/
+{
+  if (entry == NULL) {
+    fprintf(f_debug, "NULL pointer\n");
+  } else {
+    if (il_entry_prefix_of(entry).file_scope) {
+      fprintf(f_debug, "file_scope ");
+    }  /* if */
+    if (il_entry_prefix_of(entry).secondary_trans_unit) {
+      fprintf(f_debug, "secondary_trans_unit ");
+    }  /* if */
+    if (il_entry_prefix_of(entry).il_walk_flag) {
+      fprintf(f_debug, "il_walk_flag ");
+    }  /* if */
+    if (il_entry_prefix_of(entry).il_lowering_flag) {
+      fprintf(f_debug, "lowering_flag ");
+    }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+    if (il_entry_prefix_of(entry).il_lowering_flag) {
+      fprintf(f_debug, "lowering_flag ");
+    }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+#if IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT
+    fprintf(f_debug, "(entry_number = %d) ",
+            il_entry_prefix_of(entry).entry_number);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT */
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+    fprintf(f_debug, "(alloc_seq_number = %d) ",
+            il_entry_prefix_of(entry).alloc_seq_number);
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
+  }  /* if */
+}  /* db_prefix */
+
 #endif /* DEBUG */
 
 void mem_manage_one_time_init(void)

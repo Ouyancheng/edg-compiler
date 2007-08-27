@@ -7988,17 +7988,41 @@ process_class_specifier:
         diagnostic(anachronism_error_severity, ec_overload_anachronism);
         decl_specifiers_seen |= DS_OVERLOAD;
         break;
+      case tok_decltype:
+        { a_source_position  decltype_pos = pos_curr_token;
+          *type_ptr = scan_decltype_operator(decl_pos_block);
+          if (!is_error_type(*type_ptr) &&
+              (basic_type != bt_none || sign != sign_none ||
+               size != size_none)) {
+            /* We've already seen specifiers that cannot be combined with
+               decltype: Ignore them and issue an error. */
+            pos_error(ec_bad_combination_of_type_specifiers, &decltype_pos);
+            *type_ptr = error_type();
+            sign = sign_none;
+            size = size_none;
+          }  /* if */
+          basic_type = bt_typedef;
+          decl_specifiers_seen |= DS_TYPE;
+          goto no_get_token;
+        }
 #if GNU_EXTENSIONS_ALLOWED
       case tok_typeof:
-        if (basic_type != bt_none || sign != sign_none || size != size_none) {
-          /* We've already seen specifiers that cannot be combined with
-             __typeof__; end the list of specifiers here. */
-          goto exit_loop;
-        }  /* if */
-        basic_type = bt_typedef;
-        decl_specifiers_seen |= DS_TYPE;
-        *type_ptr = scan_typeof_operator(decl_pos_block);
-        goto no_get_token;
+        { a_source_position  typeof_pos = pos_curr_token;
+          *type_ptr = scan_typeof_operator(decl_pos_block);
+          if (!is_error_type(*type_ptr) &&
+              (basic_type != bt_none || sign != sign_none ||
+               size != size_none)) {
+            /* We've already seen specifiers that cannot be combined with
+               __typeof__: Ignore them and issue an error. */
+            pos_error(ec_bad_combination_of_type_specifiers, &typeof_pos);
+            *type_ptr = error_type();
+            sign = sign_none;
+            size = size_none;
+          }  /* if */
+          basic_type = bt_typedef;
+          decl_specifiers_seen |= DS_TYPE;
+          goto no_get_token;
+        }
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case tok_identifier:  /* Identifier or "::". */
       case tok_colon_colon:

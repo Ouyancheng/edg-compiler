@@ -1400,6 +1400,9 @@ Dump the contents of the indicated type entry, for debug purposes.
           if (tp->variant.typeref.is_placeholder_for_nested_class_def) {
             fputs("nested-class-def-PH ", f_debug);
           }  /* if */
+          if (tp->variant.typeref.is_decltype) {
+            fputs("decltype ", f_debug);
+          }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
           if (tp->variant.typeref.is_typeof) {
             fputs("__typeof__ ", f_debug);
@@ -1429,6 +1432,9 @@ Dump the contents of the indicated type entry, for debug purposes.
         if (tp->variant.template_param.kind ==
                    (a_template_param_type_kind)tptk_unknown) {
           fputs(" <unknown-type>", f_debug);
+        } else if (tp->variant.template_param.kind ==
+                                  (a_template_param_type_kind)tptk_decltype) {
+          fputs(" decltype", f_debug);
         } else {
           if (tp->variant.template_param.kind ==
                      (a_template_param_type_kind)tptk_param) {
@@ -8936,7 +8942,6 @@ entry.
   return vlap;
 }  /* find_vla_dimension */
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 #if !STANDALONE_UTILITY_PROGRAM
 
 void make_local_expr_node_ref(an_expr_node_ptr            expr,
@@ -8974,10 +8979,19 @@ using find_local_expr_node.
                                                     ->local_expr_ref = TRUE;
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
     case lerk_generic_sizeof:
       new_ref->referrer.kind = (a_byte_il_entry_kind)iek_constant;
       ((a_constant_ptr)referrer)
          ->variant.template_param.variant.templ_sizeof.local_expr_ref = TRUE;
+      break;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+    case lerk_decltype:
+      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_type;
+      if (((a_type_ptr)referrer)->kind == (a_type_kind)tk_template_param) {
+        ((a_type_ptr)referrer)->variant.template_param.extra_info
+                              ->local_expr_ref = TRUE;
+      }  /* if */
       break;
     default:
       unexpected_condition();
@@ -8990,7 +9004,7 @@ using find_local_expr_node.
 #if !CHECKING
 /*ARGSUSED*/  /* kind is not used in all configurations. */
 #endif /* !CHECKING */
-an_expr_node_ptr find_local_expr_node(char  *referrer,
+an_expr_node_ptr find_local_expr_node(char                        *referrer,
                                       a_local_expr_node_ref_kind  kind)
 /*
 referrer is an entry in the file scope memory region that implicitly refers to
@@ -9004,8 +9018,7 @@ pointer to that expression.  Otherwise, return NULL.
   if (innermost_function_scope != NULL) {
     a_local_expr_node_ref_ptr  ref = innermost_function_scope->expr_node_refs;
     for (; ref != NULL; ref = ref->next) {
-      if (ref->referrer.ptr == referrer) {
-        check_assertion(ref->kind == kind);
+      if (ref->referrer.ptr == referrer && ref->kind == kind) {
         result = ref->expr;
         break;
       }  /* if */
@@ -9014,6 +9027,7 @@ pointer to that expression.  Otherwise, return NULL.
   return result;
 }  /* find_local_expr_node */
 
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 an_expr_node_ptr generic_sizeof_arg_expr(a_constant_ptr  con)
 /*

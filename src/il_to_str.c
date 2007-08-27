@@ -1111,6 +1111,27 @@ in the current context.
 }  /* source_corresp_for_template_param */
 
 
+static an_expr_node_ptr decltype_arg(a_type_ptr  type)
+/*
+The given type represents a decltype construct.  Return its argument
+expression if available, or NULL otherwise.
+*/
+{
+  an_expr_node_ptr  expr = NULL;
+
+  if (type->kind == (a_type_kind)tk_typeref) {
+    expr = type->variant.typeref.expr;
+  } else {
+    expr = type->variant.template_param.extra_info->expr;
+  }  /* if */
+  if (expr == NULL && innermost_function_scope != NULL) {
+    expr = find_local_expr_node(
+                      (char*)type, (a_local_expr_node_ref_kind)lerk_decltype);
+  }  /* if */
+  return expr;
+}  /* decltype_arg */
+
+
 static void form_type_specifier(a_type_ptr                            type,
                                 an_il_to_str_output_control_block_ptr octl)
 /*
@@ -1225,16 +1246,34 @@ by octl.
       form_tag_reference(type, octl);
       break;
     case tk_typeref:
-      /* A typeref here should be a typedef or a typeof operator. */
+      /* A typeref here should be a typedef, a decltype operator, or a typeof
+         operator. */
+      if (type->variant.typeref.is_decltype) {
+        an_expr_node_ptr  expr = decltype_arg(type);
+        octl->output_str("decltype(");
+        if (expr != NULL) {
+          if (!type->variant.typeref.decltype_expr_not_parenthesized) {
+            octl->output_str("(");
+          }  /* if */
+          form_expression(expr, octl);
+          if (!type->variant.typeref.decltype_expr_not_parenthesized) {
+            octl->output_str(")");
+          }  /* if */
+        } else {
+          /* No expression is available: Just emit a placeholder for the
+             expression.  (This should only occur when not emitting
+             compilable output.) */
+          check_assertion(!octl->gen_compilable_code);
+          octl->output_str("<expr>");
+        }  /* if */
+        octl->output_str(")");
 #if GNU_EXTENSIONS_ALLOWED
-      if (type->variant.typeref.is_typeof) {
+      } else if (type->variant.typeref.is_typeof) {
         octl->output_str("__typeof__(");
         form_type(type->variant.typeref.type, octl);
         octl->output_str(")");
-      } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      /* Do not insert code here. */
-      {
+      } else {
         check_assertion_str(typeref_is_typedef(type),
                             "form_type_specifier: typeref is not typedef");
         form_name(&type->source_corresp, iek_type, octl);
@@ -1248,12 +1287,31 @@ by octl.
                                                     AUTO_TYPE_NESTING_DEPTH) {
           /* A type entry representing the "auto" type specifier. */
           octl->output_str("auto");
+        } else if (type->variant.template_param.kind ==
+                                   (a_template_param_type_kind)tptk_decltype) {
+          an_expr_node_ptr  expr = decltype_arg(type);
+          octl->output_str("decltype(");
+          if (expr != NULL) {
+            a_template_param_type_supplement_ptr
+                               tptsp = type->variant.template_param.extra_info;
+            if (!tptsp->decltype_expr_not_parenthesized) octl->output_str("(");
+            form_expression(expr, octl);
+            if (!tptsp->decltype_expr_not_parenthesized) octl->output_str(")");
+          } else {
+            /* decltype was applied to a template-dependent local expression,
+               but innermost_function_scope was not set (e.g., because this is
+               a call from the stand-alone IL display code).  We just emit a
+               placeholder for the expression in such cases. */
+            check_assertion(innermost_function_scope == NULL &&
+                            !octl->gen_compilable_code);
+            octl->output_str("<expr>");
+          }  /* if */
+          octl->output_str(")");
 #if GNU_EXTENSIONS_ALLOWED
         } else if (type->variant.template_param.kind ==
                                     (a_template_param_type_kind)tptk_typeof) {
           an_expr_node_ptr  expr = type->variant.template_param.extra_info
                                         ->expr;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
           if (expr == NULL && innermost_function_scope != NULL) {
             expr = find_local_expr_node(
                              (char*)type->variant.template_param.extra_info,
@@ -1262,7 +1320,6 @@ by octl.
                             type->variant.template_param.extra_info
                                 ->local_expr_ref);
           }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           octl->output_str("__typeof__(");
           if (expr != NULL) {
             form_expression(expr, octl);
@@ -1522,9 +1579,18 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
           !is_member_typedef_that_should_be_ignored(type, octl)) {
         break;
       }  /* if */
+    } else if (type->variant.typeref.is_decltype &&
+               octl->gen_compilable_code && decltype_arg(type) != NULL) {
+      /* A decltype operator behaves much like a typedef.  In diagnostics,
+         the actual type is generally preferred (especially since the argument
+         expression is not always available).  In some code-generating
+         contexts (e.g., when template instantiations are emitted as explicit
+         specializations) the argument to decltype may not be available either,
+         an we fall back to emitting the underlying type. */
+      break;
 #if GNU_EXTENSIONS_ALLOWED
     } else if (type->variant.typeref.is_typeof) {
-      /* GNU C typeof operator: behaves much like a typedef. */
+      /* The GNU typeof operator behaves much like a typedef. */
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
@@ -1906,8 +1972,8 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
   }  /* if */
 #ifdef CFE
   options &= ~FTO_SUPPRESS_CONST;
-  /* Remove type qualifiers but not typedefs.  Also drop typedefs
-     that aren't visible here.  GNU C typeof operators are like visible
+  /* Remove type qualifiers but not typedefs.  Also drop typedefs that aren't
+     visible here.  The decltype and GNU typeof operators are like visible
      typedefs.  Accumulate the type qualifier set. */
   while (type->kind == (a_type_kind)tk_typeref) {
     if (typeref_is_typedef(type)) {
@@ -1917,6 +1983,15 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
           !is_member_typedef_that_should_be_ignored(type, octl)) {
         break;
       }  /* if */
+    } else if (type->variant.typeref.is_decltype &&
+               octl->gen_compilable_code && decltype_arg(type) != NULL) {
+      /* A decltype operator behaves much like a typedef.  In diagnostics,
+         the actual type is generally preferred (especially since the argument
+         expression is not always available).  In some code-generating
+         contexts (e.g., when template instantiations are emitted as explicit
+         specializations) the argument to decltype may not be available either,
+         an we fall back to emitting the underlying type. */
+      break;
 #if GNU_EXTENSIONS_ALLOWED
     } else if (type->variant.typeref.is_typeof) {
       break;

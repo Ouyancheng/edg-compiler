@@ -170,7 +170,7 @@ specifier (except for the typedef and friend cases).  (3.5.2)
 #define is_type_specifier()                                           \
  (is_type_keyword(curr_token) || is_class_type_keyword(curr_token) || \
   curr_token == tok_enum      || curr_token == tok_typename        || \
-  curr_token == tok_typeof)
+  curr_token == tok_typeof    || curr_token == tok_decltype)
 
 #if NAMED_ADDRESS_SPACES_ALLOWED
 extern a_boolean curr_id_is_named_address_space(void);

@@ -5228,6 +5228,9 @@ operation is a pointer-to-member (see ARM 5.3).
         }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
       }  /* if */
+      /* For something like "&x", the is_id_expression may have been copied
+         over as "TRUE".  Clear it now. */
+      result->is_id_expression = FALSE;
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = operand.end_position;
@@ -6785,6 +6788,313 @@ was called.
   expr_stack = saved_expr_stack;
 }  /* restore_expr_stack */
 
+
+static a_type_ptr type_of_call(an_expr_node_ptr  expr)
+/*
+Return the type of the routine called by expr (the static type, which may be
+different from the type of the routine that is actually invoked if virtual
+function overriding is involved).  The caller must ensure that expr is a
+call node.
+*/
+{
+  a_type_ptr  result;
+
+  check_assertion(is_call_node(expr));
+  result = skip_typerefs(expr->variant.operation.operands->type);
+  if (!is_error_type(result)) {
+    if (node_operator_is(expr, eok_pm_call)) {
+      check_assertion(result->kind == (a_type_kind)tk_ptr_to_member);
+      result = pm_member_type(result);
+    } else {
+      check_assertion(result->kind == (a_type_kind)tk_pointer);
+      result = type_pointed_to(result);
+    }  /* if */
+    result = skip_typerefs(result);
+    check_assertion(result->kind == (a_type_kind)tk_routine ||
+                    is_error_type(result));
+  }  /* if */
+  return result;
+}  /* type_of_call */
+
+
+static a_type_ptr decltype_from_address_constant(a_constant_ptr  cp)
+/*
+The given constant represents an address of a routine or variable passed to
+decltype.  Return the type of that routine or variable.
+*/
+{
+  a_type_ptr  result;
+
+  check_assertion(cp->kind == (a_constant_repr_kind)ck_address);
+  switch (cp->variant.address.kind) {
+    case abk_routine:
+      result = cp->variant.address.variant.routine->type;
+      break;
+    case abk_variable:
+      result = cp->variant.address.variant.variable->type;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* decltype_from_address_constant */
+
+
+static a_type_ptr decltype_from_operand(an_operand  *operand,
+                                        a_boolean   leading_paren_seen)
+/*
+Determine the type resulting from a decltype(<expr>) construct where operand
+represents <expr>.  leading_paren_seen is TRUE if the <expr> started with a
+left parenthesis.
+
+In the general case, the result is the type of the expression if the
+expression is an rvalue, or a reference to that type if it's an lvalue.
+However, different rules apply for non-parenthesized id-expressions, for
+non-parenthesized class member access expressions, and for calls.
+*/
+{
+  a_type_ptr        result = NULL;
+  an_expr_node_ptr  expr = is_expression_operand(operand) ?
+                                           operand->variant.expression : NULL;
+
+  if (expr != NULL && is_operation_node(expr) && !leading_paren_seen &&
+      !operand->is_operand_of_address_of &&
+      (node_operator_is(expr, eok_field) ||
+       node_operator_is(expr, eok_value_field) ||
+       node_operator_is(expr, eok_bit_field) ||
+       node_operator_is(expr, eok_value_bit_field) ||
+       node_operator_is(expr, eok_points_to_static) ||
+       node_operator_is(expr, eok_lvalue_dot_static) ||
+       node_operator_is(expr, eok_rvalue_dot_static) ||
+       node_operator_is(expr, eok_value_field))) {
+    /* Class member access: Produce the type of the selected member.  Note
+       that some id-expressions end up being forms of class member access:
+       Those are handled here too. */
+    an_expr_node_ptr  arg2 = expr->variant.operation.operands;
+    check_assertion(arg2 != NULL && arg2->next != NULL);
+    arg2 = arg2->next;
+    switch (expr->variant.operation.kind) {
+      case eok_field:
+      case eok_value_field:
+      case eok_bit_field:
+      case eok_value_bit_field:
+        if (arg2->kind == (an_expr_node_kind)enk_field) {
+          result = arg2->variant.field->type;
+        } else {
+          check_assertion(total_errors != 0);
+          result = error_type();
+        }  /* if */
+        break;
+      case eok_points_to_static:
+      case eok_lvalue_dot_static:
+      case eok_rvalue_dot_static:
+        switch (arg2->kind) {
+          case enk_variable_address:
+            result = arg2->variant.variable->type;
+            break;
+          case enk_routine_address:
+            result = arg2->variant.routine->type;
+            break;
+          case enk_constant:
+            check_assertion(arg2->variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param);
+            goto general_case;
+            break;
+          default:
+            check_assertion(total_errors != 0);
+            result = error_type();
+        }  /* switch */
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  } else if (operand->is_id_expression) {
+    /* Produce the type of the entity referenced by the id-expression.
+       Note that some id-expressions are represented as class member access
+       operations: So this case must appear after the class member access
+       case. */
+    if (expr != NULL) {
+      /* An lvalue expression referring to a local variable. */
+      check_assertion(is_variable_address_node(expr) ||
+                      is_variable_node(expr));
+      result = expr->variant.variable->type;
+    } else if (is_constant_operand(operand)) {
+      /* An id-expression resolving to a constant is either an lvalue
+         referring to a routine or a nonlocal variable, or an enumeration
+         constant. */
+      a_constant_ptr  cp = &operand->variant.constant;
+      switch (cp->kind) {
+        case ck_address:
+          /* A variable or routine address. */
+          result = decltype_from_address_constant(cp);
+          break;
+        case ck_integer:
+          /* An enumeration constant. */
+          check_assertion(has_name(cp));
+          result = cp->type;
+          break;
+        case ck_template_param:
+          /* A dependent expression.  Fall back to the general case. */
+          goto general_case;
+        default:
+          unexpected_condition();
+      }  /* switch */
+    } else if (is_error_operand(operand)) {
+      result = error_type();
+    } else {
+      unexpected_condition();
+    }  /* if */
+  } else if (expr != NULL && is_call_node(expr)) {
+    /* Function or operator call: Produce the associated return type. */
+    result = type_of_call(expr);
+    if (!is_error_type(result)) {
+      result = result->variant.routine.return_type;
+    }  /* if */
+  } else {
+general_case:
+    /* General case: The type T of the expression, or T& if the expression
+       is an lvalue. */
+    result = operand->type;
+    if (is_an_lvalue(operand) && !is_error_type(result)) {
+      result = make_reference_type(result);
+    }  /* if */
+  }  /* if */
+  check_assertion(result != NULL);
+  return result;
+}  /* decltype_from_operand */
+
+
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/* ARGSUSED */  /* <-- decl_pos_block is not used in some configurations. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+a_type_ptr scan_decltype_operator(a_decl_pos_block  *decl_pos_block)
+/*
+Scan the decltype operator.  This is a C++0x construct that is similar to
+sizeof (in that its argument is not evaluated), but returns a type rather
+than a size.  It is used in type contexts, not expression contexts.
+
+Syntax:
+        decltype ( expression )
+
+The parentheses are required, unlike for sizeof.  If  decl_pos_block is not
+NULL, the end position in its specifiers_range is updated.
+*/
+{
+  a_type_ptr              result;
+  an_expr_node_ptr        expr = NULL;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+  an_operand              operand;
+  a_boolean               operand_was_used = FALSE, leading_paren_seen;
+  a_memory_region_number  region_to_switch_back_to;
+
+  /* Skip the decltype token. */
+  check_assertion(!C_mode() && curr_token == tok_decltype);
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  /* Remember if the first character of the expression is a parenthesis.  This
+     is significant if the expression that follows is an id-expression or a
+     class member access.  E.g., decltype(x) may be different from
+     decltype((x)). */
+  leading_paren_seen = (curr_token == tok_lparen);
+  /* If we're in the file-scope memory region instead of a function-scope
+     memory region because we're scanning something like a template argument,
+     switch back.  If we're in a function, any expression nodes allocated must
+     be in the function-scope memory region. */
+  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+  /* Scan the argument expression. */
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/(curr_object_lifetime != NULL));
+  expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
+  add_matching_stop_token(tok_rparen);
+  scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+  error_if_indefinite_function(&operand);
+  result = operand.type;
+  remove_matching_stop_token(tok_rparen);
+  if (is_error_type(result)) {
+    /* We'll just return the error type. */
+  } else {
+    a_boolean  dependent_arg = is_template_dependent_context() &&
+                               is_template_dependent_type(result);
+    if (dependent_arg && prototype_instantiations_in_il) {
+      /* A dependent expression.  Encode it in a tk_template_param if we are
+        recording prototype instantiations in the IL. */
+      a_template_param_type_supplement_ptr
+                        tptsp;
+      result = alloc_type((a_type_kind)tk_template_param);
+      set_type_size(result);
+      tptsp = result->variant.template_param.extra_info;
+      result->variant.template_param.kind = 
+                                     (a_template_param_type_kind)tptk_decltype;
+      prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
+      expr = make_node_from_operand(&operand);
+      /* The type entry (and its supplement) are stored in the file scope
+         memory region.  If the expression is a local expression,  the type
+         entry cannot point directly to it, and instead we use the
+         "a_local_expr_node_ref" mechanism. */
+      if (in_file_scope(expr)) {
+        tptsp->expr = expr;
+      } else {
+        make_local_expr_node_ref(
+              expr, (a_local_expr_node_ref_kind)lerk_decltype, (char*)result);
+      }  /* if */
+      tptsp->decltype_expr_not_parenthesized = !leading_paren_seen;
+      operand_was_used = TRUE;
+      add_to_types_list(result, DEPTH_OF_FILE_SCOPE);
+    } else {
+      /* If this is a plain nondependent type, create a special typeref. */
+      a_type_ptr        tp = alloc_type((a_type_kind)tk_typeref);
+      tp->variant.typeref.type = decltype_from_operand(&operand,
+                                                       leading_paren_seen);
+      tp->variant.typeref.is_decltype = TRUE;
+      tp->variant.typeref.decltype_expr_not_parenthesized =
+                                                          !leading_paren_seen;
+      if (!dependent_arg) {
+        expr = make_node_from_operand(&operand);
+        if (is_an_lvalue(&operand)) {
+          expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
+                                    operand.type, expr);
+        }  /* if */
+        /* The type entry is stored in the file scope memory region.  If the
+           expression is a local expression,  the type entry cannot point
+           directly to it, and instead we use the "a_local_expr_node_ref"
+           mechanism. */
+        if (in_file_scope(expr)) {
+          tp->variant.typeref.expr = expr;
+        } else {
+          make_local_expr_node_ref(
+              expr, (a_local_expr_node_ref_kind)lerk_decltype, (char*)tp);
+        }  /* if */
+        operand_was_used = TRUE;
+      }  /* if */
+      result = tp;
+    }  /* if */
+  }  /* if */
+  if (!operand_was_used) {
+    /* The expression was discarded. */
+    undo_side_effects_for_discarded_unevaluated_expression();
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+    forget_expr_range_modifiers_in_operand(&operand);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
+  }  /* if */
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  switch_back_to_original_region(region_to_switch_back_to);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL) {
+    /* Update the end of the specifiers range to describe the end of the
+       typeof construct. */
+    decl_pos_block->specifiers_range.end = end_pos_curr_token;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Check for and pass over the right parenthesis. */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  return result;
+}  /* scan_decltype_operator */
+
 #if GNU_EXTENSIONS_ALLOWED
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
@@ -6864,7 +7174,6 @@ NULL, the end position in its specifiers_range is updated.
                                is_template_dependent_type(result);
       /* A dependent type or expression.  Encode it in a tk_template_param
          if we are recording prototype instantiations in the IL. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (dependent_arg && prototype_instantiations_in_il && !is_type) {
       a_type_ptr        typeof_type =
                                    alloc_type((a_type_kind)tk_template_param);
@@ -6890,10 +7199,7 @@ NULL, the end position in its specifiers_range is updated.
       operand_was_used = TRUE;
       result = typeof_type;
       add_to_types_list(typeof_type, DEPTH_OF_FILE_SCOPE);
-    } else
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-    /* Do not insert code here. */
-    if (!dependent_arg || (prototype_instantiations_in_il && is_type)) {
+    } else if (!dependent_arg || (prototype_instantiations_in_il && is_type)) {
       /* If this is a plain nondependent type, create a special typeref.
          Also create such a typeref if we are recording prototype
          instantiations in the IL and the argument of the operator was
@@ -10269,23 +10575,10 @@ set the void_expression_lvalue flag in the expression.
     an_expr_node_ptr  expr = remove_cast_operations(node);
     if (is_call_node(expr)) {
       /* Retrieve the type of the routine being called. */
-      an_expr_node_ptr  target = expr->variant.operation.operands;
-      a_type_ptr        tp = skip_typerefs(target->type);
-      if (!is_error_type(tp)) {
-        if (node_operator_is(expr, eok_pm_call)) {
-          check_assertion(tp->kind == (a_type_kind)tk_ptr_to_member);
-          tp = pm_member_type(tp);
-        } else {
-          check_assertion(tp->kind == (a_type_kind)tk_pointer);
-          tp = type_pointed_to(tp);
-        }  /* if */
-        tp = skip_typerefs(tp);
-        if (!is_error_type(tp)) {
-          check_assertion(tp->kind == (a_type_kind)tk_routine);
-          if (tp->variant.routine.extra_info->result_should_be_used) {
-            pos_warning(ec_call_result_should_be_used, &operand->position);
-          }  /* if */
-        }  /* if */
+      a_type_ptr  tp = type_of_call(expr);
+      if (!is_error_type(tp) &&
+          tp->variant.routine.extra_info->result_should_be_used) {
+        pos_warning(ec_call_result_should_be_used, &operand->position);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -12555,6 +12848,9 @@ Also scans GNU statement expressions:
         options |= (local_options & EOPT_PTR_TO_MEMBER_CONTEXT);
       }  /* if */
       scan_expr_full(result, bound_function_selector, PREC_LOWEST, options);
+      /* Something like "(i)" is not an id-expression; clear the flag that
+         was recorded for the "i" subexpression in such cases. */
+      result->is_id_expression = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -15104,6 +15400,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     result->is_simple_string_literal = (operand_2.is_simple_string_literal ||
                                         operand_3.is_simple_string_literal);
   }  /* if */
+  /* For something like "1 ? x : 3", the is_id_expression may have been
+     copied over as "TRUE".  Clear it now. */
+  result->is_id_expression = FALSE;
 error_exit:
 
   set_operand_position(result, &operand_1->position, &operand_3.end_position,
@@ -17083,6 +17382,11 @@ overloaded_function:
     }  /* if */
   }  /* if */
 
+  /* We've scanned a so-called id-expression.  Set the corresponding flag to
+     TRUE; it may need to be cleared if the operand is propagated or copied to
+     represent a different form of the expression (e.g., if it is
+     parenthesized: x is an id-expression, but (x) is not). */
+  result->is_id_expression = TRUE;
   /* Remember whether or not an access control error was reported on the
      identifier.  This is useful for suppressing additional errors due
      to the ARM 11.5 protected member access check. */

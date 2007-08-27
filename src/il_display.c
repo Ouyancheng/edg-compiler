@@ -1397,14 +1397,13 @@ Display the indicated template parameter type supplement.
 {
   disp_ptr("class_type", (char *)ptr->class_type, iek_type);
   disp_template_param_coordinate(&ptr->coordinates);
-#if GNU_EXTENSIONS_ALLOWED
   disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (ptr->local_expr_ref) {
     disp_boolean("local_expr_ref", TRUE);
   }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  if (ptr->decltype_expr_not_parenthesized) {
+    disp_boolean("decltype_expr_not_parenthesized", TRUE);
+  }  /* if */
 }  /* disp_template_param_type_supplement */
 
 
@@ -1806,6 +1805,11 @@ do_struct_union:
       /* Do not print out ptr->variant.typeref.orig_type, which is used only
          during IL lowering. */
 #endif /* DO_IL_LOWERING */
+#if BACK_END_IS_CP_GEN_BE
+      if (ptr->variant.typeref.expr != NULL) {
+        disp_ptr("expr", (char *)ptr->variant.typeref.expr, iek_expr_node);
+      }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
       if (ptr->variant.typeref.is_placeholder_for_class_instantiation) {
         disp_boolean("is_placeholder_for_class_instantiation", TRUE);
       } else if (ptr->variant.typeref.is_placeholder_for_namespace_type) {
@@ -1837,6 +1841,15 @@ do_struct_union:
                                               surrounding_name_linkage_state);
       }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
+      if (ptr->variant.typeref.is_decltype) {
+        disp_boolean("is_decltype",
+                     (a_boolean)ptr->variant.typeref.is_decltype);
+      }  /* if */
+      if (ptr->variant.typeref.decltype_expr_not_parenthesized) {
+        disp_boolean(
+             "decltype_expr_not_parenthesized",
+             (a_boolean)ptr->variant.typeref.decltype_expr_not_parenthesized);
+      }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
       if (ptr->variant.typeref.is_typeof) {
         disp_boolean("is_typeof",
@@ -1861,11 +1874,12 @@ do_struct_union:
       (void)printf("tk_template_param\n");
       disp_name("kind");
       switch (ptr->variant.template_param.kind) {
-        case tptk_param:   (void)printf("tptk_param\n");    break;
-        case tptk_member:  (void)printf("tptk_member\n");   break;
-        case tptk_unknown: (void)printf("tptk_unknown\n");  break;
+        case tptk_param:    (void)printf("tptk_param\n");    break;
+        case tptk_member:   (void)printf("tptk_member\n");   break;
+        case tptk_unknown:  (void)printf("tptk_unknown\n");  break;
+        case tptk_decltype: (void)printf("tptk_decltype\n");   break;
 #if GNU_EXTENSIONS_ALLOWED
-        case tptk_typeof:  (void)printf("tptk_typeof\n");   break;
+        case tptk_typeof:   (void)printf("tptk_typeof\n");   break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
         default:           (void)printf("**BAD TEMPLATE PARAM TYPE KIND**\n");
       }  /* switch */
@@ -3515,7 +3529,6 @@ node.
 }  /* disp_eh_prologue_supplement */
 
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 static void disp_local_expr_node_ref(a_local_expr_node_ref_ptr  ptr)
 /*
@@ -3531,6 +3544,9 @@ local) memory region.
     case lerk_generic_sizeof:
       (void)printf("generic-sizeof");
       break;
+    case lerk_decltype:
+      (void)printf("decltype");
+      break;
     default:
       (void)printf("**BAD LOCAL-EXPR-NODE-REF KIND**");
   }  /* switch */
@@ -3538,7 +3554,6 @@ local) memory region.
            (an_il_entry_kind)ptr->referrer.kind);
 }  /* disp_local_expr_node_ref */
 
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 static void disp_expr_node(an_expr_node_ptr ptr)
 /*
@@ -4838,12 +4853,10 @@ do_assoc_type:
     disp_ptr("local_static_variable_inits",
              (char *)ptr->local_static_variable_inits,
              iek_local_static_variable_init);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (ptr->expr_node_refs != NULL) {
       disp_ptr("expr_node_refs", (char *)ptr->expr_node_refs,
                iek_local_expr_node_ref);
     }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   if (ptr->kind == (a_scope_kind)sck_function &&
       il_header.source_language != (a_source_language)sl_Cplusplus) {
@@ -6200,11 +6213,9 @@ This routine is called during IL walking.
           disp_seq_number_lookup_entry(
                                     (a_seq_number_lookup_entry_ptr)entry_ptr);
           break;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
         case iek_local_expr_node_ref:
           disp_local_expr_node_ref((a_local_expr_node_ref_ptr)entry_ptr);
           break;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         default:
           (void)printf("**BAD ENTRY KIND**\n");
       }  /* switch */

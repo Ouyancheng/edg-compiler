@@ -3012,7 +3012,6 @@ as specified in the control block.
   }  /* for */
 }  /* traverse_statement_list */
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 static void traverse_local_expr_node_ref_list(
                                   a_scope_ptr                          scope,
@@ -3030,7 +3029,6 @@ list.
   }  /* for */
 }  /* traverse_local_expr_node_ref_list */
 
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if RECORD_SWITCH_CASE_ENTRIES
 
 static void traverse_switch_case_entry_constants(
@@ -3126,12 +3124,10 @@ as specified in the control block.
       break;
     case stmk_block:
       traverse_statement_list(statement->variant.block.statements, tblock);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
       if (innermost_function_scope != NULL &&
           innermost_function_scope->assoc_block == statement) {
         traverse_local_expr_node_ref_list(innermost_function_scope, tblock);
       }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       break;
     case stmk_for:
 #if UPC_EXTENSIONS_ALLOWED

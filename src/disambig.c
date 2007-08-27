@@ -421,20 +421,18 @@ cache to be used.
   get_token_and_coalesce_if_identifier(flags);
   /* Now scan up to the matching right bracket. */
   cache_tokens_until(state, tok_rbracket);
-}  /* prescan_typeof_operator */
+}  /* prescan_microsoft_attributes */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-#if GNU_EXTENSIONS_ALLOWED
 
 static void prescan_typeof_operator(a_disambig_state_ptr       state,
                                     a_disambig_flag_set        flags)
 /*
-Scan past (and cache) a typeof specifier.  state points to the token cache
-to be used.
+Scan past (and cache) a decltype or typeof specifier.  state points to the
+token cache to be used.
 */
 {
-  /* Bypass the typeof (or __typeof__) token. */
+  /* Bypass the decltype or typeof (or __typeof__) token. */
   cache_curr_token(&state->cache);
   (void)get_token();
   if (curr_token == tok_lparen) {
@@ -446,7 +444,6 @@ to be used.
   }  /* if */
 }  /* prescan_typeof_operator */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static a_boolean is_ctor_or_dtor(void)
 /*
@@ -669,13 +666,12 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
            scan what may be a function parameter which could look like
            "int ...". */
         break;
-#if GNU_EXTENSIONS_ALLOWED
+      case tok_decltype:
       case tok_typeof:
         is_decl_specifier_token = TRUE;
         type_specifier_seen = TRUE;
         prescan_typeof_operator(state, flags);
         break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
       default:
         is_decl_specifier_token = FALSE;
         break;

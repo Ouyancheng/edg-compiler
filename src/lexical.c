@@ -15467,11 +15467,11 @@ are handled in lexical_init.)
   if (token_names[(int)tok_last] == NULL ||
       strcmp(token_names[(int)tok_last], "last") != 0) {
     internal_error(
-                 "lexical_init: initialization of token_names is not correct");
+       "lexical_one_time_init: initialization of token_names is not correct");
   }  /* if */
   /* Check that the table of opname kinds is correctly initialized. */
   if (opname_kind_for_token[(int)tok_last] != (an_opname_kind)onk_last) {
-    internal_error("lexical_init: bad init of opname_kind_for_token");
+    internal_error("lexical_one_time_init: bad init of opname_kind_for_token");
   }  /* if */
 #endif /* CHECKING */
   /* Initialize is_id_char to the characters that can appear in an identifier
@@ -15558,7 +15558,7 @@ are handled in lexical_init.)
          opname_kind < (int)onk_last;
          opname_kind++) {
       if (opname_names[opname_kind] == NULL) {
-        internal_error("lexical_init: bad init of opname_names");
+        internal_error("lexical_one_time_init: bad init of opname_names");
       }  /* if */
     }  /* for */
 #endif /* CHECKING */

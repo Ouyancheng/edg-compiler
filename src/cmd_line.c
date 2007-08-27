@@ -2240,6 +2240,7 @@ the next standard).
   auto_type_specifier_enabled = TRUE;
   extern_template_allowed = TRUE;
   standard_form_of_extern_template = TRUE;
+  decltype_enabled = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -8504,6 +8505,7 @@ variables declared in cmd_line.h.
   auto_type_specifier_enabled = FALSE;
   extern_template_allowed = FALSE;
   standard_form_of_extern_template = FALSE;
+  decltype_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

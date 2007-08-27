@@ -7175,9 +7175,20 @@ a pointer over a reference type or creating an array of references.
         }  /* if */
         break;
       case tk_typeref:
-        /* Make an identically qualified type of a copy (or reuse) of the type
-           that underlies the typeref. */
-        { a_type_qualifier_set	qualifiers;
+        if ((type->variant.typeref.is_decltype
+#if GNU_EXTENSIONS_ALLOWED
+             || type->variant.typeref.is_typeof
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                               )  &&
+            is_template_dependent_type(type->variant.typeref.type)) {
+          /* decltype and typeof types can currently not be substituted.
+             This will likely change in the future, when the C++ committee's
+             issue 339 is resolved. */
+          *copy_error = TRUE;
+        } else {
+          /* Make an identically qualified type of a copy (or reuse) of the
+             type that underlies the typeref. */
+          a_type_qualifier_set	qualifiers;
           a_type_ptr		type_without_typerefs;
           type_without_typerefs = skip_typerefs(type);
           tp = copy_type_with_substitution(type_without_typerefs,
@@ -7192,7 +7203,7 @@ a pointer over a reference type or creating an array of references.
           } else {
             new_type = make_qualified_type(tp, qualifiers);
           }  /* if */
-        }
+        }  /* if */
         break;
       case tk_ptr_to_member:
         /* Make a pointer to member type.  The current pointer to member type

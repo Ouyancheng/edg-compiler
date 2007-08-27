@@ -1083,12 +1083,9 @@ and return a pointer to it.
   num_template_param_type_supplements_allocated++;
 #endif /* DEBUG */
   tptsp->class_type = NULL;
-#if GNU_EXTENSIONS_ALLOWED
   tptsp->expr = NULL;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   tptsp->local_expr_ref = FALSE;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  tptsp->decltype_expr_not_parenthesized = FALSE;
   return tptsp;
 }  /* alloc_template_param_type_supplement */
 
@@ -1541,6 +1538,7 @@ to default values.
       break;
     case tk_typeref:
       pte->variant.typeref.type        = NULL;
+      pte->variant.typeref.expr        = NULL;
 #if DO_IL_LOWERING
       pte->variant.typeref.orig_type   = NULL;
 #endif /* DO_IL_LOWERING */
@@ -1559,6 +1557,8 @@ to default values.
       pte->variant.typeref.surrounding_name_linkage_state
                                        = (a_name_linkage_kind)nlk_none;
 #endif /* BACK_END_IS_CP_GEN_BE */
+      pte->variant.typeref.is_decltype = FALSE;
+      pte->variant.typeref.decltype_expr_not_parenthesized = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
       pte->variant.typeref.is_typeof = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -2475,7 +2475,6 @@ to it.
   return lp;
 }  /* alloc_label */
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 a_local_expr_node_ref_ptr alloc_local_expr_node_ref(void)
 /*
@@ -2493,7 +2492,6 @@ node, initialize it, and return a pointer to it.
   return ptr;
 }  /* alloc_local_expr_node_ref */
 
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 void set_expr_node_kind(an_expr_node_ptr  node,
                         an_expr_node_kind kind)
@@ -3462,9 +3460,7 @@ points to the associated routine if the kind is sck_function.
   sp->dynamic_inits               = NULL;
   sp->local_static_variable_inits = NULL;
   sp->vla_dimensions              = NULL;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   sp->expr_node_refs              = NULL;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   sp->pragmas                     = NULL;
   sp->depth_in_scope_stack        = NO_SCOPE_DEPTH;
 #ifdef FIL

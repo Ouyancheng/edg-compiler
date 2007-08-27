@@ -562,10 +562,8 @@ typedef enum /*an_il_entry_kind*/ {
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   iek_ms_if_exists,	/* an_ms_if_exists */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   iek_local_expr_node_ref,
 			/* a_local_expr_node_ref */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXPR_RANGE_MODIFIERS_IN_IL
   iek_expr_range_modifier,
 			/* an_expr_range_modifier */
@@ -719,9 +717,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 /* iek_ms_if_exists */			"ms-if-exists",
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 /* iek_local_expr_node_ref */		"local-expr-node-ref",
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXPR_RANGE_MODIFIERS_IN_IL
 /* iek_expr_range_modifier */		"expr-range-modifier",
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
@@ -5309,6 +5305,8 @@ enum a_template_param_type_kind_tag {
 			     };
 			   (where, during prototype instantiation, X is
 			   assumed to be a member of T and a type). */
+  tptk_decltype,	/* The template param type represents a type
+			   expressed through a dependent decltype construct. */
 #if GNU_EXTENSIONS_ALLOWED
   tptk_typeof,		/* The template param type represents a type
 			   expressed through a dependent typeof construct. */
@@ -5361,23 +5359,25 @@ typedef struct a_template_param_type_supplement {
 		coordinates;
 			/* The parameter list position and template nesting
 			   depth of the parameter. */
-#if GNU_EXTENSIONS_ALLOWED
   an_expr_node_ptr
 		expr;
-			/* The dependent expression used in a typeof
-			   specifier.  NULL if the typeof construct encloses
-			   a type specification rather than an expression or
-			   if local_expr_ref is TRUE. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
+			/* The dependent expression used in a decltype or
+			   typeof construct.  NULL is local_expr_ref is TRUE.
+			   Also NULL for a typeof construct that encloses
+			   a type name rather than an expression. */
   a_bit_field
 		local_expr_ref:1;
-			/* TRUE for typeof specifiers with a local expression
-			   argument.  In such cases, the entry cannot directly
-			   point to the expression node (i.e., expr is NULL
-			   because of memory region constraints), and the node
-			   must instead be found using find_local_expr_node. */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+			/* TRUE for decltype and typeof specifiers with a local
+			   expression argument.  In such cases, the entry
+			   cannot directly point to the expression node (i.e.,
+			   expr is NULL because of memory region constraints),
+			   and the node must instead be found using
+			   find_local_expr_node. */
+  a_bit_field
+		decltype_expr_not_parenthesized:1;
+			/* This is a decltype entry and its argument
+			   expression was not parenthesized.  TRUE only if
+			   the parentheses can affect the resulting type. */
 } a_template_param_type_supplement;
 
 
@@ -6244,6 +6244,10 @@ typedef struct a_type {
       a_type_ptr
                 type;
                         /* Type referenced. */
+      an_expr_node_ptr
+		expr;	/* The expression argument for a nonlocal decltype
+			   construct.  For local constructs, the expression
+			   must be retrieved using find_local_expr_node. */
 #if DO_IL_LOWERING
       a_type_ptr
 		orig_type;
@@ -6303,6 +6307,14 @@ typedef struct a_type {
 			/* Name linkage in effect when this typedef
 			   appeared. */
 #endif /* BACK_END_IS_CP_GEN_BE */
+      a_bit_field
+		is_decltype:1;
+			/* The type was created by a decltype operator. */
+      a_bit_field
+		decltype_expr_not_parenthesized:1;
+			/* This is a decltype entry and its argument
+			   expression was not parenthesized.  TRUE only if
+			   the parentheses can affect the resulting type. */
 #if GNU_EXTENSIONS_ALLOWED
       a_bit_field
 		is_typeof:1;
@@ -10129,14 +10141,16 @@ typedef struct an_eh_prologue_supplement {
 } an_eh_prologue_supplement;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 typedef enum a_local_expr_node_ref_kind_tag {
   lerk_none,		/* Used for initialization only. */
   lerk_generic_typeof,	/* A template-dependent expression used as an argument
 			   for a typeof construct. */
-  lerk_generic_sizeof	/* A template-dependent expression used as an argument
+  lerk_generic_sizeof,	/* A template-dependent expression used as an argument
 			   for a sizeof, alignof, or uuidof construct. */
+  lerk_decltype
+			/* An expression used as an argument for a decltype
+			   construct. */
 } a_local_expr_node_ref_kind_tag;
 
 typedef a_byte a_local_expr_node_ref_kind;
@@ -10171,7 +10185,6 @@ typedef struct a_local_expr_node_ref {
 			   expr. */
 } a_local_expr_node_ref;
 
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 #if EXPR_RANGE_MODIFIERS_IN_IL
 /*
@@ -12780,7 +12793,6 @@ typedef struct a_scope {
 			   within a given function -- sck_function scopes;
 			   The order of entries on the list is not
 			   significant. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_local_expr_node_ref_ptr
 		expr_node_refs;
 			/* List of references to expressions within this scope
@@ -12788,7 +12800,6 @@ typedef struct a_scope {
 			   order of entries on the list is not significant.
 			   The entries represent implicit references from the
 			   file scope memory region. */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #endif /* ifdef CIL */
   a_pragma_ptr	pragmas;
 			/* A linked list of pragma entries.  They may be
@@ -13376,9 +13387,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   sizeof(an_ms_if_exists),
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   sizeof(a_local_expr_node_ref),
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXPR_RANGE_MODIFIERS_IN_IL
   sizeof(an_expr_range_modifier),
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */

@@ -694,6 +694,9 @@ Install the keywords in the symbol table.
     if (static_assert_enabled) {
       enter_keyword((a_token_kind)tok_static_assert, "static_assert");
     }  /* if */
+    if (decltype_enabled) {
+      enter_keyword((a_token_kind)tok_decltype, "decltype");
+    }  /* if */
   }  /* if */
 #if SUN_EXTENSIONS_ALLOWED
   if (sun_linker_scope_allowed) {

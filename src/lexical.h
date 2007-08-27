@@ -258,6 +258,7 @@ typedef enum /*a_token_kind*/ {
   tok_true,
   tok_typename,
   tok_static_assert,
+  tok_decltype,
   /* Recognized in GNU C and C++ modes only. */
   tok_typeof,
   tok_extension,
@@ -381,7 +382,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "template", "this", "throw", "try", "virtual", "wchar_t",
    "const_cast", "dynamic_cast", "explicit", "export", "mutable", "namespace",
    "reinterpret_cast", "static_cast", "typeid", "using",
-   "bool", "false", "true", "typename", "static_assert",
+   "bool", "false", "true", "typename", "static_assert", "decltype",
    "__typeof__", "__extension__", "__null",
    "overload",
 #if SUN_EXTENSIONS_ALLOWED
@@ -829,6 +830,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_true */
    (an_opname_kind)onk_none,          /* tok_typename */
    (an_opname_kind)onk_none,          /* tok_static_assert */
+   (an_opname_kind)onk_none,          /* tok_decltype */
    (an_opname_kind)onk_none,          /* tok_typeof */
    (an_opname_kind)onk_none,          /* tok_extension */
    (an_opname_kind)onk_none,          /* tok_null */

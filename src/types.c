@@ -3437,6 +3437,38 @@ for more information.
                    Consider them to be the same. */
                 identical = TRUE;
                 break;
+              case tptk_decltype:
+                /* Two types obtained with the decltype(<expr>) construct,
+                   where the expression has a template-dependent type.
+                   Compare the expression trees and the presence of
+                   extra parentheses.  (No expression trees are available
+                   if the decltype was constructed inside a function whose
+                   definition is complete.  Such types are always considered
+                   non-identical to other types.) */
+                { an_expr_node_ptr  expr1 = tptsp_1->expr,
+                                    expr2 = tptsp_2->expr;
+                  if (tptsp_1->decltype_expr_not_parenthesized !=
+                                   tptsp_2->decltype_expr_not_parenthesized) {
+                    identical = FALSE;
+                    break;
+                  }  /* if */
+                  if (expr1 == NULL) {
+                    check_assertion(tptsp_1->local_expr_ref);
+                    expr1 = find_local_expr_node(
+                                   (char*)type_1,
+                                   (a_local_expr_node_ref_kind)lerk_decltype);
+                  }  /* if */
+                  if (expr2 == NULL) {
+                    check_assertion(tptsp_2->local_expr_ref);
+                    expr2 = find_local_expr_node(
+                                   (char*)type_2,
+                                   (a_local_expr_node_ref_kind)lerk_decltype);
+                  }  /* if */
+                  identical =
+                     expr1 != NULL && expr2 != NULL &&
+                     compare_template_param_constant_expressions(expr1, expr2);
+                }
+                break;
 #if GNU_EXTENSIONS_ALLOWED
               case tptk_typeof:
                 /* Two types obtained with the __typeof__(<expr>) construct,
@@ -3444,7 +3476,6 @@ for more information.
                    Compare the expression trees. */
                 { an_expr_node_ptr  expr1 = tptsp_1->expr,
                                     expr2 = tptsp_2->expr;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
                   if (expr1 == NULL) {
                     expr1 = find_local_expr_node(
                               (char*)tptsp_1,
@@ -3457,7 +3488,6 @@ for more information.
                               (a_local_expr_node_ref_kind)lerk_generic_typeof);
                     check_assertion(expr2 != NULL && tptsp_2->local_expr_ref);
                   }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
                   identical =
                      compare_template_param_constant_expressions(expr1, expr2);
                 }
