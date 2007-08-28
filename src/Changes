@@ -1,5 +1,22 @@
 Version 3.10
 
+8/28/07  Internal error in set_array_type_size with unspecified-bound array
+         in template instantiation
+
+In some situations involving function template argument deduction that
+deduce an argument to be an unspecified-bound array type, the front end
+aborted with an internal error "set_array_type_size: bad element type" in
+types.c.  Such cases involved multidimensional arrays with intervening
+typedefs.  For example:
+
+  template<typename T> struct S { typedef T ST; };
+  template<typename T> void f(T(*)[1]) {}
+  int main() {
+    f<S<int[]>::ST>(0);  // Triggered an abort while attempting to deduce
+  }                      // U to S<int[]>::ST for template f.
+
+This is now fixed.
+
 8/27/07  C++0x: decltype
 
 In C++0x mode, the front end now accepts the decltype operator.  This operator
