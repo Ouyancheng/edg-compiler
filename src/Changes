@@ -1,5 +1,16 @@
 Version 3.10
 
+8/29/07  Microsoft C++ compatibility: Extended friend class declaration syntax
+
+In Microsoft C++ modes, the C++0x extended friend class declaration syntax
+(see Changes entry of 5/10/06) is now enabled.  For example, the following
+case is now accepted in all Microsoft C++ modes:
+
+  namespace N { struct S; }
+  template<class T> struct X {
+    friend typename N::S;  // Now accepted in Microsoft C++ mode.
+  }
+
 8/29/07  string_literal_type can be called outside the front end proper
 
 Previously, a call to string_literal_type was unsupported (and likely to

@@ -1781,6 +1781,9 @@ by a command line option.
     /* A friend class declaration finds names made visible by
        using-directives. */
     friend_class_decl_can_find_using_dir = TRUE;
+    /* Extended friend class declaration syntax (standard in C++0x) is
+       accepted for all values of microsoft_version. */
+    extended_friends_enabled = TRUE;
     explicit_enum_base_enabled = microsoft_version >= 1400;
     if (!option_kind_used[(int)optk_type_traits_helpers] &&
         microsoft_version >= 1400) {
