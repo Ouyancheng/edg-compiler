@@ -7884,11 +7884,14 @@ a_type_ptr string_literal_type(a_character_kind  kind,
 /*
 Make or find an entry for the type of a string literal with the given number
 of characters and the given character kind.  Return a pointer to this type.
+Multiple calls with the same value of num_chars return the same type entry
+if num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH and the calls occur in the
+front end proper (i.e., when in_front_end is TRUE).
 */
 {
   a_type_ptr  result;
 
-  if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH &&
+  if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH && in_front_end &&
       string_types[kind][num_chars] != NULL) {
     /* The type has previously been created, and can be reused. */
     result = string_types[kind][num_chars];
@@ -7903,7 +7906,7 @@ of characters and the given character kind.  Return a pointer to this type.
     result->variant.array.element_type = elem_type;
     result->variant.array.variant.number_of_elements = num_chars;
     set_type_size(result);
-    if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH) {
+    if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH && in_front_end) {
       string_types[kind][num_chars] = result;
     }  /* if */
 #if ORPHAN_PROCESSING_NEEDED
