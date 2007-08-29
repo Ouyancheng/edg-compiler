@@ -307,6 +307,9 @@ typedef struct an_expr_or_stmt_traversal_block {
   a_boolean	suppress_warning;
 			/* TRUE if a warning about an entity having no
 			   side effects should be suppressed. */
+  unsigned long	checksum;
+			/* Used during computation of a checksum 
+			   of an IL element. */
 } an_expr_or_stmt_traversal_block;
 
 extern void clear_expr_or_stmt_traversal_block(

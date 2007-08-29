@@ -1846,6 +1846,24 @@ Dump debug information on an expression node.
 }  /* db_expression */
 
 
+void db_expr_range(an_expr_node_ptr node)
+/*
+Dump source expression range from expression node if it is available.
+*/
+{
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (node->expr_range.start.seq != 0) {
+    fprintf(f_debug, ", at %lu/%lu", node->expr_range.start.seq,
+            (unsigned long)node->expr_range.start.column);
+    if (node->expr_range.end.seq != 0) {
+      fprintf(f_debug, " -- %lu/%lu", node->expr_range.end.seq,
+              (unsigned long)node->expr_range.end.column);
+    }  /* if */
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* db_expr_range */
+
+
 static void db_static_initializer(a_constant_ptr  con)
 /*
 Dump debug information on a constant that is the initial value in a dynamic

@@ -11411,6 +11411,121 @@ it only once.
   overwrite_node(expr, var_rvalue_expr(dip->variable));
 }  /* lower_reuse_value_expr */
 
+#ifdef DEBUG
+
+static void checksum_bytes(char                                *ptr,
+                           unsigned long                       size,
+                           an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called by traverse_expr or traverse_statement to include
+the contents of the expression node specified by expr in the
+computation of a checksum that includes a full expression or statement.
+tblock is used during the tree traversal and stores the in-progress checksum.
+*/
+{
+  /* Multiplier used to compute the checksum.  Should be prime. */
+#define CACHE_HASH_FACTOR ((unsigned int)73)
+  while (size-- != 0) {
+    tblock->checksum = (tblock->checksum * CACHE_HASH_FACTOR) + *ptr++;
+  }  /* while */
+#undef CACHE_HASH_FACTOR
+}  /* checksum_bytes */
+
+
+static void checksum_expr(an_expr_node_ptr                    expr,
+                          an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called by traverse_expr or traverse_statement to include
+the contents of the expression node specified by expr in the
+computation of a checksum that includes a full expression or statement.
+tblock is used during the tree traversal and stores the in-progress checksum.
+*/
+{
+  checksum_bytes((char *)expr, sizeof(an_expr_node), tblock);
+}  /* checksum_expr */
+
+
+static void checksum_statement(a_statement_ptr                     statement,
+                               an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called by traverse_expr or traverse_statement to include
+the contents of the statement specified by statement in the
+computation of a checksum that includes a full expression or statement.
+tblock is used during the tree traversal and stores the in-progress checksum.
+*/
+{
+  checksum_bytes((char *)statement, sizeof(a_statement), tblock);
+}  /* checksum_statement */
+
+
+static void checksum_constant(a_constant_ptr                      constant,
+                              an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called by traverse_expr or traverse_statement to include
+the contents of the constant specified by constant in the
+computation of a checksum that includes a full expression or statement.
+tblock is used during the tree traversal and stores the in-progress checksum.
+*/
+{
+  checksum_bytes((char *)constant, sizeof(a_constant), tblock);
+}  /* checksum_constant */
+
+
+static void checksum_dynamic_init(
+                              a_dynamic_init_ptr                  dynamic_init,
+                              an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called by traverse_expr or traverse_statement to include
+the contents of the dynamic initialization specified by dynamic_init in the
+computation of a checksum that includes a full expression or statement.
+tblock is used during the tree traversal and stores the in-progress checksum.
+*/
+{
+  checksum_bytes((char *)dynamic_init, sizeof(a_dynamic_init), tblock);
+}  /* checksum_dynamic_init */
+
+
+static void init_tblock_for_computing_checksum(
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Initialize the local control block used to traverse expression and statement
+structures (tblock).
+*/
+{
+  clear_expr_or_stmt_traversal_block(tblock);
+  tblock->process_expr = checksum_expr;
+  tblock->process_statement = checksum_statement;
+  tblock->process_constant = checksum_constant;
+  tblock->process_dynamic_init = checksum_dynamic_init;
+}  /* init_tblock_for_computing_checksum */
+
+
+unsigned long compute_checksum_for_expr(an_expr_node_ptr expr)
+/*
+Compute and return a checksum that can be used to determine if the
+given expression (expr) is subsequently modified.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+  init_tblock_for_computing_checksum(&tblock);
+  traverse_expr(expr, &tblock);
+  return tblock.checksum;
+}  /* compute_checksum_for_expr */
+
+
+unsigned long compute_checksum_for_statement(a_statement_ptr statement)
+/*
+Compute and return a checksum that can be used to determine if the
+given statement is subsequently modified.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+  init_tblock_for_computing_checksum(&tblock);
+  traverse_statement(statement, &tblock);
+  return tblock.checksum;
+}  /* compute_checksum_for_statement */
+
+#endif /* DEBUG */
 
 void lower_expr(an_expr_node_ptr expr,
                 a_boolean        is_lvalue)
@@ -11424,7 +11539,19 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   an_expr_node_ptr      temp_init_node;
   a_variable_ptr        var, temp_var;
   unsigned int          is_lvalue_mask, is_bool_controlling_expr_mask;
+#if DEBUG
+  unsigned long         checksum;
+#endif /* DEBUG */
 
+#if DEBUG
+  if (db_flag_is_set("lower_expr")) {
+    checksum = compute_checksum_for_expr(expr);
+    (void)fprintf(f_debug, "Expression before lowering");
+    db_expr_range(expr);
+    fputs(":\n", f_debug);
+    db_expression(expr);
+  }  /* if */
+#endif /* DEBUG */
   if (expr->void_expression_lvalue) {
     /* A void expression that was left as an lvalue in C++.  Rewrite as
        an rvalue. */
@@ -12038,6 +12165,15 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     record_vla_component_types_for_lowering(expr->type);
   }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#if DEBUG
+  if (db_flag_is_set("lower_expr") &&
+      (checksum != compute_checksum_for_expr(expr))) {
+    (void)fprintf(f_debug, "Expression after lowering");
+    db_expr_range(expr);
+    fputs(":\n", f_debug);
+    db_expression(expr);
+  }  /* if */
+#endif /* DEBUG */
 }  /* lower_expr */
 
 
@@ -14507,11 +14643,20 @@ Do IL lowering of the indicated statement and everything under it.
   an_insert_location insert_location;
   an_expr_node_ptr   stmt_expr;
   a_source_position  saved_error_position, saved_code_pos;
+#if DEBUG
+  unsigned long      checksum;
+#endif /* DEBUG */
 
   if (statement != NULL) {
     a_statement_ptr saved_temp_init_statements = temp_init_statements;
     temp_init_statements = NULL;
-
+#if DEBUG
+    if (db_flag_is_set("lower_statement")) {
+      checksum = compute_checksum_for_statement(statement);
+      (void)fprintf(f_debug, "Statement before lowering: ");
+      db_statement(statement);
+    }  /* if */
+#endif /* DEBUG */
     /* Track the source position. */
     saved_code_pos = code_pos_for_lowering;
     set_position_from_stmt_source_position(code_pos_for_lowering,
@@ -14639,6 +14784,13 @@ Do IL lowering of the indicated statement and everything under it.
     temp_init_statements = saved_temp_init_statements;
     error_position = saved_error_position;
     code_pos_for_lowering = saved_code_pos;
+#if DEBUG
+    if (db_flag_is_set("lower_statement") &&
+        (checksum != compute_checksum_for_statement(statement))) {
+      (void)fprintf(f_debug, "Statement after lowering:  ");
+      db_statement(statement);
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
 }  /* lower_statement */
 

@@ -3329,7 +3329,29 @@ Do C99 lowering on the indicated expression.  If used_as_lvalue is TRUE, the
 given expression is used as an lvalue (e.g., assigned to).
 */
 {
+#if DEBUG
+  unsigned long         checksum;
+#endif /* DEBUG */
+
+#if DEBUG
+  if (db_flag_is_set("lower_expr")) {
+    checksum = compute_checksum_for_expr(expr);
+    (void)fprintf(f_debug, "C99 Expression before lowering");
+    db_expr_range(expr);
+    fputs(":\n", f_debug);
+    db_expression(expr);
+  }  /* if */
+#endif /* DEBUG */
   lower_c99_expr_full(expr, (a_statement_ptr)NULL, used_as_lvalue);
+#if DEBUG
+  if (db_flag_is_set("lower_expr") &&
+      (checksum != compute_checksum_for_expr(expr))) {
+    (void)fprintf(f_debug, "C99 Expression after lowering");
+    db_expr_range(expr);
+    fputs(":\n", f_debug);
+    db_expression(expr);
+  }  /* if */
+#endif /* DEBUG */
 }  /* lower_c99_expr */
 
 
@@ -3519,10 +3541,21 @@ static void lower_c99_statement(a_statement_ptr statement)
 Do C99 lowering on the indicated statement.
 */
 {
+#if DEBUG
+  unsigned long      checksum;
+#endif /* DEBUG */
+
   if (statement != NULL) {
     a_statement_ptr   saved_temp_init_statements = temp_init_statements;
     a_source_position saved_error_position, saved_code_pos;
 
+#if DEBUG
+    if (db_flag_is_set("lower_statement")) {
+      checksum = compute_checksum_for_statement(statement);
+      (void)fprintf(f_debug, "C99 Statement before lowering: ");
+      db_statement(statement);
+    }  /* if */
+#endif /* DEBUG */
     temp_init_statements = NULL;
     /* Track the source position. */
     saved_code_pos = code_pos_for_lowering;
@@ -3660,6 +3693,13 @@ Do C99 lowering on the indicated statement.
     temp_init_statements = saved_temp_init_statements;
     error_position = saved_error_position;
     code_pos_for_lowering = saved_code_pos;
+#if DEBUG
+    if (db_flag_is_set("lower_statement") &&
+        (checksum != compute_checksum_for_statement(statement))) {
+      (void)fprintf(f_debug, "C99 Statement after lowering: ");
+      db_statement(statement);
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
 }  /* lower_c99_statement */
 

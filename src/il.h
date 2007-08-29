@@ -1529,6 +1529,8 @@ extern void db_variable(a_variable_ptr var_ptr);
 
 extern void db_expression(an_expr_node_ptr node);
 
+extern void db_expr_range(an_expr_node_ptr node);
+
 extern void db_expr_summary(an_expr_node_ptr  node);
 
 extern void db_dynamic_initializer(a_dynamic_init_ptr  dip,

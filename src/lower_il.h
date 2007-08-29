@@ -1101,6 +1101,10 @@ extern void clean_up_all_object_lifetimes(a_scope_ptr scope);
 
 #if DEBUG
 extern unsigned long show_lowering_space_used(void);
+
+extern unsigned long compute_checksum_for_expr(an_expr_node_ptr expr);
+
+extern unsigned long compute_checksum_for_statement(a_statement_ptr statement);
 #endif /* DEBUG */
 
 extern void function_lower_init(void);

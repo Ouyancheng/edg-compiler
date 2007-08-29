@@ -2593,6 +2593,7 @@ default values.
   tblock->relink_dynamic_inits = FALSE;
   tblock->last_relinked_dynamic_init = NULL;
   tblock->suppress_warning = FALSE;
+  tblock->checksum = 0;
 }  /* clear_expr_or_stmt_traversal_block */
 
 
