@@ -6,7 +6,10 @@ Previously, a call to string_literal_type was unsupported (and likely to
 abort) if the call occurred outside the front end proper (i.e., if the global
 variable in_front_end was FALSE).  Now such calls are supported, but a new
 type entry is created for every call when in_front_end is FALSE (no attempt is
-made to share type entries for same-length strings in that case).
+made to share type entries for same-length strings in that case).  Note that
+string_literal_type is still unavailable if STANDALONE_UTILITY_PROGRAM is
+TRUE; in other words, it can only be called from a back end linked into the
+same program as the front end.
 
 8/28/07  Internal error in set_array_type_size with unspecified-bound array
          in template instantiation
