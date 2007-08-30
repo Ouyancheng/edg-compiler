@@ -358,11 +358,23 @@ Traverse the list of alias fixups and set the alias fields as needed.
         case sk_routine:
           entry->alias->variant.routine.ptr->asm_name = entry->aliased_name;
           is_weakref = entry->alias->variant.routine.ptr->is_weakref;
+          if (!is_weakref) {
+            /* Drop the "weak" attribute to force a linker error if the
+               aliased entity is undefined.  This is not done if the "weakref"
+               attribute was specified. */
+            entry->alias->variant.routine.ptr->is_weak = FALSE;
+          }  /* if */
           break;
         case sk_variable:
           entry->alias->variant.variable.ptr->asm_name_or_reg.name =
                                                           entry->aliased_name;
           is_weakref = entry->alias->variant.variable.ptr->is_weakref;
+          if (!is_weakref) {
+            /* Drop the "weak" attribute to force a linker error if the
+               aliased entity is undefined.  This is not done if the "weakref"
+               attribute was specified. */
+            entry->alias->variant.variable.ptr->is_weak = FALSE;
+          }  /* if */
           break;
         default:
           unexpected_condition();

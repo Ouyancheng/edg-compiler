@@ -269,6 +269,11 @@ For example:
      // Now rejected when gnu_version >= 40000, and treated as
      // "extern int y __asm("x");" when gnu_version < 40000.
 
+Finally, in cases like this attribute "weak" is ignored on the alias, unless
+the alias has a "weakref" attribute.  For example:
+
+  extern int z __attribute((weak, alias("z0")));  // Weak attribute ignored.
+
 8/7/07   Template deduction: reference/pointer confusion
 
 In a strange case, template deduction mistakenly concluded that
