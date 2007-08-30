@@ -5870,6 +5870,9 @@ End a name scope by popping an entry off the scope stack.
        the first time that it is popped. */
     wrapup_scope(ssep->il_scope, kind, pointers_block,
                  /*is_namespace_wrapup=*/FALSE);
+    /* wrapup_scope may have temporarily reactivated some scopes, which in
+       turn may have triggered a reallocation of the scope stack. */
+    ssep = &scope_stack[depth_scope_stack];
     if (ssep->kind == (a_scope_kind)sck_file) {
       /* When the file scope is popped the first time, transfer any symbols
          that are not associated with a scope list from the active list to
