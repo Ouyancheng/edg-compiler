@@ -1,5 +1,23 @@
 Version 3.10
 
+8/29/07  "extern template" and inline functions
+
+Version 3.9 added C++0x support for "extern template" and modified the
+handling of that feature in g++ and Microsoft modes (see 3/15/07 entry).
+Those changes had the unintended effect of instantiating inline functions
+that were not referenced elsewhere in the translation unit.  This could
+result in spurious errors if those functions could not actually be
+instantiated.  Now, inline functions will be instantiated only if they are
+otherwise used in the translation unit.
+
+  struct A;
+  template <class T> struct B {
+    void f() {
+      T *fp = new T;  // error here if B<A>::f is instantiated
+    }
+  };
+  extern template class B<A>;
+
 8/29/07  Microsoft C++ compatibility: Extended friend class declaration syntax
 
 In Microsoft C++ modes, the C++0x extended friend class declaration syntax

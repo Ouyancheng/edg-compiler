@@ -20686,10 +20686,11 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
       }  /* if */
     } else if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
       if (is_inline && !is_dll_directive) {
-        /* Inline functions should still be instantiated even if specified in
-           an "extern inline" directive.  But the out-of-line copy will be
-           suppressed below. */
-        instantiation_required_flag = TRUE;
+        /* Inline functions that are used should still be instantiated even
+           if specified in an "extern inline" directive.  But the out-of-line
+           copy will be suppressed below.  Just use the current value of
+           the instantiation required flag. */
+        instantiation_required_flag = tip->instantiation_required;
       } else {
         instantiation_required_flag = FALSE;
         tip->explicit_instantiation = FALSE;
