@@ -59,7 +59,7 @@ same program as the front end.
          in template instantiation
 
 In some situations involving function template argument deduction that
-deduce an argument to be an unspecified-bound array type, the front end
+deduces an argument to be an unspecified-bound array type, the front end
 aborted with an internal error "set_array_type_size: bad element type" in
 types.c.  Such cases involved multidimensional arrays with intervening
 typedefs.  For example:
