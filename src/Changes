@@ -24,7 +24,8 @@ Now fixed.
 In some configurations that set both IL_SHOULD_BE_WRITTEN_TO_FILE and
 RECORD_HIDDEN_NAMES_IN_IL to TRUE, the front end sometimes aborted with an
 internal error "non_fs_remap_checking: func number in file scope" in
-il_read.c.  The following example could trigger the problem:
+il_read.c.  The problem is rare and usually involves programs with deeply
+nested scopes.  The following example could trigger the problem:
 
   void f() {
     struct X1 { struct X2 { struct X3 { struct X4 { struct X5 {
