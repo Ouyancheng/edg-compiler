@@ -1846,9 +1846,12 @@ Dump debug information on an expression node.
 }  /* db_expression */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/  /* <-- node is not used in this case. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 void db_expr_range(an_expr_node_ptr node)
 /*
-Dump source expression range from expression node if it is available.
+Dump the source expression range from the expression node if it is available.
 */
 {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
