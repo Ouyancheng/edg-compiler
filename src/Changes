@@ -7,7 +7,7 @@ function template) cannot appear after the definition of that function (or
 function template).  For example:
 
   void f() {}
-  inline void f();
+  inline void f();  // Error in strict C++0x mode.
 
 This change was made to the C++ committee's working paper for the next
 standard through the resolution of Core issue number 317.
