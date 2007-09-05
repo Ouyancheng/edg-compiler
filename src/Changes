@@ -1,5 +1,18 @@
 Version 3.10
 
+9/5/07   Right shift token as part of a template default argument
+
+In C++0x mode (and in some Microsoft modes) a right shift token (>>) may be
+interpreted as two closing angle brackets for template argument lists.
+This did not work properly when one of the argument lists being closed was
+part of a template default argument.  In such cases, a spurious error would
+result when the default argument was processed for a given instantiation.
+Now fixed.
+
+  template<typename T> class A {};
+  template<typename T, typename T2 = A<T>> class B {};
+  B<int> b;
+
 8/30/07  Internal error in non_fs_remap_checking in some configurations
 
 In some configurations that set both IL_SHOULD_BE_WRITTEN_TO_FILE and

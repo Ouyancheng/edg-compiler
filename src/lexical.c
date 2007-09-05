@@ -1235,6 +1235,8 @@ is actually the first token to not be included in the cache.
   a_cached_token_ptr		ctp;
   a_cached_token_ptr		first_ctp_to_copy;
   a_cached_token_ptr		last_ctp_to_copy;
+  a_cached_token_ptr		copy_ctp = NULL;
+  a_boolean			adjust_final_token = FALSE;
 
   /* first_ctp_to_copy is set for each non-pragma token in the cache, and
      points to the cache entry that follows it (which may be a pragma entry
@@ -1258,7 +1260,7 @@ is actually the first token to not be included in the cache.
   for (; ctp != NULL; ctp = ctp->next) {
     /* Stop when we find the specified token, or if we reach an end of
        source token marking the end of the cache. */
-    if (ctp->token_sequence_number == last_tsn ||
+    if (ctp->token_sequence_number >= last_tsn ||
         (a_token_kind)ctp->token == tok_end_of_source) break;
     if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
       /* The token sequence looks something like:
@@ -1270,15 +1272,24 @@ is actually the first token to not be included in the cache.
       last_ctp_to_copy = ctp->next;
     }  /* if */
   }  /* for */
+  /* The final token sequence number will be greater than last_tsn if the
+     token referred to by last_tsn is the second ">" of a ">>" that was
+     split into two tokens.  The code below will copy the ">>" and the copied
+     token will then be adjusted to a ">". */
+  adjust_final_token = ctp->token_sequence_number > last_tsn;
   check_assertion_str(ctp != NULL, "copy_tokens_from_cache: last_tsn missing");
   /* Copy the specified range of tokens to the destination cache. */
   for (ctp = first_ctp_to_copy; ctp != last_ctp_to_copy; ctp = ctp->next) {
-    a_cached_token_ptr	copy_ctp;
     /* Make a copy of the token to be added. */
     alloc_cached_token(copy_ctp);
     copy_cached_token(ctp, copy_ctp);
     add_cached_token_to_cache(copy_ctp, dest_cache);
   }  /* for */
+  if (adjust_final_token) {
+    /* Change the last token copied from a ">>" to a ">". */
+    check_assertion(copy_ctp->token == tok_shift_right);
+    copy_ctp->token = tok_gt;
+  }  /* if */
 }  /* copy_tokens_from_cache */
 
 
@@ -1292,6 +1303,10 @@ The current token must be a ">>": Replace it with two ">" tokens.
   clear_token_cache(&cache, /*reusable=*/FALSE);
   curr_token = tok_gt;
   cache_curr_token(&cache);
+  /* Give the second ">" token a new token sequence number.  When the numbers
+     were assigned, a slot is reserved so that this number will be known to
+     be unique. */
+  curr_token_sequence_number++;
   rescan_cached_tokens(&cache);
 }  /* replace_right_shift_by_two_closing_angle_brackets */
 
@@ -8855,8 +8870,11 @@ restart:
     }  /* if */
   }  /* if */
   /* A new token is being scanned from the input stream.  Assign a token
-     sequence number to this token. */
-  curr_token_sequence_number = ++last_token_sequence_number_used;
+     sequence number to this token.  The value is incremented by two to
+     reserve a slot in case the token is a ">>" that needs to be split into
+     two tokens because it closes two template argument lists. */
+  last_token_sequence_number_used += 2;
+  curr_token_sequence_number = last_token_sequence_number_used;
 rescan_token:
   /* Skip over any initial white space blanks and horizontal tabs.
      These are very common, so they're handled inline here.  The
