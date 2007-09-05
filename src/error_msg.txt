@@ -1702,6 +1702,7 @@ ec_warn_unused_result_with_void_return;;"attribute is ignored for void return ty
 ec_attr_requires_ptr_to_func_type;;"attribute requires pointer-to-function type"
 ec_dll_interface_ignored_on_qualified_declaration;;"dllimport/dllexport is ignored on redeclaration using a qualified name"
 ec_leading_character_ignored_in_char_literal;;"too many characters in character literal -- extra leading characters ignored"
+ec_first_inline_after_definition;;"first inline declaration of %n appears after its definition %p"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

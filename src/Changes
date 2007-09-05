@@ -1,5 +1,17 @@
 Version 3.10
 
+9/5/07   C++0x: New constraint for "inline"
+
+In strict C++0x mode, the first "inline" declaration of a function (or
+function template) cannot appear after the definition of that function (or
+function template).  For example:
+
+  void f() {}
+  inline void f();
+
+This change was made to the C++ committee's working paper for the next
+standard through the resolution of Core issue number 317.
+
 9/5/07   Internal error with incorrectly-terminated macro invocation
 
 An omitted closing parenthesis in a macro invocation could result in an

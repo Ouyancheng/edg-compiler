@@ -2452,6 +2452,12 @@ only be used for inlining (i.e., the suppress_inline_body flag should be set).
 {
   if (!flag) {
     rp->suppress_inline_body = FALSE;
+  } else if (cpp0x_mode && strict_ansi_mode &&
+             !rp->is_inline && rp->compiler_generated && rp->defined) {
+    a_symbol_ptr  sym = symbol_for(rp);
+    pos2_sy_diagnostic(es_error, ec_first_inline_after_definition,
+                       &error_position, &sym->decl_position, sym);
+    flag = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode && (rp->decl_modifiers & DM_DLLIMPORT)) {
     rp->suppress_inline_body = TRUE;
