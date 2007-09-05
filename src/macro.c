@@ -4021,6 +4021,17 @@ do_argument_again:
               goto do_argument_again;
             }  /* if */
           }  /* if */
+          if (curr_token == tok_end_of_source || curr_token == tok_newline) {
+            /* The macro was not correctly terminated -- we won't need the
+               expanded form.  (Skipping the expansion in this case is
+               important because otherwise we would insert the source line
+               modification containing the raw text at the location of the
+               current token, overwriting the token's LE_ESCAPE character
+               with an ATTENTION_MARKER and possibly causing an error in
+               the compaction scan if the macro buffer overflows before the
+               LE_ESCAPE is restored.) */
+            need_expanded_form = FALSE;
+          }  /* if */
           /* The raw form of the argument has been scanned.  Now scan it
              again with macro expansion. */
           if (!need_expanded_form) goto end_arg_expansion;

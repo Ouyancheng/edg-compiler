@@ -1,5 +1,11 @@
 Version 3.10
 
+9/5/07   Internal error with incorrectly-terminated macro invocation
+
+An omitted closing parenthesis in a macro invocation could result in an
+abort if the macro expansion buffer overflowed and was reallocated during
+the expansion of one of that invocation's macro arguments.  Now fixed.
+
 9/5/07   Right shift token as part of a template default argument
 
 In C++0x mode (and in some Microsoft modes) a right shift token (>>) may be
