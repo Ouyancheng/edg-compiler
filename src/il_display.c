@@ -4678,7 +4678,8 @@ mirbp, up through index num_records-1.
     num_records_to_display = MACRO_INVOCATION_RECORDS_PER_BLOCK;
   }  /* if */
   for (i = 0; i < num_records_to_display; ++i) {
-    disp_macro_invocation_record(mirbp->records + i, i);
+    disp_macro_invocation_record(mirbp->records + i,
+                                 mirbp->first_record_in_block + i);
   }  /* for */
   if (mirbp->right_subtree != NULL) {
     disp_macro_invocation_record_block(mirbp->right_subtree, num_records);

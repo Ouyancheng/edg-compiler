@@ -1,5 +1,12 @@
 Version 3.10
 
+9/6/07   Incorrect display of macro invocation record numbers
+
+The IL display utility showed incorrect record numbers in macro invocation
+records (maintained in configurations in which MACRO_INVOCATION_TREE_IN_IL
+is TRUE), displaying the record number modulo 128 instead of the full
+value.  This is now fixed.
+
 9/5/07   C++0x: New constraint for "inline"
 
 In strict C++0x mode, the first "inline" declaration of a function (or
