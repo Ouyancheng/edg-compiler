@@ -2438,7 +2438,6 @@ the dump (this one counts as the first).
 }  /* db_statement_list */
 
 #endif /* DEBUG */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void set_inline_flag(a_routine_ptr  rp,
                      a_boolean      flag)
@@ -2472,7 +2471,6 @@ only be used for inlining (i.e., the suppress_inline_body flag should be set).
   rp->is_inline = flag;
 }  /* set_inline_flag */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block)
 /*
