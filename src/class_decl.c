@@ -8583,6 +8583,7 @@ specific information about the member declaration, respectively.
     init_pos = pos_curr_token;
     /* Advance past the "=". */
     (void)get_token();
+    decl_state->has_initializer = TRUE;
     if (decl_state->auto_type_specifier_seen && !is_error_type(member_type)) {
       prescan_initializer_for_auto_type_deduction(decl_state);
       member_type = decl_state->type;

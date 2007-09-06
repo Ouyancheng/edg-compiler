@@ -118,6 +118,7 @@ and efficient initialization.
   ps->need_assign_remove_stop_token = FALSE;
   ps->need_lbrace_remove_stop_token = FALSE;
   ps->restore_name_linkage = FALSE;
+  ps->has_initializer = FALSE;
   clear_decl_modifiers_block(&ps->decl_modifiers);
   ps->ms_attributes = NULL;
   ps->asm_name = NULL;
@@ -5001,7 +5002,8 @@ Return TRUE if the given list of attributes includes one representing the
   a_boolean  result = FALSE;
 
   for (; attributes != NULL; attributes = attributes->next) {
-    if (attributes->kind == (an_attribute_kind)ak_alias) {
+    if (attributes->kind == (an_attribute_kind)ak_alias ||
+        attributes->kind == (an_attribute_kind)ak_weakref) {
       result = TRUE;
       break;
     }  /* if */
@@ -13782,6 +13784,7 @@ related-fields in prior to scanning the next declarator.
   ps->do_flags = DO_NO_OUTPUT_FLAGS;
   ps->declarator_start_pos = null_source_position;
   ps->declarator_pos = null_source_position;
+  ps->has_initializer = FALSE;
   ps->asm_name = NULL;
   ps->asm_name_pos = null_source_position;
   ps->storage_class = ps->declared_storage_class;
@@ -13815,12 +13818,11 @@ that was not the case and set dps->specifiers_type to an error type to avoid
 repeating the diagnostic if additional declarators follow.
 */
 {
-  if (dps->auto_type_specifier_seen && dps->deduced_auto_type == NULL &&
-      !dps->auto_type_is_template_dependent &&
+  if (dps->auto_type_specifier_seen && !dps->has_initializer &&
       !(dps->type != NULL && is_error_type(dps->type))) {
-    /* The "auto" type specifier was seen, but we never performed deduction
+    /* The "auto" type specifier was seen, but we never saw an initializer
        and no other error was recorded in the declaration's type.*/
-    pos_error(ec_auto_type_requires_initializer, &dps->auto_pos);
+    pos_error(ec_auto_type_requires_initializer, &dps->declarator_pos);
     dps->auto_type_specifier_seen = FALSE;
     dps->auto_type = NULL;
     dps->specifiers_type = dps->type = error_type();

@@ -362,6 +362,9 @@ typedef struct a_decl_parse_state {
 		restore_name_linkage:1;
 			/* TRUE if pop_name_linkage must be called at the end
 			   of the processing for this declaration. */
+  a_bit_field	has_initializer:1;
+			/* TRUE if this is a variable or data member
+			   declaration that includes an initializer. */
   a_decl_modifiers_block
 		decl_modifiers;
 			/* Extended declaration information (most of it

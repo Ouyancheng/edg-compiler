@@ -1,5 +1,18 @@
 Version 3.10
 
+9/6/07   Abort (or invalid IL) on erroneous use of auto type specifier
+
+When "auto" was used as a type specifier followed by multiple declarators the
+front end failed to issue an error for an initializer missing on any but the
+first declarator.  This resulted in invalid IL and in some configurations
+(e.g., with the C-generating back end) it triggered internal errors.
+For example:
+
+  auto x = 1, y;  // Now an error (y should have an initializer), but
+                  // previously this resulted in invalid IL.
+
+This is now fixed.
+
 9/6/07   Incorrect display of macro invocation record numbers
 
 The IL display utility showed incorrect record numbers in macro invocation

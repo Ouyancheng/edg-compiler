@@ -3213,6 +3213,7 @@ returned set to TRUE.
   a_source_position                 pos_first_token;
 
   db_enter(3, "initializer");
+  dps->has_initializer = TRUE;
   /* There are a number of tests to determine whether the variable can take
      an initializer.  If it cannot, set var_err; it will be checked later
      to decide whether to update the variable with information about the
