@@ -1287,8 +1287,8 @@ is actually the first token to not be included in the cache.
   }  /* for */
   if (adjust_final_token) {
     /* Change the last token copied from a ">>" to a ">". */
-    check_assertion(copy_ctp->token == tok_shift_right);
-    copy_ctp->token = tok_gt;
+    check_assertion((a_token_kind)copy_ctp->token == tok_shift_right);
+    copy_ctp->token = (a_small_token_kind)tok_gt;
   }  /* if */
 }  /* copy_tokens_from_cache */
 
