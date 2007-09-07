@@ -12,7 +12,7 @@
 templates.c -- Support for C++ templates.
 
 */
-/* XXX */
+
 /* Header files common to all files. */
 #include "fe_common.h"
 /* Header files used by files involved in declaration processing. */
