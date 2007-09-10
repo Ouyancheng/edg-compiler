@@ -5002,8 +5002,7 @@ Return TRUE if the given list of attributes includes one representing the
   a_boolean  result = FALSE;
 
   for (; attributes != NULL; attributes = attributes->next) {
-    if (attributes->kind == (an_attribute_kind)ak_alias ||
-        attributes->kind == (an_attribute_kind)ak_weakref) {
+    if (attributes->kind == (an_attribute_kind)ak_alias) {
       result = TRUE;
       break;
     }  /* if */
