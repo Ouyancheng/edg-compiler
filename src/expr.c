@@ -9600,7 +9600,7 @@ specification allow a variable-sized array as the top type.
       operator_new_symbol = opname_function_symbol(opname_kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode &&
-          microsoft_version <= 1200 &&
+          microsoft_version < 1300 &&
           operator_new_symbol == NULL) {
         /* In Microsoft mode, if no array new is found, search for a
            non-array operator new.  Note that there is no predeclared

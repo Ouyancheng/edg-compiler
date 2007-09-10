@@ -1,5 +1,14 @@
 Version 3.10
 
+9/10/07  Abort on array new when 1200 < Microsoft version < 1300
+
+When the Microsoft version number is set to something greater than 1200
+but less than 1300 (e.g., 1201), the front end aborted with an assertion
+failure in overload.c in function select_overloaded_function while
+processing any array new operation.  Now fixed.
+
+  int* p = new int[10];  // Aborted with --microsoft_version=1201
+
 9/6/07   Abort (or invalid IL) on erroneous use of auto type specifier
 
 When "auto" was used as a type specifier followed by multiple declarators the
