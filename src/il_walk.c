@@ -803,7 +803,10 @@ with a source correspondence field.
 {
   a_source_correspondence *scp = (a_source_correspondence *)entry_ptr;
 
-  if (scp != NULL && scp->trans_unit_corresp != NULL) {
+  if (in_front_end && scp != NULL && scp->trans_unit_corresp != NULL) {
+    /* A cross-translation-unit correspondence was recorded for the given
+       entry.  (scp->trans_unit_corresp points to a front-end-only structure,
+       and should therefore not be dereferenced if called from a back end.) */
     char *canonical = scp->trans_unit_corresp->canonical;
     if (canonical != entry_ptr &&
         in_secondary_trans_unit(canonical)
@@ -1616,7 +1619,10 @@ translation unit, mark the canonical entry to be kept in the IL.
   a_source_correspondence *scp =
                             source_corresp_for_il_entry(entry_ptr, entry_kind);
 
-  if (scp != NULL && scp->trans_unit_corresp != NULL) {
+  if (in_front_end && scp != NULL && scp->trans_unit_corresp != NULL) {
+    /* A cross-translation-unit correspondence was recorded for the given
+       entry.  (scp->trans_unit_corresp points to a front-end-only structure,
+       and should therefore not be dereferenced if called from a back end.) */
     char *canonical = scp->trans_unit_corresp->canonical;
     if (canonical != entry_ptr &&
         in_secondary_trans_unit(canonical)

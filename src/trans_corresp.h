@@ -136,15 +136,26 @@ units (resulting in distinct IL entries).
 Macro that returns the trans_unit_corresp for an IL entry that has a source
 correspondence.
 */
+#if EXPENSIVE_CHECKING
+#define trans_unit_corresp_of(ptr)					\
+  (check_assertion(in_front_end), (ptr)->source_corresp.trans_unit_corresp)
+#else /* !EXPENSIVE_CHECKING */
 #define trans_unit_corresp_of(ptr)					\
   ((ptr)->source_corresp.trans_unit_corresp)
+#endif /* EXPENSIVE_CHECKING */
 
 /*
 Macro like trans_unit_corresp_of, but that can operate on a char* pointer
 or a direct source correspondence pointer.
 */
+#if EXPENSIVE_CHECKING
 #define trans_unit_corresp_of_unknown_entry(ptr)			\
   (((a_source_correspondence*)(ptr))->trans_unit_corresp)
+#else /* !EXPENSIVE_CHECKING */
+#define trans_unit_corresp_of_unknown_entry(ptr)			\
+  (check_assertion(in_front_end),                                       \
+   ((a_source_correspondence*)(ptr))->trans_unit_corresp)
+#endif /* EXPENSIVE_CHECKING */
 
 /*
 Macro that returns the canonical IL entry pointer for an IL entry that

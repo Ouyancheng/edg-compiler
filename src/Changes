@@ -1,5 +1,14 @@
 Version 3.10
 
+9/10/07  Using make_pointer_type in back ends
+
+Calling make_pointer_type in a back end could result in accessing freed
+memory locations when simultaneously processing multiple translation units.
+This is now fixed.  In addition, when EXPENSIVE_CHECKING is TRUE certain
+common uses of the trans_unit_corresp field of a_source_correspondence will
+trigger an assertion error if they occur outside the front end (i.e., when
+the global variable in_front_end is FALSE).
+
 9/10/07  Abort on array new when 1200 < Microsoft version < 1300
 
 When the Microsoft version number is set to something greater than 1200
