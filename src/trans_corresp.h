@@ -138,7 +138,7 @@ correspondence.
 */
 #if EXPENSIVE_CHECKING
 #define trans_unit_corresp_of(ptr)					\
-  (check_assertion(in_front_end), (ptr)->source_corresp.trans_unit_corresp)
+  (*(check_assertion(in_front_end), &(ptr)->source_corresp.trans_unit_corresp))
 #else /* !EXPENSIVE_CHECKING */
 #define trans_unit_corresp_of(ptr)					\
   ((ptr)->source_corresp.trans_unit_corresp)
@@ -149,12 +149,12 @@ Macro like trans_unit_corresp_of, but that can operate on a char* pointer
 or a direct source correspondence pointer.
 */
 #if EXPENSIVE_CHECKING
-#define trans_unit_corresp_of_unknown_entry(ptr)			\
-  (((a_source_correspondence*)(ptr))->trans_unit_corresp)
+#define trans_unit_corresp_of_unknown_entry(ptr)			  \
+  (*(check_assertion(in_front_end),                                       \
+     &((a_source_correspondence*)(ptr))->trans_unit_corresp))
 #else /* !EXPENSIVE_CHECKING */
-#define trans_unit_corresp_of_unknown_entry(ptr)			\
-  (check_assertion(in_front_end),                                       \
-   ((a_source_correspondence*)(ptr))->trans_unit_corresp)
+#define trans_unit_corresp_of_unknown_entry(ptr)			  \
+  (((a_source_correspondence*)(ptr))->trans_unit_corresp)
 #endif /* EXPENSIVE_CHECKING */
 
 /*
@@ -183,10 +183,10 @@ the objects pointed to by ptr1 and ptr2 have already been set (if in
 doubt whether that assumption is valid, it is always safe to use one
 of the "corresponding_*" macros).
 */
-#define same_entities(ptr1, ptr2)					\
-  ((ptr1) == (ptr2) ||							\
-   ((ptr1) != NULL && (ptr2) != NULL &&					\
-    same_trans_unit_corresps(trans_unit_corresp_of(ptr1),		\
+#define same_entities(ptr1, ptr2)                                        \
+  ((ptr1) == (ptr2) ||                                                   \
+   ((ptr1) != NULL && (ptr2) != NULL && in_front_end &&                  \
+    same_trans_unit_corresps(trans_unit_corresp_of(ptr1),                \
                              trans_unit_corresp_of(ptr2))))
 
 /*

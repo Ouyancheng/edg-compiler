@@ -6548,7 +6548,7 @@ point to the same entity or entities that have the same canonical entry.
 */
 {
   return ptr1 == ptr2 ||
-         (ptr1 != NULL && ptr2 != NULL &&
+         (ptr1 != NULL && ptr2 != NULL && in_front_end &&
           same_trans_unit_corresps(trans_unit_corresp_of_unknown_entry(ptr1),
                                    trans_unit_corresp_of_unknown_entry(ptr2)));
 }  /* ff_same_entities */
