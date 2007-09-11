@@ -1341,10 +1341,10 @@ when it is a secondary file.
        table initialization) because routine entries are also created. */
     make_global_operator_new_or_delete_symbol((an_opname_kind)onk_new);
     make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete);
-    if (!(microsoft_mode && microsoft_version < 1400) &&
-        array_new_and_delete_enabled) {
-      /* Add symbols for the array versions, too.  This is never done when
-         emulating earlier versions of the Microsoft C++ compiler. */
+    if (!microsoft_mode && array_new_and_delete_enabled) {
+      /* Add symbols for the array versions, too.  (Although this is not done
+         explicitly in Microsoft mode, the symbols are sometimes created
+         implicitly when the corresponding non-array versions are created.) */
       make_global_operator_new_or_delete_symbol((an_opname_kind)onk_array_new);
       make_global_operator_new_or_delete_symbol(
                                              (an_opname_kind)onk_array_delete);

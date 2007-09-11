@@ -1,5 +1,22 @@
 Version 3.10
 
+9/11/07  Microsoft C++ compatibility: Predefined new[] and delete[] operators
+
+In Microsoft C++ mode with microsoft_version >= 1400, the predeclared new[]
+and delete[] operators are now just aliases for their non-array counterparts.
+User-declared new[] and delete[] operators, however, are distinct routines.
+For example:
+
+  void f1() {
+    operator new[](4);  // Calls the predeclared "operator new".
+  }
+  void *operator new[](size_t);  // (1)
+  void f2() {
+    operator new[](4);  // Call the routine declared in line (1).
+  }
+
+See also the Changes entry of 3/6/07.
+
 9/11/07  Attribute weakref and the C++-generating back end
 
 The C++-generating back end failed to render the argument to most instances

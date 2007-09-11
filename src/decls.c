@@ -635,6 +635,30 @@ list of GNU C attributes, if applicable.
   }  /* if */
 }  /* check_and_adjust_parameter_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean is_implicit_array_new_or_delete_symbol(a_symbol_ptr  sym)
+/*
+Return TRUE if and only if the given symbol represents an implicitly
+declared array new or delete operator.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (sym->kind == (a_symbol_kind)sk_routine &&
+      sym->variant.routine.ptr->compiler_generated &&
+      sym->decl_scope == file_scope_number) {
+    /* In Microsoft mode with microsoft_version >= 1400, the predeclared array
+       new and delete symbols point to the corresponding non-array routines.
+       Rather than examining the routine entry, we must therefore look at the
+       symbol's identifier string. */
+    result = strcmp(sym->header->identifier, "operator new[]") == 0 ||
+             strcmp(sym->header->identifier, "operator delete[]") == 0;
+  }  /* if */
+  return result;
+}  /* is_implicit_array_new_or_delete_symbol */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void check_operator_function_params(a_type_ptr        rout_type,
                                     a_type_ptr        class_type,
@@ -6330,6 +6354,21 @@ declaration.
                                       (a_symbol_kind)sk_overloaded_function));
     }  /* if */
 #endif /* CHECKING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && microsoft_version >= 1400 &&
+        locator->is_operator_name &&
+        is_implicit_array_new_or_delete_symbol(linked_symbol)) {
+      /* Microsoft C++ 8 treats the implicitly declared array new and delete
+         operators as aliases for the non-array versions, but the user-defined
+         array new and delete operators are distinct routines.  If this is a
+         user-defined declaration of an array new or delete operator, we
+         therefore disable the predeclared symbol and force the creation of a
+         new one. */
+      redeclaration = FALSE;
+      linked_symbol->is_invisible = TRUE;
+      idlb.linked_symbol = linked_symbol = NULL;
+    }  /* if */ 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (redeclaration) {
     if (linked_symbol->kind == (a_symbol_kind)sk_routine) {

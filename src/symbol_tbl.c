@@ -6722,11 +6722,35 @@ cleared.
     /* Type of the one parameter for operator delete is void *. */
     param1_type = make_pointer_type(void_type());
   }  /* if */
-  sym = make_predeclared_function_symbol(
-            &locator,
-            make_routine_type(return_type, param1_type, (a_type_ptr)NULL,
-                              (a_type_ptr)NULL, (a_type_ptr)NULL));
-  if (exceptions_enabled && !microsoft_mode) {
+  if (microsoft_mode && (opname == (an_opname_kind)onk_array_new ||
+                         opname == (an_opname_kind)onk_array_delete)) {
+  } else {
+    sym = make_predeclared_function_symbol(
+                 &locator,
+                 make_routine_type(return_type, param1_type, (a_type_ptr)NULL,
+                                   (a_type_ptr)NULL, (a_type_ptr)NULL));
+  }  /* if */
+  if (microsoft_mode) {
+    if (microsoft_version >= 1400) {
+      /* More recent Microsoft compilers treat the implicit declaration of
+         array new and array delete as synonyms for the corresponding non-
+         array versions.  A user declaration of these functions does declare
+         a distinct routine, however. */
+      a_symbol_ptr  av_sym;
+      if (opname == (an_opname_kind)onk_new) {
+        make_opname_locator((an_opname_kind)onk_array_new, &locator,
+                            &null_source_position);
+      } else {
+        check_assertion(opname == (an_opname_kind)onk_delete);
+        make_opname_locator((an_opname_kind)onk_array_delete, &locator,
+                            &null_source_position);
+      }  /* if */
+      av_sym = enter_local_symbol((a_symbol_kind)sk_routine, &locator,
+                                  (a_scope_depth)DEPTH_OF_FILE_SCOPE,
+                                  /*suppress_redecl_error=*/FALSE);
+      av_sym->variant.routine.ptr = sym->variant.routine.ptr;
+    }  /* if */
+  } else if (exceptions_enabled) {
     /* Add exception specifications (except in Microsoft mode, where exception
        specifications are usually discarded). */
     rtsp = sym->variant.routine.ptr->type->variant.routine.extra_info;
