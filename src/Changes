@@ -16,10 +16,11 @@ This is now fixed.
 
 Calling make_pointer_type in a back end could result in accessing freed
 memory locations when simultaneously processing multiple translation units.
-This is now fixed.  In addition, when EXPENSIVE_CHECKING is TRUE certain
-common uses of the trans_unit_corresp field of a_source_correspondence will
-trigger an assertion error if they occur outside the front end (i.e., when
-the global variable in_front_end is FALSE).
+This is now fixed.  In addition, to detect similar problems in other
+functions, certain common uses of the trans_unit_corresp field of
+a_source_correspondence will now trigger an assertion error if they occur
+outside the front end (i.e., when the global variable in_front_end is FALSE)
+when EXPENSIVE_CHECKING is TRUE.
 
 9/10/07  Abort on array new when 1200 < Microsoft version < 1300
 
