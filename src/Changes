@@ -1,6 +1,6 @@
 Version 3.10
 
-9/11/07  Attribute weakref and C++-generating back end
+9/11/07  Attribute weakref and the C++-generating back end
 
 The C++-generating back end failed to render the argument to most instances
 of the weakref attribute (a GNU extension).  For example:
