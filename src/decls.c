@@ -13821,7 +13821,11 @@ repeating the diagnostic if additional declarators follow.
       !(dps->type != NULL && is_error_type(dps->type))) {
     /* The "auto" type specifier was seen, but we never saw an initializer
        and no other error was recorded in the declaration's type. */
-    pos_error(ec_auto_type_requires_initializer, &dps->declarator_pos);
+    if (dps->sym != NULL && !dps->sym->is_error) {
+      pos_error(ec_auto_type_requires_initializer, &dps->declarator_pos);
+    } else {
+      expect_error();
+    }  /* if */
     dps->auto_type_specifier_seen = FALSE;
     dps->auto_type = NULL;
     dps->specifiers_type = dps->type = error_type();
