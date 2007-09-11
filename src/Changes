@@ -1,5 +1,17 @@
 Version 3.10
 
+9/11/07  Attribute weakref and C++-generating back end
+
+The C++-generating back end failed to render the argument to most instances
+of the weakref attribute (a GNU extension).  For example:
+
+  extern "C" void f() {}
+  static void wf() __attribute__((weakref("f")));
+    // Attribute previously rendered as __attribute__((__weakref__)) in
+    // the C++-generating back end.
+
+This is now fixed.
+
 9/10/07  Using make_pointer_type in back ends
 
 Calling make_pointer_type in a back end could result in accessing freed

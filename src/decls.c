@@ -4996,13 +4996,14 @@ TRUE if a definition preceded the current declaration.
 static a_boolean attributes_include_alias(an_attribute_ptr  attributes)
 /*
 Return TRUE if the given list of attributes includes one representing the
-"alias" attribute.
+"alias" or "weakref" attribute.
 */
 {
   a_boolean  result = FALSE;
 
   for (; attributes != NULL; attributes = attributes->next) {
-    if (attributes->kind == (an_attribute_kind)ak_alias) {
+    if (attributes->kind == (an_attribute_kind)ak_alias ||
+        attributes->kind == (an_attribute_kind)ak_weakref) {
       result = TRUE;
       break;
     }  /* if */
