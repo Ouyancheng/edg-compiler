@@ -13862,9 +13862,13 @@ repeating the diagnostic if additional declarators follow.
     /* The "auto" type specifier was seen, but we never saw an initializer
        and no other error was recorded in the declaration's type. */
     if (dps->sym != NULL && !dps->sym->is_error) {
+      /* A named entity was declared: Issue the error on the declarator (there
+         could be more than one sharing the same auto specifier). */
       pos_error(ec_auto_type_requires_initializer, &dps->declarator_pos);
     } else {
-      expect_error();
+      /* An unnamed entity (e.g., bit field) or a severe syntax error.
+         Issuing the error on the auto specifier is usually more helpful. */
+      pos_error(ec_auto_type_requires_initializer, &dps->auto_pos);
     }  /* if */
     dps->auto_type_specifier_seen = FALSE;
     dps->auto_type = NULL;
