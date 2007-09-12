@@ -1,5 +1,12 @@
 Version 3.10
 
+9/12/07  Reading the IL from a file with MACRO_INVOCATION_TREE_IN_IL
+
+In configurations with MACRO_INVOCATION_TREE_IN_IL set to TRUE, the front
+end failed to remap the pointer to the root macro invocation block in the
+il header after reading the IL from a file, leading to unpredictable
+behavior including aborts.  This is now fixed.
+
 9/11/07  Microsoft C++ compatibility: Predefined new[] and delete[] operators
 
 In Microsoft C++ mode with microsoft_version >= 1400, the predeclared new[]
