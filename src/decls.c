@@ -646,7 +646,7 @@ declared array new or delete operator.
   a_boolean  result = FALSE;
 
   if (sym->kind == (a_symbol_kind)sk_routine &&
-      sym->variant.routine.ptr->compiler_generated &&
+      sym->decl_position.seq == 0 &&
       sym->decl_scope == file_scope_number) {
     /* In Microsoft mode with microsoft_version >= 1400, the predeclared array
        new and delete symbols point to the corresponding non-array routines.
@@ -6362,10 +6362,14 @@ declaration.
          operators as aliases for the non-array versions, but the user-defined
          array new and delete operators are distinct routines.  If this is a
          user-defined declaration of an array new or delete operator, we
-         therefore disable the predeclared symbol and force the creation of a
+         therefore remove the predeclared symbol and force the creation of a
          new one. */
       redeclaration = FALSE;
-      linked_symbol->is_invisible = TRUE;
+      if (overload_symbol != NULL) {
+        remove_symbol_from_overload_set(linked_symbol, overload_symbol);
+      } else {
+        remove_symbol(linked_symbol);
+      }  /* if */
       idlb.linked_symbol = linked_symbol = NULL;
     }  /* if */ 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

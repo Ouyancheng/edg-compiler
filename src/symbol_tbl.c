@@ -2990,6 +2990,23 @@ Remove a symbol from the symbol table, i.e., unlink it from either the main
 }  /* unlink_symbol_from_symbol_table */
 
 
+void remove_symbol_from_overload_set(a_symbol_ptr  sym,
+                                     a_symbol_ptr  ovl_set)
+/*
+Remove sym from the list headed by ovl_set (a symbol of kind
+sk_overloaded_function).
+*/
+{
+  a_symbol_ptr  *p = &ovl_set->variant.overloaded_function.symbols;
+
+  while (*p != sym) {
+    p = &(*p)->next;
+    check_assertion(*p != NULL);
+  }  /* while */
+  *p = (*p)->next;
+}  /* remove_symbol_from_overload_set */
+
+
 static void remove_symbol_from_no_scope_list(a_symbol_ptr sym_ptr)
 /*
 Remove a symbol from the symbols_with_no_scope list.
