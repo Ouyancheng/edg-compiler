@@ -1,5 +1,13 @@
 Version 3.10
 
+9/12/07  Default maximum pack alignment
+
+The default maximum pack alignment (TARG_MAXIMUM_PACK_ALIGNMENT) is now 128
+and is independent of other configuration settings (previously is was smaller
+when GNU_EXTENSIONS_ALLOWED was FALSE).  GNU and Microsoft compilers accept
+larger values still: The front end can be configured to match those by setting
+TYPE_FOR_TARG_ALIGNMENT and TARG_MAXIMUM_PACK_ALIGNMENT appropriately.
+
 9/12/07  Reading the IL from a file with MACRO_INVOCATION_TREE_IN_IL
 
 In configurations with MACRO_INVOCATION_TREE_IN_IL set to TRUE, the front

@@ -1725,7 +1725,9 @@ typedef a_host_large_unsigned a_targ_size_t;  /* Must be
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /* Specification of a target alignment requirement.  1 means no alignment
-   requirement.  (TARG_MAXIMUM_PACK_ALIGNMENT must fit in this type.) */
+   requirement.  (TARG_MAXIMUM_PACK_ALIGNMENT must fit in this type.)
+    Making the size of TYPE_FOR_TARG_ALIGNMENT larger than one may cause an
+    increase of the sizes of some IL entries (like a_type and a_field). */
 #ifndef TYPE_FOR_TARG_ALIGNMENT
 #define TYPE_FOR_TARG_ALIGNMENT a_byte
 #endif /* ifndef TYPE_FOR_TARG_ALIGNMENT */
@@ -2342,6 +2344,10 @@ Set the minimum and maximum values which a "pack alignment" value may have.
 This is an alignment that is the maximum alignment for a nonstatic data
 member of a class; it can force a member to be aligned at a lesser alignment
 than its type would normally require.
+Microsoft and GNU compilers allow large "pack alignment" values (such as
+32768), but the maximum value accepted by the front end must fit in the type
+TYPE_FOR_TARG_ALIGNMENT which is a_byte by default.  We therefore limit the
+maximum pack alignment to 128 by default.
 */
 #ifndef TARG_MINIMUM_PACK_ALIGNMENT
 #define TARG_MINIMUM_PACK_ALIGNMENT 1
@@ -2350,15 +2356,7 @@ than its type would normally require.
 #endif /* !defined(TARG_MINIMUM_PACK_ALIGNMENT) */
 
 #ifndef TARG_MAXIMUM_PACK_ALIGNMENT
-#if GNU_EXTENSIONS_ALLOWED
 #define TARG_MAXIMUM_PACK_ALIGNMENT 128
-#else /* !GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#define TARG_MAXIMUM_PACK_ALIGNMENT 16
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define TARG_MAXIMUM_PACK_ALIGNMENT 8
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 			/* Default value, used to initialize global variable
 			   targ_maximum_pack_alignment. */
 #endif /* !defined(TARG_MAXIMUM_PACK_ALIGNMENT) */
