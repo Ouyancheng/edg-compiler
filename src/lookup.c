@@ -4961,17 +4961,24 @@ be found.
   /* See if there are any functions for this operator. */
   symhdr = opname_symbol_table[kind];
   if (symhdr != NULL) {
-    /* Look for one that's visible and a non-member function.  New and
-       delete operators cannot be declared in namespaces, so there can only
-       be one nonmember symbol that must be from the file scope.  The file
-       scope symbols start on the active list, but will be on the inactive
-       list when the file scope is reactivated for the purpose of generating
-       instantiations. */
+    /* Look for one that's visible and a non-member function.  New and delete
+       operators can normally only be declared in global namespace.  However,
+       in Microsoft mode and in some GNU modes they can also be declared in
+       namespace scope.  In the Microsoft case, the namespace scope
+       declarations are found with explicit operator call syntax (which uses
+       the usual name lookup routines), but not with new-expression or delete-
+       expression syntax (which uses this routine).  In GNU modes with
+       gnu_version < 40000 namespaces are considered even for new-expressions
+       -expressions (and this routine is not called in those cases), but not
+       for delete-expressions. */
+    /* The file scope symbols start on the active list, but will be on the
+       inactive list when the file scope is reactivated for the purpose of
+       generating instantiations. */
     sym = (scope_stack[DEPTH_OF_FILE_SCOPE].is_reactivation) ?
                                     symhdr->inactive_symbols : symhdr->symbol;
     for (; sym != NULL; sym = sym->next) {
       /* The file_scope_number test excludes symbols from other translation
-         units. */
+         units (and from other namespaces in Microsoft and GNU modes). */
       if (!sym->is_class_member &&
           sym->decl_scope == file_scope_number &&
           (is_function_symbol(sym) ||

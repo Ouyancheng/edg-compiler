@@ -906,8 +906,7 @@ new fields are set properly.
 
 
 static void report_bad_new_or_delete(a_symbol_locator  *locator,
-                                     a_storage_class   storage_class,
-                                     a_boolean         *bad_scope)
+                                     a_storage_class   storage_class)
 /*
 Issue a diagnostic when attempting to declare an operator new or delete
 function that is a namespace member or that has internal linkage (i.e.,
@@ -927,11 +926,16 @@ If a true error is issued mark *locator as an error locator.
          !locator->is_file_scope_qualified_name)) {
       /* This operator declaration either appears inside a namespace or else
          has the effect of injecting a declaration into a namespace. */
-      severity = microsoft_mode ? es_warning : es_error;
+      if (microsoft_mode || (gpp_mode && gnu_version < 40000)) {
+        /* Microsoft compilers and early GNU compilers accept namespace-scope
+           new/delete operators.  (See also opname_function_symbol.) */
+        severity = es_warning;
+      } else {
+        severity = es_error;
+      }  /* if */
       error_code = is_new_operator(locator->variant.opname)?
                                         ec_allocation_operator_in_namespace :
                                         ec_deallocation_operator_in_namespace;
-      *bad_scope = TRUE;
     } else if (storage_class == (a_storage_class)sc_static) {
       severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
       error_code = ec_no_internal_linkage_for_new_or_delete;
@@ -6145,7 +6149,6 @@ declaration.
   a_boolean                is_function_def = FALSE;
   a_boolean                changed_to_inline = FALSE;
   a_boolean                is_friend_decl;
-  a_boolean                invalid_scope_for_new_or_delete = FALSE;
   a_boolean                set_invisible = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
   a_boolean                first_decl = FALSE;
@@ -6216,8 +6219,7 @@ declaration.
        argument list. */
     check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
                                    locator);
-    report_bad_new_or_delete(locator, storage_class,
-                             &invalid_scope_for_new_or_delete);
+    report_bad_new_or_delete(locator, storage_class);
   } else {
     /* C mode. */
     if (strict_ansi_mode) {
@@ -6843,17 +6845,6 @@ skip_overloading:;
         (void)ensure_il_scope_exists(&scope_stack[effective_decl_level]);
       }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-    if (microsoft_mode && (invalid_scope_for_new_or_delete ||
-                           microsoft_specialization_redef)) {
-      /* An operator new or delete function was declared in a namespace scope.
-         The Microsoft C++ compiler permits this (i.e., no error is issued),
-         yet it proceeds to ignore the declaration in processing new and
-         delete expressions.  We emulate this behavior by not adding the
-         symbol to the symbol table. */
-      /* Similarly, duplicate specialization definitions should not be kept
-         in the symbol table. */
-      remove_symbol(sym);
-    }  /* if */
     /* Mark friend functions for which this is the initial declaration. */
     if (set_invisible) sym->is_invisible = TRUE;
   } else {
@@ -7717,8 +7708,6 @@ definition of a member function of a class template.
       /* Not a redeclaration. */
       a_scope_stack_entry_ptr  ssep = &scope_stack[idlb.effective_decl_level];
       an_error_code            error_code;
-      a_boolean                invalid_scope_for_new_or_delete = FALSE;
-
       if (!is_error_locator(*locator)) {
         /* If this is an overloaded operator, check for errors in the
            argument list.  Note that this check is not done for redeclarations,
@@ -7731,8 +7720,7 @@ definition of a member function of a class template.
         }  /* if */
         /* If it's a new or delete operator, be sure the scope is not a
            namespace scope. */
-        report_bad_new_or_delete(locator, storage_class,
-                                 &invalid_scope_for_new_or_delete);
+        report_bad_new_or_delete(locator, storage_class);
       }  /* if */
       check_default_args(type_ptr);
       if (homonym_symbol != NULL &&
@@ -7766,9 +7754,6 @@ definition of a member function of a class template.
         /* Another function with the same name has been declared already.  It
            may or may not be a function template.  In any case, create a new
            symbol and add it to an overload list. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        check_assertion(!microsoft_mode || !invalid_scope_for_new_or_delete);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         sym = record_overload(locator, /*is_template=*/TRUE, homonym_symbol,
                               &overload_symbol, set_invisible,
                               idlb.is_friend_decl);
@@ -7777,14 +7762,6 @@ definition of a member function of a class template.
         sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
                                  idlb.effective_decl_level,
                                  /*suppress_redecl_error=*/FALSE);
-        if (microsoft_mode && invalid_scope_for_new_or_delete) {
-          /* The Microsoft C++ compiler permits declaring a new or delete
-             function template in a namespace scope, but it doesn't actually
-             find the template when processing new and delete expressions.
-             We emulate this behavior by removing the symbol from the symbol
-             table. */
-          remove_symbol(sym);
-        }  /* if */
         /* Mark friend functions for which this is the initial declaration. */
         if (set_invisible) sym->is_invisible = TRUE;
       }  /* if */

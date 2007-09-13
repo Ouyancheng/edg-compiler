@@ -1,5 +1,28 @@
 Version 3.10
 
+9/13/07  Microsoft and GNU C++ compatibility: new/delete in namespaces
+
+In Microsoft C++ mode the front end accepts declarations of new and delete
+operators in namespaces, but previously such declarations were never found
+through lookup (see also Changes entry of 11/19/98).  Now such declarations
+are found when using explicit operator call notation (but not when using the
+more common new-expression and delete-expression syntax.  For example:
+
+  void *operator new(size_t);  // (1)
+
+  namespace N {
+    void *operator new(size_t);  // (2)
+    void f() {
+      new double;        // Calls (1).
+      operator new(55);  // Calls (2).
+    }
+  }
+
+In addition, new and delete operators can now also be declared in namespaces
+in GNU C++ mode when gnu_version < 40000.  Unlike in Microsoft mode, a
+namespace-scope new operator (but not a namespace-scope delete operator) can
+also be found when using new-expression syntax.
+
 9/13/07  Duplicate diagnostics in template declaration scopes
 
 Template declarations sometimes require a "prescan" to determine the

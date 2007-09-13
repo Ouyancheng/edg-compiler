@@ -9598,6 +9598,19 @@ specification allow a variable-sized array as the top type.
                                                          unqual_base_new_type);
       }  /* if */
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    if (gpp_mode && gnu_version < 40000 && operator_new_symbol == NULL &&
+        depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
+        !unknown_dependent_new) {
+      /* Early GNU C++ compilers accept namespace-scope declarations of
+         new/delete operators and (unlike Microsoft C++ compilers) find those
+         using an ordinary lookup.  (This is true even when using "::new X":
+         The lookup starts in the current namespace.) */
+      a_symbol_locator  loc;
+      make_opname_locator(opname_kind, &loc, &new_position);
+      operator_new_symbol = normal_id_lookup(&loc, IDL_SKIP_CLASS_SCOPES);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     if (operator_new_symbol == NULL && !unknown_dependent_new) {
       /* Use the global "operator new" or "operator new[]". */
       operator_new_symbol = opname_function_symbol(opname_kind);
