@@ -171,6 +171,11 @@ represented as a bit set:
 				/* We are looking up a name in a base class
 				   using the Microsoft __super directive. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#define IDL_USE_PROTOTYPE_NOT_NONREAL 0x4000000
+			/* Specifies that a reference such as
+			   A<T>::X should be considered to refer to the
+			   prototype instantiation X, not the nonreal
+			   version of the same name. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
@@ -229,6 +234,9 @@ extern a_boolean symbols_are_lookup_equivalent(a_symbol_ptr	sym1,
 extern a_boolean already_in_lookup_set(a_symbol_ptr curr_sym,
                                        a_symbol_ptr new_sym,
 				       a_boolean    is_using_dir);
+
+extern
+a_symbol_ptr f_nonreal_type_if_nested_prototype_type(a_symbol_ptr	sym);
 
 extern a_symbol_ptr curr_scope_id_lookup(a_symbol_locator         *locator,
                                          an_id_lookup_options_set options);
@@ -291,6 +299,8 @@ extern a_boolean equiv_unknown_functions(a_symbol_ptr	sym1,
 extern a_symbol_ptr find_unknown_function_symbol(
 					a_symbol_ptr	orig_sym,
 					a_boolean	is_qualified_name);
+
+extern void create_nonreal_version_of_nested_type(a_symbol_ptr	orig_sym);
 
 extern
 a_symbol_ptr look_up_conversion_function(a_type_ptr		parent_class,

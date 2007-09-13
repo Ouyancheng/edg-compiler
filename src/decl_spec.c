@@ -2573,9 +2573,12 @@ it returns FALSE.
   a_boolean  result = FALSE;
 
   if ((gpp_mode && gnu_version < 30400) || microsoft_mode) {
+    /* The proxy class test below is to prevent "struct T::X {}" from being
+       allowed. */
     if (innermost_function_scope == NULL &&
         scope_stack[depth_scope_stack].kind ==
-                                       (a_scope_kind)sck_class_struct_union) {
+                                       (a_scope_kind)sck_class_struct_union &&
+        !is_proxy_class(type_symbol_type(sym))) {
       /* Check that the current scope encloses sym (not required for earlier
          Microsoft versions). */
       if (microsoft_bugs && microsoft_version < 1400) {
@@ -4251,6 +4254,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_name_reference_ptr         name_ref = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_boolean                    is_dependent_enum = FALSE;
 
   db_enter(3, "enum_specifier");
 
@@ -4450,6 +4454,9 @@ describes Microsoft attributes preceding the enum specifier (if any).
         /* Add a pointer to the parent class in the symbol and the type. */
         set_class_membership(tag_sym, &enum_type->source_corresp,
                              class_of_which_a_member);
+        /* If this is an enum nested in a prototype instantiation, create
+           the nonreal version of the type. */
+        check_for_nested_type_of_prototype_instantiation(tag_sym);
       } else if (scope_stack[effective_decl_level].kind ==
                                      (a_scope_kind)sck_namespace ||
                  scope_stack[effective_decl_level].kind ==
@@ -4595,6 +4602,9 @@ describes Microsoft attributes preceding the enum specifier (if any).
          large enough to represent all the enumerator values.  It won't be
          known until the definition is complete. */
       enum_con_type = NULL;
+      /* For an enum in a class template the enumerators must be treated as
+         dependent. */
+      is_dependent_enum = tag_sym->corresp_nonreal_or_nested_type != NULL;
     } else {
       /* In C the type of the constants is always "int", regardless of
          the type of the enumerated type (see 3.5.2.2).  However, it is
@@ -4804,12 +4814,14 @@ describes Microsoft attributes preceding the enum specifier (if any).
         }  /* if */
         /* Assign the value to the enumeration constant. */
         switch_to_file_scope_region(&region_to_switch_back_to);
-        if (constant.kind == (a_constant_repr_kind)ck_template_param) {
+        if (constant.kind == (a_constant_repr_kind)ck_template_param ||
+            is_dependent_enum) {
           /* Add a do-nothing cast to a ck_template_constant so as
              to avoid problems with using the same constant entry for
              the enumerator and its value (e.g., class membership
              information for the value as a tpck_member constant
-             conflicts with the class membership of the enumerator). */
+             conflicts with the class membership of the enumerator).
+             Also do this for enumerators that must be treated as dependent. */
           make_template_param_cast_constant(&constant, &constant,
                                             constant.type,
                                             /*is_explicit=*/FALSE);

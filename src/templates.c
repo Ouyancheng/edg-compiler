@@ -10273,6 +10273,7 @@ any classes that declared the nested class as a template friend.
       tssp = template_supplement_for_symbol(sym);
       /* A NULL template supplement can be returned in certain error cases. */
       if (tssp != NULL) tssp->il_template_entry = templ;
+      check_for_nested_type_of_prototype_instantiation(sym);
     }  /* if */
   }  /* if */
 }  /* set_nested_template_class_symbol_info */
@@ -14963,13 +14964,6 @@ instantiation, then you don't know what X is.
   /* The following is_class_struct_union_type test is needed because in
      certain error cases the type may not be a class type. */
   if (tp != NULL && is_class_struct_union_type(tp)) {
-    /* Skip out to the nearest enclosing class that has a template argument
-       list. */
-    while (tp->source_corresp.is_class_member &&
-           tp->variant.class_struct_union.extra_info->
-                                                  template_arg_list == NULL) {
-      tp = tp->source_corresp.parent.class_type;
-    }  /* while */
     /* Make sure that this is a class type.  If it is not, ignore the
        type.  It must be an error and will be diagnosed during the real
        scanning of the template. */
@@ -14978,7 +14972,6 @@ instantiation, then you don't know what X is.
     } else {
       sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
       check_assertion(sym != NULL);
-      sym = sym->variant.class_struct_union.extra_info->class_template;
     }  /* if */
   }  /* if */
   /* Save the symbol that points to the template whose member is being

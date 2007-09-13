@@ -2478,8 +2478,23 @@ on tsn if non-zero.
   }  /* if */
   tdip->last_entry_added = ndcip;
 }  /* record_nondependent_call */
-				
 
+
+void check_for_nested_type_of_prototype_instantiation(a_symbol_ptr sym)
+/*
+If "sym" is a nested class of a prototype instantiation, create its nonreal
+version.  See create_nonreal_version_of_nested_type for more information.
+*/
+{
+  if (sym->is_class_member && is_prototype_instantiation_context()) {
+    a_type_ptr	parent_class = sym->parent.class_type;
+    if (parent_class->variant.class_struct_union.is_prototype_instantiation) {
+      create_nonreal_version_of_nested_type(sym);
+    }  /* if */
+  }  /* if */
+}  /* check_for_nested_type_of_prototype_instantiation */
+
+				
 a_templ_friend_info_ptr alloc_templ_friend_info(void)
 /*
 Allocate a new template friend information entry, initialize its fields,
@@ -11959,6 +11974,7 @@ are handled in symbol_tbl_init.)
 #if MICROSOFT_EXTENSIONS_ALLOWED && !DEPRECATION_STRING_IN_IL
   cleared_symbol.deprecation_string                = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DEPRECATION_STRING_IN_IL */
+  cleared_symbol.corresp_nonreal_or_nested_type    = NULL;
   cleared_symbol.referenced                        = FALSE;
   cleared_symbol.defined                           = FALSE;
   cleared_symbol.explicit_linkage_specifier        = FALSE;
@@ -11966,6 +11982,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.is_class_member                   = FALSE;
   cleared_symbol.is_error                          = FALSE;
   cleared_symbol.is_template_param                 = FALSE;
+  cleared_symbol.is_nonreal_nested_type            = FALSE;
   cleared_symbol.template_param_not_visible        = FALSE;
   cleared_symbol.force_external_linkage            = FALSE;
   cleared_symbol.ambiguous                         = FALSE;

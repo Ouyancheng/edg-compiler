@@ -5207,6 +5207,31 @@ resulting type is neither an array type nor a function type.
 }  /* check_type_with_auto_specifier */
 
 
+static void use_nonreal_type_for_nested_prototype_type(
+						a_decl_parse_state	*state)
+/*
+In a class prototype instantiation context for a member declaration like:
+
+  class X {} x;
+
+The type used for the declaration of "x" must be the associated nonreal type.
+If we are in such a context, update the type in the decl_parse_state.
+*/
+{
+  if (scope_stack[depth_scope_stack].kind ==
+                                        (a_scope_kind)sck_class_struct_union) {
+    a_type_ptr		tp = state->type;
+    if (tp->source_corresp.is_class_member) {
+      a_symbol_ptr	sym = (a_symbol_ptr)(tp->source_corresp.assoc_info);
+      a_symbol_ptr	nonreal_sym;
+      if (sym != (nonreal_sym = nonreal_type_if_nested_prototype_type(sym))) {
+        state->type = nonreal_sym->variant.type.ptr;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* use_nonreal_type_for_nested_prototype_type */
+
+
 void declarator(a_decl_flag_set             input_flags,
                 a_decl_parse_state          *state,
                 a_type_ptr                  member_parent_type,
@@ -5230,6 +5255,11 @@ the parameters.
                       (input_flags & DI_IS_FRIEND_DECL),
                       "declarator: parent class is NULL for ctor");
   state->declarator_start_pos = pos_curr_token;
+  if (is_prototype_instantiation_context()) {
+    /* See if the type being used is a type nested in a prototype
+       instantiation. */
+    use_nonreal_type_for_nested_prototype_type(state);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     decl_pos_block->declarator_range.start = pos_curr_token;

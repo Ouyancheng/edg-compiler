@@ -604,7 +604,8 @@ static an_id_lookup_options_set idl_options_for_lookup_mode[(int)ilm_last+1]= {
   /* ilm_namespace */           IDL_MUST_BE_NAMESPACE,
   /* ilm_typename */            IDL_TYPENAME_LOOKUP,
   /* ilm_class */  	        IDL_MUST_BE_CLASS,
-  /* ilm_template_linkage */	IDL_LINKAGE_LOOKUP | IDL_TREAT_AS_TEMPLATE_ID,
+  /* ilm_template_linkage */	IDL_LINKAGE_LOOKUP | IDL_TREAT_AS_TEMPLATE_ID |
+				IDL_USE_PROTOTYPE_NOT_NONREAL,
   /* ilm_using_declaration */  	IDL_USING_DECLARATION,
   /* ilm_using_typename */      IDL_USING_DECLARATION | IDL_TYPENAME_LOOKUP,
   /* ilm_expr */		IDL_IS_EXPR_CONTEXT,
@@ -11649,16 +11650,33 @@ a routine to lookup the appropriate instance (or generate one if needed).
        inside the instantiation of a different class. */
     a_boolean			prototype_allowed;
     a_boolean			is_templ_member_class_sym = FALSE;
+    a_symbol_ptr		tmc_sym;
     a_scope_stack_entry_ptr	ssep;
     ssep = &scope_stack[depth_scope_stack];
+    tmc_sym = ssep->templ_member_class_sym;
     /* Determine whether the template being used is either the class associated
        with a member that is being defined, or a template enclosing that
        class. */
-    {
-      a_symbol_ptr			tmc_sym = ssep->templ_member_class_sym;
-      while (tmc_sym != NULL) {
+    if (tmc_sym != NULL) {
+      for (;;) {
         a_template_symbol_supplement_ptr	tmc_tssp;
-        a_type_ptr				parent_type = NULL;
+        a_type_ptr				type;
+        /* Get the symbol associated with the nearest enclosing class
+           template. */
+        type = type_symbol_type(tmc_sym);
+        while (type->source_corresp.is_class_member &&
+               type->variant.class_struct_union.extra_info->
+                                                  template_arg_list == NULL) {
+          type = type->source_corresp.parent.class_type;
+        }  /* while */
+        /* Exit the loop if the type has no template argument list. */
+        if (type->variant.class_struct_union.extra_info->
+                                               template_arg_list == NULL) {
+          break;
+        }  /* if */
+        tmc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+        tmc_sym = tmc_sym->
+                         variant.class_struct_union.extra_info->class_template;
         tmc_tssp = tmc_sym->variant.template_info;
         /* If the template of which a member is being defined is a partial
            specialization, use the primary template instead for the purpose
@@ -11670,23 +11688,15 @@ a routine to lookup the appropriate instance (or generate one if needed).
         if (tmc_sym == template_sym) {
           is_templ_member_class_sym = TRUE;
           break;
-        }  /* while */
-        if (tmc_sym->is_class_member) {
-          /* Get the class template symbol associated with the nearest
-             enclosing class template. */
-          a_class_symbol_supplement_ptr	cssp;
-          parent_type = tmc_sym->parent.class_type;
-          while (parent_type->source_corresp.is_class_member &&
-                 parent_type->variant.class_struct_union.extra_info->
-                                                  template_arg_list == NULL) {
-            parent_type = parent_type->source_corresp.parent.class_type;
-          }  /* while */
-          cssp = symbol_supplement_for_class(parent_type);
-          tmc_sym = cssp->class_template;
-        } else {
-          tmc_sym = NULL;
         }  /* if */
-      }  /* while */
+        /* Continue processing with the next parent type. */
+        if (tmc_sym->is_class_member) {
+          type = tmc_sym->parent.class_type;
+          tmc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+        } else {
+          break;
+        }  /* if */
+      }  /* for */
     }
     prototype_allowed = ((options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0) ||
                         is_templ_member_class_sym;
@@ -13473,6 +13483,11 @@ selection operator, in which case it points to the type of the left operand.
               /* Pass in a special flag for expression contexts.  This controls
                  the type of nonreal class member created. */
               lookup_options |= IDL_IS_EXPR_CONTEXT;
+            }  /* if */
+            if ((options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0) {
+              /* Pass along the flag to use the prototype version of types,
+                 not the nonreal one. */
+              lookup_options |= IDL_USE_PROTOTYPE_NOT_NONREAL;
             }  /* if */
             if (qualifier_is_type) {
               if (qualifier_is_enum) {

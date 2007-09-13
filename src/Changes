@@ -1,5 +1,36 @@
 Version 3.10
 
+9/13/07  Nested types of class templates treated as dependent
+
+Nested types of class templates were not treated as dependent in certain
+contexts, which could result in spurious errors.  In this example,
+the front end incorrectly complained that incomplete type "X" could not
+be used as a a base class, and that "B" had no member "N".  These errors
+were incorrect because "X" could be specialized for a given instance of "A".
+
+  template <class T> struct A {
+    struct X;
+    struct B : public X {  // spurious "incomplete type not allowed"
+      typename B::N n;
+    };
+  };
+  template <> struct A<int>::X { typedef int N;};
+  A<int>::B ab;
+
+This issue also affected out-of-class definitions of class template members.
+The definition of "A<T>::f" was erroneously rejected in this example:
+
+  template <typename T> struct A {
+    enum E { e1, e2 };
+    template <E R> int f();
+  };
+  template <typename T> template <typename A<T>::E R> int A<T>::f() {
+    return 0;
+  }
+
+Nested types of class templates are now correctly treated as dependent,
+eliminating these problems.
+
 9/13/07  C++-generating back end: parentheses around array-valued expressions
 
 The C++-generating back end failed to add parentheses around array-valued

@@ -973,6 +973,42 @@ created symbol to the inactive list and returns it to the caller.
 }  /* add_member_to_proxy_or_nonreal_class */
 
 
+void create_nonreal_version_of_nested_type(a_symbol_ptr	orig_sym)
+/*
+A nested type of a prototype instantiation exists in two forms.  Its original
+form and a nonreal version that is used in contexts where the name should be
+considered a dependent type.
+
+  template <typename T> struct A {
+    class B {};
+    B b;  // refers to nonreal B
+  };
+
+This routine is given the original symbol and creates the nonreal version.
+*/
+{
+  a_type_ptr			class_type;
+  a_symbol_locator		locator;
+  a_symbol_ptr			nonreal_sym;
+
+  check_assertion(orig_sym->is_class_member);
+  class_type = orig_sym->parent.class_type;
+  make_locator_for_symbol(orig_sym, &locator);
+  nonreal_sym = create_proxy_or_nonreal_class_member_of_kind(
+                 class_type, (a_symbol_kind)sk_type, IDL_NO_OPTIONS, &locator);
+  orig_sym->corresp_nonreal_or_nested_type = nonreal_sym;
+  nonreal_sym->corresp_nonreal_or_nested_type = orig_sym;
+  nonreal_sym->is_nonreal_nested_type = TRUE;
+#if DEBUG
+  if (db_flag_is_set("cnvont")) {
+    fprintf(f_debug, "Created nonreal nested type:\n");
+    db_symbol(nonreal_sym, "  Nonreal symbol: ", 4);
+    db_symbol(orig_sym, "  Original symbol: ", 4);
+  }  /* if */
+#endif /* DEBUG */
+}  /* create_nonreal_version_of_nested_type */
+
+
 static
 a_symbol_ptr enter_sym_for_out_of_scope_routine(a_symbol_ptr     extern_sym,
 						a_symbol_locator *locator)
@@ -3053,6 +3089,34 @@ that do normal id lookup processing.
 }  /* instantiation_context_lookup */
 
 
+a_symbol_ptr f_nonreal_type_if_nested_prototype_type(a_symbol_ptr	sym)
+/*
+If a symbol has a corresponding nonreal type, return the symbol for that type,
+otherwise return the original symbol.  Only return the nonreal symbol if the
+type associated with the original symbol is not on the scope stack.  "sym"
+is already known to be a symbol with an associated nonreal type.
+*/
+{
+
+  a_symbol_ptr	result_sym = sym->corresp_nonreal_or_nested_type;
+
+  if (is_class_struct_union_symbol(sym)) {
+    a_type_ptr			tp = sym->variant.class_struct_union.type;
+    a_scope_stack_entry_ptr	ssep;
+    for (ssep = scope_stack_entry_for(depth_scope_stack);
+         ssep != NULL; ssep = previous_scope_of(ssep)) {
+      if (ssep->kind == (a_scope_kind)sck_class_struct_union ||
+          ssep->kind == (a_scope_kind)sck_class_reactivation) {
+        if (ssep->assoc_type == tp) break;
+      }  /* if */
+    }  /* for */
+    /* If the type was found on the scope stack, return the original symbol. */
+    if (ssep != NULL) result_sym = sym;
+  }  /* if */
+  return result_sym;
+}  /* f_nonreal_type_if_nested_prototype_type */
+
+
 a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                               an_id_lookup_options_set options)
 /*
@@ -3351,10 +3415,15 @@ C and C++.
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
     locator->specific_symbol = sym;
   }  /* if */
-  /* If the symbol is a projection symbol, reduce it to the fundamental
-     symbol.  The specific_symbol in the locator stays pointing to the
-     projection symbol. */
-  if (sym != NULL) reduce_projection_symbol_to_fundamental_symbol(sym);
+  if (sym != NULL) {
+    /* If the symbol is a projection symbol, reduce it to the fundamental
+       symbol.  The specific_symbol in the locator stays pointing to the
+       projection symbol. */
+    reduce_projection_symbol_to_fundamental_symbol(sym);
+    /* If the symbol is a nested type of a prototype instantiation, use
+       the associated nonreal type. */
+    sym = nonreal_type_if_nested_prototype_type(sym);
+  }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
     if (sym != NULL) {
@@ -3484,6 +3553,8 @@ in a friend declaration.
            name is a qualified name (determined by the called) or when the
            typedef name is a class member (determined here).  Only allow this
            if the type referred to is a class type. */
+      } else if (assoc_symbol->is_nonreal_nested_type) {
+        /* A nested class of a prototype instantiation. */
       } else {
         /* The lookup found a typedef name.  Issue a diagnostic. */
         pos_st_error(ec_typedef_in_elab_type, 
@@ -3563,6 +3634,35 @@ by find_projected_symbol to insert a projection symbol for the locator
     }  /* if */
   }  /* for */
 }  /* determine_projected_symbol_insert_location */
+
+
+static a_boolean is_definition_of_template_member(a_symbol_ptr sym)
+/*
+Return TRUE if sym is a class symbol for a class that is the parent of the
+current template member that is being defined; FALSE otherwise.
+*/
+{
+  a_boolean			result = FALSE;
+  a_scope_stack_entry_ptr	ssep;
+  a_symbol_ptr			tmc_sym;
+
+  ssep = &scope_stack[depth_scope_stack];
+  for (tmc_sym = ssep->templ_member_class_sym; tmc_sym != NULL; ) {
+    a_type_ptr				parent_type = NULL;
+    if (tmc_sym == sym) {
+      result = TRUE;
+      break;
+    }  /* if */
+    if (tmc_sym->is_class_member) {
+      /* Get the class symbol. */
+      parent_type = tmc_sym->parent.class_type;
+      tmc_sym = (a_symbol_ptr)parent_type->source_corresp.assoc_info;
+    } else {
+      tmc_sym = NULL;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* is_definition_of_template_member */
 
 
 a_symbol_ptr class_qualified_id_lookup(a_symbol_locator         *locator,
@@ -3898,12 +3998,29 @@ bypass_inactive_search:
       }  /* if */
     }  /* if */
 end_lookup:
+    if (sym != NULL) {
+      /* Unless the prototype symbol was explicitly requested, check for an
+         associated nonreal type symbol. */
+      if ((options & IDL_USE_PROTOTYPE_NOT_NONREAL) == 0) {
+        a_symbol_ptr	possible_nonreal_sym;
+        possible_nonreal_sym = nonreal_type_if_nested_prototype_type(sym);
+        if (possible_nonreal_sym != sym) {
+          /* Except when the symbol is associated with a class template member
+             that is being defined, use the nonreal symbol. */
+          if (!is_definition_of_template_member(sym)) {
+            sym = possible_nonreal_sym;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
     locator->specific_symbol = sym;
   }  /* if */
-  /* If the symbol is a projection symbol, reduce it to the fundamental
-     symbol.  The specific_symbol in the locator stays pointing to the
-     projection symbol. */
-  if (sym != NULL) reduce_projection_symbol_to_fundamental_symbol(sym);
+  if (sym != NULL) {
+    /* If the symbol is a projection symbol, reduce it to the fundamental
+       symbol.  The specific_symbol in the locator stays pointing to the
+       projection symbol. */
+    reduce_projection_symbol_to_fundamental_symbol(sym);
+  }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "class_qualified_id_lookup: id = %s, %s\n",

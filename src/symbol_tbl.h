@@ -2451,6 +2451,17 @@ typedef struct a_symbol {
 			   back end.)  In the front end, use the macro
 			   "deprecation_string_for" to access this field. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DEPRECATION_STRING_IN_IL */
+  a_symbol_ptr	corresp_nonreal_or_nested_type;
+			/* For types that are nested within prototype
+			   instantiation types, this points to a nonreal
+			   type that is used in place of the original type
+			   in contexts where the name of the type is to
+			   be treated as a dependent type.  For the symbol
+			   associated with the nonreal type, this points back
+			   to the original symbol.  NULL for other symbols.
+			   The is_nonreal_nested_type flag can be used to
+			   determine whether a given symbol is the original
+			   one or the nonreal version. */
   a_symbol_kind kind;
 			/* The kind of symbol. */
   a_bit_field	referenced:1;
@@ -2479,6 +2490,11 @@ typedef struct a_symbol {
   a_bit_field	is_template_param:1;
 			/* TRUE if the symbol represent a template
 			   parameter. */
+  a_bit_field	is_nonreal_nested_type:1;
+			/* TRUE if the symbol represents the nonreal version
+			   of nested type of a class template.  This is the
+			   symbol pointed to by the corresp_nonreal_type
+			   field of the original nested type symbol. */
   a_bit_field	template_param_not_visible:1;
 			/* TRUE if this is a template parameter that should
 			   not be visible for name lookup purposes at this
@@ -3223,6 +3239,8 @@ extern a_nondependent_call_info_ptr get_nondependent_call_info(
                                 a_token_sequence_number         tsn,
                                 a_nondependent_call_depth       depth);
 
+extern void check_for_nested_type_of_prototype_instantiation(a_symbol_ptr sym);
+
 extern void record_nondependent_call(a_symbol_ptr              symbol,
                                      a_token_sequence_number   tsn,
                                      a_nondependent_call_depth depth);
@@ -3676,6 +3694,16 @@ extern a_boolean check_protected_member_access(a_symbol_ptr      sym,
                                                a_symbol_ptr      proj_sym,
                                                a_source_position *err_pos,
                                                a_type_ptr        access_class);
+
+/*
+If a symbol has a corresponding nonreal type, return the symbol for that type,
+otherwise return the original symbol.
+*/
+#define nonreal_type_if_nested_prototype_type(sym)			\
+  ((sym)->corresp_nonreal_or_nested_type != NULL &&			\
+   !(sym)->is_nonreal_nested_type					\
+               ? f_nonreal_type_if_nested_prototype_type(sym)		\
+               : sym)
 
 /*
 If symbol is a projection symbol, change it to the fundamental symbol pointed
