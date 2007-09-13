@@ -1784,15 +1784,16 @@ by a command line option.
     /* Extended friend class declaration syntax (standard in C++0x) is
        accepted for all values of microsoft_version. */
     extended_friends_enabled = TRUE;
-    explicit_enum_base_enabled = microsoft_version >= 1400;
-    if (!option_kind_used[(int)optk_type_traits_helpers] &&
-        microsoft_version >= 1400) {
-      type_traits_helpers_enabled = TRUE;
-    }  /* if */
     extern_template_allowed = TRUE;
-    /* MSVC++ 8 follows the C++0x rules for treating the single ">>" token as
-       two ">" tokens in angle bracket contexts. */
-    right_shift_can_be_angle_brackets = microsoft_version >= 1400;
+    if (microsoft_version >= 1400) {
+      explicit_enum_base_enabled = TRUE;
+      if (!option_kind_used[(int)optk_type_traits_helpers]) {
+        type_traits_helpers_enabled = TRUE;
+      }  /* if */
+      /* MSVC++ 8 follows the C++0x rules for treating the single ">>" token as
+         two ">" tokens in angle bracket contexts. */
+      right_shift_can_be_angle_brackets = TRUE;
+    }  /* if */
   }  /* if */
   /* The Microsoft compiler does not find typedefs when looking up names
      in elaborated type specifiers. */
