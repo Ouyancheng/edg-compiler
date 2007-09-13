@@ -1,5 +1,17 @@
 Version 3.10
 
+9/13/07  Duplicate diagnostics in template declaration scopes
+
+Template declarations sometimes require a "prescan" to determine the
+kind of entity being declared before the full processing is done.  This
+can sometimes result in duplicate diagnostics.  The front end now
+suppresses diagnostics that were already issued as part of the prescan.
+In the example below, only one diagnostic is issued now.
+
+  template <class T> struct A { int f(); };
+  template <class T> int A<class T>::f() { return 0; }
+
+
 9/13/07  Nested types of class templates treated as dependent
 
 Nested types of class templates were not treated as dependent in certain
