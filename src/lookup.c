@@ -3477,7 +3477,7 @@ in a friend declaration.
       }  /* if */
     } else if (assoc_symbol->kind == (a_symbol_kind)sk_type &&
                !is_injected_class_name) {
-      if (gpp_mode  && gnu_version < 30400 && 
+      if (gpp_mode && gnu_version < 30400 && 
           (allow_typedef || assoc_symbol->is_class_member) &&
           is_class_symbol(assoc_symbol)) {
         /* Some versions of g++ allows "class <typedef-name>" when the typedef
