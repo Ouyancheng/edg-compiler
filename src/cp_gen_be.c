@@ -8446,9 +8446,16 @@ problems.
       }  /* if */
     }  /* if */
   } while (operand_changed);
-  if (operand->kind == (an_expr_node_kind)enk_variable ||
-      operand->kind == (an_expr_node_kind)enk_variable_address ||
-      operand->kind == (an_expr_node_kind)enk_temp_init) {
+  if (is_operation_node(operand) &&
+      node_operator_is(operand, eok_cast) &&
+      operand->variant.operation.compiler_generated &&
+      is_array_decay_cast(operand)) {
+    /* The cast will be suppressed, but it can affect the way its operand
+       will appear in the generated code in ways that can't be easily
+       predicted here.  Leave parens_needed set to TRUE. */
+  } else if (operand->kind == (an_expr_node_kind)enk_variable ||
+             operand->kind == (an_expr_node_kind)enk_variable_address ||
+             operand->kind == (an_expr_node_kind)enk_temp_init) {
     /* These can't have precedence problems. */
     parens_needed = FALSE;
   } else if (is_operation_node(operand) &&
