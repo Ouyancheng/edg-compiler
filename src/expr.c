@@ -6952,9 +6952,12 @@ non-parenthesized class member access expressions, and for calls.
   } else {
 general_case:
     /* General case: The type T of the expression, or T& if the expression
-       is an lvalue. */
+       is an lvalue.  If T is template-dependent, do not add the reference
+       since we cannot reliably tell whether the expression will instantiate
+       to an lvalue. */
     result = operand->type;
-    if (is_an_lvalue(operand) && !is_error_type(result)) {
+    if (is_an_lvalue(operand) && !is_template_dependent_type(result) &&
+        !is_error_type(result)) {
       result = make_reference_type(result);
     }  /* if */
   }  /* if */
