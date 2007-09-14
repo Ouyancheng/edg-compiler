@@ -1417,7 +1417,7 @@ returned for invalid arguments.
     /* A string literal.  Scan it as a GUID string. */
     result = scan_GUID_string();
   } else {
-    /* Something else.  The only other valid argument is a a __uuidof operator.
+    /* Something else.  The only other valid argument is a __uuidof operator.
        Keywords are not recognized within attributes, so check for an
        identifier named __uuidof. */
     a_boolean	is_uuidof = FALSE;
