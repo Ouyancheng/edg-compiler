@@ -6845,6 +6845,11 @@ skip_overloading:;
         (void)ensure_il_scope_exists(&scope_stack[effective_decl_level]);
       }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+    if (microsoft_mode && microsoft_specialization_redef) {
+      /* Duplicate specialization definitions should not be kept in the symbol
+         table. */
+      remove_symbol(sym);
+    }  /* if */
     /* Mark friend functions for which this is the initial declaration. */
     if (set_invisible) sym->is_invisible = TRUE;
   } else {
