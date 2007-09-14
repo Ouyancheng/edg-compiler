@@ -893,7 +893,7 @@ ec_not_used_in_partial_spec_arg_list;;"%n1 is not used in or cannot be deduced f
 REMOVED;ec_partial_spec_param_depends_on_templ_param;;"the type of partial specialization template parameter %n depends on another template parameter"
 ec_partial_spec_arg_depends_on_templ_param;;"the template argument list of the partial specialization includes a nontype argument whose type depends on a template parameter"
 ec_partial_spec_after_instantiation;;"this partial specialization would have been used to instantiate %n"
-ec_partial_spec_after_instantiation_ambiguous;;"this partial specialization would have been made the instantiation of %n ambiguous"
+ec_partial_spec_after_instantiation_ambiguous;;"this partial specialization would have made the instantiation of %n ambiguous"
 ec_expr_not_integral_or_enum;;"expression must have integral or enum type"
 ec_expr_not_arithmetic_or_enum;;"expression must have arithmetic or enum type"
 ec_expr_not_arithmetic_or_enum_or_pointer;;"expression must have arithmetic, enum, or pointer type"
