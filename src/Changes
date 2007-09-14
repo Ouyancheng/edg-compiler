@@ -1,5 +1,18 @@
 Version 3.10
 
+9/14/07  Spurious "used before set" warnings in templates
+
+During prototype instantiations of function templates (e.g., in strict C++
+mode), the front end sometimes emitted spurious "used before set" warnings
+for variables with template-dependent types.  For example:
+
+  template<class T> int f() {
+    T a;
+    return a ? 1 : 2;  // Previously triggered a spurious warning in strict
+  }                    // mode.
+
+This is now fixed.
+
 9/13/07  Microsoft and GNU C++ compatibility: new/delete in namespaces
 
 In Microsoft C++ mode the front end accepts declarations of new and delete
