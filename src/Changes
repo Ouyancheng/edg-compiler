@@ -40,7 +40,7 @@ In the example below, only one diagnostic is issued now.
 Nested types of class templates were not treated as dependent in certain
 contexts, which could result in spurious errors.  In this example,
 the front end incorrectly complained that incomplete type "X" could not
-be used as a a base class, and that "B" had no member "N".  These errors
+be used as a base class, and that "B" had no member "N".  These errors
 were incorrect because "X" could be specialized for a given instance of "A".
 
   template <class T> struct A {
