@@ -999,6 +999,10 @@ This routine is given the original symbol and creates the nonreal version.
   orig_sym->corresp_nonreal_or_nested_type = nonreal_sym;
   nonreal_sym->corresp_nonreal_or_nested_type = orig_sym;
   nonreal_sym->is_nonreal_nested_type = TRUE;
+  if (prototype_instantiations_in_il) {
+    /* When prototype instantiations are included in the IL, add the type. */
+    add_to_types_list(nonreal_sym->variant.type.ptr, DEPTH_OF_FILE_SCOPE);
+  }  /* if */
 #if DEBUG
   if (db_flag_is_set("cnvont")) {
     fprintf(f_debug, "Created nonreal nested type:\n");
