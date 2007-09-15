@@ -3121,6 +3121,21 @@ return_point:;
 #endif /* CHECKING */
 
 
+a_boolean pos_in_system_header(a_source_position  *pos)
+/*
+Return TRUE if the given position corresponds to a system header.
+*/
+{
+  a_source_file_ptr  sfp;
+  a_boolean          at_end_of_source;
+  a_line_number      line_number;
+
+  sfp = source_file_for_seq(pos->seq, &line_number,
+                            &at_end_of_source, /*physical_line=*/FALSE);
+  return sfp != NULL && sfp->from_system_include_dir;
+}  /* pos_in_system_header */
+
+
 static void check_for_overridden_severity(an_error_code     error_code,
 					  an_error_severity *severity)
 /*

@@ -2065,8 +2065,6 @@ extern a_source_line_modif_ptr nested_source_line_modif(char *loc_in_line);
    number and column. */
 extern void conv_line_loc_to_source_pos(char              *loc_in_line,
                                         a_source_position *position_var);
-/* Return whether the given position corresponds to a system header. */
-extern a_boolean pos_in_system_header(a_source_position  *pos);
 /* Check for a specific token. */
 extern a_boolean required_token(a_token_kind  token,
 				an_error_code error_code);
