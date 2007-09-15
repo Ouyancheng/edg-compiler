@@ -1018,15 +1018,9 @@ given severity to a warning.  The adjustment is only made in GNU C++ mode.
 system headers are downgraded to warnings.)
 */
 {
-  if (gpp_mode && (int)severity > (int)es_warning) {
-    a_source_file_ptr	sfp;
-    a_boolean		at_end_of_source;
-    a_line_number	line_number;
-    sfp = source_file_for_seq(prev_decl->decl_position.seq, &line_number,
-                              &at_end_of_source, /*physical_line=*/FALSE);
-    if (sfp != NULL && sfp->from_system_include_dir) {
-      severity = es_warning;
-    }  /* if */
+  if (gpp_mode && (int)severity > (int)es_warning &&
+      pos_in_system_header(&prev_decl->decl_position)) {
+    severity = es_warning;
   }  /* if */
   return severity;
 }  /* pos_adjusted_severity */
@@ -6453,8 +6447,10 @@ declaration.
         set_to_named_error_locator(*locator);
       } else {
         /* Check that the routine types are compatible. */
-        a_boolean      routines_compat = TRUE;
-        an_error_code  error_code = ec_not_compatible_with_previous_decl;
+        a_boolean         routines_compat = TRUE;
+        an_error_code     error_code = ec_not_compatible_with_previous_decl;
+        a_param_type_ptr  params = skip_typerefs(routine_ptr->type)
+                                ->variant.routine.extra_info->param_type_list;
 
         /* Friend functions that name an existing declaration should not
            introduce default arguments. */
@@ -6472,8 +6468,7 @@ declaration.
              and its symbol is invisible, it has only been declared as a
              friend so far (through perhaps more than one friend declaration).
              Check if a previous declaration had default arguments. */
-          a_param_type_ptr  ptp = skip_typerefs(routine_ptr->type)
-                                ->variant.routine.extra_info->param_type_list;
+          a_param_type_ptr  ptp = params;
           for (; ptp != NULL; ptp = ptp->next) {
             if (ptp->has_default_arg) {
               pos_sy_diagnostic(strict_ansi_error_severity,
@@ -6541,6 +6536,23 @@ declaration.
           reconcile_routine_types(routine_ptr, type_ptr,
                                   /*preserve_rout_type=*/old_decl_has_body,
                                   /*preserve_type_ptr=*/is_function_def);
+          if (gpp_mode && params != NULL && !old_decl_has_body &&
+              !is_function_def &&
+              routine_ptr->type->kind == (a_type_kind)tk_routine &&
+              pos_in_system_header(&sym->decl_position)) {
+            /* A redeclaration of a routine first declared in a system header
+               and no definition has yet been seen.  GNU compilers retain the
+               later exception specifications, but (strangely) only if the
+               routine takes at least one parameter. */
+            routine_ptr->type->variant.routine.extra_info
+                       ->exception_specification =
+                           skip_typerefs(type_ptr)->variant.routine.extra_info
+                                                  ->exception_specification;
+            /* The new declaration's position is treated as the primary
+               position (and may no longer be in a system header). */
+            routine_ptr->source_corresp.decl_position = sym->decl_position =
+                                                     locator->source_position;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {

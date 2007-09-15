@@ -5097,6 +5097,21 @@ done:
 }  /* conv_line_loc_to_source_pos */
 
 
+a_boolean pos_in_system_header(a_source_position  *pos)
+/*
+Return TRUE if the given position corresponds to a system header.
+*/
+{
+  a_source_file_ptr  sfp;
+  a_boolean          at_end_of_source;
+  a_line_number      line_number;
+
+  sfp = source_file_for_seq(pos->seq, &line_number,
+                            &at_end_of_source, /*physical_line=*/FALSE);
+  return sfp != NULL && sfp->from_system_include_dir;
+}  /* pos_in_system_header */
+
+
 #if FULLY_RESOLVED_MACRO_POSITIONS
 /* Copy the normal position (seq and column) to orig_seq and orig_column, as
    required for positions in ordinary source text, not part of a macro

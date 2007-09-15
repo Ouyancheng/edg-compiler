@@ -3181,15 +3181,10 @@ current source position and severity or restore the previously saved settings.
     check_for_overridden_severity(error_code, severity);
     error_threshold_to_use = error_threshold;
     if ((int)*severity >= (int)error_threshold) {
-      a_source_file_ptr	sfp;
-      a_boolean		at_end_of_source;
-      a_line_number	line_number;
       /* Check whether we are inside a "system" include file in which
          warnings should be suppressed.  This test is only done if the message
          would be issued based on the current threshold. */
-      sfp = source_file_for_seq((*error_pos)->seq, &line_number,
-                                &at_end_of_source, /*physical_line=*/FALSE);
-      if (sfp != NULL && sfp->from_system_include_dir) {
+      if (pos_in_system_header(*error_pos)) {
         error_threshold_to_use = es_discretionary_error;
 #if !STANDALONE_UTILITY_PROGRAM
       } else if (curr_command_line_macro_def != NULL) {

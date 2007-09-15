@@ -1,5 +1,25 @@
 Version 3.10
 
+9/14/07  GNU compatibility: Exception specifications in system headers
+
+In GNU C++ mode, the front end accepts an incompatible exception specification
+when redeclaring a function first declared in a system header.  Previously,
+the original exception specification (the one in the system header) was always
+retained.  Now, the new exception specification is retained when the function
+takes at least one argument (this matches the behavior of GNU C++ compilers).
+In such cases, the redeclaration is treated as the "original declaration"
+thereafter.  For example:
+
+  # 1 "system.h" 3
+  void f(int) throw();     // (1) Declaration in a system header.
+  # 1 "lib.h"
+  void f(int);             // (2) Accepted with a warning in GNU C++ mode.
+  # 1 "main.c"
+  void f(int) throw () {}  // Now an error because the exception specification
+                           // of (2) is retained and (2) -- which is not in a
+                           // system header -- is treated as the original
+                           // declaration.
+
 9/14/07  Incorrect wording of partial specialization error message
 
 The wording for the ambiguity message issued for this case was incorrect
