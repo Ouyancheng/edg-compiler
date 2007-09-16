@@ -10334,7 +10334,10 @@ typedef struct an_expr_node {
 			   that returns an lvalue in C++ where the C operation
 			   would return an rvalue.  FALSE otherwise, including
 			   for other operations and for these operations when
-			   they do return rvalues.  Only TRUE in C++. */
+			   they do return rvalues.  Generally TRUE only in C++,
+			   but can be TRUE in gcc mode when an rvalue is
+			   reverted to an lvalue (IL lowering eliminates that
+			   later by rewriting it in rvalue form). */
       a_bit_field
 		compiler_generated:1;
 			/* TRUE if the operation is compiler-generated rather
