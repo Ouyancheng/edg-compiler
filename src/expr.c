@@ -6892,6 +6892,12 @@ non-parenthesized class member access expressions, and for calls.
           case enk_variable_address:
             result = arg2->variant.variable->type;
             break;
+          case enk_variable:
+            /* Something like decltype(int(a.i)) where a.i is a static data
+               member of type int.  The cast makes it an rvalue (hence the
+               enk_variable), but it also means that this is not one of the
+               decltype special cases. */
+            goto general_case;
           case enk_routine_address:
             result = arg2->variant.routine->type;
             break;
@@ -6914,6 +6920,7 @@ non-parenthesized class member access expressions, and for calls.
        case. */
     if (expr != NULL) {
       /* An lvalue expression referring to a local variable. */
+      check_assertion(is_an_lvalue(operand));
       check_assertion(is_variable_address_node(expr) ||
                       is_variable_node(expr));
       result = expr->variant.variable->type;
@@ -7015,7 +7022,6 @@ NULL, the end position in its specifiers_range is updated.
   scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
   error_if_indefinite_function(&operand);
   result = operand.type;
-  remove_matching_stop_token(tok_rparen);
   if (is_error_type(result)) {
     /* We'll just return the error type. */
   } else {
@@ -7093,6 +7099,7 @@ NULL, the end position in its specifiers_range is updated.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and pass over the right parenthesis. */
+  remove_matching_stop_token(tok_rparen);
   (void)required_token(tok_rparen, ec_exp_rparen);
   return result;
 }  /* scan_decltype_operator */
