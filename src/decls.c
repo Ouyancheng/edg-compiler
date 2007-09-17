@@ -8732,7 +8732,7 @@ symbol entry, and return a pointer to it in state->sym.
       type_sym = (a_symbol_ptr)type_to_check->source_corresp.assoc_info;
       if (type_sym != NULL) {
         nested_sym = type_sym->corresp_nonreal_or_nested_type;
-        if (nested_sym != NULL && nested_sym->is_nonreal_nested_type) {
+        if (nested_sym != NULL) {
           type_to_check =  type_symbol_type(nested_sym);
         }  /* if */
       }  /* if */
