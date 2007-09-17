@@ -975,7 +975,7 @@ created symbol to the inactive list and returns it to the caller.
 
 void create_nonreal_version_of_nested_type(a_symbol_ptr	orig_sym)
 /*
-A nested type of a prototype instantiation exists in two forms.  Its original
+A nested type of a prototype instantiation exists in two forms: its original
 form and a nonreal version that is used in contexts where the name should be
 considered a dependent type.
 
@@ -3652,13 +3652,14 @@ current template member that is being defined; FALSE otherwise.
 
   ssep = &scope_stack[depth_scope_stack];
   for (tmc_sym = ssep->templ_member_class_sym; tmc_sym != NULL; ) {
-    a_type_ptr				parent_type = NULL;
+    a_type_ptr	parent_type = NULL;
     if (tmc_sym == sym) {
       result = TRUE;
       break;
     }  /* if */
     if (tmc_sym->is_class_member) {
       /* Get the class symbol. */
+      a_type_ptr	parent_type;
       parent_type = tmc_sym->parent.class_type;
       tmc_sym = (a_symbol_ptr)parent_type->source_corresp.assoc_info;
     } else {
