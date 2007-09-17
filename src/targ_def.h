@@ -1726,8 +1726,8 @@ typedef a_host_large_unsigned a_targ_size_t;  /* Must be
 
 /* Specification of a target alignment requirement.  1 means no alignment
    requirement.  (TARG_MAXIMUM_PACK_ALIGNMENT must fit in this type.)
-    Making the size of TYPE_FOR_TARG_ALIGNMENT larger than one may cause an
-    increase of the sizes of some IL entries (like a_type and a_field). */
+   Making the size of TYPE_FOR_TARG_ALIGNMENT larger than one may cause an
+   increase of the sizes of some IL entries (like a_type and a_field). */
 #ifndef TYPE_FOR_TARG_ALIGNMENT
 #define TYPE_FOR_TARG_ALIGNMENT a_byte
 #endif /* ifndef TYPE_FOR_TARG_ALIGNMENT */
