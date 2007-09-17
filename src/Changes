@@ -148,7 +148,7 @@ For example:
   }
   void *operator new[](size_t);  // (1)
   void f2() {
-    operator new[](4);  // Call the routine declared in line (1).
+    operator new[](4);  // Calls the routine declared in line (1).
   }
 
 See also the Changes entry of 3/6/07.
