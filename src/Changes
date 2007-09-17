@@ -4834,7 +4834,7 @@ eok_call node and its list of modifiers might be:
     asterisk:         columns 13-18        *(f())
     parentheses:      columns 14-18         (f())
 
-See the comments in il_def.h for the a_source_range_modifier entry and the
+See the comments in il_def.h for the an_expr_range_modifier entry and the
 range_modifiers member of an_expr_node for details.
 
 8/14/06  Memory leak when using MAKE_FRONT_END_CALLABLE
