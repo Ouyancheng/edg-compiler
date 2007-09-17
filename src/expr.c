@@ -6865,8 +6865,7 @@ non-parenthesized class member access expressions, and for calls.
        node_operator_is(expr, eok_value_bit_field) ||
        node_operator_is(expr, eok_points_to_static) ||
        node_operator_is(expr, eok_lvalue_dot_static) ||
-       node_operator_is(expr, eok_rvalue_dot_static) ||
-       node_operator_is(expr, eok_value_field))) {
+       node_operator_is(expr, eok_rvalue_dot_static))) {
     /* Class member access: Produce the type of the selected member.  Note
        that some id-expressions end up being forms of class member access:
        Those are handled here too. */
