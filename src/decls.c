@@ -8724,6 +8724,19 @@ symbol entry, and return a pointer to it in state->sym.
       }  /* while */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    /* If the typedef refers to the nonreal version of a nested type of a
+       class template, use the real version as the type to check for linkage
+       purposes. */
+    { a_symbol_ptr	type_sym;
+      a_symbol_ptr	nested_sym;
+      type_sym = (a_symbol_ptr)type_to_check->source_corresp.assoc_info;
+      if (type_sym != NULL) {
+        nested_sym = type_sym->corresp_nonreal_or_nested_type;
+        if (nested_sym != NULL && nested_sym->is_nonreal_nested_type) {
+          type_to_check =  type_symbol_type(nested_sym);
+        }  /* if */
+      }  /* if */
+    }
     is_class_or_enum = is_immediate_class_type(type_to_check) ||
                        is_immediate_enum_type(type_to_check);
     tp = NULL;
