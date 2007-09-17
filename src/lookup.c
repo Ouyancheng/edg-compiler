@@ -3652,7 +3652,6 @@ current template member that is being defined; FALSE otherwise.
 
   ssep = &scope_stack[depth_scope_stack];
   for (tmc_sym = ssep->templ_member_class_sym; tmc_sym != NULL; ) {
-    a_type_ptr	parent_type = NULL;
     if (tmc_sym == sym) {
       result = TRUE;
       break;
