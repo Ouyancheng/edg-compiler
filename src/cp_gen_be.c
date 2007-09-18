@@ -4407,11 +4407,19 @@ is the one associated with the definition of the enum.
   enum_con = type->variant.integer.enum_info.constant_list;
   if (enum_con != NULL) {
     /* Output the enumeration constants. */
+    a_boolean is_initial_implicit_zero = FALSE;
     /* Start with an expected value of 0 next. */
     next_enum_value = *enum_con;
     if (enum_con->kind == (a_constant_repr_kind)ck_integer) {
       set_integer_value(&next_enum_value.variant.integer_value,
                         (a_host_large_integer)0);
+    } else if (enum_con->kind == (a_constant_repr_kind)ck_template_param &&
+               enum_con->variant.template_param.kind ==
+                                   (a_template_param_constant_kind)tpck_cast) {
+      /* The implicit initial zero constant of a dependent enumeration in a
+         prototype instantiation will appear as a tpck_cast. */
+      is_initial_implicit_zero =
+           is_zero_constant(enum_con->variant.template_param.variant.constant);
     }  /* if */
     for (;;) {
       /* Process macros, etc. */
@@ -4447,19 +4455,21 @@ is the one associated with the definition of the enum.
                                       (a_constant_repr_kind)ck_template_param);
         if (enum_con->variant.template_param.kind ==
                                    (a_template_param_constant_kind)tpck_cast &&
-            enum_con->variant.template_param.variant.constant->kind ==
+            (is_initial_implicit_zero ||
+             (enum_con->variant.template_param.variant.constant->kind ==
                                      (a_constant_repr_kind)ck_template_param &&
-            enum_con->variant.template_param.variant.constant->
+              enum_con->variant.template_param.variant.constant->
                                                  variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression &&
-            is_operation_node(enum_con->variant.template_param.
+              is_operation_node(enum_con->variant.template_param.
                       variant.constant->variant.template_param.variant.expr) &&
-            enum_con->variant.template_param.variant.constant->
+              enum_con->variant.template_param.variant.constant->
                                           variant.template_param.variant.expr->
-                                        variant.operation.compiler_generated) {
-          /* The constant is a compiler-generated expression, which only
-             occurs if it is the incremented value of the preceding
-             constant; no explicit expression is needed. */
+                                      variant.operation.compiler_generated))) {
+          /* Either the constant is the initial implicit zero or it is a
+             compiler-generated expression, which only occurs if it is the
+             incremented value of the preceding constant; no explicit
+             expression is needed. */
           explicit_enum_expr = FALSE;
         } else {
           /* Any other kind of constant must involve an explicit
@@ -4487,6 +4497,7 @@ is the one associated with the definition of the enum.
         next_enum_value = *enum_con;
       }  /* if */
       enum_con = enum_con->next;
+      is_initial_implicit_zero = FALSE;
       /* Stop if at the end of the list of constants. */
       if (enum_con == NULL) break;
       /* Not the end of the list, so output a separator and keep looping. */
