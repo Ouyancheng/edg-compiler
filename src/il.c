@@ -1432,9 +1432,6 @@ Dump the contents of the indicated type entry, for debug purposes.
         if (tp->variant.template_param.kind ==
                    (a_template_param_type_kind)tptk_unknown) {
           fputs(" <unknown-type>", f_debug);
-        } else if (tp->variant.template_param.kind ==
-                                  (a_template_param_type_kind)tptk_decltype) {
-          fputs(" decltype", f_debug);
         } else {
           if (tp->variant.template_param.kind ==
                      (a_template_param_type_kind)tptk_param) {
@@ -9000,11 +8997,8 @@ using find_local_expr_node.
   check_assertion(!in_file_scope(new_ref));
   switch (kind) {
 #if GNU_EXTENSIONS_ALLOWED
-    case lerk_generic_typeof:
-      new_ref->referrer.kind =
-                   (a_byte_il_entry_kind)iek_template_param_type_supplement;
-      ((a_template_param_type_supplement_ptr)referrer)
-                                                    ->local_expr_ref = TRUE;
+    case lerk_typeof:
+      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_type;
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
@@ -9016,10 +9010,6 @@ using find_local_expr_node.
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     case lerk_decltype:
       new_ref->referrer.kind = (a_byte_il_entry_kind)iek_type;
-      if (((a_type_ptr)referrer)->kind == (a_type_kind)tk_template_param) {
-        ((a_type_ptr)referrer)->variant.template_param.extra_info
-                              ->local_expr_ref = TRUE;
-      }  /* if */
       break;
     default:
       unexpected_condition();

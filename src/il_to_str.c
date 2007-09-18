@@ -1118,13 +1118,8 @@ The given type represents a decltype construct.  Return its argument
 expression if available, or NULL otherwise.
 */
 {
-  an_expr_node_ptr  expr = NULL;
+  an_expr_node_ptr  expr = type->variant.typeref.expr;
 
-  if (type->kind == (a_type_kind)tk_typeref) {
-    expr = type->variant.typeref.expr;
-  } else {
-    expr = type->variant.template_param.extra_info->expr;
-  }  /* if */
   if (expr == NULL && innermost_function_scope != NULL) {
     expr = find_local_expr_node(
                       (char*)type, (a_local_expr_node_ref_kind)lerk_decltype);
@@ -1256,7 +1251,7 @@ by octl.
           if (!type->variant.typeref.decltype_expr_not_parenthesized) {
             octl->output_str("(");
           }  /* if */
-          form_expression(expr, octl);
+          octl->output_expression(expr, /*need_parens=*/FALSE);
           if (!type->variant.typeref.decltype_expr_not_parenthesized) {
             octl->output_str(")");
           }  /* if */
@@ -1288,53 +1283,6 @@ by octl.
                                                     AUTO_TYPE_NESTING_DEPTH) {
           /* A type entry representing the "auto" type specifier. */
           octl->output_str("auto");
-        } else if (type->variant.template_param.kind ==
-                                   (a_template_param_type_kind)tptk_decltype) {
-          an_expr_node_ptr  expr = decltype_arg(type);
-          octl->output_str("decltype(");
-          if (expr != NULL) {
-            a_template_param_type_supplement_ptr
-                               tptsp = type->variant.template_param.extra_info;
-            if (!tptsp->decltype_expr_not_parenthesized) octl->output_str("(");
-            form_expression(expr, octl);
-            if (!tptsp->decltype_expr_not_parenthesized) octl->output_str(")");
-          } else {
-            /* decltype was applied to a template-dependent local expression,
-               but innermost_function_scope was not set (e.g., because this is
-               a call from the stand-alone IL display code).  We just emit a
-               placeholder for the expression in such cases. */
-            check_assertion(innermost_function_scope == NULL &&
-                            !octl->gen_compilable_code);
-            octl->output_str("<expr>");
-          }  /* if */
-          octl->output_str(")");
-#if GNU_EXTENSIONS_ALLOWED
-        } else if (type->variant.template_param.kind ==
-                                    (a_template_param_type_kind)tptk_typeof) {
-          an_expr_node_ptr  expr = type->variant.template_param.extra_info
-                                        ->expr;
-          if (expr == NULL && innermost_function_scope != NULL) {
-            expr = find_local_expr_node(
-                             (char*)type->variant.template_param.extra_info,
-                             (a_local_expr_node_ref_kind)lerk_generic_typeof);
-            check_assertion(expr != NULL &&
-                            type->variant.template_param.extra_info
-                                ->local_expr_ref);
-          }  /* if */
-          octl->output_str("__typeof__(");
-          if (expr != NULL) {
-            form_expression(expr, octl);
-          } else {
-            /* __typeof__ was applied to a template-dependent local expression,
-               but innermost_function_scope was not set (e.g., because this is
-               a call from the stand-alone IL display code).  We just emit a
-               placeholder for the expression in such cases. */
-            check_assertion(innermost_function_scope == NULL &&
-                            !octl->gen_compilable_code);
-            octl->output_str("<expr>");
-          }  /* if */
-          octl->output_str(")");
-#endif /* GNU_EXTENSIONS_ALLOWED */
         } else {
           a_source_correspondence_ptr scp = &type->source_corresp;
           an_il_entry_kind            scp_kind = iek_type;
@@ -3655,7 +3603,7 @@ on every expression.
 {
   if (octl->output_expression != NULL) {
     /* Output the expression using a special routine. */
-    octl->output_expression(expr);
+    octl->output_expression(expr, /*need_parens=*/TRUE);
   } else {
     /* No routine to do the expression output.  Do default
        non-compilable output. */
@@ -3859,7 +3807,7 @@ precedence confusion.  Do the output in the way described by octl.
              octl->output_expression != NULL) {
     /* An expression was recorded for this constant.  Output that expression
        rather than the folded constant. */
-    octl->output_expression(constant->expr);
+    octl->output_expression(constant->expr, /*need_parens=*/TRUE);
     goto done;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else {

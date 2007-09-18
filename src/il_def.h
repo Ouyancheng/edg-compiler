@@ -5305,12 +5305,6 @@ enum a_template_param_type_kind_tag {
 			     };
 			   (where, during prototype instantiation, X is
 			   assumed to be a member of T and a type). */
-  tptk_decltype,	/* The template param type represents a type
-			   expressed through a dependent decltype construct. */
-#if GNU_EXTENSIONS_ALLOWED
-  tptk_typeof,		/* The template param type represents a type
-			   expressed through a dependent typeof construct. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   tptk_unknown		/* The template param type represents the unknown
 			   type of a non-type member of a template parameter
 			   class, e.g., the type of T::k, and the type of
@@ -5364,25 +5358,6 @@ typedef struct a_template_param_type_supplement {
 		coordinates;
 			/* The parameter list position and template nesting
 			   depth of the parameter. */
-  an_expr_node_ptr
-		expr;
-			/* The dependent expression used in a decltype or
-			   typeof construct.  NULL is local_expr_ref is TRUE.
-			   Also NULL for a typeof construct that encloses
-			   a type name rather than an expression. */
-  a_bit_field
-		local_expr_ref:1;
-			/* TRUE for decltype and typeof specifiers with a local
-			   expression argument.  In such cases, the entry
-			   cannot directly point to the expression node (i.e.,
-			   expr is NULL because of memory region constraints),
-			   and the node must instead be found using
-			   find_local_expr_node. */
-  a_bit_field
-		decltype_expr_not_parenthesized:1;
-			/* This is a decltype entry and its argument
-			   expression was not parenthesized.  TRUE only if
-			   the parentheses can affect the resulting type. */
 } a_template_param_type_supplement;
 
 
@@ -10149,8 +10124,8 @@ typedef struct an_eh_prologue_supplement {
 
 enum a_local_expr_node_ref_kind_tag {
   lerk_none,		/* Used for initialization only. */
-  lerk_generic_typeof,	/* A template-dependent expression used as an argument
-			   for a typeof construct. */
+  lerk_typeof,		/* An expression used as an argument for a typeof
+			   construct. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   lerk_generic_sizeof,	/* A template-dependent expression used as an argument
 			   for a sizeof, alignof, or uuidof construct. */

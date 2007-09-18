@@ -6993,7 +6993,7 @@ NULL, the end position in its specifiers_range is updated.
   an_expr_stack_entry     expr_stack_entry;
   an_expr_stack_entry_ptr saved_expr_stack;
   an_operand              operand;
-  a_boolean               operand_was_used = FALSE, leading_paren_seen;
+  a_boolean               leading_paren_seen;
   a_memory_region_number  region_to_switch_back_to;
 
   /* Skip the decltype token. */
@@ -7023,69 +7023,38 @@ NULL, the end position in its specifiers_range is updated.
   result = operand.type;
   if (is_error_type(result)) {
     /* We'll just return the error type. */
-  } else {
-    a_boolean  dependent_arg = is_template_dependent_context() &&
-                               is_template_dependent_type(result);
-    if (dependent_arg && prototype_instantiations_in_il) {
-      /* A dependent expression.  Encode it in a tk_template_param if we are
-        recording prototype instantiations in the IL. */
-      a_template_param_type_supplement_ptr
-                        tptsp;
-      result = alloc_type((a_type_kind)tk_template_param);
-      set_type_size(result);
-      tptsp = result->variant.template_param.extra_info;
-      result->variant.template_param.kind = 
-                                     (a_template_param_type_kind)tptk_decltype;
-      prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
-      expr = make_node_from_operand(&operand);
-      /* The type entry (and its supplement) are stored in the file scope
-         memory region.  If the expression is a local expression,  the type
-         entry cannot point directly to it, and instead we use the
-         "a_local_expr_node_ref" mechanism. */
-      if (in_file_scope(expr)) {
-        tptsp->expr = expr;
-      } else {
-        make_local_expr_node_ref(
-              expr, (a_local_expr_node_ref_kind)lerk_decltype, (char*)result);
-      }  /* if */
-      tptsp->decltype_expr_not_parenthesized = !leading_paren_seen;
-      operand_was_used = TRUE;
-      add_to_types_list(result, DEPTH_OF_FILE_SCOPE);
-    } else {
-      /* If this is a plain nondependent type, create a special typeref. */
-      a_type_ptr        tp = alloc_type((a_type_kind)tk_typeref);
-      tp->variant.typeref.type = decltype_from_operand(&operand,
-                                                       leading_paren_seen);
-      tp->variant.typeref.is_decltype = TRUE;
-      tp->variant.typeref.decltype_expr_not_parenthesized =
-                                                          !leading_paren_seen;
-      if (!dependent_arg) {
-        expr = make_node_from_operand(&operand);
-        if (is_an_lvalue(&operand)) {
-          expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
-                                    operand.type, expr);
-        }  /* if */
-        /* The type entry is stored in the file scope memory region.  If the
-           expression is a local expression,  the type entry cannot point
-           directly to it, and instead we use the "a_local_expr_node_ref"
-           mechanism. */
-        if (in_file_scope(expr)) {
-          tp->variant.typeref.expr = expr;
-        } else {
-          make_local_expr_node_ref(
-              expr, (a_local_expr_node_ref_kind)lerk_decltype, (char*)tp);
-        }  /* if */
-        operand_was_used = TRUE;
-      }  /* if */
-      result = tp;
-    }  /* if */
-  }  /* if */
-  if (!operand_was_used) {
-    /* The expression was discarded. */
+    /* The expression is discarded. */
     undo_side_effects_for_discarded_unevaluated_expression();
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
     forget_expr_range_modifiers_in_operand(&operand);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
+  } else {
+    a_type_ptr  tp = alloc_type((a_type_kind)tk_typeref);
+    a_boolean   dependent_arg = is_template_dependent_context() &&
+                                is_template_dependent_type(result);
+    tp->variant.typeref.type = decltype_from_operand(&operand,
+                                                     leading_paren_seen);
+    tp->variant.typeref.is_decltype = TRUE;
+    tp->variant.typeref.decltype_expr_not_parenthesized = !leading_paren_seen;
+    if (dependent_arg) {
+      prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
+    }  /* if */
+    expr = make_node_from_operand(&operand);
+    if (!dependent_arg && is_an_lvalue(&operand)) {
+      expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
+                                operand.type, expr);
+    }  /* if */
+    /* The type entry is stored in the file scope memory region.  If the
+       expression is a local expression,  the type entry cannot point
+       directly to it, and instead we use the "a_local_expr_node_ref"
+       mechanism. */
+    if (in_file_scope(expr)) {
+      tp->variant.typeref.expr = expr;
+    } else {
+      make_local_expr_node_ref(
+              expr, (a_local_expr_node_ref_kind)lerk_decltype, (char*)tp);
+    }  /* if */
+    result = tp;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
@@ -7124,6 +7093,7 @@ NULL, the end position in its specifiers_range is updated.
 {
   a_type_ptr              result;
   an_expr_stack_entry     expr_stack_entry;
+  an_expr_node_ptr        expr = NULL;
   an_operand              operand;
   a_boolean               is_type;
   a_boolean               operand_was_scanned = FALSE;
@@ -7177,46 +7147,36 @@ NULL, the end position in its specifiers_range is updated.
   }  /* if */
   if (is_error_type(result)) {
     /* We'll just return the error type. */
+    /* The expression is discarded. */
+    undo_side_effects_for_discarded_unevaluated_expression();
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+    forget_expr_range_modifiers_in_operand(&operand);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   } else {
-    a_boolean  dependent_arg = !C_mode() && is_template_dependent_context() &&
-                               is_template_dependent_type(result);
-      /* A dependent type or expression.  Encode it in a tk_template_param
-         if we are recording prototype instantiations in the IL. */
-    if (dependent_arg && prototype_instantiations_in_il && !is_type) {
-      a_type_ptr        typeof_type =
-                                   alloc_type((a_type_kind)tk_template_param);
-      an_expr_node_ptr  expr;
-      a_template_param_type_supplement_ptr
-                        tptsp;
-      set_type_size(typeof_type);
-      tptsp = typeof_type->variant.template_param.extra_info;
-      typeof_type->variant.template_param.kind = 
-                                      (a_template_param_type_kind)tptk_typeof;
+    a_type_ptr  typeof_type = alloc_type((a_type_kind)tk_typeref);
+    a_boolean   dependent_arg = !C_mode() && is_template_dependent_context() &&
+                                is_template_dependent_type(result);
+    typeof_type->variant.typeref.type = result;
+    typeof_type->variant.typeref.is_typeof = TRUE;
+    if (dependent_arg) {
       prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
-      expr = make_node_from_operand(&operand);
-      /* The type entry (and its supplement) are stored in the file scope
-         memory region.  If the expression is a local expression,  the type
-         entry cannot point directly to it, and instead we use the
-         "a_local_expr_node_ref" mechanism. */
-      if (in_file_scope(expr)) {
-        tptsp->expr = expr;
-      } else {
-        make_local_expr_node_ref(
-          expr, (a_local_expr_node_ref_kind)lerk_generic_typeof, (char*)tptsp);
-      }  /* if */
-      operand_was_used = TRUE;
-      result = typeof_type;
-      add_to_types_list(typeof_type, DEPTH_OF_FILE_SCOPE);
-    } else if (!dependent_arg || (prototype_instantiations_in_il && is_type)) {
-      /* If this is a plain nondependent type, create a special typeref.
-         Also create such a typeref if we are recording prototype
-         instantiations in the IL and the argument of the operator was
-         a dependent type (as opposed to a dependent expression).  */
-      a_type_ptr  typeof_type = alloc_type((a_type_kind)tk_typeref);
-      typeof_type->variant.typeref.type = result;
-      typeof_type->variant.typeref.is_typeof = TRUE;
-      result = typeof_type;
     }  /* if */
+    expr = make_node_from_operand(&operand);
+    if (!dependent_arg && is_an_lvalue(&operand)) {
+      expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
+                                operand.type, expr);
+    }  /* if */
+    /* The type entry is stored in the file scope memory region.  If the
+       expression is a local expression,  the type entry cannot point
+       directly to it, and instead we use the "a_local_expr_node_ref"
+       mechanism. */
+    if (in_file_scope(expr)) {
+      typeof_type->variant.typeref.expr = expr;
+    } else {
+      make_local_expr_node_ref(
+           expr, (a_local_expr_node_ref_kind)lerk_typeof, (char*)typeof_type);
+    }  /* if */
+    result = typeof_type;
   }  /* if */
   if (operand_was_scanned) {
     if (!operand_was_used) {

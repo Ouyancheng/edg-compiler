@@ -1397,13 +1397,6 @@ Display the indicated template parameter type supplement.
 {
   disp_ptr("class_type", (char *)ptr->class_type, iek_type);
   disp_template_param_coordinate(&ptr->coordinates);
-  disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
-  if (ptr->local_expr_ref) {
-    disp_boolean("local_expr_ref", TRUE);
-  }  /* if */
-  if (ptr->decltype_expr_not_parenthesized) {
-    disp_boolean("decltype_expr_not_parenthesized", TRUE);
-  }  /* if */
 }  /* disp_template_param_type_supplement */
 
 
@@ -1877,10 +1870,6 @@ do_struct_union:
         case tptk_param:    (void)printf("tptk_param\n");    break;
         case tptk_member:   (void)printf("tptk_member\n");   break;
         case tptk_unknown:  (void)printf("tptk_unknown\n");  break;
-        case tptk_decltype: (void)printf("tptk_decltype\n");   break;
-#if GNU_EXTENSIONS_ALLOWED
-        case tptk_typeof:   (void)printf("tptk_typeof\n");   break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
         default:           (void)printf("**BAD TEMPLATE PARAM TYPE KIND**\n");
       }  /* switch */
       disp_template_param_type_supplement(
@@ -3538,8 +3527,8 @@ local) memory region.
 {
   disp_ptr("expr", (char*)ptr->expr, iek_expr_node);
   switch (ptr->kind) {
-    case lerk_generic_typeof:
-      (void)printf("generic-typeof");
+    case lerk_typeof:
+      (void)printf("typeof");
       break;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     case lerk_generic_sizeof:

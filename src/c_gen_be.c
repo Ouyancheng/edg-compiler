@@ -5251,13 +5251,14 @@ done_with_operation:
 }  /* dump_expr */
 
 
-static void dump_expression_for_il_to_str(an_expr_node_ptr expr)
+static void dump_expression_for_il_to_str(an_expr_node_ptr expr,
+                                          a_boolean        need_parens)
 /*
 Interface routine called from the il_to_str routines to dump expressions
 (e.g., the dimension expression in a variable-length array declarator).
 */
 {
-  dump_expr_with_parens(expr);
+  dump_expr(expr, need_parens);
 }  /* dump_expression_for_il_to_str */
 
 

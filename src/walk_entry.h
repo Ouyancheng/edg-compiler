@@ -2828,9 +2828,6 @@ after_entry_from_class:
            not linked into the IL. */
         walk_ptr(ptr->class_type, a_type_ptr, iek_type);
         remap_ptr(ptr->orig_nested_type, a_type_ptr, iek_type);
-#if GNU_EXTENSIONS_ALLOWED
-        walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
-#endif /* GNU_EXTENSIONS_ALLOWED */
       }
       break;
     case iek_constructor_init:

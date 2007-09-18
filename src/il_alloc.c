@@ -1084,9 +1084,6 @@ and return a pointer to it.
 #endif /* DEBUG */
   tptsp->class_type = NULL;
   tptsp->orig_nested_type = NULL;
-  tptsp->expr = NULL;
-  tptsp->local_expr_ref = FALSE;
-  tptsp->decltype_expr_not_parenthesized = FALSE;
   return tptsp;
 }  /* alloc_template_param_type_supplement */
 

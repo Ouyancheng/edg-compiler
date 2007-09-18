@@ -9555,14 +9555,15 @@ done_with_expr:;
 }  /* gen_expr */
 
 
-static void f_gen_expression(an_expr_node_ptr expr)
+static void f_gen_expression(an_expr_node_ptr expr,
+                             a_boolean        need_parens)
 /*
 Interface routine called from the il_to_str routines to e.g. output the
 dimension expression in a VLA (variable-length array) declarator or an
 array declarator whose length is template dependent.
 */
 {
-  gen_expr_with_parens(expr);
+  gen_expr(expr, need_parens);
 }  /* f_gen_expression */
 
 

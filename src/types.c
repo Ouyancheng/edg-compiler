@@ -3171,359 +3171,367 @@ for more information.
 
   db_enter(5, "f_identical_types");
 
-  /* Although the macros do the type_1 == type_2 test, repeat it here
-     so it's present for the recursive calls.  Do not use the same_entities
-     macro: for this routine a slightly more thorough check is desirable
-     (so it can be called from the correspondence checking code). */
-  if (type_1 == type_2) {
-    identical = TRUE;
-  } else if (!type_qualifiers_match(type_1, type_2)) {
-    /* The type qualifiers do not match, so the types are not identical. */
-    /* identical = FALSE;  -- Already set. */
-  } else {
-    /* Now that type qualifiers are no longer an issue, strip them and other
-       typerefs off the types. */
-    type_1 = skip_typerefs(type_1);
-    type_2 = skip_typerefs(type_2);
-    if (type_1 == type_2) {
-      /* If the types are now the same, they are identical. */
-      identical = TRUE;
-    } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
-      /* The top level kinds are different, so the types are different. */
+  /* First check for typeref equivalence: This includes type qualifiers and
+     decltype/typeof constructs. */
+  if (type_1->kind == (a_type_kind)tk_typeref ||
+      type_2->kind == (a_type_kind)tk_typeref) {
+    if (!type_qualifiers_match(type_1, type_2)) {
+      /* The type qualifiers do not match, so the types are not identical. */
       /* identical = FALSE;  -- Already set. */
-    } else if (change_to_canonical_types(&type_1, &type_2,
-                                         (flags & ITF_SEEK_CORRESP) != 0)) {
-      /* The types might have come from different translation units: restart
-         the comparison with the canonical entries instead. */
-      identical = f_identical_types(type_1, type_2, flags);
-    } else {
-      /* The top level kinds are the same, check further. */
-      a_boolean  il_identical = (flags & ITF_IL_IDENTICAL) != 0;
-      a_boolean  unknown_this_class_type =
-                                   (flags & ITF_UNKNOWN_THIS_CLASS_TYPE) != 0;
-      /* Reset the unknown implicit this type flag so that it won't be passed
-         to recursive calls of this routine. */
-      flags &= ~ITF_UNKNOWN_THIS_CLASS_TYPE;
-      switch (type_1->kind) {
-        case tk_error:
-        case tk_unknown:
-        case tk_void:
-          /* No further check needed.  The types are identical. */
-          identical = TRUE;
+      goto done;
+    } else if (!C_mode()) {
+      /* Peel off tk_typeref layers looking for template-dependent decltype or
+         typeof nodes. */
+      while (type_1->kind == (a_type_kind)tk_typeref) {
+        if ((type_1->variant.typeref.is_decltype
+#if GNU_EXTENSIONS_ALLOWED
+             || type_1->variant.typeref.is_typeof
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                 ) &&
+            is_template_dependent_type(type_1)) {
           break;
-        case tk_integer:
-          /* Requiring equality for enum types forces an explicit
-             type change between enumeration types and integers or
-             other enumeration types.  It also makes explicit casts
-             useful in suppressing warnings on type changes between
-             integral types and enumerated types. */
-          if (!type_1->variant.integer.enum_type &&
-              !type_2->variant.integer.enum_type) {
-            if (type_1->variant.integer.int_kind ==
-                                            type_2->variant.integer.int_kind &&
+        }  /* if */
+        type_1 = type_1->variant.typeref.type;
+      }  /* while */
+      while (type_2->kind == (a_type_kind)tk_typeref) {
+        if ((type_2->variant.typeref.is_decltype
+#if GNU_EXTENSIONS_ALLOWED
+             || type_2->variant.typeref.is_typeof
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                 ) &&
+            is_template_dependent_type(type_2)) {
+          break;
+        }  /* if */
+        type_2 = type_2->variant.typeref.type;
+      }  /* while */
+      if (type_1->kind == (a_type_kind)tk_typeref ||
+          type_2->kind == (a_type_kind)tk_typeref) {
+        /* Some dependent decltype/typeof type was encountered. */
+        if (type_1->kind != type_2->kind ||
+#if GNU_EXTENSIONS_ALLOWED
+            type_1->variant.typeref.is_typeof !=
+                                          type_2->variant.typeref.is_typeof ||
+#endif /* GNU_EXTENSIONS_ALLOWED */
+            type_1->variant.typeref.is_decltype !=
+                                        type_2->variant.typeref.is_decltype ||
+            type_1->variant.typeref.decltype_expr_not_parenthesized !=
+                    type_2->variant.typeref.decltype_expr_not_parenthesized) {
+          /* The two types were obtained with different constructs and are
+             therefore different. */
+          goto done;
+        } else {
+          /* Two types obtained with the decltype(<expr>) or typeof(<expr>)
+             construct, where the expression has a template-dependent type.
+             Compare the expression trees.  (No expression trees are available
+             if the decltype was constructed inside a function whose body is
+             is complete.  Such types are always considered non-identical to
+             other types.) */
+          an_expr_node_ptr  expr1 = type_1->variant.typeref.expr;
+          an_expr_node_ptr  expr2 = type_2->variant.typeref.expr;
+          a_local_expr_node_ref_kind
+                            lerk = type_1->variant.typeref.is_decltype ?
+                                  (a_local_expr_node_ref_kind)lerk_decltype :
+                                  (a_local_expr_node_ref_kind)lerk_typeof;
+          if (expr1 == NULL) {
+            expr1 = find_local_expr_node((char*)type_1, lerk);
+          }  /* if */
+          if (expr2 == NULL) {
+            expr2 = find_local_expr_node((char*)type_2, lerk);
+          }  /* if */
+          identical =
+                   expr1 != NULL && expr2 != NULL &&
+                   compare_template_param_constant_expressions(expr1, expr2);
+          goto done;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Now that type qualifiers are no longer an issue, strip them and other
+     typerefs off the types. */
+  type_1 = skip_typerefs(type_1);
+  type_2 = skip_typerefs(type_2);
+  if (type_1 == type_2) {
+    /* If the types are now the same, they are identical. */
+    identical = TRUE;
+  } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
+    /* The top level kinds are different, so the types are different. */
+    /* identical = FALSE;  -- Already set. */
+  } else if (change_to_canonical_types(&type_1, &type_2,
+                                       (flags & ITF_SEEK_CORRESP) != 0)) {
+    /* The types might have come from different translation units: restart
+       the comparison with the canonical entries instead. */
+    identical = f_identical_types(type_1, type_2, flags);
+  } else {
+    /* The top level kinds are the same, check further. */
+    a_boolean  il_identical = (flags & ITF_IL_IDENTICAL) != 0;
+    a_boolean  unknown_this_class_type =
+                                 (flags & ITF_UNKNOWN_THIS_CLASS_TYPE) != 0;
+    /* Reset the unknown implicit this type flag so that it won't be passed
+       to recursive calls of this routine. */
+    flags &= ~ITF_UNKNOWN_THIS_CLASS_TYPE;
+    switch (type_1->kind) {
+      case tk_error:
+      case tk_unknown:
+      case tk_void:
+        /* No further check needed.  The types are identical. */
+        identical = TRUE;
+        break;
+      case tk_integer:
+        /* Requiring equality for enum types forces an explicit
+           type change between enumeration types and integers or
+           other enumeration types.  It also makes explicit casts
+           useful in suppressing warnings on type changes between
+           integral types and enumerated types. */
+        if (!type_1->variant.integer.enum_type &&
+            !type_2->variant.integer.enum_type) {
+          if (type_1->variant.integer.int_kind ==
+                                          type_2->variant.integer.int_kind &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                type_1->variant.integer.microsoft_sized_int_type ==
-                            type_2->variant.integer.microsoft_sized_int_type &&
+              type_1->variant.integer.microsoft_sized_int_type ==
+                          type_2->variant.integer.microsoft_sized_int_type &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                type_1->variant.integer.wchar_t_type ==
-                                        type_2->variant.integer.wchar_t_type &&
-                type_1->variant.integer.bool_type ==
-                                        type_2->variant.integer.bool_type) {
-              identical = TRUE;
+              type_1->variant.integer.wchar_t_type ==
+                                      type_2->variant.integer.wchar_t_type &&
+              type_1->variant.integer.bool_type ==
+                                      type_2->variant.integer.bool_type) {
+            identical = TRUE;
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
-            } else if (il_identical && same_repr_int_types(type_1, type_2)) {
-              /* Integers with the same representation are considered to be
-                 identical in the IL if the FE is configured that way. */
-              identical = TRUE;
+          } else if (il_identical && same_repr_int_types(type_1, type_2)) {
+            /* Integers with the same representation are considered to be
+               identical in the IL if the FE is configured that way. */
+            identical = TRUE;
 #endif /* SAME_REPR_INTS_INTERCHANGEABLE_IN_IL */
-            }  /* if */
-          } else if ((flags & ITF_SEEK_CORRESP) != 0 &&
-                     secondary_translation_unit_seen() &&
-                     type_1->variant.integer.enum_type &&
-                     type_2->variant.integer.enum_type) {
+          }  /* if */
+        } else if ((flags & ITF_SEEK_CORRESP) != 0 &&
+                   secondary_translation_unit_seen() &&
+                   type_1->variant.integer.enum_type &&
+                   type_2->variant.integer.enum_type) {
+          /* The types are expected to be identical, but because they are
+             presumably defined in two different translation units, the
+             correspondence of their inner structure must be checked. */
+          identical = seek_type_corresp(type_1, type_2);
+        }  /* if */
+        break;
+#if FIXED_POINT_ALLOWED
+      case tk_fixed_point:
+        if (same_fixed_point_type(type_1, type_2)) {
+          identical = TRUE;
+        }  /* if */
+        break;
+#endif /* FIXED_POINT_ALLOWED */
+      case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case tk_complex:
+      case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+        identical = (type_1->variant.float_kind ==
+                     type_2->variant.float_kind);
+        break;
+      case tk_pointer:
+        /* For pointers and references, they must point to identical types.
+           To be IL identical, they need not be both pointers or both
+           references. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_mode &&
+            type_1->variant.pointer.modifiers !=
+                                        type_2->variant.pointer.modifiers) {
+          /* If pointer modifiers were applied, they must be identical. */
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        if (il_identical ||
+            type_1->variant.pointer.is_reference ==
+                                      type_2->variant.pointer.is_reference) {
+          identical = f_identical_types(type_1->variant.pointer.type,
+                                        type_2->variant.pointer.type,
+                                        flags)
+#ifdef pointer_types_have_same_repr
+                      && pointer_types_have_same_repr(type_1, type_2)
+#endif /* ifdef pointer_types_have_same_repr */
+                                                                     ;
+        }  /* if */
+        break;
+      case tk_array:
+        /* For arrays, the sizes must be the same and the element types
+           must be identical. */
+        if (f_identical_types(type_1->variant.array.element_type,
+                              type_2->variant.array.element_type,
+                              flags) &&
+            identical_array_type_level(type_1, type_2)) {
+          identical = TRUE;
+        }  /* if */
+        break;
+      case tk_class:
+      case tk_struct:
+      case tk_union:
+        /* In general, classes, structs, and unions that aren't the same
+           type aren't identical.  There are some exceptions with template
+           classes.  Check for those. */
+        if (C_mode()) {
+          if ((flags & ITF_SEEK_CORRESP) != 0 &&
+              secondary_translation_unit_seen()) {
             /* The types are expected to be identical, but because they are
                presumably defined in two different translation units, the
                correspondence of their inner structure must be checked. */
             identical = seek_type_corresp(type_1, type_2);
           }  /* if */
-          break;
-#if FIXED_POINT_ALLOWED
-        case tk_fixed_point:
-          if (same_fixed_point_type(type_1, type_2)) {
-            identical = TRUE;
+        } else if (equiv_class_types(type_1, type_2,
+                                     /*error_matches_anything=*/FALSE)) {
+          identical = TRUE;
+        }  /* if */
+        break;
+      case tk_routine:
+        {
+          a_boolean	this_class_matches = FALSE;
+          a_type_ptr	this1;
+          a_type_ptr	this2;
+          rtsp1 = type_1->variant.routine.extra_info;
+          rtsp2 = type_2->variant.routine.extra_info;
+          this1 = rtsp1->this_class;
+          this2 = rtsp2->this_class;
+          if (this1 == NULL && this2 == NULL) {
+            /* Both this parameter types are NULL -- they match. */
+            this_class_matches = TRUE;
+          } else if (this1 == NULL || this2 == NULL) {
+            /* One, but not both, of the this parameter types are NULL.
+               This is considered a match if the flag is set that 
+               indicates that we don't yet know whether the type has
+               an implicit this parameter type and if the non-NULL type
+               has no qualifiers. */
+            this_class_matches = unknown_this_class_type &&
+                                    rtsp1->qualifiers == TQ_NONE &&
+                                    rtsp2->qualifiers == TQ_NONE;
+          } else {
+            /* Both types are non-null, see if they are identical. */
+            this_class_matches =
+                      rtsp1->qualifiers == rtsp2->qualifiers &&
+                      identical_types(this1, this2);
           }  /* if */
-          break;
-#endif /* FIXED_POINT_ALLOWED */
-        case tk_float:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case tk_complex:
-        case tk_imaginary:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-          identical = (type_1->variant.float_kind ==
-                       type_2->variant.float_kind);
-          break;
-        case tk_pointer:
-          /* For pointers and references, they must point to identical types.
-             To be IL identical, they need not be both pointers or both
-             references. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (microsoft_mode &&
-              type_1->variant.pointer.modifiers !=
-                                          type_2->variant.pointer.modifiers) {
-            /* If pointer modifiers were applied, they must be identical. */
-          } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          /* Do not insert code here. */
-          if (il_identical ||
-              type_1->variant.pointer.is_reference ==
-                                        type_2->variant.pointer.is_reference) {
-            identical = f_identical_types(type_1->variant.pointer.type,
-                                          type_2->variant.pointer.type,
-                                          flags)
-#ifdef pointer_types_have_same_repr
-                        && pointer_types_have_same_repr(type_1, type_2)
-#endif /* ifdef pointer_types_have_same_repr */
-                                                                       ;
-          }  /* if */
-          break;
-        case tk_array:
-          /* For arrays, the sizes must be the same and the element types
-             must be identical. */
-          if (f_identical_types(type_1->variant.array.element_type,
-                                type_2->variant.array.element_type,
+          /* For functions, the return types must be identical, the
+             parameter lists must be identical, and the implicit "this"
+             parameter type (if any) must be identical. */
+          if (this_class_matches &&
+              f_identical_types(type_1->variant.routine.return_type,
+                                type_2->variant.routine.return_type,
                                 flags) &&
-              identical_array_type_level(type_1, type_2)) {
+              rtsp1->prototyped == rtsp2->prototyped &&
+              rtsp1->has_ellipsis == rtsp2->has_ellipsis &&
+              routine_linkages_are_identical(
+                        (a_name_linkage_kind)rtsp1->routine_name_linkage,
+                        (a_name_linkage_kind)rtsp2->routine_name_linkage)) {
+            /* So far they are identical, this flag will be reset if the
+               parameter types don't match. */
             identical = TRUE;
-          }  /* if */
-          break;
-        case tk_class:
-        case tk_struct:
-        case tk_union:
-          /* In general, classes, structs, and unions that aren't the same
-             type aren't identical.  There are some exceptions with template
-             classes.  Check for those. */
-          if (C_mode()) {
-            if ((flags & ITF_SEEK_CORRESP) != 0 &&
-                secondary_translation_unit_seen()) {
-              /* The types are expected to be identical, but because they are
-                 presumably defined in two different translation units, the
-                 correspondence of their inner structure must be checked. */
-              identical = seek_type_corresp(type_1, type_2);
+            /* Compare the types of the parameters on the two lists. */
+            for (list1 = rtsp1->param_type_list,
+                                              list2 = rtsp2->param_type_list;
+                 list1 != NULL && list2 != NULL;
+                 list1 = list1->next, list2 = list2->next) {
+              if (!f_identical_types(list1->type, list2->type,
+                                     flags)) {
+                /* The parameter types are not identical. */
+                identical = FALSE;
+                break;
+              }  /* if */
+            }  /* for */
+            if (identical) {
+              /* The parameter lists are identical if they both ended
+                 together. */
+              identical = (list1 == NULL && list2 == NULL);
             }  /* if */
-          } else if (equiv_class_types(type_1, type_2,
-                                       /*error_matches_anything=*/FALSE)) {
-            identical = TRUE;
-          }  /* if */
-          break;
-        case tk_routine:
-          {
-            a_boolean	this_class_matches = FALSE;
-            a_type_ptr	this1;
-            a_type_ptr	this2;
-            rtsp1 = type_1->variant.routine.extra_info;
-            rtsp2 = type_2->variant.routine.extra_info;
-            this1 = rtsp1->this_class;
-            this2 = rtsp2->this_class;
-            if (this1 == NULL && this2 == NULL) {
-              /* Both this parameter types are NULL -- they match. */
-              this_class_matches = TRUE;
-            } else if (this1 == NULL || this2 == NULL) {
-              /* One, but not both, of the this parameter types are NULL.
-                 This is considered a match if the flag is set that 
-                 indicates that we don't yet know whether the type has
-                 an implicit this parameter type and if the non-NULL type
-                 has no qualifiers. */
-              this_class_matches = unknown_this_class_type &&
-                                      rtsp1->qualifiers == TQ_NONE &&
-                                      rtsp2->qualifiers == TQ_NONE;
-            } else {
-              /* Both types are non-null, see if they are identical. */
-              this_class_matches =
-                        rtsp1->qualifiers == rtsp2->qualifiers &&
-                        identical_types(this1, this2);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (identical && microsoft_mode) {
+              /* The types are identical so far.  Check the calling
+                 conventions. */
+              identical = calling_conventions_are_compatible(type_1, type_2);
             }  /* if */
-            /* For functions, the return types must be identical, the
-               parameter lists must be identical, and the implicit "this"
-               parameter type (if any) must be identical. */
-            if (this_class_matches &&
-                f_identical_types(type_1->variant.routine.return_type,
-                                  type_2->variant.routine.return_type,
-                                  flags) &&
-                rtsp1->prototyped == rtsp2->prototyped &&
-                rtsp1->has_ellipsis == rtsp2->has_ellipsis &&
-                routine_linkages_are_identical(
-                          (a_name_linkage_kind)rtsp1->routine_name_linkage,
-                          (a_name_linkage_kind)rtsp2->routine_name_linkage)) {
-              /* So far they are identical, this flag will be reset if the
-                 parameter types don't match. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          }  /* if */
+        }
+        break;
+      case tk_ptr_to_member:
+        /* Pointer-to-member types are identical if they refer to the same
+           class type and to the same member type. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_mode &&
+            type_1->variant.ptr_to_member.modifiers !=
+                                  type_2->variant.ptr_to_member.modifiers) {
+          /* If pointer modifiers were applied, they must be identical. */
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          identical = (f_identical_types(pm_class_type(type_1),
+                                         pm_class_type(type_2),
+                                         flags) &&
+                       f_identical_types(pm_member_type(type_1),
+                                         pm_member_type(type_2),
+                                         flags));
+        }  /* if */
+        break;
+      case tk_template_param:
+        if (type_1->variant.template_param.kind ==
+                                  type_2->variant.template_param.kind) {
+          a_template_param_type_supplement_ptr	tptsp_1, tptsp_2;
+          tptsp_1 = type_1->variant.template_param.extra_info;
+          tptsp_2 = type_2->variant.template_param.extra_info;
+          switch (type_1->variant.template_param.kind) {
+            case tptk_param:
+               /* Template parameter types are considered to be identical
+                  if their positions in the template parameter list are
+                  the same, and they are associated with template
+                  declarations of the same nesting level. */
+              identical =
+                  (tptsp_1->coordinates.position ==
+                                            tptsp_2->coordinates.position) &&
+                    ((flags & ITF_EXACT_NESTING_DEPTHS_REQUIRED) != 0
+                      ? tptsp_1->coordinates.depth ==
+                                                 tptsp_2->coordinates.depth
+                      : ((equiv_nesting_depths(tptsp_1->coordinates.depth,
+                                               tptsp_2->coordinates.depth) ||
+                          (flags & ITF_IGNORE_NESTING_DEPTH) != 0)));
+              break;
+            case tptk_member:
+              /* Members types are the same if their names are the same
+                 and if they are members of identical types. */
+              check_assertion(in_front_end);
+              sym_1 = (a_symbol_ptr)type_1->source_corresp.assoc_info;
+              sym_2 = (a_symbol_ptr)type_2->source_corresp.assoc_info;
+              check_assertion(sym_1 != NULL && sym_2 != NULL);
+              if (sym_1->header == sym_2->header) {
+                /* The names are the same. */
+                identical = (identical_types(type_1->source_corresp.
+                                                        parent.class_type,
+                                             type_2->source_corresp.
+                                                        parent.class_type));
+              }  /* if */
+              break;
+            case tptk_unknown:
+              /* Two unknown types.  This should only occur when comparing
+                 the unknown types of two different translation units.
+                 Consider them to be the same. */
               identical = TRUE;
-              /* Compare the types of the parameters on the two lists. */
-              for (list1 = rtsp1->param_type_list,
-                                                list2 = rtsp2->param_type_list;
-                   list1 != NULL && list2 != NULL;
-                   list1 = list1->next, list2 = list2->next) {
-                if (!f_identical_types(list1->type, list2->type,
-                                       flags)) {
-                  /* The parameter types are not identical. */
-                  identical = FALSE;
-                  break;
-                }  /* if */
-              }  /* for */
-              if (identical) {
-                /* The parameter lists are identical if they both ended
-                   together. */
-                identical = (list1 == NULL && list2 == NULL);
-              }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-              if (identical && microsoft_mode) {
-                /* The types are identical so far.  Check the calling
-                   conventions. */
-                identical = calling_conventions_are_compatible(type_1, type_2);
-              }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            }  /* if */
-          }
-          break;
-        case tk_ptr_to_member:
-          /* Pointer-to-member types are identical if they refer to the same
-             class type and to the same member type. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (microsoft_mode &&
-              type_1->variant.ptr_to_member.modifiers !=
-                                    type_2->variant.ptr_to_member.modifiers) {
-            /* If pointer modifiers were applied, they must be identical. */
-          } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          /* Do not insert code here. */
-          {
-            identical = (f_identical_types(pm_class_type(type_1),
-                                           pm_class_type(type_2),
-                                           flags) &&
-                         f_identical_types(pm_member_type(type_1),
-                                           pm_member_type(type_2),
-                                           flags));
-          }  /* if */
-          break;
-        case tk_template_param:
-          if (type_1->variant.template_param.kind ==
-                                    type_2->variant.template_param.kind) {
-            a_template_param_type_supplement_ptr	tptsp_1, tptsp_2;
-            tptsp_1 = type_1->variant.template_param.extra_info;
-            tptsp_2 = type_2->variant.template_param.extra_info;
-            switch (type_1->variant.template_param.kind) {
-              case tptk_param:
-                 /* Template parameter types are considered to be identical
-                    if their positions in the template parameter list are
-                    the same, and they are associated with template
-                    declarations of the same nesting level. */
-                identical =
-                    (tptsp_1->coordinates.position ==
-                                              tptsp_2->coordinates.position) &&
-                      ((flags & ITF_EXACT_NESTING_DEPTHS_REQUIRED) != 0
-                        ? tptsp_1->coordinates.depth ==
-                                                   tptsp_2->coordinates.depth
-                        : ((equiv_nesting_depths(tptsp_1->coordinates.depth,
-                                                 tptsp_2->coordinates.depth) ||
-                            (flags & ITF_IGNORE_NESTING_DEPTH) != 0)));
-                break;
-              case tptk_member:
-                /* Members types are the same if their names are the same
-                   and if they are members of identical types. */
-                check_assertion(in_front_end);
-                sym_1 = (a_symbol_ptr)type_1->source_corresp.assoc_info;
-                sym_2 = (a_symbol_ptr)type_2->source_corresp.assoc_info;
-                check_assertion(sym_1 != NULL && sym_2 != NULL);
-                if (sym_1->header == sym_2->header) {
-                  /* The names are the same. */
-                  identical = (identical_types(type_1->source_corresp.
-                                                          parent.class_type,
-                                               type_2->source_corresp.
-                                                          parent.class_type));
-                }  /* if */
-                break;
-              case tptk_unknown:
-                /* Two unknown types.  This should only occur when comparing
-                   the unknown types of two different translation units.
-                   Consider them to be the same. */
-                identical = TRUE;
-                break;
-              case tptk_decltype:
-                /* Two types obtained with the decltype(<expr>) construct,
-                   where the expression has a template-dependent type.
-                   Compare the expression trees and the presence of
-                   extra parentheses.  (No expression trees are available
-                   if the decltype was constructed inside a function whose
-                   definition is complete.  Such types are always considered
-                   non-identical to other types.) */
-                { an_expr_node_ptr  expr1 = tptsp_1->expr,
-                                    expr2 = tptsp_2->expr;
-                  if (tptsp_1->decltype_expr_not_parenthesized !=
-                                   tptsp_2->decltype_expr_not_parenthesized) {
-                    identical = FALSE;
-                    break;
-                  }  /* if */
-                  if (expr1 == NULL) {
-                    check_assertion(tptsp_1->local_expr_ref);
-                    expr1 = find_local_expr_node(
-                                   (char*)type_1,
-                                   (a_local_expr_node_ref_kind)lerk_decltype);
-                  }  /* if */
-                  if (expr2 == NULL) {
-                    check_assertion(tptsp_2->local_expr_ref);
-                    expr2 = find_local_expr_node(
-                                   (char*)type_2,
-                                   (a_local_expr_node_ref_kind)lerk_decltype);
-                  }  /* if */
-                  identical =
-                     expr1 != NULL && expr2 != NULL &&
-                     compare_template_param_constant_expressions(expr1, expr2);
-                }
-                break;
-#if GNU_EXTENSIONS_ALLOWED
-              case tptk_typeof:
-                /* Two types obtained with the __typeof__(<expr>) construct,
-                   where the expression has a template-dependent type.
-                   Compare the expression trees. */
-                { an_expr_node_ptr  expr1 = tptsp_1->expr,
-                                    expr2 = tptsp_2->expr;
-                  if (expr1 == NULL) {
-                    expr1 = find_local_expr_node(
-                              (char*)tptsp_1,
-                              (a_local_expr_node_ref_kind)lerk_generic_typeof);
-                    check_assertion(expr1 != NULL && tptsp_1->local_expr_ref);
-                  }  /* if */
-                  if (expr2 == NULL) {
-                    expr2 = find_local_expr_node(
-                              (char*)tptsp_2,
-                              (a_local_expr_node_ref_kind)lerk_generic_typeof);
-                    check_assertion(expr2 != NULL && tptsp_2->local_expr_ref);
-                  }  /* if */
-                  identical =
-                     compare_template_param_constant_expressions(expr1, expr2);
-                }
-                break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-              default:
-                unexpected_condition_str
-                             ("f_identical_types: bad templ param type kind");
-            }  /* switch */
-          }  /* if */
-          break;
+              break;
+            default:
+              unexpected_condition_str
+                           ("f_identical_types: bad templ param type kind");
+          }  /* switch */
+        }  /* if */
+        break;
 #if CHECKING
-        default:
-          internal_error("f_identical_types: bad type");
+      default:
+        internal_error("f_identical_types: bad type");
 #endif /* CHECKING */
-      }  /* switch */
+    }  /* switch */
 #if GNU_EXTENSIONS_ALLOWED
-      if (gnu_mode && identical &&
-          !same_type_attributes(type_1, type_2)) {
-        /* The types have different attributes, so the types are different. */
-        identical = FALSE;
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+    if (gnu_mode && identical &&
+        !same_type_attributes(type_1, type_2)) {
+      /* The types have different attributes, so the types are different. */
+      identical = FALSE;
     }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-
+done:
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "f_identical_types: %s\n", identical ? "TRUE" : "FALSE");
