@@ -183,6 +183,11 @@ typedef struct an_il_to_str_output_control_block {
 			/* Suppress the cast to a shorter-than-int integral
 			   type that is normally output for integer
 			   constants. */
+  a_byte_boolean
+	suppress_name_in_template_cast_enum_const;
+			/* Suppress the name of a tpck_cast constant that
+			   represents an enumerator and put out its value
+			   instead. */
 } an_il_to_str_output_control_block;
 
 /*

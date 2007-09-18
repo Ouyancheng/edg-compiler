@@ -4477,7 +4477,12 @@ is the one associated with the definition of the enum.
                                 /*need_parens=*/TRUE, &octl);
         } else {
           /* Handle ck_template_param constants in prototype instantiations. */
+          a_boolean saved_suppress_name_flag =
+                                octl.suppress_name_in_template_cast_enum_const;
+          octl.suppress_name_in_template_cast_enum_const = TRUE;
           gen_constant(enum_con, /*need_parens=*/FALSE);
+          octl.suppress_name_in_template_cast_enum_const =
+                                                      saved_suppress_name_flag;
         }  /* if */
         next_enum_value = *enum_con;
       }  /* if */

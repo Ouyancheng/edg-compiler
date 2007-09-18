@@ -73,6 +73,7 @@ Clear an output control block to default values.
   octl->remove_template_typedefs  = FALSE;
   octl->suppress_line_breaking    = FALSE;
   octl->suppress_cast_on_short_integral_const = FALSE;
+  octl->suppress_name_in_template_cast_enum_const = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -4267,8 +4268,18 @@ precedence confusion.  Do the output in the way described by octl.
           form_expression(constant->variant.template_param.variant.expr, octl);
           break;
         case tpck_cast:
-          form_constant(constant->variant.template_param.variant.constant,
-                        /*need_parens=*/FALSE, octl);
+          if (constant->type->kind == (a_constant_repr_kind)tk_integer &&
+              constant->type->variant.integer.enum_type &&
+              has_name(constant) &&
+              !octl->suppress_name_in_template_cast_enum_const) {
+            /* This is an alias for a named enumerator -- just put out the
+               name. */
+            form_name(&constant->source_corresp, iek_constant, octl);
+          } else {
+            /* An alias for some other constant -- display it. */
+            form_constant(constant->variant.template_param.variant.constant,
+                          /*need_parens=*/FALSE, octl);
+          }  /* if */
           break;
         case tpck_address:
           if (need_parens) octl->output_str("(");
