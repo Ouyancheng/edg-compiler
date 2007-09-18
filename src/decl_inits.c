@@ -3988,7 +3988,8 @@ the default constructor (if one exists) is called.
         fputs("\n", f_debug);
       }  /* if */
 #endif /* DEBUG */
-    } else if (could_be_dependent_class_type(tp)) {
+    } else if (is_template_dependent_context() &&
+               could_be_dependent_class_type(tp)) {
       /* An unknown (i.e., template-dependent) type that might instantiate to
          a class type with default initializer.  Set def_init_performed to
          TRUE to avoid spurious diagnostics about uninitialized variables. */
