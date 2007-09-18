@@ -4021,7 +4021,8 @@ NULL.
                  !var_ptr->has_gnu_used_attribute &&
                  !var_ptr->is_weakref &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                 !could_be_dependent_class_type(var_type)) {
+                 !could_be_dependent_class_type(skip_array_types(var_type)) &&
+                 !is_error_type(var_type)) {
         /* An unreferenced or unused variable or an unused parameter.
            If a class is nonreal or if it has a template-dependent field or
            base, it may yet have side effects and no diagnostic should be

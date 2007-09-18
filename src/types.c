@@ -892,6 +892,16 @@ Return the underlying element type of the given array type.
 }  /* underlying_array_element_type */
 
 
+a_type_ptr skip_array_types(a_type_ptr  tp)
+/*
+If tp is an array type, return its underlying element type.  Otherwise, return
+tp itself.
+*/
+{
+  return is_array_type(tp) ? underlying_array_element_type(tp) : tp;
+}  /* skip_array_types */
+
+
 a_targ_size_t num_array_elements(a_type_ptr array_type)
 /*
 Compute and return the number of elements in an array.  For multi-dimensional
