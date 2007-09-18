@@ -7087,9 +7087,6 @@ NULL, the end position in its specifiers_range is updated.
     forget_expr_range_modifiers_in_operand(&operand);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   }  /* if */
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
-  switch_back_to_original_region(region_to_switch_back_to);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     /* Update the end of the specifiers range to describe the end of the
@@ -7100,6 +7097,9 @@ NULL, the end position in its specifiers_range is updated.
   /* Check for and pass over the right parenthesis. */
   remove_matching_stop_token(tok_rparen);
   (void)required_token(tok_rparen, ec_exp_rparen);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  switch_back_to_original_region(region_to_switch_back_to);
   return result;
 }  /* scan_decltype_operator */
 
