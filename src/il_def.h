@@ -5355,6 +5355,11 @@ typedef struct a_template_param_type_supplement {
 			   will be entered as a member that can be
 			   found by subsequent lookups.  Pointer is NULL
 			   if no class use has been  encountered. */
+  a_type_ptr	orig_nested_type;
+			/* If this is a template parameter created to
+			   represent the corresponding nonreal type for
+			   a nested type of a class template, this points
+			   to the original nested type;  NULL otherwise. */
   a_template_param_coordinate
 		coordinates;
 			/* The parameter list position and template nesting

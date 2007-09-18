@@ -1083,6 +1083,7 @@ and return a pointer to it.
   num_template_param_type_supplements_allocated++;
 #endif /* DEBUG */
   tptsp->class_type = NULL;
+  tptsp->orig_nested_type = NULL;
   tptsp->expr = NULL;
   tptsp->local_expr_ref = FALSE;
   tptsp->decltype_expr_not_parenthesized = FALSE;

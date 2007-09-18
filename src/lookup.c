@@ -987,9 +987,11 @@ considered a dependent type.
 This routine is given the original symbol and creates the nonreal version.
 */
 {
-  a_type_ptr			class_type;
-  a_symbol_locator		locator;
-  a_symbol_ptr			nonreal_sym;
+  a_type_ptr				class_type;
+  a_symbol_locator			locator;
+  a_symbol_ptr				nonreal_sym;
+  a_template_param_type_supplement_ptr	tptsp;
+  a_type_ptr				templ_param_type;
 
   check_assertion(orig_sym->is_class_member);
   class_type = orig_sym->parent.class_type;
@@ -999,9 +1001,12 @@ This routine is given the original symbol and creates the nonreal version.
   orig_sym->corresp_nonreal_or_nested_type = nonreal_sym;
   nonreal_sym->corresp_nonreal_or_nested_type = orig_sym;
   nonreal_sym->is_nonreal_nested_type = TRUE;
+  templ_param_type = nonreal_sym->variant.type.ptr;
+  tptsp = templ_param_type->variant.template_param.extra_info;
+  tptsp->orig_nested_type = type_symbol_type(orig_sym);
   if (prototype_instantiations_in_il) {
     /* When prototype instantiations are included in the IL, add the type. */
-    add_to_types_list(nonreal_sym->variant.type.ptr, DEPTH_OF_FILE_SCOPE);
+    add_to_types_list(templ_param_type, DEPTH_OF_FILE_SCOPE);
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("cnvont")) {

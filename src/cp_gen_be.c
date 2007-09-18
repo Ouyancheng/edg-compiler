@@ -3454,6 +3454,24 @@ These follow the tag kind, e.g., "struct __single_inheritance xxx".
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_type_ptr orig_type_if_nonreal_prototype_type(a_type_ptr type)
+/*
+If "type" is a tk_template_param type that is the nonreal version of a
+nested type of a prototype instantiation, return the original type instead.
+Otherwise, just return "type".
+*/
+{
+  a_type_ptr	result_type = type;
+
+  if (type->kind == (a_type_kind)tk_template_param) {
+    a_template_param_type_supplement_ptr	tptsp;
+    tptsp = type->variant.template_param.extra_info;
+    if (tptsp->orig_nested_type != NULL) result_type = tptsp->orig_nested_type;
+  }  /* if */
+  return result_type;
+}  /* orig_type_if_nonreal_prototype_type */
+
+
 static void gen_tag_reference(a_type_ptr             type,
                               a_gen_name_options_set options)
 /*
@@ -3464,6 +3482,7 @@ declaration ("struct S;") or GN_NO_OPTIONS for other kinds of reference.
 {
   a_source_sequence_scan_state saved_state;
 
+  type = orig_type_if_nonreal_prototype_type(type);
   if (type->definition_delayed) {
     /* Put out the definition if it is needed and was delayed because a
        non-autonomous definition appeared. */
@@ -3575,6 +3594,7 @@ Generate a reference to the indicated type, which is a tag or a typedef.
 A reference is not the definition.
 */
 {
+  type = orig_type_if_nonreal_prototype_type(type);
   if (type->replace_by_generated_typedef) {
     /* Replace the reference to this type by a reference to a
        generated typedef. */
@@ -5198,6 +5218,7 @@ declaration following this one is such a continuation.
     a_type_ptr class_type;
 #if USER_CONTROL_OF_STRUCT_PACKING
     a_type_ptr specifier_type = type_specifier_of_type(under_type);
+    specifier_type = orig_type_if_nonreal_prototype_type(specifier_type);
     if (is_class_or_struct(specifier_type) &&
         specifier_type->definition_delayed) {
       /* The typedef contains a class definition: issue a #pragma pack before
