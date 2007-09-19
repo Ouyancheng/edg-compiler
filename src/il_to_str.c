@@ -1253,7 +1253,11 @@ by octl.
           if (!type->variant.typeref.decltype_expr_not_parenthesized) {
             octl->output_str("(");
           }  /* if */
-          octl->output_expression(expr, /*need_parens=*/FALSE);
+          if (octl->output_expression != NULL) {
+            octl->output_expression(expr, /*need_parens=*/FALSE);
+          } else {
+            form_expression(expr, octl);
+          }  /* if */
           if (!type->variant.typeref.decltype_expr_not_parenthesized) {
             octl->output_str(")");
           }  /* if */
@@ -1270,7 +1274,11 @@ by octl.
         an_expr_node_ptr  expr = decltype_arg(type);
         octl->output_str("__typeof__(");
         if (expr != NULL) {
-          octl->output_expression(expr, /*need_parens=*/FALSE);
+          if (octl->output_expression != NULL) {
+            octl->output_expression(expr, /*need_parens=*/FALSE);
+          } else {
+            form_expression(expr, octl);
+          }  /* if */
         } else {
           form_type(type->variant.typeref.type, octl);
         }  /* if */
