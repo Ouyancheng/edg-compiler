@@ -1543,23 +1543,22 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
           !is_member_typedef_that_should_be_ignored(type, octl)) {
         break;
       }  /* if */
-    } else if (type->variant.typeref.is_decltype &&
+    } else if ((type->variant.typeref.is_decltype
+#if GNU_EXTENSIONS_ALLOWED
+                || type->variant.typeref.is_typeof
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                  ) &&
                octl->gen_compilable_code &&
                !octl->c_generating_back_end && decltype_arg(type) != NULL) {
-      /* A decltype operator behaves much like a typedef.  In diagnostics,
-         the actual type is generally preferred (especially since the argument
-         expression is not always available).  In some code-generating
-         contexts (e.g., when template instantiations are emitted as explicit
-         specializations) the argument to decltype may not be available either,
-         an we fall back to emitting the underlying type.  Since C does not
-         have a decltype operator, we also emit the underlying type in the
-         C-generating back end. */
+      /* A decltype or typeof operator behaves much like a typedef.  In
+         diagnostics, the actual type is generally preferred (especially
+         since the argument expression is not always available).  In some
+         code-generating contexts (e.g., when template instantiations are
+         emitted as explicit specializations) the argument to decltype may
+         not be available either, an we fall back to emitting the underlying
+         type.  We also emit the underlying type in the C-generating back
+         end. */
       break;
-#if GNU_EXTENSIONS_ALLOWED
-    } else if (type->variant.typeref.is_typeof) {
-      /* The GNU typeof operator behaves much like a typedef. */
-      break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       /* Type qualifier typeref.  Accumulate the qualifiers. */
       qualifiers |= type->variant.typeref.qualifiers;
@@ -1950,22 +1949,22 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
           !is_member_typedef_that_should_be_ignored(type, octl)) {
         break;
       }  /* if */
-    } else if (type->variant.typeref.is_decltype &&
+    } else if ((type->variant.typeref.is_decltype
+#if GNU_EXTENSIONS_ALLOWED
+                || type->variant.typeref.is_typeof
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                  ) &&
                octl->gen_compilable_code &&
                !octl->c_generating_back_end && decltype_arg(type) != NULL) {
-      /* A decltype operator behaves much like a typedef.  In diagnostics,
-         the actual type is generally preferred (especially since the argument
-         expression is not always available).  In some code-generating
-         contexts (e.g., when template instantiations are emitted as explicit
-         specializations) the argument to decltype may not be available either,
-         an we fall back to emitting the underlying type.  Since C does not
-         have a decltype operator, we also emit the underlying type in the
-         C-generating back end. */
+      /* A decltype or typeof operator behaves much like a typedef.  In
+         diagnostics, the actual type is generally preferred (especially
+         since the argument expression is not always available).  In some
+         code-generating contexts (e.g., when template instantiations are
+         emitted as explicit specializations) the argument to decltype may
+         not be available either, an we fall back to emitting the underlying
+         type.  We also emit the underlying type in the C-generating back
+         end. */
       break;
-#if GNU_EXTENSIONS_ALLOWED
-    } else if (type->variant.typeref.is_typeof) {
-      break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       /* Type qualifier typeref.  Accumulate the qualifiers. */
       qualifiers |= type->variant.typeref.qualifiers;
