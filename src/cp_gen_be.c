@@ -3594,6 +3594,8 @@ Generate a reference to the indicated type, which is a tag or a typedef.
 A reference is not the definition.
 */
 {
+  a_type_ptr	orig_type = type;
+
   type = orig_type_if_nonreal_prototype_type(type);
   if (type->replace_by_generated_typedef) {
     /* Replace the reference to this type by a reference to a
@@ -3606,7 +3608,7 @@ A reference is not the definition.
          the name of the GNU predefined primitive. */
       write_tok_str("__builtin_va_list");
     } else {
-      gen_possibly_dependent_type_name(type);
+      gen_possibly_dependent_type_name(orig_type);
     }  /* if */
   } else {
     /* A class, struct, union, or enum. */
@@ -3654,7 +3656,7 @@ A reference is not the definition.
       /* Use just the type name. */
       /* Note that for a dependent name that's qualified this will also
          put out an elaborated type specifier. */
-      gen_possibly_dependent_type_name(type);
+      gen_possibly_dependent_type_name(orig_type);
     } else {
       /* Use an elaborated type specifier, e.g., "class X". */
       gen_tag_reference(type, (a_gen_name_options_set)GN_NO_OPTIONS);
