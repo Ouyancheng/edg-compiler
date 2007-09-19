@@ -1,5 +1,31 @@
 Version 3.10
 
+9/19/07  Sun C++ mode: quirk in overload resolution for built-in operators
+
+The front end now emulates a quirk of the Sun C++ compiler with regard
+to how user-written operator functions compete with built-in operators.
+It appears that if a user-written operator function is found that matches
+without use of a user-defined conversion, the Sun compiler considers
+no builtin candidates.  While it's true that a built-in candidate could
+not be better than such a user-written function (because it needs
+at least one user-defined conversion to convert from a class type
+to a built-in type), it could cause an ambiguity.  Note that the 5.9
+version of the Sun compiler has apparently fixed this behavior, but
+since we do not yet have a --sun_version option, we are for now
+doing this unconditionally in Sun mode.
+
+  struct A {
+    A();
+    operator int();
+  };
+  A operator<<(const A&, const short);
+  int main() {
+    A x;
+    A u;
+    u = x << 5;  // Standard says ambiguous, now accepted in Sun mode
+                 // (user-written operator<< called)
+  }
+
 9/19/07  User-defined conversion on cast to reference-to-const type
 
 Certain casts to reference type that were erroneously rejected previously

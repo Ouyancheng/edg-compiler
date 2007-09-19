@@ -10222,6 +10222,28 @@ for non-unary operations).  The result operand is returned in *result.
 }  /* make_generic_operation_operand */
 
 
+static a_boolean some_candidate_matches_without_user_defined_convs(
+                                           a_candidate_function_ptr candidates)
+/*
+Return TRUE if there is a candidate function on the list that matches without
+a user-defined conversion.  This is used for a Sun-mode quirk.
+*/
+{
+  a_boolean                result = FALSE;
+  a_candidate_function_ptr cfp;
+  an_arg_match_level       worst_match;
+
+  for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
+    worst_match = worst_arg_match_level_for_candidate_arg(cfp);
+    if (worst_match != aml_user_conversion) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* some_candidate_matches_without_user_defined_convs */
+
+
 void check_for_operator_overloading(
                              an_opname_kind            kind,
                              a_boolean                 unary_operator,
@@ -10544,6 +10566,15 @@ such cases (where operator overloading might apply, but we can't tell).
             }  /* if */
           }  /* for */
           free_list_of_symbol_list_entries(symbol_list);
+        }  /* if */
+        if (sun_mode &&
+            some_candidate_matches_without_user_defined_convs(
+                                                        candidate_functions)) {
+          /* The Sun compiler up to 5.8 seems to not try built-in operator
+             matches if it has a user-written candidate that doesn't require
+             a user-defined conversion to match.  5.9 seems to have eliminated
+             that, but we don't yet have a sun_version option... */
+          try_conversions = FALSE;
         }  /* if */
         /* See if the built-in meaning of the operator can apply if we
            convert the class operand(s) to a built-in type through use of
