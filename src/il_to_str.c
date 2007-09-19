@@ -1121,8 +1121,10 @@ expression if available, or NULL otherwise.
   an_expr_node_ptr  expr = type->variant.typeref.expr;
 
   if (expr == NULL && innermost_function_scope != NULL) {
-    expr = find_local_expr_node(
-                      (char*)type, (a_local_expr_node_ref_kind)lerk_decltype);
+    a_local_expr_node_ref_kind  lerk = type->variant.typeref.is_decltype ?
+                                   (a_local_expr_node_ref_kind)lerk_decltype :
+                                   (a_local_expr_node_ref_kind)lerk_typeof;
+    expr = find_local_expr_node((char*)type, lerk);
   }  /* if */
   return expr;
 }  /* decltype_arg */
@@ -1265,8 +1267,13 @@ by octl.
         octl->output_str(")");
 #if GNU_EXTENSIONS_ALLOWED
       } else if (type->variant.typeref.is_typeof) {
+        an_expr_node_ptr  expr = decltype_arg(type);
         octl->output_str("__typeof__(");
-        form_type(type->variant.typeref.type, octl);
+        if (expr != NULL) {
+          octl->output_expression(expr, /*need_parens=*/FALSE);
+        } else {
+          form_type(type->variant.typeref.type, octl);
+        }  /* if */
         octl->output_str(")");
 #endif /* GNU_EXTENSIONS_ALLOWED */
       } else {

@@ -757,6 +757,7 @@ is pushed regardless of any of the other factors.
   new_entry->potentially_evaluated = TRUE;
   new_entry->is_default_arg_expression = FALSE;
   new_entry->is_template_arg_expression = FALSE;
+  new_entry->in_typeof_or_decltype_construct = FALSE;
   new_entry->is_vla_dimension_expression = FALSE;
   new_entry->in_cctor_elision_initializer = FALSE;
   new_entry->favor_constant_result = FALSE;
@@ -784,6 +785,8 @@ is pushed regardless of any of the other factors.
                                          expr_stack->is_default_arg_expression;
     new_entry->inside_conditional_expression =
                                      expr_stack->inside_conditional_expression;
+    new_entry->in_typeof_or_decltype_construct =
+                                   expr_stack->in_typeof_or_decltype_construct;
   }  /* if */
   expr_stack = new_entry;
   /* Do special handling for constant expressions.  This is done late so that

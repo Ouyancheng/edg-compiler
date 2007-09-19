@@ -7017,6 +7017,7 @@ NULL, the end position in its specifiers_range is updated.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/(curr_object_lifetime != NULL));
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
+  expr_stack->in_typeof_or_decltype_construct = TRUE;
   add_matching_stop_token(tok_rparen);
   scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
   error_if_indefinite_function(&operand);
@@ -7132,6 +7133,7 @@ NULL, the end position in its specifiers_range is updated.
                     /*suppress_object_lifetime=*/
                                               (curr_object_lifetime != NULL));
     expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
+    expr_stack->in_typeof_or_decltype_construct = TRUE;
     add_matching_stop_token(tok_rparen);
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     error_if_indefinite_function(&operand);
@@ -12477,6 +12479,7 @@ both C and C++ modes.
     err = TRUE;
   }  /* if */
   if (depth_stmt_stack < 0 ||
+      expr_stack->in_typeof_or_decltype_construct ||
       expr_stack->is_default_arg_expression) {
     /* We're not inside a function, so don't try to scan the statement.
        Just flush to the matching closing brace. */
@@ -12486,6 +12489,8 @@ both C and C++ modes.
     if (!err) {
       if (depth_stmt_stack < 0) {
         error(ec_statement_expression_in_function_only);
+      } else if (expr_stack->in_typeof_or_decltype_construct) {
+        error(ec_statement_expr_in_typeof_or_decltype_construct);
       } else {
         error(ec_statement_expr_in_default_arg);
       }  /* if */
