@@ -7096,9 +7096,8 @@ NULL, the end position in its specifiers_range is updated.
   an_expr_node_ptr        expr = NULL;
   an_operand              operand;
   a_boolean               is_type;
-  a_boolean               operand_was_scanned = FALSE;
-  a_boolean               operand_was_used = FALSE;
   an_expr_stack_entry_ptr saved_expr_stack;
+  a_memory_region_number  region_to_switch_back_to;
 
   /* Note that, unlike e.g. sizeof, typeof can appear directly in a declarative
      context (without any intervening expression context).  The expression
@@ -7115,12 +7114,18 @@ NULL, the end position in its specifiers_range is updated.
   if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                        DFS_SINGLE_TYPE_REQUIRED)) {
     /* Scan a type name. */
+    is_type = TRUE;
     add_stop_token(tok_rparen);
     type_name(&result);
-    is_type = TRUE;
     remove_stop_token(tok_rparen);
   } else {
     /* Scan an expression. */
+    is_type = FALSE;
+    /* If we're in the file-scope memory region instead of a function-scope
+       memory region because we're scanning something like a template argument,
+       switch back.  If we're in a function, any expression nodes allocated
+       must be in the function-scope memory region. */
+    switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
     save_expr_stack(&saved_expr_stack);
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
@@ -7129,7 +7134,6 @@ NULL, the end position in its specifiers_range is updated.
     expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
     add_matching_stop_token(tok_rparen);
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
-    operand_was_scanned = TRUE;
     error_if_indefinite_function(&operand);
     force_complete_type_if_a_variable(&operand);
     result = operand.type;
@@ -7142,7 +7146,6 @@ NULL, the end position in its specifiers_range is updated.
         result = make_unqualified_type(result);
       }  /* if */
     }  /* if */
-    is_type = FALSE;
     remove_matching_stop_token(tok_rparen);
   }  /* if */
   if (is_error_type(result)) {
@@ -7158,36 +7161,32 @@ NULL, the end position in its specifiers_range is updated.
                                 is_template_dependent_type(result);
     typeof_type->variant.typeref.type = result;
     typeof_type->variant.typeref.is_typeof = TRUE;
-    if (dependent_arg) {
-      prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
-    }  /* if */
-    expr = make_node_from_operand(&operand);
-    if (!dependent_arg && is_an_lvalue(&operand)) {
-      expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
-                                operand.type, expr);
-    }  /* if */
-    /* The type entry is stored in the file scope memory region.  If the
-       expression is a local expression,  the type entry cannot point
-       directly to it, and instead we use the "a_local_expr_node_ref"
-       mechanism. */
-    if (in_file_scope(expr)) {
-      typeof_type->variant.typeref.expr = expr;
-    } else {
-      make_local_expr_node_ref(
+    if (!is_type) {
+      if (dependent_arg) {
+        prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
+      }  /* if */
+      expr = make_node_from_operand(&operand);
+      if (!dependent_arg && is_an_lvalue(&operand)) {
+        expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
+                                  operand.type, expr);
+      }  /* if */
+      /* The type entry is stored in the file scope memory region.  If the
+         expression is a local expression,  the type entry cannot point
+         directly to it, and instead we use the "a_local_expr_node_ref"
+         mechanism. */
+      if (in_file_scope(expr)) {
+        typeof_type->variant.typeref.expr = expr;
+      } else {
+        make_local_expr_node_ref(
            expr, (a_local_expr_node_ref_kind)lerk_typeof, (char*)typeof_type);
+      }  /* if */
     }  /* if */
     result = typeof_type;
   }  /* if */
-  if (operand_was_scanned) {
-    if (!operand_was_used) {
-      /* The expression was discarded. */
-      undo_side_effects_for_discarded_unevaluated_expression();
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-      forget_expr_range_modifiers_in_operand(&operand);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
-    }  /* if */
+  if (!is_type) {
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);
+    switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
