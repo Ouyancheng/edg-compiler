@@ -1701,6 +1701,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
          up in full committee.) */
       source_can_be_rvalue = ((param_type_qualifiers & TQ_CONST) != 0);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* __unaligned can be dropped. */
+    if (microsoft_mode) arg_type_qualifiers &= ~TQ_UNALIGNED;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Check the type qualifiers to see if they can be reconciled by
        trivial conversions. */
     if (param_type_qualifiers == arg_type_qualifiers) {
@@ -2109,6 +2113,23 @@ of match.  If the anachronism of allowing a call of a non-const function
 with a const selector is enabled, allow that kind of mismatch here.
 */
 {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    /* Drop __unaligned as a type qualifier on the argument type.
+       MSVC++ allows a member function to be called on an __unaligned
+       object with no warning. */
+    if (is_pointer_type(arg_type)) {
+      a_type_ptr           underlying_type = type_pointed_to(arg_type);
+      a_type_qualifier_set quals = get_type_qualifiers(underlying_type);
+      if (quals & TQ_UNALIGNED) {
+        quals &= ~TQ_UNALIGNED;
+        arg_type = make_unqualified_type(underlying_type);
+        arg_type = make_qualified_type(arg_type, quals);
+        arg_type = make_pointer_type(arg_type);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   determine_arg_match_level((an_operand *)NULL, arg_type, param_type,
                             /*param_type_is_deduced=*/FALSE,
                             /*try_user_conversions=*/FALSE, match_summary);
@@ -13234,9 +13255,21 @@ direct binding is "possible" and not whether it is "valid".
   }  /* if */
   /* The destination type must have no fewer type qualifiers than the source
      type to be usable without conversion (ARM 8.4.3). */
-  *dropping_qualifiers = type_is_correct_or_derived && !template_case &&
-                         any_qualifier_missing(base_dest_type,
-                                               source_type);
+  *dropping_qualifiers = FALSE;
+  if (type_is_correct_or_derived && !template_case) {
+    a_type_qualifier_set source_quals = get_type_qualifiers(source_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* It's allowed to drop __unaligned in Microsoft mode.  MSVC++ issues
+       no diagnostic. */
+    if (microsoft_mode) source_quals &= ~TQ_UNALIGNED;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (source_quals != TQ_NONE) {
+      a_type_qualifier_set dest_quals = get_type_qualifiers(base_dest_type);
+      if (any_qualifier_in_set_missing(dest_quals, source_quals)) {
+        *dropping_qualifiers = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (*dropping_qualifiers) {
     /* There are fewer qualifiers on the destination than on the source,
        so the initialization would involve dropping qualifiers. */

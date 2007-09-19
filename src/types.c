@@ -5134,8 +5134,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_boolean            unaligned_dropped = FALSE;
       if (!(dest_type_qualifiers & TQ_UNALIGNED) &&
-          (source_type_qualifiers & TQ_UNALIGNED) &&
-          !suppress_extensions) {
+          (source_type_qualifiers & TQ_UNALIGNED)) {
         /* The Microsoft-specific qualifier "__unaligned" can be dropped.
            Since this is somewhat suspect, we will issue a warning about it
            (see below) except if another conversion warning is issued. */
