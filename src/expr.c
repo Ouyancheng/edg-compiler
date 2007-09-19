@@ -10966,6 +10966,7 @@ for non-class operands).  This routine is called only in C++ mode.
            applies, we know we have an error.  That's the reason that
            user_defined_conversion_possible is not called. */
         a_boolean  possible = FALSE;
+        a_boolean  ambiguous;
         a_type_ptr eff_type_cast_to = type_pointed_to(type_cast_to);
         template_case = FALSE;
         if (could_be_dependent_class_type(operand->type)) {
@@ -10974,33 +10975,59 @@ for non-class operands).  This routine is called only in C++ mode.
              a conversion we don't know about. */
           possible = TRUE;
           template_case = TRUE;
-        } else if (is_class_struct_union_type(operand->type)) {
-          a_boolean ambiguous;
-          if (conversion_for_direct_reference_binding_possible(
+        } else if (is_class_struct_union_type(operand->type) &&
+                   (conversion_for_direct_reference_binding_possible(
                                            operand,
                                            type_cast_to,
                                            &conversion,
                                            &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
-              ambiguous) {
+                    ambiguous)) {
             /* A conversion can be done that will allow the reference to be
                bound directly to the result of the conversion function. */
             possible = TRUE;
-          } else if (binding_to_rvalue_allowed &&
-                     (conversion_from_class_possible(
-                                           operand,
-                                           eff_type_cast_to,
-                                           (a_builtin_type_kind_set)BTK_NONE,
-                                           /*need_lvalue_result=*/FALSE,
-                                           /*is_copy_initialization=*/FALSE,
-                                           /*is_reference_binding=*/TRUE,
-                                           &conversion,
-                                           &ambiguous,
-                                           (a_candidate_function_ptr *)NULL) ||
-                      ambiguous)) {
-            /* A user-defined conversion can be done to create a temporary
-               to which the reference can be bound. */
-            possible = TRUE;
+        } else if (binding_to_rvalue_allowed) {
+          if (is_class_struct_union_type(eff_type_cast_to)) {
+            if (is_an_lvalue(operand) &&
+                is_class_struct_union_type(operand->type) &&
+                find_base_class_of(eff_type_cast_to, operand->type) != NULL) {
+              /* Don't use constructors or conversion functions for
+                 a cast of an lvalue to a reference to a derived class
+                 because we're supposed to just recast the same object
+                 ([expr.static.cast] paragraph 2).  That's discovered later. */
+            } else if (conversion_to_class_possible(
+                                  operand,
+                                  eff_type_cast_to,
+                                  /*try_bitwise_copy=*/TRUE,
+                                  /*initializing_return_value=*/FALSE,
+                                  /*is_copy_initialization=*/TRUE, /*sic*/
+                                  /*orig_is_copy_initialization=*/TRUE, /*sic*/
+                                  /*is_reference_binding=*/FALSE, /*sic*/
+                                  /*processed_arg=*/FALSE,
+                                  &conversion, (a_conv_descr *)NULL,
+                                  &ambiguous,
+                                  (a_candidate_function_ptr*)NULL) ||
+                ambiguous) {
+              /* A user-defined conversion can be done to create a temporary
+                 to which the reference can be bound. */
+              possible = TRUE;
+            }  /* if */
+          } else if (is_class_struct_union_type(operand->type)) {
+            if (conversion_from_class_possible(
+                                       operand,
+                                       eff_type_cast_to,
+                                       (a_builtin_type_kind_set)BTK_NONE,
+                                       /*need_lvalue_result=*/FALSE,
+                                       /*is_copy_initialization=*/TRUE, /*sic*/
+                                       /*is_reference_binding=*/FALSE, /*sic*/
+                                       &conversion,
+                                       &ambiguous,
+                                       (a_candidate_function_ptr *)NULL) ||
+                ambiguous) {
+              /* A user-defined conversion can be done to create a temporary
+                 to which the reference can be bound. */
+              possible = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
         if (possible) {

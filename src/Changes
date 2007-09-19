@@ -1,5 +1,20 @@
 Version 3.10
 
+9/19/07  User-defined conversion on cast to reference-to-const type
+
+Certain casts to reference type that were erroneously rejected previously
+are now accepted.  Specifically, casts from a non-class type to a
+reference-to-const-class type, where the conversion must be effectuated
+by calling a constructor, are now handled correctly.
+
+  struct A {
+    A(int i);
+  };
+  int main() {
+    int i = 0;
+    const A&a = static_cast<const A&>(i);  // Now accepted
+  }
+
 9/14/07  GNU compatibility: Exception specifications in system headers
 
 In GNU C++ mode, the front end accepts an incompatible exception specification
