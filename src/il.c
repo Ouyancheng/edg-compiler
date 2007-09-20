@@ -9033,16 +9033,16 @@ using find_local_expr_node.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-#if !CHECKING
-/*ARGSUSED*/  /* kind is not used in all configurations. */
-#endif /* !CHECKING */
 an_expr_node_ptr find_local_expr_node(char                        *referrer,
                                       a_local_expr_node_ref_kind  kind)
 /*
 referrer is an entry in the file scope memory region that implicitly refers to
 an expression in a function scope memory region.  If innermost_function_scope
 is non-NULL and if it is the function containing that expression, return a
-pointer to that expression.  Otherwise, return NULL.
+pointer to that expression.  Otherwise, return NULL.  (The expression pointer
+is determined by searching a list of a_local_expr_node_ref entries.  kind
+represents the kind of entry that is expected to hold a pointer to the
+expression being searched for.)
 */
 {
   an_expr_node_ptr  result = NULL;
