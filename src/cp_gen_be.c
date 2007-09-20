@@ -9558,14 +9558,16 @@ done_with_expr:;
 
 
 static void f_gen_expression(an_expr_node_ptr expr,
-                             a_boolean        need_parens)
+                             a_boolean        suppress_parens)
 /*
 Interface routine called from the il_to_str routines to e.g. output the
 dimension expression in a VLA (variable-length array) declarator or an
-array declarator whose length is template dependent.
+array declarator whose length is template dependent.  expr is the expression
+to render.  suppress_parens is TRUE if top-level parentheses should not be
+added to the output.
 */
 {
-  gen_expr(expr, need_parens);
+  gen_expr(expr, !suppress_parens);
 }  /* f_gen_expression */
 
 

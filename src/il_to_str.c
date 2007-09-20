@@ -1254,7 +1254,9 @@ by octl.
             octl->output_str("(");
           }  /* if */
           if (octl->output_expression != NULL) {
-            octl->output_expression(expr, /*need_parens=*/FALSE);
+            /* Extra top-level parentheses should be suppressed since they may
+               change the meaning of the decltype construct. */
+            octl->output_expression(expr, /*suppress_parens=*/TRUE);
           } else {
             form_expression(expr, octl);
           }  /* if */
@@ -1275,7 +1277,10 @@ by octl.
         octl->output_str("__typeof__(");
         if (expr != NULL) {
           if (octl->output_expression != NULL) {
-            octl->output_expression(expr, /*need_parens=*/FALSE);
+            /* Unlike decltype, typeof is not affected by extra top-level
+               parentheses.  Suppress them anyway to produce more pleasing
+               output. */
+            octl->output_expression(expr, /*suppress_parens=*/TRUE);
           } else {
             form_expression(expr, octl);
           }  /* if */
@@ -3609,7 +3614,7 @@ on every expression.
 {
   if (octl->output_expression != NULL) {
     /* Output the expression using a special routine. */
-    octl->output_expression(expr, /*need_parens=*/TRUE);
+    octl->output_expression(expr, /*suppress_parens=*/FALSE);
   } else {
     /* No routine to do the expression output.  Do default
        non-compilable output. */
@@ -3813,7 +3818,7 @@ precedence confusion.  Do the output in the way described by octl.
              octl->output_expression != NULL) {
     /* An expression was recorded for this constant.  Output that expression
        rather than the folded constant. */
-    octl->output_expression(constant->expr, /*need_parens=*/TRUE);
+    octl->output_expression(constant->expr, /*suppress_parens=*/FALSE);
     goto done;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else {

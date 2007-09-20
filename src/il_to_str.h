@@ -37,7 +37,7 @@ typedef void an_output_func_declarator_function(a_type_ptr type);
 typedef an_output_func_declarator_function
                                        *an_output_func_declarator_function_ptr;
 typedef void an_output_expression_function(an_expr_node_ptr expr,
-                                           a_boolean        need_parens);
+                                           a_boolean        suppress_parens);
 typedef an_output_expression_function *an_output_expression_function_ptr;
 #if RECORD_FORM_OF_NAME_REFERENCE
 typedef a_boolean an_output_name_reference_function(

@@ -5252,13 +5252,15 @@ done_with_operation:
 
 
 static void dump_expression_for_il_to_str(an_expr_node_ptr expr,
-                                          a_boolean        need_parens)
+                                          a_boolean        suppress_parens)
 /*
 Interface routine called from the il_to_str routines to dump expressions
 (e.g., the dimension expression in a variable-length array declarator).
+expr is the expression to render.  suppress_parens is TRUE if top-level
+parentheses should not be added to the output.
 */
 {
-  dump_expr(expr, need_parens);
+  dump_expr(expr, !suppress_parens);
 }  /* dump_expression_for_il_to_str */
 
 
