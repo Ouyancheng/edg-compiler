@@ -1798,11 +1798,9 @@ do_struct_union:
       /* Do not print out ptr->variant.typeref.orig_type, which is used only
          during IL lowering. */
 #endif /* DO_IL_LOWERING */
-#if BACK_END_IS_CP_GEN_BE
       if (ptr->variant.typeref.expr != NULL) {
         disp_ptr("expr", (char *)ptr->variant.typeref.expr, iek_expr_node);
       }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE */
       if (ptr->variant.typeref.is_placeholder_for_class_instantiation) {
         disp_boolean("is_placeholder_for_class_instantiation", TRUE);
       } else if (ptr->variant.typeref.is_placeholder_for_namespace_type) {

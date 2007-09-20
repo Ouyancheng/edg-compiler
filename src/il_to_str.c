@@ -1543,11 +1543,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
           !is_member_typedef_that_should_be_ignored(type, octl)) {
         break;
       }  /* if */
-    } else if ((type->variant.typeref.is_decltype
-#if GNU_EXTENSIONS_ALLOWED
-                || type->variant.typeref.is_typeof
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                                  ) &&
+    } else if (typeref_is_decltype_or_typeof(type) &&
                octl->gen_compilable_code &&
                !octl->c_generating_back_end && decltype_arg(type) != NULL) {
       /* A decltype or typeof operator behaves much like a typedef.  In
@@ -1555,7 +1551,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
          since the argument expression is not always available).  In some
          code-generating contexts (e.g., when template instantiations are
          emitted as explicit specializations) the argument to decltype may
-         not be available either, an we fall back to emitting the underlying
+         not be available either, and we fall back to emitting the underlying
          type.  We also emit the underlying type in the C-generating back
          end. */
       break;
@@ -1949,11 +1945,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
           !is_member_typedef_that_should_be_ignored(type, octl)) {
         break;
       }  /* if */
-    } else if ((type->variant.typeref.is_decltype
-#if GNU_EXTENSIONS_ALLOWED
-                || type->variant.typeref.is_typeof
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                                  ) &&
+    } else if (typeref_is_decltype_or_typeof(type) &&
                octl->gen_compilable_code &&
                !octl->c_generating_back_end && decltype_arg(type) != NULL) {
       /* A decltype or typeof operator behaves much like a typedef.  In
@@ -1961,7 +1953,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
          since the argument expression is not always available).  In some
          code-generating contexts (e.g., when template instantiations are
          emitted as explicit specializations) the argument to decltype may
-         not be available either, an we fall back to emitting the underlying
+         not be available either, and we fall back to emitting the underlying
          type.  We also emit the underlying type in the C-generating back
          end. */
       break;

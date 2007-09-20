@@ -195,6 +195,18 @@ nor qualifier.
   ((tp)->source_corresp.name != NULL)
 
 /*
+Return TRUE if a tk_typeref type represents a C++0x decltype or GNU typeof
+construct.
+*/
+#if GNU_EXTENSIONS_ALLOWED
+#define typeref_is_decltype_or_typeof(tp)                                   \
+  ((tp)->variant.typeref.is_decltype || (tp)->variant.typeref.is_typeof)
+#else /* !GNU_EXTENSIONS_ALLOWED */
+#define typeref_is_decltype_or_typeof(tp)                                   \
+  ((tp)->variant.typeref.is_decltype)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+/*
 Return TRUE if the given type represents a typedef.
 */
 #define type_is_typedef(tp)                                           \

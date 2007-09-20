@@ -7173,11 +7173,7 @@ a pointer over a reference type or creating an array of references.
         }  /* if */
         break;
       case tk_typeref:
-        if ((type->variant.typeref.is_decltype
-#if GNU_EXTENSIONS_ALLOWED
-             || type->variant.typeref.is_typeof
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                               )  &&
+        if (typeref_is_decltype_or_typeof(type) &&
             is_template_dependent_type(type->variant.typeref.type)) {
           /* decltype and typeof types can currently not be substituted.
              This will likely change in the future, when the C++ committee's

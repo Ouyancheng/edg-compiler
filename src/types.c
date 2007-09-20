@@ -3183,22 +3183,14 @@ for more information.
       /* Peel off tk_typeref layers looking for template-dependent decltype or
          typeof nodes. */
       while (type_1->kind == (a_type_kind)tk_typeref) {
-        if ((type_1->variant.typeref.is_decltype
-#if GNU_EXTENSIONS_ALLOWED
-             || type_1->variant.typeref.is_typeof
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                                 ) &&
+        if (typeref_is_decltype_or_typeof(type_1) &&
             is_template_dependent_type(type_1)) {
           break;
         }  /* if */
         type_1 = type_1->variant.typeref.type;
       }  /* while */
       while (type_2->kind == (a_type_kind)tk_typeref) {
-        if ((type_2->variant.typeref.is_decltype
-#if GNU_EXTENSIONS_ALLOWED
-             || type_2->variant.typeref.is_typeof
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                                 ) &&
+        if (typeref_is_decltype_or_typeof(type_2) &&
             is_template_dependent_type(type_2)) {
           break;
         }  /* if */
