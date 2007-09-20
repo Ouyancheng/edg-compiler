@@ -910,8 +910,8 @@ static void report_bad_new_or_delete(a_symbol_locator  *locator,
 /*
 Issue a diagnostic when attempting to declare an operator new or delete
 function that is a namespace member or that has internal linkage (i.e.,
-storage_class == sc_static).  If the former is true, set *bad_scope to TRUE.
-If a true error is issued mark *locator as an error locator.
+storage_class == sc_static).  If an error (as opposed to e.g. a warning)
+is issued mark *locator as an error locator.
 */
 {
   an_error_code      error_code = ec_no_error;

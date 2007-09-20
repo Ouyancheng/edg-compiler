@@ -4978,8 +4978,8 @@ be found.
        the usual name lookup routines), but not with new-expression or delete-
        expression syntax (which uses this routine).  In GNU modes with
        gnu_version < 40000 namespaces are considered even for new-expressions
-       -expressions (and this routine is not called in those cases), but not
-       for delete-expressions. */
+       (and this routine is not called in those cases), but not for delete-
+       expressions. */
     /* The file scope symbols start on the active list, but will be on the
        inactive list when the file scope is reactivated for the purpose of
        generating instantiations. */

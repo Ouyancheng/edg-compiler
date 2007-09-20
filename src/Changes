@@ -100,7 +100,7 @@ In Microsoft C++ mode the front end accepts declarations of new and delete
 operators in namespaces, but previously such declarations were never found
 through lookup (see also Changes entry of 11/19/98).  Now such declarations
 are found when using explicit operator call notation (but not when using the
-more common new-expression and delete-expression syntax.  For example:
+more common new-expression and delete-expression syntax).  For example:
 
   void *operator new(size_t);  // (1)
 
