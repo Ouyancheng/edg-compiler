@@ -6754,14 +6754,17 @@ cleared.
     /* Type of the one parameter for operator delete is void *. */
     param1_type = make_pointer_type(void_type());
   }  /* if */
-  if (microsoft_mode && (opname == (an_opname_kind)onk_array_new ||
-                         opname == (an_opname_kind)onk_array_delete)) {
-  } else {
-    sym = make_predeclared_function_symbol(
+  /* In Microsoft mode, array versions of the operators are never directly
+     predeclared.  Instead, alias symbols for the array versions are sometimes
+     implicitly created (see below) when the non-array versions are
+     predeclared. */
+  check_assertion(!(microsoft_mode &&
+                    (opname == (an_opname_kind)onk_array_new ||
+                     opname == (an_opname_kind)onk_array_delete)));
+  sym = make_predeclared_function_symbol(
                  &locator,
                  make_routine_type(return_type, param1_type, (a_type_ptr)NULL,
                                    (a_type_ptr)NULL, (a_type_ptr)NULL));
-  }  /* if */
   if (microsoft_mode) {
     if (microsoft_version >= 1400) {
       /* More recent Microsoft compilers treat the implicit declaration of
