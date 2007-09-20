@@ -4669,7 +4669,10 @@ file.
   comment_undefined_macro_name(GCC_IS_GENERATED_CODE_TARGET);
 #endif /* defined(GCC_IS_GENERATED_CODE_TARGET) */
 #if defined(GCC_VERSION_STRING)
-#ifndef _lint
+#if !defined(_lint) && !(defined(_MSC_VER) && _MSC_VER < 1300)
+  /* Microsoft version 6.0 and some lint versions have a preprocessor bug
+     that creates an invalid result when the '#' operator is applied to the
+     default value of GCC_VERSION_STRING. */
   define_string_valued_macro(GCC_VERSION_STRING);
 #endif /* ifndef _lint */
 #else /* !defined(GCC_VERSION_STRING) */
