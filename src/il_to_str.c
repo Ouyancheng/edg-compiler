@@ -1483,6 +1483,21 @@ members of template classes.
 }  /* is_member_typedef_that_should_be_ignored */
 
 
+static a_boolean is_decltype_or_typeof_to_be_rendered(
+                                   a_type_ptr                            type,
+                                   an_il_to_str_output_control_block_ptr octl)
+/*
+Return TRUE if the given typeref type is a decltype or typeof construct that
+should be rendered.  Otherwise, the underlying type should be rendered (e.g.,
+in diagnostics the underlying type is more helpful, and in the C-generating
+back end typeof/decltype constructs are either not available or not portable).
+*/
+{
+  return typeref_is_decltype_or_typeof(type) && octl->gen_compilable_code &&
+         !octl->c_generating_back_end && decltype_arg(type) != NULL;
+}  /* is_decltype_or_typeof_to_be_rendered */
+
+
 void form_type_first_part(
                     a_type_ptr                            type,
                     a_boolean                             under_lhs_declarator,
@@ -1543,17 +1558,9 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
           !is_member_typedef_that_should_be_ignored(type, octl)) {
         break;
       }  /* if */
-    } else if (typeref_is_decltype_or_typeof(type) &&
-               octl->gen_compilable_code &&
-               !octl->c_generating_back_end && decltype_arg(type) != NULL) {
-      /* A decltype or typeof operator behaves much like a typedef.  In
-         diagnostics, the actual type is generally preferred (especially
-         since the argument expression is not always available).  In some
-         code-generating contexts (e.g., when template instantiations are
-         emitted as explicit specializations) the argument to decltype may
-         not be available either, and we fall back to emitting the underlying
-         type.  We also emit the underlying type in the C-generating back
-         end. */
+    } else if (is_decltype_or_typeof_to_be_rendered(type, octl)) {
+      /* A decltype or typeof operator that should be rendered in its
+         original form (instead of rendering the underlying type). */
       break;
     } else {
       /* Type qualifier typeref.  Accumulate the qualifiers. */
@@ -1945,17 +1952,9 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
           !is_member_typedef_that_should_be_ignored(type, octl)) {
         break;
       }  /* if */
-    } else if (typeref_is_decltype_or_typeof(type) &&
-               octl->gen_compilable_code &&
-               !octl->c_generating_back_end && decltype_arg(type) != NULL) {
-      /* A decltype or typeof operator behaves much like a typedef.  In
-         diagnostics, the actual type is generally preferred (especially
-         since the argument expression is not always available).  In some
-         code-generating contexts (e.g., when template instantiations are
-         emitted as explicit specializations) the argument to decltype may
-         not be available either, and we fall back to emitting the underlying
-         type.  We also emit the underlying type in the C-generating back
-         end. */
+    } else if (is_decltype_or_typeof_to_be_rendered(type, octl)) {
+      /* A decltype or typeof operator that should be rendered in its
+         original form (instead of rendering the underlying type). */
       break;
     } else {
       /* Type qualifier typeref.  Accumulate the qualifiers. */
