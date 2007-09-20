@@ -13827,8 +13827,8 @@ after the call.
 void start_secondary_declarator(a_decl_parse_state  *ps)
 /*
 *ps describes specifiers and a declarator from a declaration that contains
-multiple declarators (like "int i, *p;").  Initializer various declarator-
-related-fields in prior to scanning the next declarator.
+multiple declarators (like "int i, *p;").  Initialize various declarator-
+related-fields of *ps prior to scanning the next declarator.
 */
 {
   ps->do_flags = DO_NO_OUTPUT_FLAGS;
