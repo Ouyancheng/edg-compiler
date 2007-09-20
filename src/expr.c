@@ -7152,11 +7152,13 @@ NULL, the end position in its specifiers_range is updated.
   }  /* if */
   if (is_error_type(result)) {
     /* We'll just return the error type. */
-    /* The expression is discarded. */
-    undo_side_effects_for_discarded_unevaluated_expression();
+    if (!is_type) {
+      /* The expression is discarded. */
+      undo_side_effects_for_discarded_unevaluated_expression();
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-    forget_expr_range_modifiers_in_operand(&operand);
+      forget_expr_range_modifiers_in_operand(&operand);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
+    }  /* if */
   } else {
     a_type_ptr  typeof_type = alloc_type((a_type_kind)tk_typeref);
     a_boolean   dependent_arg = !C_mode() && is_template_dependent_context() &&
