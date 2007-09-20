@@ -16,7 +16,7 @@ The front end now emulates a quirk of the Sun C++ compiler with regard
 to how user-written operator functions compete with built-in operators.
 It appears that if a user-written operator function is found that matches
 without use of a user-defined conversion, the Sun compiler considers
-no builtin candidates.  While it's true that a built-in candidate could
+no built-in candidates.  While it's true that a built-in candidate could
 not be better than such a user-written function (because it needs
 at least one user-defined conversion to convert from a class type
 to a built-in type), it could cause an ambiguity.  Note that the 5.9
