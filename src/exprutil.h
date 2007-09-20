@@ -551,10 +551,6 @@ typedef struct an_expr_stack_entry {
 			   argument, e.g., it's not TRUE inside a sizeof
 			   inside a template argument. */
   a_byte_boolean
-		in_typeof_or_decltype_construct;
-			/* TRUE if the expression is an argument for a typeof
-			   (GNU mode) or decltype (C++0x mode) construct. */
-  a_byte_boolean
 		is_vla_dimension_expression;
 			/* TRUE if the expression is the dimension of a
 			   VLA (variable-length array).  This is TRUE only

@@ -7017,7 +7017,6 @@ NULL, the end position in its specifiers_range is updated.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/(curr_object_lifetime != NULL));
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
-  expr_stack->in_typeof_or_decltype_construct = TRUE;
   add_matching_stop_token(tok_rparen);
   scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
   error_if_indefinite_function(&operand);
@@ -7041,6 +7040,19 @@ NULL, the end position in its specifiers_range is updated.
       prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
     }  /* if */
     expr = make_node_from_operand(&operand);
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_mode && has_statement_expression(expr)) {
+      /* Statement expressions are currently not allowed for decltype
+         constructs because they can cause the generation of source sequence
+         entry subsequences that the C++-generating back end cannot handle. */
+      pos_error(ec_statement_expression_in_decltype, &operand.position);
+      undo_side_effects_for_discarded_unevaluated_expression();
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+      forget_expr_range_modifiers_in_operand(&operand);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
+      goto record_result;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     if (!dependent_arg && is_an_lvalue(&operand)) {
       expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
                                 operand.type, expr);
@@ -7055,6 +7067,9 @@ NULL, the end position in its specifiers_range is updated.
       make_local_expr_node_ref(
               expr, (a_local_expr_node_ref_kind)lerk_decltype, (char*)tp);
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+record_result:
+#endif /* GNU_EXTENSIONS_ALLOWED */
     result = tp;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -7133,7 +7148,6 @@ NULL, the end position in its specifiers_range is updated.
                     /*suppress_object_lifetime=*/
                                               (curr_object_lifetime != NULL));
     expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
-    expr_stack->in_typeof_or_decltype_construct = TRUE;
     add_matching_stop_token(tok_rparen);
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     error_if_indefinite_function(&operand);
@@ -7170,6 +7184,23 @@ NULL, the end position in its specifiers_range is updated.
         prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
       }  /* if */
       expr = make_node_from_operand(&operand);
+      if (has_statement_expression(expr)) {
+        /* Statement expressions can currently not be recorded for typeof
+           constructs because they can cause the generation of source sequence
+           entry subsequences that the C++-generating back end cannot handle.
+           If the expression is nondependent, we can just discard it and
+           use the typeof(<type>) representation instead.  If the expression
+           is dependent, we issue an error. */
+        if (dependent_arg) {
+          pos_error(ec_statement_expression_in_dependent_typeof,
+                    &operand.position);
+        }  /* if */
+        undo_side_effects_for_discarded_unevaluated_expression();
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+        forget_expr_range_modifiers_in_operand(&operand);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
+        goto record_result;
+      }  /* if */
       if (!dependent_arg && is_an_lvalue(&operand)) {
         expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
                                   operand.type, expr);
@@ -7185,6 +7216,7 @@ NULL, the end position in its specifiers_range is updated.
            expr, (a_local_expr_node_ref_kind)lerk_typeof, (char*)typeof_type);
       }  /* if */
     }  /* if */
+record_result:
     result = typeof_type;
   }  /* if */
   if (!is_type) {
@@ -12481,7 +12513,6 @@ both C and C++ modes.
     err = TRUE;
   }  /* if */
   if (depth_stmt_stack < 0 ||
-      expr_stack->in_typeof_or_decltype_construct ||
       expr_stack->is_default_arg_expression) {
     /* We're not inside a function, so don't try to scan the statement.
        Just flush to the matching closing brace. */
@@ -12491,8 +12522,6 @@ both C and C++ modes.
     if (!err) {
       if (depth_stmt_stack < 0) {
         error(ec_statement_expression_in_function_only);
-      } else if (expr_stack->in_typeof_or_decltype_construct) {
-        error(ec_statement_expr_in_typeof_or_decltype_construct);
       } else {
         error(ec_statement_expr_in_default_arg);
       }  /* if */

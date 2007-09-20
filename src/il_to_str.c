@@ -1494,7 +1494,8 @@ back end typeof/decltype constructs are either not available or not portable).
 */
 {
   return typeref_is_decltype_or_typeof(type) && octl->gen_compilable_code &&
-         !octl->c_generating_back_end && decltype_arg(type) != NULL;
+         !octl->c_generating_back_end &&
+         (type->variant.typeref.is_typeof || decltype_arg(type) != NULL);
 }  /* is_decltype_or_typeof_to_be_rendered */
 
 

@@ -1703,7 +1703,8 @@ ec_attr_requires_ptr_to_func_type;;"attribute requires pointer-to-function type"
 ec_dll_interface_ignored_on_qualified_declaration;;"dllimport/dllexport is ignored on redeclaration using a qualified name"
 ec_leading_character_ignored_in_char_literal;;"too many characters in character literal -- extra leading characters ignored"
 ec_first_inline_after_definition;;"%n cannot be declared inline after its definition %p"
-ec_statement_expr_in_typeof_or_decltype_construct;;"a statement expression is not allowed in a typeof or decltype specifier"
+ec_statement_expression_in_dependent_typeof;;"a statement expression is not allowed in a template-dependent typeof specifier"
+ec_statement_expression_in_decltype;;"a statement expression is not allowed in a decltype specifier"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
