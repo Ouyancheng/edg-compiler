@@ -5,7 +5,7 @@ Version 3.10
 Three changes in support of the __unaligned qualifier in Microsoft mode:
 1)  When a reference is being bound, the __unaligned qualifier can be dropped.
 2)  A member function can be called on an __unaligned object.
-3)  A pointer to unaligned X can be converted to pointer to X (this was
+3)  A pointer to __unaligned X can be converted to pointer to X (this was
 allowed in some cases previously, but it's now allowed everywhere,
 in particular on arguments to overloaded function calls); a warning
 is issued.
