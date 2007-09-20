@@ -4592,7 +4592,6 @@ check_next_function:;
   return match_is_better;
 }  /* match_is_better_on_at_least_one_arg */
 
-#if GNU_EXTENSIONS_ALLOWED
 
 static an_arg_match_level worst_arg_match_level_for_candidate_arg(
                                             a_candidate_function_ptr candidate)
@@ -4612,6 +4611,7 @@ given candidate function.
   return worst_match;
 }  /* worst_arg_match_level_for_candidate_arg */
 
+#if GNU_EXTENSIONS_ALLOWED
 
 static a_candidate_function_ptr select_best_gpp_candidate(
                                            a_candidate_function_ptr candidates)
