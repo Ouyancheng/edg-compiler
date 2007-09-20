@@ -332,9 +332,6 @@ typedef struct a_text_buffer {
 			/* Pointer to the buffer containing the characters. */
 } a_text_buffer;
 
-extern void db_text_buffer(char		*prefix,
-			   a_text_buffer_ptr	buf);
-
 extern a_text_buffer_ptr alloc_text_buffer(sizeof_t	allocation_increment);
 
 extern void reset_text_buffer(a_text_buffer_ptr	buffer);
@@ -376,6 +373,13 @@ Add the specified character to the text buffer specifier by "buf".
   (buf)->buffer[(buf)->size] = (ch);					\
   (buf)->size++;							\
 }  /* add_char_to_text_buffer */
+
+#if DEBUG
+extern void db_text_buffer(char		*prefix,
+			   a_text_buffer_ptr	buf);
+
+extern void db_prefix(char  *entry);
+#endif /* DEBUG */
 
 #endif /* ifndef MEM_MANAGE_H */
 
