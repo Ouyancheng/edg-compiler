@@ -1325,6 +1325,8 @@ extern void break_source_corresp(a_source_correspondence *sc);
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+extern a_boolean seq_is_in_system_header(a_seq_number  seq_number);
+
 extern a_source_correspondence *source_corresp_for_il_entry(
                                                  char              *entity_ptr,
                                                  an_il_entry_kind  kind);

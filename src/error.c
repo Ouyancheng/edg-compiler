@@ -3120,22 +3120,6 @@ return_point:;
 
 #endif /* CHECKING */
 
-
-a_boolean pos_in_system_header(a_source_position  *pos)
-/*
-Return TRUE if the given position corresponds to a system header.
-*/
-{
-  a_source_file_ptr  sfp;
-  a_boolean          at_end_of_source;
-  a_line_number      line_number;
-
-  sfp = source_file_for_seq(pos->seq, &line_number,
-                            &at_end_of_source, /*physical_line=*/FALSE);
-  return sfp != NULL && sfp->from_system_include_dir;
-}  /* pos_in_system_header */
-
-
 static void check_for_overridden_severity(an_error_code     error_code,
 					  an_error_severity *severity)
 /*
@@ -3199,7 +3183,7 @@ current source position and severity or restore the previously saved settings.
       /* Check whether we are inside a "system" include file in which
          warnings should be suppressed.  This test is only done if the message
          would be issued based on the current threshold. */
-      if (pos_in_system_header(*error_pos)) {
+      if (seq_is_in_system_header((*error_pos)->seq)) {
         error_threshold_to_use = es_discretionary_error;
 #if !STANDALONE_UTILITY_PROGRAM
       } else if (curr_command_line_macro_def != NULL) {

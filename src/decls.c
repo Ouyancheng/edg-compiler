@@ -1019,7 +1019,7 @@ system headers are downgraded to warnings.)
 */
 {
   if (gpp_mode && (int)severity > (int)es_warning &&
-      pos_in_system_header(&prev_decl->decl_position)) {
+      seq_is_in_system_header(prev_decl->decl_position.seq)) {
     severity = es_warning;
   }  /* if */
   return severity;
@@ -6539,7 +6539,7 @@ declaration.
           if (gpp_mode && params != NULL && !old_decl_has_body &&
               !is_function_def &&
               routine_ptr->type->kind == (a_type_kind)tk_routine &&
-              pos_in_system_header(&sym->decl_position)) {
+              seq_is_in_system_header(sym->decl_position.seq)) {
             /* A redeclaration of a routine first declared in a system header
                and no definition has yet been seen.  GNU compilers retain the
                later exception specifications, but (strangely) only if the

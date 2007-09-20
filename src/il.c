@@ -3633,6 +3633,20 @@ Return TRUE if the sequence number seq_number falls within an include file.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+a_boolean seq_is_in_system_header(a_seq_number  seq_number)
+/*
+Return TRUE if the given sequence number falls within a system header.
+*/
+{
+  a_source_file_ptr  sfp;
+  a_boolean          at_end_of_source;
+  a_line_number      line_number;
+
+  sfp = source_file_for_seq(seq_number, &line_number,
+                            &at_end_of_source, /*physical_line=*/FALSE);
+  return sfp != NULL && sfp->from_system_include_dir;
+}  /* seq_is_in_system_header */
+
 #if ORPHAN_PROCESSING_NEEDED
 
 static void f_add_orphaned_file_scope_il_entry(

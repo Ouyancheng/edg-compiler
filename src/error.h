@@ -244,8 +244,6 @@ extern a_line_number update_file_index(struct a_source_file *src_file,
                                        long                 file_pos);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-extern a_boolean pos_in_system_header(a_source_position  *pos);
-
 extern void record_prototype_diagnostic(an_error_code      error_code,
                                         an_error_severity  severity,
                                         a_source_position  *error_pos);
