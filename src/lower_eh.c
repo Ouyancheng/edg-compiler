@@ -1404,7 +1404,7 @@ typeinfo variable in a COMDAT group.
 #if SUN_EXTENSIONS_ALLOWED
     /* If the typeinfo object has  internal linkage, we cannot give it a Sun
        link scope. */
-      typeinfo_var->decl_modifiers &= ~(a_decl_modifier)DM_ANY_SUN_LINK_SCOPE;
+    typeinfo_var->decl_modifiers &= ~(a_decl_modifier)DM_ANY_SUN_LINK_SCOPE;
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if ((typeinfo_var->decl_modifiers & DM_DLLIMPORT) != 0) {
