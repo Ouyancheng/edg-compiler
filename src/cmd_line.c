@@ -3444,6 +3444,7 @@ file.
 /* Write a comment giving the option name and its (non-numeric) value: */
 #define comment_string_valued_macro(X) \
   fprintf(f_error, "/*      %s %s */\n", #X, stringize(X));
+/*lint -esym(750,comment_string_valued_macro)*/
 /* Write a #define directive for the option, which has a numeric value: */
 #define define_numeric_valued_macro(X) /*lint --e(506)*/                     \
   fprintf(f_error, "#define %s " PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER "\n",  \
