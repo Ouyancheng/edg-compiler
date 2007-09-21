@@ -391,14 +391,18 @@ language issue under review by the C++ committee (Core issue number 339).
 Trying to instantiate a decltype construct during function template argument
 deduction results in a deduction failure.  The same is now also true for
 GNU C++ typeof constructs (previously such situations led to an internal
-error).
+error).  This is almost certainly a temporary limitation: The C++ committee
+appears to be leaning towards allowing a broad range of decltype argument
+expressions, and the front end will be updated to reflect the expected new
+rules once they are established.
 
 As part of this change, the representation of template-dependent typeof
 constructs has been simplified to match the decltype representation (this is
 an IL CHANGE).  Also GNU statement expressions are no longer accepted in
 template-dependent typeof constructs (they were previously accepted, but the
 resulting IL was sometimes invalid); they also cannot appear in (dependent
-and nondependent) decltype constructs.
+and nondependent) decltype constructs.  This limitation will be lifted in a
+future version of the front end.
 
 8/27/07  String initializers for flexible array members
 
