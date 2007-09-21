@@ -1,5 +1,7 @@
 Version 3.10
 
+9/21/07  IL version number changed to 3.10
+
 9/19/07  Microsoft mode: __unaligned
 
 Three changes in support of the __unaligned qualifier in Microsoft mode:
