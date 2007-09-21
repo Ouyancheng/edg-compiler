@@ -976,7 +976,7 @@ created symbol to the inactive list and returns it to the caller.
 void create_nonreal_version_of_nested_type(a_symbol_ptr	orig_sym)
 /*
 A nested type of a prototype instantiation exists in two forms: its original
-form, and a nonreal version that is used in contexts where the nam bshould be
+form, and a nonreal version that is used in contexts where the name should be
 considered a dependent type.
 
   template <typename T> struct A {
