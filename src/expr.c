@@ -7054,8 +7054,11 @@ NULL, the end position in its specifiers_range is updated.
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (!dependent_arg && is_an_lvalue(&operand)) {
-      expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
-                                operand.type, expr);
+      /* Since the argument of a decltype operator can be an lvalue or an
+         rvalue, we need an indication for how the expression node should be
+         interpreted.  (For the generic case, prep_generic_operand will have
+         added an eok_lvalue node if needed.) */
+      expr->decltype_expression_lvalue = TRUE;
     }  /* if */
     /* The type entry is stored in the file scope memory region.  If the
        expression is a local expression,  the type entry cannot point
@@ -7202,8 +7205,11 @@ NULL, the end position in its specifiers_range is updated.
         goto record_result;
       }  /* if */
       if (!dependent_arg && is_an_lvalue(&operand)) {
-        expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
-                                  operand.type, expr);
+        /* Since the argument of a typeof operator can be an lvalue or an
+           rvalue, we need an indication for how the expression node should be
+           interpreted.  (For the generic case, prep_generic_operand will have
+           added an eok_lvalue node if needed.) */
+        expr->decltype_expression_lvalue = TRUE;
       }  /* if */
       /* The type entry is stored in the file scope memory region.  If the
          expression is a local expression,  the type entry cannot point

@@ -2870,7 +2870,7 @@ as specified in the control block.
   a_boolean saved_expr_is_lvalue = tblock->expr_is_lvalue;
   a_boolean internal_expr_is_lvalue = saved_expr_is_lvalue;
 
-  if (expr->void_expression_lvalue) {
+  if (expr->void_expression_lvalue || expr->decltype_expression_lvalue) {
     /* This expression is explicitly marked as an lvalue. */
     tblock->expr_is_lvalue = internal_expr_is_lvalue = TRUE;
   }  /* if */

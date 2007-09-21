@@ -2670,6 +2670,7 @@ its kind to the indicated kind.
   node->is_initialization_guard = FALSE;
   node->generated_default_arg = FALSE;
   node->void_expression_lvalue = FALSE;
+  node->decltype_expression_lvalue = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
   node->marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */

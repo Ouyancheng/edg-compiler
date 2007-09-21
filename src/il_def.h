@@ -10282,6 +10282,10 @@ typedef struct an_expr_node {
 			   or by an explicit cast to void.  In spite of the
 			   name, the expression does not necessarily have
 			   void type.  Always FALSE in C. */
+  a_bit_field	decltype_expression_lvalue:1;
+			/* TRUE in C++0x or GNU modes for an expression that
+			   (a) is an lvalue and (b) is the argument for a C++0x
+			   decltype or GNU typeof specifier. */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	marked_as_gnu_extension:1;
 			/* TRUE if the expression was preceded by the GNU

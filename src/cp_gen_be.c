@@ -8543,12 +8543,16 @@ there's some possibility of precedence confusion and need_parens is TRUE.
     write_tok_str("__extension__ "); 
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (expr->void_expression_lvalue) {
-    /* The void_expression_lvalue flag indicates that the expression
-       should be treated as an lvalue. */
+  if (expr->void_expression_lvalue || expr->decltype_expression_lvalue) {
+    /* The void_expression_lvalue and decltype_expression_lvalue flags
+       indicate that the expression should be treated as an lvalue. */
+    a_boolean  void_expr_flag = expr->void_expression_lvalue;
+    a_boolean  decltype_expr_flag = expr->decltype_expression_lvalue;
     expr->void_expression_lvalue = FALSE;
+    expr->decltype_expression_lvalue = FALSE;
     gen_lvalue_full(expr, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
-    expr->void_expression_lvalue = TRUE;
+    expr->void_expression_lvalue = void_expr_flag;
+    expr->decltype_expression_lvalue = decltype_expr_flag;
     goto done_with_expr;
   }  /* if */
   if (expr->implicit_reference_indirection) {

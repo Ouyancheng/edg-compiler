@@ -3569,6 +3569,9 @@ Display the indicated expression node.
   if (ptr->void_expression_lvalue) {
     disp_boolean("void_expression_lvalue", TRUE);
   }  /* if */
+  if (ptr->decltype_expression_lvalue) {
+    disp_boolean("decltype_expression_lvalue", TRUE);
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (ptr->marked_as_gnu_extension) {
     disp_boolean("marked_as_gnu_extension", TRUE);

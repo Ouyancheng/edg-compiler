@@ -11558,6 +11558,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     expr->void_expression_lvalue = FALSE;
     rewrite_discarded_lvalue_as_rvalue(expr, /*can_change_type=*/TRUE);
   }  /* if */
+  /* The argument to a decltype or typeof specifier need never be lowered. */
+  check_assertion(!expr->decltype_expression_lvalue);
   lower_os_type(expr->type);
   if (expr->kind != (an_expr_node_kind)enk_field &&
       is_qualified_type(expr->type)) {
