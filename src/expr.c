@@ -12509,10 +12509,14 @@ both C and C++ modes.
   a_boolean         err = FALSE;
   a_statement_ptr   sp;
   a_source_position start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   start_position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (curr_expr_kind_is_const()) {
     /* Not allowed in a constant expression. */
     error(ec_expr_not_constant);
