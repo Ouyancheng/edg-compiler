@@ -115,7 +115,7 @@ large unsigned if is_signed is FALSE) otherwise set err to FALSE.
   }  /* for */
   /* If the sign of the result is not the same as the sign of the original
      number then an overflow occurred. */
-  if (is_signed && is_negative != (a_host_large_integer)result < 0) {
+  if (is_signed && is_negative != ((a_host_large_integer)result < 0)) {
     overflow = TRUE;
   }  /* if */
   *value = (a_host_large_integer)result;
