@@ -1062,7 +1062,7 @@ This is now fixed.
 
 In the definition of an object-like macro, C99 and C++0x require that the
 replacement text be separated from the macro name by white space.  The
-front end previously failed to enforce this requiremnt in --strict mode.
+front end previously failed to enforce this requirement in --strict mode.
 It now issues an error with --strict in --c99 and --c++0x modes and a
 warning in all other modes.  For example:
 
