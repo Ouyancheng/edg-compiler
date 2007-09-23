@@ -8576,10 +8576,18 @@ symbol entry, and return a pointer to it in state->sym.
       if (!types_are_identical) {
         /* If the types are not the same, see if they are dependent types
            that could turn out to be the same. */
+        a_symbol_ptr nonreal_sym = NULL;
+        if (sym->corresp_nonreal_or_nested_type != NULL &&
+            !sym->is_nonreal_nested_type) {
+          nonreal_sym = sym->corresp_nonreal_or_nested_type;
+        }  /* if */
         dependent_typedef_redeclaration =
-                                sym->kind == (a_symbol_kind)sk_type &&
-                                is_template_dependent_context() &&
-                                dependent_typedef_redecl_allowed(tp, type_ptr);
+                            (sym->kind == (a_symbol_kind)sk_type &&
+                             is_template_dependent_context() &&
+                             dependent_typedef_redecl_allowed(tp, type_ptr)) ||
+                             (nonreal_sym != NULL &&
+                              identical_types(type_ptr,
+                                              nonreal_sym->variant.type.ptr));
       }  /* if */
       if (((types_are_identical || dependent_typedef_redeclaration)
 #if NEAR_AND_FAR_ALLOWED
