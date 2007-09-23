@@ -1,4 +1,4 @@
-Version 3.10
+Version 3.10, September 23, 2007
 
 8/7/07   IA-64 ABI: Read and write least significant bit in guard when
          using ARM EABI (affects ARM in big-endian mode)
