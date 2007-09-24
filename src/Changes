@@ -1,8 +1,5 @@
 Version 3.11
 
-------------------------------------------------------------------------------
-Version 3.10, September 23, 2007
-
 9/23/07  Build error in il_to_str.c with RECORD_FORM_OF_NAME_REFERENCE
 
 In configurations in which RECORD_FORM_OF_NAME_REFERENCE is TRUE but both
@@ -10,6 +7,9 @@ BACK_END_IS_C_GEN_BE and BACK_END_IS_CP_GEN_BE are FALSE, il_to_str.c
 contained a reference to the variable msvc_target_version_number, which is
 not declared in such configurations, causing a build error.  This is now
 fixed.
+
+------------------------------------------------------------------------------
+Version 3.10, September 23, 2007
 
 9/21/07  IL version number changed to 3.10
 
