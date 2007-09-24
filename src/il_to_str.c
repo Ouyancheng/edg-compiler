@@ -2439,6 +2439,7 @@ Do the output in the way described by octl.
   } else {
     /* A non-null pointer-to-member. */
     a_boolean need_pm_close_paren = FALSE;
+    a_boolean force_qualified_name;
     output_optional_open_paren(&need_parens, &need_pm_close_paren, octl);
     if (!minimal_casts && bcp != NULL) {
       /* The pointer-to-member has been cast to another class.  Put in
@@ -2500,24 +2501,36 @@ Do the output in the way described by octl.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     octl->output_str("&");
-    /* Output the name, forcing it to be a qualified name. */
+    /* Output the name, either in the original form or as a qualified
+       name. */
 #if RECORD_FORM_OF_NAME_REFERENCE
-    if (constant->variant.ptr_to_member.name_reference != NULL &&
-        !(constant->variant.ptr_to_member.name_reference->qualifier == NULL &&
-          use_microsoft_form() && msvc_target_version_number < 1310) &&
-        octl->output_name_reference != NULL &&
-        octl->output_name_reference(
-             constant->variant.ptr_to_member.name_reference, scp, iek_constant,
-             /*is_declaration=*/FALSE)) {
-      /* The name was output using the recorded qualifiers to reproduce a
-         source expression for the constant.  MSVC++ versions before 7.1
-         sometimes get confused with an unqualified name in a
-         pointer-to-member constant, so for those versions we always use a
-         qualified name, even if the source did not. */
-    } else
+    if (constant->variant.ptr_to_member.name_reference != NULL) {
+#if BACK_END_IS_CP_GEN_BE
+      if (constant->variant.ptr_to_member.name_reference->qualifier == NULL &&
+          use_microsoft_form() && msvc_target_version_number < 1310) {
+        /* MSVC++ versions before 7.1 sometimes get confused with an
+           unqualified name in a pointer-to-member constant, so for those
+           versions we always use a qualified name, even if the source did
+           not. */
+        force_qualified_name = TRUE;
+      } else
+#endif /* BACK_END_IS_CP_GEN_BE */
+      /* Do not insert code here. */
+      /* If there is a special routine for name reference output, attempt
+         to use it to put out the name.  If there is no special routine, or
+         if the name was not emitted, put it out as a qualified name. */
+      force_qualified_name = !(octl->output_name_reference != NULL &&
+                               octl->output_name_reference(
+                                constant->variant.ptr_to_member.name_reference,
+                                scp, iek_constant, /*is_declaration=*/FALSE));
+    } else {
+      /* There's no name reference available; use a qualified name. */
+      force_qualified_name = TRUE;
+    }  /* if */
+#else /* !RECORD_FORM_OF_NAME_REFERENCE */
+    force_qualified_name = TRUE;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-    /* Do not insert code here. */
-    {
+    if (force_qualified_name) {
       a_boolean saved_force_qualified_name = octl->force_qualified_name;
       octl->force_qualified_name = TRUE;
       form_name(scp, entry_kind, octl);
