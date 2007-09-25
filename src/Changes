@@ -1,5 +1,15 @@
 Version 3.11
 
+9/25/07  Microsoft compatibility: __LPREFIX in wide-string initializers
+
+In Microsoft mode, the front end previously failed to accept wide-string
+initializers consisting of a __LPREFIX construct.  E.g.:
+
+  #include <stdlib.h>
+  wchar_t x[] = __LPREFIX("Wide");  // Previously an error; now okay.
+
+This is now fixed.
+
 9/23/07  Build error in il_to_str.c with RECORD_FORM_OF_NAME_REFERENCE
 
 In configurations in which RECORD_FORM_OF_NAME_REFERENCE is TRUE but both

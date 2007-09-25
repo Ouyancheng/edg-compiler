@@ -425,23 +425,9 @@ initialization; otherwise, these pointers are NULL.
       }  /* if */
     } else if (curr_token == tok_string_literal) {
       is_string_init = TRUE;
-    } else if (curr_token == tok_lparen) {
-      is_parenthesized = TRUE;
-      lparen_pos = pos_curr_token;
-      if ((any_cfront_mode() || C_dialect == C_dialect_pcc ||
-           microsoft_mode) &&
-          next_token() == tok_string_literal) {
-        /* This is a special case that's accepted in K&R mode, cfront mode,
-           and Microsoft mode:
-             char a[] = ("hello");
-           (Note: we only recognize this sort of case when there is a single
-           set of parentheses surrounding the string -- both pcc and cfront
-           do allow multiple parens.) */
-        is_string_init = TRUE;
-        paren_flag = TRUE;
-        /* Bypass the left paren. */
-        (void)get_token();
-      }  /* if */
+    } else if (curr_token == tok_microsoft_lprefix &&
+               set_curr_token_to_microsoft_lprefix_operator_string()) {
+      is_string_init = TRUE;
     } else if (token_is_function_name_string_literal(curr_token)) {
       /* In some modes, keywords like __FUNCTION__ are treated as
          string literals. */
