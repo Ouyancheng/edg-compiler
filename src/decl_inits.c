@@ -425,9 +425,11 @@ initialization; otherwise, these pointers are NULL.
       }  /* if */
     } else if (curr_token == tok_string_literal) {
       is_string_init = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (curr_token == tok_microsoft_lprefix &&
                set_curr_token_to_microsoft_lprefix_operator_string()) {
       is_string_init = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (token_is_function_name_string_literal(curr_token)) {
       /* In some modes, keywords like __FUNCTION__ are treated as
          string literals. */
