@@ -2516,13 +2516,17 @@ Do the output in the way described by octl.
       } else
 #endif /* BACK_END_IS_CP_GEN_BE */
       /* Do not insert code here. */
-      /* If there is a special routine for name reference output, attempt
-         to use it to put out the name.  If there is no special routine, or
-         if the name was not emitted, put it out as a qualified name. */
-      force_qualified_name = !(octl->output_name_reference != NULL &&
-                               octl->output_name_reference(
+      {
+        /* If there is a special routine for name reference output, attempt
+           to use it to put out the name.  If there is no special routine,
+           or if the name was not emitted, put it out as a qualified
+           name. */
+        force_qualified_name =
+                   !(octl->output_name_reference != NULL &&
+                     octl->output_name_reference(
                                 constant->variant.ptr_to_member.name_reference,
                                 scp, iek_constant, /*is_declaration=*/FALSE));
+      }
     } else {
       /* There's no name reference available; use a qualified name. */
       force_qualified_name = TRUE;
