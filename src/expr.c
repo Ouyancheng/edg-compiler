@@ -7084,7 +7084,7 @@ NULL, the end position in its specifiers_range is updated.
                                 ssep);
     /* Add the trailing (end-of-construct) source sequence entry. */
     add_end_of_construct_source_sequence_entry((char*)result,
-                                               (an_il_entry_kind)iek_type);
+                                               (a_byte_il_entry_kind)iek_type);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -7246,7 +7246,7 @@ NULL, the end position in its specifiers_range is updated.
                                 ssep);
     /* Add the trailing (end-of-construct) source sequence entry. */
     add_end_of_construct_source_sequence_entry((char*)result,
-                                               (an_il_entry_kind)iek_type);
+                                               (a_byte_il_entry_kind)iek_type);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (!is_type) {
