@@ -7073,8 +7073,9 @@ NULL, the end position in its specifiers_range is updated.
     result = tp;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  check_assertion(ssep != NULL);
-  if (ssep->next == NULL) {
+  if (ssep == NULL) {
+    /* No source sequence entries are being recorded. */
+  } else if (ssep->next == NULL) {
     /* The decltype argument did not embed source sequence entries.  So we do
        not have to delimit them: Discard the leading entry. */
     remove_from_src_seq_list(ssep);
@@ -7234,8 +7235,9 @@ NULL, the end position in its specifiers_range is updated.
     result = typeof_type;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  check_assertion(ssep != NULL);
-  if (ssep->next == NULL) {
+  if (ssep == NULL) {
+    /* No source sequence entries are being recorded. */
+  } else if (ssep->next == NULL) {
     /* The typeof argument did not embed source sequence entries.  So we do
        not have to delimit them: Discard the leading entry. */
     remove_from_src_seq_list(ssep);
