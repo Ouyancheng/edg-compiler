@@ -1112,7 +1112,7 @@ in the current context.
 }  /* source_corresp_for_template_param */
 
 
-static an_expr_node_ptr decltype_arg(a_type_ptr  type)
+an_expr_node_ptr decltype_arg(a_type_ptr  type)
 /*
 The given type represents a decltype construct.  Return its argument
 expression if available, or NULL otherwise.
@@ -1247,47 +1247,55 @@ by octl.
       /* A typeref here should be a typedef, a decltype operator, or a typeof
          operator. */
       if (type->variant.typeref.is_decltype) {
-        an_expr_node_ptr  expr = decltype_arg(type);
-        octl->output_str("decltype(");
-        if (expr != NULL) {
-          if (!type->variant.typeref.decltype_expr_not_parenthesized) {
-            octl->output_str("(");
-          }  /* if */
-          if (octl->output_expression != NULL) {
-            /* Extra top-level parentheses should be suppressed since they may
-               change the meaning of the decltype construct. */
-            octl->output_expression(expr, /*suppress_parens=*/TRUE);
-          } else {
-            form_expression(expr, octl);
-          }  /* if */
-          if (!type->variant.typeref.decltype_expr_not_parenthesized) {
-            octl->output_str(")");
-          }  /* if */
+        if (octl->output_name != NULL) {
+          octl->output_name((char*)type, iek_type);
         } else {
-          /* No expression is available: Just emit a placeholder for the
-             expression.  (This should only occur when not emitting
-             compilable output.) */
-          check_assertion(!octl->gen_compilable_code);
-          octl->output_str("<expr>");
+          an_expr_node_ptr  expr = decltype_arg(type);
+          octl->output_str("decltype(");
+          if (expr != NULL) {
+            if (!type->variant.typeref.decltype_expr_not_parenthesized) {
+              octl->output_str("(");
+            }  /* if */
+            if (octl->output_expression != NULL) {
+              /* Extra top-level parentheses should be suppressed since they
+                 may change the meaning of the decltype construct. */
+              octl->output_expression(expr, /*suppress_parens=*/TRUE);
+            } else {
+              form_expression(expr, octl);
+            }  /* if */
+            if (!type->variant.typeref.decltype_expr_not_parenthesized) {
+              octl->output_str(")");
+            }  /* if */
+          } else {
+            /* No expression is available: Just emit a placeholder for the
+               expression.  (This should only occur when not emitting
+               compilable output.) */
+            check_assertion(!octl->gen_compilable_code);
+            octl->output_str("<expr>");
+          }  /* if */
+          octl->output_str(")");
         }  /* if */
-        octl->output_str(")");
 #if GNU_EXTENSIONS_ALLOWED
       } else if (type->variant.typeref.is_typeof) {
-        an_expr_node_ptr  expr = decltype_arg(type);
-        octl->output_str("__typeof__(");
-        if (expr != NULL) {
-          if (octl->output_expression != NULL) {
-            /* Unlike decltype, typeof is not affected by extra top-level
-               parentheses.  Suppress them anyway to produce more pleasing
-               output. */
-            octl->output_expression(expr, /*suppress_parens=*/TRUE);
-          } else {
-            form_expression(expr, octl);
-          }  /* if */
+        if (octl->output_name != NULL) {
+          octl->output_name((char*)type, iek_type);
         } else {
-          form_type(type->variant.typeref.type, octl);
-        }  /* if */
-        octl->output_str(")");
+          an_expr_node_ptr  expr = decltype_arg(type);
+          octl->output_str("__typeof__(");
+          if (expr != NULL) {
+            if (octl->output_expression != NULL) {
+              /* Unlike decltype, typeof is not affected by extra top-level
+                 parentheses.  Suppress them anyway to produce more pleasing
+                 output. */
+              octl->output_expression(expr, /*suppress_parens=*/TRUE);
+            } else {
+              form_expression(expr, octl);
+            }  /* if */
+          } else {
+            form_type(type->variant.typeref.type, octl);
+          }  /* if */
+          octl->output_str(")");
+        } /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       } else {
         check_assertion_str(typeref_is_typedef(type),

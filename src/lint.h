@@ -211,6 +211,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(751,a_template_param_map_level)*/
 /*lint -esym(759,form_uuidof_reference)*/
 /*lint -esym(765,form_uuidof_reference)*/
+/*lint -esym(759,decltype_arg)*/
+/*lint -esym(765,decltype_arg)*/
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(759,form_calling_convention)*/
 /*lint -esym(765,form_calling_convention)*/

@@ -1201,8 +1201,10 @@ to indicate a primary declaration.
   a_boolean   autonomous;
 
   if (!is_tag_type(type)) {
-    /* Non-tag, always autonomous. */
-    autonomous = TRUE;
+    /* typeof and decltype tags are never autonomous.  All other non-tag
+       types that get here are always autonomous. */
+    autonomous = !(type->kind == (a_type_kind)tk_typeref &&
+                   typeref_is_decltype_or_typeof(type));
   } else {
     /* Tag. Check flag. */
     if (sec_decl == NULL) {
@@ -1291,9 +1293,10 @@ end of the type definition.
 */
 {
   check_and_take_source_seq_entry_for_type(type);
-  if (is_tag_type(type)) {
-    /* For a class or enum, loop through source sequence entries looking
-       for the end-of-construct entry for the type. */
+  if (is_tag_type(type) || (type->kind == (a_type_kind)tk_typeref &&
+                            typeref_is_decltype_or_typeof(type))) {
+    /* For a class, enum or decltype/typeof type, loop through source sequence
+       entries looking for the end-of-construct entry for the type. */
     for (;;) {
       check_assertion_str(curr_source_sequence_entry != NULL,
           "skip_type_definition_source_...: end of construct entry not found");
@@ -3588,6 +3591,92 @@ declaration ("struct S;") or GN_NO_OPTIONS for other kinds of reference.
 }  /* gen_tag_reference */
 
 
+static void gen_decltype_or_typeof(a_type_ptr tp)
+/*
+Render a decltype(<expr>), __typeof__(<expr>), or __typeof(<type>) construct.
+If the argument to the construct has associated source sequence entries, the
+type previously had its definition_delayed flag set to TRUE (at which time
+those source sequence entries were skipped); the source sequence entries
+associated with the argument should be reactivated in such cases.
+*/
+{
+  a_source_sequence_scan_state  saved_state;
+  an_expr_node_ptr              expr = decltype_arg(tp);
+  a_boolean                     is_decltype = tp->variant.typeref.is_decltype;
+
+  write_tok_str(is_decltype ? "decltype(" : "__typeof__(");
+  if (tp->definition_delayed) {
+    /* The decltype or typeof construct has associated source sequence entries.
+       Save the current position in the source sequence stream and change it
+       to the source sequence entries associated with the type. */
+    save_source_sequence_scan_state(&saved_state);
+    if (innermost_function_scope != NULL) {
+      /* We are in a function scope, so the types source sequence entry must
+         be on a sublist.  Search backwards to find the iek_src_seq_sublist
+         that holds the source sequence entry for the given type. */
+      a_source_sequence_entry_ptr  ssep = curr_source_sequence_entry;
+      if (sublist_parent_source_sequence_entry != NULL) {
+        /* We're currently on a sublist: Start the search from its parent
+           entry. */
+        ssep = sublist_parent_source_sequence_entry;
+      }  /* if */
+      for (;;) {
+        /* Find the preceding sublist (there must be at least one). */
+        while (!is_sublist_parent(ssep)) {
+          check_assertion(ssep != NULL);
+          ssep = ssep->prev;
+        }  /* while */
+        curr_source_sequence_entry =
+                                 assoc_sublist_of(ssep)->source_sequence_list;
+        /* Search the sublist to see if it is the one on which the source
+           sequence entry of the given type appears. */
+        while (curr_source_sequence_entry != NULL) {
+          if (curr_source_sequence_entry ==
+                                   tp->source_corresp.source_sequence_entry) {
+            goto srq_seq_sublist_parent_found;
+          }  /* if */
+          curr_source_sequence_entry = curr_source_sequence_entry->next;
+        }  /* while */
+        ssep = ssep->prev;
+      }  /* for */
+srq_seq_sublist_parent_found:
+      sublist_parent_source_sequence_entry = ssep;
+    } else {
+      sublist_parent_source_sequence_entry = NULL;
+      curr_source_sequence_entry = tp->source_corresp.source_sequence_entry;
+    }  /* if */
+    adv_curr_source_sequence_entry();
+  }  /* if */
+  if (expr == NULL) {
+    /* A __typeof__(<type>) form. */
+    check_assertion(!is_decltype);
+    gen_type(tp->variant.typeref.type);
+  } else {
+    if (is_decltype && !tp->variant.typeref.decltype_expr_not_parenthesized) {
+      write_tok_str("(");
+    }  /* if */
+    gen_expression(expr);
+    if (is_decltype && !tp->variant.typeref.decltype_expr_not_parenthesized) {
+      write_tok_str(")");
+    }  /* if */
+  }  /* if */ 
+  if (tp->definition_delayed) {
+    /* The current source sequence entry should now be the end-of-construct
+       marker for the decltype/typeof. */
+    a_src_seq_end_of_construct_ptr ssecp =
+                                  ss_entry_ptr(curr_source_sequence_entry,
+                                               a_src_seq_end_of_construct_ptr);
+    check_assertion_str(ss_entry_kind(ssecp) == iek_type &&
+                        ss_entry_ptr(ssecp, a_type_ptr) == tp,
+                        "gen_decltype_or_typeof: bad end-of-construct");
+    /* Restore the source sequence list position. */
+    restore_source_sequence_scan_state(&saved_state);
+    tp->definition_delayed = FALSE;
+  }  /* if */
+  write_tok_str(")");
+}  /* gen_decltype_or_typeof */
+
+
 static void gen_type_reference(a_type_ptr type)
 /*
 Generate a reference to the indicated type, which is a tag or a typedef.
@@ -3602,11 +3691,13 @@ A reference is not the definition.
        generated typedef. */
     gen_temp_name((char *)type);
   } else if (type->kind == (a_type_kind)tk_typeref) {
-    /* A typedef. */
+    /* A typedef or decltype/typeof. */
     if (type->is_builtin_va_list && gcc_builtin_varargs_in_generated_code) {
       /* This is the "va_list" or "std::va_list" type, but render it using
          the name of the GNU predefined primitive. */
       write_tok_str("__builtin_va_list");
+    } else if (typeref_is_decltype_or_typeof(type)) {
+      gen_decltype_or_typeof(type);
     } else {
       gen_possibly_dependent_type_name(orig_type);
     }  /* if */

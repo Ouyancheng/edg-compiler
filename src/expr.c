@@ -6995,6 +6995,9 @@ NULL, the end position in its specifiers_range is updated.
   an_operand              operand;
   a_boolean               leading_paren_seen;
   a_memory_region_number  region_to_switch_back_to;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr  ssep;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   /* Skip the decltype token. */
   check_assertion(!C_mode() && curr_token == tok_decltype);
@@ -7006,6 +7009,16 @@ NULL, the end position in its specifiers_range is updated.
      class member access.  E.g., decltype(x) may be different from
      decltype((x)). */
   leading_paren_seen = (curr_token == tok_lparen);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* A decltype construct may include embedded statements and declarations if
+     it contains a statement expression.  To allow e.g. the C++-generating back
+     end to associate the resulting source sequence entries with the decltype
+     type, we delimit them by a (iek_type, iek_src_seq_end_of_construct) pair
+     of source sequence entries. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  ssep = add_empty_source_sequence_entry();
+  switch_back_to_original_region(region_to_switch_back_to);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* If we're in the file-scope memory region instead of a function-scope
      memory region because we're scanning something like a template argument,
      switch back.  If we're in a function, any expression nodes allocated must
@@ -7040,19 +7053,6 @@ NULL, the end position in its specifiers_range is updated.
       prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
     }  /* if */
     expr = make_node_from_operand(&operand);
-#if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && has_statement_expression(expr)) {
-      /* Statement expressions are currently not allowed for decltype
-         constructs because they can cause the generation of source sequence
-         entry subsequences that the C++-generating back end cannot handle. */
-      pos_error(ec_statement_expression_in_decltype, &operand.position);
-      undo_side_effects_for_discarded_unevaluated_expression();
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-      forget_expr_range_modifiers_in_operand(&operand);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
-      goto record_result;
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     if (!dependent_arg && is_an_lvalue(&operand)) {
       /* Since the argument of a decltype operator can be an lvalue or an
          rvalue, we need an indication for how the expression node should be
@@ -7070,11 +7070,22 @@ NULL, the end position in its specifiers_range is updated.
       make_local_expr_node_ref(
               expr, (a_local_expr_node_ref_kind)lerk_decltype, (char*)tp);
     }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-record_result:
-#endif /* GNU_EXTENSIONS_ALLOWED */
     result = tp;
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  check_assertion(ssep != NULL);
+  if (ssep->next == NULL) {
+    /* The decltype argument did not embed source sequence entries.  So we do
+       not have to delimit them: Discard the leading entry. */
+    remove_from_src_seq_list(ssep);
+  } else {
+    update_source_sequence_list((char*)result, (an_il_entry_kind)iek_type,
+                                ssep);
+    /* Add the trailing (end-of-construct) source sequence entry. */
+    add_end_of_construct_source_sequence_entry((char*)result,
+                                               (an_il_entry_kind)iek_type);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     /* Update the end of the specifiers range to describe the end of the
@@ -7110,13 +7121,17 @@ The parentheses are required, unlike for sizeof.  If  decl_pos_block is not
 NULL, the end position in its specifiers_range is updated.
 */
 {
-  a_type_ptr              result;
-  an_expr_stack_entry     expr_stack_entry;
-  an_expr_node_ptr        expr = NULL;
-  an_operand              operand;
-  a_boolean               is_type;
-  an_expr_stack_entry_ptr saved_expr_stack;
-  a_memory_region_number  region_to_switch_back_to;
+  a_type_ptr                  result;
+  an_expr_stack_entry         expr_stack_entry;
+  an_expr_node_ptr            expr = NULL;
+  an_operand                  operand;
+  a_boolean                   is_type;
+  an_expr_stack_entry_ptr     saved_expr_stack;
+  a_memory_region_number      region_to_switch_back_to;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr  ssep;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 
   /* Note that, unlike e.g. sizeof, typeof can appear directly in a declarative
      context (without any intervening expression context).  The expression
@@ -7129,6 +7144,17 @@ NULL, the end position in its specifiers_range is updated.
   (void)get_token();
   /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* A typeof construct may include embedded statements and declarations if it
+     contains a statement expression.  To allow e.g. the C++-generating back
+     end to associate the resulting source sequence entries with the typeof
+     type, we delimit them by a (iek_type, iek_src_seq_end_of_construct) pair
+     of source sequence entries. */
+  { switch_to_file_scope_region(&region_to_switch_back_to);
+    ssep = add_empty_source_sequence_entry();
+    switch_back_to_original_region(region_to_switch_back_to);
+  }
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Distinguish between the type-name and expression case. */
   if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                        DFS_SINGLE_TYPE_REQUIRED)) {
@@ -7187,23 +7213,6 @@ NULL, the end position in its specifiers_range is updated.
         prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
       }  /* if */
       expr = make_node_from_operand(&operand);
-      if (has_statement_expression(expr)) {
-        /* Statement expressions can currently not be recorded for typeof
-           constructs because they can cause the generation of source sequence
-           entry subsequences that the C++-generating back end cannot handle.
-           If the expression is nondependent, we can just discard it and
-           use the typeof(<type>) representation instead.  If the expression
-           is dependent, we issue an error. */
-        if (dependent_arg) {
-          pos_error(ec_statement_expression_in_dependent_typeof,
-                    &operand.position);
-        }  /* if */
-        undo_side_effects_for_discarded_unevaluated_expression();
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-        forget_expr_range_modifiers_in_operand(&operand);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
-        goto record_result;
-      }  /* if */
       if (!dependent_arg && is_an_lvalue(&operand)) {
         /* Since the argument of a typeof operator can be an lvalue or an
            rvalue, we need an indication for how the expression node should be
@@ -7222,9 +7231,22 @@ NULL, the end position in its specifiers_range is updated.
            expr, (a_local_expr_node_ref_kind)lerk_typeof, (char*)typeof_type);
       }  /* if */
     }  /* if */
-record_result:
     result = typeof_type;
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  check_assertion(ssep != NULL);
+  if (ssep->next == NULL) {
+    /* The typeof argument did not embed source sequence entries.  So we do
+       not have to delimit them: Discard the leading entry. */
+    remove_from_src_seq_list(ssep);
+  } else {
+    update_source_sequence_list((char*)result, (an_il_entry_kind)iek_type,
+                                ssep);
+    /* Add the trailing (end-of-construct) source sequence entry. */
+    add_end_of_construct_source_sequence_entry((char*)result,
+                                               (an_il_entry_kind)iek_type);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (!is_type) {
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);

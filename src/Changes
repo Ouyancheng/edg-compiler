@@ -1,5 +1,14 @@
 Version 3.11
 
+9/27/07  GNU statement expressions in typeof and decltype constructs
+
+The front end now accepts GNU statement expressions in GNU typeof and C++0x
+decltype constructs.  In configurations with GENERATE_SOURCE_SEQUENCE_LISTS
+set to TRUE, any source sequence entries generated for the argument of a
+typeof or decltype construct will be delimited by a pair of source sequence
+entries whose kinds are iek_type and iek_src_seq_end_of_construct.  (See also
+the Changes entry of 8/27/07.)
+
 9/25/07  Microsoft compatibility: __LPREFIX in wide-string initializers
 
 In Microsoft mode, the front end previously failed to accept wide-string
