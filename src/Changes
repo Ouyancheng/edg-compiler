@@ -1,5 +1,19 @@
 Version 3.11
 
+9/28/07  C++-generating back end: GNU-mode initializer containing class type
+         definition and statement expression not correctly rendered
+
+In GNU modes, an initializer containing both a statement expression and a
+class type definition was not always correctly rendered by the C++-generating
+back end.  For example:
+
+  void f() {
+    void *p = (({ int x; 3; }),        // Accepted in some GNU C++ modes, but
+               (union { int y; }*)0);  // previously rendered incorrectly.
+  }
+
+This is now fixed.
+
 9/28/07  C++-generating back end: Class declaration incorrectly rendered as
          a class definition
 

@@ -1349,6 +1349,60 @@ non-autonomous declaration or definition.
   }  /* if */
 }  /* skip_type_and_delay_definition */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static a_boolean curr_src_seq_entry_is_for_statement_expression(void)
+/*
+Return TRUE if curr_source_sequence_entry points to an entry representing a
+block statement part of a GNU statement expression.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (ss_entry_kind(curr_source_sequence_entry) == iek_statement) {
+    a_statement_ptr  stmt = ss_entry_ptr(curr_source_sequence_entry,
+                                         a_statement_ptr);
+    if (stmt->kind == (a_statement_kind)stmk_block &&
+        stmt->variant.block.extra_info->is_statement_expression) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* curr_src_seq_entry_is_for_statement_expression */
+
+
+static void skip_block_statement(void)
+/*
+curr_source_sequence_entry points to a block statement: Advance it past the
+corresponding end-of-construct entry.
+*/
+{
+  a_statement_ptr  stmt;
+
+  check_assertion(ss_entry_kind(curr_source_sequence_entry) == iek_statement);
+  stmt = ss_entry_ptr(curr_source_sequence_entry, a_statement_ptr);
+  for (;;) {
+    check_assertion_str(curr_source_sequence_entry != NULL,
+                        "skip_block_statement: end-of-list reached");
+    if (ss_entry_kind(curr_source_sequence_entry) ==
+                                               iek_src_seq_end_of_construct) {
+      /* Found an end-of-construct entry.  See if it's the right one. */
+      a_src_seq_end_of_construct_ptr ssecp =
+                                  ss_entry_ptr(curr_source_sequence_entry,
+                                               a_src_seq_end_of_construct_ptr);
+      if (ss_entry_kind(ssecp) == iek_statement &&
+          ss_entry_ptr(ssecp, a_statement_ptr) == stmt) {
+        /* Found the end-of-construct entry for the statement.  Advance past
+           it and we're done. */
+        adv_curr_source_sequence_entry();
+        break;
+      }  /* if */
+    }  /* if */
+    adv_curr_source_sequence_entry();
+  }  /* for */
+}  /* skip_block_statement */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void skip_embedded_declarations(void)
 /*
@@ -1366,7 +1420,7 @@ but skip non-autonomous type declarations.
 {
   a_type_ptr                   type;
   a_src_seq_secondary_decl_ptr sec_decl;
-  a_boolean                    is_definition, found_decl, is_routine;
+  a_boolean                    is_definition, found_decl, is_routine, is_type;
   a_routine_ptr                rout;
 
   for (; curr_source_sequence_entry != NULL;) {
@@ -1375,10 +1429,15 @@ but skip non-autonomous type declarations.
     /* Skip past macros, etc.  We come back and process these entries if
        there's actually a declaration following them. */
     advance_past_preprocessing_directives();
-    found_decl = is_routine = FALSE;
+    found_decl = is_routine = is_type = FALSE;
     if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
       /* An autonomous type declaration stops the scan. */
+      is_type = TRUE;
       if (!is_autonomous_decl(type, sec_decl)) found_decl = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (curr_src_seq_entry_is_for_statement_expression()) {
+      found_decl = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else if (C_mode() &&
                curr_src_seq_entry_is_routine_decl(&rout, &sec_decl) &&
                sec_decl != NULL && sec_decl->implicit_decl) {
@@ -1390,15 +1449,19 @@ but skip non-autonomous type declarations.
     /* Stop looping if an embedded declaration was not found. */
     if (!found_decl) break;
     (void)process_preprocessing_directives();
-    if (!is_routine) {
+    if (is_type) {
       /* A non-autonomous type declaration (e.g., a type declared in
          a cast in an expression).  Skip it and mark it for later
          processing. */
       skip_type_and_delay_definition(type, is_definition);
-    } else {
+    } else if (is_routine) {
       /* An implicit declaration of a function.  Ignore the source
          sequence entry. */
       adv_curr_source_sequence_entry();
+#if GNU_EXTENSIONS_ALLOWED
+    } else {
+      skip_block_statement();
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* for */
 }  /* skip_embedded_declarations */
@@ -8601,6 +8664,35 @@ problems.
   return parens_needed;
 }  /* parens_may_be_needed */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void gen_statement_expression(an_expr_node_ptr  expr)
+/*
+Render the given GNU statement expression.
+*/
+{
+  a_boolean                     sse_list_reactivated = FALSE;
+  a_source_sequence_scan_state  saved_state;
+
+  if (!curr_src_seq_entry_is_for_statement_expression() ||
+      ss_entry_ptr(curr_source_sequence_entry, a_statement_ptr) !=
+                                                    expr->variant.statement) {
+    save_source_sequence_scan_state(&saved_state);
+    curr_source_sequence_entry = expr->variant.statement
+                                     ->source_sequence_entry;
+    sublist_parent_source_sequence_entry = NULL;  /* Arbitrary. */
+    sse_list_reactivated = TRUE;
+  }  /* if */
+  write_tok_str("(");
+  gen_statement_full(expr->variant.statement,
+                     /*suppress_trailing_space=*/TRUE);
+  write_tok_str(")");
+  if (sse_list_reactivated) {
+    restore_source_sequence_scan_state(&saved_state);
+  }  /* if */
+}  /* gen_statement_expression */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens)
@@ -9566,10 +9658,7 @@ done_with_operation_after_parens:
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       /* GNU statement expression, ({...}). */
-      write_tok_str("(");
-      gen_statement_full(expr->variant.statement,
-                         /*suppress_trailing_space=*/TRUE);
-      write_tok_str(")");
+      gen_statement_expression(expr);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_reuse_value:
