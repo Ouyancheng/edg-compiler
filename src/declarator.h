@@ -248,7 +248,7 @@ abstract or real declarator.
 			/* This bit is set in GNU C++ mode when a right
 			   parenthesis has been seen inside a new-declarator
 			   (which is only possible due to a GNU bug). */
-#define DO_LAST DO_HAS_PTR_TO_MEMBER_COMPONENT
+#define DO_LAST DO_RPAREN_IN_NEW_DECLARATOR
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DO_LAST)*/
 

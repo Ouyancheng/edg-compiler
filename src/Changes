@@ -1,5 +1,12 @@
 Version 3.11
 
+9/27/07  Incorrect value of DO_LAST
+
+The value of the macro DO_LAST (defined in declarator.h) did not reflect the
+addition of the macro DO_RPAREN_IN_NEW_DECLARATOR.  This is now fixed.  (This
+does not have an observable effect on the behavior of an unmodified front end
+because DO_LAST is currently not used in the front end source code.)
+
 9/27/07  GNU statement expressions in typeof and decltype constructs
 
 The front end now accepts GNU statement expressions in GNU typeof and C++0x
