@@ -12258,9 +12258,16 @@ declaration following this one is such a continuation.
                       "gen_variable_decl: declared_type is NULL");
   /* Advance past the source sequence entry for the variable. */
   adv_curr_source_sequence_entry();
-  /* Skip over any embedded declarations (e.g., in casts in the initializer
-     expression), setting them up to be generated on-the-fly as needed. */
-  skip_embedded_declarations();
+  /* Usually, initializers appear on a definition, but for (static) member
+     constants, they appear on the declaration. */
+  consider_initialization = is_definition;
+  if (var->is_member_constant) consider_initialization = !is_definition;
+  if (consider_initialization &&
+      var->initializer_with_source_sequence_entries) {
+    /* Skip over any declarations embedded in the initializer (e.g., in casts),
+     setting them up to be generated on-the-fly as needed. */
+    skip_embedded_declarations();
+  }  /* if */
   /* Position the output file to the declaration position. */
   set_decl_position(&var->source_corresp, sec_decl);
   /* If generating a member of a class within the class, set the right access
@@ -12503,14 +12510,20 @@ declaration following this one is such a continuation.
     var->aliased_variable = aliased_variable;
   }
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Output the initializer, if any, but only if this is a definition.
-     For member constants (static data members initialized within the
-     class), the initializer gets put out on the declaration rather than
-     the definition. */
-  consider_initialization = is_definition;
-  if (var->is_member_constant) consider_initialization = !is_definition;
+  /* Output the initializer, if any. */
   if (consider_initialization) {
     gen_initializer(var, is_condition);
+    if (var->initializer_with_source_sequence_entries) {
+      /* Skip the end-of-construct marker. */
+      a_src_seq_end_of_construct_ptr ssecp;
+      check_assertion(ss_entry_kind(curr_source_sequence_entry) ==
+                              (an_il_entry_kind)iek_src_seq_end_of_construct);
+      ssecp = ss_entry_ptr(curr_source_sequence_entry,
+                           a_src_seq_end_of_construct_ptr);
+      check_assertion(ss_entry_kind(ssecp) == iek_variable &&
+                      ss_entry_ptr(ssecp, a_variable_ptr) == var);
+      adv_curr_source_sequence_entry();
+    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (attributes_follow_initializer) {
       (void)form_variable_attributes(var, /*need_leading_space=*/TRUE, &octl);

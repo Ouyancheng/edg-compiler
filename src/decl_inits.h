@@ -33,6 +33,10 @@ extern void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
                                     a_dynamic_init_ptr  new_dip,
                                     a_targ_size_t       count);
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+extern void add_src_seq_end_of_initializer_if_needed(a_variable_ptr  vp);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 extern void initializer(a_decl_parse_state  *state,
                         a_source_position   *source_pos,
                         an_id_linkage_kind  linkage,

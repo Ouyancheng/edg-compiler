@@ -1961,6 +1961,7 @@ Clear the fields of the given variable to default values.
   vp->definition_has_been_put_out = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  vp->initializer_with_source_sequence_entries = FALSE;
   vp->declared_type               = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MICROSOFT_EXTENSIONS_ALLOWED

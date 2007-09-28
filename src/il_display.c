@@ -2256,6 +2256,11 @@ Display the indicated variable.
   if (ptr->is_parameter) {
     disp_boolean("is_parameter", TRUE);
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (ptr->initializer_with_source_sequence_entries) {
+    disp_boolean("initializer_with_source_sequence_entries", TRUE);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   disp_initializer(ptr->init_kind, &ptr->initializer);
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);

@@ -8614,6 +8614,9 @@ specific information about the member declaration, respectively.
          an initializer for this variable entry, it has not necessarily been
          defined. */
       var->is_member_constant = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      add_src_seq_end_of_initializer_if_needed(var);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       /* Issue a diagnostic for an invalid member constant type. */
       if (!is_error_type(member_type)) {

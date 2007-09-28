@@ -106,6 +106,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           db_name(&((a_namespace_ptr)sseocp->entity.ptr)->source_corresp);
           fputc('"', f_debug);
           break;
+        case iek_variable:
+          fputc('"', f_debug);
+          db_name(&((a_variable_ptr)sseocp->entity.ptr)->source_corresp);
+          fputc('"', f_debug);
+          break;
         default:
           fprintf(f_debug, "***BAD END-OF-CONSTRUCT KIND %s***",
                            il_entry_kind_names[(int)sseocp->entity.kind]);

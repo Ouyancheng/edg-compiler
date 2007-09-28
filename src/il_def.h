@@ -6949,6 +6949,14 @@ typedef struct a_variable {
 			   non-definition declaration, to work around a
 			   Microsoft bug. */
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_bit_field	initializer_with_source_sequence_entries:1;
+			/* TRUE if source sequence entries were recorded while
+			   scanning the initializer.  In that case, those
+			   entries will be followed by a source sequence entry
+			   pointing to an a_src_seq_end_of_construct entry for
+			   this variable. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */
 #ifdef CIL
