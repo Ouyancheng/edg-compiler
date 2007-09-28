@@ -1,5 +1,24 @@
 Version 3.11
 
+9/28/07  C++-generating back end: Class declaration incorrectly rendered as
+         a class definition
+
+In some situations, the C++-generating back end incorrectly rendered a class
+declaration as a class definition.  For example, the input:
+
+  struct S { friend struct B; } a;
+  struct B {} b;
+
+was incorrectly rendered as (modulo formatting):
+
+  struct S { friend struct B {}; } a;
+  struct B b;
+
+which is invalid code.  This is now fixed.  The fix required an IL CHANGE:
+If an initializer for a variable has associated source sequence entries (e.g.
+triggered by a GNU statement expression), those entries are terminated by an
+iek_src_seq_end_of_construct entry.
+
 9/27/07  Incorrect value of DO_LAST
 
 The value of the macro DO_LAST (defined in declarator.h) did not reflect the
