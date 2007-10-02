@@ -1320,6 +1320,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->construction_vtbls                = NULL;
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
+  ctsp->min_template_arguments            = -1L;
 }  /* clear_class_type_supplement */
 
 

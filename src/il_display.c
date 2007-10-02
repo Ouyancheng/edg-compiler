@@ -5669,6 +5669,7 @@ Display the indicated class type supplement entry.
   /* Likewise construction_vtbls. */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
+  disp_long("min_template_arguments", ptr->min_template_arguments);
 }  /* disp_class_type_supplement */
 
 

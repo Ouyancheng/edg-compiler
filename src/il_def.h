@@ -5286,6 +5286,12 @@ typedef struct a_class_type_supplement {
 			   of this class type. */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
+  long		min_template_arguments;
+			/* The minimum number of template arguments used to
+			   refer to this instance in the source (using
+			   default arguments); -1L for non-template classes
+			   and for template classes in which all template
+			   arguments were always explicitly specified. */
 } a_class_type_supplement;
 
 enum a_template_param_type_kind_tag {

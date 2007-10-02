@@ -1,5 +1,24 @@
 Version 3.11
 
+9/30/07  C++-generating back end: inaccessible default template arguments
+
+The C++-generating back end generated the names of instances of class
+templates using the full list of template arguments, including those
+resulting from default arguments.  In some cases, however, a default
+argument is accessible where the template is declared but not at the point
+at which a reference to the instance occurs, resulting in an error when the
+generated code was compiled.  This problem has been addressed by keeping
+track of the minimum number of explicitly-specified template arguments used
+to refer to the instance anywhere in the translation unit and generating
+all references to it using that number of arguments.  For example:
+
+  class Outer {
+    struct Inner { };    // private
+  public:
+    template <typename T = Inner> struct S { };
+  };
+  Outer::S<> s;          // Previously generated as Outer::S<Outer::Inner>
+
 9/28/07  C++-generating back end: GNU-mode initializer containing class type
          definition and statement expression not correctly rendered
 

@@ -11096,18 +11096,23 @@ done using the disambiguation routines.
 
 
 static
-a_template_arg_ptr scan_template_argument_list(a_symbol_ptr	template_sym,
-					       a_boolean        *any_errors)
+a_template_arg_ptr scan_template_argument_list(
+                                             a_symbol_ptr template_sym,
+                                             a_boolean    *any_errors,
+                                             long         *first_defaulted_arg)
 /*
-Scan a comma separated list of arguments.  The arguments can be
-type names, constant expressions, or addresses of objects or functions
-with external linkage, or of static class members.  It is not necessary
-to distinguish between the type and constant case because we can use the
-type of the formal parameter to make this selection.
+Scan a comma separated list of arguments.  The arguments can be type names,
+constant expressions, names or addresses of objects or functions with
+external linkage or of static class members, or names of templates.  It is
+not necessary to distinguish among these cases because we can use the type
+of the formal parameter to make this selection.
 
 template_sym points to the template with which this argument list is
-associated.  any_errors is set to TRUE if any errors are detected by
-this routine.  Its value is unchanged if no errors are detected.
+associated.  any_errors is set to TRUE if any errors are detected by this
+routine.  Its value is unchanged if no errors are detected.
+first_defaulted_arg is set to the number (starting with 0) of the first
+argument that was taken from the parameter's default argument, or to -1 if
+all arguments were explicit.
 */
 {
   a_template_param_ptr             param_ptr = NULL;
@@ -11121,7 +11126,9 @@ this routine.  Its value is unchanged if no errors are detected.
   a_template_decl_info_ptr	   decl_info;
   a_template_symbol_supplement_ptr tssp;
   a_boolean			   template_in_prototype_instantiation = FALSE;
+  long                             arg_number;
 
+  *first_defaulted_arg = -1L;
   tssp = template_sym->variant.template_info;
   decl_info = tssp->cache.decl_info;
   param_ptr = decl_info->parameters;
@@ -11154,6 +11161,7 @@ this routine.  Its value is unchanged if no errors are detected.
       param_ptr = subst_param_tssp->cache.decl_info->parameters;
     }  /* if */
   }  /* if */
+  arg_number = 0;
   do {
     a_source_position  arg_pos;
     if (curr_token == tok_shift_right && right_shift_can_be_angle_brackets) {
@@ -11247,6 +11255,7 @@ this routine.  Its value is unchanged if no errors are detected.
     last_arg = arg_ptr;
     remove_stop_token(tok_comma);
     param_ptr = param_ptr->next;
+    ++arg_number;
   } while (param_ptr != NULL && loop_token(tok_comma));
 
   /* All arguments should have been processed and the current token should
@@ -11257,6 +11266,7 @@ this routine.  Its value is unchanged if no errors are detected.
     if (param_ptr->has_default_arg) {
       /* The template has parameters with default values.  Fill in the
          remainder of the parameter list with the defaults. */
+      *first_defaulted_arg = arg_number;
       while (param_ptr != NULL) {
         sym = param_ptr->param_symbol;
         /* Determine the template argument kind for this parameter. */
@@ -11418,6 +11428,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_symbol_ptr			  orig_ctor_symbol;
   a_boolean                       is_expr_context =
                                          (options & GID_IS_EXPR_CONTEXT) != 0;
+  long                            first_defaulted_arg;
 
   db_enter(3, "coalesce_template_class_reference");
 
@@ -11618,7 +11629,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
       !template_sym->variant.template_info->is_nonreal_member &&
       !template_sym->variant.template_info->is_error) {
     /* Scan the template argument list. */
-    arg_list = scan_template_argument_list(template_sym, &any_errors);
+    arg_list = scan_template_argument_list(template_sym, &any_errors,
+                                           &first_defaulted_arg);
   } else {
     /* The template is a member of a proxy or nonreal class.  This occurs
        as a result of constructs like T::A<int>.  In such cases there is
@@ -11628,6 +11640,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
        is no template symbol, which happens if an undefined symbol is
        followed by a template argument list. */
     arg_list = scan_unknown_template_arg_list(/*is_nonreal=*/TRUE);
+    first_defaulted_arg = -1L;
   }  /* if */
   arg_list_processed = TRUE;
   /* We should now be at the closing angle bracket.  Note that we don't
@@ -11651,6 +11664,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
     a_boolean			prototype_allowed;
     a_boolean			is_templ_member_class_sym = FALSE;
     a_symbol_ptr		tmc_sym;
+    a_type_ptr			type;
+    a_class_type_supplement_ptr ctsp;
     a_scope_stack_entry_ptr	ssep;
     ssep = &scope_stack[depth_scope_stack];
     tmc_sym = ssep->templ_member_class_sym;
@@ -11660,7 +11675,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
     if (tmc_sym != NULL) {
       for (;;) {
         a_template_symbol_supplement_ptr	tmc_tssp;
-        a_type_ptr				type;
         /* Get the symbol associated with the nearest enclosing class
            template. */
         type = type_symbol_type(tmc_sym);
@@ -11703,6 +11717,14 @@ a routine to lookup the appropriate instance (or generate one if needed).
     new_sym = find_template_class(template_sym, &arg_list, prototype_allowed,
                                   current_instantiation_sym);
     arg_list_coalesced = TRUE;
+    type = type_symbol_type(new_sym);
+    ctsp = type->variant.class_struct_union.extra_info;
+    if (ctsp != NULL && first_defaulted_arg >= 0 &&
+        (ctsp->min_template_arguments == -1L ||
+         ctsp->min_template_arguments > first_defaulted_arg)) {
+      /* Record the number of arguments used in this reference. */
+      ctsp->min_template_arguments = first_defaulted_arg;
+    }  /* if */
     if (is_constructor_reference) {
       /* If a constructor symbol was passed originally, replace the class
          symbol that resulted from processing the template argument list with

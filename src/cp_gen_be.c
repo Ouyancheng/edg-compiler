@@ -1990,8 +1990,10 @@ static void gen_template_arguments(a_source_correspondence *scp,
                                    long                    num_arguments)
 /*
 Output the first num_arguments template arguments of the entity associated
-with scp.  If num_arguments is negative, all the arguments are to be
-output.
+with scp.  If num_arguments is negative, all the arguments are to be put
+out, unless the entry is a template class; in that case, the number of
+arguments is determined by the value of min_template_arguments in the class
+type supplement.
 */
 {
   a_boolean          insert_space;
@@ -1999,6 +2001,17 @@ output.
                                                          &insert_space);
   if (tap != NULL) {
     a_boolean saved_in_template_argument_list = in_template_argument_list;
+    if (entry_kind == iek_type) {
+      a_type_ptr                  type = (a_type_ptr)scp;
+      a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+      if (ctsp != NULL && ctsp->min_template_arguments >= 0) {
+        /* This template instance has been referred to at some point in the
+           source using default arguments; generate the argument list in
+           that form here. */
+        num_arguments = ctsp->min_template_arguments;
+      }  /* if */
+    }  /* if */
     if (msvc_is_generated_code_target && msvc_target_version_number <= 1300) {
       /* MSVC++ up to version 7.0 has a bug when a qualified template name
          is separated from the following "<" by a "#line" directive, so
