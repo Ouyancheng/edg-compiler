@@ -1,5 +1,11 @@
 Version 3.11
 
+10/2/07  USE_X86_64 configuration macro in defines_linux.h
+
+A typo in defines_linux.h led to the possibility for the USE_X86_64
+configuration macro to be undefined rather than defined to a value of 0.
+This has been fixed.
+
 9/30/07  C++-generating back end: inaccessible default template arguments
 
 The C++-generating back end generated the names of instances of class

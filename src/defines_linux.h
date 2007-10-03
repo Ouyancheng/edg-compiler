@@ -38,7 +38,7 @@ platform.
 #ifdef __x86_64
 #define USE_X86_64 1
 #else /* ifndef __x86_64 */
-#define USE_x86_64 0
+#define USE_X86_64 0
 #endif /* ifdef __x86_64 */
 #endif /* ifndef USE_X86_64 */
 
