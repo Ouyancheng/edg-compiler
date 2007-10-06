@@ -1,5 +1,20 @@
 Version 3.11
 
+10/5/07  Problem with dependent nested class in elaborated type specifier
+
+Version 3.10 introduced a change in the way that nested types of class
+templates are handled.  When the nested type name was used in an elaborated
+type specifier in the class definition, the actual nested type was used 
+but its nonreal version should have been used.  This caused the out-of-class
+definition to be rejected in the example below.  Now fixed.  See the
+Changes entry of 9/13/07 for more information.
+
+  template <class T> struct A {
+    union B { float f; };
+    static union B b; 
+  };
+  template <class T> typename A<T>::B A<T>::b;
+
 10/2/07  USE_X86_64 configuration macro in defines_linux.h
 
 A typo in defines_linux.h led to the possibility for the USE_X86_64

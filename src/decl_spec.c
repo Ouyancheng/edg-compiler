@@ -2961,13 +2961,15 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
              During prototype instantiation we have to assume that T can be a
              valid class name.  Therefore "class T x" is treated as synonymous
              with "T x".  In addition, "friend class T" is also supported. */
-          if (is_friend_decl || tag_sym->is_class_member) {
+          if ((is_friend_decl || tag_sym->is_class_member) &&
+              !tag_sym->is_nonreal_nested_type) {
             /* If the form is similar to "struct T::X", we must preserve the
                elaborator (for disambiguation purposes).  So use a proxy
                class instead of the raw template parameter entity.  For a
                case like "friend class T;" we must also ensure that the
-               returned symbol is a class type. */
-            a_type_ptr  proxy_type = proxy_class_for_template_param(
+               returned symbol is a class type.  Don't do this if the template
+               parameter is the nonreal version of a dependent nested class. */
+	    a_type_ptr  proxy_type = proxy_class_for_template_param(
                                                    tag_sym->variant.type.ptr);
             proxy_type->kind = type_kind;
             tag_sym = (a_symbol_ptr)proxy_type->source_corresp.assoc_info;
