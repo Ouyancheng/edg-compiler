@@ -408,6 +408,7 @@ static void gen_routine_decl(a_boolean suppress_specifiers,
 static void gen_declaration(a_boolean for_init);
 static a_boolean parens_may_be_needed(a_byte           operator_precedence,
                                       an_expr_node_ptr operand);
+static a_boolean entity_is_publicly_accessible(a_source_correspondence_ptr scp);
 /*
 Options for gen_general_declaration_using_type.
 */
@@ -1991,25 +1992,31 @@ static void gen_template_arguments(a_source_correspondence *scp,
 /*
 Output the first num_arguments template arguments of the entity associated
 with scp.  If num_arguments is negative, all the arguments are to be put
-out, unless the entry is a template class; in that case, the number of
-arguments is determined by the value of min_template_arguments in the class
-type supplement.
+out.  If the entry is a template class, the number of arguments can be
+modified by the value of min_template_arguments in the class type
+supplement; arguments beyond that number are checked for accessibility and,
+if there is a potential problem, the list is truncated at that point so
+that the remaining arguments will be defaulted.
 */
 {
   a_boolean          insert_space;
   a_template_arg_ptr tap = template_arguments_for_name(scp, entry_kind,
                                                          &insert_space);
+
   if (tap != NULL) {
-    a_boolean saved_in_template_argument_list = in_template_argument_list;
+    a_template_arg_ptr argp = NULL;
+    a_template_arg_ptr prev_argp = NULL;
+    long               min_arguments = num_arguments;
+
     if (entry_kind == iek_type) {
       a_type_ptr                  type = (a_type_ptr)scp;
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
       if (ctsp != NULL && ctsp->min_template_arguments >= 0) {
         /* This template instance has been referred to at some point in the
-           source using default arguments; generate the argument list in
-           that form here. */
-        num_arguments = ctsp->min_template_arguments;
+           source using default arguments; record the point in the argument
+           list beyond which default arguments can be used. */
+        min_arguments = ctsp->min_template_arguments;
       }  /* if */
     }  /* if */
     if (msvc_is_generated_code_target && msvc_target_version_number <= 1300) {
@@ -2022,31 +2029,77 @@ type supplement.
         disable_line_wrapping_until_column = new_disable_column;
       }  /* if */
     }  /* if */
+    if (num_arguments >= 0 || min_arguments >= 0) {
+      /* We may use fewer arguments than are prexent in the full template
+         argument list.  Scan through the list to identify the last
+         argument to be used (prev_argp) and the first argument to be
+         omitted (argp). */
+      long i;
+      for (argp = tap, i = 0; argp != NULL; argp = argp->next, ++i) {
+        if (i == num_arguments) {
+          /* We have reached the first argument to be omitted. */
+          break;
+        } else if (min_arguments >= 0 && i >= min_arguments) {
+          /* There are default arguments beyond this point; check the
+             accessibility of the argument to see if we should truncate the
+             argument list at this point to avoid possible access
+             problems. */
+          a_boolean use_default_arg = FALSE;
+          switch (argp->kind) {
+          case tak_type:
+            use_default_arg = !entity_is_publicly_accessible(
+                                          &argp->variant.type->source_corresp);
+            break;
+          case tak_nontype:
+            if (!argp->is_array_bound_of_unknown_type &&
+                argp->variant.constant->kind ==
+                                            (a_constant_repr_kind)ck_address) {
+              a_constant_ptr constant = argp->variant.constant;
+              if (constant->variant.address.kind ==
+                                           (an_address_base_kind)abk_routine) {
+                use_default_arg = !entity_is_publicly_accessible(
+                   &constant->variant.address.variant.routine->source_corresp);
+              } else if (constant->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
+                use_default_arg = !entity_is_publicly_accessible(
+                   &constant->variant.address.variant.variable->source_corresp);
+              }  /* if */
+            }  /* if */
+            break;
+          case tak_template:
+            use_default_arg = !entity_is_publicly_accessible(
+                                     &argp->variant.templ.ptr->source_corresp);
+            break;
+          }  /* switch */
+          if (use_default_arg) {
+            break;
+          }  /* if */
+        }  /* if */
+        prev_argp = argp;
+      }  /* for */
+      if (argp != NULL) {
+        /* We exited the loop early, at the point at which the argument list
+           should be truncated. */
+        if (prev_argp != NULL) {
+          prev_argp->next = NULL;
+        } else {
+          num_arguments = 0;
+        }  /* if */
+      }  /* if */
+    }  /* if */
     if (insert_space) write_space();
     /* Put out the template argument list, e.g., "<int, float>". */
     if (num_arguments == 0) {
       /* Just output the angle brackets. */
       write_tok_str("<>");
     } else {
-      a_template_arg_ptr argp = NULL;
-      a_template_arg_ptr saved_next;
-      long               i;
-      if (num_arguments > 0) {
-        /* Find the last argument to be output. */
-        for (argp = tap, i = 1; argp != NULL && i < num_arguments;
-             argp = argp->next, ++i) {}
-      }  /* if */
-      if (argp != NULL) {
-        /* Temporarily truncate the list. */
-        saved_next = argp->next;
-        argp->next = NULL;
-      }  /* if */
+      a_boolean saved_in_template_argument_list = in_template_argument_list;
       in_template_argument_list = TRUE;
       form_template_args(tap, &octl);
       in_template_argument_list = saved_in_template_argument_list;
       if (argp != NULL) {
         /* Restore the full argument list. */
-        argp->next = saved_next;
+        prev_argp->next = argp;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2236,23 +2289,22 @@ Return a string that describes the tag kind for the indicated type (i.e.,
 }  /* tag_keyword */
 
 
-static a_boolean type_is_publicly_accessible(a_type_ptr type)
+static a_boolean entity_is_publicly_accessible(a_source_correspondence_ptr scp)
 /*
-Returns TRUE if type can be named without access errors in an unrelated
-scope -- i.e., if type and any classes in which it is nested are either
-non-members or are public members of their containing classes.  If any
-name appearing in the fully-qualified name of type is a non-public class
-member, return FALSE.
+Returns TRUE if the entity described by scp can be named without access
+errors in an unrelated scope -- i.e., if the entity and any classes in
+which it is nested are either non-members or are public members of their
+containing classes.  If any name appearing in the fully-qualified name of
+the entity is a non-public class member, return FALSE.
 */
 {
   a_boolean is_public = TRUE;
-  while (type->source_corresp.is_class_member && is_public) {
-    is_public =
-               (type->source_corresp.access == (an_access_specifier)as_public);
-    type = type->source_corresp.parent.class_type;
+  while (scp->is_class_member && is_public) {
+    is_public = scp->access == (an_access_specifier)as_public;
+    scp = &scp->parent.class_type->source_corresp;
   }  /* while */
   return is_public;
-}  /* type_is_publicly_accessible */
+}  /* entity_is_publicly_accessible */
 
 
 static a_boolean type_involves_non_cplusplus_function(a_type_ptr type)
@@ -2321,7 +2373,7 @@ is called.
        <stdarg.h> header is included). */
     if (type->is_builtin_va_list) invisible = FALSE;
 #endif /* GCC_BUILTIN_VARARGS */
-  } else if (!type_is_publicly_accessible(type)) {
+  } else if (!entity_is_publicly_accessible(&type->source_corresp)) {
     /* The typedef is a non-public member of a class.  There might be
        an access problem for this if we're not inside the class, so drop
        the typedef in that case.  This comes up, from example, on template
@@ -2355,7 +2407,8 @@ is called.
          to keep the typedef (linkage specifications in types can only be
          represented via typedefs). */
       invisible = FALSE;
-    } else if (!type_is_publicly_accessible(underlying_type)) {
+    } else if (!entity_is_publicly_accessible(&underlying_type->
+                                                             source_corresp)) {
       /* The underlying type is not generally accessible, but if we're inside
          the scope of the underlying type's containing class, we will still
          have access. */
