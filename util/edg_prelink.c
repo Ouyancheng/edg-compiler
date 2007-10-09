@@ -2955,17 +2955,37 @@ static void pl_change_directory(char *new_dir)
 static void add_to_command_line(char	**dest,
 				char	*source)
 /*
-Copy characters from source to dest.  If we find any quotes, add an escape
-character before each one.
+Copy characters from source to dest.  If we find any quotes or escape
+characters, add an escape character before each one.  In addition, if
+we find any spaces that are within a quoted string, escape the spaces.
 */
 {
-  char	*from = source;
-  char	*to = *dest;
+  char		*from;
+  char		*to = *dest;
+  a_boolean	in_quote = FALSE;
+  char		quote_char = 0;
+  a_boolean	is_escaped = FALSE;
 
-  while (*from != '\0') {
-    if (*from == '\'' || *from == '"') *to++ = '\\';
-    *to++ = *from++;
-  }  /* while */
+  for (from = source; *from != '\0'; ++from) {
+    char	ch = *from;
+    if (is_escaped) {
+      is_escaped = FALSE;
+    } else if (in_quote) {
+      if (ch == quote_char) {
+        *to++ = '\\';
+        in_quote = FALSE;
+      } else if (ch == ' ' || ch == '\'' || ch == '"' || ch == '\\') {
+        *to++ = '\\';
+      }  /* if */
+    } else if (ch == '\\') {
+      is_escaped = TRUE;
+    } else if (ch == '"' || ch == '\'') {
+      *to++ = '\\';
+      in_quote = TRUE;
+      quote_char = ch;
+    }  /* if */
+    *to++ = ch;
+  }  /* for */
   /* Append a blank, if the command does not already end with a blank. */
   if (*(to-1) != ' ') *to++ = ' ';
   *dest = to;

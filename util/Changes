@@ -1,3 +1,27 @@
+Version 3.11
+
+10/9/07  Prelinker: improved handling of escapes in compiler invocations
+
+The prelinker inserts escapes into the command it uses to recompile source
+files.  It bas been updated to better handle quoted strings with embedded
+quotes, escapes, and spaces.  For example, the following command can now be
+used to compile and link the example below.  Formerly, this would fail when
+the compiler was invoked from the prelinker.
+
+  eccp -c -DSTR='"A\"BC"' -DCHR="'\''"  -c ex.c
+  eccp ex.o
+
+  extern "C" int printf(const char *, ...);
+  template <class T> void f(T){}
+  int main() {
+    printf("%s %c\n", STR, CHR);
+    f(1);
+  }
+
+As mentioned above, the change also allows spaces to be used in quoted strings,
+but note that the eccp script does not handle arguments with embedded spaces.
+
+-------------------------------------------------------------------------------
 Version 3.10, September 23, 2007
 
 6/1/07   Add casts to allow decode.c to be compiled by a C++ compiler
