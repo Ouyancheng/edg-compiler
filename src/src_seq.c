@@ -1140,6 +1140,21 @@ with: It considers all active scopes if needed.
     ssep->prev->next = ssep->next;
     ssep->next->prev = ssep->prev;
     recycle_src_seq_entry(ssep);
+  } else if (depth_scope_stack == NO_SCOPE_DEPTH) {
+    /* The file scope has already been popped: No scope stack entry must be
+       updated.  Instead, the IL scope entry for the file scope may need
+       updating if this is its first entry. */
+    if (ssep->prev != NULL) {
+      /* The last entry on a list of more than one entries. */
+      ssep->prev->next = NULL;
+    } else {
+      /* The first entry of the file scope. */
+      a_scope_ptr  file_scope = il_header.primary_scope;
+      check_assertion(ssep == file_scope->source_sequence_list);
+      file_scope->source_sequence_list = ssep->next;
+      if (ssep->next != NULL) ssep->next->prev = NULL;
+    }  /* if */
+    recycle_src_seq_entry(ssep);
   } else {
     /* This entry is the first or last entry on a list.  We must therefore
        determine which scope that list is associated with.  It must either
@@ -2280,18 +2295,181 @@ may do fixup on entities pointed to by source-sequence entries it removes.
 }  /* drop_tag_def_from_src_seq_list */
 
 
-static a_source_sequence_entry_ptr drop_from_fs_src_seq_list(
-                                             a_source_sequence_entry_ptr  ssep)
-
+static a_source_sequence_entry_ptr matching_end_of_construct(
+                                            a_source_sequence_entry_ptr  head)
 /*
-Remove ssep from the file-scope source sequence list.  If ssep corresponds to
-the start of a class or enum definition, also remove all the source sequence
-entries up to and including the corresponding end-of-construct entry.  Return
-the source sequence entry that follows the entry or entries removed.
+The given source sequence entry is the first of a construct represented by a
+sequence terminated by an end-of-construct marker.  Return the source sequence
+entry representing that marker.
+*/
+{
+  a_source_sequence_entry_ptr  ssep = head;
+
+  for (;; ssep = ssep->next) {
+    a_src_seq_end_of_construct_ptr  sseocp;
+    check_assertion_str(ssep != NULL, "Missing end-of-construct marker");
+    sseocp =  ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
+    if (sseocp->entity.ptr == head->entity.ptr) {
+      /* We've found the end-of-construct marker. */
+      break;
+    }  /* if */
+  }  /* for */
+  return ssep;
+}  /* matching_end_of_construct */
+
+
+/* Forward declarations. */
+static a_source_sequence_entry_ptr drop_decltype_from_src_seq_list(
+                                            a_source_sequence_entry_ptr  ssep);
+
+static a_source_sequence_entry_ptr src_seq_check_for_non_autonomous_tag(
+                                             a_source_sequence_entry_ptr ssep);
+
+static void eliminate_unneeded_src_seq_entries_from_construct(
+                                            a_source_sequence_entry_ptr  ssep)
+/*
+The given entry is an entry for a variable definition or for a decltype/typeof
+construct.  It is followed by source sequence entries that end with a matching
+end-of-construct source sequence entry.  Drop all entries up to and including
+the end-of-construct entry, except the given entry itself, and any entries for
+embedded types that must be kept in the IL (such types may be made autonomous
+here).
+*/
+{
+  a_source_sequence_entry_ptr  head = ssep;
+
+  /* Skip to the entry following the given one (since the latter is not
+     eliminated here). */
+  ssep = ssep->next;
+  for (;;) {
+    switch (ss_entry_kind(ssep)) {
+      case iek_pragma:
+#if RECORD_MACROS_IN_IL
+      case iek_macro:
+#endif /* RECORD_MACROS_IN_IL */
+          /* Pragmas and macros are not eliminated. */
+          ssep = ssep->next;
+        break;
+      case iek_type:
+        { a_type_ptr  tp = ss_entry_ptr(ssep, a_type_ptr);
+          if (tp->kind == (a_type_kind)tk_typeref &&
+              typeref_is_decltype_or_typeof(tp)) {
+            /* Remove source sequence entries associated with a decltype or
+               typeof construct. */
+            ssep = drop_decltype_from_src_seq_list(ssep);
+          } else if (is_immediate_class_type(tp) ||
+                     is_immediate_enum_type(tp)) {
+            /* An embedded type definition: Remove it if it is not otherwise
+               needed. */
+            if (!il_entry_prefix_of(tp).keep_in_il) {
+              ssep = drop_tag_def_from_src_seq_list(ssep,
+                                                    /*retain_first=*/FALSE);
+            } else {
+              /* Skip the definition and set its "autonomous_primary_tag_decl"
+                 if needed. */
+              ssep = matching_end_of_construct(ssep);
+              ssep = src_seq_check_for_non_autonomous_tag(ssep);
+            }  /* if */
+          } else {
+            unexpected_condition();
+          }  /* if */
+        }
+        break;
+      case iek_src_seq_secondary_decl:
+        /* This must be an entry for a tag type. */
+        { a_src_seq_secondary_decl_ptr  sssdp =
+                             ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+          a_type_ptr                    tp;
+          check_assertion(sssdp->entity.kind ==
+                                              (a_byte_il_entry_kind)iek_type);
+          check_assertion(is_immediate_class_type(tp) ||
+                          is_immediate_enum_type(tp));
+          if (!il_entry_prefix_of(tp).keep_in_il) {
+            /* Drop the source sequence entry. */
+            a_source_sequence_entry_ptr  ssep_to_remove = ssep;
+            ssep = ssep->next;
+            remove_src_seq_entry(ssep_to_remove);
+          } else {
+            /* The type must be kept in the IL.  Promote it to an autonomous
+               declaration. */
+            ssep = src_seq_check_for_non_autonomous_tag(ssep);
+          }  /* if */
+        }
+        break;
+      case iek_src_seq_end_of_construct:
+        { a_src_seq_end_of_construct_ptr  sseocp =
+                           ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
+          check_assertion(sseocp->entity.ptr == head->entity.ptr);
+          /* We've found the end-of-construct marker.  Remove it and we're
+             done. */
+          remove_src_seq_entry(ssep);
+          goto done;
+        }
+        /*NOTREACHED*/
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* for */
+done:;
+}  /* eliminate_unneeded_src_seq_entries_from_construct */
+
+
+static a_source_sequence_entry_ptr drop_decltype_from_src_seq_list(
+                                         a_source_sequence_entry_ptr  dt_ssep)
+/*
+The given source sequence entry represents a decltype or typeof construct that
+embeds other declarations.  For example:
+  typeof(struct S { int i; }) x;
+Remove the source sequence entries associated with the decltype/typeof itself,
+and with any embedded type declarations that are not to be kept in the IL.
 */
 {
   a_source_sequence_entry_ptr  next_ssep;
-  a_scope_ptr                  file_scope;
+                  
+  eliminate_unneeded_src_seq_entries_from_construct(dt_ssep);
+  /* Remove the entry for the type itself. */
+  next_ssep = dt_ssep->next;
+  remove_src_seq_entry(dt_ssep);
+  return next_ssep;
+}  /* drop_decltype_from_src_seq_list */
+
+
+static a_source_sequence_entry_ptr drop_variable_def_from_src_seq_list(
+                                        a_source_sequence_entry_ptr  var_ssep)
+/*
+var_ssep is a source sequence entry for a variable definition that will be
+removed from the IL.  Remove any additional source sequence entries only used
+for its initializer and return the next source sequence entry that should be
+processed.
+*/
+{
+  a_variable_ptr               var = ss_entry_ptr(var_ssep, a_variable_ptr);
+  a_source_sequence_entry_ptr  next_ssep;
+                  
+  if (var->initializer_with_source_sequence_entries) {
+    /* Source sequence entries were recorded for the initializer.  Remove them,
+       unless they are associated with IL that should be kept in the IL. */
+    eliminate_unneeded_src_seq_entries_from_construct(var_ssep);
+  }  /* if */
+  /* Remove the entry for the variable itself. */
+  next_ssep = var_ssep->next;
+  remove_src_seq_entry(var_ssep);
+  return next_ssep;
+}  /* drop_variable_def_from_src_seq_list */
+
+
+static a_source_sequence_entry_ptr drop_from_fs_src_seq_list(
+                                             a_source_sequence_entry_ptr  ssep)
+/*
+Remove ssep from the file-scope source sequence list.  If ssep corresponds to
+the start of a class or enum definition, also remove all the source sequence
+entries up to and including the corresponding end-of-construct entry.
+Similarly, if ssep corresponds to a variable definition, remove any source
+sequence entries that are only used for its initializer.  Return the source
+sequence entry that follows the entry or entries removed.
+*/
+{
+  a_source_sequence_entry_ptr  next_ssep;
 
   db_enter(5, "drop_from_fs_src_seq_list");
   if (ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
@@ -2300,14 +2478,14 @@ the source sequence entry that follows the entry or entries removed.
     /* It's a class or enum definition.  Remove everything from here through
        to the end-of-construct entry. */
     next_ssep = drop_tag_def_from_src_seq_list(ssep, /*retain_first=*/FALSE);
+  } else if (ssep->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+    /* A variable definition.  Additional entries associated with the
+       initializer may need to be dropped. */
+    next_ssep = drop_variable_def_from_src_seq_list(ssep);
   } else {
     /* Link around ssep and return its successor in the list. */
-    file_scope = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
     next_ssep = ssep->next;
-    f_remove_from_src_seq_list(ssep,
-                               file_scope->source_sequence_list == NULL ?
-                                 depth_innermost_namespace_scope :
-                                 NO_SCOPE_DEPTH);
+    remove_src_seq_entry(ssep);
   }  /* if */
   db_exit();
   return next_ssep;
@@ -2660,10 +2838,14 @@ successor of ssep.
     case iek_src_seq_end_of_construct:
       sseocp = ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
       if (sseocp->entity.kind == (a_byte_il_entry_kind)iek_type) {
-        /* ssep is the end of a tag definition. */
+        /* ssep is the end of a type construct. */
         tag_type = (a_type_ptr)sseocp->entity.ptr;
-        if (tag_type->autonomous_primary_tag_decl ||
-            tag_type->declared_in_function_prototype) {
+        if (tag_type->kind == (a_type_kind)tk_typeref &&
+            typeref_is_decltype_or_typeof(tag_type)) {
+          /* decltype/typeof constructs can never be autonomous. */
+          tag_type = NULL;
+        } else if (tag_type->autonomous_primary_tag_decl ||
+                   tag_type->declared_in_function_prototype) {
           tag_type = NULL;
         } else if (is_immediate_enum_type(tag_type) &&
                    is_unnamed_or_originally_unnamed_tag(tag_type)) {
@@ -2720,7 +2902,7 @@ successor of ssep.
     */
     a_boolean  make_autonomous = FALSE;
 #if CHECKING
-    a_boolean  okay_if_not_found = C_mode() ||
+    a_boolean  okay_if_not_found = C_mode() || gpp_mode ||
                                    (sssdp != NULL &&
                                     sssdp->declared_in_func_prototype);
 #endif /* CHECKING */
@@ -2778,6 +2960,22 @@ check_next_ssep:
                              "src_seq_check_for_non_autonomous_tag:",
                              "type of next entry does not match");
         make_autonomous = TRUE;
+        if (ss_entry_kind(next_ssep) ==
+                             (an_il_entry_kind)iek_src_seq_end_of_construct) {
+          /* tp will also be null for a tag definition embedded in a typeof
+             construct; e.g.
+                  typeof(struct S { int i; }) x;
+             Such tag definitions are not autonomous. */
+          sseocp = ss_entry_ptr(next_ssep, a_src_seq_end_of_construct_ptr);
+          if (sseocp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+            /* ssep is the end of a type construct. */
+            a_type_ptr  etp = (a_type_ptr)sseocp->entity.ptr;
+            if (etp->kind == (a_type_kind)tk_typeref &&
+                typeref_is_decltype_or_typeof(etp)) {
+              make_autonomous = FALSE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
       } else if (is_unnamed_enum_def) {
         /* Special handling for unnamed unnamed enum definitions. */
         if (il_entry_prefix_of(next_ssep).keep_in_il) {

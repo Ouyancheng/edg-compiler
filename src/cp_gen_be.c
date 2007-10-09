@@ -3779,6 +3779,7 @@ srq_seq_sublist_parent_found:
   if (expr == NULL) {
     /* A __typeof__(<type>) form. */
     check_assertion(!is_decltype);
+    skip_embedded_declarations();
     gen_type(tp->variant.typeref.type);
   } else {
     if (is_decltype && !tp->variant.typeref.decltype_expr_not_parenthesized) {
@@ -3790,14 +3791,6 @@ srq_seq_sublist_parent_found:
     }  /* if */
   }  /* if */ 
   if (tp->definition_delayed) {
-    /* The current source sequence entry should now be the end-of-construct
-       marker for the decltype/typeof. */
-    a_src_seq_end_of_construct_ptr ssecp =
-                                  ss_entry_ptr(curr_source_sequence_entry,
-                                               a_src_seq_end_of_construct_ptr);
-    check_assertion_str(ss_entry_kind(ssecp) == iek_type &&
-                        ss_entry_ptr(ssecp, a_type_ptr) == tp,
-                        "gen_decltype_or_typeof: bad end-of-construct");
     /* Restore the source sequence list position. */
     restore_source_sequence_scan_state(&saved_state);
     tp->definition_delayed = FALSE;
@@ -12669,8 +12662,10 @@ declaration following this one is such a continuation.
   if (consider_initialization) {
     gen_initializer(var, is_condition);
     if (var->initializer_with_source_sequence_entries) {
-      /* Skip the end-of-construct marker. */
+      /* Skip the end-of-construct marker.  Also skip preprocessing directives
+         (they were processed in the call to skip_embedded_declarations). */
       a_src_seq_end_of_construct_ptr ssecp;
+      advance_past_preprocessing_directives();
       check_assertion(ss_entry_kind(curr_source_sequence_entry) ==
                               (an_il_entry_kind)iek_src_seq_end_of_construct);
       ssecp = ss_entry_ptr(curr_source_sequence_entry,
