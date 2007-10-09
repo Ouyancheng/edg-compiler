@@ -2330,10 +2330,16 @@ Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
     vptr_expr = add_cast_if_necessary(vptr_expr, 
                                make_pointer_type(make_user_typeinfo_type()));
     /* Make "__cxa_bad_typeid(), (std::typeinfo*)0". */
-    bad_typeid_expr = make_runtime_rout_call("__cxa_bad_typeid",
-                                             &bad_typeid_routine,
-                                             void_type(),
-                                             (an_expr_node_ptr)NULL);
+    (void)make_prototyped_runtime_routine("__cxa_bad_typeid",
+                                          &bad_typeid_routine,
+                                          void_type(),
+                                          (a_type_ptr)NULL,
+                                          (a_type_ptr)NULL,
+                                          (a_type_ptr)NULL);
+    bad_typeid_expr = make_call_node(bad_typeid_routine,
+                                     (an_expr_node_ptr)NULL,
+                                     /*honor_virtual=*/FALSE,
+                                     (an_insert_location *)NULL);
     make_zero_of_proper_type(make_pointer_type(make_user_typeinfo_type()),
                              &null_constant);
     null_constant_node = alloc_node_for_constant(&null_constant);

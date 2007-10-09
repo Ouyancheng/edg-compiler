@@ -1,5 +1,29 @@
 Version 3.11
 
+10/9/07  Use existing routine definitions during lowering (if available)
+         when building run time library
+
+When building the run time library (i.e., --building_runtime is specified
+on the command line), it is possible to have two a_routine IL entries for
+the same run time library routine (one defined by the translation unit
+and another added during the lowering process).  A check is now made when
+lowering adds a prototyped run time routine declaration to see if an
+existing routine entry has already been created, and if so uses that entry.
+Any unprototyped routine entries added during lowering may still result
+in two a_routine entries in the IL.  Additionally, the __cxa_bad_typeid
+run time routine definition has been changed from unprototyped to prototyped
+to take advantage of this change.  The following code had created
+two a_routine entries but now creates only one (when --building_runtime
+is specified):
+
+  #include <typeinfo>
+  namespace __cxxabiv1 {
+    extern "C" void __cxa_bad_typeid();
+  }
+  void f(std::type_info *info) {
+    typeid(*info);
+  }
+
 10/5/07  Problem with dependent nested class in elaborated type specifier
 
 Version 3.10 introduced a change in the way that nested types of class

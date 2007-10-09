@@ -185,6 +185,36 @@ the routine to the file-scope routines list.
 }  /* make_rout_entry */
 
 
+static a_routine_ptr find_existing_runtime_routine(char       *name,
+                                                   a_type_ptr rout_type)
+/*
+See if an existing runtime routine entry named "name" with a type that
+matches rout_type can be found.  If so, return a pointer to the routine,
+otherwise return NULL.
+*/
+{
+  a_symbol_locator  locator, ext_locator;
+  a_symbol_ptr      sym;
+  a_routine_ptr     routine = NULL;
+
+  clear_locator(&locator, &null_source_position);
+  (void)find_symbol(name, strlen(name), &locator);
+  sym = find_external_symbol(&locator, nlk_external, rout_type, &ext_locator);
+  /* See if we found a suitable symbol.  Require an exact match on
+     the symbol name (to prevent re-using an existing routine that may
+     differ only in case sensitivity or number of unique significant
+     characters).  This may cause linker errors later, but it's safer
+     to create a new routine entry. */
+  if (sym != NULL && sym->kind == (a_symbol_kind)sk_extern_routine &&
+      strcmp(name, sym->header->identifier) == 0) {
+    /* We found an existing external routine with the correct name, type
+       and linkage. */
+    routine = sym->variant.extern_symbol_descr->variant.routine.ptr;
+  }  /* if */
+  return routine;
+}  /* find_existing_runtime_routine */
+
+
 a_routine_ptr make_runtime_routine(char          *name,
                                    a_routine_ptr *routine,
                                    a_type_ptr    return_type)
@@ -192,7 +222,9 @@ a_routine_ptr make_runtime_routine(char          *name,
 Make a routine entry for the runtime routine named "name" and return a
 pointer to it.  Also save the pointer in *routine.  If *routine is non-NULL
 on entry, use that pointer.  The routine has unprototyped arguments and
-its return type is return_type.
+its return type is return_type.  Note that an existing routine definition
+may exist for this function (e.g., when compiling the run time library),
+in which case this will create a second routine entry for the same function.
 */
 {
   if (*routine == NULL) {
@@ -217,12 +249,25 @@ on entry, use that pointer.  The routine has the indicated return type
 and parameter types and is prototyped.  Parameters can be left out by
 passing NULL parameter types (e.g., a non-NULL param1_type and a NULL
 param2_type creates a prototype for a function taking a single argument).
+If building the run time library and we don't already have a specified
+routine entry, see if an existing routine entry matches the specified
+calling sequence.
 */
 {
-  if (*routine == NULL) {
-    a_type_ptr rout_type;
+  a_type_ptr rout_type;
 
-    (void)make_runtime_routine(name, routine, return_type);
+  if (*routine == NULL && building_runtime) {
+    /* See if a routine entry already exists before we create one.  This
+       happens only when compiling the run time library and prevents
+       multiple routine entries for the same routine. */
+    rout_type = make_routine_type(return_type, param1_type, param2_type,
+                                  param3_type, (a_type_ptr)NULL);
+    *routine = find_existing_runtime_routine(name, rout_type);
+  }  /* if */
+  if (*routine == NULL) {
+    /* No existing routine, create one. */
+    *routine = make_rout_entry(name, (a_storage_class)sc_extern, return_type,
+                               (a_type_ptr)NULL);
     rout_type = (*routine)->type;
     rout_type->variant.routine.extra_info->prototyped = TRUE;
     if (param1_type != NULL) {
