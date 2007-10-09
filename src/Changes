@@ -30,8 +30,10 @@ argument is accessible where the template is declared but not at the point
 at which a reference to the instance occurs, resulting in an error when the
 generated code was compiled.  This problem has been addressed by keeping
 track of the minimum number of explicitly-specified template arguments used
-to refer to the instance anywhere in the translation unit and generating
-all references to it using that number of arguments.  For example:
+to refer to the instance anywhere in the translation unit; if a template
+argument after that point refers to a non-public class member, the template
+argument list is truncated so that the default argument will be used.  For
+example:
 
   class Outer {
     struct Inner { };    // private
