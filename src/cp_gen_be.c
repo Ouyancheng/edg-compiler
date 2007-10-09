@@ -2030,7 +2030,7 @@ that the remaining arguments will be defaulted.
       }  /* if */
     }  /* if */
     if (num_arguments >= 0 || min_arguments >= 0) {
-      /* We may use fewer arguments than are prexent in the full template
+      /* We may use fewer arguments than are present in the full template
          argument list.  Scan through the list to identify the last
          argument to be used (prev_argp) and the first argument to be
          omitted (argp). */
