@@ -199,13 +199,20 @@ otherwise return NULL.
 
   clear_locator(&locator, &null_source_position);
   (void)find_symbol(name, strlen(name), &locator);
-  sym = find_external_symbol(&locator, nlk_external, rout_type, &ext_locator);
+  /* Keep find_external_symbol from using current namespace if any. */
+  locator.is_file_scope_qualified_name = TRUE;
+  check_assertion(!C_mode());
+  sym = find_external_symbol(&locator, (a_name_linkage_kind)nlk_external,
+                             rout_type, &ext_locator);
   /* See if we found a suitable symbol.  Require an exact match on
      the symbol name (to prevent re-using an existing routine that may
      differ only in case sensitivity or number of unique significant
      characters).  This may cause linker errors later, but it's safer
      to create a new routine entry. */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_extern_routine &&
+      param_types_are_compatible(skip_typerefs(rout_type),
+                        skip_typerefs(sym->variant.extern_symbol_descr->type),
+                        TCF_NO_FLAGS) &&
       strcmp(name, sym->header->identifier) == 0) {
     /* We found an existing external routine with the correct name, type
        and linkage. */
