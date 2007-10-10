@@ -1247,7 +1247,12 @@ by octl.
       /* A typeref here should be a typedef, a decltype operator, or a typeof
          operator. */
       if (type->variant.typeref.is_decltype) {
-        if (octl->output_name != NULL) {
+        if (octl->gen_compilable_code && octl->output_name != NULL) {
+          /* It may seem strange to use "output_name" to render a type that
+             doesn't really have a name.  However, this uses the same
+             mechanisms required to render non-autonomous unnamed tag types,
+             and those use "output_name" for uniformity with named tag
+             types. */
           octl->output_name((char*)type, iek_type);
         } else {
           an_expr_node_ptr  expr = decltype_arg(type);
@@ -1277,7 +1282,12 @@ by octl.
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
       } else if (type->variant.typeref.is_typeof) {
-        if (octl->output_name != NULL) {
+        if (octl->gen_compilable_code && octl->output_name != NULL) {
+          /* It may seem strange to use "output_name" to render a type that
+             doesn't really have a name.  However, this uses the same
+             mechanisms required to render non-autonomous unnamed tag types,
+             and those use "output_name" for uniformity with named tag
+             types. */
           octl->output_name((char*)type, iek_type);
         } else {
           an_expr_node_ptr  expr = decltype_arg(type);
