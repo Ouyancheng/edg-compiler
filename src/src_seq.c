@@ -2382,6 +2382,7 @@ here).
           a_type_ptr                    tp;
           check_assertion(sssdp->entity.kind ==
                                               (a_byte_il_entry_kind)iek_type);
+          tp = (a_type_ptr)sssdp->entity.ptr;
           check_assertion(is_immediate_class_type(tp) ||
                           is_immediate_enum_type(tp));
           if (!il_entry_prefix_of(tp).keep_in_il) {
