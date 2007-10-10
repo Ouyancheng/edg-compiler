@@ -3,7 +3,7 @@ Version 3.11
 10/9/07  Prelinker: improved handling of escapes in compiler invocations
 
 The prelinker inserts escapes into the command it uses to recompile source
-files.  It bas been updated to better handle quoted strings with embedded
+files.  It has been updated to better handle quoted strings with embedded
 quotes, escapes, and spaces.  For example, the following command can now be
 used to compile and link the example below.  Formerly, this would fail when
 the compiler was invoked from the prelinker.
