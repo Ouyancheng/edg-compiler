@@ -1,5 +1,25 @@
 Version 3.11
 
+10/10/07 Internal error on redeclaration involving default function argument
+
+In some cases where a function or member function with a default function call
+argument was redeclared, the front end sometimes aborted with an IL write-read
+difference.  (This required configurations with IL_SHOULD_BE_WRITTEN_TO_FILE
+set to TRUE.  The problem was slightly more likely to arise when support for
+exception handling was enabled.)  For example:
+
+  struct S { S(char*); ~S(); };
+  struct X { void f(int (X::*)(void), S = ""); };
+  void X::f(int (X::*)(), S) {}  // Previously aborted if exception handling
+                                 // was enabled.
+
+This is now fixed.  As part of the fix, the behavior of composite_type and
+composite_routine_type was changed slightly: If the types passed in involve
+default argument expressions, the returned type may be a new type that shares
+those expression.  The caller is now responsible to ensure that two distinct
+routine types recorded in the IL do not share default argument expressions.
+The new function disentangle_default_args can be used for that purpose.
+
 10/9/07  Use existing routine definitions during lowering (if available)
          when building run time library
 

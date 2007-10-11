@@ -6447,6 +6447,39 @@ set to TRUE (otherwise it is set to FALSE).
   return okay;
 }  /* expl_conversion_possible */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+void disentangle_default_args(a_type_ptr  rtp1,
+                              a_type_ptr  rtp2)
+/*
+rtp1 and rtp2 are routine types that may be sharing default argument
+expressions (e.g., as the result of calling composite_routine_type).  If the
+types are distinct IL entries, they cannot coexist in the final IL tree:
+Resolve the issue by duplicating the default argument expressions if needed.
+*/
+{
+  rtp1 = skip_typerefs(rtp1);
+  rtp2 = skip_typerefs(rtp2);
+  if (rtp1 != rtp2) {
+    /* Distinct routine type entries: Traverse their parameters. */
+    a_param_type_ptr  ptp1, ptp2;
+    ptp1 = rtp1->variant.routine.extra_info->param_type_list;
+    ptp2 = rtp2->variant.routine.extra_info->param_type_list;
+    while (ptp1 != NULL && ptp2 != NULL) {
+      if (ptp1->default_arg_expr != NULL &&
+          ptp1->default_arg_expr == ptp2->default_arg_expr) {
+        /* A shared default argument expression: Duplicate it to avoid the
+           sharing. */
+        ptp1->default_arg_expr =
+                          duplicate_default_arg_expr(ptp2->default_arg_expr);
+      }  /* if */
+      ptp1 = ptp1->next;
+      ptp2 = ptp2->next;
+    }  /* while */
+  }  /* if */
+}  /* disentangle_default_args */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 a_type_ptr multilevel_composite_pointer_type(a_type_ptr type_1,
                                              a_type_ptr type_2)
@@ -6648,6 +6681,11 @@ Determine the composite type based on routine types rout_type1 and rout_type2
 and return a pointer to it.  Note: one of the types passed in may be returned
 as the composite type; if either could be returned as the composite type,
 preference is given to the first.
+If a type distinct from those passed in is returned, it will share its default
+argument expressions with the types passed in.  This is usually okay because
+the original types are typically discarded in such cases, but if any of the
+original types are retained, the default argument expressions should be made
+unique to each type (e.g., by calling disentangle_default_args).
 */
 {
   a_type_ptr                     comp_type;
@@ -6750,8 +6788,7 @@ preference is given to the first.
         if (ptp1->has_default_arg || ptp1->default_arg_expr != NULL) {
           return_type2_as_comp_type = FALSE;
           if (!return_type1_as_comp_type) goto make_new_comp_type;
-        } else if (ptp2->has_default_arg ||
-                   ptp2->default_arg_expr != NULL) {
+        } else if (ptp2->has_default_arg || ptp2->default_arg_expr != NULL) {
           return_type1_as_comp_type = FALSE;
           if (!return_type2_as_comp_type) goto make_new_comp_type;
         }  /* if */
@@ -6843,22 +6880,23 @@ make_new_comp_type:
         if (!C_mode()) {
           /* Form the composite of the C++ default argument expressions; it's
              guaranteed that at most one of the parameter lists has a default
-             argument expression. */
+             argument expression.  The composite type shares its default
+             argument expressions with one of the original types; if the
+             original types are retained in the IL, that sharing should be
+             undone (e.g., by calling disentangle_default_args). */
           if (ptp1->has_default_arg) {
             new_ptp->has_default_arg = TRUE;
             new_ptp->has_unevaluated_template_default =
                                         ptp1->has_unevaluated_template_default;
             if (ptp1->default_arg_expr != NULL) {
-              new_ptp->default_arg_expr =
-                          duplicate_default_arg_expr(ptp1->default_arg_expr);
+              new_ptp->default_arg_expr = ptp1->default_arg_expr;
             }  /* if */
           } else if (ptp2->has_default_arg) {
             new_ptp->has_default_arg = TRUE;
             new_ptp->has_unevaluated_template_default =
                                         ptp2->has_unevaluated_template_default;
             if (ptp2->default_arg_expr != NULL) {
-              new_ptp->default_arg_expr =
-                          duplicate_default_arg_expr(ptp2->default_arg_expr);
+              new_ptp->default_arg_expr = ptp2->default_arg_expr;
             }  /* if */
           }  /* if */
           if (ptp1->type_involves_deduced_template_param) {
@@ -6938,6 +6976,12 @@ type_1 and type_2 must be compatible (see types_are_compatible).  The type
 returned might be equal to type_1, type_2, both, or neither.  Where it's
 possible, this routine tries to return type_1.  Note that if a new type
 is allocated, it is allocated in the file scope.
+If the types passed in are routine types with associated default argument
+expressions, a new type may be returned that shares those default argument
+expressions.  This is usually okay because the original types are typically
+discarded in such cases, but if any of the original types are retained, the
+default argument expressions should be made unique to each type (e.g., by
+calling disentangle_default_args).
 */
 {
   a_type_ptr comp_type, comp_elem;

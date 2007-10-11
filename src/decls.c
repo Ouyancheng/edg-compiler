@@ -4227,6 +4227,16 @@ not be TRUE.
            the types, since the original two types are compatible. */
         /* Likewise, the this_class pointers should be identical -- this will
            have been verified in types_are_compatible. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        if (routine_ptr->declared_type != NULL) {
+          /* composite_routine_type may have created a type that shares its
+             default argument expressions with the original routine types.
+             One of those original types may still be part of the IL through
+             the "declared_type" field of the routine entry: If so, ensure
+             that the expression nodes are unique. */
+          disentangle_default_args(rout_type, routine_ptr->declared_type);
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
