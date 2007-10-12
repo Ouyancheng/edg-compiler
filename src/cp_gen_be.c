@@ -2070,6 +2070,8 @@ that the remaining arguments will be defaulted.
             use_default_arg = !entity_is_publicly_accessible(
                                      &argp->variant.templ.ptr->source_corresp);
             break;
+          default:
+            unexpected_condition();
           }  /* switch */
           if (use_default_arg) {
             break;
