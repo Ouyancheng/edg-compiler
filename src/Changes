@@ -1,5 +1,17 @@
 Version 3.11
 
+10/20/07 Microsoft compatibility: spurious error in aggregate initialization
+         of cv-qualified class object
+
+The change of 5/11/07 to suppress implicitly-declared special member
+functions had a bug causing spurious diagnostics in the case of aggregate
+initialization of an object with a cv-qualified class type when
+microsoft_version is 1400 or greater.  This is now fixed.  For example,
+
+  struct S { int i; };
+  const S s = { 1 };    // Previously caused an error saying that the
+                        // suppressed destructor is needed
+
 10/10/07 Internal error on redeclaration involving default function argument
 
 In some cases where a function or member function with a default function call

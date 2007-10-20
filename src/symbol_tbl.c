@@ -7017,7 +7017,8 @@ if necessary.  *position is the source position of the reference.
                                                  instantiate);
         dtor_routine = dtor_sym->variant.routine.ptr;
       }  /* if */
-    } else if (class_type->variant.class_struct_union.dtor_decl_suppressed &&
+    } else if (skip_typerefs(class_type)->
+                             variant.class_struct_union.dtor_decl_suppressed &&
                microsoft_version >= 1400) {
       /* MSVC++ 8.0 issues an error if a suppressed destructor would have
          been called. */
