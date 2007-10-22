@@ -2955,9 +2955,10 @@ static void pl_change_directory(char *new_dir)
 static void add_to_command_line(char	**dest,
 				char	*source)
 /*
-Copy characters from source to dest.  If we find any quotes or escape
-characters, add an escape character before each one.  In addition, if
-we find any spaces that are within a quoted string, escape the spaces.
+Copy characters from source to dest.  If we find a quoted string, add
+quotes of an alternate kind around that string (e.g., "abc" is changed to
+'"abc"' and 'abc' is changed to "'abc'").  Parentheses that are not in
+quotes are escaped.
 */
 {
   char		*from;
@@ -2965,26 +2966,31 @@ we find any spaces that are within a quoted string, escape the spaces.
   a_boolean	in_quote = FALSE;
   char		quote_char = 0;
   a_boolean	is_escaped = FALSE;
+  char		outer_quote = 0;
 
   for (from = source; *from != '\0'; ++from) {
     char	ch = *from;
+    a_boolean	is_close_quote = FALSE;
     if (is_escaped) {
       is_escaped = FALSE;
-    } else if (in_quote) {
-      if (ch == quote_char) {
-        *to++ = '\\';
-        in_quote = FALSE;
-      } else if (ch == ' ' || ch == '\'' || ch == '"' || ch == '\\') {
-        *to++ = '\\';
-      }  /* if */
     } else if (ch == '\\') {
       is_escaped = TRUE;
-    } else if (ch == '"' || ch == '\'') {
-      *to++ = '\\';
+    } else if (!in_quote && (ch == '"' || ch == '\'')) {
       in_quote = TRUE;
       quote_char = ch;
+      outer_quote = ch == '"' ? '\'' : '"';
+      *to++ = outer_quote;
+    } else if (in_quote && ch == quote_char) {
+      is_close_quote = TRUE;
+    } else if ((in_quote && ch == quote_char) ||
+               (!in_quote && (ch == '(' || ch == ')'))) {
+      *to++ = '\\';
     }  /* if */
     *to++ = ch;
+    if (is_close_quote) {
+      in_quote = FALSE;
+      *to++ = outer_quote;
+    }  /* if */
   }  /* for */
   /* Append a blank, if the command does not already end with a blank. */
   if (*(to-1) != ' ') *to++ = ' ';

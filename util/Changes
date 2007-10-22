@@ -1,12 +1,14 @@
 Version 3.11
 
-10/9/07  Prelinker: improved handling of escapes in compiler invocations
+10/9/07  Prelinker: improved handling of parentheses and quoted strings in
+         compiler invocations
 
 The prelinker inserts escapes into the command it uses to recompile source
-files.  It has been updated to better handle quoted strings with embedded
-quotes, escapes, and spaces.  For example, the following command can now be
-used to compile and link the example below.  Formerly, this would fail when
-the compiler was invoked from the prelinker.
+files.  It has been updated to better handle parentheses outside of quoted
+strings and quoted strings with embedded quotes, escapes, and spaces.
+For example, the following command can now be used to compile and link the
+example below.  Formerly, this would fail when the compiler was invoked
+from the prelinker.
 
   eccp -c -DSTR='"A\"BC"' -DCHR="'\''"  -c ex.c
   eccp ex.o
