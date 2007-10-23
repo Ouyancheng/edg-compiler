@@ -755,6 +755,7 @@ is pushed regardless of any of the other factors.
   curr_expr_ref_entries = NULL;
   new_entry->evaluated = TRUE;
   new_entry->potentially_evaluated = TRUE;
+  new_entry->is_decltype_or_typeof_arg_expression = FALSE;
   new_entry->is_default_arg_expression = FALSE;
   new_entry->is_template_arg_expression = FALSE;
   new_entry->is_vla_dimension_expression = FALSE;

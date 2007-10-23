@@ -7063,6 +7063,7 @@ NULL, the end position in its specifiers_range is updated.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/(curr_object_lifetime != NULL));
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
+  expr_stack->is_decltype_or_typeof_arg_expression = TRUE;
   add_matching_stop_token(tok_rparen);
   scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
   error_if_indefinite_function(&operand);
@@ -7214,6 +7215,7 @@ NULL, the end position in its specifiers_range is updated.
                     /*suppress_object_lifetime=*/
                                               (curr_object_lifetime != NULL));
     expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
+    expr_stack->is_decltype_or_typeof_arg_expression = TRUE;
     add_matching_stop_token(tok_rparen);
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     error_if_indefinite_function(&operand);
@@ -16626,11 +16628,17 @@ to reflect the error.
           /* Only nonstatic variables are a problem. */
           if (!has_static_storage_duration(var->storage_class)) {
             if (!strict_ansi_mode && !expr_stack->potentially_evaluated &&
+                (!expr_stack->is_decltype_or_typeof_arg_expression ||
+                 depth_innermost_function_scope == NO_SCOPE_DEPTH) &&
                 !is_vla_type(var->type)) {
               /* As an extension, allow references to nonstatic variables
                  inside sizeof expressions.  (Except VLA variables, since
                  sizeof applied to such variables involves a run-time
-                 computation.) */
+                 computation.)  We also allow decltype/typeof construct if
+                 they appear directly in the class definition itself and
+                 not in a member function definition of the class (the latter
+                 would requiring a reference between two different function
+                 scope memory regions). */
               warning(ec_ref_to_nested_function_var);
             } else {
               bad_ref = TRUE;

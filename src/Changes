@@ -13,7 +13,17 @@ of the enclosing function.  For example:
   }
 
 An entirely similar problem existed with decltype in C++0x mode.  This is now
-fixed.
+fixed.  As part of this change, decltype and typeof constructs in member
+function bodies of local classes are no longer allowed to refer to local
+variables of the enclosing function (this was already prohibited in strict
+mode).  For example:
+
+  void f() {
+    int x = 0;
+    struct S {
+      void f() { decltype(x) y; }  // Now always an error.
+    };
+  }
 
 10/20/07 Microsoft compatibility: spurious error in aggregate initialization
          of cv-qualified class object

@@ -539,6 +539,10 @@ typedef struct an_expr_stack_entry {
 			   a constant expression, even one inside a not-
 			   evaluated expression. */
   a_byte_boolean
+		is_decltype_or_typeof_arg_expression;
+			/* TRUE if the expression is the argument for a C++0x
+			   decltype construct or a GNU typeof construct. */
+  a_byte_boolean
 		is_default_arg_expression;
 			/* TRUE if the expression is or is inside of a
 			   C++ default argument expression in a parameter
