@@ -6972,6 +6972,37 @@ general_case:
 }  /* decltype_from_operand */
 
 
+static a_scope_depth scope_depth_to_allocate_decltype_expr(void)
+/*
+We are about to scan the argument expression for a C++0x decltype or GNU typeof
+construct.  Compute a scope depth from which a memory region for the
+expression can be determined.  Ordinarily, depth_scope_stack will do, but if
+we are inside a local class, we want the expression tree to be stored in the
+function memory region.  For example:
+
+  void f() {
+    int x;
+    struct { decltype(x) m; } y;
+  }      // The struct type is stored in file scope memory, but the decltype
+         // argument must  be able to refer to "x", and must therefore be
+         // stored in f's memory region.
+*/
+{
+  a_scope_depth  result = depth_scope_stack;
+
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    result = depth_innermost_function_scope;
+  } else if (inside_local_class) {
+    while (scope_stack[result].depth_innermost_function_scope ==
+                                                             NO_SCOPE_DEPTH) {
+      --result;
+    }  /* while */
+    result = scope_stack[result].depth_innermost_function_scope;
+  }  /* if */
+  return result;
+}  /* scope_depth_to_allocate_decltype_expr */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /* ARGSUSED */  /* <-- decl_pos_block is not used in some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -6994,6 +7025,7 @@ NULL, the end position in its specifiers_range is updated.
   an_expr_stack_entry_ptr saved_expr_stack;
   an_operand              operand;
   a_boolean               leading_paren_seen;
+  a_scope_depth           expr_scope_depth;
   a_memory_region_number  region_to_switch_back_to;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr  ssep;
@@ -7023,12 +7055,8 @@ NULL, the end position in its specifiers_range is updated.
      memory region because we're scanning something like a template argument,
      switch back.  If we're in a function, any expression nodes allocated must
      be in the function-scope memory region. */
-  { a_scope_depth  depth = depth_scope_stack;
-    if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-      depth = depth_innermost_function_scope;
-    }  /* if */
-    switch_to_scope_region(depth, &region_to_switch_back_to);
-  }
+  expr_scope_depth = scope_depth_to_allocate_decltype_expr();
+  switch_to_scope_region(expr_scope_depth, &region_to_switch_back_to);
   /* Scan the argument expression. */
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
@@ -7073,7 +7101,8 @@ NULL, the end position in its specifiers_range is updated.
       tp->variant.typeref.expr = expr;
     } else {
       make_local_expr_node_ref(
-              expr, (a_local_expr_node_ref_kind)lerk_decltype, (char*)tp);
+              expr, (a_local_expr_node_ref_kind)lerk_decltype, (char*)tp,
+              expr_scope_depth);
     }  /* if */
     result = tp;
   }  /* if */
@@ -7133,6 +7162,7 @@ NULL, the end position in its specifiers_range is updated.
   an_operand                  operand;
   a_boolean                   is_type;
   an_expr_stack_entry_ptr     saved_expr_stack;
+  a_scope_depth               expr_scope_depth;
   a_memory_region_number      region_to_switch_back_to;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr  ssep;
@@ -7176,12 +7206,8 @@ NULL, the end position in its specifiers_range is updated.
        memory region because we're scanning something like a template argument,
        switch back.  If we're in a function, any expression nodes allocated
        must be in the function-scope memory region. */
-    { a_scope_depth  depth = depth_scope_stack;
-      if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-        depth = depth_innermost_function_scope;
-      }  /* if */
-      switch_to_scope_region(depth, &region_to_switch_back_to);
-    }
+    expr_scope_depth = scope_depth_to_allocate_decltype_expr();
+    switch_to_scope_region(expr_scope_depth, &region_to_switch_back_to);
     save_expr_stack(&saved_expr_stack);
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
@@ -7239,7 +7265,8 @@ NULL, the end position in its specifiers_range is updated.
         typeof_type->variant.typeref.expr = expr;
       } else {
         make_local_expr_node_ref(
-           expr, (a_local_expr_node_ref_kind)lerk_typeof, (char*)typeof_type);
+           expr, (a_local_expr_node_ref_kind)lerk_typeof, (char*)typeof_type,
+           expr_scope_depth);
       }  /* if */
     }  /* if */
     result = typeof_type;

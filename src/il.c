@@ -4154,7 +4154,8 @@ fix them.
         if (expr != NULL && !in_file_scope(expr)) {
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
           make_local_expr_node_ref(
-            expr, (a_local_expr_node_ref_kind)lerk_generic_sizeof, (char*)cp);
+            expr, (a_local_expr_node_ref_kind)lerk_generic_sizeof, (char*)cp,
+            depth_innermost_function_scope);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           cp->variant.template_param.variant.templ_sizeof.expr = NULL;
         }  /* if */
@@ -8985,27 +8986,31 @@ entry.
 
 void make_local_expr_node_ref(an_expr_node_ptr            expr,
                               a_local_expr_node_ref_kind  kind,
-                              char                        *referrer)
+                              char                        *referrer,
+                              a_scope_depth               expr_scope_depth)
 /*
 expr is a node in the current function's memory region and referrer is an
 entry in the file scope memory region.  Create an entry in the current
 function's memory region to represent an implicit reference from referrer
 to expr.  kind indicates the nature of the referrer.  (This is needed
 because file scope memory entries cannot directly point to entries in
-function scope memory regions.)  The expression can then be recovered
-using find_local_expr_node.
+function scope memory regions.)  expr_scope_depth is the scope stack depth
+of the function associated with the memory region in which the expression is
+stored.
+The expression can then be recovered using find_local_expr_node.
 */
 {
   a_memory_region_number     region_to_switch_back_to;
   a_local_expr_node_ref_ptr  new_ref;
 
   check_assertion(!in_file_scope(expr) && in_file_scope(referrer));
-  check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
-  switch_to_scope_region(depth_innermost_function_scope,
-                         &region_to_switch_back_to);
+  check_assertion(expr_scope_depth != NO_SCOPE_DEPTH &&
+                  scope_stack[expr_scope_depth].kind ==
+                                                  (a_scope_kind)sck_function);
+  switch_to_scope_region(expr_scope_depth, &region_to_switch_back_to);
   new_ref = alloc_local_expr_node_ref();
   switch_back_to_original_region(region_to_switch_back_to);
-  new_ref->next = innermost_function_scope->expr_node_refs;
+  new_ref->next = scope_stack[expr_scope_depth].il_scope->expr_node_refs;
   new_ref->expr = expr;
   new_ref->kind = kind;
   new_ref->referrer.ptr = referrer;
@@ -9029,7 +9034,7 @@ using find_local_expr_node.
     default:
       unexpected_condition();
   }  /* switch */
-  innermost_function_scope->expr_node_refs = new_ref;
+  scope_stack[expr_scope_depth].il_scope->expr_node_refs = new_ref;
 }  /* make_local_expr_node_ref */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */

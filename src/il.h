@@ -715,9 +715,11 @@ extern a_vla_dimension_ptr find_vla_dimension_in_current_function(
 
 extern a_vla_dimension_ptr find_vla_dimension(a_type_ptr array_type);
 
-extern void make_local_expr_node_ref(an_expr_node_ptr            expr,
-                                     a_local_expr_node_ref_kind  kind,
-                                     char                        *referrer);
+extern void make_local_expr_node_ref(
+                                 an_expr_node_ptr            expr,
+                                 a_local_expr_node_ref_kind  kind,
+                                 char                        *referrer,
+                                 a_scope_depth               expr_scope_depth);
 
 extern an_expr_node_ptr find_local_expr_node(char  *referrer,
                                              a_local_expr_node_ref_kind  kind);
