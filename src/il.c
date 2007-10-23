@@ -9001,7 +9001,8 @@ using find_local_expr_node.
 
   check_assertion(!in_file_scope(expr) && in_file_scope(referrer));
   check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
-  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+  switch_to_scope_region(depth_innermost_function_scope,
+                         &region_to_switch_back_to);
   new_ref = alloc_local_expr_node_ref();
   switch_back_to_original_region(region_to_switch_back_to);
   new_ref->next = innermost_function_scope->expr_node_refs;

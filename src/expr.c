@@ -7023,7 +7023,12 @@ NULL, the end position in its specifiers_range is updated.
      memory region because we're scanning something like a template argument,
      switch back.  If we're in a function, any expression nodes allocated must
      be in the function-scope memory region. */
-  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+  { a_scope_depth  depth = depth_scope_stack;
+    if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      depth = depth_innermost_function_scope;
+    }  /* if */
+    switch_to_scope_region(depth, &region_to_switch_back_to);
+  }
   /* Scan the argument expression. */
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
@@ -7171,7 +7176,12 @@ NULL, the end position in its specifiers_range is updated.
        memory region because we're scanning something like a template argument,
        switch back.  If we're in a function, any expression nodes allocated
        must be in the function-scope memory region. */
-    switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+    { a_scope_depth  depth = depth_scope_stack;
+      if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        depth = depth_innermost_function_scope;
+      }  /* if */
+      switch_to_scope_region(depth, &region_to_switch_back_to);
+    }
     save_expr_stack(&saved_expr_stack);
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
