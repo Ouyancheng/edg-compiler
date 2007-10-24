@@ -30,7 +30,6 @@ extasm.c -- Scanning and validation of GNU extended asm() statements.
 #include "decl_hdrs.h"
 
 
-
 struct name_to_reg {
   /* Structure to hold a name-to-register mapping entry. */
   char              *name;
@@ -211,6 +210,7 @@ In the latter case, issues an error.
   return result;
 }  /* name_to_register */
 
+#if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
 
 /*ARGSUSED*/
 static a_boolean validate_expr_for_constraints(
@@ -225,6 +225,7 @@ provided by the author of the back end.
   return TRUE;
 }  /* validate_expr_for_constraint */
 
+#endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
 static int find_symbolic_operand(char                **pc,
                                  an_asm_operand_ptr  operands,
@@ -299,6 +300,7 @@ references are reported at the given position.
   }  /* while */
 }  /* validate_symbolic_operand_references */
 
+#if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
 
 static an_asm_operand_constraint_kind get_symbolic_matching_constraint(
                                                  char                **pc,
@@ -328,19 +330,33 @@ Errors are diagnosed at the given position.
   return result;
 }  /* get_symbolic_matching_constraint */
 
+#endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
+#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+/* ARGSUSED */  /* operands is not used in some configurations. */
+#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 static void process_asm_operand(an_asm_operand_ptr  operand,
                                 an_asm_operand_ptr  operands,
                                 an_expr_node_ptr    expr,
                                 char                *cstring,
                                 a_boolean           output)
 /*
-Validate the semantic consistency of expr, cstring (which gives the
-constraints), and output.  If they all match, fill in operand accordingly.
-Otherwise, issue an error, and set operand to "error placemarker" values.
+Fill in *operand (a GNU asm operand description) using the cstring constraints
+string and the expr expression.  Output is TRUE if the call is for an output
+operand.  If RECORD_RAW_ASM_OPERAND_DESCRIPTIONS is FALSE, validate the
+semantic consistency of expr, cstring, and output: If an inconsistency is
+detected, an error is issued and *operand is set to "error placemarker" values.
 operands points to the operands created so far.
 */
 {
+#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+  /* When the raw form is recorded, consistency checks are not performed by
+     the front end.  (A back end may be in a better position to perform those
+     checks.) */
+  operand->is_output_operand = output;
+  operand->constraints_string = cstring;
+  operand->expression = expr;
+#else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
   an_asm_operand_constraint_ptr  *constraint;
   an_asm_operand_constraint_kind ck;
   an_asm_operand_modifier        modifiers;
@@ -588,17 +604,20 @@ error_return:
     operand->expression = error_node();
     operand->modifiers = (an_asm_operand_modifier)aom_invalid;
   }  /* if */
+#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 }  /* process_asm_operand */
 
 
 /*
 Machine-specific tables used by validate_operands_and_clobbers.
 */
+#if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
 typedef struct single_register_constraint {
   /* Structure to hold a constraint-to-register mapping. */
   an_asm_operand_constraint_kind cons;
   a_named_register               reg;
 } single_register_constraint;
+
 
 static single_register_constraint single_register_constraints[] = {
 #if GNU_X86_ASM_EXTENSIONS_ALLOWED
@@ -614,6 +633,8 @@ static single_register_constraint single_register_constraints[] = {
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   { (an_asm_operand_constraint_kind)aoc_last, (a_named_register)anr_last }
 };
+
+#endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
 static a_named_register fixed_registers[] = {
 #if GNU_X86_ASM_EXTENSIONS_ALLOWED
@@ -639,10 +660,53 @@ Note that this function never modifies the operands or clobbers lists,
 even if they are invalid.
 */
 {
+#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+  /* Only raw operand descriptions are recorded: We do not attempt to
+     understand the meaning of those descriptions and therefore we do not
+     diagnose semantic errors in them.  We can however diagnose duplicate
+     clobbers and attempts to clobber fixed registers. */
+  a_byte                     regs_clobbered[(int)anr_last];
+  a_named_register_list_ptr  clobber, clobbers = asm_entry->clobbers;
+  int                        i;
+  a_named_register           r;
+
+  memzero((char*)regs_clobbered, sizeof regs_clobbered);
+  for (clobber = clobbers; clobber != NULL; clobber = clobber->next) {
+    r = clobber->reg;
+#if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
+    /* Ignore entries for unrecognized registers. */
+    if (r == (a_named_register)anr_unrecognized) continue;
+#else /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
+    if (r != (a_named_register)anr_invalid && regs_clobbered[(int)r] == 1) {
+      /* Test clobbered == 1 so the diagnostic is issued at most once per
+         register. */
+      pos_st_warning(ec_register_clobbered_twice,
+                     &asm_entry->source_corresp.decl_position,
+                     named_register_names[(int)r]);
+    }  /* if */
+#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
+    ++regs_clobbered[(int)r];
+  }  /* for */
+  for (i = 0; fixed_registers[i] != (a_named_register)anr_last; i++) {
+    r = fixed_registers[i];
+#if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
+    /* Ignore entries for unrecognized registers. */
+    if (r == (a_named_register)anr_unrecognized) continue;
+#else /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
+    if (regs_clobbered[(int)r]) {
+      pos_st_error(ec_fixed_register_clobbered,
+                   &asm_entry->source_corresp.decl_position,
+                   named_register_names[(int)r]);
+    }  /* if */
+#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
+  }  /* for */
+#else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
+  /* Asm operand descriptions are parsed and can therefore be diagnosed for
+     consistency. */
   a_byte                        regs_clobbered[(int)anr_last];
   a_byte                        regs_used_in[(int)anr_last];
   a_byte                        regs_used_out[(int)anr_last];
-  an_asm_operand_ptr            operand, operands = asm_entry->operands;
+  an_asm_operand_ptr            aop;
   a_named_register_list_ptr     clobber, clobbers = asm_entry->clobbers;
   an_asm_operand_constraint_ptr c;
   int                           i;
@@ -651,18 +715,18 @@ even if they are invalid.
   memzero((char*)regs_clobbered, sizeof regs_clobbered);
   memzero((char*)regs_used_in, sizeof regs_used_in);
   memzero((char*)regs_used_out, sizeof regs_used_out);
-  for (operand = operands; operand != NULL; operand = operand->next) {
+  for (aop = asm_entry->operands; aop != NULL; aop = aop->next) {
     for (i = 0;
          single_register_constraints[i].cons !=
                                       (an_asm_operand_constraint_kind)aoc_last;
          i++) {
-      a_boolean  input = (operand->modifiers & 
+      a_boolean  input = (aop->modifiers & 
                             ((an_asm_operand_modifier)aom_input |
                              (an_asm_operand_modifier)aom_earlyclobber)) != 0;
-      a_boolean  output = (operand->modifiers &
+      a_boolean  output = (aop->modifiers &
                             ((an_asm_operand_modifier)aom_output |
                              (an_asm_operand_modifier)aom_earlyclobber)) != 0;
-      for (c = operand->constraints; c != NULL; c = c->next) {
+      for (c = aop->constraints; c != NULL; c = c->next) {
         if (c->kind == single_register_constraints[i].cons) {
           r = single_register_constraints[i].reg;
 #if ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
@@ -673,7 +737,7 @@ even if they are invalid.
           if (r != (a_named_register)anr_invalid &&
               ((input && regs_used_in[(int)r] == 1) ||
                (output && regs_used_out[(int)r] == 1))) {
-            pos_st_error(ec_register_used_twice, &operand->position,
+            pos_st_error(ec_register_used_twice, &aop->position,
                          named_register_names[(int)r]);
           }  /* if */
 #endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
@@ -724,8 +788,9 @@ even if they are invalid.
     }  /* if */
 #endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
   }  /* for */
+#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
   validate_symbolic_operand_references(
-                                    asm_entry->asm_string, operands,
+                                    asm_entry->asm_string, asm_entry->operands,
                                     &asm_entry->source_corresp.decl_position);
 }  /* validate_operands_and_clobbers */
 
@@ -738,6 +803,10 @@ Scan a single asm-statement operand, writing it into the structure pointed to
 by operand.  The syntax is
 
    string-literal ( expression )
+
+optionally preceded by a symbolic name specifier of the form
+
+   [ identifier ]
 
 operands points to the list of operands created so far and output is TRUE
 if we're scanning an output operand.
@@ -790,19 +859,21 @@ if we're scanning an output operand.
 
 an_asm_operand_ptr asm_operands_spec(void)
 /*
-Parse and validate a list of asm-statement operands.  This handles
-both input and output operands.  The list is written into *p_operands.
-On entry, curr_token is the leading colon of the operands
-specification; on exit, it is the leading colon of the clobbers
-specification, or the close parenthesis if there are no clobbers.
+Parse and validate a list of asm-statement operands.  This handles both input
+and output operands.  The list is returned as a sequence of an_asm_operand
+entries.
+On entry, curr_token is the leading colon of the operands specification; on
+exit, it is the leading colon of the clobbers specification, or the close
+parenthesis if there are no clobbers.
 
 The syntax is
 
     : [operand [, operand...]]   // outputs
    [: [operand [, operand...]]]  // inputs
 
-Since both operand lists can be empty, we must cope with two adjacent
-colons, which will be tokenized as a single tok_colon_colon (in C++).  */
+Since both operand lists can be empty, we must cope with two adjacent colons,
+which will be tokenized as a single tok_colon_colon (in C++).
+*/
 {
   int                n = 0;
   a_boolean          output = TRUE;
@@ -833,11 +904,13 @@ colons, which will be tokenized as a single tok_colon_colon (in C++).  */
     asm_operand(*p_operands, operands, output);
     p_operands = &(*p_operands)->next;
     ++n;
+#if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
     if (operands->modifiers == (an_asm_operand_modifier)aom_modify) {
       /* GNU compilers seem to count '+' modifiers as two operands.  Presumably
          because it involves a read and a write operation. */
       ++n;
     }  /* if */
+#endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
     /* Next must be a comma, colon, or right paren. */
     if (curr_token == tok_colon) {
       if (output) {
@@ -865,9 +938,8 @@ colons, which will be tokenized as a single tok_colon_colon (in C++).  */
 
 a_named_register_list_ptr asm_clobbers_spec(void)
 /*
-Parse and validate a list of asm-statement clobbers.  This also checks
-the clobber list for semantic consistency with the operands list, if
-any.  Returns the list of registers clobbered.
+Parse and validate a list of asm-statement clobbers.  Returns the list of
+registers clobbered.
 
 The syntax is
 
@@ -970,11 +1042,13 @@ extended asm statements.
     internal_error(
       "extasm_one_time_init: named_register_names: bad init");
   }  /* if */
+#if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
   /* Ditto the table of constraint letters. */
   if (asm_operand_constraint_letters[(int)aoc_last] != '~') {
     internal_error(
       "extasm_one_time_init: asm_operand_constraint_letters: bad init");
   }  /* if */
+#endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 #endif /* CHECKING */
   /* Set up the complete regmap table, including both the official and
      extra register names.  regmap does not include entries for

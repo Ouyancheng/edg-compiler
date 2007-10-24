@@ -2872,11 +2872,16 @@ after_entry_from_class:
         an_asm_operand_ptr ptr = (an_asm_operand_ptr)entry_ptr;
         remap_next_ptr(ptr->next, an_asm_operand_ptr, iek_asm_operand);
         walk_string_ptr(ptr->name, iek_other_text, 0);
+#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+        walk_string_ptr(ptr->constraints_string, iek_other_text, 0);
+#else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
         walk_list(ptr->constraints,
                   an_asm_operand_constraint_ptr, iek_asm_operand_constraint);
+#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
         walk_ptr(ptr->expression, an_expr_node_ptr, iek_expr_node);
       }
       break;
+#if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
     case iek_asm_operand_constraint:
 #if !DO_SUBTREE_WALK
       {
@@ -2887,6 +2892,7 @@ after_entry_from_class:
       }
 #endif /* !DO_SUBTREE_WALK */
       break;
+#endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
     case iek_named_register_list:
 #if !DO_SUBTREE_WALK
       {

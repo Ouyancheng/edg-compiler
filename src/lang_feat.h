@@ -527,6 +527,20 @@ is not provided.
 #endif /* !GNU_EXTENSIONS_ALLOWED && ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
 
 /*
+Flag that is TRUE if GNU asm operand description strings should be recorded
+as they appear in the source instead of represented in a more structure form.
+When TRUE, the description strings are not checked for validity and constructs
+that are otherwise unrecognized by the front end are accepts.
+*/
+#ifndef RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+#define RECORD_RAW_ASM_OPERAND_DESCRIPTIONS FALSE
+#endif /* ifndef RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
+
+#if !GNU_EXTENSIONS_ALLOWED && RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+ #error -- RECORD_RAW_ASM_OPERAND_DESCRIPTIONS requires GNU_EXTENSIONS_ALLOWED
+#endif /* !GNU_EXTENSIONS_ALLOWED && RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
+
+/*
 Flag that is TRUE if x86-specific attributes should be recognized (and
 recorded in the IL).  This includes the stdcall and cdecl attributes.
 */

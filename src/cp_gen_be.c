@@ -11422,17 +11422,23 @@ static void gen_asm_operands(an_asm_entry_ptr aep)
 Generate the GNU C operand descriptions for the given asm entry.
 */
 {
-  a_boolean                     output = TRUE;
+  a_boolean                     output;
   an_asm_operand_ptr            aop;
+#if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
   an_asm_operand_constraint_ptr c;
+#endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
   /* Check for the case of no operands at all, or just no outputs. */
-  if (aep->operands == NULL ||
-      !(aep->operands->modifiers & (an_asm_operand_modifier)aom_output)) {
-    output = FALSE;
+#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+  output = aep->operands != NULL && aep->operands->is_output_operand;
+#else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
+  output = aep->operands != NULL &&
+           (aep->operands->modifiers & (an_asm_operand_modifier)aom_output);
+#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
+  if (!output) {
     write_tok_str(" :");
   }  /* if */
-  for (aop = aep->operands; aop != NULL; aop = aop->next) {
+  for (aop = aep->operands; aop != NULL;) {
     write_tok_ch(' ');
     if (aop->name != NULL) {
       /* This is a named operand. */
@@ -11440,8 +11446,13 @@ Generate the GNU C operand descriptions for the given asm entry.
       write_tok_str(aop->name);
       write_tok_ch(']');
     }  /* if */
+#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+    write_ch('"');
+    write_str(aop->constraints_string);
+    write_ch('"');
+#else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
     m_write_ch('"');
-    if (aop->modifiers & (an_asm_operand_modifier)aom_output) {
+    if (output) {
       if (aop->modifiers & (an_asm_operand_modifier)aom_input) {
         m_write_ch('+');
       } else {
@@ -11455,21 +11466,32 @@ Generate the GNU C operand descriptions for the given asm entry.
       m_write_ch(asm_operand_constraint_letters[(int)c->kind]);
     }  /* for */
     m_write_ch('"');
+#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
     write_tok_str(" (");
-    if (aop->modifiers & (an_asm_operand_modifier)aom_output) {
+    if (output) {
       gen_lvalue(aop->expression);
     } else {
       gen_expression(aop->expression);
     }  /* if */
     m_write_ch(')');
-    /* If this is the last output, but not the last entry, write a
-       colon.  Else if this is not the last operand, write a comma. */
-    if (output && aop->next != NULL &&
-        !(aop->next->modifiers & (an_asm_operand_modifier)aom_output)) {
-      write_tok_str(" :");
-      output = FALSE;
-    } else if (aop->next != NULL) {
-      m_write_ch(',');
+    /* Move to the next operand (if any). */
+    aop = aop->next;
+    /* If this was the last output, but not the last entry, write a colon.
+       Else if this was not the last operand, write a comma. */
+    if (aop != NULL) {
+      /* Another operand description follows. */
+      a_boolean  next_is_output;
+#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+      next_is_output = aop->is_output_operand;
+#else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
+      next_is_output = (aop->modifiers & (an_asm_operand_modifier)aom_output);
+#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
+      if (output && !next_is_output) {
+        write_tok_str(" :");
+        output = FALSE;
+      } else {
+        m_write_ch(',');
+      }  /* if */
     }  /* if */
   }  /* for */
   if (output && aep->clobbers != NULL) {

@@ -394,7 +394,6 @@ extern void form_asm_name(char                                   *asm_name,
 
 extern void form_var_reg_name(a_named_register                       reg,
                               an_il_to_str_output_control_block_ptr  octl);
-
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 

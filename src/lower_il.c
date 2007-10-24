@@ -14628,9 +14628,13 @@ under it.  Used in both C++ and C mode.
     an_asm_entry_ptr   aep = statement->variant.asm_entry;
     an_asm_operand_ptr aop;
     for (aop = aep->operands; aop != NULL; aop = aop->next) {
-      lower_expr(aop->expression,
-                 /*is_lvalue=*/(aop->modifiers &
-                                (an_asm_operand_modifier)aom_output) != 0);
+      a_boolean  is_lvalue;
+#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+      is_lvalue = aop->is_output_operand;
+#else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
+      is_lvalue = (aop->modifiers & (an_asm_operand_modifier)aom_output) != 0;
+#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
+      lower_expr(aop->expression, is_lvalue);
     }  /* for */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

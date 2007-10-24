@@ -3202,7 +3202,11 @@ as specified in the control block.
       { an_asm_entry_ptr   aep = statement->variant.asm_entry;
         an_asm_operand_ptr aop;
         for (aop = aep->operands; aop != NULL; aop = aop->next) {
+#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+          tblock->expr_is_lvalue = aop->is_output_operand;
+#else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
           tblock->expr_is_lvalue = (aop->modifiers & (int)aom_output) != 0;
+#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
           traverse_expr(aop->expression, tblock);
         }  /* for */
         tblock->expr_is_lvalue = FALSE;

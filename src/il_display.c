@@ -5711,12 +5711,21 @@ static void disp_asm_operand(an_asm_operand_ptr ptr)
 Display the indicated asm operand.
 */
 {
+#if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
   an_asm_operand_constraint_ptr c;
+#endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
   disp_ptr("next", (char *)ptr->next, iek_asm_operand);
   if (ptr->name != NULL) {
     disp_string_ptr("name", ptr->name, iek_other_text, (sizeof_t)0);
   }  /* if */
+#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+  if (ptr->is_output_operand) {
+    disp_boolean("is_output_operand", TRUE);
+  }  /* if */
+  disp_string_ptr("constraints_string", ptr->constraints_string,
+                  iek_other_text, (sizeof_t)0);
+#else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
   if (ptr->modifiers & aom_output) {
     disp_boolean("aom_output", TRUE);
   }  /* if */
@@ -5745,6 +5754,7 @@ Display the indicated asm operand.
     printf("constraint: %c\n",
            asm_operand_constraint_letters[(int)c->kind]);
   }  /* for */
+#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
   disp_ptr("expr", (char *)ptr->expression, iek_expr_node);
 } /* disp_asm_operand */
 

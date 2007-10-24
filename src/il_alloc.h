@@ -135,8 +135,10 @@ extern an_ms_if_exists_ptr alloc_ms_if_exists(void);
 extern a_seq_number_lookup_entry_ptr alloc_seq_number_lookup_entry(void);
 
 #if GNU_EXTENSIONS_ALLOWED
+#if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
 extern an_asm_operand_constraint_ptr alloc_asm_operand_constraint(
                                             an_asm_operand_constraint_kind ck);
+#endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
 extern an_asm_operand_ptr alloc_asm_operand(void);
 

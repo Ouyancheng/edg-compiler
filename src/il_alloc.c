@@ -2375,6 +2375,7 @@ Allocate space for an asm function body and return a pointer to it.
 #endif /* ASM_SUPPORT_NEEDED */
 
 #if GNU_EXTENSIONS_ALLOWED
+#if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
 
 an_asm_operand_constraint_ptr alloc_asm_operand_constraint(
                                             an_asm_operand_constraint_kind ck)
@@ -2392,6 +2393,7 @@ Allocate space for an asm operand constraint and return a pointer to it.
   return aocp;
 }  /* alloc_asm_operand_constraint */
 
+#endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
 an_asm_operand_ptr alloc_asm_operand(void)
 /*
@@ -2403,8 +2405,13 @@ Allocate space for an asm operand and return a pointer to it.
 
   aop->next = NULL;
   aop->name = NULL;
+#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+  aop->is_output_operand = FALSE;
+  aop->constraints_string = NULL;
+#else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
   aop->constraints = NULL;
   aop->modifiers = (an_asm_operand_modifier)aom_invalid;
+#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
   aop->position = null_source_position;
   aop->expression = NULL;
   return aop;

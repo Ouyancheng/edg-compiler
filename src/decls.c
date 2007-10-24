@@ -10637,14 +10637,20 @@ instruction's operands.
 #if GNU_EXTENSIONS_ALLOWED
     /* Check for operands spec. */
     if (gnu_mode && is_asm_statement) {
+      a_boolean  outputs;
       if (curr_token == tok_colon || curr_token == tok_colon_colon) {
         gnu_asm_form = TRUE;
         operands = asm_operands_spec();
         clobbers = asm_clobbers_spec();
       }  /* if */
       /* An asm() with no outputs is automatically volatile. */
-      if (operands == NULL ||
-          !(operands->modifiers & (an_asm_operand_modifier)aom_output)) {
+#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+      outputs = operands != NULL && operands->is_output_operand;
+#else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
+      outputs = operands != NULL &&
+                (operands->modifiers & (an_asm_operand_modifier)aom_output);
+#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
+      if (outputs) {
         is_volatile = TRUE;
       }  /* if */
     } else {
