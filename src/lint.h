@@ -508,6 +508,17 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_invalid_gnu_sync_size)*/
 /*lint -esym(769,ec_extra_arguments_ignored)*/
 #endif /* !(GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED) */
+#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+/*lint -esym(769,ec_bad_asm_constraint_modifier)*/
+/*lint -esym(769,ec_bad_asm_constraint_letter)*/
+/*lint -esym(769,ec_missing_constraint_letter)*/
+/*lint -esym(769,ec_asm_output_must_have_output_mod)*/
+/*lint -esym(769,ec_asm_input_must_not_have_output_mod)*/
+/*lint -esym(769,ec_register_used_twice)*/
+/*lint -esym(769,ec_register_used_and_clobbered)*/
+/*lint -esym(769,ec_fixed_register_used)*/
+/*lint -esym(769,ec_match_limit_for_symbolic_asm_operand)*/
+#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
 /******************************************************************************
 *                                                             \  ___  /       *
