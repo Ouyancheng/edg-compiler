@@ -781,6 +781,8 @@ is pushed regardless of any of the other factors.
        in an elision initializer are not subject to the optimization. */
     new_entry->evaluated = expr_stack->evaluated;
     new_entry->potentially_evaluated = expr_stack->potentially_evaluated;
+    new_entry->is_decltype_or_typeof_arg_expression =
+                              expr_stack->is_decltype_or_typeof_arg_expression;
     new_entry->is_default_arg_expression =
                                          expr_stack->is_default_arg_expression;
     new_entry->inside_conditional_expression =

@@ -6995,7 +6995,7 @@ function memory region.  For example:
   } else if (inside_local_class) {
     while (scope_stack[result].depth_innermost_function_scope ==
                                                              NO_SCOPE_DEPTH) {
-      --result;
+      result = scope_stack[result].previous_scope;
     }  /* while */
     result = scope_stack[result].depth_innermost_function_scope;
   }  /* if */
@@ -16634,7 +16634,7 @@ to reflect the error.
               /* As an extension, allow references to nonstatic variables
                  inside sizeof expressions.  (Except VLA variables, since
                  sizeof applied to such variables involves a run-time
-                 computation.)  We also allow decltype/typeof construct if
+                 computation.)  We also allow decltype/typeof constructs if
                  they appear directly in the class definition itself and
                  not in a member function definition of the class (the latter
                  would requiring a reference between two different function
