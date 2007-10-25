@@ -1,5 +1,31 @@
 Version 3.11
 
+10/25/07 Spurious error on template disambiguation
+
+The token caching process did not handle the "template" keyword as used
+for syntactic disambiguation properly.  This could result in spurious
+errors when the front end was caching up to a particular token, and
+that token was found in a dependent template argument list preceded by
+the "template" keyword.  Now fixed.
+
+  template<typename T> class A {};
+  template<typename T> struct B {
+    typedef A<T> my_A;
+    template <typename U, typename V> my_A g();
+  };
+  template<typename T> struct C {
+    typedef B<T> my_B;
+    void f();
+    my_B b;
+  };
+  template<typename T> void C<T>::f() {
+    typename my_B::my_A it = b.template g<int, int>();
+  }
+  int main() {
+    C<int> c;
+    c.f();
+  }
+
 10/24/07 Configuration macro for GNU asm operand descriptions
 
 A new configuration macro RECORD_RAW_ASM_OPERAND_DESCRIPTIONS is now available

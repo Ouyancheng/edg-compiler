@@ -1447,7 +1447,8 @@ be copied to the new cache.
   a_token_sequence_number	last_tsn;
   a_token_sequence_number	last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
   a_boolean			save_caching_tokens = caching_tokens;
-  a_boolean			prev_token_was_new_style_cast_keyword = FALSE;
+  a_boolean			prev_token_precedes_angle_bracket_list = FALSE;
+  a_boolean			prev_token_was_template = FALSE;
 
   db_enter(4, "cache_token_stream_with_coalesce_flag");
   /* Set a flag that indicates that the tokens being scanned are to be
@@ -1481,23 +1482,31 @@ be copied to the new cache.
      '{' is encountered, ignore the stop token array until the corresponding
      ')', ']', or '}' is reached. */
   while (stop_tokens[(int)curr_token] == 0) {
-    if (coalesce_ids && stop_tokens[(int)tok_gt] > 0 &&
+    if (coalesce_ids &&
+        (stop_tokens[(int)tok_gt] > 0 || prev_token_was_template) &&
         (curr_token == tok_dynamic_cast || curr_token == tok_static_cast ||
-         curr_token == tok_reinterpret_cast || curr_token == tok_const_cast)) {
+         curr_token == tok_reinterpret_cast || curr_token == tok_const_cast ||
+         prev_token_was_template)) {
       /* We're looking for the end of a template argument list and are
-         about to scan over a new-style cast.  Make sure we don't stop the
-         scan for the '>' that's part of the new-style cast syntax. */
-      prev_token_was_new_style_cast_keyword = TRUE;
+         about to scan over a new-style cast, or we have a "template"
+         keyword that indicates the thing following the identifier is a
+         template argument list.  We need to look for the ">" that closes
+         the template argument list or new-style cast type. */
+      prev_token_precedes_angle_bracket_list = TRUE;
+      prev_token_was_template = FALSE;
+    } else if (curr_token == tok_template) {
+      prev_token_was_template = TRUE;
     } else {
       a_boolean	err;
       if (curr_token == tok_lparen || curr_token == tok_lbracket ||
           curr_token == tok_lbrace ||
-          (curr_token == tok_lt && prev_token_was_new_style_cast_keyword)) {
+          (curr_token == tok_lt && prev_token_precedes_angle_bracket_list)) {
         err = cache_token_stream_until_matching_token(
                                        cache, coalesce_ids, last_tsn_in_cache);
         if (err) break;
       }  /* if */
-      prev_token_was_new_style_cast_keyword = FALSE;
+      prev_token_precedes_angle_bracket_list = FALSE;
+      prev_token_was_template = FALSE;
     }  /* if */
     /* Stop immediately when end of source is reached. */
     if (curr_token == tok_end_of_source) break;
