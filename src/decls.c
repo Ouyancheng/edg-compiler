@@ -10650,7 +10650,7 @@ instruction's operands.
       outputs = operands != NULL &&
                 (operands->modifiers & (an_asm_operand_modifier)aom_output);
 #endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
-      if (outputs) {
+      if (!outputs) {
         is_volatile = TRUE;
       }  /* if */
     } else {
