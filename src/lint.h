@@ -509,6 +509,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_extra_arguments_ignored)*/
 #endif /* !(GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED) */
 #if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+/*lint -esym(769,ec_asm_modifier_ignored)*/
 /*lint -esym(769,ec_bad_asm_constraint_modifier)*/
 /*lint -esym(769,ec_bad_asm_constraint_letter)*/
 /*lint -esym(769,ec_missing_constraint_letter)*/
