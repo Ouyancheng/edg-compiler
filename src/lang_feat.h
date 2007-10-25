@@ -529,11 +529,11 @@ is not provided.
 /*
 Flag that is TRUE if GNU asm operand description strings should be recorded
 as they appear in the source instead of represented in a more structure form.
-When TRUE, the description strings are not checked for validity and constructs
-that are otherwise unrecognized by the front end are accepts.
+When TRUE (the default), the description strings are not checked for validity
+and constructs that are otherwise unrecognized by the front end are accepted.
 */
 #ifndef RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
-#define RECORD_RAW_ASM_OPERAND_DESCRIPTIONS FALSE
+#define RECORD_RAW_ASM_OPERAND_DESCRIPTIONS TRUE
 #endif /* ifndef RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
 #if !GNU_EXTENSIONS_ALLOWED && RECORD_RAW_ASM_OPERAND_DESCRIPTIONS

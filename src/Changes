@@ -35,7 +35,10 @@ no further processing or validation.  This means that operand description
 constructs that are otherwise unsupported (such as the "!", "?", and ","
 constraint modifiers) are accepted, but the back end is now responsible for
 making sure that the description string is meaningful (this is reasonable
-since that string's meaning is highly target-dependent).
+since that string's meaning is highly target-dependent).  The new macro is
+set to TRUE by default (which implies an IL CHANGE; the previous behavior and
+IL representation are restored by setting RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+to FALSE).
 
 10/23/07 Internal error on use of typeof or decltype in local class types
 
