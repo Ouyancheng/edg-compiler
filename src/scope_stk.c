@@ -1169,12 +1169,19 @@ using-directives specified after the point of definition of the template.
        If the effective declaration sequence number of this entry is less
        than the existing entry, update the existing entry. */
     if (audp->effective_decl_seq > effective_decl_seq) {
-      audp->effective_decl_seq = effective_decl_seq;
+        audp->effective_decl_seq = effective_decl_seq;
       /* Once again go through the using-directives that should be visible
          transitively and update their effective declaration sequence. */
       add_active_using_directives_for_scope(nsp->variant.assoc_scope, ssep,
                                             effective_decl_seq);
     }  /* if */
+  }  /* if */
+  /* Record the lowest declaration sequence number associated with
+     this using-directive.  This is used to emulate the instantiation
+     lookup used by g++. */
+  if (nssp->using_dir_decl_seq == NO_DECL_SEQUENCE_NUMBER ||
+      audp->effective_decl_seq < nssp->using_dir_decl_seq) {
+    nssp->using_dir_decl_seq = audp->effective_decl_seq;
   }  /* if */
 }  /* add_active_using_directive_to_scope */
 

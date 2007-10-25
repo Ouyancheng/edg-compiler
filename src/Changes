@@ -1,5 +1,25 @@
 Version 3.11
 
+10/25/07 GNU C++ compatibility: visibility of using-directives
+
+The front end does special processing in g++ mode to emulate g++'s behavior
+concerning the visibility of using-directives.  A flaw in this emulation
+resulted in spurious errors in certain cases involving block scope
+using-directives.  Now fixed.
+
+  namespace N { int i = 0; }
+  namespace M {
+    template <class T> inline int f() {
+      using namespace N;
+      return i;  // spurious 'identifier "i" is undefined' error
+    }
+  }
+  using namespace N;
+  namespace M {
+    void foo() { f<int>(); }
+  }
+
+
 10/25/07 Spurious error on template disambiguation
 
 The token caching process did not handle the "template" keyword as used
