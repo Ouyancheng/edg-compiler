@@ -5735,21 +5735,6 @@ Display the indicated asm operand.
   if (ptr->modifiers & aom_earlyclobber) {
     disp_boolean("aom_earlyclobber", TRUE);
   }  /* if */
-  if (ptr->modifiers & aom_commutative) {
-    disp_boolean("aom_commutative", TRUE);
-  }  /* if */
-  if (ptr->modifiers & aom_ignore_next) {
-    disp_boolean("aom_ignore_next", TRUE);
-  }  /* if */
-  if (ptr->modifiers & aom_ignore_till_comma) {
-    disp_boolean("aom_ignore_till_comma", TRUE);
-  }  /* if */
-  if (ptr->modifiers & aom_poor_choice) {
-    disp_boolean("aom_poor_choice", TRUE);
-  }  /* if */
-  if (ptr->modifiers & aom_bad_choice) {
-    disp_boolean("aom_bad_choice", TRUE);
-  }  /* if */
   for (c = ptr->constraints; c != NULL; c = c->next) {
     printf("constraint: %c\n",
            asm_operand_constraint_letters[(int)c->kind]);

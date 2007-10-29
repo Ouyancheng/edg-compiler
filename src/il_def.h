@@ -3174,9 +3174,7 @@ typedef struct an_asm_operand_constraint {
 
 /*
 Modifiers to asm operand strings.  These are all machine independent.
-Many of them do not make sense in asm() but are included anyway for
-completeness.  Note that these are bitmasks, and that aom_input +
-aom_output == aom_modify.
+Note that these are bitmasks, and that aom_input + aom_output == aom_modify.
 */
 enum an_asm_operand_modifier_tag {
   aom_invalid           = 0x00, /* error */
@@ -3184,11 +3182,6 @@ enum an_asm_operand_modifier_tag {
   aom_output            = 0x02, /* =: output operand */
   aom_modify            = 0x03, /* +: read-mod-write operand */
   aom_earlyclobber      = 0x04, /* &: modified early, cannot overlap inputs */
-  aom_commutative       = 0x08, /* %: commutative with next operand */
-  aom_ignore_next       = 0x10, /* *: ignore next letter as a register pref */
-  aom_ignore_till_comma = 0x20, /* #: ignore up to comma as a register pref */
-  aom_poor_choice       = 0x40, /* ?: avoid choosing this */
-  aom_bad_choice        = 0x80  /* !: really avoid choosing this */
 };
 typedef a_byte an_asm_operand_modifier;
 

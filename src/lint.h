@@ -243,19 +243,13 @@ extern int fileno(FILE *);
 /*lint -esym(526,isnan)*/
 /*lint -esym(526,finite)*/
 #endif /* ifdef sun */
-#if GNU_EXTENSIONS_ALLOWED
-/*lint -esym(769, an_asm_operand_modifier_tag::aom_commutative)*/
-/*lint -esym(769, an_asm_operand_modifier_tag::aom_ignore_next)*/
-/*lint -esym(769, an_asm_operand_modifier_tag::aom_ignore_till_comma)*/
-/*lint -esym(769, an_asm_operand_modifier_tag::aom_poor_choice)*/
-/*lint -esym(769, an_asm_operand_modifier_tag::aom_bad_choice)*/
-#else /* !GNU_EXTENSIONS_ALLOWED */
+#if !GNU_EXTENSIONS_ALLOWED
 /*lint -esym(769,ec_noreturn_function_does_return)*/
 #if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
 /*lint -esym(759,field_alignment_for)*/
 /*lint -esym(765,field_alignment_for)*/
 #endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 #if !(GNU_EXTENSIONS_ALLOWED && GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED)
 /*lint -esym(769,ec_bad_variable_for_init_priority)*/
 /*lint -esym(769,ec_init_priority_reserved)*/
