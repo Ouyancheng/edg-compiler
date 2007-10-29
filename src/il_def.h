@@ -3310,7 +3310,8 @@ typedef struct an_asm_operand {
 			   the "[ <identifier> ]" syntax), or NULL if none was
 			   given. */
 #if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
-  a_bit_field	is_output_operand:1;
+  a_byte_boolean
+		is_output_operand:1;
 			/* TRUE if this entry is for an output operand
 			   description.  Otherwise, this represents an input
 			   operand description. */
