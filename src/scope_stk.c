@@ -1169,7 +1169,7 @@ using-directives specified after the point of definition of the template.
        If the effective declaration sequence number of this entry is less
        than the existing entry, update the existing entry. */
     if (audp->effective_decl_seq > effective_decl_seq) {
-        audp->effective_decl_seq = effective_decl_seq;
+      audp->effective_decl_seq = effective_decl_seq;
       /* Once again go through the using-directives that should be visible
          transitively and update their effective declaration sequence. */
       add_active_using_directives_for_scope(nsp->variant.assoc_scope, ssep,
