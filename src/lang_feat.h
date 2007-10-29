@@ -528,7 +528,7 @@ is not provided.
 
 /*
 Flag that is TRUE if GNU asm operand description strings should be recorded
-as they appear in the source instead of represented in a more structure form.
+as they appear in the source instead of represented in a more structured form.
 When TRUE (the default), the description strings are not checked for validity
 and constructs that are otherwise unrecognized by the front end are accepted.
 */
