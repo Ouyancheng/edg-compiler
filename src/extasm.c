@@ -223,7 +223,7 @@ provided by the author of the back end.
 */
 {
   return TRUE;
-}  /* validate_expr_for_constraint */
+}  /* validate_expr_for_constraints */
 
 #endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
