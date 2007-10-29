@@ -40,6 +40,7 @@ the "template" keyword.  Now fixed.
   };
   template<typename T> void C<T>::f() {
     typename my_B::my_A it = b.template g<int, int>();
+    //                         ^ problematic use of "template"
   }
   int main() {
     C<int> c;
