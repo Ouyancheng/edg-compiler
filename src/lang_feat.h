@@ -533,7 +533,11 @@ When TRUE (the default), the description strings are not checked for validity
 and constructs that are otherwise unrecognized by the front end are accepted.
 */
 #ifndef RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+#if GNU_EXTENSIONS_ALLOWED
 #define RECORD_RAW_ASM_OPERAND_DESCRIPTIONS TRUE
+#else /* !GNU_EXTENSIONS_ALLOWED */
+#define RECORD_RAW_ASM_OPERAND_DESCRIPTIONS FALSE
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* ifndef RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
 #if !GNU_EXTENSIONS_ALLOWED && RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
