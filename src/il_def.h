@@ -3304,7 +3304,7 @@ typedef struct an_asm_operand {
 			   given. */
 #if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
   a_byte_boolean
-		is_output_operand:1;
+		is_output_operand;
 			/* TRUE if this entry is for an output operand
 			   description.  Otherwise, this represents an input
 			   operand description. */
