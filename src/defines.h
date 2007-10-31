@@ -519,6 +519,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #ifdef __CYGWIN32__
 
 /* Options for Windows/Cygwin version. */
+#define ASM_FUNCTION_ALLOWED TRUE
 #define FIXED_POINT_ALLOWED 1
 #ifdef DEMO_VERSION
 /* Demo versions should support multiple translation units. */
