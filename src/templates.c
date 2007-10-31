@@ -1642,10 +1642,11 @@ during wrapup processing by compare_function_templates.
 #if GNU_EXTENSIONS_ALLOWED
       } else {
         /* A type parameter. */
-        if (gpp_mode) {
+        if (gpp_mode && gnu_version >= 30400) {
           /* In GNU C++ mode, attempts to bind a template parameter to a class
              type or enumeration type with no name for linkage purposes is
-             treated as a deduction failure rather than an outright error. */
+             treated as a deduction failure rather than an outright error.
+             Earlier versions of g++ do not behave that way. */
           a_type_ptr  unqual_type = tap->variant.type;
           if ((is_immediate_class_type(unqual_type) ||
                is_immediate_enum_type(unqual_type)) &&
@@ -9510,18 +9511,25 @@ structure.
   }  /* if */
   /* Check for invalid type arguments.  Local types may not be used as
      arguments nor may unnamed types.  Issue an error if any are found.
-     Unnamed types are permitted as template arguments in Microsoft mode. */
+     Unnamed types are permitted as template arguments in Microsoft mode
+     and in some GNU C++ modes. */
   while (tap != NULL) {
     if (is_type_templ_arg(tap)) {
       a_type_ptr	type = tap->variant.type;
       a_boolean		is_unnamed;
       a_boolean		is_local;
-      if (is_or_contains_unnamed_or_local_type(type, &is_unnamed, &is_local)) {
+      if (is_or_contains_type_with_no_name_linkage(
+                                              type, &is_unnamed, &is_local)) {
         if (is_local) {
           pos_error(ec_local_type_in_template_arg, source_pos);
           tap->variant.type = error_type();
-        } else if (is_unnamed && !microsoft_mode) {
-          pos_error(ec_unnamed_type_in_template_arg, source_pos);
+        } else if (!microsoft_mode && !(gpp_mode && gnu_version < 30400)) {
+          /* Since the type is not local and it has no name linkage, it is
+             probably an unnamed type.  However, it could also be a member
+             of an unnamed type (directly or indirectly). */
+          pos_error(is_unnamed ? ec_unnamed_type_in_template_arg
+                               : ec_type_with_no_linkage_in_template_arg,
+                    source_pos);
         }  /* if */
       }  /* if */
       /* Local typedef names (legal if they refer to nonlocal types) should

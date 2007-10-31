@@ -1705,6 +1705,7 @@ ec_leading_character_ignored_in_char_literal;;"too many characters in character 
 ec_first_inline_after_definition;;"%n cannot be declared inline after its definition %p"
 REMOVED;ec_statement_expression_in_dependent_typeof;;"a statement expression is not allowed in a template-dependent typeof specifier"
 REMOVED;ec_statement_expression_in_decltype;;"a statement expression is not allowed in a decltype specifier"
+ec_type_with_no_linkage_in_template_arg;;"a template argument may not reference a type with no name linkage"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

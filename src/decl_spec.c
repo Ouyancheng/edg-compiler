@@ -2094,9 +2094,10 @@ Set the name_linkage field of the class or enum type pointed to by tp.
     /* Name linkage requires a nonlocal name.  (Note that this can change if
        the type acquires a name through a typedef declaration.) */
     scp->name_linkage = (a_name_linkage_kind)nlk_none;
-  } else if (scp->is_class_member) {
+  } else if (scp->is_class_member && !gpp_mode) {
     /* A nested class or enum has the same linkage as the class of which it
-       is a member. */
+       is a member.  GNU C++ ignores the name linkage of the enclosing class;
+       e.g., a named class nested in an unnamed class has C++ name linkage. */
     scp->name_linkage = scp->parent.class_type->source_corresp.name_linkage;
   } else if (any_cfront_mode() &&
              depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {

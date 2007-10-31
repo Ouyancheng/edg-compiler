@@ -7398,16 +7398,26 @@ static a_boolean ttt_is_type_with_no_name_linkage(
 This is a service function designed to be called from traverse_type_tree
 (whence the ttt_ prefix).  It returns TRUE if type_ptr is a class type or
 enumeration type with no name linkage (i.e., with no name and no name "for
-linkage purposes" imbued by a typedef.  '*force_end_of_traversal' can be
-set to true if the result of the traversal is decided (in this case, when
-a type with no name linkage is encountered).
+linkage purposes" imbued by a typedef).  Nonreal class types are treated as
+having name linkage.  '*force_end_of_traversal' can be set to true if the
+result of the traversal is decided (in this case, when a type with no name
+linkage is encountered).
 */
 {
   a_boolean     result = FALSE;
 
-  if ((is_class_struct_union(type_ptr) || is_enum(type_ptr)) &&
+  if (((is_class_struct_union(type_ptr) &&
+        !type_ptr->variant.class_struct_union.is_nonreal_class) ||
+       is_enum(type_ptr)) &&
       type_ptr->source_corresp.name_linkage == (a_name_linkage_kind)nlk_none) {
     *force_end_of_traversal = result = TRUE;
+    if (type_ptr->source_corresp.is_local_to_function) {
+      check_assertion(type_ptr->kind != (a_type_kind)tk_typeref);
+      is_local_type = TRUE;
+    }  /* if */
+    if (type_ptr->source_corresp.name == NULL) {
+      is_unnamed_type = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* ttt_is_type_with_no_name_linkage */
@@ -8201,8 +8211,9 @@ its parameters?).
             }  /* if */
           }  /* if */
 check_enclosing_classes:
-          if ((!(flags & TTT_DEDUCED_CONTEXTS_ONLY) ||
+          if (((flags & TTT_DEDUCED_CONTEXTS_ONLY) == 0 ||
                nonstandard_qualifier_deduction) &&
+              (flags & TTT_NO_PARENT_CLASSES) == 0 &&
               !status && type_ptr->source_corresp.is_class_member) {
             /* Check the parent class.  This is only done when considering
                nondeduced contexts, or when this is a deduced context when
@@ -8256,7 +8267,6 @@ an unnamed namespace, or is a type tree containing such a type.
 */
 {
   a_boolean	result;
-
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_THIS_PARAM_TYPE |
                                                TTT_PARAM_TYPES |
@@ -8301,19 +8311,36 @@ which of the conditions is true.
 }  /* is_or_contains_unnamed_or_local_type */
 
 
-a_boolean is_or_contains_type_with_no_name_linkage(a_type_ptr  type_ptr)
+a_boolean is_or_contains_type_with_no_name_linkage(a_type_ptr  type_ptr,
+					           a_boolean   *is_unnamed,
+					           a_boolean   *is_local)
 /*
 Return TRUE if the type pointed to by type_ptr contains a class, struct,
-union or enum type with no name linkage.
+union or enum type with no name linkage.  If the result is TRUE then
+*is_unnamed or *is_local are set when the type traversal encountered a
+component that is, respectively, unnamed or local (since the traversal stops
+early, another component with a different property may also keep the type
+from having linkage without it being reflected in the values returned).
+This function considers nonreal class and enum types to have linkage.
 */
 {
+  a_boolean			  result;
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_THIS_PARAM_TYPE |
                                                TTT_PARAM_TYPES |
                                                TTT_EXCEPTION_SPECS |
-                                               TTT_SKIP_TYPEREFS);
-  return (traverse_type_tree(type_ptr, ttt_is_type_with_no_name_linkage,
-                             ttt_flags));
+                                               TTT_SKIP_TYPEREFS |
+                                               TTT_NO_PARENT_CLASSES);
+
+  /* Clear the variables that are used to return status information
+     from ttt_is_type_with_no_name_linkage. */
+  is_local_type = FALSE;
+  is_unnamed_type = FALSE;
+  result = (traverse_type_tree(type_ptr, ttt_is_type_with_no_name_linkage,
+                               ttt_flags));
+  *is_unnamed = is_unnamed_type;
+  *is_local = is_local_type;
+  return result;
 }  /* is_or_contains_type_with_no_name_linkage */
 
 

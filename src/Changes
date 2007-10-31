@@ -1,5 +1,32 @@
 Version 3.11
 
+10/31/07 GNU C++ compatibility: Name linkage and unnamed types
+
+In GNU C++ mode, an unnamed class/enum type can be given a name "for linkage
+purposes" through a typedef that expresses the type through a typeof construct
+(see Changes entry of 8/3/06).  This mechanism has now been extended to
+unnamed class/enum types that are nested in unnamed class types.  For example:
+
+  struct S {
+    struct {
+      struct {} d;
+    } m;
+  } s;
+  typedef typeof(s.m.d) D;
+  template<typename T> struct X {};
+  X<D> xd;  // Now allowed in GNU C++ mode.
+        
+Furthermore, when gnu_version < 30400, nonlocal unnamed types are allowed as
+template arguments.  The deduction failure behavior described in the Changes
+entry of 9/13/06 now only applies when gnu_version >= 30400.  For example:
+
+  struct { operator int() { return 0; } } x;
+  template<class T> int f(T) { return 1; }
+  int f(int) { return 2; }
+  int main() {
+    return f(x);  // Accepted in GNU C++ mode. Returns 1 when
+  }               // gnu_version < 30400; return 2 otherwise.
+
 10/30/07 GNU compatibility: asm functions in source sequence lists
 
 In configurations in which both ASM_FUNCTION_ALLOWED and

@@ -11195,15 +11195,20 @@ all arguments were explicit.
       a_boolean		is_local;
       type_name_full(/*disallow_variably_modified_type=*/TRUE, &argument_type,
                      (a_boolean*)NULL, (a_boolean*)NULL);
-      /* Be sure the type does not involve any local or unnamed classes -- only
-         externally visible types are allowed, since template classes are
-         themselves externally linked. */
-      if (is_or_contains_unnamed_or_local_type(argument_type, &is_unnamed,
-                                               &is_local)) {
+      /* Be sure the type does not involve any classes/enums with no name
+         linkage -- only externally visible types are allowed, since template
+         classes are themselves externally linked.  In standard C++98/C++03,
+         this excludes local and unnamed classes/enums, but in some other modes
+         (e.g., GNU and Microsoft C++) local and/or unnamed classes/enums may
+         have name linkage. */
+      if (is_or_contains_type_with_no_name_linkage(
+                                      argument_type, &is_unnamed, &is_local)) {
         if (is_local) {
           pos_error(ec_local_type_in_template_arg, &arg_pos);
         } else if (is_unnamed) {
           pos_error(ec_unnamed_type_in_template_arg, &arg_pos);
+        } else {
+          pos_error(ec_type_with_no_linkage_in_template_arg, &arg_pos);
         }  /* if */
         argument_type = error_type();
       }  /* if */

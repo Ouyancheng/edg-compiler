@@ -4305,6 +4305,7 @@ should be reported.
 {
   a_boolean   is_function = sym->kind == (a_symbol_kind)sk_routine ||
                             sym->kind == (a_symbol_kind)sk_member_function;
+  a_boolean   is_local, is_unnamed;
   a_type_ptr  type;
   an_error_severity
               severity;
@@ -4333,7 +4334,8 @@ should be reported.
     pos_diagnostic(severity, is_function ? ec_local_type_in_function :
                                            ec_local_type_in_nonlocal_var,
                    error_pos);
-  } else if (is_or_contains_type_with_no_name_linkage(type)) {
+  } else if (is_or_contains_type_with_no_name_linkage(
+                                              type, &is_unnamed, &is_local)) {
     /* Catch the use of types that do not have linkage.
        E.g., typedef enum { e1 } *pE; void f(pE);
        In strict mode, we issue a discretionary error.  In other modes, we
@@ -8747,7 +8749,7 @@ symbol entry, and return a pointer to it in state->sym.
        purposes. */
     { a_symbol_ptr	type_sym;
       a_symbol_ptr	nested_sym;
-      type_sym = (a_symbol_ptr)type_to_check->source_corresp.assoc_info;
+      type_sym = symbol_for(type_to_check);
       if (type_sym != NULL) {
         nested_sym = type_sym->corresp_nonreal_or_nested_type;
         if (nested_sym != NULL) {
@@ -8761,8 +8763,7 @@ symbol entry, and return a pointer to it in state->sym.
     if (is_class_or_enum) {
       if (type_to_check->source_corresp.name == NULL) {
         /* A class/struct/union or enum type with no name. */
-        a_symbol_ptr  tag_sym =
-                        (a_symbol_ptr)type_to_check->source_corresp.assoc_info;
+        a_symbol_ptr  tag_sym = symbol_for(type_to_check);
         /* Through deduction templates are sometimes instantiated with
            unnamed enum or class types: In such cases, the unnamed type (which
            is a template argument) will be in a scope that's outside that of
