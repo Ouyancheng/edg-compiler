@@ -1,5 +1,20 @@
 Version 3.11
 
+10/30/07 GNU compatibility: asm functions in source sequence lists
+
+In configurations in which both ASM_FUNCTION_ALLOWED and
+GENERATE_SOURCE_SEQUENCE_LISTS are TRUE, the iek_statement source sequence
+entry corresponding to the stmk_asm_func_body statement was omitted from
+the source sequence list for the asm function.  In configurations using
+the C++-generating back end, this omission resulted in dereferencing a null
+pointer while generating the asm function definition.  The missing source
+sequence entry is now included in the IL.  For example:
+
+  __asm int f(int i) {  /* Previously the declaration of "i" was the last
+                           entry on f's source sequence list.  Now it is
+                           followed by the entry for the body. */
+  }
+
 10/25/07 GNU C++ compatibility: visibility of using-directives
 
 The front end does special processing in g++ mode to emulate g++'s behavior
