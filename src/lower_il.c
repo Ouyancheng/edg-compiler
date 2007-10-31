@@ -3028,7 +3028,7 @@ so the next insertion will be after the statement added.
 a_statement_ptr insert_expr_statement(an_expr_node_ptr       node,
                                       an_insert_location_ptr insert_location)
 /*
-Make a statement from expression expr.  Insert the statement at
+Make a statement from expression node.  Insert the statement at
 *insert_location and update *insert_location.  Return a pointer to the
 statement, or NULL if no statement was created (in an expression insert
 context).  The result of the expression is marked as not used if a statement
@@ -3055,7 +3055,7 @@ a_statement_ptr insert_expr_statement_set_pos(
                                       an_expr_node_ptr       node,
                                       an_insert_location_ptr insert_location)
 /*
-Make a statement from expression expr.  Insert the statement at
+Make a statement from expression node.  Insert the statement at
 *insert_location and update *insert_location.  Return a pointer to the
 statement, or NULL if no statement was created (in an expression insert
 context).  The result of the expression is marked as not used if a statement
