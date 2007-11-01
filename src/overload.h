@@ -257,6 +257,10 @@ typedef struct an_arg_match_summary {
 			   the user-defined conversion will indicate the
 			   copy constructor even though the match level
 			   is aml_std_conversion or aml_exact. */
+  a_symbol_ptr	template_symbol;
+			/* In the case that the argument is a template function
+			   or a pointer or pointer-to-member thereto, this
+			   points to the template.  NULL otherwise. */
 } an_arg_match_summary;
 
 

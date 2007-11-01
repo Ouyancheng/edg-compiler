@@ -653,6 +653,7 @@ values.
   amsp->param_type                 = NULL;
   amsp->guide_type                 = NULL;
   clear_conv_descr(&amsp->conversion);
+  amsp->template_symbol            = NULL;
 }  /* clear_arg_match_summary */
 
 
@@ -1855,24 +1856,33 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
          pointer and pointer-to-member cases, the operand can be a function
          designator or pointer to function; for the (non-const) reference
          case it must be a function designator. */
-      a_boolean unknown_dependent_function;
-      if (find_addr_of_overloaded_function_match(arg_operand->variant.symbol,
-                                                 (a_boolean)arg_operand->
+      a_symbol_ptr chosen_function;
+      a_boolean    unknown_dependent_function;
+      if ((chosen_function =
+           find_addr_of_overloaded_function_match(arg_operand->variant.symbol,
+                                                  (a_boolean)arg_operand->
                                                                 is_template_id,
-                                                 arg_operand->
+                                                  arg_operand->
                                                              template_arg_list,
-                                                 orig_param_type,
-                                                 /*is_cast=*/FALSE,
-                                                 &arg_summary->match_level,
-                                                 &std_conversion,
-                                                 &unknown_dependent_function,
-                                                 &ambiguous) != NULL ||
+                                                  orig_param_type,
+                                                  /*is_cast=*/FALSE,
+                                                  &arg_summary->match_level,
+                                                  &std_conversion,
+                                                  &unknown_dependent_function,
+                                                  &ambiguous)) != NULL ||
           unknown_dependent_function ||
           ambiguous) {
         /* There is a suitable indefinite function, or more than one.
            arg_summary->match_level has been set appropriately. */
         arg_summary->conversion.std = std_conversion;
         if (ambiguous) arg_summary->conversion.unusable = TRUE;
+        if (chosen_function != NULL &&
+            (chosen_function->kind == (a_symbol_kind)sk_routine ||
+             chosen_function->kind == (a_symbol_kind)sk_member_function) &&
+            chosen_function->variant.routine.ptr->is_template_function) {
+          /* Remember that the argument is a template. */
+          arg_summary->template_symbol = chosen_function;
+        }  /* if */
         goto have_level;
       }  /* if */
     }  /* if */
@@ -2085,6 +2095,22 @@ have_level:;
            mode in certain cases. */
       } else {
         arg_summary->match_level = aml_none;
+      }  /* if */
+    }  /* if */
+    if (arg_operand != NULL &&
+        is_constant_operand(arg_operand) &&
+        is_ptr_to_member_type(arg_operand->type) &&
+        arg_summary->template_symbol == NULL) {
+      /* Remember if the argument is a pointer-to-member for a member function
+         of a template.  This is needed to resolve some nonstandard cases
+         with unevaluated default arguments. */
+      a_constant_ptr pm_con = &arg_operand->variant.constant;
+      if (pm_con->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+          pm_con->variant.ptr_to_member.is_function_ptr) {
+        a_routine_ptr pm_rout = pm_con->variant.ptr_to_member.variant.routine;
+        if (pm_rout->is_template_function) {
+          arg_summary->template_symbol = symbol_for(pm_rout);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4730,6 +4756,174 @@ function required use of anachronisms.
 }  /* has_anachronism_match */
 
 
+static a_boolean equiv_template_routine_types(a_type_ptr type1,
+                                              a_type_ptr type2)
+/*
+Return TRUE if the two given routine types are different copies of the
+routine type for the same template instance.  This check is done by
+looking for equivalent unevaluated default arguments, so this is not
+a general-purpose routine.
+*/
+{
+  a_boolean                     equiv = FALSE;
+  a_routine_type_supplement_ptr rtsp1, rtsp2;
+  a_param_type_ptr              ptp1, ptp2;
+
+  if (type1->kind == (a_type_kind)tk_routine &&
+      type2->kind == (a_type_kind)tk_routine) {
+    rtsp1 = type1->variant.routine.extra_info;
+    rtsp2 = type2->variant.routine.extra_info;
+    ptp1 = rtsp1->param_type_list;
+    ptp2 = rtsp2->param_type_list;
+    for (; ptp1 != NULL && ptp2 != NULL;
+         ptp1 = ptp1->next, ptp2 = ptp2->next) {
+      if (ptp1->has_unevaluated_template_default &&
+          ptp2->has_unevaluated_template_default &&
+          ptp1->default_arg_expr_fixup != NULL &&
+          ptp1->default_arg_expr_fixup == ptp2->default_arg_expr_fixup) {
+        equiv = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return equiv;
+}  /* equiv_template_routine_types */
+
+
+static void instantiate_default_arguments_of_template_matching(
+                                       a_type_ptr               type,
+                                       a_candidate_function_ptr best_candidate,
+                                       a_type_ptr               *updated_type)
+/*
+Instantiate the unevaluated default arguments of whatever template on the
+argument list of the candidate function indicated by best_candidate
+matches the function type "type".  There must be one.  *upated_type is
+set to an updated version of the original type (to be put back into the
+template argument list), or to the original type if no update is required.
+*/
+{
+  an_arg_match_summary_ptr arg_match;
+
+  *updated_type = type;
+  /* If any argument was a template, its symbol was recorded in the
+     argument match.  Look for any of those and see which one matches the
+     type we have. */
+  for (arg_match = best_candidate->arg_matches;
+       arg_match != NULL;
+       arg_match = arg_match->next) {
+    a_symbol_ptr sym = arg_match->template_symbol;
+    if (sym != NULL) {
+      a_type_ptr rout_type;
+      a_boolean  equiv_type = FALSE;
+      reduce_projection_symbol_to_fundamental_symbol(sym);
+      check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
+                      sym->kind == (a_symbol_kind)sk_member_function);
+      rout_type = routine_symbol_type(sym);
+      if (rout_type != type) {
+        /* Check for a type that came from the same template but is not
+           the same copy. */
+        if (equiv_template_routine_types(rout_type, type)) {
+          equiv_type = TRUE;
+          *updated_type = rout_type;
+        }  /* if */
+      }  /* if */
+      if (rout_type == type || equiv_type) {
+        /* Found a match.  Instantiate its unevaluated default arguments. */
+        a_routine_type_supplement_ptr rtsp =
+                                         rout_type->variant.routine.extra_info;
+#if CHECKING
+        a_boolean processed_any = FALSE;
+#endif /* CHECKING */
+        a_param_type_ptr ptp;
+        for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+          if (ptp->has_unevaluated_template_default) {
+            instantiate_default_argument(sym, ptp);
+#if CHECKING
+            processed_any = TRUE;
+#endif /* CHECKING */
+          }  /* if */
+        }  /* for */
+#if CHECKING
+        check_assertion(processed_any || total_errors != 0);
+#endif /* CHECKING */
+        goto done;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  check_assertion_str(total_errors != 0,
+     "instantiate_default_arguments_of_template_matching: template not found");
+done:;
+}  /* instantiate_default_arguments_of_template_matching */
+
+
+static void instantiate_template_default_arguments(
+                                       a_candidate_function_ptr best_candidate)
+/*
+The candidate function identified by best_candidate is a function template
+and is the candidate selected by overload resolution.  The corresponding
+template function is about to be instantiated.  If the template arguments
+contain any function types with uninstantiated default arguments,
+instantiate those default argument expressions now because the template
+and its function type are about to be separated as the function type is
+used to instantiate a function.  This can only happen in a nonstandard
+mode indicated by nonstandard_default_arg_deduction; usually, the
+default arguments are removed from any function types as they enter
+type deduction.
+*/
+{
+  a_template_arg_ptr tap;
+
+  check_assertion(best_candidate->is_function_template &&
+                  nonstandard_default_arg_deduction);
+  for (tap = best_candidate->template_arg_list; tap != NULL; tap = tap->next) {
+    if (tap->kind == (a_templ_arg_kind)tak_type) {
+      a_type_ptr type = tap->variant.type;
+      a_type_ptr orig_type = type;
+      /* Look for function types, pointer-to-function types, and pointer-to-
+         member-function types.  Uninstantiated default arguments can only
+         appear at that kind of "top level." */
+      if (is_pointer_type(type)) {
+        type = type_pointed_to(type);
+      } else if (is_ptr_to_member_type(type)) {
+        type = pm_member_type(type);
+      }  /* if */
+      type = skip_typerefs(type);
+      if (is_function_type(type)) {
+        a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
+        a_param_type_ptr ptp = rtsp->param_type_list;
+        /* Go through the parameters of the function type. */
+        for (; ptp != NULL; ptp = ptp->next) {
+          if (ptp->has_unevaluated_template_default) {
+            /* This parameter type (from something in the template argument
+               list) has an uninstantiated default argument.  Instantiate it
+               by finding the corresponding template on the call arguments
+               list. */
+            a_type_ptr updated_type;
+            instantiate_default_arguments_of_template_matching(type,
+                                                               best_candidate,
+                                                               &updated_type);
+            if (updated_type != type) {
+              /* Update the type in the template argument list (It was a copy
+                 of the type in the template, and we replace it by the
+                 original type in the template, which now has the instantiated
+                 default arguments). */
+              if (is_pointer_type(orig_type)) {
+                updated_type = make_pointer_type(updated_type);
+              } else if (is_ptr_to_member_type(orig_type)) {
+                updated_type = ptr_to_member_type(updated_type,
+                                                  pm_class_type(orig_type));
+              }  /* if */
+              tap->variant.type = updated_type;
+            }  /* if */
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* instantiate_template_default_arguments */
+
+
 static void select_best_candidate_functions(
                         a_candidate_function_ptr *candidate_functions,
                         a_source_position        *source_pos,
@@ -5076,6 +5270,12 @@ create_final_list:
          Create the template function instance. */
       a_symbol_ptr sym = candidates->function_symbol;
       reduce_projection_symbol_to_fundamental_symbol(sym);
+      if (nonstandard_default_arg_deduction) {
+        /* If the template arguments include function types with uninstantiated
+           default arguments, instantiate them now because the template and
+           its function type are getting separated. */
+        instantiate_template_default_arguments(candidates);
+      }  /* if */
       candidates->function_symbol = sym =
                          find_template_function(sym,
                                                 &candidates->template_arg_list,

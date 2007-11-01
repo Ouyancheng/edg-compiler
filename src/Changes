@@ -1,5 +1,29 @@
 Version 3.11
 
+11/1/07  GNU C++ compatibility: default arguments on templates and deduction
+
+GNU C++ mode (and some other modes, such as Microsoft mode prior
+to 7.1) keep default arguments of function templates as part of
+the type of the function when template deduction is done.
+As a consequence, the front end aborted in copy_default_arg_expr
+("rout NULL, no error") when a call was made to a function whose
+type comes from such a deduced type, and the default argument is
+omitted and therefore must be instantiated at the point of call.
+Now fixed.
+
+  template <typename Derived> struct B {
+  template<typename memfunT> void f(memfunT mfp) {
+    (static_cast<Derived*>(this)->*mfp)();
+  }
+  };
+  template <typename T> struct D: B<D<T> > {
+    void g(bool);
+  };
+  template <typename T> void D<T>::g(bool = false) {
+    f(&D::g);
+  }
+  template struct D<int>;
+
 10/31/07 GNU C++ compatibility: Name linkage and unnamed types
 
 In GNU C++ mode, an unnamed class/enum type can be given a name "for linkage

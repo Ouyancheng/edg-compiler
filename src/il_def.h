@@ -82,6 +82,8 @@ typedef struct a_namespace   *a_namespace_ptr;
 typedef struct a_scope       *a_scope_ptr;
 typedef struct a_routine_fixup
                              a_routine_fixup_dummy_typedef;
+typedef struct a_def_arg_expr_fixup
+                             a_def_arg_expr_fixup_dummy_typedef;
 #if MINIMAL_INLINING
 typedef struct a_variable_remapping_for_inlining
 			     a_variable_remapping_for_inlining_dummy_typedef;
@@ -3546,6 +3548,12 @@ typedef struct a_param_type {
 			   be NULL if the default argument value has not
 			   yet been evaluated, or for a template default
 			   argument value whose value was never needed. */
+  struct a_def_arg_expr_fixup
+		*default_arg_expr_fixup;
+			/* When has_unevaluated_template_default is TRUE, this
+			   points to the fixup entry that provides information
+			   on how to evaluate the default argument
+			   expression.  Front end only. */
 #if GNU_EXTENSIONS_ALLOWED
   a_type_mode_kind
   		mode;

@@ -7355,6 +7355,7 @@ make_new_type:
           }  /* if */
           if (ptp->has_unevaluated_template_default) {
             new_ptp->has_unevaluated_template_default = TRUE;
+            new_ptp->default_arg_expr_fixup = ptp->default_arg_expr_fixup;
           }  /* if */
           /* Add the new param type entry to the param types list. */
           if (prev_ptp == NULL) {
@@ -7845,6 +7846,7 @@ done:
   /* Reset the flag that indicates that this default value has not yet
      been evaluated. */
   param->has_unevaluated_template_default = FALSE;
+  param->default_arg_expr_fixup = NULL;
   param->default_being_instantiated = FALSE;
 }  /* instantiate_default_argument */
 
@@ -7885,10 +7887,13 @@ is needed for a call.
       }  /* if */
       if (templ_ptp->has_default_arg) {
 	check_assertion(daefp != NULL);
-        /* Update the default argument expression entry to point to the
-           current param type entry. */
+        /* Mark the parameter as having a default argument that can be
+           evaluated later when/if needed.  Note that
+           templ_ptp->default_arg_expr_fixup will be NULL here for some
+           cases involving member templates, which is why we use daefp. */
         ptp->has_default_arg = TRUE;
         ptp->has_unevaluated_template_default = TRUE;
+        ptp->default_arg_expr_fixup = daefp;
         daefp = daefp->next;
       }  /* if */
     }  /* for */
@@ -12284,6 +12289,11 @@ specifies the position of the parameter in the parameter list.
   if (curr_token == tok_removed_default_arg) {
     /* If we are scanning a removed default argument, just bypass the token. */
     (void)get_token();
+    /* Note that we leave default_arg_expr_fixup NULL here, which is okay.
+       When we make the actual instance the fixup pointer will be filled
+       in properly.  This happens for the processing of a member template
+       during a real instantiation of the enclosing class. */
+    if (ptp != NULL) ptp->has_unevaluated_template_default = TRUE;
   } else {
     /* The current scope stack entry is expected to be a function prototype
        scope.  The scope specified by assoc_scope_depth is an enclosing scope
@@ -12313,9 +12323,6 @@ specifies the position of the parameter in the parameter list.
                                       /*is_function_template=*/TRUE,
 				      /*is_friend_decl=*/FALSE, param_number);
   }  /* if */
-  /* Indicate that this default argument is a template default argument
-     whose expression has not yet been evaluated. */
-  if (ptp != NULL) ptp->has_unevaluated_template_default = TRUE;
 }  /* prescan_function_template_default_arg_expr */
 
 

@@ -9278,17 +9278,35 @@ in the new param type will be NULL.
     new_ptp = make_param_type(ptp->type, &null_source_position);
     /* Do a struct copy from the old param type to the new. */
     *new_ptp = *ptp;
-    if (copy_default_args) {
-      /* Expressions may not be shared -- that is, they may not be pointed to
-         from more than one place.  Therefore a copy must be made of the
-         expression node for the default arg (if one exists). */
-      if (ptp->default_arg_expr != NULL) {
-        new_ptp->default_arg_expr =
+    if (ptp->has_default_arg) {
+      /* This parameter has a default argument.  Copy it or not, as
+         directed. */
+      if (copy_default_args) {
+        if (ptp->has_unevaluated_template_default) {
+          /* This default argument hasn't been evaluated yet.  The fields
+             needed to evaluate it later (has_unevaluated_template_default
+             and default_arg_expr_fixup) were copied above. */
+        } else if (ptp->default_arg_expr != NULL) {
+          /* Expressions may not be shared -- that is, they may not be pointed
+             to from more than one place.  Therefore a copy must be made of the
+             expression node for the default arg (if one exists). */
+          new_ptp->default_arg_expr =
                          duplicate_default_arg_expr(ptp->default_arg_expr);
+        } else {
+          check_assertion(total_errors != 0);
+        }  /* if */
+      } else {
+        /* The default argument should not be copied. */
+        new_ptp->has_default_arg = FALSE;
+        new_ptp->default_arg_expr = NULL;
+        new_ptp->has_unevaluated_template_default = FALSE;
+        new_ptp->default_arg_expr_fixup = NULL;
       }  /* if */
     } else {
-      new_ptp->has_default_arg = FALSE;
-      new_ptp->default_arg_expr = NULL;
+      /* This parameter has no default argument. */
+      check_assertion(ptp->default_arg_expr == NULL &&
+                      !ptp->has_unevaluated_template_default &&
+                      ptp->default_arg_expr_fixup == NULL);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Duplicate the Microsoft attributes list (if any). */

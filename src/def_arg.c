@@ -236,6 +236,12 @@ default argument expression but discard the token cache.
       while (daefp->next != NULL) daefp = daefp->next;
       daefp->next = new_daefp;
     }  /* if */
+    if (is_function_template) {
+      /* Indicate that this default argument is a template default argument
+         whose expression has not yet been evaluated. */
+      ptp->has_unevaluated_template_default = TRUE;
+      ptp->default_arg_expr_fixup = new_daefp;
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* prescan_default_function_arg_expr */

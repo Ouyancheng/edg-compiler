@@ -6888,6 +6888,7 @@ make_new_comp_type:
             new_ptp->has_default_arg = TRUE;
             new_ptp->has_unevaluated_template_default =
                                         ptp1->has_unevaluated_template_default;
+            new_ptp->default_arg_expr_fixup = ptp1->default_arg_expr_fixup;
             if (ptp1->default_arg_expr != NULL) {
               new_ptp->default_arg_expr = ptp1->default_arg_expr;
             }  /* if */
@@ -6895,6 +6896,7 @@ make_new_comp_type:
             new_ptp->has_default_arg = TRUE;
             new_ptp->has_unevaluated_template_default =
                                         ptp2->has_unevaluated_template_default;
+            new_ptp->default_arg_expr_fixup = ptp2->default_arg_expr_fixup;
             if (ptp2->default_arg_expr != NULL) {
               new_ptp->default_arg_expr = ptp2->default_arg_expr;
             }  /* if */
@@ -9032,6 +9034,7 @@ make_new_type:
           new_ptp->has_default_arg = TRUE;
           new_ptp->has_unevaluated_template_default =
                                          ptp->has_unevaluated_template_default;
+          new_ptp->default_arg_expr_fixup = ptp->default_arg_expr_fixup;
           if (ptp->default_arg_expr != NULL) {
             new_ptp->default_arg_expr =
                              duplicate_default_arg_expr(ptp->default_arg_expr);
