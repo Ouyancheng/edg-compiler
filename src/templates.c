@@ -9517,7 +9517,8 @@ structure.
   /* Check for invalid type arguments.  Local types may not be used as
      arguments nor may unnamed types.  Issue an error if any are found.
      Unnamed types are permitted as template arguments in Microsoft mode
-     and in some GNU C++ modes. */
+     and in some GNU C++ modes.  Variable-length arrays (as accepted e.g.
+     in GNU C++ mode) are not allowed either. */
   while (tap != NULL) {
     if (is_type_templ_arg(tap)) {
       a_type_ptr	type = tap->variant.type;
@@ -9536,6 +9537,9 @@ structure.
                                : ec_type_with_no_linkage_in_template_arg,
                     source_pos);
         }  /* if */
+      } else if (is_variably_modified_type(type)) {
+        pos_error(ec_variably_modified_type_not_allowed, source_pos);
+        tap->variant.type = error_type();
       }  /* if */
       /* Local typedef names (legal if they refer to nonlocal types) should
          not be part of the type signature of the template itself,
