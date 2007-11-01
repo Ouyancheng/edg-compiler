@@ -4,12 +4,12 @@ Version 3.11
 
 GNU C++ mode (and some other modes, such as Microsoft mode prior
 to 7.1) keep default arguments of function templates as part of
-the type of the function when template deduction is done.
-As a consequence, the front end aborted in copy_default_arg_expr
-("rout NULL, no error") when a call was made to a function whose
-type comes from such a deduced type, and the default argument is
-omitted and therefore must be instantiated at the point of call.
-Now fixed.
+the type of the function when template deduction is done (see
+Changes entry of 8/9/05).  As a consequence, the front end aborted
+in copy_default_arg_expr ("rout NULL, no error") when a call was made
+to a function whose type comes from such a deduced type, and the
+default argument is omitted and therefore must be instantiated at
+the point of call.  Now fixed.
 
   template <typename Derived> struct B {
   template<typename memfunT> void f(memfunT mfp) {
