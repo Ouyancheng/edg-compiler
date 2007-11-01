@@ -1,5 +1,14 @@
 Version 3.11
 
+11/1/07  Microsoft compatibility: Extraneous "virtual" specifiers
+
+In Microsoft mode the front end now accepts and ignores (with a warning) the
+keyword "virtual" on explicit specializations of members of class templates.
+For example:
+
+  template<typename T> struct S { void f(); };
+  template<> virtual void S<int>::f() {}  // Now accepted with a warning.
+
 11/1/07  GNU C++ compatibility: default arguments on templates and deduction
 
 GNU C++ mode (and some other modes, such as Microsoft mode prior

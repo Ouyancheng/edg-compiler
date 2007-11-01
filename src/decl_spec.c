@@ -7545,9 +7545,12 @@ storage_class_specifier:
         } else if ((decl_specifiers_seen & DS_FRIEND) && !microsoft_mode) {
           error(ec_virtual_not_allowed);
           err = TRUE;
-        } else if (!is_member_decl) {
+        } else if (!is_member_decl &&
+                   !(microsoft_mode &&
+                     (input_flags & DSI_IS_SPECIALIZATION) != 0)) {
           /* In fact, it may only appear in a C++ class (or struct or union)
-             declaration. */
+             declaration.  However, Microsoft compilers allow this on explicit
+             specializations of class template member functions. */
           error(ec_bad_specifier_outside_class_decl);
           err = TRUE;
         } else if (input_flags & DSI_IS_TEMPLATE_DECLARATION) {

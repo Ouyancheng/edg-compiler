@@ -16517,6 +16517,21 @@ that follows.
     source_sequence_entries_disallowed = saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+  if (microsoft_mode && (dps->dso_flags & DSO_VIRTUAL) != 0 &&
+      !is_error_locator(locator)) {
+    /* This is always an error in non-Microsoft mode (and is issued by the
+       call to decl_specifiers in such cases).  Microsoft compilers, however,
+       accept (and ignore) the keyword "virtual" on explicit specializations
+       of class template members. */
+    if (dps->sym != NULL &&
+        dps->sym->kind == (a_symbol_kind)sk_member_function) {
+      pos_warning(ec_virtual_ignored, &dps->virtual_pos);
+    } else {
+      /* Issue the error that would have been issued in decl_specifiers in
+         other modes. */
+      pos_error(ec_bad_specifier_outside_class_decl, &dps->virtual_pos);
+    }  /* if */
+  }  /* if */
   db_exit();
 }  /* full_specialization */
 
