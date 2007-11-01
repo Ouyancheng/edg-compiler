@@ -7349,48 +7349,9 @@ This is a service function designed to be called from traverse_type_tree
 
 
 /* Static variables used to pass information back to the routine
-   is_or_contains_unnamed_or_local_type. */
+   is_or_contains_type_with_no_name_linkage. */
 static a_boolean is_unnamed_type;
 static a_boolean is_local_type;
-static a_boolean ttt_is_unnamed_or_local_type(
-                                           a_type_ptr  type_ptr,
-                                           a_boolean   *force_end_of_traversal)
-/*
-This is a service function designed to be called from traverse_type_tree
-(whence the ttt_ prefix).  It returns TRUE if type_ptr is an unnamed or
-local class, struct, union, or enum.  Typedefs will have been skipped, as
-they are in name mangling; it is the underlying type, not the typedef name
-(which can be declared anywhere) that we really care about.
-*/
-{
-  a_boolean     result = FALSE;
-
-  if (is_class_struct_union(type_ptr) || is_enum(type_ptr)) {
-    /* Note two cases that are handled differently:
-         typedef struct { ... } S, *P1; // named "S" for linkage purposes
-         typedef struct { ... } *P2;    // has no name for linkage purposes
-         template <class T> class X { ... };
-         X<P1> a;                       // Okay
-         X<P2> b;                       // Error
-    */
-    if (type_ptr->source_corresp.name == NULL) {
-#if CHECKING
-      a_symbol_ptr  sym  = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
-      check_assertion_str(sym != NULL && is_unnamed_tag_symbol(sym),
-                          "ttt_is_unnamed_or_local_type: bad tag symbol");
-#endif /* CHECKING */
-      is_unnamed_type = *force_end_of_traversal = result = TRUE;
-    }  /* if */
-  }  /* if */
-  if (type_ptr->source_corresp.is_local_to_function) {
-    check_assertion(type_ptr->kind != (a_type_kind)tk_typeref);
-    is_local_type = *force_end_of_traversal = result = TRUE;
-  } else if (vla_enabled && is_array(type_ptr) && array_is_vla(type_ptr)) {
-    /* VLA types are considered to be local types. */
-    is_local_type = *force_end_of_traversal = result = TRUE;
-  }  /* if */
-  return result;
-}  /* ttt_is_unnamed_or_local_type */
 
 
 static a_boolean ttt_is_type_with_no_name_linkage(
@@ -7406,7 +7367,7 @@ result of the traversal is decided (in this case, when a type with no name
 linkage is encountered).
 */
 {
-  a_boolean     result = FALSE;
+  a_boolean  result = FALSE;
 
   if (((is_class_struct_union(type_ptr) &&
         !type_ptr->variant.class_struct_union.is_nonreal_class) ||
@@ -8280,37 +8241,6 @@ an unnamed namespace, or is a type tree containing such a type.
                                 ttt_flags));
   return result;
 }  /* is_or_contains_unnamed_namespace_type */
-
-
-a_boolean is_or_contains_unnamed_or_local_type(a_type_ptr  type_ptr,
-					       a_boolean   *is_unnamed,
-					       a_boolean   *is_local)
-/*
-Return TRUE if the type pointed to by type_ptr is itself a unnamed or
-local class, struct, union or enum type or is a type tree containing such a
-type.  If the result of the traverse_type_tree call is TRUE then the
-static variables is_unnamed_type and is_local_type are set to reflect
-which of the conditions is true.
-*/
-{
-  a_boolean			  result;
-  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
-                                               TTT_THIS_PARAM_TYPE |
-                                               TTT_PARAM_TYPES |
-                                               TTT_TEMPLATE_ARGS |
-                                               TTT_SKIP_TYPEREFS |
-                                               TTT_EXCEPTION_SPECS);
-
-  /* Clear the variables that are used to return status information
-     from ttt_is_unnamed_or_local_type. */
-  is_local_type = FALSE;
-  is_unnamed_type = FALSE;
-  result = traverse_type_tree(type_ptr, ttt_is_unnamed_or_local_type,
-                              ttt_flags);
-  *is_unnamed = is_unnamed_type;
-  *is_local = is_local_type;
-  return result;
-}  /* is_or_contains_unnamed_or_local_type */
 
 
 a_boolean is_or_contains_type_with_no_name_linkage(a_type_ptr  type_ptr,
