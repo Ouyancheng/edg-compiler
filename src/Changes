@@ -1,5 +1,19 @@
 Version 3.11
 
+11/2/07  Spurious warning on definition at end of file with #line directive
+
+The Changes entry of 6/1/07 describes how the front end now warns about
+class and enum type definitions that are missing a terminating semicolon.
+This warning was being issued spuriously if a definition at the end of a
+source file was followed by a semicolon preceded by a #line directive.
+For example:
+
+  struct S {}  // Triggered a spurious warning.
+  #line 100
+  ;
+
+This is now fixed.
+
 11/2/07  GNU C99 compatibility: The keyword "asm"
 
 GCC offers at least two C99 modes: "-std=c99" and "-std=gnu99".  The EDG front

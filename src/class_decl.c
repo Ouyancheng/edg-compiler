@@ -14460,12 +14460,22 @@ be a syntax error showing up in the next file.  I.e., something like:
        hence the condition on depth_innermost_instantiation_scope.)  Now check
        whether these two position correspond to different files (taking into
        account any #line directives). */
-    a_line_number  line1, line2;
-    a_boolean      eos1, eos2;
-    if (source_file_for_seq(end_pos->seq, &line1, &eos1,
-                            /*physical_line=*/FALSE) !=
-          source_file_for_seq(pos_curr_token.seq, &line2, &eos2,
-                              /*physical_line=*/FALSE)) {
+    a_line_number      line1, line2;
+    a_boolean          eos1, eos2;
+    a_source_file_ptr  src1, src2;
+    src1 = source_file_for_seq(end_pos->seq, &line1, &eos1,
+                               /*physical_line=*/FALSE);
+    src2 = source_file_for_seq(end_pos->seq, &line2, &eos2,
+                               /*physical_line=*/FALSE);
+    /* We cannot just compare src1 and src2 for equality because #line
+       directives create new a_source_file entries.  E.g.:
+             struct S {}
+             #line 100
+             x;  // Should not trigger a diagnostic, and yet src1 != src2.
+       Instead, we perform a file name comparison. */
+    if (src1 != src2 && src1 != NULL && src2 != NULL &&
+        src1->file_name != NULL && src2->file_name != NULL &&
+        compare_file_names(src1->file_name, src2->file_name) != 0) {
       /* Issue a warning in the file containing the definition to clarify the
          error that is likely to follow. */
       pos_warning(ec_file_ends_with_unterminated_type_definition, end_pos);
