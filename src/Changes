@@ -1,5 +1,18 @@
 Version 3.11
 
+11/2/07  Microsoft compatibility: Linkage of local class types
+
+In Microsoft mode with microsoft_version >= 1400, local class and enum types
+now have have C++ name linkage (if they are not unnamed).  A notable
+consequence of this change is that such local types can now be template
+arguments.  For example:
+
+  template <typename T> struct S {};
+  void f() {
+    struct L {};
+    S<L> sl;  // Now accepted in some Microsoft modes.
+  }
+
 11/1/07  Microsoft compatibility: Extraneous "virtual" specifiers
 
 In Microsoft mode the front end now accepts and ignores (with a warning) the

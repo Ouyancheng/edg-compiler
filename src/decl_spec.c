@@ -2090,15 +2090,25 @@ Set the name_linkage field of the class or enum type pointed to by tp.
   a_source_correspondence  *scp = &tp->source_corresp;
 
   check_assertion(is_immediate_class_type(tp) || is_immediate_enum_type(tp));
-  if (!has_name(tp) || scp->is_local_to_function) {
-    /* Name linkage requires a nonlocal name.  (Note that this can change if
-       the type acquires a name through a typedef declaration.) */
+  if (!has_name(tp) || C_mode()) {
+    /* Name linkage generally requires a name.  (Note that this can change if
+       the type acquires a name through a typedef declaration.)  In C, types
+       never have linkage. */
     scp->name_linkage = (a_name_linkage_kind)nlk_none;
   } else if (scp->is_class_member && !gpp_mode) {
     /* A nested class or enum has the same linkage as the class of which it
        is a member.  GNU C++ ignores the name linkage of the enclosing class;
        e.g., a named class nested in an unnamed class has C++ name linkage. */
     scp->name_linkage = scp->parent.class_type->source_corresp.name_linkage;
+  } else if (scp->is_local_to_function) {
+    /* Local class and enum types normally have no name linkage.  In Microsoft
+       mode with microsoft_version >= 1400, however, they have C++ external
+       linkage. */
+    if (microsoft_mode && microsoft_version >= 1400) {
+      scp->name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
+    } else {
+      scp->name_linkage = (a_name_linkage_kind)nlk_none;
+    }  /* if */
   } else if (any_cfront_mode() &&
              depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
     /* In cfront mode -- unless this is a class or enum declared within a
@@ -3473,15 +3483,9 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
           break;
         default:;
       }  /* switch */
-      /* In C classes have no linkage, as do local classes in C++; otherwise
-         classes have "C++-external" name linkage.  (Note: in cfront mode
-         classes may also have internal linkage -- see ARM 3.3.)  Note that
-         even nameless classes may be marked as having linkage; this is
-         useful for dealing with member functions.) */
-      if (!is_local_class) {
-        /* Nonlocal class. */
-        set_name_linkage_for_type(class_type);
-      } else {
+      /* Set the name linkage for the given type. */
+      set_name_linkage_for_type(class_type);
+      if (is_local_class) {
         /* For a local class, save information about the enclosing function. */
         a_class_symbol_supplement_ptr	cssp;
         a_scope_stack_entry_ptr		ssep;
