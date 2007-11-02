@@ -1,5 +1,18 @@
 Version 3.11
 
+11/2/07  GNU C99 compatibility: The keyword "asm"
+
+GCC offers at least two C99 modes: "-std=c99" and "-std=gnu99".  The EDG front
+end option combination "--gcc --c99" is meant to emulate GCC's "-std=gnu99"
+option, which implies that in that mode "asm" is a keyword.  A previous change
+(documented in the entry of 8/1/06) inadvertently made "asm" an ordinary
+identifier in that mode.  That change has now been backed out.  For example:
+
+  int asm;  // An error in GNU C99 mode: "asm" is a keyword.
+
+The front end does not track GCC's "-std=c99" behavior (although the default
+C99 mode often matches that behavior).
+
 11/2/07  Microsoft compatibility: Linkage of local class types
 
 In Microsoft mode with microsoft_version >= 1400, local class and enum types
