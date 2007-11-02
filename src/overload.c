@@ -2108,7 +2108,7 @@ have_level:;
       if (pm_con->kind == (a_constant_repr_kind)ck_ptr_to_member &&
           pm_con->variant.ptr_to_member.is_function_ptr) {
         a_routine_ptr pm_rout = pm_con->variant.ptr_to_member.variant.routine;
-        if (pm_rout->is_template_function) {
+        if (pm_rout != NULL && pm_rout->is_template_function) {
           arg_summary->template_symbol = symbol_for(pm_rout);
         }  /* if */
       }  /* if */
