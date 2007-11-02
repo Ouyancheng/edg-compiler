@@ -11211,6 +11211,9 @@ all arguments were explicit.
           pos_error(ec_type_with_no_linkage_in_template_arg, &arg_pos);
         }  /* if */
         argument_type = error_type();
+      } else if (is_variably_modified_type(argument_type)) {
+        pos_error(ec_vla_type_in_template_arg, &arg_pos);
+        argument_type = error_type();
       }  /* if */
       arg_ptr->variant.type = argument_type;
     } else if (is_nontype_templ_arg(arg_ptr)) {
