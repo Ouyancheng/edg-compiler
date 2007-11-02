@@ -9538,7 +9538,7 @@ structure.
                     source_pos);
         }  /* if */
       } else if (is_variably_modified_type(type)) {
-        pos_error(ec_variably_modified_type_not_allowed, source_pos);
+        pos_error(ec_vla_type_in_template_arg, source_pos);
         tap->variant.type = error_type();
       }  /* if */
       /* Local typedef names (legal if they refer to nonlocal types) should
