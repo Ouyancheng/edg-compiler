@@ -186,10 +186,7 @@ exception handling was enabled.)  For example:
   void X::f(int (X::*)(), S) {}  // Previously aborted if exception handling
                                  // was enabled.
 
-This is now fixed.  As part of the fix, the behavior of composite_type and
-composite_routine_type was changed slightly: If the types passed in involve
-default argument expressions, the returned type may be a new type that shares
-those expressions.
+This is now fixed.
 
 10/9/07  Use existing routine definitions during lowering (if available)
          when building run time library
