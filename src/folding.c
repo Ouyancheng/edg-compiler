@@ -5323,6 +5323,7 @@ tpck_expression variant and will point to the given expression.
     if (complete_class_property) {
       /* An incomplete class type is invalid, and nonclass types always
          evaluate to FALSE. */
+      complete_type_is_needed(type);
       if (is_immediate_class_type(type)) {
         if (is_incomplete_type(type)) {
           incomplete_class_error = TRUE;

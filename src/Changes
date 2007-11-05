@@ -1,5 +1,19 @@
 Version 3.11
 
+11/5/07  Instantiate template classes for some type traits helpers
+
+In many C++ modes, the front end accepts type traits pseudo-functions that
+allow generic code to depend on various type properties (see Changes entry of
+3/21/06).  Some of these pseudo-functions requires their argument types to be
+complete, but the front end failed to instantiate the associated template if
+the argument type was an incomplete template class.  For example:
+
+  template<typename T> struct S {};
+  int a[__is_pod(S<int>)];  // Previously triggered an error about S<int>
+                            // being incomplete.
+
+This is now fixed.
+
 11/2/07  Spurious warning on definition at end of file with #line directive
 
 The Changes entry of 6/1/07 describes how the front end now warns about
@@ -7215,8 +7229,8 @@ __is_empty, __is_enum, __is_pod, __is_polymorphic, and __is_union.  These
 enable or simplify the implementation of type traits templates as specified in
 ISO/IEC TR 19768.
 
- All of the pseudo-functions take one
-or two types, and produce a boolean constant-expression.  For example:
+All of the pseudo-functions take one or two types, and produce a boolean
+constant-expression.  For example:
 
   struct S { ~S(); };
   int a[__is_class(S)];             // Okay.  Same as "int a[1];".
