@@ -1,5 +1,24 @@
 Version 3.11
 
+11/5/07  Sun compatibility: lookup of names in template instantiations
+
+In default mode, the front end looks in both the namespace of the template
+definition and the referencing namespace of the instantiation when looking
+up names in templates.  This can result in ambiguity errors in Sun mode
+as the Sun compiler does not consider names from the referencing namespace.
+We now emulate the behavior of the Sun compiler in Sun mode.
+
+  template < class T > void f(const T & a) { }
+  namespace NS {
+    template < class T > void f(const T & a) { }
+    template < class T>  struct S {
+      void f2(const T& a) { f(a); }
+    };
+  }
+  int main() {
+    NS::S<int>().f2(1);
+  }
+
 11/5/07  Instantiate template classes for some type traits helpers
 
 In many C++ modes, the front end accepts type traits pseudo-functions that
