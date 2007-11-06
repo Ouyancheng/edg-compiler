@@ -7349,7 +7349,7 @@ This is a service function designed to be called from traverse_type_tree
 
 
 /* Static variables used to pass information back to the routine
-   is_or_contains_type_with_no_name_linkage. */
+   is_invalid_template_arg_type. */
 static a_boolean is_unnamed_type;
 static a_boolean is_local_type;
 
@@ -7384,6 +7384,28 @@ linkage is encountered).
   }  /* if */
   return result;
 }  /* ttt_is_type_with_no_name_linkage */
+
+
+static a_boolean ttt_is_unnamed_class_or_enum(
+                                           a_type_ptr  type_ptr,
+                                           a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if type_ptr is a class type or
+enumeration type with no name.  '*force_end_of_traversal' can be set to true
+if the result of the traversal is decided (in this case, when a type with no
+name is encountered).
+*/
+{
+  a_boolean  result = FALSE;
+
+  if ((is_class_struct_union(type_ptr) || is_enum(type_ptr)) &&
+      !has_name(type_ptr)) {
+    *force_end_of_traversal = result = TRUE;
+    is_unnamed_type = TRUE;
+  }  /* if */
+  return result;
+}  /* ttt_is_unnamed_class_or_enum */
 
 
 /* A pointer to the specific template parameter type to be found by
@@ -8243,16 +8265,10 @@ an unnamed namespace, or is a type tree containing such a type.
 }  /* is_or_contains_unnamed_namespace_type */
 
 
-a_boolean is_or_contains_type_with_no_name_linkage(a_type_ptr  type_ptr,
-					           a_boolean   *is_unnamed,
-					           a_boolean   *is_local)
+a_boolean is_or_contains_type_with_no_name_linkage(a_type_ptr  type_ptr)
 /*
 Return TRUE if the type pointed to by type_ptr contains a class, struct,
-union or enum type with no name linkage.  If the result is TRUE then
-*is_unnamed or *is_local are set when the type traversal encountered a
-component that is, respectively, unnamed or local (since the traversal stops
-early, another component with a different property may also keep the type
-from having linkage without it being reflected in the values returned).
+union or enum type with no name linkage.
 This function considers nonreal class and enum types to have linkage.
 */
 {
@@ -8270,10 +8286,50 @@ This function considers nonreal class and enum types to have linkage.
   is_unnamed_type = FALSE;
   result = (traverse_type_tree(type_ptr, ttt_is_type_with_no_name_linkage,
                                ttt_flags));
+  return result;
+}  /* is_or_contains_type_with_no_name_linkage */
+
+
+a_boolean is_invalid_template_arg_type(a_type_ptr  type_ptr,
+                                       a_boolean   *is_unnamed,
+                                       a_boolean   *is_local)
+/*
+Return TRUE if the type pointed to by type_ptr contains a class, struct,
+union or enum type that cannot be part of a template argument type.  In
+C++98/C++03 this excludes class/enum types with no name linkage.  In some
+Microsoft modes, however, local types are acceptable.  If the result is
+TRUE then *is_unnamed or *is_local are set when the type traversal
+encountered a component that is, respectively, unnamed or local (since the
+traversal stops early, another component with a different property may also
+keep the type from having linkage without it being reflected in the values
+returned).
+*/
+{
+  a_boolean			  result;
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_THIS_PARAM_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_EXCEPTION_SPECS |
+                                               TTT_SKIP_TYPEREFS |
+                                               TTT_NO_PARENT_CLASSES);
+
+  /* Clear the variables that are used to return status information from
+     ttt_is_type_with_no_name_linkage or ttt_is_unnamed_class_or_enum. */
+  is_local_type = FALSE;
+  is_unnamed_type = FALSE;
+  if (microsoft_mode && microsoft_version >= 1400) {
+    /* Recent Microsoft compilers accept local types as template arguments
+       (though they do not apparently given those types external linkage). */
+    result = (traverse_type_tree(type_ptr, ttt_is_unnamed_class_or_enum,
+                                 ttt_flags));
+  } else {
+    result = (traverse_type_tree(type_ptr, ttt_is_type_with_no_name_linkage,
+                                 ttt_flags));
+  }  /* if */
   *is_unnamed = is_unnamed_type;
   *is_local = is_local_type;
   return result;
-}  /* is_or_contains_type_with_no_name_linkage */
+}  /* is_invalid_template_arg_type */
 
 
 a_boolean is_or_contains_error_type(a_type_ptr  type_ptr)

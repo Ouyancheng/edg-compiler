@@ -1,5 +1,19 @@
 Version 3.11
 
+11/6/07  Microsoft compatibility: Local types in template arguments
+
+In Microsoft mode with microsoft_version >= 1400, local class and enum types
+can now be used as template type arguments (if they are not unnamed).  Such
+types still do not have external name linkage however (in standard C++,
+having external name linkage is a requirement for a class or enum type to be
+a valid template type argument).  For example:
+
+  template <typename T> struct S {};
+  void f() {
+    struct L {};
+    S<L> sl;  // Now accepted in some Microsoft modes.
+  }
+
 11/5/07  Sun compatibility: lookup of names in template instantiations
 
 In default mode, the front end looks in both the namespace of the template
@@ -59,19 +73,6 @@ identifier in that mode.  That change has now been backed out.  For example:
 
 The front end does not track GCC's "-std=c99" behavior (although the default
 C99 mode often matches that behavior).
-
-11/2/07  Microsoft compatibility: Linkage of local class types
-
-In Microsoft mode with microsoft_version >= 1400, local class and enum types
-now have have C++ name linkage (if they are not unnamed).  A notable
-consequence of this change is that such local types can now be template
-arguments.  For example:
-
-  template <typename T> struct S {};
-  void f() {
-    struct L {};
-    S<L> sl;  // Now accepted in some Microsoft modes.
-  }
 
 11/1/07  Microsoft compatibility: Extraneous "virtual" specifiers
 

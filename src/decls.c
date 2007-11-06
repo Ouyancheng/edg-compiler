@@ -4305,7 +4305,6 @@ should be reported.
 {
   a_boolean   is_function = sym->kind == (a_symbol_kind)sk_routine ||
                             sym->kind == (a_symbol_kind)sk_member_function;
-  a_boolean   is_local, is_unnamed;
   a_type_ptr  type;
   an_error_severity
               severity;
@@ -4334,8 +4333,7 @@ should be reported.
     pos_diagnostic(severity, is_function ? ec_local_type_in_function :
                                            ec_local_type_in_nonlocal_var,
                    error_pos);
-  } else if (is_or_contains_type_with_no_name_linkage(
-                                              type, &is_unnamed, &is_local)) {
+  } else if (is_or_contains_type_with_no_name_linkage(type)) {
     /* Catch the use of types that do not have linkage.
        E.g., typedef enum { e1 } *pE; void f(pE);
        In strict mode, we issue a discretionary error.  In other modes, we

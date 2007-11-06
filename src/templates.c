@@ -9514,18 +9514,17 @@ structure.
     check_assertion(templ_sym->kind == (a_symbol_kind)sk_function_template);
     tssp = templ_sym->variant.template_info;
   }  /* if */
-  /* Check for invalid type arguments.  Local types may not be used as
-     arguments nor may unnamed types.  Issue an error if any are found.
-     Unnamed types are permitted as template arguments in Microsoft mode
-     and in some GNU C++ modes.  Variable-length arrays (as accepted e.g.
-     in GNU C++ mode) are not allowed either. */
+  /* Check for invalid type arguments.  In standard C++98/C++03, template type
+     arguments must have linkage, and therefore cannot be based on local or
+     unnamed classes/enums.  In Microsoft mode, local class types are
+     acceptable even though they have no linkage.  Variable-length arrays (as
+     accepted e.g.  in GNU C++ mode) are not allowed either. */
   while (tap != NULL) {
     if (is_type_templ_arg(tap)) {
       a_type_ptr	type = tap->variant.type;
       a_boolean		is_unnamed;
       a_boolean		is_local;
-      if (is_or_contains_type_with_no_name_linkage(
-                                              type, &is_unnamed, &is_local)) {
+      if (is_invalid_template_arg_type(type, &is_unnamed, &is_local)) {
         if (is_local) {
           pos_error(ec_local_type_in_template_arg, source_pos);
           tap->variant.type = error_type();
