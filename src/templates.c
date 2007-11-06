@@ -16525,7 +16525,10 @@ that follows.
        of class template members. */
     if (dps->sym != NULL &&
         dps->sym->kind == (a_symbol_kind)sk_member_function) {
-      pos_warning(ec_virtual_ignored, &dps->virtual_pos);
+      if (!dps->sym->variant.routine.ptr->is_virtual) {
+        /* Issue a warning if the function is not actually virtual. */
+        pos_warning(ec_virtual_ignored, &dps->virtual_pos);
+      }  /* if */
     } else {
       /* Issue the error that would have been issued in decl_specifiers in
          other modes. */
