@@ -2257,8 +2257,8 @@ Display the indicated variable.
     disp_boolean("is_parameter", TRUE);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (ptr->initializer_with_source_sequence_entries) {
-    disp_boolean("initializer_with_source_sequence_entries", TRUE);
+  if (ptr->embedded_source_sequence_entries) {
+    disp_boolean("embedded_source_sequence_entries", TRUE);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   disp_initializer(ptr->init_kind, &ptr->initializer);
@@ -5829,6 +5829,9 @@ Display the indicated source sequence secondary declaration entry.
   }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   if (sssdp->autonomous_tag_decl) disp_boolean("autonomous_tag_decl", TRUE);
+  if (sssdp->embedded_source_sequence_entries) {
+    disp_boolean("embedded_source_sequence_entries", TRUE);
+  }  /* if */
   if (sssdp->friend_decl) disp_boolean("friend_decl", TRUE);
   if (sssdp->implicit_decl) disp_boolean("implicit_decl", TRUE);
   if (sssdp->declared_in_func_prototype) {

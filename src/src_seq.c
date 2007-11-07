@@ -2116,8 +2116,7 @@ may do fixup on entities pointed to by source-sequence entries it removes.
   db_enter(4, "drop_tag_def_from_src_seq_list");
   type_ptr = ss_entry_ptr(ssep, a_type_ptr);
   check_assertion_str(ss_entry_kind(ssep) == (an_il_entry_kind)iek_type &&
-                      (is_immediate_class_type(type_ptr) ||
-                       is_immediate_enum_type(type_ptr)),
+                      is_tag_type(type_ptr),
                       "drop_tag_def_from_src_seq_list: bad entity kind");
   /* The source sequence entries will be removed by linking around them.
      Since source-sequence entries have a prev pointer, we need to remember
@@ -2204,8 +2203,7 @@ may do fixup on entities pointed to by source-sequence entries it removes.
           }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
         }  /* if */
-        check_assertion_str(is_immediate_class_type(tp) ||
-                            is_immediate_enum_type(tp),
+        check_assertion_str(is_tag_type(tp),
                             "drop_tag_def_from_src_seq_list: bad type kind");
         /* Link around the entries that have been seen thus far, skip the
            entries entailed by the struct or enum definition that should be
@@ -2328,7 +2326,7 @@ static a_source_sequence_entry_ptr src_seq_check_for_non_autonomous_tag(
 static void eliminate_unneeded_src_seq_entries_from_construct(
                                             a_source_sequence_entry_ptr  ssep)
 /*
-The given entry is an entry for a variable definition or for a decltype/typeof
+The given entry is an entry for a variable declaration or for a decltype/typeof
 construct.  It is followed by source sequence entries that end with a matching
 end-of-construct source sequence entry.  Drop all entries up to and including
 the end-of-construct entry, except the given entry itself, and any entries for
@@ -2336,8 +2334,6 @@ embedded types that must be kept in the IL (such types may be made autonomous
 here).
 */
 {
-  a_source_sequence_entry_ptr  head = ssep;
-
   /* Skip to the entry following the given one (since the latter is not
      eliminated here). */
   ssep = ssep->next;
@@ -2357,8 +2353,7 @@ here).
             /* Remove source sequence entries associated with a decltype or
                typeof construct. */
             ssep = drop_decltype_from_src_seq_list(ssep);
-          } else if (is_immediate_class_type(tp) ||
-                     is_immediate_enum_type(tp)) {
+          } else if (is_tag_type(tp)) {
             /* An embedded type definition: Remove it if it is not otherwise
                needed. */
             if (!il_entry_prefix_of(tp).keep_in_il) {
@@ -2383,8 +2378,7 @@ here).
           check_assertion(sssdp->entity.kind ==
                                               (a_byte_il_entry_kind)iek_type);
           tp = (a_type_ptr)sssdp->entity.ptr;
-          check_assertion(is_immediate_class_type(tp) ||
-                          is_immediate_enum_type(tp));
+          check_assertion(is_tag_type(tp));
           if (!il_entry_prefix_of(tp).keep_in_il) {
             /* Drop the source sequence entry. */
             a_source_sequence_entry_ptr  ssep_to_remove = ssep;
@@ -2398,15 +2392,10 @@ here).
         }
         break;
       case iek_src_seq_end_of_construct:
-        { a_src_seq_end_of_construct_ptr  sseocp =
-                           ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
-          check_assertion(sseocp->entity.ptr == head->entity.ptr);
-          /* We've found the end-of-construct marker.  Remove it and we're
-             done. */
-          remove_src_seq_entry(ssep);
-          goto done;
-        }
-        /*NOTREACHED*/
+        /* We've found the end-of-construct marker.  Remove it and we're
+           done. */
+        remove_src_seq_entry(ssep);
+        goto done;
       default:
         unexpected_condition();
     }  /* switch */
@@ -2435,28 +2424,36 @@ and with any embedded type declarations that are not to be kept in the IL.
 }  /* drop_decltype_from_src_seq_list */
 
 
-static a_source_sequence_entry_ptr drop_variable_def_from_src_seq_list(
+static a_source_sequence_entry_ptr drop_variable_decl_from_src_seq_list(
                                         a_source_sequence_entry_ptr  var_ssep)
 /*
-var_ssep is a source sequence entry for a variable definition that will be
+var_ssep is a source sequence entry for a variable declaration that will be
 removed from the IL.  Remove any additional source sequence entries only used
-for its initializer and return the next source sequence entry that should be
-processed.
+for its declarator or initializer, and return the next source sequence entry
+that should be processed.
 */
 {
-  a_variable_ptr               var = ss_entry_ptr(var_ssep, a_variable_ptr);
+  a_boolean                    embedded_entries;
   a_source_sequence_entry_ptr  next_ssep;
                   
-  if (var->initializer_with_source_sequence_entries) {
-    /* Source sequence entries were recorded for the initializer.  Remove them,
-       unless they are associated with IL that should be kept in the IL. */
+  if (ss_entry_kind(var_ssep) == iek_variable) {
+    embedded_entries = ss_entry_ptr(var_ssep, a_variable_ptr)
+                                           ->embedded_source_sequence_entries;
+  } else {
+    embedded_entries = ss_entry_ptr(var_ssep, a_src_seq_secondary_decl_ptr)
+                                           ->embedded_source_sequence_entries;
+  }  /* if */
+  if (embedded_entries) {
+    /* Source sequence entries were recorded for the declarator or initializer.
+       Remove them, unless they are associated with IL that should be kept in
+       the IL. */
     eliminate_unneeded_src_seq_entries_from_construct(var_ssep);
   }  /* if */
-  /* Remove the entry for the variable itself. */
+  /* Remove the entry for the variable declaration itself. */
   next_ssep = var_ssep->next;
   remove_src_seq_entry(var_ssep);
   return next_ssep;
-}  /* drop_variable_def_from_src_seq_list */
+}  /* drop_variable_decl_from_src_seq_list */
 
 
 static a_source_sequence_entry_ptr drop_from_fs_src_seq_list(
@@ -2474,15 +2471,17 @@ sequence entry that follows the entry or entries removed.
 
   db_enter(5, "drop_from_fs_src_seq_list");
   if (ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
-      (is_immediate_class_type((a_type_ptr)ssep->entity.ptr) ||
-       is_immediate_enum_type((a_type_ptr)ssep->entity.ptr))) {
+      is_tag_type(ss_entry_ptr(ssep, a_type_ptr))) { 
     /* It's a class or enum definition.  Remove everything from here through
        to the end-of-construct entry. */
     next_ssep = drop_tag_def_from_src_seq_list(ssep, /*retain_first=*/FALSE);
-  } else if (ssep->entity.kind == (a_byte_il_entry_kind)iek_variable) {
-    /* A variable definition.  Additional entries associated with the
-       initializer may need to be dropped. */
-    next_ssep = drop_variable_def_from_src_seq_list(ssep);
+  } else if (ss_entry_kind(ssep) == iek_variable ||
+             (ss_entry_kind(ssep) == iek_src_seq_secondary_decl &&
+              ss_entry_kind(ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr))
+                                                           == iek_variable)) {
+    /* A variable declaration.  Additional entries associated with the
+       declarator or initializer may need to be dropped. */
+    next_ssep = drop_variable_decl_from_src_seq_list(ssep);
   } else {
     /* Link around ssep and return its successor in the list. */
     next_ssep = ssep->next;
@@ -2865,8 +2864,7 @@ successor of ssep.
             tag_type = NULL;
 #if CHECKING
           } else {
-            check_assertion(is_immediate_class_type(tag_type) ||
-                            is_immediate_enum_type(tag_type));
+            check_assertion(is_tag_type(tag_type));
 #endif /* CHECKING */
           }  /* if */
         }  /* if */
@@ -3071,11 +3069,8 @@ scope that are not really needed in the IL.
         next_ssep = ssep->next;
       }  /* if */
     } else {
-      /* If this is the end of a tag-definition construct, it may be
-         appropriate to change the autonomous flag in the type from FALSE
-         to TRUE.  Similar processing may be done for secondary declarations
-         of tags. */
-      next_ssep = src_seq_check_for_non_autonomous_tag(ssep);
+      /* The associated IL entry will not be removed. */
+      next_ssep = ssep->next;
     }  /* if */
   }  /* for */
 #if DEBUG

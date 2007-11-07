@@ -607,6 +607,10 @@ extern void gnu_attributes_after_parenthesized_initializer(
                                                          a_variable_ptr  var);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+extern void add_src_seq_end_of_variable_if_needed(a_decl_parse_state  *dps);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 extern void declaration(a_boolean       function_definition_allowed,
                         a_boolean       is_old_style_param_decl,
                         a_boolean       is_top_level_declaration,

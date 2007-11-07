@@ -13050,6 +13050,41 @@ typedef declarations.  state and locator describe the declaration.
   }  /* if */
 }  /* check_nonfunction_declaration_errors */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+void add_src_seq_end_of_variable_if_needed(a_decl_parse_state  *dps)
+/*
+A variable declaration has been processed.  If that declaration triggered the
+creation of source sequence entries for constructs it embeds in its declarator
+or initializer, insert an end-of-construct source sequence entry.  This allow
+source sequence entries associated with a declarator or initializer to be
+distinguished from those that follow the initializer.  For example:
+    void *p = (union { char c; int x; }*) 0;  // Accepted in g++ mode.
+      // The source sequence entries for the anonymous union will be
+      // separated from those of S by an end-of-construct entry.
+    struct S {} s;
+*/
+{
+  if (dps->source_sequence_entry != NULL &&
+      dps->source_sequence_entry->next != NULL) {
+    /* The source sequence entry associated with the variable declaration is
+       followed by entries for embedded constructs. */
+    a_variable_ptr  vp;
+    check_assertion(dps->sym != NULL);
+    if (dps->sym->kind == (a_symbol_kind)sk_variable) {
+      vp = dps->sym->variant.variable.ptr;
+    } else if (dps->sym->kind == (a_symbol_kind)sk_variable) {
+      vp = dps->sym->variant.static_data_member.variable;
+    } else {
+      unexpected_condition();
+    }  /* if */
+    vp->embedded_source_sequence_entries = TRUE;
+    add_end_of_construct_source_sequence_entry(
+                              (char *)vp, (a_byte_il_entry_kind)iek_variable);
+  }  /* if */
+}  /* add_src_seq_end_of_variable_if_needed */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 static void variable_declaration(a_decl_parse_state  *state,
                                  a_symbol_locator    *locator,
@@ -13470,6 +13505,9 @@ if one is present.
       }  /* if */
     }  /* if */
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  add_src_seq_end_of_variable_if_needed(state);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   check_use_of_auto_type(state);
 }  /* variable_declaration */
 

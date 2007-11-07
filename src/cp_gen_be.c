@@ -12369,6 +12369,7 @@ declaration following this one is such a continuation.
   a_boolean                    is_definition = FALSE;
   a_boolean                    need_extern_C_closing_brace = FALSE;
   a_boolean                    consider_initialization;
+  a_boolean                    embedded_constructs;
   a_storage_class              storage_class;
   a_type_ptr                   var_type;
   a_boolean                    is_specialization;
@@ -12402,6 +12403,7 @@ declaration following this one is such a continuation.
     marked_as_gnu_extension = sec_decl->marked_as_gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     is_specialization = sec_decl->specialized_with_new_syntax;
+    embedded_constructs = sec_decl->embedded_source_sequence_entries;
   } else {
     if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
       assoc_template = ss_entry_ptr(curr_source_sequence_entry,
@@ -12425,6 +12427,7 @@ declaration following this one is such a continuation.
       /* A generated instance.  Use the "template<>" prefix if appropriate. */
       is_specialization = !old_specializations_for_generated_instances;
     }  /* if */
+    embedded_constructs = var->embedded_source_sequence_entries;
   }  /* if */
   check_assertion_str(var_type != NULL,
                       "gen_variable_decl: declared_type is NULL");
@@ -12434,10 +12437,10 @@ declaration following this one is such a continuation.
      constants, they appear on the declaration. */
   consider_initialization = is_definition;
   if (var->is_member_constant) consider_initialization = !is_definition;
-  if (consider_initialization &&
-      var->initializer_with_source_sequence_entries) {
-    /* Skip over any declarations embedded in the initializer (e.g., in casts),
-     setting them up to be generated on-the-fly as needed. */
+  if (embedded_constructs) {
+    /* Skip over any declarations embedded in the declarator or initializer
+       (e.g., in casts or sizeof constructs), setting them up to be generated
+       on-the-fly as needed. */
     skip_embedded_declarations();
   }  /* if */
   /* Position the output file to the declaration position. */
@@ -12685,24 +12688,24 @@ declaration following this one is such a continuation.
   /* Output the initializer, if any. */
   if (consider_initialization) {
     gen_initializer(var, is_condition);
-    if (var->initializer_with_source_sequence_entries) {
-      /* Skip the end-of-construct marker.  Also skip preprocessing directives
-         (they were processed in the call to skip_embedded_declarations). */
-      a_src_seq_end_of_construct_ptr ssecp;
-      advance_past_preprocessing_directives();
-      check_assertion(ss_entry_kind(curr_source_sequence_entry) ==
-                              (an_il_entry_kind)iek_src_seq_end_of_construct);
-      ssecp = ss_entry_ptr(curr_source_sequence_entry,
-                           a_src_seq_end_of_construct_ptr);
-      check_assertion(ss_entry_kind(ssecp) == iek_variable &&
-                      ss_entry_ptr(ssecp, a_variable_ptr) == var);
-      adv_curr_source_sequence_entry();
-    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (attributes_follow_initializer) {
       (void)form_variable_attributes(var, /*need_leading_space=*/TRUE, &octl);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
+  if (embedded_constructs) {
+    /* Skip the end-of-construct marker.  Also skip preprocessing directives
+       (they were processed in the call to skip_embedded_declarations). */
+    a_src_seq_end_of_construct_ptr ssecp;
+    advance_past_preprocessing_directives();
+    check_assertion(ss_entry_kind(curr_source_sequence_entry) ==
+                              (an_il_entry_kind)iek_src_seq_end_of_construct);
+    ssecp = ss_entry_ptr(curr_source_sequence_entry,
+                         a_src_seq_end_of_construct_ptr);
+    check_assertion(ss_entry_kind(ssecp) == iek_variable &&
+                    ss_entry_ptr(ssecp, a_variable_ptr) == var);
+    adv_curr_source_sequence_entry();
   }  /* if */
   /* Output the semicolon or comma at the end of the declaration, but not
      for a condition. */

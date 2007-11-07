@@ -8615,7 +8615,7 @@ specific information about the member declaration, respectively.
          defined. */
       var->is_member_constant = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      add_src_seq_end_of_initializer_if_needed(var);
+      add_src_seq_end_of_variable_if_needed(decl_state);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       /* Issue a diagnostic for an invalid member constant type. */

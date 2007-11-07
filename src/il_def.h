@@ -974,6 +974,17 @@ typedef struct a_src_seq_secondary_decl {
 			   The source sequence entries for the first and
 			   fourth of these class declarations will have the
 			   flag set. */
+  a_bit_field	embedded_source_sequence_entries:1;
+			/* TRUE if the declaration represented by this entry
+			   embeds another construct with associated source
+			   sequence entries.  For example:
+			     extern int x[sizeof(struct S { int i; })];
+			   In this example, the source sequence entries for the
+			   non-autonomous struct S are considered to be
+			   "embedded".  In such cases, the embedded entries are
+			   followed by an a_src_seq_end_of_construct for the
+			   entity associated with this secondary source
+			   sequence entry. */
   a_bit_field	friend_decl:1;
 			/* TRUE when the declaration is a friend declaration;
 			   "entity" will refer to a routine or class.  (In
@@ -6975,12 +6986,18 @@ typedef struct a_variable {
 			   Microsoft bug. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_bit_field	initializer_with_source_sequence_entries:1;
-			/* TRUE if source sequence entries were recorded while
-			   scanning the initializer.  In that case, those
-			   entries will be followed by a source sequence entry
-			   pointing to an a_src_seq_end_of_construct entry for
-			   this variable. */
+  a_bit_field	embedded_source_sequence_entries:1;
+			/* TRUE if the definition of this variable embeds
+			   another construct with associated source sequence
+			   entries.  For example:
+			     int x[sizeof(struct S { int i; })];
+			   or
+			     void *p = (struct S { int i; }*)0;
+			   In these examples, the source sequence entries for
+			   the non-autonomous struct S are considered to be
+			   "embedded".  In such cases, the embedded entries are
+			   followed by an a_src_seq_end_of_construct for this
+			   variable. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */

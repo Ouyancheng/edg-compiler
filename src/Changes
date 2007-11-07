@@ -1,5 +1,25 @@
 Version 3.11
 
+11/7/07  C++-generating back end: Declarators and initializers with embedded
+         declarations and/or statements
+
+In C mode and in GNU C++ modes, declarators and/or initializers can contain
+declarations and/or statements.  The C++-generating back end often rendered
+such (somewhat unusual) cases incorrectly.  For example:
+
+  int a[sizeof(struct S { int i; })];  // Valid in C mode, but the definition
+                                       // was dropped by the C++-generating
+                                       // back end.
+
+Another example:
+
+  void f() {
+    void *p = (({ int x; 3; }),        // Accepted in some GNU C++ modes, but
+               (union { int y; }*)0);  // previously rendered incorrectly.
+  }
+
+This is now fixed.
+
 11/7/07  C++0x: Universal character names
 
 In strict C++0x mode the constraints on the code points implied by universal
@@ -348,20 +368,6 @@ example:
     template <typename T = Inner> struct S { };
   };
   Outer::S<> s;          // Previously generated as Outer::S<Outer::Inner>
-
-9/28/07  C++-generating back end: GNU-mode initializer containing class type
-         definition and statement expression not correctly rendered
-
-In GNU modes, an initializer containing both a statement expression and a
-class type definition was not always correctly rendered by the C++-generating
-back end.  For example:
-
-  void f() {
-    void *p = (({ int x; 3; }),        // Accepted in some GNU C++ modes, but
-               (union { int y; }*)0);  // previously rendered incorrectly.
-  }
-
-This is now fixed.
 
 9/28/07  C++-generating back end: Class declaration incorrectly rendered as
          a class definition

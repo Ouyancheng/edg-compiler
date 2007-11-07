@@ -3147,31 +3147,6 @@ has static storage duration; vp_type is the type of that entity.
   return constant;
 }  /* simple_initializer */
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-
-void add_src_seq_end_of_initializer_if_needed(a_variable_ptr  vp)
-/*
-An initializer was just scanned for the given variable.  If that initializer
-triggered the creation of source sequence entries for declarations or
-statements it embeds (this currently only happens in GNU modes) insert an
-end-of-construct source sequence entry.  This allow source sequence entries
-associated with the initializer to be distinguished from those that follow the
-initializer.  For example:
-    void *p = (union { char c; int x; }*) 0;  // Accepted in g++ mode.
-      // The source sequence entries for the anonymous union will be
-      // separated from those of S by an end-of-construct entry.
-    struct S {} s;
-*/
-{
-  if (vp != NULL && vp->source_corresp.source_sequence_entry != NULL &&
-      vp->source_corresp.source_sequence_entry->next != NULL) {
-    vp->initializer_with_source_sequence_entries = TRUE;
-    add_end_of_construct_source_sequence_entry(
-                              (char *)vp, (a_byte_il_entry_kind)iek_variable);
-  }  /* if */
-}  /* add_src_seq_end_of_initializer_if_needed */
-
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 void initializer(a_decl_parse_state  *dps,
                  a_source_position   *source_pos,
@@ -3727,9 +3702,6 @@ returned set to TRUE.
       pop_namespace_reactivation_scope();
     }  /* if */
   }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  add_src_seq_end_of_initializer_if_needed(vp);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DEBUG
   if (debug_level >= 3 || db_flag_is_set("dump_init")) {
     if (!var_err) {

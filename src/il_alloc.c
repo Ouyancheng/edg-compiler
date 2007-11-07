@@ -1963,7 +1963,7 @@ Clear the fields of the given variable to default values.
   vp->definition_has_been_put_out = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  vp->initializer_with_source_sequence_entries = FALSE;
+  vp->embedded_source_sequence_entries = FALSE;
   vp->declared_type               = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3567,6 +3567,7 @@ and return a pointer to it.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   sssdp->declared_type               = NULL;
   sssdp->autonomous_tag_decl         = FALSE;
+  sssdp->embedded_source_sequence_entries = FALSE;
   sssdp->friend_decl                 = FALSE;
   sssdp->implicit_decl               = FALSE;
   sssdp->declared_in_func_prototype  = FALSE;
