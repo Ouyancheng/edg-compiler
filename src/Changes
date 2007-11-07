@@ -1,5 +1,16 @@
 Version 3.11
 
+11/7/07  Microsoft compatibility: Visibility of static data member in its
+         in-class initializer
+
+In Microsoft bugs mode, a static data member declaration is not visible in
+its own in-class initializer.  For example:
+
+  int const i = 7;
+  struct S {
+    static int const i = i;  // Initializes S::i to 7 in Microsoft bugs mode.
+  };                         // (An error in other modes.)
+
 11/7/07  C++-generating back end: Declarators and initializers with embedded
          declarations and/or statements
 

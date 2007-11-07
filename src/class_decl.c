@@ -8588,6 +8588,11 @@ specific information about the member declaration, respectively.
       prescan_initializer_for_auto_type_deduction(decl_state);
       member_type = decl_state->type;
     }  /* if */
+    if (microsoft_bugs && decl_state->sym != NULL) {
+      /* In Microsoft bugs mode, the static data member being initialized is
+         not visible while parsing the initializer. */
+      decl_state->sym->is_invisible = TRUE;
+    }  /* if */
     if ((is_const_qualified_type(member_type) &&
          (is_integral_or_enum_type(member_type) ||
           (gpp_mode &&
@@ -8628,6 +8633,10 @@ specific information about the member declaration, respectively.
         }  /* if */
       }  /* if */
       scan_and_discard_initializer_expression(decl_state);
+    }  /* if */
+    if (microsoft_bugs && decl_state->sym != NULL) {
+      /* Restore the member's visibility. */
+      decl_state->sym->is_invisible = FALSE;
     }  /* if */
   }  /* if */
   /* This is entered as a declaration rather than a definition, since the
