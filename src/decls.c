@@ -13063,14 +13063,17 @@ distinguished from those that follow the initializer.  For example:
       // The source sequence entries for the anonymous union will be
       // separated from those of S by an end-of-construct entry.
     struct S {} s;
+Note that a different mechanism is used if the variable declaration is a
+function parameter declaration: This routine does nothing in that case.
 */
 {
+  check_assertion(dps->sym != NULL);
   if (dps->source_sequence_entry != NULL &&
-      dps->source_sequence_entry->next != NULL) {
+      dps->source_sequence_entry->next != NULL &&
+      dps->sym->kind != (a_symbol_kind)sk_parameter) {
     /* The source sequence entry associated with the variable declaration is
        followed by entries for embedded constructs. */
     a_variable_ptr  vp;
-    check_assertion(dps->sym != NULL);
     if (dps->sym->kind == (a_symbol_kind)sk_variable) {
       vp = dps->sym->variant.variable.ptr;
     } else if (dps->sym->kind == (a_symbol_kind)sk_variable) {
