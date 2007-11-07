@@ -1708,6 +1708,7 @@ REMOVED;ec_statement_expression_in_decltype;;"a statement expression is not allo
 ec_type_with_no_linkage_in_template_arg;;"a template argument may not reference a type with no name linkage"
 ec_virtual_ignored;;"\"virtual\" is ignored here"
 ec_vla_type_in_template_arg;;"a template argument may not reference a variable-length array type"
+ec_UCN_names_surrogate_code_point;;"a universal character name cannot designate a surrogate code point"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

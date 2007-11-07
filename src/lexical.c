@@ -7221,20 +7221,41 @@ static void check_for_invalid_cplusplus_ucn(
 					a_boolean	is_identifier_start)
 /*
 Determine whether "ucn" is a valid universal character name in C++.
-Issue a diagnostic if it is not.
+Issue a diagnostic if it is not.  The rules for C++98/C++03 and for C++0x
+are different.
 */
 {
   an_error_code	err_code = ec_no_error;
-  if (ucn <= 255 && !is_nonstandard_character((char)ucn)) {
-    /* A UCN cannot be used to name a character in the basic character
-       set. */
-    err_code = ec_UCN_names_basic_char;
-  } else if (ucn < 0x20 || (ucn >= 0x7f && ucn <= 0x9f)) {
-    /* These characters are disallowed by the standard. */
-    err_code = ec_invalid_UCN;
-  } else if (is_identifier) {
-    /* Check whether this is a valid identifier character. */
-    err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
+
+  if (cpp0x_mode) {
+    if (ucn >= 0xd800 && ucn <= 0xdfff) {
+      /* Values reserved for ISO 10646 surrogate code points are never
+         allowed. */
+      err_code = ec_UCN_names_surrogate_code_point;
+    } else if (is_identifier) {
+      /* Other restrictions only apply when the UCN is used in an identifier.
+         The excluded codes are those corresponding to the basic character set,
+         and those corresponding to control characters. */
+      if (ucn <= 255 && !is_nonstandard_character((char)ucn)) {
+        /* A basic character set code. */
+        err_code = ec_UCN_names_basic_char;
+      } else if (ucn < 0x20 || (ucn >= 0x7f && ucn <= 0x9f)) {
+        /* A control character. */
+        err_code = ec_invalid_UCN;
+      }  /* if */
+    }  /* if */
+  } else {
+    if (ucn <= 255 && !is_nonstandard_character((char)ucn)) {
+      /* A UCN cannot be used to name a character in the basic character
+         set. */
+      err_code = ec_UCN_names_basic_char;
+    } else if (ucn < 0x20 || (ucn >= 0x7f && ucn <= 0x9f)) {
+      /* These characters are disallowed by the standard. */
+      err_code = ec_invalid_UCN;
+    } else if (is_identifier) {
+      /* Check whether this is a valid identifier character. */
+      err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
+    }  /* if */
   }  /* if */
   if (err_code != ec_no_error) {
     /* Get the source position that corresponds to this character. */

@@ -1,5 +1,27 @@
 Version 3.11
 
+11/7/07  C++0x: Universal character names
+
+In strict C++0x mode the constraints on the code points implied by universal
+character names (UCNs) are different from those in strict C++ (i.e., C++03)
+mode.  Specifically:
+
+  - UCNs reserved for surrogate code points (values 0xD000 - 0xDFFF) are
+    never permitted, and
+  - UCNs corresponding to control characters or to characters in the basic
+    source character set are permitted in string literals.
+
+For example:
+
+  char const *str = "\u0085";  // Allowed in strict C++0x mode, but not in
+                               // strict C++ mode (\u0085 is a control
+                               // character).
+
+(In the corresponding nonstrict modes, warnings are issued instead of errors.)
+
+This change was voted into the C++ committee's working paper for the next
+standard in October 2007 (meeting in Kona, through proposal numbered N2170).
+
 11/6/07  Microsoft compatibility: Local types in template arguments
 
 In Microsoft mode with microsoft_version >= 1400, local class and enum types
