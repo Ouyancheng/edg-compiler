@@ -15555,7 +15555,7 @@ an_object_lifetime_ptr init_expr_lifetime_of(a_dynamic_init_ptr dip)
 Given a dynamic init entry, return a (possibly NULL) pointer to an object
 lifetime representing the full-expression lifetime that is the initialization.
 (This may be given directly by the init_expr_lifetime field or indirectly, if
-this is a dik_expression dynamic init entry.
+this is a dik_expression dynamic init entry.)
 */
 {
   an_object_lifetime_ptr  olp = NULL;
