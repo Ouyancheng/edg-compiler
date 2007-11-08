@@ -1663,8 +1663,8 @@ Display the IL entry prefix of the given IL entry.
       fprintf(f_debug, "lowering_flag ");
     }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
-    if (il_entry_prefix_of(entry).il_lowering_flag) {
-      fprintf(f_debug, "lowering_flag ");
+    if (il_entry_prefix_of(entry).keep_in_il) {
+      fprintf(f_debug, "keep_in_il ");
     }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT
