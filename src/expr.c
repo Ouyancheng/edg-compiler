@@ -7103,7 +7103,7 @@ NULL, the end position in its specifiers_range is updated.
     } else {
       make_local_expr_node_ref(
               expr, (a_local_expr_node_ref_kind)lerk_decltype, (char*)tp,
-              expr_scope_depth);
+              scope_stack[expr_scope_depth].il_scope);
     }  /* if */
     result = tp;
   }  /* if */
@@ -7268,7 +7268,7 @@ NULL, the end position in its specifiers_range is updated.
       } else {
         make_local_expr_node_ref(
            expr, (a_local_expr_node_ref_kind)lerk_typeof, (char*)typeof_type,
-           expr_scope_depth);
+           scope_stack[expr_scope_depth].il_scope);
       }  /* if */
     }  /* if */
     result = typeof_type;

@@ -719,7 +719,7 @@ extern void make_local_expr_node_ref(
                                  an_expr_node_ptr            expr,
                                  a_local_expr_node_ref_kind  kind,
                                  char                        *referrer,
-                                 a_scope_depth               expr_scope_depth);
+                                 a_scope_ptr                 func_scope);
 
 extern an_expr_node_ptr find_local_expr_node(char  *referrer,
                                              a_local_expr_node_ref_kind  kind);

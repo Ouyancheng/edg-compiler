@@ -4155,7 +4155,7 @@ fix them.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
           make_local_expr_node_ref(
             expr, (a_local_expr_node_ref_kind)lerk_generic_sizeof, (char*)cp,
-            depth_innermost_function_scope);
+            innermost_function_scope);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           cp->variant.template_param.variant.templ_sizeof.expr = NULL;
         }  /* if */
@@ -8987,30 +8987,33 @@ entry.
 void make_local_expr_node_ref(an_expr_node_ptr            expr,
                               a_local_expr_node_ref_kind  kind,
                               char                        *referrer,
-                              a_scope_depth               expr_scope_depth)
+                              a_scope_ptr                 func_scope)
 /*
-expr is a node in the current function's memory region and referrer is an
-entry in the file scope memory region.  Create an entry in the current
-function's memory region to represent an implicit reference from referrer
-to expr.  kind indicates the nature of the referrer.  (This is needed
-because file scope memory entries cannot directly point to entries in
-function scope memory regions.)  expr_scope_depth is the scope stack depth
-of the function associated with the memory region in which the expression is
+expr is a node in a function's memory region -- associated with func_scope --
+and referrer is an entry in the file scope memory region.  Create an entry in
+that function's memory region to represent an implicit reference from referrer
+to expr.  kind indicates the nature of the referrer.  (This is needed because
+file scope memory entries cannot directly point to entries in function scope
+memory regions.)  func_scope describes the function where the expression is
 stored.
 The expression can then be recovered using find_local_expr_node.
 */
 {
-  a_memory_region_number     region_to_switch_back_to;
+  a_memory_region_number     memory_region, region_to_switch_back_to;
   a_local_expr_node_ref_ptr  new_ref;
 
   check_assertion(!in_file_scope(expr) && in_file_scope(referrer));
-  check_assertion(expr_scope_depth != NO_SCOPE_DEPTH &&
-                  scope_stack[expr_scope_depth].kind ==
-                                                  (a_scope_kind)sck_function);
-  switch_to_scope_region(expr_scope_depth, &region_to_switch_back_to);
+  check_assertion(func_scope->kind == (a_scope_kind)sck_function);
+  memory_region = func_scope->variant.routine.ptr->assoc_scope;
+  if (memory_region != curr_il_region_number) {
+    region_to_switch_back_to = curr_il_region_number;
+    switch_il_region(memory_region);
+  } else {
+    region_to_switch_back_to = NULL_region_number;
+  }  /* if */
   new_ref = alloc_local_expr_node_ref();
   switch_back_to_original_region(region_to_switch_back_to);
-  new_ref->next = scope_stack[expr_scope_depth].il_scope->expr_node_refs;
+  new_ref->next = func_scope->expr_node_refs;
   new_ref->expr = expr;
   new_ref->kind = kind;
   new_ref->referrer.ptr = referrer;
@@ -9034,7 +9037,7 @@ The expression can then be recovered using find_local_expr_node.
     default:
       unexpected_condition();
   }  /* switch */
-  scope_stack[expr_scope_depth].il_scope->expr_node_refs = new_ref;
+  func_scope->expr_node_refs = new_ref;
 }  /* make_local_expr_node_ref */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
