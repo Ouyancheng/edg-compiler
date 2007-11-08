@@ -1405,18 +1405,25 @@ corresponding end-of-construct entry.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-static void skip_embedded_declarations(void)
+static void f_skip_embedded_declarations(a_boolean  end_of_construct_marked)
 /*
-In C mode, skip over the source sequence entries for any non-autonomous type
-declarations or implicit function declarations that appear within an
-expression, e.g.,
+Skip over source sequence entries for constructs "embedded" in other
+declarations.  This includes skipping over the source sequence entries for
+any non-autonomous type declarations or (in C mode) implicit function
+declarations that appear within an expression, e.g.,
 
   p = (struct A *)0;
   i = f();
 
-Also skip macros and other preprocessing directives that precede such
-declarations.  In C++, there are no implicit function declarations,
-but skip non-autonomous type declarations.
+This also skips macros and other preprocessing directives that precede such
+embedded constructs.
+
+end_of_construct_marked is TRUE if an end-of-construct source sequence entry
+marks the end of the embedded constructs.  In that case even types marked as
+autonomous may be skipped.  E.g.:
+
+  int a[sizeof(struct S { int i; })];  // S is marked as autonomous even
+                                       // though it is embedded.
 */
 {
   a_type_ptr                   type;
@@ -1432,9 +1439,13 @@ but skip non-autonomous type declarations.
     advance_past_preprocessing_directives();
     found_decl = is_routine = is_type = FALSE;
     if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
-      /* An autonomous type declaration stops the scan. */
+      /* An autonomous type declaration stops the scan, unless an end-of-
+         construct marker is expected*/
       is_type = TRUE;
-      if (!is_autonomous_decl(type, sec_decl)) found_decl = TRUE;
+      if (end_of_construct_marked ||
+          !is_autonomous_decl(type, sec_decl)) {
+        found_decl = TRUE;
+      }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     } else if (curr_src_seq_entry_is_for_statement_expression()) {
       found_decl = TRUE;
@@ -1465,7 +1476,10 @@ but skip non-autonomous type declarations.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* for */
-}  /* skip_embedded_declarations */
+}  /* f_skip_embedded_declarations */
+
+#define skip_embedded_declarations()                                         \
+  f_skip_embedded_declarations(/*end_of_construct_marked=*/FALSE);
 
 
 static void end_output_line(void)
@@ -12441,7 +12455,7 @@ declaration following this one is such a continuation.
     /* Skip over any declarations embedded in the declarator or initializer
        (e.g., in casts or sizeof constructs), setting them up to be generated
        on-the-fly as needed. */
-    skip_embedded_declarations();
+    f_skip_embedded_declarations(/*end_of_construct_marked=*/TRUE);
   }  /* if */
   /* Position the output file to the declaration position. */
   set_decl_position(&var->source_corresp, sec_decl);

@@ -3070,7 +3070,11 @@ scope that are not really needed in the IL.
       }  /* if */
     } else {
       /* The associated IL entry will not be removed. */
-      next_ssep = ssep->next;
+      /* If this is the end of a tag-definition construct, it may be
+         appropriate to change the autonomous flag in the type from FALSE
+         to TRUE.  Similar processing may be done for secondary declarations
+         of tags. */
+      next_ssep = src_seq_check_for_non_autonomous_tag(ssep);
     }  /* if */
   }  /* for */
 #if DEBUG

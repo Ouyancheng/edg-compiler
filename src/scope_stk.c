@@ -4103,6 +4103,8 @@ NULL.
           ssep->entity.ptr = (char *)var_ptr;
           check_assertion(var_ptr->declared_type == NULL);
           var_ptr->declared_type = sssdp->declared_type;
+          var_ptr->embedded_source_sequence_entries =
+                                       sssdp->embedded_source_sequence_entries;
         }  /* if */
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
