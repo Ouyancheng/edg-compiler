@@ -5576,7 +5576,8 @@ for use in generating cross-reference output describing this declaration.
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   /* If cross-reference information is being issued, update the output.  If
      source sequence entries are being generated, update the source sequence
-     entry for this declaration. */
+     entry for this declaration (this may cause the allocation of a new source
+     sequence entry in some cases). */
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             dps->source_sequence_entry);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -5593,9 +5594,11 @@ for use in generating cross-reference output describing this declaration.
   if (idlb.namespace_reactivated) pop_namespace_extension_scope();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Do fixup on the source sequence entry that was just created to
-     represent the current declaration.  Note that declaration_ssep is not
-     used, since it may have been replaced (e.g., when a file scope entity
-     is declared in a local scope and a sublist is generated). */
+     represent the current declaration.  Note that dps->source_sequence_entry
+     must be updated, since it may have been replaced (e.g., when a file scope
+     entity is declared in a local scope and a sublist is generated). */
+  dps->source_sequence_entry =
+                     last_matching_source_sequence_entry((char*)variable_ptr);
 #if RECORD_FORM_OF_NAME_REFERENCE
   name_ref = qualifiable_name_reference(locator, source_corresp_ptr);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -13067,9 +13070,10 @@ Note that a different mechanism is used if the variable declaration is a
 function parameter declaration: This routine does nothing in that case.
 */
 {
+  a_source_sequence_entry_ptr  ssep = dps->source_sequence_entry;
+
   check_assertion(dps->sym != NULL);
-  if (dps->source_sequence_entry != NULL &&
-      dps->source_sequence_entry->next != NULL &&
+  if (ssep != NULL && ssep->next != NULL &&
       dps->sym->kind != (a_symbol_kind)sk_parameter) {
     /* The source sequence entry associated with the variable declaration is
        followed by entries for embedded constructs. */
@@ -13081,7 +13085,13 @@ function parameter declaration: This routine does nothing in that case.
     } else {
       unexpected_condition();
     }  /* if */
-    vp->embedded_source_sequence_entries = TRUE;
+    if (ss_entry_kind(ssep) == iek_variable) {
+      vp->embedded_source_sequence_entries = TRUE;
+    } else {
+      check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
+      ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)
+                                    ->embedded_source_sequence_entries = TRUE;
+    }  /* if */
     add_end_of_construct_source_sequence_entry(
                               (char *)vp, (a_byte_il_entry_kind)iek_variable);
   }  /* if */
