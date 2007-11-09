@@ -14474,7 +14474,7 @@ be a syntax error showing up in the next file.  I.e., something like:
     a_source_file_ptr  src1, src2;
     src1 = source_file_for_seq(end_pos->seq, &line1, &eos1,
                                /*physical_line=*/FALSE);
-    src2 = source_file_for_seq(end_pos->seq, &line2, &eos2,
+    src2 = source_file_for_seq(pos_curr_token.seq, &line2, &eos2,
                                /*physical_line=*/FALSE);
     /* We cannot just compare src1 and src2 for equality because #line
        directives create new a_source_file entries.  E.g.:
