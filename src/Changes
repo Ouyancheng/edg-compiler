@@ -1,5 +1,26 @@
 Version 3.11
 
+11/8/07  Lowering: Incorrect region table entries for certain dynamically
+         initialized aggregates in file scope
+
+In cases where lowering is used to generate region tables
+(i.e., DO_FULL_PORTABLE_EH_LOWERING or GENERATE_EH_TABLES are TRUE),
+these tables may contain incorrect "next" values when a member of an
+aggregate in the file scope is dynamically initialized with a constructor
+call that requires creation of a temporary variable.  Additionally,
+the __eh_curr_region variable may be set incorrectly.  These errors
+could lead to incorrect cleanup of the aggregate if an exception were
+to be thrown during the aggregate's construction.  Such aggregates are
+now copied from the file scope into the generated initialization routine.
+Here is an example whose region table entries were incorrect:
+
+  struct foo { ~foo(); };
+  struct bar {
+    bar(int, foo __a = foo());
+    ~bar();
+  };
+  bar table[] = { 1,2,3 };
+
 11/7/07  Microsoft compatibility: Visibility of static data member in its
          in-class initializer
 

@@ -1123,6 +1123,9 @@ extern an_expr_node_ptr copy_list_of_expr_trees(
 extern an_expr_node_ptr copy_expr_tree(an_expr_node_ptr         expr,
                                        an_expr_copy_options_set options);
 
+extern a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr       dip,
+                                            an_expr_copy_options_set options);
+
 extern an_expr_node_ptr copy_default_arg_expr(
 			       a_routine_ptr	rout_ptr,
                                a_param_type_ptr ptp,

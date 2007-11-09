@@ -6409,8 +6409,10 @@ C99 mode for the same reason.
   if (init_expr_lifetime != NULL) {
     /* The dynamic init defines a lifetime that surrounds the
        initialization.  Push that lifetime onto the context stack. */
+    a_boolean copy_lifetime = (processing_file_scope_init_routine && 
+                               in_file_scope(init_expr_lifetime));
     push_init_expr_lifetime(&init_expr_lifetime,
-                            processing_file_scope_init_routine,
+                            copy_lifetime,
                             &context,
                             insert_location,
                             &insert_location2,
@@ -12297,6 +12299,23 @@ in all dynamic initializations under it.
 
 #endif /* MULTIPLE_INIT_ROUTINES */
 
+static a_boolean has_overlapping_lifetime_temps(a_dynamic_init_ptr dip)
+/*
+Returns TRUE if the non-constant aggregate dip contains at least
+one destruction in its destruction list with the
+overlaps_temps_in_inner_lifetime flag set to TRUE.
+*/
+{
+  check_assertion(dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate);
+  for (;dip != NULL; dip = dip->next_in_destruction_list) {
+    if (dip->overlaps_temps_in_inner_lifetime) {
+      return TRUE;
+    }  /* if */
+  }  /* for */
+  return FALSE;
+}  /* has_overlapping_lifetime_temps */
+
+
 #if !MULTIPLE_INIT_ROUTINES
 /*ARGSUSED*/ /* residual_destrs is not used in that case. */
 #endif /* !MULTIPLE_INIT_ROUTINES */
@@ -12470,6 +12489,18 @@ instantiations have been generated.
       dip_next = dip->next;
       dip->next = NULL;
       set_var_init_pos_descr(dip->variable, &ipd);
+      if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
+          has_overlapping_lifetime_temps(dip)) {
+        /* Some non-constant aggregate dynamic inits contain constructor
+           calls, which will result in copying the constructor argument
+           list from the file scope into the function scope.  This copy
+           can cause errors in the exception handling region table
+           when there are overlapping lifetime temporaries.  To avoid
+           this problem, copy the entire dynamic initialization into
+           the function scope. */
+        dip = copy_dynamic_init(dip, CE_UNLINK_SOURCE_DESTRUCTIONS |
+                                     CE_TRANSFER_DESTR_ENTITY_DESCR);
+      }  /* if */
 #if LOWER_DESIGNATED_INITIALIZERS
       lower_dynamic_init_designated_initializers(dip);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */

@@ -9763,7 +9763,11 @@ expression node (the "i_" prefix means "internal").  options is a set of
 options for the copy.  cblock is a control block for the copy.
 */
 {
-  a_dynamic_init_ptr new_dip;
+  a_dynamic_init_ptr      new_dip;
+#if DO_IL_LOWERING
+  an_object_lifetime_ptr  init_expr_lifetime;
+  a_boolean               saved_overlaps_temps_in_inner_lifetime;
+#endif /* DO_IL_LOWERING */
 
   new_dip = alloc_dynamic_init(dip->kind);
   *new_dip = *dip;
@@ -9786,6 +9790,20 @@ options for the copy.  cblock is a control block for the copy.
     }  /* if */
   }  /* if */
 #endif /* MINIMAL_INLINING */
+#if DO_IL_LOWERING
+  /* Save the initial value of overlaps_temps_in_inner_lifetime; this
+     may change when remove_from_destruction_list is called later. */
+  saved_overlaps_temps_in_inner_lifetime =
+                                         dip->overlaps_temps_in_inner_lifetime;
+  /* Push an object lifetime if copying a dynamic initializer that
+     has an init_expr_lifetime. */
+  new_dip->init_expr_lifetime = NULL;
+  init_expr_lifetime = dip->init_expr_lifetime; 
+  if (init_expr_lifetime != NULL) {
+    push_object_lifetime(iek_dynamic_init, (char *)new_dip,
+                                                     init_expr_lifetime->kind);
+  }  /* if */
+#endif /* DO_IL_LOWERING */
   switch (dip->kind) {
     case dik_none:
     case dik_zero:
@@ -9827,17 +9845,29 @@ options for the copy.  cblock is a control block for the copy.
       internal_error("i_copy_dynamic_init: bad kind");
 #endif /* CHECKING */
   }  /* switch */
-  check_assertion_str(dip->init_expr_lifetime == NULL,
-                      "i_copy_dynamic_init: init_expr_lifetime is non-NULL");
+#if DO_IL_LOWERING
+  /* Pop an init_expr_lifetime object lifetime if we had pushed one
+     previously. */
+  if (init_expr_lifetime != NULL) {
+    (void)pop_object_lifetime();
+  }  /* if */
+#endif /* DO_IL_LOWERING */
   if (dip->lifetime != NULL) {
     /* This dynamic init is on a destruction list, so the copy must be
        put on a destruction list in the current context. */
-    an_object_lifetime_kind kind = dip->lifetime->kind;
-    a_boolean               static_lifetime =
-                                          is_static_object_lifetime_kind(kind);
     new_dip->lifetime = NULL;
     new_dip->next_in_destruction_list = NULL;
     if (!(options & CE_COPY_NOT_EVALUATED)) {
+      an_object_lifetime_kind kind = dip->lifetime->kind;
+      a_boolean               static_lifetime =
+                                          is_static_object_lifetime_kind(kind);
+      if (static_lifetime &&
+          kind == (an_object_lifetime_kind)olk_global_static &&
+          !is_static_object_lifetime_kind(curr_object_lifetime->kind)) {
+        /* We're copying this dip from the file scope, so it'll no longer
+           be static. */
+        static_lifetime = FALSE;
+      }  /* if */
       record_end_of_lifetime_destruction(new_dip, static_lifetime,
                                          /*block_lifetime=*/FALSE);
     }  /* if */
@@ -9852,6 +9882,18 @@ options for the copy.  cblock is a control block for the copy.
          is requested by the caller when the source expression will not
          remain in the IL tree. */
       remove_from_destruction_list(dip);
+      if (saved_overlaps_temps_in_inner_lifetime) {
+        /* The original dip had this flag set (and it should have been
+           cleared during a call to remove_from_destruction_list on
+           an inner dip during this copy).  We need to re-establish
+           the overlapping lifetime relationship in the new dip. */
+        an_object_lifetime_ptr overlapped_olp = init_expr_lifetime_of(new_dip);
+        check_assertion(!dip->overlaps_temps_in_inner_lifetime);
+        check_assertion(overlapped_olp != NULL);
+        overlapped_olp->parent_destruction_sublist = new_dip;
+        new_dip->overlaps_temps_in_inner_lifetime = TRUE;
+        new_dip->lifetime_of_overlapping_temps = overlapped_olp;
+      }  /* if */
     }  /* if */
 #endif /* DO_IL_LOWERING */
   }  /* if */
@@ -9876,6 +9918,25 @@ options for the copy.  cblock is a control block for the copy.
   }  /* if */
   return new_dip;
 }  /* i_copy_dynamic_init */
+
+
+a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr       dip,
+                                     an_expr_copy_options_set options)
+/*
+Make a copy of a dynamic initialization (and everything under it) and
+return a pointer to it.  options is a set of options for the copy.
+*/
+{
+  a_tree_copy_control_block cblock;
+  a_dynamic_init_ptr        dip_copy;
+
+  /* This is a wrapper around i_copy_dynamic_init that initializes the
+     control block to be used for the entire copy. */
+  clear_tree_copy_control_block(&cblock);
+  dip_copy = i_copy_dynamic_init(dip, options, &cblock);
+  done_with_tree_copy_control_block(&cblock);
+  return dip_copy;
+}  /* copy_dynamic_init */
 
 
 a_local_static_variable_init_ptr make_local_static_variable_init(
