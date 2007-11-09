@@ -45,7 +45,7 @@ Changed to C++ front end and enhanced by
 #endif /* BACK_END_IS_CP_GEN_BE */
 
 
-static void cfe_main(int argc, char *argv[])
+static DOES_NOT_RETURN cfe_main(int argc, char *argv[])
 /*
 This routine does the actual work to perform a compilation.  This is
 called by the EDG_MAIN wrapper that performs error handling when
