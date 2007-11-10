@@ -4084,21 +4084,34 @@ will be changed to an aggregate constant for the constant parts and
 *keep_constant will be set to TRUE.
 */
 {
-  a_constant_ptr next_con;
-  a_type_ptr     desired_type;
-  a_constant_ptr constant_to_keep = NULL;
+  a_constant_ptr     next_con;
+  a_type_ptr         desired_type;
+  a_constant_ptr     constant_to_keep = NULL;
+  a_dynamic_init_ptr dip = con_ptr->variant.dynamic_init;
 
+  if (processing_file_scope_init_routine && in_file_scope(dip) &&
+      dip->destruction_is_for_partially_constructed_aggregate &&
+      dip->overlaps_temps_in_inner_lifetime) {
+    /* The subtree of this dynamic initialization will be copied into the
+       function scope memory region because the code for it must be generated
+       in a startup initialization routine.  This entry has a destruction
+       whose lifetime overlaps with temporaries in inner lifetimes, and
+       it will have to appear on a cleanup list properly intertwined with
+       those temps.  Copy it at this level so that the overlap is indicated
+       properly on the function-scope copies so the cleanup lists will be
+       right. */
+    dip = copy_dynamic_init(dip, CE_UNLINK_SOURCE_DESTRUCTIONS |
+                                 CE_TRANSFER_DESTR_ENTITY_DESCR);
+  }  /* if */
   if (dtor_case) {
     /* In a destructor case, so the "initialization" is really
        destruction. */
-    lower_destructor_dynamic_init(con_ptr->variant.dynamic_init, ipdp,
-                                  /*have_complete_object=*/TRUE,
+    lower_destructor_dynamic_init(dip, ipdp, /*have_complete_object=*/TRUE,
                                   (an_expr_node_ptr)NULL,
                                   insert_location);
   } else {
     /* Normal initialization. */
-    lower_dynamic_init(con_ptr->variant.dynamic_init, ipdp,
-                       ctor_init, (a_variable_ptr)NULL,
+    lower_dynamic_init(dip, ipdp, ctor_init, (a_variable_ptr)NULL,
                        LDIO_FULL_EXPR, others_follow_in_aggr,
                        insert_location, (a_boolean *)NULL,
                        &constant_to_keep);
@@ -12299,23 +12312,6 @@ in all dynamic initializations under it.
 
 #endif /* MULTIPLE_INIT_ROUTINES */
 
-static a_boolean has_overlapping_lifetime_temps(a_dynamic_init_ptr dip)
-/*
-Returns TRUE if the non-constant aggregate dip contains at least
-one destruction in its destruction list with the
-overlaps_temps_in_inner_lifetime flag set to TRUE.
-*/
-{
-  check_assertion(dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate);
-  for (;dip != NULL; dip = dip->next_in_destruction_list) {
-    if (dip->overlaps_temps_in_inner_lifetime) {
-      return TRUE;
-    }  /* if */
-  }  /* for */
-  return FALSE;
-}  /* has_overlapping_lifetime_temps */
-
-
 #if !MULTIPLE_INIT_ROUTINES
 /*ARGSUSED*/ /* residual_destrs is not used in that case. */
 #endif /* !MULTIPLE_INIT_ROUTINES */
@@ -12489,18 +12485,6 @@ instantiations have been generated.
       dip_next = dip->next;
       dip->next = NULL;
       set_var_init_pos_descr(dip->variable, &ipd);
-      if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
-          has_overlapping_lifetime_temps(dip)) {
-        /* Some non-constant aggregate dynamic inits contain constructor
-           calls, which will result in copying the constructor argument
-           list from the file scope into the function scope.  This copy
-           can cause errors in the exception handling region table
-           when there are overlapping lifetime temporaries.  To avoid
-           this problem, copy the entire dynamic initialization into
-           the function scope. */
-        dip = copy_dynamic_init(dip, CE_UNLINK_SOURCE_DESTRUCTIONS |
-                                     CE_TRANSFER_DESTR_ENTITY_DESCR);
-      }  /* if */
 #if LOWER_DESIGNATED_INITIALIZERS
       lower_dynamic_init_designated_initializers(dip);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */

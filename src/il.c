@@ -9751,6 +9751,10 @@ list.
 }  /* add_to_dynamic_inits_list */
 
 
+/* Forward declaration needed because of recursion: */
+static void unlink_object_lifetime(an_object_lifetime_ptr lifetime);
+
+
 static a_dynamic_init_ptr i_copy_dynamic_init(
                                              a_dynamic_init_ptr        dip,
                                              an_expr_copy_options_set  options,
@@ -9778,6 +9782,7 @@ options for the copy.  cblock is a control block for the copy.
        proper remapped address later. */
     add_copy_remap_entry((char *)dip, (char *)new_dip, cblock);
   }  /* if */
+  new_dip->inside_conditional_expression = FALSE;
   if (options & CE_INSIDE_CONDITIONAL_EXPRESSION) {
     new_dip->inside_conditional_expression = TRUE;
   }  /* if */
@@ -9803,6 +9808,7 @@ options for the copy.  cblock is a control block for the copy.
     push_object_lifetime(iek_dynamic_init, (char *)new_dip,
                                                      init_expr_lifetime->kind);
   }  /* if */
+  new_dip->destructible_entity_descr = NULL;
 #endif /* DO_IL_LOWERING */
   switch (dip->kind) {
     case dik_none:
@@ -9861,15 +9867,21 @@ options for the copy.  cblock is a control block for the copy.
       an_object_lifetime_kind kind = dip->lifetime->kind;
       a_boolean               static_lifetime =
                                           is_static_object_lifetime_kind(kind);
-      if (static_lifetime &&
-          kind == (an_object_lifetime_kind)olk_global_static &&
-          !is_static_object_lifetime_kind(curr_object_lifetime->kind)) {
-        /* We're copying this dip from the file scope, so it'll no longer
-           be static. */
+      if (dip->destruction_is_for_partially_constructed_aggregate) {
         static_lifetime = FALSE;
       }  /* if */
       record_end_of_lifetime_destruction(new_dip, static_lifetime,
                                          /*block_lifetime=*/FALSE);
+      if (saved_overlaps_temps_in_inner_lifetime) {
+        /* The original entry had this flag set.  We need to re-establish
+           the overlapping lifetime relationship in the copy. */
+        an_object_lifetime_ptr overlapped_olp = init_expr_lifetime_of(new_dip);
+        check_assertion(!dip->overlaps_temps_in_inner_lifetime);
+        check_assertion(overlapped_olp != NULL);
+        overlapped_olp->parent_destruction_sublist = new_dip;
+        new_dip->overlaps_temps_in_inner_lifetime = TRUE;
+        new_dip->lifetime_of_overlapping_temps = overlapped_olp;
+      }  /* if */
     }  /* if */
     if (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR) {
       /* Instantiate the destructor. */
@@ -9881,19 +9893,12 @@ options for the copy.  cblock is a control block for the copy.
       /* Unlink the source dynamic initialization from its lifetime.  This
          is requested by the caller when the source expression will not
          remain in the IL tree. */
-      remove_from_destruction_list(dip);
-      if (saved_overlaps_temps_in_inner_lifetime) {
-        /* The original dip had this flag set (and it should have been
-           cleared during a call to remove_from_destruction_list on
-           an inner dip during this copy).  We need to re-establish
-           the overlapping lifetime relationship in the new dip. */
-        an_object_lifetime_ptr overlapped_olp = init_expr_lifetime_of(new_dip);
-        check_assertion(!dip->overlaps_temps_in_inner_lifetime);
-        check_assertion(overlapped_olp != NULL);
-        overlapped_olp->parent_destruction_sublist = new_dip;
-        new_dip->overlaps_temps_in_inner_lifetime = TRUE;
-        new_dip->lifetime_of_overlapping_temps = overlapped_olp;
+      new_dip->destructible_entity_descr = dip->destructible_entity_descr;
+      dip->destructible_entity_descr = NULL;
+      if (init_expr_lifetime != NULL) {
+        unlink_object_lifetime(init_expr_lifetime);
       }  /* if */
+      remove_from_destruction_list(dip);
     }  /* if */
 #endif /* DO_IL_LOWERING */
   }  /* if */
