@@ -4,7 +4,7 @@ Version 3.11
          initialized aggregates in file scope
 
 In cases where lowering is used to generate region tables
-(i.e., DO_FULL_PORTABLE_EH_LOWERING or GENERATE_EH_TABLES are TRUE),
+(i.e., DO_FULL_PORTABLE_EH_LOWERING or GENERATE_EH_TABLES is TRUE),
 these tables may contain incorrect "next" values when a member of an
 aggregate in the file scope is dynamically initialized with a constructor
 call that requires creation of a temporary variable.  Additionally,
