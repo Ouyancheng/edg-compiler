@@ -9768,10 +9768,8 @@ options for the copy.  cblock is a control block for the copy.
 */
 {
   a_dynamic_init_ptr      new_dip;
-#if DO_IL_LOWERING
   an_object_lifetime_ptr  init_expr_lifetime;
   a_boolean               saved_overlaps_temps_in_inner_lifetime;
-#endif /* DO_IL_LOWERING */
 
   new_dip = alloc_dynamic_init(dip->kind);
   *new_dip = *dip;
@@ -9797,7 +9795,6 @@ options for the copy.  cblock is a control block for the copy.
 #endif /* MINIMAL_INLINING */
   new_dip->overlaps_temps_in_inner_lifetime = FALSE;
   new_dip->lifetime_of_overlapping_temps = NULL;
-#if DO_IL_LOWERING
   /* Save the initial value of overlaps_temps_in_inner_lifetime; this
      may change when remove_from_destruction_list is called later. */
   saved_overlaps_temps_in_inner_lifetime =
@@ -9810,6 +9807,7 @@ options for the copy.  cblock is a control block for the copy.
     push_object_lifetime(iek_dynamic_init, (char *)new_dip,
                                                      init_expr_lifetime->kind);
   }  /* if */
+#if DO_IL_LOWERING
   new_dip->destructible_entity_descr = NULL;
 #endif /* DO_IL_LOWERING */
   switch (dip->kind) {
