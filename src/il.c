@@ -9795,6 +9795,8 @@ options for the copy.  cblock is a control block for the copy.
     }  /* if */
   }  /* if */
 #endif /* MINIMAL_INLINING */
+  new_dip->overlaps_temps_in_inner_lifetime = FALSE;
+  new_dip->lifetime_of_overlapping_temps = NULL;
 #if DO_IL_LOWERING
   /* Save the initial value of overlaps_temps_in_inner_lifetime; this
      may change when remove_from_destruction_list is called later. */
