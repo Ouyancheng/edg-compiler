@@ -7233,15 +7233,14 @@ are different.
          allowed. */
       err_code = ec_UCN_names_surrogate_code_point;
     } else if (is_identifier) {
-      /* Other restrictions only apply when the UCN is used in an identifier.
-         The excluded codes are those corresponding to the basic character set,
-         and those corresponding to control characters. */
+      /* Other restrictions only apply when the UCN is used in an
+         identifier. */
       if (ucn <= 255 && !is_nonstandard_character((char)ucn)) {
         /* A basic character set code. */
         err_code = ec_UCN_names_basic_char;
-      } else if (ucn < 0x20 || (ucn >= 0x7f && ucn <= 0x9f)) {
-        /* A control character. */
-        err_code = ec_invalid_UCN;
+      } else {
+	/* Check whether this is a valid identifier character. */
+	err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
       }  /* if */
     }  /* if */
   } else {
