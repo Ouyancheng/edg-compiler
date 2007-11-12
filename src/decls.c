@@ -13059,7 +13059,7 @@ void add_src_seq_end_of_variable_if_needed(a_decl_parse_state  *dps)
 /*
 A variable declaration has been processed.  If that declaration triggered the
 creation of source sequence entries for constructs it embeds in its declarator
-or initializer, insert an end-of-construct source sequence entry.  This allow
+or initializer, insert an end-of-construct source sequence entry.  This allows
 source sequence entries associated with a declarator or initializer to be
 distinguished from those that follow the initializer.  For example:
     void *p = (union { char c; int x; }*) 0;  // Accepted in g++ mode.
