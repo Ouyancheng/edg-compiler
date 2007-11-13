@@ -8324,11 +8324,12 @@ valid template argument types: If one is encountered, FALSE is returned and
     result = (traverse_type_tree(type_ptr, ttt_is_type_with_no_name_linkage,
                                  ttt_flags));
   }  /* if */
-  if (result) {
-    *is_unnamed = is_unnamed_type;
-    *is_local = is_local_type;
-  } else if (il_header.vla_used) {
+  *is_unnamed = is_unnamed_type;
+  *is_local = is_local_type;
+  if (!result && il_header.vla_used) {
     result = *is_vla = is_variably_modified_type(type_ptr);
+  } else {
+    *is_vla = FALSE;
   }  /* if */
   return result;
 }  /* is_invalid_template_arg_type */
