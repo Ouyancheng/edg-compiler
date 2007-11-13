@@ -17072,7 +17072,8 @@ parts of types in things like pointers to functions.
   if (!C_mode()) {
     (void)traverse_type_tree(type, ttt_elim_def_arg_lifetimes,
                              (TTT_RETURN_TYPE | TTT_PARAM_TYPES |
-                              TTT_SKIP_TYPEREFS | TTT_STOP_AT_TYPEDEFS));
+                              TTT_SKIP_TYPEREFS | TTT_STOP_AT_TYPEDEFS |
+                              TTT_PARENT_CLASSES));
   }  /* if */
 }  /* eliminate_default_arg_object_lifetimes */
 

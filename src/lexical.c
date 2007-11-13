@@ -11211,8 +11211,7 @@ all arguments were explicit.
     arg_kind = templ_arg_kind_for_symbol_kind(sym->kind);
     arg_ptr = alloc_template_arg(arg_kind);
     if (is_type_templ_arg(arg_ptr)) {
-      a_boolean		is_unnamed;
-      a_boolean		is_local;
+      a_boolean		is_unnamed, is_local, is_vla;
       type_name_full(/*disallow_variably_modified_type=*/TRUE, &argument_type,
                      (a_boolean*)NULL, (a_boolean*)NULL);
       /* In standard C++98/C++03, template type arguments must have linkage,
@@ -11220,19 +11219,18 @@ all arguments were explicit.
          Microsoft mode, local class types are acceptable even though they
          have no linkage. */ 
       if (is_invalid_template_arg_type(
-                                      argument_type, &is_unnamed, &is_local)) {
+                            argument_type, &is_unnamed, &is_local, &is_vla)) {
         if (is_local) {
           pos_error(ec_local_type_in_template_arg, &arg_pos);
         } else if (is_unnamed) {
           pos_error(ec_unnamed_type_in_template_arg, &arg_pos);
+        } else if (is_vla) {
+          pos_error(ec_vla_type_in_template_arg, &arg_pos);
         } else {
           /* A named type nested in an unnamed class has no linkage in
              C++98/C++03.  Use a different diagnostic for such cases. */
           pos_error(ec_type_with_no_linkage_in_template_arg, &arg_pos);
         }  /* if */
-        argument_type = error_type();
-      } else if (is_variably_modified_type(argument_type)) {
-        pos_error(ec_vla_type_in_template_arg, &arg_pos);
         argument_type = error_type();
       }  /* if */
       arg_ptr->variant.type = argument_type;

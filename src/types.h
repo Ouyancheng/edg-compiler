@@ -781,7 +781,8 @@ extern a_boolean is_or_contains_type_with_no_name_linkage(
                                                        a_type_ptr  type_ptr);
 extern a_boolean is_invalid_template_arg_type(a_type_ptr  type_ptr,
                                               a_boolean   *is_unnamed,
-                                              a_boolean   *is_local);
+                                              a_boolean   *is_local,
+                                              a_boolean   *is_vla);
 extern a_boolean is_template_dependent_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_template_param(a_type_ptr  type_ptr);
 extern void set_type_involves_deduced_template_param(a_type_ptr  rout_type);
@@ -950,9 +951,9 @@ typedef int a_type_tree_traversal_flag_set;
 			   the parent classes of a type (e.g., ignore
 			   the T in A<T>::B) and nontype template
 			   parameters used in expression contexts. */
-#define TTT_NO_PARENT_CLASSES 0x200
+#define TTT_PARENT_CLASSES 0x200
 			/* When the type being traversed is a class member,
-			   do not automatically traverse its parent type. */
+			   also traverse its parent type. */
 
 /* Type of service function called by traverse_type_tree to return TRUE or
    FALSE status regarding a given type in a type tree. */

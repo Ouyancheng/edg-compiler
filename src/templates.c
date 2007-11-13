@@ -9522,9 +9522,9 @@ structure.
   while (tap != NULL) {
     if (is_type_templ_arg(tap)) {
       a_type_ptr	type = tap->variant.type;
-      a_boolean		is_unnamed;
-      a_boolean		is_local;
-      if (is_invalid_template_arg_type(type, &is_unnamed, &is_local)) {
+      a_boolean		is_unnamed, is_local, is_vla;
+      if (is_invalid_template_arg_type(
+                                     type, &is_unnamed, &is_local, &is_vla)) {
         if (is_local) {
           pos_error(ec_local_type_in_template_arg, source_pos);
           tap->variant.type = error_type();
@@ -9535,10 +9535,11 @@ structure.
           pos_error(is_unnamed ? ec_unnamed_type_in_template_arg
                                : ec_type_with_no_linkage_in_template_arg,
                     source_pos);
+
+        } else if (is_vla) {
+          pos_error(ec_vla_type_in_template_arg, source_pos);
+          tap->variant.type = error_type();
         }  /* if */
-      } else if (is_variably_modified_type(type)) {
-        pos_error(ec_vla_type_in_template_arg, source_pos);
-        tap->variant.type = error_type();
       }  /* if */
       /* Local typedef names (legal if they refer to nonlocal types) should
          not be part of the type signature of the template itself,
