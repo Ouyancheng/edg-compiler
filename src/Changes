@@ -1,5 +1,22 @@
 Version 3.11
 
+11/13/07 printf and scanf argument checking: %s
+
+The checking of arguments to printf and scanf now allows the argument
+associated with a %s specifier to be a pointer to a character of any
+signedness, i.e., char *, signed char *, or unsigned char *.  Formerly,
+a remark was issued for the explicitly-signed cases.
+
+  void fns(signed char *p) { printf("%s", p); }
+
+Also, a pointer passed to scanf to allow return of a value is now
+considered incompatible if it is a pointer to const.
+
+  int main() {
+    const int i = 1;
+    scanf("%f", &i);
+  }
+
 11/8/07  Lowering: Incorrect region table entries for certain dynamically
          initialized aggregates in file scope
 
