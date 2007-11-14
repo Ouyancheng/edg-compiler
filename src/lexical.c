@@ -7286,8 +7286,9 @@ Issue a diagnostic if it is not.
        sign may be prohibited by the test above. */
     err_code = ec_UCN_names_basic_char;
   } else if (ucn >= 0xd800 && ucn <= 0xdfff) {
-    /* A UCN cannot name a character in the range of 0xd800-0xdfff. */
-    err_code = ec_invalid_UCN;
+    /* A UCN cannot name a character in the range of 0xd800-0xdfff (the ISO
+       10646 surrogate code points). */
+    err_code = ec_UCN_names_surrogate_code_point;
   } else if (is_identifier) {
     /* Check whether this is a valid identifier character. */
     err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
