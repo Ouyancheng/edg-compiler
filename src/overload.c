@@ -7351,7 +7351,10 @@ default_case:;
         goto end_of_scan;
     }  /* switch */
     /* Add a "pointer to" to the required type if necessary. */
-    if (add_pointer) required_type = make_pointer_type(required_type);
+    if (add_pointer) {
+      required_type = make_pointer_type(required_type);
+      if (*alt_type != NULL) *alt_type = make_pointer_type(*alt_type);
+    }  /* if */
   }  /* if */
   /* Next time around, look for a new specifier. */
   pss = pss_new_specifier;
